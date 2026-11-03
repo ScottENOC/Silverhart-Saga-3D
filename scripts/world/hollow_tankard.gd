@@ -86,10 +86,19 @@ func _create_simulation() -> void:
             if absf(world.x) > 12.0 or absf(world.z) > 10.0:
                 continue
             var inside_room: bool = absf(world.x) < ROOM_HALF_WIDTH - 0.2 and absf(world.z) < ROOM_HALF_DEPTH - 0.2
-            var blocked: bool = inside_room and _is_furniture_cell_blocked(world)
+            var blocked: bool = _is_wall_cell_blocked(world) or (inside_room and _is_furniture_cell_blocked(world))
             simulation.map_data.add_cell(hex, 0.0, not blocked, "timber_floor" if inside_room else "grass")
 
     simulation.character_moved.connect(_on_character_moved)
+
+func _is_wall_cell_blocked(world: Vector3) -> bool:
+    # The south-wall gap is the only opening. The nearest grid cells to the
+    # doorway remain clear; adjacent cells are blocked by the wall.
+    if absf(absf(world.x) - ROOM_HALF_WIDTH) < 1.1 and absf(world.z) < ROOM_HALF_DEPTH:
+        return true
+    if absf(absf(world.z) - ROOM_HALF_DEPTH) < 1.1 and absf(world.x) > 1.1:
+        return true
+    return false
 
 func _is_furniture_cell_blocked(world: Vector3) -> bool:
     # These are coarse logical footprints, deliberately separate from meshes.
@@ -116,12 +125,12 @@ func _create_ground_and_hexes() -> void:
     tile_mesh = _create_hex_tile_mesh()
     for hex_variant in simulation.map_data.cells.keys():
         var hex: Vector2i = hex_variant
-        var inside_room: bool = absf(HexGrid.axial_to_world(hex, HEX_RADIUS).x) < ROOM_HALF_WIDTH - 0.2 and absf(HexGrid.axial_to_world(hex, HEX_RADIUS).z) < ROOM_HALF_DEPTH - 0.2
-            var cell_world := HexGrid.axial_to_world(hex, HEX_RADIUS, 0.06 if inside_room else -0.07)
+        var center := HexGrid.axial_to_world(hex, HEX_RADIUS)
+        var inside_room: bool = absf(center.x) < ROOM_HALF_WIDTH - 0.2 and absf(center.z) < ROOM_HALF_DEPTH - 0.2
+        var cell_world := HexGrid.axial_to_world(hex, HEX_RADIUS, 0.06 if inside_room else -0.07)
         var tile := MeshInstance3D.new()
         tile.mesh = tile_mesh
         tile.position = cell_world
-        var inside_room: bool = absf(cell_world.x) < ROOM_HALF_WIDTH - 0.2 and absf(cell_world.z) < ROOM_HALF_DEPTH - 0.2
         if not simulation.map_data.is_walkable(hex):
             tile.material_override = blocked_material
         else:
