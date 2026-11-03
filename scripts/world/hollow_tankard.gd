@@ -96,8 +96,10 @@ func _is_wall_cell_blocked(world: Vector3) -> bool:
     # doorway remain clear; adjacent cells are blocked by the wall.
     if absf(absf(world.x) - ROOM_HALF_WIDTH) < 1.1 and absf(world.z) < ROOM_HALF_DEPTH:
         return true
-    if absf(absf(world.z) - ROOM_HALF_DEPTH) < 1.1 and absf(world.x) > 1.1:
-        return true
+    if absf(world.z + ROOM_HALF_DEPTH) < 1.1:
+        return true # north wall has no doorway
+    if absf(world.z - ROOM_HALF_DEPTH) < 1.1 and absf(world.x) > 1.1:
+        return true # south wall, except the entrance
     return false
 
 func _is_furniture_cell_blocked(world: Vector3) -> bool:
