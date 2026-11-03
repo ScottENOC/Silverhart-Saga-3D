@@ -22,5 +22,4 @@ environment/defaults/default_clear_color=Color(0.11, 0.14, 0.16, 1)
 [physics]
 3d/default_gravity=9.8
 
-[application/run]
-max_fps=60
+run/max_fps=60
