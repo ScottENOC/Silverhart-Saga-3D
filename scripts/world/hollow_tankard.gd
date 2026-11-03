@@ -1,3 +1,4 @@
+class_name HollowTankard
 extends Node3D
 
 # First authored location: the Hollow Tankard and its immediate approach.
@@ -115,7 +116,8 @@ func _create_ground_and_hexes() -> void:
     tile_mesh = _create_hex_tile_mesh()
     for hex_variant in simulation.map_data.cells.keys():
         var hex: Vector2i = hex_variant
-        var cell_world := HexGrid.axial_to_world(hex, HEX_RADIUS, -0.07)
+        var inside_room: bool = absf(HexGrid.axial_to_world(hex, HEX_RADIUS).x) < ROOM_HALF_WIDTH - 0.2 and absf(HexGrid.axial_to_world(hex, HEX_RADIUS).z) < ROOM_HALF_DEPTH - 0.2
+            var cell_world := HexGrid.axial_to_world(hex, HEX_RADIUS, 0.06 if inside_room else -0.07)
         var tile := MeshInstance3D.new()
         tile.mesh = tile_mesh
         tile.position = cell_world
@@ -163,7 +165,7 @@ func _create_building() -> void:
     add_child(building)
 
     # Stone plinth and timber-framed plaster walls.
-    _add_box(building, "StonePlinth", Vector3(0.0, 0.12, 0.0), Vector3(16.7, 0.42, 11.7), stone_material)
+    _add_box(building, "StoneFloorFoundation", Vector3(0.0, -0.08, 0.0), Vector3(16.7, 0.16, 11.7), stone_material)
 
     # North wall: one continuous wall with a pair of small glazed windows.
     _add_wall_segment(building, Vector3(-3.0, 1.8, -5.5), Vector3(9.7, WALL_HEIGHT, 0.35))
