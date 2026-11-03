@@ -228,12 +228,11 @@ func _add_wall_segment(parent: Node3D, position: Vector3, size: Vector3) -> void
 
 func _add_window(parent: Node3D, position: Vector3, dimensions: Vector2, on_side_wall: bool = false) -> void:
     var pane_size := Vector3(0.08, dimensions.y, dimensions.x) if on_side_wall else Vector3(dimensions.x, dimensions.y, 0.08)
-    var pane := _add_box(parent, "WindowGlass", position, pane_size, glass_material)
+    _add_box(parent, "WindowGlass", position, pane_size, glass_material)
     if on_side_wall:
         _add_box(parent, "WindowSill", position + Vector3(0.0, -dimensions.y * 0.5, 0.0), Vector3(0.18, 0.12, dimensions.x + 0.2), timber_material)
     else:
         _add_box(parent, "WindowSill", position + Vector3(0.0, -dimensions.y * 0.5, 0.0), Vector3(dimensions.x + 0.2, 0.12, 0.18), timber_material)
-    return
 
 func _create_furniture() -> void:
     var furniture := Node3D.new()
@@ -283,7 +282,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
 
     var actor := HexActorPresentation.new()
     actor.name = id
-    actor.position = HexGrid.axial_to_world(hex, HEX_RADIUS)
+    actor.position = _hex_world_position(hex)
     actor.set_meta("character_id", id)
 
     var body := MeshInstance3D.new()
@@ -371,7 +370,12 @@ func _attempt_move(direction: Vector2i) -> void:
 func _on_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
     var actor: HexActorPresentation = actor_by_id.get(character_id) as HexActorPresentation
     if actor != null:
-        actor.present_move_to(HexGrid.axial_to_world(to_hex, HEX_RADIUS))
+        actor.present_move_to(_hex_world_position(to_hex))
+
+func _hex_world_position(hex: Vector2i) -> Vector3:
+    var centre := HexGrid.axial_to_world(hex, HEX_RADIUS)
+    var inside_room: bool = absf(centre.x) < ROOM_HALF_WIDTH - 0.2 and absf(centre.z) < ROOM_HALF_DEPTH - 0.2
+    return HexGrid.axial_to_world(hex, HEX_RADIUS, 0.12 if inside_room else 0.0)
 
 func _add_box(parent: Node3D, node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
     var instance := MeshInstance3D.new()
