@@ -2,6 +2,7 @@ extends Node3D
 
 const MAP_RANGE: int = 7
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
+const TILE_THICKNESS: float = 0.12
 
 var simulation: WorldSimulation
 var player_visual: HexActorPresentation
@@ -62,20 +63,55 @@ func _create_terrain() -> void:
     blocked_material.albedo_color = Color(0.30, 0.29, 0.25)
     blocked_material.roughness = 1.0
 
+    # Build one explicit flat-top prism mesh and share it across all cells.
+    # Geometry and axial spacing both use HexGrid's same radius/orientation.
+    var tile_mesh := _create_hex_tile_mesh()
+
     for q in range(-MAP_RANGE, MAP_RANGE + 1):
         for r in range(-MAP_RANGE, MAP_RANGE + 1):
             var hex := Vector2i(q, r)
             var tile := MeshInstance3D.new()
-            var mesh := CylinderMesh.new()
-            mesh.top_radius = HEX_RADIUS
-            mesh.bottom_radius = HEX_RADIUS
-            mesh.height = 0.12
-            mesh.radial_segments = 6
-            mesh.rings = 1
-            tile.mesh = mesh
-            tile.position = HexGrid.axial_to_world(hex, HEX_RADIUS, -0.08)
+            tile.mesh = tile_mesh
+            tile.position = HexGrid.axial_to_world(hex, HEX_RADIUS, -TILE_THICKNESS * 0.5 - 0.02)
             tile.material_override = blocked_material if obstacle_hexes.has(hex) else tile_material
             add_child(tile)
+
+func _create_hex_tile_mesh() -> ArrayMesh:
+    var surface := SurfaceTool.new()
+    surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+
+    var corners := HexGrid.corner_offsets(HEX_RADIUS)
+    var half_height: float = TILE_THICKNESS * 0.5
+
+    # Top face: reverse corner order so its normal points upward (+Y).
+    for i in range(HexGrid.SIDE_COUNT):
+        var next_i: int = (i + 1) % HexGrid.SIDE_COUNT
+        surface.set_normal(Vector3.UP)
+        surface.add_vertex(Vector3(0.0, half_height, 0.0))
+        surface.add_vertex(Vector3(corners[next_i].x, half_height, corners[next_i].y))
+        surface.add_vertex(Vector3(corners[i].x, half_height, corners[i].y))
+
+    # Six vertical side faces with outward-facing normals.
+    for i in range(HexGrid.SIDE_COUNT):
+        var next_i: int = (i + 1) % HexGrid.SIDE_COUNT
+        var current_top := Vector3(corners[i].x, half_height, corners[i].y)
+        var next_top := Vector3(corners[next_i].x, half_height, corners[next_i].y)
+        var current_bottom := Vector3(corners[i].x, -half_height, corners[i].y)
+        var next_bottom := Vector3(corners[next_i].x, -half_height, corners[next_i].y)
+        var middle_angle: float = deg_to_rad(60.0 * (float(i) + 0.5))
+        var side_normal := Vector3(cos(middle_angle), 0.0, sin(middle_angle))
+
+        surface.set_normal(side_normal)
+        surface.add_vertex(current_top)
+        surface.add_vertex(next_top)
+        surface.add_vertex(next_bottom)
+
+        surface.set_normal(side_normal)
+        surface.add_vertex(current_top)
+        surface.add_vertex(next_bottom)
+        surface.add_vertex(current_bottom)
+
+    return surface.commit()
 
 func _create_player() -> void:
     player_visual = HexActorPresentation.new()
