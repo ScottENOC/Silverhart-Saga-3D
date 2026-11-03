@@ -58,10 +58,15 @@ func _create_terrain() -> void:
     tile_material = StandardMaterial3D.new()
     tile_material.albedo_color = Color(0.28, 0.38, 0.27)
     tile_material.roughness = 1.0
+    # SurfaceTool's triangle winding can differ from the default primitive
+    # winding. Disable face culling so the explicitly-normalled tile faces
+    # remain visible while we validate the mesh in-engine.
+    tile_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
     var blocked_material := StandardMaterial3D.new()
     blocked_material.albedo_color = Color(0.30, 0.29, 0.25)
     blocked_material.roughness = 1.0
+    blocked_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
     # Build one explicit flat-top prism mesh and share it across all cells.
     # Geometry and axial spacing both use HexGrid's same radius/orientation.
