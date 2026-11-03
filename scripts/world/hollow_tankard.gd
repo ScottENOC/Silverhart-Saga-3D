@@ -123,19 +123,22 @@ func _create_ground_and_hexes() -> void:
     add_child(ground)
 
     tile_mesh = _create_hex_tile_mesh()
-    for hex_variant in simulation.map_data.cells.keys():
-        var hex: Vector2i = hex_variant
-        var center := HexGrid.axial_to_world(hex, HEX_RADIUS)
-        var inside_room: bool = absf(center.x) < ROOM_HALF_WIDTH - 0.2 and absf(center.z) < ROOM_HALF_DEPTH - 0.2
-        var cell_world := HexGrid.axial_to_world(hex, HEX_RADIUS, 0.06 if inside_room else -0.07)
-        var tile := MeshInstance3D.new()
-        tile.mesh = tile_mesh
-        tile.position = cell_world
-        if not simulation.map_data.is_walkable(hex):
-            tile.material_override = blocked_material
-        else:
-            tile.material_override = floor_material if inside_room else grass_material
-        add_child(tile)
+    for q in range(-7, 8):
+        for r in range(-7, 8):
+            var hex := Vector2i(q, r)
+            if not simulation.map_data.has_cell(hex):
+                continue
+            var center := HexGrid.axial_to_world(hex, HEX_RADIUS)
+            var inside_room: bool = absf(center.x) < ROOM_HALF_WIDTH - 0.2 and absf(center.z) < ROOM_HALF_DEPTH - 0.2
+            var cell_world := HexGrid.axial_to_world(hex, HEX_RADIUS, 0.06 if inside_room else -0.07)
+            var tile := MeshInstance3D.new()
+            tile.mesh = tile_mesh
+            tile.position = cell_world
+            if not simulation.map_data.is_walkable(hex):
+                tile.material_override = blocked_material
+            else:
+                tile.material_override = floor_material if inside_room else grass_material
+            add_child(tile)
 
 func _create_hex_tile_mesh() -> ArrayMesh:
     var surface := SurfaceTool.new()
