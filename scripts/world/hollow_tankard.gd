@@ -176,9 +176,10 @@ func _create_building() -> void:
     # Stone plinth and timber-framed plaster walls.
     _add_box(building, "StoneFloorFoundation", Vector3(0.0, -0.08, 0.0), Vector3(16.7, 0.16, 11.7), stone_material)
 
-    # North wall: one continuous wall with a pair of small glazed windows.
-    _add_wall_segment(building, Vector3(-3.0, 1.8, -5.5), Vector3(9.7, WALL_HEIGHT, 0.35))
-    _add_wall_segment(building, Vector3(5.0, 1.8, -5.5), Vector3(6.7, WALL_HEIGHT, 0.35))
+    # North wall is split around two actual window openings.
+    _add_wall_segment(building, Vector3(-5.3, 1.8, -5.5), Vector3(1.4, WALL_HEIGHT, 0.35))
+    _add_wall_segment(building, Vector3(-0.5, 1.8, -5.5), Vector3(5.8, WALL_HEIGHT, 0.35))
+    _add_wall_segment(building, Vector3(5.8, 1.8, -5.5), Vector3(4.4, WALL_HEIGHT, 0.35))
     _add_window(building, Vector3(-4.0, 1.95, -5.5), Vector2(1.2, 1.0))
     _add_window(building, Vector3(3.0, 1.95, -5.5), Vector2(1.2, 1.0))
 
