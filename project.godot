@@ -1,0 +1,26 @@
+; Silverhart Saga 3D
+; Engine baseline: Godot 4.7.2 stable
+config_version=5
+
+[application]
+config/name="Silverhart Saga 3D"
+run/main_scene="res://scenes/main.tscn"
+
+[display]
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/window_width_override=1600
+window/size/window_height_override=900
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="mobile"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.11, 0.14, 0.16, 1)
+
+[physics]
+3d/default_gravity=9.8
+
+[application/run]
+max_fps=60
