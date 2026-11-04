@@ -131,6 +131,30 @@ func clear_slot(slot: String) -> void:
         child.queue_free()
     active_components.erase(slot)
 
+func set_component_layer_colour(slot: String, layer_name: String, colour: Color, opacity: float = 1.0) -> bool:
+    if not slot_mounts.has(slot):
+        return false
+    var meshes: Array[MeshInstance3D] = []
+    _collect_meshes(slot_mounts[slot], meshes)
+    var changed := false
+    for mesh_instance in meshes:
+        if not mesh_instance.name.contains(layer_name):
+            continue
+        if mesh_instance.mesh == null:
+            continue
+        for surface_index in range(mesh_instance.mesh.get_surface_count()):
+            var source := mesh_instance.get_active_material(surface_index)
+            var material_copy := source.duplicate() as StandardMaterial3D if source is StandardMaterial3D else null
+            if material_copy == null:
+                continue
+            var tint := colour
+            tint.a = clampf(opacity, 0.0, 1.0)
+            material_copy.albedo_color = tint
+            material_copy.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if tint.a < 0.999 else BaseMaterial3D.TRANSPARENCY_DISABLED
+            mesh_instance.set_surface_override_material(surface_index, material_copy)
+            changed = true
+    return changed
+
 func get_appearance() -> Dictionary:
     return active_components.duplicate(true)
 
