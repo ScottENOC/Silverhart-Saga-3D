@@ -23,6 +23,8 @@ var party_switch_button: Button
 var zoom_slider: HSlider
 var bra_toggle_button: Button
 var briefs_toggle_button: Button
+var rotate_left_button: Button
+var rotate_right_button: Button
 var wren_bra_enabled: bool = true
 var wren_briefs_enabled: bool = true
 var tile_mesh: ArrayMesh
@@ -300,8 +302,9 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
 
     var actor := HexActorPresentation.new()
     actor.name = id
-    actor.position = _hex_world_position(hex)
+    actor.position = _hex_world_position(spawn_hex)
     actor.set_meta("character_id", id)
+    actor.rotation.y = deg_to_rad(float(2 - state.facing_direction) * 60.0)
 
     var is_wren: bool = id == "companion_wren_talbot"
     var model_loaded := false
@@ -402,6 +405,23 @@ func _create_hud() -> void:
     briefs_toggle_button.custom_minimum_size = Vector2(150.0, 38.0)
     briefs_toggle_button.pressed.connect(_toggle_wren_briefs)
     layer.add_child(briefs_toggle_button)
+
+    var facing_panel := HBoxContainer.new()
+    facing_panel.position = Vector2(22.0, 194.0)
+    facing_panel.add_theme_constant_override("separation", 6)
+    layer.add_child(facing_panel)
+
+    rotate_left_button = Button.new()
+    rotate_left_button.text = "↶ 60°"
+    rotate_left_button.tooltip_text = "Turn active character 60 degrees left"
+    rotate_left_button.pressed.connect(func(): _rotate_active_character(-1))
+    facing_panel.add_child(rotate_left_button)
+
+    rotate_right_button = Button.new()
+    rotate_right_button.text = "↷ 60°"
+    rotate_right_button.tooltip_text = "Turn active character 60 degrees right"
+    rotate_right_button.pressed.connect(func(): _rotate_active_character(1))
+    facing_panel.add_child(rotate_right_button)
 
     # Dedicated zoom controls for laptops and trackpads without a wheel.
     var zoom_panel := HBoxContainer.new()
@@ -506,22 +526,40 @@ func _unhandled_input(event: InputEvent) -> void:
             roof_group.visible = not roof_group.visible
             return
 
-        var direction := Vector2i.ZERO
-        match key_event.keycode:
-            KEY_Q: direction = Vector2i(-1, 0)
-            KEY_W: direction = Vector2i(0, -1)
-            KEY_E: direction = Vector2i(1, -1)
-            KEY_A: direction = Vector2i(-1, 1)
-            KEY_S: direction = Vector2i(0, 1)
-            KEY_D: direction = Vector2i(1, 0)
-            _: return
-        _attempt_move(direction)
+        if key_event.keycode == KEY_BRACKETLEFT:
+            _rotate_active_character(-1)
+            get_viewport().set_input_as_handled()
+            return
+        if key_event.keycode == KEY_BRACKETRIGHT:
+            _rotate_active_character(1)
+            get_viewport().set_input_as_handled()
+            return
 
-func _attempt_move(direction: Vector2i) -> void:
+        var relative_step := -1
+        match key_event.keycode:
+            KEY_Q: relative_step = 5
+            KEY_W: relative_step = 0
+            KEY_E: relative_step = 1
+            KEY_A: relative_step = 4
+            KEY_S: relative_step = 3
+            KEY_D: relative_step = 2
+            _: return
+        _attempt_move(relative_step)
+
+func _rotate_active_character(steps: int) -> void:
+    var state := simulation.get_character(active_character_id)
+    var actor: Node3D = actor_by_id.get(active_character_id) as Node3D
+    if state == null or actor == null:
+        return
+    state.facing_direction = posmod(state.facing_direction + steps, 6)
+    actor.rotation.y = deg_to_rad(float(2 - state.facing_direction) * 60.0)
+
+func _attempt_move(relative_step: int) -> void:
     var state := simulation.get_character(active_character_id)
     if state == null:
         return
-    simulation.try_move_character(state.id, state.axial + direction)
+    var direction_index := posmod(state.facing_direction + relative_step, 6)
+    simulation.try_move_character(state.id, state.axial + HexGrid.DIRECTIONS[direction_index])
 
 func _find_valid_spawn_hex(preferred: Vector2i) -> Vector2i:
     # Search outward from the authored staging position to avoid furniture
