@@ -426,6 +426,42 @@ if body_parts:
     for polygon in body.data.polygons:
         polygon.use_smooth = True
 
+# Distinct but restrained anatomical surface details. These remain separate
+# meshes within the body component so they can receive their own material.
+AREOLA = material("Wren | areola", (0.39, 0.22, 0.19))
+NIPPLE = material("Wren | nipple", (0.34, 0.17, 0.15))
+LIP = material("Wren | lips", (0.48, 0.23, 0.22))
+LOWER_LIP = material("Wren | lower lip", (0.58, 0.31, 0.29))
+CREASE = material("Wren | soft crease", (0.22, 0.11, 0.10))
+for side, sign in (("L", 1), ("R", -1)):
+    sphere_piece(f"Body_Areola_{side}", (sign * 0.108, -0.174, 1.228),
+        (0.027, 0.006, 0.024), AREOLA, "Spine", 20, 12)
+    sphere_piece(f"Body_Nipple_{side}", (sign * 0.108, -0.180, 1.228),
+        (0.008, 0.005, 0.009), NIPPLE, "Spine", 16, 10)
+
+# Upper and lower lip volumes with a fine mouth line.
+sphere_piece("Face_Upper_Lip", (0.0, -0.128, 1.620),
+    (0.031, 0.010, 0.008), LIP, "Head", 20, 12)
+sphere_piece("Face_Lower_Lip", (0.0, -0.129, 1.610),
+    (0.029, 0.010, 0.009), LOWER_LIP, "Head", 20, 12)
+sphere_piece("Face_Mouth_Line", (0.0, -0.138, 1.615),
+    (0.024, 0.0025, 0.002), CREASE, "Head", 16, 8)
+
+# Shallow navel inset and understated external adult anatomical detail.
+sphere_piece("Body_Navel", (0.0, -0.139, 0.965),
+    (0.008, 0.003, 0.012), CREASE, "Root", 16, 10)
+sphere_piece("Body_Mons", (0.0, -0.137, 0.785),
+    (0.065, 0.012, 0.032), SKIN, "Root", 24, 16)
+for side, sign in (("L", 1), ("R", -1)):
+    sphere_piece(f"Body_Labium_{side}", (sign * 0.018, -0.149, 0.765),
+        (0.018, 0.006, 0.038), AREOLA, "Root", 20, 12)
+sphere_piece("Body_Vulvar_Cleft", (0.0, -0.155, 0.765),
+    (0.0025, 0.002, 0.023), CREASE, "Root", 12, 8)
+sphere_piece("Body_Anal_Rim", (0.0, 0.151, 0.735),
+    (0.014, 0.004, 0.011), AREOLA, "Root", 16, 10)
+sphere_piece("Body_Anal_Centre", (0.0, 0.155, 0.735),
+    (0.004, 0.002, 0.005), CREASE, "Root", 12, 8)
+
 EYE_WHITE = material("Wren | eye whites", (0.78, 0.70, 0.58))
 IRIS = material("Wren | iris", (0.22, 0.15, 0.09))
 EYE = material("Wren | pupils", (0.025, 0.020, 0.018))
