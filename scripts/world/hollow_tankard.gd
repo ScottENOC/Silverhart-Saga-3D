@@ -316,6 +316,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         actor.add_child(character_model)
         model_loaded = character_model.configure({
             "hair": "braid",
+            "body_hair": "groomed",
             "weapon": "sword",
             "underwear_bra": "strapless",
             "underwear_briefs": "full_coverage",
@@ -498,10 +499,8 @@ func _toggle_wren_briefs() -> void:
     wren_briefs_enabled = not wren_briefs_enabled
     if wren_briefs_enabled:
         model.set_component("underwear_briefs", "full_coverage")
-        model.clear_slot("body_hair")
     else:
         model.clear_slot("underwear_briefs")
-        model.set_component("body_hair", "groomed")
     briefs_toggle_button.text = "Briefs: " + ("on" if wren_briefs_enabled else "off")
 
 func _switch_party_member() -> void:
