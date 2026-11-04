@@ -324,7 +324,7 @@ for side, sign in (("L", 1), ("R", -1)):
     # Palm, individually modelled curled fingers and opposing thumb.
     # Fixed grip pose for now; separate finger bones can animate these later.
     palm = (sign * 0.555, -0.025, 1.025)
-    sphere_piece(f"Body_Palm_{side}", palm, (0.055, 0.052, 0.073), SKIN, f"Hand.{side}")
+    sphere_piece(f"Hand_Palm_{side}", palm, (0.043, 0.030, 0.052), SKIN, f"Hand.{side}")
     for finger in range(4):
         spread = (finger - 1.5) * 0.016
         base_x = sign * (0.555 + spread)
@@ -334,7 +334,7 @@ for side, sign in (("L", 1), ("R", -1)):
             (base_x + sign * 0.003, -0.066, 1.021 - abs(spread) * 0.10),
             (base_x - sign * 0.002, -0.047, 1.008 - abs(spread) * 0.08),
         ]
-        tube_mesh(f"Body_Finger_{side}_{finger+1}", finger_points,
+        tube_mesh(f"Hand_Finger_{side}_{finger+1}", finger_points,
             [0.011, 0.010, 0.0085, 0.0065], SKIN, f"Hand.{side}", sides=10, depth_ratio=0.88)
     thumb_points = [
         (sign * 0.515, -0.012, 1.055),
@@ -342,7 +342,7 @@ for side, sign in (("L", 1), ("R", -1)):
         (sign * 0.495, -0.064, 1.035),
         (sign * 0.520, -0.050, 1.020),
     ]
-    tube_mesh(f"Body_Thumb_{side}", thumb_points, [0.019, 0.017, 0.014, 0.010],
+    tube_mesh(f"Hand_Thumb_{side}", thumb_points, [0.019, 0.017, 0.014, 0.010],
         SKIN, f"Hand.{side}", sides=8, depth_ratio=0.9)
     leg_x = 0.13 if side == "L" else -0.13
     tube_mesh(f"Body_Leg_{side}", [
