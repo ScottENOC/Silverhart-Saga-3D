@@ -34,7 +34,7 @@ func select_next_ready(characters: Dictionary) -> CharacterState:
 
     var tied: Array[CharacterState] = []
     for state in ready:
-        if is_equal_approx(state.time_points, highest_tp):
+        if state.time_points == highest_tp:
             tied.append(state)
     tied.sort_custom(func(a: CharacterState, b: CharacterState) -> bool: return a.id < b.id)
 
