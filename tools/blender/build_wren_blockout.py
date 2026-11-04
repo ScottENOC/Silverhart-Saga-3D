@@ -297,6 +297,12 @@ torso_sides = 48
 for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
     for side_index in range(torso_sides):
         angle = 2.0 * math.pi * side_index / torso_sides
+        # The lowest torso boundary is a saddle-shaped crotch, not a
+        # horizontal cut. It dips between the thighs and rises into each
+        # inner hip so the lower torso blends around the leg roots.
+        ring_z = z
+        if ring_index == 0:
+            ring_z += 0.065 * (abs(math.cos(angle)) ** 1.5)
         x = math.cos(angle) * width
         y = y_center + math.sin(angle) * depth
         # Very shallow clavicular plane changes in the front of the upper chest.
@@ -325,7 +331,7 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
             # sculpted into the skin surface itself, with a broad fade-out.
             y -= front * profile * paired * 0.008
             y += front * profile * centre * 0.006
-        torso_verts.append((x, y, z))
+        torso_verts.append((x, y, ring_z))
         blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
         blend = blend * blend * (3.0 - 2.0 * blend)
         root_weights.append(1.0 - blend)
@@ -337,7 +343,16 @@ for ring in range(len(torso_rings) - 1):
         c = (ring + 1) * torso_sides + (side_index + 1) % torso_sides
         d = (ring + 1) * torso_sides + side_index
         torso_faces.append((a, b, c, d))
-torso_faces.append(tuple(range(torso_sides - 1, -1, -1)))
+# Close the underside with a curved fan, not a planar n-gon. The
+# centre sits slightly lower than the front/back crotch edge; the outer
+# boundary rises towards the inner hips as defined on the bottom ring.
+bottom_centre = len(torso_verts)
+torso_verts.append((0.0, 0.0, 0.548))
+root_weights.append(1.0)
+spine_weights.append(0.0)
+for side_index in range(torso_sides):
+    next_index = (side_index + 1) % torso_sides
+    torso_faces.append((bottom_centre, next_index, side_index))
 last_ring = (len(torso_rings) - 1) * torso_sides
 torso_faces.append(tuple(last_ring + i for i in range(torso_sides)))
 finish_skinned_mesh("Body_Torso_Pelvis", torso_verts, torso_faces, SKIN,
