@@ -46,7 +46,7 @@ Buildings share the world grid. A building's rendered architecture is separate f
 
 ## 4. Movement and combat
 
-Logical occupancy and legal movement remain simulation-owned. The presentation layer interpolates between accepted positions.
+Logical occupancy, legal movement, terrain costs and weighted A* route planning remain simulation-owned. The presentation layer requests a destination, previews the returned hex route and interpolates between accepted one-hex steps. Keyboard movement is a single adjacent step; mouse movement follows a cached route and replans if a step becomes blocked. Both inputs use the same TP-cost resolver.
 
 The eventual combat system preserves the source game's real-time world simulation and action/time-point economy, including movement and attack costs, reactions, interruptions, AI decisions and status effects. Do not replace it with conventional turn-based combat or free physics movement as the authority.
 
@@ -75,6 +75,6 @@ The first simulation increment is deliberately independent of the 3D scene:
 - `WorldClock` advances in fixed 0.4-second world-time steps. Exploration advances at 5 world-seconds per real second; combat waiting advances at 40, reflecting the source engine's different cadence. Time and TP progression pause while a combatant is taking a turn.
 - The calendar uses twelve 30-day months, preserving the source month names.
 - `CombatTurnScheduler` selects the eligible living, conscious, non-rider, non-dormant character with the highest TP; equal-TP ties are random.
-- `WorldSimulation` owns the clock, scheduler, occupancy and movement commands. It emits events for presentation to observe.
+- `MovementRules` resolves base step cost, terrain multipliers and the first movement-skill discounts. `HexPathfinder` uses weighted A* over walkable, unoccupied cells; route costs and executed step costs share the same resolver.\n- `WorldSimulation` owns the clock, scheduler, occupancy, path queries and paid movement commands. It emits events for presentation to observe.\n- Hollow Tankard controls now use paid movement: Q/W/E/A/S/D move one adjacent hex relative to facing; left-click chooses a destination and follows a highlighted route one hex at a time. Camera orbit and zoom remain separate.
 
-This is a tested foundation slice, not the completed port. Terrain-specific movement costs, the full status-effect tick, spell durations, combat actions/reactions, active-radius simulation culling, NPC schedules, world events and a versioned whole-world save service remain outstanding. The current M1 keyboard movement still uses the free debug command. The TP-costed movement command is available, but it is not yet wired into the keyboard controller; that integration waits for the terrain-aware movement-cost resolver.
+This is a foundation slice, not the completed port. The initial movement implementation covers basic terrain multipliers and Fast Movement, Swift Step and foliage expertise. Climbing transitions, elevation penalties, fences, cover fire, encumbrance, hamstring, friendly-occupant squeezing, road preferences, reactions, mounts and AI pathing remain outstanding, as do the full status-effect tick, spell durations, combat actions, active-radius simulation culling, NPC schedules, world events and a versioned whole-world save service. Tests are authored but have not yet been run in Godot.
