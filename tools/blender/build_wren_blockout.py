@@ -499,47 +499,40 @@ for side, sign in (("L", 1), ("R", -1)):
     upper_low = (sign * 0.335, -0.006, 1.285)
     elbow = (sign * 0.385, -0.006, 1.235)
     fore_mid = (sign * 0.455, -0.012, 1.155)
-    wrist = (sign * 0.525, -0.018, 1.075)
+    wrist = (sign * 0.548, -0.026, 1.055)
     # The arm is still a lofted anatomical guide, but use a much denser
     # circumference so its silhouette and normals do not resolve into long
     # polygonal bands. The elbow itself will receive a dedicated sculpt pass;
     # do not fake it with a detached sphere.
     tube_mesh(f"Body_Arm_{side}", [shoulder_root, shoulder, upper_mid, upper_low, elbow, fore_mid, wrist],
-        [0.060, 0.108, 0.096, 0.082, 0.068, 0.071, 0.043], SKIN,
-        f"UpperArm.{side}", f"Forearm.{side}", sides=64, depth_ratio=0.84, blend_start=0.56, blend_end=0.78)
-    # No separate elbow sphere: it created the conspicuous round lump visible
-    # in the sculpt preview. The elbow contour is shaped by the continuous arm.
-    # Separate wrist and palm; each finger has three independently weighted
-    # phalanges so later hand animation can bend them at real joints.
-    # A short, tapered wrist bridges the forearm into the palm instead of
-    # leaving a round ball between two aligned blocks.
-    tube_mesh(f"Hand_Wrist_{side}",
-        [(sign*0.505, -0.018, 1.105), (sign*0.535, -0.027, 1.065),
-         (sign*0.570, -0.034, 1.035)],
-        [0.030, 0.025, 0.023], SKIN, f"Forearm.{side}", f"Wrist.{side}",
-        sides=32, depth_ratio=0.78, blend_start=0.25, blend_end=0.78,
-        inner_bulge=0.0035, inner_bulge_t=0.48, outer_bulge=0.0035,
-        outer_bulge_t=0.76, ankle_bulge_width=0.20, inner_direction=-sign)
-    # Palm's short ends meet wrist and fingers. Its broad faces are X/Z;
-    # fingers extend along X, while the thumb branches across Z.
-    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(sign * 0.558, -0.034, 1.025))
-    palm = bpy.context.object
-    palm.name = f"Hand_Palm_{side}"
-    palm.dimensions = (0.112, 0.030, 0.066)
-    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-    bevel = palm.modifiers.new("Soft palm edges", "BEVEL")
-    bevel.width = 0.014
-    bevel.segments = 4
-    bpy.context.view_layer.objects.active = palm
-    bpy.ops.object.modifier_apply(modifier=bevel.name)
-    palm.data.materials.append(SKIN)
-    palm_group = palm.vertex_groups.new(name=f"Hand.{side}")
-    palm_group.add(list(range(len(palm.data.vertices))), 1.0, "REPLACE")
-    palm_armature = palm.modifiers.new("Human skeleton", "ARMATURE")
-    palm_armature.object = arm
-    palm.parent = arm
-    for poly in palm.data.polygons:
-        poly.use_smooth = True
+        [0.060, 0.108, 0.096, 0.082, 0.068, 0.071, 0.035], SKIN,
+        f"UpperArm.{side}", f"Forearm.{side}", sides=64, depth_ratio=0.84, blend_start=0.56, blend_end=0.82)
+    # The forearm loft continues into the wrist. The palm is a rounded
+    # anatomical loft, not a bevelled box, and is fused to the finger roots.
+    palm_rings = [
+        (0.525, -0.028, 1.045, 0.018, 0.022),
+        (0.545, -0.031, 1.040, 0.023, 0.030),
+        (0.570, -0.032, 1.034, 0.026, 0.036),
+        (0.592, -0.030, 1.028, 0.025, 0.036),
+        (0.615, -0.024, 1.022, 0.018, 0.027),
+    ]
+    palm_verts, palm_faces = [], []
+    palm_sides = 32
+    for x, cy, cz, depth, half_width in palm_rings:
+        for i in range(palm_sides):
+            angle = 2.0 * math.pi * i / palm_sides
+            y = cy + math.cos(angle) * depth
+            z = cz + math.sin(angle) * half_width
+            palm_verts.append((sign * x, y, z))
+    for ring in range(len(palm_rings)-1):
+        for i in range(palm_sides):
+            a = ring * palm_sides + i
+            b = ring * palm_sides + (i+1) % palm_sides
+            palm_faces.append((a, b, b+palm_sides, a+palm_sides))
+    palm_faces.extend([tuple(range(palm_sides-1, -1, -1)),
+        tuple((len(palm_rings)-1)*palm_sides+i for i in range(palm_sides))])
+    finish_skinned_mesh(f"Hand_Palm_{side}", palm_verts, palm_faces, SKIN,
+        {f"Hand.{side}": [1.0] * len(palm_verts)})
     for digit_index, digit in enumerate(("Index", "Middle", "Ring", "Pinky")):
         # Finger roots span the palm's broad edge. Each has a distinct length:
         # middle longest, then ring, index, little finger.
@@ -554,7 +547,7 @@ for side, sign in (("L", 1), ("R", -1)):
             (sign*(0.600 + length), -0.015, 1.010 + spread_z*0.78),
         ]
         digit_mesh(f"Hand_{digit}_{side}",
-            joints, [0.0095, 0.0088, 0.0072, 0.0058],
+            joints, [0.0115, 0.0100, 0.0078, 0.0058],
             [f"{digit}{segment+1}.{side}" for segment in range(3)], SKIN)
     # Thumb leaves the palm's long edge at a right angle to the fingers,
     # then turns slightly inward to oppose the index finger.
@@ -571,18 +564,19 @@ for side, sign in (("L", 1), ("R", -1)):
         (leg_x, 0.000, 0.875), (leg_x, -0.006, 0.790),
         (leg_x, -0.008, 0.690), (leg_x, -0.010, 0.590),
         (leg_x, -0.020, 0.500), (leg_x, 0.005, 0.420),
-        (leg_x, 0.022, 0.335), (leg_x, 0.010, 0.245),
-        (leg_x, 0.000, 0.155),
-    ], [0.094, 0.108, 0.106, 0.090, 0.075, 0.073, 0.083, 0.064, 0.045],
+        (leg_x, 0.022, 0.335), (leg_x, 0.015, 0.245),
+        (leg_x, 0.012, 0.175), (leg_x, 0.010, 0.125),
+    ], [0.094, 0.108, 0.106, 0.090, 0.075, 0.073, 0.083, 0.064, 0.050, 0.040],
         SKIN, f"Thigh.{side}", f"Shin.{side}", sides=64, depth_ratio=0.90,
         blend_start=0.40, blend_end=0.63,
         front_bulge=0.010, front_bulge_t=0.52, front_bulge_width=0.075,
-        inner_bulge=0.010, inner_bulge_t=0.91,
-        outer_bulge=0.012, outer_bulge_t=0.96, ankle_bulge_width=0.035,
+        inner_bulge=0.004, inner_bulge_t=0.90,
+        outer_bulge=0.005, outer_bulge_t=0.95, ankle_bulge_width=0.050,
         inner_direction=-sign)
     foot_rings = [
-        (0.025, 0.045, 0.047, 0.108), (-0.025, 0.054, 0.043, 0.105),
-        (-0.095, 0.063, 0.037, 0.094), (-0.165, 0.077, 0.032, 0.080),
+        (0.050, 0.038, 0.038, 0.126), (0.020, 0.046, 0.052, 0.112),
+        (-0.025, 0.054, 0.046, 0.105), (-0.095, 0.063, 0.037, 0.094),
+        (-0.165, 0.077, 0.032, 0.080),
         (-0.225, 0.071, 0.027, 0.072), (-0.275, 0.043, 0.020, 0.068),
     ]
     foot_verts, foot_faces = [], []
@@ -620,7 +614,7 @@ def point_segment_distance(point, start, end):
 
 body_parts = [obj for obj in bpy.context.scene.objects
     if obj.type == "MESH" and (
-        (obj.name.startswith("Body_") and not ("Areola_" in obj.name or "Nipple_" in obj.name)) or obj.name.startswith("Face_Nose_") or obj.name.startswith("Face_Nostril_Ala_")
+        (obj.name.startswith("Body_") and not ("Areola_" in obj.name or "Nipple_" in obj.name)) or obj.name.startswith("Hand_") or obj.name.startswith("Face_Nose_") or obj.name.startswith("Face_Nostril_Ala_")
     )]
 if body_parts:
     bpy.ops.object.select_all(action="DESELECT")
