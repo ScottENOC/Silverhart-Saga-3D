@@ -1,6 +1,8 @@
 class_name OrbitCameraRig
 extends Node3D
 
+signal zoom_changed(distance: float)
+
 @export var follow_target: Node3D
 @export var zoom_distance: float = 17.0
 @export var min_zoom: float = 1.4
@@ -55,6 +57,15 @@ func _unhandled_input(event: InputEvent) -> void:
         elif mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
             _set_zoom(zoom_distance + 0.5)
 
+    elif event is InputEventKey and event.pressed and not event.echo:
+        var key_event := event as InputEventKey
+        if key_event.keycode in [KEY_PLUS, KEY_EQUAL, KEY_KP_ADD]:
+            zoom_by(-1.5)
+            get_viewport().set_input_as_handled()
+        elif key_event.keycode in [KEY_MINUS, KEY_KP_SUBTRACT]:
+            zoom_by(1.5)
+            get_viewport().set_input_as_handled()
+
     elif event is InputEventMouseMotion and dragging:
         var motion := event as InputEventMouseMotion
         rotation_degrees.y -= motion.relative.x * orbit_sensitivity
@@ -64,6 +75,13 @@ func _unhandled_input(event: InputEvent) -> void:
             _max_below_horizon_pitch()
         )
 
+func zoom_by(amount: float) -> void:
+    _set_zoom(zoom_distance + amount)
+
+func set_zoom(value: float) -> void:
+    _set_zoom(value)
+
 func _set_zoom(value: float) -> void:
     zoom_distance = clampf(value, min_zoom, max_zoom)
     camera.position.z = zoom_distance
+    zoom_changed.emit(zoom_distance)
