@@ -304,7 +304,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.name = id
     actor.position = _hex_world_position(spawn_hex)
     actor.set_meta("character_id", id)
-    actor.rotation.y = deg_to_rad(float(2 - state.facing_direction) * 60.0)
+    actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
 
     var is_wren: bool = id == "companion_wren_talbot"
     var model_loaded := false
@@ -380,7 +380,7 @@ func _create_hud() -> void:
     var layer := CanvasLayer.new()
     var label := Label.new()
     label.position = Vector2(22.0, 18.0)
-    label.text = "HOLLOW TANKARD   |   Q W E / A S D: move   |   Right-drag: orbit   |   Wheel: zoom   |   +/-: zoom   |   V: roof"
+    label.text = "HOLLOW TANKARD   |   W: forward · A/D: strafe · S: back · Q/E: diagonal   |   [ ]: turn 60°   |   Right-drag: orbit   |   V: roof"
     label.add_theme_font_size_override("font_size", 18)
     label.add_theme_color_override("font_color", Color(0.94, 0.93, 0.86))
     layer.add_child(label)
