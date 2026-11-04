@@ -275,8 +275,11 @@ torso_rings = [
     (0.755, 0.208, 0.132, 0.000),
     (0.770, 0.214, 0.135, 0.000),
     (0.785, 0.219, 0.137, 0.000),
+    (0.795, 0.222, 0.138, 0.000),
     (0.805, 0.225, 0.140, 0.000),
+    (0.815, 0.224, 0.141, 0.000),
     (0.825, 0.222, 0.141, 0.000),
+    (0.835, 0.223, 0.142, 0.000),
     (0.850, 0.225, 0.142, 0.000),
     (0.855, 0.228, 0.142, 0.000),
     (0.905, 0.218, 0.136, 0.000),
@@ -337,6 +340,19 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
         if 0.770 <= z <= 0.805:
             rear_dimple = math.exp(-((z - 0.788) / 0.012) ** 2) * math.exp(-(x / 0.014) ** 2)
             y -= back * rear_dimple * 0.012
+        # Gluteal volume is sculpted directly into this continuous pelvis
+        # surface. The two broad lobes sit closer to the midline and slightly
+        # lower than the old detached forms; their upper edge fades into the
+        # sacrum and their lower edge tightens into the upper thighs.
+        if back > 0.0:
+            lobe_left = math.exp(-((x - 0.078) / 0.088) ** 2)
+            lobe_right = math.exp(-((x + 0.078) / 0.088) ** 2)
+            vertical = math.exp(-((z - 0.820) / 0.060) ** 2)
+            lower_taper = max(0.0, min(1.0, (z - 0.775) / 0.045))
+            lower_taper = lower_taper * lower_taper * (3.0 - 2.0 * lower_taper)
+            y += back * (lobe_left + lobe_right) * vertical * (0.026 * lower_taper)
+            central_cleft = math.exp(-(x / 0.012) ** 2) * math.exp(-((z - 0.805) / 0.025) ** 2)
+            y -= back * central_cleft * 0.004
         torso_verts.append((x, y, ring_z))
         blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
         blend = blend * blend * (3.0 - 2.0 * blend)
@@ -419,33 +435,7 @@ def shaped_breast(name, centre_x):
 
 for side, sign in (("L", 1), ("R", -1)):
     shaped_breast(f"Body_Breast_{side}", sign * 0.108)
-    # Gluteal mass is a shaped loft, not a hemisphere. Its upper contour
-    # fades gradually into the sacrum; the lower contour tightens more quickly
-    # to create a natural inferior fold and gravity-shaped profile.
-    glute_rings = [
-        (0.965, 0.008, 0.010), (0.950, 0.025, 0.028),
-        (0.925, 0.050, 0.048), (0.895, 0.075, 0.068),
-        (0.865, 0.094, 0.082), (0.830, 0.103, 0.090),
-        (0.800, 0.096, 0.084), (0.775, 0.078, 0.068),
-        (0.755, 0.052, 0.045), (0.744, 0.025, 0.022),
-        (0.741, 0.006, 0.006),
-    ]
-    glute_sides = 32
-    glute_verts, glute_faces = [], []
-    for gz, gx_radius, gy_radius in glute_rings:
-        for gi in range(glute_sides):
-            ga = 2.0 * math.pi * gi / glute_sides
-            glute_verts.append((sign * 0.112 + math.cos(ga) * gx_radius,
-                0.075 + math.sin(ga) * gy_radius, gz))
-    for gr in range(len(glute_rings)-1):
-        for gi in range(glute_sides):
-            a = gr * glute_sides + gi
-            b = gr * glute_sides + (gi+1) % glute_sides
-            glute_faces.append((a, b, b+glute_sides, a+glute_sides))
-    glute_faces.append(tuple(range(glute_sides-1, -1, -1)))
-    glute_faces.append(tuple((len(glute_rings)-1)*glute_sides+i for i in range(glute_sides)))
-    finish_skinned_mesh(f"Body_Glute_{side}", glute_verts, glute_faces, SKIN,
-        {"Root": [1.0] * len(glute_verts)})
+    # Gluteal anatomy is part of Body_Torso_Pelvis above, not separate meshes.
     # Deltoid volume blends the upper arm into the torso.
     sphere_piece(f"Body_Shoulder_{side}", (sign * 0.205, 0.0, 1.385),
         (0.105, 0.105, 0.105), SKIN, f"UpperArm.{side}", 24, 16)
