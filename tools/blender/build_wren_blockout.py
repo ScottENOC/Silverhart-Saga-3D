@@ -203,6 +203,45 @@ def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=20, depth_rat
         groups[bone_b] = weights_b
     return finish_skinned_mesh(name, verts, faces, mat, groups)
 
+def digit_mesh(name, points, radii, bone_names, mat):
+    """One continuous finger surface with smoothly blended phalange weights."""
+    centres = [Vector(p) for p in points]
+    sides = 12
+    verts, faces = [], []
+    weights = {bone_name: [] for bone_name in bone_names}
+    reference = Vector((0, 1, 0))
+    for ring_index, centre in enumerate(centres):
+        if ring_index == 0:
+            tangent = (centres[1] - centres[0]).normalized()
+        elif ring_index == len(centres) - 1:
+            tangent = (centres[-1] - centres[-2]).normalized()
+        else:
+            tangent = (centres[ring_index + 1] - centres[ring_index - 1]).normalized()
+        axis_u = tangent.cross(reference).normalized()
+        axis_v = tangent.cross(axis_u).normalized()
+        for side_index in range(sides):
+            angle = 2.0 * math.pi * side_index / sides
+            offset = axis_u * (math.cos(angle) * radii[ring_index]) + axis_v * (math.sin(angle) * radii[ring_index] * 0.82)
+            verts.append(tuple(centre + offset))
+            segment = min(len(bone_names) - 1, ring_index)
+            if segment == len(bone_names) - 1:
+                ring_weights = {bone_names[segment]: 1.0}
+            else:
+                blend = 0.18 if ring_index in (1, 2) else 0.0
+                ring_weights = {bone_names[segment]: 1.0 - blend}
+                if blend:
+                    ring_weights[bone_names[segment + 1]] = blend
+            for bone_name in bone_names:
+                weights[bone_name].append(ring_weights.get(bone_name, 0.0))
+    for ring in range(len(centres) - 1):
+        for side in range(sides):
+            a = ring * sides + side
+            b = ring * sides + (side + 1) % sides
+            faces.append((a, b, b + sides, a + sides))
+    faces.extend([tuple(range(sides - 1, -1, -1)),
+        tuple((len(centres) - 1) * sides + i for i in range(sides))])
+    return finish_skinned_mesh(name, verts, faces, mat, weights)
+
 def torus_piece(name, location, major_radius, minor_radius, mat, bone_name, rotation=(0, 0, 0)):
     bpy.ops.mesh.primitive_torus_add(major_segments=16, minor_segments=6,
         location=location, major_radius=major_radius, minor_radius=minor_radius,
@@ -379,7 +418,7 @@ for side, sign in (("L", 1), ("R", -1)):
     sphere_piece(f"Hand_Wrist_{side}", (sign*0.535, -0.020, 1.065),
         (0.035, 0.032, 0.035), SKIN, f"Wrist.{side}", 20, 12)
     sphere_piece(f"Hand_Palm_{side}", (sign * 0.555, -0.025, 1.025),
-        (0.044, 0.033, 0.057), SKIN, f"Hand.{side}", 24, 16)
+        (0.047, 0.019, 0.052), SKIN, f"Hand.{side}", 24, 16)
     for digit_index, digit in enumerate(("Index", "Middle", "Ring", "Pinky")):
         x = sign * (0.555 + (digit_index - 1.5) * 0.020)
         z = 1.006
@@ -389,22 +428,17 @@ for side, sign in (("L", 1), ("R", -1)):
             (x + sign*0.004, -0.065, z - 0.020),
             (x + sign*0.002, -0.043, z - 0.034),
         ]
-        for segment in range(3):
-            bone_name = f"{digit}{segment+1}.{side}"
-            tube_mesh(f"Hand_{digit}_{side}_Phalanx_{segment+1}",
-                [joints[segment], joints[segment+1]],
-                [0.010 - segment*0.0018, 0.0085 - segment*0.0015],
-                SKIN, bone_name, sides=12, depth_ratio=0.82)
+        digit_mesh(f"Hand_{digit}_{side}",
+            joints, [0.010, 0.009, 0.0075, 0.0065],
+            [f"{digit}{segment+1}.{side}" for segment in range(3)], SKIN)
     thumb_joints = [
         (sign*0.515,-0.010,1.035),
         (sign*0.485,-0.045,1.020),
         (sign*0.485,-0.060,1.000),
     ]
-    for segment in range(2):
-        tube_mesh(f"Hand_Thumb_{side}_Phalanx_{segment+1}",
-            [thumb_joints[segment], thumb_joints[segment+1]],
-            [0.015-segment*0.002, 0.012-segment*0.002],
-            SKIN, f"Thumb{segment+1}.{side}", sides=12, depth_ratio=0.84)
+    digit_mesh(f"Hand_Thumb_{side}", thumb_joints,
+        [0.015, 0.012, 0.009],
+        [f"Thumb{segment+1}.{side}" for segment in range(2)], SKIN)
     leg_x = 0.13 if side == "L" else -0.13
     tube_mesh(f"Body_Leg_{side}", [
         (leg_x, 0.000, 0.875), (leg_x, -0.006, 0.790),
