@@ -1,6 +1,8 @@
 class_name HollowTankard
 extends Node3D
 
+const ModularCharacterAssembler = preload("res://scripts/presentation/modular_character_assembler.gd")
+
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
@@ -294,19 +296,17 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     var is_wren: bool = id == "companion_wren_talbot"
     var model_loaded := false
     if is_wren:
-        # GLB imports as a PackedScene. Keep it as a child of the logical actor
-        # so simulation movement, selection and future equipment remain separate.
-        var wren_scene := load("res://art/characters/wren/wren_blockout.glb") as PackedScene
-        if wren_scene != null:
-            var wren_model := wren_scene.instantiate() as Node3D
-            if wren_model != null:
-                wren_model.name = "CharacterModel"
-                actor.add_child(wren_model)
-                model_loaded = true
-            else:
-                push_warning("Wren GLB loaded but its root was not Node3D; using placeholder.")
-        else:
-            push_warning("Wren GLB not imported yet; using placeholder character.")
+        # Appearance is assembled from independent GLBs on one shared rig.
+        # Later character appearance data can replace any slot at runtime.
+        var character_model := ModularCharacterAssembler.new()
+        character_model.name = "CharacterModel"
+        actor.add_child(character_model)
+        model_loaded = character_model.configure({
+            "hair": "braid",
+            "weapon": "sword",
+        })
+        if not model_loaded:
+            character_model.queue_free()
 
     # Keep the simple capsule-and-head actors for everyone else, and as a
     # graceful fallback if the Wren asset is missing or fails to instantiate.
