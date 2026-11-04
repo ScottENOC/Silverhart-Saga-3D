@@ -355,7 +355,7 @@ def point_segment_distance(point, start, end):
     t = max(0.0, min(1.0, (point - start).dot(segment) / length_sq))
     return (point - (start + segment * t)).length
 
-body_parts = [obj for obj in character_collection.objects
+body_parts = [obj for obj in bpy.context.scene.objects
     if obj.type == "MESH" and obj.name.startswith("Body_")]
 if body_parts:
     bpy.ops.object.select_all(action="DESELECT")
