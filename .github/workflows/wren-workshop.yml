@@ -32,6 +32,7 @@ jobs:
         run: |
           set -euo pipefail
           /opt/blender/blender --background --python tools/blender/build_wren_blockout.py
+          /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/prepare_wren_sculpt.py
           /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/export_character_components.py
           test -s art/characters/wren/wren_blockout.glb
           test -s art/characters/wren/body.glb
@@ -41,6 +42,7 @@ jobs:
           name: wren-model-build
           path: |
             art/characters/wren/wren_blockout.blend
+            art/characters/wren/wren_sculpt_source.blend
             art/characters/wren/*.glb
           if-no-files-found: error
           retention-days: 14
