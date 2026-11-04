@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/blender/**"
       - "site/**"
+      - "docs/ARA_CHARACTER_EVALUATION.md"
       - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
@@ -16,7 +17,7 @@ concurrency:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Install Blender 5.2.3
@@ -32,48 +33,97 @@ jobs:
       - name: Generate Wren blockout
         run: |
           set -euo pipefail
-          echo "Memory before generation:"
-          grep -E 'MemAvailable|MemTotal' /proc/meminfo
           /usr/bin/time -v /opt/blender/blender --background --python tools/blender/build_wren_blockout.py
           test -s art/characters/wren/wren_blockout.blend
           test -s art/characters/wren/wren_blockout.glb
-
       - name: Prepare sculpt source
         run: |
           set -euo pipefail
           /usr/bin/time -v /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/prepare_wren_sculpt.py
           test -s art/characters/wren/wren_sculpt_source.blend
-
       - name: Export sculpt preview
         run: |
           set -euo pipefail
           /usr/bin/time -v /opt/blender/blender --background --python tools/blender/export_sculpt_preview.py
           test -s art/characters/wren/wren_sculpt_source.glb
-
       - name: Export modular character components
         run: |
           set -euo pipefail
           /usr/bin/time -v /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/export_character_components.py
           test -s art/characters/wren/body.glb
-      - name: Keep Blender source and exported models as build artifacts
+      - name: Build Ara 3D Gen benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
+          git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
+          cd /tmp/ara-3d-gen
+          corepack enable
+          pnpm install --frozen-lockfile
+          npm run setup-assets
+          cat > /tmp/ara-wren.params.json <<'JSON'
+          {
+            "name": "Wren Talbot - Ara benchmark",
+            "seed": 218,
+            "gender": 0,
+            "age": 0.5,
+            "muscle": 0.62,
+            "weight": 0.42,
+            "height": 0.55,
+            "proportions": 0.68,
+            "african": 0.05,
+            "asian": 0.05,
+            "caucasian": 0.9,
+            "breastSize": 0.5,
+            "breastFirmness": 0.55,
+            "hair": "braid01",
+            "hairTint": "#252b62",
+            "outfit": "none",
+            "top": "fatigue_shirt",
+            "jacket": "none",
+            "bottom": "fatigue_pants",
+            "underwear": true,
+            "shoes": "combat_boots",
+            "hat": "none",
+            "weapon": "sword",
+            "carry": "none",
+            "detail": "high",
+            "rig": "game",
+            "restPose": "A",
+            "animations": true,
+            "faceBones": true,
+            "faceShapes": true,
+            "speechShapes": true,
+            "expression": "neutral",
+            "garmentStyles": {
+              "fatigue_shirt": {"pattern":"solid","color":"#244b2b","color2":"#d94a72"},
+              "fatigue_pants": {"pattern":"solid","color":"#29292d","color2":"#29292d"}
+            }
+          }
+          JSON
+          npm run export -- --params /tmp/ara-wren.params.json --detail high --formats glb --out /tmp/ara-out
+          mkdir -p "$GITHUB_WORKSPACE/art/characters/ara"
+          find /tmp/ara-out -maxdepth 1 -type f -name '*.glb' -print -quit | grep -q .
+          cp /tmp/ara-out/*.glb "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_benchmark.glb"
+          cp /tmp/ara-wren.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren.params.json"
+          test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_benchmark.glb"
+      - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wren-model-build
+          name: character-pipeline-evaluation
           path: |
-            art/characters/wren/wren_blockout.blend
-            art/characters/wren/wren_sculpt_source.blend
             art/characters/wren/*.glb
+            art/characters/ara/ara_wren_benchmark.glb
+            art/characters/ara/ara_wren.params.json
           if-no-files-found: error
           retention-days: 14
       - name: Assemble private viewer site
         run: |
           set -euo pipefail
           mkdir -p site/assets
-          # The phone viewer currently loads only these two complete models.
-          # Keep the modular exports in GitHub build artifacts, not the Space:
-          # every unnecessary large LFS asset adds to the Space's storage footprint.
           cp art/characters/wren/wren_blockout.glb site/assets/wren_blockout.glb
           cp art/characters/wren/wren_sculpt_source.glb site/assets/wren_sculpt_source.glb
+          cp art/characters/ara/ara_wren_benchmark.glb site/assets/ara_wren_benchmark.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
