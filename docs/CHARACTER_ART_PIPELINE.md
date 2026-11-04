@@ -212,3 +212,16 @@ The first 3D garment pass is authored as two independent skinned components:
 Godot appearance slots are `underwear_bra` and `underwear_briefs`; each can be cleared or equipped independently. The Hollow Tankard prototype exposes separate Bra and Briefs toggles. When briefs are enabled, the optional body-hair appearance layer is hidden; turning briefs off restores that layer. These controls are presentation-only at this stage and do not change inventory or gameplay equipment state.
 
 This is deliberately a fit-and-layering prototype, not final cloth simulation. The next validation is to check the garments from front, side and rear in Godot, correct any intersections, then add body-region hiding so future shirts and trousers cleanly cover the underlayers.
+
+
+## Wren first-pass underwear and appearance customisation
+
+Wren's original 2D preset (`scenario2_wren_v2`) defines both bra and briefs with:
+- Main fabric: HSV 55°, 58% saturation, 20% value, 75% layer opacity (dark ochre).
+- Pale trim: HSV 47°, 100% saturation, 100% value, fully opaque.
+
+The first 3D pass uses the same dark ochre and pale gold palette. The briefs use actual open mesh cells in a repeating lace-like pattern, so the gaps reveal the body behind them rather than relying on a second body render. The bra and briefs remain separate components and can be toggled independently.
+
+Clothing colour and opacity are material properties, not baked into a body texture. `ModularCharacterAssembler.set_component_layer_colour(slot, layer_name, colour, opacity)` provides per-mesh-layer runtime tint/opacity. For example, the bra cups, cup trim, briefs front/back and waistband trim can be controlled independently. Cut-outs remain geometric holes and are unaffected by colour changes. No duplicate body model is needed for clothing colour variants.
+
+The authored Wren bra preset is explicitly `underwear_bra_strapless`: it should be a bandeau/strapless bra with a continuous under-bust band, not shoulder straps. If a later item uses shoulder straps, those will be separately modelled and must attach to the cup geometry and follow the body's surface.
