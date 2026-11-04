@@ -101,6 +101,31 @@ The current Blender generator creates hair as separate mesh objects weighted to 
 
 Therefore, the architecture is planned for modular hair, but the current implementation is not yet capable of changing Wren's hairstyle in-game. Before producing a wardrobe, split the Blender source into independently exportable body, hair and weapon components, then implement a Godot character assembler that attaches compatible resources to the shared skeleton. Garments and armour can use the same mechanism.
 
+
+## Modular asset export and runtime assembly
+
+The Blender source remains the authoring source, but exported GLBs are split by visual slot. Run `tools/blender/export_character_components.py` after generating/opening the Wren blend file. The exporter uses mesh-name prefixes and includes the canonical armature with each skinned component:
+
+| Prefix | Export | Runtime slot |
+|---|---|---|
+| `Body_`, `Face_` | `body.glb` | Base body |
+| `Hair_` | `hair_braid.glb` | Hair |
+| `Weapon_` | `weapon_sword.glb` | Main-hand weapon |
+| `Garment_Torso_` | `garment_torso_base.glb` | Torso garment |
+| `Garment_Legs_` | `garment_legs_base.glb` | Leg garment |
+| `Armour_Torso_` | `armour_torso_base.glb` | Torso armour |
+| `Armour_Legs_` | `armour_legs_base.glb` | Leg armour |
+
+Empty future slots are skipped by the exporter; they are not placeholder geometry. New hairstyles can use additional IDs and paths in the assembler catalog. A hairstyle may comprise several meshes but is replaced as one logical slot.
+
+Godot's `ModularCharacterAssembler` instantiates the body first and uses its Skeleton3D as the canonical rig. It then imports optional component scenes, moves their MeshInstance3D nodes into slot mounts and rebinds their skeleton paths to the shared skeleton. This depends on every component being exported from the same canonical armature with exactly matching bone names/order and compatible bind poses. Do not apply different armature transforms or rename/reorder bones between exports.
+
+The assembler exposes `configure(appearance)`, `set_component(slot, id)`, `clear_slot(slot)` and `get_appearance()`. Appearance IDs are presentation data; the simulation/inventory remains authoritative. Slots are generic enough for multiple hairstyles, garments and armour pieces. Body-region hiding/masking and garment layering still need to be implemented as the wardrobe grows.
+
+### Current implementation boundary
+
+Wren's Hollow Tankard actor now uses the assembler with the braid and sword slots. The Blender component exporter and Godot assembler are committed, but the new component GLBs must be generated locally and imported by Godot before the modular model can appear. The current blockout has no authored garment or armour meshes yet; the exporter and runtime slots support those future assets, but do not pretend that clothing/armour geometry already exists.
+
 ## First modelling milestone
 
 Create a first reusable human female body/rig and Wren's starting appearance:
