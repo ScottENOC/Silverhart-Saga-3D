@@ -612,6 +612,13 @@ func _advance_path_step() -> void:
         if active_turn == null or active_turn.id != active_character_id:
             return
     var next_hex := active_path[1]
+    var active_state := simulation.get_character(active_character_id)
+    if active_state == null:
+        active_path.clear()
+        _clear_path_markers()
+        return
+    if not simulation.is_in_combat and active_state.time_points < simulation.movement_cost(active_character_id, next_hex):
+        return # Keep the route queued until exploration TP regenerates.
     if not simulation.try_move_character_step(active_character_id, next_hex):
         # A changed occupancy or depleted movement budget can invalidate the
         # remaining route. Re-plan from the character's actual current hex.
