@@ -591,53 +591,85 @@ sphere_piece("Weapon_Sword_Blade", (-0.555, -0.025, 1.245),
 # ---------------------------------------------------------------------------
 # Optional appearance layers: body hair, tattoos and piercings.
 # Each category exports independently and can be changed at runtime.
-# ---------------------------------------------------------------------------
 
-# Neatly groomed, modest pubic-hair patch: a small tapered arrangement of
-# fine strands, kept as a separate cosmetic layer rather than part of the body.
-for i in range(9):
-    x = (i - 4) * 0.010
-    z0 = 0.805 + abs(i - 4) * 0.003
-    z1 = 0.770 + abs(i - 4) * 0.006
-    tube_mesh(f"BodyHair_Pubic_{i+1:02d}",
-        [(x, -0.135, z0), (x * 0.82, -0.139, (z0+z1)*0.5), (x * 0.62, -0.139, z1)],
-        [0.0022, 0.0020, 0.0008], PUBIC_HAIR, "Root", sides=6, depth_ratio=0.7)
+def torso_surface_y(x, z, front=True):
+    lower = torso_rings[0]
+    upper = torso_rings[-1]
+    for i in range(len(torso_rings)-1):
+        if torso_rings[i][0] <= z <= torso_rings[i+1][0]:
+            lower, upper = torso_rings[i], torso_rings[i+1]
+            break
+    t = max(0.0, min(1.0, (z-lower[0]) / max(0.0001, upper[0]-lower[0])))
+    width = lower[1] * (1-t) + upper[1] * t
+    depth = lower[2] * (1-t) + upper[2] * t
+    section = math.sqrt(max(0.05, 1.0 - (x / width) ** 2))
+    return (-1.0 if front else 1.0) * depth * section
 
-# Small silver hoops on both ears, with their plane facing forwards.
+# Neatly groomed, modest pubic hair is a separate appearance layer. It is
+# offset just outside the front skin surface so it cannot show through the body.
+for i in range(11):
+    x = (i - 5) * 0.008
+    z0 = 0.810 + abs(i - 5) * 0.002
+    z1 = 0.775 + abs(i - 5) * 0.004
+    points = []
+    for px, pz in [(x, z0), (x * 0.82, (z0+z1)*0.5), (x * 0.62, z1)]:
+        points.append((px, torso_surface_y(px, pz, True)-0.003, pz))
+    tube_mesh(f"BodyHair_Pubic_{i+1:02d}", points,
+        [0.0020, 0.0018, 0.0006], PUBIC_HAIR, "Root", sides=6, depth_ratio=0.65)
+
+# Ear hoops sit around the lobes, with the ring plane parallel to the front
+# and rear of the head so both views show the complete hoop.
 for side, sign in (("L", 1), ("R", -1)):
-    torus_piece(f"Piercing_Ear_Hoop_{side}", (sign * 0.126, -0.026, 1.676),
-        0.018, 0.0032, PIERCING_METAL, "Head", (math.radians(90), 0, 0))
+    torus_piece(f"Piercing_Ear_Hoop_{side}", (sign * 0.140, 0.0, 1.675),
+        0.018, 0.0030, PIERCING_METAL, "Head", (math.radians(90), 0, 0))
 
-# One subtle hoop through Wren's left nipple (the +X side in this rig).
-torus_piece("Piercing_Left_Nipple", (0.108, -0.229, 1.225),
+# The top of this hoop intersects the nipple itself: a piercing must pass
+# through tissue rather than float in front of it.
+torus_piece("Piercing_Left_Nipple", (0.108, -0.222, 1.213),
     0.012, 0.0025, PIERCING_METAL, "Spine", (math.radians(90), 0, 0))
 
-# Dragon linework follows the back surface and climbs to the shoulder opposite
-# the braid (+X braid; tattoo terminates at the -X shoulder).
-tube_mesh("Tattoo_Dragon_Body", [
-    (0.015, 0.132, 0.965), (-0.012, 0.137, 1.015),
-    (0.018, 0.139, 1.065), (-0.025, 0.139, 1.115),
-    (-0.045, 0.132, 1.165), (-0.105, 0.125, 1.225),
-    (-0.165, 0.105, 1.285), (-0.205, 0.075, 1.335)
-], [0.0045, 0.0042, 0.0040, 0.0040, 0.0038, 0.0036, 0.0032, 0.0020],
-    TATTOO, "Spine", sides=7, depth_ratio=0.7)
-tube_mesh("Tattoo_Dragon_Wing_Upper", [
-    (-0.030, 0.139, 1.105), (-0.090, 0.135, 1.150),
-    (-0.135, 0.123, 1.205), (-0.080, 0.134, 1.190),
-    (-0.030, 0.139, 1.145)
-], [0.0038, 0.0034, 0.0022, 0.0030, 0.0015],
-    TATTOO, "Spine", sides=7, depth_ratio=0.7)
-tube_mesh("Tattoo_Dragon_Wing_Lower", [
-    (-0.020, 0.139, 1.080), (0.045, 0.137, 1.120),
-    (0.075, 0.132, 1.175), (0.020, 0.139, 1.150),
-    (-0.015, 0.139, 1.115)
-], [0.0038, 0.0034, 0.0022, 0.0030, 0.0015],
-    TATTOO, "Spine", sides=7, depth_ratio=0.7)
-tube_mesh("Tattoo_Dragon_Tail", [
-    (0.015, 0.132, 0.965), (0.075, 0.126, 0.940),
-    (0.105, 0.115, 0.905), (0.065, 0.126, 0.915)
-], [0.0038, 0.0032, 0.0020, 0.0008],
-    TATTOO, "Root", sides=7, depth_ratio=0.7)
+# Dragon tattoo on the back opposite the braid. The design has a recognisable
+# head, horns, neck, wing membranes, body, four legs and a curling tail.
+def tattoo_tube(name, coords, radius=0.0030):
+    points = [(x, torso_surface_y(x, z, False)+0.002, z) for x, z in coords]
+    tube_mesh(name, points, [radius] * (len(points)-1) + [radius*0.45],
+        TATTOO, "Spine", sides=7, depth_ratio=0.55)
+
+# Head, snout, jaw and horns near the opposite shoulder.
+tattoo_tube("Tattoo_Dragon_Head", [
+    (-0.155,1.325),(-0.185,1.340),(-0.215,1.328),(-0.228,1.312),
+    (-0.205,1.300),(-0.178,1.305),(-0.155,1.325)], 0.0038)
+tattoo_tube("Tattoo_Dragon_Horns", [
+    (-0.178,1.335),(-0.195,1.365),(-0.188,1.342)], 0.0028)
+tattoo_tube("Tattoo_Dragon_Horn2", [
+    (-0.202,1.332),(-0.225,1.352),(-0.214,1.325)], 0.0025)
+# Neck and serpentine torso.
+tattoo_tube("Tattoo_Dragon_Neck", [
+    (-0.175,1.305),(-0.145,1.270),(-0.112,1.230),(-0.080,1.185),
+    (-0.035,1.145),(0.020,1.125),(0.075,1.140)], 0.0040)
+tattoo_tube("Tattoo_Dragon_Belly", [
+    (-0.112,1.230),(-0.060,1.205),(-0.005,1.190),(0.055,1.195)], 0.0026)
+# Wings: leading edge and branching spars create a clear bat-wing silhouette.
+tattoo_tube("Tattoo_Dragon_Wing_Left", [
+    (-0.095,1.205),(-0.155,1.245),(-0.205,1.275),(-0.220,1.225),
+    (-0.185,1.190),(-0.205,1.155),(-0.145,1.170),(-0.095,1.205)], 0.0032)
+tattoo_tube("Tattoo_Dragon_Wing_Spar1", [
+    (-0.155,1.245),(-0.170,1.205),(-0.185,1.190)], 0.0020)
+tattoo_tube("Tattoo_Dragon_Wing_Spar2", [
+    (-0.205,1.275),(-0.190,1.220),(-0.205,1.155)], 0.0020)
+tattoo_tube("Tattoo_Dragon_Wing_Right", [
+    (-0.035,1.155),(0.015,1.205),(0.075,1.245),(0.105,1.205),
+    (0.080,1.170),(0.105,1.145),(0.045,1.135),(-0.035,1.155)], 0.0030)
+tattoo_tube("Tattoo_Dragon_Wing_Spar3", [
+    (0.015,1.205),(0.035,1.165),(0.080,1.170)], 0.0019)
+# Legs and a long curling tail.
+tattoo_tube("Tattoo_Dragon_Leg_Front", [
+    (-0.055,1.150),(-0.025,1.105),(-0.005,1.075),(0.025,1.080)], 0.0027)
+tattoo_tube("Tattoo_Dragon_Leg_Back", [
+    (0.045,1.145),(0.075,1.105),(0.105,1.085),(0.125,1.095)], 0.0027)
+tattoo_tube("Tattoo_Dragon_Tail", [
+    (0.070,1.140),(0.105,1.105),(0.135,1.065),(0.125,1.030),
+    (0.085,1.015),(0.055,1.035),(0.075,1.055)], 0.0032)
 
 # ---------------------------------------------------------------------------
 # Preview setup and GLB export.
