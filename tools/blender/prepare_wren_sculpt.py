@@ -21,6 +21,7 @@ body_parts = [
     obj for obj in bpy.context.scene.objects
     if obj.type == "MESH" and (
         obj.name == "Body_Continuous"
+        or obj.name.startswith("Hand_")
         or obj.name.startswith("Body_Toe_")
         or obj.name.startswith("Body_Areola_")
         or obj.name.startswith("Body_Nipple_")
