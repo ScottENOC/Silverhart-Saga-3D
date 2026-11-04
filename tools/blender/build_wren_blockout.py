@@ -269,6 +269,9 @@ for side, sign in (("L", 1), ("R", -1)):
     shaped_breast(f"Body_Breast_{side}", sign * 0.108)
     sphere_piece(f"Body_Glute_{side}", (sign * 0.112, 0.092, 0.835),
         (0.125, 0.105, 0.145), SKIN, "Root", 32, 24)
+    # Deltoid volume blends the upper arm into the torso.
+    sphere_piece(f"Body_Shoulder_{side}", (sign * 0.205, 0.0, 1.385),
+        (0.105, 0.105, 0.105), SKIN, f"UpperArm.{side}", 24, 16)
 # Subtle, non-detailed external pelvic anatomy; no explicit genital detailing.
 sphere_piece("Body_Pubic_Mound", (0, -0.112, 0.785),
     (0.105, 0.035, 0.065), SKIN, "Root", 18, 12)
@@ -324,12 +327,13 @@ for side, sign in (("L", 1), ("R", -1)):
         SKIN, f"Hand.{side}", sides=8, depth_ratio=0.9)
     leg_x = 0.13 if side == "L" else -0.13
     sphere_piece(f"Body_Thigh_{side}", (leg_x, 0, 0.69), (0.115, 0.115, 0.25), SKIN, f"Thigh.{side}")
-    sphere_piece(f"Body_Shin_{side}", (leg_x, 0, 0.32), (0.078, 0.085, 0.22), SKIN, f"Shin.{side}")
-    sphere_piece(f"Body_Foot_{side}", (leg_x, -0.075, 0.105), (0.075, 0.16, 0.07), SKIN, f"Foot.{side}")
+    sphere_piece(f"Body_Knee_{side}", (leg_x, -0.012, 0.485), (0.080, 0.090, 0.085), SKIN, f"Shin.{side}", 24, 16)
+    sphere_piece(f"Body_Calf_{side}", (leg_x, 0.018, 0.315), (0.083, 0.100, 0.175), SKIN, f"Shin.{side}", 24, 16)
+    sphere_piece(f"Body_Foot_{side}", (leg_x, -0.105, 0.105), (0.082, 0.205, 0.072), SKIN, f"Foot.{side}", 28, 18)
     # Five short toes fan out from the front of each foot.
     for toe in range(5):
         toe_offset = (toe - 2) * 0.025
-        toe_length = 0.075 - abs(toe_offset) * 0.55
+        toe_length = 0.105 - abs(toe_offset) * 0.45
         toe_points = [
             (leg_x + toe_offset * 0.72, -0.175, 0.095),
             (leg_x + toe_offset, -0.205 - toe_length * 0.30, 0.090),
@@ -356,7 +360,9 @@ def point_segment_distance(point, start, end):
     return (point - (start + segment * t)).length
 
 body_parts = [obj for obj in bpy.context.scene.objects
-    if obj.type == "MESH" and obj.name.startswith("Body_")]
+    if obj.type == "MESH" and (
+        obj.name.startswith("Body_") or obj.name.startswith("Face_Nose_")
+    )]
 if body_parts:
     bpy.ops.object.select_all(action="DESELECT")
     for obj in body_parts:
@@ -378,6 +384,13 @@ if body_parts:
     remesh.use_smooth_shade = True
     bpy.context.view_layer.objects.active = body
     bpy.ops.object.modifier_apply(modifier=remesh.name)
+    relax = body.modifiers.new("Relax fused anatomy", "SMOOTH")
+    relax.factor = 0.65
+    relax.iterations = 4
+    bpy.ops.object.modifier_apply(modifier=relax.name)
+    polish = body.modifiers.new("Polished skin surface", "SUBSURF")
+    polish.levels = 1
+    bpy.ops.object.modifier_apply(modifier=polish.name)
 
     # Voxel remeshing creates a unified surface. Rebuild smooth skin weights
     # from the canonical rig's bone segments, blending the two nearest bones.
