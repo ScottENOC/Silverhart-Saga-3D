@@ -3,7 +3,7 @@ extends Node3D
 
 @export var follow_target: Node3D
 @export var zoom_distance: float = 17.0
-@export var min_zoom: float = 1.5
+@export var min_zoom: float = 0.8
 @export var max_zoom: float = 32.0
 @export var orbit_sensitivity: float = 0.25
 @export var pitch_sensitivity: float = 0.20
@@ -43,16 +43,16 @@ func _unhandled_input(event: InputEvent) -> void:
         if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
             dragging = mouse_event.pressed
         elif mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
-            _set_zoom(zoom_distance - 0.8)
+            _set_zoom(zoom_distance - 0.5)
         elif mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-            _set_zoom(zoom_distance + 0.8)
+            _set_zoom(zoom_distance + 0.5)
 
     elif event is InputEventMouseMotion and dragging:
         var motion := event as InputEventMouseMotion
         rotation_degrees.y -= motion.relative.x * orbit_sensitivity
         pitch_pivot.rotation_degrees.x = clampf(
             pitch_pivot.rotation_degrees.x - motion.relative.y * pitch_sensitivity,
-            -88.0,
+            -89.0,
             -25.0
         )
 
