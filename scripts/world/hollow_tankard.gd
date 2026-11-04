@@ -309,6 +309,9 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         model_loaded = character_model.configure({
             "hair": "braid",
             "weapon": "sword",
+            "body_hair": "groomed",
+            "tattoo": "dragon_back",
+            "piercings": "wren_set",
         })
         if not model_loaded:
             character_model.queue_free()
