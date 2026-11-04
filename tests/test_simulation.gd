@@ -5,6 +5,8 @@ func _initialize() -> void:
     _test_movement_validation()
     _test_time_point_rules()
     _test_action_movement_cost()
+    _test_world_clock()
+    _test_combat_turn_scheduler()
     print("WorldSimulation tests passed.")
     quit()
 
@@ -81,3 +83,63 @@ func _test_action_movement_cost() -> void:
     player.time_points = 10.0
     assert(not sim.try_move_character_action("player", Vector2i(2, 0), 5.0))
     assert(is_equal_approx(player.time_points, 10.0))
+
+func _test_world_clock() -> void:
+    var clock := WorldClock.new()
+    assert(clock.advance_world_seconds(0.39) == 0)
+    assert(is_equal_approx(clock.world_seconds, 0.0))
+    assert(clock.advance_world_seconds(0.01) == 1)
+    assert(is_equal_approx(clock.world_seconds, 0.4))
+    assert(clock.tick_index == 1)
+
+    clock.paused = true
+    assert(clock.advance_world_seconds(4.0) == 0)
+    assert(is_equal_approx(clock.world_seconds, 0.4))
+    clock.paused = false
+
+    var saved := clock.to_dict()
+    var restored := WorldClock.new()
+    restored.load_dict(saved)
+    assert(restored.tick_index == clock.tick_index)
+    assert(is_equal_approx(restored.world_seconds, clock.world_seconds))
+
+func _test_combat_turn_scheduler() -> void:
+    var sim := WorldSimulation.new()
+    var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+    var guard := CharacterState.new("guard", "Guard", Vector2i(1, 0))
+    player.time_points = 99.5
+    guard.time_points = 99.0
+    sim.register_character(player)
+    sim.register_character(guard)
+    sim.start_combat()
+
+    # One 0.4-second world tick grants one TP, then selects the highest ready.
+    assert(sim.clock.advance_world_seconds(0.4) == 1)
+    assert(sim.turn_scheduler.current_character_id == "player")
+    assert(sim.get_current_turn_character() == player)
+    assert(is_equal_approx(player.time_points, 100.5))
+    assert(is_equal_approx(guard.time_points, 100.0))
+
+    # No regeneration while the selected character is taking their turn.
+    assert(sim.clock.advance_world_seconds(0.4) == 1)
+    assert(is_equal_approx(player.time_points, 100.5))
+    assert(is_equal_approx(guard.time_points, 100.0))
+
+    # Turn cannot end until the character reaches their Quick Recovery threshold.
+    assert(not sim.try_end_current_turn())
+    player.time_points = 80.0
+    assert(sim.try_end_current_turn())
+    assert(not sim.turn_scheduler.has_active_turn())
+
+    # Next waiting tick regenerates everyone and selects the next highest TP.
+    assert(sim.clock.advance_world_seconds(0.4) == 1)
+    assert(sim.turn_scheduler.current_character_id == "guard")
+    assert(is_equal_approx(guard.time_points, 101.0))
+
+    var save_data := sim.to_dict()
+    var loaded := WorldSimulation.new()
+    loaded.load_dict(save_data)
+    assert(loaded.is_in_combat)
+    assert(loaded.get_character("guard") != null)
+    assert(loaded.get_character("player") != null)
+    assert(is_equal_approx(loaded.clock.world_seconds, sim.clock.world_seconds))
