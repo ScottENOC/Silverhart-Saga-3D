@@ -21,6 +21,12 @@ const COMPONENTS := {
     "piercings": {
         "wren_set": "res://art/characters/wren/piercings_wren.glb",
     },
+    "underwear_bra": {
+        "strapless": "res://art/characters/wren/underwear_bra.glb",
+    },
+    "underwear_briefs": {
+        "full_coverage": "res://art/characters/wren/underwear_briefs.glb",
+    },
     "torso_garment": {
         "base": "res://art/characters/wren/garment_torso_base.glb",
     },
