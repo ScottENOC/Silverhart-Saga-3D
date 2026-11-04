@@ -78,6 +78,29 @@ Source implementation in the original repository:
 - `characterCreation.js`: base character defaults and fighter's starting sword.
 - `appearancePresets.js`: the complete `scenario2_wren_v2` appearance preset.
 
+
+## Modular appearance: required behaviour
+
+Hair is a first-class appearance slot, not part of the body mesh. The same applies to brows, facial hair, clothing, armour and accessories. A character may change hairstyle, hair colour, clothing or equipment during play without replacing their body or identity.
+
+The runtime assembly should be composed from independently addressable visual components:
+- A character root and shared skeleton.
+- One body resource, with body proportions/shape data where needed.
+- One selected hairstyle resource, attached/skinned to the head.
+- Optional additional hair pieces (fringe, ponytail, braid, beard) where a style is authored from multiple meshes.
+- Independently selected garment and equipment resources.
+- Optional appearance overlays such as scars, tattoos and dirt.
+
+Each component needs a stable resource ID and compatibility metadata: rig version, supported body variant, attachment/skinning method, visual slot, and any regions it covers. Appearance state should store IDs and colour parameters, not hard-coded mesh node names. Changing a hair style should replace only the hair component; it must not recreate the character, reset animation, or affect inventory/equipment.
+
+Hair can be a single mesh or a small group of meshes. It does not need to be split into one resource per strand. The important separation is between hair and the underlying head/body, and between independently selectable styles.
+
+### Current prototype status
+
+The current Blender generator creates hair as separate mesh objects weighted to the Head bone, so it is already geometrically separate from the body. However, the current exported wren_blockout.glb packages the whole character together and the Godot scene loads it as one model. There is not yet a runtime appearance-slot system or independently swappable hairstyle resources.
+
+Therefore, the architecture is planned for modular hair, but the current implementation is not yet capable of changing Wren's hairstyle in-game. Before producing a wardrobe, split the Blender source into independently exportable body, hair and weapon components, then implement a Godot character assembler that attaches compatible resources to the shared skeleton. Garments and armour can use the same mechanism.
+
 ## First modelling milestone
 
 Create a first reusable human female body/rig and Wren's starting appearance:
