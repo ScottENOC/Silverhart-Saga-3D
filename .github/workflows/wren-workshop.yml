@@ -61,6 +61,7 @@ jobs:
         with:
           path: site
   deploy:
+    if: vars.ENABLE_WREN_PAGES == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
