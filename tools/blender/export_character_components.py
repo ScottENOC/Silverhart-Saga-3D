@@ -46,7 +46,7 @@ export_component("body.glb", ("Body_", "Face_", "Hand_"))
 export_component("hair_braid.glb", ("Hair_",))
 export_component("weapon_sword.glb", ("Weapon_",))
 export_component("body_hair_pubic.glb", ("BodyHair_",))
-export_component("tattoo_dragon.glb", ("Tattoo_",))
+export_component("tattoo_star.glb", ("Tattoo_",))
 export_component("piercings_wren.glb", ("Piercing_",))
 # These slot exports are automatically populated when corresponding garment
 # and armour meshes are authored in Blender.
