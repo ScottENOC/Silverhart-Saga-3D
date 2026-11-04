@@ -352,9 +352,9 @@ for side, sign in (("L", 1), ("R", -1)):
     sphere_piece(f"Body_Kneecap_{side}", (leg_x, -0.062, 0.495),
         (0.055, 0.026, 0.062), SKIN, f"Shin.{side}", 24, 16)
     foot_rings = [
-        (0.105, 0.052, 0.052, 0.108), (0.045, 0.063, 0.047, 0.105),
-        (-0.045, 0.073, 0.040, 0.094), (-0.135, 0.091, 0.035, 0.080),
-        (-0.205, 0.084, 0.029, 0.072), (-0.275, 0.050, 0.022, 0.068),
+        (0.025, 0.052, 0.052, 0.108), (-0.025, 0.063, 0.047, 0.105),
+        (-0.095, 0.073, 0.040, 0.094), (-0.165, 0.091, 0.035, 0.080),
+        (-0.235, 0.084, 0.029, 0.072), (-0.305, 0.050, 0.022, 0.068),
     ]
     foot_verts, foot_faces = [], []
     foot_sides = 24
@@ -463,9 +463,9 @@ LIP = material("Wren | lips", (0.48, 0.23, 0.22))
 LOWER_LIP = material("Wren | lower lip", (0.58, 0.31, 0.29))
 CREASE = material("Wren | soft crease", (0.22, 0.11, 0.10))
 for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Body_Areola_{side}", (sign * 0.108, -0.183, 1.205),
+    sphere_piece(f"Body_Areola_{side}", (sign * 0.108, -0.203, 1.205),
         (0.024, 0.004, 0.020), AREOLA, "Spine", 20, 12)
-    sphere_piece(f"Body_Nipple_{side}", (sign * 0.108, -0.187, 1.205),
+    sphere_piece(f"Body_Nipple_{side}", (sign * 0.108, -0.209, 1.205),
         (0.007, 0.004, 0.008), NIPPLE, "Spine", 16, 10)
 
 # Toe geometry is kept separate after remeshing so its definition survives.
@@ -475,15 +475,15 @@ for side, sign in (("L", 1), ("R", -1)):
         offset = (toe - 2) * 0.029
         length = 0.105 - abs(offset) * 0.32
         sphere_piece(f"Body_Toe_{side}_{toe+1}",
-            (leg_x + offset, -0.255 - length * 0.22, 0.071),
+            (leg_x + offset, -0.285 - length * 0.18, 0.071),
             (0.014 if toe in (0,4) else 0.016, length * 0.62, 0.014),
             SKIN, f"Foot.{side}", 20, 12)
 
 # Subtle clavicle ridges from the sternum towards the shoulders.
 for side, sign in (("L", 1), ("R", -1)):
     tube_mesh(f"Body_Clavicle_{side}", [
-        (sign * 0.012, -0.131, 1.405), (sign * 0.070, -0.132, 1.405),
-        (sign * 0.135, -0.120, 1.390), (sign * 0.195, -0.095, 1.365),
+        (sign * 0.012, -0.138, 1.405), (sign * 0.070, -0.142, 1.405),
+        (sign * 0.135, -0.132, 1.390), (sign * 0.195, -0.108, 1.365),
     ], [0.003, 0.005, 0.006, 0.003], SKIN, "Spine", sides=10, depth_ratio=0.65)
 
 # Upper and lower lip volumes with a fine mouth line.
@@ -506,8 +506,8 @@ sphere_piece("Body_Vulvar_Fold_R", (0.010, -0.137, 0.766),
 sphere_piece("Body_Vulvar_Cleft", (0.0, -0.139, 0.766),
     (0.0018, 0.0015, 0.025), CREASE, "Root", 12, 8)
 # Small inset-like posterior crease placed on the gluteal surface.
-sphere_piece("Body_Anal_Crease", (0.0, 0.177, 0.735),
-    (0.006, 0.0015, 0.008), CREASE, "Root", 16, 10)
+sphere_piece("Body_Anal_Crease", (0.0, 0.121, 0.735),
+    (0.006, 0.0010, 0.008), CREASE, "Root", 16, 10)
 
 EYE_WHITE = material("Wren | eye whites", (0.78, 0.70, 0.58))
 IRIS = material("Wren | iris", (0.22, 0.15, 0.09))
