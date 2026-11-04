@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17191d"><title>Wren Workshop · Silverhart Saga 3D</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#17191d;color:#ece9e2}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;overflow:hidden}header{height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid #383b42;background:#202329}header strong{font-size:14px;letter-spacing:.04em}header span{font-size:11px;color:#a9adb5}
+main{height:calc(100dvh - 50px);display:grid;grid-template-columns:minmax(0,1fr) 260px}#stage{position:relative;min-width:0;min-height:0;background:radial-gradient(ellipse at 50% 42%,#45413b,#282a2c 50%,#17191d)}canvas{display:block;width:100%;height:100%;touch-action:none}
+#status{position:absolute;left:12px;top:12px;padding:7px 10px;border-radius:8px;background:#15171bc9;font-size:11px}#hint{position:absolute;bottom:12px;left:12px;right:12px;text-align:center;color:#c4c0b8;font-size:11px;pointer-events:none}
+aside{overflow:auto;padding:13px;background:#202329;border-left:1px solid #383b42}section{padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #3a3d43}h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#b8a98d;margin:3px 0 9px}
+button{background:#30343b;color:#eee;border:1px solid #4a4f58;border-radius:8px;padding:8px 6px;min-height:36px;font:inherit;font-size:12px}.buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0;font-size:12px;color:#d4d1ca}.row input[type=range]{width:105px;accent-color:#c4a879}.row input[type=checkbox]{width:18px;height:18px;accent-color:#c4a879}.note{font-size:11px;line-height:1.4;color:#a9adb5}#error{color:#ffb6a8;white-space:pre-wrap}
+@media(max-width:700px){main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}aside{max-height:38dvh;border-left:0;border-top:1px solid #383b42;padding:9px 12px;display:grid;grid-template-columns:1fr 1fr;gap:0 12px}section{margin:0;padding-bottom:8px;border:0}section:last-child{grid-column:1/-1}h2{font-size:10px;margin:2px 0 6px}.row{margin:5px 0;font-size:11px}.note{font-size:10px}button{min-height:32px;padding:5px}}
+</style></head><body>
+<header><strong>WREN WORKSHOP</strong><span>Silverhart Saga 3D · model preview</span></header>
+<main><div id="stage"><div id="status">Loading model…</div><div id="hint">Drag to orbit · Pinch or scroll to zoom · Two-finger drag to pan</div></div>
+<aside>
+<section><h2>Camera</h2><div class="buttons"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="three">3/4</button><button id="home">Reset</button></div><div class="row"><span>Auto rotate</span><input id="autorotate" type="checkbox"></div></section>
+<section><h2>Lighting</h2><div class="row"><span>Key light</span><input id="keylight" type="range" min="0" max="5" step=".1" value="3"></div><div class="row"><span>Fill light</span><input id="filllight" type="range" min="0" max="4" step=".1" value="1.4"></div><div class="row"><span>Light direction</span><input id="lightangle" type="range" min="0" max="360" value="35"></div></section>
+<section><h2>Components</h2>
+<div class="row"><span>Hair</span><input id="hair" type="checkbox" checked></div>
+<div class="row"><span>Clothing / armour</span><input id="clothing" type="checkbox" checked></div>
+<div class="row"><span>Weapon</span><input id="weapon" type="checkbox" checked></div>
+<div class="row"><span>Body hair</span><input id="bodyhair" type="checkbox" checked></div>
+<div class="row"><span>Tattoo</span><input id="tattoo" type="checkbox" checked></div>
+<div class="row"><span>Piercings</span><input id="piercings" type="checkbox" checked></div>
+<p class="note">Visibility switches inspect separately named meshes in the full character export.</p></section>
+<section><h2>Build</h2><div class="note" id="build">Loading build information…</div><p class="note" id="error"></p></section>
+</aside></main>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+const stage=document.querySelector('#stage'),status=document.querySelector('#status'),error=document.querySelector('#error');
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x292b2e);
+const camera=new THREE.PerspectiveCamera(35,1,.01,100);camera.position.set(2.7,-4.4,1.9);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;stage.prepend(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.07;controls.target.set(0,0,.92);controls.minDistance=.55;controls.maxDistance=8;controls.maxPolarAngle=Math.PI-.03;
+scene.add(new THREE.HemisphereLight(0xdce7ff,0x514334,1.5));
+const key=new THREE.DirectionalLight(0xffe1bc,3);key.position.set(2,-3,4);scene.add(key);
+const fill=new THREE.DirectionalLight(0xc4d7ff,1.4);fill.position.set(-3,2,2);scene.add(fill);
+scene.add(new THREE.GridHelper(5,50,0x68645d,0x44413c));
+let model=null,box=null;
+const rules=[['hair',n=>n.startsWith('Hair_')],['clothing',n=>n.startsWith('Garment_')||n.startsWith('Armour_')],['weapon',n=>n.startsWith('Weapon_')],['bodyhair',n=>n.startsWith('BodyHair_')],['tattoo',n=>n.startsWith('Tattoo_')],['piercings',n=>n.startsWith('Piercing_')]];
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(stage);resize();
+function frame(name){if(!box)return;const centre=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()),dist=Math.max(size.z*2,2.1);const dirs={front:new THREE.Vector3(0,-1,0),back:new THREE.Vector3(0,1,0),left:new THREE.Vector3(-1,0,0),right:new THREE.Vector3(1,0,0),three:new THREE.Vector3(1,-1.5,.55)};camera.position.copy(centre).add(dirs[name].normalize().multiplyScalar(dist));controls.target.copy(centre);controls.update()}
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>frame(b.dataset.view)));document.querySelector('#home').onclick=()=>frame('three');
+document.querySelector('#autorotate').onchange=e=>controls.autoRotate=e.target.checked;document.querySelector('#keylight').oninput=e=>key.intensity=+e.target.value;document.querySelector('#filllight').oninput=e=>fill.intensity=+e.target.value;
+document.querySelector('#lightangle').oninput=e=>{const a=+e.target.value*Math.PI/180;key.position.set(Math.cos(a)*3,-Math.sin(a)*3,4)};
+for(const [id,test] of rules)document.querySelector('#'+id).onchange=e=>model?.traverse(o=>{if(o.isMesh&&test(o.name))o.visible=e.target.checked});
+new GLTFLoader().load('./assets/wren_blockout.glb',g=>{model=g.scene;scene.add(model);box=new THREE.Box3().setFromObject(model);frame('three');status.textContent='Model loaded · '+model.children.length+' top-level nodes'},x=>{if(x.total)status.textContent='Loading model · '+Math.round(x.loaded/x.total*100)+'%'},e=>{console.error(e);status.textContent='Model failed to load';error.textContent='Could not load the model. Check the latest Actions run and Pages deployment.'});
+fetch('./build-version.txt').then(r=>r.text()).then(t=>document.querySelector('#build').textContent='Build '+t.trim().slice(0,12)).catch(()=>{});
+function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
+</script></body></html>
