@@ -116,6 +116,40 @@ func try_move_character_action(
     _commit_move(state, destination)
     return true
 
+func find_path(character_id: String, destination: Vector2i) -> Array[Vector2i]:
+    var state := get_character(character_id)
+    if state == null:
+        return []
+    return HexPathfinder.find_path(map_data, occupied_hexes, state.axial, destination, state)
+
+func movement_cost(character_id: String, destination: Vector2i) -> float:
+    var state := get_character(character_id)
+    if state == null:
+        return INF
+    return MovementRules.step_cost(map_data, state.axial, destination, state)
+
+## Execute one adjacent step using the same cost used by pathfinding.
+## In combat, the final step may take TP below the normal turn-end threshold,
+## matching the original game's movement allowance.
+func try_move_character_step(character_id: String, destination: Vector2i) -> bool:
+    var state := get_character(character_id)
+    if not _can_move_to(state, destination):
+        return false
+    if is_in_combat:
+        if not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != character_id:
+            return false
+        if state.time_points <= float(ActionEconomy.turn_end_threshold(state.quick_recovery_rank)):
+            return false
+    var cost := MovementRules.step_cost(map_data, state.axial, destination, state)
+    if not is_in_combat and not state.can_spend_time_points(cost):
+        return false
+    state.time_points -= cost
+    state.total_time_points_spent += cost
+    _commit_move(state, destination)
+    if is_in_combat and state.should_end_turn():
+        try_end_current_turn()
+    return true
+
 func _can_move_to(state: CharacterState, destination: Vector2i) -> bool:
     if state == null:
         return false
