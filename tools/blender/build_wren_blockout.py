@@ -279,13 +279,13 @@ def shaped_breast(name, centre_x):
 for side, sign in (("L", 1), ("R", -1)):
     shaped_breast(f"Body_Breast_{side}", sign * 0.108)
     sphere_piece(f"Body_Glute_{side}", (sign * 0.112, 0.092, 0.835),
-        (0.125, 0.105, 0.145), SKIN, "Root", 32, 24)
+        (0.108, 0.091, 0.128), SKIN, "Root", 32, 24)
     # Deltoid volume blends the upper arm into the torso.
     sphere_piece(f"Body_Shoulder_{side}", (sign * 0.205, 0.0, 1.385),
         (0.105, 0.105, 0.105), SKIN, f"UpperArm.{side}", 24, 16)
 # Subtle, non-detailed external pelvic anatomy; no explicit genital detailing.
 sphere_piece("Body_Pubic_Mound", (0, -0.112, 0.785),
-    (0.078, 0.027, 0.052), SKIN, "Root", 24, 16)
+    (0.060, 0.022, 0.044), SKIN, "Root", 24, 16)
 
 tube_mesh("Body_Neck", [(0, 0, 1.455), (0, 0, 1.505), (0, 0, 1.555), (0, 0, 1.625)],
     [0.066, 0.067, 0.069, 0.075], SKIN, "Neck", sides=24, depth_ratio=0.95)
@@ -300,7 +300,7 @@ for side, sign in (("L", 1), ("R", -1)):
     sphere_piece(f"Body_Ear_{side}", (sign * 0.119, -0.002, 1.695),
         (0.030, 0.035, 0.052), SKIN, "Head", 16, 12)
     sphere_piece(f"Face_Ear_Concha_{side}", (sign * 0.137, -0.023, 1.695),
-        (0.010, 0.018, 0.030), UNDER, "Head", 12, 8)
+        (0.010, 0.018, 0.030), SKIN, "Head", 12, 8)
 for side, sign in (("L", 1), ("R", -1)):
     x = sign * 0.18
     sphere_piece(f"Body_Ear_{side}", (x * 0.68, 0, 1.70), (0.035, 0.035, 0.055), SKIN, "Head", 10, 8)
@@ -313,7 +313,7 @@ for side, sign in (("L", 1), ("R", -1)):
     fore_mid = (sign * 0.455, -0.012, 1.155)
     wrist = (sign * 0.525, -0.018, 1.075)
     tube_mesh(f"Body_Arm_{side}", [shoulder, upper_mid, upper_low, elbow, fore_mid, wrist],
-        [0.095, 0.088, 0.076, 0.070, 0.061, 0.043], SKIN,
+        [0.095, 0.096, 0.082, 0.068, 0.071, 0.043], SKIN,
         f"UpperArm.{side}", f"Forearm.{side}", sides=20, blend_start=0.52, blend_end=0.76)
     sphere_piece(f"Body_Elbow_{side}", (sign * 0.385, 0.040, 1.235),
         (0.052, 0.034, 0.050), SKIN, f"Forearm.{side}", 24, 16)
@@ -350,11 +350,11 @@ for side, sign in (("L", 1), ("R", -1)):
     ], [0.094, 0.108, 0.106, 0.090, 0.071, 0.073, 0.083, 0.064, 0.045],
         SKIN, f"Thigh.{side}", f"Shin.{side}", sides=24, blend_start=0.40, blend_end=0.63)
     sphere_piece(f"Body_Kneecap_{side}", (leg_x, -0.062, 0.495),
-        (0.055, 0.026, 0.062), SKIN, f"Shin.{side}", 24, 16)
+        (0.048, 0.022, 0.054), SKIN, f"Shin.{side}", 24, 16)
     foot_rings = [
-        (0.025, 0.052, 0.052, 0.108), (-0.025, 0.063, 0.047, 0.105),
-        (-0.095, 0.073, 0.040, 0.094), (-0.165, 0.091, 0.035, 0.080),
-        (-0.235, 0.084, 0.029, 0.072), (-0.305, 0.050, 0.022, 0.068),
+        (0.025, 0.045, 0.047, 0.108), (-0.025, 0.054, 0.043, 0.105),
+        (-0.095, 0.063, 0.037, 0.094), (-0.165, 0.077, 0.032, 0.080),
+        (-0.225, 0.071, 0.027, 0.072), (-0.275, 0.043, 0.020, 0.068),
     ]
     foot_verts, foot_faces = [], []
     foot_sides = 24
@@ -463,20 +463,20 @@ LIP = material("Wren | lips", (0.48, 0.23, 0.22))
 LOWER_LIP = material("Wren | lower lip", (0.58, 0.31, 0.29))
 CREASE = material("Wren | soft crease", (0.22, 0.11, 0.10))
 for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Body_Areola_{side}", (sign * 0.108, -0.203, 1.205),
-        (0.024, 0.004, 0.020), AREOLA, "Spine", 20, 12)
-    sphere_piece(f"Body_Nipple_{side}", (sign * 0.108, -0.209, 1.205),
-        (0.007, 0.004, 0.008), NIPPLE, "Spine", 16, 10)
+    sphere_piece(f"Body_Areola_{side}", (sign * 0.118, -0.205, 1.205),
+        (0.027, 0.004, 0.022), AREOLA, "Spine", 20, 12)
+    sphere_piece(f"Body_Nipple_{side}", (sign * 0.118, -0.211, 1.205),
+        (0.008, 0.004, 0.009), NIPPLE, "Spine", 16, 10)
 
 # Toe geometry is kept separate after remeshing so its definition survives.
 for side, sign in (("L", 1), ("R", -1)):
     leg_x = sign * 0.13
     for toe in range(5):
-        offset = (toe - 2) * 0.029
-        length = 0.105 - abs(offset) * 0.32
+        offset = (toe - 2) * 0.025
+        length = 0.088 - abs(offset) * 0.28
         sphere_piece(f"Body_Toe_{side}_{toe+1}",
-            (leg_x + offset, -0.285 - length * 0.18, 0.071),
-            (0.014 if toe in (0,4) else 0.016, length * 0.62, 0.014),
+            (leg_x + offset, -0.255 - length * 0.18, 0.071),
+            (0.012 if toe in (0,4) else 0.014, length * 0.60, 0.012),
             SKIN, f"Foot.{side}", 20, 12)
 
 # Subtle clavicle ridges from the sternum towards the shoulders.
@@ -499,11 +499,11 @@ sphere_piece("Body_Navel", (0.0, -0.139, 0.965),
     (0.008, 0.003, 0.012), CREASE, "Root", 16, 10)
 # The mons is part of the fused body; these narrow, shallow surface folds
 # avoid the appearance of two detached oval primitives.
-sphere_piece("Body_Vulvar_Fold_L", (-0.010, -0.137, 0.766),
+sphere_piece("Body_Vulvar_Fold_L", (-0.010, -0.137, 0.738),
     (0.010, 0.0025, 0.030), AREOLA, "Root", 20, 12)
-sphere_piece("Body_Vulvar_Fold_R", (0.010, -0.137, 0.766),
+sphere_piece("Body_Vulvar_Fold_R", (0.010, -0.137, 0.738),
     (0.010, 0.0025, 0.030), AREOLA, "Root", 20, 12)
-sphere_piece("Body_Vulvar_Cleft", (0.0, -0.139, 0.766),
+sphere_piece("Body_Vulvar_Cleft", (0.0, -0.139, 0.738),
     (0.0018, 0.0015, 0.025), CREASE, "Root", 12, 8)
 # Small inset-like posterior crease placed on the gluteal surface.
 sphere_piece("Body_Anal_Crease", (0.0, 0.121, 0.735),
@@ -536,15 +536,14 @@ for i in range(7):
     y = 0.085 + 0.012 * math.cos(i * 0.8)
     sphere_piece(f"Hair_Braid_{i+1:02d}", (x, y, z), (0.037, 0.038, 0.052), HAIR, "Head", 10, 8)
 
-# Blade points forward (-Y), perpendicular to the wrist-to-palm line in X/Z.
-# The crossguard spans the palm; fingers curl around the grip.
-sword_tilt = (math.radians(28), 0.0, 0.0)
-sphere_piece("Weapon_Sword_Grip", (-0.555, -0.112, 1.005),
-    (0.018, 0.095, 0.018), LEATHER, "Hand.R", 12, 8, sword_tilt)
-sphere_piece("Weapon_Sword_Guard", (-0.555, -0.198, 0.960),
-    (0.085, 0.012, 0.010), SWORD_METAL, "Hand.R", 12, 8, sword_tilt)
-sphere_piece("Weapon_Sword_Blade", (-0.555, -0.392, 0.858),
-    (0.026, 0.225, 0.006), SWORD_METAL, "Hand.R", 12, 8, sword_tilt)
+# Sword is held upright: grip sits in the palm, guard below it and blade rises.
+upright = (math.radians(90), 0.0, 0.0)
+sphere_piece("Weapon_Sword_Grip", (-0.555, -0.025, 1.025),
+    (0.018, 0.078, 0.018), LEATHER, "Hand.R", 12, 8, upright)
+sphere_piece("Weapon_Sword_Guard", (-0.555, -0.025, 1.085),
+    (0.075, 0.010, 0.010), SWORD_METAL, "Hand.R", 12, 8)
+sphere_piece("Weapon_Sword_Blade", (-0.555, -0.025, 1.245),
+    (0.024, 0.165, 0.006), SWORD_METAL, "Hand.R", 12, 8, upright)
 
 # ---------------------------------------------------------------------------
 # Preview setup and GLB export.
