@@ -324,7 +324,7 @@ torso_rings = [
     (1.495, 0.078, 0.070, 0.000),
 ]
 torso_verts, torso_faces, root_weights, spine_weights = [], [], [], []
-torso_sides = 48
+torso_sides = 96
 for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
     for side_index in range(torso_sides):
         angle = 2.0 * math.pi * side_index / torso_sides
@@ -372,14 +372,14 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
         # lower than the old detached forms; their upper edge fades into the
         # sacrum and their lower edge tightens into the upper thighs.
         if back > 0.0:
-            lobe_left = math.exp(-((x - 0.078) / 0.088) ** 2)
-            lobe_right = math.exp(-((x + 0.078) / 0.088) ** 2)
-            vertical = math.exp(-((z - 0.820) / 0.060) ** 2)
+            lobe_left = math.exp(-((x - 0.076) / 0.096) ** 2)
+            lobe_right = math.exp(-((x + 0.076) / 0.096) ** 2)
+            vertical = math.exp(-((z - 0.805) / 0.075) ** 2)
             lower_taper = max(0.0, min(1.0, (z - 0.775) / 0.045))
             lower_taper = lower_taper * lower_taper * (3.0 - 2.0 * lower_taper)
-            y += back * (lobe_left + lobe_right) * vertical * (0.026 * lower_taper)
-            central_cleft = math.exp(-(x / 0.012) ** 2) * math.exp(-((z - 0.805) / 0.025) ** 2)
-            y -= back * central_cleft * 0.004
+            y += back * (lobe_left + lobe_right) * vertical * (0.058 * lower_taper)
+            central_cleft = math.exp(-(x / 0.014) ** 2) * math.exp(-((z - 0.795) / 0.032) ** 2)
+            y -= back * central_cleft * 0.009
         torso_verts.append((x, y, ring_z))
         blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
         blend = blend * blend * (3.0 - 2.0 * blend)
@@ -469,7 +469,7 @@ for side, sign in (("L", 1), ("R", -1)):
 # Subtle, non-detailed external pelvic anatomy; no explicit genital detailing.
 
 tube_mesh("Body_Neck", [(0, 0, 1.455), (0, 0, 1.505), (0, 0, 1.555), (0, 0, 1.625)],
-    [0.066, 0.067, 0.069, 0.075], SKIN, "Neck", sides=24, depth_ratio=0.95)
+    [0.066, 0.067, 0.069, 0.075], SKIN, "Neck", sides=48, depth_ratio=0.95)
 sphere_piece("Body_Head", (0, -0.005, 1.70), (0.125, 0.12, 0.16), SKIN, "Head", 24, 16)
 # Nose bridge, tip and subtle alae are separate sculptural forms.
 sphere_piece("Face_Nose_Bridge", (0, -0.112, 1.685), (0.020, 0.035, 0.060), SKIN, "Head", 12, 10)
@@ -560,7 +560,7 @@ for side, sign in (("L", 1), ("R", -1)):
         (leg_x, 0.022, 0.335), (leg_x, 0.010, 0.245),
         (leg_x, 0.000, 0.155),
     ], [0.094, 0.108, 0.106, 0.090, 0.071, 0.073, 0.083, 0.064, 0.045],
-        SKIN, f"Thigh.{side}", f"Shin.{side}", sides=24, blend_start=0.40, blend_end=0.63)
+        SKIN, f"Thigh.{side}", f"Shin.{side}", sides=48, blend_start=0.40, blend_end=0.63)
     sphere_piece(f"Body_Kneecap_{side}", (leg_x, -0.062, 0.495),
         (0.048, 0.022, 0.054), SKIN, f"Shin.{side}", 24, 16)
     sphere_piece(f"Body_Ankle_{side}", (leg_x, 0.000, 0.145),
@@ -624,7 +624,7 @@ if body_parts:
 
     remesh = body.modifiers.new("Fuse anatomical forms", "REMESH")
     remesh.mode = "VOXEL"
-    remesh.voxel_size = 0.0035
+    remesh.voxel_size = 0.0025
     remesh.use_smooth_shade = True
     bpy.context.view_layer.objects.active = body
     bpy.ops.object.modifier_apply(modifier=remesh.name)
