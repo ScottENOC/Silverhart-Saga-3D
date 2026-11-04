@@ -1,4 +1,5 @@
 name: Build Wren Workshop
+# The exact cleanup commit message routes this run to the one-off history-squash job.
 on:
   workflow_dispatch:
   push:
