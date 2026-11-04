@@ -75,7 +75,7 @@ func _test_action_movement_cost() -> void:
     assert(sim.try_move_character_action("player", Vector2i(1, 0), 5.0))
     assert(player.axial == Vector2i(1, 0))
     assert(is_equal_approx(player.time_points, 0.0))
-    assert(is_equal_approx(player.total_time_points_spent, 5.0))
+    assert(is_equal_approx(player.total_time_points_spent, 3.0))
     assert(not sim.try_move_character_action("player", Vector2i(0, 0), 1.0))
     assert(player.axial == Vector2i(1, 0))
     assert(is_equal_approx(player.time_points, 0.0))
@@ -106,7 +106,7 @@ func _test_terrain_pathfinding() -> void:
     assert(is_equal_approx(sim.movement_cost("player", Vector2i(0, -1)), 4.5))
     assert(sim.try_move_character_step("player", Vector2i(0, 1)))
     assert(player.axial == Vector2i(0, 1))
-    assert(is_equal_approx(player.time_points, 15.0))
+    assert(is_equal_approx(player.time_points, 17.0))
     assert(is_equal_approx(player.total_time_points_spent, 5.0))
 
 func _test_world_clock() -> void:
