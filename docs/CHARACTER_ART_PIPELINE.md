@@ -166,3 +166,6 @@ The current Blender shapes are still procedural blockout art. Tattoo linework, p
 - The braid crosses the shoulder and hangs down the front to chest level; swept locks and strand geometry break up the smooth scalp cap.
 - Hands are rebuilt with fingers curling around the sword axis. Fingers are still fixed-pose meshes, not individually animated finger bones.
 - Body hair, piercings and the dragon tattoo remain independent appearance components.
+
+
+The latest Wren mesh pass also adds a shallow integrated pelvic contour to the torso loft and positions the separate body-hair component just outside that surface. It is intended to remain a subtle anatomical sculpt rather than a raised, pasted-on object.
