@@ -479,15 +479,19 @@ for side, sign in (("L", 1), ("R", -1)):
         (0.052, 0.034, 0.050), SKIN, f"Forearm.{side}", 24, 16)
     # Separate wrist and palm; each finger has three independently weighted
     # phalanges so later hand animation can bend them at real joints.
-    sphere_piece(f"Hand_Wrist_{side}", (sign*0.535, -0.020, 1.065),
-        (0.035, 0.032, 0.035), SKIN, f"Wrist.{side}", 20, 12)
-    # A broad, relatively flat palm with a softly bevelled rectangular
-    # silhouette. The hand is no longer a spherical lump at the wrist.
-    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(sign * 0.555, -0.034, 1.025))
+    # A short, tapered wrist bridges the forearm into the palm instead of
+    # leaving a round ball between two aligned blocks.
+    tube_mesh(f"Hand_Wrist_{side}",
+        [(sign*0.515, -0.020, 1.095), (sign*0.535, -0.027, 1.065),
+         (sign*0.548, -0.032, 1.045)],
+        [0.026, 0.023, 0.022], SKIN, f"Forearm.{side}", f"Wrist.{side}",
+        sides=16, depth_ratio=0.78, blend_start=0.25, blend_end=0.78)
+    # Palm's short ends meet wrist and fingers. Its broad faces are X/Z;
+    # fingers extend along X, while the thumb branches across Z.
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(sign * 0.558, -0.034, 1.025))
     palm = bpy.context.object
     palm.name = f"Hand_Palm_{side}"
-    # Palm's long axis follows the fingers; its broad face lies in X/Z.
-    palm.dimensions = (0.112, 0.026, 0.060)
+    palm.dimensions = (0.112, 0.030, 0.066)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bevel = palm.modifiers.new("Soft palm edges", "BEVEL")
     bevel.width = 0.014
@@ -503,26 +507,30 @@ for side, sign in (("L", 1), ("R", -1)):
     for poly in palm.data.polygons:
         poly.use_smooth = True
     for digit_index, digit in enumerate(("Index", "Middle", "Ring", "Pinky")):
-        finger_lengths = {"Index": 0.072, "Middle": 0.086, "Ring": 0.080, "Pinky": 0.064}
+        # Finger roots span the palm's broad edge. Each has a distinct length:
+        # middle longest, then ring, index, little finger.
+        finger_lengths = {"Index": 0.073, "Middle": 0.086, "Ring": 0.079, "Pinky": 0.061}
         length = finger_lengths[digit]
-        spread_z = (digit_index - 1.5) * 0.014
+        spread_z = (digit_index - 1.5) * 0.015
+        root_x = sign * 0.614
         joints = [
-            (sign*0.610, -0.038, 1.025 + spread_z),
-            (sign*(0.610 + length*0.42), -0.041, 1.023 + spread_z*0.94),
-            (sign*(0.610 + length*0.76), -0.020, 1.015 + spread_z*0.86),
-            (sign*(0.610 + length*0.65), -0.005, 1.005 + spread_z*0.78),
+            (root_x, -0.039, 1.025 + spread_z),
+            (sign*(0.614 + length*0.40), -0.041, 1.024 + spread_z*0.94),
+            (sign*(0.614 + length*0.76), -0.027, 1.018 + spread_z*0.86),
+            (sign*(0.614 + length), -0.015, 1.010 + spread_z*0.78),
         ]
         digit_mesh(f"Hand_{digit}_{side}",
-            joints, [0.010, 0.009, 0.0075, 0.0065],
+            joints, [0.0095, 0.0088, 0.0072, 0.0058],
             [f"{digit}{segment+1}.{side}" for segment in range(3)], SKIN)
-    # Thumb projects across the palm at roughly 90 degrees to the fingers.
+    # Thumb leaves the palm's long edge at a right angle to the fingers,
+    # then turns slightly inward to oppose the index finger.
     thumb_joints = [
-        (sign*0.575,-0.038,1.050),
-        (sign*0.605,-0.020,1.075),
-        (sign*0.635,-0.012,1.060),
+        (sign*0.555, -0.039, 1.052),
+        (sign*0.555, -0.043, 1.080),
+        (sign*0.535, -0.038, 1.094),
     ]
     digit_mesh(f"Hand_Thumb_{side}", thumb_joints,
-        [0.015, 0.012, 0.009],
+        [0.014, 0.011, 0.008],
         [f"Thumb{segment+1}.{side}" for segment in range(2)], SKIN)
     leg_x = 0.13 if side == "L" else -0.13
     tube_mesh(f"Body_Leg_{side}", [
@@ -662,15 +670,21 @@ for side, sign in (("L", 1), ("R", -1)):
         (0.008, 0.010, 0.008), NIPPLE, "Spine", 16, 10)
 
 # Toe geometry is kept separate after remeshing so its definition survives.
-for side, sign in (("L", 1), ("R", -1)):
+def build_toes(side: str, sign: float) -> None:
     leg_x = sign * 0.13
+    # Identical generation for both feet prevents a side-specific omission.
+    # Big toe is on the medial edge; the remaining toes taper progressively.
+    toe_lengths = [0.078, 0.070, 0.064, 0.056, 0.047]
     for toe in range(5):
-        offset = (toe - 2) * 0.025
-        length = 0.088 - abs(offset) * 0.28
+        lateral = (toe - 2) * 0.019
+        length = toe_lengths[toe]
+        toe_width = [0.014, 0.0115, 0.0105, 0.0095, 0.0085][toe]
         sphere_piece(f"Body_Toe_{side}_{toe+1}",
-            (leg_x + offset, -0.255 - length * 0.18, 0.071),
-            (0.012 if toe in (0,4) else 0.014, length * 0.60, 0.012),
-            SKIN, f"Foot.{side}", 20, 12)
+            (leg_x + lateral, -0.265 - length * 0.38, 0.068),
+            (toe_width, length * 0.62, 0.0095),
+            SKIN, f"Foot.{side}", 24, 14)
+build_toes("L", 1)
+build_toes("R", -1)
 
 # Clavicle definition is sculpted into the torso loft itself; no separate ridge mesh.
 
@@ -898,59 +912,76 @@ for i in range(band_sides):
 finish_skinned_mesh("Garment_Bra_Bandeau", band_verts, band_faces,
     UNDERWEAR, {"Spine": [1.0] * len(band_verts)})
 
+# Side cradle panels physically connect each cup to the wraparound bandeau.
+# Wren's source item is strapless, so these are side/under-cup supports, not
+# invented shoulder straps.
+for side, sign in (("L", 1), ("R", -1)):
+    cradle_points = [
+        (sign*0.165, -0.170, 1.205),
+        (sign*0.190, -0.145, 1.185),
+        (sign*0.205, -0.105, 1.163),
+        (sign*0.210, -0.070, 1.153),
+    ]
+    tube_mesh(f"Garment_Bra_CupToBand_{side}", cradle_points,
+        [0.010, 0.009, 0.008, 0.007], UNDERWEAR, "Spine",
+        sides=10, depth_ratio=0.30)
+
+
 # Full-coverage briefs. Front and rear panels follow the torso's elliptical
 # surface, with a shaped leg-opening silhouette rather than a flat card.
-brief_rows = [
-    (0.872, 0.145), (0.858, 0.164), (0.836, 0.160),
-    (0.812, 0.143), (0.785, 0.118), (0.758, 0.092),
-    (0.735, 0.072),
-]
-def make_briefs_panel(front: bool) -> None:
+# A single continuous briefs shell wraps front, rear, hips and crotch.
+# The lower edge rises at the leg openings and dips into a narrow crotch gusset.
+def make_briefs_wrap() -> None:
     verts, faces = [], []
-    columns = 41
-    rows = 25
+    around = 64
+    rows = 31
     for row in range(rows):
-        t = row / float(rows - 1) * (len(brief_rows) - 1)
-        segment = min(len(brief_rows) - 2, int(t))
-        local_t = t - segment
-        z = brief_rows[segment][0] * (1.0-local_t) + brief_rows[segment+1][0] * local_t
-        half_width = brief_rows[segment][1] * (1.0-local_t) + brief_rows[segment+1][1] * local_t
-        for col in range(columns):
-            across = (col / (columns - 1)) * 2.0 - 1.0
-            x = across * half_width
+        t = row / float(rows - 1)
+        for col in range(around):
+            angle = 2.0 * math.pi * col / around
+            front = math.sin(angle) < 0.0
+            side_factor = abs(math.cos(angle))
+            upper_z = 0.900 - 0.008 * side_factor
+            if front:
+                lower_z = 0.718 + 0.050 * side_factor
+            else:
+                lower_z = 0.735 + 0.038 * side_factor
+            z = upper_z * (1.0 - t) + lower_z * t
+            half_width = 0.158 * (1.0 - t) + 0.090 * t
+            x = math.cos(angle) * half_width
             surface = torso_surface_y(x, z, front)
-            y = surface - 0.009 if front else surface + 0.009
+            # Fabric floats just clear of skin; the surface remains continuous
+            # around the side seams and under the crotch.
+            y = surface + (-0.010 if front else 0.010)
             verts.append((x, y, z))
-    for row in range(rows-1):
-        for col in range(columns-1):
-            # Repeating diamond eyelets create real holes in the lace rather
-            # than a transparent decal painted over solid fabric.
-            u = col % 8
-            v = row % 6
-            lace_hole = u in (3, 4) and v in (2, 3)
-            if lace_hole:
+    for row in range(rows - 1):
+        for col in range(around):
+            nxt = (col + 1) % around
+            # Small, regularly spaced eyelets are true openings in the lace.
+            if (col % 8 in (3, 4)) and (row % 7 in (3, 4)):
                 continue
-            a = row * columns + col
-            b = a + 1
-            c = b + columns
-            d = a + columns
-            faces.append((d, c, b, a) if front else (a, b, c, d))
-    finish_skinned_mesh("Garment_Briefs_Front" if front else "Garment_Briefs_Back",
-        verts, faces, UNDERWEAR, {"Root": [1.0] * len(verts)})
+            a = row * around + col
+            b = row * around + nxt
+            cidx = (row + 1) * around + nxt
+            d = (row + 1) * around + col
+            faces.append((a, b, cidx, d))
+    finish_skinned_mesh("Garment_Briefs_Continuous", verts, faces,
+        UNDERWEAR, {"Root": [1.0] * len(verts)})
 
-make_briefs_panel(True)
-make_briefs_panel(False)
+make_briefs_wrap()
 
-# Pale waistband and leg-opening accents, as in the original 2D clothing layer.
-for front in (True, False):
-    offset = -0.005 if front else 0.005
-    waist_points = []
-    for x, z in [(-0.145, 0.910), (-0.075, 0.912), (0.0, 0.913),
-                 (0.075, 0.912), (0.145, 0.910)]:
-        waist_points.append((x, torso_surface_y(x, z, front) + offset, z))
-    tube_mesh("Garment_Briefs_Waist_Front" if front else "Garment_Briefs_Waist_Back",
-        waist_points, [0.0025] * 4 + [0.0018],
-        UNDERWEAR_TRIM, "Root", sides=7, depth_ratio=0.7)
+# Continuous pale waistband follows the complete circumference.
+waist_points = []
+for i in range(33):
+    angle = 2.0 * math.pi * i / 32.0
+    x = math.cos(angle) * 0.151
+    z = 0.894 - 0.006 * abs(math.cos(angle))
+    front = math.sin(angle) < 0.0
+    waist_points.append((x, torso_surface_y(x, z, front) +
+        (-0.012 if front else 0.012), z))
+tube_mesh("Garment_Briefs_Waist_Continuous", waist_points,
+    [0.0025] * (len(waist_points)-1) + [0.0025],
+    UNDERWEAR_TRIM, "Root", sides=7, depth_ratio=0.7)
 
 # Neatly groomed, modest pubic hair is a separate appearance layer. It is
 # offset just outside the front skin surface so it cannot show through the body.
@@ -960,7 +991,7 @@ for i in range(11):
     z1 = 0.775 + abs(i - 5) * 0.003
     points = []
     for px, pz in [(x, z0), (x * 0.82, (z0+z1)*0.5), (x * 0.62, z1)]:
-        points.append((px, torso_surface_y(px, pz, True)-0.012, pz))
+        points.append((px, torso_surface_y(px, pz, True)-0.003, pz))
     tube_mesh(f"BodyHair_Pubic_{i+1:02d}", points,
         [0.0020, 0.0018, 0.0006], PUBIC_HAIR, "Root", sides=6, depth_ratio=0.65)
 
