@@ -92,6 +92,18 @@ func _test_world_clock() -> void:
     assert(is_equal_approx(clock.world_seconds, 0.4))
     assert(clock.tick_index == 1)
 
+    clock.set_world_seconds(11.0 * 3600.0)
+    var date := clock.calendar_date()
+    var time := clock.time_of_day()
+    assert(date.month_name == "Dawnfrost")
+    assert(date.day_of_month == 1)
+    assert(time.text == "11:00")
+
+    clock.set_world_seconds(31.0 * 86400.0)
+    date = clock.calendar_date()
+    assert(date.month_name == "Brightsun")
+    assert(date.day_of_month == 2)
+
     clock.paused = true
     assert(clock.advance_world_seconds(4.0) == 0)
     assert(is_equal_approx(clock.world_seconds, 0.4))
