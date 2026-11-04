@@ -161,7 +161,34 @@ def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=20, depth_rat
     Each ring is perpendicular to the limb centreline. The elbow is an interior
     cross-section, not the meeting point of two exposed cylinders.
     """
-    centres = [Vector(p) for p in points]
+    # Interpolate the sparse anatomical guide points into a smooth centreline.
+    # The old version created a visible ring at every guide point; voxel remesh
+    # could not fully erase those radius/curvature changes, especially on arms.
+    guide = [Vector(p) for p in points]
+    guide_radii = list(radii)
+    if len(guide) >= 3:
+        centres, smooth_radii = [], []
+        steps_per_span = 6
+        for span in range(len(guide) - 1):
+            p0 = guide[max(0, span - 1)]
+            p1 = guide[span]
+            p2 = guide[span + 1]
+            p3 = guide[min(len(guide) - 1, span + 2)]
+            r0 = guide_radii[max(0, span - 1)]
+            r1 = guide_radii[span]
+            r2 = guide_radii[span + 1]
+            r3 = guide_radii[min(len(guide_radii) - 1, span + 2)]
+            for step in range(steps_per_span):
+                t = step / float(steps_per_span)
+                t2, t3 = t*t, t*t*t
+                def catmull(a, b, c, d):
+                    return 0.5 * ((2*b) + (-a+c)*t + (2*a-5*b+4*c-d)*t2 + (-a+3*b-3*c+d)*t3)
+                centres.append(Vector(tuple(catmull(p0[i], p1[i], p2[i], p3[i]) for i in range(3))))
+                smooth_radii.append(max(0.001, catmull(r0, r1, r2, r3)))
+        centres.append(guide[-1])
+        smooth_radii.append(guide_radii[-1])
+    else:
+        centres, smooth_radii = guide, guide_radii
     verts, faces = [], []
     weights_a, weights_b = [], []
     reference = Vector((0, 1, 0))
@@ -174,7 +201,7 @@ def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=20, depth_rat
             tangent = (centres[ring_index + 1] - centres[ring_index - 1]).normalized()
         axis_u = tangent.cross(reference).normalized()
         axis_v = tangent.cross(axis_u).normalized()
-        radius = radii[ring_index]
+        radius = smooth_radii[ring_index]
         for side_index in range(sides):
             angle = 2.0 * math.pi * side_index / sides
             offset = axis_u * (math.cos(angle) * radius) + axis_v * (math.sin(angle) * radius * depth_ratio)
@@ -464,8 +491,8 @@ for side, sign in (("L", 1), ("R", -1)):
     tube_mesh(f"Body_Arm_{side}", [shoulder, upper_mid, upper_low, elbow, fore_mid, wrist],
         [0.095, 0.096, 0.082, 0.068, 0.071, 0.043], SKIN,
         f"UpperArm.{side}", f"Forearm.{side}", sides=20, blend_start=0.52, blend_end=0.76)
-    sphere_piece(f"Body_Elbow_{side}", (sign * 0.385, 0.040, 1.235),
-        (0.052, 0.034, 0.050), SKIN, f"Forearm.{side}", 24, 16)
+    # No separate elbow sphere: it created the conspicuous round lump visible
+    # in the sculpt preview. The elbow contour is shaped by the continuous arm.
     # Separate wrist and palm; each finger has three independently weighted
     # phalanges so later hand animation can bend them at real joints.
     # A short, tapered wrist bridges the forearm into the palm instead of
