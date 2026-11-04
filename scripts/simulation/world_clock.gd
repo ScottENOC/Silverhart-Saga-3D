@@ -10,6 +10,17 @@ signal time_advanced(world_seconds: float)
 const SIMULATION_STEP_SECONDS: float = 0.4
 const EXPLORATION_SECONDS_PER_REAL_SECOND: float = 5.0
 const COMBAT_SECONDS_PER_REAL_SECOND: float = 40.0
+const SECONDS_PER_MINUTE: int = 60
+const SECONDS_PER_HOUR: int = 3600
+const SECONDS_PER_DAY: int = 86400
+const DAYS_PER_MONTH: int = 30
+const MONTHS_PER_YEAR: int = 12
+const DAYS_PER_YEAR: int = DAYS_PER_MONTH * MONTHS_PER_YEAR
+const MONTH_NAMES: Array[String] = [
+    "Dawnfrost", "Brightsun", "Highbloom", "Goldfield",
+    "Harvest", "Redleaf", "Rainfall", "Shadowfell",
+    "Deepwinter", "Starrynight", "Frostmelt", "Greenbud",
+]
 
 var world_seconds: float = 0.0
 var tick_index: int = 0
@@ -45,6 +56,28 @@ func advance_world_seconds(delta_seconds: float) -> int:
 func set_world_seconds(value: float) -> void:
     world_seconds = maxf(0.0, value)
     accumulator = 0.0
+
+## Calendar mirrors the source game's 12 x 30-day year.
+func calendar_date() -> Dictionary:
+    var total_days := floori(world_seconds / float(SECONDS_PER_DAY))
+    var day_of_year := posmod(total_days, DAYS_PER_YEAR)
+    var month_index := floori(day_of_year / float(DAYS_PER_MONTH))
+    return {
+        "year": floori(total_days / float(DAYS_PER_YEAR)) + 1,
+        "month_index": month_index,
+        "month_name": MONTH_NAMES[month_index],
+        "day_of_month": posmod(day_of_year, DAYS_PER_MONTH) + 1,
+    }
+
+func time_of_day() -> Dictionary:
+    var seconds_into_day := int(fposmod(world_seconds, float(SECONDS_PER_DAY)))
+    var hour := floori(seconds_into_day / float(SECONDS_PER_HOUR))
+    var minute := floori(posmod(seconds_into_day, SECONDS_PER_HOUR) / float(SECONDS_PER_MINUTE))
+    return {
+        "hour": hour,
+        "minute": minute,
+        "text": "%02d:%02d" % [hour, minute],
+    }
 
 func to_dict() -> Dictionary:
     return {
