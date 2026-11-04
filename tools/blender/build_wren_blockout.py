@@ -796,6 +796,9 @@ def torso_surface_y(x, z, front=True):
         if 0.690 <= z <= 0.715:
             hood = math.exp(-((z - 0.700) / 0.009) ** 2) * math.exp(-(x / 0.012) ** 2)
             y -= hood * 0.006
+    else:
+        rear_dimple = math.exp(-((z - 0.788) / 0.009) ** 2) * math.exp(-(x / 0.010) ** 2)
+        y -= rear_dimple * 0.006
     return y
 
 # ---------------------------------------------------------------------------
@@ -819,6 +822,20 @@ for side, sign in (("L", 1), ("R", -1)):
     tube_mesh(f"Garment_Bra_CupTrim_{side}", cup_points,
         [0.0025] * (len(cup_points)-1) + [0.0018],
         UNDERWEAR_TRIM, "Spine", sides=7, depth_ratio=0.8)
+    # Lace-inspired embroidery follows the cup surface.
+    motif = [
+        (sign * 0.108 - 0.025, -0.229, 1.225),
+        (sign * 0.108 - 0.014, -0.232, 1.245),
+        (sign * 0.108, -0.235, 1.252),
+        (sign * 0.108 + 0.014, -0.232, 1.245),
+        (sign * 0.108 + 0.025, -0.229, 1.225),
+    ]
+    tube_mesh(f"Garment_Bra_Embroidery_{side}", motif,
+        [0.0018] * (len(motif)-1) + [0.0012],
+        UNDERWEAR_TRIM, "Spine", sides=6, depth_ratio=0.65)
+
+sphere_piece("Garment_Bra_CentreClasp", (0.0, -0.151, 1.153),
+    (0.009, 0.004, 0.012), UNDERWEAR_TRIM, "Spine", 16, 10)
 
 # The bandeau band wraps around the torso under the cups.
 band_verts, band_faces = [], []
