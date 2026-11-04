@@ -8,7 +8,7 @@ It remains independently playable and is not a dependency of this project.
 | `entities.js` | CharacterState, party state, presentation actor | Separate logical state from visual interpolation and scene nodes |
 | `hexMap.js` | HexGrid, map data, world presentation, camera/input | Rebuild; do not port Canvas renderer |
 | `terrain.js` | Terrain definitions and movement/combat resolvers | Convert rules into data and tested resolvers |
-| `gameEngine.js` | Movement, action, combat, AI and interaction services | Decompose by domain; do not port wholesale. First increment: ActionEconomy, WorldClock and CombatTurnScheduler. |
+| `gameEngine.js` | Movement, action, combat, AI and interaction services | Decompose by domain; do not port wholesale. First increments: ActionEconomy, WorldClock, CombatTurnScheduler, MovementRules and weighted HexPathfinder. |
 | `campaign2World.js` | Authored world data + world bootstrap | Extract data and scene setup; avoid browser globals |
 | `regions.js`, `worldPulse.js` | Regional simulation and event scheduler | Preserve persistent regional state and time-based events |
 | `persistence.js` | Versioned save/load service | New schema, stable IDs; no legacy compatibility initially |
@@ -20,7 +20,7 @@ It remains independently playable and is not a dependency of this project.
 ## Important behaviour to preserve
 
 - Real-time world simulation and action/time-point tactical combat.
-- Movement, attack costs, reactions, interruptions and AI decision-making.
+- Movement, attack costs, reactions, interruptions and AI decision-making. The first movement pass shares terrain-aware TP costs between keyboard stepping and mouse-click A* routes; advanced climbing, occupancy exceptions, road preferences, reactions and AI pathing remain outstanding.
 - Multiple relationship dimensions; do not flatten into one reputation number.
 - Party members, followers, formations, mounts and shared inventory.
 - Equipment, skills, spells, crafting and resource gathering.
