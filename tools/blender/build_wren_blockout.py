@@ -488,9 +488,13 @@ for side, sign in (("L", 1), ("R", -1)):
     elbow = (sign * 0.385, -0.006, 1.235)
     fore_mid = (sign * 0.455, -0.012, 1.155)
     wrist = (sign * 0.525, -0.018, 1.075)
+    # The arm is still a lofted anatomical guide, but use a much denser
+    # circumference so its silhouette and normals do not resolve into long
+    # polygonal bands. The elbow itself will receive a dedicated sculpt pass;
+    # do not fake it with a detached sphere.
     tube_mesh(f"Body_Arm_{side}", [shoulder, upper_mid, upper_low, elbow, fore_mid, wrist],
         [0.095, 0.096, 0.082, 0.068, 0.071, 0.043], SKIN,
-        f"UpperArm.{side}", f"Forearm.{side}", sides=20, blend_start=0.52, blend_end=0.76)
+        f"UpperArm.{side}", f"Forearm.{side}", sides=48, blend_start=0.52, blend_end=0.76)
     # No separate elbow sphere: it created the conspicuous round lump visible
     # in the sculpt preview. The elbow contour is shaped by the continuous arm.
     # Separate wrist and palm; each finger has three independently weighted
