@@ -155,7 +155,7 @@ def sphere_piece(name, location, scale, mat, bone_name, segments=32, rings=24, r
         polygon.use_smooth = True
     return obj
 
-def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=20, depth_ratio=0.88, blend_start=0.46, blend_end=0.62):
+def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=20, depth_ratio=0.88, blend_start=0.46, blend_end=0.62, front_bulge=0.0, front_bulge_t=0.5, front_bulge_width=0.07, inner_bulge=0.0, inner_bulge_t=0.9, outer_bulge=0.0, outer_bulge_t=0.94, ankle_bulge_width=0.045):
     """One continuous tapered limb/sleeve, with rings along its length.
 
     Each ring is perpendicular to the limb centreline. The elbow is an interior
@@ -204,9 +204,20 @@ def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=20, depth_rat
         radius = smooth_radii[ring_index]
         for side_index in range(sides):
             angle = 2.0 * math.pi * side_index / sides
-            offset = axis_u * (math.cos(angle) * radius) + axis_v * (math.sin(angle) * radius * depth_ratio)
-            verts.append(tuple(centre + offset))
             t = ring_index / (len(centres) - 1)
+            # Anatomical landmarks are sculpted as low-amplitude deformations
+            # of the continuous limb surface, never as appended spheres.
+            front_patch = max(0.0, math.sin(angle)) ** 6
+            front_profile = math.exp(-((t - front_bulge_t) / front_bulge_width) ** 2)
+            front_offset = axis_v * (front_bulge * front_profile * front_patch)
+            lateral = math.cos(angle)
+            inner_patch = max(0.0, -lateral) ** 8
+            outer_patch = max(0.0, lateral) ** 8
+            inner_profile = math.exp(-((t - inner_bulge_t) / ankle_bulge_width) ** 2)
+            outer_profile = math.exp(-((t - outer_bulge_t) / ankle_bulge_width) ** 2)
+            lateral_offset = axis_u * (-inner_bulge * inner_profile * inner_patch + outer_bulge * outer_profile * outer_patch)
+            offset = axis_u * (math.cos(angle) * radius) + axis_v * (math.sin(angle) * radius * depth_ratio) + front_offset + lateral_offset
+            verts.append(tuple(centre + offset))
             if bone_b is None:
                 wa, wb = 1.0, 0.0
             else:
@@ -463,9 +474,9 @@ def shaped_breast(name, centre_x):
 for side, sign in (("L", 1), ("R", -1)):
     shaped_breast(f"Body_Breast_{side}", sign * 0.108)
     # Gluteal anatomy is part of Body_Torso_Pelvis above, not separate meshes.
-    # Deltoid volume blends the upper arm into the torso.
-    sphere_piece(f"Body_Shoulder_{side}", (sign * 0.205, 0.0, 1.385),
-        (0.105, 0.105, 0.105), SKIN, f"UpperArm.{side}", 24, 16)
+    # Shoulder volume is formed by the proximal arm loft and the torso itself.
+    # No deltoid sphere: the cap is a broad, sloping cross-section buried into
+    # the ribcage, then tapers naturally into the upper arm.
 # Subtle, non-detailed external pelvic anatomy; no explicit genital detailing.
 
 tube_mesh("Body_Neck", [(0, 0, 1.455), (0, 0, 1.505), (0, 0, 1.555), (0, 0, 1.625)],
@@ -482,7 +493,8 @@ for side, sign in (("L", 1), ("R", -1)):
     sphere_piece(f"Body_Ear_{side}", (x * 0.68, 0, 1.70), (0.035, 0.035, 0.055), SKIN, "Head", 10, 8)
     # Shoulder, upper arm, elbow and forearm are a single continuous surface.
     # The elbow is deliberately buried in the tube instead of being a side-on join.
-    shoulder = (sign * 0.17, 0.0, 1.395)
+    shoulder_root = (sign * 0.125, 0.0, 1.425)
+    shoulder = (sign * 0.195, -0.002, 1.395)
     upper_mid = (sign * 0.265, -0.002, 1.345)
     upper_low = (sign * 0.335, -0.006, 1.285)
     elbow = (sign * 0.385, -0.006, 1.235)
@@ -492,9 +504,9 @@ for side, sign in (("L", 1), ("R", -1)):
     # circumference so its silhouette and normals do not resolve into long
     # polygonal bands. The elbow itself will receive a dedicated sculpt pass;
     # do not fake it with a detached sphere.
-    tube_mesh(f"Body_Arm_{side}", [shoulder, upper_mid, upper_low, elbow, fore_mid, wrist],
-        [0.095, 0.096, 0.082, 0.068, 0.071, 0.043], SKIN,
-        f"UpperArm.{side}", f"Forearm.{side}", sides=48, blend_start=0.52, blend_end=0.76)
+    tube_mesh(f"Body_Arm_{side}", [shoulder_root, shoulder, upper_mid, upper_low, elbow, fore_mid, wrist],
+        [0.060, 0.108, 0.096, 0.082, 0.068, 0.071, 0.043], SKIN,
+        f"UpperArm.{side}", f"Forearm.{side}", sides=64, depth_ratio=0.84, blend_start=0.56, blend_end=0.78)
     # No separate elbow sphere: it created the conspicuous round lump visible
     # in the sculpt preview. The elbow contour is shaped by the continuous arm.
     # Separate wrist and palm; each finger has three independently weighted
@@ -559,12 +571,12 @@ for side, sign in (("L", 1), ("R", -1)):
         (leg_x, -0.020, 0.500), (leg_x, 0.005, 0.420),
         (leg_x, 0.022, 0.335), (leg_x, 0.010, 0.245),
         (leg_x, 0.000, 0.155),
-    ], [0.094, 0.108, 0.106, 0.090, 0.071, 0.073, 0.083, 0.064, 0.045],
-        SKIN, f"Thigh.{side}", f"Shin.{side}", sides=48, blend_start=0.40, blend_end=0.63)
-    sphere_piece(f"Body_Kneecap_{side}", (leg_x, -0.062, 0.495),
-        (0.048, 0.022, 0.054), SKIN, f"Shin.{side}", 24, 16)
-    sphere_piece(f"Body_Ankle_{side}", (leg_x, 0.000, 0.145),
-        (0.050, 0.052, 0.047), SKIN, f"Ankle.{side}", 24, 16)
+    ], [0.094, 0.108, 0.106, 0.090, 0.075, 0.073, 0.083, 0.064, 0.045],
+        SKIN, f"Thigh.{side}", f"Shin.{side}", sides=64, depth_ratio=0.90,
+        blend_start=0.40, blend_end=0.63,
+        front_bulge=0.010, front_bulge_t=0.52, front_bulge_width=0.075,
+        inner_bulge=0.010, inner_bulge_t=0.91,
+        outer_bulge=0.012, outer_bulge_t=0.96, ankle_bulge_width=0.035)
     foot_rings = [
         (0.025, 0.045, 0.047, 0.108), (-0.025, 0.054, 0.043, 0.105),
         (-0.095, 0.063, 0.037, 0.094), (-0.165, 0.077, 0.032, 0.080),
