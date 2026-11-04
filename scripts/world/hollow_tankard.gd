@@ -33,6 +33,7 @@ var active_path: Array[Vector2i] = []
 var path_markers: Array[MeshInstance3D] = []
 var path_step_accumulator: float = 0.0
 const PATH_STEP_INTERVAL: float = 0.22
+const INVALID_HEX := Vector2i(2147483647, 2147483647)
 
 var grass_material: StandardMaterial3D
 var floor_material: StandardMaterial3D
@@ -537,8 +538,8 @@ func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseButton:
         var mouse_event := event as InputEventMouseButton
         if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
-            var clicked_hex := _screen_position_to_hex(mouse_event.position)
-            if clicked_hex != null:
+            var clicked_hex: Vector2i = _screen_position_to_hex(mouse_event.position)
+            if clicked_hex != INVALID_HEX:
                 _set_move_destination(clicked_hex)
                 get_viewport().set_input_as_handled()
             return
@@ -575,21 +576,21 @@ func _unhandled_input(event: InputEvent) -> void:
         _attempt_move(relative_step)
         get_viewport().set_input_as_handled()
 
-func _screen_position_to_hex(screen_position: Vector2) -> Variant:
+func _screen_position_to_hex(screen_position: Vector2) -> Vector2i:
     var camera := get_viewport().get_camera_3d()
     if camera == null:
-        return null
+        return INVALID_HEX
     var ray_origin := camera.project_ray_origin(screen_position)
     var ray_direction := camera.project_ray_normal(screen_position)
     if absf(ray_direction.y) < 0.0001:
-        return null
+        return INVALID_HEX
     var distance := -ray_origin.y / ray_direction.y
     if distance < 0.0:
-        return null
+        return INVALID_HEX
     var hit := ray_origin + ray_direction * distance
     var hex := HexGrid.world_to_axial(hit, HEX_RADIUS)
     if not simulation.map_data.has_cell(hex):
-        return null
+        return INVALID_HEX
     return hex
 
 func _set_move_destination(destination: Vector2i) -> void:
