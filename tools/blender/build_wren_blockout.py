@@ -795,6 +795,83 @@ def torso_surface_y(x, z, front=True):
             y -= hood * 0.006
     return y
 
+# ---------------------------------------------------------------------------
+# First modular undergarments, based on Wren's original 2D preset:
+# strapless bra + full-coverage briefs, both ochre with pale edging.
+# These are separate skinned garment meshes, never fused into the body.
+# ---------------------------------------------------------------------------
+UNDERWEAR = material("Wren | dark ochre underwear", (0.30, 0.205, 0.105))
+UNDERWEAR_TRIM = material("Wren | pale underwear edging", (0.76, 0.66, 0.49))
+
+# Strapless bra: two shaped cups over the breast volume and a narrow band.
+for side, sign in (("L", 1), ("R", -1)):
+    sphere_piece(f"Garment_Bra_Cup_{side}", (sign * 0.108, -0.204, 1.225),
+        (0.068, 0.030, 0.063), UNDERWEAR, "Spine", 32, 24)
+    # Fine upper cup piping follows the cup's curved top edge.
+    cup_points = []
+    for step in range(13):
+        angle = math.pi * (0.08 + 0.84 * step / 12.0)
+        cup_points.append((sign * 0.108 + math.cos(angle) * 0.061,
+            -0.224 - math.sin(angle) * 0.006, 1.225 + math.sin(angle) * 0.056))
+    tube_mesh(f"Garment_Bra_CupTrim_{side}", cup_points,
+        [0.0025] * (len(cup_points)-1) + [0.0018],
+        UNDERWEAR_TRIM, "Spine", sides=7, depth_ratio=0.8)
+
+# The bandeau band wraps around the torso under the cups.
+band_verts, band_faces = [], []
+band_sides = 48
+for z in (1.145, 1.162):
+    for i in range(band_sides):
+        angle = 2.0 * math.pi * i / band_sides
+        x = math.cos(angle) * 0.205
+        y = math.sin(angle) * 0.132
+        band_verts.append((x, y, z))
+for i in range(band_sides):
+    nxt = (i + 1) % band_sides
+    band_faces.append((i, nxt, band_sides+nxt, band_sides+i))
+finish_skinned_mesh("Garment_Bra_Bandeau", band_verts, band_faces,
+    UNDERWEAR, {"Spine": [1.0] * len(band_verts)})
+
+# Full-coverage briefs. Front and rear panels follow the torso's elliptical
+# surface, with a shaped leg-opening silhouette rather than a flat card.
+brief_rows = [
+    (0.910, 0.145), (0.892, 0.166), (0.868, 0.164),
+    (0.842, 0.145), (0.815, 0.119), (0.786, 0.091),
+    (0.758, 0.070),
+]
+def make_briefs_panel(front: bool) -> None:
+    verts, faces = [], []
+    columns = 17
+    for z, half_width in brief_rows:
+        for col in range(columns):
+            across = (col / (columns - 1)) * 2.0 - 1.0
+            x = across * half_width
+            surface = torso_surface_y(x, z, front)
+            offset = 0.0045 if front else -0.0045
+            y = surface + (-offset if front else offset)
+            verts.append((x, y, z))
+    for row in range(len(brief_rows)-1):
+        for col in range(columns-1):
+            a = row * columns + col
+            b = a + 1
+            c = b + columns
+            d = a + columns
+            faces.append((a, b, c, d) if front else (d, c, b, a))
+    finish_skinned_mesh("Garment_Briefs_Front" if front else "Garment_Briefs_Back",
+        verts, faces, UNDERWEAR, {"Root": [1.0] * len(verts)})
+
+make_briefs_panel(True)
+make_briefs_panel(False)
+
+# Pale waistband and leg-opening accents, as in the original 2D clothing layer.
+for front in (True, False):
+    edge_y = torso_surface_y(0.0, 0.910, front) + (-0.005 if front else 0.005)
+    tube_mesh("Garment_Briefs_Waist_Front" if front else "Garment_Briefs_Waist_Back",
+        [(-0.145, edge_y, 0.910), (-0.075, edge_y-0.001 if front else edge_y+0.001, 0.912),
+         (0.0, edge_y, 0.913), (0.075, edge_y-0.001 if front else edge_y+0.001, 0.912),
+         (0.145, edge_y, 0.910)],
+        [0.0025] * 4 + [0.0018], UNDERWEAR_TRIM, "Root", sides=7, depth_ratio=0.7)
+
 # Neatly groomed, modest pubic hair is a separate appearance layer. It is
 # offset just outside the front skin surface so it cannot show through the body.
 for i in range(11):
