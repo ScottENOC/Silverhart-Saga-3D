@@ -84,20 +84,20 @@ bone_defs = {
 # Three articulated phalanges per finger and thumb, parented to the hand.
 for side, sign in (("L", 1), ("R", -1)):
     for digit_index, digit in enumerate(("Index", "Middle", "Ring", "Pinky")):
-        finger_lengths = {"Index": 0.070, "Middle": 0.084, "Ring": 0.078, "Pinky": 0.061}
+        finger_lengths = {"Index": 0.072, "Middle": 0.086, "Ring": 0.080, "Pinky": 0.064}
         length = finger_lengths[digit]
-        spread_y = (digit_index - 1.5) * 0.015
-        root_x = sign * 0.604
-        p0 = (root_x, -0.034 + spread_y, 1.006)
-        p1 = (sign * (0.604 + length * 0.42), -0.034 + spread_y, 0.999)
-        p2 = (sign * (0.604 + length * 0.76), -0.034 + spread_y, 0.985)
-        p3 = (sign * (0.604 + length), -0.034 + spread_y, 0.972)
+        spread_z = (digit_index - 1.5) * 0.014
+        root_x = sign * 0.610
+        p0 = (root_x, -0.038, 1.025 + spread_z)
+        p1 = (sign * (0.610 + length * 0.42), -0.041, 1.023 + spread_z * 0.94)
+        p2 = (sign * (0.610 + length * 0.76), -0.047, 1.015 + spread_z * 0.86)
+        p3 = (sign * (0.610 + length), -0.051, 1.005 + spread_z * 0.78)
         chain = [(p0, p1, f"Hand.{side}"), (p1, p2, f"{digit}1.{side}"), (p2, p3, f"{digit}2.{side}")]
         for segment_index, (head, tail, parent) in enumerate(chain, 1):
             bone_defs[f"{digit}{segment_index}.{side}"] = (head, tail, parent)
     thumb_chain = [
-        ((sign*0.555,-0.064,1.043),(sign*0.565,-0.092,1.050),f"Hand.{side}"),
-        ((sign*0.565,-0.092,1.050),(sign*0.580,-0.112,1.045),f"Thumb1.{side}"),
+        ((sign*0.575,-0.038,1.050),(sign*0.590,-0.048,1.078),f"Hand.{side}"),
+        ((sign*0.590,-0.048,1.078),(sign*0.610,-0.054,1.095),f"Thumb1.{side}"),
     ]
     for segment_index, (head, tail, parent) in enumerate(thumb_chain, 1):
         bone_defs[f"Thumb{segment_index}.{side}"] = (head, tail, parent)
@@ -336,8 +336,8 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
             y -= front * hood * 0.006
         back = max(0.0, math.sin(angle)) ** 8
         if 0.770 <= z <= 0.805:
-            rear_dimple = math.exp(-((z - 0.788) / 0.009) ** 2) * math.exp(-(x / 0.010) ** 2)
-            y -= back * rear_dimple * 0.006
+            rear_dimple = math.exp(-((z - 0.788) / 0.012) ** 2) * math.exp(-(x / 0.014) ** 2)
+            y -= back * rear_dimple * 0.012
         torso_verts.append((x, y, ring_z))
         blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
         blend = blend * blend * (3.0 - 2.0 * blend)
@@ -369,7 +369,7 @@ for factor in (0.78, 0.54, 0.30, 0.12):
             ring_indices[nxt], ring_indices[side_index]))
     previous_ring = ring_indices
 bottom_centre = len(torso_verts)
-torso_verts.append((0.0, 0.0, 0.590))
+torso_verts.append((0.0, 0.0, 0.640))
 root_weights.append(1.0)
 spine_weights.append(0.0)
 for side_index in range(torso_sides):
@@ -487,7 +487,7 @@ for side, sign in (("L", 1), ("R", -1)):
     palm = bpy.context.object
     palm.name = f"Hand_Palm_{side}"
     # Palm's long axis follows the fingers; its broad face lies in X/Z.
-    palm.dimensions = (0.112, 0.060, 0.026)
+    palm.dimensions = (0.112, 0.026, 0.060)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bevel = palm.modifiers.new("Soft palm edges", "BEVEL")
     bevel.width = 0.014
@@ -503,23 +503,23 @@ for side, sign in (("L", 1), ("R", -1)):
     for poly in palm.data.polygons:
         poly.use_smooth = True
     for digit_index, digit in enumerate(("Index", "Middle", "Ring", "Pinky")):
-        finger_lengths = {"Index": 0.070, "Middle": 0.084, "Ring": 0.078, "Pinky": 0.061}
+        finger_lengths = {"Index": 0.072, "Middle": 0.086, "Ring": 0.080, "Pinky": 0.064}
         length = finger_lengths[digit]
-        spread_y = (digit_index - 1.5) * 0.015
+        spread_z = (digit_index - 1.5) * 0.014
         joints = [
-            (sign*0.604, -0.034 + spread_y, 1.006),
-            (sign*(0.604 + length*0.42), -0.034 + spread_y, 0.999),
-            (sign*(0.604 + length*0.76), -0.034 + spread_y, 0.985),
-            (sign*(0.604 + length), -0.034 + spread_y, 0.972),
+            (sign*0.610, -0.038, 1.025 + spread_z),
+            (sign*(0.610 + length*0.42), -0.041, 1.023 + spread_z*0.94),
+            (sign*(0.610 + length*0.76), -0.047, 1.015 + spread_z*0.86),
+            (sign*(0.610 + length), -0.051, 1.005 + spread_z*0.78),
         ]
         digit_mesh(f"Hand_{digit}_{side}",
             joints, [0.010, 0.009, 0.0075, 0.0065],
             [f"{digit}{segment+1}.{side}" for segment in range(3)], SKIN)
     # Thumb projects across the palm at roughly 90 degrees to the fingers.
     thumb_joints = [
-        (sign*0.555,-0.064,1.043),
-        (sign*0.565,-0.092,1.050),
-        (sign*0.580,-0.112,1.045),
+        (sign*0.575,-0.038,1.050),
+        (sign*0.590,-0.048,1.078),
+        (sign*0.610,-0.054,1.095),
     ]
     digit_mesh(f"Hand_Thumb_{side}", thumb_joints,
         [0.015, 0.012, 0.009],
@@ -757,12 +757,12 @@ for strand in range(3):
 
 # Sword is held upright: grip sits in the palm, guard below it and blade rises.
 upright = (math.radians(90), 0.0, 0.0)
-sphere_piece("Weapon_Sword_Grip", (-0.555, -0.025, 1.025),
-    (0.018, 0.078, 0.018), LEATHER, "Hand.R", 12, 8, upright)
-sphere_piece("Weapon_Sword_Guard", (-0.555, -0.025, 1.085),
+sphere_piece("Weapon_Sword_Grip", (-0.650, -0.050, 1.035),
+    (0.015, 0.078, 0.015), LEATHER, "Hand.R", 12, 8, upright)
+sphere_piece("Weapon_Sword_Guard", (-0.650, -0.050, 1.112),
     (0.075, 0.010, 0.010), SWORD_METAL, "Hand.R", 12, 8)
-sphere_piece("Weapon_Sword_Blade", (-0.555, -0.025, 1.245),
-    (0.024, 0.165, 0.006), SWORD_METAL, "Hand.R", 12, 8, upright)
+sphere_piece("Weapon_Sword_Blade", (-0.650, -0.050, 1.275),
+    (0.022, 0.155, 0.006), SWORD_METAL, "Hand.R", 12, 8, upright)
 
 
 # ---------------------------------------------------------------------------
@@ -806,29 +806,29 @@ def torso_surface_y(x, z, front=True):
 # strapless bra + full-coverage briefs, both ochre with pale edging.
 # These are separate skinned garment meshes, never fused into the body.
 # ---------------------------------------------------------------------------
-UNDERWEAR = material("Wren | dark ochre underwear", (0.20, 0.18, 0.084))
-UNDERWEAR_TRIM = material("Wren | pale gold underwear edging", (0.78, 0.64, 0.24))
+UNDERWEAR = material("Wren | dark ochre underwear HSV 55/58/20", (0.20, 0.18, 0.084))
+UNDERWEAR_TRIM = material("Wren | pale gold underwear HSV 47/100/100", (1.0, 0.783, 0.0))
 
 # Strapless bra: two shaped cups over the breast volume and a narrow band.
 for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Garment_Bra_Cup_{side}", (sign * 0.108, -0.204, 1.225),
-        (0.068, 0.030, 0.063), UNDERWEAR, "Spine", 32, 24)
+    sphere_piece(f"Garment_Bra_Cup_{side}", (sign * 0.108, -0.237, 1.225),
+        (0.067, 0.015, 0.056), UNDERWEAR, "Spine", 40, 28)
     # Fine upper cup piping follows the cup's curved top edge.
     cup_points = []
     for step in range(13):
         angle = math.pi * (0.08 + 0.84 * step / 12.0)
         cup_points.append((sign * 0.108 + math.cos(angle) * 0.061,
-            -0.224 - math.sin(angle) * 0.006, 1.225 + math.sin(angle) * 0.056))
+            -0.252 - math.sin(angle) * 0.004, 1.225 + math.sin(angle) * 0.056))
     tube_mesh(f"Garment_Bra_CupTrim_{side}", cup_points,
         [0.0025] * (len(cup_points)-1) + [0.0018],
         UNDERWEAR_TRIM, "Spine", sides=7, depth_ratio=0.8)
     # Lace-inspired embroidery follows the cup surface.
     motif = [
-        (sign * 0.108 - 0.025, -0.229, 1.225),
-        (sign * 0.108 - 0.014, -0.232, 1.245),
-        (sign * 0.108, -0.235, 1.252),
-        (sign * 0.108 + 0.014, -0.232, 1.245),
-        (sign * 0.108 + 0.025, -0.229, 1.225),
+        (sign * 0.108 - 0.025, -0.257, 1.225),
+        (sign * 0.108 - 0.014, -0.260, 1.245),
+        (sign * 0.108, -0.262, 1.252),
+        (sign * 0.108 + 0.014, -0.260, 1.245),
+        (sign * 0.108 + 0.025, -0.257, 1.225),
     ]
     tube_mesh(f"Garment_Bra_Embroidery_{side}", motif,
         [0.0018] * (len(motif)-1) + [0.0012],
@@ -855,23 +855,35 @@ finish_skinned_mesh("Garment_Bra_Bandeau", band_verts, band_faces,
 # Full-coverage briefs. Front and rear panels follow the torso's elliptical
 # surface, with a shaped leg-opening silhouette rather than a flat card.
 brief_rows = [
-    (0.910, 0.145), (0.892, 0.166), (0.868, 0.164),
-    (0.842, 0.145), (0.815, 0.119), (0.786, 0.091),
-    (0.758, 0.070),
+    (0.872, 0.145), (0.858, 0.164), (0.836, 0.160),
+    (0.812, 0.143), (0.785, 0.118), (0.758, 0.092),
+    (0.735, 0.072),
 ]
 def make_briefs_panel(front: bool) -> None:
     verts, faces = [], []
-    columns = 17
-    for z, half_width in brief_rows:
+    columns = 41
+    rows = 25
+    for row in range(rows):
+        t = row / float(rows - 1) * (len(brief_rows) - 1)
+        segment = min(len(brief_rows) - 2, int(t))
+        local_t = t - segment
+        z = brief_rows[segment][0] * (1.0-local_t) + brief_rows[segment+1][0] * local_t
+        half_width = brief_rows[segment][1] * (1.0-local_t) + brief_rows[segment+1][1] * local_t
         for col in range(columns):
             across = (col / (columns - 1)) * 2.0 - 1.0
             x = across * half_width
             surface = torso_surface_y(x, z, front)
-            offset = 0.0045 if front else -0.0045
-            y = surface + (-offset if front else offset)
+            y = surface - 0.009 if front else surface + 0.009
             verts.append((x, y, z))
-    for row in range(len(brief_rows)-1):
+    for row in range(rows-1):
         for col in range(columns-1):
+            # Repeating diamond eyelets create real holes in the lace rather
+            # than a transparent decal painted over solid fabric.
+            u = col % 8
+            v = row % 6
+            lace_hole = u in (3, 4) and v in (2, 3)
+            if lace_hole:
+                continue
             a = row * columns + col
             b = a + 1
             c = b + columns
@@ -897,12 +909,12 @@ for front in (True, False):
 # Neatly groomed, modest pubic hair is a separate appearance layer. It is
 # offset just outside the front skin surface so it cannot show through the body.
 for i in range(11):
-    x = (i - 5) * 0.007
-    z0 = 0.660 + abs(i - 5) * 0.0015
-    z1 = 0.625 + abs(i - 5) * 0.003
+    x = (i - 5) * 0.008
+    z0 = 0.835 + abs(i - 5) * 0.0015
+    z1 = 0.775 + abs(i - 5) * 0.003
     points = []
     for px, pz in [(x, z0), (x * 0.82, (z0+z1)*0.5), (x * 0.62, z1)]:
-        points.append((px, torso_surface_y(px, pz, True)-0.0025, pz))
+        points.append((px, torso_surface_y(px, pz, True)-0.012, pz))
     tube_mesh(f"BodyHair_Pubic_{i+1:02d}", points,
         [0.0020, 0.0018, 0.0006], PUBIC_HAIR, "Root", sides=6, depth_ratio=0.65)
 
