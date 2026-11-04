@@ -624,7 +624,7 @@ if body_parts:
 
     remesh = body.modifiers.new("Fuse anatomical forms", "REMESH")
     remesh.mode = "VOXEL"
-    remesh.voxel_size = 0.0025
+    remesh.voxel_size = 0.0035
     remesh.use_smooth_shade = True
     bpy.context.view_layer.objects.active = body
     bpy.ops.object.modifier_apply(modifier=remesh.name)
