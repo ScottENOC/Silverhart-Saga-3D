@@ -50,6 +50,8 @@ export_component("tattoo_star.glb", ("Tattoo_",))
 export_component("piercings_wren.glb", ("Piercing_",))
 # These slot exports are automatically populated when corresponding garment
 # and armour meshes are authored in Blender.
+export_component("underwear_bra.glb", ("Garment_Bra_",))
+export_component("underwear_briefs.glb", ("Garment_Briefs_",))
 export_component("garment_torso_base.glb", ("Garment_Torso_",))
 export_component("garment_legs_base.glb", ("Garment_Legs_",))
 export_component("armour_torso_base.glb", ("Armour_Torso_",))
