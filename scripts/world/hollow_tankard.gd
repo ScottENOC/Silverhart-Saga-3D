@@ -454,11 +454,11 @@ func _on_camera_zoom_changed(value: float) -> void:
     if is_instance_valid(zoom_slider):
         zoom_slider.set_value_no_signal(value)
 
-func _get_wren_model() -> Node:
+func _get_wren_model() -> ModularCharacterAssembler:
     var wren: Node3D = actor_by_id.get("companion_wren_talbot") as Node3D
     if wren == null:
         return null
-    return wren.get_node_or_null("CharacterModel")
+    return wren.get_node_or_null("CharacterModel") as ModularCharacterAssembler
 
 func _toggle_wren_bra() -> void:
     var model := _get_wren_model()
