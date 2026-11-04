@@ -660,7 +660,7 @@ func _attempt_move(relative_step: int) -> void:
     if state == null:
         return
     var direction_index := posmod(state.facing_direction + relative_step, 6)
-    simulation.try_move_character(state.id, state.axial + HexGrid.DIRECTIONS[direction_index])
+    simulation.try_move_character_step(state.id, state.axial + HexGrid.DIRECTIONS[direction_index])
 
 func _find_valid_spawn_hex(preferred: Vector2i) -> Vector2i:
     # Search outward from the authored staging position to avoid furniture
