@@ -33,6 +33,7 @@ jobs:
           set -euo pipefail
           /opt/blender/blender --background --python tools/blender/build_wren_blockout.py
           /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/prepare_wren_sculpt.py
+          /opt/blender/blender --background --python tools/blender/export_sculpt_preview.py
           /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/export_character_components.py
           test -s art/characters/wren/wren_blockout.glb
           test -s art/characters/wren/body.glb
@@ -52,6 +53,7 @@ jobs:
           mkdir -p site/assets
           cp art/characters/wren/wren_blockout.glb site/assets/wren_blockout.glb
           cp art/characters/wren/body.glb site/assets/body.glb
+          cp art/characters/wren/wren_sculpt_source.glb site/assets/wren_sculpt_source.glb
           for file in hair_braid weapon_sword body_hair_pubic tattoo_star piercings_wren underwear_bra underwear_briefs; do
             if [ -s "art/characters/wren/${file}.glb" ]; then cp "art/characters/wren/${file}.glb" site/assets/; fi
           done
