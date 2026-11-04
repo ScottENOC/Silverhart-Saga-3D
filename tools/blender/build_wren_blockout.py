@@ -94,8 +94,8 @@ for side, sign in (("L", 1), ("R", -1)):
         for segment_index, (head, tail, parent) in enumerate(chain, 1):
             bone_defs[f"{digit}{segment_index}.{side}"] = (head, tail, parent)
     thumb_chain = [
-        ((sign*0.515,-0.005,1.035),(sign*0.485,-0.045,1.020),f"Hand.{side}"),
-        ((sign*0.485,-0.045,1.020),(sign*0.485,-0.075,1.000),f"Thumb1.{side}"),
+        ((sign*0.515,-0.010,1.035),(sign*0.535,-0.045,1.020),f"Hand.{side}"),
+        ((sign*0.535,-0.045,1.020),(sign*0.545,-0.060,1.000),f"Thumb1.{side}"),
     ]
     for segment_index, (head, tail, parent) in enumerate(thumb_chain, 1):
         bone_defs[f"Thumb{segment_index}.{side}"] = (head, tail, parent)
@@ -433,8 +433,8 @@ for side, sign in (("L", 1), ("R", -1)):
             [f"{digit}{segment+1}.{side}" for segment in range(3)], SKIN)
     thumb_joints = [
         (sign*0.515,-0.010,1.035),
-        (sign*0.485,-0.045,1.020),
-        (sign*0.485,-0.060,1.000),
+        (sign*0.535,-0.045,1.020),
+        (sign*0.545,-0.060,1.000),
     ]
     digit_mesh(f"Hand_Thumb_{side}", thumb_joints,
         [0.015, 0.012, 0.009],
