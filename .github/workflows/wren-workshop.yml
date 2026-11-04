@@ -36,6 +36,15 @@ jobs:
           /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/export_character_components.py
           test -s art/characters/wren/wren_blockout.glb
           test -s art/characters/wren/body.glb
+      - name: Keep Blender source and exported models as build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wren-model-build
+          path: |
+            art/characters/wren/wren_blockout.blend
+            art/characters/wren/*.glb
+          if-no-files-found: error
+          retention-days: 14
       - name: Assemble viewer site
         run: |
           set -euo pipefail
