@@ -133,14 +133,22 @@ func _test_combat_turn_scheduler() -> void:
     sim.start_combat()
 
     # One 0.4-second world tick grants one TP, then selects the highest ready.
-    assert(sim.clock.advance_world_seconds(0.4) == 1)
+    assert(sim.advance_world_seconds(0.4) == 1)
+    assert(not sim.turn_scheduler.has_active_turn())
+    assert(is_equal_approx(player.time_points, 100.5))
+    assert(is_equal_approx(guard.time_points, 100.0))
+
+    # Initiative is checked before the next world-time step; selecting a
+    # ready character freezes both world time and TP regeneration.
+    assert(sim.advance_world_seconds(0.4) == 0)
     assert(sim.turn_scheduler.current_character_id == "player")
     assert(sim.get_current_turn_character() == player)
+    assert(is_equal_approx(sim.clock.world_seconds, 0.4))
     assert(is_equal_approx(player.time_points, 100.5))
     assert(is_equal_approx(guard.time_points, 100.0))
 
     # No regeneration while the selected character is taking their turn.
-    assert(sim.clock.advance_world_seconds(0.4) == 1)
+    assert(sim.advance_world_seconds(0.4) == 0)
     assert(is_equal_approx(player.time_points, 100.5))
     assert(is_equal_approx(guard.time_points, 100.0))
 
@@ -151,9 +159,9 @@ func _test_combat_turn_scheduler() -> void:
     assert(not sim.turn_scheduler.has_active_turn())
 
     # Next waiting tick regenerates everyone and selects the next highest TP.
-    assert(sim.clock.advance_world_seconds(0.4) == 1)
+    assert(sim.advance_world_seconds(0.4) == 0)
     assert(sim.turn_scheduler.current_character_id == "guard")
-    assert(is_equal_approx(guard.time_points, 101.0))
+    assert(is_equal_approx(guard.time_points, 100.0))
 
     var save_data := sim.to_dict()
     var loaded := WorldSimulation.new()
