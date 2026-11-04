@@ -18,11 +18,29 @@ func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
 
 func _process(delta: float) -> void:
-    # The source simulation pauses world-time/TP advancement while an entity
-    # is taking its turn. Combat time resumes between turns.
-    if is_in_combat and turn_scheduler.has_active_turn():
-        return
-    clock.advance_real_time(delta, is_in_combat)
+    advance_real_time(delta)
+
+## Check initiative before advancing time, as the source engine does. A ready
+## combatant takes their turn immediately; world time only advances when no
+## one is eligible to act.
+func advance_real_time(real_delta: float) -> int:
+    if is_in_combat:
+        if turn_scheduler.has_active_turn():
+            return 0
+        if turn_scheduler.select_next_ready(characters) != null:
+            clock.accumulator = 0.0
+            return 0
+    return clock.advance_real_time(real_delta, is_in_combat)
+
+func advance_world_seconds(delta_seconds: float) -> int:
+    # Deterministic equivalent of advance_real_time, for tests and fast-forward.
+    if is_in_combat:
+        if turn_scheduler.has_active_turn():
+            return 0
+        if turn_scheduler.select_next_ready(characters) != null:
+            clock.accumulator = 0.0
+            return 0
+    return clock.advance_world_seconds(delta_seconds)
 
 func register_character(state: CharacterState) -> void:
     if state.id.is_empty():
@@ -71,8 +89,6 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
         if state != null and state.alive:
             state.regenerate_time_points()
 
-    if is_in_combat:
-        turn_scheduler.select_next_ready(characters)
     world_tick.emit(tick_index, world_seconds)
 
 ## Debug/prototype movement remains free so the M1 movement harness is usable.
