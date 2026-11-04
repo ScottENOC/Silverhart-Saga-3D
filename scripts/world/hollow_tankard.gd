@@ -517,6 +517,8 @@ func _toggle_wren_briefs() -> void:
 func _switch_party_member() -> void:
     if party_member_ids.is_empty():
         return
+    active_path.clear()
+    _clear_path_markers()
     active_party_index = (active_party_index + 1) % party_member_ids.size()
     active_character_id = party_member_ids[active_party_index]
     var target: Node3D = actor_by_id.get(active_character_id) as Node3D
@@ -604,6 +606,8 @@ func _set_move_destination(destination: Vector2i) -> void:
     _show_path_markers(path)
 
 func _advance_path_step() -> void:
+    if simulation.clock.paused:
+        return
     if active_path.size() < 2:
         active_path.clear()
         _clear_path_markers()
@@ -664,6 +668,8 @@ func _rotate_active_character(steps: int) -> void:
     actor.rotation.y = deg_to_rad(float(2 - state.facing_direction) * 60.0)
 
 func _attempt_move(relative_step: int) -> void:
+    if simulation.clock.paused:
+        return
     var state := simulation.get_character(active_character_id)
     if state == null:
         return
