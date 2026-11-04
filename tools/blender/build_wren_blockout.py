@@ -27,7 +27,6 @@ for datablocks in (bpy.data.meshes, bpy.data.curves, bpy.data.materials, bpy.dat
 def material(name, colour, roughness=0.82, metallic=0.0):
     mat = bpy.data.materials.new(name)
     mat.diffuse_color = (*colour, 1.0)
-    # New materials use nodes by default. Enable only if a configuration disabled them.
     if mat.node_tree is None:
         mat.use_nodes = True
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
@@ -46,8 +45,7 @@ SWORD_METAL = material("Wren | sword steel", (0.48, 0.54, 0.59), 0.32, 0.65)
 LEATHER = material("Wren | sword grip", (0.18, 0.095, 0.045))
 
 # ---------------------------------------------------------------------------
-# Shared human skeleton. The first pass uses rigid bone weights and overlapping
-# low-poly forms; later garment/body meshes can use smooth skin weights.
+# Shared human skeleton.
 # ---------------------------------------------------------------------------
 
 arm_data = bpy.data.armatures.new("Human_Skeleton")
@@ -89,9 +87,27 @@ arm.show_in_front = True
 arm.display_type = "WIRE"
 
 # ---------------------------------------------------------------------------
-# Reusable mesh helpers. Each blockout piece is its own mesh, skinned rigidly
-# to a bone. That makes the first export inspectable and keeps garments separate.
+# Mesh helpers.
 # ---------------------------------------------------------------------------
+
+def finish_skinned_mesh(name, verts, faces, mat, weights_by_group):
+    mesh = bpy.data.meshes.new(name + "_Mesh")
+    mesh.from_pydata(verts, [], faces)
+    mesh.materials.append(mat)
+    mesh.update()
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    for group_name, weights in weights_by_group.items():
+        group = obj.vertex_groups.new(name=group_name)
+        for vertex_index, weight in enumerate(weights):
+            if weight > 0.0001:
+                group.add([vertex_index], weight, "REPLACE")
+    mod = obj.modifiers.new("Human skeleton", "ARMATURE")
+    mod.object = arm
+    obj.parent = arm
+    for polygon in mesh.polygons:
+        polygon.use_smooth = True
+    return obj
 
 def sphere_piece(name, location, scale, mat, bone_name, segments=14, rings=10):
     bpy.ops.mesh.primitive_uv_sphere_add(segments=segments, ring_count=rings, radius=1, location=location)
@@ -105,7 +121,58 @@ def sphere_piece(name, location, scale, mat, bone_name, segments=14, rings=10):
     mod = obj.modifiers.new("Human skeleton", "ARMATURE")
     mod.object = arm
     obj.parent = arm
+    for polygon in obj.data.polygons:
+        polygon.use_smooth = True
     return obj
+
+def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=12, depth_ratio=0.88, blend_start=0.46, blend_end=0.62):
+    """One continuous tapered limb/sleeve, with rings along its length.
+
+    Each ring is perpendicular to the limb centreline. The elbow is an interior
+    cross-section, not the meeting point of two exposed cylinders.
+    """
+    centres = [Vector(p) for p in points]
+    verts, faces = [], []
+    weights_a, weights_b = [], []
+    reference = Vector((0, 1, 0))
+    for ring_index, centre in enumerate(centres):
+        if ring_index == 0:
+            tangent = (centres[1] - centres[0]).normalized()
+        elif ring_index == len(centres) - 1:
+            tangent = (centres[-1] - centres[-2]).normalized()
+        else:
+            tangent = (centres[ring_index + 1] - centres[ring_index - 1]).normalized()
+        axis_u = tangent.cross(reference).normalized()
+        axis_v = tangent.cross(axis_u).normalized()
+        radius = radii[ring_index]
+        for side_index in range(sides):
+            angle = 2.0 * math.pi * side_index / sides
+            offset = axis_u * (math.cos(angle) * radius) + axis_v * (math.sin(angle) * radius * depth_ratio)
+            verts.append(tuple(centre + offset))
+            t = ring_index / (len(centres) - 1)
+            if bone_b is None:
+                wa, wb = 1.0, 0.0
+            else:
+                blend = max(0.0, min(1.0, (t - blend_start) / (blend_end - blend_start)))
+                # Smoothstep avoids an abrupt weight boundary around the elbow.
+                blend = blend * blend * (3.0 - 2.0 * blend)
+                wa, wb = 1.0 - blend, blend
+            weights_a.append(wa)
+            weights_b.append(wb)
+    for ring in range(len(centres) - 1):
+        for side in range(sides):
+            a = ring * sides + side
+            b = ring * sides + (side + 1) % sides
+            c = (ring + 1) * sides + (side + 1) % sides
+            d = (ring + 1) * sides + side
+            faces.append((a, b, c, d))
+    faces.append(tuple(range(sides - 1, -1, -1)))
+    last = (len(centres) - 1) * sides
+    faces.append(tuple(last + i for i in range(sides)))
+    groups = {bone_a: weights_a}
+    if bone_b:
+        groups[bone_b] = weights_b
+    return finish_skinned_mesh(name, verts, faces, mat, groups)
 
 def torus_piece(name, location, major_radius, minor_radius, mat, bone_name, rotation=(0, 0, 0)):
     bpy.ops.mesh.primitive_torus_add(major_segments=16, minor_segments=6,
@@ -130,40 +197,47 @@ sphere_piece("Body_Torso", (0, 0, 1.20), (0.235, 0.145, 0.34), SKIN, "Spine")
 sphere_piece("Body_Neck", (0, 0, 1.55), (0.072, 0.07, 0.105), SKIN, "Neck")
 sphere_piece("Body_Head", (0, -0.005, 1.70), (0.125, 0.12, 0.16), SKIN, "Head", 18, 12)
 sphere_piece("Body_Nose", (0, -0.119, 1.685), (0.025, 0.025, 0.042), SKIN, "Head", 10, 8)
-for side, x in (("L", 0.18), ("R", -0.18)):
+for side, sign in (("L", 1), ("R", -1)):
+    x = sign * 0.18
     sphere_piece(f"Body_Ear_{side}", (x * 0.68, 0, 1.70), (0.035, 0.035, 0.055), SKIN, "Head", 10, 8)
-    sphere_piece(f"Body_UpperArm_{side}", (x * 1.55, 0, 1.32), (0.095, 0.09, 0.19), SKIN, f"UpperArm.{side}")
-    sphere_piece(f"Body_Forearm_{side}", (x * 2.50, 0, 1.17), (0.075, 0.075, 0.17), SKIN, f"Forearm.{side}")
-    sphere_piece(f"Body_Hand_{side}", (x * 3.05, -0.005, 1.075), (0.065, 0.045, 0.09), SKIN, f"Hand.{side}")
+    # Shoulder, upper arm, elbow and forearm are a single continuous surface.
+    # The elbow is deliberately buried in the tube instead of being a side-on join.
+    shoulder = (sign * 0.18, 0.0, 1.385)
+    upper_mid = (sign * 0.285, -0.002, 1.315)
+    elbow = (sign * 0.385, -0.006, 1.235)
+    fore_mid = (sign * 0.455, -0.012, 1.155)
+    wrist = (sign * 0.525, -0.018, 1.075)
+    tube_mesh(f"Body_Arm_{side}", [shoulder, upper_mid, elbow, fore_mid, wrist],
+        [0.092, 0.087, 0.073, 0.062, 0.043], SKIN,
+        f"UpperArm.{side}", f"Forearm.{side}", sides=12)
+    sphere_piece(f"Body_Hand_{side}", (sign * 0.555, -0.025, 1.025), (0.052, 0.043, 0.075), SKIN, f"Hand.{side}")
     leg_x = 0.13 if side == "L" else -0.13
     sphere_piece(f"Body_Thigh_{side}", (leg_x, 0, 0.69), (0.115, 0.115, 0.25), SKIN, f"Thigh.{side}")
     sphere_piece(f"Body_Shin_{side}", (leg_x, 0, 0.32), (0.078, 0.085, 0.22), SKIN, f"Shin.{side}")
     sphere_piece(f"Body_Foot_{side}", (leg_x, -0.075, 0.105), (0.075, 0.16, 0.07), SKIN, f"Foot.{side}")
 
-# Simple eyes: deliberately restrained until the face-design pass.
 EYE = material("Wren | eyes", (0.045, 0.035, 0.03))
 for side, x in (("L", 0.047), ("R", -0.047)):
     sphere_piece(f"Face_Eye_{side}", (x, -0.113, 1.72), (0.012, 0.009, 0.014), EYE, "Head", 8, 6)
 
 # ---------------------------------------------------------------------------
-# Wren's actual authored outfit. Each garment is separate from the body.
-# The simple overlapping forms are placeholders for fitted garment meshes.
+# Wren's authored outfit. The sleeves are also continuous tapered shells.
 # ---------------------------------------------------------------------------
 
-# Shirt torso and sleeves.
 sphere_piece("Garment_Shirt_Torso", (0, -0.002, 1.20), (0.248, 0.158, 0.345), SHIRT, "Spine")
-sphere_piece("Garment_Shirt_Sleeve_L", (0.285, 0, 1.32), (0.105, 0.105, 0.17), SHIRT, "UpperArm.L")
-sphere_piece("Garment_Shirt_Sleeve_R", (-0.285, 0, 1.32), (0.105, 0.105, 0.17), SHIRT, "UpperArm.R")
+for side, sign in (("L", 1), ("R", -1)):
+    tube_mesh(f"Garment_Shirt_Sleeve_{side}",
+        [(sign * 0.17, 0.0, 1.405), (sign * 0.245, -0.002, 1.355), (sign * 0.315, -0.004, 1.305), (sign * 0.365, -0.006, 1.255)],
+        [0.112, 0.108, 0.098, 0.084], SHIRT, f"UpperArm.{side}",
+        sides=12, depth_ratio=0.92)
 torus_piece("Garment_Shirt_Collar_Trim", (0, 0, 1.485), 0.105, 0.018, TRIM, "Spine")
 torus_piece("Garment_Shirt_Hem_Trim", (0, 0, 0.94), 0.205, 0.012, TRIM, "Spine")
 
-# Dark lattice trousers: hip section and individual legs.
 sphere_piece("Garment_Trousers_Hips", (0, 0.002, 0.88), (0.218, 0.148, 0.17), TROUSERS, "Root")
 for side, x in (("L", 0.13), ("R", -0.13)):
     sphere_piece(f"Garment_Trousers_Thigh_{side}", (x, 0.002, 0.69), (0.126, 0.126, 0.255), TROUSERS, f"Thigh.{side}")
     sphere_piece(f"Garment_Trousers_Lower_{side}", (x, 0.002, 0.32), (0.088, 0.094, 0.225), TROUSERS, f"Shin.{side}")
 
-# Braided dark-blue hair: cap and a low-poly braid falling behind the left shoulder.
 sphere_piece("Hair_Cap", (0, 0.018, 1.79), (0.132, 0.125, 0.105), HAIR, "Head")
 for i in range(7):
     z = 1.77 - i * 0.055
@@ -171,20 +245,18 @@ for i in range(7):
     y = 0.085 + 0.012 * math.cos(i * 0.8)
     sphere_piece(f"Hair_Braid_{i+1:02d}", (x, y, z), (0.037, 0.038, 0.052), HAIR, "Head", 10, 8)
 
-# Sword: separate held equipment, attached to Wren's right hand.
 sphere_piece("Weapon_Sword_Grip", (-0.59, -0.015, 1.08), (0.022, 0.025, 0.095), LEATHER, "Hand.R", 10, 8)
 sphere_piece("Weapon_Sword_Guard", (-0.59, -0.015, 1.17), (0.085, 0.025, 0.018), SWORD_METAL, "Hand.R", 10, 6)
 sphere_piece("Weapon_Sword_Blade", (-0.59, -0.015, 1.37), (0.027, 0.012, 0.19), SWORD_METAL, "Hand.R", 10, 8)
 
 # ---------------------------------------------------------------------------
-# Preview setup. The GLB export below selects only the rig and Wren's meshes.
+# Preview setup and GLB export.
 # ---------------------------------------------------------------------------
 
 floor_mat = material("Preview | warm grey", (0.22, 0.22, 0.21))
 bpy.ops.mesh.primitive_plane_add(size=5, location=(0, 0, 0))
 floor = bpy.context.object
 floor.name = "Preview_Floor"
-floor.data.materials.append(floor_mat)
 
 bpy.ops.object.camera_add(location=(3.1, -5.2, 2.45))
 camera = bpy.context.object
@@ -209,7 +281,6 @@ fill.name = "Preview_Fill"
 fill.data.energy = 180
 fill.data.size = 3
 
-# Organise model parts in a collection for clean selection/export.
 character_collection = bpy.data.collections.new("WREN_CHARACTER")
 bpy.context.scene.collection.children.link(character_collection)
 for obj in list(bpy.context.scene.objects):
@@ -218,13 +289,11 @@ for obj in list(bpy.context.scene.objects):
             collection.objects.unlink(obj)
         character_collection.objects.link(obj)
 
-# Select only character meshes and the armature for GLB export.
 bpy.ops.object.select_all(action="DESELECT")
 for obj in character_collection.objects:
     obj.select_set(True)
 bpy.context.view_layer.objects.active = arm
 
-# Blender 4.x called Eevee BLENDER_EEVEE_NEXT; Blender 5.x calls it BLENDER_EEVEE.
 engine_items = bpy.context.scene.render.bl_rna.properties["engine"].enum_items
 available_engines = {item.identifier for item in engine_items}
 if "BLENDER_EEVEE" in available_engines:
