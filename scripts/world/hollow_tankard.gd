@@ -88,6 +88,8 @@ func _create_lighting() -> void:
 func _create_simulation() -> void:
     simulation = WorldSimulation.new()
     simulation.name = "WorldSimulation"
+    # Campaign 2 opens at 11:00 on the first day, matching the browser game.
+    simulation.clock.set_world_seconds(11.0 * 3600.0)
     add_child(simulation)
 
     # A small ring of outdoor cells surrounds the building. The room and
