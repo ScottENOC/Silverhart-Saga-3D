@@ -192,11 +192,68 @@ def torus_piece(name, location, major_radius, minor_radius, mat, bone_name, rota
 # Body: average-build human woman, approximately 1.7 m tall.
 # ---------------------------------------------------------------------------
 
-sphere_piece("Body_Pelvis", (0, 0, 0.88), (0.205, 0.135, 0.16), SKIN, "Root")
-sphere_piece("Body_Torso", (0, 0, 1.20), (0.235, 0.145, 0.34), SKIN, "Spine")
-sphere_piece("Body_Neck", (0, 0, 1.55), (0.072, 0.07, 0.105), SKIN, "Neck")
-sphere_piece("Body_Head", (0, -0.005, 1.70), (0.125, 0.12, 0.16), SKIN, "Head", 18, 12)
-sphere_piece("Body_Nose", (0, -0.119, 1.685), (0.025, 0.025, 0.042), SKIN, "Head", 10, 8)
+# Continuous torso/pelvis loft: broad pelvis and shoulders, defined waist,
+# ribcage and chest. Each ring is a cross-section of one surface.
+torso_rings = [
+    (0.735, 0.175, 0.115, 0.000),
+    (0.790, 0.215, 0.135, 0.000),
+    (0.855, 0.235, 0.145, 0.000),
+    (0.925, 0.205, 0.132, 0.000),
+    (1.015, 0.172, 0.118, 0.000),
+    (1.105, 0.190, 0.132, 0.000),
+    (1.205, 0.218, 0.145, 0.000),
+    (1.305, 0.225, 0.140, 0.000),
+    (1.390, 0.255, 0.125, 0.000),
+    (1.465, 0.145, 0.095, 0.000),
+    (1.515, 0.075, 0.070, 0.000),
+]
+torso_verts, torso_faces, root_weights, spine_weights = [], [], [], []
+torso_sides = 24
+for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
+    for side_index in range(torso_sides):
+        angle = 2.0 * math.pi * side_index / torso_sides
+        torso_verts.append((math.cos(angle) * width, y_center + math.sin(angle) * depth, z))
+        blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
+        blend = blend * blend * (3.0 - 2.0 * blend)
+        root_weights.append(1.0 - blend)
+        spine_weights.append(blend)
+for ring in range(len(torso_rings) - 1):
+    for side_index in range(torso_sides):
+        a = ring * torso_sides + side_index
+        b = ring * torso_sides + (side_index + 1) % torso_sides
+        c = (ring + 1) * torso_sides + (side_index + 1) % torso_sides
+        d = (ring + 1) * torso_sides + side_index
+        torso_faces.append((a, b, c, d))
+torso_faces.append(tuple(range(torso_sides - 1, -1, -1)))
+last_ring = (len(torso_rings) - 1) * torso_sides
+torso_faces.append(tuple(last_ring + i for i in range(torso_sides)))
+finish_skinned_mesh("Body_Torso_Pelvis", torso_verts, torso_faces, SKIN,
+    {"Root": root_weights, "Spine": spine_weights})
+
+# Natural, restrained adult feminine body shape. These forms are integrated
+# visually into the torso silhouette; they are body geometry, not garments.
+for side, sign in (("L", 1), ("R", -1)):
+    sphere_piece(f"Body_Breast_{side}", (sign * 0.108, -0.112, 1.245),
+        (0.105, 0.068, 0.105), SKIN, "Spine", 20, 14)
+    sphere_piece(f"Body_Glute_{side}", (sign * 0.112, 0.092, 0.835),
+        (0.125, 0.105, 0.145), SKIN, "Root", 20, 14)
+# Subtle, non-detailed external pelvic anatomy; no explicit genital detailing.
+sphere_piece("Body_Pubic_Mound", (0, -0.112, 0.785),
+    (0.105, 0.035, 0.065), SKIN, "Root", 18, 12)
+
+sphere_piece("Body_Neck", (0, 0, 1.535), (0.072, 0.07, 0.105), SKIN, "Neck")
+sphere_piece("Body_Head", (0, -0.005, 1.70), (0.125, 0.12, 0.16), SKIN, "Head", 24, 16)
+# Nose bridge, tip and subtle alae are separate sculptural forms.
+sphere_piece("Face_Nose_Bridge", (0, -0.112, 1.685), (0.020, 0.035, 0.060), SKIN, "Head", 12, 10)
+sphere_piece("Face_Nose_Tip", (0, -0.145, 1.652), (0.027, 0.030, 0.023), SKIN, "Head", 12, 8)
+for side, sign in (("L", 1), ("R", -1)):
+    sphere_piece(f"Face_Nostril_Ala_{side}", (sign * 0.019, -0.132, 1.650),
+        (0.014, 0.018, 0.014), SKIN, "Head", 10, 8)
+    # Ear shell and inner concha, positioned on either side of the skull.
+    sphere_piece(f"Body_Ear_{side}", (sign * 0.119, -0.002, 1.695),
+        (0.030, 0.035, 0.052), SKIN, "Head", 16, 12)
+    sphere_piece(f"Face_Ear_Concha_{side}", (sign * 0.137, -0.023, 1.695),
+        (0.010, 0.018, 0.030), UNDER, "Head", 12, 8)
 for side, sign in (("L", 1), ("R", -1)):
     x = sign * 0.18
     sphere_piece(f"Body_Ear_{side}", (x * 0.68, 0, 1.70), (0.035, 0.035, 0.055), SKIN, "Head", 10, 8)
@@ -250,9 +307,20 @@ for side, sign in (("L", 1), ("R", -1)):
             [0.019 if toe == 2 else 0.015, 0.013, 0.006], SKIN,
             f"Foot.{side}", sides=8, depth_ratio=0.82)
 
-EYE = material("Wren | eyes", (0.045, 0.035, 0.03))
+EYE_WHITE = material("Wren | eye whites", (0.78, 0.70, 0.58))
+IRIS = material("Wren | iris", (0.22, 0.15, 0.09))
+EYE = material("Wren | pupils", (0.025, 0.020, 0.018))
 for side, x in (("L", 0.047), ("R", -0.047)):
-    sphere_piece(f"Face_Eye_{side}", (x, -0.113, 1.72), (0.012, 0.009, 0.014), EYE, "Head", 8, 6)
+    sphere_piece(f"Face_EyeSocket_{side}", (x, -0.103, 1.715),
+        (0.031, 0.023, 0.020), SKIN, "Head", 14, 10)
+    sphere_piece(f"Face_Eye_{side}", (x, -0.121, 1.715),
+        (0.022, 0.014, 0.014), EYE_WHITE, "Head", 14, 10)
+    sphere_piece(f"Face_Iris_{side}", (x, -0.133, 1.715),
+        (0.009, 0.006, 0.010), IRIS, "Head", 10, 8)
+    sphere_piece(f"Face_Pupil_{side}", (x, -0.138, 1.715),
+        (0.0045, 0.0035, 0.006), EYE, "Head", 8, 6)
+    sphere_piece(f"Face_Brow_{side}", (x, -0.116, 1.746),
+        (0.031, 0.012, 0.008), HAIR, "Head", 12, 8)
 
 # ---------------------------------------------------------------------------
 # Anatomical base-model pass: no clothing meshes are generated here.
