@@ -757,11 +757,11 @@ for strand in range(3):
 
 # Sword is held upright: grip sits in the palm, guard below it and blade rises.
 upright = (math.radians(90), 0.0, 0.0)
-sphere_piece("Weapon_Sword_Grip", (-0.650, -0.050, 1.035),
+sphere_piece("Weapon_Sword_Grip", (-0.650, -0.020, 1.035),
     (0.015, 0.078, 0.015), LEATHER, "Hand.R", 12, 8, upright)
-sphere_piece("Weapon_Sword_Guard", (-0.650, -0.050, 1.112),
+sphere_piece("Weapon_Sword_Guard", (-0.650, -0.020, 1.112),
     (0.075, 0.010, 0.010), SWORD_METAL, "Hand.R", 12, 8)
-sphere_piece("Weapon_Sword_Blade", (-0.650, -0.050, 1.275),
+sphere_piece("Weapon_Sword_Blade", (-0.650, -0.020, 1.275),
     (0.022, 0.155, 0.006), SWORD_METAL, "Hand.R", 12, 8, upright)
 
 
@@ -852,7 +852,7 @@ def torso_surface_y(x, z, front=True):
 # strapless bra + full-coverage briefs, both ochre with pale edging.
 # These are separate skinned garment meshes, never fused into the body.
 # ---------------------------------------------------------------------------
-UNDERWEAR = material("Wren | dark ochre underwear HSV 55/58/20", (0.20, 0.18, 0.084))
+UNDERWEAR = material("Wren | dark ochre underwear HSV 55/58/20", (0.20, 0.188, 0.084))
 UNDERWEAR_TRIM = material("Wren | pale gold underwear HSV 47/100/100", (1.0, 0.783, 0.0))
 
 # Strapless bra: two shaped cups over the breast volume and a narrow band.
