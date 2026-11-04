@@ -19,6 +19,8 @@ var time_points_per_tick: float = 1.0
 var max_time_points: float = ActionEconomy.DEFAULT_MAX_TP
 var total_time_points_spent: float = 0.0
 var quick_recovery_rank: int = 0
+var skills: Dictionary = {}
+var equipment: Dictionary = {}
 
 func _init(character_id: String = "", character_name: String = "", start_hex: Vector2i = Vector2i.ZERO) -> void:
     id = character_id
@@ -66,6 +68,8 @@ func to_dict() -> Dictionary:
         "max_time_points": max_time_points,
         "total_time_points_spent": total_time_points_spent,
         "quick_recovery_rank": quick_recovery_rank,
+        "skills": skills.duplicate(true),
+        "equipment": equipment.duplicate(true),
     }
 
 static func from_dict(data: Dictionary) -> CharacterState:
@@ -86,4 +90,6 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.max_time_points = float(data.get("max_time_points", ActionEconomy.DEFAULT_MAX_TP))
     state.total_time_points_spent = float(data.get("total_time_points_spent", 0.0))
     state.quick_recovery_rank = clampi(int(data.get("quick_recovery_rank", 0)), 0, ActionEconomy.MAX_QUICK_RECOVERY_RANK)
+    state.skills = data.get("skills", {}).duplicate(true)
+    state.equipment = data.get("equipment", {}).duplicate(true)
     return state
