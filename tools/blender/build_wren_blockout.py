@@ -84,7 +84,6 @@ bone_defs = {
 # Three articulated phalanges per finger and thumb, parented to the hand.
 for side, sign in (("L", 1), ("R", -1)):
     for digit_index, digit in enumerate(("Index", "Middle", "Ring", "Pinky")):
-        spread_y = (digit_index - 1.5) * 0.018
         finger_lengths = {"Index": 0.070, "Middle": 0.084, "Ring": 0.078, "Pinky": 0.061}
         length = finger_lengths[digit]
         spread_y = (digit_index - 1.5) * 0.015
@@ -97,8 +96,8 @@ for side, sign in (("L", 1), ("R", -1)):
         for segment_index, (head, tail, parent) in enumerate(chain, 1):
             bone_defs[f"{digit}{segment_index}.{side}"] = (head, tail, parent)
     thumb_chain = [
-        ((sign*0.565,-0.050,1.045),(sign*0.590,-0.065,1.075),f"Hand.{side}"),
-        ((sign*0.590,-0.065,1.075),(sign*0.615,-0.075,1.085),f"Thumb1.{side}"),
+        ((sign*0.555,-0.064,1.043),(sign*0.565,-0.092,1.050),f"Hand.{side}"),
+        ((sign*0.565,-0.092,1.050),(sign*0.580,-0.112,1.045),f"Thumb1.{side}"),
     ]
     for segment_index, (head, tail, parent) in enumerate(thumb_chain, 1):
         bone_defs[f"Thumb{segment_index}.{side}"] = (head, tail, parent)
@@ -270,7 +269,7 @@ torso_rings = [
     (0.625, 0.090, 0.072, 0.000),
     (0.645, 0.112, 0.082, 0.000),
     (0.670, 0.135, 0.092, 0.000),
-    (0.660, 0.145, 0.098, 0.000),
+    (0.680, 0.145, 0.098, 0.000),
     (0.690, 0.165, 0.105, 0.000),
     (0.710, 0.180, 0.115, 0.000),
     (0.735, 0.198, 0.128, 0.000),
@@ -335,6 +334,10 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
         if 0.690 <= z <= 0.715:
             hood = math.exp(-((z - 0.700) / 0.009) ** 2) * math.exp(-(x / 0.012) ** 2)
             y -= front * hood * 0.006
+        back = max(0.0, math.sin(angle)) ** 8
+        if 0.770 <= z <= 0.805:
+            rear_dimple = math.exp(-((z - 0.788) / 0.009) ** 2) * math.exp(-(x / 0.010) ** 2)
+            y -= back * rear_dimple * 0.006
         torso_verts.append((x, y, ring_z))
         blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
         blend = blend * blend * (3.0 - 2.0 * blend)
@@ -800,8 +803,8 @@ def torso_surface_y(x, z, front=True):
 # strapless bra + full-coverage briefs, both ochre with pale edging.
 # These are separate skinned garment meshes, never fused into the body.
 # ---------------------------------------------------------------------------
-UNDERWEAR = material("Wren | dark ochre underwear", (0.30, 0.205, 0.105))
-UNDERWEAR_TRIM = material("Wren | pale underwear edging", (0.76, 0.66, 0.49))
+UNDERWEAR = material("Wren | dark ochre underwear", (0.20, 0.18, 0.084))
+UNDERWEAR_TRIM = material("Wren | pale gold underwear edging", (0.78, 0.64, 0.24))
 
 # Strapless bra: two shaped cups over the breast volume and a narrow band.
 for side, sign in (("L", 1), ("R", -1)):
@@ -824,7 +827,7 @@ for z in (1.145, 1.162):
     for i in range(band_sides):
         angle = 2.0 * math.pi * i / band_sides
         x = math.cos(angle) * 0.205
-        y = math.sin(angle) * 0.132
+        y = math.sin(angle) * 0.148
         band_verts.append((x, y, z))
 for i in range(band_sides):
     nxt = (i + 1) % band_sides
