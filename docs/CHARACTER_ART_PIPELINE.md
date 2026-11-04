@@ -151,7 +151,7 @@ The first pass is a proportion-and-fit prototype, not final character art. Valid
 
 The Wren prototype now exports independently swappable cosmetic layers:
 - `body_hair`: a groomed pubic-hair style, separate from the skin/body mesh.
-- `tattoo`: a dragon linework design climbing the back towards the shoulder opposite the braid.
+- `tattoo`: a five-point star on the shoulder opposite the braid.
 - `piercings`: paired ear hoops and a left-nipple hoop.
 
 These are separate GLBs and runtime appearance slots, not baked into the body. Wren's starting appearance config equips the current examples. Other characters can omit them or choose different IDs. Hair colour is a material variant and should ultimately be stored as an appearance colour parameter rather than duplicated hairstyle geometry.
@@ -165,7 +165,7 @@ The current Blender shapes are still procedural blockout art. Tattoo linework, p
 - The navel is a depression in the torso loft, not a separate colour mark.
 - The braid crosses the shoulder and hangs down the front to chest level; swept locks and strand geometry break up the smooth scalp cap.
 - Hands are rebuilt with fingers curling around the sword axis. Fingers are still fixed-pose meshes, not individually animated finger bones.
-- Body hair, piercings and the dragon tattoo remain independent appearance components.
+- Body hair, piercings and the shoulder star tattoo remain independent appearance components.
 
 
 The latest Wren mesh pass also adds a shallow integrated pelvic contour to the torso loft and positions the separate body-hair component just outside that surface. It is intended to remain a subtle anatomical sculpt rather than a raised, pasted-on object.
@@ -183,3 +183,15 @@ The latest Wren generator pass:
 - Adds raised scalp flow-lines in a contrasting blue and replaces the bead-like braid with a continuous core and three interweaving lobes.
 
 These changes require local Blender generation and Godot inspection. The procedural geometry is still a blockout; verify the mesh visually and inspect the rig in Blender before relying on finger articulation in animation.
+
+
+## Wren hand, pelvis and tattoo adjustment
+
+The latest blockout pass:
+- Moves the areolae/nipples halfway back towards their previous position and moves the nipple hoop with them.
+- Flattens the palm and creates each finger as one continuous mesh with blended weights across three phalange bones. The thumb has two phalange bones.
+- Extends the lower torso loft into a tapered crotch bridge and shifts the separate body-hair layer lower.
+- Clamps the lowest fused foot vertices to a common sole plane after remeshing.
+- Replaces the dragon tattoo with a five-point star on the shoulder opposite the braid.
+
+These remain procedural forms. The sword grip should be checked from several angles in Godot; the hand is posed around the grip but does not yet dynamically animate around it.
