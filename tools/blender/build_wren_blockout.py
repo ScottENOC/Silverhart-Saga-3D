@@ -357,7 +357,7 @@ previous_ring = list(range(torso_sides))
 for factor in (0.78, 0.54, 0.30, 0.12):
     ring_indices = []
     for boundary in outer:
-        point = boundary.lerp(Vector((0.0, 0.0, 0.590)), 1.0-factor)
+        point = boundary.lerp(Vector((0.0, 0.0, 0.640)), 1.0-factor)
         point.z -= 0.006 * math.sin(math.pi * (1.0-factor))
         ring_indices.append(len(torso_verts))
         torso_verts.append(tuple(point))
@@ -782,6 +782,29 @@ def torso_surface_y(x, z, front=True):
     section = math.sqrt(max(0.05, 1.0 - (x / width) ** 2))
     y = (-1.0 if front else 1.0) * depth * section
     if front:
+        # Follow the actual breast loft rather than the narrower torso ellipsoid.
+        breast_profile = [
+            (1.335, 0.007, 0.006, -0.090), (1.320, 0.020, 0.016, -0.104),
+            (1.295, 0.043, 0.030, -0.120), (1.265, 0.065, 0.048, -0.134),
+            (1.235, 0.082, 0.061, -0.146), (1.205, 0.088, 0.068, -0.151),
+            (1.175, 0.080, 0.064, -0.146), (1.150, 0.058, 0.048, -0.131),
+            (1.132, 0.027, 0.024, -0.111), (1.125, 0.007, 0.006, -0.098),
+        ]
+        if 1.125 <= z <= 1.335:
+            for i in range(len(breast_profile)-1):
+                a, b = breast_profile[i], breast_profile[i+1]
+                if min(a[0], b[0]) <= z <= max(a[0], b[0]):
+                    t = (z-a[0]) / (b[0]-a[0])
+                    bw = a[1]*(1-t) + b[1]*t
+                    bd = a[2]*(1-t) + b[2]*t
+                    by = a[3]*(1-t) + b[3]*t
+                    for centre_x in (-0.108, 0.108):
+                        dx = (x-centre_x) / max(0.001, bw)
+                        dz = (z-1.235) / 0.105
+                        if dx*dx + dz*dz < 1.0:
+                            breast_y = by - bd * math.sqrt(max(0.0, 1.0-dx*dx-dz*dz))
+                            y = min(y, breast_y)
+                    break
         if 0.625 <= z <= 0.710:
             vertical = math.sin(math.pi * (z - 0.625) / 0.085)
             centre = math.exp(-(x / 0.060) ** 2)
@@ -797,8 +820,31 @@ def torso_surface_y(x, z, front=True):
             hood = math.exp(-((z - 0.700) / 0.009) ** 2) * math.exp(-(x / 0.012) ** 2)
             y -= hood * 0.006
     else:
-        rear_dimple = math.exp(-((z - 0.788) / 0.009) ** 2) * math.exp(-(x / 0.010) ** 2)
-        y -= rear_dimple * 0.006
+        # Include the rear gluteal loft so the brief panel sits outside the
+        # actual buttock silhouette instead of being buried in the skin.
+        glute_profile = [
+            (0.965, 0.008, 0.010), (0.950, 0.025, 0.028),
+            (0.925, 0.050, 0.048), (0.895, 0.075, 0.068),
+            (0.865, 0.094, 0.082), (0.830, 0.103, 0.090),
+            (0.800, 0.096, 0.084), (0.775, 0.078, 0.068),
+            (0.755, 0.052, 0.045), (0.744, 0.025, 0.022),
+            (0.741, 0.006, 0.006),
+        ]
+        if 0.741 <= z <= 0.965:
+            for i in range(len(glute_profile)-1):
+                a, b = glute_profile[i], glute_profile[i+1]
+                if min(a[0], b[0]) <= z <= max(a[0], b[0]):
+                    t = (z-a[0]) / (b[0]-a[0])
+                    gx = a[1]*(1-t) + b[1]*t
+                    gy = a[2]*(1-t) + b[2]*t
+                    for centre_x in (-0.112, 0.112):
+                        dx = (x-centre_x) / max(0.001, gx)
+                        if abs(dx) < 1.0:
+                            glute_y = 0.075 + gy * math.sqrt(max(0.0, 1.0-dx*dx))
+                            y = max(y, glute_y)
+                    break
+        rear_dimple = math.exp(-((z - 0.788) / 0.012) ** 2) * math.exp(-(x / 0.014) ** 2)
+        y -= rear_dimple * 0.012
     return y
 
 # ---------------------------------------------------------------------------
