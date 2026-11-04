@@ -155,7 +155,7 @@ def sphere_piece(name, location, scale, mat, bone_name, segments=32, rings=24, r
         polygon.use_smooth = True
     return obj
 
-def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=20, depth_ratio=0.88, blend_start=0.46, blend_end=0.62, front_bulge=0.0, front_bulge_t=0.5, front_bulge_width=0.07, inner_bulge=0.0, inner_bulge_t=0.9, outer_bulge=0.0, outer_bulge_t=0.94, ankle_bulge_width=0.045):
+def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=20, depth_ratio=0.88, blend_start=0.46, blend_end=0.62, front_bulge=0.0, front_bulge_t=0.5, front_bulge_width=0.07, inner_bulge=0.0, inner_bulge_t=0.9, outer_bulge=0.0, outer_bulge_t=0.94, ankle_bulge_width=0.045, inner_direction=-1.0):
     """One continuous tapered limb/sleeve, with rings along its length.
 
     Each ring is perpendicular to the limb centreline. The elbow is an interior
@@ -211,11 +211,11 @@ def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=20, depth_rat
             front_profile = math.exp(-((t - front_bulge_t) / front_bulge_width) ** 2)
             front_offset = axis_v * (front_bulge * front_profile * front_patch)
             lateral = math.cos(angle)
-            inner_patch = max(0.0, -lateral) ** 8
-            outer_patch = max(0.0, lateral) ** 8
+            inner_patch = max(0.0, lateral * inner_direction) ** 8
+            outer_patch = max(0.0, -lateral * inner_direction) ** 8
             inner_profile = math.exp(-((t - inner_bulge_t) / ankle_bulge_width) ** 2)
             outer_profile = math.exp(-((t - outer_bulge_t) / ankle_bulge_width) ** 2)
-            lateral_offset = axis_u * (-inner_bulge * inner_profile * inner_patch + outer_bulge * outer_profile * outer_patch)
+            lateral_offset = axis_u * (inner_direction * inner_bulge * inner_profile * inner_patch - inner_direction * outer_bulge * outer_profile * outer_patch)
             offset = axis_u * (math.cos(angle) * radius) + axis_v * (math.sin(angle) * radius * depth_ratio) + front_offset + lateral_offset
             verts.append(tuple(centre + offset))
             if bone_b is None:
@@ -517,7 +517,9 @@ for side, sign in (("L", 1), ("R", -1)):
         [(sign*0.505, -0.018, 1.105), (sign*0.535, -0.027, 1.065),
          (sign*0.570, -0.034, 1.035)],
         [0.030, 0.025, 0.023], SKIN, f"Forearm.{side}", f"Wrist.{side}",
-        sides=16, depth_ratio=0.78, blend_start=0.25, blend_end=0.78)
+        sides=32, depth_ratio=0.78, blend_start=0.25, blend_end=0.78,
+        inner_bulge=0.0035, inner_bulge_t=0.48, outer_bulge=0.0035,
+        outer_bulge_t=0.76, ankle_bulge_width=0.20, inner_direction=-sign)
     # Palm's short ends meet wrist and fingers. Its broad faces are X/Z;
     # fingers extend along X, while the thumb branches across Z.
     bpy.ops.mesh.primitive_cube_add(size=1.0, location=(sign * 0.558, -0.034, 1.025))
@@ -576,7 +578,8 @@ for side, sign in (("L", 1), ("R", -1)):
         blend_start=0.40, blend_end=0.63,
         front_bulge=0.010, front_bulge_t=0.52, front_bulge_width=0.075,
         inner_bulge=0.010, inner_bulge_t=0.91,
-        outer_bulge=0.012, outer_bulge_t=0.96, ankle_bulge_width=0.035)
+        outer_bulge=0.012, outer_bulge_t=0.96, ankle_bulge_width=0.035,
+        inner_direction=-sign)
     foot_rings = [
         (0.025, 0.045, 0.047, 0.108), (-0.025, 0.054, 0.043, 0.105),
         (-0.095, 0.063, 0.037, 0.094), (-0.165, 0.077, 0.032, 0.080),
