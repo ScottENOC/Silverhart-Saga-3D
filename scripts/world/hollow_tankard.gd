@@ -1,7 +1,7 @@
 class_name HollowTankard
 extends Node3D
 
-const ModularCharacterAssembler = preload("res://scripts/presentation/modular_character_assembler.gd")
+const MODULAR_CHARACTER_ASSEMBLER = preload("res://scripts/presentation/modular_character_assembler.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -298,7 +298,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     if is_wren:
         # Appearance is assembled from independent GLBs on one shared rig.
         # Later character appearance data can replace any slot at runtime.
-        var character_model := ModularCharacterAssembler.new()
+        var character_model := MODULAR_CHARACTER_ASSEMBLER.new()
         character_model.name = "CharacterModel"
         actor.add_child(character_model)
         model_loaded = character_model.configure({
