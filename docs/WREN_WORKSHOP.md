@@ -10,7 +10,7 @@ It runs manually through Actions → Build Wren Workshop → Run workflow, and a
 
 ## First-time GitHub Pages setup
 
-In repository Settings → Pages, set Build and deployment → Source to GitHub Actions. The workflow then deploys the viewer. Repository Pages access settings determine who can view it; a private repository does not automatically mean a private Pages site.
+In repository Settings → Pages, set Build and deployment → Source to GitHub Actions. Then add the repository Actions variable `ENABLE_WREN_PAGES` with value `true` under Settings → Secrets and variables → Actions → Variables. The deploy job is deliberately opt-in because GitHub Pages availability for private repositories depends on the GitHub plan. Repository Pages access settings determine who can view it; do not assume a private repository produces a private Pages site.
 
 ## Viewer controls
 
@@ -23,4 +23,4 @@ The viewer loads the full character GLB and toggles mesh visibility. It is an in
 
 ## Build outputs
 
-The full viewer site is uploaded as a GitHub Actions Pages artifact. The Blender source file and component GLBs are generated on the runner and are not committed back into the source repository.
+The full viewer site is uploaded as a GitHub Actions Pages artifact. The Blender source file and component GLBs are also uploaded as a downloadable `wren-model-build` artifact (14-day retention). Generated files are not committed back into the source repository.
