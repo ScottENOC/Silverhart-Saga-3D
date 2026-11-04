@@ -291,27 +291,47 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.position = _hex_world_position(hex)
     actor.set_meta("character_id", id)
 
-    var body := MeshInstance3D.new()
-    var body_mesh := CapsuleMesh.new()
-    body_mesh.radius = 0.34
-    body_mesh.height = 1.75
-    body.mesh = body_mesh
-    body.position.y = 0.88
-    body.material_override = _material(colour)
-    actor.add_child(body)
+    var is_wren: bool = id == "companion_wren_talbot"
+    var model_loaded := false
+    if is_wren:
+        # GLB imports as a PackedScene. Keep it as a child of the logical actor
+        # so simulation movement, selection and future equipment remain separate.
+        var wren_scene := load("res://art/characters/wren/wren_blockout.glb") as PackedScene
+        if wren_scene != null:
+            var wren_model := wren_scene.instantiate() as Node3D
+            if wren_model != null:
+                wren_model.name = "CharacterModel"
+                actor.add_child(wren_model)
+                model_loaded = true
+            else:
+                push_warning("Wren GLB loaded but its root was not Node3D; using placeholder.")
+        else:
+            push_warning("Wren GLB not imported yet; using placeholder character.")
 
-    var head := MeshInstance3D.new()
-    var head_mesh := SphereMesh.new()
-    head_mesh.radius = 0.22
-    head_mesh.height = 0.44
-    head.mesh = head_mesh
-    head.position.y = 1.78
-    head.material_override = _material(Color(0.72, 0.57, 0.43))
-    actor.add_child(head)
+    # Keep the simple capsule-and-head actors for everyone else, and as a
+    # graceful fallback if the Wren asset is missing or fails to instantiate.
+    if not model_loaded:
+        var body := MeshInstance3D.new()
+        var body_mesh := CapsuleMesh.new()
+        body_mesh.radius = 0.34
+        body_mesh.height = 1.75
+        body.mesh = body_mesh
+        body.position.y = 0.88
+        body.material_override = _material(colour)
+        actor.add_child(body)
+
+        var head := MeshInstance3D.new()
+        var head_mesh := SphereMesh.new()
+        head_mesh.radius = 0.22
+        head_mesh.height = 0.44
+        head.mesh = head_mesh
+        head.position.y = 1.78
+        head.material_override = _material(Color(0.72, 0.57, 0.43))
+        actor.add_child(head)
 
     var name_label := Label3D.new()
     name_label.text = "You" if is_player else display_name
-    name_label.position.y = 2.25
+    name_label.position.y = 2.08 if model_loaded else 2.25
     name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
     name_label.font_size = 32
     name_label.outline_size = 6
