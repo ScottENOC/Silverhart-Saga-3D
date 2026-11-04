@@ -16,6 +16,7 @@ concurrency:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Install Blender 5.2.3
@@ -28,14 +29,31 @@ jobs:
           mkdir -p /opt/blender
           tar -xf "/tmp/${ARCHIVE}" --directory /opt/blender --strip-components=1
           /opt/blender/blender --version
-      - name: Generate Wren and export modular components
+      - name: Generate Wren blockout
         run: |
           set -euo pipefail
-          /opt/blender/blender --background --python tools/blender/build_wren_blockout.py
-          /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/prepare_wren_sculpt.py
-          /opt/blender/blender --background --python tools/blender/export_sculpt_preview.py
-          /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/export_character_components.py
+          echo "Memory before generation:"
+          grep -E 'MemAvailable|MemTotal' /proc/meminfo
+          /usr/bin/time -v /opt/blender/blender --background --python tools/blender/build_wren_blockout.py
+          test -s art/characters/wren/wren_blockout.blend
           test -s art/characters/wren/wren_blockout.glb
+
+      - name: Prepare sculpt source
+        run: |
+          set -euo pipefail
+          /usr/bin/time -v /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/prepare_wren_sculpt.py
+          test -s art/characters/wren/wren_sculpt_source.blend
+
+      - name: Export sculpt preview
+        run: |
+          set -euo pipefail
+          /usr/bin/time -v /opt/blender/blender --background --python tools/blender/export_sculpt_preview.py
+          test -s art/characters/wren/wren_sculpt_source.glb
+
+      - name: Export modular character components
+        run: |
+          set -euo pipefail
+          /usr/bin/time -v /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/export_character_components.py
           test -s art/characters/wren/body.glb
       - name: Keep Blender source and exported models as build artifacts
         uses: actions/upload-artifact@v4
