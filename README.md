@@ -7,10 +7,10 @@ A standalone Godot 4 project exploring a 3D implementation of the existing Silve
 **Milestone:** M1 prototype foundation  
 **Engine baseline:** Godot 4.7.2 stable (GDScript, Forward+)  
 **Target:** Windows PC first  
-**Prototype:** generated hex test field, six-direction logical movement, smooth 3D presentation and player-controlled orbit camera.  
-**Simulation port in progress:** character Time Points, fixed-step world clock, Silverhart calendar, TP-costed movement API and combat initiative scheduler.
+**Prototype:** Hollow Tankard 3D scene, six-direction hex movement, weighted mouse-click pathfinding, route preview, smooth actor movement and player-controlled orbit camera.  
+**Simulation port in progress:** character Time Points, fixed-step world clock, Silverhart calendar, terrain-aware movement costs and combat initiative scheduler.
 
-The current movement harness intentionally retains free debug movement. Gameplay code can use the cost-bearing movement API. Combat attacks, spells, reactions, AI turns, full character progression, dialogue, campaign content and complete save/load are still to come.
+The playable controls now use TP-costed movement. Keyboard input moves one adjacent hex; clicking a destination plans a weighted A* route and follows it one hex at a time. The free movement method remains available only as a debug/test API. The first terrain-cost pass includes terrain multipliers and the basic Fast Movement, Swift Step and foliage-expertise discounts; climbing, elevation transitions, reactions, combat blockers, mounts and party encumbrance remain to be ported.
 
 ## Open the project
 
