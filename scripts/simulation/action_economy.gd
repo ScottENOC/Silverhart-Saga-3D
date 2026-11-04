@@ -42,6 +42,9 @@ static func regenerate(
 ) -> float:
     if rate_per_tick <= 0.0 or tick_multiplier <= 0.0 or maximum <= 0.0:
         return time_points
+    # Match the source engine: the cap is a gate on gaining TP, not a clamp
+    # after every tick. A character just below 150 can therefore overshoot
+    # by one tick's gain, but never regenerates again until below the cap. 
     if time_points >= maximum:
         return time_points
-    return minf(maximum, time_points + rate_per_tick * tick_multiplier)
+    return time_points + rate_per_tick * tick_multiplier
