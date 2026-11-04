@@ -195,3 +195,20 @@ The latest blockout pass:
 - Replaces the dragon tattoo with a five-point star on the shoulder opposite the braid.
 
 These remain procedural forms. The sword grip should be checked from several angles in Godot; the hand is posed around the grip but does not yet dynamically animate around it.
+
+
+## Wren undergarments — first modular clothing pass
+
+The original 2D source assets were inspected directly:
+- `bra_strapless_front/back.png`: strapless two-cup bra, ornate lace-like cup pattern, central connector and a broad back band.
+- `briefs_female_front/back.png`: full-coverage briefs with a shaped, high-cut leg opening and contrasting waistband/edge detail.
+
+Wren's `scenario2_wren_v2` preset applies the same two-colour palette to both items: dark layer hue 55 / saturation 58 / value 20, with light trim hue 47 / saturation 100 / value 100. The 3D material values are an approximation of those authored colour parameters, not a literal sampling of the original pixel art.
+
+The first 3D garment pass is authored as two independent skinned components:
+- `underwear_bra.glb` — separate cups, bandeau band, pale piping, lace-inspired surface detail and centre clasp.
+- `underwear_briefs.glb` — separate front and rear cloth panels with a shaped lower edge and contrasting waistband.
+
+Godot appearance slots are `underwear_bra` and `underwear_briefs`; each can be cleared or equipped independently. The Hollow Tankard prototype exposes separate Bra and Briefs toggles. When briefs are enabled, the optional body-hair appearance layer is hidden; turning briefs off restores that layer. These controls are presentation-only at this stage and do not change inventory or gameplay equipment state.
+
+This is deliberately a fit-and-layering prototype, not final cloth simulation. The next validation is to check the garments from front, side and rear in Godot, correct any intersections, then add body-region hiding so future shirts and trousers cleanly cover the underlayers.
