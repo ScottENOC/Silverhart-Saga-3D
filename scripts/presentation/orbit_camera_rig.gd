@@ -20,7 +20,15 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
     if is_instance_valid(follow_target):
         global_position = follow_target.global_position + Vector3(0.0, 0.65, 0.0)
+    var max_below_horizon := _max_below_horizon_pitch()
+    pitch_pivot.rotation_degrees.x = minf(pitch_pivot.rotation_degrees.x, max_below_horizon)
     _update_camera_clearance()
+
+func _max_below_horizon_pitch() -> float:
+    # The camera may dip below the horizon only while its position remains
+    # above the ground plane. Close zoom permits a larger downward-facing orbit.
+    var pivot_height := maxf(0.0, pitch_pivot.global_position.y - 0.25)
+    return rad_to_deg(asin(clampf(pivot_height / maxf(zoom_distance, 0.01), 0.0, 1.0)))
 
 func _update_camera_clearance() -> void:
     # Preserve requested zoom while shortening the camera arm if geometry
@@ -53,7 +61,7 @@ func _unhandled_input(event: InputEvent) -> void:
         pitch_pivot.rotation_degrees.x = clampf(
             pitch_pivot.rotation_degrees.x - motion.relative.y * pitch_sensitivity,
             -89.0,
-            89.0
+            _max_below_horizon_pitch()
         )
 
 func _set_zoom(value: float) -> void:
