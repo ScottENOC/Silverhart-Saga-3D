@@ -317,12 +317,14 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
             centre = math.exp(-(x / 0.060) ** 2)
             y -= front * max(0.0, vertical) * centre * 0.006
         if 0.625 <= z <= 0.690:
-            profile = math.exp(-((z - 0.658) / 0.020) ** 2)
-            paired = (math.exp(-((x - 0.012) / 0.009) ** 2)
-                + math.exp(-((x + 0.012) / 0.009) ** 2))
-            centre = math.exp(-(x / 0.0045) ** 2)
-            y -= front * profile * paired * 0.004
-            y += front * profile * centre * 0.003
+            profile = math.exp(-((z - 0.660) / 0.020) ** 2)
+            paired = (math.exp(-((x - 0.014) / 0.010) ** 2)
+                + math.exp(-((x + 0.014) / 0.010) ** 2))
+            centre = math.exp(-(x / 0.0055) ** 2)
+            # Paired, shallow labial folds and a narrow recessed centre are
+            # sculpted into the skin surface itself, with a broad fade-out.
+            y -= front * profile * paired * 0.008
+            y += front * profile * centre * 0.006
         torso_verts.append((x, y, z))
         blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
         blend = blend * blend * (3.0 - 2.0 * blend)
