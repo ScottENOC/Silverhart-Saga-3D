@@ -96,8 +96,8 @@ for side, sign in (("L", 1), ("R", -1)):
         for segment_index, (head, tail, parent) in enumerate(chain, 1):
             bone_defs[f"{digit}{segment_index}.{side}"] = (head, tail, parent)
     thumb_chain = [
-        ((sign*0.575,-0.038,1.050),(sign*0.590,-0.048,1.078),f"Hand.{side}"),
-        ((sign*0.590,-0.048,1.078),(sign*0.610,-0.054,1.095),f"Thumb1.{side}"),
+        ((sign*0.575,-0.038,1.050),(sign*0.605,-0.020,1.075),f"Hand.{side}"),
+        ((sign*0.605,-0.020,1.075),(sign*0.635,-0.012,1.060),f"Thumb1.{side}"),
     ]
     for segment_index, (head, tail, parent) in enumerate(thumb_chain, 1):
         bone_defs[f"Thumb{segment_index}.{side}"] = (head, tail, parent)
@@ -509,8 +509,8 @@ for side, sign in (("L", 1), ("R", -1)):
         joints = [
             (sign*0.610, -0.038, 1.025 + spread_z),
             (sign*(0.610 + length*0.42), -0.041, 1.023 + spread_z*0.94),
-            (sign*(0.610 + length*0.76), -0.047, 1.015 + spread_z*0.86),
-            (sign*(0.610 + length), -0.051, 1.005 + spread_z*0.78),
+            (sign*(0.610 + length*0.76), -0.020, 1.015 + spread_z*0.86),
+            (sign*(0.610 + length*0.65), -0.005, 1.005 + spread_z*0.78),
         ]
         digit_mesh(f"Hand_{digit}_{side}",
             joints, [0.010, 0.009, 0.0075, 0.0065],
@@ -518,8 +518,8 @@ for side, sign in (("L", 1), ("R", -1)):
     # Thumb projects across the palm at roughly 90 degrees to the fingers.
     thumb_joints = [
         (sign*0.575,-0.038,1.050),
-        (sign*0.590,-0.048,1.078),
-        (sign*0.610,-0.054,1.095),
+        (sign*0.605,-0.020,1.075),
+        (sign*0.635,-0.012,1.060),
     ]
     digit_mesh(f"Hand_Thumb_{side}", thumb_joints,
         [0.015, 0.012, 0.009],
