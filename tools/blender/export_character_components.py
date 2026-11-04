@@ -42,7 +42,7 @@ def export_component(filename: str, prefixes: tuple[str, ...]) -> None:
     )
     print(f"Exported {count} meshes: {path}")
 
-export_component("body.glb", ("Body_", "Face_"))
+export_component("body.glb", ("Body_", "Face_", "Hand_"))
 export_component("hair_braid.glb", ("Hair_",))
 export_component("weapon_sword.glb", ("Weapon_",))
 # These slot exports are automatically populated when corresponding garment
