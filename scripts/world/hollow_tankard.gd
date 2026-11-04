@@ -16,6 +16,9 @@ var simulation: WorldSimulation
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
 var actor_by_id: Dictionary = {}
+var party_member_ids: Array[String] = ["player", "companion_wren_talbot"]
+var active_party_index: int = 0
+var party_switch_button: Button
 var tile_mesh: ArrayMesh
 
 var grass_material: StandardMaterial3D
@@ -276,7 +279,7 @@ func _create_furniture() -> void:
 
 func _create_characters() -> void:
     _spawn_character("player", "You", Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true)
-    _spawn_character("companion_wren_talbot", "Wren Talbot", Vector2i(-3, 3), Color(0.20, 0.30, 0.48))
+    _spawn_character("companion_wren_talbot", "Wren Talbot", Vector2i(-2, 1), Color(0.20, 0.30, 0.48))
     _spawn_character("garrick_holt", "Garrick Holt", Vector2i(3, -3), Color(0.46, 0.34, 0.18))
     _spawn_character("mira_ashbrook", "Mira Ashbrook", Vector2i(1, -2), Color(0.38, 0.24, 0.43))
     _spawn_character("oskar_vinn", "Oskar Vinn", Vector2i(2, -2), Color(0.22, 0.39, 0.32))
@@ -367,11 +370,32 @@ func _create_hud() -> void:
     label.add_theme_font_size_override("font_size", 18)
     label.add_theme_color_override("font_color", Color(0.94, 0.93, 0.86))
     layer.add_child(label)
+
+    party_switch_button = Button.new()
+    party_switch_button.text = "Switch character  [Tab]  ·  You"
+    party_switch_button.position = Vector2(22.0, 54.0)
+    party_switch_button.custom_minimum_size = Vector2(230.0, 42.0)
+    party_switch_button.pressed.connect(_switch_party_member)
+    layer.add_child(party_switch_button)
     add_child(layer)
+
+func _switch_party_member() -> void:
+    if party_member_ids.is_empty():
+        return
+    active_party_index = (active_party_index + 1) % party_member_ids.size()
+    var member_id: String = party_member_ids[active_party_index]
+    var target: Node3D = actor_by_id.get(member_id) as Node3D
+    if target != null:
+        camera_rig.follow_target = target
+        party_switch_button.text = "Switch character  [Tab]  ·  " + ("You" if member_id == "player" else "Wren")
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventKey and event.pressed and not event.echo:
         var key_event := event as InputEventKey
+        if key_event.keycode == KEY_TAB:
+            _switch_party_member()
+            get_viewport().set_input_as_handled()
+            return
         if key_event.keycode == KEY_V:
             roof_group.visible = not roof_group.visible
             return
