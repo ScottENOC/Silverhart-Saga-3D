@@ -201,7 +201,10 @@ def torus_piece(name, location, major_radius, minor_radius, mat, bone_name, rota
 # ribcage and chest. Each ring is a cross-section of one surface.
 torso_rings = [
     (0.715, 0.190, 0.120, 0.000),
+    (0.735, 0.198, 0.128, 0.000),
     (0.755, 0.208, 0.132, 0.000),
+    (0.770, 0.214, 0.135, 0.000),
+    (0.785, 0.219, 0.137, 0.000),
     (0.805, 0.225, 0.140, 0.000),
     (0.855, 0.228, 0.142, 0.000),
     (0.905, 0.218, 0.136, 0.000),
@@ -242,6 +245,18 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
             vertical = math.sin(math.pi * (z - 0.735) / 0.100)
             centre = math.exp(-(x / 0.070) ** 2)
             y -= front * max(0.0, vertical) * centre * 0.010
+        # Integrated external pelvic anatomy: paired shallow labial ridges
+        # flank a narrow recessed cleft, with the upper mound blended into
+        # the surrounding torso surface. These are deformations, not overlays.
+        if 0.748 <= z <= 0.805:
+            labial_profile = math.exp(-((z - 0.775) / 0.024) ** 2)
+            paired_ridges = (
+                math.exp(-((x - 0.013) / 0.007) ** 2)
+                + math.exp(-((x + 0.013) / 0.007) ** 2)
+            )
+            central_cleft = math.exp(-(x / 0.0035) ** 2)
+            y -= front * labial_profile * paired_ridges * 0.006
+            y += front * labial_profile * central_cleft * 0.004
         torso_verts.append((x, y, z))
         blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
         blend = blend * blend * (3.0 - 2.0 * blend)
@@ -306,8 +321,6 @@ for side, sign in (("L", 1), ("R", -1)):
     sphere_piece(f"Body_Shoulder_{side}", (sign * 0.205, 0.0, 1.385),
         (0.105, 0.105, 0.105), SKIN, f"UpperArm.{side}", 24, 16)
 # Subtle, non-detailed external pelvic anatomy; no explicit genital detailing.
-sphere_piece("Body_Pubic_Mound", (0, -0.112, 0.755),
-    (0.060, 0.022, 0.044), SKIN, "Root", 24, 16)
 
 tube_mesh("Body_Neck", [(0, 0, 1.455), (0, 0, 1.505), (0, 0, 1.555), (0, 0, 1.625)],
     [0.066, 0.067, 0.069, 0.075], SKIN, "Neck", sides=24, depth_ratio=0.95)
@@ -610,7 +623,7 @@ for i in range(11):
     z1 = 0.775 + abs(i - 5) * 0.004
     points = []
     for px, pz in [(x, z0), (x * 0.82, (z0+z1)*0.5), (x * 0.62, z1)]:
-        points.append((px, torso_surface_y(px, pz, True)-0.003, pz))
+        points.append((px, torso_surface_y(px, pz, True)-0.008, pz))
     tube_mesh(f"BodyHair_Pubic_{i+1:02d}", points,
         [0.0020, 0.0018, 0.0006], PUBIC_HAIR, "Root", sides=6, depth_ratio=0.65)
 
