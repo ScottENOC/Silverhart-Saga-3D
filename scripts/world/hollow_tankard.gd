@@ -18,6 +18,7 @@ var roof_group: Node3D
 var actor_by_id: Dictionary = {}
 var party_member_ids: Array[String] = ["player", "companion_wren_talbot"]
 var active_party_index: int = 0
+var active_character_id: String = "player"
 var party_switch_button: Button
 var tile_mesh: ArrayMesh
 
@@ -288,7 +289,8 @@ func _create_characters() -> void:
     _spawn_character("hask_greel", "Hask Greel", Vector2i(1, 3), Color(0.31, 0.30, 0.27))
 
 func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false) -> void:
-    var state := CharacterState.new(id, display_name, hex)
+    var spawn_hex := _find_valid_spawn_hex(hex)
+    var state := CharacterState.new(id, display_name, spawn_hex)
     simulation.register_character(state)
 
     var actor := HexActorPresentation.new()
@@ -372,7 +374,7 @@ func _create_hud() -> void:
     layer.add_child(label)
 
     party_switch_button = Button.new()
-    party_switch_button.text = "Switch character  [Tab]  ·  You"
+    party_switch_button.text = "Active: You  [Tab] Switch"
     party_switch_button.position = Vector2(22.0, 54.0)
     party_switch_button.custom_minimum_size = Vector2(230.0, 42.0)
     party_switch_button.pressed.connect(_switch_party_member)
@@ -383,11 +385,12 @@ func _switch_party_member() -> void:
     if party_member_ids.is_empty():
         return
     active_party_index = (active_party_index + 1) % party_member_ids.size()
-    var member_id: String = party_member_ids[active_party_index]
-    var target: Node3D = actor_by_id.get(member_id) as Node3D
+    active_character_id = party_member_ids[active_party_index]
+    var target: Node3D = actor_by_id.get(active_character_id) as Node3D
     if target != null:
         camera_rig.follow_target = target
-        party_switch_button.text = "Switch character  [Tab]  ·  " + ("You" if member_id == "player" else "Wren")
+        var display_name := "You" if active_character_id == "player" else "Wren"
+        party_switch_button.text = "Active: " + display_name + "  [Tab] Switch"
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventKey and event.pressed and not event.echo:
@@ -412,10 +415,33 @@ func _unhandled_input(event: InputEvent) -> void:
         _attempt_move(direction)
 
 func _attempt_move(direction: Vector2i) -> void:
-    var state := simulation.get_character(simulation.player_character_id)
+    var state := simulation.get_character(active_character_id)
     if state == null:
         return
     simulation.try_move_character(state.id, state.axial + direction)
+
+func _find_valid_spawn_hex(preferred: Vector2i) -> Vector2i:
+    # Search outward from the authored staging position to avoid furniture
+    # and occupied cells as the blockout changes.
+    var candidates: Array[Vector2i] = []
+    for key in simulation.map_data.cells.keys():
+        var cell: Vector2i = key
+        if not simulation.map_data.is_walkable(cell):
+            continue
+        if simulation.occupied_hexes.has(cell):
+            continue
+        candidates.append(cell)
+    candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+        var da := HexGrid.distance(preferred, a)
+        var db := HexGrid.distance(preferred, b)
+        if da == db:
+            return a.x < b.x if a.x != b.x else a.y < b.y
+        return da < db
+    )
+    if candidates.is_empty():
+        push_error("No valid walkable spawn hex available near " + str(preferred))
+        return preferred
+    return candidates[0]
 
 func _on_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
     var actor: HexActorPresentation = actor_by_id.get(character_id) as HexActorPresentation
