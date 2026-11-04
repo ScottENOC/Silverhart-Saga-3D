@@ -36,7 +36,7 @@ def material(name, colour, roughness=0.82, metallic=0.0):
     return mat
 
 SKIN = material("Wren | skin", (0.58, 0.39, 0.28))
-HAIR = material("Wren | muted blue hair", (0.12, 0.20, 0.34))
+HAIR = material("Wren | shock cobalt blue hair", (0.018, 0.105, 0.72))
 SHIRT = material("Wren | dark green shirt", (0.13, 0.24, 0.15))
 TRIM = material("Wren | rose red trim", (0.55, 0.12, 0.20))
 TROUSERS = material("Wren | charcoal trousers", (0.075, 0.072, 0.08))
@@ -467,9 +467,9 @@ LIP = material("Wren | lips", (0.48, 0.23, 0.22))
 LOWER_LIP = material("Wren | lower lip", (0.58, 0.31, 0.29))
 CREASE = material("Wren | soft crease", (0.22, 0.11, 0.10))
 for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Body_Areola_{side}", (sign * 0.126, -0.207, 1.205),
+    sphere_piece(f"Body_Areola_{side}", (sign * 0.108, -0.215, 1.225),
         (0.030, 0.004, 0.024), AREOLA, "Spine", 20, 12)
-    sphere_piece(f"Body_Nipple_{side}", (sign * 0.126, -0.213, 1.205),
+    sphere_piece(f"Body_Nipple_{side}", (sign * 0.108, -0.221, 1.225),
         (0.008, 0.004, 0.009), NIPPLE, "Spine", 16, 10)
 
 # Toe geometry is kept separate after remeshing so its definition survives.
@@ -496,17 +496,7 @@ sphere_piece("Face_Mouth_Line", (0.0, -0.138, 1.615),
 # Shallow navel inset and understated external adult anatomical detail.
 sphere_piece("Body_Navel", (0.0, -0.139, 0.965),
     (0.008, 0.003, 0.012), CREASE, "Root", 16, 10)
-# The mons is part of the fused body; these narrow, shallow surface folds
-# avoid the appearance of two detached oval primitives.
-sphere_piece("Body_Vulvar_Fold_L", (-0.010, -0.137, 0.738),
-    (0.010, 0.0025, 0.030), AREOLA, "Root", 20, 12)
-sphere_piece("Body_Vulvar_Fold_R", (0.010, -0.137, 0.738),
-    (0.010, 0.0025, 0.030), AREOLA, "Root", 20, 12)
-sphere_piece("Body_Vulvar_Cleft", (0.0, -0.139, 0.738),
-    (0.0018, 0.0015, 0.025), CREASE, "Root", 12, 8)
-# Small inset-like posterior crease placed on the gluteal surface.
-sphere_piece("Body_Anal_Crease", (0.0, 0.121, 0.735),
-    (0.006, 0.0010, 0.008), CREASE, "Root", 16, 10)
+# Pelvic contour remains part of the continuous skin surface; no flat overlays.
 
 EYE_WHITE = material("Wren | eye whites", (0.78, 0.70, 0.58))
 IRIS = material("Wren | iris", (0.22, 0.15, 0.09))
