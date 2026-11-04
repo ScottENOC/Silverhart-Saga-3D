@@ -62,8 +62,10 @@ func try_end_current_turn(forced: bool = false) -> bool:
     return turn_scheduler.try_end_turn(characters, forced)
 
 func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
-    # The original game does not regenerate other entities while a character
-    # is actively taking a turn. _process freezes the clock for that interval.
+    # Guard direct/test-driven clock advancement as well as the normal
+    # _process freeze: no TP or world tick work occurs during an active turn.
+    if is_in_combat and turn_scheduler.has_active_turn():
+        return
     for value in characters.values():
         var state := value as CharacterState
         if state != null and state.alive:
