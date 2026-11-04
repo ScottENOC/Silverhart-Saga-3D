@@ -876,7 +876,7 @@ def make_briefs_panel(front: bool) -> None:
             b = a + 1
             c = b + columns
             d = a + columns
-            faces.append((a, b, c, d) if front else (d, c, b, a))
+            faces.append((d, c, b, a) if front else (a, b, c, d))
     finish_skinned_mesh("Garment_Briefs_Front" if front else "Garment_Briefs_Back",
         verts, faces, UNDERWEAR, {"Root": [1.0] * len(verts)})
 
@@ -885,12 +885,14 @@ make_briefs_panel(False)
 
 # Pale waistband and leg-opening accents, as in the original 2D clothing layer.
 for front in (True, False):
-    edge_y = torso_surface_y(0.0, 0.910, front) + (-0.005 if front else 0.005)
+    offset = -0.005 if front else 0.005
+    waist_points = []
+    for x, z in [(-0.145, 0.910), (-0.075, 0.912), (0.0, 0.913),
+                 (0.075, 0.912), (0.145, 0.910)]:
+        waist_points.append((x, torso_surface_y(x, z, front) + offset, z))
     tube_mesh("Garment_Briefs_Waist_Front" if front else "Garment_Briefs_Waist_Back",
-        [(-0.145, edge_y, 0.910), (-0.075, edge_y-0.001 if front else edge_y+0.001, 0.912),
-         (0.0, edge_y, 0.913), (0.075, edge_y-0.001 if front else edge_y+0.001, 0.912),
-         (0.145, edge_y, 0.910)],
-        [0.0025] * 4 + [0.0018], UNDERWEAR_TRIM, "Root", sides=7, depth_ratio=0.7)
+        waist_points, [0.0025] * 4 + [0.0018],
+        UNDERWEAR_TRIM, "Root", sides=7, depth_ratio=0.7)
 
 # Neatly groomed, modest pubic hair is a separate appearance layer. It is
 # offset just outside the front skin surface so it cannot show through the body.
