@@ -16,7 +16,7 @@ const COMPONENTS := {
         "groomed": "res://art/characters/wren/body_hair_pubic.glb",
     },
     "tattoo": {
-        "dragon_back": "res://art/characters/wren/tattoo_dragon.glb",
+        "star_shoulder": "res://art/characters/wren/tattoo_dragon.glb",
     },
     "piercings": {
         "wren_set": "res://art/characters/wren/piercings_wren.glb",
