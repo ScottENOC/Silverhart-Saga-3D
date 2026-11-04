@@ -96,7 +96,6 @@ for side, sign in (("L", 1), ("R", -1)):
     thumb_chain = [
         ((sign*0.515,-0.005,1.035),(sign*0.485,-0.045,1.020),f"Hand.{side}"),
         ((sign*0.485,-0.045,1.020),(sign*0.485,-0.075,1.000),f"Thumb1.{side}"),
-        ((sign*0.485,-0.075,1.000),(sign*0.515,-0.080,0.985),f"Thumb2.{side}"),
     ]
     for segment_index, (head, tail, parent) in enumerate(thumb_chain, 1):
         bone_defs[f"Thumb{segment_index}.{side}"] = (head, tail, parent)
@@ -225,6 +224,11 @@ def torus_piece(name, location, major_radius, minor_radius, mat, bone_name, rota
 # Continuous torso/pelvis loft: broad pelvis and shoulders, defined waist,
 # ribcage and chest. Each ring is a cross-section of one surface.
 torso_rings = [
+    (0.555, 0.018, 0.025, 0.000),
+    (0.575, 0.050, 0.052, 0.000),
+    (0.600, 0.085, 0.075, 0.000),
+    (0.630, 0.118, 0.090, 0.000),
+    (0.660, 0.145, 0.098, 0.000),
     (0.690, 0.165, 0.105, 0.000),
     (0.710, 0.180, 0.115, 0.000),
     (0.735, 0.198, 0.128, 0.000),
@@ -269,22 +273,17 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
             vertical = math.exp(-((z - 0.968) / 0.010) ** 2)
             centre = math.exp(-(x / 0.014) ** 2)
             y += front * vertical * centre * 0.008
-        if 0.700 <= z <= 0.785:
-            vertical = math.sin(math.pi * (z - 0.700) / 0.085)
-            centre = math.exp(-(x / 0.062) ** 2)
-            y -= front * max(0.0, vertical) * centre * 0.009
-        # Integrated external pelvic anatomy: paired shallow labial ridges
-        # flank a narrow recessed cleft, with the upper mound blended into
-        # the surrounding torso surface. These are deformations, not overlays.
-        if 0.700 <= z <= 0.765:
-            labial_profile = math.exp(-((z - 0.735) / 0.022) ** 2)
-            paired_ridges = (
-                math.exp(-((x - 0.013) / 0.007) ** 2)
-                + math.exp(-((x + 0.013) / 0.007) ** 2)
-            )
-            central_cleft = math.exp(-(x / 0.0035) ** 2)
-            y -= front * labial_profile * paired_ridges * 0.010
-            y += front * labial_profile * central_cleft * 0.008
+        if 0.625 <= z <= 0.710:
+            vertical = math.sin(math.pi * (z - 0.625) / 0.085)
+            centre = math.exp(-(x / 0.060) ** 2)
+            y -= front * max(0.0, vertical) * centre * 0.006
+        if 0.625 <= z <= 0.690:
+            profile = math.exp(-((z - 0.658) / 0.020) ** 2)
+            paired = (math.exp(-((x - 0.012) / 0.009) ** 2)
+                + math.exp(-((x + 0.012) / 0.009) ** 2))
+            centre = math.exp(-(x / 0.0045) ** 2)
+            y -= front * profile * paired * 0.004
+            y += front * profile * centre * 0.003
         torso_verts.append((x, y, z))
         blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
         blend = blend * blend * (3.0 - 2.0 * blend)
@@ -385,10 +384,10 @@ for side, sign in (("L", 1), ("R", -1)):
         x = sign * (0.555 + (digit_index - 1.5) * 0.020)
         z = 1.006
         joints = [
-            (x, -0.025, z),
-            (x + sign*0.003, -0.070, z - 0.010),
-            (x + sign*0.004, -0.095, z - 0.031),
-            (x + sign*0.002, -0.078, z - 0.050),
+            (x, -0.018, z),
+            (x + sign*0.002, -0.052, z - 0.004),
+            (x + sign*0.004, -0.065, z - 0.020),
+            (x + sign*0.002, -0.043, z - 0.034),
         ]
         for segment in range(3):
             bone_name = f"{digit}{segment+1}.{side}"
@@ -397,15 +396,14 @@ for side, sign in (("L", 1), ("R", -1)):
                 [0.010 - segment*0.0018, 0.0085 - segment*0.0015],
                 SKIN, bone_name, sides=12, depth_ratio=0.82)
     thumb_joints = [
-        (sign*0.515,-0.005,1.035),
+        (sign*0.515,-0.010,1.035),
         (sign*0.485,-0.045,1.020),
-        (sign*0.485,-0.075,1.000),
-        (sign*0.515,-0.080,0.985),
+        (sign*0.485,-0.060,1.000),
     ]
-    for segment in range(3):
+    for segment in range(2):
         tube_mesh(f"Hand_Thumb_{side}_Phalanx_{segment+1}",
             [thumb_joints[segment], thumb_joints[segment+1]],
-            [0.016-segment*0.003, 0.013-segment*0.003],
+            [0.015-segment*0.002, 0.012-segment*0.002],
             SKIN, f"Thumb{segment+1}.{side}", sides=12, depth_ratio=0.84)
     leg_x = 0.13 if side == "L" else -0.13
     tube_mesh(f"Body_Leg_{side}", [
@@ -491,6 +489,12 @@ if body_parts:
     polish.levels = 1
     bpy.ops.object.modifier_apply(modifier=polish.name)
 
+    # Flatten the underside after voxel remeshing; smoothing otherwise rounds
+    # the sole back into a ball. Only the lowest foot vertices are clamped.
+    for vertex in body.data.vertices:
+        if vertex.co.z < 0.050:
+            vertex.co.z = 0.045
+
     # Voxel remeshing creates a unified surface. Rebuild smooth skin weights
     # from the canonical rig's bone segments, blending the two nearest bones.
     for group in list(body.vertex_groups):
@@ -533,10 +537,10 @@ LIP = material("Wren | lips", (0.48, 0.23, 0.22))
 LOWER_LIP = material("Wren | lower lip", (0.58, 0.31, 0.29))
 CREASE = material("Wren | soft crease", (0.22, 0.11, 0.10))
 for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Body_Areola_{side}", (sign * 0.108, -0.213, 1.190),
-        (0.026, 0.008, 0.020), AREOLA, "Spine", 20, 12)
-    sphere_piece(f"Body_Nipple_{side}", (sign * 0.108, -0.220, 1.190),
-        (0.008, 0.009, 0.008), NIPPLE, "Spine", 16, 10)
+    sphere_piece(f"Body_Areola_{side}", (sign * 0.108, -0.214, 1.207),
+        (0.024, 0.010, 0.018), AREOLA, "Spine", 20, 12)
+    sphere_piece(f"Body_Nipple_{side}", (sign * 0.108, -0.225, 1.207),
+        (0.008, 0.010, 0.008), NIPPLE, "Spine", 16, 10)
 
 # Toe geometry is kept separate after remeshing so its definition survives.
 for side, sign in (("L", 1), ("R", -1)):
@@ -663,11 +667,11 @@ def torso_surface_y(x, z, front=True):
 # offset just outside the front skin surface so it cannot show through the body.
 for i in range(11):
     x = (i - 5) * 0.007
-    z0 = 0.765 + abs(i - 5) * 0.0015
-    z1 = 0.725 + abs(i - 5) * 0.003
+    z0 = 0.690 + abs(i - 5) * 0.0015
+    z1 = 0.655 + abs(i - 5) * 0.003
     points = []
     for px, pz in [(x, z0), (x * 0.82, (z0+z1)*0.5), (x * 0.62, z1)]:
-        points.append((px, torso_surface_y(px, pz, True)-0.008, pz))
+        points.append((px, torso_surface_y(px, pz, True)-0.006, pz))
     tube_mesh(f"BodyHair_Pubic_{i+1:02d}", points,
         [0.0020, 0.0018, 0.0006], PUBIC_HAIR, "Root", sides=6, depth_ratio=0.65)
 
@@ -679,53 +683,25 @@ for side, sign in (("L", 1), ("R", -1)):
 
 # The top of this hoop intersects the nipple itself: a piercing must pass
 # through tissue rather than float in front of it.
-torus_piece("Piercing_Left_Nipple", (0.108, -0.224, 1.187),
-    0.012, 0.0025, PIERCING_METAL, "Spine", (math.radians(90), 0, 0))
+torus_piece("Piercing_Left_Nipple", (0.108, -0.229, 1.207),
+    0.010, 0.0022, PIERCING_METAL, "Spine", (math.radians(90), 0, 0))
 
-# Dragon tattoo on the back opposite the braid. The design has a recognisable
-# head, horns, neck, wing membranes, body, four legs and a curling tail.
+# Five-point star tattoo on the shoulder opposite the braid.
 def tattoo_tube(name, coords, radius=0.0030):
     points = [(x, torso_surface_y(x, z, False)+0.002, z) for x, z in coords]
     tube_mesh(name, points, [radius] * (len(points)-1) + [radius*0.45],
         TATTOO, "Spine", sides=7, depth_ratio=0.55)
 
-# Head, snout, jaw and horns near the opposite shoulder.
-tattoo_tube("Tattoo_Dragon_Head", [
-    (-0.155,1.325),(-0.185,1.340),(-0.215,1.328),(-0.228,1.312),
-    (-0.205,1.300),(-0.178,1.305),(-0.155,1.325)], 0.0038)
-tattoo_tube("Tattoo_Dragon_Horns", [
-    (-0.178,1.335),(-0.195,1.365),(-0.188,1.342)], 0.0028)
-tattoo_tube("Tattoo_Dragon_Horn2", [
-    (-0.202,1.332),(-0.225,1.352),(-0.214,1.325)], 0.0025)
-# Neck and serpentine torso.
-tattoo_tube("Tattoo_Dragon_Neck", [
-    (-0.175,1.305),(-0.145,1.270),(-0.112,1.230),(-0.080,1.185),
-    (-0.035,1.145),(0.020,1.125),(0.075,1.140)], 0.0040)
-tattoo_tube("Tattoo_Dragon_Belly", [
-    (-0.112,1.230),(-0.060,1.205),(-0.005,1.190),(0.055,1.195)], 0.0026)
-# Wings: leading edge and branching spars create a clear bat-wing silhouette.
-tattoo_tube("Tattoo_Dragon_Wing_Left", [
-    (-0.095,1.205),(-0.155,1.245),(-0.205,1.275),(-0.220,1.225),
-    (-0.185,1.190),(-0.205,1.155),(-0.145,1.170),(-0.095,1.205)], 0.0032)
-tattoo_tube("Tattoo_Dragon_Wing_Spar1", [
-    (-0.155,1.245),(-0.170,1.205),(-0.185,1.190)], 0.0020)
-tattoo_tube("Tattoo_Dragon_Wing_Spar2", [
-    (-0.205,1.275),(-0.190,1.220),(-0.205,1.155)], 0.0020)
-tattoo_tube("Tattoo_Dragon_Wing_Right", [
-    (-0.035,1.155),(0.015,1.205),(0.075,1.245),(0.105,1.205),
-    (0.080,1.170),(0.105,1.145),(0.045,1.135),(-0.035,1.155)], 0.0030)
-tattoo_tube("Tattoo_Dragon_Wing_Spar3", [
-    (0.015,1.205),(0.035,1.165),(0.080,1.170)], 0.0019)
-# Legs and a long curling tail.
-tattoo_tube("Tattoo_Dragon_Leg_Front", [
-    (-0.055,1.150),(-0.025,1.105),(-0.005,1.075),(0.025,1.080)], 0.0027)
-tattoo_tube("Tattoo_Dragon_Leg_Back", [
-    (0.045,1.145),(0.075,1.105),(0.105,1.085),(0.125,1.095)], 0.0027)
-tattoo_tube("Tattoo_Dragon_Tail", [
-    (0.070,1.140),(0.105,1.105),(0.135,1.065),(0.125,1.030),
-    (0.085,1.015),(0.055,1.035),(0.075,1.055)], 0.0032)
+star_centre_x, star_centre_z = -0.190, 1.365
+star_points = []
+for point_index in range(10):
+    angle = math.pi * 0.5 + point_index * math.pi / 5.0
+    radius = 0.040 if point_index % 2 == 0 else 0.017
+    star_points.append((star_centre_x + math.cos(angle) * radius,
+        star_centre_z + math.sin(angle) * radius))
+star_points.append(star_points[0])
+tattoo_tube("Tattoo_Star_Shoulder", star_points, 0.0032)
 
-# ---------------------------------------------------------------------------
 # Preview setup and GLB export.
 # ---------------------------------------------------------------------------
 
