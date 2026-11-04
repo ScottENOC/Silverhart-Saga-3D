@@ -95,8 +95,11 @@ for side, sign in (("L", 1), ("R", -1)):
         for segment_index, (head, tail, parent) in enumerate(chain, 1):
             bone_defs[f"{digit}{segment_index}.{side}"] = (head, tail, parent)
     thumb_chain = [
-        ((sign*0.555,-0.039,1.052),(sign*0.555,-0.043,1.080),f"Hand.{side}"),
-        ((sign*0.555,-0.043,1.080),(sign*0.535,-0.038,1.094),f"Thumb1.{side}"),
+        # The thumb root starts inside the radial edge of the palm, then
+        # projects towards the camera before sweeping out and back towards
+        # the index finger. The old path sat behind the palm silhouette.
+        ((sign*0.565,-0.048,1.055),(sign*0.555,-0.061,1.087),f"Hand.{side}"),
+        ((sign*0.555,-0.061,1.087),(sign*0.525,-0.064,1.099),f"Thumb1.{side}"),
     ]
     for segment_index, (head, tail, parent) in enumerate(thumb_chain, 1):
         bone_defs[f"Thumb{segment_index}.{side}"] = (head, tail, parent)
@@ -552,12 +555,12 @@ for side, sign in (("L", 1), ("R", -1)):
     # Thumb leaves the palm's long edge at a right angle to the fingers,
     # then turns slightly inward to oppose the index finger.
     thumb_joints = [
-        (sign*0.555, -0.039, 1.052),
-        (sign*0.555, -0.043, 1.080),
-        (sign*0.535, -0.038, 1.094),
+        (sign*0.565, -0.048, 1.055),
+        (sign*0.555, -0.061, 1.087),
+        (sign*0.525, -0.064, 1.099),
     ]
     digit_mesh(f"Hand_Thumb_{side}", thumb_joints,
-        [0.014, 0.011, 0.008],
+        [0.016, 0.013, 0.010],
         [f"Thumb{segment+1}.{side}" for segment in range(2)], SKIN)
     leg_x = 0.13 if side == "L" else -0.13
     tube_mesh(f"Body_Leg_{side}", [
