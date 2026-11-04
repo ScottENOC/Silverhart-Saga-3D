@@ -197,6 +197,17 @@ The latest blockout pass:
 These remain procedural forms. The sword grip should be checked from several angles in Godot; the hand is posed around the grip but does not yet dynamically animate around it.
 
 
+## November 4 — continuous joint anatomy pass
+
+The current body generator no longer uses separate shoulder, kneecap or ankle spheres. Those forms are now produced by the continuous arm and leg lofts before the unified body remesh:
+
+- Shoulders begin with a buried root section inside the torso, widen into a sloping deltoid cap, then taper into the upper arm.
+- Knees use a shallow, localised anterior surface deformation over the patella region, with the thigh and calf profiles shaping the joint.
+- Ankles use small inner and outer malleolar surface deformations at different heights. Their directions are mirrored for left and right legs.
+- Wrists retain a tapered forearm-to-palm bridge, with subtle asymmetric contour changes rather than a round joint object.
+
+These are deliberately restrained first-pass anatomical cues. They need inspection in the neutral clay preview from front, side and rear, followed by deformation tests in Blender. The current procedural surface is still a blockout and should not be treated as finished anatomy.
+
 ## Wren undergarments — first modular clothing pass
 
 The original 2D source assets were inspected directly:
