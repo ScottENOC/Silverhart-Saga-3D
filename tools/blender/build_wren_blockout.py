@@ -334,30 +334,27 @@ for side, sign in (("L", 1), ("R", -1)):
         f"UpperArm.{side}", f"Forearm.{side}", sides=20, blend_start=0.52, blend_end=0.76)
     sphere_piece(f"Body_Elbow_{side}", (sign * 0.385, 0.040, 1.235),
         (0.052, 0.034, 0.050), SKIN, f"Forearm.{side}", 24, 16)
-    # Hand: palm sits in line with the forearm, with fingers fanning outward
-    # along the hand's length. Each finger has a clear knuckle bend.
-    palm = (sign * 0.558, -0.025, 1.025)
-    sphere_piece(f"Hand_Palm_{side}", palm, (0.047, 0.030, 0.057),
+    # Hand: palm wraps the sword axis. Four fingers curl around the grip
+    # in the X/Y plane at successive heights, rather than pointing sideways.
+    palm = (sign * 0.555, -0.025, 1.025)
+    sphere_piece(f"Hand_Palm_{side}", palm, (0.044, 0.033, 0.057),
         SKIN, f"Hand.{side}", 24, 16)
     for finger in range(4):
-        zoff = (finger - 1.5) * 0.024
-        x0 = sign * 0.580
-        x1 = sign * 0.612
-        x2 = sign * 0.646
+        zoff = (finger - 1.5) * 0.023
         points = [
-            (x0, -0.026, 1.025 + zoff),
-            (x1, -0.044, 1.025 + zoff * 1.05),
-            (x2, -0.060, 1.018 + zoff * 1.10),
-            (x2 + sign * 0.004, -0.040, 1.005 + zoff * 1.10)
+            (sign * 0.535, -0.025, 1.025 + zoff),
+            (sign * 0.552, -0.060, 1.025 + zoff),
+            (sign * 0.580, -0.056, 1.020 + zoff),
+            (sign * 0.585, -0.030, 1.014 + zoff)
         ]
         tube_mesh(f"Hand_Finger_{side}_{finger+1}", points,
             [0.010, 0.009, 0.0075, 0.0055], SKIN,
             f"Hand.{side}", sides=10, depth_ratio=0.88)
     thumb_points = [
-        (sign * 0.555, -0.015, 1.075),
-        (sign * 0.585, -0.045, 1.070),
-        (sign * 0.605, -0.066, 1.050),
-        (sign * 0.590, -0.052, 1.038)
+        (sign * 0.525, -0.015, 1.060),
+        (sign * 0.548, -0.048, 1.055),
+        (sign * 0.570, -0.067, 1.040),
+        (sign * 0.560, -0.055, 1.025)
     ]
     tube_mesh(f"Hand_Thumb_{side}", thumb_points,
         [0.016, 0.014, 0.011, 0.007], SKIN,
