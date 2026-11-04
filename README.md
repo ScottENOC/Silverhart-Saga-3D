@@ -7,9 +7,10 @@ A standalone Godot 4 project exploring a 3D implementation of the existing Silve
 **Milestone:** M1 prototype foundation  
 **Engine baseline:** Godot 4.7.2 stable (GDScript, Forward+)  
 **Target:** Windows PC first  
-**Prototype:** generated hex test field, six-direction logical movement, smooth 3D presentation, player-controlled orbit camera.
+**Prototype:** generated hex test field, six-direction logical movement, smooth 3D presentation and player-controlled orbit camera.  
+**Simulation port in progress:** character Time Points, fixed-step world clock, Silverhart calendar, TP-costed movement API and combat initiative scheduler.
 
-This is a deliberately small technical prototype. It is not yet a port of the original combat, character progression, dialogue, campaign or persistence systems. Debug movement does not yet spend original-game time points or action points.
+The current movement harness intentionally retains free debug movement. Gameplay code can use the cost-bearing movement API. Combat attacks, spells, reactions, AI turns, full character progression, dialogue, campaign content and complete save/load are still to come.
 
 ## Open the project
 
