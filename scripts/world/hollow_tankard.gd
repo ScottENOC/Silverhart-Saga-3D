@@ -310,7 +310,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
             "hair": "braid",
             "weapon": "sword",
             "body_hair": "groomed",
-            "tattoo": "dragon_back",
+            "tattoo": "star_shoulder",
             "piercings": "wren_set",
         })
         if not model_loaded:
