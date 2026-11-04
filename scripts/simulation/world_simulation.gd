@@ -126,7 +126,6 @@ func to_dict() -> Dictionary:
     return {
         "world_clock": clock.to_dict(),
         "is_in_combat": is_in_combat,
-        "current_turn_character_id": turn_scheduler.current_character_id,
         "characters": character_data,
     }
 
