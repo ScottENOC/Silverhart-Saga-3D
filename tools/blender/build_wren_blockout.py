@@ -37,6 +37,7 @@ def material(name, colour, roughness=0.82, metallic=0.0):
 
 SKIN = material("Wren | skin", (0.58, 0.39, 0.28))
 HAIR = material("Wren | shock cobalt blue hair", (0.018, 0.105, 0.72))
+HAIR_FLOW = material("Wren | hair flow highlights", (0.035, 0.16, 0.82))
 SHIRT = material("Wren | dark green shirt", (0.13, 0.24, 0.15))
 TRIM = material("Wren | rose red trim", (0.55, 0.12, 0.20))
 TROUSERS = material("Wren | charcoal trousers", (0.075, 0.072, 0.08))
@@ -268,15 +269,15 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
             vertical = math.exp(-((z - 0.968) / 0.010) ** 2)
             centre = math.exp(-(x / 0.014) ** 2)
             y += front * vertical * centre * 0.008
-        if 0.735 <= z <= 0.835:
-            vertical = math.sin(math.pi * (z - 0.735) / 0.100)
-            centre = math.exp(-(x / 0.070) ** 2)
-            y -= front * max(0.0, vertical) * centre * 0.010
+        if 0.700 <= z <= 0.785:
+            vertical = math.sin(math.pi * (z - 0.700) / 0.085)
+            centre = math.exp(-(x / 0.062) ** 2)
+            y -= front * max(0.0, vertical) * centre * 0.009
         # Integrated external pelvic anatomy: paired shallow labial ridges
         # flank a narrow recessed cleft, with the upper mound blended into
         # the surrounding torso surface. These are deformations, not overlays.
-        if 0.748 <= z <= 0.805:
-            labial_profile = math.exp(-((z - 0.775) / 0.024) ** 2)
+        if 0.700 <= z <= 0.765:
+            labial_profile = math.exp(-((z - 0.735) / 0.022) ** 2)
             paired_ridges = (
                 math.exp(-((x - 0.013) / 0.007) ** 2)
                 + math.exp(-((x + 0.013) / 0.007) ** 2)
@@ -417,6 +418,8 @@ for side, sign in (("L", 1), ("R", -1)):
         SKIN, f"Thigh.{side}", f"Shin.{side}", sides=24, blend_start=0.40, blend_end=0.63)
     sphere_piece(f"Body_Kneecap_{side}", (leg_x, -0.062, 0.495),
         (0.048, 0.022, 0.054), SKIN, f"Shin.{side}", 24, 16)
+    sphere_piece(f"Body_Ankle_{side}", (leg_x, 0.000, 0.145),
+        (0.050, 0.052, 0.047), SKIN, f"Ankle.{side}", 24, 16)
     foot_rings = [
         (0.025, 0.045, 0.047, 0.108), (-0.025, 0.054, 0.043, 0.105),
         (-0.095, 0.063, 0.037, 0.094), (-0.165, 0.077, 0.032, 0.080),
@@ -606,7 +609,7 @@ for i in range(9):
         points.append((x, y, z))
     tube_mesh(f"Hair_Texture_Ridge_{i+1:02d}", points,
         [0.0028,0.0032,0.0035,0.0035,0.0032,0.0028,0.0015],
-        HAIR, "Head", sides=7, depth_ratio=0.55)
+        HAIR_FLOW, "Head", sides=7, depth_ratio=0.55)
 
 # A continuous braid core with three interwoven lobes. The strands follow the
 # shoulder-to-chest path rather than appearing as a string of spherical beads.
@@ -659,9 +662,9 @@ def torso_surface_y(x, z, front=True):
 # Neatly groomed, modest pubic hair is a separate appearance layer. It is
 # offset just outside the front skin surface so it cannot show through the body.
 for i in range(11):
-    x = (i - 5) * 0.008
-    z0 = 0.810 + abs(i - 5) * 0.002
-    z1 = 0.775 + abs(i - 5) * 0.004
+    x = (i - 5) * 0.007
+    z0 = 0.765 + abs(i - 5) * 0.0015
+    z1 = 0.725 + abs(i - 5) * 0.003
     points = []
     for px, pz in [(x, z0), (x * 0.82, (z0+z1)*0.5), (x * 0.62, z1)]:
         points.append((px, torso_surface_y(px, pz, True)-0.008, pz))
@@ -676,7 +679,7 @@ for side, sign in (("L", 1), ("R", -1)):
 
 # The top of this hoop intersects the nipple itself: a piercing must pass
 # through tissue rather than float in front of it.
-torus_piece("Piercing_Left_Nipple", (0.108, -0.222, 1.213),
+torus_piece("Piercing_Left_Nipple", (0.108, -0.224, 1.187),
     0.012, 0.0025, PIERCING_METAL, "Spine", (math.radians(90), 0, 0))
 
 # Dragon tattoo on the back opposite the braid. The design has a recognisable
