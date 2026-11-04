@@ -481,9 +481,9 @@ for side, sign in (("L", 1), ("R", -1)):
     # A short, tapered wrist bridges the forearm into the palm instead of
     # leaving a round ball between two aligned blocks.
     tube_mesh(f"Hand_Wrist_{side}",
-        [(sign*0.515, -0.020, 1.095), (sign*0.535, -0.027, 1.065),
-         (sign*0.548, -0.032, 1.045)],
-        [0.026, 0.023, 0.022], SKIN, f"Forearm.{side}", f"Wrist.{side}",
+        [(sign*0.505, -0.018, 1.105), (sign*0.535, -0.027, 1.065),
+         (sign*0.570, -0.034, 1.035)],
+        [0.030, 0.025, 0.023], SKIN, f"Forearm.{side}", f"Wrist.{side}",
         sides=16, depth_ratio=0.78, blend_start=0.25, blend_end=0.78)
     # Palm's short ends meet wrist and fingers. Its broad faces are X/Z;
     # fingers extend along X, while the thumb branches across Z.
@@ -511,12 +511,12 @@ for side, sign in (("L", 1), ("R", -1)):
         finger_lengths = {"Index": 0.073, "Middle": 0.086, "Ring": 0.079, "Pinky": 0.061}
         length = finger_lengths[digit]
         spread_z = (digit_index - 1.5) * 0.015
-        root_x = sign * 0.614
+        root_x = sign * 0.600
         joints = [
             (root_x, -0.039, 1.025 + spread_z),
-            (sign*(0.614 + length*0.40), -0.041, 1.024 + spread_z*0.94),
-            (sign*(0.614 + length*0.76), -0.027, 1.018 + spread_z*0.86),
-            (sign*(0.614 + length), -0.015, 1.010 + spread_z*0.78),
+            (sign*(0.600 + length*0.40), -0.041, 1.024 + spread_z*0.94),
+            (sign*(0.600 + length*0.76), -0.027, 1.018 + spread_z*0.86),
+            (sign*(0.600 + length), -0.015, 1.010 + spread_z*0.78),
         ]
         digit_mesh(f"Hand_{digit}_{side}",
             joints, [0.0095, 0.0088, 0.0072, 0.0058],
@@ -870,24 +870,24 @@ UNDERWEAR_TRIM = material("Wren | pale gold underwear HSV 47/100/100", (1.0, 0.7
 
 # Strapless bra: two shaped cups over the breast volume and a narrow band.
 for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Garment_Bra_Cup_{side}", (sign * 0.108, -0.217, 1.225),
-        (0.067, 0.010, 0.056), UNDERWEAR, "Spine", 40, 28)
+    sphere_piece(f"Garment_Bra_Cup_{side}", (sign * 0.108, -0.229, 1.225),
+        (0.067, 0.016, 0.056), UNDERWEAR, "Spine", 48, 32)
     # Fine upper cup piping follows the cup's curved top edge.
     cup_points = []
     for step in range(13):
         angle = math.pi * (0.08 + 0.84 * step / 12.0)
         cup_points.append((sign * 0.108 + math.cos(angle) * 0.061,
-            -0.230 - math.sin(angle) * 0.003, 1.225 + math.sin(angle) * 0.056))
+            -0.245 - math.sin(angle) * 0.004, 1.225 + math.sin(angle) * 0.056))
     tube_mesh(f"Garment_Bra_CupTrim_{side}", cup_points,
         [0.0025] * (len(cup_points)-1) + [0.0018],
         UNDERWEAR_TRIM, "Spine", sides=7, depth_ratio=0.8)
     # Lace-inspired embroidery follows the cup surface.
     motif = [
-        (sign * 0.108 - 0.025, -0.235, 1.225),
-        (sign * 0.108 - 0.014, -0.238, 1.245),
-        (sign * 0.108, -0.240, 1.252),
-        (sign * 0.108 + 0.014, -0.238, 1.245),
-        (sign * 0.108 + 0.025, -0.235, 1.225),
+        (sign * 0.108 - 0.025, -0.247, 1.225),
+        (sign * 0.108 - 0.014, -0.250, 1.245),
+        (sign * 0.108, -0.252, 1.252),
+        (sign * 0.108 + 0.014, -0.250, 1.245),
+        (sign * 0.108 + 0.025, -0.247, 1.225),
     ]
     tube_mesh(f"Garment_Bra_Embroidery_{side}", motif,
         [0.0018] * (len(motif)-1) + [0.0012],
@@ -904,7 +904,7 @@ for z in (1.145, 1.162):
         angle = 2.0 * math.pi * i / band_sides
         x = math.cos(angle) * 0.218
         y = math.sin(angle) * 0.147
-        band_verts.append((x, y, z))
+        band_verts.append((x * 1.015, y * 1.045, z))
 for i in range(band_sides):
     nxt = (i + 1) % band_sides
     band_faces.append((i, nxt, band_sides+nxt, band_sides+i))
@@ -916,10 +916,10 @@ finish_skinned_mesh("Garment_Bra_Bandeau", band_verts, band_faces,
 # invented shoulder straps.
 for side, sign in (("L", 1), ("R", -1)):
     cradle_points = [
-        (sign*0.165, -0.170, 1.205),
-        (sign*0.190, -0.145, 1.185),
-        (sign*0.205, -0.105, 1.163),
-        (sign*0.210, -0.070, 1.153),
+        (sign*0.155, -0.226, 1.190),
+        (sign*0.180, -0.194, 1.178),
+        (sign*0.205, -0.145, 1.163),
+        (sign*0.216, -0.070, 1.153),
     ]
     tube_mesh(f"Garment_Bra_CupToBand_{side}", cradle_points,
         [0.010, 0.009, 0.008, 0.007], UNDERWEAR, "Spine",
@@ -940,20 +940,33 @@ def make_briefs_wrap() -> None:
         t = row / float(rows - 1)
         for col in range(around):
             angle = 2.0 * math.pi * col / around
-            front = math.sin(angle) < 0.0
-            side_factor = abs(math.cos(angle))
+            # Follow the full elliptical torso perimeter continuously.
+            # Front/back meet smoothly at the hips instead of jumping between
+            # positive and negative surface depths.
+            side_factor = abs(math.sin(angle))
+            front = math.cos(angle) > 0.0
             upper_z = 0.900 - 0.008 * side_factor
             if front:
                 lower_z = 0.718 + 0.050 * side_factor
             else:
                 lower_z = 0.735 + 0.038 * side_factor
             z = upper_z * (1.0 - t) + lower_z * t
-            half_width = 0.158 * (1.0 - t) + 0.090 * t
-            x = math.cos(angle) * half_width
-            surface = torso_surface_y(x, z, front)
-            # Fabric floats just clear of skin; the surface remains continuous
-            # around the side seams and under the crotch.
-            y = surface + (-0.010 if front else 0.010)
+            width = torso_rings[0][1]
+            depth = torso_rings[0][2]
+            for ring_index in range(len(torso_rings)-1):
+                lo, hi = torso_rings[ring_index], torso_rings[ring_index+1]
+                if lo[0] <= z <= hi[0]:
+                    blend = (z-lo[0]) / (hi[0]-lo[0])
+                    width = lo[1]*(1.0-blend) + hi[1]*blend
+                    depth = lo[2]*(1.0-blend) + hi[2]*blend
+                    break
+            x = math.sin(angle) * width
+            y = -math.cos(angle) * depth
+            nx = math.sin(angle) / max(width, 0.001)
+            ny = -math.cos(angle) / max(depth, 0.001)
+            normal_len = math.sqrt(nx*nx + ny*ny)
+            x += (nx / normal_len) * 0.006
+            y += (ny / normal_len) * 0.006
             verts.append((x, y, z))
     for row in range(rows - 1):
         for col in range(around):
