@@ -1,4 +1,4 @@
-# Run with Blender 4.x:
+# Run with Blender 5.2 LTS (also supports Blender 4.x):
 # blender --background --python tools/blender/build_wren_blockout.py
 #
 # Generates an intentionally simple, rigged Wren blockout and GLB export.
@@ -27,7 +27,9 @@ for datablocks in (bpy.data.meshes, bpy.data.curves, bpy.data.materials, bpy.dat
 def material(name, colour, roughness=0.82, metallic=0.0):
     mat = bpy.data.materials.new(name)
     mat.diffuse_color = (*colour, 1.0)
-    mat.use_nodes = True
+    # New materials use nodes by default. Enable only if a configuration disabled them.
+    if mat.node_tree is None:
+        mat.use_nodes = True
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
     bsdf.inputs["Base Color"].default_value = (*colour, 1.0)
     bsdf.inputs["Roughness"].default_value = roughness
@@ -222,7 +224,15 @@ for obj in character_collection.objects:
     obj.select_set(True)
 bpy.context.view_layer.objects.active = arm
 
-bpy.context.scene.render.engine = "BLENDER_EEVEE_NEXT"
+# Blender 4.x called Eevee BLENDER_EEVEE_NEXT; Blender 5.x calls it BLENDER_EEVEE.
+engine_items = bpy.context.scene.render.bl_rna.properties["engine"].enum_items
+available_engines = {item.identifier for item in engine_items}
+if "BLENDER_EEVEE" in available_engines:
+    bpy.context.scene.render.engine = "BLENDER_EEVEE"
+elif "BLENDER_EEVEE_NEXT" in available_engines:
+    bpy.context.scene.render.engine = "BLENDER_EEVEE_NEXT"
+else:
+    bpy.context.scene.render.engine = "BLENDER_WORKBENCH"
 bpy.context.scene.render.resolution_x = 1000
 bpy.context.scene.render.resolution_y = 1000
 bpy.context.scene.render.resolution_percentage = 100
