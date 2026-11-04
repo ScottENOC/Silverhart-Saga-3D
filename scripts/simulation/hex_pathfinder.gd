@@ -14,7 +14,8 @@ static func find_path(map_data: HexMapData, occupied_hexes: Dictionary, start: V
     var open: Array[Vector2i] = [start]
     var came_from: Dictionary = {}
     var g_score: Dictionary = {start: 0.0}
-    var f_score: Dictionary = {start: float(HexGrid.distance(start, target)) * MovementRules.BASE_STEP_COST * 0.9}
+    var minimum_step_cost := MovementRules.base_cost_for(state) * 0.9
+    var f_score: Dictionary = {start: float(HexGrid.distance(start, target)) * minimum_step_cost}
     var iterations := 0
     while not open.is_empty() and iterations < 10000:
         iterations += 1
@@ -39,7 +40,7 @@ static func find_path(map_data: HexMapData, occupied_hexes: Dictionary, start: V
                 continue
             came_from[neighbour] = current
             g_score[neighbour] = tentative
-            f_score[neighbour] = tentative + float(HexGrid.distance(neighbour, target)) * MovementRules.BASE_STEP_COST * 0.9
+            f_score[neighbour] = tentative + float(HexGrid.distance(neighbour, target)) * minimum_step_cost
             if not open.has(neighbour):
                 open.append(neighbour)
     return empty
