@@ -538,12 +538,37 @@ for side, x in (("L", 0.047), ("R", -0.047)):
 # Wren's garments will be added later as separate fitted polygon meshes.
 # ---------------------------------------------------------------------------
 
+# Scalp cap plus swept, overlapping locks to break up the featureless-ball look.
 sphere_piece("Hair_Cap", (0, 0.018, 1.79), (0.132, 0.125, 0.105), HAIR, "Head")
-for i in range(7):
-    z = 1.77 - i * 0.055
-    x = 0.085 + 0.025 * math.sin(i * 0.8)
-    y = 0.085 + 0.012 * math.cos(i * 0.8)
-    sphere_piece(f"Hair_Braid_{i+1:02d}", (x, y, z), (0.037, 0.038, 0.052), HAIR, "Head", 10, 8)
+for i in range(5):
+    x = -0.085 + i * 0.042
+    tube_mesh(f"Hair_Swept_Lock_{i+1:02d}", [
+        (x, -0.078, 1.835), (x * 0.72, -0.108, 1.855),
+        (x * 0.25, -0.105, 1.865), (x * 0.05, -0.045, 1.875)
+    ], [0.010, 0.013, 0.012, 0.004], HAIR, "Head", sides=10, depth_ratio=0.65)
+
+# Long braid runs over the right shoulder and down the front to breast level.
+braid_path = [
+    (0.085, 0.078, 1.785), (0.125, 0.060, 1.735),
+    (0.155, 0.025, 1.680), (0.175, -0.020, 1.620),
+    (0.185, -0.075, 1.555), (0.185, -0.112, 1.490),
+    (0.178, -0.145, 1.425), (0.168, -0.164, 1.360),
+    (0.158, -0.173, 1.295), (0.150, -0.169, 1.235)
+]
+for i, point in enumerate(braid_path):
+    offset = 0.010 if i % 2 == 0 else -0.010
+    sphere_piece(f"Hair_Braid_{i+1:02d}",
+        (point[0] + offset, point[1], point[2]),
+        (0.027, 0.030, 0.040), HAIR, "Head", 16, 12,
+        (0.0, 0.0, math.radians(18 if i % 2 == 0 else -18)))
+for side_offset in (-0.010, 0.010):
+    points = []
+    for i, point in enumerate(braid_path):
+        points.append((point[0] + side_offset * (1 if i % 2 == 0 else -1),
+            point[1] - 0.026, point[2]))
+    tube_mesh(f"Hair_Braid_Twist_{'L' if side_offset < 0 else 'R'}",
+        points, [0.0035] * (len(points)-1) + [0.0015],
+        HAIR, "Head", sides=7, depth_ratio=0.7)
 
 # Sword is held upright: grip sits in the palm, guard below it and blade rises.
 upright = (math.radians(90), 0.0, 0.0)
