@@ -253,16 +253,16 @@ def shaped_breast(name, centre_x):
     # Anatomical teardrop profile: narrower upper pole, fuller lower pole,
     # gently flattened chest wall and a forward-facing projection.
     rings = [
-        (1.335, 0.006, 0.005, -0.090),
-        (1.320, 0.018, 0.014, -0.102),
-        (1.295, 0.038, 0.027, -0.116),
-        (1.265, 0.058, 0.043, -0.128),
-        (1.235, 0.073, 0.055, -0.139),
-        (1.205, 0.079, 0.061, -0.143),
-        (1.175, 0.072, 0.058, -0.139),
-        (1.150, 0.052, 0.044, -0.125),
-        (1.132, 0.024, 0.022, -0.108),
-        (1.125, 0.006, 0.006, -0.098),
+        (1.335, 0.007, 0.006, -0.090),
+        (1.320, 0.020, 0.016, -0.104),
+        (1.295, 0.043, 0.030, -0.120),
+        (1.265, 0.065, 0.048, -0.134),
+        (1.235, 0.082, 0.061, -0.146),
+        (1.205, 0.088, 0.068, -0.151),
+        (1.175, 0.080, 0.064, -0.146),
+        (1.150, 0.058, 0.048, -0.131),
+        (1.132, 0.027, 0.024, -0.111),
+        (1.125, 0.007, 0.006, -0.098),
     ]
     sides = 32
     verts, faces = [], []
@@ -293,7 +293,7 @@ for side, sign in (("L", 1), ("R", -1)):
     sphere_piece(f"Body_Shoulder_{side}", (sign * 0.205, 0.0, 1.385),
         (0.105, 0.105, 0.105), SKIN, f"UpperArm.{side}", 24, 16)
 # Subtle, non-detailed external pelvic anatomy; no explicit genital detailing.
-sphere_piece("Body_Pubic_Mound", (0, -0.112, 0.785),
+sphere_piece("Body_Pubic_Mound", (0, -0.112, 0.755),
     (0.060, 0.022, 0.044), SKIN, "Root", 24, 16)
 
 tube_mesh("Body_Neck", [(0, 0, 1.455), (0, 0, 1.505), (0, 0, 1.555), (0, 0, 1.625)],
@@ -305,11 +305,6 @@ sphere_piece("Face_Nose_Tip", (0, -0.145, 1.652), (0.027, 0.030, 0.023), SKIN, "
 for side, sign in (("L", 1), ("R", -1)):
     sphere_piece(f"Face_Nostril_Ala_{side}", (sign * 0.019, -0.132, 1.650),
         (0.014, 0.018, 0.014), SKIN, "Head", 10, 8)
-    # Ear shell and inner concha, positioned on either side of the skull.
-    sphere_piece(f"Body_Ear_{side}", (sign * 0.119, -0.002, 1.695),
-        (0.030, 0.035, 0.052), SKIN, "Head", 16, 12)
-    sphere_piece(f"Face_Ear_Concha_{side}", (sign * 0.137, -0.023, 1.695),
-        (0.010, 0.018, 0.030), SKIN, "Head", 12, 8)
 for side, sign in (("L", 1), ("R", -1)):
     x = sign * 0.18
     sphere_piece(f"Body_Ear_{side}", (x * 0.68, 0, 1.70), (0.035, 0.035, 0.055), SKIN, "Head", 10, 8)
@@ -331,21 +326,21 @@ for side, sign in (("L", 1), ("R", -1)):
     palm = (sign * 0.555, -0.025, 1.025)
     sphere_piece(f"Body_Palm_{side}", palm, (0.055, 0.052, 0.073), SKIN, f"Hand.{side}")
     for finger in range(4):
-        spread = (finger - 1.5) * 0.024
-        base_x = sign * (0.565 + spread)
+        spread = (finger - 1.5) * 0.016
+        base_x = sign * (0.555 + spread)
         finger_points = [
-            (base_x, -0.045, 1.045 - abs(spread) * 0.35),
-            (base_x + sign * 0.012, -0.080, 1.038 - abs(spread) * 0.25),
-            (base_x + sign * 0.010, -0.105, 1.020 - abs(spread) * 0.20),
-            (base_x - sign * 0.002, -0.105, 1.002 - abs(spread) * 0.15),
+            (base_x, -0.020, 1.046 - abs(spread) * 0.20),
+            (base_x + sign * 0.004, -0.052, 1.038 - abs(spread) * 0.15),
+            (base_x + sign * 0.003, -0.066, 1.021 - abs(spread) * 0.10),
+            (base_x - sign * 0.002, -0.047, 1.008 - abs(spread) * 0.08),
         ]
         tube_mesh(f"Body_Finger_{side}_{finger+1}", finger_points,
-            [0.014, 0.013, 0.011, 0.008], SKIN, f"Hand.{side}", sides=8, depth_ratio=0.9)
+            [0.011, 0.010, 0.0085, 0.0065], SKIN, f"Hand.{side}", sides=10, depth_ratio=0.88)
     thumb_points = [
-        (sign * 0.525, -0.025, 1.055),
-        (sign * 0.505, -0.060, 1.055),
-        (sign * 0.505, -0.095, 1.040),
-        (sign * 0.525, -0.105, 1.020),
+        (sign * 0.515, -0.012, 1.055),
+        (sign * 0.495, -0.040, 1.050),
+        (sign * 0.495, -0.064, 1.035),
+        (sign * 0.520, -0.050, 1.020),
     ]
     tube_mesh(f"Body_Thumb_{side}", thumb_points, [0.019, 0.017, 0.014, 0.010],
         SKIN, f"Hand.{side}", sides=8, depth_ratio=0.9)
