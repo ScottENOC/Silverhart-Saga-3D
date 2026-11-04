@@ -109,12 +109,14 @@ def finish_skinned_mesh(name, verts, faces, mat, weights_by_group):
         polygon.use_smooth = True
     return obj
 
-def sphere_piece(name, location, scale, mat, bone_name, segments=32, rings=24):
+def sphere_piece(name, location, scale, mat, bone_name, segments=32, rings=24, rotation=(0, 0, 0)):
     bpy.ops.mesh.primitive_uv_sphere_add(segments=segments, ring_count=rings, radius=1, location=location)
     obj = bpy.context.object
     obj.name = name
     obj.scale = scale
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    obj.rotation_euler = rotation
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
     obj.data.materials.append(mat)
     group = obj.vertex_groups.new(name=bone_name)
     group.add(list(range(len(obj.data.vertices))), 1.0, "REPLACE")
@@ -195,17 +197,23 @@ def torus_piece(name, location, major_radius, minor_radius, mat, bone_name, rota
 # Continuous torso/pelvis loft: broad pelvis and shoulders, defined waist,
 # ribcage and chest. Each ring is a cross-section of one surface.
 torso_rings = [
-    (0.735, 0.175, 0.115, 0.000),
-    (0.790, 0.215, 0.135, 0.000),
-    (0.855, 0.235, 0.145, 0.000),
-    (0.925, 0.205, 0.132, 0.000),
-    (1.015, 0.172, 0.118, 0.000),
-    (1.105, 0.190, 0.132, 0.000),
-    (1.205, 0.218, 0.145, 0.000),
-    (1.305, 0.225, 0.140, 0.000),
-    (1.390, 0.255, 0.125, 0.000),
-    (1.465, 0.145, 0.095, 0.000),
-    (1.515, 0.075, 0.070, 0.000),
+    (0.715, 0.190, 0.120, 0.000),
+    (0.755, 0.208, 0.132, 0.000),
+    (0.805, 0.225, 0.140, 0.000),
+    (0.855, 0.228, 0.142, 0.000),
+    (0.905, 0.218, 0.136, 0.000),
+    (0.955, 0.202, 0.128, 0.000),
+    (1.005, 0.190, 0.122, 0.000),
+    (1.055, 0.190, 0.125, 0.000),
+    (1.105, 0.198, 0.132, 0.000),
+    (1.155, 0.211, 0.140, 0.000),
+    (1.205, 0.225, 0.145, 0.000),
+    (1.255, 0.232, 0.145, 0.000),
+    (1.305, 0.242, 0.137, 0.000),
+    (1.355, 0.252, 0.128, 0.000),
+    (1.405, 0.225, 0.118, 0.000),
+    (1.450, 0.145, 0.095, 0.000),
+    (1.495, 0.078, 0.070, 0.000),
 ]
 torso_verts, torso_faces, root_weights, spine_weights = [], [], [], []
 torso_sides = 48
@@ -236,13 +244,16 @@ def shaped_breast(name, centre_x):
     # Anatomical teardrop profile: narrower upper pole, fuller lower pole,
     # gently flattened chest wall and a forward-facing projection.
     rings = [
-        (1.145, 0.010, 0.012, -0.092),
-        (1.165, 0.045, 0.035, -0.103),
-        (1.195, 0.073, 0.052, -0.112),
-        (1.230, 0.080, 0.059, -0.116),
-        (1.265, 0.070, 0.052, -0.110),
-        (1.295, 0.050, 0.038, -0.098),
-        (1.315, 0.020, 0.018, -0.085),
+        (1.335, 0.006, 0.005, -0.090),
+        (1.320, 0.018, 0.014, -0.102),
+        (1.295, 0.038, 0.027, -0.116),
+        (1.265, 0.058, 0.043, -0.128),
+        (1.235, 0.073, 0.055, -0.139),
+        (1.205, 0.079, 0.061, -0.143),
+        (1.175, 0.072, 0.058, -0.139),
+        (1.150, 0.052, 0.044, -0.125),
+        (1.132, 0.024, 0.022, -0.108),
+        (1.125, 0.006, 0.006, -0.098),
     ]
     sides = 32
     verts, faces = [], []
@@ -274,9 +285,10 @@ for side, sign in (("L", 1), ("R", -1)):
         (0.105, 0.105, 0.105), SKIN, f"UpperArm.{side}", 24, 16)
 # Subtle, non-detailed external pelvic anatomy; no explicit genital detailing.
 sphere_piece("Body_Pubic_Mound", (0, -0.112, 0.785),
-    (0.105, 0.035, 0.065), SKIN, "Root", 18, 12)
+    (0.078, 0.027, 0.052), SKIN, "Root", 24, 16)
 
-sphere_piece("Body_Neck", (0, 0, 1.535), (0.072, 0.07, 0.105), SKIN, "Neck")
+tube_mesh("Body_Neck", [(0, 0, 1.455), (0, 0, 1.505), (0, 0, 1.555), (0, 0, 1.625)],
+    [0.066, 0.067, 0.069, 0.075], SKIN, "Neck", sides=24, depth_ratio=0.95)
 sphere_piece("Body_Head", (0, -0.005, 1.70), (0.125, 0.12, 0.16), SKIN, "Head", 24, 16)
 # Nose bridge, tip and subtle alae are separate sculptural forms.
 sphere_piece("Face_Nose_Bridge", (0, -0.112, 1.685), (0.020, 0.035, 0.060), SKIN, "Head", 12, 10)
@@ -294,14 +306,17 @@ for side, sign in (("L", 1), ("R", -1)):
     sphere_piece(f"Body_Ear_{side}", (x * 0.68, 0, 1.70), (0.035, 0.035, 0.055), SKIN, "Head", 10, 8)
     # Shoulder, upper arm, elbow and forearm are a single continuous surface.
     # The elbow is deliberately buried in the tube instead of being a side-on join.
-    shoulder = (sign * 0.18, 0.0, 1.385)
-    upper_mid = (sign * 0.285, -0.002, 1.315)
+    shoulder = (sign * 0.17, 0.0, 1.395)
+    upper_mid = (sign * 0.265, -0.002, 1.345)
+    upper_low = (sign * 0.335, -0.006, 1.285)
     elbow = (sign * 0.385, -0.006, 1.235)
     fore_mid = (sign * 0.455, -0.012, 1.155)
     wrist = (sign * 0.525, -0.018, 1.075)
-    tube_mesh(f"Body_Arm_{side}", [shoulder, upper_mid, elbow, fore_mid, wrist],
-        [0.092, 0.087, 0.073, 0.062, 0.043], SKIN,
-        f"UpperArm.{side}", f"Forearm.{side}", sides=12)
+    tube_mesh(f"Body_Arm_{side}", [shoulder, upper_mid, upper_low, elbow, fore_mid, wrist],
+        [0.095, 0.088, 0.076, 0.070, 0.061, 0.043], SKIN,
+        f"UpperArm.{side}", f"Forearm.{side}", sides=20, blend_start=0.52, blend_end=0.76)
+    sphere_piece(f"Body_Elbow_{side}", (sign * 0.385, 0.040, 1.235),
+        (0.052, 0.034, 0.050), SKIN, f"Forearm.{side}", 24, 16)
     # Palm, individually modelled curled fingers and opposing thumb.
     # Fixed grip pose for now; separate finger bones can animate these later.
     palm = (sign * 0.555, -0.025, 1.025)
@@ -326,22 +341,36 @@ for side, sign in (("L", 1), ("R", -1)):
     tube_mesh(f"Body_Thumb_{side}", thumb_points, [0.019, 0.017, 0.014, 0.010],
         SKIN, f"Hand.{side}", sides=8, depth_ratio=0.9)
     leg_x = 0.13 if side == "L" else -0.13
-    sphere_piece(f"Body_Thigh_{side}", (leg_x, 0, 0.69), (0.115, 0.115, 0.25), SKIN, f"Thigh.{side}")
-    sphere_piece(f"Body_Knee_{side}", (leg_x, -0.012, 0.485), (0.080, 0.090, 0.085), SKIN, f"Shin.{side}", 24, 16)
-    sphere_piece(f"Body_Calf_{side}", (leg_x, 0.018, 0.315), (0.083, 0.100, 0.175), SKIN, f"Shin.{side}", 24, 16)
-    sphere_piece(f"Body_Foot_{side}", (leg_x, -0.105, 0.105), (0.082, 0.205, 0.072), SKIN, f"Foot.{side}", 28, 18)
-    # Five short toes fan out from the front of each foot.
-    for toe in range(5):
-        toe_offset = (toe - 2) * 0.025
-        toe_length = 0.105 - abs(toe_offset) * 0.45
-        toe_points = [
-            (leg_x + toe_offset * 0.72, -0.175, 0.095),
-            (leg_x + toe_offset, -0.205 - toe_length * 0.30, 0.090),
-            (leg_x + toe_offset * 1.08, -0.175 - toe_length, 0.083),
-        ]
-        tube_mesh(f"Body_Toe_{side}_{toe+1}", toe_points,
-            [0.019 if toe == 2 else 0.015, 0.013, 0.006], SKIN,
-            f"Foot.{side}", sides=8, depth_ratio=0.82)
+    tube_mesh(f"Body_Leg_{side}", [
+        (leg_x, 0.000, 0.875), (leg_x, -0.006, 0.790),
+        (leg_x, -0.008, 0.690), (leg_x, -0.010, 0.590),
+        (leg_x, -0.020, 0.500), (leg_x, 0.005, 0.420),
+        (leg_x, 0.022, 0.335), (leg_x, 0.010, 0.245),
+        (leg_x, 0.000, 0.155),
+    ], [0.094, 0.108, 0.106, 0.090, 0.071, 0.073, 0.083, 0.064, 0.045],
+        SKIN, f"Thigh.{side}", f"Shin.{side}", sides=24, blend_start=0.40, blend_end=0.63)
+    sphere_piece(f"Body_Kneecap_{side}", (leg_x, -0.062, 0.495),
+        (0.055, 0.026, 0.062), SKIN, f"Shin.{side}", 24, 16)
+    foot_rings = [
+        (0.105, 0.052, 0.052, 0.108), (0.045, 0.063, 0.047, 0.105),
+        (-0.045, 0.073, 0.040, 0.094), (-0.135, 0.091, 0.035, 0.080),
+        (-0.205, 0.084, 0.029, 0.072), (-0.275, 0.050, 0.022, 0.068),
+    ]
+    foot_verts, foot_faces = [], []
+    foot_sides = 24
+    for y, width, height, zc in foot_rings:
+        for i in range(foot_sides):
+            angle = 2.0 * math.pi * i / foot_sides
+            foot_verts.append((leg_x + math.cos(angle) * width, y, zc + math.sin(angle) * height))
+    for ring in range(len(foot_rings)-1):
+        for i in range(foot_sides):
+            a = ring * foot_sides + i
+            b = ring * foot_sides + (i+1) % foot_sides
+            foot_faces.append((a, b, b+foot_sides, a+foot_sides))
+    foot_faces.extend([tuple(range(foot_sides-1, -1, -1)),
+        tuple((len(foot_rings)-1)*foot_sides+i for i in range(foot_sides))])
+    finish_skinned_mesh(f"Body_Foot_{side}", foot_verts, foot_faces, SKIN,
+        {f"Foot.{side}": [1.0] * len(foot_verts)})
 
 # ---------------------------------------------------------------------------
 # Fuse the body into one continuous anatomical surface.
@@ -361,7 +390,7 @@ def point_segment_distance(point, start, end):
 
 body_parts = [obj for obj in bpy.context.scene.objects
     if obj.type == "MESH" and (
-        obj.name.startswith("Body_") or obj.name.startswith("Face_Nose_")
+        obj.name.startswith("Body_") or obj.name.startswith("Face_Nose_") or obj.name.startswith("Face_Nostril_Ala_")
     )]
 if body_parts:
     bpy.ops.object.select_all(action="DESELECT")
@@ -380,13 +409,13 @@ if body_parts:
 
     remesh = body.modifiers.new("Fuse anatomical forms", "REMESH")
     remesh.mode = "VOXEL"
-    remesh.voxel_size = 0.006
+    remesh.voxel_size = 0.0045
     remesh.use_smooth_shade = True
     bpy.context.view_layer.objects.active = body
     bpy.ops.object.modifier_apply(modifier=remesh.name)
     relax = body.modifiers.new("Relax fused anatomy", "SMOOTH")
-    relax.factor = 0.65
-    relax.iterations = 4
+    relax.factor = 0.42
+    relax.iterations = 2
     bpy.ops.object.modifier_apply(modifier=relax.name)
     polish = body.modifiers.new("Polished skin surface", "SUBSURF")
     polish.levels = 1
@@ -434,10 +463,28 @@ LIP = material("Wren | lips", (0.48, 0.23, 0.22))
 LOWER_LIP = material("Wren | lower lip", (0.58, 0.31, 0.29))
 CREASE = material("Wren | soft crease", (0.22, 0.11, 0.10))
 for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Body_Areola_{side}", (sign * 0.108, -0.174, 1.228),
-        (0.027, 0.006, 0.024), AREOLA, "Spine", 20, 12)
-    sphere_piece(f"Body_Nipple_{side}", (sign * 0.108, -0.180, 1.228),
-        (0.008, 0.005, 0.009), NIPPLE, "Spine", 16, 10)
+    sphere_piece(f"Body_Areola_{side}", (sign * 0.108, -0.183, 1.205),
+        (0.024, 0.004, 0.020), AREOLA, "Spine", 20, 12)
+    sphere_piece(f"Body_Nipple_{side}", (sign * 0.108, -0.187, 1.205),
+        (0.007, 0.004, 0.008), NIPPLE, "Spine", 16, 10)
+
+# Toe geometry is kept separate after remeshing so its definition survives.
+for side, sign in (("L", 1), ("R", -1)):
+    leg_x = sign * 0.13
+    for toe in range(5):
+        offset = (toe - 2) * 0.029
+        length = 0.105 - abs(offset) * 0.32
+        sphere_piece(f"Body_Toe_{side}_{toe+1}",
+            (leg_x + offset, -0.255 - length * 0.22, 0.071),
+            (0.014 if toe in (0,4) else 0.016, length * 0.62, 0.014),
+            SKIN, f"Foot.{side}", 20, 12)
+
+# Subtle clavicle ridges from the sternum towards the shoulders.
+for side, sign in (("L", 1), ("R", -1)):
+    tube_mesh(f"Body_Clavicle_{side}", [
+        (sign * 0.012, -0.131, 1.405), (sign * 0.070, -0.132, 1.405),
+        (sign * 0.135, -0.120, 1.390), (sign * 0.195, -0.095, 1.365),
+    ], [0.003, 0.005, 0.006, 0.003], SKIN, "Spine", sides=10, depth_ratio=0.65)
 
 # Upper and lower lip volumes with a fine mouth line.
 sphere_piece("Face_Upper_Lip", (0.0, -0.128, 1.620),
@@ -450,17 +497,17 @@ sphere_piece("Face_Mouth_Line", (0.0, -0.138, 1.615),
 # Shallow navel inset and understated external adult anatomical detail.
 sphere_piece("Body_Navel", (0.0, -0.139, 0.965),
     (0.008, 0.003, 0.012), CREASE, "Root", 16, 10)
-sphere_piece("Body_Mons", (0.0, -0.137, 0.785),
-    (0.065, 0.012, 0.032), SKIN, "Root", 24, 16)
-for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Body_Labium_{side}", (sign * 0.018, -0.149, 0.765),
-        (0.018, 0.006, 0.038), AREOLA, "Root", 20, 12)
-sphere_piece("Body_Vulvar_Cleft", (0.0, -0.155, 0.765),
-    (0.0025, 0.002, 0.023), CREASE, "Root", 12, 8)
-sphere_piece("Body_Anal_Rim", (0.0, 0.151, 0.735),
-    (0.014, 0.004, 0.011), AREOLA, "Root", 16, 10)
-sphere_piece("Body_Anal_Centre", (0.0, 0.155, 0.735),
-    (0.004, 0.002, 0.005), CREASE, "Root", 12, 8)
+# The mons is part of the fused body; these narrow, shallow surface folds
+# avoid the appearance of two detached oval primitives.
+sphere_piece("Body_Vulvar_Fold_L", (-0.010, -0.137, 0.766),
+    (0.010, 0.0025, 0.030), AREOLA, "Root", 20, 12)
+sphere_piece("Body_Vulvar_Fold_R", (0.010, -0.137, 0.766),
+    (0.010, 0.0025, 0.030), AREOLA, "Root", 20, 12)
+sphere_piece("Body_Vulvar_Cleft", (0.0, -0.139, 0.766),
+    (0.0018, 0.0015, 0.025), CREASE, "Root", 12, 8)
+# Small inset-like posterior crease placed on the gluteal surface.
+sphere_piece("Body_Anal_Crease", (0.0, 0.177, 0.735),
+    (0.006, 0.0015, 0.008), CREASE, "Root", 16, 10)
 
 EYE_WHITE = material("Wren | eye whites", (0.78, 0.70, 0.58))
 IRIS = material("Wren | iris", (0.22, 0.15, 0.09))
@@ -491,9 +538,13 @@ for i in range(7):
 
 # Blade points forward (-Y), perpendicular to the wrist-to-palm line in X/Z.
 # The crossguard spans the palm; fingers curl around the grip.
-sphere_piece("Weapon_Sword_Grip", (-0.555, -0.112, 1.025), (0.021, 0.095, 0.021), LEATHER, "Hand.R", 10, 8)
-sphere_piece("Weapon_Sword_Guard", (-0.555, -0.205, 1.025), (0.085, 0.014, 0.012), SWORD_METAL, "Hand.R", 10, 6)
-sphere_piece("Weapon_Sword_Blade", (-0.555, -0.435, 1.025), (0.035, 0.235, 0.009), SWORD_METAL, "Hand.R", 10, 8)
+sword_tilt = (math.radians(28), 0.0, 0.0)
+sphere_piece("Weapon_Sword_Grip", (-0.555, -0.112, 1.005),
+    (0.018, 0.095, 0.018), LEATHER, "Hand.R", 12, 8, sword_tilt)
+sphere_piece("Weapon_Sword_Guard", (-0.555, -0.198, 0.960),
+    (0.085, 0.012, 0.010), SWORD_METAL, "Hand.R", 12, 8, sword_tilt)
+sphere_piece("Weapon_Sword_Blade", (-0.555, -0.392, 0.858),
+    (0.026, 0.225, 0.006), SWORD_METAL, "Hand.R", 12, 8, sword_tilt)
 
 # ---------------------------------------------------------------------------
 # Preview setup and GLB export.
