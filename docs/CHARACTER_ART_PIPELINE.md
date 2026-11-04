@@ -145,3 +145,15 @@ The first pass is a proportion-and-fit prototype, not final character art. Valid
 - Do not create separate bespoke skeletons for every character.
 - Do not implement full cloth simulation. Use authored meshes and simple secondary motion later if needed.
 - Do not port the original Canvas sprite renderer or its pixel-layer geometry into Godot.
+
+
+## Additional appearance layers
+
+The Wren prototype now exports independently swappable cosmetic layers:
+- `body_hair`: a groomed pubic-hair style, separate from the skin/body mesh.
+- `tattoo`: a dragon linework design climbing the back towards the shoulder opposite the braid.
+- `piercings`: paired ear hoops and a left-nipple hoop.
+
+These are separate GLBs and runtime appearance slots, not baked into the body. Wren's starting appearance config equips the current examples. Other characters can omit them or choose different IDs. Hair colour is a material variant and should ultimately be stored as an appearance colour parameter rather than duplicated hairstyle geometry.
+
+The current Blender shapes are still procedural blockout art. Tattoo linework, piercings and body hair need visual inspection in Godot for surface placement, deformation and material scale before they are treated as final assets.
