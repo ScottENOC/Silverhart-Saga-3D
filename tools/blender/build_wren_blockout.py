@@ -374,31 +374,38 @@ for side, sign in (("L", 1), ("R", -1)):
         f"UpperArm.{side}", f"Forearm.{side}", sides=20, blend_start=0.52, blend_end=0.76)
     sphere_piece(f"Body_Elbow_{side}", (sign * 0.385, 0.040, 1.235),
         (0.052, 0.034, 0.050), SKIN, f"Forearm.{side}", 24, 16)
-    # Hand: palm wraps the sword axis. Four fingers curl around the grip
-    # in the X/Y plane at successive heights, rather than pointing sideways.
-    palm = (sign * 0.555, -0.025, 1.025)
-    sphere_piece(f"Hand_Palm_{side}", palm, (0.044, 0.033, 0.057),
-        SKIN, f"Hand.{side}", 24, 16)
-    for finger in range(4):
-        zoff = (finger - 1.5) * 0.023
-        points = [
-            (sign * 0.535, -0.025, 1.025 + zoff),
-            (sign * 0.552, -0.060, 1.025 + zoff),
-            (sign * 0.580, -0.056, 1.020 + zoff),
-            (sign * 0.585, -0.030, 1.014 + zoff)
+    # Separate wrist and palm; each finger has three independently weighted
+    # phalanges so later hand animation can bend them at real joints.
+    sphere_piece(f"Hand_Wrist_{side}", (sign*0.535, -0.020, 1.065),
+        (0.035, 0.032, 0.035), SKIN, f"Wrist.{side}", 20, 12)
+    sphere_piece(f"Hand_Palm_{side}", (sign * 0.555, -0.025, 1.025),
+        (0.044, 0.033, 0.057), SKIN, f"Hand.{side}", 24, 16)
+    for digit_index, digit in enumerate(("Index", "Middle", "Ring", "Pinky")):
+        x = sign * (0.555 + (digit_index - 1.5) * 0.020)
+        z = 1.006
+        joints = [
+            (x, -0.025, z),
+            (x + sign*0.003, -0.070, z - 0.010),
+            (x + sign*0.004, -0.095, z - 0.031),
+            (x + sign*0.002, -0.078, z - 0.050),
         ]
-        tube_mesh(f"Hand_Finger_{side}_{finger+1}", points,
-            [0.010, 0.009, 0.0075, 0.0055], SKIN,
-            f"Hand.{side}", sides=10, depth_ratio=0.88)
-    thumb_points = [
-        (sign * 0.525, -0.015, 1.060),
-        (sign * 0.548, -0.048, 1.055),
-        (sign * 0.570, -0.067, 1.040),
-        (sign * 0.560, -0.055, 1.025)
+        for segment in range(3):
+            bone_name = f"{digit}{segment+1}.{side}"
+            tube_mesh(f"Hand_{digit}_{side}_Phalanx_{segment+1}",
+                [joints[segment], joints[segment+1]],
+                [0.010 - segment*0.0018, 0.0085 - segment*0.0015],
+                SKIN, bone_name, sides=12, depth_ratio=0.82)
+    thumb_joints = [
+        (sign*0.515,-0.005,1.035),
+        (sign*0.485,-0.045,1.020),
+        (sign*0.485,-0.075,1.000),
+        (sign*0.515,-0.080,0.985),
     ]
-    tube_mesh(f"Hand_Thumb_{side}", thumb_points,
-        [0.016, 0.014, 0.011, 0.007], SKIN,
-        f"Hand.{side}", sides=10, depth_ratio=0.85)
+    for segment in range(3):
+        tube_mesh(f"Hand_Thumb_{side}_Phalanx_{segment+1}",
+            [thumb_joints[segment], thumb_joints[segment+1]],
+            [0.016-segment*0.003, 0.013-segment*0.003],
+            SKIN, f"Thumb{segment+1}.{side}", sides=12, depth_ratio=0.84)
     leg_x = 0.13 if side == "L" else -0.13
     tube_mesh(f"Body_Leg_{side}", [
         (leg_x, 0.000, 0.875), (leg_x, -0.006, 0.790),
@@ -584,37 +591,43 @@ for side, x in (("L", 0.047), ("R", -0.047)):
 # Wren's garments will be added later as separate fitted polygon meshes.
 # ---------------------------------------------------------------------------
 
-# Scalp cap plus swept, overlapping locks to break up the featureless-ball look.
+# Scalp cap with shallow raised flow-lines following the hair direction.
+# These are broad sculptural grooves/locks, not individually rendered strands.
 sphere_piece("Hair_Cap", (0, 0.018, 1.79), (0.132, 0.125, 0.105), HAIR, "Head")
-for i in range(5):
-    x = -0.085 + i * 0.042
-    tube_mesh(f"Hair_Swept_Lock_{i+1:02d}", [
-        (x, -0.078, 1.835), (x * 0.72, -0.108, 1.855),
-        (x * 0.25, -0.105, 1.865), (x * 0.05, -0.045, 1.875)
-    ], [0.010, 0.013, 0.012, 0.004], HAIR, "Head", sides=10, depth_ratio=0.65)
+for i in range(9):
+    x0 = -0.092 + i * 0.023
+    points = []
+    for step in range(7):
+        t = step / 6.0
+        x = x0 * (1.0 - 0.35*t)
+        y = -0.075 + 0.145*t
+        inside = max(0.08, 1.0 - (x/0.132)**2 - ((y-0.018)/0.125)**2)
+        z = 1.79 + 0.105 * math.sqrt(inside) + 0.0015
+        points.append((x, y, z))
+    tube_mesh(f"Hair_Texture_Ridge_{i+1:02d}", points,
+        [0.0028,0.0032,0.0035,0.0035,0.0032,0.0028,0.0015],
+        HAIR, "Head", sides=7, depth_ratio=0.55)
 
-# Long braid runs over the right shoulder and down the front to breast level.
+# A continuous braid core with three interwoven lobes. The strands follow the
+# shoulder-to-chest path rather than appearing as a string of spherical beads.
 braid_path = [
     (0.085, 0.078, 1.785), (0.135, 0.060, 1.735),
     (0.180, 0.025, 1.680), (0.215, -0.020, 1.620),
     (0.225, -0.060, 1.555), (0.230, -0.100, 1.490),
     (0.225, -0.130, 1.425), (0.220, -0.150, 1.360),
-    (0.215, -0.160, 1.295), (0.210, -0.160, 1.235)
+    (0.215, -0.160, 1.295), (0.210, -0.160, 1.235),
+    (0.205, -0.155, 1.190)
 ]
-for i, point in enumerate(braid_path):
-    offset = 0.010 if i % 2 == 0 else -0.010
-    sphere_piece(f"Hair_Braid_{i+1:02d}",
-        (point[0] + offset, point[1], point[2]),
-        (0.027, 0.030, 0.040), HAIR, "Head", 16, 12,
-        (0.0, 0.0, math.radians(18 if i % 2 == 0 else -18)))
-for side_offset in (-0.010, 0.010):
-    points = []
+tube_mesh("Hair_Braid_Core", braid_path, [0.030]*10+[0.020],
+    HAIR, "Head", sides=16, depth_ratio=0.9)
+for strand in range(3):
+    strand_points = []
     for i, point in enumerate(braid_path):
-        points.append((point[0] + side_offset * (1 if i % 2 == 0 else -1),
-            point[1] - 0.026, point[2]))
-    tube_mesh(f"Hair_Braid_Twist_{'L' if side_offset < 0 else 'R'}",
-        points, [0.0035] * (len(points)-1) + [0.0015],
-        HAIR, "Head", sides=7, depth_ratio=0.7)
+        phase = i * 1.15 + strand * (2.0*math.pi/3.0)
+        strand_points.append((point[0] + math.cos(phase)*0.020,
+            point[1] - 0.010 + math.sin(phase)*0.020, point[2]))
+    tube_mesh(f"Hair_Braid_Interweave_{strand+1}", strand_points,
+        [0.013]*10+[0.008], HAIR, "Head", sides=12, depth_ratio=0.82)
 
 # Sword is held upright: grip sits in the palm, guard below it and blade rises.
 upright = (math.radians(90), 0.0, 0.0)
