@@ -66,6 +66,15 @@ The Hollow Tankard opening should be event-driven, not copied as a chain of arbi
 - Build the Hollow Tankard as a real rectangular building first, then fit the logical grid to it.
 - Do not build the entire village before the tavern vertical slice is playable.
 
-## 7. Current prototype boundary
+## 7. Simulation port: first increment
 
-The current M1 prototype is only a technical test of axial conversion, movement validation, smooth actor presentation and a player-controlled orbit camera. It does not yet implement the original game's action points, combat, dialogue, campaign or persistence services.
+The first simulation increment is deliberately independent of the 3D scene:
+
+- `ActionEconomy` owns the 100 TP combat-readiness threshold, 80 TP turn-end threshold, Quick Recovery adjustment and 150 TP regeneration gate.
+- `CharacterState` stores TP, TP regeneration rate, health, axial position and stable identity, with dictionary serialisation.
+- `WorldClock` advances in fixed 0.4-second world-time steps. Exploration advances at 5 world-seconds per real second; combat waiting advances at 40, reflecting the source engine's different cadence. Time and TP progression pause while a combatant is taking a turn.
+- The calendar uses twelve 30-day months, preserving the source month names.
+- `CombatTurnScheduler` selects the eligible living, conscious, non-rider, non-dormant character with the highest TP; equal-TP ties are random.
+- `WorldSimulation` owns the clock, scheduler, occupancy and movement commands. It emits events for presentation to observe.
+
+This is a tested foundation slice, not the completed port. Terrain-specific movement costs, the full status-effect tick, spell durations, combat actions/reactions, active-radius simulation culling, NPC schedules, world events and a versioned whole-world save service remain outstanding. The current M1 movement harness still uses free debug movement; gameplay movement uses the TP-costed command.
