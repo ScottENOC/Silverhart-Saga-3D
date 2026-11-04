@@ -86,18 +86,17 @@ for side, sign in (("L", 1), ("R", -1)):
     for digit_index, digit in enumerate(("Index", "Middle", "Ring", "Pinky")):
         finger_lengths = {"Index": 0.072, "Middle": 0.086, "Ring": 0.080, "Pinky": 0.064}
         length = finger_lengths[digit]
-        spread_z = (digit_index - 1.5) * 0.014
-        root_x = sign * 0.610
-        p0 = (root_x, -0.038, 1.025 + spread_z)
-        p1 = (sign * (0.610 + length * 0.42), -0.041, 1.023 + spread_z * 0.94)
-        p2 = (sign * (0.610 + length * 0.76), -0.020, 1.015 + spread_z * 0.86)
-        p3 = (sign * (0.610 + length * 0.65), -0.005, 1.005 + spread_z * 0.78)
+        spread_z = (digit_index - 1.5) * 0.015
+        p0 = (sign * 0.614, -0.039, 1.025 + spread_z)
+        p1 = (sign * (0.614 + length * 0.40), -0.041, 1.024 + spread_z * 0.94)
+        p2 = (sign * (0.614 + length * 0.76), -0.027, 1.018 + spread_z * 0.86)
+        p3 = (sign * (0.614 + length), -0.015, 1.010 + spread_z * 0.78)
         chain = [(p0, p1, f"Hand.{side}"), (p1, p2, f"{digit}1.{side}"), (p2, p3, f"{digit}2.{side}")]
         for segment_index, (head, tail, parent) in enumerate(chain, 1):
             bone_defs[f"{digit}{segment_index}.{side}"] = (head, tail, parent)
     thumb_chain = [
-        ((sign*0.575,-0.038,1.050),(sign*0.605,-0.020,1.075),f"Hand.{side}"),
-        ((sign*0.605,-0.020,1.075),(sign*0.635,-0.012,1.060),f"Thumb1.{side}"),
+        ((sign*0.555,-0.039,1.052),(sign*0.555,-0.043,1.080),f"Hand.{side}"),
+        ((sign*0.555,-0.043,1.080),(sign*0.535,-0.038,1.094),f"Thumb1.{side}"),
     ]
     for segment_index, (head, tail, parent) in enumerate(thumb_chain, 1):
         bone_defs[f"Thumb{segment_index}.{side}"] = (head, tail, parent)
