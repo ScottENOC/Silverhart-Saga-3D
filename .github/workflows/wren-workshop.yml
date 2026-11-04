@@ -9,13 +9,12 @@ on:
       - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
-  pages: write
   id-token: write
 concurrency:
-  group: wren-workshop-pages
+  group: wren-workshop
   cancel-in-progress: true
 jobs:
-  build-model:
+  build-and-publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +44,7 @@ jobs:
             art/characters/wren/*.glb
           if-no-files-found: error
           retention-days: 14
-      - name: Assemble viewer site
+      - name: Assemble private viewer site
         run: |
           set -euo pipefail
           mkdir -p site/assets
@@ -54,20 +53,17 @@ jobs:
           for file in hair_braid weapon_sword body_hair_pubic tattoo_star piercings_wren underwear_bra underwear_briefs; do
             if [ -s "art/characters/wren/${file}.glb" ]; then cp "art/characters/wren/${file}.glb" site/assets/; fi
           done
-          printf '%s\n' "${GITHUB_SHA}" > site/build-version.txt
+          printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
-      - name: Upload viewer site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-  deploy:
-    if: vars.ENABLE_WREN_PAGES == 'true'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build-model
-    steps:
-      - name: Deploy Wren Workshop
-        id: deployment
-        uses: actions/deploy-pages@v4
+          test -s site/README.md
+      - name: Install Hugging Face CLI
+        run: |
+          curl -LsSf https://hf.co/cli/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Publish to private Hugging Face Space
+        env:
+          HF_OIDC_RESOURCE: spaces/${{ vars.HF_SPACE_ID }}
+        run: |
+          set -euo pipefail
+          test -n "${{ vars.HF_SPACE_ID }}"
+          hf upload "${{ vars.HF_SPACE_ID }}" site . --commit-message "Wren Workshop build ${GITHUB_SHA::7}"
