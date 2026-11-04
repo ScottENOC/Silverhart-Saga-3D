@@ -104,6 +104,12 @@ func _test_world_clock() -> void:
     assert(date.month_name == "Brightsun")
     assert(date.day_of_month == 2)
 
+    clock.set_world_seconds(0.0)
+    clock.time_speed_multiplier = 3.0
+    assert(clock.advance_real_time(0.01, true) == 1) # Combat ignores exploration speed.
+    clock.set_world_seconds(0.0)
+    assert(clock.advance_real_time(0.01, false) == 0) # Exploration uses 3x speed: 0.15s.
+
     clock.paused = true
     assert(clock.advance_world_seconds(4.0) == 0)
     assert(is_equal_approx(clock.world_seconds, 0.4))
