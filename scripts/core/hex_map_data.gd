@@ -22,6 +22,8 @@ const TERRAIN_MOVE_MULTIPLIERS := {
     "rubble": 1.5,
     "high_ground": 1.3,
     "climbable_wall": 5.0,
+    "palisade_wall": 15.0,
+    "lava": 1.0,
 }
 
 func add_cell(hex: Vector2i, elevation: float = 0.0, walkable: bool = true, terrain_id: String = "grass", movement_multiplier: float = -1.0) -> void:
