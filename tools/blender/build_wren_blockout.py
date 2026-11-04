@@ -932,8 +932,10 @@ for side, sign in (("L", 1), ("R", -1)):
 # The lower edge rises at the leg openings and dips into a narrow crotch gusset.
 def make_briefs_wrap() -> None:
     verts, faces = [], []
-    around = 64
-    rows = 31
+    # Dense surface tessellation is necessary for small, curved floral
+    # apertures. The previous coarse grid produced obvious square holes.
+    around = 128
+    rows = 64
     for row in range(rows):
         t = row / float(rows - 1)
         for col in range(around):
@@ -956,8 +958,28 @@ def make_briefs_wrap() -> None:
     for row in range(rows - 1):
         for col in range(around):
             nxt = (col + 1) % around
-            # Small, regularly spaced eyelets are true openings in the lace.
-            if (col % 8 in (3, 4)) and (row % 7 in (3, 4)):
+            # Repeating floral lace: each 16x16 repeat contains a small
+            # central eyelet and six petal-shaped apertures. Their edges are
+            # sampled by the dense mesh, so the gaps read as flowers rather
+            # than square perforations.
+            u = (col + 0.5) % 16.0
+            v = (row + 0.5) % 16.0
+            dx, dy = u - 8.0, v - 8.0
+            radial = math.sqrt(dx*dx + dy*dy)
+            in_flower_hole = radial < 1.20
+            for petal in range(6):
+                angle = petal * math.tau / 6.0
+                px = math.cos(angle) * 4.0
+                py = math.sin(angle) * 4.0
+                # Slightly oval petals follow the radial direction.
+                rx, ry = dx - px, dy - py
+                along = rx * math.cos(angle) + ry * math.sin(angle)
+                across = -rx * math.sin(angle) + ry * math.cos(angle)
+                if (along / 1.75) ** 2 + (across / 1.35) ** 2 < 1.0:
+                    in_flower_hole = True
+            # Fine connecting eyelets between adjacent flowers create the
+            # open net structure characteristic of lace.
+            if in_flower_hole or (abs(dx) < 0.65 and 1.5 < abs(dy) < 2.8):
                 continue
             a = row * around + col
             b = row * around + nxt
