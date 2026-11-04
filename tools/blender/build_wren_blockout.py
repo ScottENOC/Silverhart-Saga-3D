@@ -334,29 +334,34 @@ for side, sign in (("L", 1), ("R", -1)):
         f"UpperArm.{side}", f"Forearm.{side}", sides=20, blend_start=0.52, blend_end=0.76)
     sphere_piece(f"Body_Elbow_{side}", (sign * 0.385, 0.040, 1.235),
         (0.052, 0.034, 0.050), SKIN, f"Forearm.{side}", 24, 16)
-    # Palm, individually modelled curled fingers and opposing thumb.
-    # Fixed grip pose for now; separate finger bones can animate these later.
-    palm = (sign * 0.555, -0.025, 1.025)
-    sphere_piece(f"Hand_Palm_{side}", palm, (0.043, 0.030, 0.052), SKIN, f"Hand.{side}")
+    # Hand: palm sits in line with the forearm, with fingers fanning outward
+    # along the hand's length. Each finger has a clear knuckle bend.
+    palm = (sign * 0.558, -0.025, 1.025)
+    sphere_piece(f"Hand_Palm_{side}", palm, (0.047, 0.030, 0.057),
+        SKIN, f"Hand.{side}", 24, 16)
     for finger in range(4):
-        spread = (finger - 1.5) * 0.016
-        base_x = sign * (0.555 + spread)
-        finger_points = [
-            (base_x, -0.020, 1.046 - abs(spread) * 0.20),
-            (base_x + sign * 0.004, -0.052, 1.038 - abs(spread) * 0.15),
-            (base_x + sign * 0.003, -0.066, 1.021 - abs(spread) * 0.10),
-            (base_x - sign * 0.002, -0.047, 1.008 - abs(spread) * 0.08),
+        zoff = (finger - 1.5) * 0.024
+        x0 = sign * 0.580
+        x1 = sign * 0.612
+        x2 = sign * 0.646
+        points = [
+            (x0, -0.026, 1.025 + zoff),
+            (x1, -0.044, 1.025 + zoff * 1.05),
+            (x2, -0.060, 1.018 + zoff * 1.10),
+            (x2 + sign * 0.004, -0.040, 1.005 + zoff * 1.10)
         ]
-        tube_mesh(f"Hand_Finger_{side}_{finger+1}", finger_points,
-            [0.011, 0.010, 0.0085, 0.0065], SKIN, f"Hand.{side}", sides=10, depth_ratio=0.88)
+        tube_mesh(f"Hand_Finger_{side}_{finger+1}", points,
+            [0.010, 0.009, 0.0075, 0.0055], SKIN,
+            f"Hand.{side}", sides=10, depth_ratio=0.88)
     thumb_points = [
-        (sign * 0.515, -0.012, 1.055),
-        (sign * 0.495, -0.040, 1.050),
-        (sign * 0.495, -0.064, 1.035),
-        (sign * 0.520, -0.050, 1.020),
+        (sign * 0.555, -0.015, 1.075),
+        (sign * 0.585, -0.045, 1.070),
+        (sign * 0.605, -0.066, 1.050),
+        (sign * 0.590, -0.052, 1.038)
     ]
-    tube_mesh(f"Hand_Thumb_{side}", thumb_points, [0.019, 0.017, 0.014, 0.010],
-        SKIN, f"Hand.{side}", sides=8, depth_ratio=0.9)
+    tube_mesh(f"Hand_Thumb_{side}", thumb_points,
+        [0.016, 0.014, 0.011, 0.007], SKIN,
+        f"Hand.{side}", sides=10, depth_ratio=0.85)
     leg_x = 0.13 if side == "L" else -0.13
     tube_mesh(f"Body_Leg_{side}", [
         (leg_x, 0.000, 0.875), (leg_x, -0.006, 0.790),
