@@ -169,3 +169,17 @@ The current Blender shapes are still procedural blockout art. Tattoo linework, p
 
 
 The latest Wren mesh pass also adds a shallow integrated pelvic contour to the torso loft and positions the separate body-hair component just outside that surface. It is intended to remain a subtle anatomical sculpt rather than a raised, pasted-on object.
+
+
+## November 4 — feet, pelvis and hand rig refinement
+
+The latest Wren generator pass:
+- Extends the lower torso/pelvic loft into the upper-thigh transition and increases voxel-remesh resolution/smoothing to reduce the hard crotch seam.
+- Moves the integrated pelvic surface contours and the separate groomed body-hair component lower on the body.
+- Clamps foot underside vertices to a shared sole plane and adds distinct ankle bones/geometry.
+- Adds wrist bones and three phalange bones for each finger and thumb. Finger mesh segments are weighted to their corresponding bones; the current grip remains a posed prototype, not a finished animation rig.
+- Keeps areola and nipple meshes outside the body remesh so their material distinction survives; lowers them on the breast profile and adjusts the piercing position.
+- Widens the mouth.
+- Adds raised scalp flow-lines in a contrasting blue and replaces the bead-like braid with a continuous core and three interweaving lobes.
+
+These changes require local Blender generation and Godot inspection. The procedural geometry is still a blockout; verify the mesh visually and inspect the rig in Blender before relying on finger articulation in animation.
