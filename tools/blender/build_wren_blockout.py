@@ -210,33 +210,54 @@ for side, sign in (("L", 1), ("R", -1)):
     tube_mesh(f"Body_Arm_{side}", [shoulder, upper_mid, elbow, fore_mid, wrist],
         [0.092, 0.087, 0.073, 0.062, 0.043], SKIN,
         f"UpperArm.{side}", f"Forearm.{side}", sides=12)
-    sphere_piece(f"Body_Hand_{side}", (sign * 0.555, -0.025, 1.025), (0.052, 0.043, 0.075), SKIN, f"Hand.{side}")
+    # Palm, individually modelled curled fingers and opposing thumb.
+    # Fixed grip pose for now; separate finger bones can animate these later.
+    palm = (sign * 0.555, -0.025, 1.025)
+    sphere_piece(f"Body_Palm_{side}", palm, (0.055, 0.052, 0.073), SKIN, f"Hand.{side}")
+    for finger in range(4):
+        spread = (finger - 1.5) * 0.024
+        base_x = sign * (0.565 + spread)
+        finger_points = [
+            (base_x, -0.045, 1.045 - abs(spread) * 0.35),
+            (base_x + sign * 0.012, -0.080, 1.038 - abs(spread) * 0.25),
+            (base_x + sign * 0.010, -0.105, 1.020 - abs(spread) * 0.20),
+            (base_x - sign * 0.002, -0.105, 1.002 - abs(spread) * 0.15),
+        ]
+        tube_mesh(f"Body_Finger_{side}_{finger+1}", finger_points,
+            [0.014, 0.013, 0.011, 0.008], SKIN, f"Hand.{side}", sides=8, depth_ratio=0.9)
+    thumb_points = [
+        (sign * 0.525, -0.025, 1.055),
+        (sign * 0.505, -0.060, 1.055),
+        (sign * 0.505, -0.095, 1.040),
+        (sign * 0.525, -0.105, 1.020),
+    ]
+    tube_mesh(f"Body_Thumb_{side}", thumb_points, [0.019, 0.017, 0.014, 0.010],
+        SKIN, f"Hand.{side}", sides=8, depth_ratio=0.9)
     leg_x = 0.13 if side == "L" else -0.13
     sphere_piece(f"Body_Thigh_{side}", (leg_x, 0, 0.69), (0.115, 0.115, 0.25), SKIN, f"Thigh.{side}")
     sphere_piece(f"Body_Shin_{side}", (leg_x, 0, 0.32), (0.078, 0.085, 0.22), SKIN, f"Shin.{side}")
     sphere_piece(f"Body_Foot_{side}", (leg_x, -0.075, 0.105), (0.075, 0.16, 0.07), SKIN, f"Foot.{side}")
+    # Five short toes fan out from the front of each foot.
+    for toe in range(5):
+        toe_offset = (toe - 2) * 0.025
+        toe_length = 0.075 - abs(toe_offset) * 0.55
+        toe_points = [
+            (leg_x + toe_offset * 0.72, -0.175, 0.095),
+            (leg_x + toe_offset, -0.205 - toe_length * 0.30, 0.090),
+            (leg_x + toe_offset * 1.08, -0.175 - toe_length, 0.083),
+        ]
+        tube_mesh(f"Body_Toe_{side}_{toe+1}", toe_points,
+            [0.019 if toe == 2 else 0.015, 0.013, 0.006], SKIN,
+            f"Foot.{side}", sides=8, depth_ratio=0.82)
 
 EYE = material("Wren | eyes", (0.045, 0.035, 0.03))
 for side, x in (("L", 0.047), ("R", -0.047)):
     sphere_piece(f"Face_Eye_{side}", (x, -0.113, 1.72), (0.012, 0.009, 0.014), EYE, "Head", 8, 6)
 
 # ---------------------------------------------------------------------------
-# Wren's authored outfit. The sleeves are also continuous tapered shells.
+# Anatomical base-model pass: no clothing meshes are generated here.
+# Wren's garments will be added later as separate fitted polygon meshes.
 # ---------------------------------------------------------------------------
-
-sphere_piece("Garment_Shirt_Torso", (0, -0.002, 1.20), (0.248, 0.158, 0.345), SHIRT, "Spine")
-for side, sign in (("L", 1), ("R", -1)):
-    tube_mesh(f"Garment_Shirt_Sleeve_{side}",
-        [(sign * 0.17, 0.0, 1.405), (sign * 0.245, -0.002, 1.355), (sign * 0.315, -0.004, 1.305), (sign * 0.365, -0.006, 1.255)],
-        [0.112, 0.108, 0.098, 0.084], SHIRT, f"UpperArm.{side}",
-        sides=12, depth_ratio=0.92)
-torus_piece("Garment_Shirt_Collar_Trim", (0, 0, 1.485), 0.105, 0.018, TRIM, "Spine")
-torus_piece("Garment_Shirt_Hem_Trim", (0, 0, 0.94), 0.205, 0.012, TRIM, "Spine")
-
-sphere_piece("Garment_Trousers_Hips", (0, 0.002, 0.88), (0.218, 0.148, 0.17), TROUSERS, "Root")
-for side, x in (("L", 0.13), ("R", -0.13)):
-    sphere_piece(f"Garment_Trousers_Thigh_{side}", (x, 0.002, 0.69), (0.126, 0.126, 0.255), TROUSERS, f"Thigh.{side}")
-    sphere_piece(f"Garment_Trousers_Lower_{side}", (x, 0.002, 0.32), (0.088, 0.094, 0.225), TROUSERS, f"Shin.{side}")
 
 sphere_piece("Hair_Cap", (0, 0.018, 1.79), (0.132, 0.125, 0.105), HAIR, "Head")
 for i in range(7):
@@ -245,9 +266,11 @@ for i in range(7):
     y = 0.085 + 0.012 * math.cos(i * 0.8)
     sphere_piece(f"Hair_Braid_{i+1:02d}", (x, y, z), (0.037, 0.038, 0.052), HAIR, "Head", 10, 8)
 
-sphere_piece("Weapon_Sword_Grip", (-0.59, -0.015, 1.08), (0.022, 0.025, 0.095), LEATHER, "Hand.R", 10, 8)
-sphere_piece("Weapon_Sword_Guard", (-0.59, -0.015, 1.17), (0.085, 0.025, 0.018), SWORD_METAL, "Hand.R", 10, 6)
-sphere_piece("Weapon_Sword_Blade", (-0.59, -0.015, 1.37), (0.027, 0.012, 0.19), SWORD_METAL, "Hand.R", 10, 8)
+# Blade points forward (-Y), perpendicular to the wrist-to-palm line in X/Z.
+# The crossguard spans the palm; fingers curl around the grip.
+sphere_piece("Weapon_Sword_Grip", (-0.555, -0.112, 1.025), (0.021, 0.095, 0.021), LEATHER, "Hand.R", 10, 8)
+sphere_piece("Weapon_Sword_Guard", (-0.555, -0.205, 1.025), (0.085, 0.014, 0.012), SWORD_METAL, "Hand.R", 10, 6)
+sphere_piece("Weapon_Sword_Blade", (-0.555, -0.435, 1.025), (0.035, 0.235, 0.009), SWORD_METAL, "Hand.R", 10, 8)
 
 # ---------------------------------------------------------------------------
 # Preview setup and GLB export.
