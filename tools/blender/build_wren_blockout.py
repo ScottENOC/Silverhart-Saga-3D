@@ -109,7 +109,7 @@ def finish_skinned_mesh(name, verts, faces, mat, weights_by_group):
         polygon.use_smooth = True
     return obj
 
-def sphere_piece(name, location, scale, mat, bone_name, segments=14, rings=10):
+def sphere_piece(name, location, scale, mat, bone_name, segments=32, rings=24):
     bpy.ops.mesh.primitive_uv_sphere_add(segments=segments, ring_count=rings, radius=1, location=location)
     obj = bpy.context.object
     obj.name = name
@@ -125,7 +125,7 @@ def sphere_piece(name, location, scale, mat, bone_name, segments=14, rings=10):
         polygon.use_smooth = True
     return obj
 
-def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=12, depth_ratio=0.88, blend_start=0.46, blend_end=0.62):
+def tube_mesh(name, points, radii, mat, bone_a, bone_b=None, sides=20, depth_ratio=0.88, blend_start=0.46, blend_end=0.62):
     """One continuous tapered limb/sleeve, with rings along its length.
 
     Each ring is perpendicular to the limb centreline. The elbow is an interior
@@ -208,7 +208,7 @@ torso_rings = [
     (1.515, 0.075, 0.070, 0.000),
 ]
 torso_verts, torso_faces, root_weights, spine_weights = [], [], [], []
-torso_sides = 24
+torso_sides = 48
 for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
     for side_index in range(torso_sides):
         angle = 2.0 * math.pi * side_index / torso_sides
@@ -232,11 +232,43 @@ finish_skinned_mesh("Body_Torso_Pelvis", torso_verts, torso_faces, SKIN,
 
 # Natural, restrained adult feminine body shape. These forms are integrated
 # visually into the torso silhouette; they are body geometry, not garments.
+def shaped_breast(name, centre_x):
+    # Anatomical teardrop profile: narrower upper pole, fuller lower pole,
+    # gently flattened chest wall and a forward-facing projection.
+    rings = [
+        (1.145, 0.010, 0.012, -0.092),
+        (1.165, 0.045, 0.035, -0.103),
+        (1.195, 0.073, 0.052, -0.112),
+        (1.230, 0.080, 0.059, -0.116),
+        (1.265, 0.070, 0.052, -0.110),
+        (1.295, 0.050, 0.038, -0.098),
+        (1.315, 0.020, 0.018, -0.085),
+    ]
+    sides = 32
+    verts, faces = [], []
+    for z, width, depth, y_centre in rings:
+        for i in range(sides):
+            angle = 2.0 * math.pi * i / sides
+            verts.append((centre_x + math.cos(angle) * width,
+                y_centre + math.sin(angle) * depth, z))
+    for ring in range(len(rings) - 1):
+        for i in range(sides):
+            a = ring * sides + i
+            b = ring * sides + (i + 1) % sides
+            faces.append((a, b, b + sides, a + sides))
+    faces.extend([tuple(range(sides - 1, -1, -1)),
+        tuple((len(rings) - 1) * sides + i for i in range(sides))])
+    weights = [1.0] * len(verts)
+    obj = finish_skinned_mesh(name, verts, faces, SKIN, {"Spine": weights})
+    smooth = obj.modifiers.new("Soft anatomical surface", "SUBSURF")
+    smooth.levels = 2
+    smooth.render_levels = 2
+    return obj
+
 for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Body_Breast_{side}", (sign * 0.108, -0.112, 1.245),
-        (0.105, 0.068, 0.105), SKIN, "Spine", 20, 14)
+    shaped_breast(f"Body_Breast_{side}", sign * 0.108)
     sphere_piece(f"Body_Glute_{side}", (sign * 0.112, 0.092, 0.835),
-        (0.125, 0.105, 0.145), SKIN, "Root", 20, 14)
+        (0.125, 0.105, 0.145), SKIN, "Root", 32, 24)
 # Subtle, non-detailed external pelvic anatomy; no explicit genital detailing.
 sphere_piece("Body_Pubic_Mound", (0, -0.112, 0.785),
     (0.105, 0.035, 0.065), SKIN, "Root", 18, 12)
