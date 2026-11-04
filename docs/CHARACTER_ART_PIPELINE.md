@@ -157,3 +157,12 @@ The Wren prototype now exports independently swappable cosmetic layers:
 These are separate GLBs and runtime appearance slots, not baked into the body. Wren's starting appearance config equips the current examples. Other characters can omit them or choose different IDs. Hair colour is a material variant and should ultimately be stored as an appearance colour parameter rather than duplicated hairstyle geometry.
 
 The current Blender shapes are still procedural blockout art. Tattoo linework, piercings and body hair need visual inspection in Godot for surface placement, deformation and material scale before they are treated as final assets.
+
+
+## Wren inspection pass — November 2026
+
+- Camera yaw remains unrestricted for a full horizontal orbit. Pitch travels from overhead towards the horizon, with its lower limit calculated from zoom distance and camera-pivot height so the camera stays above the ground. Close inspection has a 1.4 m minimum zoom.
+- The navel is a depression in the torso loft, not a separate colour mark.
+- The braid crosses the shoulder and hangs down the front to chest level; swept locks and strand geometry break up the smooth scalp cap.
+- Hands are rebuilt with fingers curling around the sword axis. Fingers are still fixed-pose meshes, not individually animated finger bones.
+- Body hair, piercings and the dragon tattoo remain independent appearance components.
