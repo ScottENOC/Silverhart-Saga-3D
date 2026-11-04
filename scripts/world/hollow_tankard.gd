@@ -20,6 +20,7 @@ var party_member_ids: Array[String] = ["player", "companion_wren_talbot"]
 var active_party_index: int = 0
 var active_character_id: String = "player"
 var party_switch_button: Button
+var zoom_slider: HSlider
 var tile_mesh: ArrayMesh
 
 var grass_material: StandardMaterial3D
@@ -371,7 +372,7 @@ func _create_hud() -> void:
     var layer := CanvasLayer.new()
     var label := Label.new()
     label.position = Vector2(22.0, 18.0)
-    label.text = "HOLLOW TANKARD   |   Q W E / A S D: move   |   Right-drag: orbit   |   Wheel: zoom   |   V: roof"
+    label.text = "HOLLOW TANKARD   |   Q W E / A S D: move   |   Right-drag: orbit   |   Wheel: zoom   |   +/-: zoom   |   V: roof"
     label.add_theme_font_size_override("font_size", 18)
     label.add_theme_color_override("font_color", Color(0.94, 0.93, 0.86))
     layer.add_child(label)
@@ -382,7 +383,57 @@ func _create_hud() -> void:
     party_switch_button.custom_minimum_size = Vector2(230.0, 42.0)
     party_switch_button.pressed.connect(_switch_party_member)
     layer.add_child(party_switch_button)
+
+    # Dedicated zoom controls for laptops and trackpads without a wheel.
+    var zoom_panel := HBoxContainer.new()
+    zoom_panel.anchor_left = 1.0
+    zoom_panel.anchor_right = 1.0
+    zoom_panel.offset_left = -292.0
+    zoom_panel.offset_top = 18.0
+    zoom_panel.offset_right = -18.0
+    zoom_panel.offset_bottom = 62.0
+    zoom_panel.add_theme_constant_override("separation", 6)
+    layer.add_child(zoom_panel)
+
+    var zoom_label := Label.new()
+    zoom_label.text = "Zoom"
+    zoom_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    zoom_panel.add_child(zoom_label)
+
+    var zoom_out_button := Button.new()
+    zoom_out_button.text = "−"
+    zoom_out_button.tooltip_text = "Zoom in"
+    zoom_out_button.custom_minimum_size = Vector2(42.0, 40.0)
+    zoom_out_button.pressed.connect(func(): camera_rig.zoom_by(-1.5))
+    zoom_panel.add_child(zoom_out_button)
+
+    zoom_slider = HSlider.new()
+    zoom_slider.custom_minimum_size = Vector2(130.0, 40.0)
+    zoom_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    zoom_slider.min_value = camera_rig.min_zoom
+    zoom_slider.max_value = camera_rig.max_zoom
+    zoom_slider.step = 0.25
+    zoom_slider.value = camera_rig.zoom_distance
+    zoom_slider.tooltip_text = "Camera distance"
+    zoom_slider.value_changed.connect(_on_zoom_slider_changed)
+    zoom_panel.add_child(zoom_slider)
+    camera_rig.zoom_changed.connect(_on_camera_zoom_changed)
+
+    var zoom_in_button := Button.new()
+    zoom_in_button.text = "+"
+    zoom_in_button.tooltip_text = "Zoom out"
+    zoom_in_button.custom_minimum_size = Vector2(42.0, 40.0)
+    zoom_in_button.pressed.connect(func(): camera_rig.zoom_by(1.5))
+    zoom_panel.add_child(zoom_in_button)
+
     add_child(layer)
+
+func _on_zoom_slider_changed(value: float) -> void:
+    camera_rig.set_zoom(value)
+
+func _on_camera_zoom_changed(value: float) -> void:
+    if is_instance_valid(zoom_slider):
+        zoom_slider.set_value_no_signal(value)
 
 func _switch_party_member() -> void:
     if party_member_ids.is_empty():
