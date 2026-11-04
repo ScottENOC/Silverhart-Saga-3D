@@ -232,6 +232,12 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
             line_x = 0.035 + max(0.0, min(1.0, (z - 1.30) / 0.12)) * 0.155
             ridge = math.exp(-((abs(x) - line_x) / 0.035) ** 2)
             y -= front * ridge * 0.0035
+        # A narrow, vertically oriented pubic mound is a shallow deformation
+        # of the torso loft itself, never a flat patch pasted onto the surface.
+        if 0.735 <= z <= 0.835:
+            vertical = math.sin(math.pi * (z - 0.735) / 0.100)
+            centre = math.exp(-(x / 0.070) ** 2)
+            y -= front * max(0.0, vertical) * centre * 0.010
         torso_verts.append((x, y, z))
         blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
         blend = blend * blend * (3.0 - 2.0 * blend)
