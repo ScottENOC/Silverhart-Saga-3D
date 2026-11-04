@@ -21,6 +21,10 @@ var active_party_index: int = 0
 var active_character_id: String = "player"
 var party_switch_button: Button
 var zoom_slider: HSlider
+var bra_toggle_button: Button
+var briefs_toggle_button: Button
+var wren_bra_enabled: bool = true
+var wren_briefs_enabled: bool = true
 var tile_mesh: ArrayMesh
 
 var grass_material: StandardMaterial3D
@@ -310,7 +314,8 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         model_loaded = character_model.configure({
             "hair": "braid",
             "weapon": "sword",
-            "body_hair": "groomed",
+            "underwear_bra": "strapless",
+            "underwear_briefs": "full_coverage",
             "tattoo": "star_shoulder",
             "piercings": "wren_set",
         })
@@ -384,6 +389,20 @@ func _create_hud() -> void:
     party_switch_button.pressed.connect(_switch_party_member)
     layer.add_child(party_switch_button)
 
+    bra_toggle_button = Button.new()
+    bra_toggle_button.text = "Bra: on"
+    bra_toggle_button.position = Vector2(22.0, 104.0)
+    bra_toggle_button.custom_minimum_size = Vector2(150.0, 38.0)
+    bra_toggle_button.pressed.connect(_toggle_wren_bra)
+    layer.add_child(bra_toggle_button)
+
+    briefs_toggle_button = Button.new()
+    briefs_toggle_button.text = "Briefs: on"
+    briefs_toggle_button.position = Vector2(22.0, 148.0)
+    briefs_toggle_button.custom_minimum_size = Vector2(150.0, 38.0)
+    briefs_toggle_button.pressed.connect(_toggle_wren_briefs)
+    layer.add_child(briefs_toggle_button)
+
     # Dedicated zoom controls for laptops and trackpads without a wheel.
     var zoom_panel := HBoxContainer.new()
     zoom_panel.anchor_left = 1.0
@@ -434,6 +453,36 @@ func _on_zoom_slider_changed(value: float) -> void:
 func _on_camera_zoom_changed(value: float) -> void:
     if is_instance_valid(zoom_slider):
         zoom_slider.set_value_no_signal(value)
+
+func _get_wren_model() -> Node:
+    var wren: Node3D = actor_by_id.get("companion_wren_talbot") as Node3D
+    if wren == null:
+        return null
+    return wren.get_node_or_null("CharacterModel")
+
+func _toggle_wren_bra() -> void:
+    var model := _get_wren_model()
+    if model == null:
+        return
+    wren_bra_enabled = not wren_bra_enabled
+    if wren_bra_enabled:
+        model.set_component("underwear_bra", "strapless")
+    else:
+        model.clear_slot("underwear_bra")
+    bra_toggle_button.text = "Bra: " + ("on" if wren_bra_enabled else "off")
+
+func _toggle_wren_briefs() -> void:
+    var model := _get_wren_model()
+    if model == null:
+        return
+    wren_briefs_enabled = not wren_briefs_enabled
+    if wren_briefs_enabled:
+        model.set_component("underwear_briefs", "full_coverage")
+        model.clear_slot("body_hair")
+    else:
+        model.clear_slot("underwear_briefs")
+        model.set_component("body_hair", "groomed")
+    briefs_toggle_button.text = "Briefs: " + ("on" if wren_briefs_enabled else "off")
 
 func _switch_party_member() -> void:
     if party_member_ids.is_empty():
