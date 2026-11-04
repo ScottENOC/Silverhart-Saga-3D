@@ -31,8 +31,10 @@ var accumulator: float = 0.0
 func advance_real_time(real_delta: float, in_combat: bool = false) -> int:
     if paused or real_delta <= 0.0:
         return 0
-    var base_rate := COMBAT_SECONDS_PER_REAL_SECOND if in_combat else EXPLORATION_SECONDS_PER_REAL_SECOND
-    return advance_world_seconds(real_delta * base_rate * maxf(0.0, time_speed_multiplier))
+    # The original speed control scales exploration/rest, while combat uses
+    # its own fixed simulation cadence.
+    var scaled_rate := COMBAT_SECONDS_PER_REAL_SECOND if in_combat else EXPLORATION_SECONDS_PER_REAL_SECOND * maxf(0.0, time_speed_multiplier)
+    return advance_world_seconds(real_delta * scaled_rate)
 
 ## Explicit advancement is useful for deterministic tests, sleep/rest and saves.
 ## Returns the number of fixed simulation ticks processed.
