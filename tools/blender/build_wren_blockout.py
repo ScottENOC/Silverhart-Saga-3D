@@ -87,20 +87,34 @@ for side, sign in (("L", 1), ("R", -1)):
         finger_lengths = {"Index": 0.072, "Middle": 0.086, "Ring": 0.080, "Pinky": 0.064}
         length = finger_lengths[digit]
         spread_z = (digit_index - 1.5) * 0.015
-        p0 = (sign * 0.614, -0.039, 1.025 + spread_z)
-        p1 = (sign * (0.614 + length * 0.40), -0.041, 1.024 + spread_z * 0.94)
-        p2 = (sign * (0.614 + length * 0.76), -0.027, 1.018 + spread_z * 0.86)
-        p3 = (sign * (0.614 + length), -0.015, 1.010 + spread_z * 0.78)
+        if side == "R":
+            # Sword hand: fingers flex around the grip instead of pointing
+            # straight out. The knuckles remain attached to the palm and the
+            # distal phalanges curl back around the handle.
+            p0 = (sign * 0.600, -0.039, 1.025 + spread_z)
+            p1 = (sign * 0.615, -0.058, 1.024 + spread_z * 0.94)
+            p2 = (sign * 0.625, -0.080, 1.020 + spread_z * 0.86)
+            p3 = (sign * 0.605, -0.087, 1.016 + spread_z * 0.78)
+        else:
+            p0 = (sign * 0.614, -0.039, 1.025 + spread_z)
+            p1 = (sign * (0.614 + length * 0.40), -0.041, 1.024 + spread_z * 0.94)
+            p2 = (sign * (0.614 + length * 0.76), -0.027, 1.018 + spread_z * 0.86)
+            p3 = (sign * (0.614 + length), -0.015, 1.010 + spread_z * 0.78)
         chain = [(p0, p1, f"Hand.{side}"), (p1, p2, f"{digit}1.{side}"), (p2, p3, f"{digit}2.{side}")]
         for segment_index, (head, tail, parent) in enumerate(chain, 1):
             bone_defs[f"{digit}{segment_index}.{side}"] = (head, tail, parent)
-    thumb_chain = [
-        # The thumb root starts inside the radial edge of the palm, then
-        # projects towards the camera before sweeping out and back towards
-        # the index finger. The old path sat behind the palm silhouette.
-        ((sign*0.565,-0.048,1.055),(sign*0.555,-0.061,1.087),f"Hand.{side}"),
-        ((sign*0.555,-0.061,1.087),(sign*0.525,-0.064,1.099),f"Thumb1.{side}"),
-    ]
+    if side == "R":
+        # Opposing thumb: it leaves the upper radial edge of the palm,
+        # crosses the front of the grip and presses against the curled index.
+        thumb_chain = [
+            ((-0.565,-0.045,1.055),(-0.585,-0.065,1.070),f"Hand.{side}"),
+            ((-0.585,-0.065,1.070),(-0.615,-0.083,1.052),f"Thumb1.{side}"),
+        ]
+    else:
+        thumb_chain = [
+            ((sign*0.565,-0.048,1.055),(sign*0.555,-0.061,1.087),f"Hand.{side}"),
+            ((sign*0.555,-0.061,1.087),(sign*0.525,-0.064,1.099),f"Thumb1.{side}"),
+        ]
     for segment_index, (head, tail, parent) in enumerate(thumb_chain, 1):
         bone_defs[f"Thumb{segment_index}.{side}"] = (head, tail, parent)
 
@@ -543,22 +557,34 @@ for side, sign in (("L", 1), ("R", -1)):
         length = finger_lengths[digit]
         spread_z = (digit_index - 1.5) * 0.015
         root_x = sign * 0.600
-        joints = [
-            (root_x, -0.039, 1.025 + spread_z),
-            (sign*(0.600 + length*0.40), -0.041, 1.024 + spread_z*0.94),
-            (sign*(0.600 + length*0.76), -0.027, 1.018 + spread_z*0.86),
-            (sign*(0.600 + length), -0.015, 1.010 + spread_z*0.78),
-        ]
+        if side == "R":
+            joints = [
+                (root_x, -0.039, 1.025 + spread_z),
+                (sign*0.615, -0.058, 1.024 + spread_z*0.94),
+                (sign*0.625, -0.080, 1.020 + spread_z*0.86),
+                (sign*0.605, -0.087, 1.016 + spread_z*0.78),
+            ]
+        else:
+            joints = [
+                (root_x, -0.039, 1.025 + spread_z),
+                (sign*(0.600 + length*0.40), -0.041, 1.024 + spread_z*0.94),
+                (sign*(0.600 + length*0.76), -0.027, 1.018 + spread_z*0.86),
+                (sign*(0.600 + length), -0.015, 1.010 + spread_z*0.78),
+            ]
         digit_mesh(f"Hand_{digit}_{side}",
             joints, [0.0115, 0.0100, 0.0078, 0.0058],
             [f"{digit}{segment+1}.{side}" for segment in range(3)], SKIN)
     # Thumb leaves the palm's long edge at a right angle to the fingers,
     # then turns slightly inward to oppose the index finger.
-    thumb_joints = [
+    thumb_joints = ([
+        (-0.565, -0.045, 1.055),
+        (-0.585, -0.065, 1.070),
+        (-0.615, -0.083, 1.052),
+    ] if side == "R" else [
         (sign*0.565, -0.048, 1.055),
         (sign*0.555, -0.061, 1.087),
         (sign*0.525, -0.064, 1.099),
-    ]
+    ])
     digit_mesh(f"Hand_Thumb_{side}", thumb_joints,
         [0.016, 0.013, 0.010],
         [f"Thumb{segment+1}.{side}" for segment in range(2)], SKIN)
@@ -803,12 +829,14 @@ for strand in range(3):
 
 # Sword is held upright: grip sits in the palm, guard below it and blade rises.
 upright = (math.radians(90), 0.0, 0.0)
-sphere_piece("Weapon_Sword_Grip", (-0.650, -0.020, 1.035),
-    (0.015, 0.078, 0.015), LEATHER, "Hand.R", 12, 8, upright)
-sphere_piece("Weapon_Sword_Guard", (-0.650, -0.020, 1.112),
-    (0.075, 0.010, 0.010), SWORD_METAL, "Hand.R", 12, 8)
-sphere_piece("Weapon_Sword_Blade", (-0.650, -0.020, 1.275),
-    (0.022, 0.155, 0.006), SWORD_METAL, "Hand.R", 12, 8, upright)
+# The grip runs through the centre of the closed right hand. Fingers curl
+# around its front and the thumb opposes them from the upper radial side.
+sphere_piece("Weapon_Sword_Grip", (-0.610, -0.066, 1.035),
+    (0.015, 0.078, 0.015), LEATHER, "Hand.R", 16, 12, upright)
+sphere_piece("Weapon_Sword_Guard", (-0.610, -0.020, 1.112),
+    (0.075, 0.010, 0.010), SWORD_METAL, "Hand.R", 16, 10)
+sphere_piece("Weapon_Sword_Blade", (-0.610, -0.020, 1.275),
+    (0.022, 0.155, 0.006), SWORD_METAL, "Hand.R", 16, 10, upright)
 
 
 # ---------------------------------------------------------------------------
