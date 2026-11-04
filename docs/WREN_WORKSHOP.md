@@ -1,16 +1,28 @@
 # Wren Workshop
 
-The Wren Workshop is a standalone browser-based model inspection tool, separate from the Godot game.
+The Wren Workshop is a standalone browser-based model inspection tool, separate from the Godot game. It is published to a **private Hugging Face Static Space**; the game repository remains private on GitHub.
 
 ## Cloud workflow
 
-The GitHub Actions workflow `.github/workflows/wren-workshop.yml` runs Blender 5.2.3 on an Ubuntu runner, generates Wren, exports GLB files, assembles the viewer site and deploys it to GitHub Pages.
+The GitHub Actions workflow `.github/workflows/wren-workshop.yml` runs Blender 5.2.3 on an Ubuntu runner, generates Wren, exports GLB files, assembles the viewer site and uploads it to the configured private Hugging Face Space.
 
 It runs manually through Actions → Build Wren Workshop → Run workflow, and automatically when Blender generator or viewer files change on `dev`.
 
-## First-time GitHub Pages setup
+## One-time setup
 
-In repository Settings → Pages, set Build and deployment → Source to GitHub Actions. Then add the repository Actions variable `ENABLE_WREN_PAGES` with value `true` under Settings → Secrets and variables → Actions → Variables. The deploy job is deliberately opt-in because GitHub Pages availability for private repositories depends on the GitHub plan. Repository Pages access settings determine who can view it; do not assume a private repository produces a private Pages site.
+1. Create a free account at https://huggingface.co/ if you do not already have one.
+2. Create a new **Space**. Choose **Static** as the SDK and set **Visibility** to **Private**. Give it a simple name such as `wren-workshop`. Do not choose Gradio or Docker.
+3. On the Space's Settings page, find **Trusted Publishers** and add a publisher:
+   - Provider: GitHub Actions
+   - Repository: `ScottENOC/Silverhart-Saga-3D`
+   - Branch: `dev`
+   - Workflow: `wren-workshop.yml`
+4. In the GitHub repository, open Settings → Secrets and variables → Actions → Variables and add:
+   - Name: `HF_SPACE_ID`
+   - Value: your Hugging Face Space ID, exactly `your-huggingface-username/wren-workshop`
+5. In GitHub, open Actions → Build Wren Workshop → Run workflow, select `dev`, and run it.
+
+The Trusted Publisher setup uses GitHub's OIDC identity exchange. No long-lived Hugging Face token or GitHub secret is needed. The workflow only receives a short-lived token scoped to the configured Space. The Space must remain Private; a private Space restricts both its source and running app to you and collaborators.
 
 ## Viewer controls
 
@@ -23,4 +35,4 @@ The viewer loads the full character GLB and toggles mesh visibility. It is an in
 
 ## Build outputs
 
-The full viewer site is uploaded as a GitHub Actions Pages artifact. The Blender source file and component GLBs are also uploaded as a downloadable `wren-model-build` artifact (14-day retention). Generated files are not committed back into the source repository.
+The Blender source file and component GLBs are uploaded as a downloadable `wren-model-build` GitHub Actions artifact (14-day retention). The viewer and generated full model are uploaded to the private Hugging Face Space. Generated files are not committed back into the source repository.
