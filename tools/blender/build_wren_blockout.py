@@ -347,7 +347,7 @@ for ring in range(len(torso_rings) - 1):
 # centre sits slightly lower than the front/back crotch edge; the outer
 # boundary rises towards the inner hips as defined on the bottom ring.
 bottom_centre = len(torso_verts)
-torso_verts.append((0.0, 0.0, 0.548))
+torso_verts.append((0.0, 0.0, 0.625))
 root_weights.append(1.0)
 spine_weights.append(0.0)
 for side_index in range(torso_sides):
@@ -398,8 +398,33 @@ def shaped_breast(name, centre_x):
 
 for side, sign in (("L", 1), ("R", -1)):
     shaped_breast(f"Body_Breast_{side}", sign * 0.108)
-    sphere_piece(f"Body_Glute_{side}", (sign * 0.112, 0.092, 0.835),
-        (0.108, 0.091, 0.128), SKIN, "Root", 32, 24)
+    # Gluteal mass is a shaped loft, not a hemisphere. Its upper contour
+    # fades gradually into the sacrum; the lower contour tightens more quickly
+    # to create a natural inferior fold and gravity-shaped profile.
+    glute_rings = [
+        (0.965, 0.008, 0.010), (0.950, 0.025, 0.028),
+        (0.925, 0.050, 0.048), (0.895, 0.075, 0.068),
+        (0.865, 0.094, 0.082), (0.830, 0.103, 0.090),
+        (0.800, 0.096, 0.084), (0.775, 0.078, 0.068),
+        (0.755, 0.052, 0.045), (0.744, 0.025, 0.022),
+        (0.741, 0.006, 0.006),
+    ]
+    glute_sides = 32
+    glute_verts, glute_faces = [], []
+    for gz, gx_radius, gy_radius in glute_rings:
+        for gi in range(glute_sides):
+            ga = 2.0 * math.pi * gi / glute_sides
+            glute_verts.append((sign * 0.112 + math.cos(ga) * gx_radius,
+                0.075 + math.sin(ga) * gy_radius, gz))
+    for gr in range(len(glute_rings)-1):
+        for gi in range(glute_sides):
+            a = gr * glute_sides + gi
+            b = gr * glute_sides + (gi+1) % glute_sides
+            glute_faces.append((a, b, b+glute_sides, a+glute_sides))
+    glute_faces.append(tuple(range(glute_sides-1, -1, -1)))
+    glute_faces.append(tuple((len(glute_rings)-1)*glute_sides+i for i in range(glute_sides)))
+    finish_skinned_mesh(f"Body_Glute_{side}", glute_verts, glute_faces, SKIN,
+        {"Root": [1.0] * len(glute_verts)})
     # Deltoid volume blends the upper arm into the torso.
     sphere_piece(f"Body_Shoulder_{side}", (sign * 0.205, 0.0, 1.385),
         (0.105, 0.105, 0.105), SKIN, f"UpperArm.{side}", 24, 16)
@@ -434,24 +459,42 @@ for side, sign in (("L", 1), ("R", -1)):
     # phalanges so later hand animation can bend them at real joints.
     sphere_piece(f"Hand_Wrist_{side}", (sign*0.535, -0.020, 1.065),
         (0.035, 0.032, 0.035), SKIN, f"Wrist.{side}", 20, 12)
-    sphere_piece(f"Hand_Palm_{side}", (sign * 0.555, -0.025, 1.025),
-        (0.047, 0.019, 0.052), SKIN, f"Hand.{side}", 24, 16)
+    # A broad, relatively flat palm with a softly bevelled rectangular
+    # silhouette. The hand is no longer a spherical lump at the wrist.
+    bpy.ops.mesh.primitive_cube_add(size=1.0, location=(sign * 0.555, -0.034, 1.025))
+    palm = bpy.context.object
+    palm.name = f"Hand_Palm_{side}"
+    palm.dimensions = (0.082, 0.030, 0.078)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    bevel = palm.modifiers.new("Soft palm edges", "BEVEL")
+    bevel.width = 0.014
+    bevel.segments = 4
+    bpy.context.view_layer.objects.active = palm
+    bpy.ops.object.modifier_apply(modifier=bevel.name)
+    palm.data.materials.append(SKIN)
+    palm_group = palm.vertex_groups.new(name=f"Hand.{side}")
+    palm_group.add(list(range(len(palm.data.vertices))), 1.0, "REPLACE")
+    palm_armature = palm.modifiers.new("Human skeleton", "ARMATURE")
+    palm_armature.object = arm
+    palm.parent = arm
+    for poly in palm.data.polygons:
+        poly.use_smooth = True
     for digit_index, digit in enumerate(("Index", "Middle", "Ring", "Pinky")):
         x = sign * (0.555 + (digit_index - 1.5) * 0.020)
         z = 1.006
         joints = [
-            (x, -0.018, z),
-            (x + sign*0.002, -0.052, z - 0.004),
-            (x + sign*0.004, -0.065, z - 0.020),
-            (x + sign*0.002, -0.043, z - 0.034),
+            (x, -0.043, z),
+            (x + sign*0.002, -0.075, z - 0.003),
+            (x + sign*0.004, -0.105, z - 0.010),
+            (x + sign*0.002, -0.126, z - 0.020),
         ]
         digit_mesh(f"Hand_{digit}_{side}",
             joints, [0.010, 0.009, 0.0075, 0.0065],
             [f"{digit}{segment+1}.{side}" for segment in range(3)], SKIN)
     thumb_joints = [
-        (sign*0.515,-0.010,1.035),
-        (sign*0.535,-0.045,1.020),
-        (sign*0.545,-0.060,1.000),
+        (sign*0.515,-0.030,1.045),
+        (sign*0.535,-0.075,1.025),
+        (sign*0.545,-0.100,1.010),
     ]
     digit_mesh(f"Hand_Thumb_{side}", thumb_joints,
         [0.015, 0.012, 0.009],
@@ -734,7 +777,7 @@ for side, sign in (("L", 1), ("R", -1)):
 
 # The top of this hoop intersects the nipple itself: a piercing must pass
 # through tissue rather than float in front of it.
-torus_piece("Piercing_Left_Nipple", (0.108, -0.229, 1.207),
+torus_piece("Piercing_Left_Nipple", (0.108, -0.226, 1.195),
     0.010, 0.0022, PIERCING_METAL, "Spine", (math.radians(90), 0, 0))
 
 # Five-point star tattoo on the shoulder opposite the braid.
