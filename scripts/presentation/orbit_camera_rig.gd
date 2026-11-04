@@ -53,7 +53,7 @@ func _unhandled_input(event: InputEvent) -> void:
         pitch_pivot.rotation_degrees.x = clampf(
             pitch_pivot.rotation_degrees.x - motion.relative.y * pitch_sensitivity,
             -89.0,
-            -25.0
+            89.0
         )
 
 func _set_zoom(value: float) -> void:
