@@ -12,6 +12,15 @@ const COMPONENTS := {
     "weapon": {
         "sword": "res://art/characters/wren/weapon_sword.glb",
     },
+    "body_hair": {
+        "groomed": "res://art/characters/wren/body_hair_pubic.glb",
+    },
+    "tattoo": {
+        "dragon_back": "res://art/characters/wren/tattoo_dragon.glb",
+    },
+    "piercings": {
+        "wren_set": "res://art/characters/wren/piercings_wren.glb",
+    },
     "torso_garment": {
         "base": "res://art/characters/wren/garment_torso_base.glb",
     },
