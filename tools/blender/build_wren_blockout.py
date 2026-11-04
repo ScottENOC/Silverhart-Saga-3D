@@ -234,6 +234,10 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
             y -= front * ridge * 0.0035
         # A narrow, vertically oriented pubic mound is a shallow deformation
         # of the torso loft itself, never a flat patch pasted onto the surface.
+        if 0.950 <= z <= 0.985:
+            vertical = math.exp(-((z - 0.968) / 0.010) ** 2)
+            centre = math.exp(-(x / 0.014) ** 2)
+            y += front * vertical * centre * 0.008
         if 0.735 <= z <= 0.835:
             vertical = math.sin(math.pi * (z - 0.735) / 0.100)
             centre = math.exp(-(x / 0.070) ** 2)
@@ -503,8 +507,7 @@ sphere_piece("Face_Mouth_Line", (0.0, -0.138, 1.615),
     (0.024, 0.0025, 0.002), CREASE, "Head", 16, 8)
 
 # Shallow navel inset and understated external adult anatomical detail.
-sphere_piece("Body_Navel", (0.0, -0.139, 0.965),
-    (0.008, 0.003, 0.012), CREASE, "Root", 16, 10)
+# Navel is sculpted into the continuous torso mesh; no surface decal.
 # Pelvic contour remains part of the continuous skin surface; no flat overlays.
 
 EYE_WHITE = material("Wren | eye whites", (0.78, 0.70, 0.58))
