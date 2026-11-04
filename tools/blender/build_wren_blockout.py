@@ -339,6 +339,80 @@ for side, sign in (("L", 1), ("R", -1)):
             [0.019 if toe == 2 else 0.015, 0.013, 0.006], SKIN,
             f"Foot.{side}", sides=8, depth_ratio=0.82)
 
+# ---------------------------------------------------------------------------
+# Fuse the body into one continuous anatomical surface.
+#
+# The preceding forms are modelling primitives. They are deliberately fused
+# here so their intersections become one skin surface instead of visible
+# overlapping shells. Facial details, hair and held equipment remain separate.
+# ---------------------------------------------------------------------------
+
+def point_segment_distance(point, start, end):
+    segment = end - start
+    length_sq = segment.length_squared
+    if length_sq < 1e-10:
+        return (point - start).length
+    t = max(0.0, min(1.0, (point - start).dot(segment) / length_sq))
+    return (point - (start + segment * t)).length
+
+body_parts = [obj for obj in character_collection.objects
+    if obj.type == "MESH" and obj.name.startswith("Body_")]
+if body_parts:
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in body_parts:
+        # Remesh in the bind pose, before skin deformation.
+        for modifier in list(obj.modifiers):
+            if modifier.type == "ARMATURE":
+                obj.modifiers.remove(modifier)
+        obj.parent = None
+        obj.select_set(True)
+    bpy.context.view_layer.objects.active = body_parts[0]
+    bpy.ops.object.join()
+    body = bpy.context.object
+    body.name = "Body_Continuous"
+    body.data.name = "Body_Continuous_Mesh"
+
+    remesh = body.modifiers.new("Fuse anatomical forms", "REMESH")
+    remesh.mode = "VOXEL"
+    remesh.voxel_size = 0.006
+    remesh.use_smooth_shade = True
+    bpy.context.view_layer.objects.active = body
+    bpy.ops.object.modifier_apply(modifier=remesh.name)
+
+    # Voxel remeshing creates a unified surface. Rebuild smooth skin weights
+    # from the canonical rig's bone segments, blending the two nearest bones.
+    for group in list(body.vertex_groups):
+        body.vertex_groups.remove(group)
+    bone_segments = []
+    for bone in arm.data.bones:
+        head = arm.matrix_world @ bone.head_local
+        tail = arm.matrix_world @ bone.tail_local
+        bone_segments.append((bone.name, head, tail))
+    groups = {name: body.vertex_groups.new(name=name) for name, _, _ in bone_segments}
+    for vertex in body.data.vertices:
+        point = body.matrix_world @ vertex.co
+        ranked = sorted(
+            ((point_segment_distance(point, head, tail), name)
+                for name, head, tail in bone_segments),
+            key=lambda item: item[0]
+        )[:2]
+        if len(ranked) == 1 or ranked[0][0] < 1e-6:
+            groups[ranked[0][1]].add([vertex.index], 1.0, "REPLACE")
+        else:
+            d0, n0 = ranked[0]
+            d1, n1 = ranked[1]
+            w0 = 1.0 / max(d0, 0.015)
+            w1 = 1.0 / max(d1, 0.015)
+            total = w0 + w1
+            groups[n0].add([vertex.index], w0 / total, "REPLACE")
+            groups[n1].add([vertex.index], w1 / total, "REPLACE")
+
+    body.parent = arm
+    skin_modifier = body.modifiers.new("Human skeleton", "ARMATURE")
+    skin_modifier.object = arm
+    for polygon in body.data.polygons:
+        polygon.use_smooth = True
+
 EYE_WHITE = material("Wren | eye whites", (0.78, 0.70, 0.58))
 IRIS = material("Wren | iris", (0.22, 0.15, 0.09))
 EYE = material("Wren | pupils", (0.025, 0.020, 0.018))
