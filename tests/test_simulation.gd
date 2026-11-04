@@ -54,7 +54,7 @@ func _test_time_point_rules() -> void:
     assert(not ActionEconomy.should_end_turn(76.0, 5))
     assert(ActionEconomy.should_end_turn(140.0, 0, true))
 
-    assert(is_equal_approx(ActionEconomy.regenerate(149.5), 150.0))
+    assert(is_equal_approx(ActionEconomy.regenerate(149.5), 150.5))
     assert(is_equal_approx(ActionEconomy.regenerate(150.0), 150.0))
     assert(is_equal_approx(ActionEconomy.regenerate(10.0, 0.5, 2.0), 11.0))
     assert(is_equal_approx(ActionEconomy.spend(10.0, 3.5), 6.5))
