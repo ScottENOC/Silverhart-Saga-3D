@@ -90,8 +90,8 @@ for side, sign in (("L", 1), ("R", -1)):
         root_x = sign * 0.610
         p0 = (root_x, -0.038, 1.025 + spread_z)
         p1 = (sign * (0.610 + length * 0.42), -0.041, 1.023 + spread_z * 0.94)
-        p2 = (sign * (0.610 + length * 0.76), -0.047, 1.015 + spread_z * 0.86)
-        p3 = (sign * (0.610 + length), -0.051, 1.005 + spread_z * 0.78)
+        p2 = (sign * (0.610 + length * 0.76), -0.020, 1.015 + spread_z * 0.86)
+        p3 = (sign * (0.610 + length * 0.65), -0.005, 1.005 + spread_z * 0.78)
         chain = [(p0, p1, f"Hand.{side}"), (p1, p2, f"{digit}1.{side}"), (p2, p3, f"{digit}2.{side}")]
         for segment_index, (head, tail, parent) in enumerate(chain, 1):
             bone_defs[f"{digit}{segment_index}.{side}"] = (head, tail, parent)
@@ -857,24 +857,24 @@ UNDERWEAR_TRIM = material("Wren | pale gold underwear HSV 47/100/100", (1.0, 0.7
 
 # Strapless bra: two shaped cups over the breast volume and a narrow band.
 for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Garment_Bra_Cup_{side}", (sign * 0.108, -0.237, 1.225),
-        (0.067, 0.015, 0.056), UNDERWEAR, "Spine", 40, 28)
+    sphere_piece(f"Garment_Bra_Cup_{side}", (sign * 0.108, -0.217, 1.225),
+        (0.067, 0.010, 0.056), UNDERWEAR, "Spine", 40, 28)
     # Fine upper cup piping follows the cup's curved top edge.
     cup_points = []
     for step in range(13):
         angle = math.pi * (0.08 + 0.84 * step / 12.0)
         cup_points.append((sign * 0.108 + math.cos(angle) * 0.061,
-            -0.252 - math.sin(angle) * 0.004, 1.225 + math.sin(angle) * 0.056))
+            -0.230 - math.sin(angle) * 0.003, 1.225 + math.sin(angle) * 0.056))
     tube_mesh(f"Garment_Bra_CupTrim_{side}", cup_points,
         [0.0025] * (len(cup_points)-1) + [0.0018],
         UNDERWEAR_TRIM, "Spine", sides=7, depth_ratio=0.8)
     # Lace-inspired embroidery follows the cup surface.
     motif = [
-        (sign * 0.108 - 0.025, -0.257, 1.225),
-        (sign * 0.108 - 0.014, -0.260, 1.245),
-        (sign * 0.108, -0.262, 1.252),
-        (sign * 0.108 + 0.014, -0.260, 1.245),
-        (sign * 0.108 + 0.025, -0.257, 1.225),
+        (sign * 0.108 - 0.025, -0.235, 1.225),
+        (sign * 0.108 - 0.014, -0.238, 1.245),
+        (sign * 0.108, -0.240, 1.252),
+        (sign * 0.108 + 0.014, -0.238, 1.245),
+        (sign * 0.108 + 0.025, -0.235, 1.225),
     ]
     tube_mesh(f"Garment_Bra_Embroidery_{side}", motif,
         [0.0018] * (len(motif)-1) + [0.0012],
@@ -889,8 +889,8 @@ band_sides = 48
 for z in (1.145, 1.162):
     for i in range(band_sides):
         angle = 2.0 * math.pi * i / band_sides
-        x = math.cos(angle) * 0.205
-        y = math.sin(angle) * 0.148
+        x = math.cos(angle) * 0.218
+        y = math.sin(angle) * 0.147
         band_verts.append((x, y, z))
 for i in range(band_sides):
     nxt = (i + 1) % band_sides
