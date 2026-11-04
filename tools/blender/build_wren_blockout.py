@@ -220,7 +220,16 @@ torso_sides = 48
 for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
     for side_index in range(torso_sides):
         angle = 2.0 * math.pi * side_index / torso_sides
-        torso_verts.append((math.cos(angle) * width, y_center + math.sin(angle) * depth, z))
+        x = math.cos(angle) * width
+        y = y_center + math.sin(angle) * depth
+        # Very shallow clavicular plane changes in the front of the upper chest.
+        # They are part of this continuous torso surface, not added tubes.
+        front = max(0.0, -math.sin(angle)) ** 8
+        if 1.30 <= z <= 1.42:
+            line_x = 0.035 + max(0.0, min(1.0, (z - 1.30) / 0.12)) * 0.155
+            ridge = math.exp(-((abs(x) - line_x) / 0.035) ** 2)
+            y -= front * ridge * 0.0035
+        torso_verts.append((x, y, z))
         blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
         blend = blend * blend * (3.0 - 2.0 * blend)
         root_weights.append(1.0 - blend)
@@ -463,9 +472,9 @@ LIP = material("Wren | lips", (0.48, 0.23, 0.22))
 LOWER_LIP = material("Wren | lower lip", (0.58, 0.31, 0.29))
 CREASE = material("Wren | soft crease", (0.22, 0.11, 0.10))
 for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Body_Areola_{side}", (sign * 0.118, -0.205, 1.205),
-        (0.027, 0.004, 0.022), AREOLA, "Spine", 20, 12)
-    sphere_piece(f"Body_Nipple_{side}", (sign * 0.118, -0.211, 1.205),
+    sphere_piece(f"Body_Areola_{side}", (sign * 0.126, -0.207, 1.205),
+        (0.030, 0.004, 0.024), AREOLA, "Spine", 20, 12)
+    sphere_piece(f"Body_Nipple_{side}", (sign * 0.126, -0.213, 1.205),
         (0.008, 0.004, 0.009), NIPPLE, "Spine", 16, 10)
 
 # Toe geometry is kept separate after remeshing so its definition survives.
@@ -479,12 +488,7 @@ for side, sign in (("L", 1), ("R", -1)):
             (0.012 if toe in (0,4) else 0.014, length * 0.60, 0.012),
             SKIN, f"Foot.{side}", 20, 12)
 
-# Subtle clavicle ridges from the sternum towards the shoulders.
-for side, sign in (("L", 1), ("R", -1)):
-    tube_mesh(f"Body_Clavicle_{side}", [
-        (sign * 0.012, -0.138, 1.405), (sign * 0.070, -0.142, 1.405),
-        (sign * 0.135, -0.132, 1.390), (sign * 0.195, -0.108, 1.365),
-    ], [0.003, 0.005, 0.006, 0.003], SKIN, "Spine", sides=10, depth_ratio=0.65)
+# Clavicle definition is sculpted into the torso loft itself; no separate ridge mesh.
 
 # Upper and lower lip volumes with a fine mouth line.
 sphere_piece("Face_Upper_Lip", (0.0, -0.128, 1.620),
@@ -523,6 +527,17 @@ for side, x in (("L", 0.047), ("R", -0.047)):
         (0.0045, 0.0035, 0.006), EYE, "Head", 8, 6)
     sphere_piece(f"Face_Brow_{side}", (x, -0.116, 1.746),
         (0.031, 0.012, 0.008), HAIR, "Head", 12, 8)
+    # Fine upper and lower lashes follow the eye contour, close to the skin.
+    tube_mesh(f"Face_UpperLashes_{side}", [
+        (x - sign * 0.020, -0.132, 1.721),
+        (x, -0.139, 1.730),
+        (x + sign * 0.020, -0.132, 1.721),
+    ], [0.0025, 0.0032, 0.0018], EYE, "Head", sides=8, depth_ratio=0.7)
+    tube_mesh(f"Face_LowerLashes_{side}", [
+        (x - sign * 0.017, -0.132, 1.708),
+        (x, -0.137, 1.704),
+        (x + sign * 0.017, -0.132, 1.708),
+    ], [0.0015, 0.0020, 0.0012], EYE, "Head", sides=8, depth_ratio=0.7)
 
 # ---------------------------------------------------------------------------
 # Anatomical base-model pass: no clothing meshes are generated here.
