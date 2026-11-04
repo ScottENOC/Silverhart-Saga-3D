@@ -65,17 +65,41 @@ bone_defs = {
     "Head": ((0, 0, 1.60), (0, 0, 1.82), "Neck"),
     "UpperArm.L": ((0.18, 0, 1.39), (0.38, 0, 1.25), "Spine"),
     "Forearm.L": ((0.38, 0, 1.25), (0.52, 0, 1.10), "UpperArm.L"),
-    "Hand.L": ((0.52, 0, 1.10), (0.59, 0, 1.04), "Forearm.L"),
+    "Wrist.L": ((0.50, -0.01, 1.095), (0.535, -0.02, 1.065), "Forearm.L"),
+    "Hand.L": ((0.535, -0.02, 1.065), (0.59, -0.025, 1.02), "Wrist.L"),
     "UpperArm.R": ((-0.18, 0, 1.39), (-0.38, 0, 1.25), "Spine"),
     "Forearm.R": ((-0.38, 0, 1.25), (-0.52, 0, 1.10), "UpperArm.R"),
-    "Hand.R": ((-0.52, 0, 1.10), (-0.59, 0, 1.04), "Forearm.R"),
+    "Wrist.R": ((-0.50, -0.01, 1.095), (-0.535, -0.02, 1.065), "Forearm.R"),
+    "Hand.R": ((-0.535, -0.02, 1.065), (-0.59, -0.025, 1.02), "Wrist.R"),
     "Thigh.L": ((0.12, 0, 0.88), (0.13, 0, 0.49), "Root"),
     "Shin.L": ((0.13, 0, 0.49), (0.13, 0, 0.15), "Thigh.L"),
-    "Foot.L": ((0.13, 0, 0.15), (0.13, -0.18, 0.08), "Shin.L"),
+    "Ankle.L": ((0.13, 0, 0.19), (0.13, -0.005, 0.105), "Shin.L"),
+    "Foot.L": ((0.13, -0.005, 0.105), (0.13, -0.18, 0.065), "Ankle.L"),
     "Thigh.R": ((-0.12, 0, 0.88), (-0.13, 0, 0.49), "Root"),
     "Shin.R": ((-0.13, 0, 0.49), (-0.13, 0, 0.15), "Thigh.R"),
-    "Foot.R": ((-0.13, 0, 0.15), (-0.13, -0.18, 0.08), "Shin.R"),
+    "Ankle.R": ((-0.13, 0, 0.19), (-0.13, -0.005, 0.105), "Shin.R"),
+    "Foot.R": ((-0.13, -0.005, 0.105), (-0.13, -0.18, 0.065), "Ankle.R"),
 }
+# Three articulated phalanges per finger and thumb, parented to the hand.
+for side, sign in (("L", 1), ("R", -1)):
+    for digit_index, digit in enumerate(("Index", "Middle", "Ring", "Pinky")):
+        x = sign * (0.555 + (digit_index - 1.5) * 0.020)
+        z = 1.006
+        chain = [
+            ((x, -0.025, z), (x + sign*0.003, -0.070, z - 0.010), f"Hand.{side}"),
+            ((x + sign*0.003, -0.070, z - 0.010), (x + sign*0.004, -0.095, z - 0.031), f"{digit}1.{side}"),
+            ((x + sign*0.004, -0.095, z - 0.031), (x + sign*0.002, -0.078, z - 0.050), f"{digit}2.{side}"),
+        ]
+        for segment_index, (head, tail, parent) in enumerate(chain, 1):
+            bone_defs[f"{digit}{segment_index}.{side}"] = (head, tail, parent)
+    thumb_chain = [
+        ((sign*0.515,-0.005,1.035),(sign*0.485,-0.045,1.020),f"Hand.{side}"),
+        ((sign*0.485,-0.045,1.020),(sign*0.485,-0.075,1.000),f"Thumb1.{side}"),
+        ((sign*0.485,-0.075,1.000),(sign*0.515,-0.080,0.985),f"Thumb2.{side}"),
+    ]
+    for segment_index, (head, tail, parent) in enumerate(thumb_chain, 1):
+        bone_defs[f"Thumb{segment_index}.{side}"] = (head, tail, parent)
+
 bones = {}
 for name, (head, tail, parent_name) in bone_defs.items():
     bone = arm_data.edit_bones.new(name)
@@ -200,11 +224,14 @@ def torus_piece(name, location, major_radius, minor_radius, mat, bone_name, rota
 # Continuous torso/pelvis loft: broad pelvis and shoulders, defined waist,
 # ribcage and chest. Each ring is a cross-section of one surface.
 torso_rings = [
-    (0.715, 0.190, 0.120, 0.000),
+    (0.690, 0.165, 0.105, 0.000),
+    (0.710, 0.180, 0.115, 0.000),
     (0.735, 0.198, 0.128, 0.000),
     (0.755, 0.208, 0.132, 0.000),
     (0.770, 0.214, 0.135, 0.000),
     (0.785, 0.219, 0.137, 0.000),
+    (0.825, 0.215, 0.140, 0.000),
+    (0.850, 0.195, 0.130, 0.000),
     (0.805, 0.225, 0.140, 0.000),
     (0.855, 0.228, 0.142, 0.000),
     (0.905, 0.218, 0.136, 0.000),
@@ -255,8 +282,8 @@ for ring_index, (z, width, depth, y_center) in enumerate(torso_rings):
                 + math.exp(-((x + 0.013) / 0.007) ** 2)
             )
             central_cleft = math.exp(-(x / 0.0035) ** 2)
-            y -= front * labial_profile * paired_ridges * 0.006
-            y += front * labial_profile * central_cleft * 0.004
+            y -= front * labial_profile * paired_ridges * 0.010
+            y += front * labial_profile * central_cleft * 0.008
         torso_verts.append((x, y, z))
         blend = max(0.0, min(1.0, (z - 0.82) / 0.20))
         blend = blend * blend * (3.0 - 2.0 * blend)
@@ -393,7 +420,8 @@ for side, sign in (("L", 1), ("R", -1)):
     for y, width, height, zc in foot_rings:
         for i in range(foot_sides):
             angle = 2.0 * math.pi * i / foot_sides
-            foot_verts.append((leg_x + math.cos(angle) * width, y, zc + math.sin(angle) * height))
+            z = max(0.045, zc + math.sin(angle) * height)
+            foot_verts.append((leg_x + math.cos(angle) * width, y, z))
     for ring in range(len(foot_rings)-1):
         for i in range(foot_sides):
             a = ring * foot_sides + i
@@ -422,7 +450,7 @@ def point_segment_distance(point, start, end):
 
 body_parts = [obj for obj in bpy.context.scene.objects
     if obj.type == "MESH" and (
-        obj.name.startswith("Body_") or obj.name.startswith("Face_Nose_") or obj.name.startswith("Face_Nostril_Ala_")
+        (obj.name.startswith("Body_") and not ("Areola_" in obj.name or "Nipple_" in obj.name)) or obj.name.startswith("Face_Nose_") or obj.name.startswith("Face_Nostril_Ala_")
     )]
 if body_parts:
     bpy.ops.object.select_all(action="DESELECT")
@@ -441,13 +469,13 @@ if body_parts:
 
     remesh = body.modifiers.new("Fuse anatomical forms", "REMESH")
     remesh.mode = "VOXEL"
-    remesh.voxel_size = 0.0045
+    remesh.voxel_size = 0.0035
     remesh.use_smooth_shade = True
     bpy.context.view_layer.objects.active = body
     bpy.ops.object.modifier_apply(modifier=remesh.name)
     relax = body.modifiers.new("Relax fused anatomy", "SMOOTH")
-    relax.factor = 0.42
-    relax.iterations = 2
+    relax.factor = 0.55
+    relax.iterations = 3
     bpy.ops.object.modifier_apply(modifier=relax.name)
     polish = body.modifiers.new("Polished skin surface", "SUBSURF")
     polish.levels = 1
@@ -495,10 +523,10 @@ LIP = material("Wren | lips", (0.48, 0.23, 0.22))
 LOWER_LIP = material("Wren | lower lip", (0.58, 0.31, 0.29))
 CREASE = material("Wren | soft crease", (0.22, 0.11, 0.10))
 for side, sign in (("L", 1), ("R", -1)):
-    sphere_piece(f"Body_Areola_{side}", (sign * 0.108, -0.215, 1.225),
-        (0.030, 0.004, 0.024), AREOLA, "Spine", 20, 12)
-    sphere_piece(f"Body_Nipple_{side}", (sign * 0.108, -0.221, 1.225),
-        (0.008, 0.004, 0.009), NIPPLE, "Spine", 16, 10)
+    sphere_piece(f"Body_Areola_{side}", (sign * 0.108, -0.213, 1.190),
+        (0.026, 0.008, 0.020), AREOLA, "Spine", 20, 12)
+    sphere_piece(f"Body_Nipple_{side}", (sign * 0.108, -0.220, 1.190),
+        (0.008, 0.009, 0.008), NIPPLE, "Spine", 16, 10)
 
 # Toe geometry is kept separate after remeshing so its definition survives.
 for side, sign in (("L", 1), ("R", -1)):
@@ -515,11 +543,11 @@ for side, sign in (("L", 1), ("R", -1)):
 
 # Upper and lower lip volumes with a fine mouth line.
 sphere_piece("Face_Upper_Lip", (0.0, -0.128, 1.620),
-    (0.031, 0.010, 0.008), LIP, "Head", 20, 12)
+    (0.043, 0.010, 0.008), LIP, "Head", 20, 12)
 sphere_piece("Face_Lower_Lip", (0.0, -0.129, 1.610),
-    (0.029, 0.010, 0.009), LOWER_LIP, "Head", 20, 12)
+    (0.040, 0.010, 0.009), LOWER_LIP, "Head", 20, 12)
 sphere_piece("Face_Mouth_Line", (0.0, -0.138, 1.615),
-    (0.024, 0.0025, 0.002), CREASE, "Head", 16, 8)
+    (0.035, 0.0025, 0.002), CREASE, "Head", 16, 8)
 
 # Shallow navel inset and understated external adult anatomical detail.
 # Navel is sculpted into the continuous torso mesh; no surface decal.
