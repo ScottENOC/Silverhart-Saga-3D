@@ -110,6 +110,7 @@ func _test_world_clock() -> void:
     clock.set_world_seconds(0.0)
     assert(clock.advance_real_time(0.01, false) == 0) # Exploration uses 3x speed: 0.15s.
 
+    clock.set_world_seconds(0.4)
     clock.paused = true
     assert(clock.advance_world_seconds(4.0) == 0)
     assert(is_equal_approx(clock.world_seconds, 0.4))
