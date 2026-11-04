@@ -28,6 +28,11 @@ var rotate_right_button: Button
 var wren_bra_enabled: bool = true
 var wren_briefs_enabled: bool = true
 var tile_mesh: ArrayMesh
+var path_material: StandardMaterial3D
+var active_path: Array[Vector2i] = []
+var path_markers: Array[MeshInstance3D] = []
+var path_step_accumulator: float = 0.0
+const PATH_STEP_INTERVAL: float = 0.22
 
 var grass_material: StandardMaterial3D
 var floor_material: StandardMaterial3D
@@ -61,6 +66,8 @@ func _create_materials() -> void:
     roof_material = _material(Color(0.19, 0.22, 0.23))
     glass_material = _material(Color(0.28, 0.42, 0.48, 0.68))
     glass_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+    path_material = _material(Color(0.95, 0.72, 0.20, 0.48))
+    path_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 
 func _material(colour: Color) -> StandardMaterial3D:
     var result := StandardMaterial3D.new()
@@ -300,6 +307,7 @@ func _create_characters() -> void:
 func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false) -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
     var state := CharacterState.new(id, display_name, spawn_hex)
+    state.time_points = state.max_time_points
     simulation.register_character(state)
 
     var actor := HexActorPresentation.new()
@@ -383,7 +391,7 @@ func _create_hud() -> void:
     var layer := CanvasLayer.new()
     var label := Label.new()
     label.position = Vector2(22.0, 18.0)
-    label.text = "HOLLOW TANKARD   |   W: forward · A/D: strafe · S: back · Q/E: diagonal   |   [ ]: turn 60°   |   Right-drag: orbit   |   V: roof"
+    label.text = "HOLLOW TANKARD   |   W/A/S/D/Q/E: move one hex   |   Click: pathfind   |   [ ]: turn   |   Right-drag: orbit   |   V: roof"
     label.add_theme_font_size_override("font_size", 18)
     label.add_theme_color_override("font_color", Color(0.94, 0.93, 0.86))
     layer.add_child(label)
@@ -516,7 +524,25 @@ func _switch_party_member() -> void:
         var display_name := "You" if active_character_id == "player" else "Wren"
         party_switch_button.text = "Active: " + display_name + "  [Tab] Switch"
 
+func _process(delta: float) -> void:
+    if active_path.size() < 2:
+        return
+    path_step_accumulator += delta
+    if path_step_accumulator < PATH_STEP_INTERVAL:
+        return
+    path_step_accumulator = 0.0
+    _advance_path_step()
+
 func _unhandled_input(event: InputEvent) -> void:
+    if event is InputEventMouseButton:
+        var mouse_event := event as InputEventMouseButton
+        if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
+            var clicked_hex := _screen_position_to_hex(mouse_event.position)
+            if clicked_hex != null:
+                _set_move_destination(clicked_hex)
+                get_viewport().set_input_as_handled()
+            return
+
     if event is InputEventKey and event.pressed and not event.echo:
         var key_event := event as InputEventKey
         if key_event.keycode == KEY_TAB:
@@ -526,7 +552,6 @@ func _unhandled_input(event: InputEvent) -> void:
         if key_event.keycode == KEY_V:
             roof_group.visible = not roof_group.visible
             return
-
         if key_event.keycode == KEY_BRACKETLEFT:
             _rotate_active_character(-1)
             get_viewport().set_input_as_handled()
@@ -545,7 +570,82 @@ func _unhandled_input(event: InputEvent) -> void:
             KEY_S: relative_step = 3
             KEY_D: relative_step = 2
             _: return
+        active_path.clear()
+        _clear_path_markers()
         _attempt_move(relative_step)
+        get_viewport().set_input_as_handled()
+
+func _screen_position_to_hex(screen_position: Vector2) -> Variant:
+    var camera := get_viewport().get_camera_3d()
+    if camera == null:
+        return null
+    var ray_origin := camera.project_ray_origin(screen_position)
+    var ray_direction := camera.project_ray_normal(screen_position)
+    if absf(ray_direction.y) < 0.0001:
+        return null
+    var distance := -ray_origin.y / ray_direction.y
+    if distance < 0.0:
+        return null
+    var hit := ray_origin + ray_direction * distance
+    var hex := HexGrid.world_to_axial(hit, HEX_RADIUS)
+    if not simulation.map_data.has_cell(hex):
+        return null
+    return hex
+
+func _set_move_destination(destination: Vector2i) -> void:
+    var path := simulation.find_path(active_character_id, destination)
+    if path.size() < 2:
+        active_path.clear()
+        _clear_path_markers()
+        return
+    active_path = path
+    path_step_accumulator = PATH_STEP_INTERVAL
+    _show_path_markers(path)
+
+func _advance_path_step() -> void:
+    if active_path.size() < 2:
+        active_path.clear()
+        _clear_path_markers()
+        return
+    if simulation.is_in_combat:
+        var active_turn := simulation.get_current_turn_character()
+        if active_turn == null or active_turn.id != active_character_id:
+            return
+    var next_hex := active_path[1]
+    if not simulation.try_move_character_step(active_character_id, next_hex):
+        # A changed occupancy or depleted movement budget can invalidate the
+        # remaining route. Re-plan from the character's actual current hex.
+        var destination := active_path[active_path.size() - 1]
+        var replacement_path := simulation.find_path(active_character_id, destination)
+        if replacement_path.size() < 2:
+            active_path.clear()
+            _clear_path_markers()
+            return
+        active_path = replacement_path
+        _show_path_markers(active_path)
+        return
+    active_path.pop_front()
+    _show_path_markers(active_path)
+    if active_path.size() < 2:
+        active_path.clear()
+        _clear_path_markers()
+
+func _show_path_markers(path: Array[Vector2i]) -> void:
+    _clear_path_markers()
+    for i in range(1, path.size()):
+        var marker := MeshInstance3D.new()
+        marker.mesh = tile_mesh
+        marker.material_override = path_material
+        marker.position = _hex_world_position(path[i]) + Vector3(0.0, 0.10, 0.0)
+        marker.scale = Vector3(0.82, 0.25, 0.82)
+        add_child(marker)
+        path_markers.append(marker)
+
+func _clear_path_markers() -> void:
+    for marker in path_markers:
+        if is_instance_valid(marker):
+            marker.queue_free()
+    path_markers.clear()
 
 func _rotate_active_character(steps: int) -> void:
     var state := simulation.get_character(active_character_id)
