@@ -1,6 +1,20 @@
 extends Node
 const BUS_NAMES := ["Master", "Music", "Dialogue", "SFX", "Ambience", "UI"]
 const SETTINGS_PATH := "user://audio_settings.cfg"
+const ARENA_MUSIC := {
+    "lobby": "res://audio/legacy/arena_lobby.ogg",
+    "pre_battle": "res://audio/legacy/arena_pre_battle.ogg",
+    "battle": "res://audio/legacy/arena_battle.ogg",
+    "death": "res://audio/legacy/arena_death.ogg"
+}
+const ARENA_DIALOGUE := [
+    "arena_entrance", "arena_fight_mid", "arena_fight_start", "arena_indoor",
+    "arena_lobby_1", "arena_lobby_2", "arena_lobby_3", "arena_lobby_4",
+    "arena_outdoor_day", "arena_outdoor_night", "arena_victory"
+]
+const CAMPAIGN_DIALOGUE := ["goblin_1_enemy_seen", "grishnak_entry", "pc_1_enemy_seen"]
+
+
 var _music: AudioStreamPlayer
 var _music_spare: AudioStreamPlayer
 var _dialogue: AudioStreamPlayer
@@ -137,23 +151,10 @@ func enter_mode(mode: String) -> void:
         "campaign": stop_music(1.0)
         _: play_music("res://audio/legacy/title.ogg", 1.0, true)
 
-const ARENA_MUSIC := {
-    "lobby": "res://audio/legacy/arena_lobby.ogg",
-    "pre_battle": "res://audio/legacy/arena_pre_battle.ogg",
-    "battle": "res://audio/legacy/arena_battle.ogg",
-    "death": "res://audio/legacy/arena_death.ogg"
-}
-const ARENA_DIALOGUE := [
-    "arena_entrance", "arena_fight_mid", "arena_fight_start", "arena_indoor",
-    "arena_lobby_1", "arena_lobby_2", "arena_lobby_3", "arena_lobby_4",
-    "arena_outdoor_day", "arena_outdoor_night", "arena_victory"
-]
-const CAMPAIGN_DIALOGUE := ["goblin_1_enemy_seen", "grishnak_entry", "pc_1_enemy_seen"]
-
 func play_arena_music(track_name: String, fade := 0.8) -> void:
     if current_mode != "arena" or not ARENA_MUSIC.has(track_name):
         return
-    play_music(ARENA_MUSIC[track_name], fade, track_name != "death")
+    play_music(ARENA_MUSIC[track_name], fade, true)
 
 func play_arena_transition() -> void:
     if current_mode != "arena": return
@@ -175,7 +176,8 @@ func play_campaign_dialogue(key: String) -> void:
 
 func play_parry() -> void:
     if current_mode == "arena" or current_mode == "campaign":
-        play_sfx("res://audio/legacy/effects/parry.ogg")
+        var variant := "parry.ogg" if randi() % 2 == 0 else "parry2.ogg"
+        play_sfx("res://audio/legacy/effects/" + variant)
 
 func play_ambience(path: String, loop := true) -> void:
     if not ResourceLoader.exists(path): return
