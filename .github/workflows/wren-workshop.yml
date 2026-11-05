@@ -217,8 +217,9 @@ jobs:
           cp art/characters/ara/ara_wren_mobile.glb site/assets/ara_wren_mobile.glb
           cp art/characters/ara/ara_wren_transparent.glb site/assets/ara_wren_transparent.glb
           cp art/characters/ara/ara_wren_lace.glb site/assets/ara_wren_lace.glb
-          mkdir -p site/assets/modular
+          mkdir -p site/assets/modular site/assets/npcs
           cp art/characters/ara/modular/*.glb site/assets/modular/
+          cp -R art/characters/ara/npcs site/assets/
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
