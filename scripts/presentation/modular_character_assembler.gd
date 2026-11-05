@@ -106,11 +106,7 @@ func set_component(slot: String, component_id: String) -> bool:
         source.queue_free()
         return false
     for mesh_instance in meshes:
-        if mesh_instance is SkinnedMeshInstance3D:
-            mesh_instance.skeleton = mesh_instance.get_path_to(shared_skeleton)
-        elif mesh_instance is MeshInstance3D:
-            # Static props are left on their authored mount transform.
-            pass
+        mesh_instance.skeleton = mesh_instance.get_path_to(shared_skeleton)
     active_components[slot] = component_id
     return true
 
