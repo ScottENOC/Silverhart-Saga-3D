@@ -170,6 +170,9 @@ jobs:
           mkdir -p /tmp/empty-space
           hf upload "${{ vars.HF_SPACE_ID }}" /tmp/empty-space . --repo-type space --delete "*" --commit-message "Clear obsolete preview assets before storage compaction"
           python -m pip install --disable-pip-version-check --quiet huggingface_hub
+          # Reuse the exact short-lived OIDC token that authenticated the hf CLI.
+          export HF_TOKEN="$(hf auth token)"
+          echo "::add-mask::$HF_TOKEN"
           python - <<'PY'
           from huggingface_hub import HfApi
           api = HfApi()
