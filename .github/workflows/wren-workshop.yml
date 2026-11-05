@@ -3,7 +3,7 @@ name: Build Wren Workshop
 on:
   workflow_dispatch:
   push:
-    branches: [dev]
+    branches: [dev, feature/shared-character-system]
     paths:
       - "tools/blender/**"
       - "site/**"
