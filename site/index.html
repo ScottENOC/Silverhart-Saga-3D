@@ -199,6 +199,17 @@ function surfacePoint(x,y,skinOnly=false){
  const normal=normalEnd.sub(point).normalize();
  return {point,normal};
 }
+function socketSurface(name){
+ if(!model)return null;
+ model.updateMatrixWorld(true);
+ const socket=model.getObjectByName(name);
+ if(!socket)return null;
+ const worldPoint=socket.getWorldPosition(new THREE.Vector3());
+ const worldNormal=socket.getWorldDirection(new THREE.Vector3()).normalize();
+ const point=model.worldToLocal(worldPoint.clone());
+ const normalEnd=model.worldToLocal(worldPoint.clone().add(worldNormal));
+ return {point,normal:normalEnd.sub(point).normalize()};
+}
 function addHoopAt(hit,radius,material,tilt=0){
  if(!hit)return false;
  const o=new THREE.Mesh(new THREE.TorusGeometry(radius,radius*.19,10,32),material);
@@ -217,9 +228,9 @@ function addAccessories(kind){
  const skinSurface=(x,y)=>surfacePoint(x,y,true);
  let ok=true;
  if(kind==='earrings'){
-  ok=addHoopAt(skinSurface(-.085,1.55),.012,silver)&&addHoopAt(skinSurface(.085,1.55),.012,silver);
+  ok=addHoopAt(socketSurface('SOCKET_Earring_L')||skinSurface(-.085,1.55),.012,silver)&&addHoopAt(socketSurface('SOCKET_Earring_R')||skinSurface(.085,1.55),.012,silver);
  }else if(kind==='nose'){
-  ok=addHoopAt(skinSurface(0,1.565),.008,silver);
+  ok=addHoopAt(socketSurface('SOCKET_NoseRing')||skinSurface(0,1.565),.008,silver);
  }else if(kind==='necklace'){
   const pts=[];
   for(let i=0;i<=36;i++){
@@ -235,9 +246,9 @@ function addAccessories(kind){
   }
  }else if(kind==='nipple_left'||kind==='nipple_right'){
   const x=kind==='nipple_left'?.105:-.105;
-  ok=addHoopAt(skinSurface(x,1.255),.008,silver);
+  ok=addHoopAt(socketSurface(kind==='nipple_left'?'SOCKET_Nipple_L':'SOCKET_Nipple_R')||skinSurface(x,1.255),.008,silver);
  }else if(kind==='clit'){
-  ok=addHoopAt(skinSurface(0,.785),.0065,gold);
+  ok=addHoopAt(socketSurface('SOCKET_ClitoralHood')||skinSurface(0,.785),.0065,gold);
  }
  if(!ok){
   document.querySelector('#saveState').textContent='Could not find exposed skin at that location. Switch to Body · no clothing and try again.';
