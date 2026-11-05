@@ -12,7 +12,7 @@ import os
 import sys
 
 import bpy
-from mathutils import Vector
+from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
 
 
@@ -49,11 +49,67 @@ def build_bvh(obj):
     return tree
 
 
-def front_hit(tree, x, z):
-    hit = tree.ray_cast(Vector((x, -2.0, z)), Vector((0.0, 1.0, 0.0)), 4.0)
-    if hit[0] is None:
+def front_hit_data(tree, x, z):
+    location, normal, _index, _distance = tree.ray_cast(
+        Vector((x, -2.0, z)), Vector((0.0, 1.0, 0.0)), 4.0
+    )
+    if location is None:
         return None
-    return hit[0]
+    return location, normal
+
+
+def front_hit(tree, x, z):
+    hit = front_hit_data(tree, x, z)
+    return hit[0] if hit else None
+
+
+def create_socket(armature, name, location, normal, bone_name):
+    empty = bpy.data.objects.new(name, None)
+    empty.empty_display_type = "SPHERE"
+    empty.empty_display_size = 0.007
+    bpy.context.collection.objects.link(empty)
+    empty.parent = armature
+    empty.parent_type = "BONE"
+    empty.parent_bone = bone_name
+    orientation = Vector((0.0, 0.0, 1.0)).rotation_difference(normal.normalized())
+    empty.matrix_world = Matrix.Translation(location) @ orientation.to_matrix().to_4x4()
+    empty["socket_type"] = name.replace("SOCKET_", "").lower()
+    empty["review_anchor"] = "surface-derived"
+    return empty
+
+
+def create_piercing_sockets(armature, surface_tree, minimum, height, width, pelvis_z, body_front_y):
+    bones = list(armature.data.bones)
+    def find_bone(names, fallback):
+        return next((b.name for b in bones if b.name.lower() in names), fallback)
+
+    head_bone = find_bone({"head", "head01"}, find_bone({"neck"}, "Hips"))
+    chest_bone = find_bone({"spine2", "spine_2", "chest"}, find_bone({"spine1", "spine_1"}, "Hips"))
+    hip_bone = find_bone({"hips", "hip", "pelvis"}, "Hips")
+
+    # Surface-derived anchors for visible skin. These follow the rig in Godot.
+    head_z = minimum.z + height * 0.915
+    for side, label in [(1.0, "L"), (-1.0, "R")]:
+        hit = front_hit_data(surface_tree, side * width * 0.095, head_z)
+        if hit:
+            create_socket(armature, "SOCKET_Earring_" + label, hit[0], hit[1], head_bone)
+
+    nose_hit = front_hit_data(surface_tree, 0.0, minimum.z + height * 0.91)
+    if nose_hit:
+        create_socket(armature, "SOCKET_NoseRing", nose_hit[0], nose_hit[1], head_bone)
+
+    necklace_hit = front_hit_data(surface_tree, 0.0, minimum.z + height * 0.82)
+    if necklace_hit:
+        create_socket(armature, "SOCKET_Necklace", necklace_hit[0], necklace_hit[1], chest_bone)
+
+    nipple_z = minimum.z + height * 0.74
+    for side, label in [(1.0, "L"), (-1.0, "R")]:
+        hit = front_hit_data(surface_tree, side * width * 0.105, nipple_z)
+        if hit:
+            create_socket(armature, "SOCKET_Nipple_" + label, hit[0], hit[1], chest_bone)
+
+    clitoral_location = Vector((0.0, body_front_y - 0.030, pelvis_z + 0.040))
+    create_socket(armature, "SOCKET_ClitoralHood", clitoral_location, Vector((0.0, -1.0, 0.0)), hip_bone)
 
 
 def uv_ellipsoid(name, location, scale, collection):
@@ -201,6 +257,7 @@ def main():
     bpy.context.scene.collection.children.link(collection)
     if args.profile == "female":
         create_anatomy(pelvis_z, body_front_y, width, collection, skin_material, armature)
+    create_piercing_sockets(armature, surface_tree, minimum, height, width, pelvis_z, body_front_y)
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
