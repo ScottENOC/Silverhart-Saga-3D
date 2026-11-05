@@ -126,6 +126,7 @@ jobs:
       - name: Publish to private Hugging Face Space
         env:
           HF_OIDC_RESOURCE: spaces/${{ vars.HF_SPACE_ID }}
+          HF_ADMIN_TOKEN: ${{ secrets.HF_ADMIN_TOKEN }}
         run: |
           set -euo pipefail
           test -n "${{ vars.HF_SPACE_ID }}"
@@ -144,16 +145,24 @@ jobs:
           python - <<'PY'
           import os
           from huggingface_hub import HfApi
-          token = os.environ["HF_TOKEN"]
-          api = HfApi(token=token)
+          oidc_token = os.environ["HF_TOKEN"]
           repo_id = "${{ vars.HF_SPACE_ID }}"
-          print("Checking Space visibility and token access...")
-          info = api.repo_info(repo_id=repo_id, repo_type="space", token=token)
+          oidc_api = HfApi(token=oidc_token)
+          print("Checking OIDC publisher access...")
+          info = oidc_api.repo_info(repo_id=repo_id, repo_type="space", token=oidc_token)
           print(f"Repository confirmed: {info.id}; private={info.private}")
-          print("Checking token identity...")
-          print(api.whoami(token=token))
-          print("Attempting history compaction...")
-          api.super_squash_history(
+          print("OIDC identity:")
+          print(oidc_api.whoami(token=oidc_token))
+          admin_token = os.environ.get("HF_ADMIN_TOKEN", "")
+          if not admin_token:
+              raise SystemExit("Missing GitHub Actions secret HF_ADMIN_TOKEN. Add a fine-grained Hugging Face user token with write access to this Space; OIDC publisher tokens cannot call super_squash_history.")
+          admin_api = HfApi(token=admin_token)
+          print("Checking administrative token identity and repository access...")
+          print(admin_api.whoami(token=admin_token))
+          admin_info = admin_api.repo_info(repo_id=repo_id, repo_type="space", token=admin_token)
+          print(f"Administrative token can access: {admin_info.id}")
+          print("Attempting history compaction with user access token...")
+          admin_api.super_squash_history(
               repo_id="${{ vars.HF_SPACE_ID }}",
               repo_type="space",
               branch="main",
