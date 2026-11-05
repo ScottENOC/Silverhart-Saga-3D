@@ -14,7 +14,7 @@ button{background:#30343b;color:#eee;border:1px solid #4a4f58;border-radius:8px;
 <header><strong>WREN WORKSHOP</strong><span>Silverhart Saga 3D · model preview</span></header>
 <main><div id="stage"><div id="status">Loading model…</div><div id="hint">Drag to orbit · Pinch or scroll to zoom · Two-finger drag to pan</div></div>
 <aside>
-<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara">Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option><option value="modular">Modular body + hair + clothes</option><option value="ara-transparent">Sheer fabric · 42% opacity</option><option value="ara-lace">Open-weave lace</option></select></div><p class="note">Modular assembly uses independently exported, skinned components. Fabric tests compare alpha-blended cloth with an alpha-cutout lace weave.</p></section>
+<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara">Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option><option value="body-only">Unclothed base body</option><option value="modular">Modular body + hair + clothes</option><option value="ara-transparent">Sheer fabric · 42% opacity</option><option value="ara-lace">Open-weave lace</option></select></div><p class="note">Modular assembly uses independently exported, skinned components. Fabric tests compare alpha-blended cloth with an alpha-cutout lace weave.</p></section>
 <section><h2>Camera</h2><div class="buttons"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="three">3/4</button><button id="home">Reset</button></div><div class="row"><span>Auto rotate</span><input id="autorotate" type="checkbox"></div></section>
 <section><h2>Lighting</h2><div class="row"><span>Key light</span><input id="keylight" type="range" min="0" max="5" step=".1" value="3"></div><div class="row"><span>Fill light</span><input id="filllight" type="range" min="0" max="4" step=".1" value="1.4"></div><div class="row"><span>Light direction</span><input id="lightangle" type="range" min="0" max="360" value="35"></div></section>
 <section><h2>Build</h2><div class="note" id="build">Loading build information…</div><p class="note" id="error"></p></section>
@@ -95,11 +95,20 @@ function loadModel(mode){
   'ara-mobile':'Ara mobile preview',
   'ara-transparent':'Sheer fabric · 42% opacity',
   'ara-lace':'Open-weave lace · alpha cutout',
+  'body-only':'Unclothed base body · no clothing',
   modular:'Modular body + hair + clothes'
  };
  if(model){scene.remove(model);disposeModel(model);model=null;box=null}
  const label=labels[mode]||labels.ara;
  status.textContent='Loading '+label+'…';error.textContent='';
+ if(mode==='body-only'){
+  const bodyUrl=new URL('./assets/modular/body.glb?v='+encodeURIComponent(buildVersion),window.location.href).href;
+  gltfLoader.load(bodyUrl,g=>{
+   if(generation!==loadGeneration){disposeModel(g.scene);return}
+   model=g.scene;scene.add(model);box=new THREE.Box3().setFromObject(model);frame('three');status.textContent=label+' loaded';
+  },undefined,e=>{if(generation===loadGeneration){status.textContent='Base body failed to load';error.textContent=e?.message||String(e)}});
+  return;
+ }
  if(mode==='modular'){
   loadModularScene(generation).then(root=>{
    if(!root||generation!==loadGeneration)return;
