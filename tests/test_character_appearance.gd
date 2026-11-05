@@ -32,6 +32,22 @@ func _initialize() -> void:
     assert(int(runtime_material.get_shader_parameter("fabric_mode")) == 1, "Linen fabric mode was not selected")
     assert(Color(runtime_material.get_shader_parameter("tint")).is_equal_approx(Color("#9c2632")), "Shirt dye was not applied")
 
+    var skeleton := Skeleton3D.new()
+    for bone_name in ["Hips", "Spine2", "Head", "RightHand", "LeftHand"]:
+        skeleton.add_bone(bone_name)
+    root.add_child(skeleton)
+    var calibration := {"sockets": {}}
+    for socket_id in CharacterAttachmentRig.SOCKETS:
+        calibration.sockets[socket_id] = {"calibrated": true}
+    var attachment_rig := CharacterAttachmentRig.new()
+    root.add_child(attachment_rig)
+    assert(attachment_rig.configure(skeleton, calibration), "Attachment rig failed to configure")
+    assert(attachment_rig.attach("ear.left", CharacterAccessoryFactory.make_earring("silver_hoop")), "Earring socket failed")
+    assert(attachment_rig.attach("nose.ring", CharacterAccessoryFactory.make_ring("nose_ring")), "Nose ring socket failed")
+    assert(attachment_rig.attach("necklace", CharacterAccessoryFactory.make_necklace("silver_chain")), "Necklace socket failed")
+    assert(attachment_rig.attach("nipple.left", CharacterAccessoryFactory.make_ring("nipple_ring")), "Nipple socket failed")
+    assert(attachment_rig.attach("clitoral_hood", CharacterAccessoryFactory.make_ring("hood_ring")), "Pelvic socket failed")
+
     var save_error := CharacterAppearanceStore.save_appearance("npc_test_01", appearance)
     assert(save_error == OK, "Appearance save failed: %s" % error_string(save_error))
     var loaded := CharacterAppearanceStore.load_appearance("npc_test_01")
