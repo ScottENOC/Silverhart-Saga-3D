@@ -300,6 +300,7 @@ def main():
     surface_tree = build_bvh(skin)
     hit = front_hit(surface_tree, 0.0, pelvis_z)
     body_front_y = hit.y if hit is not None else None
+    pelvis_surface_tree = surface_tree
     if body_front_y is None:
         # Ara may omit the exact centreline pelvis face in a clothed export.
         # Search a small grid across the lower torso and use an actual mesh
@@ -329,6 +330,8 @@ def main():
         if candidates:
             _score, surface_y, location, source_name = min(candidates, key=lambda item: item[0])
             body_front_y = surface_y + 0.010
+            source_obj = next(o for o in meshes if o.name == source_name)
+            pelvis_surface_tree = build_bvh(source_obj)
             print(f"Pelvis surface fallback: {source_name} at {tuple(round(v, 4) for v in location)}")
     if body_front_y is None:
         details = []
@@ -344,7 +347,7 @@ def main():
     bpy.context.scene.collection.children.link(collection)
     anatomy = None
     if args.profile == "female":
-        anatomy = create_anatomy(pelvis_z, body_front_y, width, collection, skin_material, armature, surface_tree)
+        anatomy = create_anatomy(pelvis_z, body_front_y, width, collection, skin_material, armature, pelvis_surface_tree)
     create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, pelvis_z, body_front_y)
     if anatomy is not None:
         anatomy_tree = build_bvh(anatomy)
@@ -353,7 +356,8 @@ def main():
         if hood_hit:
             # Stand the piercing just proud of the hood surface.
             location = hood_hit[0] + hood_hit[1].normalized() * 0.0025
-            create_socket(armature, "SOCKET_ClitoralHood", location, hood_hit[1], "Hips")
+            hip_name = next((b.name for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), "Hips")
+            create_socket(armature, "SOCKET_ClitoralHood", location, hood_hit[1], hip_name)
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
