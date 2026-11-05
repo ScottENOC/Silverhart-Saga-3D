@@ -8,6 +8,7 @@ on:
       - "tools/blender/**"
       - "site/**"
       - "docs/ARA_CHARACTER_EVALUATION.md"
+      - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
 concurrency:
