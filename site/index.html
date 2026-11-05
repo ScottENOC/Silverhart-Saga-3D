@@ -37,7 +37,7 @@ button:disabled{opacity:.4}
 <div class="buttons"><button data-accessory="earrings">Earrings</button><button data-accessory="nose">Nose ring</button><button data-accessory="necklace">Necklace</button></div>
 <div class="buttons"><button data-accessory="nipple_left">Left nipple piercing</button><button data-accessory="nipple_right">Right nipple piercing</button><button data-accessory="clit">Clitoral hood piercing</button></div>
 <div class="buttons"><button data-accessory="clear">Remove accessories</button></div>
-<p class="note">Jewellery is raycast onto the character surface, not positioned from the whole model bounds. Body piercings need the Body · no clothing preview to be visible.</p>
+<p class="note">Jewellery uses rigged surface sockets where available, with local-space surface raycasts as fallback. Body piercings need the Body · no clothing preview to be visible.</p>
 </section>
 <section><h2>Save appearance</h2>
 <div class="buttons"><button id="saveAppearance">Save on this phone</button><button id="loadAppearance">Reload saved</button><button id="exportAppearance">Export JSON</button></div>
@@ -234,7 +234,7 @@ function addAccessories(kind){
  }else if(kind==='necklace'){
   const pts=[];
   for(let i=0;i<=36;i++){
-   const t=i/36, x=(t-.5)*.26, y=1.405-.085*(1-Math.pow((t-.5)*2,2));
+   const t=i/36, x=(t-.5)*.22, y=1.405-.085*(1-Math.pow((t-.5)*2,2));
    const hit=anySurface(x,y);if(hit)pts.push(hit.point.clone().addScaledVector(hit.normal,.004));
   }
   if(pts.length<8)ok=false;
