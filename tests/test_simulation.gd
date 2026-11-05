@@ -54,6 +54,7 @@ func _test_movement_validation() -> void:
     _check(not sim.try_move_character("player", Vector2i(2, 0)))
     _check(not sim.try_move_character("player", Vector2i(3, 0)))
     _check(not sim.try_move_character("missing", Vector2i(0, 1)))
+    sim.free()
 
 func _test_time_point_rules() -> void:
     _check(not ActionEconomy.can_start_combat_turn(99.99))
@@ -94,6 +95,7 @@ func _test_action_movement_cost() -> void:
     player.time_points = 10.0
     _check(not sim.try_move_character_action("player", Vector2i(2, 0), 5.0))
     _check(is_equal_approx(player.time_points, 10.0))
+    sim.free()
 
 func _test_terrain_pathfinding() -> void:
     var sim := WorldSimulation.new()
@@ -120,6 +122,7 @@ func _test_terrain_pathfinding() -> void:
     _check(player.axial == Vector2i(0, 1))
     _check(is_equal_approx(player.time_points, 17.0))
     _check(is_equal_approx(player.total_time_points_spent, 3.0))
+    sim.free()
 
 func _test_elevation_rules() -> void:
     var map_data := HexMapData.new()
@@ -217,3 +220,5 @@ func _test_combat_turn_scheduler() -> void:
     _check(loaded.get_character("guard") != null)
     _check(loaded.get_character("player") != null)
     _check(is_equal_approx(loaded.clock.world_seconds, sim.clock.world_seconds))
+    loaded.free()
+    sim.free()
