@@ -19,10 +19,10 @@ from mathutils.bvhtree import BVHTree
 def arguments():
     raw = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True)
-    parser.add_argument("--output", required=True)
-    parser.add_argument("--profile", choices=("female", "none"), required=True)
-    parser.add_argument("--adult", action="store_true")
+    parser.add_argument("--input", default=os.environ.get("ARA_INPUT"), required=not bool(os.environ.get("ARA_INPUT")))
+    parser.add_argument("--output", default=os.environ.get("ARA_OUTPUT"), required=not bool(os.environ.get("ARA_OUTPUT")))
+    parser.add_argument("--profile", choices=("female", "none"), default=os.environ.get("ARA_PROFILE"), required=not bool(os.environ.get("ARA_PROFILE")))
+    parser.add_argument("--adult", action="store_true", default=os.environ.get("ARA_ADULT") == "1")
     return parser.parse_args(raw)
 
 
