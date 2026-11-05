@@ -246,13 +246,41 @@ def main():
     hit = front_hit(surface_tree, 0.0, pelvis_z)
     body_front_y = hit.y if hit is not None else None
     if body_front_y is None:
-        lower = [o for o in meshes if any(k in material_name(o) for k in ("pants", "trouser", "brief"))]
-        if lower:
-            hit = front_hit(build_bvh(max(lower, key=lambda o: len(o.data.polygons))), 0.0, pelvis_z)
-            if hit is not None:
-                body_front_y = hit.y + 0.010
+        # Ara may omit the exact centreline pelvis face in a clothed export.
+        # Search a small grid across the lower torso and use an actual mesh
+        # surface hit, rather than inventing a depth from the character bounds.
+        candidates = []
+        x_samples = [0.0, -0.025, 0.025, -0.05, 0.05, -0.075, 0.075,
+                     -width * 0.10, width * 0.10, -width * 0.14, width * 0.14]
+        z_samples = [pelvis_z + dz for dz in (0.0, -0.015, 0.015, -0.03, 0.03,
+                                               -0.045, 0.045, -0.06, 0.06)]
+        # Prefer a lower-garment mesh when its material is identifiable, but
+        # also inspect all remaining meshes: Ara's material labels vary by export.
+        ordered = sorted(meshes, key=lambda o: (
+            0 if any(k in material_name(o) for k in ("pants", "trouser", "brief", "underwear")) else 1,
+            -len(o.data.polygons)))
+        for candidate_obj in ordered:
+            tree = build_bvh(candidate_obj)
+            for x in x_samples:
+                for z in z_samples:
+                    result = front_hit_data(tree, x, z)
+                    if result:
+                        location, normal = result
+                        if normal.y < -0.15:
+                            candidates.append((abs(z - pelvis_z) + abs(x) * 0.35,
+                                               location.y, location, candidate_obj.name))
+            if candidates and any(k in material_name(candidate_obj) for k in ("pants", "trouser", "brief", "underwear")):
+                break
+        if candidates:
+            _score, surface_y, location, source_name = min(candidates, key=lambda item: item[0])
+            body_front_y = surface_y + 0.010
+            print(f"Pelvis surface fallback: {source_name} at {tuple(round(v, 4) for v in location)}")
     if body_front_y is None:
-        raise RuntimeError("Could not locate the front pelvis surface; refusing guessed anatomy placement")
+        details = []
+        for obj in meshes:
+            lo, hi = mesh_world_bounds(obj)
+            details.append(f"{obj.name}: materials={material_name(obj)!r}, z={lo.z:.3f}..{hi.z:.3f}, polys={len(obj.data.polygons)}")
+        raise RuntimeError("Could not locate the front pelvis surface after grid scan. Meshes: " + " | ".join(details))
 
     # Expand lower garments before adding the anatomy so their surfaces clear it.
     expand_lower_garments(meshes, pelvis_z, body_front_y, width)
