@@ -183,3 +183,5 @@ func _collect_meshes(node: Node, output: Array[MeshInstance3D]) -> void:
 
 func _slot_node_name(slot: String) -> String:
     return slot.capitalize().replace("_", "") + "Slot"
+
+# Appearance persistence hooks are added in the next implementation pass.
