@@ -11,6 +11,7 @@ func _initialize() -> void:
     if _failures > 0:
         push_error("%d test assertion(s) failed." % _failures)
         quit(1)
+        return
     print("HexGrid tests passed.")
     quit(0)
 
