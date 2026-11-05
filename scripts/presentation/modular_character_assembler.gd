@@ -129,20 +129,31 @@ func set_garment_material(slot: String, data: Dictionary) -> bool:
     var meshes: Array[MeshInstance3D] = []
     _collect_meshes(slot_mounts[slot], meshes)
     var colour := Color.from_string(str(data.get("colour", "#ffffff")), Color.WHITE)
+    var secondary := Color.from_string(str(data.get("secondary", "#333333")), Color("#333333"))
     var opacity := clampf(float(data.get("opacity", 1.0)), 0.0, 1.0)
+    var fabric_modes := {"solid": 0, "linen": 1, "wool": 2, "leather": 3, "lace": 4}
+    var fabric := str(data.get("fabric", "solid"))
+    var fabric_mode := int(fabric_modes.get(fabric, 0))
+    var fabric_shader: Shader = load("res://shaders/garment_fabric.gdshader")
+    if fabric_shader == null:
+        push_error("Garment fabric shader is missing.")
+        return false
     for mesh_instance in meshes:
         if mesh_instance.mesh == null:
             continue
         for surface_index in range(mesh_instance.mesh.get_surface_count()):
-            var source := mesh_instance.get_active_material(surface_index)
+            var source := mesh_instance.get_active_material(surface_index) as StandardMaterial3D
             if source == null:
                 continue
-            var material_copy := source.duplicate(true) as BaseMaterial3D
-            if material_copy == null:
-                continue
-            material_copy.albedo_color = Color(colour.r, colour.g, colour.b, opacity)
-            material_copy.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if opacity < 0.999 else BaseMaterial3D.TRANSPARENCY_DISABLED
-            mesh_instance.set_surface_override_material(surface_index, material_copy)
+            var material := ShaderMaterial.new()
+            material.shader = fabric_shader
+            material.set_shader_parameter("base_texture", source.albedo_texture)
+            material.set_shader_parameter("use_base_texture", source.albedo_texture != null)
+            material.set_shader_parameter("tint", Color(colour.r, colour.g, colour.b, opacity))
+            material.set_shader_parameter("secondary_colour", secondary)
+            material.set_shader_parameter("fabric_mode", fabric_mode)
+            material.set_shader_parameter("pattern_strength", 0.22)
+            mesh_instance.set_surface_override_material(surface_index, material)
             changed = true
     if changed:
         active_materials[slot] = data.duplicate(true)
