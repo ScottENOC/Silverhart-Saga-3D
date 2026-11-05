@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "characters": [
+    {
+      "id": "npc_female_slim",
+      "name": "NPC Female Slim",
+      "body_variant": "ara_female_slim",
+      "params": {
+        "seed": 1701,
+        "gender": 0,
+        "age": 0.58,
+        "muscle": 0.38,
+        "weight": 0.32,
+        "height": 0.58,
+        "proportions": 0.72,
+        "african": 0.04,
+        "asian": 0.08,
+        "caucasian": 0.88,
+        "breastSize": 0.48,
+        "breastFirmness": 0.52,
+        "skinTint": "#f1d1b6",
+        "hair": "long01",
+        "hairTint": "#70412d",
+        "hairColor": "#70412d",
+        "eyes": "green",
+        "eyebrows": "eyebrow010",
+        "eyelashes": "eyelashes02",
+        "outfit": "none",
+        "top": "fatigue_shirt",
+        "bottom": "fatigue_pants",
+        "shoes": "combat_boots",
+        "underwear": true,
+        "garmentStyles": {
+          "fatigue_shirt": {
+            "pattern": "solid",
+            "color": "#7d4c3c",
+            "color2": "#d2b18b"
+          },
+          "fatigue_pants": {
+            "pattern": "solid",
+            "color": "#353a43",
+            "color2": "#353a43"
+          }
+        }
+      }
+    },
+    {
+      "id": "npc_male_heavy",
+      "name": "NPC Male Heavy",
+      "body_variant": "ara_male_heavy",
+      "params": {
+        "seed": 2702,
+        "gender": 1,
+        "age": 0.68,
+        "muscle": 0.78,
+        "weight": 0.88,
+        "height": 0.68,
+        "proportions": 0.42,
+        "african": 0.94,
+        "asian": 0.02,
+        "caucasian": 0.04,
+        "breastSize": 0.2,
+        "breastFirmness": 0.5,
+        "skinTint": "#8b5a3c",
+        "hair": "short02",
+        "hairTint": "#211812",
+        "hairColor": "#211812",
+        "facialHair": "short_beard",
+        "beardColor": "#211812",
+        "eyes": "blackbrown",
+        "eyebrows": "eyebrow001",
+        "outfit": "none",
+        "top": "fatigue_shirt",
+        "bottom": "fatigue_pants",
+        "shoes": "combat_boots",
+        "underwear": true,
+        "garmentStyles": {
+          "fatigue_shirt": {
+            "pattern": "leather",
+            "color": "#34302b",
+            "color2": "#66503a"
+          },
+          "fatigue_pants": {
+            "pattern": "workwear",
+            "color": "#5b5142",
+            "color2": "#39342d"
+          }
+        }
+      }
+    },
+    {
+      "id": "npc_female_athletic",
+      "name": "NPC Female Athletic",
+      "body_variant": "ara_female_athletic",
+      "params": {
+        "seed": 3703,
+        "gender": 0,
+        "age": 0.46,
+        "muscle": 0.72,
+        "weight": 0.48,
+        "height": 0.52,
+        "proportions": 0.84,
+        "african": 0.12,
+        "asian": 0.72,
+        "caucasian": 0.16,
+        "breastSize": 0.42,
+        "breastFirmness": 0.7,
+        "skinTint": "#d4a27e",
+        "hair": "ponytail01",
+        "hairTint": "#28201b",
+        "hairColor": "#28201b",
+        "eyes": "brown",
+        "eyebrows": "eyebrow001",
+        "eyelashes": "eyelashes02",
+        "outfit": "none",
+        "top": "tank_top",
+        "bottom": "cargo_shorts",
+        "shoes": "combat_boots",
+        "underwear": true,
+        "tattoos": [
+          "forearm_l"
+        ],
+        "tattooInk": "#29211d",
+        "garmentStyles": {
+          "tank_top": {
+            "pattern": "solid",
+            "color": "#355b63",
+            "color2": "#d4a27e"
+          },
+          "cargo_shorts": {
+            "pattern": "khaki",
+            "color": "#81704e",
+            "color2": "#62563f"
+          }
+        }
+      }
+    }
+  ]
+}
