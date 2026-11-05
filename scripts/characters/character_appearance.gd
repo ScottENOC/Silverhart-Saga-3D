@@ -1,7 +1,7 @@
 extends Resource
 class_name CharacterAppearance
-## Runtime appearance data shared by all generated NPCs.
-## Store only stable values; generated meshes and imported textures remain assets.
+## Serializable NPC appearance. Material instances are duplicated per surface so
+## recolouring one character never mutates a shared imported GLB material.
 
 @export var schema_version: int = 1
 @export var skin_tint: Color = Color(0.78, 0.57, 0.45, 1.0)
@@ -45,19 +45,17 @@ static func from_dict(data: Dictionary) -> CharacterAppearance:
 	return result
 
 func apply_to(root: Node) -> void:
+	if root == null:
+		return
 	_apply_recursive(root)
 
 func _apply_recursive(node: Node) -> void:
 	if node is MeshInstance3D:
-		var slot := str(node.get_meta("appearance_slot", node.name.to_lower()))
+		var mesh_instance := node as MeshInstance3D
+		var slot := str(mesh_instance.get_meta("appearance_slot", mesh_instance.name.to_lower())).to_lower()
 		var tint := _tint_for_slot(slot)
 		if tint != Color.TRANSPARENT:
-			var material := _get_or_make_material(node)
-			material.albedo_color = tint
-			if slot == "shirt":
-				var fabric: Dictionary = FABRIC_PRESETS.get(shirt_fabric, FABRIC_PRESETS["cotton"])
-				material.roughness = float(fabric["roughness"])
-				material.metallic = float(fabric["metallic"])
+			_apply_surface_materials(mesh_instance, tint, slot)
 	for child in node.get_children():
 		_apply_recursive(child)
 
@@ -68,23 +66,40 @@ func _tint_for_slot(slot: String) -> Color:
 		return trouser_tint
 	if slot.contains("hair"):
 		return hair_tint
-	if slot.contains("skin") or slot.contains("body"):
+	if slot.contains("skin") or slot == "body":
 		return skin_tint
 	return Color.TRANSPARENT
 
-func _get_or_make_material(mesh_instance: MeshInstance3D) -> StandardMaterial3D:
-	var existing := mesh_instance.material_override
-	if existing is StandardMaterial3D:
-		return existing
-	var material := StandardMaterial3D.new()
-	if existing != null:
-		material.albedo_color = Color.WHITE
-	elif mesh_instance.mesh != null and mesh_instance.mesh.get_surface_count() > 0:
-		var source := mesh_instance.mesh.surface_get_material(0)
-		if source is BaseMaterial3D:
-			material.albedo_color = source.albedo_color
-			material.roughness = source.roughness
-	mesh_instance.material_override = material
+func _apply_surface_materials(mesh_instance: MeshInstance3D, tint: Color, slot: String) -> void:
+	if mesh_instance.mesh == null:
+		return
+	var surface_count := mesh_instance.mesh.get_surface_count()
+	if surface_count == 0:
+		# Procedural meshes may have no surfaces until generated.
+		return
+	for surface in range(surface_count):
+		var source: Material = mesh_instance.get_active_material(surface)
+		var material := _make_tinted_material(source, tint, slot)
+		mesh_instance.set_surface_override_material(surface, material)
+
+func _make_tinted_material(source: Material, tint: Color, slot: String) -> StandardMaterial3D:
+	var material: StandardMaterial3D
+	if source is StandardMaterial3D:
+		material = (source as StandardMaterial3D).duplicate() as StandardMaterial3D
+	elif source is BaseMaterial3D:
+		var base := source as BaseMaterial3D
+		material = StandardMaterial3D.new()
+		material.albedo_color = base.albedo_color
+		material.roughness = base.roughness
+		material.metallic = base.metallic
+	else:
+		material = StandardMaterial3D.new()
+	# Preserve the imported albedo map and multiply it by the selected dye colour.
+	material.albedo_color = material.albedo_color * tint
+	if slot.contains("shirt") or slot.contains("top"):
+		var fabric: Dictionary = FABRIC_PRESETS.get(shirt_fabric, FABRIC_PRESETS["cotton"])
+		material.roughness = float(fabric["roughness"])
+		material.metallic = float(fabric["metallic"])
 	return material
 
 func save_json(path: String) -> Error:
