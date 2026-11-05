@@ -50,6 +50,8 @@ for character in data["characters"]:
         "trousers": {"bottom": params.get("bottom", "none")},
         "shirt_alt": {"top": "tank_top" if params.get("top") != "tank_top" else "fatigue_shirt"},
         "trousers_alt": {"bottom": "cargo_shorts" if params.get("bottom") != "cargo_shorts" else "fatigue_pants"},
+        "boots": {"shoes": "combat_boots"},
+        "weapon": {"weapon": "sword"},
     }.items():
         component = dict(base)
         component.update(changes)
