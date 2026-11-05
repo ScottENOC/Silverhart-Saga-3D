@@ -6,7 +6,7 @@ extends Resource
 
 @export var body_variant: String = "ara_female_slim"
 @export var skin_tint: Color = Color.WHITE
-@export var hair_id: String = "braid01"
+@export var hair_id: String = "long01"
 @export var hair_tint: Color = Color("#252b62")
 @export var face_variant: String = "face_a"
 @export var tattoos: Array[String] = []
