@@ -115,3 +115,43 @@ func enter_mode(mode: String) -> void:
         "arena": play_music("res://audio/legacy/arena_lobby.ogg", 1.2, true)
         "campaign": stop_music(1.0)
         _: play_music("res://audio/legacy/title.ogg", 1.0, true)
+
+const ARENA_MUSIC := {
+    "lobby": "res://audio/legacy/arena_lobby.ogg",
+    "pre_battle": "res://audio/legacy/arena_pre_battle.ogg",
+    "battle": "res://audio/legacy/arena_battle.ogg",
+    "death": "res://audio/legacy/arena_death.ogg"
+}
+const ARENA_DIALOGUE := [
+    "arena_entrance", "arena_fight_mid", "arena_fight_start", "arena_indoor",
+    "arena_lobby_1", "arena_lobby_2", "arena_lobby_3", "arena_lobby_4",
+    "arena_outdoor_day", "arena_outdoor_night", "arena_victory"
+]
+const CAMPAIGN_DIALOGUE := ["goblin_1_enemy_seen", "grishnak_entry", "pc_1_enemy_seen"]
+
+func play_arena_music(track_name: String, fade := 0.8) -> void:
+    if current_mode != "arena" or not ARENA_MUSIC.has(track_name):
+        return
+    play_music(ARENA_MUSIC[track_name], fade, track_name != "death")
+
+func play_arena_transition() -> void:
+    if current_mode != "arena": return
+    play_sfx("res://audio/legacy/arena_transition.ogg")
+
+func play_arena_sting(kind := "battle") -> void:
+    if current_mode != "arena": return
+    var path := "res://audio/legacy/arena_battle_sting.ogg"
+    if kind == "death": path = "res://audio/legacy/arena_death_sting.ogg"
+    play_sfx(path)
+
+func play_arena_dialogue(key: String) -> void:
+    if current_mode != "arena" or not ARENA_DIALOGUE.has(key): return
+    play_dialogue("res://audio/legacy/dialogue/" + key + ".ogg")
+
+func play_campaign_dialogue(key: String) -> void:
+    if current_mode != "campaign" or not CAMPAIGN_DIALOGUE.has(key): return
+    play_dialogue("res://audio/legacy/dialogue/" + key + ".ogg")
+
+func play_parry() -> void:
+    if current_mode == "arena" or current_mode == "campaign":
+        play_sfx("res://audio/legacy/effects/parry.ogg")
