@@ -14,7 +14,7 @@ static func find_path(map_data: HexMapData, occupied_hexes: Dictionary, start: V
     var open: Array[Vector2i] = [start]
     var came_from: Dictionary = {}
     var g_score: Dictionary = {start: 0.0}
-    var minimum_step_cost := MovementRules.base_cost_for(state) * 0.75 # Minimum downhill multiplier; keeps A* admissible.
+    var minimum_step_cost := MovementRules.base_cost_for(state) * 0.075 # 0.1 minimum terrain multiplier x 0.75 minimum downhill multiplier.
     var f_score: Dictionary = {start: float(HexGrid.distance(start, target)) * minimum_step_cost}
     var iterations := 0
     while not open.is_empty() and iterations < 10000:
