@@ -14,7 +14,8 @@ button{background:#30343b;color:#eee;border:1px solid #4a4f58;border-radius:8px;
 <header><strong>WREN WORKSHOP</strong><span>Silverhart Saga 3D · model preview</span></header>
 <main><div id="stage"><div id="status">Loading model…</div><div id="hint">Drag to orbit · Pinch or scroll to zoom · Two-finger drag to pan</div></div>
 <aside>
-<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara">Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
+<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara">Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option>
+<option value="npc-mara">Mara Venn · NPC</option><option value="npc-dain">Dain Okoro · NPC</option><option value="npc-sella">Sella Rook · NPC</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
 <section><h2>Camera</h2><div class="buttons"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="three">3/4</button><button id="home">Reset</button></div><div class="row"><span>Auto rotate</span><input id="autorotate" type="checkbox"></div></section>
 <section><h2>Lighting</h2><div class="row"><span>Key light</span><input id="keylight" type="range" min="0" max="5" step=".1" value="3"></div><div class="row"><span>Fill light</span><input id="filllight" type="range" min="0" max="4" step=".1" value="1.4"></div><div class="row"><span>Light direction</span><input id="lightangle" type="range" min="0" max="360" value="35"></div></section>
 <section><h2>Build</h2><div class="note" id="build">Loading build information…</div><p class="note" id="error"></p></section>
@@ -62,8 +63,10 @@ function disposeModel(root){
 }
 function loadModel(mode){
  const generation=++loadGeneration;
- const file=mode==='ara-mobile'?'ara_wren_mobile.glb':'ara_wren_benchmark.glb';
- const label=mode==='ara-mobile'?'Ara mobile preview':'Ara high-detail benchmark';
+ const modelFiles={ara:'ara_wren_benchmark.glb','ara-mobile':'ara_wren_mobile.glb','npc-mara':'npc/npc_mara.glb','npc-dain':'npc/npc_dain.glb','npc-sella':'npc/npc_sella.glb'};
+ const modelLabels={ara:'Ara high-detail benchmark','ara-mobile':'Ara mobile preview','npc-mara':'Mara Venn · NPC','npc-dain':'Dain Okoro · NPC','npc-sella':'Sella Rook · NPC'};
+ const file=modelFiles[mode]||modelFiles.ara;
+ const label=modelLabels[mode]||modelLabels.ara;
  const modelUrl=new URL('./assets/'+file+'?v='+encodeURIComponent(buildVersion),window.location.href).href;
  if(model){scene.remove(model);disposeModel(model);model=null;box=null}
  status.textContent='Loading '+label+'…';error.textContent='';
