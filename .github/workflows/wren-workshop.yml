@@ -17,7 +17,7 @@ concurrency:
   group: wren-workshop
   cancel-in-progress: false
 jobs:
-  build-and-publish:
+  generate:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -156,46 +156,103 @@ jobs:
           cp "$MOBILE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
           cp /tmp/ara-wren-mobile.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.params.json"
           test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
+      - name: Save raw generated models for parallel integration
+        uses: actions/upload-artifact@v4
+        with:
+          name: ara-generated-models
+          path: |
+            art/characters/ara/*.glb
+            art/characters/ara/*.params.json
+          if-no-files-found: error
+          retention-days: 2
+
+  integrate:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - ara_wren_benchmark
+          - ara_wren_mobile
+          - ara_wren_body
+          - ara_wren_tattoo_body
+          - ara_wren_underwear
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download generated model
+        uses: actions/download-artifact@v4
+        with:
+          name: ara-generated-models
+          path: /tmp/ara-generated
       - name: Install Blender and integrate adult anatomy
         shell: bash
+        env:
+          VARIANT: ${{ matrix.variant }}
         run: |
           set -euo pipefail
           sudo apt-get update
-          # Install NumPy from Ubuntu's matching system packages. The distro Blender
-          # uses the system Python ABI; ensurepip is intentionally disabled on Ubuntu.
           sudo apt-get install -y blender python3-numpy
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           blender --background --python-expr "import numpy; print('Blender NumPy:', numpy.__version__)"
-          for variant in ara_wren_benchmark ara_wren_mobile ara_wren_body ara_wren_tattoo_body ara_wren_underwear; do
-            ARA_INPUT="art/characters/ara/${variant}.glb" \
-              ARA_OUTPUT="/tmp/${variant}_anatomy.glb" \
-              ARA_PROFILE=female ARA_ADULT=1 \
-              blender --background --python tools/blender/add_adult_anatomy.py
-            mv "/tmp/${variant}_anatomy.glb" "art/characters/ara/${variant}.glb"
-            test -s "art/characters/ara/${variant}.glb"
-          done
-          mkdir -p art/characters/ara/review/body art/characters/ara/review/clothed
-          REVIEW_INPUT=art/characters/ara/ara_wren_body.glb \
-            REVIEW_OUTPUT_DIR=art/characters/ara/review/body \
-            blender --background --python tools/blender/inspect_character.py
-          REVIEW_INPUT=art/characters/ara/ara_wren_benchmark.glb \
-            REVIEW_OUTPUT_DIR=art/characters/ara/review/clothed \
-            blender --background --python tools/blender/inspect_character.py
+          ARA_INPUT="/tmp/ara-generated/${VARIANT}.glb" \
+            ARA_OUTPUT="/tmp/${VARIANT}_anatomy.glb" \
+            ARA_PROFILE=female ARA_ADULT=1 \
+            blender --background --python tools/blender/add_adult_anatomy.py
+          mkdir -p art/characters/ara
+          mv "/tmp/${VARIANT}_anatomy.glb" "art/characters/ara/${VARIANT}.glb"
+          test -s "art/characters/ara/${VARIANT}.glb"
+          if [ "${VARIANT}" = "ara_wren_body" ]; then
+            mkdir -p art/characters/ara/review/body
+            REVIEW_INPUT="art/characters/ara/${VARIANT}.glb" \
+              REVIEW_OUTPUT_DIR=art/characters/ara/review/body \
+              blender --background --python tools/blender/inspect_character.py
+          elif [ "${VARIANT}" = "ara_wren_benchmark" ]; then
+            mkdir -p art/characters/ara/review/clothed
+            REVIEW_INPUT="art/characters/ara/${VARIANT}.glb" \
+              REVIEW_OUTPUT_DIR=art/characters/ara/review/clothed \
+              blender --background --python tools/blender/inspect_character.py
+          fi
+      - name: Save integrated model and review renders
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-${{ matrix.variant }}
+          path: |
+            art/characters/ara/${{ matrix.variant }}.glb
+            art/characters/ara/review/**
+          if-no-files-found: error
+          retention-days: 2
+
+  publish:
+    needs: integrate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download generated parameter files
+        uses: actions/download-artifact@v4
+        with:
+          name: ara-generated-models
+          path: /tmp/ara-generated
+      - name: Restore parameter files
+        run: |
+          set -euo pipefail
+          mkdir -p art/characters/ara
+          cp /tmp/ara-generated/*.params.json art/characters/ara/
+      - name: Collect integrated models and review renders
+        uses: actions/download-artifact@v4
+        with:
+          pattern: processed-*
+          path: art/characters/ara
+          merge-multiple: true
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: character-pipeline-evaluation
           path: |
-            art/characters/ara/ara_wren_benchmark.glb
-            art/characters/ara/ara_wren.params.json
-            art/characters/ara/ara_wren_mobile.glb
-            art/characters/ara/ara_wren_mobile.params.json
-            art/characters/ara/ara_wren_body.glb
-            art/characters/ara/ara_wren_body.params.json
-            art/characters/ara/ara_wren_tattoo_body.glb
-            art/characters/ara/ara_wren_tattoo_body.params.json
-            art/characters/ara/ara_wren_underwear.glb
-            art/characters/ara/ara_wren_underwear.params.json
+            art/characters/ara/*.glb
+            art/characters/ara/*.params.json
             art/characters/ara/review/**
           if-no-files-found: error
           retention-days: 14
