@@ -26,12 +26,17 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	body.add_child(shirt)
 
 	appearance.apply_to(body)
+	appearance.apply_to(body) # Applying twice must not multiply the tint twice.
 	var dyed := shirt.get_active_material(0) as StandardMaterial3D
 	assert(dyed != null)
 	assert(dyed.albedo_color.is_equal_approx(Color("#9b263d")))
 	assert(is_equal_approx(dyed.roughness, 0.96))
 	assert(is_equal_approx(source_material.albedo_color.r, 1.0))
 	assert(is_equal_approx(source_material.roughness, 0.5))
+	appearance.shirt_tint = Color("#315f9b")
+	appearance.apply_to(body)
+	var redyed := shirt.get_active_material(0) as StandardMaterial3D
+	assert(redyed.albedo_color.is_equal_approx(Color("#315f9b")))
 
 	var path := "user://character_appearance_test.json"
 	assert(appearance.save_json(path) == OK)
