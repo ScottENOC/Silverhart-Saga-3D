@@ -210,10 +210,10 @@ function socketSurface(name){
  const normalEnd=model.worldToLocal(worldPoint.clone().add(worldNormal));
  return {point,normal:normalEnd.sub(point).normalize()};
 }
-function addHoopAt(hit,radius,material,tilt=0){
+function addHoopAt(hit,radius,material,tilt=0,surfaceOffset=.0025){
  if(!hit)return false;
  const o=new THREE.Mesh(new THREE.TorusGeometry(radius,radius*.19,10,32),material);
- o.position.copy(hit.point).addScaledVector(hit.normal,.0025);
+ o.position.copy(hit.point).addScaledVector(hit.normal,surfaceOffset);
  o.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),hit.normal);
  if(tilt)o.rotateZ(tilt);
  accessoryGroup.add(o);return true;
@@ -228,23 +228,28 @@ function addAccessories(kind){
  const skinSurface=(x,y)=>surfacePoint(x,y,true);
  let ok=true;
  if(kind==='earrings'){
-  ok=addHoopAt(socketSurface('SOCKET_Earring_L')||skinSurface(-.085,1.55),.012,silver)&&addHoopAt(socketSurface('SOCKET_Earring_R')||skinSurface(.085,1.55),.012,silver);
+  // Seat hoops slightly behind the ear surface so hair naturally occludes them.
+  ok=addHoopAt(socketSurface('SOCKET_Earring_L')||skinSurface(-.085,1.55),.012,silver,0,-.006)&&addHoopAt(socketSurface('SOCKET_Earring_R')||skinSurface(.085,1.55),.012,silver,0,-.006);
  }else if(kind==='nose'){
   ok=addHoopAt(socketSurface('SOCKET_NoseRing')||skinSurface(0,1.565),.008,silver);
  }else if(kind==='necklace'){
+  // Trace a complete horizontal loop around the neck, sampling the actual mesh
+  // from above at the front, sides and back rather than drawing a front-only arc.
   const pts=[];
-  for(let i=0;i<=36;i++){
-   const t=i/36, x=(t-.5)*.22, y=1.405-.085*(1-Math.pow((t-.5)*2,2));
-   const hit=anySurface(x,y);if(hit)pts.push(hit.point.clone().addScaledVector(hit.normal,.004));
+  for(let i=0;i<72;i++){
+   const t=(i/72)*Math.PI*2;
+   const x=.11*Math.sin(t), y=1.405-.085*Math.cos(t);
+   const hit=anySurface(x,y);
+   if(hit)pts.push(hit.point.clone().addScaledVector(hit.normal,.004));
   }
-  if(pts.length<8)ok=false;
+  if(pts.length<48)ok=false;
   else{
-   const curve=new THREE.CatmullRomCurve3(pts);
-   accessoryGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,64,.0028,6,false),gold));
-   const pendant=pts[Math.floor(pts.length/2)].clone();
+   const curve=new THREE.CatmullRomCurve3(pts,true,'centripetal');
+   accessoryGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,144,.0028,6,true),gold));
+   const pendant=pts.reduce((best,p)=>p.y<best.y?p:best,pts[0]).clone();
    const p=new THREE.Mesh(new THREE.OctahedronGeometry(.012,1),gold);p.position.copy(pendant);accessoryGroup.add(p);
   }
- }else if(kind==='nipple_left'||kind==='nipple_right'){
+  }else if(kind==='nipple_left'||kind==='nipple_right'){
   const x=kind==='nipple_left'?.105:-.105;
   ok=addHoopAt(socketSurface(kind==='nipple_left'?'SOCKET_Nipple_L':'SOCKET_Nipple_R')||skinSurface(x,1.255),.008,silver);
  }else if(kind==='clit'){
