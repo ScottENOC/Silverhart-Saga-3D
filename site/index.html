@@ -28,7 +28,7 @@ button:disabled{opacity:.4}
 <section><h2>Appearance · material inspector</h2>
 <div class="row"><span>Material</span><select id="materialSelect"><option value="">Load a model first</option></select></div>
 <div class="row"><span>Colour / dye</span><input id="materialColor" type="color" value="#6f8b62"></div>
-<div class="row"><span>Fabric roughness</span><input id="materialRoughness" type="range" min="0.05" max="1" step="0.01" value="0.8"></div>
+<div class="row"><span>Fabric</span><select id="fabricPreset"><option value="custom">Custom</option><option value="cotton">Cotton</option><option value="linen">Linen</option><option value="wool">Wool</option><option value="leather">Leather</option><option value="silk">Silk</option></select></div><div class="row"><span>Surface roughness</span><input id="materialRoughness" type="range" min="0.05" max="1" step="0.01" value="0.8"></div>
 <div class="buttons"><button id="applyMaterial">Apply</button><button id="resetMaterials">Reset materials</button></div>
 <p class="note">Choose an imported material by name, then test colour and surface roughness. This edits the live preview, not the source GLB.</p>
 </section>
@@ -136,6 +136,9 @@ function selectMaterial(){
  document.querySelector('#materialRoughness').value=String(m.roughness??0.8);
 }
 materialSelect.addEventListener('change',selectMaterial);
+const fabricSettings={cotton:.88,linen:.96,wool:.98,leather:.72,silk:.34};
+document.querySelector('#fabricPreset').addEventListener('change',e=>{if(e.target.value!=='custom')document.querySelector('#materialRoughness').value=fabricSettings[e.target.value];});
+document.querySelector('#materialRoughness').addEventListener('input',()=>document.querySelector('#fabricPreset').value='custom');
 document.querySelector('#applyMaterial').onclick=()=>{
  if(!selectedMaterial)return;
  const tint=new THREE.Color(document.querySelector('#materialColor').value);
@@ -182,10 +185,11 @@ document.querySelectorAll('[data-accessory]').forEach(b=>b.addEventListener('cli
 }));
 function appearanceSnapshot(){
  const materials={};for(const [key,e] of originalMaterials){materials[e.material.name||key]={color:e.material.color?'#'+e.material.color.getHexString():null,roughness:e.material.roughness??null,metalness:e.material.metalness??null};}
- return {schema_version:1,model:document.querySelector('#modelmode').value,materials,accessories:accessoryGroup?(accessoryGroup.userData.reviewAccessories||[]):[]};
+ return {schema_version:1,model:document.querySelector('#modelmode').value,fabric:document.querySelector('#fabricPreset').value,materials,accessories:accessoryGroup?(accessoryGroup.userData.reviewAccessories||[]):[]};
 }
 function applySnapshot(data){
  if(!data||typeof data!=='object')return;
+ if(data.fabric&&document.querySelector('#fabricPreset').querySelector('option[value="'+data.fabric+'"]'))document.querySelector('#fabricPreset').value=data.fabric;
  for(const e of originalMaterials.values()){
   const saved=data.materials?.[e.material.name];if(!saved)continue;
   if(saved.color&&e.material.color)e.material.color.set(saved.color);
