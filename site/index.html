@@ -188,7 +188,7 @@ function addAccessories(kind){
   const curve=new THREE.CatmullRomCurve3(pts);const chain=new THREE.Mesh(new THREE.TubeGeometry(curve,64,size.y*.0025,6,false),gold);accessoryGroup.add(chain);
   const pendant=new THREE.Mesh(new THREE.OctahedronGeometry(size.y*.012,1),gold);pendant.position.set(centre.x,neckY-size.y*.055,front+size.z*.065);accessoryGroup.add(pendant);
  }
- document.querySelector('#saveState').textContent='Accessory preview added · approximate bounds placement';
+ document.querySelector('#saveState').textContent='Accessory preview added · corrected to Ara body axes';
 }
 document.querySelectorAll('[data-accessory]').forEach(b=>b.addEventListener('click',()=>{
  if(b.dataset.accessory==='clear'){clearAccessories();document.querySelector('#saveState').textContent='Accessory preview cleared';}
@@ -198,8 +198,10 @@ function appearanceSnapshot(){
  const materials={};for(const [key,e] of originalMaterials){materials[e.material.name||key]={color:e.material.color?'#'+e.material.color.getHexString():null,roughness:e.material.roughness??null,metalness:e.material.metalness??null,opacity:e.material.userData.previewOpacity??e.material.opacity??1,visible:e.material.userData.previewVisible!==false};}
  return {schema_version:1,model:document.querySelector('#modelmode').value,fabric:document.querySelector('#fabricPreset').value,materials,accessories:accessoryGroup?(accessoryGroup.userData.reviewAccessories||[]):[]};
 }
+let pendingSnapshot=null;
 function applySnapshot(data){
  if(!data||typeof data!=='object')return;
+ if(data.model&&document.querySelector('#modelmode').value!==data.model){pendingSnapshot=data;document.querySelector('#modelmode').value=data.model;loadModel(data.model);return;}
  if(data.fabric&&document.querySelector('#fabricPreset').querySelector('option[value="'+data.fabric+'"]'))document.querySelector('#fabricPreset').value=data.fabric;
  for(const e of originalMaterials.values()){
   const saved=data.materials?.[e.material.name];if(!saved)continue;
@@ -224,7 +226,7 @@ document.querySelector('#exportAppearance').onclick=()=>{
 const originalLoadModel=loadModel;
 loadModel=function(mode){
  clearAccessories();originalLoadModel(mode);
- const poll=()=>{if(model){collectMaterials();return;}if(status.textContent.includes('failed'))return;setTimeout(poll,250);};setTimeout(poll,250);
+ const poll=()=>{if(model){collectMaterials();if(pendingSnapshot){const saved=pendingSnapshot;pendingSnapshot=null;applySnapshot(saved);}return;}if(status.textContent.includes('failed'))return;setTimeout(poll,250);};setTimeout(poll,250);
 };
 document.querySelector('#modelmode').onchange=e=>loadModel(e.target.value);
 document.querySelector('#showClothed').onclick=()=>{document.querySelector('#modelmode').value='ara';loadModel('ara')};
