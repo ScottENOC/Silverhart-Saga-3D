@@ -41,7 +41,9 @@
             "color": "#353a43",
             "color2": "#353a43"
           }
-        }
+        },
+        "earrings": "small_hoops",
+        "earringMetal": "gold"
       }
     },
     {
@@ -85,7 +87,9 @@
             "color": "#5b5142",
             "color2": "#39342d"
           }
-        }
+        },
+        "earrings": "studs",
+        "earringMetal": "silver"
       }
     },
     {
@@ -132,7 +136,9 @@
             "color": "#81704e",
             "color2": "#62563f"
           }
-        }
+        },
+        "earrings": "small_hoops",
+        "earringMetal": "silver"
       }
     }
   ]
