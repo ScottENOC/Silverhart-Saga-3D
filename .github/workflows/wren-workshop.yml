@@ -163,9 +163,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y blender
           # The distro Blender glTF importer needs NumPy in Blender's own Python.
-          blender --background --python-expr "import ensurepip; ensurepip.bootstrap()"
-          blender --background --python-expr "import subprocess,sys; subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'numpy'])"
-          blender --background --python-expr "import numpy; print('Blender NumPy:', numpy.__version__)"
+          blender --background --python-expr "import ensurepip; ensurepip.bootstrap(); import pip._internal.cli.main as pipmain; pipmain.main(['install', '--upgrade', 'numpy']); import numpy; print('Blender NumPy:', numpy.__version__)"
           for variant in ara_wren_benchmark ara_wren_mobile ara_wren_body ara_wren_tattoo_body ara_wren_underwear; do
             ARA_INPUT="art/characters/ara/${variant}.glb" \
               ARA_OUTPUT="/tmp/${variant}_anatomy.glb" \
