@@ -12,8 +12,8 @@ const SOCKETS := {
     "nipple.left": {"bone": "Spine2", "group": "torso_surface"},
     "nipple.right": {"bone": "Spine2", "group": "torso_surface"},
     "clitoral_hood": {"bone": "Hips", "group": "pelvis_surface"},
-    "hand.right": {"bone": "HandR", "group": "hand"},
-    "hand.left": {"bone": "HandL", "group": "hand"}
+    "hand.right": {"bone": "RightHand", "group": "hand"},
+    "hand.left": {"bone": "LeftHand", "group": "hand"}
 }
 
 var _attachments: Dictionary = {}
