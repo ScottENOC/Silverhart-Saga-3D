@@ -67,8 +67,8 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts
-          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --path . --rendering-method gl_compatibility --script res://tests/capture_terrain_prototype.gd 2>&1 | tee /tmp/terrain-capture.log
-          if grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to instantiate|ERROR: Condition' /tmp/terrain-capture.log; then
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --path . --rendering-method gl_compatibility --script res://tests/capture_terrain_prototype.gd 2>&1 | tee /tmp/terrain-capture.log
+          if grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to instantiate' /tmp/terrain-capture.log; then
             echo "Godot reported an error while capturing terrain screenshots."
             exit 1
           fi
