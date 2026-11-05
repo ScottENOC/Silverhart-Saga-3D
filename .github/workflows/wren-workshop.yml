@@ -3,9 +3,10 @@ name: Build Wren Workshop
 on:
   workflow_dispatch:
   push:
-    branches: [dev]
+    branches: [dev, feature/modular-character-poc]
     paths:
       - "tools/blender/**"
+      - "tools/ara/**"
       - "site/**"
       - "docs/ARA_CHARACTER_EVALUATION.md"
       - ".github/workflows/wren-workshop.yml"
@@ -26,6 +27,7 @@ jobs:
           set -euo pipefail
           git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
           git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
+          python3 "$GITHUB_WORKSPACE/tools/ara/patch_ara_clothing.py" /tmp/ara-3d-gen
           cd /tmp/ara-3d-gen
           corepack enable
           pnpm install --no-frozen-lockfile
@@ -99,6 +101,74 @@ jobs:
           cp "$MOBILE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
           cp /tmp/ara-wren-mobile.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.params.json"
           test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
+          # Test continuous translucent fabric and open-weave lace on the same shirt/body.
+          python - <<'PY'
+          import json
+          base = json.load(open('/tmp/ara-wren-mobile.params.json'))
+          sheer = dict(base)
+          sheer['name'] = 'Wren - translucent fabric test'
+          sheer['garmentStyles'] = dict(base.get('garmentStyles', {}))
+          sheer['garmentStyles']['fatigue_shirt'] = dict(sheer['garmentStyles'].get('fatigue_shirt', {}), opacity=0.42)
+          json.dump(sheer, open('/tmp/ara-wren-transparent.params.json', 'w'), indent=2)
+          lace = dict(base)
+          lace['name'] = 'Wren - open lace test'
+          lace['garmentStyles'] = dict(base.get('garmentStyles', {}))
+          lace['garmentStyles']['fatigue_shirt'] = dict(lace['garmentStyles'].get('fatigue_shirt', {}), pattern='lace')
+          json.dump(lace, open('/tmp/ara-wren-lace.params.json', 'w'), indent=2)
+          # Component exports all use the same body proportions and game rig.
+          component_base = dict(base)
+          component_base.update({
+              'name': 'Wren modular component',
+              'detail': 'low',
+              'animations': False,
+              'faceBones': True,
+              'faceShapes': True,
+              'speechShapes': True,
+              'outfit': 'none',
+              'top': 'none',
+              'jacket': 'none',
+              'bottom': 'none',
+              'underwear': False,
+              'shoes': 'none',
+              'hair': 'none',
+              'hat': 'none',
+              'weapon': 'none',
+              'carry': 'none',
+              'accessories': [],
+              'tattoos': []
+          })
+          for name, changes in {
+              'body': {},
+              'hair': {'hair': 'braid01'},
+              'shirt': {'top': 'fatigue_shirt'},
+              'trousers': {'bottom': 'fatigue_pants'}
+          }.items():
+              p = dict(component_base)
+              p.update(changes)
+              p['name'] = 'Wren modular ' + name
+              p['garmentStyles'] = base.get('garmentStyles', {})
+              json.dump(p, open('/tmp/modular-' + name + '.json', 'w'), indent=2)
+          PY
+          npm run export -- --params /tmp/ara-wren-transparent.params.json --detail low --formats glb --out /tmp/ara-transparent-out
+          npm run export -- --params /tmp/ara-wren-lace.params.json --detail low --formats glb --out /tmp/ara-lace-out
+          mkdir -p "$GITHUB_WORKSPACE/art/characters/ara/modular"
+          cp "$(find /tmp/ara-transparent-out -maxdepth 1 -name '*.glb' -print -quit)" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_transparent.glb"
+          cp "$(find /tmp/ara-lace-out -maxdepth 1 -name '*.glb' -print -quit)" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_lace.glb"
+          npx tsx scripts/export-modular-component.ts /tmp/modular-body.json "$GITHUB_WORKSPACE/art/characters/ara/modular/body.glb" "Skin,Skin details,Eyes,Eyebrows,Eyelashes,Teeth,Tongue"
+          npx tsx scripts/export-modular-component.ts /tmp/modular-hair.json "$GITHUB_WORKSPACE/art/characters/ara/modular/hair.glb" "Hair"
+          npx tsx scripts/export-modular-component.ts /tmp/modular-shirt.json "$GITHUB_WORKSPACE/art/characters/ara/modular/shirt.glb" "Fatigue shirt"
+          npx tsx scripts/export-modular-component.ts /tmp/modular-trousers.json "$GITHUB_WORKSPACE/art/characters/ara/modular/trousers.glb" "Fatigue pants"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('''$GITHUB_WORKSPACE/art/characters/ara/modular''')
+          base = json.loads((root / 'body.json').read_text())['rig_bones']
+          for name in ('hair', 'shirt', 'trousers'):
+              bones = json.loads((root / (name + '.json')).read_text())['rig_bones']
+              if bones != base:
+                  raise SystemExit('Rig mismatch in modular component: ' + name)
+          print('Modular component rig check passed:', len(base), 'identically ordered bones')
+          PY
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -108,6 +178,10 @@ jobs:
             art/characters/ara/ara_wren.params.json
             art/characters/ara/ara_wren_mobile.glb
             art/characters/ara/ara_wren_mobile.params.json
+            art/characters/ara/ara_wren_transparent.glb
+            art/characters/ara/ara_wren_lace.glb
+            art/characters/ara/modular/*.glb
+            art/characters/ara/modular/*.json
           if-no-files-found: error
           retention-days: 14
       - name: Assemble private viewer site
@@ -116,6 +190,10 @@ jobs:
           mkdir -p site/assets
           cp art/characters/ara/ara_wren_benchmark.glb site/assets/ara_wren_benchmark.glb
           cp art/characters/ara/ara_wren_mobile.glb site/assets/ara_wren_mobile.glb
+          cp art/characters/ara/ara_wren_transparent.glb site/assets/ara_wren_transparent.glb
+          cp art/characters/ara/ara_wren_lace.glb site/assets/ara_wren_lace.glb
+          mkdir -p site/assets/modular
+          cp art/characters/ara/modular/*.glb site/assets/modular/
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
