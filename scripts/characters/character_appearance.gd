@@ -83,16 +83,18 @@ func _apply_recursive(node: Node) -> void:
 	if node is MeshInstance3D:
 		var mesh_instance := node as MeshInstance3D
 		if mesh_instance.mesh != null:
+			var has_clothing := false
 			var all_hidden := true
 			for surface in range(mesh_instance.mesh.get_surface_count()):
 				var slot := _slot_for_surface(mesh_instance, surface)
 				var tint := _tint_for_slot(slot)
-				var should_show := _visible_for_slot(slot)
 				if tint != Color.TRANSPARENT:
 					_apply_surface_material(mesh_instance, tint, slot, _opacity_for_slot(slot), surface)
-				if should_show:
-					all_hidden = false
-			if mesh_instance.mesh.get_surface_count() > 0 and _has_clothing_slot(mesh_instance):
+				if _is_shirt_slot(slot) or _is_bra_slot(slot) or _is_briefs_slot(slot) or _is_trouser_slot(slot):
+					has_clothing = true
+					if _visible_for_slot(slot):
+						all_hidden = false
+			if has_clothing:
 				mesh_instance.visible = not all_hidden
 	for child in node.get_children():
 		_apply_recursive(child)
@@ -104,13 +106,6 @@ func _slot_for_surface(mesh_instance: MeshInstance3D, surface: int) -> String:
 	if material != null and not material.resource_name.is_empty():
 		return material.resource_name.to_lower()
 	return mesh_instance.name.to_lower()
-
-func _has_clothing_slot(mesh_instance: MeshInstance3D) -> bool:
-	for surface in range(mesh_instance.mesh.get_surface_count()):
-		var slot := _slot_for_surface(mesh_instance, surface)
-		if _is_shirt_slot(slot) or _is_bra_slot(slot) or _is_briefs_slot(slot) or _is_trouser_slot(slot):
-			return true
-	return false
 
 func _visible_for_slot(slot: String) -> bool:
 	if _is_shirt_slot(slot):
@@ -164,14 +159,16 @@ func _tint_for_slot(slot: String) -> Color:
 func _apply_surface_material(mesh_instance: MeshInstance3D, tint: Color, slot: String, opacity: float, surface: int) -> void:
 	if mesh_instance.mesh == null or surface < 0 or surface >= mesh_instance.mesh.get_surface_count():
 		return
-		var base_key := "appearance_base_material_%d" % surface
-		var source: Material
-		if mesh_instance.has_meta(base_key):
-			source = mesh_instance.get_meta(base_key) as Material
-		else:
-			source = mesh_instance.get_active_material(surface)
-			if source != null:
-				mesh_instance.set_meta(base_key, source)
+	var base_key := "appearance_base_material_%d" % surface
+	var source: Material
+	if mesh_instance.has_meta(base_key):
+		source = mesh_instance.get_meta(base_key) as Material
+	else:
+		source = mesh_instance.get_active_material(surface)
+		if source != null:
+			mesh_instance.set_meta(base_key, source)
+	if source == null:
+		return
 	var material := _make_tinted_material(source, tint, slot, opacity)
 	mesh_instance.set_surface_override_material(surface, material)
 
