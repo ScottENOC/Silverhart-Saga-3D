@@ -6,12 +6,14 @@ One adult base-body and rig contract should support Wren and a large NPC cast. N
 
 ## Current implementation on this branch
 
-- `scripts/characters/character_appearance.gd`: serialisable appearance state, material tint/fabric application, JSON save/load.
+- `scripts/characters/character_appearance.gd`: serialisable appearance state, material tint/fabric application, per-garment visibility and opacity, JSON save/load.
 - `tests/test_character_appearance.gd`: verifies shirt dye/fabric settings and accessory/tattoo IDs survive save/reload.
 - `data/characters/npc_presets.json`: initial Wren, Mara and Garrick profiles. Several asset IDs are explicitly placeholders pending validation against Ara's installed asset catalogue.
 - `tools/blender/inspect_character.py`: non-destructive four-angle inspection renders and mesh/rig/material report.
 - `tools/blender/add_adult_anatomy.py`: adult-only external anatomy blockout helper. It creates separate guide meshes; it is not yet a topology-integrated or deformation-tested anatomical sculpt.
 - `tools/blender/add_attachment_points.py`: reusable named accessory sockets exported as GLB nodes.
+- The phone viewer places preview earrings, a nose ring and a necklace using Ara's Y-up / +Z-front coordinate convention. Ara-generated tattoo previews use its native UV-space skin-detail texture rather than a floating decal.
+- The viewer workflow now exports a separate adult body-only GLB and a tattooed body-only GLB. Ara's body is anatomically neutral and has no genital geometry.
 
 ## Pipeline contract
 
@@ -26,4 +28,4 @@ One adult base-body and rig contract should support Wren and a large NPC cast. N
 
 ## Important limitations
 
-The current Ara benchmark is an assembled character export, not proof of independent runtime clothing modules. Dynamic dyeing can be tested on a material slot, but changing the underlying fabric weave requires a shader/texture implementation and a known material contract. Tattoos are currently represented as persistent appearance IDs only; a UV/decal implementation is still required. The attachment-point script uses approximate body bounds and must be aligned to the actual rig in Blender. The anatomy helper is a blockout and must not be labelled anatomically correct until reviewed and sculpted against anatomical references.
+The current Ara benchmark is an assembled character export, not proof of independent runtime clothing modules. Dynamic dyeing can be tested on a material slot, but changing the underlying fabric weave requires a shader/texture implementation and a known material contract. Ara can generate native tattoos (for example `armband_l` and `forearm_l`) into its UV-space skin-detail texture; the current viewer demonstrates them through a separately generated tattooed body GLB. The Godot appearance resource stores tattoo IDs but does not yet dynamically repaint the skin-detail texture at runtime. Phone-preview jewellery is bounds-positioned and still needs visual review against the generated model. Garment opacity in the viewer is a material preview only: Ara removes skin under clothing in its normal clothed export, so transparent garments can reveal gaps; use the body-only export to inspect the underlying base body. The body-only preview is adult and anatomically neutral, with no genital geometry. The anatomy helper is a blockout and must not be labelled anatomically correct until reviewed and sculpted against anatomical references.
