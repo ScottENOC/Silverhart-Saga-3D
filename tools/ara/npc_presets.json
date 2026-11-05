@@ -43,7 +43,12 @@
           }
         },
         "earrings": "small_hoops",
-        "earringMetal": "gold"
+        "earringMetal": "gold",
+        "modifiers": {
+          "chin/chin-prominent": -0.18,
+          "cheek/cheek-bones": 0.28,
+          "head/head-square": -0.18
+        }
       }
     },
     {
@@ -89,7 +94,12 @@
           }
         },
         "earrings": "studs",
-        "earringMetal": "silver"
+        "earringMetal": "silver",
+        "modifiers": {
+          "chin/chin-width": 0.42,
+          "head/head-square": 0.38,
+          "neck/neck-scale-horiz": 0.32
+        }
       }
     },
     {
@@ -138,7 +148,12 @@
           }
         },
         "earrings": "small_hoops",
-        "earringMetal": "silver"
+        "earringMetal": "silver",
+        "modifiers": {
+          "chin/chin-prominent": 0.18,
+          "cheek/cheek-bones": 0.22,
+          "head/head-square": -0.12
+        }
       }
     }
   ]
