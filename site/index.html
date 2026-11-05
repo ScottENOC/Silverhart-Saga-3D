@@ -14,7 +14,7 @@ button{background:#30343b;color:#eee;border:1px solid #4a4f58;border-radius:8px;
 <header><strong>WREN WORKSHOP</strong><span>Silverhart Saga 3D · model preview</span></header>
 <main><div id="stage"><div id="status">Loading model…</div><div id="hint">Drag to orbit · Pinch or scroll to zoom · Two-finger drag to pan</div></div>
 <aside>
-<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara">Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
+<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara">Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option><option value="modular">Modular body + hair + clothes</option><option value="ara-transparent">Sheer fabric · 42% opacity</option><option value="ara-lace">Open-weave lace</option></select></div><p class="note">Modular assembly uses independently exported, skinned components. Fabric tests compare alpha-blended cloth with an alpha-cutout lace weave.</p></section>
 <section><h2>Camera</h2><div class="buttons"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="three">3/4</button><button id="home">Reset</button></div><div class="row"><span>Auto rotate</span><input id="autorotate" type="checkbox"></div></section>
 <section><h2>Lighting</h2><div class="row"><span>Key light</span><input id="keylight" type="range" min="0" max="5" step=".1" value="3"></div><div class="row"><span>Fill light</span><input id="filllight" type="range" min="0" max="4" step=".1" value="1.4"></div><div class="row"><span>Light direction</span><input id="lightangle" type="range" min="0" max="360" value="35"></div></section>
 <section><h2>Build</h2><div class="note" id="build">Loading build information…</div><p class="note" id="error"></p></section>
@@ -60,14 +60,59 @@ function disposeModel(root){
  materials.forEach(m=>m.dispose());
  textures.forEach(t=>t.dispose());
 }
+const gltfLoader=new GLTFLoader();
+async function loadModularScene(generation){
+ const names=['body','hair','shirt','trousers'];
+ const loaded=await Promise.all(names.map(name=>gltfLoader.loadAsync(new URL('./assets/modular/'+name+'.glb?v='+encodeURIComponent(buildVersion),window.location.href).href)));
+ if(generation!==loadGeneration){loaded.forEach(g=>disposeModel(g.scene));return null}
+ const root=loaded[0].scene;
+ let canonical=null;
+ root.traverse(o=>{if(!canonical&&o.isSkinnedMesh)canonical=o});
+ if(!canonical)throw new Error('Modular body has no skinned mesh');
+ const skeleton=canonical.skeleton;
+ root.updateMatrixWorld(true);
+ for(const gltf of loaded.slice(1)){
+  const meshes=[];
+  gltf.scene.traverse(o=>{if(o.isSkinnedMesh)meshes.push(o)});
+  for(const mesh of meshes){
+   mesh.updateMatrixWorld(true);
+   root.attach(mesh);
+   mesh.bind(skeleton,mesh.bindMatrix);
+  }
+ }
+ return root;
+}
 function loadModel(mode){
  const generation=++loadGeneration;
- const file=mode==='ara-mobile'?'ara_wren_mobile.glb':'ara_wren_benchmark.glb';
- const label=mode==='ara-mobile'?'Ara mobile preview':'Ara high-detail benchmark';
- const modelUrl=new URL('./assets/'+file+'?v='+encodeURIComponent(buildVersion),window.location.href).href;
+ const files={
+  ara:'ara_wren_benchmark.glb',
+  'ara-mobile':'ara_wren_mobile.glb',
+  'ara-transparent':'ara_wren_transparent.glb',
+  'ara-lace':'ara_wren_lace.glb'
+ };
+ const labels={
+  ara:'Ara high-detail benchmark',
+  'ara-mobile':'Ara mobile preview',
+  'ara-transparent':'Sheer fabric · 42% opacity',
+  'ara-lace':'Open-weave lace · alpha cutout',
+  modular:'Modular body + hair + clothes'
+ };
  if(model){scene.remove(model);disposeModel(model);model=null;box=null}
+ const label=labels[mode]||labels.ara;
  status.textContent='Loading '+label+'…';error.textContent='';
- new GLTFLoader().load(modelUrl,g=>{
+ if(mode==='modular'){
+  loadModularScene(generation).then(root=>{
+   if(!root||generation!==loadGeneration)return;
+   model=root;scene.add(model);box=new THREE.Box3().setFromObject(model);frame('three');status.textContent=label+' loaded';
+  }).catch(e=>{
+   if(generation!==loadGeneration)return;
+   console.error('Modular character assembly failed:',e);status.textContent='Modular assembly failed';error.textContent=e?.message||String(e);
+  });
+  return;
+ }
+ const file=files[mode]||files.ara;
+ const modelUrl=new URL('./assets/'+file+'?v='+encodeURIComponent(buildVersion),window.location.href).href;
+ gltfLoader.load(modelUrl,g=>{
   if(generation!==loadGeneration){disposeModel(g.scene);return}
   model=g.scene;scene.add(model);box=new THREE.Box3().setFromObject(model);frame('three');status.textContent=label+' loaded';
  },x=>{if(generation===loadGeneration){if(x.total)status.textContent='Loading model · '+Math.round(x.loaded/x.total*100)+'%';else status.textContent='Downloading model…'}},async e=>{
