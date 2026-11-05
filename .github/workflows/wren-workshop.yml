@@ -77,6 +77,39 @@ jobs:
           cp /tmp/ara-wren.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren.params.json"
           test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_benchmark.glb"
 
+          # Ara body-only adult preview: no garments, underwear or shoes.
+          python - <<'PY'
+          import json
+          p = json.load(open('/tmp/ara-wren.params.json'))
+          p.update({
+              "name": "Wren Talbot - Ara body no clothing",
+              "outfit": "none", "top": "none", "jacket": "none",
+              "bottom": "none", "underwear": False, "shoes": "none",
+              "hat": "none", "accessories": [], "earrings": "none", "tattoos": []
+          })
+          json.dump(p, open('/tmp/ara-wren-body.params.json', 'w'), indent=2)
+          PY
+          mkdir -p /tmp/ara-body-out
+          npm run export -- --params /tmp/ara-wren-body.params.json --detail high --formats glb --out /tmp/ara-body-out
+          BODY_GLB="$(find /tmp/ara-body-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$BODY_GLB"
+          cp "$BODY_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_body.glb"
+          cp /tmp/ara-wren-body.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_body.params.json"
+
+          # The same adult body with Ara's UV-space tattoo layer enabled.
+          python - <<'PY'
+          import json
+          p = json.load(open('/tmp/ara-wren-body.params.json'))
+          p.update({"name": "Wren Talbot - Ara tattooed body", "tattoos": ["armband_l", "forearm_l"], "tattooInk": "#20232a"})
+          json.dump(p, open('/tmp/ara-wren-tattoo-body.params.json', 'w'), indent=2)
+          PY
+          mkdir -p /tmp/ara-tattoo-body-out
+          npm run export -- --params /tmp/ara-wren-tattoo-body.params.json --detail high --formats glb --out /tmp/ara-tattoo-body-out
+          TATTOO_GLB="$(find /tmp/ara-tattoo-body-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$TATTOO_GLB"
+          cp "$TATTOO_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_tattoo_body.glb"
+          cp /tmp/ara-wren-tattoo-body.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_tattoo_body.params.json"
+
           # Separate mobile preview: retain the game rig, but reduce geometry detail
           # and bake facial expression / omit animation clips and facial blend shapes.
           python - <<'PY'
@@ -108,6 +141,10 @@ jobs:
             art/characters/ara/ara_wren.params.json
             art/characters/ara/ara_wren_mobile.glb
             art/characters/ara/ara_wren_mobile.params.json
+            art/characters/ara/ara_wren_body.glb
+            art/characters/ara/ara_wren_body.params.json
+            art/characters/ara/ara_wren_tattoo_body.glb
+            art/characters/ara/ara_wren_tattoo_body.params.json
           if-no-files-found: error
           retention-days: 14
       - name: Assemble private viewer site
@@ -116,6 +153,8 @@ jobs:
           mkdir -p site/assets
           cp art/characters/ara/ara_wren_benchmark.glb site/assets/ara_wren_benchmark.glb
           cp art/characters/ara/ara_wren_mobile.glb site/assets/ara_wren_mobile.glb
+          cp art/characters/ara/ara_wren_body.glb site/assets/ara_wren_body.glb
+          cp art/characters/ara/ara_wren_tattoo_body.glb site/assets/ara_wren_tattoo_body.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
