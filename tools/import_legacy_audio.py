@@ -2,6 +2,7 @@
 """Fetch the legacy Silverhart audio at a pinned revision and convert it for Godot."""
 from pathlib import Path
 from urllib.request import urlretrieve
+from urllib.parse import quote
 import shutil
 import subprocess
 import sys
@@ -44,7 +45,7 @@ def main() -> int:
         source_path.parent.mkdir(parents=True, exist_ok=True)
         if not source_path.exists():
             print("Downloading", source)
-            urlretrieve(REPO + "/" + source, source_path)
+            urlretrieve(REPO + "/" + quote(source, safe="/"), source_path)
         if not ffmpeg:
             continue
         target_path = ROOT / target
