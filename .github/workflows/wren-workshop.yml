@@ -8,7 +8,6 @@ on:
       - "tools/blender/**"
       - "site/**"
       - "docs/ARA_CHARACTER_EVALUATION.md"
-      - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
   id-token: write
@@ -127,48 +126,12 @@ jobs:
       - name: Publish to private Hugging Face Space
         env:
           HF_OIDC_RESOURCE: spaces/${{ vars.HF_SPACE_ID }}
-          HF_ADMIN_TOKEN: ${{ secrets.HF_ADMIN_TOKEN }}
         run: |
           set -euo pipefail
           test -n "${{ vars.HF_SPACE_ID }}"
-          # Remove the previous snapshot, then squash the now-empty branch so
-          # obsolete GLB versions no longer consume the Space's storage quota.
-          # This intentionally discards the Space's old Git history; source and
-          # generated benchmarks remain versioned in this GitHub repository.
-          mkdir -p /tmp/empty-space
-          hf upload "${{ vars.HF_SPACE_ID }}" /tmp/empty-space . --repo-type space --delete "*" --commit-message "Clear obsolete preview assets before storage compaction"
-          python -m pip install --disable-pip-version-check --quiet huggingface_hub
-          # Reuse the exact short-lived OIDC token that authenticated the hf CLI.
+          # Publish with the short-lived OIDC publisher token. Do not squash
+          # on routine builds: Hugging Face storage reclamation can take up to 36 hours.
           export HF_TOKEN="$(hf auth token)"
           echo "::add-mask::$HF_TOKEN"
-          echo "Hugging Face CLI identity:"
           hf auth whoami
-          python - <<'PY'
-          import os
-          from huggingface_hub import HfApi
-          oidc_token = os.environ["HF_TOKEN"]
-          repo_id = "${{ vars.HF_SPACE_ID }}"
-          oidc_api = HfApi(token=oidc_token)
-          print("Checking OIDC publisher access...")
-          info = oidc_api.repo_info(repo_id=repo_id, repo_type="space", token=oidc_token)
-          print(f"Repository confirmed: {info.id}; private={info.private}")
-          print("OIDC identity:")
-          print(oidc_api.whoami(token=oidc_token))
-          admin_token = os.environ.get("HF_ADMIN_TOKEN", "")
-          if not admin_token:
-              raise SystemExit("Missing GitHub Actions secret HF_ADMIN_TOKEN. Add a fine-grained Hugging Face user token with write access to this Space; OIDC publisher tokens cannot call super_squash_history.")
-          admin_api = HfApi(token=admin_token)
-          print("Checking administrative token identity and repository access...")
-          print(admin_api.whoami(token=admin_token))
-          admin_info = admin_api.repo_info(repo_id=repo_id, repo_type="space", token=admin_token)
-          print(f"Administrative token can access: {admin_info.id}")
-          print("Attempting history compaction with user access token...")
-          admin_api.super_squash_history(
-              repo_id="${{ vars.HF_SPACE_ID }}",
-              repo_type="space",
-              branch="main",
-              commit_message="Compact Wren Workshop history",
-          )
-          print("Compacted Hugging Face Space history.")
-          PY
           hf upload "${{ vars.HF_SPACE_ID }}" site . --repo-type space --commit-message "Wren Workshop build ${GITHUB_SHA::7}"
