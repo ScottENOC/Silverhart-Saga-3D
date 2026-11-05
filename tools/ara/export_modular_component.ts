@@ -32,6 +32,9 @@ if (!selected.size) {
     '. Available: ' + ch.mesh.materials.map((m) => m.name).join(', '));
 }
 const mesh = pickGroups(ch.mesh, (index) => selected.has(index));
+if (!ch.rig || !mesh.joints || !mesh.weights) {
+  throw new Error('Component must be skinned to the canonical game rig: ' + outputPath);
+}
 const names = textureFiles(mesh);
 const textures = new Map<string, Uint8Array>();
 for (const name of names) textures.set(name, await lib.texture(name));
