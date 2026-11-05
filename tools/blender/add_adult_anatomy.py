@@ -261,7 +261,7 @@ def main():
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
-        if obj.type in {"MESH", "ARMATURE"}:
+        if obj.type in {"MESH", "ARMATURE", "EMPTY"}:
             obj.select_set(True)
     bpy.context.view_layer.objects.active = armature
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
