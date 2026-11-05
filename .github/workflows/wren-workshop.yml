@@ -163,4 +163,21 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${{ vars.HF_SPACE_ID }}"
+          # Remove the previous snapshot, then squash the now-empty branch so
+          # obsolete GLB versions no longer consume the Space's storage quota.
+          # This intentionally discards the Space's old Git history; source and
+          # generated benchmarks remain versioned in this GitHub repository.
+          mkdir -p /tmp/empty-space
+          hf upload "${{ vars.HF_SPACE_ID }}" /tmp/empty-space . --repo-type space --delete "*" --commit-message "Clear obsolete preview assets before storage compaction"
+          python - <<'PY'
+          from huggingface_hub import HfApi
+          api = HfApi()
+          api.super_squash_history(
+              repo_id="${{ vars.HF_SPACE_ID }}",
+              repo_type="space",
+              branch="main",
+              commit_message="Compact Wren Workshop history",
+          )
+          print("Compacted Hugging Face Space history.")
+          PY
           hf upload "${{ vars.HF_SPACE_ID }}" site . --repo-type space --commit-message "Wren Workshop build ${GITHUB_SHA::7}"
