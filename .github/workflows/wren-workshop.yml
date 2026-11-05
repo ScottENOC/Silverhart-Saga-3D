@@ -6,6 +6,7 @@ on:
     branches: [dev, feature/shared-character-system]
     paths:
       - "tools/blender/**"
+      - "tools/ara/**"
       - "site/**"
       - "docs/ARA_CHARACTER_EVALUATION.md"
       - "docs/CHARACTER_PIPELINE.md"
@@ -31,6 +32,7 @@ jobs:
           corepack enable
           pnpm install --no-frozen-lockfile
           npm run setup-assets
+          python "$GITHUB_WORKSPACE/tools/ara/patch_layering.py"
           cat > /tmp/ara-wren.params.json <<'JSON'
           {
             "name": "Wren Talbot - Ara benchmark",
@@ -50,6 +52,7 @@ jobs:
             "hairTint": "#252b62",
             "outfit": "none",
             "top": "fatigue_shirt",
+            "underTop": "bra",
             "jacket": "none",
             "bottom": "fatigue_pants",
             "underwear": true,
@@ -67,6 +70,7 @@ jobs:
             "expression": "neutral",
             "garmentStyles": {
               "fatigue_shirt": {"pattern":"solid","color":"#244b2b","color2":"#d94a72"},
+              "bra": {"pattern":"solid","color":"#34343a","color2":"#111114"},
               "fatigue_pants": {"pattern":"solid","color":"#29292d","color2":"#29292d"}
             }
           }
@@ -85,7 +89,7 @@ jobs:
           p.update({
               "name": "Wren Talbot - Ara body no clothing",
               "outfit": "none", "top": "none", "jacket": "none",
-              "bottom": "none", "underwear": False, "shoes": "none",
+              "bottom": "none", "underTop": "none", "underwear": False, "shoes": "none",
               "hat": "none", "accessories": [], "earrings": "none", "tattoos": []
           })
           json.dump(p, open('/tmp/ara-wren-body.params.json', 'w'), indent=2)
@@ -133,6 +137,20 @@ jobs:
           cp "$MOBILE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
           cp /tmp/ara-wren-mobile.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.params.json"
           test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
+      - name: Install Blender and integrate adult anatomy
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender
+          for variant in ara_wren_benchmark ara_wren_mobile ara_wren_body ara_wren_tattoo_body; do
+            blender --background --python tools/blender/add_adult_anatomy.py -- \\
+              --input "art/characters/ara/${variant}.glb" \\
+              --output "/tmp/${variant}_anatomy.glb" \\
+              --profile female --adult
+            mv "/tmp/${variant}_anatomy.glb" "art/characters/ara/${variant}.glb"
+            test -s "art/characters/ara/${variant}.glb"
+          done
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
