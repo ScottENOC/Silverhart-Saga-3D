@@ -9,6 +9,12 @@ on:
       - "tools/ara/**"
       - "site/**"
       - "docs/ARA_CHARACTER_EVALUATION.md"
+      - "docs/MODULAR_CHARACTER_PROTOTYPE.md"
+      - "scripts/presentation/**"
+      - "scripts/simulation/character_appearance*.gd"
+      - "tests/**"
+      - "tools/ara/npc_presets.json"
+      - "tools/ara/prepare_npc_variants.py"
       - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
@@ -171,6 +177,17 @@ jobs:
                   raise SystemExit('Rig mismatch in modular component: ' + name)
           print('Modular component rig check passed:', len(base), 'identically ordered bones')
           PY
+          # Build three deliberately different adult NPCs from the same Ara generator and rig.
+          python3 "$GITHUB_WORKSPACE/tools/ara/prepare_npc_variants.py" "$GITHUB_WORKSPACE/tools/ara/npc_presets.json" /tmp/npc-params
+          for NPC in npc_female_slim npc_male_heavy npc_female_athletic; do
+            mkdir -p "$GITHUB_WORKSPACE/art/characters/ara/npcs/$NPC"
+            npm run export -- --params "/tmp/npc-params/$NPC-full.json" --detail low --formats glb --out "/tmp/$NPC-full"
+            cp "$(find "/tmp/$NPC-full" -maxdepth 1 -name '*.glb' -print -quit)" "$GITHUB_WORKSPACE/art/characters/ara/npcs/$NPC/full.glb"
+            npx tsx scripts/export-modular-component.ts "/tmp/npc-params/$NPC-body.json" "$GITHUB_WORKSPACE/art/characters/ara/npcs/$NPC/body.glb" "Skin,Skin details,Eyes,Eyebrows,Eyelashes,Teeth,Tongue"
+            npx tsx scripts/export-modular-component.ts "/tmp/npc-params/$NPC-hair.json" "$GITHUB_WORKSPACE/art/characters/ara/npcs/$NPC/hair.glb" "Hair"
+            npx tsx scripts/export-modular-component.ts "/tmp/npc-params/$NPC-shirt.json" "$GITHUB_WORKSPACE/art/characters/ara/npcs/$NPC/shirt.glb" "Fatigue shirt,Tank top"
+            npx tsx scripts/export-modular-component.ts "/tmp/npc-params/$NPC-trousers.json" "$GITHUB_WORKSPACE/art/characters/ara/npcs/$NPC/trousers.glb" "Fatigue pants,Cargo shorts"
+          done
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -184,6 +201,8 @@ jobs:
             art/characters/ara/ara_wren_lace.glb
             art/characters/ara/modular/*.glb
             art/characters/ara/modular/*.json
+            art/characters/ara/npcs/**/*.glb
+            art/characters/ara/npcs/**/*.json
           if-no-files-found: error
           retention-days: 14
       - name: Assemble private viewer site
