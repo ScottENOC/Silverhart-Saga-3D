@@ -58,7 +58,7 @@ scene.add(new THREE.HemisphereLight(0xdce7ff,0x514334,1.5));
 const key=new THREE.DirectionalLight(0xffe1bc,3);key.position.set(2,-3,4);scene.add(key);
 const fill=new THREE.DirectionalLight(0xc4d7ff,1.4);fill.position.set(-3,2,2);scene.add(fill);
 scene.add(new THREE.GridHelper(5,50,0x68645d,0x44413c));
-let model=null,box=null;
+let model=null,box=null,bodyUnderlay=null,bodyUnderlayLoader=null;
 
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(stage);resize();
 function frame(name){if(!box)return;const centre=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()),dist=Math.max(size.z*2,2.1);const dirs={front:new THREE.Vector3(0,0,1),back:new THREE.Vector3(0,0,-1),left:new THREE.Vector3(-1,0,0),right:new THREE.Vector3(1,0,0),three:new THREE.Vector3(1,.45,1.5)};camera.position.copy(centre).add(dirs[name].normalize().multiplyScalar(dist));controls.target.copy(centre);controls.update()}
@@ -95,16 +95,51 @@ function loadModel(mode){
  const label=labels[mode]||'Ara high-detail benchmark';
  const modelUrl=new URL('./assets/'+file+'?v='+encodeURIComponent(buildVersion),window.location.href).href;
  if(model){scene.remove(model);disposeModel(model);model=null;box=null}
+ bodyUnderlay=null;
  status.textContent='Loading '+label+'…';error.textContent='';
  new GLTFLoader().load(modelUrl,g=>{
   if(generation!==loadGeneration){disposeModel(g.scene);return}
   model=g.scene;scene.add(model);box=new THREE.Box3().setFromObject(model);frame('three');status.textContent=label+' loaded';
+  if(['full','ara','ara-mobile'].includes(mode))loadBodyUnderlay(generation);
  },x=>{if(generation===loadGeneration){if(x.total)status.textContent='Loading model · '+Math.round(x.loaded/x.total*100)+'%';else status.textContent='Downloading model…'}},async e=>{
   if(generation!==loadGeneration)return;
   console.error('Wren GLB load error:',e);status.textContent='Model failed to load';let detail=e?.message||String(e);
   try{const r=await fetch(modelUrl,{method:'HEAD',cache:'no-store'});detail+='\\nAsset response: HTTP '+r.status+' '+r.statusText;const length=r.headers.get('content-length');if(length)detail+=' ('+(Number(length)/1048576).toFixed(1)+' MB)'}catch(fetchError){detail+='\\nAsset check failed: '+(fetchError?.message||String(fetchError))}
   error.textContent=detail+'\\nURL: '+modelUrl;
  });
+}
+
+// Load Ara's matching body-only export as a hidden skin underlay. Ara removes
+// covered skin faces from dressed exports; the underlay restores those surfaces
+// when a shirt is made translucent. It is pushed slightly inward so exposed
+// skin on the dressed model remains the visible surface.
+function loadBodyUnderlay(generation){
+ const url=new URL('./assets/ara_wren_body.glb?v='+encodeURIComponent(buildVersion),window.location.href).href;
+ new GLTFLoader().load(url,g=>{
+  if(generation!==loadGeneration||!model){disposeModel(g.scene);return}
+  const root=new THREE.Group();root.name='TransparentClothingBodyUnderlay';
+  g.scene.updateMatrixWorld(true);
+  g.scene.traverse(o=>{
+   if(!o.isMesh||!o.geometry)return;
+   const mats=Array.isArray(o.material)?o.material:[o.material];
+   if(!mats.some(m=>(m?.name||'').toLowerCase().includes('skin')))return;
+   const clone=o.clone();clone.geometry=o.geometry.clone();
+   clone.material=(Array.isArray(o.material)?o.material:[o.material]).map(m=>m.clone());
+   clone.position.copy(o.position);clone.quaternion.copy(o.quaternion);clone.scale.copy(o.scale);
+   const pos=clone.geometry.getAttribute('position'),normal=clone.geometry.getAttribute('normal');
+   if(pos&&normal){for(let i=0;i<pos.count;i++){pos.setXYZ(i,pos.getX(i)-normal.getX(i)*.002,pos.getY(i)-normal.getY(i)*.002,pos.getZ(i)-normal.getZ(i)*.002);}pos.needsUpdate=true;clone.geometry.computeBoundingSphere();}
+   clone.renderOrder=-1;clone.frustumCulled=false;
+   clone.material.forEach(m=>{m.transparent=false;m.opacity=1;m.depthWrite=true;m.depthTest=true;m.needsUpdate=true;});
+   root.add(clone);
+  });
+  root.visible=false;model.add(root);bodyUnderlay=root;
+  disposeModel(g.scene);
+ },undefined,e=>console.warn('Body underlay unavailable:',e));
+}
+function updateBodyUnderlay(){
+ if(!model||!bodyUnderlay)return;
+ const translucent=[...originalMaterials.values()].some(e=>e.material.userData.previewVisible!==false&&(e.material.userData.previewOpacity??1)<.98);
+ bodyUnderlay.visible=translucent;
 }
 
 // Phone-review appearance tools. These operate on the imported GLB materials,
@@ -155,19 +190,27 @@ document.querySelector('#applyMaterial').onclick=()=>{
  if(m.color)m.color.copy(tint);
  if('roughness' in m)m.roughness=rough;
  m.userData.previewOpacity=opacity;m.userData.previewVisible=visible;
- m.opacity=visible?opacity:0;m.transparent=m.opacity<1;m.depthWrite=m.opacity>=1;
- m.needsUpdate=true;document.querySelector('#saveState').textContent='Live preview changed · not saved';
+ m.opacity=visible?opacity:0;
+ m.transparent=m.opacity<.999;
+ m.depthWrite=m.opacity>=.999;
+ m.depthTest=true;
+ // Render translucent garments after opaque body/underlay; never let the
+ // transparent shirt write depth and mask the body behind it.
+ for(const item of selectedMaterial.meshes)item.mesh.renderOrder=m.opacity<.999?2:0;
+ m.needsUpdate=true;updateBodyUnderlay();
+ document.querySelector('#saveState').textContent='Live preview changed · not saved';
 };
 document.querySelector('#resetMaterials').onclick=()=>{
  for(const entry of originalMaterials.values()){
   entry.material.color?.copy(entry.base.color||new THREE.Color(1,1,1));
   if('roughness' in entry.material)entry.material.roughness=entry.base.roughness;
   if('metalness' in entry.material)entry.material.metalness=entry.base.metalness;
-  entry.material.opacity=entry.base.opacity??1;entry.material.transparent=entry.base.transparent;entry.material.depthWrite=entry.base.depthWrite;
+  entry.material.opacity=entry.base.opacity??1;entry.material.transparent=entry.base.transparent;entry.material.depthWrite=entry.base.depthWrite;entry.material.depthTest=true;
+  for(const item of entry.meshes)item.mesh.renderOrder=0;
   entry.material.userData.previewOpacity=entry.base.opacity??1;entry.material.userData.previewVisible=true;
   entry.material.needsUpdate=true;
  }
- selectMaterial();document.querySelector('#saveState').textContent='Materials reset to imported values';
+ selectMaterial();updateBodyUnderlay();document.querySelector('#saveState').textContent='Materials reset to imported values';
 };
 function clearAccessories(){if(accessoryGroup&&model){model.remove(accessoryGroup);accessoryGroup.traverse(o=>{o.geometry?.dispose();if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose())}})}accessoryGroup=null;}
 function getSurfaceMeshes(skinOnly=false){
@@ -253,7 +296,20 @@ function addAccessories(kind){
   const x=kind==='nipple_left'?.105:-.105;
   ok=addHoopAt(socketSurface(kind==='nipple_left'?'SOCKET_Nipple_L':'SOCKET_Nipple_R')||skinSurface(x,1.255),.008,silver);
  }else if(kind==='clit'){
-  ok=addHoopAt(socketSurface('SOCKET_ClitoralHood')||skinSurface(0,.785),.0065,gold);
+  const hit=socketSurface('SOCKET_ClitoralHood')||skinSurface(0,.785);
+  if(!hit)ok=false;
+  else{
+   // Small curved surface-mounted barbell: a shallow arc with two end beads.
+   const n=hit.normal.clone().normalize();
+   const tangent=new THREE.Vector3(1,0,0).addScaledVector(n,-n.x).normalize();
+   const side=new THREE.Vector3().crossVectors(n,tangent).normalize();
+   const centre=hit.point.clone().addScaledVector(n,.003);
+   const pts=[];
+   for(let i=0;i<=12;i++){const a=(i/12-.5)*Math.PI*.72;pts.push(centre.clone().addScaledVector(tangent,Math.sin(a)*.009).addScaledVector(side,(1-Math.cos(a))*.002));}
+   const curve=new THREE.CatmullRomCurve3(pts,false,'centripetal');
+   accessoryGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,24,.0018,8,false),gold));
+   for(const p of [pts[0],pts[pts.length-1]]){const bead=new THREE.Mesh(new THREE.SphereGeometry(.0028,12,8),gold);bead.position.copy(p);accessoryGroup.add(bead);}
+  }
  }
  if(!ok){
   document.querySelector('#saveState').textContent='Could not find exposed skin at that location. Switch to Body · no clothing and try again.';
