@@ -22,16 +22,17 @@ button:disabled{opacity:.4}
 <header><strong>WREN WORKSHOP</strong><span>Silverhart Saga 3D · model preview</span></header>
 <main><div id="stage"><div id="status">Loading model…</div><div id="hint">Drag to orbit · Pinch or scroll to zoom · Two-finger drag to pan</div></div>
 <aside>
-<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara">Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
+<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara">Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option><option value="body">Body · no clothing</option><option value="tattoo-body">Body · tattoos</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
 <section><h2>Camera</h2><div class="buttons"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="three">3/4</button><button id="home">Reset</button></div><div class="row"><span>Auto rotate</span><input id="autorotate" type="checkbox"></div></section>
 <section><h2>Lighting</h2><div class="row"><span>Key light</span><input id="keylight" type="range" min="0" max="5" step=".1" value="3"></div><div class="row"><span>Fill light</span><input id="filllight" type="range" min="0" max="4" step=".1" value="1.4"></div><div class="row"><span>Light direction</span><input id="lightangle" type="range" min="0" max="360" value="35"></div></section>
 <section><h2>Appearance · material inspector</h2>
 <div class="row"><span>Material</span><select id="materialSelect"><option value="">Load a model first</option></select></div>
 <div class="row"><span>Colour / dye</span><input id="materialColor" type="color" value="#6f8b62"></div>
-<div class="row"><span>Fabric</span><select id="fabricPreset"><option value="custom">Custom</option><option value="cotton">Cotton</option><option value="linen">Linen</option><option value="wool">Wool</option><option value="leather">Leather</option><option value="silk">Silk</option></select></div><div class="row"><span>Surface roughness</span><input id="materialRoughness" type="range" min="0.05" max="1" step="0.01" value="0.8"></div>
+<div class="row"><span>Fabric</span><select id="fabricPreset"><option value="custom">Custom</option><option value="cotton">Cotton</option><option value="linen">Linen</option><option value="wool">Wool</option><option value="leather">Leather</option><option value="silk">Silk</option></select></div><div class="row"><span>Surface roughness</span><input id="materialRoughness" type="range" min="0.05" max="1" step="0.01" value="0.8"></div><div class="row"><span>Opacity</span><input id="materialOpacity" type="range" min="0" max="1" step="0.01" value="1"></div><div class="row"><span>Material visible</span><input id="materialVisible" type="checkbox" checked></div>
 <div class="buttons"><button id="applyMaterial">Apply</button><button id="resetMaterials">Reset materials</button></div>
-<p class="note">Choose an imported material by name, then test colour and surface roughness. This edits the live preview, not the source GLB.</p>
+<p class="note">Choose a garment material by name to dye it, change its finish, hide it or adjust opacity. These are live preview changes saved in this browser.</p>
 </section>
+<section><h2>Clothing · body options</h2><p class="note">Use Body · no clothing to inspect the generated adult base body. Ara removes skin under garments in clothed exports, so partial transparency can reveal gaps rather than skin.</p><div class="buttons"><button id="showClothed">Clothed</button><button id="showBody">No clothing</button><button id="showTattooBody">Tattooed body</button></div></section>
 <section><h2>Accessories · placement preview</h2>
 <div class="buttons"><button data-accessory="earrings">Earrings</button><button data-accessory="nose">Nose ring</button><button data-accessory="necklace">Necklace</button></div>
 <div class="buttons"><button data-accessory="clear">Remove accessories</button></div>
@@ -87,8 +88,10 @@ function disposeModel(root){
 }
 function loadModel(mode){
  const generation=++loadGeneration;
- const file=mode==='ara-mobile'?'ara_wren_mobile.glb':'ara_wren_benchmark.glb';
- const label=mode==='ara-mobile'?'Ara mobile preview':'Ara high-detail benchmark';
+ const files={'ara-mobile':'ara_wren_mobile.glb','body':'ara_wren_body.glb','tattoo-body':'ara_wren_tattoo_body.glb'};
+ const file=files[mode]||'ara_wren_benchmark.glb';
+ const labels={'ara-mobile':'Ara mobile preview','body':'Ara body · no clothing','tattoo-body':'Ara tattooed body'};
+ const label=labels[mode]||'Ara high-detail benchmark';
  const modelUrl=new URL('./assets/'+file+'?v='+encodeURIComponent(buildVersion),window.location.href).href;
  if(model){scene.remove(model);disposeModel(model);model=null;box=null}
  status.textContent='Loading '+label+'…';error.textContent='';
@@ -134,6 +137,8 @@ function selectMaterial(){
  const c=m.color?.clone()||new THREE.Color(0xffffff);
  document.querySelector('#materialColor').value='#'+c.getHexString();
  document.querySelector('#materialRoughness').value=String(m.roughness??0.8);
+ document.querySelector('#materialOpacity').value=String(m.userData.previewOpacity??m.opacity??1);
+ document.querySelector('#materialVisible').checked=m.userData.previewVisible!==false;
 }
 materialSelect.addEventListener('change',selectMaterial);
 const fabricSettings={cotton:.88,linen:.96,wool:.98,leather:.72,silk:.34};
@@ -143,9 +148,13 @@ document.querySelector('#applyMaterial').onclick=()=>{
  if(!selectedMaterial)return;
  const tint=new THREE.Color(document.querySelector('#materialColor').value);
  const rough=+document.querySelector('#materialRoughness').value;
+ const opacity=+document.querySelector('#materialOpacity').value;
+ const visible=document.querySelector('#materialVisible').checked;
  const m=selectedMaterial.material;
  if(m.color)m.color.copy(tint);
  if('roughness' in m)m.roughness=rough;
+ m.userData.previewOpacity=opacity;m.userData.previewVisible=visible;
+ m.opacity=visible?opacity:0;m.transparent=m.opacity<1;m.depthWrite=m.opacity>=1;
  m.needsUpdate=true;document.querySelector('#saveState').textContent='Live preview changed · not saved';
 };
 document.querySelector('#resetMaterials').onclick=()=>{
@@ -153,6 +162,8 @@ document.querySelector('#resetMaterials').onclick=()=>{
   entry.material.color?.copy(entry.base.color||new THREE.Color(1,1,1));
   if('roughness' in entry.material)entry.material.roughness=entry.base.roughness;
   if('metalness' in entry.material)entry.material.metalness=entry.base.metalness;
+  entry.material.opacity=entry.base.opacity??1;entry.material.transparent=entry.base.transparent;entry.material.depthWrite=entry.base.depthWrite;
+  entry.material.userData.previewOpacity=entry.base.opacity??1;entry.material.userData.previewVisible=true;
   entry.material.needsUpdate=true;
  }
  selectMaterial();document.querySelector('#saveState').textContent='Materials reset to imported values';
@@ -163,19 +174,19 @@ function addAccessories(kind){
  if(!accessoryGroup){accessoryGroup=new THREE.Group();accessoryGroup.name='PhoneReviewAccessories';accessoryGroup.userData.reviewAccessories=[];model.add(accessoryGroup);}
  if(!accessoryGroup.userData.reviewAccessories.includes(kind))accessoryGroup.userData.reviewAccessories.push(kind);
  const size=box.getSize(new THREE.Vector3()),centre=box.getCenter(new THREE.Vector3());
- const front=box.min.y-size.y*.025, headZ=box.max.z-size.z*.105, neckZ=box.max.z-size.z*.19;
+ const front=box.max.z+size.z*.006, headY=box.max.y-size.y*.105, neckY=box.max.y-size.y*.19;
  const silver=new THREE.MeshStandardMaterial({color:0xb9c2c9,metalness:.82,roughness:.24});
  const gold=new THREE.MeshStandardMaterial({color:0xc6a45b,metalness:.72,roughness:.28});
  const hoop=(x,y,z,r,t,mat)=>{const o=new THREE.Mesh(new THREE.TorusGeometry(r,t,10,32),mat);o.position.set(x,y,z);accessoryGroup.add(o);};
  if(kind==='earrings'){
-  hoop(centre.x-size.x*.13,front,headZ,size.z*.014,size.z*.0028,silver);
-  hoop(centre.x+size.x*.13,front,headZ,size.z*.014,size.z*.0028,silver);
+  hoop(centre.x-size.x*.13,headY,front,size.y*.014,size.y*.0028,silver);
+  hoop(centre.x+size.x*.13,headY,front,size.y*.014,size.y*.0028,silver);
  }else if(kind==='nose'){
-  hoop(centre.x,front-size.y*.012,headZ-size.z*.065,size.z*.009,size.z*.0022,silver);
+  hoop(centre.x,headY-size.y*.065,front+size.z*.012,size.y*.009,size.y*.0022,silver);
  }else if(kind==='necklace'){
-  const pts=[];for(let i=0;i<=48;i++){const a=i/48*Math.PI*2;pts.push(new THREE.Vector3(centre.x+Math.cos(a)*size.x*.105,front+Math.sin(a)*size.y*.06,neckZ-Math.sin(a)*size.z*.018));}
-  const curve=new THREE.CatmullRomCurve3(pts);const chain=new THREE.Mesh(new THREE.TubeGeometry(curve,64,size.z*.0025,6,false),gold);accessoryGroup.add(chain);
-  const pendant=new THREE.Mesh(new THREE.OctahedronGeometry(size.z*.012,1),gold);pendant.position.set(centre.x,front-size.y*.055,neckZ-size.z*.025);accessoryGroup.add(pendant);
+  const pts=[];for(let i=0;i<=48;i++){const a=i/48*Math.PI*2;pts.push(new THREE.Vector3(centre.x+Math.cos(a)*size.x*.105,neckY+Math.cos(a)*size.y*.018,front+Math.sin(a)*size.z*.06));}
+  const curve=new THREE.CatmullRomCurve3(pts);const chain=new THREE.Mesh(new THREE.TubeGeometry(curve,64,size.y*.0025,6,false),gold);accessoryGroup.add(chain);
+  const pendant=new THREE.Mesh(new THREE.OctahedronGeometry(size.y*.012,1),gold);pendant.position.set(centre.x,neckY-size.y*.055,front+size.z*.065);accessoryGroup.add(pendant);
  }
  document.querySelector('#saveState').textContent='Accessory preview added · approximate bounds placement';
 }
@@ -184,7 +195,7 @@ document.querySelectorAll('[data-accessory]').forEach(b=>b.addEventListener('cli
  else addAccessories(b.dataset.accessory);
 }));
 function appearanceSnapshot(){
- const materials={};for(const [key,e] of originalMaterials){materials[e.material.name||key]={color:e.material.color?'#'+e.material.color.getHexString():null,roughness:e.material.roughness??null,metalness:e.material.metalness??null};}
+ const materials={};for(const [key,e] of originalMaterials){materials[e.material.name||key]={color:e.material.color?'#'+e.material.color.getHexString():null,roughness:e.material.roughness??null,metalness:e.material.metalness??null,opacity:e.material.userData.previewOpacity??e.material.opacity??1,visible:e.material.userData.previewVisible!==false};}
  return {schema_version:1,model:document.querySelector('#modelmode').value,fabric:document.querySelector('#fabricPreset').value,materials,accessories:accessoryGroup?(accessoryGroup.userData.reviewAccessories||[]):[]};
 }
 function applySnapshot(data){
@@ -216,6 +227,9 @@ loadModel=function(mode){
  const poll=()=>{if(model){collectMaterials();return;}if(status.textContent.includes('failed'))return;setTimeout(poll,250);};setTimeout(poll,250);
 };
 document.querySelector('#modelmode').onchange=e=>loadModel(e.target.value);
+document.querySelector('#showClothed').onclick=()=>{document.querySelector('#modelmode').value='ara';loadModel('ara')};
+document.querySelector('#showBody').onclick=()=>{document.querySelector('#modelmode').value='body';loadModel('body')};
+document.querySelector('#showTattooBody').onclick=()=>{document.querySelector('#modelmode').value='tattoo-body';loadModel('tattoo-body')};
 loadModel(mobilePreview?'ara-mobile':'ara');
 function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
 </script></body></html>
