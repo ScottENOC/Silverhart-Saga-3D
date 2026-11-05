@@ -133,7 +133,7 @@ func _test_elevation_rules() -> void:
     # Shared vertex coordinates must resolve to one sample across adjacent cells.
     map_data.set_vertex_height(Vector2i.ZERO, 0, 2.25)
     var shared := map_data.corner_world_position(Vector2i.ZERO, 0)
-    var adjacent := map_data.corner_world_position(Vector2i(1, 0), 5)
+    var adjacent := map_data.corner_world_position(Vector2i(1, 0), 4)
     assert(is_equal_approx(shared.x, adjacent.x) and is_equal_approx(shared.z, adjacent.z))
     assert(is_equal_approx(shared.y, adjacent.y), "Adjacent hexes must share their edge vertex height")
 
