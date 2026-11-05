@@ -151,6 +151,13 @@ jobs:
             mv "/tmp/${variant}_anatomy.glb" "art/characters/ara/${variant}.glb"
             test -s "art/characters/ara/${variant}.glb"
           done
+          mkdir -p art/characters/ara/review/body art/characters/ara/review/clothed
+          blender --background --python tools/blender/inspect_character.py -- \
+            --input art/characters/ara/ara_wren_body.glb \
+            --output-dir art/characters/ara/review/body
+          blender --background --python tools/blender/inspect_character.py -- \
+            --input art/characters/ara/ara_wren_benchmark.glb \
+            --output-dir art/characters/ara/review/clothed
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -164,6 +171,7 @@ jobs:
             art/characters/ara/ara_wren_body.params.json
             art/characters/ara/ara_wren_tattoo_body.glb
             art/characters/ara/ara_wren_tattoo_body.params.json
+            art/characters/ara/review/**
           if-no-files-found: error
           retention-days: 14
       - name: Assemble private viewer site
