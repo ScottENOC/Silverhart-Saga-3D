@@ -38,17 +38,28 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	appearance.apply_to(body)
 	var redyed := shirt.get_active_material(0) as StandardMaterial3D
 	assert(redyed.albedo_color.is_equal_approx(Color("#315f9b")))
+	appearance.shirt_opacity = 0.35
+	appearance.shirt_visible = false
+	appearance.apply_to(body)
+	var translucent := shirt.get_active_material(0) as StandardMaterial3D
+	assert(is_equal_approx(translucent.albedo_color.a, 0.35))
+	assert(translucent.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA)
+	assert(not shirt.visible)
 
 	var path := "user://character_appearance_test.json"
 	assert(appearance.save_json(path) == OK)
 	var restored := CharacterAppearance.load_json(path)
 	assert(restored.shirt_tint.is_equal_approx(appearance.shirt_tint))
 	assert(restored.shirt_fabric == "linen")
+	assert(is_equal_approx(restored.shirt_opacity, 0.35))
+	assert(not restored.shirt_visible)
 	assert(restored.accessory_ids == appearance.accessory_ids)
 	assert(restored.tattoo_ids == appearance.tattoo_ids)
 	restored.apply_to(body)
 	var after_reload := shirt.get_active_material(0) as StandardMaterial3D
-	assert(after_reload.albedo_color.is_equal_approx(appearance.shirt_tint))
+	assert(after_reload.albedo_color.r == appearance.shirt_tint.r)
+	assert(is_equal_approx(after_reload.albedo_color.a, 0.35))
+	assert(not shirt.visible)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	body.free()
 
