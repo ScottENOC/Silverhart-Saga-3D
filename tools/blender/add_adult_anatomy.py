@@ -94,7 +94,9 @@ def create_piercing_sockets(armature, surface_tree, minimum, height, width, pelv
         if hit:
             create_socket(armature, "SOCKET_Earring_" + label, hit[0], hit[1], head_bone)
 
-    nose_hit = front_hit_data(surface_tree, 0.0, minimum.z + height * 0.91)
+    # Place the ring so its upper edge meets the lower edge of the nose.
+    nose_ring_top_z = minimum.z + height * 0.895
+    nose_hit = front_hit_data(surface_tree, 0.0, nose_ring_top_z - 0.008)
     if nose_hit:
         create_socket(armature, "SOCKET_NoseRing", nose_hit[0], nose_hit[1], head_bone)
 
@@ -102,7 +104,9 @@ def create_piercing_sockets(armature, surface_tree, minimum, height, width, pelv
     if necklace_hit:
         create_socket(armature, "SOCKET_Necklace", necklace_hit[0], necklace_hit[1], chest_bone)
 
-    nipple_z = minimum.z + height * 0.74
+    # The ring's top edge, not its centre, aligns with the nipple.
+    nipple_ring_top_z = minimum.z + height * 0.705
+    nipple_z = nipple_ring_top_z - 0.008
     for side, label in [(1.0, "L"), (-1.0, "R")]:
         hit = front_hit_data(surface_tree, side * width * 0.105, nipple_z)
         if hit:
