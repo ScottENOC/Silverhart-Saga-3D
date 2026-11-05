@@ -223,8 +223,37 @@ def create_anatomy(pelvis_z, front_y, width, collection, skin_material, armature
     sub = anatomy.modifiers.new("Anatomy final surface", "SUBSURF")
     sub.levels = 1
     sub.render_levels = 1
+    # Voxel remeshing destroys the original UV layout. Reusing Ara's textured
+    # skin material on this new topology samples unrelated atlas pixels (the
+    # red/purple patches seen in review). Build a clean skin-tone material from
+    # the source material's base colour; do not apply the broken texture atlas.
+    clean_skin = skin_material.copy()
+    clean_skin.name = "Anatomy_Skin_Base"
+    if clean_skin.use_nodes and clean_skin.node_tree:
+        nodes = clean_skin.node_tree.nodes
+        links = clean_skin.node_tree.links
+        principled = next((n for n in nodes if n.type == "BSDF_PRINCIPLED"), None)
+        base_colour = tuple(clean_skin.diffuse_color)
+        for link in list(links):
+            if principled and link.to_node == principled and link.to_socket.name in ("Base Color", "Alpha"):
+                links.remove(link)
+        for node in list(nodes):
+            if node.type == "TEX_IMAGE":
+                nodes.remove(node)
+        if principled:
+            principled.inputs["Base Color"].default_value = base_colour
+            principled.inputs["Alpha"].default_value = 1.0
     anatomy.data.materials.clear()
-    anatomy.data.materials.append(skin_material)
+    anatomy.data.materials.append(clean_skin)
+    # Clamp the hidden/back side of the sculpt onto the sampled pelvis surface.
+    # This turns the separate sculpt into a conforming overlay rather than a
+    # collection of ellipsoids floating in front of the body.
+    for vert in anatomy.data.vertices:
+        p = anatomy.matrix_world @ vert.co
+        hit = front_hit_data(surface_tree, p.x, p.z)
+        if hit and p.y > hit[0].y - 0.001:
+            p.y = hit[0].y - 0.001
+            vert.co = anatomy.matrix_world.inverted() @ p
     for poly in anatomy.data.polygons:
         poly.use_smooth = True
 
@@ -293,7 +322,9 @@ def main():
     maximum = Vector(tuple(max(b[1][i] for b in all_bounds) for i in range(3)))
     height = maximum.z - minimum.z
     width = max(mesh_world_bounds(skin)[1].x - mesh_world_bounds(skin)[0].x, 0.4)
-    pelvis_z = minimum.z + height * 0.445
+    hip_bone = next((b for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), None)
+    pelvis_z = ((armature.matrix_world @ ((hip_bone.head_local + hip_bone.tail_local) * 0.5)).z
+                if hip_bone else minimum.z + height * 0.445)
 
     # Use the actual exposed skin surface when available. In clothed exports,
     # skin is removed under trousers, so use the trouser surface and step inward.
