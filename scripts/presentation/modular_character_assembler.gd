@@ -103,7 +103,9 @@ func set_component(slot: String, component_id: String) -> bool:
         source.queue_free()
         return false
     for mesh_instance in meshes:
+        mesh_instance.reparent(mount, true)
         mesh_instance.skeleton = mesh_instance.get_path_to(shared_skeleton)
+    source.queue_free()
     active_components[slot] = component_id
     return true
 
