@@ -185,7 +185,11 @@ function surfacePoint(x,y,skinOnly=false){
  model.updateMatrixWorld(true);
  const meshes=getSurfaceMeshes(skinOnly);
  if(!meshes.length)return null;
- const ray=new THREE.Raycaster(new THREE.Vector3(x,y,2.5),new THREE.Vector3(0,0,-1),0,5);
+ // The viewer rotates the model root. Build the ray in model-local space,
+ // then transform it into world space before intersecting the loaded meshes.
+ const origin=model.localToWorld(new THREE.Vector3(x,y,2.5));
+ const direction=new THREE.Vector3(0,0,-1).transformDirection(model.matrixWorld);
+ const ray=new THREE.Raycaster(origin,direction,0,5);
  const hits=ray.intersectObjects(meshes,false);
  if(!hits.length)return null;
  const hit=hits[0],point=model.worldToLocal(hit.point.clone());
@@ -208,18 +212,18 @@ function addAccessories(kind){
  if(accessoryGroup.userData.reviewAccessories.includes(kind))return;
  const silver=new THREE.MeshStandardMaterial({color:0xb9c2c9,metalness:.82,roughness:.24});
  const gold=new THREE.MeshStandardMaterial({color:0xc6a45b,metalness:.72,roughness:.28});
- const allSurface=(x,y)=>surfacePoint(x,y,false);
+ const anySurface=(x,y)=>surfacePoint(x,y,false);
  const skinSurface=(x,y)=>surfacePoint(x,y,true);
  let ok=true;
  if(kind==='earrings'){
-  ok=addHoopAt(allSurface(-.085,1.55),.012,silver)&&addHoopAt(allSurface(.085,1.55),.012,silver);
+  ok=addHoopAt(skinSurface(-.085,1.55),.012,silver)&&addHoopAt(skinSurface(.085,1.55),.012,silver);
  }else if(kind==='nose'){
-  ok=addHoopAt(allSurface(0,1.565),.008,silver);
+  ok=addHoopAt(skinSurface(0,1.565),.008,silver);
  }else if(kind==='necklace'){
   const pts=[];
   for(let i=0;i<=36;i++){
    const t=i/36, x=(t-.5)*.26, y=1.405-.085*(1-Math.pow((t-.5)*2,2));
-   const hit=allSurface(x,y);if(hit)pts.push(hit.point.clone().addScaledVector(hit.normal,.004));
+   const hit=anySurface(x,y);if(hit)pts.push(hit.point.clone().addScaledVector(hit.normal,.004));
   }
   if(pts.length<8)ok=false;
   else{
