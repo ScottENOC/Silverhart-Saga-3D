@@ -177,3 +177,48 @@ These are observations from one generated output, not guarantees for all Ara out
 3. Establish the body/rig contract before creating tattoos, piercings or clothing dependencies.
 4. Test a small representative accessory and tattoo workflow.
 5. Only then expand the catalogue and build the Godot customisation UI.
+
+
+## Ara capability audit (upstream documentation, 2026-11-05)
+
+Source reviewed: Ara 3D Gen upstream README and its character, face, architecture, export and engine guides. These are documented upstream capabilities; our own pipeline still needs to verify the exact pinned revision and exported assets.
+
+### Available in Ara now
+
+- MakeHuman-based body system: 935 morph targets, including macro controls and 219 detail sliders.
+- Body controls include gender, age, muscle, weight, height, proportions, ethnicity and breast; detailed controls include head, nose, mouth, eyes, ears, chin, cheeks, torso and limbs.
+- Base body described as 13,378 quads; low, medium and high detail tiers are documented.
+- Body proxies for eyes, brows, lashes, teeth, tongue, 10 hairstyles, 12 outfits, 6 shoes and 2 hats are fitted to the morphed body. Skin under clothing is removed.
+- 28 guided outfit styles; separate tops, jackets, bottoms, footwear and 30+ accessories; generated fabrics and recolourable material parameters.
+- Tattoos currently documented: tribal armband, full sleeve, forearm bands, chest piece, back piece and cheek marks. They are adult-only.
+- Earrings currently documented: studs, small hoops and big hoops, in gold or silver.
+- Tattoos and some skin details are painted into an RGBA skin-detail texture in body UV space; the guide describes a thin skin copy 0.4 mm above the body.
+- Facial morphs: 34 blend shapes, comprising 20 expressions and 14 speech shapes. These are not equivalent to the 219 detailed face/body controls.
+- Export: GLB, FBX, OBJ and ZIP; rigged exports; game rig (65 bones), lite (25) and full MakeHuman (163); optional jaw/eye bones and facial blend shapes.
+- Godot 4 is documented as loading the rigged animated GLB directly.
+- Ara's own character JSON/params contract is versioned and can deterministically rebuild a character; the LLM Assist guide exposes installed asset IDs and validated parameters.
+
+### Explicit gaps / not documented as available
+
+- **Genital geometry:** upstream documentation explicitly says bodies are anatomically neutral and contain no genital geometry. This is a real missing capability, not a setting we have overlooked.
+- **Nose, nipple and clitoral piercings:** the reviewed guides document earrings but do not document these other piercing types or attachment sockets.
+- **Modular exported garments:** the documented build assembles the character into one multi-material mesh. Clothing options are configurable in Ara, but independent runtime garment swapping is not established by the documentation. We must test whether exports expose separately addressable primitives/materials and whether the generator can export individual clothing pieces.
+- **Independent armour components:** Ara lists leather armour, tactical vest, combat helmet, arm guards and similar accessories, but does not establish a full modular historical armour system with articulated mail/scale/plate components.
+- **Arbitrary face identity locking across regenerated builds:** deterministic full parameter regeneration is documented; independent component-level locking needs to be implemented in our own character specification/workflow.
+
+### Consequences for our plan
+
+1. Do not spend time searching Ara's UI for genital geometry; it is not part of the documented body system. Treat genital anatomy as a separate body-asset extension or Blender-authored mesh/shape-key project, then validate it against the existing skeleton and UV/material contract.
+2. First test whether the current pinned Ara export preserves separate primitives, UVs, material slots and skin-detail texture access. The one-mesh/16-material-section observation from our earlier sample is consistent with a combined export, but does not prove runtime modularity.
+3. Use Ara's existing tattoo system as the baseline. Test its six documented tattoo designs, UV fit and colour behaviour before building another tattoo renderer.
+4. Extend the accessory system only after inspecting the skeleton and stable body landmarks. Ear earrings may use Ara's current implementation; nose, nipple and clitoral jewellery need new validated anchors and fit rules.
+5. Treat Ara clothing as a source catalogue. For game runtime, choose between (a) separate exports per item, (b) a controlled set of prebuilt outfit combinations, or (c) custom Godot modular assets. Do not assume an Ara outfit can be hot-swapped merely because its parameters can be changed before generation.
+6. Build armour as a dedicated modular asset family. Ara's current accessories can be useful references or starting pieces, not proof that our required armour system exists.
+
+### Ara source references
+
+- Upstream project: https://github.com/olatunde85/3d-gen
+- Character/body/clothing/tattoo documentation: https://github.com/olatunde85/3d-gen/blob/main/docs/characters.md
+- Architecture: https://github.com/olatunde85/3d-gen/blob/main/docs/architecture.md
+- Export contract: https://github.com/olatunde85/3d-gen/blob/main/docs/exporting.md
+- Godot engine notes: https://github.com/olatunde85/3d-gen/blob/main/docs/engines.md
