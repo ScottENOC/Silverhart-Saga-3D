@@ -76,21 +76,21 @@ def create_anatomy(pelvis_z, front_y, width, collection, skin_material, armature
     half = max(0.055, min(0.075, width * 0.145))
     shapes = []
     shapes.append(uv_ellipsoid(
-        "Vulva_Mons_Pubis", (0.0, front_y - 0.010, pelvis_z + 0.047),
-        (half * 0.92, 0.026, 0.047), collection))
+        "Vulva_Mons_Pubis", (0.0, front_y - 0.004, pelvis_z + 0.047),
+        (half * 0.92, 0.020, 0.047), collection))
     for side, label in [(-1, "L"), (1, "R")]:
         shapes.append(uv_ellipsoid(
             "Vulva_Labia_Majora_" + label,
-            (side * half * 0.34, front_y - 0.017, pelvis_z - 0.012),
-            (half * 0.39, 0.025, 0.071), collection))
+            (side * half * 0.34, front_y - 0.008, pelvis_z - 0.012),
+            (half * 0.39, 0.018, 0.071), collection))
         shapes.append(uv_ellipsoid(
             "Vulva_Labia_Minora_" + label,
-            (side * half * 0.145, front_y - 0.032, pelvis_z - 0.012),
-            (half * 0.145, 0.014, 0.054), collection))
+            (side * half * 0.145, front_y - 0.018, pelvis_z - 0.012),
+            (half * 0.145, 0.010, 0.054), collection))
     shapes.append(uv_ellipsoid(
         "Vulva_Clitoral_Hood",
-        (0.0, front_y - 0.041, pelvis_z + 0.040),
-        (half * 0.17, 0.013, 0.016), collection))
+        (0.0, front_y - 0.024, pelvis_z + 0.040),
+        (half * 0.17, 0.008, 0.016), collection))
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in shapes:
@@ -137,7 +137,7 @@ def expand_lower_garments(objects, pelvis_z, body_front_y, width):
         is_trousers = any(k in label for k in ("pants", "trouser", "bottom", "breech"))
         if not (is_briefs or is_trousers):
             continue
-        amplitude = 0.034 if is_trousers else 0.026
+        amplitude = 0.040 if is_trousers else 0.034
         inv = obj.matrix_world.inverted()
         for vert in obj.data.vertices:
             world = obj.matrix_world @ vert.co
