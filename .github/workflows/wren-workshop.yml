@@ -31,6 +31,7 @@ jobs:
           cd /tmp/ara-3d-gen
           corepack enable
           pnpm install --no-frozen-lockfile
+          npm run typecheck
           npm run setup-assets
           cat > /tmp/ara-wren.params.json <<'JSON'
           {
@@ -159,9 +160,9 @@ jobs:
           npx tsx scripts/export-modular-component.ts /tmp/modular-shirt.json "$GITHUB_WORKSPACE/art/characters/ara/modular/shirt.glb" "Fatigue shirt"
           npx tsx scripts/export-modular-component.ts /tmp/modular-trousers.json "$GITHUB_WORKSPACE/art/characters/ara/modular/trousers.glb" "Fatigue pants"
           python - <<'PY'
-          import json
+          import json, os
           from pathlib import Path
-          root = Path('''$GITHUB_WORKSPACE/art/characters/ara/modular''')
+          root = Path(os.environ['GITHUB_WORKSPACE']) / 'art/characters/ara/modular'
           base = json.loads((root / 'body.json').read_text())['rig_bones']
           for name in ('hair', 'shirt', 'trousers'):
               bones = json.loads((root / (name + '.json')).read_text())['rig_bones']
