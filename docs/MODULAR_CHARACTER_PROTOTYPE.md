@@ -66,3 +66,18 @@ Nose, jaw, cheek and other facial appearance should be investigated as body morp
 If the components assemble and animate correctly, build a small appearance catalogue and test it on at least three different body shapes. Only then decide whether Ara/MakeHuman can underpin the player creator, mercenary recruitment and the wider NPC population.
 
 Do not generate 100 complete characters as the production asset strategy.
+
+
+## Body accessory attachment points
+
+The shared adult body should expose three independently addressable ring attachment sockets:
+
+- `nipple.left`
+- `nipple.right`
+- `clitoral_hood`
+
+These are attachment transforms, not jewellery fused into the body and not automatically holes cut into the mesh. Rings remain separate reusable accessory assets, so the game can equip, remove, recolour and swap them independently. The two nipple sockets should follow the upper torso/breast deformation; the clitoral-hood socket should follow the pelvis. Their exact parent bones and local transforms must be calibrated against the generated rig and checked in the posed model rather than guessed from nominal bone names.
+
+The body refinement should retain natural anatomical contours around each socket. A ring should sit against the surface without floating, sinking into the body, or intersecting clothing. The clitoral-hood attachment is a single central anchor; accessory geometry can define the ring's orientation and closure.
+
+These sockets are part of the reusable body specification, not Wren-specific details. Include them when validating the three-NPC appearance test, and check that they remain correctly positioned across the supported body proportions. If a body shape cannot support the same socket transform, it needs a compatible body-specific offset rather than a per-NPC bespoke model.
