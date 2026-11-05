@@ -157,7 +157,8 @@ document.querySelector('#resetMaterials').onclick=()=>{
 function clearAccessories(){if(accessoryGroup&&model){model.remove(accessoryGroup);accessoryGroup.traverse(o=>{o.geometry?.dispose();if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose())}})}accessoryGroup=null;}
 function addAccessories(kind){
  if(!model||!box)return;
- if(!accessoryGroup){accessoryGroup=new THREE.Group();accessoryGroup.name='PhoneReviewAccessories';model.add(accessoryGroup);}
+ if(!accessoryGroup){accessoryGroup=new THREE.Group();accessoryGroup.name='PhoneReviewAccessories';accessoryGroup.userData.reviewAccessories=[];model.add(accessoryGroup);}
+ if(!accessoryGroup.userData.reviewAccessories.includes(kind))accessoryGroup.userData.reviewAccessories.push(kind);
  const size=box.getSize(new THREE.Vector3()),centre=box.getCenter(new THREE.Vector3());
  const front=box.min.y-size.y*.025, headZ=box.max.z-size.z*.105, neckZ=box.max.z-size.z*.19;
  const silver=new THREE.MeshStandardMaterial({color:0xb9c2c9,metalness:.82,roughness:.24});
@@ -181,7 +182,7 @@ document.querySelectorAll('[data-accessory]').forEach(b=>b.addEventListener('cli
 }));
 function appearanceSnapshot(){
  const materials={};for(const [key,e] of originalMaterials){materials[e.material.name||key]={color:e.material.color?'#'+e.material.color.getHexString():null,roughness:e.material.roughness??null,metalness:e.material.metalness??null};}
- return {schema_version:1,model:document.querySelector('#modelmode').value,materials,accessories:accessoryGroup?accessoryGroup.children.map(x=>x.name||x.geometry?.type||'accessory'):[]};
+ return {schema_version:1,model:document.querySelector('#modelmode').value,materials,accessories:accessoryGroup?(accessoryGroup.userData.reviewAccessories||[]):[]};
 }
 function applySnapshot(data){
  if(!data||typeof data!=='object')return;
@@ -191,7 +192,7 @@ function applySnapshot(data){
   if(Number.isFinite(saved.roughness)&&'roughness' in e.material)e.material.roughness=saved.roughness;
   if(Number.isFinite(saved.metalness)&&'metalness' in e.material)e.material.metalness=saved.metalness;
  }
- clearAccessories();for(const a of (data.accessories||[])){if(String(a).includes('Torus')||String(a).includes('ear'))addAccessories('earrings');}
+ clearAccessories();for(const a of (data.accessories||[])){if(['earrings','nose','necklace'].includes(a))addAccessories(a);}
  document.querySelector('#saveState').textContent='Saved appearance restored';
 }
 document.querySelector('#saveAppearance').onclick=()=>{
