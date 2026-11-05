@@ -10,7 +10,6 @@ var walk_direction: float = 1.0
 var gravity_strength: float = 18.0
 
 func _ready() -> void:
-	name = "TerrainTestCharacter"
 	floor_snap_length = 0.4
 	floor_max_angle = deg_to_rad(55.0)
 	floor_stop_on_slope = true
