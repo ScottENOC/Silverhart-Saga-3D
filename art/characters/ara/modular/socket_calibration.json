@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "rig": "ara-game-rig-v1",
+  "coordinate_system": "Ara GLB local; metres; Blender-authored bone-local transforms",
+  "sockets": {
+    "ear.left": {
+      "bone": "Head",
+      "calibrated": false
+    },
+    "ear.right": {
+      "bone": "Head",
+      "calibrated": false
+    },
+    "nose.ring": {
+      "bone": "Head",
+      "calibrated": false
+    },
+    "necklace": {
+      "bone": "Spine2",
+      "calibrated": false
+    },
+    "nipple.left": {
+      "bone": "Spine2",
+      "calibrated": false
+    },
+    "nipple.right": {
+      "bone": "Spine2",
+      "calibrated": false
+    },
+    "clitoral_hood": {
+      "bone": "Hips",
+      "calibrated": false
+    },
+    "hand.right": {
+      "bone": "HandR",
+      "calibrated": false
+    },
+    "hand.left": {
+      "bone": "HandL",
+      "calibrated": false
+    }
+  }
+}
