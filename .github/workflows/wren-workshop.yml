@@ -189,6 +189,8 @@ jobs:
             npx tsx scripts/export-modular-component.ts "/tmp/npc-params/$NPC-trousers.json" "$GITHUB_WORKSPACE/art/characters/ara/npcs/$NPC/trousers.glb" "Fatigue pants,Cargo shorts"
             npx tsx scripts/export-modular-component.ts "/tmp/npc-params/$NPC-shirt_alt.json" "$GITHUB_WORKSPACE/art/characters/ara/npcs/$NPC/shirt_alt.glb" "Fatigue shirt,Tank top"
             npx tsx scripts/export-modular-component.ts "/tmp/npc-params/$NPC-trousers_alt.json" "$GITHUB_WORKSPACE/art/characters/ara/npcs/$NPC/trousers_alt.glb" "Fatigue pants,Cargo shorts"
+            npx tsx scripts/export-modular-component.ts "/tmp/npc-params/$NPC-boots.json" "$GITHUB_WORKSPACE/art/characters/ara/npcs/$NPC/boots.glb" "Shoes,Boot shafts"
+            npx tsx scripts/export-modular-component.ts "/tmp/npc-params/$NPC-weapon.json" "$GITHUB_WORKSPACE/art/characters/ara/npcs/$NPC/weapon_sword.glb" "Blade steel,Brass,Grip leather"
           done
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
