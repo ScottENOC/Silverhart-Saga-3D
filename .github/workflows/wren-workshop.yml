@@ -82,6 +82,25 @@ jobs:
           cp /tmp/ara-wren.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren.params.json"
           test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_benchmark.glb"
 
+          # Dedicated undergarment preview: bra and briefs, without outer clothes.
+          python - <<'PY'
+          import json
+          p = json.load(open('/tmp/ara-wren.params.json'))
+          p.update({
+              "name": "Wren Talbot - Ara underwear layers",
+              "top": "none", "underTop": "bra", "jacket": "none",
+              "bottom": "briefs", "underwear": False, "shoes": "none",
+              "weapon": "none", "carry": "none", "hat": "none"
+          })
+          json.dump(p, open('/tmp/ara-wren-underwear.params.json', 'w'), indent=2)
+          PY
+          mkdir -p /tmp/ara-underwear-out
+          npm run export -- --params /tmp/ara-wren-underwear.params.json --detail high --formats glb --out /tmp/ara-underwear-out
+          UNDERWEAR_GLB="$(find /tmp/ara-underwear-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$UNDERWEAR_GLB"
+          cp "$UNDERWEAR_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_underwear.glb"
+          cp /tmp/ara-wren-underwear.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_underwear.params.json"
+
           # Ara body-only adult preview: no garments, underwear or shoes.
           python - <<'PY'
           import json
@@ -147,7 +166,7 @@ jobs:
           blender --background --python-expr "import ensurepip; ensurepip.bootstrap()"
           blender --background --python-expr "import subprocess,sys; subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'numpy'])"
           blender --background --python-expr "import numpy; print('Blender NumPy:', numpy.__version__)"
-          for variant in ara_wren_benchmark ara_wren_mobile ara_wren_body ara_wren_tattoo_body; do
+          for variant in ara_wren_benchmark ara_wren_mobile ara_wren_body ara_wren_tattoo_body ara_wren_underwear; do
             ARA_INPUT="art/characters/ara/${variant}.glb" \
               ARA_OUTPUT="/tmp/${variant}_anatomy.glb" \
               ARA_PROFILE=female ARA_ADULT=1 \
@@ -175,6 +194,8 @@ jobs:
             art/characters/ara/ara_wren_body.params.json
             art/characters/ara/ara_wren_tattoo_body.glb
             art/characters/ara/ara_wren_tattoo_body.params.json
+            art/characters/ara/ara_wren_underwear.glb
+            art/characters/ara/ara_wren_underwear.params.json
             art/characters/ara/review/**
           if-no-files-found: error
           retention-days: 14
@@ -186,6 +207,7 @@ jobs:
           cp art/characters/ara/ara_wren_mobile.glb site/assets/ara_wren_mobile.glb
           cp art/characters/ara/ara_wren_body.glb site/assets/ara_wren_body.glb
           cp art/characters/ara/ara_wren_tattoo_body.glb site/assets/ara_wren_tattoo_body.glb
+          cp art/characters/ara/ara_wren_underwear.glb site/assets/ara_wren_underwear.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
