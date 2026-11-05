@@ -17,14 +17,6 @@ button{background:#30343b;color:#eee;border:1px solid #4a4f58;border-radius:8px;
 <section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara">Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
 <section><h2>Camera</h2><div class="buttons"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="three">3/4</button><button id="home">Reset</button></div><div class="row"><span>Auto rotate</span><input id="autorotate" type="checkbox"></div></section>
 <section><h2>Lighting</h2><div class="row"><span>Key light</span><input id="keylight" type="range" min="0" max="5" step=".1" value="3"></div><div class="row"><span>Fill light</span><input id="filllight" type="range" min="0" max="4" step=".1" value="1.4"></div><div class="row"><span>Light direction</span><input id="lightangle" type="range" min="0" max="360" value="35"></div></section>
-<section><h2>Components</h2>
-<div class="row"><span>Hair</span><input id="hair" type="checkbox" checked></div>
-<div class="row"><span>Clothing / armour</span><input id="clothing" type="checkbox" checked></div>
-<div class="row"><span>Weapon</span><input id="weapon" type="checkbox" checked></div>
-<div class="row"><span>Body hair</span><input id="bodyhair" type="checkbox" checked></div>
-<div class="row"><span>Tattoo</span><input id="tattoo" type="checkbox" checked></div>
-<div class="row"><span>Piercings</span><input id="piercings" type="checkbox" checked></div>
-<p class="note">Visibility switches inspect separately named meshes in the full character export.</p></section>
 <section><h2>Build</h2><div class="note" id="build">Loading build information…</div><p class="note" id="error"></p></section>
 </aside></main>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
@@ -40,13 +32,13 @@ const key=new THREE.DirectionalLight(0xffe1bc,3);key.position.set(2,-3,4);scene.
 const fill=new THREE.DirectionalLight(0xc4d7ff,1.4);fill.position.set(-3,2,2);scene.add(fill);
 scene.add(new THREE.GridHelper(5,50,0x68645d,0x44413c));
 let model=null,box=null;
-const rules=[['hair',n=>n.startsWith('Hair_')],['clothing',n=>n.startsWith('Garment_')||n.startsWith('Armour_')],['weapon',n=>n.startsWith('Weapon_')],['bodyhair',n=>n.startsWith('BodyHair_')],['tattoo',n=>n.startsWith('Tattoo_')],['piercings',n=>n.startsWith('Piercing_')]];
+
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(stage);resize();
 function frame(name){if(!box)return;const centre=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()),dist=Math.max(size.z*2,2.1);const dirs={front:new THREE.Vector3(0,0,1),back:new THREE.Vector3(0,0,-1),left:new THREE.Vector3(-1,0,0),right:new THREE.Vector3(1,0,0),three:new THREE.Vector3(1,.45,1.5)};camera.position.copy(centre).add(dirs[name].normalize().multiplyScalar(dist));controls.target.copy(centre);controls.update()}
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>frame(b.dataset.view)));document.querySelector('#home').onclick=()=>frame('three');
 document.querySelector('#autorotate').onchange=e=>controls.autoRotate=e.target.checked;document.querySelector('#keylight').oninput=e=>key.intensity=+e.target.value;document.querySelector('#filllight').oninput=e=>fill.intensity=+e.target.value;
 document.querySelector('#lightangle').oninput=e=>{const a=+e.target.value*Math.PI/180;key.position.set(Math.cos(a)*3,4,Math.sin(a)*3)};
-for(const [id,test] of rules)document.querySelector('#'+id).onchange=e=>model?.traverse(o=>{if(o.isMesh&&test(o.name))o.visible=e.target.checked});
+
 let buildVersion='latest';
 fetch('./build-version.txt').then(r=>r.text()).then(t=>{buildVersion=t.trim().slice(0,12)||'latest';document.querySelector('#build').textContent='Build '+buildVersion}).catch(()=>{});
 let loadGeneration=0;
@@ -70,8 +62,8 @@ function disposeModel(root){
 }
 function loadModel(mode){
  const generation=++loadGeneration;
- const file=mode==='sculpt'?'wren_sculpt_source.glb':mode==='ara'?'ara_wren_benchmark.glb':mode==='ara-mobile'?'ara_wren_mobile.glb':'wren_blockout.glb';
- const label=mode==='sculpt'?'sculpt-ready body':mode==='ara'?'Ara high-detail benchmark':mode==='ara-mobile'?'Ara mobile preview':'full character';
+ const file=mode==='ara-mobile'?'ara_wren_mobile.glb':'ara_wren_benchmark.glb';
+ const label=mode==='ara-mobile'?'Ara mobile preview':'Ara high-detail benchmark';
  const modelUrl=new URL('./assets/'+file+'?v='+encodeURIComponent(buildVersion),window.location.href).href;
  if(model){scene.remove(model);disposeModel(model);model=null;box=null}
  status.textContent='Loading '+label+'…';error.textContent='';
@@ -86,6 +78,6 @@ function loadModel(mode){
  });
 }
 document.querySelector('#modelmode').onchange=e=>loadModel(e.target.value);
-loadModel('full');
+loadModel(mobilePreview?'ara-mobile':'ara');
 function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
 </script></body></html>
