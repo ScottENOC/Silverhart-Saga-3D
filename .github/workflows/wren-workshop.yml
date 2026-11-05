@@ -10,7 +10,6 @@ on:
       - "docs/ARA_CHARACTER_EVALUATION.md"
 permissions:
   contents: read
-  id-token: write
 concurrency:
   group: wren-workshop
   cancel-in-progress: false
