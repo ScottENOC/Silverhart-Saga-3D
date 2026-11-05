@@ -5,7 +5,7 @@ func _initialize() -> void:
     appearance.body_variant = "ara_female_athletic"
     appearance.hair_id = "ponytail01"
     appearance.hair_tint = Color("#6f3428")
-    appearance.tattoos = ["forearm_left"]
+    appearance.tattoos.append("forearm_l")
     appearance.accessories = {"ear.left": "silver_hoop", "nose.ring": "small_silver"}
     appearance.equipment["shirt"] = "fatigue_shirt"
     appearance.equipment["main_hand"] = "sword"
@@ -42,7 +42,8 @@ func _initialize() -> void:
     var attachment_rig := CharacterAttachmentRig.new()
     root.add_child(attachment_rig)
     assert(attachment_rig.configure(skeleton, calibration), "Attachment rig failed to configure")
-    assert(attachment_rig.attach("ear.left", CharacterAccessoryFactory.make_earring("silver_hoop")), "Earring socket failed")
+    assert(attachment_rig.attach("ear.left", CharacterAccessoryFactory.make_earring("silver_hoop")), "Left earring socket failed")
+    assert(attachment_rig.attach("ear.right", CharacterAccessoryFactory.make_earring("silver_hoop_right")), "Right earring socket failed")
     assert(attachment_rig.attach("nose.ring", CharacterAccessoryFactory.make_ring("nose_ring")), "Nose ring socket failed")
     assert(attachment_rig.attach("necklace", CharacterAccessoryFactory.make_necklace("silver_chain")), "Necklace socket failed")
     assert(attachment_rig.attach("nipple.left", CharacterAccessoryFactory.make_ring("nipple_ring")), "Nipple socket failed")
