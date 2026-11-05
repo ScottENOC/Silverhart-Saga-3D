@@ -2,7 +2,7 @@
 
 ## Current state
 
-The pinned Ara pipeline successfully exports a skinned body, hair, shirt and trousers. The modular exporter validates the rig hierarchy and the Godot assembler has been refactored to use a body-specific asset catalogue. Three adult NPC presets are defined and the workflow is being extended to generate their full previews and modular parts.
+The pinned Ara pipeline successfully exports a skinned body, hair, shirt and trousers. A completed GitHub Actions run generated three distinct adult NPC previews and separate body, hair, shirt, alternate shirt, trousers, alternate trousers, boots and sword components for each. All generated components passed an exact 69-bone ordered-hierarchy comparison against their respective body. The private viewer is being updated to expose the three previews. The Godot assembler and appearance persistence/shader foundations are committed, but their in-engine tests have not yet run.
 
 ## Required work before calling the body finished
 
@@ -31,8 +31,9 @@ Armour is not yet included in the generated test catalogue. Add armour only afte
 
 ## Runtime verification checklist
 
-- [ ] Three NPCs load from the same assembler and use the same rig hierarchy.
-- [ ] Hair, shirts, trousers, boots and weapons swap without recreating the body.
+- [x] Three NPC asset sets generated from the same Ara game-rig definition; all component bone hierarchies match exactly (69 bones).
+- [ ] Three NPCs load and animate together in Godot using the same assembler.
+- [ ] Hair, shirts, trousers, boots and weapons swap without recreating the body (asset sets generated; runtime test pending).
 - [ ] Material tint and fabric mode change on an equipped shirt.
 - [ ] Material overrides are stored in CharacterAppearance and survive save/reload.
 - [ ] Ear, nose and necklace accessories attach to calibrated sockets.
