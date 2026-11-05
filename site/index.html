@@ -120,17 +120,20 @@ function loadBodyUnderlay(generation){
   const root=new THREE.Group();root.name='TransparentClothingBodyUnderlay';
   g.scene.updateMatrixWorld(true);
   g.scene.traverse(o=>{
-   if(!o.isMesh||!o.geometry)return;
-   const mats=Array.isArray(o.material)?o.material:[o.material];
-   if(!mats.some(m=>(m?.name||'').toLowerCase().includes('skin')))return;
-   const clone=o.clone();clone.geometry=o.geometry.clone();
-   clone.material=(Array.isArray(o.material)?o.material:[o.material]).map(m=>m.clone());
-   clone.position.copy(o.position);clone.quaternion.copy(o.quaternion);clone.scale.copy(o.scale);
-   const pos=clone.geometry.getAttribute('position'),normal=clone.geometry.getAttribute('normal');
-   if(pos&&normal){for(let i=0;i<pos.count;i++){pos.setXYZ(i,pos.getX(i)-normal.getX(i)*.002,pos.getY(i)-normal.getY(i)*.002,pos.getZ(i)-normal.getZ(i)*.002);}pos.needsUpdate=true;clone.geometry.computeBoundingSphere();}
-   clone.renderOrder=-1;clone.frustumCulled=false;
-   clone.material.forEach(m=>{m.transparent=false;m.opacity=1;m.depthWrite=true;m.depthTest=true;m.needsUpdate=true;});
-   root.add(clone);
+   if(o.isMesh&&o.geometry){
+    const mats=Array.isArray(o.material)?o.material:[o.material];
+    if(!mats.some(m=>(m?.name||'').toLowerCase().includes('skin')))return;
+    const clone=o.clone();clone.geometry=o.geometry.clone();
+    clone.material=(Array.isArray(o.material)?o.material:[o.material]).map(m=>m.clone());
+    clone.matrixAutoUpdate=false;clone.matrix.copy(o.matrixWorld);
+    const pos=clone.geometry.getAttribute('position'),normal=clone.geometry.getAttribute('normal');
+    if(pos&&normal){for(let i=0;i<pos.count;i++){pos.setXYZ(i,pos.getX(i)-normal.getX(i)*.002,pos.getY(i)-normal.getY(i)*.002,pos.getZ(i)-normal.getZ(i)*.002);}pos.needsUpdate=true;clone.geometry.computeBoundingSphere();}
+    clone.renderOrder=-1;clone.frustumCulled=false;
+    clone.material.forEach(m=>{m.transparent=false;m.opacity=1;m.depthWrite=true;m.depthTest=true;m.needsUpdate=true;});
+    root.add(clone);
+   }else if(o.name?.startsWith('SOCKET_')){
+    const socket=o.clone(false);socket.matrixAutoUpdate=false;socket.matrix.copy(o.matrixWorld);root.add(socket);
+   }
   });
   root.visible=false;model.add(root);bodyUnderlay=root;
   disposeModel(g.scene);
