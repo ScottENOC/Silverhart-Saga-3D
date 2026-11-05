@@ -24,9 +24,9 @@ jobs:
           test -n "$HF_TOKEN" || { echo "HF_ADMIN_TOKEN is missing"; exit 1; }
           echo "Authenticated Hugging Face identity:"
           hf auth whoami
-          echo "Storage usage across the account (filtered to Spaces):"
-          hf repos ls --limit 0 --format json --type space
-          echo "Space metadata:"
+          echo "Installing Hub API client:"
+          python -m pip install --disable-pip-version-check --quiet huggingface_hub
+          echo "Space metadata and current repository files:"
           python - <<'PY'
           import os
           from huggingface_hub import HfApi
