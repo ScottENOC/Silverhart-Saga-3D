@@ -1,0 +1,44 @@
+name: Audit Hugging Face storage
+on:
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/hf-storage-audit.yml"
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Install Hugging Face CLI
+        run: |
+          curl -LsSf https://hf.co/cli/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Inspect account and Space storage
+        env:
+          HF_TOKEN: ${{ secrets.HF_ADMIN_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$HF_TOKEN" || { echo "HF_ADMIN_TOKEN is missing"; exit 1; }
+          echo "Authenticated Hugging Face identity:"
+          hf auth whoami
+          echo "Storage usage across the account (filtered to Spaces):"
+          hf repos ls --limit 0 --format json --type space
+          echo "Space metadata:"
+          python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          info = api.repo_info("Thisisausername836/wren-workshop", repo_type="space")
+          print({
+              "id": info.id,
+              "private": info.private,
+              "sha": info.sha,
+              "siblings": [
+                  {"rfilename": item.rfilename, "size": getattr(item, "size", None)}
+                  for item in (info.siblings or [])
+              ],
+          })
+          PY
