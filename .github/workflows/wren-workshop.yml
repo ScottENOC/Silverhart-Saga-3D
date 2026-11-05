@@ -20,37 +20,6 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Install Blender 5.2.3
-        shell: bash
-        run: |
-          set -euo pipefail
-          VERSION="5.2.3"
-          ARCHIVE="blender-${VERSION}-linux-x64.tar.xz"
-          curl --fail --location --retry 3 "https://download.blender.org/release/Blender5.2/${ARCHIVE}" --output "/tmp/${ARCHIVE}"
-          mkdir -p /opt/blender
-          tar -xf "/tmp/${ARCHIVE}" --directory /opt/blender --strip-components=1
-          /opt/blender/blender --version
-      - name: Generate Wren blockout
-        run: |
-          set -euo pipefail
-          /usr/bin/time -v /opt/blender/blender --background --python tools/blender/build_wren_blockout.py
-          test -s art/characters/wren/wren_blockout.blend
-          test -s art/characters/wren/wren_blockout.glb
-      - name: Prepare sculpt source
-        run: |
-          set -euo pipefail
-          /usr/bin/time -v /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/prepare_wren_sculpt.py
-          test -s art/characters/wren/wren_sculpt_source.blend
-      - name: Export sculpt preview
-        run: |
-          set -euo pipefail
-          /usr/bin/time -v /opt/blender/blender --background --python tools/blender/export_sculpt_preview.py
-          test -s art/characters/wren/wren_sculpt_source.glb
-      - name: Export modular character components
-        run: |
-          set -euo pipefail
-          /usr/bin/time -v /opt/blender/blender --background art/characters/wren/wren_blockout.blend --python tools/blender/export_character_components.py
-          test -s art/characters/wren/body.glb
       - name: Build Ara 3D Gen benchmark
         shell: bash
         run: |
@@ -135,7 +104,6 @@ jobs:
         with:
           name: character-pipeline-evaluation
           path: |
-            art/characters/wren/*.glb
             art/characters/ara/ara_wren_benchmark.glb
             art/characters/ara/ara_wren.params.json
             art/characters/ara/ara_wren_mobile.glb
@@ -146,8 +114,6 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p site/assets
-          cp art/characters/wren/wren_blockout.glb site/assets/wren_blockout.glb
-          cp art/characters/wren/wren_sculpt_source.glb site/assets/wren_sculpt_source.glb
           cp art/characters/ara/ara_wren_benchmark.glb site/assets/ara_wren_benchmark.glb
           cp art/characters/ara/ara_wren_mobile.glb site/assets/ara_wren_mobile.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
@@ -173,9 +139,20 @@ jobs:
           # Reuse the exact short-lived OIDC token that authenticated the hf CLI.
           export HF_TOKEN="$(hf auth token)"
           echo "::add-mask::$HF_TOKEN"
+          echo "Hugging Face CLI identity:"
+          hf auth whoami
           python - <<'PY'
+          import os
           from huggingface_hub import HfApi
-          api = HfApi()
+          token = os.environ["HF_TOKEN"]
+          api = HfApi(token=token)
+          repo_id = "${{ vars.HF_SPACE_ID }}"
+          print("Checking Space visibility and token access...")
+          info = api.repo_info(repo_id=repo_id, repo_type="space", token=token)
+          print(f"Repository confirmed: {info.id}; private={info.private}")
+          print("Checking token identity...")
+          print(api.whoami(token=token))
+          print("Attempting history compaction...")
           api.super_squash_history(
               repo_id="${{ vars.HF_SPACE_ID }}",
               repo_type="space",
