@@ -1,6 +1,7 @@
 extends Node3D
 
 const TERRAIN_RENDERER = preload("res://scripts/presentation/hex_terrain_renderer.gd")
+const ORBIT_CAMERA_RIG = preload("res://scripts/presentation/orbit_camera_rig.gd")
 const RADIUS := 1.25
 
 func _ready() -> void:
@@ -52,16 +53,24 @@ func _create_environment() -> void:
     add_child(world)
 
 func _create_camera() -> void:
+    var rig: OrbitCameraRig = ORBIT_CAMERA_RIG.new()
+    rig.name = "TerrainOrbitCamera"
+    rig.position = Vector3(0.0, 0.8, 0.0)
+    rig.zoom_distance = 34.0
+    var pitch_pivot := Node3D.new()
+    pitch_pivot.name = "PitchPivot"
+    rig.add_child(pitch_pivot)
     var camera := Camera3D.new()
+    camera.name = "Camera3D"
     camera.current = true
-    camera.position = Vector3(24.0, 23.0, 27.0)
-    camera.look_at(Vector3(0.0, 0.8, 0.0), Vector3.UP)
-    add_child(camera)
+    camera.fov = 52.0
+    pitch_pivot.add_child(camera)
+    add_child(rig)
 
     var canvas := CanvasLayer.new()
     var label := Label.new()
     label.position = Vector2(22.0, 18.0)
-    label.text = "ELEVATION PROTOTYPE  |  Continuous terrain surface over logical hexes"
+    label.text = "ELEVATION PROTOTYPE  |  Right-drag: orbit  |  Wheel: zoom"
     label.add_theme_font_size_override("font_size", 20)
     label.add_theme_color_override("font_color", Color(0.96, 0.95, 0.88))
     canvas.add_child(label)
