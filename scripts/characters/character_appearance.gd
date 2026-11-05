@@ -9,6 +9,12 @@ class_name CharacterAppearance
 @export var shirt_fabric: String = "wool"
 @export_range(0.0, 1.0, 0.01) var shirt_opacity: float = 1.0
 @export var shirt_visible: bool = true
+@export var bra_tint: Color = Color(0.18, 0.18, 0.20, 1.0)
+@export_range(0.0, 1.0, 0.01) var bra_opacity: float = 1.0
+@export var bra_visible: bool = true
+@export var briefs_tint: Color = Color(0.20, 0.20, 0.22, 1.0)
+@export_range(0.0, 1.0, 0.01) var briefs_opacity: float = 1.0
+@export var briefs_visible: bool = true
 @export var trouser_tint: Color = Color(0.16, 0.16, 0.18, 1.0)
 @export_range(0.0, 1.0, 0.01) var trouser_opacity: float = 1.0
 @export var trousers_visible: bool = true
@@ -32,6 +38,12 @@ func to_dict() -> Dictionary:
 		"shirt_fabric": shirt_fabric,
 		"shirt_opacity": shirt_opacity,
 		"shirt_visible": shirt_visible,
+		"bra_tint": bra_tint.to_html(true),
+		"bra_opacity": bra_opacity,
+		"bra_visible": bra_visible,
+		"briefs_tint": briefs_tint.to_html(true),
+		"briefs_opacity": briefs_opacity,
+		"briefs_visible": briefs_visible,
 		"trouser_tint": trouser_tint.to_html(true),
 		"trouser_opacity": trouser_opacity,
 		"trousers_visible": trousers_visible,
@@ -48,6 +60,12 @@ static func from_dict(data: Dictionary) -> CharacterAppearance:
 	result.shirt_fabric = str(data.get("shirt_fabric", "wool"))
 	result.shirt_opacity = clampf(float(data.get("shirt_opacity", 1.0)), 0.0, 1.0)
 	result.shirt_visible = bool(data.get("shirt_visible", true))
+	result.bra_tint = Color.from_string(str(data.get("bra_tint", "#2e2e33")), result.bra_tint)
+	result.bra_opacity = clampf(float(data.get("bra_opacity", 1.0)), 0.0, 1.0)
+	result.bra_visible = bool(data.get("bra_visible", true))
+	result.briefs_tint = Color.from_string(str(data.get("briefs_tint", "#333338")), result.briefs_tint)
+	result.briefs_opacity = clampf(float(data.get("briefs_opacity", 1.0)), 0.0, 1.0)
+	result.briefs_visible = bool(data.get("briefs_visible", true))
 	result.trouser_tint = Color.from_string(str(data.get("trouser_tint", "#29292e")), result.trouser_tint)
 	result.trouser_opacity = clampf(float(data.get("trouser_opacity", 1.0)), 0.0, 1.0)
 	result.trousers_visible = bool(data.get("trousers_visible", true))
@@ -64,19 +82,55 @@ func apply_to(root: Node) -> void:
 func _apply_recursive(node: Node) -> void:
 	if node is MeshInstance3D:
 		var mesh_instance := node as MeshInstance3D
-		var slot := str(mesh_instance.get_meta("appearance_slot", mesh_instance.name.to_lower())).to_lower()
-		var tint := _tint_for_slot(slot)
-		if _is_shirt_slot(slot):
-			mesh_instance.visible = shirt_visible
-		elif _is_trouser_slot(slot):
-			mesh_instance.visible = trousers_visible
-		if tint != Color.TRANSPARENT:
-			_apply_surface_materials(mesh_instance, tint, slot, _opacity_for_slot(slot))
+		if mesh_instance.mesh != null:
+			var all_hidden := true
+			for surface in range(mesh_instance.mesh.get_surface_count()):
+				var slot := _slot_for_surface(mesh_instance, surface)
+				var tint := _tint_for_slot(slot)
+				var should_show := _visible_for_slot(slot)
+				if tint != Color.TRANSPARENT:
+					_apply_surface_material(mesh_instance, tint, slot, _opacity_for_slot(slot), surface)
+				if should_show:
+					all_hidden = false
+			if mesh_instance.mesh.get_surface_count() > 0 and _has_clothing_slot(mesh_instance):
+				mesh_instance.visible = not all_hidden
 	for child in node.get_children():
 		_apply_recursive(child)
 
+func _slot_for_surface(mesh_instance: MeshInstance3D, surface: int) -> String:
+	if mesh_instance.has_meta("appearance_slot"):
+		return str(mesh_instance.get_meta("appearance_slot")).to_lower()
+	var material := mesh_instance.get_active_material(surface)
+	if material != null and not material.resource_name.is_empty():
+		return material.resource_name.to_lower()
+	return mesh_instance.name.to_lower()
+
+func _has_clothing_slot(mesh_instance: MeshInstance3D) -> bool:
+	for surface in range(mesh_instance.mesh.get_surface_count()):
+		var slot := _slot_for_surface(mesh_instance, surface)
+		if _is_shirt_slot(slot) or _is_bra_slot(slot) or _is_briefs_slot(slot) or _is_trouser_slot(slot):
+			return true
+	return false
+
+func _visible_for_slot(slot: String) -> bool:
+	if _is_shirt_slot(slot):
+		return shirt_visible
+	if _is_bra_slot(slot):
+		return bra_visible
+	if _is_briefs_slot(slot):
+		return briefs_visible
+	if _is_trouser_slot(slot):
+		return trousers_visible
+	return true
+
 func _is_shirt_slot(slot: String) -> bool:
 	return slot.contains("shirt") or slot.contains("top") or slot.contains("jacket")
+
+func _is_bra_slot(slot: String) -> bool:
+	return slot.contains("bra")
+
+func _is_briefs_slot(slot: String) -> bool:
+	return slot.contains("brief") or slot.contains("underwear")
 
 func _is_trouser_slot(slot: String) -> bool:
 	return slot.contains("trouser") or slot.contains("pants") or slot.contains("bottom")
@@ -84,6 +138,10 @@ func _is_trouser_slot(slot: String) -> bool:
 func _opacity_for_slot(slot: String) -> float:
 	if _is_shirt_slot(slot):
 		return shirt_opacity
+	if _is_bra_slot(slot):
+		return bra_opacity
+	if _is_briefs_slot(slot):
+		return briefs_opacity
 	if _is_trouser_slot(slot):
 		return trouser_opacity
 	return 1.0
@@ -91,6 +149,10 @@ func _opacity_for_slot(slot: String) -> float:
 func _tint_for_slot(slot: String) -> Color:
 	if _is_shirt_slot(slot):
 		return shirt_tint
+	if _is_bra_slot(slot):
+		return bra_tint
+	if _is_briefs_slot(slot):
+		return briefs_tint
 	if _is_trouser_slot(slot):
 		return trouser_tint
 	if slot.contains("hair"):
@@ -99,14 +161,9 @@ func _tint_for_slot(slot: String) -> Color:
 		return skin_tint
 	return Color.TRANSPARENT
 
-func _apply_surface_materials(mesh_instance: MeshInstance3D, tint: Color, slot: String, opacity: float) -> void:
-	if mesh_instance.mesh == null:
+func _apply_surface_material(mesh_instance: MeshInstance3D, tint: Color, slot: String, opacity: float, surface: int) -> void:
+	if mesh_instance.mesh == null or surface < 0 or surface >= mesh_instance.mesh.get_surface_count():
 		return
-	var surface_count := mesh_instance.mesh.get_surface_count()
-	if surface_count == 0:
-		# Procedural meshes may have no surfaces until generated.
-		return
-	for surface in range(surface_count):
 		var base_key := "appearance_base_material_%d" % surface
 		var source: Material
 		if mesh_instance.has_meta(base_key):
@@ -115,8 +172,8 @@ func _apply_surface_materials(mesh_instance: MeshInstance3D, tint: Color, slot: 
 			source = mesh_instance.get_active_material(surface)
 			if source != null:
 				mesh_instance.set_meta(base_key, source)
-		var material := _make_tinted_material(source, tint, slot, opacity)
-		mesh_instance.set_surface_override_material(surface, material)
+	var material := _make_tinted_material(source, tint, slot, opacity)
+	mesh_instance.set_surface_override_material(surface, material)
 
 func _make_tinted_material(source: Material, tint: Color, slot: String, opacity: float) -> StandardMaterial3D:
 	var material: StandardMaterial3D
@@ -134,7 +191,7 @@ func _make_tinted_material(source: Material, tint: Color, slot: String, opacity:
 	material.albedo_color = material.albedo_color * tint
 	material.albedo_color.a *= clampf(opacity, 0.0, 1.0)
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if opacity < 0.999 else BaseMaterial3D.TRANSPARENCY_DISABLED
-	if _is_shirt_slot(slot):
+	if _is_shirt_slot(slot) or _is_bra_slot(slot):
 		var fabric: Dictionary = FABRIC_PRESETS.get(shirt_fabric, FABRIC_PRESETS["cotton"])
 		material.roughness = float(fabric["roughness"])
 		material.metallic = float(fabric["metallic"])
