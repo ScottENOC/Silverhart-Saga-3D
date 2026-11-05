@@ -30,6 +30,7 @@ for character in data["characters"]:
     # The full preview retains its clothing, hair, tattoos and earrings.
     full = dict(params)
     full["name"] = character["name"] + " - NPC preview"
+    full["weapon"] = "sword"
     (out / f"{cid}-full.json").write_text(json.dumps(full, indent=2))
 
     # Components are generated independently from the same body parameters.
