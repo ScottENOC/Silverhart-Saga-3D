@@ -2,6 +2,7 @@ extends Node
 const BUS_NAMES := ["Master", "Music", "Dialogue", "SFX", "Ambience", "UI"]
 const SETTINGS_PATH := "user://audio_settings.cfg"
 var _music: AudioStreamPlayer
+var _music_spare: AudioStreamPlayer
 var _dialogue: AudioStreamPlayer
 var _ui: AudioStreamPlayer
 var _ambience: AudioStreamPlayer
@@ -13,7 +14,8 @@ var current_mode := "menu"
 func _ready() -> void:
     _ensure_buses()
     _load_settings()
-    _music = _make_player("MusicPlayer", "Music")
+    _music = _make_player("MusicPlayerA", "Music")
+    _music_spare = _make_player("MusicPlayerB", "Music")
     _dialogue = _make_player("DialoguePlayer", "Dialogue")
     _ui = _make_player("UIPlayer", "UI")
     _ambience = _make_player("AmbiencePlayer", "Ambience")
@@ -74,22 +76,39 @@ func play_music(path: String, fade := 1.0, loop := true) -> void:
         return
     var stream := load(path) as AudioStream
     if stream == null: return
-    if _music.stream == stream and _music.playing: return
+    if (_music.stream == stream or _music_spare.stream == stream) and (_music.playing or _music_spare.playing):
+        return
     if _tween and _tween.is_running(): _tween.kill()
-    _music.stream = stream
+    var incoming := _music_spare
+    var outgoing := _music
+    incoming.stop()
+    incoming.stream = stream
     if stream is AudioStreamOggVorbis: (stream as AudioStreamOggVorbis).loop = loop
     if stream is AudioStreamMP3: (stream as AudioStreamMP3).loop = loop
-    _music.volume_db = -36.0
-    _music.play()
-    _tween = create_tween()
-    _tween.tween_property(_music, "volume_db", 0.0, maxf(0.05, fade))
+    incoming.volume_db = -40.0
+    incoming.play()
+    _tween = create_tween().set_parallel(true)
+    _tween.tween_property(incoming, "volume_db", 0.0, maxf(0.05, fade))
+    if outgoing.playing:
+        _tween.tween_property(outgoing, "volume_db", -40.0, maxf(0.05, fade))
+    _tween.chain().tween_callback(_finish_music_crossfade.bind(incoming, outgoing))
+
+func _finish_music_crossfade(incoming: AudioStreamPlayer, outgoing: AudioStreamPlayer) -> void:
+    outgoing.stop()
+    _music = incoming
+    _music_spare = outgoing
 
 func stop_music(fade := 0.8) -> void:
-    if not is_instance_valid(_music) or not _music.playing: return
     if _tween and _tween.is_running(): _tween.kill()
-    _tween = create_tween()
-    _tween.tween_property(_music, "volume_db", -40.0, maxf(0.05, fade))
-    _tween.tween_callback(_music.stop)
+    _tween = create_tween().set_parallel(true)
+    if _music.playing:
+        _tween.tween_property(_music, "volume_db", -40.0, maxf(0.05, fade))
+    if _music_spare.playing:
+        _tween.tween_property(_music_spare, "volume_db", -40.0, maxf(0.05, fade))
+    _tween.chain().tween_callback(func():
+        _music.stop()
+        _music_spare.stop()
+    )
 
 func play_dialogue(path: String) -> void: _play_one_shot(_dialogue, path)
 func play_ui(path: String) -> void: _play_one_shot(_ui, path)
