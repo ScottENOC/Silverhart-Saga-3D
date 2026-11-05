@@ -125,13 +125,11 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Publish to private Hugging Face Space
         env:
-          HF_OIDC_RESOURCE: spaces/${{ vars.HF_SPACE_ID }}
+          HF_TOKEN: ${{ secrets.HF_ADMIN_TOKEN }}
         run: |
           set -euo pipefail
           test -n "${{ vars.HF_SPACE_ID }}"
-          # Publish with the short-lived OIDC publisher token. Do not squash
-          # on routine builds: Hugging Face storage reclamation can take up to 36 hours.
-          export HF_TOKEN="$(hf auth token)"
-          echo "::add-mask::$HF_TOKEN"
+          test -n "$HF_TOKEN"
+          # Use the repository's Hugging Face Write token directly. No OIDC exchange.
           hf auth whoami
           hf upload "${{ vars.HF_SPACE_ID }}" site . --repo-type space --commit-message "Wren Workshop build ${GITHUB_SHA::7}"
