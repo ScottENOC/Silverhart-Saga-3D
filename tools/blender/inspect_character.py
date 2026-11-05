@@ -10,8 +10,8 @@ from mathutils import Vector
 def arguments():
     raw = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True)
-    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--input", default=os.environ.get("REVIEW_INPUT"), required=not bool(os.environ.get("REVIEW_INPUT")))
+    parser.add_argument("--output-dir", default=os.environ.get("REVIEW_OUTPUT_DIR"), required=not bool(os.environ.get("REVIEW_OUTPUT_DIR")))
     return parser.parse_args(raw)
 
 
