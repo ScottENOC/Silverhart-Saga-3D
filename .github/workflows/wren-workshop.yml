@@ -6,6 +6,7 @@ on:
     branches: [dev]
     paths:
       - "tools/blender/**"
+      - "tools/ara/**"
       - "site/**"
       - "docs/ARA_CHARACTER_EVALUATION.md"
       - ".github/workflows/wren-workshop.yml"
@@ -99,6 +100,14 @@ jobs:
           cp "$MOBILE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
           cp /tmp/ara-wren-mobile.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.params.json"
           test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
+      - name: Generate three reusable NPC previews
+        shell: bash
+        run: |
+          set -euo pipefail
+          python "$GITHUB_WORKSPACE/tools/ara/build_npc_previews.py" --out "$GITHUB_WORKSPACE/art/characters/npc" --detail low
+          test -s "$GITHUB_WORKSPACE/art/characters/npc/npc_mara.glb"
+          test -s "$GITHUB_WORKSPACE/art/characters/npc/npc_dain.glb"
+          test -s "$GITHUB_WORKSPACE/art/characters/npc/npc_sella.glb"
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -108,6 +117,8 @@ jobs:
             art/characters/ara/ara_wren.params.json
             art/characters/ara/ara_wren_mobile.glb
             art/characters/ara/ara_wren_mobile.params.json
+            art/characters/npc/*.glb
+            art/characters/npc/*.params.json
           if-no-files-found: error
           retention-days: 14
       - name: Assemble private viewer site
@@ -116,6 +127,8 @@ jobs:
           mkdir -p site/assets
           cp art/characters/ara/ara_wren_benchmark.glb site/assets/ara_wren_benchmark.glb
           cp art/characters/ara/ara_wren_mobile.glb site/assets/ara_wren_mobile.glb
+          mkdir -p site/assets/npc
+          cp art/characters/npc/*.glb site/assets/npc/
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
