@@ -6,9 +6,9 @@ extends Node3D
 ## not node names or one-off character scenes.
 
 const BODY_VARIANTS := {
-    "ara_female_slim": {"folder": "npc_female_slim", "hair": "long01", "shirt": "fatigue_shirt", "trousers": "fatigue_pants"},
-    "ara_male_heavy": {"folder": "npc_male_heavy", "hair": "short02", "shirt": "fatigue_shirt", "trousers": "fatigue_pants"},
-    "ara_female_athletic": {"folder": "npc_female_athletic", "hair": "ponytail01", "shirt": "tank_top", "trousers": "cargo_shorts"}
+    "ara_female_slim": {"folder": "npc_female_slim", "hair": "long01", "shirt": "fatigue_shirt", "shirt_alt": "tank_top", "trousers": "fatigue_pants", "trousers_alt": "cargo_shorts"},
+    "ara_male_heavy": {"folder": "npc_male_heavy", "hair": "short02", "shirt": "fatigue_shirt", "shirt_alt": "tank_top", "trousers": "fatigue_pants", "trousers_alt": "cargo_shorts"},
+    "ara_female_athletic": {"folder": "npc_female_athletic", "hair": "ponytail01", "shirt": "tank_top", "shirt_alt": "fatigue_shirt", "trousers": "cargo_shorts", "trousers_alt": "fatigue_pants"}
 }
 const EQUIPMENT_SLOTS := ["shirt", "trousers", "boots", "torso_armour", "leg_armour", "main_hand", "off_hand"]
 
@@ -51,7 +51,8 @@ func configure(appearance: CharacterAppearance) -> bool:
         slot_mounts[slot] = mount
     set_component("hair", appearance.hair_id)
     for slot in EQUIPMENT_SLOTS:
-        var item_id := str(appearance.equipment.get(slot, ""))
+        var default_id := str(variant.get(slot, ""))
+        var item_id := str(appearance.equipment.get(slot, default_id))
         if not item_id.is_empty():
             set_component(slot, item_id)
     for slot in appearance.materials:
@@ -98,11 +99,15 @@ func _component_path(slot: String, component_id: String) -> String:
     if slot == "shirt":
         if component_id == str(variant.get("shirt", "")):
             return root + "shirt.glb"
-        return root + "shirt_alt.glb"
+        if component_id == str(variant.get("shirt_alt", "")):
+            return root + "shirt_alt.glb"
+        return ""
     if slot == "trousers":
         if component_id == str(variant.get("trousers", "")):
             return root + "trousers.glb"
-        return root + "trousers_alt.glb"
+        if component_id == str(variant.get("trousers_alt", "")):
+            return root + "trousers_alt.glb"
+        return ""
     return ""
 
 func clear_slot(slot: String) -> void:
