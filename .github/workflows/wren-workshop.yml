@@ -28,6 +28,7 @@ jobs:
           git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
           git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
           python3 "$GITHUB_WORKSPACE/tools/ara/patch_ara_clothing.py" /tmp/ara-3d-gen
+          cp "$GITHUB_WORKSPACE/tools/ara/export_modular_component.ts" /tmp/ara-3d-gen/scripts/export-modular-component.ts
           cd /tmp/ara-3d-gen
           corepack enable
           pnpm install --no-frozen-lockfile
