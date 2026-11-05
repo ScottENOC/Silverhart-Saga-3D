@@ -78,7 +78,39 @@ def create_socket(armature, name, location, normal, bone_name):
     return empty
 
 
-def create_piercing_sockets(armature, surface_tree, minimum, height, width, pelvis_z, body_front_y):
+def bone_world_span(armature, names, fallback=None):
+    for bone in armature.data.bones:
+        if bone.name.lower() in names:
+            a = armature.matrix_world @ bone.head_local
+            b = armature.matrix_world @ bone.tail_local
+            return min(a.z, b.z), max(a.z, b.z), bone.name
+    if fallback:
+        return fallback
+    raise RuntimeError("Required anatomical rig landmark not found: " + "/".join(sorted(names)))
+
+
+def frontmost_vertex_anchor(obj, x_min, x_max, z_min, z_max):
+    # Pick an actual evaluated skin vertex in a tightly bounded anatomical region.
+    # The vertex normal gives a stable surface orientation for the accessory.
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = obj.evaluated_get(depsgraph)
+    mesh = evaluated.to_mesh()
+    best = None
+    for v in mesh.vertices:
+        p = obj.matrix_world @ v.co
+        if not (x_min <= p.x <= x_max and z_min <= p.z <= z_max):
+            continue
+        n = (obj.matrix_world.to_3x3() @ v.normal).normalized()
+        if n.y > -0.12:
+            continue
+        score = p.y
+        if best is None or score < best[0]:
+            best = (score, p.copy(), n.copy())
+    evaluated.to_mesh_clear()
+    return (best[1], best[2]) if best else None
+
+
+def create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, pelvis_z, body_front_y):
     bones = list(armature.data.bones)
     def find_bone(names, fallback):
         return next((b.name for b in bones if b.name.lower() in names), fallback)
@@ -87,33 +119,41 @@ def create_piercing_sockets(armature, surface_tree, minimum, height, width, pelv
     chest_bone = find_bone({"spine2", "spine_2", "chest"}, find_bone({"spine1", "spine_1"}, "Hips"))
     hip_bone = find_bone({"hips", "hip", "pelvis"}, "Hips")
 
-    # Surface-derived anchors for visible skin. These follow the rig in Godot.
-    head_z = minimum.z + height * 0.915
+    # Earrings can use the head's actual front-side surface; keep this legacy
+    # region limited to the ears while the nose and chest use anatomical anchors.
+    head_lo, head_hi, _ = bone_world_span(armature, {"head", "head01"}, (minimum.z + height*.84, minimum.z + height*.96, head_bone))
+    head_z = head_lo + (head_hi-head_lo)*.58
     for side, label in [(1.0, "L"), (-1.0, "R")]:
         hit = front_hit_data(surface_tree, side * width * 0.095, head_z)
         if hit:
             create_socket(armature, "SOCKET_Earring_" + label, hit[0], hit[1], head_bone)
 
-    # Place the ring so its upper edge meets the lower edge of the nose.
-    nose_ring_top_z = minimum.z + height * 0.895
-    nose_hit = front_hit_data(surface_tree, 0.0, nose_ring_top_z - 0.008)
-    if nose_hit:
-        create_socket(armature, "SOCKET_NoseRing", nose_hit[0], nose_hit[1], head_bone)
+    # Nose: find the most anterior skin vertex around the middle/lower face,
+    # not a percentage of total character height.
+    nose_z0 = head_lo + (head_hi-head_lo)*.34
+    nose_z1 = head_lo + (head_hi-head_lo)*.78
+    nose = frontmost_vertex_anchor(skin, -width*.055, width*.055, nose_z0, nose_z1)
+    if nose:
+        create_socket(armature, "SOCKET_NoseRing", nose[0], nose[1], head_bone)
 
     necklace_hit = front_hit_data(surface_tree, 0.0, minimum.z + height * 0.82)
     if necklace_hit:
         create_socket(armature, "SOCKET_Necklace", necklace_hit[0], necklace_hit[1], chest_bone)
 
-    # The ring's top edge, not its centre, aligns with the nipple.
-    nipple_ring_top_z = minimum.z + height * 0.705
-    nipple_z = nipple_ring_top_z - 0.008
+    # Nipples: select the anterior apex on each actual breast surface, constrained
+    # by the chest/spine bones and lateral chest region. No whole-body height ratio.
+    chest_lo, chest_hi, _ = bone_world_span(armature, {"spine1", "spine_1", "spine2", "spine_2", "chest"},
+                                            (minimum.z + height*.62, minimum.z + height*.79, chest_bone))
+    nipple_z0 = chest_lo - (chest_hi-chest_lo)*.08
+    nipple_z1 = chest_hi + (chest_hi-chest_lo)*.08
     for side, label in [(1.0, "L"), (-1.0, "R")]:
-        hit = front_hit_data(surface_tree, side * width * 0.105, nipple_z)
+        x0, x1 = (width*.055, width*.30) if side > 0 else (-width*.30, -width*.055)
+        hit = frontmost_vertex_anchor(skin, x0, x1, nipple_z0, nipple_z1)
         if hit:
             create_socket(armature, "SOCKET_Nipple_" + label, hit[0], hit[1], chest_bone)
 
-    clitoral_location = Vector((0.0, body_front_y - 0.030, pelvis_z + 0.040))
-    create_socket(armature, "SOCKET_ClitoralHood", clitoral_location, Vector((0.0, -1.0, 0.0)), hip_bone)
+    # The clitoral socket is supplied by the anatomy mesh itself after it is built.
+    # It is added by main() from the hood's exposed surface, not guessed from pelvis depth.
 
 
 def uv_ellipsoid(name, location, scale, collection):
@@ -130,27 +170,42 @@ def uv_ellipsoid(name, location, scale, collection):
     return obj
 
 
-def create_anatomy(pelvis_z, front_y, width, collection, skin_material, armature):
+def create_anatomy(pelvis_z, front_y, width, collection, skin_material, armature, surface_tree):
     # Soft mons above the vulvar cleft, paired outer folds, inner folds and a
     # modest clitoral hood. Forms overlap so they can be voxel-unified.
     half = max(0.055, min(0.075, width * 0.145))
     shapes = []
+    def anchored_y(x, z, depth):
+        # Sample the real body/garment surface at each sculpt centre. The old
+        # single centreline depth produced gaps as the pelvis curves laterally.
+        hit = front_hit_data(surface_tree, x, z)
+        if not hit:
+            raise RuntimeError(f"Cannot anchor anatomy to pelvis surface at x={x:.3f}, z={z:.3f}")
+        return hit[0].y - depth
+
+    # Move the sculpt slightly superiorly and posteriorly relative to the old
+    # blockout, and overlap its back edge into the sampled body surface.
+    base_z = pelvis_z + 0.022
     shapes.append(uv_ellipsoid(
-        "Vulva_Mons_Pubis", (0.0, front_y - 0.004, pelvis_z + 0.047),
-        (half * 0.92, 0.020, 0.047), collection))
+        "Vulva_Mons_Pubis", (0.0, anchored_y(0.0, base_z + 0.047, 0.013), base_z + 0.047),
+        (half * 0.92, 0.019, 0.044), collection))
     for side, label in [(-1, "L"), (1, "R")]:
+        x_outer = side * half * 0.34
+        x_inner = side * half * 0.145
+        z = base_z - 0.012
         shapes.append(uv_ellipsoid(
             "Vulva_Labia_Majora_" + label,
-            (side * half * 0.34, front_y - 0.008, pelvis_z - 0.012),
-            (half * 0.39, 0.018, 0.071), collection))
+            (x_outer, anchored_y(x_outer, z, 0.012), z),
+            (half * 0.39, 0.017, 0.066), collection))
         shapes.append(uv_ellipsoid(
             "Vulva_Labia_Minora_" + label,
-            (side * half * 0.145, front_y - 0.018, pelvis_z - 0.012),
-            (half * 0.145, 0.010, 0.054), collection))
+            (x_inner, anchored_y(x_inner, z, 0.008), z),
+            (half * 0.145, 0.009, 0.050), collection))
+    hood_z = base_z + 0.040
     shapes.append(uv_ellipsoid(
         "Vulva_Clitoral_Hood",
-        (0.0, front_y - 0.024, pelvis_z + 0.040),
-        (half * 0.17, 0.008, 0.016), collection))
+        (0.0, anchored_y(0.0, hood_z, 0.005), hood_z),
+        (half * 0.17, 0.007, 0.014), collection))
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in shapes:
@@ -287,9 +342,18 @@ def main():
 
     collection = bpy.data.collections.new("Adult Anatomy - reviewable sculpt")
     bpy.context.scene.collection.children.link(collection)
+    anatomy = None
     if args.profile == "female":
-        create_anatomy(pelvis_z, body_front_y, width, collection, skin_material, armature)
-    create_piercing_sockets(armature, surface_tree, minimum, height, width, pelvis_z, body_front_y)
+        anatomy = create_anatomy(pelvis_z, body_front_y, width, collection, skin_material, armature, surface_tree)
+    create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, pelvis_z, body_front_y)
+    if anatomy is not None:
+        anatomy_tree = build_bvh(anatomy)
+        hood_z = pelvis_z + 0.022 + 0.040
+        hood_hit = front_hit_data(anatomy_tree, 0.0, hood_z)
+        if hood_hit:
+            # Stand the piercing just proud of the hood surface.
+            location = hood_hit[0] + hood_hit[1].normalized() * 0.0025
+            create_socket(armature, "SOCKET_ClitoralHood", location, hood_hit[1], "Hips")
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
