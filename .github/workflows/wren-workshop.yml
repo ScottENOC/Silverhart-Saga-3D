@@ -144,8 +144,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y blender
           for variant in ara_wren_benchmark ara_wren_mobile ara_wren_body ara_wren_tattoo_body; do
-            ARA_INPUT="art/characters/ara/\${variant}.glb" \
-              ARA_OUTPUT="/tmp/\${variant}_anatomy.glb" \
+            ARA_INPUT="art/characters/ara/${variant}.glb" \
+              ARA_OUTPUT="/tmp/${variant}_anatomy.glb" \
               ARA_PROFILE=female ARA_ADULT=1 \
               blender --background --python tools/blender/add_adult_anatomy.py
             mv "/tmp/${variant}_anatomy.glb" "art/characters/ara/${variant}.glb"
