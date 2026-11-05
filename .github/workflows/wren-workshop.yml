@@ -107,6 +107,29 @@ jobs:
           cp /tmp/ara-out/*.glb "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_benchmark.glb"
           cp /tmp/ara-wren.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren.params.json"
           test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_benchmark.glb"
+
+          # Separate mobile preview: retain the game rig, but reduce geometry detail
+          # and bake facial expression / omit animation clips and facial blend shapes.
+          python - <<'PY'
+          import json
+          p = json.load(open('/tmp/ara-wren.params.json'))
+          p.update({
+              "name": "Wren Talbot - Ara mobile preview",
+              "detail": "low",
+              "animations": False,
+              "faceBones": False,
+              "faceShapes": False,
+              "speechShapes": False
+          })
+          json.dump(p, open('/tmp/ara-wren-mobile.params.json', 'w'), indent=2)
+          PY
+          mkdir -p /tmp/ara-mobile-out
+          npm run export -- --params /tmp/ara-wren-mobile.params.json --detail low --formats glb --out /tmp/ara-mobile-out
+          MOBILE_GLB="$(find /tmp/ara-mobile-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$MOBILE_GLB"
+          cp "$MOBILE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
+          cp /tmp/ara-wren-mobile.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.params.json"
+          test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -115,6 +138,8 @@ jobs:
             art/characters/wren/*.glb
             art/characters/ara/ara_wren_benchmark.glb
             art/characters/ara/ara_wren.params.json
+            art/characters/ara/ara_wren_mobile.glb
+            art/characters/ara/ara_wren_mobile.params.json
           if-no-files-found: error
           retention-days: 14
       - name: Assemble private viewer site
@@ -124,6 +149,7 @@ jobs:
           cp art/characters/wren/wren_blockout.glb site/assets/wren_blockout.glb
           cp art/characters/wren/wren_sculpt_source.glb site/assets/wren_sculpt_source.glb
           cp art/characters/ara/ara_wren_benchmark.glb site/assets/ara_wren_benchmark.glb
+          cp art/characters/ara/ara_wren_mobile.glb site/assets/ara_wren_mobile.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
