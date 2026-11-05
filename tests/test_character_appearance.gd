@@ -153,7 +153,11 @@ func _test_accessory_socket_attach_and_remove() -> void:
 	for piercing_id in ["nipple_piercing_left", "nipple_piercing_right", "clitoral_hood_piercing"]:
 		var piercing := AccessoryAttachment.attach_piercing(character, piercing_id)
 		assert(piercing != null)
-		assert(piercing.mesh is TorusMesh)
+		if piercing_id == "clitoral_hood_piercing":
+			assert(piercing.mesh is ArrayMesh)
+			assert(piercing.get_child_count() == 2)
+		else:
+			assert(piercing.mesh is TorusMesh)
 		assert(str(piercing.get_meta("accessory_id")) == piercing_id)
 		assert(AccessoryAttachment.remove_by_id(character, piercing_id))
 	character.free()
