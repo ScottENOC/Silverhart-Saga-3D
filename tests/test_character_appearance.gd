@@ -15,6 +15,23 @@ func _initialize() -> void:
         "fabric": "linen",
         "opacity": 1.0
     }
+    var assembler := ModularCharacterAssembler.new()
+    root.add_child(assembler)
+    var shirt_mount := Node3D.new()
+    assembler.slot_mounts["shirt"] = shirt_mount
+    assembler.add_child(shirt_mount)
+    var shirt_mesh := MeshInstance3D.new()
+    shirt_mesh.mesh = BoxMesh.new()
+    var shirt_material := StandardMaterial3D.new()
+    shirt_material.albedo_color = Color.WHITE
+    shirt_mesh.material_override = shirt_material
+    shirt_mount.add_child(shirt_mesh)
+    assert(assembler.set_garment_material("shirt", appearance.materials["shirt"]), "Runtime fabric material update failed")
+    var runtime_material := shirt_mesh.get_surface_override_material(0) as ShaderMaterial
+    assert(runtime_material != null, "Fabric shader override was not applied")
+    assert(int(runtime_material.get_shader_parameter("fabric_mode")) == 1, "Linen fabric mode was not selected")
+    assert(Color(runtime_material.get_shader_parameter("tint")).is_equal_approx(Color("#9c2632")), "Shirt dye was not applied")
+
     var save_error := CharacterAppearanceStore.save_appearance("npc_test_01", appearance)
     assert(save_error == OK, "Appearance save failed: %s" % error_string(save_error))
     var loaded := CharacterAppearanceStore.load_appearance("npc_test_01")
@@ -23,6 +40,10 @@ func _initialize() -> void:
     assert(loaded.hair_tint.is_equal_approx(appearance.hair_tint))
     assert(loaded.equipment["shirt"] == "fatigue_shirt")
     assert(loaded.materials["shirt"]["colour"] == "#9c2632")
+    assert(loaded.materials["shirt"]["fabric"] == "linen")
+    assert(assembler.set_garment_material("shirt", loaded.materials["shirt"]), "Reloaded material could not be reapplied")
+    runtime_material = shirt_mesh.get_surface_override_material(0) as ShaderMaterial
+    assert(runtime_material != null and int(runtime_material.get_shader_parameter("fabric_mode")) == 1)
     assert(loaded.accessories["nose.ring"] == "small_silver")
     print("Character appearance save/reload test passed.")
     quit(0)
