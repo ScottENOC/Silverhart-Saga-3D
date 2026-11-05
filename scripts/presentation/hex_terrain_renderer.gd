@@ -42,11 +42,11 @@ func rebuild(map_data: HexMapData, radius: float = HexGrid.DEFAULT_RADIUS_M) -> 
             var b := map_data.corner_world_position(hex, next_i, radius)
             var c := Vector3(centre.x, centre_height, centre.z)
             var tint := centre_colour if map_data.is_walkable(hex) else Color(0.22, 0.20, 0.18)
-            surface.set_color(tint)
+            surface.set_color(_height_colour(centre_height))
             surface.add_vertex(c + Vector3.UP * 0.012)
-            surface.set_color(tint)
+            surface.set_color(_height_colour(b.y))
             surface.add_vertex(b + Vector3.UP * 0.012)
-            surface.set_color(tint)
+            surface.set_color(_height_colour(a.y))
             surface.add_vertex(a + Vector3.UP * 0.012)
 
             var key_a := HexMapData.vertex_key(a.x, a.z)
@@ -57,6 +57,7 @@ func rebuild(map_data: HexMapData, radius: float = HexGrid.DEFAULT_RADIUS_M) -> 
                 edges.add_vertex(a + Vector3.UP * 0.025)
                 edges.add_vertex(b + Vector3.UP * 0.025)
 
+    surface.index()
     surface.generate_normals()
     var terrain_instance := MeshInstance3D.new()
     terrain_instance.name = "ContinuousHexTerrain"
