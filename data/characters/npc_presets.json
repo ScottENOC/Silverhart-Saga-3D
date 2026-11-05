@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "description": "Three adult NPC presets sharing one character-generation contract. Generator asset identifiers are placeholders until validated against the pinned Ara asset catalogue.",
+  "characters": [
+    {
+      "id": "wren_talbot",
+      "display_name": "Wren Talbot",
+      "age_category": "adult",
+      "body_type": "slim_athletic",
+      "height": 0.55,
+      "muscle": 0.62,
+      "weight": 0.42,
+      "skin_palette": "warm_light",
+      "face_preset": "face_01",
+      "hair": "braid01",
+      "hair_tint": "#252b62",
+      "outfit": {"top": "fatigue_shirt", "bottom": "fatigue_pants", "shoes": "combat_boots"},
+      "appearance": {"shirt_tint": "#244b2b", "shirt_fabric": "cotton", "trouser_tint": "#29292d"},
+      "accessories": [],
+      "tattoos": []
+    },
+    {
+      "id": "mara_voss",
+      "display_name": "Mara Voss",
+      "age_category": "adult",
+      "body_type": "average",
+      "height": 0.48,
+      "muscle": 0.38,
+      "weight": 0.56,
+      "skin_palette": "deep_olive",
+      "face_preset": "face_04",
+      "hair": "short_wavy",
+      "hair_tint": "#3a211b",
+      "outfit": {"top": "traveller_tunic", "bottom": "leather_trousers", "shoes": "ankle_boots"},
+      "appearance": {"shirt_tint": "#8b6843", "shirt_fabric": "linen", "trouser_tint": "#40352b"},
+      "accessories": ["earring_stud_gold"],
+      "tattoos": []
+    },
+    {
+      "id": "garrick_holt",
+      "display_name": "Garrick Holt",
+      "age_category": "adult",
+      "body_type": "broad_stocky",
+      "height": 0.68,
+      "muscle": 0.72,
+      "weight": 0.78,
+      "skin_palette": "fair_cool",
+      "face_preset": "face_07",
+      "hair": "cropped",
+      "hair_tint": "#77716a",
+      "outfit": {"top": "guard_doublet", "bottom": "wool_breeches", "shoes": "riding_boots"},
+      "appearance": {"shirt_tint": "#39465b", "shirt_fabric": "wool", "trouser_tint": "#292b31"},
+      "accessories": ["necklace_iron"],
+      "tattoos": ["upper_arm_mark"]
+    }
+  ]
+}
