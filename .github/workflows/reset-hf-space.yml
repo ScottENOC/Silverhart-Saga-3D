@@ -24,19 +24,29 @@ jobs:
           test -n "$HF_TOKEN" || { echo "HF_ADMIN_TOKEN is missing"; exit 1; }
           python - <<'PY'
           import os
-          from huggingface_hub import HfApi
+          from huggingface_hub import HfApi, HfHubHTTPError
 
           repo_id = "Thisisausername836/wren-workshop"
           api = HfApi(token=os.environ["HF_TOKEN"])
 
-          # Verify ownership/access and target before the destructive operation.
-          before = api.repo_info(repo_id, repo_type="space")
-          if before.id != repo_id or before.private is not True:
-              raise RuntimeError(f"Refusing to reset unexpected Space: {before.id}, private={before.private}")
-          print(f"Verified target: {before.id} (private={before.private})")
-          print("Deleting the old Space and its retained repository history...")
-          api.delete_repo(repo_id=repo_id, repo_type="space")
-          print("Old Space deleted.")
+          # The prior attempt may already have deleted the Space.
+          try:
+              before = api.repo_info(repo_id, repo_type="space")
+          except Exception as exc:
+              from huggingface_hub.errors import RepositoryNotFoundError
+              if not isinstance(exc, RepositoryNotFoundError):
+                  raise
+              before = None
+
+          if before is not None:
+              if before.id != repo_id or before.private is not True:
+                  raise RuntimeError(f"Refusing to reset unexpected Space: {before.id}, private={before.private}")
+              print(f"Verified target: {before.id} (private={before.private})")
+              print("Deleting the old Space and its retained repository history...")
+              api.delete_repo(repo_id=repo_id, repo_type="space")
+              print("Old Space deleted.")
+          else:
+              print("Old Space is already deleted; proceeding with recreation.")
 
           print("Recreating the same Space as private static hosting...")
           api.create_repo(
