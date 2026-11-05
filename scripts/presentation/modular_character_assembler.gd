@@ -6,9 +6,9 @@ extends Node3D
 ## not node names or one-off character scenes.
 
 const BODY_VARIANTS := {
-    "ara_female_slim": {"folder": "npc_female_slim", "hair": "long01", "shirt": "fatigue_shirt", "shirt_alt": "tank_top", "trousers": "fatigue_pants", "trousers_alt": "cargo_shorts"},
-    "ara_male_heavy": {"folder": "npc_male_heavy", "hair": "short02", "shirt": "fatigue_shirt", "shirt_alt": "tank_top", "trousers": "fatigue_pants", "trousers_alt": "cargo_shorts"},
-    "ara_female_athletic": {"folder": "npc_female_athletic", "hair": "ponytail01", "shirt": "tank_top", "shirt_alt": "fatigue_shirt", "trousers": "cargo_shorts", "trousers_alt": "fatigue_pants"}
+    "ara_female_slim": {"folder": "npc_female_slim", "hair": "long01", "shirt": "fatigue_shirt", "shirt_alt": "tank_top", "trousers": "fatigue_pants", "trousers_alt": "cargo_shorts", "boots": "combat_boots", "main_hand": "sword"},
+    "ara_male_heavy": {"folder": "npc_male_heavy", "hair": "short02", "shirt": "fatigue_shirt", "shirt_alt": "tank_top", "trousers": "fatigue_pants", "trousers_alt": "cargo_shorts", "boots": "combat_boots", "main_hand": "sword"},
+    "ara_female_athletic": {"folder": "npc_female_athletic", "hair": "ponytail01", "shirt": "tank_top", "shirt_alt": "fatigue_shirt", "trousers": "cargo_shorts", "trousers_alt": "fatigue_pants", "boots": "combat_boots", "main_hand": "sword"}
 }
 const EQUIPMENT_SLOTS := ["shirt", "trousers", "boots", "torso_armour", "leg_armour", "main_hand", "off_hand"]
 
@@ -108,6 +108,10 @@ func _component_path(slot: String, component_id: String) -> String:
         if component_id == str(variant.get("trousers_alt", "")):
             return root + "trousers_alt.glb"
         return ""
+    if slot == "boots" and component_id == str(variant.get("boots", "")):
+        return root + "boots.glb"
+    if slot == "main_hand" and component_id == str(variant.get("main_hand", "")):
+        return root + "weapon_sword.glb"
     return ""
 
 func clear_slot(slot: String) -> void:
