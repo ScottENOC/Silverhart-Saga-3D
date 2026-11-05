@@ -24,7 +24,7 @@ jobs:
           test -n "$HF_TOKEN" || { echo "HF_ADMIN_TOKEN is missing"; exit 1; }
           python - <<'PY'
           import os
-          from huggingface_hub import HfApi, HfHubHTTPError
+          from huggingface_hub import HfApi
 
           repo_id = "Thisisausername836/wren-workshop"
           api = HfApi(token=os.environ["HF_TOKEN"])
