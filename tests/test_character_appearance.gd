@@ -46,6 +46,36 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	assert(translucent.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA)
 	assert(not shirt.visible)
 
+	appearance.bra_tint = Color("#9a3650")
+	appearance.bra_opacity = 0.6
+	appearance.bra_visible = false
+	appearance.briefs_tint = Color("#315f9b")
+	appearance.briefs_opacity = 0.8
+	var bra_material := StandardMaterial3D.new()
+	bra_material.resource_name = "Bra"
+	var bra_mesh := BoxMesh.new()
+	bra_mesh.material = bra_material
+	var bra := MeshInstance3D.new()
+	bra.name = "AraGeneratedMeshBra"
+	bra.mesh = bra_mesh
+	body.add_child(bra)
+	var briefs_material := StandardMaterial3D.new()
+	briefs_material.resource_name = "Briefs"
+	var briefs_mesh := BoxMesh.new()
+	briefs_mesh.material = briefs_material
+	var briefs := MeshInstance3D.new()
+	briefs.name = "AraGeneratedMeshBriefs"
+	briefs.mesh = briefs_mesh
+	body.add_child(briefs)
+	appearance.apply_to(body)
+	var dyed_bra := bra.get_active_material(0) as StandardMaterial3D
+	var dyed_briefs := briefs.get_active_material(0) as StandardMaterial3D
+	assert(dyed_bra.albedo_color.is_equal_approx(appearance.bra_tint))
+	assert(is_equal_approx(dyed_bra.albedo_color.a, 0.6))
+	assert(not bra.visible)
+	assert(dyed_briefs.albedo_color.is_equal_approx(appearance.briefs_tint))
+	assert(is_equal_approx(dyed_briefs.albedo_color.a, 0.8))
+
 	var path := "user://character_appearance_test.json"
 	assert(appearance.save_json(path) == OK)
 	var restored := CharacterAppearance.load_json(path)
