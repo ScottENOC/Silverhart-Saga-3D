@@ -6,6 +6,7 @@ func _initialize() -> void:
     _test_time_point_rules()
     _test_action_movement_cost()
     _test_terrain_pathfinding()
+    _test_elevation_rules()
     _test_world_clock()
     _test_combat_turn_scheduler()
     print("WorldSimulation tests passed.")
@@ -108,6 +109,33 @@ func _test_terrain_pathfinding() -> void:
     assert(player.axial == Vector2i(0, 1))
     assert(is_equal_approx(player.time_points, 17.0))
     assert(is_equal_approx(player.total_time_points_spent, 5.0))
+
+func _test_elevation_rules() -> void:
+    var map_data := HexMapData.new()
+    map_data.add_cell(Vector2i(0, 0), 0.0)
+    map_data.add_cell(Vector2i(1, 0), 0.5)
+    map_data.add_cell(Vector2i(2, 0), 2.5)
+    map_data.add_cell(Vector2i(3, 0), 6.5)
+    var climber := CharacterState.new("climber", "Climber", Vector2i.ZERO)
+    var gentle_cost := MovementRules.step_cost(map_data, Vector2i.ZERO, Vector2i(1, 0), climber)
+    assert(gentle_cost > 5.0 and gentle_cost < 6.0, "Gentle uphill should add a modest movement cost")
+    var steep_cost := MovementRules.step_cost(map_data, Vector2i(1, 0), Vector2i(2, 0), climber)
+    assert(is_inf(steep_cost), "A climbable face should require climbing skill")
+    climber.skills["climbing"] = 1
+    steep_cost = MovementRules.step_cost(map_data, Vector2i(1, 0), Vector2i(2, 0), climber)
+    assert(steep_cost > 10.0, "Climbing skill should make a steep face traversable at a high cost")
+    var cliff_cost := MovementRules.step_cost(map_data, Vector2i(2, 0), Vector2i(3, 0), climber)
+    assert(is_inf(cliff_cost), "A cliff should require expert climbing")
+    climber.skills["climbing"] = 3
+    cliff_cost = MovementRules.step_cost(map_data, Vector2i(2, 0), Vector2i(3, 0), climber)
+    assert(cliff_cost > steep_cost, "Expert climbing should permit cliffs at a substantial cost")
+
+    # Shared vertex coordinates must resolve to one sample across adjacent cells.
+    map_data.set_vertex_height(Vector2i.ZERO, 0, 2.25)
+    var shared := map_data.corner_world_position(Vector2i.ZERO, 0)
+    var adjacent := map_data.corner_world_position(Vector2i(1, 0), 5)
+    assert(is_equal_approx(shared.x, adjacent.x) and is_equal_approx(shared.z, adjacent.z))
+    assert(is_equal_approx(shared.y, adjacent.y), "Adjacent hexes must share their edge vertex height")
 
 func _test_world_clock() -> void:
     var clock := WorldClock.new()
