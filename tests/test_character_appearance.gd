@@ -3,7 +3,8 @@ extends SceneTree
 func _initialize() -> void:
 	_test_appearance_save_reload_and_material_application()
 	_test_materials_are_not_shared_between_characters()
-	print("CharacterAppearance tests passed.")
+	_test_accessory_socket_attach_and_remove()
+	print("Character appearance and accessory tests passed.")
 	quit()
 
 func _test_appearance_save_reload_and_material_application() -> void:
@@ -45,6 +46,9 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	assert(restored.shirt_fabric == "linen")
 	assert(restored.accessory_ids == appearance.accessory_ids)
 	assert(restored.tattoo_ids == appearance.tattoo_ids)
+	restored.apply_to(body)
+	var after_reload := shirt.get_active_material(0) as StandardMaterial3D
+	assert(after_reload.albedo_color.is_equal_approx(appearance.shirt_tint))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	body.free()
 
@@ -74,3 +78,23 @@ func _test_materials_are_not_shared_between_characters() -> void:
 	assert(shared_material.albedo_color.is_equal_approx(Color.WHITE))
 	root_a.free()
 	root_b.free()
+
+func _test_accessory_socket_attach_and_remove() -> void:
+	var character := Node3D.new()
+	var socket := Node3D.new()
+	socket.name = "SOCKET_Earring_L"
+	character.add_child(socket)
+
+	var accessory_root := Node3D.new()
+	accessory_root.name = "GoldHoop"
+	var packed := PackedScene.new()
+	assert(packed.pack(accessory_root) == OK)
+	accessory_root.free()
+
+	var attached := AccessoryAttachment.attach(character, "SOCKET_Earring_L", packed, "earring_hoop_gold")
+	assert(attached != null)
+	assert(attached.get_parent() == socket)
+	assert(str(attached.get_meta("accessory_id")) == "earring_hoop_gold")
+	assert(AccessoryAttachment.remove_by_id(character, "earring_hoop_gold"))
+	assert(not AccessoryAttachment.remove_by_id(character, "earring_hoop_gold"))
+	character.free()
