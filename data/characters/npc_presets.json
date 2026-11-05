@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "Three adult NPC presets sharing one character-generation contract. Ara supports native UV-space tattoo designs; asset identifiers remain placeholders until the character generation pipeline is validated.",
+  "description": "Three adult NPC presets sharing one character-generation contract. Wren's Ara export includes a separate bra under-layer and briefs under outer trousers; tattoos use Ara's native UV-space skin-detail texture.",
   "characters": [
     {
       "id": "wren_talbot",
@@ -17,7 +17,9 @@
       "outfit": {
         "top": "fatigue_shirt",
         "bottom": "fatigue_pants",
-        "shoes": "combat_boots"
+        "shoes": "combat_boots",
+        "underTop": "bra",
+        "underwear": true
       },
       "appearance": {
         "shirt_tint": "#244b2b",
