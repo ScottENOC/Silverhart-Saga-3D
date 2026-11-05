@@ -20,7 +20,7 @@ It remains independently playable and is not a dependency of this project.
 ## Important behaviour to preserve
 
 - Real-time world simulation and action/time-point tactical combat.
-- Movement, attack costs, reactions, interruptions and AI decision-making. The first movement pass shares terrain-aware TP costs between keyboard stepping and mouse-click A* routes; advanced climbing, occupancy exceptions, road preferences, reactions and AI pathing remain outstanding.
+- Movement, attack costs, reactions, interruptions and AI decision-making. The first movement pass shares terrain-aware TP costs between keyboard stepping and mouse-click A* routes; the browser elevation penalties are being replaced by a continuous 3D height field with shared hex-vertex samples and slope-aware costs; advanced climbing and occupancy exceptions, road preferences, reactions and AI pathing remain outstanding.
 - Multiple relationship dimensions; do not flatten into one reputation number.
 - Party members, followers, formations, mounts and shared inventory.
 - Equipment, skills, spells, crafting and resource gathering.
