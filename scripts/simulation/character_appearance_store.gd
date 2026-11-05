@@ -14,8 +14,6 @@ static func save_appearance(character_id: String, appearance: CharacterAppearanc
     file.store_string(JSON.stringify(all_data, "\t"))
     file.flush()
     file.close()
-    var absolute_tmp := ProjectSettings.globalize_path(SAVE_PATH + ".tmp")
-    var absolute_final := ProjectSettings.globalize_path(SAVE_PATH)
     var dir := DirAccess.open("user://")
     if dir == null:
         return ERR_CANT_OPEN
