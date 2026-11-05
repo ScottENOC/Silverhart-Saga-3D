@@ -36,6 +36,22 @@ func _capture_views() -> void:
         quit(1)
         return
 
+    # Let the CharacterBody3D proxies fall onto the generated terrain collider.
+    for _frame in range(30):
+        await physics_frame
+    for actor_name in ["ValleyCharacter", "SlopeCharacter", "RidgeCharacter", "RidgeWalker"]:
+        var actor := terrain_scene.get_node_or_null(actor_name) as CharacterBody3D
+        if actor == null:
+            push_error("Missing terrain test actor: %s" % actor_name)
+            quit(1)
+            return
+        if not actor.is_on_floor():
+            push_error("Terrain test actor did not ground on the mesh: %s at %s" % [actor_name, actor.global_position])
+            quit(1)
+            return
+        print("Grounded %s at %s" % [actor_name, actor.global_position])
+
+
     var views := [
         {"name": "terrain-overview.png", "position": Vector3(0.0, 0.8, 0.0), "yaw": 0.0, "pitch": -52.0, "zoom": 34.0},
         {"name": "terrain-overhead.png", "position": Vector3(0.0, 0.8, 0.0), "yaw": 0.0, "pitch": -78.0, "zoom": 34.0},
