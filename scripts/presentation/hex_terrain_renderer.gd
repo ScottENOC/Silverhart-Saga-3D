@@ -3,6 +3,7 @@ extends Node3D
 
 var terrain_mesh_instance: MeshInstance3D
 var edge_mesh_instance: MeshInstance3D
+var terrain_collision_body: StaticBody3D
 var terrain_material: StandardMaterial3D
 var edge_material: StandardMaterial3D
 
@@ -23,6 +24,8 @@ func rebuild(map_data: HexMapData, radius: float = HexGrid.DEFAULT_RADIUS_M) -> 
         terrain_mesh_instance.queue_free()
     if is_instance_valid(edge_mesh_instance):
         edge_mesh_instance.queue_free()
+    if is_instance_valid(terrain_collision_body):
+        terrain_collision_body.queue_free()
 
     var surface := SurfaceTool.new()
     surface.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -64,10 +67,21 @@ func rebuild(map_data: HexMapData, radius: float = HexGrid.DEFAULT_RADIUS_M) -> 
     surface.generate_normals()
     var terrain_instance := MeshInstance3D.new()
     terrain_instance.name = "ContinuousHexTerrain"
-    terrain_instance.mesh = surface.commit()
+    var terrain_mesh := surface.commit()
+    terrain_instance.mesh = terrain_mesh
     terrain_instance.material_override = terrain_material
     add_child(terrain_instance)
     terrain_mesh_instance = terrain_instance
+
+    # Collision is generated from the exact rendered terrain mesh, so physics
+    # queries cannot drift from the visible surface as the height field changes.
+    var collision_body := StaticBody3D.new()
+    collision_body.name = "TerrainCollision"
+    var collision_shape := CollisionShape3D.new()
+    collision_shape.shape = terrain_mesh.create_trimesh_shape()
+    collision_body.add_child(collision_shape)
+    add_child(collision_body)
+    terrain_collision_body = collision_body
 
     var edge_instance := MeshInstance3D.new()
     edge_instance.name = "HexGridOverlay"
