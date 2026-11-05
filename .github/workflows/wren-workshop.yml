@@ -59,7 +59,7 @@ jobs:
           git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
           cd /tmp/ara-3d-gen
           corepack enable
-          pnpm install --frozen-lockfile
+          pnpm install --no-frozen-lockfile
           npm run setup-assets
           cat > /tmp/ara-wren.params.json <<'JSON'
           {
