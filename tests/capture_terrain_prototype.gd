@@ -37,12 +37,14 @@ func _capture_views() -> void:
         return
 
     var views := [
-        {"name": "terrain-overview.png", "yaw": 0.0, "pitch": -52.0, "zoom": 34.0},
-        {"name": "terrain-overhead.png", "yaw": 0.0, "pitch": -78.0, "zoom": 34.0},
-        {"name": "terrain-ridge-oblique.png", "yaw": 38.0, "pitch": -42.0, "zoom": 25.0}
+        {"name": "terrain-overview.png", "position": Vector3(0.0, 0.8, 0.0), "yaw": 0.0, "pitch": -52.0, "zoom": 34.0},
+        {"name": "terrain-overhead.png", "position": Vector3(0.0, 0.8, 0.0), "yaw": 0.0, "pitch": -78.0, "zoom": 34.0},
+        {"name": "terrain-ridge-oblique.png", "position": Vector3(0.0, 0.8, 0.0), "yaw": 38.0, "pitch": -42.0, "zoom": 25.0},
+        {"name": "terrain-character-grounding.png", "position": Vector3(4.2, 3.1, 0.0), "yaw": 24.0, "pitch": -38.0, "zoom": 13.0}
     ]
 
     for view in views:
+        rig.position = view["position"]
         rig.rotation_degrees.y = view["yaw"]
         pitch_pivot.rotation_degrees.x = view["pitch"]
         rig.set_zoom(view["zoom"])
