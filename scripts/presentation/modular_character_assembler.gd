@@ -5,39 +5,14 @@ extends Node3D
 ## garments and hair are skinned to that rig. Equipment/appearance IDs are data,
 ## not node names or one-off character scenes.
 
-const BODY_SCENES := {
-    "ara_female_slim": "res://art/characters/ara/modular/body_female_slim.glb",
-    "ara_male_heavy": "res://art/characters/ara/modular/body_male_heavy.glb",
-    "ara_female_athletic": "res://art/characters/ara/modular/body_female_athletic.glb"
+const BODY_VARIANTS := {
+    "ara_female_slim": {"folder": "npc_female_slim", "hair": "long01", "shirt": "fatigue_shirt", "trousers": "fatigue_pants"},
+    "ara_male_heavy": {"folder": "npc_male_heavy", "hair": "short02", "shirt": "fatigue_shirt", "trousers": "fatigue_pants"},
+    "ara_female_athletic": {"folder": "npc_female_athletic", "hair": "ponytail01", "shirt": "tank_top", "trousers": "cargo_shorts"}
 }
-const COMPONENTS := {
-    "hair": {
-        "braid01": "res://art/characters/ara/modular/hair_braid01.glb",
-        "short02": "res://art/characters/ara/modular/hair_short02.glb",
-        "ponytail01": "res://art/characters/ara/modular/hair_ponytail01.glb"
-    },
-    "shirt": {
-        "fatigue_shirt": "res://art/characters/ara/modular/shirt_fatigue.glb",
-        "tank_top": "res://art/characters/ara/modular/shirt_tank.glb"
-    },
-    "trousers": {
-        "fatigue_pants": "res://art/characters/ara/modular/trousers_fatigue.glb",
-        "cargo_shorts": "res://art/characters/ara/modular/trousers_cargo.glb"
-    },
-    "boots": {
-        "combat_boots": "res://art/characters/ara/modular/boots_combat.glb"
-    },
-    "torso_armour": {
-        "leather_cuirass": "res://art/characters/ara/modular/armour_leather_cuirass.glb"
-    },
-    "leg_armour": {
-        "leather_greaves": "res://art/characters/ara/modular/armour_leather_greaves.glb"
-    },
-    "main_hand": {
-        "sword": "res://art/characters/ara/modular/weapon_sword.glb"
-    }
-}
+const EQUIPMENT_SLOTS := ["shirt", "trousers", "boots", "torso_armour", "leg_armour", "main_hand", "off_hand"]
 
+var current_body_variant: String = ""
 var shared_skeleton: Skeleton3D
 var body_instance: Node3D
 var slot_mounts: Dictionary = {}
@@ -48,7 +23,10 @@ func configure(appearance: CharacterAppearance) -> bool:
     if appearance == null:
         return false
     _clear_all()
-    var body_path: String = BODY_SCENES.get(appearance.body_variant, "")
+    current_body_variant = appearance.body_variant
+    var variant: Dictionary = BODY_VARIANTS.get(current_body_variant, {})
+    var folder := str(variant.get("folder", ""))
+    var body_path := "res://art/characters/ara/npcs/%s/body.glb" % folder if not folder.is_empty() else ""
     if body_path.is_empty():
         push_error("Unknown body variant: " + appearance.body_variant)
         return false
@@ -66,31 +44,30 @@ func configure(appearance: CharacterAppearance) -> bool:
         push_error("Body component has no Skeleton3D.")
         _clear_all()
         return false
-    for slot in COMPONENTS:
+    for slot in ["hair", "shirt", "trousers", "boots", "torso_armour", "leg_armour", "main_hand", "off_hand"]:
         var mount := Node3D.new()
         mount.name = _slot_node_name(slot)
         add_child(mount)
         slot_mounts[slot] = mount
     set_component("hair", appearance.hair_id)
-    for slot in appearance.equipment:
-        var item_id := str(appearance.equipment[slot])
-        if not item_id.is_empty() and COMPONENTS.has(str(slot)):
-            set_component(str(slot), item_id)
+    for slot in EQUIPMENT_SLOTS:
+        var item_id := str(appearance.equipment.get(slot, ""))
+        if not item_id.is_empty():
+            set_component(slot, item_id)
     for slot in appearance.materials:
         var material_data: Dictionary = appearance.materials[slot]
         set_garment_material(str(slot), material_data)
     return true
 
 func set_component(slot: String, component_id: String) -> bool:
-    if not slot_mounts.has(slot) or not COMPONENTS.has(slot):
+    if not slot_mounts.has(slot):
         push_warning("Unknown appearance slot: " + slot)
         return false
-    var catalog: Dictionary = COMPONENTS[slot]
-    if not catalog.has(component_id):
-        push_warning("Unknown component ID %s for slot %s." % [component_id, slot])
+    var path := _component_path(slot, component_id)
+    if path.is_empty():
+        push_warning("No generated asset for %s in slot %s on body %s." % [component_id, slot, current_body_variant])
         return false
     clear_slot(slot)
-    var path: String = catalog[component_id]
     var resource := load(path) as PackedScene
     if resource == null:
         push_warning("Appearance asset is not imported: " + path)
@@ -109,6 +86,24 @@ func set_component(slot: String, component_id: String) -> bool:
         mesh_instance.skeleton = mesh_instance.get_path_to(shared_skeleton)
     active_components[slot] = component_id
     return true
+
+func _component_path(slot: String, component_id: String) -> String:
+    var variant: Dictionary = BODY_VARIANTS.get(current_body_variant, {})
+    var folder := str(variant.get("folder", ""))
+    if folder.is_empty():
+        return ""
+    var root := "res://art/characters/ara/npcs/%s/" % folder
+    if slot == "hair":
+        return root + "hair.glb" if component_id == str(variant.get("hair", "")) else ""
+    if slot == "shirt":
+        if component_id == str(variant.get("shirt", "")):
+            return root + "shirt.glb"
+        return root + "shirt_alt.glb"
+    if slot == "trousers":
+        if component_id == str(variant.get("trousers", "")):
+            return root + "trousers.glb"
+        return root + "trousers_alt.glb"
+    return ""
 
 func clear_slot(slot: String) -> void:
     if not slot_mounts.has(slot):
@@ -152,6 +147,7 @@ func _clear_all() -> void:
         child.queue_free()
     shared_skeleton = null
     body_instance = null
+    current_body_variant = ""
     slot_mounts.clear()
     active_components.clear()
     active_materials.clear()
