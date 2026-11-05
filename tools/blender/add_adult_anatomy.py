@@ -99,6 +99,7 @@ def create_anatomy(pelvis_z, front_y, width, collection, skin_material, armature
     bpy.ops.object.join()
     anatomy = bpy.context.object
     anatomy.name = "Adult_External_Anatomy"
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     anatomy.data.remesh_voxel_size = 0.0035
     bpy.ops.object.voxel_remesh()
     smooth = anatomy.modifiers.new("Anatomy surface smoothing", "SMOOTH")
