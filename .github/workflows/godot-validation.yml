@@ -1,0 +1,53 @@
+name: Godot validation
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - "project.godot"
+      - "scenes/**"
+      - "scripts/**"
+      - "tests/**"
+      - ".github/workflows/godot-validation.yml"
+  push:
+    branches: [dev, feature/port-action-economy]
+    paths:
+      - "project.godot"
+      - "scenes/**"
+      - "scripts/**"
+      - "tests/**"
+      - ".github/workflows/godot-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: godot-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  headless-tests:
+    name: Godot 4.7.2 headless tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Verify engine version
+        run: godot --version
+
+      - name: Import project and build global script class cache
+        run: godot --headless --editor --path . --quit
+
+      - name: Run hex-grid tests
+        run: godot --headless --path . --script res://tests/test_hex_grid.gd
+
+      - name: Run simulation and movement tests
+        run: godot --headless --path . --script res://tests/test_simulation.gd
