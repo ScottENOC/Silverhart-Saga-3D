@@ -10,7 +10,7 @@ on:
       - "tests/**"
       - ".github/workflows/godot-validation.yml"
   push:
-    branches: [dev, feature/port-action-economy]
+    branches: [dev, feature/port-action-economy, feature/terrain-character-grounding-test]
     paths:
       - "project.godot"
       - "scenes/**"
