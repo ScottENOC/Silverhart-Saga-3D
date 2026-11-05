@@ -161,9 +161,11 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y blender
-          # The distro Blender glTF importer needs NumPy in Blender's own Python.
-          blender --background --python-expr "import ensurepip; ensurepip.bootstrap(); import pip._internal.cli.main as pipmain; pipmain.main(['install', '--upgrade', 'numpy']); import numpy; print('Blender NumPy:', numpy.__version__)"
+          # Install NumPy from Ubuntu's matching system packages. The distro Blender
+          # uses the system Python ABI; ensurepip is intentionally disabled on Ubuntu.
+          sudo apt-get install -y blender python3-numpy
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-expr "import numpy; print('Blender NumPy:', numpy.__version__)"
           for variant in ara_wren_benchmark ara_wren_mobile ara_wren_body ara_wren_tattoo_body ara_wren_underwear; do
             ARA_INPUT="art/characters/ara/${variant}.glb" \
               ARA_OUTPUT="/tmp/${variant}_anatomy.glb" \
