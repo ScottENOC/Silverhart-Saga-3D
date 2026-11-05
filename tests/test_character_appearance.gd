@@ -49,6 +49,12 @@ func _initialize() -> void:
     assert(attachment_rig.attach("nipple.left", CharacterAccessoryFactory.make_ring("nipple_ring")), "Nipple socket failed")
     assert(attachment_rig.attach("clitoral_hood", CharacterAccessoryFactory.make_ring("hood_ring")), "Pelvic socket failed")
 
+    assembler.current_body_variant = "ara_female_slim"
+    assert(assembler._component_path("shirt", "tank_top").ends_with("shirt_alt.glb"), "Alternate shirt did not resolve")
+    assert(assembler._component_path("trousers", "cargo_shorts").ends_with("trousers_alt.glb"), "Alternate trousers did not resolve")
+    assert(assembler._component_path("boots", "combat_boots").ends_with("boots.glb"), "Boot component did not resolve")
+    assert(assembler._component_path("main_hand", "sword").ends_with("weapon_sword.glb"), "Sword component did not resolve")
+
     var save_error := CharacterAppearanceStore.save_appearance("npc_test_01", appearance)
     assert(save_error == OK, "Appearance save failed: %s" % error_string(save_error))
     var loaded := CharacterAppearanceStore.load_appearance("npc_test_01")
