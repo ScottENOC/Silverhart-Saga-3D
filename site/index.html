@@ -9,6 +9,14 @@ main{height:calc(100dvh - 50px);display:grid;grid-template-columns:minmax(0,1fr)
 #status{position:absolute;left:12px;top:12px;padding:7px 10px;border-radius:8px;background:#15171bc9;font-size:11px}#hint{position:absolute;bottom:12px;left:12px;right:12px;text-align:center;color:#c4c0b8;font-size:11px;pointer-events:none}
 aside{overflow:auto;padding:13px;background:#202329;border-left:1px solid #383b42}section{padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #3a3d43}h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#b8a98d;margin:3px 0 9px}
 button{background:#30343b;color:#eee;border:1px solid #4a4f58;border-radius:8px;padding:8px 6px;min-height:36px;font:inherit;font-size:12px}.buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0;font-size:12px;color:#d4d1ca}.row input[type=range]{width:105px;accent-color:#c4a879}.row input[type=checkbox]{width:18px;height:18px;accent-color:#c4a879}.note{font-size:11px;line-height:1.4;color:#a9adb5}#error{color:#ffb6a8;white-space:pre-wrap}
+input[type=color]{width:42px;height:30px;padding:2px;border:1px solid #4a4f58;border-radius:6px;background:#30343b}
+select{max-width:100%;background:#30343b;color:#eee;border:1px solid #4a4f58;border-radius:7px;padding:6px;font:inherit;font-size:11px}
+button:disabled{opacity:.4}
+#materialList{display:grid;gap:6px;max-height:130px;overflow:auto}
+.materialItem{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10px;color:#d4d1ca}
+.materialItem button{min-height:28px;font-size:10px;max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#saveState{font-size:10px;color:#a9adb5;margin-top:5px}
+@media(max-width:700px){aside{max-height:52dvh;grid-template-columns:1fr 1fr;overflow:auto}section{min-width:0}#materialList{max-height:90px}}
 @media(max-width:700px){main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}aside{max-height:38dvh;border-left:0;border-top:1px solid #383b42;padding:9px 12px;display:grid;grid-template-columns:1fr 1fr;gap:0 12px}section{margin:0;padding-bottom:8px;border:0}section:last-child{grid-column:1/-1}h2{font-size:10px;margin:2px 0 6px}.row{margin:5px 0;font-size:11px}.note{font-size:10px}button{min-height:32px;padding:5px}}
 </style></head><body>
 <header><strong>WREN WORKSHOP</strong><span>Silverhart Saga 3D · model preview</span></header>
@@ -17,6 +25,23 @@ button{background:#30343b;color:#eee;border:1px solid #4a4f58;border-radius:8px;
 <section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara">Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
 <section><h2>Camera</h2><div class="buttons"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="three">3/4</button><button id="home">Reset</button></div><div class="row"><span>Auto rotate</span><input id="autorotate" type="checkbox"></div></section>
 <section><h2>Lighting</h2><div class="row"><span>Key light</span><input id="keylight" type="range" min="0" max="5" step=".1" value="3"></div><div class="row"><span>Fill light</span><input id="filllight" type="range" min="0" max="4" step=".1" value="1.4"></div><div class="row"><span>Light direction</span><input id="lightangle" type="range" min="0" max="360" value="35"></div></section>
+<section><h2>Appearance · material inspector</h2>
+<div class="row"><span>Material</span><select id="materialSelect"><option value="">Load a model first</option></select></div>
+<div class="row"><span>Colour / dye</span><input id="materialColor" type="color" value="#6f8b62"></div>
+<div class="row"><span>Fabric roughness</span><input id="materialRoughness" type="range" min="0.05" max="1" step="0.01" value="0.8"></div>
+<div class="buttons"><button id="applyMaterial">Apply</button><button id="resetMaterials">Reset materials</button></div>
+<p class="note">Choose an imported material by name, then test colour and surface roughness. This edits the live preview, not the source GLB.</p>
+</section>
+<section><h2>Accessories · placement preview</h2>
+<div class="buttons"><button data-accessory="earrings">Earrings</button><button data-accessory="nose">Nose ring</button><button data-accessory="necklace">Necklace</button></div>
+<div class="buttons"><button data-accessory="clear">Remove accessories</button></div>
+<p class="note">Accessories are preview geometry positioned relative to the model bounds. They are not yet validated against the final character rig sockets.</p>
+</section>
+<section><h2>Save appearance</h2>
+<div class="buttons"><button id="saveAppearance">Save on this phone</button><button id="loadAppearance">Reload saved</button><button id="exportAppearance">Export JSON</button></div>
+<div id="saveState">Changes are not saved.</div>
+<p class="note">Saves locally in this browser on this device. Export JSON to transfer the settings elsewhere.</p>
+</section>
 <section><h2>Build</h2><div class="note" id="build">Loading build information…</div><p class="note" id="error"></p></section>
 </aside></main>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
@@ -77,6 +102,114 @@ function loadModel(mode){
   error.textContent=detail+'\\nURL: '+modelUrl;
  });
 }
+
+// Phone-review appearance tools. These operate on the imported GLB materials,
+// preserving a clean copy so repeated changes do not compound.
+let originalMaterials=new Map(), accessoryGroup=null, selectedMaterial=null;
+const materialSelect=document.querySelector('#materialSelect');
+function collectMaterials(){
+ originalMaterials.clear(); const found=new Map();
+ if(!model)return;
+ model.traverse(o=>{
+  if(!o.isMesh||!o.material)return;
+  const mats=Array.isArray(o.material)?o.material:[o.material];
+  mats.forEach((m,i)=>{
+   if(!found.has(m.uuid)){found.set(m.uuid,{material:m,meshes:[]});}
+   found.get(m.uuid).meshes.push({mesh:o,index:i});
+  });
+ });
+ materialSelect.innerHTML='';
+ [...found.values()].forEach((entry,n)=>{
+  const label=entry.material.name||('Material '+(n+1));
+  const key='m'+n; originalMaterials.set(key,{...entry,base:entry.material.clone()});
+  const opt=document.createElement('option');opt.value=key;opt.textContent=label+' · '+entry.meshes.length+' slot(s)';materialSelect.append(opt);
+ });
+ if(materialSelect.options.length){materialSelect.value=materialSelect.options[0].value;selectMaterial();}
+ else materialSelect.innerHTML='<option value="">No editable materials found</option>';
+}
+function selectMaterial(){
+ selectedMaterial=originalMaterials.get(materialSelect.value);
+ if(!selectedMaterial)return;
+ const m=selectedMaterial.material;
+ const c=m.color?.clone()||new THREE.Color(0xffffff);
+ document.querySelector('#materialColor').value='#'+c.getHexString();
+ document.querySelector('#materialRoughness').value=String(m.roughness??0.8);
+}
+materialSelect.addEventListener('change',selectMaterial);
+document.querySelector('#applyMaterial').onclick=()=>{
+ if(!selectedMaterial)return;
+ const tint=new THREE.Color(document.querySelector('#materialColor').value);
+ const rough=+document.querySelector('#materialRoughness').value;
+ const m=selectedMaterial.material;
+ if(m.color)m.color.copy(tint);
+ if('roughness' in m)m.roughness=rough;
+ m.needsUpdate=true;document.querySelector('#saveState').textContent='Live preview changed · not saved';
+};
+document.querySelector('#resetMaterials').onclick=()=>{
+ for(const entry of originalMaterials.values()){
+  entry.material.color?.copy(entry.base.color||new THREE.Color(1,1,1));
+  if('roughness' in entry.material)entry.material.roughness=entry.base.roughness;
+  if('metalness' in entry.material)entry.material.metalness=entry.base.metalness;
+  entry.material.needsUpdate=true;
+ }
+ selectMaterial();document.querySelector('#saveState').textContent='Materials reset to imported values';
+};
+function clearAccessories(){if(accessoryGroup&&model){model.remove(accessoryGroup);accessoryGroup.traverse(o=>{o.geometry?.dispose();if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose())}})}accessoryGroup=null;}
+function addAccessories(kind){
+ if(!model||!box)return;
+ if(!accessoryGroup){accessoryGroup=new THREE.Group();accessoryGroup.name='PhoneReviewAccessories';model.add(accessoryGroup);}
+ const size=box.getSize(new THREE.Vector3()),centre=box.getCenter(new THREE.Vector3());
+ const front=box.min.y-size.y*.025, headZ=box.max.z-size.z*.105, neckZ=box.max.z-size.z*.19;
+ const silver=new THREE.MeshStandardMaterial({color:0xb9c2c9,metalness:.82,roughness:.24});
+ const gold=new THREE.MeshStandardMaterial({color:0xc6a45b,metalness:.72,roughness:.28});
+ const hoop=(x,y,z,r,t,mat)=>{const o=new THREE.Mesh(new THREE.TorusGeometry(r,t,10,32),mat);o.position.set(x,y,z);accessoryGroup.add(o);};
+ if(kind==='earrings'){
+  hoop(centre.x-size.x*.13,front,headZ,size.z*.014,size.z*.0028,silver);
+  hoop(centre.x+size.x*.13,front,headZ,size.z*.014,size.z*.0028,silver);
+ }else if(kind==='nose'){
+  hoop(centre.x,front-size.y*.012,headZ-size.z*.065,size.z*.009,size.z*.0022,silver);
+ }else if(kind==='necklace'){
+  const pts=[];for(let i=0;i<=48;i++){const a=i/48*Math.PI*2;pts.push(new THREE.Vector3(centre.x+Math.cos(a)*size.x*.105,front+Math.sin(a)*size.y*.06,neckZ-Math.sin(a)*size.z*.018));}
+  const curve=new THREE.CatmullRomCurve3(pts);const chain=new THREE.Mesh(new THREE.TubeGeometry(curve,64,size.z*.0025,6,false),gold);accessoryGroup.add(chain);
+  const pendant=new THREE.Mesh(new THREE.OctahedronGeometry(size.z*.012,1),gold);pendant.position.set(centre.x,front-size.y*.055,neckZ-size.z*.025);accessoryGroup.add(pendant);
+ }
+ document.querySelector('#saveState').textContent='Accessory preview added · approximate bounds placement';
+}
+document.querySelectorAll('[data-accessory]').forEach(b=>b.addEventListener('click',()=>{
+ if(b.dataset.accessory==='clear'){clearAccessories();document.querySelector('#saveState').textContent='Accessory preview cleared';}
+ else addAccessories(b.dataset.accessory);
+}));
+function appearanceSnapshot(){
+ const materials={};for(const [key,e] of originalMaterials){materials[e.material.name||key]={color:e.material.color?'#'+e.material.color.getHexString():null,roughness:e.material.roughness??null,metalness:e.material.metalness??null};}
+ return {schema_version:1,model:document.querySelector('#modelmode').value,materials,accessories:accessoryGroup?accessoryGroup.children.map(x=>x.name||x.geometry?.type||'accessory'):[]};
+}
+function applySnapshot(data){
+ if(!data||typeof data!=='object')return;
+ for(const e of originalMaterials.values()){
+  const saved=data.materials?.[e.material.name];if(!saved)continue;
+  if(saved.color&&e.material.color)e.material.color.set(saved.color);
+  if(Number.isFinite(saved.roughness)&&'roughness' in e.material)e.material.roughness=saved.roughness;
+  if(Number.isFinite(saved.metalness)&&'metalness' in e.material)e.material.metalness=saved.metalness;
+ }
+ clearAccessories();for(const a of (data.accessories||[])){if(String(a).includes('Torus')||String(a).includes('ear'))addAccessories('earrings');}
+ document.querySelector('#saveState').textContent='Saved appearance restored';
+}
+document.querySelector('#saveAppearance').onclick=()=>{
+ try{localStorage.setItem('silverhart-wren-appearance-v1',JSON.stringify(appearanceSnapshot()));document.querySelector('#saveState').textContent='Saved on this phone · '+new Date().toLocaleTimeString();}
+ catch(e){document.querySelector('#saveState').textContent='Save failed: '+e.message;}
+};
+document.querySelector('#loadAppearance').onclick=()=>{
+ try{const raw=localStorage.getItem('silverhart-wren-appearance-v1');if(!raw)throw new Error('No saved appearance on this phone');applySnapshot(JSON.parse(raw));}
+ catch(e){document.querySelector('#saveState').textContent=e.message;}
+};
+document.querySelector('#exportAppearance').onclick=()=>{
+ const blob=new Blob([JSON.stringify(appearanceSnapshot(),null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='wren-appearance.json';a.click();URL.revokeObjectURL(url);
+};
+const originalLoadModel=loadModel;
+loadModel=function(mode){
+ clearAccessories();originalLoadModel(mode);
+ const poll=()=>{if(model){collectMaterials();return;}if(status.textContent.includes('failed'))return;setTimeout(poll,250);};setTimeout(poll,250);
+};
 document.querySelector('#modelmode').onchange=e=>loadModel(e.target.value);
 loadModel(mobilePreview?'ara-mobile':'ara');
 function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
