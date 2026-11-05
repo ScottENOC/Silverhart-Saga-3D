@@ -48,6 +48,8 @@ for character in data["characters"]:
         "hair": {"hair": params.get("hair", "none"), "hairTint": params.get("hairTint", "#ffffff"), "hairColor": params.get("hairColor", "#2a1e16")},
         "shirt": {"top": params.get("top", "none")},
         "trousers": {"bottom": params.get("bottom", "none")},
+        "shirt_alt": {"top": "tank_top" if params.get("top") != "tank_top" else "fatigue_shirt"},
+        "trousers_alt": {"bottom": "cargo_shorts" if params.get("bottom") != "cargo_shorts" else "fatigue_pants"},
     }.items():
         component = dict(base)
         component.update(changes)
