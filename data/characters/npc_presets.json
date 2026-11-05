@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "Three adult NPC presets sharing one character-generation contract. Generator asset identifiers are placeholders until validated against the pinned Ara asset catalogue.",
+  "description": "Three adult NPC presets sharing one character-generation contract. Ara supports native UV-space tattoo designs; asset identifiers remain placeholders until the character generation pipeline is validated.",
   "characters": [
     {
       "id": "wren_talbot",
@@ -14,8 +14,16 @@
       "face_preset": "face_01",
       "hair": "braid01",
       "hair_tint": "#252b62",
-      "outfit": {"top": "fatigue_shirt", "bottom": "fatigue_pants", "shoes": "combat_boots"},
-      "appearance": {"shirt_tint": "#244b2b", "shirt_fabric": "cotton", "trouser_tint": "#29292d"},
+      "outfit": {
+        "top": "fatigue_shirt",
+        "bottom": "fatigue_pants",
+        "shoes": "combat_boots"
+      },
+      "appearance": {
+        "shirt_tint": "#244b2b",
+        "shirt_fabric": "cotton",
+        "trouser_tint": "#29292d"
+      },
       "accessories": [],
       "tattoos": []
     },
@@ -31,9 +39,19 @@
       "face_preset": "face_04",
       "hair": "short_wavy",
       "hair_tint": "#3a211b",
-      "outfit": {"top": "traveller_tunic", "bottom": "leather_trousers", "shoes": "ankle_boots"},
-      "appearance": {"shirt_tint": "#8b6843", "shirt_fabric": "linen", "trouser_tint": "#40352b"},
-      "accessories": ["earring_stud_gold"],
+      "outfit": {
+        "top": "traveller_tunic",
+        "bottom": "leather_trousers",
+        "shoes": "ankle_boots"
+      },
+      "appearance": {
+        "shirt_tint": "#8b6843",
+        "shirt_fabric": "linen",
+        "trouser_tint": "#40352b"
+      },
+      "accessories": [
+        "earring_stud_gold"
+      ],
       "tattoos": []
     },
     {
@@ -48,10 +66,22 @@
       "face_preset": "face_07",
       "hair": "cropped",
       "hair_tint": "#77716a",
-      "outfit": {"top": "guard_doublet", "bottom": "wool_breeches", "shoes": "riding_boots"},
-      "appearance": {"shirt_tint": "#39465b", "shirt_fabric": "wool", "trouser_tint": "#292b31"},
-      "accessories": ["necklace_iron"],
-      "tattoos": ["upper_arm_mark"]
+      "outfit": {
+        "top": "guard_doublet",
+        "bottom": "wool_breeches",
+        "shoes": "riding_boots"
+      },
+      "appearance": {
+        "shirt_tint": "#39465b",
+        "shirt_fabric": "wool",
+        "trouser_tint": "#292b31"
+      },
+      "accessories": [
+        "necklace_iron"
+      ],
+      "tattoos": [
+        "armband_l"
+      ]
     }
   ]
 }
