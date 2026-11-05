@@ -78,7 +78,14 @@ func _apply_surface_materials(mesh_instance: MeshInstance3D, tint: Color, slot: 
 		# Procedural meshes may have no surfaces until generated.
 		return
 	for surface in range(surface_count):
-		var source: Material = mesh_instance.get_active_material(surface)
+		var base_key := "appearance_base_material_%d" % surface
+		var source: Material
+		if mesh_instance.has_meta(base_key):
+			source = mesh_instance.get_meta(base_key) as Material
+		else:
+			source = mesh_instance.get_active_material(surface)
+			if source != null:
+				mesh_instance.set_meta(base_key, source)
 		var material := _make_tinted_material(source, tint, slot)
 		mesh_instance.set_surface_override_material(surface, material)
 
