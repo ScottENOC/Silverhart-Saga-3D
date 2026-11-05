@@ -51,3 +51,6 @@ jobs:
 
       - name: Run simulation and movement tests
         run: godot --headless --path . --script res://tests/test_simulation.gd
+
+      - name: Smoke-test the terrain prototype scene
+        run: godot --headless --path . --scene res://scenes/prototypes/terrain_elevation_prototype.tscn --quit-after 5
