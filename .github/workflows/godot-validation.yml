@@ -75,6 +75,7 @@ jobs:
           test -s artifacts/terrain-overview.png
           test -s artifacts/terrain-overhead.png
           test -s artifacts/terrain-ridge-oblique.png
+          test -s artifacts/terrain-character-grounding.png
 
       - name: Upload terrain screenshots
         if: always()
