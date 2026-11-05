@@ -4,6 +4,7 @@ const SETTINGS_PATH := "user://audio_settings.cfg"
 var _music: AudioStreamPlayer
 var _dialogue: AudioStreamPlayer
 var _ui: AudioStreamPlayer
+var _ambience: AudioStreamPlayer
 var _sfx: Array[AudioStreamPlayer] = []
 var _tween: Tween
 var _levels := {"Master": 1.0, "Music": 0.75, "Dialogue": 1.0, "SFX": 0.85, "Ambience": 0.8, "UI": 0.8}
@@ -15,6 +16,7 @@ func _ready() -> void:
     _music = _make_player("MusicPlayer", "Music")
     _dialogue = _make_player("DialoguePlayer", "Dialogue")
     _ui = _make_player("UIPlayer", "UI")
+    _ambience = _make_player("AmbiencePlayer", "Ambience")
     for i in range(8):
         _sfx.append(_make_player("SFX_%d" % i, "SFX"))
     apply_settings()
@@ -155,3 +157,33 @@ func play_campaign_dialogue(key: String) -> void:
 func play_parry() -> void:
     if current_mode == "arena" or current_mode == "campaign":
         play_sfx("res://audio/legacy/effects/parry.ogg")
+
+func play_ambience(path: String, loop := true) -> void:
+    if not ResourceLoader.exists(path): return
+    var stream := load(path) as AudioStream
+    if stream == null: return
+    _ambience.stream = stream
+    if stream is AudioStreamOggVorbis: (stream as AudioStreamOggVorbis).loop = loop
+    if stream is AudioStreamMP3: (stream as AudioStreamMP3).loop = loop
+    _ambience.play()
+
+func stop_ambience() -> void:
+    _ambience.stop()
+
+func play_3d(path: String, world_position: Vector3, bus := "SFX", max_distance := 24.0) -> void:
+    if not ResourceLoader.exists(path): return
+    var stream := load(path) as AudioStream
+    if stream == null: return
+    var player := AudioStreamPlayer3D.new()
+    player.stream = stream
+    player.bus = bus
+    player.max_distance = max_distance
+    var scene := get_tree().current_scene
+    if scene == null: return
+    scene.add_child(player)
+    player.global_position = world_position
+    player.finished.connect(player.queue_free)
+    player.play()
+
+func play_dialogue_3d(path: String, world_position: Vector3, max_distance := 18.0) -> void:
+    play_3d(path, world_position, "Dialogue", max_distance)
