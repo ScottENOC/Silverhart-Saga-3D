@@ -35,8 +35,9 @@ button:disabled{opacity:.4}
 <section><h2>Clothing · body options</h2><p class="note">Use Body · no clothing to inspect the generated adult base body. Ara removes skin under garments in clothed exports, so partial transparency can reveal gaps rather than skin.</p><div class="buttons"><button id="showClothed">Clothed</button><button id="showBody">No clothing</button><button id="showTattooBody">Tattooed body</button></div></section>
 <section><h2>Accessories · placement preview</h2>
 <div class="buttons"><button data-accessory="earrings">Earrings</button><button data-accessory="nose">Nose ring</button><button data-accessory="necklace">Necklace</button></div>
+<div class="buttons"><button data-accessory="nipple_left">Left nipple</button><button data-accessory="nipple_right">Right nipple</button><button data-accessory="clit">Clitoral hood</button></div>
 <div class="buttons"><button data-accessory="clear">Remove accessories</button></div>
-<p class="note">Accessories are preview geometry positioned relative to the model bounds. They are not yet validated against the final character rig sockets.</p>
+<p class="note">Jewellery is raycast onto the character surface, not positioned from the whole model bounds. Body piercings need the Body · no clothing preview to be visible.</p>
 </section>
 <section><h2>Save appearance</h2>
 <div class="buttons"><button id="saveAppearance">Save on this phone</button><button id="loadAppearance">Reload saved</button><button id="exportAppearance">Export JSON</button></div>
@@ -169,26 +170,76 @@ document.querySelector('#resetMaterials').onclick=()=>{
  selectMaterial();document.querySelector('#saveState').textContent='Materials reset to imported values';
 };
 function clearAccessories(){if(accessoryGroup&&model){model.remove(accessoryGroup);accessoryGroup.traverse(o=>{o.geometry?.dispose();if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose())}})}accessoryGroup=null;}
+function getSurfaceMeshes(skinOnly=false){
+ const found=[];if(!model)return found;
+ model.traverse(o=>{
+  if(!o.isMesh||!o.geometry)return;
+  const mats=Array.isArray(o.material)?o.material:[o.material];
+  if(skinOnly&&!mats.some(m=>(m?.name||'').toLowerCase().includes('skin')))return;
+  found.push(o);
+ });
+ return found;
+}
+function surfacePoint(x,y,skinOnly=false){
+ if(!model)return null;
+ model.updateMatrixWorld(true);
+ const meshes=getSurfaceMeshes(skinOnly);
+ if(!meshes.length)return null;
+ const ray=new THREE.Raycaster(new THREE.Vector3(x,y,2.5),new THREE.Vector3(0,0,-1),0,5);
+ const hits=ray.intersectObjects(meshes,false);
+ if(!hits.length)return null;
+ const hit=hits[0],point=model.worldToLocal(hit.point.clone());
+ const worldNormal=hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+ const normalEnd=model.worldToLocal(hit.point.clone().add(worldNormal));
+ const normal=normalEnd.sub(point).normalize();
+ return {point,normal};
+}
+function addHoopAt(hit,radius,material,tilt=0){
+ if(!hit)return false;
+ const o=new THREE.Mesh(new THREE.TorusGeometry(radius,radius*.19,10,32),material);
+ o.position.copy(hit.point).addScaledVector(hit.normal,.0025);
+ o.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),hit.normal);
+ if(tilt)o.rotateZ(tilt);
+ accessoryGroup.add(o);return true;
+}
 function addAccessories(kind){
  if(!model||!box)return;
  if(!accessoryGroup){accessoryGroup=new THREE.Group();accessoryGroup.name='PhoneReviewAccessories';accessoryGroup.userData.reviewAccessories=[];model.add(accessoryGroup);}
- if(!accessoryGroup.userData.reviewAccessories.includes(kind))accessoryGroup.userData.reviewAccessories.push(kind);
- const size=box.getSize(new THREE.Vector3()),centre=box.getCenter(new THREE.Vector3());
- const front=box.max.z+size.z*.006, headY=box.max.y-size.y*.105, neckY=box.max.y-size.y*.19;
+ if(accessoryGroup.userData.reviewAccessories.includes(kind))return;
  const silver=new THREE.MeshStandardMaterial({color:0xb9c2c9,metalness:.82,roughness:.24});
  const gold=new THREE.MeshStandardMaterial({color:0xc6a45b,metalness:.72,roughness:.28});
- const hoop=(x,y,z,r,t,mat)=>{const o=new THREE.Mesh(new THREE.TorusGeometry(r,t,10,32),mat);o.position.set(x,y,z);accessoryGroup.add(o);};
+ const allSurface=(x,y)=>surfacePoint(x,y,false);
+ const skinSurface=(x,y)=>surfacePoint(x,y,true);
+ let ok=true;
  if(kind==='earrings'){
-  hoop(centre.x-size.x*.13,headY,front,size.y*.014,size.y*.0028,silver);
-  hoop(centre.x+size.x*.13,headY,front,size.y*.014,size.y*.0028,silver);
+  ok=addHoopAt(allSurface(-.085,1.55),.012,silver)&&addHoopAt(allSurface(.085,1.55),.012,silver);
  }else if(kind==='nose'){
-  hoop(centre.x,headY-size.y*.065,front+size.z*.012,size.y*.009,size.y*.0022,silver);
+  ok=addHoopAt(allSurface(0,1.565),.008,silver);
  }else if(kind==='necklace'){
-  const pts=[];for(let i=0;i<=48;i++){const a=i/48*Math.PI*2;pts.push(new THREE.Vector3(centre.x+Math.cos(a)*size.x*.105,neckY+Math.cos(a)*size.y*.018,front+Math.sin(a)*size.z*.06));}
-  const curve=new THREE.CatmullRomCurve3(pts);const chain=new THREE.Mesh(new THREE.TubeGeometry(curve,64,size.y*.0025,6,false),gold);accessoryGroup.add(chain);
-  const pendant=new THREE.Mesh(new THREE.OctahedronGeometry(size.y*.012,1),gold);pendant.position.set(centre.x,neckY-size.y*.055,front+size.z*.065);accessoryGroup.add(pendant);
+  const pts=[];
+  for(let i=0;i<=36;i++){
+   const t=i/36, x=(t-.5)*.26, y=1.405-.085*(1-Math.pow((t-.5)*2,2));
+   const hit=allSurface(x,y);if(hit)pts.push(hit.point.clone().addScaledVector(hit.normal,.004));
+  }
+  if(pts.length<8)ok=false;
+  else{
+   const curve=new THREE.CatmullRomCurve3(pts);
+   accessoryGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,64,.0028,6,false),gold));
+   const pendant=pts[Math.floor(pts.length/2)].clone();
+   const p=new THREE.Mesh(new THREE.OctahedronGeometry(.012,1),gold);p.position.copy(pendant);accessoryGroup.add(p);
+  }
+ }else if(kind==='nipple_left'||kind==='nipple_right'){
+  const x=kind==='nipple_left'?.105:-.105;
+  ok=addHoopAt(skinSurface(x,1.255),.008,silver);
+ }else if(kind==='clit'){
+  ok=addHoopAt(skinSurface(0,.785),.0065,gold);
  }
- document.querySelector('#saveState').textContent='Accessory preview added · corrected to Ara body axes';
+ if(!ok){
+  document.querySelector('#saveState').textContent='Could not find exposed skin at that location. Switch to Body · no clothing and try again.';
+  return;
+ }
+ accessoryGroup.userData.reviewAccessories.push(kind);
+ document.querySelector('#saveState').textContent='Accessory placed on character surface';
 }
 document.querySelectorAll('[data-accessory]').forEach(b=>b.addEventListener('click',()=>{
  if(b.dataset.accessory==='clear'){clearAccessories();document.querySelector('#saveState').textContent='Accessory preview cleared';}
@@ -209,7 +260,7 @@ function applySnapshot(data){
   if(Number.isFinite(saved.roughness)&&'roughness' in e.material)e.material.roughness=saved.roughness;
   if(Number.isFinite(saved.metalness)&&'metalness' in e.material)e.material.metalness=saved.metalness;
  }
- clearAccessories();for(const a of (data.accessories||[])){if(['earrings','nose','necklace'].includes(a))addAccessories(a);}
+ clearAccessories();for(const a of (data.accessories||[])){if(['earrings','nose','necklace','nipple_left','nipple_right','clit'].includes(a))addAccessories(a);}
  document.querySelector('#saveState').textContent='Saved appearance restored';
 }
 document.querySelector('#saveAppearance').onclick=()=>{
