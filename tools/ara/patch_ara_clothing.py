@@ -26,12 +26,6 @@ replace_once(
 
 replace_once(
     "src/core/garments/kit.ts",
-    "  const rough = st.pattern === 'leather' ? 0.55 : st.pattern === 'techwear' ? 0.6 : 0.88;\n  return mat(g, 'NEVER');",
-    "  const rough = st.pattern === 'leather' ? 0.55 : st.pattern === 'techwear' ? 0.6 : 0.88;\n  return mat(g, 'NEVER');",
-) if False else None
-
-replace_once(
-    "src/core/garments/kit.ts",
     "  const rough = st.pattern === 'leather' ? 0.55 : st.pattern === 'techwear' ? 0.6 : 0.88;\n  return mat(name, tex, { roughness: rough, ...o });",
     "  const rough = st.pattern === 'leather' ? 0.55 : st.pattern === 'techwear' ? 0.6 : 0.88;\n  const opacity = Math.max(0, Math.min(1, st.opacity ?? 1));\n  return mat(name, tex, { roughness: rough, ...(opacity < 0.999 ? { alpha: 'blend' as const, opacity } : {}), ...o });",
 )
