@@ -143,9 +143,9 @@ def expand_lower_garments(objects, pelvis_z, body_front_y, width):
             world = obj.matrix_world @ vert.co
             if world.y > body_front_y + 0.055:
                 continue
-            if abs(world.x) > width * 0.19 or abs(world.z - pelvis_z) > 0.13:
+            if abs(world.x) > width * 0.22 or abs(world.z - pelvis_z) > 0.13:
                 continue
-            fx = (world.x / max(width * 0.12, 0.055)) ** 2
+            fx = (world.x / max(width * 0.18, 0.065)) ** 2
             fz = ((world.z - pelvis_z) / 0.115) ** 2
             falloff = max(0.0, 1.0 - fx) * max(0.0, 1.0 - fz)
             falloff = falloff * falloff
