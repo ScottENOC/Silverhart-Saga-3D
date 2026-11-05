@@ -25,6 +25,7 @@ func configure(skeleton: Skeleton3D, calibration: Dictionary) -> bool:
     if _skeleton == null:
         return false
     var all_valid := true
+    var socket_calibration: Dictionary = calibration.get("sockets", calibration)
     for socket_id in SOCKETS:
         var definition: Dictionary = SOCKETS[socket_id]
         var bone_name := str(definition.bone)
@@ -32,7 +33,7 @@ func configure(skeleton: Skeleton3D, calibration: Dictionary) -> bool:
             push_warning("Attachment socket %s references missing bone %s." % [socket_id, bone_name])
             all_valid = false
             continue
-        var socket_data: Dictionary = calibration.get(socket_id, {})
+        var socket_data: Dictionary = socket_calibration.get(socket_id, {})
         if not bool(socket_data.get("calibrated", false)):
             # Keep an explicit empty socket so equipment data can be validated
             # before final Blender calibration, but do not render guessed placement.
