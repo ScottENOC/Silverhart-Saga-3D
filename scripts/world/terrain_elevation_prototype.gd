@@ -17,9 +17,13 @@ func _ready() -> void:
     # cannot develop cracks or vertical seams.
     for key in map_data.cells:
         var hex: Vector2i = key
+        var centre := HexGrid.axial_to_world(hex, RADIUS)
+        var corner_offsets := HexGrid.corner_offsets(RADIUS)
         for corner_index in range(HexGrid.SIDE_COUNT):
-            var corner := HexGrid.corner_world_position(hex, corner_index, RADIUS)
-            map_data.set_vertex_height(hex, corner_index, _height_at(corner.x, corner.z), RADIUS)
+            var corner_offset: Vector2 = corner_offsets[corner_index]
+            var world_x := centre.x + corner_offset.x
+            var world_z := centre.z + corner_offset.y
+            map_data.set_vertex_height(hex, corner_index, _height_at(world_x, world_z), RADIUS)
 
     var terrain := TERRAIN_RENDERER.new()
     terrain.name = "ElevationPrototypeTerrain"
