@@ -11,7 +11,7 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	var appearance := CharacterAppearance.new()
 	appearance.shirt_tint = Color("#9b263d")
 	appearance.shirt_fabric = "linen"
-	appearance.accessory_ids = PackedStringArray(["earring_hoop_gold", "necklace_silver"])
+	appearance.accessory_ids = PackedStringArray(["earring_hoop_gold", "necklace_silver", "nipple_piercing_left", "nipple_piercing_right", "clitoral_hood_piercing"])
 	appearance.tattoo_ids = PackedStringArray(["forearm_bands"])
 
 	var source_material := StandardMaterial3D.new()
@@ -133,6 +133,10 @@ func _test_accessory_socket_attach_and_remove() -> void:
 	var socket := Node3D.new()
 	socket.name = "SOCKET_Earring_L"
 	character.add_child(socket)
+	for socket_name in ["SOCKET_Nipple_L", "SOCKET_Nipple_R", "SOCKET_ClitoralHood"]:
+		var piercing_socket := Node3D.new()
+		piercing_socket.name = socket_name
+		character.add_child(piercing_socket)
 
 	var accessory_root := Node3D.new()
 	accessory_root.name = "GoldHoop"
@@ -146,4 +150,10 @@ func _test_accessory_socket_attach_and_remove() -> void:
 	assert(str(attached.get_meta("accessory_id")) == "earring_hoop_gold")
 	assert(AccessoryAttachment.remove_by_id(character, "earring_hoop_gold"))
 	assert(not AccessoryAttachment.remove_by_id(character, "earring_hoop_gold"))
+	for piercing_id in ["nipple_piercing_left", "nipple_piercing_right", "clitoral_hood_piercing"]:
+		var piercing := AccessoryAttachment.attach_piercing(character, piercing_id)
+		assert(piercing != null)
+		assert(piercing.mesh is TorusMesh)
+		assert(str(piercing.get_meta("accessory_id")) == piercing_id)
+		assert(AccessoryAttachment.remove_by_id(character, piercing_id))
 	character.free()
