@@ -27,4 +27,7 @@ static func terrain_multiplier(map_data: HexMapData, destination: Vector2i, stat
 static func step_cost(map_data: HexMapData, from_hex: Vector2i, to_hex: Vector2i, state: CharacterState) -> float:
     if state == null or HexGrid.distance(from_hex, to_hex) != 1:
         return INF
-    return base_cost_for(state) * terrain_multiplier(map_data, to_hex, state)
+    var elevation_multiplier := TerrainElevationRules.movement_multiplier(map_data, from_hex, to_hex, state)
+    if is_inf(elevation_multiplier):
+        return INF
+    return base_cost_for(state) * terrain_multiplier(map_data, to_hex, state) * elevation_multiplier
