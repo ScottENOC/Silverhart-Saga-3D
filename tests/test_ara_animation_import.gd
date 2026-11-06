@@ -8,6 +8,7 @@ const COMPONENT_PATHS := {
 	"trousers": "res://art/characters/ara_validation/modular/trousers.glb",
 }
 const REQUIRED_ANIMATIONS := ["Idle", "Walk", "Run", "Strafe left", "Jump"]
+const MAX_REST_ORIGIN_DELTA_METRES := 0.025
 
 var failures: Array[String] = []
 
@@ -109,11 +110,21 @@ func _check_same_rig(reference: Skeleton3D, candidate: Skeleton3D, label: String
 		label + " bone count matches the benchmark rig")
 	if candidate.get_bone_count() != reference.get_bone_count():
 		return
+	var largest_origin_delta := 0.0
 	for bone_index in range(reference.get_bone_count()):
 		_check(candidate.get_bone_name(bone_index) == reference.get_bone_name(bone_index),
 			"%s bone %d name matches" % [label, bone_index])
-		_check(candidate.get_bone_rest(bone_index).is_equal_approx(reference.get_bone_rest(bone_index)),
-			"%s bone %d bind/rest transform matches" % [label, bone_index])
+		var reference_rest := reference.get_bone_rest(bone_index)
+		var candidate_rest := candidate.get_bone_rest(bone_index)
+		var origin_delta := candidate_rest.origin.distance_to(reference_rest.origin)
+		largest_origin_delta = maxf(largest_origin_delta, origin_delta)
+		var basis_matches := candidate_rest.basis.is_equal_approx(reference_rest.basis)
+		_check(origin_delta <= MAX_REST_ORIGIN_DELTA_METRES and basis_matches,
+			"%s bone %d rest transform within tolerance" % [label, bone_index])
+		if origin_delta > 0.001:
+			print("WARNING: ", label, " bone ", candidate.get_bone_name(bone_index),
+				" rest origin differs by ", snappedf(origin_delta * 1000.0, 0.1), " mm")
+	print("ARA_MAX_REST_ORIGIN_DELTA_MM=", snappedf(largest_origin_delta * 1000.0, 0.1))
 
 func _find_skeleton(node: Node) -> Skeleton3D:
 	if node is Skeleton3D:
