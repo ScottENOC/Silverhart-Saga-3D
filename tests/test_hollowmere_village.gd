@@ -24,6 +24,8 @@ func _test_road_network_connectivity() -> void:
         path_set[cell] = true
     assert(path_set.has(HollowmereVillageData.CROSSROADS), "The signposted crossroads must be on the road network")
     assert(path_set.has(HollowmereVillageData.BRIDGE), "The north road must include the bridge")
+    for road_end in [Vector2i(8, -40), Vector2i(8, 32), Vector2i(-40, 24), Vector2i(16, 24)]:
+        assert(path_set.has(road_end), "Each of the four crossroads roads must reach its map edge")
 
     var start := Vector2i(0, 6)
     var visited: Dictionary = {start: true}
@@ -40,6 +42,10 @@ func _test_road_network_connectivity() -> void:
     for destination in [
         HollowmereVillageData.CROSSROADS,
         HollowmereVillageData.BRIDGE,
+        Vector2i(8, -40),
+        Vector2i(8, 32),
+        Vector2i(-40, 24),
+        Vector2i(16, 24),
         Vector2i(0, 15),
         Vector2i(-11, 0),
         Vector2i(0, -10),
