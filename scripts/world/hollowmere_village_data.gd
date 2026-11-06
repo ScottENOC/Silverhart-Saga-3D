@@ -100,11 +100,14 @@ static func path_cells() -> Array[Vector2i]:
     for r in range(7, 14):
         _append_unique(cells, seen, Vector2i(0, r))
     _append_unique(cells, seen, Vector2i(0, 5))
+    _append_unique(cells, seen, Vector2i(0, 15))
     _append_unique(cells, seen, Vector2i(1, 14))
+    _append_unique(cells, seen, Vector2i(-11, 0))
     _append_unique(cells, seen, Vector2i(-10, 0))
     _append_unique(cells, seen, Vector2i(-9, 0))
+    _append_unique(cells, seen, Vector2i(10, 9))
     _append_unique(cells, seen, Vector2i(9, 9))
-    for q in range(-3, 0):
+    for q in range(-4, 0):
         _append_unique(cells, seen, Vector2i(q, 9))
     for r in range(-24, 25):
         _append_unique(cells, seen, Vector2i(CROSSROADS.x, r))
