@@ -3,8 +3,6 @@ name: iPhone preview — Hollowmere Ara build
 on:
   push:
     branches: [feature/iphone-hollowmere-ara-preview]
-  pull_request:
-    branches: [feature/opening-village]
   workflow_dispatch:
 
 permissions:
