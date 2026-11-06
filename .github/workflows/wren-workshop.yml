@@ -286,8 +286,8 @@ jobs:
             /tmp/ara-generated/ara_person_benchmark.glb "Boot shafts" \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
             /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
-            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace openwork" \
-            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace straps" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra straps" \
             /tmp/ara-generated/ara_person_benchmark.glb "Briefs" \
             /tmp/ara-generated/ara_person_tank_top.glb "Tank top" \
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
@@ -303,8 +303,8 @@ jobs:
             art/characters/ara/ara_person_body.glb art/characters/ara/ara_person_modular_underwear.glb \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
             /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
-            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace openwork" \
-            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace straps" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra straps" \
             /tmp/ara-generated/ara_person_benchmark.glb "Briefs" \
             /tmp/ara-generated/ara_person_tank_top.glb "Tank top" \
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
