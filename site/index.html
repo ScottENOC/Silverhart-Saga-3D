@@ -105,8 +105,9 @@ function renderProfileInfo(profile){
  const lines=[
   profile.name+' · '+(profile.role||'villager'),
   'Gender slider: '+Math.round((p.gender||0)*100)+'% ('+(p.gender>=.5?'man':'woman')+')',
-  'Age: '+Math.round(araAgeYears(p.age||.5))+' · Height: '+Math.round((p.height||.5)*100)+'% · Weight: '+Math.round((p.weight||.5)*100)+'% · Muscularity: '+Math.round((p.muscle||.5)*100)+'%',
-  'Eyes: '+(p.eyes||'default')+' · Hair: '+(p.hair||'default')+' · Tattoos: '+tattoos,
+  'Age: '+Math.round(araAgeYears(p.age||.5))+' · Height: '+Math.round((p.height||.5)*100)+'% · Weight: '+Math.round((p.weight||.5)*100)+'% · Muscularity: '+Math.round((p.muscle||.5)*100)+'% · Proportions: '+Math.round((p.proportions||.5)*100)+'%',
+  'Ara appearance sliders: African '+Math.round((p.african||0)*100)+'% · Asian '+Math.round((p.asian||0)*100)+'% · Caucasian '+Math.round((p.caucasian||0)*100)+'%',
+  'Eyes: '+(p.eyes||'default')+' · Hair: '+(p.hair||'default')+' · Facial hair: '+(p.facialHair||'none')+' · Tattoos: '+tattoos,
   'Clothing: '+(clothes.join(', ')||'None')+' · Accessories: '+accessories+' · Weapon: '+(p.weapon||'none'),
   'Ara export: '+(profile.detail||'medium')+' detail · '+(p.rig||'game')+' rig'
  ];
