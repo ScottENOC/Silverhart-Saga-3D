@@ -48,13 +48,16 @@ jobs:
       - name: Install Blender
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender
+          sudo apt-get install -y blender python3-numpy
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 --python-expr "import numpy; print('Blender NumPy:', numpy.__version__)"
           blender --version
       - name: Generate the rigged Wren blockout
-        run: blender --background --python tools/blender/build_wren_blockout.py
+        run: blender --background --python-exit-code 1 --python tools/blender/build_wren_blockout.py
       - name: Inspect and render the generated GLB
         run: |
-          blender --background --python tools/blender/inspect_character.py -- \
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 --python tools/blender/inspect_character.py -- \
             --input art/characters/wren/wren_blockout.glb \
             --output-dir art/characters/wren/review
       - name: Upload Blender model and multi-angle review
