@@ -87,25 +87,6 @@ jobs:
           cp /tmp/ara-wren.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren.params.json"
           test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_benchmark.glb"
 
-          # Dedicated undergarment preview: bra and briefs, without outer clothes.
-          python - <<'PY'
-          import json
-          p = json.load(open('/tmp/ara-wren.params.json'))
-          p.update({
-              "name": "Wren Talbot - Ara underwear layers",
-              "top": "none", "underTop": "bra", "underBottom": "none", "jacket": "none",
-              "bottom": "briefs", "underwear": False, "shoes": "none",
-              "weapon": "none", "carry": "none", "hat": "none"
-          })
-          json.dump(p, open('/tmp/ara-wren-underwear.params.json', 'w'), indent=2)
-          PY
-          mkdir -p /tmp/ara-underwear-out
-          npm run export -- --params /tmp/ara-wren-underwear.params.json --detail high --formats glb --out /tmp/ara-underwear-out
-          UNDERWEAR_GLB="$(find /tmp/ara-underwear-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
-          test -n "$UNDERWEAR_GLB"
-          cp "$UNDERWEAR_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_underwear.glb"
-          cp /tmp/ara-wren-underwear.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_underwear.params.json"
-
           # Ara body-only adult preview: no garments, underwear or shoes.
           python - <<'PY'
           import json
@@ -206,11 +187,8 @@ jobs:
       fail-fast: false
       matrix:
         variant:
-          - ara_wren_benchmark
-          - ara_wren_mobile
           - ara_wren_body
           - ara_wren_tattoo_body
-          - ara_wren_underwear
     steps:
       - uses: actions/checkout@v4
       - name: Download generated model
@@ -274,6 +252,10 @@ jobs:
           set -euo pipefail
           mkdir -p art/characters/ara
           cp /tmp/ara-generated/*.params.json art/characters/ara/
+          # The body and tattoo-body need Blender anatomy integration. These
+          # two previews are consumed as raw Ara exports by the Workshop.
+          cp /tmp/ara-generated/ara_wren_benchmark.glb art/characters/ara/
+          cp /tmp/ara-generated/ara_wren_mobile.glb art/characters/ara/
       - name: Collect integrated models and review renders
         uses: actions/download-artifact@v4
         with:
@@ -303,8 +285,10 @@ jobs:
             /tmp/ara-generated/ara_wren_benchmark.glb "Bra" \
             /tmp/ara-generated/ara_wren_benchmark.glb "Briefs" \
             /tmp/ara-generated/ara_wren_tank_top.glb "Tank top" \
-            /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Triangle bikini top" \
-            /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "String bikini bottom"
+            /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
+            /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Bikini strings*=Triangle bikini strings" \
+            /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
+            /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "Bikini strings*=String bikini strings"
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -325,7 +309,6 @@ jobs:
           cp art/characters/ara/ara_wren_mobile.glb site/assets/ara_wren_mobile.glb
           cp art/characters/ara/ara_wren_body.glb site/assets/ara_wren_body.glb
           cp art/characters/ara/ara_wren_tattoo_body.glb site/assets/ara_wren_tattoo_body.glb
-          cp art/characters/ara/ara_wren_underwear.glb site/assets/ara_wren_underwear.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
