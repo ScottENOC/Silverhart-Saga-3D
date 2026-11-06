@@ -57,11 +57,11 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	velocity.y -= gravity_strength * delta
-	velocity.x = walk_direction * walk_speed if walks_across_ridge else 0.0
-	velocity.z = 0.0
+	velocity.x = 0.0
+	velocity.z = walk_direction * walk_speed if walks_along_ridge else 0.0
 	move_and_slide()
 
 	if is_on_floor() and velocity.y < 0.0:
 		velocity.y = 0.0
-	if walks_across_ridge and is_on_wall():
+	if walks_along_ridge and is_on_wall():
 		walk_direction *= -1.0
