@@ -13,6 +13,8 @@ on:
       - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
+  pages: write
+  id-token: write
 concurrency:
   group: wren-workshop-${{ github.ref_name }}
   cancel-in-progress: true
@@ -425,18 +427,15 @@ jobs:
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
-      - name: Install Hugging Face CLI
-        run: |
-          curl -LsSf https://hf.co/cli/install.sh | bash
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Publish to private Hugging Face Space
+      - name: Configure GitHub Pages
         if: github.ref_name == 'dev'
-        env:
-          HF_TOKEN: ${{ secrets.HF_ADMIN_TOKEN }}
-        run: |
-          set -euo pipefail
-          test -n "${{ vars.HF_SPACE_ID }}"
-          test -n "$HF_TOKEN"
-          # Use the repository's Hugging Face Write token directly. No OIDC exchange.
-          hf auth whoami
-          hf upload "${{ vars.HF_SPACE_ID }}" site . --repo-type space --commit-message "Wren Workshop build ${GITHUB_SHA::7}"
+        uses: actions/configure-pages@v5
+      - name: Upload Wren Workshop site
+        if: github.ref_name == 'dev'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy Wren Workshop to GitHub Pages
+        if: github.ref_name == 'dev'
+        id: deployment
+        uses: actions/deploy-pages@v4
