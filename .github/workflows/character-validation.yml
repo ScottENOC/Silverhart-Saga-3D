@@ -1,5 +1,9 @@
 name: Godot and Blender validation
 
+concurrency:
+  group: character-validation-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches: [dev]
