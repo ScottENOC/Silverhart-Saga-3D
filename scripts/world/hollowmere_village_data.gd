@@ -47,6 +47,8 @@ static func terrain_id_at(hex: Vector2i) -> String:
     return "grass"
 
 static func is_path(hex: Vector2i) -> bool:
+    if hex == BRIDGE:
+        return true
     # Maintained ring road around the Hollow Tankard.
     if hex.y == -6 and hex.x >= -8 and hex.x <= 8:
         return true
@@ -106,6 +108,7 @@ static func path_cells() -> Array[Vector2i]:
         _append_unique(cells, seen, Vector2i(q, 9))
     for r in range(-24, 25):
         _append_unique(cells, seen, Vector2i(CROSSROADS.x, r))
+    _append_unique(cells, seen, BRIDGE)
     for q in range(-25, 17):
         _append_unique(cells, seen, Vector2i(q, CROSSROADS.y))
     return cells
