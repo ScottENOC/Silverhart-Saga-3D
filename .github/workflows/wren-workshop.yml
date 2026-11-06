@@ -1,6 +1,5 @@
 name: Build Wren Workshop
 # Modular equipment export pipeline: keep garment primitives compact and rig-compatible.
-# Re-run after configuring the HF_ADMIN_TOKEN repository secret.
 on:
   workflow_dispatch:
   push:
@@ -411,7 +410,7 @@ jobs:
             art/characters/ara/review/**
           if-no-files-found: error
           retention-days: 14
-      - name: Assemble private viewer site
+      - name: Assemble Wren Workshop site
         run: |
           set -euo pipefail
           mkdir -p site/assets
