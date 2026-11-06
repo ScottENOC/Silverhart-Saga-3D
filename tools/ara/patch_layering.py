@@ -153,7 +153,7 @@ edit("src/core/garments/catalog.ts", [
       }, m, false);
       const knee = b.joint('lowerleg01.L____head')[1];
       const top = torsoY(b, 0.22);
-      const hem = b.L.hipY - (b.L.hipY - knee) * 0.78;
+      const hem = b.L.hipY - (b.L.hipY - knee) * 1.12;
       const panel = skirt(b, top, hem, cm(1.5), 0.045,
         [Math.PI / 2 + 0.22, Math.PI * 2 + Math.PI / 2 - 0.22], 40);
       return [
