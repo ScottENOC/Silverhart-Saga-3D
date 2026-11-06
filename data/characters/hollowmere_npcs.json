@@ -175,7 +175,7 @@
         "underwear": false,
         "shoes": "sandals",
         "hat": "none",
-        "weapon": "none",
+        "weapon": "knife",
         "carry": "none",
         "accessories": [
           "bead_necklace"
@@ -571,7 +571,7 @@
         "underwear": false,
         "shoes": "sandals",
         "hat": "none",
-        "weapon": "knife",
+        "weapon": "none",
         "carry": "none",
         "accessories": [
           "bead_necklace"
