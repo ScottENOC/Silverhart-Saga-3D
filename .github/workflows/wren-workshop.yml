@@ -227,11 +227,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          blender --background --python-expr "import numpy; print('Blender NumPy:', numpy.__version__)"
+          blender --background --python-exit-code 1 --python-expr "import numpy; print('Blender NumPy:', numpy.__version__)"
           ARA_INPUT="/tmp/ara-generated/${VARIANT}.glb" \
             ARA_OUTPUT="/tmp/${VARIANT}_anatomy.glb" \
             ARA_PROFILE=female ARA_ADULT=1 \
-            blender --background --python tools/blender/add_adult_anatomy.py
+            blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py
           mkdir -p art/characters/ara
           mv "/tmp/${VARIANT}_anatomy.glb" "art/characters/ara/${VARIANT}.glb"
           test -s "art/characters/ara/${VARIANT}.glb"
@@ -239,12 +239,14 @@ jobs:
             mkdir -p art/characters/ara/review/body
             REVIEW_INPUT="art/characters/ara/${VARIANT}.glb" \
               REVIEW_OUTPUT_DIR=art/characters/ara/review/body \
-              blender --background --python tools/blender/inspect_character.py
+              blender --background --python-exit-code 1 --python tools/blender/inspect_character.py
+            for view in front side rear three_quarter; do test -s "art/characters/ara/review/body/$view.png"; done
           elif [ "${VARIANT}" = "ara_wren_benchmark" ]; then
             mkdir -p art/characters/ara/review/clothed
             REVIEW_INPUT="art/characters/ara/${VARIANT}.glb" \
               REVIEW_OUTPUT_DIR=art/characters/ara/review/clothed \
-              blender --background --python tools/blender/inspect_character.py
+              blender --background --python-exit-code 1 --python tools/blender/inspect_character.py
+            for view in front side rear three_quarter; do test -s "art/characters/ara/review/clothed/$view.png"; done
           fi
       - name: Save integrated model and review renders
         uses: actions/upload-artifact@v4
