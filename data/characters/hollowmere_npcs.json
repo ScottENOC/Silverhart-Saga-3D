@@ -268,8 +268,8 @@
       "name": "Wick Hallow",
       "role": "general store keeper",
       "hex": [
-        1,
-        14
+        0,
+        15
       ],
       "detail": "medium",
       "params": {
