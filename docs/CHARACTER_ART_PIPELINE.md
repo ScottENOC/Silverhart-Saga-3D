@@ -2,11 +2,11 @@
 
 ## Goal
 
-Build a reusable 3D character system for Silverhart Saga 3D. The first character is Wren Talbot from Campaign 2's Hollow Tankard opening, but the result must be reusable for the player, companions and NPCs.
+Build a reusable 3D character system for Silverhart Saga 3D. The first milestone is to finish one complete, generic human character using Ara as the base. This is a pipeline and quality benchmark, not Wren Talbot's model. The result must be repeatable so it can support the player, companions and a large NPC cast.
 
 The intended presentation is realistic fantasy RPG, with artistic restraint rather than photorealism, and the visual equipment flexibility of a modern party RPG. The body is not a baked outfit; changing equipped items changes the visible 3D model.
 
-The first production-quality benchmark is Wren Talbot: a slim, lightly athletic adult woman, natural approachable face, distinctive dark-blue braid, dark-green shirt with pink-red trim, charcoal trousers and a sword. The benchmark must be assessed at normal game camera distance and close inspection distance.
+The first Ara person must prove that the base body, face, hair, rig, materials, clothing layers and export/import path work together. Keep its appearance deliberately generic rather than baking in Wren's dark-blue braid, signature outfit palette, sword or character-specific proportions. Once this generic person is complete and the production pipeline is repeatable, create Wren as a distinct character preset/model and assess her against the original game's references.
 
 ## Toolchain
 
