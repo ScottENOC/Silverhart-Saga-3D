@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Evaluate Ara 3D Gen as the primary reusable human-character authoring system before investing further in bespoke procedural anatomy. This is a time-boxed technical and visual evaluation, not an adoption decision.
+Evaluate Ara 3D Gen as the primary reusable human-character authoring system. The first milestone is one complete generic person generated from Ara, followed by repeatable creation of distinct people. This is a time-boxed technical and visual evaluation, not an adoption decision.
 
 Upstream: https://github.com/olatunde85/3d-gen  
 Documentation: https://ara3dgen.com/docs  
@@ -33,12 +33,12 @@ Ara is a young project with a small public contributor base. Treat feature claim
 
 1. Pin an upstream commit; record package and asset licences.
 2. Build the upstream project and run its own automated checks (npm test, npm run test:gltf, and npm run test:ui where CI resources permit).
-3. Generate an adult female benchmark with a saved parameter file. Match Wren's slim athletic proportions, dark blue braid, green/pink shirt palette, charcoal trousers and sword as closely as the available assets permit.
+3. Generate one generic adult person with a saved parameter file. Do not use Wren's name, distinctive appearance, signature colours, weapon or character-specific proportions in this baseline.
 4. Export a high-detail rigged GLB with facial shapes and a small animation selection.
 5. Inspect the exported GLB in the existing private phone viewer, then import it into Godot 4.7.2.
 6. Test skeleton names/retargeting, scale and axes, material/texture import, facial blend shapes, weapon socket orientation, hand grip, and at least idle/walk/sit/combat clips.
 7. Test body morphs against clothing fit, clipping, skin hiding, garment swapping and whether hair/clothes can be independently replaced.
-8. Generate at least three visibly distinct NPCs from saved parameter files and confirm deterministic rebuilds.
+8. After the generic person passes, generate at least three visibly distinct people from saved parameter files and confirm deterministic rebuilds. Wren is a later, separate character preset.
 
 ## Acceptance gates
 
