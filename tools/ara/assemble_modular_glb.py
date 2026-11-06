@@ -64,8 +64,24 @@ def add(target,buf,source_path,selector):
     if set(tj)!=set(sj): raise ValueError(f'Skeleton bones differ in {source_path}')
     joint_map=[tj.index(name) for name in sj]
     tn=body_node(target); sn=body_node(src)
+    target_mesh=target['meshes'][tn['mesh']]
+    source_mesh=src['meshes'][sn['mesh']]
     for k in ('translation','rotation','scale','matrix'):
         if tn.get(k)!=sn.get(k): raise ValueError(f'Rigged mesh {k} mismatch in {source_path}')
+
+    # Garment primitives must carry the same morph-target contract as the body.
+    # Ara exports facial blend shapes on every skinned primitive. Leaving the
+    # source target accessor indices untouched makes them point at unrelated
+    # accessors in the destination GLB (often scalar indices), which Blender
+    # then rejects while importing the assembled character.
+    target_names=target_mesh.get('extras',{}).get('targetNames')
+    source_names=source_mesh.get('extras',{}).get('targetNames')
+    target_count=len(target_mesh.get('weights', target_names or []))
+    source_count=len(source_mesh.get('weights', source_names or []))
+    if source_count != target_count:
+        raise ValueError(f'Morph target count differs in {source_path}: source={source_count}, target={target_count}')
+    if target_names is not None and source_names is not None and source_names != target_names:
+        raise ValueError(f'Morph target names differ in {source_path}')
     target_name=None
     if '=' in selector: selector,target_name=selector.split('=',1)
     if selector.endswith('*'):
@@ -96,6 +112,22 @@ def add(target,buf,source_path,selector):
     ia2=copy.deepcopy(ia); ia2['bufferView']=ivi; ia2.pop('byteOffset',None); ia2['min']=[min(new_indices)]; ia2['max']=[max(new_indices)]
     new_ia=len(target.setdefault('accessors',[])); target['accessors'].append(ia2)
     p['attributes']={k:amap[v] for k,v in p.get('attributes',{}).items()}; p['indices']=new_ia
+
+    # Copy and compact every morph-target attribute using the same vertex subset
+    # as the garment primitive. Accessor indices are document-local: they must
+    # never be copied verbatim from the source GLB into the destination GLB.
+    source_targets=p.get('targets', [])
+    if len(source_targets) != target_count:
+        raise ValueError(f'{selector}: expected {target_count} morph targets, found {len(source_targets)}')
+    remapped_targets=[]
+    for target_attrs in source_targets:
+        remapped={}
+        for attr,old_ai in target_attrs.items():
+            target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
+            remapped[attr]=new_ai
+        remapped_targets.append(remapped)
+    if source_targets:
+        p['targets']=remapped_targets
 
     # Reuse a previously appended material for other primitives that form the
     # same garment (e.g. bikini cups plus several cord sections).
@@ -144,9 +176,30 @@ def add(target,buf,source_path,selector):
     print('Added',selector,'(',len(vertices),'vertices ) from',Path(source_path).name)
     return target,buf
 
+def validate_morph_targets(doc):
+    """Reject stale or structurally incompatible morph-target accessors."""
+    for mesh in doc.get('meshes', []):
+        expected=len(mesh.get('weights', mesh.get('extras', {}).get('targetNames', [])))
+        for primitive_index,primitive in enumerate(mesh.get('primitives', [])):
+            targets=primitive.get('targets', [])
+            if len(targets) != expected:
+                raise ValueError(f"{mesh.get('name', '<unnamed>')} primitive {primitive_index}: expected {expected} morph targets, found {len(targets)}")
+            position=primitive.get('attributes', {}).get('POSITION')
+            vertex_count=doc['accessors'][position]['count'] if position is not None else None
+            for target_index,target in enumerate(targets):
+                for semantic,accessor_index in target.items():
+                    accessor=doc['accessors'][accessor_index]
+                    if accessor['count'] != vertex_count:
+                        raise ValueError(f"Morph target {target_index} {semantic} has {accessor['count']} vertices; expected {vertex_count}")
+                    if semantic in ('POSITION','NORMAL','TANGENT') and accessor['type'] != 'VEC3':
+                        raise ValueError(f"Morph target {target_index} {semantic} must be VEC3, got {accessor['type']}")
+
+
 if __name__=='__main__':
     if len(sys.argv)<3 or (len(sys.argv)-3)%2: raise SystemExit('usage: script BODY.glb OUT.glb SOURCE.glb MATERIAL [SOURCE MATERIAL]...')
     d,b=read(sys.argv[1]); b=b[:d['buffers'][0]['byteLength']]
     for i in range(3,len(sys.argv),2): d,b=add(d,b,sys.argv[i],sys.argv[i+1])
-    write(sys.argv[2],d,b); check,_=read(sys.argv[2]); n=body_node(check)
-    print(f'Wrote {sys.argv[2]} ({Path(sys.argv[2]).stat().st_size:,} bytes), {len(check["meshes"][n["mesh"]]["primitives"])} skinned primitives')
+    validate_morph_targets(d)
+    write(sys.argv[2],d,b)
+    check,_=read(sys.argv[2]); validate_morph_targets(check); n=body_node(check)
+    print(f"Wrote {sys.argv[2]} ({Path(sys.argv[2]).stat().st_size:,} bytes), {len(check['meshes'][n['mesh']]['primitives'])} skinned primitives')
