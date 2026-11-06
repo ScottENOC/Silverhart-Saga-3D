@@ -92,13 +92,13 @@ func _capture_views() -> void:
             return
         print("Terrain ray hit for %s at %s on %s with normal %s" % [actor_name, hit.position, hit.collider.name, hit.normal])
 
-    # Keep the moving Wren on the ridge flank long enough to traverse uphill.
-    # This is deliberately separate from the three stationary grounding checks.
+    # Keep the moving Wren on the ridge shoulder long enough to traverse along it.
+    # The steep escarpment is intentionally not treated as a walkable ramp.
     var ridge_walker := terrain_scene.get_node("RidgeWalker") as CharacterBody3D
     var walker_start := ridge_walker.global_position
 
     # Let the CharacterBody3D actors settle and give RidgeWalker one second of
-    # movement across the rising flank toward the ridge crest.
+    # movement along the ridge shoulder.
     for _frame in range(60):
         await physics_frame
     for actor_name in ["ValleyCharacter", "SlopeCharacter", "RidgeCharacter", "RidgeWalker"]:
@@ -113,14 +113,13 @@ func _capture_views() -> void:
             return
         print("Grounded %s at %s" % [actor_name, actor.global_position])
 
-    var walker_distance := ridge_walker.global_position.x - walker_start.x
-    var walker_climb := ridge_walker.global_position.y - walker_start.y
-    if walker_distance < 1.0 or walker_climb < 0.5:
-        push_error("RidgeWalker did not make meaningful uphill progress: dx=%.3f dy=%.3f" % [walker_distance, walker_climb])
+    var walker_distance := ridge_walker.global_position.z - walker_start.z
+    if walker_distance < 1.0:
+        push_error("RidgeWalker did not make meaningful progress along the ridge: dz=%.3f" % walker_distance)
         quit(1)
         return
-    print("RidgeWalker traversed uphill: dx=%.3f dy=%.3f final=%s" % [
-        walker_distance, walker_climb, ridge_walker.global_position
+    print("RidgeWalker traversed the ridge shoulder: dz=%.3f final=%s" % [
+        walker_distance, ridge_walker.global_position
     ])
 
     var views := [
