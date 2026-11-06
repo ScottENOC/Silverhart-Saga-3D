@@ -10,6 +10,11 @@ on:
       - "tools/ara/**"
       - "site/**"
       - "docs/CHARACTER_PIPELINE.md"
+      - "project.godot"
+      - "export_presets.cfg"
+      - "scenes/**"
+      - "scripts/**"
+      - "data/**"
       - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
@@ -314,6 +319,25 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Install Godot 4.7.2 with Web export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+      - name: Export Silverhart Saga for the web
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --version
+          godot --headless --editor --path . --quit
+          mkdir -p site/game
+          godot --headless --path . --export-release "Web" site/game/index.html
+          test -s site/game/index.html
+          find site/game -maxdepth 1 -type f -name '*.wasm' -print -quit | grep -q .
+          find site/game -maxdepth 1 -type f -name '*.pck' -print -quit | grep -q .
+          printf '%s\\n' "${GITHUB_SHA}" > site/game/build-version.txt
+          echo "Godot Web export verified."
       - name: Download generated parameter files
         uses: actions/download-artifact@v4
         with:
