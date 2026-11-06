@@ -195,16 +195,24 @@ func _create_signpost() -> void:
     post.position = centre + Vector3(0.0, 1.3, 0.0)
     post.material_override = timber_material
     add_child(post)
-    _add_box(self, "SignboardNorth", centre + Vector3(0.0, 2.0, -0.05), Vector3(2.4, 0.42, 0.14), dark_wood_material)
-    _add_box(self, "SignboardEast", centre + Vector3(0.0, 1.45, -0.05), Vector3(2.0, 0.38, 0.14), dark_wood_material)
-    var label := Label3D.new()
-    label.text = "MILLBROOK  ·  SILVERHART"
-    label.position = centre + Vector3(0.0, 2.0, -0.14)
-    label.font_size = 25
-    label.pixel_size = 0.005
-    label.modulate = Color(0.91, 0.82, 0.63)
-    label.outline_size = 4
-    add_child(label)
+    _add_box(self, "SignboardNorth", centre + Vector3(0.0, 2.0, -0.05), Vector3(4.2, 0.78, 0.14), dark_wood_material)
+    _add_box(self, "SignboardSouth", centre + Vector3(0.0, 1.05, -0.05), Vector3(4.2, 0.78, 0.14), dark_wood_material)
+    var north_south_label := Label3D.new()
+    north_south_label.text = "N  MILLBROOK  /  SILVERHART\nS  OLD MAC'S FARMSTEAD"
+    north_south_label.position = centre + Vector3(0.0, 2.0, -0.14)
+    north_south_label.font_size = 17
+    north_south_label.pixel_size = 0.004
+    north_south_label.modulate = Color(0.91, 0.82, 0.63)
+    north_south_label.outline_size = 4
+    add_child(north_south_label)
+    var east_west_label := Label3D.new()
+    east_west_label.text = "E  REDDALE  /  W  EMBERLODE"
+    east_west_label.position = centre + Vector3(0.0, 1.05, -0.14)
+    east_west_label.font_size = 17
+    east_west_label.pixel_size = 0.004
+    east_west_label.modulate = Color(0.91, 0.82, 0.63)
+    east_west_label.outline_size = 4
+    add_child(east_west_label)
 
 func _create_forest() -> void:
     var trunk_mesh := CylinderMesh.new()
