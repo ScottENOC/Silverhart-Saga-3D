@@ -2,7 +2,7 @@ name: Review Wren modular garments (latest build)
 
 on:
   push:
-    branches: [feature/wren-anatomy-piercings-halter-fit]
+    branches: [integration/wren-modular-clothing]
     paths:
       - ".github/workflows/wren-modular-review.yml"
       - ".github/workflows/wren-workshop.yml"
