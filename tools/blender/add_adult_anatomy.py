@@ -278,7 +278,7 @@ def expand_lower_garments(objects, pelvis_z, body_front_y, width):
         if obj.type != "MESH":
             continue
         label = material_name(obj)
-        is_briefs = "brief" in label or "underwear" in label
+        is_briefs = "brief" in label or "underwear" in label or "bikini string" in label
         is_trousers = any(k in label for k in ("pants", "trouser", "bottom", "breech"))
         if not (is_briefs or is_trousers):
             continue
