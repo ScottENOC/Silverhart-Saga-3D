@@ -76,15 +76,23 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/art/characters/ara-male"
           cp "$INPUT" "$GITHUB_WORKSPACE/art/characters/ara-male/ara_male_raw.glb"
           cp /tmp/ara-male.params.json "$GITHUB_WORKSPACE/art/characters/ara-male/ara_male.params.json"
-      - name: Install Blender
+      - name: Install portable Blender
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          set -euo pipefail
+          BLENDER_VERSION="4.2.3"
+          BLENDER_ARCHIVE="/tmp/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          curl --fail --location --retry 3 --retry-delay 2 \
+            "https://download.blender.org/release/Blender4.2/blender-${BLENDER_VERSION}-linux-x64.tar.xz" \
+            --output "$BLENDER_ARCHIVE"
+          mkdir -p "$RUNNER_TEMP/blender"
+          tar -xJf "$BLENDER_ARCHIVE" --strip-components=1 -C "$RUNNER_TEMP/blender"
+          echo "$RUNNER_TEMP/blender" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/blender/blender" --version
       - name: Build skinned anatomy and review renders
         shell: bash
         run: |
           set -euo pipefail
-          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           export EGL_PLATFORM=surfaceless
           export LIBGL_ALWAYS_SOFTWARE=1
           blender --background --python-exit-code 1 --python tools/blender/add_male_anatomy.py -- \
