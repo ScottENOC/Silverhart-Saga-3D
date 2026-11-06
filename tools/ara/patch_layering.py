@@ -19,20 +19,20 @@ def edit(path, replacements):
 
 
 edit("src/core/params.ts", [
-    ("  top: string;\n  /** Procedural jacket", "  top: string;\n  /** Optional base layer worn beneath the main top (e.g. a bra). */\n  underTop: string;\n  /** Procedural jacket"),
-    ("  top: 'none',\n  jacket: 'none',", "  top: 'none',\n  underTop: 'none',\n  jacket: 'none',"),
-    ("'outfit', 'top', 'jacket', 'bottom', 'shoes'", "'outfit', 'top', 'underTop', 'jacket', 'bottom', 'shoes'"),
+    ("  top: string;\n  /** Procedural jacket", "  top: string;\n  /** Optional base layer worn beneath the main top (e.g. a bra). */\n  underTop: string;\n  /** Optional lower underwear layer (e.g. briefs or string bikini bottom). */\n  underBottom: string;\n  /** Procedural jacket"),
+    ("  top: 'none',\n  jacket: 'none',", "  top: 'none',\n  underTop: 'none',\n  underBottom: 'none',\n  jacket: 'none',"),
+    ("'outfit', 'top', 'jacket', 'bottom', 'shoes'", "'outfit', 'top', 'underTop', 'underBottom', 'jacket', 'bottom', 'shoes'"),
 ])
 
 edit("src/core/garments/index.ts", [
     ("import type { FittedOutfit } from './kit';", "import { briefsUnder, type FittedOutfit } from './kit';"),
-    ("export interface Dressing {\n  top?: string;", "export interface Dressing {\n  top?: string;\n  underTop?: string;"),
-    ("  let top = pieces && topId !== 'none' && garmentById.has(topId) ? topId : undefined;", "  let top = pieces && topId !== 'none' && garmentById.has(topId) ? topId : undefined;\n  const underTop = pieces && p.underTop !== 'none' && garmentById.get(p.underTop)?.slot === 'top' ? p.underTop : undefined;"),
-    ("    top,\n    jacket,", "    top,\n    underTop,\n    jacket,"),
-    ("[d.top, d.jacket, d.bottom, ...d.accessories]", "[d.underTop, d.top, d.jacket, d.bottom, ...d.accessories]"),
-    ("if (!d.top && !d.jacket && !d.bottom && !d.accessories.length && !d.footwear)", "if (!d.top && !d.underTop && !d.jacket && !d.bottom && !d.accessories.length && !d.footwear)"),
-    ("layered: { top: !!d.top, bottom: !!d.bottom && d.bottom !== 'briefs' },\n    underwear: d.underwear,", "layered: { top: !!d.top || !!d.underTop, bottom: !!d.bottom && d.bottom !== 'briefs' },\n    // Briefs are added once below, independently of the selected outer bottoms.\n    underwear: false,"),
-    ("for (const id of [d.bottom, d.top, d.jacket, ...d.accessories]) dress(id);", "for (const id of [d.bottom, d.underTop, d.top, d.jacket, ...d.accessories]) dress(id);\n  if (d.underwear && d.bottom && d.bottom !== 'briefs') parts.push(...briefsUnder({ ...g, underwear: true }));"),
+    ("export interface Dressing {\n  top?: string;", "export interface Dressing {\n  top?: string;\n  underTop?: string;\n  underBottom?: string;"),
+    ("  let top = pieces && topId !== 'none' && garmentById.has(topId) ? topId : undefined;", "  let top = pieces && topId !== 'none' && garmentById.has(topId) ? topId : undefined;\n  const underTop = pieces && p.underTop !== 'none' && garmentById.get(p.underTop)?.slot === 'top' ? p.underTop : undefined;\n  const underBottom = pieces && p.underBottom !== 'none' && garmentById.get(p.underBottom)?.slot === 'bottom' ? p.underBottom : undefined;"),
+    ("    top,\n    jacket,", "    top,\n    underTop,\n    underBottom,\n    jacket,"),
+    ("[d.top, d.jacket, d.bottom, ...d.accessories]", "[d.underBottom, d.bottom, d.underTop, d.top, d.jacket, ...d.accessories]"),
+    ("if (!d.top && !d.jacket && !d.bottom && !d.accessories.length && !d.footwear)", "if (!d.top && !d.underTop && !d.underBottom && !d.jacket && !d.bottom && !d.accessories.length && !d.footwear)"),
+    ("layered: { top: !!d.top, bottom: !!d.bottom && d.bottom !== 'briefs' },\n    underwear: d.underwear,", "layered: { top: !!d.top || !!d.underTop, bottom: (!!d.bottom && d.bottom !== 'briefs') || !!d.underBottom },\n    // Briefs are added once below, independently of the selected outer bottoms.\n    underwear: false,"),
+    ("for (const id of [d.bottom, d.top, d.jacket, ...d.accessories]) dress(id);", "for (const id of [d.bottom, d.underTop, d.top, d.jacket, ...d.accessories]) dress(id);\n  if (d.underwear && !d.underBottom && d.bottom && d.bottom !== 'briefs') parts.push(...briefsUnder({ ...g, underwear: true }));"),
 ])
 
 edit("src/core/garments/catalog.ts", [

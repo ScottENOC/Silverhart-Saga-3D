@@ -22,7 +22,7 @@ button:disabled{opacity:.4}
 <header><strong>WREN WORKSHOP</strong><span>Silverhart Saga 3D · model preview</span></header>
 <main><div id="stage"><div id="status">Loading model…</div><div id="hint">Drag to orbit · Pinch or scroll to zoom · Two-finger drag to pan</div></div>
 <aside>
-<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara">Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option><option value="body">Body · no clothing</option><option value="tattoo-body">Body · tattoos</option><option value="underwear">Underwear · bra and briefs</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
+<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara" selected>Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option><option value="body">Body · no clothing</option><option value="tattoo-body">Body · tattoos</option><option value="underwear">Underwear · bra and briefs</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
 <section><h2>Camera</h2><div class="buttons"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="three">3/4</button><button id="home">Reset</button></div><div class="row"><span>Auto rotate</span><input id="autorotate" type="checkbox"></div></section>
 <section><h2>Lighting</h2><div class="row"><span>Key light</span><input id="keylight" type="range" min="0" max="5" step=".1" value="3"></div><div class="row"><span>Fill light</span><input id="filllight" type="range" min="0" max="4" step=".1" value="1.4"></div><div class="row"><span>Light direction</span><input id="lightangle" type="range" min="0" max="360" value="35"></div></section>
 <section><h2>Appearance · material inspector</h2>
@@ -33,6 +33,11 @@ button:disabled{opacity:.4}
 <p class="note">Choose a garment material by name to dye it, change its finish, hide it or adjust opacity. Bra and Briefs are separate under-layers beneath the outer shirt and trousers.</p>
 </section>
 <section><h2>Clothing · body options</h2><p class="note">Use Body · no clothing to inspect the generated adult base body and its new external anatomy. The full clothed model has a locally expanded trouser/briefs area to make room for the anatomy.</p><div class="buttons"><button id="showClothed">Clothed</button><button id="showBody">No clothing</button><button id="showTattooBody">Tattooed body</button><button id="showUnderwear">Underwear</button></div></section>
+<section id="equipmentSection"><h2>Equipment slots</h2>
+<div class="row"><span>Lower underwear</span><select id="equipmentLower"><option value="empty">Empty</option><option value="briefs" selected>Briefs</option><option value="string">String bikini bottom</option></select></div>
+<div class="row"><span>Upper underwear</span><select id="equipmentUpper"><option value="empty">Empty</option><option value="bra" selected>Bra</option><option value="triangle">Triangle bikini top</option></select></div>
+<div class="row"><span>Shirt</span><select id="equipmentShirt"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue shirt</option><option value="tank">Tank top</option></select></div>
+<p class="note" id="equipmentStatus">Each slot is independent. Empty removes that layer without removing the body.</p></section>
 <section><h2>Accessories · placement preview</h2>
 <div class="buttons"><button data-accessory="earrings">Earrings</button><button data-accessory="nose">Nose ring</button><button data-accessory="necklace">Necklace</button></div>
 <div class="buttons"><button data-accessory="nipple_left">Left nipple piercing</button><button data-accessory="nipple_right">Right nipple piercing</button><button data-accessory="clit">Clitoral hood piercing</button></div>
@@ -89,9 +94,9 @@ function disposeModel(root){
 }
 function loadModel(mode){
  const generation=++loadGeneration;
- const files={'ara-mobile':'ara_wren_mobile.glb','body':'ara_wren_body.glb','tattoo-body':'ara_wren_tattoo_body.glb','underwear':'ara_wren_underwear.glb'};
+ const files={'ara':'ara_wren_modular.glb','ara-mobile':'ara_wren_mobile.glb','body':'ara_wren_body.glb','tattoo-body':'ara_wren_tattoo_body.glb','underwear':'ara_wren_underwear.glb'};
  const file=files[mode]||'ara_wren_benchmark.glb';
- const labels={'ara-mobile':'Ara mobile preview','body':'Ara body · no clothing','tattoo-body':'Ara tattooed body','underwear':'Ara underwear · bra and briefs'};
+ const labels={'ara':'Ara · modular equipment','ara-mobile':'Ara mobile preview','body':'Ara body · no clothing','tattoo-body':'Ara tattooed body','underwear':'Ara underwear · bra and briefs'};
  const label=labels[mode]||'Ara high-detail benchmark';
  const modelUrl=new URL('./assets/'+file+'?v='+encodeURIComponent(buildVersion),window.location.href).href;
  if(model){scene.remove(model);disposeModel(model);model=null;box=null}
@@ -100,7 +105,7 @@ function loadModel(mode){
  new GLTFLoader().load(modelUrl,g=>{
   if(generation!==loadGeneration){disposeModel(g.scene);return}
   model=g.scene;scene.add(model);box=new THREE.Box3().setFromObject(model);frame('three');status.textContent=label+' loaded';
-  if(['full','ara','ara-mobile'].includes(mode))loadBodyUnderlay(generation);
+  if(['full','ara-mobile'].includes(mode))loadBodyUnderlay(generation);
  },x=>{if(generation===loadGeneration){if(x.total)status.textContent='Loading model · '+Math.round(x.loaded/x.total*100)+'%';else status.textContent='Downloading model…'}},async e=>{
   if(generation!==loadGeneration)return;
   console.error('Wren GLB load error:',e);status.textContent='Model failed to load';let detail=e?.message||String(e);
@@ -149,6 +154,17 @@ function updateBodyUnderlay(){
 // preserving a clean copy so repeated changes do not compound.
 let originalMaterials=new Map(), accessoryGroup=null, selectedMaterial=null;
 const materialSelect=document.querySelector('#materialSelect');
+const equipmentState={lower:'briefs',upper:'bra',shirt:'fatigue'};
+const equipmentGroups={lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom']},upper:{empty:[],bra:['Bra'],triangle:['Triangle bikini top']},shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top']}};
+function applyEquipment(){
+ const section=document.querySelector('#equipmentSection');
+ if(section)section.hidden=document.querySelector('#modelmode').value!=='ara';
+ if(!model||document.querySelector('#modelmode').value!=='ara')return;
+ const byName=new Map([...originalMaterials.values()].map(e=>[e.material.name,e]));const missing=[];
+ for(const [slot,options] of Object.entries(equipmentGroups)){const chosen=options[equipmentState[slot]]||[];for(const names of Object.values(options))for(const name of names){const entry=byName.get(name);if(!entry){if(chosen.includes(name))missing.push(name);continue;}entry.meshes.forEach(item=>item.mesh.visible=chosen.includes(name));}}
+ document.querySelector('#equipmentStatus').textContent=missing.length?'Missing garment asset(s): '+missing.join(', '):'Each slot is independent. Empty removes that layer without removing the body.';
+}
+for(const [slot,id] of [['lower','equipmentLower'],['upper','equipmentUpper'],['shirt','equipmentShirt']])document.querySelector('#'+id).addEventListener('change',e=>{equipmentState[slot]=e.target.value;applyEquipment();document.querySelector('#saveState').textContent='Equipment changed · not saved';});
 function collectMaterials(){
  originalMaterials.clear(); const found=new Map();
  if(!model)return;
@@ -168,6 +184,7 @@ function collectMaterials(){
  });
  if(materialSelect.options.length){materialSelect.value=materialSelect.options[0].value;selectMaterial();}
  else materialSelect.innerHTML='<option value="">No editable materials found</option>';
+ applyEquipment();
 }
 function selectMaterial(){
  selectedMaterial=originalMaterials.get(materialSelect.value);
@@ -327,13 +344,14 @@ document.querySelectorAll('[data-accessory]').forEach(b=>b.addEventListener('cli
 }));
 function appearanceSnapshot(){
  const materials={};for(const [key,e] of originalMaterials){materials[e.material.name||key]={color:e.material.color?'#'+e.material.color.getHexString():null,roughness:e.material.roughness??null,metalness:e.material.metalness??null,opacity:e.material.userData.previewOpacity??e.material.opacity??1,visible:e.material.userData.previewVisible!==false};}
- return {schema_version:1,model:document.querySelector('#modelmode').value,fabric:document.querySelector('#fabricPreset').value,materials,accessories:accessoryGroup?(accessoryGroup.userData.reviewAccessories||[]):[]};
+ return {schema_version:2,model:document.querySelector('#modelmode').value,fabric:document.querySelector('#fabricPreset').value,equipment:{...equipmentState},materials,accessories:accessoryGroup?(accessoryGroup.userData.reviewAccessories||[]):[]};
 }
 let pendingSnapshot=null;
 function applySnapshot(data){
  if(!data||typeof data!=='object')return;
  if(data.model&&document.querySelector('#modelmode').value!==data.model){pendingSnapshot=data;document.querySelector('#modelmode').value=data.model;loadModel(data.model);return;}
  if(data.fabric&&document.querySelector('#fabricPreset').querySelector('option[value="'+data.fabric+'"]'))document.querySelector('#fabricPreset').value=data.fabric;
+ if(data.equipment){for(const slot of Object.keys(equipmentState)){if(typeof data.equipment[slot]==='string'&&equipmentGroups[slot][data.equipment[slot]]){equipmentState[slot]=data.equipment[slot];const id={lower:'equipmentLower',upper:'equipmentUpper',shirt:'equipmentShirt'}[slot];document.querySelector('#'+id).value=equipmentState[slot];}}applyEquipment();}
  for(const e of originalMaterials.values()){
   const saved=data.materials?.[e.material.name];if(!saved)continue;
   if(saved.color&&e.material.color)e.material.color.set(saved.color);
@@ -364,6 +382,6 @@ document.querySelector('#showClothed').onclick=()=>{document.querySelector('#mod
 document.querySelector('#showBody').onclick=()=>{document.querySelector('#modelmode').value='body';loadModel('body')};
 document.querySelector('#showTattooBody').onclick=()=>{document.querySelector('#modelmode').value='tattoo-body';loadModel('tattoo-body')};
 document.querySelector('#showUnderwear').onclick=()=>{document.querySelector('#modelmode').value='underwear';loadModel('underwear')};
-loadModel(mobilePreview?'ara-mobile':'ara');
+loadModel('ara');
 function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
 </script></body></html>
