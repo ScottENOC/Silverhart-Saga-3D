@@ -70,7 +70,13 @@ def main():
     radius = max((maximum - minimum).length * 0.5, 0.5)
 
     scene = bpy.context.scene
-    scene.render.engine = "BLENDER_EEVEE_NEXT"
+    available_engines = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
+    for engine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE", "BLENDER_WORKBENCH"):
+        if engine in available_engines:
+            scene.render.engine = engine
+            break
+    else:
+        raise RuntimeError(f"No supported review render engine found: {sorted(available_engines)}")
     scene.render.resolution_x = 900
     scene.render.resolution_y = 1200
     scene.render.resolution_percentage = 100
