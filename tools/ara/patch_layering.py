@@ -32,6 +32,7 @@ edit("src/core/garments/index.ts", [
     ("[d.top, d.jacket, d.bottom, ...d.accessories]", "[d.underBottom, d.bottom, d.underTop, d.top, d.jacket, ...d.accessories]"),
     ("if (!d.top && !d.jacket && !d.bottom && !d.accessories.length && !d.footwear)", "if (!d.top && !d.underTop && !d.underBottom && !d.jacket && !d.bottom && !d.accessories.length && !d.footwear)"),
     ("layered: { top: !!d.top, bottom: !!d.bottom && d.bottom !== 'briefs' },\n    underwear: d.underwear,", "layered: { top: !!d.top || !!d.underTop, bottom: (!!d.bottom && d.bottom !== 'briefs') || !!d.underBottom },\n    // Briefs are added once below, independently of the selected outer bottoms.\n    underwear: false,"),
+    ("if (id === d.bottom || id === d.top || id === d.jacket) {", "if (id === d.underBottom || id === d.bottom || id === d.underTop || id === d.top || id === d.jacket) {"),
     ("for (const id of [d.bottom, d.top, d.jacket, ...d.accessories]) dress(id);", "for (const id of [d.underBottom, d.bottom, d.underTop, d.top, d.jacket, ...d.accessories]) dress(id);\n  if (d.underwear && !d.underBottom && d.bottom && d.bottom !== 'briefs') parts.push(...briefsUnder({ ...g, underwear: true }));"),
 ])
 
