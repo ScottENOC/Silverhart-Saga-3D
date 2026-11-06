@@ -158,7 +158,7 @@ edit("src/core/garments/catalog.ts", [
         [Math.PI / 2 + 0.22, Math.PI * 2 + Math.PI / 2 - 0.22], 40);
       return [
         ...bodice,
-        ...(panel ? [{ mesh: panel, material: { ...m, doubleSided: true }, smooth: true }] : []),
+        ...(panel ? [{ mesh: panel, material: { ...m, name: 'Pencil skirt', doubleSided: true }, smooth: true }] : []),
       ];
     },
   },
