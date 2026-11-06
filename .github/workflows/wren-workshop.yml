@@ -428,6 +428,23 @@ jobs:
             --output /tmp/ara_person_modular_underwear_fitted.glb \
             --profile none --adult --fit-existing
           mv /tmp/ara_person_modular_underwear_fitted.glb art/characters/ara/ara_person_modular_underwear.glb
+      - name: Render lace and fishnet garment review angles
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          OUT=art/characters/ara/review/outfits
+          mkdir -p "$OUT"
+          blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
+            art/characters/ara/ara_person_modular.glb "$OUT" \
+            lace_bra fishnet_bra lace_briefs fishnet_briefs \
+            lace_shirt fishnet_shirt lace_pants fishnet_pants
+          for outfit in lace_bra fishnet_bra lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants; do
+            for view in front side rear; do test -s "$OUT/$outfit/$view.png"; done
+            test -s "$OUT/$outfit/report.json"
+          done
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
