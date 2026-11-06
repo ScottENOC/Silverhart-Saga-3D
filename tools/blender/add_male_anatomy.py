@@ -97,7 +97,7 @@ def build_component(armature, skin, skin_material, pelvis_z, front_y, height, vo
     # Scrotal sac hangs below the penile root. Two subtle lobes are fused into
     # one continuous silhouette by voxel remeshing rather than left as spheres.
     sac_y = front_y - 0.010
-    sac_z = pelvis_z - height * 0.043
+    sac_z = pelvis_z - height * 0.035
     parts.append(add_ellipsoid("Scrotum left source", (-radius * 0.72, sac_y, sac_z),
                                (radius * 0.90, radius * 1.00, height * 0.027)))
     parts.append(add_ellipsoid("Scrotum right source", (radius * 0.72, sac_y, sac_z),
