@@ -4,7 +4,9 @@
 
 Build a reusable 3D character system for Silverhart Saga 3D. The first character is Wren Talbot from Campaign 2's Hollow Tankard opening, but the result must be reusable for the player, companions and NPCs.
 
-The intended presentation is a stylised, low-poly fantasy character with the visual equipment flexibility of a modern party RPG: the body is not a baked outfit, and changing equipped items changes the visible 3D model.
+The intended presentation is realistic fantasy RPG, with artistic restraint rather than photorealism, and the visual equipment flexibility of a modern party RPG. The body is not a baked outfit; changing equipped items changes the visible 3D model.
+
+The first production-quality benchmark is Wren Talbot: a slim, lightly athletic adult woman, natural approachable face, distinctive dark-blue braid, dark-green shirt with pink-red trim, charcoal trousers and a sword. The benchmark must be assessed at normal game camera distance and close inspection distance.
 
 ## Toolchain
 
