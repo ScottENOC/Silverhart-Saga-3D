@@ -20,7 +20,7 @@ def make_glb(path, source=False):
     def accessor(values, component_type, value_type, target):
         formats = {5123: "H", 5126: "f"}
         fmt = formats[component_type]
-        binary.extend(b"\\0" * (-len(binary) % 4))
+        binary.extend(b"\0" * (-len(binary) % 4))
         offset = len(binary)
         packed = struct.pack("<" + fmt * len(values), *values)
         binary.extend(packed)
@@ -92,12 +92,12 @@ def make_glb(path, source=False):
     }
     encoded = json.dumps(doc, separators=(",", ":")).encode()
     encoded += b" " * (-len(encoded) % 4)
-    binary.extend(b"\\0" * (-len(binary) % 4))
+    binary.extend(b"\0" * (-len(binary) % 4))
     total = 12 + 8 + len(encoded) + 8 + len(binary)
     glb = (
         struct.pack("<4sII", b"glTF", 2, total)
         + struct.pack("<I4s", len(encoded), b"JSON") + encoded
-        + struct.pack("<I4s", len(binary), b"BIN\\0") + binary
+        + struct.pack("<I4s", len(binary), b"BIN\0") + binary
     )
     path.write_bytes(glb)
 
