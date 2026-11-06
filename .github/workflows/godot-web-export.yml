@@ -1,0 +1,56 @@
+name: Build Godot Web Export
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "scenes/**"
+      - "scripts/**"
+      - "data/**"
+      - ".github/workflows/godot-web-export.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: godot-web-export-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out game project
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2 and Web export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Import project and export browser build
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --version
+          godot --headless --editor --path . --quit
+          mkdir -p dist/game
+          godot --headless --path . --export-release "Web" dist/game/index.html
+          test -s dist/game/index.html
+          find dist/game -maxdepth 1 -type f -name '*.wasm' -print -quit | grep -q .
+          find dist/game -maxdepth 1 -type f -name '*.pck' -print -quit | grep -q .
+          printf '%s\\n' "${GITHUB_SHA}" > dist/game/build-version.txt
+
+      - name: Save browser build for combined Pages deployment
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-web-export
+          path: dist/game/
+          if-no-files-found: error
+          retention-days: 90
