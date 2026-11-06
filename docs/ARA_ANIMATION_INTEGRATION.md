@@ -1,0 +1,36 @@
+# Ara skeleton and animation integration validation
+
+## Purpose
+
+Validate the actual Ara Wren benchmark export in Godot 4.7.2 before wiring animation states into gameplay. This is deliberately a separate validation branch from the terrain grounding work.
+
+## Source assets
+
+The test downloads the `character-pipeline-evaluation` artifact from workflow run `41979224139` on `feature/modular-character-poc`:
+
+- `ara_wren_benchmark.glb`: full Wren benchmark export with a 69-bone rig and 77 animation clips.
+- `modular/body.glb`, `hair.glb`, `shirt.glb`, `trousers.glb`: independently exported skinned components, each carrying its own copy of the rig.
+
+The mobile terrain-test export `ara_wren_mobile.glb` is a separate lightweight export. It has 66 joints and no animation clips, so it is not suitable for this test.
+
+## Automated checks
+
+`tests/test_ara_animation_import.gd` runs in Godot headless and checks:
+
+1. Godot imports the benchmark GLB as a scene with a `Skeleton3D` and `AnimationPlayer`.
+2. The benchmark skeleton has the expected 69 bones and exposes key clips such as Idle, Walk, Run, Strafe left and Jump.
+3. Each modular component imports with the same 69 ordered bone names as the benchmark rig. Rest-pose origins are checked with a 25 mm tolerance and bone bases must match.
+4. The body, hair, shirt and trousers meshes can be rebound to the benchmark skeleton.
+5. Playing the Walk clip changes the shared skeleton's bone poses.
+
+## Known rig discrepancy
+
+The first strict Godot comparison found a small but real rest-pose difference: the modular exports place the Hips bone about 20.8 mm lower than the benchmark animation rig. The same offset appears in body, hair, shirt and trousers, so the modular components are internally consistent with one another. One additional near-zero floating-point difference appears in a hand-finger bone.
+
+The validation therefore allows up to 25 mm of rest-origin offset while requiring matching bone names/order and matching bone bases. This is a compatibility smoke test, not a declaration that the rigs are perfectly identical. Before production animation integration, standardise the Hips rest position in Ara export settings or deliberately compensate for it and visually inspect pelvis, leg and foot deformation.
+
+The test validates import, component binding and animation-driven bone poses. It does not yet prove visual quality of deformation, foot locking, root-motion handling, animation blending, or integration with the game's movement/combat state machines. Those require an in-engine visual test and a gameplay animation controller.
+
+## Asset retention
+
+The workflow artifact is temporary (14-day retention). This validation intentionally downloads it at CI time rather than committing a 20 MB benchmark GLB to the source tree. Before production integration, promote the selected runtime body/components and an agreed animation source into managed project assets with explicit versioning.
