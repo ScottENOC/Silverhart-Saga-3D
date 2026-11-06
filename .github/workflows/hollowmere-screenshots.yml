@@ -2,14 +2,14 @@ name: Capture Hollowmere map screenshots
 
 on:
   push:
-    branches: [feature/opening-village]
+    branches: [dev, feature/opening-village]
     paths:
       - "scripts/world/**"
       - "scenes/**"
       - "tests/capture_hollowmere_overview.gd"
       - ".github/workflows/hollowmere-screenshots.yml"
   pull_request:
-    branches: [feature/male-anatomy-skinned-mesh]
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
