@@ -38,7 +38,7 @@ static func is_blocked(hex: Vector2i) -> bool:
         return true
     if is_door(hex):
         return false
-    if is_water(hex) or is_building(hex):
+    if is_water(hex) or is_building(hex) or has_tree(hex):
         return true
     return false
 
@@ -49,6 +49,8 @@ static func terrain_id_at(hex: Vector2i) -> String:
         return "path"
     if is_building(hex):
         return "building"
+    if has_tree(hex):
+        return "forest"
     return "grass"
 
 static func is_path(hex: Vector2i) -> bool:
@@ -140,6 +142,13 @@ static func is_forest_candidate(hex: Vector2i) -> bool:
     if is_water(hex) or is_building(hex) or is_path(hex):
         return false
     return _stable_noise(hex.x, hex.y) > 0.18
+
+static func has_tree(hex: Vector2i) -> bool:
+    if posmod(hex.x, 4) != 0 or posmod(hex.y, 4) != 0:
+        return false
+    if not is_forest_candidate(hex):
+        return false
+    return _stable_noise(hex.x + 17, hex.y - 9) >= 0.56
 
 static func _append_unique(cells: Array[Vector2i], seen: Dictionary, hex: Vector2i) -> void:
     if seen.has(hex):
