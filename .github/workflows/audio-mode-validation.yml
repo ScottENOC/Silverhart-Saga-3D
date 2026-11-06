@@ -8,6 +8,7 @@ on:
       - "scenes/**"
       - "scripts/audio/**"
       - "scripts/ui/**"
+      - "tools/import_legacy_audio.py"
       - ".github/workflows/audio-mode-validation.yml"
   push:
     branches: [feature/audio-and-mode-select]
