@@ -77,9 +77,11 @@ def main():
             break
     else:
         raise RuntimeError(f"No supported review render engine found: {sorted(available_engines)}")
-    scene.render.resolution_x = 900
-    scene.render.resolution_y = 1200
+    scene.render.resolution_x = 720
+    scene.render.resolution_y = 960
     scene.render.resolution_percentage = 100
+    if scene.render.engine in {'BLENDER_EEVEE', 'BLENDER_EEVEE_NEXT'}:
+        scene.eevee.taa_render_samples = 16
     scene.render.image_settings.file_format = "PNG"
     scene.world.color = (0.18, 0.18, 0.18)
     scene.render.film_transparent = False
