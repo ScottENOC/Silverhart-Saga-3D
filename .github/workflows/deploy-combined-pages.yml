@@ -41,6 +41,13 @@ jobs:
             echo "Waiting for both the Wren Workshop site and Godot web export artifacts."
             exit 0
           fi
+          WREN_ARTIFACT="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$WREN_RUN/artifacts" --jq '.artifacts[] | select(.name == "wren-workshop-site" and .expired == false) | .id' | head -n 1)"
+          GAME_ARTIFACT="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$GAME_RUN/artifacts" --jq '.artifacts[] | select(.name == "godot-web-export" and .expired == false) | .id' | head -n 1)"
+          if [ -z "$WREN_ARTIFACT" ] || [ -z "$GAME_ARTIFACT" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "The latest successful runs do not both have the required site artifacts yet."
+            exit 0
+          fi
           echo "ready=true" >> "$GITHUB_OUTPUT"
           echo "wren_run=$WREN_RUN" >> "$GITHUB_OUTPUT"
           echo "game_run=$GAME_RUN" >> "$GITHUB_OUTPUT"
