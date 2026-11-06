@@ -21,6 +21,7 @@ OUTFITS = {
     "skin": set(),
     "halter": {"Halter lace bra cups", "Halter lace bra straps"},
     "dress": {"Backless slit dress", "Pencil skirt"},
+    "backless_shirt": {"Backless slit dress", "Pencil skirt"},
     "pants": {"Fatigue pants", "Fatigue pants.001"},
     "halter_pants": {
         "Halter lace bra cups", "Halter lace bra straps",
