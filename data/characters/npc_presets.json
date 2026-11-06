@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "Three adult NPC presets sharing one character-generation contract. Wren's Ara export includes a separate bra under-layer and briefs under outer trousers; tattoos use Ara's native UV-space skin-detail texture.",
+  "description": "Future named-character presets sharing one character-generation contract. The generic Ara base person is the current pipeline milestone; Wren is a later character and does not yet have a production model. Asset IDs in these presets remain provisional until checked against the generated Ara catalogue.",
   "characters": [
     {
       "id": "wren_talbot",
