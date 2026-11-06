@@ -282,8 +282,8 @@ jobs:
           set -euo pipefail
           python tools/ara/assemble_modular_glb.py \
             art/characters/ara/ara_wren_body.glb art/characters/ara/ara_wren_modular.glb \
-            /tmp/ara-generated/ara_wren_benchmark.glb "Fatigue pants" \
-            /tmp/ara-generated/ara_wren_benchmark.glb "Fatigue pants.001" \
+            /tmp/ara-generated/ara_wren_benchmark.glb "Fatigue pants#1" \
+            /tmp/ara-generated/ara_wren_benchmark.glb "Fatigue pants#2" \
             /tmp/ara-generated/ara_wren_benchmark.glb "Shoes" \
             /tmp/ara-generated/ara_wren_benchmark.glb "Boot shafts" \
             /tmp/ara-generated/ara_wren_benchmark.glb "Fatigue shirt" \

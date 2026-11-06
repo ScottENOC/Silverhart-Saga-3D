@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""Combine Ara garment primitives into the body-only GLB while sharing its rig."""
+"""Pack selectable Ara garment primitives onto the integrated full-skin rig."""
 import copy, json, struct, sys
 from pathlib import Path
+
+COMP={5120:('b',1),5121:('B',1),5122:('h',2),5123:('H',2),5125:('I',4),5126:('f',4)}
+COUNT={'SCALAR':1,'VEC2':2,'VEC3':3,'VEC4':4,'MAT2':4,'MAT3':9,'MAT4':16}
 
 def read(path):
     raw=Path(path).read_bytes(); magic,ver,total=struct.unpack_from('<4sII',raw)
@@ -28,7 +31,33 @@ def body_node(d):
     if len(hits)!=1: raise ValueError(f'Expected one skinned body mesh, got {len(hits)}')
     return hits[0]
 
-def add(target,buf,source_path,mat_name):
+def append_bytes(target,buf,data,target_type=None):
+    buf+=b'\0'*(-len(buf)%4); off=len(buf)
+    view={'buffer':0,'byteOffset':off,'byteLength':len(data)}
+    if target_type is not None: view['target']=target_type
+    vi=len(target.setdefault('bufferViews',[])); target['bufferViews'].append(view)
+    return target,buf+data,vi
+
+def compact_accessor(src,sbuf,target,buf,old_ai,vertices,joint_map=None):
+    a=copy.deepcopy(src['accessors'][old_ai]); view=src['bufferViews'][a['bufferView']]
+    fmt,size=COMP[a['componentType']]; n=COUNT[a['type']]; elem=size*n
+    stride=view.get('byteStride',elem); start=view.get('byteOffset',0)+a.get('byteOffset',0)
+    pack='<'+fmt*n; data=bytearray(); rows=[]
+    for vi in vertices:
+        raw=sbuf[start+vi*stride:start+vi*stride+elem]
+        vals=list(struct.unpack(pack,raw))
+        if joint_map is not None:
+            if any(x>=len(joint_map) for x in vals): raise ValueError(f'Invalid source joint index {max(vals)}')
+            vals=[joint_map[x] for x in vals]
+        rows.append(vals); data.extend(struct.pack(pack,*vals))
+    target,buf,vi=append_bytes(target,buf,bytes(data),34962)
+    a.pop('sparse',None); a['bufferView']=vi; a.pop('byteOffset',None); a['count']=len(vertices)
+    a['min']=[min(row[c] for row in rows) for c in range(n)]
+    a['max']=[max(row[c] for row in rows) for c in range(n)]
+    ai=len(target.setdefault('accessors',[])); target['accessors'].append(a)
+    return target,buf,ai
+
+def add(target,buf,source_path,selector):
     src,sbuf=read(source_path)
     tj=[target['nodes'][i].get('name') for i in target['skins'][0]['joints']]
     sj=[src['nodes'][i].get('name') for i in src['skins'][0]['joints']]
@@ -37,12 +66,28 @@ def add(target,buf,source_path,mat_name):
     tn=body_node(target); sn=body_node(src)
     for k in ('translation','rotation','scale','matrix'):
         if tn.get(k)!=sn.get(k): raise ValueError(f'Rigged mesh {k} mismatch in {source_path}')
-    matches=[p for p in src['meshes'][sn['mesh']]['primitives'] if p.get('material') is not None and src['materials'][p['material']].get('name')==mat_name]
-    if len(matches)!=1: raise ValueError(f'{mat_name}: found {len(matches)} in {source_path}; materials={[m.get("name") for m in src["materials"]]}')
-    p=copy.deepcopy(matches[0]); sm=copy.deepcopy(src['materials'][p['material']])
-    used=set(p.get('attributes',{}).values())
-    if 'indices' in p: used.add(p['indices'])
-    for t in p.get('targets',[]): used.update(t.values())
+    name=selector; occurrence=0
+    if '#' in selector: name,nth=selector.rsplit('#',1); occurrence=int(nth)-1
+    matches=[p for p in src['meshes'][sn['mesh']]['primitives'] if p.get('material') is not None and src['materials'][p['material']].get('name')==name]
+    if occurrence<0 or occurrence>=len(matches): raise ValueError(f'{selector}: found {len(matches)} in {source_path}; materials={[m.get("name") for m in src["materials"]]}')
+    p=copy.deepcopy(matches[occurrence]); sm=copy.deepcopy(src['materials'][p['material']])
+    if occurrence: sm['name']=f'{name}.{occurrence:03d}'
+
+    ia=src['accessors'][p['indices']]; iv=src['bufferViews'][ia['bufferView']]
+    if ia['componentType'] not in (5123,5125): raise ValueError('Unsupported index type')
+    ifmt,size=COMP[ia['componentType']]; ioff=iv.get('byteOffset',0)+ia.get('byteOffset',0); istride=iv.get('byteStride',size)
+    original=[struct.unpack_from('<'+ifmt,sbuf,ioff+i*istride)[0] for i in range(ia['count'])]
+    vertices=sorted(set(original)); remap={old:new for new,old in enumerate(vertices)}
+    amap={}
+    for attr,old_ai in p.get('attributes',{}).items():
+        target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices,joint_map if attr.startswith('JOINTS_') else None)
+        amap[old_ai]=new_ai
+    new_indices=[remap[x] for x in original]; index_data=struct.pack('<'+ifmt*len(new_indices),*new_indices)
+    target,buf,ivi=append_bytes(target,buf,index_data,34963)
+    ia2=copy.deepcopy(ia); ia2['bufferView']=ivi; ia2.pop('byteOffset',None); ia2['min']=[min(new_indices)]; ia2['max']=[max(new_indices)]
+    new_ia=len(target.setdefault('accessors',[])); target['accessors'].append(ia2)
+    p['attributes']={k:amap[v] for k,v in p.get('attributes',{}).items()}; p['indices']=new_ia
+
     tex=set()
     def scan(x):
         if isinstance(x,dict):
@@ -53,68 +98,37 @@ def add(target,buf,source_path,mat_name):
     scan(sm)
     imgs={src['textures'][i]['source'] for i in tex if 'source' in src['textures'][i]}
     samps={src['textures'][i]['sampler'] for i in tex if 'sampler' in src['textures'][i]}
-    views={src['accessors'][i]['bufferView'] for i in used if 'bufferView' in src['accessors'][i]}
-    for i in used:
-        sp=src['accessors'][i].get('sparse')
-        if sp: views|={sp['indices']['bufferView'],sp['values']['bufferView']}
-    views|={src['images'][i]['bufferView'] for i in imgs if 'bufferView' in src['images'][i]}
-    buf=buf[:target['buffers'][0]['byteLength']]; buf+=b'\0'*(-len(buf)%4); base=len(buf)
-    payload=bytearray(); vm={}
-    for i in sorted(views,key=lambda x:src['bufferViews'][x].get('byteOffset',0)):
-        v=src['bufferViews'][i]; off=v.get('byteOffset',0); payload+=b'\0'*(-len(payload)%4); vm[i]=len(target.setdefault('bufferViews',[]))
-        nv=copy.deepcopy(v); nv['buffer']=0; nv['byteOffset']=base+len(payload); target['bufferViews'].append(nv); payload+=sbuf[off:off+v['byteLength']]
-    buf=bytearray(buf+payload)
-    am={}
-    for i in sorted(used):
-        a=copy.deepcopy(src['accessors'][i])
-        if 'bufferView' in a: a['bufferView']=vm[a['bufferView']]
-        if 'sparse' in a:
-            a['sparse']['indices']['bufferView']=vm[a['sparse']['indices']['bufferView']]; a['sparse']['values']['bufferView']=vm[a['sparse']['values']['bufferView']]
-        am[i]=len(target.setdefault('accessors',[])); target['accessors'].append(a)
-    im={}
+    imap={}
     for i in sorted(imgs):
         x=copy.deepcopy(src['images'][i])
-        if 'bufferView' in x: x['bufferView']=vm[x['bufferView']]
-        im[i]=len(target.setdefault('images',[])); target['images'].append(x)
+        if 'bufferView' in x:
+            v=src['bufferViews'][x['bufferView']]; off=v.get('byteOffset',0); data=sbuf[off:off+v['byteLength']]
+            target,buf,new_view=append_bytes(target,buf,data); x['bufferView']=new_view
+        elif 'uri' in x and not x['uri'].startswith('data:'): raise ValueError('External image URI cannot be packed into GLB')
+        imap[i]=len(target.setdefault('images',[])); target['images'].append(x)
     smap={}
     for i in sorted(samps): smap[i]=len(target.setdefault('samplers',[])); target['samplers'].append(copy.deepcopy(src['samplers'][i]))
-    tm={}
+    tmap={}
     for i in sorted(tex):
         x=copy.deepcopy(src['textures'][i])
-        if 'source' in x: x['source']=im[x['source']]
+        if 'source' in x: x['source']=imap[x['source']]
         if 'sampler' in x: x['sampler']=smap[x['sampler']]
-        tm[i]=len(target.setdefault('textures',[])); target['textures'].append(x)
-    def remap(x):
+        tmap[i]=len(target.setdefault('textures',[])); target['textures'].append(x)
+    def remap_tex(x):
         if isinstance(x,dict):
-            if isinstance(x.get('index'),int): x['index']=tm[x['index']]
-            for v in x.values(): remap(v)
+            if isinstance(x.get('index'),int): x['index']=tmap[x['index']]
+            for v in x.values(): remap_tex(v)
         elif isinstance(x,list):
-            for v in x: remap(v)
-    remap(sm); mi=len(target.setdefault('materials',[])); target['materials'].append(sm)
-    p['attributes']={k:am[v] for k,v in p.get('attributes',{}).items()}
-    # Blender's GLB export can reorder the skin joint array. Remap each copied
-    # JOINTS attribute by bone name so weights still address the target rig.
-    for attr in ('JOINTS_0','JOINTS_1'):
-        if attr not in p['attributes']: continue
-        a=target['accessors'][p['attributes'][attr]]
-        fmt={5121:'B',5123:'H'}.get(a['componentType'])
-        if not fmt or a.get('type')!='VEC4' or 'bufferView' not in a: raise ValueError(f'Unsupported {attr} accessor in {source_path}')
-        view=target['bufferViews'][a['bufferView']]; start=view.get('byteOffset',0)+a.get('byteOffset',0)
-        stride=view.get('byteStride',4*struct.calcsize(fmt)); pack='<4'+fmt
-        for vertex in range(a['count']):
-            off=start+vertex*stride; old=struct.unpack_from(pack,buf,off)
-            struct.pack_into(pack,buf,off,*(joint_map[j] for j in old))
-    if 'indices' in p: p['indices']=am[p['indices']]
-    for t in p.get('targets',[]):
-        for k,v in list(t.items()): t[k]=am[v]
-    p['material']=mi; target['meshes'][tn['mesh']]['primitives'].append(p)
+            for v in x: remap_tex(v)
+    remap_tex(sm); p['material']=len(target.setdefault('materials',[])); target['materials'].append(sm)
+    target['meshes'][tn['mesh']]['primitives'].append(p)
     for k in ('extensionsUsed','extensionsRequired'): target[k]=sorted(set(target.get(k,[]))|set(src.get(k,[])))
-    print('Added',mat_name,'from',Path(source_path).name)
-    return target,bytes(buf)
+    print('Added',selector,'(',len(vertices),'vertices ) from',Path(source_path).name)
+    return target,buf
 
 if __name__=='__main__':
     if len(sys.argv)<3 or (len(sys.argv)-3)%2: raise SystemExit('usage: script BODY.glb OUT.glb SOURCE.glb MATERIAL [SOURCE MATERIAL]...')
-    d,b=read(sys.argv[1])
+    d,b=read(sys.argv[1]); b=b[:d['buffers'][0]['byteLength']]
     for i in range(3,len(sys.argv),2): d,b=add(d,b,sys.argv[i],sys.argv[i+1])
     write(sys.argv[2],d,b); check,_=read(sys.argv[2]); n=body_node(check)
     print(f'Wrote {sys.argv[2]} ({Path(sys.argv[2]).stat().st_size:,} bytes), {len(check["meshes"][n["mesh"]]["primitives"])} skinned primitives')
