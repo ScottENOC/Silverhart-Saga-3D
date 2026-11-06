@@ -430,6 +430,7 @@ jobs:
           curl -LsSf https://hf.co/cli/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Publish to private Hugging Face Space
+        if: github.ref_name == 'dev'
         env:
           HF_TOKEN: ${{ secrets.HF_ADMIN_TOKEN }}
         run: |
