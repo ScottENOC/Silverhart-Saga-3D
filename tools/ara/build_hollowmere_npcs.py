@@ -157,6 +157,7 @@ def main() -> None:
             "game_id": profile["game_id"],
             "name": profile["name"],
             "role": profile["role"],
+            "dialogue_id": profile.get("dialogue_id", ""),
             "hex": profile["hex"],
             "detail": detail,
             "model": f"{character_id}.glb",
