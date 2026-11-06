@@ -139,7 +139,10 @@ def create_piercing_sockets(armature, skin, surface_tree, minimum, height, width
             if best is None or score > best[0]:
                 best = (score, p.copy(), n.copy())
         if best:
-            create_socket(armature, "SOCKET_Earring_" + label, best[1], best[2], head_bone)
+            # Move the earring anchor just clear of the ear surface and slightly
+            # forward of the hairline so hoops remain visible in the Workshop.
+            earring_location = best[1] + best[2] * 0.003 + Vector((0.0, -0.005, 0.0))
+            create_socket(armature, "SOCKET_Earring_" + label, earring_location, best[2], head_bone)
     evaluated.to_mesh_clear()
 
     # Nose ring sits 1 cm below the former anchor, with a fresh surface raycast
@@ -414,7 +417,8 @@ def main():
         pelvis_surface_tree = surface_tree
     create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, pelvis_z, body_front_y)
     if anatomy is not None:
-        hood_hit = front_hit_data(surface_tree, 0.0, pelvis_z + 0.052)
+        # The hood sits just above the vulvar cleft, not on the mons pubis.
+        hood_hit = front_hit_data(surface_tree, 0.0, pelvis_z + 0.022)
         if hood_hit:
             location = hood_hit[0] + hood_hit[1].normalized() * 0.0015
             hip_name = next((b.name for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), "Hips")
