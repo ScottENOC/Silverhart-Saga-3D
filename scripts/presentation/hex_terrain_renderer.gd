@@ -78,6 +78,7 @@ func rebuild(map_data: HexMapData, radius: float = HexGrid.DEFAULT_RADIUS_M) -> 
     var collision_body := StaticBody3D.new()
     collision_body.name = "TerrainCollision"
     var collision_shape := CollisionShape3D.new()
+    collision_shape.name = "TerrainCollisionShape"
     collision_shape.shape = terrain_mesh.create_trimesh_shape()
     collision_body.add_child(collision_shape)
     add_child(collision_body)
