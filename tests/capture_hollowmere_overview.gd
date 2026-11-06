@@ -38,6 +38,15 @@ func _capture() -> void:
     for _frame in range(6):
         await process_frame
     _save_view("hollowmere_village_three_quarter.png")
+
+    camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+    camera.fov = 48.0
+    camera.global_position = Vector3(0.0, 10.0, 16.0)
+    camera.look_at(Vector3(0.0, 1.0, 0.0), Vector3.UP)
+    await create_timer(2.0).timeout
+    for _frame in range(6):
+        await process_frame
+    _save_view("hollowmere_tavern_characters.png")
     quit()
 
 func _save_view(filename: String) -> void:
