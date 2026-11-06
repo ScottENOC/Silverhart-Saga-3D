@@ -241,7 +241,7 @@ jobs:
   publish:
     needs: integrate
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Download generated parameter files
@@ -294,6 +294,26 @@ jobs:
             /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Bikini strings*=Triangle bikini strings" \
             /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
             /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "Bikini strings*=String bikini strings"
+      - name: Install Blender for modular garment fitting
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+      - name: Fit modular garments around integrated anatomy
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- \
+            --input art/characters/ara/ara_wren_modular.glb \
+            --output /tmp/ara_wren_modular_fitted.glb \
+            --profile none --adult --fit-existing
+          mv /tmp/ara_wren_modular_fitted.glb art/characters/ara/ara_wren_modular.glb
+          blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- \
+            --input art/characters/ara/ara_wren_modular_underwear.glb \
+            --output /tmp/ara_wren_modular_underwear_fitted.glb \
+            --profile none --adult --fit-existing
+          mv /tmp/ara_wren_modular_underwear_fitted.glb art/characters/ara/ara_wren_modular_underwear.glb
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
