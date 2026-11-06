@@ -79,7 +79,11 @@ func rebuild(map_data: HexMapData, radius: float = HexGrid.DEFAULT_RADIUS_M) -> 
     collision_body.name = "TerrainCollision"
     var collision_shape := CollisionShape3D.new()
     collision_shape.name = "TerrainCollisionShape"
-    collision_shape.shape = terrain_mesh.create_trimesh_shape()
+    var terrain_collision_shape := terrain_mesh.create_trimesh_shape() as ConcavePolygonShape3D
+    # The generated fan mesh is rendered double-sided; make its collision
+    # surface equally robust to ray probes and contacts from either side.
+    terrain_collision_shape.backface_collision = true
+    collision_shape.shape = terrain_collision_shape
     collision_body.add_child(collision_shape)
     add_child(collision_body)
     terrain_collision_body = collision_body
