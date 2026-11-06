@@ -150,6 +150,7 @@ jobs:
           base = json.load(open('/tmp/ara-person.params.json'))
           variants = {
               "tank_top": {"top":"tank_top", "underTop":"none", "underBottom":"none", "bottom":"none"},
+              "halter_bra_lace": {"top":"none", "underTop":"halter_bra_lace", "underBottom":"none", "bottom":"none"},
               "triangle_bikini_top": {"top":"none", "underTop":"bikini_top", "underBottom":"none", "bottom":"none"},
               "string_bikini_bottom": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none"}
           }
@@ -160,7 +161,7 @@ jobs:
               p.update(updates)
               json.dump(p, open('/tmp/ara-person-'+key+'.params.json','w'), indent=2)
           PY
-          for variant in tank_top triangle_bikini_top string_bikini_bottom; do
+          for variant in tank_top halter_bra_lace triangle_bikini_top string_bikini_bottom; do
             mkdir -p "/tmp/ara-$variant-out"
             npm run export -- --params "/tmp/ara-person-$variant.params.json" --detail high --formats glb --out "/tmp/ara-$variant-out"
             VARIANT_GLB="$(find "/tmp/ara-$variant-out" -maxdepth 1 -type f -name '*.glb' -print -quit)"
@@ -274,6 +275,7 @@ jobs:
             /tmp/ara-generated/ara_person_benchmark.glb "Boot shafts" \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
             /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra" \
             /tmp/ara-generated/ara_person_benchmark.glb "Briefs" \
             /tmp/ara-generated/ara_person_tank_top.glb "Tank top" \
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
