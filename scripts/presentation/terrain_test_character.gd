@@ -1,9 +1,9 @@
 extends CharacterBody3D
-## Physics body used for terrain grounding. When the generic Ara base-person
-## export is present, its real character mesh is attached as a visual child;
+## Physics body used for terrain grounding. Wren's Ara Workshop export is
+## attached as the visible character;
 ## the capsule remains authoritative for collision and movement.
 
-const ARA_PERSON_MODEL_PATH := "res://art/characters/ara/ara_person_mobile.glb"
+const WREN_MODEL_PATH := "res://art/characters/wren/ara_wren_mobile.glb"
 
 @export var tint: Color = Color(0.35, 0.62, 0.82)
 @export var walks_across_ridge: bool = false
@@ -15,7 +15,7 @@ var uses_workshop_model: bool = false
 
 func _ready() -> void:
 	floor_snap_length = 0.4
-	floor_max_angle = deg_to_rad(55.0)
+	floor_max_angle = deg_to_rad(60.0)
 	floor_stop_on_slope = true
 	motion_mode = CharacterBody3D.MOTION_MODE_GROUNDED
 
@@ -30,12 +30,12 @@ func _ready() -> void:
 
 	# The GLB is supplied to CI from the successful Wren Workshop export.
 	# Keep a capsule visual fallback for local runs where that export is absent.
-	if FileAccess.file_exists(ARA_PERSON_MODEL_PATH):
-		var character_scene := load(ARA_PERSON_MODEL_PATH) as PackedScene
+	if FileAccess.file_exists(WREN_MODEL_PATH):
+		var character_scene := load(WREN_MODEL_PATH) as PackedScene
 		if character_scene != null:
 			var character := character_scene.instantiate() as Node3D
 			if character != null:
-				character.name = "AraBasePerson"
+				character.name = "WrenWorkshopCharacter"
 				add_child(character)
 				uses_workshop_model = true
 
@@ -53,7 +53,7 @@ func _ready() -> void:
 		visual.material_override = material
 		add_child(visual)
 	else:
-		print("Using generic Ara base person model for ", name)
+		print("Using Wren Workshop character model for ", name)
 
 func _physics_process(delta: float) -> void:
 	velocity.y -= gravity_strength * delta
