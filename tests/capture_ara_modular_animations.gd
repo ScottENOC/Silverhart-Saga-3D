@@ -8,6 +8,7 @@ const COMPONENT_PATHS := [
 	"res://art/characters/ara_validation/modular/hair.glb",
 	"res://art/characters/ara_validation/modular/shirt.glb",
 	"res://art/characters/ara_validation/modular/trousers.glb",
+	"res://art/characters/ara_validation/boots.glb",
 	"res://art/characters/ara_validation/weapon_sword.glb",
 ]
 const ANIMATIONS := [
@@ -87,7 +88,7 @@ func _capture() -> void:
 		component_root.queue_free()
 		await process_frame
 
-	_check(attached_meshes.size() >= 5, "Five modular parts are attached to the shared rig")
+	_check(attached_meshes.size() >= 6, "Six modular parts (including boots and sword) are attached to the shared rig")
 	for mesh in attached_meshes:
 		_check(mesh.get_node_or_null(mesh.skeleton) == skeleton,
 			"Mesh binds to shared skeleton: " + mesh.name)
@@ -126,7 +127,7 @@ func _capture() -> void:
 
 func _setup_stage() -> void:
 	var floor_mesh := PlaneMesh.new()
-	floor_mesh.size = Vector2(12.0, 12.0)
+	floor_mesh.size = Vector2(100.0, 100.0)
 	var floor := MeshInstance3D.new()
 	floor.name = "StudioFloor"
 	floor.mesh = floor_mesh
@@ -150,13 +151,13 @@ func _setup_stage() -> void:
 
 	var key_light := DirectionalLight3D.new()
 	key_light.rotation_degrees = Vector3(-32.0, -28.0, 0.0)
-	key_light.light_energy = 1.6
+	key_light.light_energy = 1.05
 	key_light.shadow_enabled = true
 	root.add_child(key_light)
 
 	var fill_light := OmniLight3D.new()
 	fill_light.position = Vector3(-3.0, 3.5, 4.0)
-	fill_light.light_energy = 2.0
+	fill_light.light_energy = 0.9
 	fill_light.omni_range = 9.0
 	root.add_child(fill_light)
 
