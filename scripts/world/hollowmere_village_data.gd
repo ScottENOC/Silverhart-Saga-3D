@@ -60,6 +60,8 @@ static func is_path(hex: Vector2i) -> bool:
         return true
 
     # Door spurs: tavern, elder's house, store, chapel and two village homes.
+    if hex == Vector2i(0, 15) or hex == Vector2i(-11, 0) or hex == Vector2i(0, -10) or hex == Vector2i(10, 9) or hex == Vector2i(-4, 9):
+        return true
     if hex == Vector2i(0, 5):
         return true
     if hex.x == 0 and hex.y >= -9 and hex.y <= -7:
