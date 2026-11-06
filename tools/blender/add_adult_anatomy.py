@@ -119,43 +119,54 @@ def create_piercing_sockets(armature, skin, surface_tree, minimum, height, width
 
     head_bone = find_bone({"head", "head01"}, find_bone({"neck"}, "Hips"))
     chest_bone = find_bone({"spine2", "spine_2", "chest"}, find_bone({"spine1", "spine_1"}, "Hips"))
-    hip_bone = find_bone({"hips", "hip", "pelvis"}, "Hips")
 
-    # Earrings can use the head's actual front-side surface; keep this legacy
-    # region limited to the ears while the nose and chest use anatomical anchors.
-    head_lo, head_hi, _ = bone_world_span(armature, {"head", "head01"}, (minimum.z + height*.84, minimum.z + height*.96, head_bone))
-    head_z = head_lo + (head_hi-head_lo)*.58
-    for side, label in [(1.0, "L"), (-1.0, "R")]:
-        hit = front_hit_data(surface_tree, side * width * 0.095, head_z)
-        if hit:
-            create_socket(armature, "SOCKET_Earring_" + label, hit[0], hit[1], head_bone)
+    # Ear sockets are selected from the lateral ear contour, not a front-view
+    # point on the cheek. Require a side-facing normal and the lower head band.
+    ear_z = minimum.z + height * 0.875
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = skin.evaluated_get(depsgraph)
+    mesh_eval = evaluated.to_mesh()
+    for side, label in ((1.0, "L"), (-1.0, "R")):
+        best = None
+        for v in mesh_eval.vertices:
+            p = skin.matrix_world @ v.co
+            n = (skin.matrix_world.to_3x3() @ v.normal).normalized()
+            if side*p.x < width*0.13 or side*p.x > width*0.29:
+                continue
+            if abs(p.z-ear_z) > height*0.035 or side*n.x < 0.22:
+                continue
+            score = side*n.x*2.0 - abs(p.z-ear_z)/max(height*0.035, 1e-5)
+            if best is None or score > best[0]:
+                best = (score, p.copy(), n.copy())
+        if best:
+            create_socket(armature, "SOCKET_Earring_" + label, best[1], best[2], head_bone)
+    evaluated.to_mesh_clear()
 
-    # Nose: find the most anterior skin vertex around the middle/lower face,
-    # not a percentage of total character height.
-    nose_z0 = head_lo + (head_hi-head_lo)*.34
-    nose_z1 = head_lo + (head_hi-head_lo)*.78
-    nose = frontmost_vertex_anchor(skin, -width*.055, width*.055, nose_z0, nose_z1)
+    # Nose ring sits 1 cm below the former anchor, with a fresh surface raycast
+    # at that lower height so the socket remains flush to the nose.
+    head_lo, head_hi, _ = bone_world_span(armature, {"head", "head01"},
+                                          (minimum.z + height*.84, minimum.z + height*.96, head_bone))
+    nose = frontmost_vertex_anchor(skin, -width*.055, width*.055,
+                                   head_lo + (head_hi-head_lo)*.34,
+                                   head_lo + (head_hi-head_lo)*.78)
     if nose:
-        create_socket(armature, "SOCKET_NoseRing", nose[0], nose[1], head_bone)
+        lowered = front_hit_data(surface_tree, nose[0].x, nose[0].z - 0.010)
+        if lowered:
+            create_socket(armature, "SOCKET_NoseRing", lowered[0], lowered[1], head_bone)
 
     necklace_hit = front_hit_data(surface_tree, 0.0, minimum.z + height * 0.82)
     if necklace_hit:
         create_socket(armature, "SOCKET_Necklace", necklace_hit[0], necklace_hit[1], chest_bone)
 
-    # Nipples: select the anterior apex on each actual breast surface, constrained
-    # by the chest/spine bones and lateral chest region. No whole-body height ratio.
-    chest_lo, chest_hi, _ = bone_world_span(armature, {"spine1", "spine_1", "spine2", "spine_2", "chest"},
-                                            (minimum.z + height*.62, minimum.z + height*.79, chest_bone))
-    nipple_z0 = chest_lo - (chest_hi-chest_lo)*.08
-    nipple_z1 = chest_hi + (chest_hi-chest_lo)*.08
-    for side, label in [(1.0, "L"), (-1.0, "R")]:
-        x0, x1 = (width*.055, width*.30) if side > 0 else (-width*.30, -width*.055)
+    # Use the actual breast-height band of the body. Do not derive this from
+    # Spine1: on this Ara rig that bone can span the upper abdomen.
+    nipple_z0 = minimum.z + height * 0.62
+    nipple_z1 = minimum.z + height * 0.78
+    for side, label in ((1.0, "L"), (-1.0, "R")):
+        x0, x1 = ((width*.055, width*.30) if side > 0 else (-width*.30, -width*.055))
         hit = frontmost_vertex_anchor(skin, x0, x1, nipple_z0, nipple_z1)
         if hit:
             create_socket(armature, "SOCKET_Nipple_" + label, hit[0], hit[1], chest_bone)
-
-    # The clitoral socket is supplied by the anatomy mesh itself after it is built.
-    # It is added by main() from the hood's exposed surface, not guessed from pelvis depth.
 
 
 def uv_ellipsoid(name, location, scale, collection):
