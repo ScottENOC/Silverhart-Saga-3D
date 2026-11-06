@@ -293,11 +293,16 @@ function socketSurface(name){
  const normalEnd=model.worldToLocal(worldPoint.clone().add(worldNormal));
  return {point,normal:normalEnd.sub(point).normalize()};
 }
-function addHoopAt(hit,radius,material,tilt=0,surfaceOffset=.0025){
+function addHoopAt(hit,radius,material,tilt=0,surfaceOffset=.0025,keepPlaneVertical=false){
  if(!hit)return false;
  const o=new THREE.Mesh(new THREE.TorusGeometry(radius,radius*.19,10,32),material);
  o.position.copy(hit.point).addScaledVector(hit.normal,surfaceOffset);
- o.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),hit.normal);
+ // For nipple hoops, keep the ring axis horizontal in character space so the
+ // ring plane remains upright instead of tipping flat with breast curvature.
+ const ringNormal=keepPlaneVertical
+  ?new THREE.Vector3(hit.normal.x,hit.normal.y,0).normalize()
+  :hit.normal.clone().normalize();
+ o.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),ringNormal);
  if(tilt)o.rotateZ(tilt);
  accessoryGroup.add(o);return true;
 }
@@ -331,7 +336,7 @@ function addAccessories(kind){
  let ok=true;
  if(kind==='earrings'){
   // Seat hoops slightly behind the ear surface so hair naturally occludes them.
-  ok=addHoopAt(socketSurface('SOCKET_Earring_L'),.012,silver,0,.001)&&addHoopAt(socketSurface('SOCKET_Earring_R'),.012,silver,0,.001);
+  ok=addHoopAt(socketSurface('SOCKET_Earring_L'),.012,silver,0,.004)&&addHoopAt(socketSurface('SOCKET_Earring_R'),.012,silver,0,.004);
  }else if(kind==='nose'){
   ok=addOpenHoopAt(socketSurface('SOCKET_NoseRing'),.008,silver,.001);
  }else if(kind==='necklace'){
@@ -353,7 +358,7 @@ function addAccessories(kind){
   }
   }else if(kind==='nipple_left'||kind==='nipple_right'){
   const x=kind==='nipple_left'?.105:-.105;
-  ok=addHoopAt(socketSurface(kind==='nipple_left'?'SOCKET_Nipple_L':'SOCKET_Nipple_R'),.008,silver,0,.001);
+  ok=addHoopAt(socketSurface(kind==='nipple_left'?'SOCKET_Nipple_L':'SOCKET_Nipple_R'),.008,silver,0,.0005,true);
  }else if(kind==='clit'){
   const hit=socketSurface('SOCKET_ClitoralHood');
   if(!hit)ok=false;
