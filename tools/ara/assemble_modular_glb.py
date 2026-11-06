@@ -68,6 +68,14 @@ def add(target,buf,source_path,selector):
         if tn.get(k)!=sn.get(k): raise ValueError(f'Rigged mesh {k} mismatch in {source_path}')
     target_name=None
     if '=' in selector: selector,target_name=selector.split('=',1)
+    if selector.endswith('*'):
+        name=selector[:-1]
+        matches=[p for p in src['meshes'][sn['mesh']]['primitives'] if p.get('material') is not None and src['materials'][p['material']].get('name')==name]
+        if not matches: raise ValueError(f'{selector}: no matching primitives in {source_path}')
+        for occurrence in range(len(matches)):
+            sub=f'{name}#{occurrence+1}'+(f'={target_name}' if target_name else '')
+            target,buf=add(target,buf,source_path,sub)
+        return target,buf
     name=selector; occurrence=0
     if '#' in selector: name,nth=selector.rsplit('#',1); occurrence=int(nth)-1
     matches=[p for p in src['meshes'][sn['mesh']]['primitives'] if p.get('material') is not None and src['materials'][p['material']].get('name')==name]

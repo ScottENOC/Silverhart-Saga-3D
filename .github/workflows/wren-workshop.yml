@@ -292,9 +292,9 @@ jobs:
             /tmp/ara-generated/ara_wren_benchmark.glb "Briefs" \
             /tmp/ara-generated/ara_wren_tank_top.glb "Tank top" \
             /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
-            /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Bikini strings=Triangle bikini strings" \
+            /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Bikini strings*=Triangle bikini strings" \
             /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
-            /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "Bikini strings=String bikini strings"
+            /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "Bikini strings*=String bikini strings"
           python tools/ara/assemble_modular_glb.py \
             art/characters/ara/ara_wren_body.glb art/characters/ara/ara_wren_modular_underwear.glb \
             /tmp/ara-generated/ara_wren_benchmark.glb "Fatigue shirt" \
