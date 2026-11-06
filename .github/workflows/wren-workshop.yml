@@ -16,7 +16,7 @@ permissions:
   contents: read
 concurrency:
   group: wren-workshop
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   generate:
     runs-on: ubuntu-latest
