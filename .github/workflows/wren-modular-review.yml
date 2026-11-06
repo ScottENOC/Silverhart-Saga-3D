@@ -1,0 +1,57 @@
+name: Review Wren modular garments
+
+on:
+  workflow_run:
+    workflows: ["Build Wren Workshop"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  review-modular-character:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the exact Workshop build revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Download the generated character pipeline artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: character-pipeline-evaluation
+          path: /tmp/ara-assets
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Blender for multi-angle garment review
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Render the actual modular character with all garments
+        env:
+          REVIEW_INPUT: /tmp/ara-assets/ara_person_modular.glb
+          REVIEW_OUTPUT_DIR: review/modular
+        run: |
+          set -euo pipefail
+          test -s "$REVIEW_INPUT"
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python tools/blender/inspect_character.py
+          for view in front side rear three_quarter; do
+            test -s "review/modular/$view.png"
+          done
+
+      - name: Upload modular clothing review renders
+        uses: actions/upload-artifact@v4
+        with:
+          name: wren-modular-clothing-review
+          path: review/modular/*.png
+          if-no-files-found: error
+          retention-days: 14
