@@ -21,6 +21,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: godot-validation-${{ github.ref }}
@@ -42,6 +43,21 @@ jobs:
 
       - name: Verify engine version
         run: godot --version
+
+      # Fetch the exact Wren Workshop output used by the character pipeline.
+      - name: Download Wren Workshop character export
+        uses: actions/download-artifact@v4
+        with:
+          name: character-pipeline-evaluation
+          repository: ${{ github.repository }}
+          run-id: 41979224139
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/wren-character-assets
+
+      - name: Stage Wren Workshop character for Godot import
+        run: |
+          mkdir -p art/characters/wren
+          cp /tmp/wren-character-assets/ara_wren_mobile.glb art/characters/wren/ara_wren_mobile.glb
 
       - name: Import project and build global script class cache
         run: godot --headless --editor --path . --quit
