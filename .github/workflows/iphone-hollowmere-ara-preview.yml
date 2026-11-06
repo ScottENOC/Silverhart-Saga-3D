@@ -3,6 +3,8 @@ name: iPhone preview — Hollowmere Ara build
 on:
   push:
     branches: [feature/iphone-hollowmere-ara-preview]
+  pull_request:
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
@@ -92,6 +94,7 @@ jobs:
           find build/web -maxdepth 1 -type f -name '*.js' -print -quit | grep -q .
 
       - name: Publish to the private iPhone preview Space
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/iphone-hollowmere-ara-preview'
         env:
           HF_ADMIN_TOKEN: ${{ secrets.HF_ADMIN_TOKEN }}
           GITHUB_SHA: ${{ github.sha }}
