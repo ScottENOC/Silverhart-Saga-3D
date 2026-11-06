@@ -44,20 +44,20 @@ jobs:
       - name: Verify engine version
         run: godot --version
 
-      # Fetch the generic Ara base person from the current character pipeline build.
-      - name: Download Ara base person export
+      # Fetch Wren Talbot's actual Ara Workshop character export.
+      - name: Download Wren Workshop character export
         uses: actions/download-artifact@v4
         with:
-          name: ara-generated-models
+          name: character-pipeline-evaluation
           repository: ${{ github.repository }}
-          run-id: 42159056753
+          run-id: 41979224139
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: /tmp/ara-person-assets
+          path: /tmp/wren-character-assets
 
-      - name: Stage Ara base person for Godot import
+      - name: Stage Wren Workshop character for Godot import
         run: |
-          mkdir -p art/characters/ara
-          cp /tmp/ara-person-assets/ara_person_mobile.glb art/characters/ara/ara_person_mobile.glb
+          mkdir -p art/characters/wren
+          cp /tmp/wren-character-assets/ara_wren_mobile.glb art/characters/wren/ara_wren_mobile.glb
 
       - name: Import project and build global script class cache
         run: godot --headless --editor --path . --quit
