@@ -77,7 +77,7 @@ jobs:
           export EGL_PLATFORM=surfaceless
           export LIBGL_ALWAYS_SOFTWARE=1
           blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- "$INPUT" "$OUTPUT"
-          for outfit in skin halter dress pants halter_pants; do
+          for outfit in skin halter dress pants halter_pants lace_briefs lace_shirt lace_pants; do
             for view in front side rear; do
               test -s "$OUTPUT/$outfit/$view.png"
             done
