@@ -123,7 +123,7 @@ edit("src/core/garments/swimwear.ts", [
         }
         strands.push(cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.13), true, 5));
       }
-      parts.push({ mesh: merge(strands)!, material: { ...stringMat(st), name: 'Halter lace openwork' } });
+      parts.push({ mesh: merge(strands)!, material: { ...stringMat(st), name: 'Halter lace bra cups' } });
     } else {
       parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!, material: { ...m, doubleSided: true }, hides });
       // Piping along the cups' edges, on the fabric.
