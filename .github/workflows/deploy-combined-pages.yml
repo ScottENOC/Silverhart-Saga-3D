@@ -1,0 +1,80 @@
+name: Deploy combined Pages site
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Build Wren Workshop
+      - Build Godot Web Export
+    types: [completed]
+    branches: [dev]
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: combined-pages-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out site shell
+        uses: actions/checkout@v4
+
+      - name: Locate latest successful site and game builds
+        id: builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          WREN_RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          GAME_RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/godot-web-export.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          if [ -z "$WREN_RUN" ] || [ -z "$GAME_RUN" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Waiting for both the Wren Workshop site and Godot web export artifacts."
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "wren_run=$WREN_RUN" >> "$GITHUB_OUTPUT"
+          echo "game_run=$GAME_RUN" >> "$GITHUB_OUTPUT"
+
+      - name: Download latest Wren Workshop site
+        if: steps.builds.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: wren-workshop-site
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.builds.outputs.wren_run }}
+          github-token: ${{ github.token }}
+          path: site
+
+      - name: Download latest Godot browser build
+        if: steps.builds.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: godot-web-export
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.builds.outputs.game_run }}
+          github-token: ${{ github.token }}
+          path: site/game
+
+      - name: Configure GitHub Pages
+        if: steps.builds.outputs.ready == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Upload combined site
+        if: steps.builds.outputs.ready == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy combined site
+        if: steps.builds.outputs.ready == 'true'
+        uses: actions/deploy-pages@v4
