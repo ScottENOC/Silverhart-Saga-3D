@@ -1,0 +1,48 @@
+name: Capture Hollowmere map screenshots
+
+on:
+  push:
+    branches: [feature/opening-village]
+    paths:
+      - "scripts/world/**"
+      - "scenes/**"
+      - "tests/capture_hollowmere_overview.gd"
+      - ".github/workflows/hollowmere-screenshots.yml"
+  pull_request:
+    branches: [feature/male-anatomy-skinned-mesh]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hollowmere-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    name: Render village overview and three-quarter views
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Install virtual display and software renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri libegl1
+      - name: Import project
+        run: godot --headless --editor --path . --quit
+      - name: Capture Hollowmere screenshots
+        run: xvfb-run -a godot --path . --rendering-driver opengl3 --script res://tests/capture_hollowmere_overview.gd
+      - name: Upload map screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: hollowmere-map-screenshots
+          path: art/review/*.png
+          if-no-files-found: error
+          retention-days: 14
