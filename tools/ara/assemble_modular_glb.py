@@ -82,15 +82,6 @@ def add(target,buf,source_path,selector):
     if occurrence<0 or occurrence>=len(matches): raise ValueError(f'{selector}: found {len(matches)} in {source_path}; materials={[m.get("name") for m in src["materials"]]}')
     p=copy.deepcopy(matches[occurrence]); sm=copy.deepcopy(src['materials'][p['material']])
     sm['name']=target_name or (f'{name}.{occurrence:03d}' if occurrence else name)
-    # Reuse a previously appended material for other primitives that form the
-    # same garment (e.g. bikini cups plus several cord sections).
-    existing=next((i for i,x in enumerate(target.get('materials',[])) if x.get('name')==sm['name']),None)
-    if existing is not None:
-        p['material']=existing
-        target['meshes'][tn['mesh']]['primitives'].append(p)
-        print('Added',selector,'(',len(vertices),'vertices ) using shared material',sm['name'])
-        return target,buf
-
     ia=src['accessors'][p['indices']]; iv=src['bufferViews'][ia['bufferView']]
     if ia['componentType'] not in (5123,5125): raise ValueError('Unsupported index type')
     ifmt,size=COMP[ia['componentType']]; ioff=iv.get('byteOffset',0)+ia.get('byteOffset',0); istride=iv.get('byteStride',size)
@@ -105,6 +96,15 @@ def add(target,buf,source_path,selector):
     ia2=copy.deepcopy(ia); ia2['bufferView']=ivi; ia2.pop('byteOffset',None); ia2['min']=[min(new_indices)]; ia2['max']=[max(new_indices)]
     new_ia=len(target.setdefault('accessors',[])); target['accessors'].append(ia2)
     p['attributes']={k:amap[v] for k,v in p.get('attributes',{}).items()}; p['indices']=new_ia
+
+    # Reuse a previously appended material for other primitives that form the
+    # same garment (e.g. bikini cups plus several cord sections).
+    existing=next((i for i,x in enumerate(target.get('materials',[])) if x.get('name')==sm['name']),None)
+    if existing is not None:
+        p['material']=existing
+        target['meshes'][tn['mesh']]['primitives'].append(p)
+        print('Added',selector,'(',len(vertices),'vertices ) using shared material',sm['name'])
+        return target,buf
 
     tex=set()
     def scan(x):
