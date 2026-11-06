@@ -328,6 +328,7 @@ func _create_characters() -> void:
 func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, ara_model_id: String = "") -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
     var state := CharacterState.new(id, display_name, spawn_hex)
+    state.time_points = state.max_time_points
     simulation.register_character(state)
 
     var actor := HexActorPresentation.new()
