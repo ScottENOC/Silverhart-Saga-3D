@@ -48,7 +48,7 @@ jobs:
       - name: Download Ara base person export
         uses: actions/download-artifact@v4
         with:
-          name: character-pipeline-evaluation
+          name: ara-generated-models
           repository: ${{ github.repository }}
           run-id: 42159056753
           github-token: ${{ secrets.GITHUB_TOKEN }}
