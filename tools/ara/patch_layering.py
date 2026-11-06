@@ -131,7 +131,9 @@ edit("src/core/garments/swimwear.ts", [
     }
   }"""),
     ("  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },",
-     "  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },\n  { id: 'halter_bra_lace', label: 'Halter lace bra', slot: 'top', patterns: ['solid'], color: '#29242d', color2: '#987b91', build: (g, st) => bikiniTop(g, st, true) },")
+     "  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },\n  { id: 'halter_bra_lace', label: 'Halter lace bra', slot: 'top', patterns: ['solid'], color: '#29242d', color2: '#987b91', build: (g, st) => bikiniTop(g, st, true) },"),
+    ("  parts.push({ mesh: halter, material: stringMat(st), skinAt: trunkLookup(b, halter) });",
+     "  parts.push({ mesh: halter, material: lace ? { ...stringMat(st), name: 'Halter lace straps' } : stringMat(st), skinAt: trunkLookup(b, halter) });")
 ])
 
 # Add a backless dress whose skirt deliberately leaves a narrow opening at one side.
