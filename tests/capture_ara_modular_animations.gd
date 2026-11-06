@@ -94,6 +94,11 @@ func _capture() -> void:
 
 	_setup_stage()
 	await process_frame
+	var active_camera := root.get_viewport().get_camera_3d()
+	_check(active_camera != null, "Review viewport has an active camera")
+	if active_camera == null:
+		_finish()
+		return
 
 	for animation_data in ANIMATIONS:
 		var clip: String = animation_data["clip"]
@@ -158,11 +163,12 @@ func _setup_stage() -> void:
 	var camera := Camera3D.new()
 	camera.name = "AraAnimationReviewCamera"
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 2.25
+	camera.size = 2.8
 	camera.position = Vector3(2.8, 2.1, 5.2)
-	camera.look_at(Vector3(0.0, 0.86, 0.0), Vector3.UP)
-	camera.current = true
 	root.add_child(camera)
+	camera.look_at(Vector3(0.0, 0.95, 0.0), Vector3.UP)
+	camera.make_current()
+	print("ARA_REVIEW_CAMERA=", camera.get_path(), " active=", root.get_viewport().get_camera_3d() == camera)
 
 	var label := Label3D.new()
 	label.text = "WREN TALBOT  •  ARA MODULAR RIG"
