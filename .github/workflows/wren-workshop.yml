@@ -9,7 +9,6 @@ on:
       - "tools/blender/**"
       - "tools/ara/**"
       - "site/**"
-      - "docs/ARA_CHARACTER_EVALUATION.md"
       - "docs/CHARACTER_PIPELINE.md"
       - ".github/workflows/wren-workshop.yml"
 permissions:
