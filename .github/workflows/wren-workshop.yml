@@ -6,6 +6,7 @@ on:
     branches: [dev]
     paths:
       - "tools/blender/**"
+      - "tools/ara/**"
       - "site/**"
       - "docs/ARA_CHARACTER_EVALUATION.md"
       - ".github/workflows/wren-workshop.yml"
@@ -26,6 +27,7 @@ jobs:
           set -euo pipefail
           git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
           git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
+          python "$GITHUB_WORKSPACE/tools/ara/patch_halter_bra.py" /tmp/ara-3d-gen/src/core/garments/swimwear.ts
           cd /tmp/ara-3d-gen
           corepack enable
           pnpm install --no-frozen-lockfile
@@ -77,6 +79,29 @@ jobs:
           cp /tmp/ara-wren.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren.params.json"
           test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_benchmark.glb"
 
+          # Independent garment-slot preview: same Wren, with the new open-lace
+          # halter bra selected in Ara's top slot. The normal shirt preview is untouched.
+          python - <<'PY'
+          import json
+          p = json.load(open('/tmp/ara-wren.params.json'))
+          p.update({
+              "name": "Wren Talbot - Halter lace garment preview",
+              "top": "halter_bra_lace",
+              "garmentStyles": {
+                  **p.get("garmentStyles", {}),
+                  "halter_bra_lace": {"pattern":"solid","color":"#3b2529","color2":"#d6b5a5"}
+              }
+          })
+          json.dump(p, open('/tmp/ara-wren-halter.params.json', 'w'), indent=2)
+          PY
+          mkdir -p /tmp/ara-halter-out
+          npm run export -- --params /tmp/ara-wren-halter.params.json --detail high --formats glb --out /tmp/ara-halter-out
+          HALTER_GLB="$(find /tmp/ara-halter-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$HALTER_GLB"
+          cp "$HALTER_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter_bra.glb"
+          cp /tmp/ara-wren-halter.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter.params.json"
+          test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter_bra.glb"
+
           # Separate mobile preview: retain the game rig, but reduce geometry detail
           # and bake facial expression / omit animation clips and facial blend shapes.
           python - <<'PY'
@@ -99,6 +124,28 @@ jobs:
           cp "$MOBILE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
           cp /tmp/ara-wren-mobile.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.params.json"
           test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
+
+          # Low-detail version of the same selectable halter-bra preview for iPhone.
+          python - <<'PY'
+          import json
+          p = json.load(open('/tmp/ara-wren-mobile.params.json'))
+          p.update({
+              "name": "Wren Talbot - Halter lace mobile preview",
+              "top": "halter_bra_lace",
+              "garmentStyles": {
+                  **p.get("garmentStyles", {}),
+                  "halter_bra_lace": {"pattern":"solid","color":"#3b2529","color2":"#d6b5a5"}
+              }
+          })
+          json.dump(p, open('/tmp/ara-wren-halter-mobile.params.json', 'w'), indent=2)
+          PY
+          mkdir -p /tmp/ara-halter-mobile-out
+          npm run export -- --params /tmp/ara-wren-halter-mobile.params.json --detail low --formats glb --out /tmp/ara-halter-mobile-out
+          HALTER_MOBILE_GLB="$(find /tmp/ara-halter-mobile-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$HALTER_MOBILE_GLB"
+          cp "$HALTER_MOBILE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter_bra_mobile.glb"
+          cp /tmp/ara-wren-halter-mobile.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter_mobile.params.json"
+          test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter_bra_mobile.glb"
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -108,6 +155,10 @@ jobs:
             art/characters/ara/ara_wren.params.json
             art/characters/ara/ara_wren_mobile.glb
             art/characters/ara/ara_wren_mobile.params.json
+            art/characters/ara/ara_wren_halter_bra.glb
+            art/characters/ara/ara_wren_halter.params.json
+            art/characters/ara/ara_wren_halter_bra_mobile.glb
+            art/characters/ara/ara_wren_halter_mobile.params.json
           if-no-files-found: error
           retention-days: 14
       - name: Assemble private viewer site
@@ -116,6 +167,8 @@ jobs:
           mkdir -p site/assets
           cp art/characters/ara/ara_wren_benchmark.glb site/assets/ara_wren_benchmark.glb
           cp art/characters/ara/ara_wren_mobile.glb site/assets/ara_wren_mobile.glb
+          cp art/characters/ara/ara_wren_halter_bra.glb site/assets/ara_wren_halter_bra.glb
+          cp art/characters/ara/ara_wren_halter_bra_mobile.glb site/assets/ara_wren_halter_bra_mobile.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
