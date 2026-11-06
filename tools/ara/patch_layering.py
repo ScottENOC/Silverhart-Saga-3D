@@ -89,23 +89,20 @@ edit("src/core/garments/catalog.ts", [
      "offset: (v) => cm(1.0) + (g.layered.underTop ? cm(0.7) : 0), tile: 0.3, relax: 3,")
 ])
 
-# Build the lace halter from Ara's own fitted bikini-cup geometry. This preserves
-# its anatomically fitted lower cup, continuous back band and neck straps; only
-# the cup surface changes from solid fabric to openwork cords.
+# Give the same fitted halter two genuinely different fabrics. Lace uses Ara's
+# corded lace texture; fishnet uses a clean open diamond lattice with no opaque cup.
 edit("src/core/garments/swimwear.ts", [
     ("function bikiniTop(g: GCtx, st: GarmentStyle): GPart[] {",
-     "function bikiniTop(g: GCtx, st: GarmentStyle, lace = false): GPart[] {"),
+     "function bikiniTop(g: GCtx, st: GarmentStyle, mode: 'lace' | 'fishnet' | null = null): GPart[] {"),
     ("  const m = swimMat(g, 'Bikini top', st);",
-     "  const m = swimMat(g, lace ? 'Halter lace' : 'Bikini top', st);"),
+     "  const m = swimMat(g, mode === 'lace' ? 'Halter lace bra' : mode === 'fishnet' ? 'Halter fishnet bra' : 'Bikini top', mode ? { ...st, pattern: mode } : st);"),
     ("""  if (cupMeshes.length) {
     parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!, material: { ...m, doubleSided: true }, hides });
     // Piping along the cups' edges, on the fabric.
     parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: stringMat(st) });
   }""",
      """  if (cupMeshes.length) {
-    if (lace) {
-      // Actual openwork geometry: a fine diamond lattice spans the complete cup,
-      // including the lower half. There is no opaque panel behind the strands.
+    if (mode === 'fishnet') {
       const strands: PolyMesh[] = [];
       for (const gr of cupMeshes) {
         for (let row = 0; row < gr.length; row += 3)
@@ -123,19 +120,25 @@ edit("src/core/garments/swimwear.ts", [
         }
         strands.push(cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.13), true, 5));
       }
-      parts.push({ mesh: merge(strands)!, material: { ...stringMat(st), name: 'Halter lace bra cups' } });
+      parts.push({ mesh: merge(strands)!, material: { ...stringMat(st), name: 'Halter fishnet bra cups' } });
     } else {
-      parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!, material: { ...m, doubleSided: true }, hides });
-      // Piping along the cups' edges, on the fabric.
-      parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: stringMat(st) });
+      // Lace retains the complete fitted cup shape, with the corded lace texture
+      // and alpha-cutout net revealing the skin beneath it.
+      parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!,
+        material: { ...m, doubleSided: true }, hides: mode === 'lace' ? undefined : hides });
+      parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!,
+        material: { ...stringMat(st), name: mode === 'lace' ? 'Halter lace bra piping' : 'Bikini top piping' } });
     }
   }"""),
     ("  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },",
-     "  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },\n  { id: 'halter_bra_lace', label: 'Halter lace bra', slot: 'top', patterns: ['solid'], color: '#29242d', color2: '#987b91', build: (g, st) => bikiniTop(g, st, true) },"),
-    ("  parts.push({ mesh: halter, material: stringMat(st), skinAt: trunkLookup(b, halter) });",
-     "  parts.push({ mesh: halter, material: lace ? { ...stringMat(st), name: 'Halter lace straps' } : stringMat(st), skinAt: trunkLookup(b, halter) });")
-])
-
+     "  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },\n  { id: 'halter_bra_lace', label: 'Halter lace bra', slot: 'top', patterns: ['lace'], color: '#29242d', color2: '#987b91', build: (g, st) => bikiniTop(g, st, 'lace') },\n  { id: 'halter_bra_fishnet', label: 'Halter fishnet bra', slot: 'top', patterns: ['fishnet'], color: '#29242d', color2: '#987b91', build: (g, st) => bikiniTop(g, st, 'fishnet') },"),
+    ("parts.push({ mesh: halter, material: stringMat(st), skinAt: trunkLookup(b, halter) });",
+     "parts.push({ mesh: halter, material: mode === 'lace' ? { ...swimMat(g, 'Halter lace bra straps', { ...st, pattern: 'lace' }), name: 'Halter lace bra straps', doubleSided: true } : mode === 'fishnet' ? { ...stringMat(st), name: 'Halter fishnet bra straps' } : stringMat(st), skinAt: trunkLookup(b, halter) });"),
+    ("strings.push(cord(layOn(skin, spline([l, ...back.filter((_, i) => i % 4 === 0), r], 4), cm(0.3)), cm(0.14), false, 6));",
+     "strings.push(cord(layOn(skin, spline([l, ...back.filter((_, i) => i % 4 === 0), r], 4), cm(0.3)), mode ? cm(0.22) : cm(0.14), false, 6));"),
+    ("strings.push(cord(laid, cm(0.13), false, 6));",
+     "strings.push(cord(laid, mode ? cm(0.20) : cm(0.13), false, 6));"),
+]);
 # Add a backless dress whose skirt deliberately leaves a narrow opening at one side.
 # The skirt arc is 300 degrees, leaving a 60-degree side slit rather than a front gap.
 edit("src/core/garments/catalog.ts", [
@@ -169,20 +172,38 @@ edit("src/core/garments/catalog.ts", [
 print("Ara underTop, full-cup openwork halter, backless side-slit dress and briefs layering patch applied.")
 
 
+
+# Fishnet is a separate open diamond mesh, not the corded floral/scroll lace weave.
+edit("src/core/garments/textures.ts", [
+    ("  | 'solid' | 'camo'", "  | 'solid' | 'fishnet' | 'camo'"),
+    ("  'solid', 'khaki',", "  'solid', 'fishnet', 'khaki',"),
+    ("    case 'lace': {", `    case 'fishnet': {
+      const N = 28;
+      return render(S, (u, v) => {
+        const a = frac((u + v) * N), b = frac((u - v) * N);
+        const da = Math.min(a, 1 - a), db = Math.min(b, 1 - b);
+        const thread = Math.min(da, db) < 0.055;
+        const w = weave(u, v, 220);
+        return { c: mul(A, 0.88 + 0.12 * w), a: thread ? 1 : 0, h: thread ? 0.7 : 0 };
+      }, true, 1.8);
+    }
+    case 'lace': {`)
+]);
+
 # Permit the lace weave on the three base garment shapes used for the optional
 # lace briefs, shirt and trousers. Geometry stays Ara-fitted to the same body;
 # only the fabric pattern changes in the generated variant.
 edit("src/core/garments/catalog.ts", [
     ("id: 'fatigue_shirt', label: 'Fatigue shirt', slot: 'top', patterns: ['camo', 'solid', 'khaki']",
-     "id: 'fatigue_shirt', label: 'Fatigue shirt', slot: 'top', patterns: ['camo', 'solid', 'khaki', 'lace']"),
+     "id: 'fatigue_shirt', label: 'Fatigue shirt', slot: 'top', patterns: ['camo', 'solid', 'khaki', 'lace', 'fishnet']"),
     ("id: 'briefs', label: 'Briefs', slot: 'bottom', patterns: ['solid']",
-     "id: 'briefs', label: 'Briefs', slot: 'bottom', patterns: ['solid', 'lace']"),
+     "id: 'briefs', label: 'Briefs', slot: 'bottom', patterns: ['solid', 'lace', 'fishnet']"),
     ("id: 'fatigue_pants', label: 'Fatigue pants', slot: 'bottom', patterns: ['camo', 'khaki', 'solid']",
-     "id: 'fatigue_pants', label: 'Fatigue pants', slot: 'bottom', patterns: ['camo', 'khaki', 'solid', 'lace']"),
+     "id: 'fatigue_pants', label: 'Fatigue pants', slot: 'bottom', patterns: ['camo', 'khaki', 'solid', 'lace', 'fishnet']"),
 ])
 edit("src/core/garments/swimwear.ts", [
     ("id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard']",
-     "id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard', 'lace']"),
+     "id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard', 'lace', 'fishnet']"),
 ])
 
 
