@@ -36,13 +36,101 @@ func _capture_views() -> void:
         quit(1)
         return
 
+    var terrain_renderer := terrain_scene.get_node_or_null("ElevationPrototypeTerrain") as HexTerrainRenderer
+    if terrain_renderer == null:
+        push_error("Terrain prototype is missing its HexTerrainRenderer.")
+        quit(1)
+        return
+    var terrain_body := terrain_renderer.get_node_or_null("TerrainCollision") as StaticBody3D
+    if terrain_body == null:
+        push_error("Terrain renderer did not create TerrainCollision.")
+        quit(1)
+        return
+    var terrain_shape_node := terrain_body.get_node_or_null("TerrainCollisionShape") as CollisionShape3D
+    if terrain_shape_node == null:
+        push_error("TerrainCollision is missing its named TerrainCollisionShape child.")
+        print("TerrainCollision children: ", terrain_body.get_children().map(func(child): return "%s (%s)" % [child.name, child.get_class()]))
+        quit(1)
+        return
+    var terrain_shape := terrain_shape_node.shape as ConcavePolygonShape3D
+    if terrain_shape == null:
+        push_error("TerrainCollisionShape does not contain a ConcavePolygonShape3D.")
+        quit(1)
+        return
+    var face_count := terrain_shape.get_faces().size() / 3 if terrain_shape != null else 0
+    print("Terrain collider diagnostics: faces=%d layer=%d mask=%d disabled=%s" % [
+        face_count, terrain_body.collision_layer, terrain_body.collision_mask, terrain_shape_node.disabled
+    ])
+
+    # First prove the terrain collision is queryable at the actor start points.
+    # This separates a missing / misoriented terrain collider from a character
+    # controller or spawn-height problem.
+    var space_state: PhysicsDirectSpaceState3D = terrain_scene.get_world_3d().direct_space_state
+    for actor_name in ["ValleyCharacter", "SlopeCharacter", "RidgeCharacter", "RidgeWalker"]:
+        var probe_actor := terrain_scene.get_node_or_null(actor_name) as CharacterBody3D
+        if probe_actor == null:
+            push_error("Missing terrain test actor: %s" % actor_name)
+            quit(1)
+            return
+        var probe_from := probe_actor.global_position + Vector3.UP * 8.0
+        var probe_to := probe_actor.global_position + Vector3.DOWN * 8.0
+        var query := PhysicsRayQueryParameters3D.create(probe_from, probe_to)
+        query.collision_mask = 0xFFFFFFFF
+        query.exclude = [probe_actor.get_rid()]
+        var hit: Dictionary = space_state.intersect_ray(query)
+        if hit.is_empty():
+            # A second probe accepting back faces distinguishes reversed
+            # triangle winding from a missing/unregistered collision shape.
+            query.hit_back_faces = true
+            hit = space_state.intersect_ray(query)
+            if not hit.is_empty():
+                push_error("Terrain ray only hits back faces for %s; inspect triangle winding. Hit normal: %s" % [actor_name, hit.normal])
+                quit(1)
+                return
+            push_error("Terrain collision ray missed even with back-face hits enabled at %s for %s" % [probe_actor.global_position, actor_name])
+            quit(1)
+            return
+        print("Terrain ray hit for %s at %s on %s with normal %s" % [actor_name, hit.position, hit.collider.name, hit.normal])
+
+    # Keep the moving Wren on the ridge shoulder long enough to traverse along it.
+    # The steep escarpment is intentionally not treated as a walkable ramp.
+    var ridge_walker := terrain_scene.get_node("RidgeWalker") as CharacterBody3D
+    var walker_start := ridge_walker.global_position
+
+    # Let the CharacterBody3D actors settle and give RidgeWalker one second of
+    # movement along the ridge shoulder.
+    for _frame in range(60):
+        await physics_frame
+    for actor_name in ["ValleyCharacter", "SlopeCharacter", "RidgeCharacter", "RidgeWalker"]:
+        var actor := terrain_scene.get_node_or_null(actor_name) as CharacterBody3D
+        if actor == null:
+            push_error("Missing terrain test actor: %s" % actor_name)
+            quit(1)
+            return
+        if not actor.is_on_floor():
+            push_error("Terrain test actor did not ground on the mesh: %s at %s" % [actor_name, actor.global_position])
+            quit(1)
+            return
+        print("Grounded %s at %s" % [actor_name, actor.global_position])
+
+    var walker_distance := ridge_walker.global_position.z - walker_start.z
+    if walker_distance < 1.0:
+        push_error("RidgeWalker did not make meaningful progress along the ridge: dz=%.3f" % walker_distance)
+        quit(1)
+        return
+    print("RidgeWalker traversed the ridge shoulder: dz=%.3f final=%s" % [
+        walker_distance, ridge_walker.global_position
+    ])
+
     var views := [
-        {"name": "terrain-overview.png", "yaw": 0.0, "pitch": -52.0, "zoom": 34.0},
-        {"name": "terrain-overhead.png", "yaw": 0.0, "pitch": -78.0, "zoom": 34.0},
-        {"name": "terrain-ridge-oblique.png", "yaw": 38.0, "pitch": -42.0, "zoom": 25.0}
+        {"name": "terrain-overview.png", "position": Vector3(0.0, 0.8, 0.0), "yaw": 0.0, "pitch": -52.0, "zoom": 34.0},
+        {"name": "terrain-overhead.png", "position": Vector3(0.0, 0.8, 0.0), "yaw": 0.0, "pitch": -78.0, "zoom": 34.0},
+        {"name": "terrain-ridge-oblique.png", "position": Vector3(0.0, 0.8, 0.0), "yaw": 38.0, "pitch": -42.0, "zoom": 25.0},
+        {"name": "terrain-character-grounding.png", "position": Vector3(4.2, 3.1, 0.0), "yaw": 24.0, "pitch": -38.0, "zoom": 13.0}
     ]
 
     for view in views:
+        rig.position = view["position"]
         rig.rotation_degrees.y = view["yaw"]
         pitch_pivot.rotation_degrees.x = view["pitch"]
         rig.set_zoom(view["zoom"])

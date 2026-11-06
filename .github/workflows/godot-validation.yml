@@ -2,7 +2,7 @@ name: Godot validation
 
 on:
   pull_request:
-    branches: [dev]
+    branches: [dev, feature/port-action-economy]
     paths:
       - "project.godot"
       - "scenes/**"
@@ -10,7 +10,7 @@ on:
       - "tests/**"
       - ".github/workflows/godot-validation.yml"
   push:
-    branches: [dev, feature/port-action-economy]
+    branches: [dev, feature/port-action-economy, feature/terrain-character-grounding-test]
     paths:
       - "project.godot"
       - "scenes/**"
@@ -21,6 +21,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: godot-validation-${{ github.ref }}
@@ -42,6 +43,21 @@ jobs:
 
       - name: Verify engine version
         run: godot --version
+
+      # Fetch Wren Talbot's actual Ara Workshop character export.
+      - name: Download Wren Workshop character export
+        uses: actions/download-artifact@v4
+        with:
+          name: character-pipeline-evaluation
+          repository: ${{ github.repository }}
+          run-id: 41979224139
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/wren-character-assets
+
+      - name: Stage Wren Workshop character for Godot import
+        run: |
+          mkdir -p art/characters/wren
+          cp /tmp/wren-character-assets/ara_wren_mobile.glb art/characters/wren/ara_wren_mobile.glb
 
       - name: Import project and build global script class cache
         run: godot --headless --editor --path . --quit
@@ -75,6 +91,7 @@ jobs:
           test -s artifacts/terrain-overview.png
           test -s artifacts/terrain-overhead.png
           test -s artifacts/terrain-ridge-oblique.png
+          test -s artifacts/terrain-character-grounding.png
 
       - name: Upload terrain screenshots
         if: always()
