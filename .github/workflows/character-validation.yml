@@ -40,8 +40,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Compile Blender Python scripts
-        run: python -m compileall -q tools/blender
+      - name: Compile Blender and Ara Python tools
+        run: python -m compileall -q tools/blender tools/ara
+      - name: Test modular GLB morph-target assembly
+        run: python -m unittest discover -s tests -p 'test_assemble_modular_glb.py' -v
 
   blender-build-review:
     name: Build Wren body and render four review angles
