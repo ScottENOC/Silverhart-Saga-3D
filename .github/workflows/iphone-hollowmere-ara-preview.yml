@@ -4,7 +4,7 @@ on:
   push:
     branches: [feature/iphone-hollowmere-ara-preview]
   pull_request:
-    branches: [dev]
+    branches: [feature/opening-village]
   workflow_dispatch:
 
 permissions:
