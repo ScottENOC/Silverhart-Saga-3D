@@ -34,10 +34,10 @@ button:disabled{opacity:.4}
 </section>
 <section><h2>Clothing · body options</h2><p class="note">Use Body · no clothing to inspect the generated adult base body and its new external anatomy. The full clothed model has a locally expanded trouser/briefs area to make room for the anatomy.</p><div class="buttons"><button id="showClothed">Clothed</button><button id="showBody">No clothing</button><button id="showTattooBody">Tattooed body</button><button id="showUnderwear">Underwear</button></div></section>
 <section id="equipmentSection"><h2>Equipment slots</h2>
-<div class="row"><span>Lower underwear</span><select id="equipmentLower"><option value="empty">Empty</option><option value="briefs" selected>Briefs</option><option value="string">String bikini bottom</option><option value="lace">Lace briefs · string-cut</option></select></div>
-<div class="row"><span>Upper underwear</span><select id="equipmentUpper"><option value="empty">Empty</option><option value="bra" selected>Bra</option><option value="halter">Halter lace bra</option><option value="triangle">Triangle bikini top</option></select></div>
-<div class="row"><span>Pants</span><select id="equipmentPants"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue pants</option><option value="lace">Lace pants</option></select></div>
-<div class="row"><span>Shirt</span><select id="equipmentShirt"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue shirt</option><option value="tank">Tank top</option><option value="lace">Lace shirt</option></select></div>
+<div class="row"><span>Briefs</span><select id="equipmentLower"><option value="empty">Empty</option><option value="briefs" selected>Briefs</option><option value="string">String bikini bottom</option><option value="lace">Lace briefs</option><option value="fishnet">Fishnet briefs</option></select></div>
+<div class="row"><span>Bra</span><select id="equipmentUpper"><option value="empty">Empty</option><option value="bra" selected>Bra</option><option value="lace">Lace halter bra</option><option value="fishnet">Fishnet halter bra</option><option value="triangle">Triangle bikini top</option></select></div>
+<div class="row"><span>Pants</span><select id="equipmentPants"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue pants</option><option value="lace">Lace pants</option><option value="fishnet">Fishnet pants</option></select></div>
+<div class="row"><span>Shirt</span><select id="equipmentShirt"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue shirt</option><option value="tank">Tank top</option><option value="lace">Lace shirt</option><option value="fishnet">Fishnet shirt</option></select></div>
 <div class="row"><span>Armour</span><select id="equipmentArmour"><option value="empty" selected>Empty</option><option value="leather">Ara leather armour</option></select></div>
 <p class="note" id="equipmentStatus">Each slot is independent. Empty removes that layer without removing the body.</p></section>
 <section><h2>Accessories · placement preview</h2>
@@ -158,10 +158,10 @@ let originalMaterials=new Map(), accessoryGroup=null, selectedMaterial=null;
 const materialSelect=document.querySelector('#materialSelect');
 const equipmentState={lower:'briefs',upper:'bra',pants:'fatigue',shirt:'fatigue',armour:'empty'};
 const equipmentGroups={
- lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom','String bikini strings'],lace:['Lace briefs','Lace briefs ties']},
- upper:{empty:[],bra:['Bra'],halter:['Halter lace bra cups','Halter lace bra straps'],triangle:['Triangle bikini top','Triangle bikini strings']},
- pants:{empty:[],fatigue:['Fatigue pants','Fatigue pants.001'],lace:['Lace pants']},
- shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top'],lace:['Lace shirt'],backless:['Backless slit dress','Pencil skirt']},
+ lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom','String bikini strings'],lace:['Lace briefs','Lace briefs ties'],fishnet:['Fishnet briefs','Fishnet briefs ties']},
+ upper:{empty:[],bra:['Bra'],lace:['Halter lace bra cups','Halter lace bra straps'],fishnet:['Halter fishnet bra cups','Halter fishnet bra straps'],triangle:['Triangle bikini top','Triangle bikini strings']},
+ pants:{empty:[],fatigue:['Fatigue pants','Fatigue pants.001'],lace:['Lace pants'],fishnet:['Fishnet pants']},
+ shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top'],lace:['Lace shirt'],fishnet:['Fishnet shirt'],backless:['Backless slit dress','Pencil skirt']},
  armour:{empty:[],leather:['Leather armor']}
 };
 function applyEquipment(){
