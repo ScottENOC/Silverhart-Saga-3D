@@ -13,8 +13,9 @@ on:
       - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
+  actions: read
 concurrency:
-  group: wren-workshop
+  group: wren-workshop-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   generate:
@@ -258,6 +259,29 @@ jobs:
           # two previews are consumed as raw Ara exports by the Workshop.
           cp /tmp/ara-generated/ara_person_benchmark.glb art/characters/ara/
           cp /tmp/ara-generated/ara_person_mobile.glb art/characters/ara/
+      - name: Locate latest successful Hollowmere NPC build
+        id: hollowmere-build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_id="$(gh run list --workflow .github/workflows/hollowmere-npcs.yml --branch feature/opening-village --limit 20 --json databaseId,conclusion --jq '[.[] | select(.conclusion == "success")][0].databaseId')"
+          test -n "$run_id" && test "$run_id" != "null"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+      - name: Download Hollowmere Ara model pack
+        uses: actions/download-artifact@v4
+        with:
+          name: hollowmere-npc-models
+          run-id: ${{ steps.hollowmere-build.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: /tmp/hollowmere-npc-models
+      - name: Restore Hollowmere Ara model pack
+        run: |
+          set -euo pipefail
+          mkdir -p art/characters/hollowmere
+          cp /tmp/hollowmere-npc-models/*.glb art/characters/hollowmere/
+          cp /tmp/hollowmere-npc-models/*.params.json art/characters/hollowmere/
+          cp /tmp/hollowmere-npc-models/profiles.json art/characters/hollowmere/
       - name: Collect integrated models and review renders
         uses: actions/download-artifact@v4
         with:
@@ -321,6 +345,9 @@ jobs:
             art/characters/ara/*.glb
             art/characters/ara/*.params.json
             art/characters/ara/review/**
+            art/characters/hollowmere/*.glb
+            art/characters/hollowmere/*.params.json
+            art/characters/hollowmere/profiles.json
           if-no-files-found: error
           retention-days: 14
       - name: Assemble private viewer site
@@ -333,6 +360,9 @@ jobs:
           cp art/characters/ara/ara_person_mobile.glb site/assets/ara_person_mobile.glb
           cp art/characters/ara/ara_person_body.glb site/assets/ara_person_body.glb
           cp art/characters/ara/ara_person_tattoo_body.glb site/assets/ara_person_tattoo_body.glb
+          mkdir -p site/assets/hollowmere
+          cp art/characters/hollowmere/*.glb site/assets/hollowmere/
+          cp art/characters/hollowmere/profiles.json site/assets/hollowmere/profiles.json
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
