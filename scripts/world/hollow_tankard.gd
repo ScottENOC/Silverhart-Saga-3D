@@ -2,6 +2,7 @@ class_name HollowTankard
 extends Node3D
 
 const MODULAR_CHARACTER_ASSEMBLER = preload("res://scripts/presentation/modular_character_assembler.gd")
+const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -100,17 +101,17 @@ func _create_simulation() -> void:
     simulation.clock.set_world_seconds(11.0 * 3600.0)
     add_child(simulation)
 
-    # A small ring of outdoor cells surrounds the building. The room and
-    # exterior use the same continuous axial grid.
-    for q in range(-7, 8):
-        for r in range(-7, 8):
+    # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
+    for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
+        for r in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
             var hex := Vector2i(q, r)
-            var world := HexGrid.axial_to_world(hex, HEX_RADIUS)
-            if absf(world.x) > 12.0 or absf(world.z) > 10.0:
+            if not HollowmereVillageData.is_in_bounds(hex):
                 continue
+            var world := HexGrid.axial_to_world(hex, HEX_RADIUS)
             var inside_room: bool = absf(world.x) < ROOM_HALF_WIDTH - 0.2 and absf(world.z) < ROOM_HALF_DEPTH - 0.2
-            var blocked: bool = _is_wall_cell_blocked(world) or (inside_room and _is_furniture_cell_blocked(world))
-            simulation.map_data.add_cell(hex, 0.0, not blocked, "timber_floor" if inside_room else "grass")
+            var blocked: bool = _is_wall_cell_blocked(world) or (inside_room and _is_furniture_cell_blocked(world)) or HollowmereVillageData.is_blocked(hex)
+            var terrain_id := "timber_floor" if inside_room else HollowmereVillageData.terrain_id_at(hex)
+            simulation.map_data.add_cell(hex, 0.0, not blocked, terrain_id)
 
     simulation.character_moved.connect(_on_character_moved)
 
@@ -296,19 +297,37 @@ func _create_furniture() -> void:
     _add_box(furniture, "StoolSeat", Vector3(5.9, 0.85, -2.2), Vector3(0.7, 0.12, 0.7), dark_wood_material)
 
 func _create_characters() -> void:
+    # The player remains a neutral placeholder until a player-appearance
+    # choice is made. Every named village character is loaded from the shared
+    # Ara profile manifest and its generated GLB when that asset pack is installed.
     _spawn_character("player", "You", Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true)
-    _spawn_character("companion_wren_talbot", "Wren Talbot", Vector2i(-2, 1), Color(0.20, 0.30, 0.48))
-    _spawn_character("garrick_holt", "Garrick Holt", Vector2i(3, -3), Color(0.46, 0.34, 0.18))
-    _spawn_character("mira_ashbrook", "Mira Ashbrook", Vector2i(1, -2), Color(0.38, 0.24, 0.43))
-    _spawn_character("oskar_vinn", "Oskar Vinn", Vector2i(2, -2), Color(0.22, 0.39, 0.32))
-    _spawn_character("dray_coltayne", "Dray Coltayne", Vector2i(-1, 4), Color(0.40, 0.22, 0.20))
-    _spawn_character("tomlin_brask", "Tomlin Brask", Vector2i(0, 4), Color(0.42, 0.32, 0.23))
-    _spawn_character("hask_greel", "Hask Greel", Vector2i(1, 3), Color(0.31, 0.30, 0.27))
 
-func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false) -> void:
+    var profile_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
+    if profile_file == null:
+        push_error("Hollowmere character manifest is missing.")
+        return
+    var parsed: Variant = JSON.parse_string(profile_file.get_as_text())
+    if not parsed is Dictionary:
+        push_error("Hollowmere character manifest is not valid JSON.")
+        return
+    for profile_variant in parsed.get("characters", []):
+        if not profile_variant is Dictionary:
+            continue
+        var profile: Dictionary = profile_variant
+        var coordinates: Array = profile.get("hex", [0, 0])
+        if coordinates.size() < 2:
+            continue
+        var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
+        var actor_id := str(profile.get("game_id", profile.get("id", "")))
+        var model_id := str(profile.get("id", ""))
+        var display_name := str(profile.get("name", actor_id))
+        if actor_id.is_empty() or model_id.is_empty():
+            continue
+        _spawn_character(actor_id, display_name, spawn, Color(0.42, 0.34, 0.25), false, model_id)
+
+func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, ara_model_id: String = "") -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
     var state := CharacterState.new(id, display_name, spawn_hex)
-    state.time_points = state.max_time_points
     simulation.register_character(state)
 
     var actor := HexActorPresentation.new()
@@ -317,11 +336,20 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.set_meta("character_id", id)
     actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
 
-    var is_wren: bool = id == "companion_wren_talbot"
     var model_loaded := false
-    if is_wren:
-        # Appearance is assembled from independent GLBs on one shared rig.
-        # Later character appearance data can replace any slot at runtime.
+    if not ara_model_id.is_empty():
+        var ara_model := ARA_CHARACTER_ACTOR.new()
+        ara_model.name = "CharacterModel"
+        actor.add_child(ara_model)
+        model_loaded = ara_model.configure("res://art/characters/hollowmere/%s.glb" % ara_model_id)
+        if not model_loaded:
+            actor.remove_child(ara_model)
+            ara_model.queue_free()
+
+    var is_wren: bool = id == "companion_wren_talbot"
+    if not model_loaded and is_wren:
+        # Preserve the earlier modular Wren path as a fallback for local
+        # checkouts that have not installed the generated Ara village pack.
         var character_model := MODULAR_CHARACTER_ASSEMBLER.new()
         character_model.name = "CharacterModel"
         actor.add_child(character_model)
@@ -337,8 +365,8 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         if not model_loaded:
             character_model.queue_free()
 
-    # Keep the simple capsule-and-head actors for everyone else, and as a
-    # graceful fallback if the Wren asset is missing or fails to instantiate.
+    # Capsule fallback keeps the map testable before the Ara GLB artifact is
+    # copied into art/characters/hollowmere/.
     if not model_loaded:
         var body := MeshInstance3D.new()
         var body_mesh := CapsuleMesh.new()
@@ -373,7 +401,8 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
 func _create_camera() -> void:
     camera_rig = OrbitCameraRig.new()
     camera_rig.name = "OrbitCameraRig"
-    camera_rig.zoom_distance = 22.0
+    camera_rig.max_zoom = 90.0
+    camera_rig.zoom_distance = 28.0
 
     var pitch_pivot := Node3D.new()
     pitch_pivot.name = "PitchPivot"
@@ -486,21 +515,24 @@ func _on_camera_zoom_changed(value: float) -> void:
     if is_instance_valid(zoom_slider):
         zoom_slider.set_value_no_signal(value)
 
-func _get_wren_model() -> ModularCharacterAssembler:
+func _get_wren_model() -> Node3D:
     var wren: Node3D = actor_by_id.get("companion_wren_talbot") as Node3D
     if wren == null:
         return null
-    return wren.get_node_or_null("CharacterModel") as ModularCharacterAssembler
+    return wren.get_node_or_null("CharacterModel") as Node3D
 
 func _toggle_wren_bra() -> void:
     var model := _get_wren_model()
     if model == null:
         return
     wren_bra_enabled = not wren_bra_enabled
-    if wren_bra_enabled:
-        model.set_component("underwear_bra", "strapless")
-    else:
-        model.clear_slot("underwear_bra")
+    if model is AraCharacterActor:
+        (model as AraCharacterActor).set_garment_visible("Bra", wren_bra_enabled)
+    elif model is ModularCharacterAssembler:
+        if wren_bra_enabled:
+            (model as ModularCharacterAssembler).set_component("underwear_bra", "strapless")
+        else:
+            (model as ModularCharacterAssembler).clear_slot("underwear_bra")
     bra_toggle_button.text = "Bra: " + ("on" if wren_bra_enabled else "off")
 
 func _toggle_wren_briefs() -> void:
@@ -508,10 +540,13 @@ func _toggle_wren_briefs() -> void:
     if model == null:
         return
     wren_briefs_enabled = not wren_briefs_enabled
-    if wren_briefs_enabled:
-        model.set_component("underwear_briefs", "full_coverage")
-    else:
-        model.clear_slot("underwear_briefs")
+    if model is AraCharacterActor:
+        (model as AraCharacterActor).set_garment_visible("Briefs", wren_briefs_enabled)
+    elif model is ModularCharacterAssembler:
+        if wren_briefs_enabled:
+            (model as ModularCharacterAssembler).set_component("underwear_briefs", "full_coverage")
+        else:
+            (model as ModularCharacterAssembler).clear_slot("underwear_briefs")
     briefs_toggle_button.text = "Briefs: " + ("on" if wren_briefs_enabled else "off")
 
 func _switch_party_member() -> void:
