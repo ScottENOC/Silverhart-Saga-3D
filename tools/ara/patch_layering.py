@@ -95,7 +95,7 @@ edit("src/core/garments/swimwear.ts", [
     ("function bikiniTop(g: GCtx, st: GarmentStyle): GPart[] {",
      "function bikiniTop(g: GCtx, st: GarmentStyle, mode: 'lace' | 'fishnet' | null = null): GPart[] {"),
     ("  const m = swimMat(g, 'Bikini top', st);",
-     "  const m = swimMat(g, mode === 'lace' ? 'Halter lace bra' : mode === 'fishnet' ? 'Halter fishnet bra' : 'Bikini top', mode ? { ...st, pattern: mode } : st);"),
+     "  const m = swimMat(g, mode === 'lace' ? 'Halter lace bra cups' : mode === 'fishnet' ? 'Halter fishnet bra' : 'Bikini top', mode ? { ...st, pattern: mode } : st);"),
     ("""  if (cupMeshes.length) {
     parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!, material: { ...m, doubleSided: true }, hides });
     // Piping along the cups' edges, on the fabric.
