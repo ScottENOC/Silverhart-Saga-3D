@@ -14,7 +14,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: wren-workshop
+  group: wren-workshop-${{ github.ref_name }}
   cancel-in-progress: false
 jobs:
   generate:
