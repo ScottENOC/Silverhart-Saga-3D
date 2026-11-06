@@ -89,27 +89,79 @@ edit("src/core/garments/catalog.ts", [
      "offset: (v) => cm(1.0) + (g.layered.underTop ? cm(0.7) : 0), tile: 0.3, relax: 3,")
 ])
 
-# Add a selectable halter-style lace bra to Ara's top catalogue. It is an
-# underTop item, with separate cup and narrow neck/halter panels.
+# Build the lace halter from Ara's own fitted bikini-cup geometry. This preserves
+# its anatomically fitted lower cup, continuous back band and neck straps; only
+# the cup surface changes from solid fabric to openwork cords.
+edit("src/core/garments/swimwear.ts", [
+    ("function bikiniTop(g: GCtx, st: GarmentStyle): GPart[] {",
+     "function bikiniTop(g: GCtx, st: GarmentStyle, lace = false): GPart[] {"),
+    ("  const m = swimMat(g, 'Bikini top', st);",
+     "  const m = swimMat(g, lace ? 'Halter lace' : 'Bikini top', st);"),
+    (`  if (cupMeshes.length) {
+    parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!, material: { ...m, doubleSided: true }, hides });
+    // Piping along the cups' edges, on the fabric.
+    parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: stringMat(st) });
+  }`,
+     `  if (cupMeshes.length) {
+    if (lace) {
+      // Actual openwork geometry: a fine diamond lattice spans the complete cup,
+      // including the lower half. There is no opaque panel behind the strands.
+      const strands: PolyMesh[] = [];
+      for (const gr of cupMeshes) {
+        for (let row = 0; row < gr.length; row += 3)
+          strands.push(cord(gr[row], cm(0.16), false, 5));
+        const cols = gr[0]?.length ?? 0;
+        for (let col = 0; col < cols; col += 3)
+          strands.push(cord(gr.map((r) => r[col]), cm(0.16), false, 5));
+        for (let start = -gr.length; start < cols; start += 5) {
+          const diagonal: Vec3[] = [];
+          for (let row = 0; row < gr.length; row++) {
+            const col = row + start;
+            if (col >= 0 && col < cols) diagonal.push(gr[row][col]);
+          }
+          if (diagonal.length > 2) strands.push(cord(diagonal, cm(0.13), false, 5));
+        }
+        strands.push(cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.13), true, 5));
+      }
+      parts.push({ mesh: merge(strands)!, material: { ...stringMat(st), name: 'Halter lace openwork' } });
+    } else {
+      parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!, material: { ...m, doubleSided: true }, hides });
+      // Piping along the cups' edges, on the fabric.
+      parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: stringMat(st) });
+    }
+  }`),
+    ("  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },",
+     "  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },\n  { id: 'halter_bra_lace', label: 'Halter lace bra', slot: 'top', patterns: ['solid'], color: '#29242d', color2: '#987b91', build: (g, st) => bikiniTop(g, st, true) },")
+])
+
+# Add a backless dress whose skirt deliberately leaves a narrow opening at one side.
+# The skirt arc is 300 degrees, leaving a 60-degree side slit rather than a front gap.
 edit("src/core/garments/catalog.ts", [
-    ("  // ---------------- Bottoms\n", """  {
-    id: 'halter_bra_lace', label: 'Halter lace bra', slot: 'top', patterns: ['lace'], color: '#29242d', color2: '#987b91',
+    ("  // ---------------- Bottoms\n", `  {
+    id: 'backless_slit_dress', label: 'Backless dress (side slit)', slot: 'top',
+    patterns: ['solid', 'lace', 'ankara'], color: '#34243d', color2: '#b58b9b',
     build: (g, st) => {
-      const material = cloth(g, 'Halter lace bra', st);
-      const cups = shellPart(g, {
-        covers: (v) => isUpper(v) && v.tt >= 0.46 && v.tt <= 0.77 && Math.abs(v.tth) < 1.05,
-        offset: cm(0.72), tile: 0.12, relax: 4,
-      }, material, false);
-      const halter = shellPart(g, {
-        covers: (v) => (v.region === REGION.neck && v.t < 0.34 && Math.abs(v.theta) < 0.72) ||
-          (v.region === REGION.torso && v.tt > 0.73 && Math.abs(v.ax) < cm(2.8)),
-        offset: cm(0.82), tile: 0.10, relax: 3,
-      }, material, false);
-      return [...cups, ...halter];
+      const b = g.body;
+      const m = cloth(g, 'Backless slit dress', st);
+      const bodice = shellPart(g, {
+        // Front bodice only: the back remains open. The neckline and shoulders
+        // are retained so the dress reads as a supported garment, not a tunic.
+        covers: (v, p) => isUpper(v) && v.tt >= 0.22 && v.tt <= 0.84 && p[2] >= b.L.torsoZ,
+        offset: cm(0.9), tile: 0.22, relax: 4,
+      }, m, false);
+      const knee = b.joint('lowerleg01.L____head')[1];
+      const top = torsoY(b, 0.22);
+      const hem = b.L.hipY - (b.L.hipY - knee) * 0.78;
+      const panel = skirt(b, top, hem, cm(1.5), 0.045,
+        [Math.PI / 2 + 0.22, Math.PI * 2 + Math.PI / 2 - 0.22], 40);
+      return [
+        ...bodice,
+        ...(panel ? [{ mesh: panel, material: { ...m, doubleSided: true }, smooth: true }] : []),
+      ];
     },
   },
 
-  // ---------------- Bottoms\n""")
+  // ---------------- Bottoms\n`)
 ])
 
-print("Ara underTop, lace halter bra and briefs layering patch applied.")
+print("Ara underTop, full-cup openwork halter, backless side-slit dress and briefs layering patch applied.")
