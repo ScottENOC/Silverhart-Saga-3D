@@ -6,6 +6,8 @@ One adult base-body and rig contract should support Wren and a large NPC cast. N
 
 ## Current implementation on this branch
 
+**Milestone correction:** no production Wren model exists yet. Ara is the base authoring system, and the immediate target is one complete generic person. Existing `ara_wren_*` build names and Wren-specific export parameters are legacy benchmark labels, not evidence that Wren has been modelled. The next pipeline revision must separate a neutral Ara person preset from future named-character presets.
+
 - `scripts/characters/character_appearance.gd`: serialisable appearance state, material tint/fabric application, independent shirt/bra/briefs/trouser visibility and opacity, JSON save/load.
 - `tests/test_character_appearance.gd`: verifies shirt dye/fabric settings and accessory/tattoo IDs survive save/reload.
 - `data/characters/npc_presets.json`: initial Wren, Mara and Garrick profiles. Several asset IDs are explicitly placeholders pending validation against Ara's installed asset catalogue.
@@ -20,13 +22,13 @@ One adult base-body and rig contract should support Wren and a large NPC cast. N
 ## Pipeline contract
 
 1. Pin a generator version and validate its parameter schema and asset catalogue.
-2. Generate a neutral adult shared base body and rig, then review anatomy and silhouette in Blender from front, side, rear and three-quarter views.
-3. Add anatomy to the shared base once, not independently to every NPC. Retopologise/merge and weight it to the pelvis before production.
-4. Export a neutral body plus clothing/accessory modules or stable material slots. Verify actual GLB node/material structure; do not assume the generator exports modular meshes.
-5. Generate NPCs from validated presets and stable seeds. Keep IDs and appearance data separate from mesh files.
-6. In Godot, apply appearance state to named material slots and attach reusable accessory scenes to named socket nodes.
-7. Save appearance data as JSON and test a reload before treating runtime customisation as complete.
-8. Produce a lightweight mobile preview with one model loaded at a time and reduced texture/geometry cost.
+2. Generate one generic adult Ara person with a complete face, body, hair, game rig and simple everyday clothing. Keep Wren-specific hair, colours, proportions, weapons and identity out of this baseline.
+3. Review the person in Blender from front, side, rear and three-quarter views; check anatomy, silhouette, mesh integrity, materials, skeleton and facial morphs.
+4. Add any required project-specific anatomy to the shared base only after the unmodified Ara body has been inspected and accepted. Retopologise/merge and weight it to the rig before production.
+5. Export a neutral body plus clothing/accessory modules or stable material slots. Verify actual GLB node/material structure; do not assume the generator exports modular meshes.
+6. Import the person into Godot and verify scale, skeleton binding, materials, pose and animation. Exercise equipment slots and body/garment visibility.
+7. Generate at least three visibly distinct people from saved parameter presets and stable seeds. Keep identity data separate from the shared rig and reusable garment assets.
+8. Save appearance data as JSON, test reload, and produce a lightweight mobile preview with one model loaded at a time.
 
 ## Important limitations
 
