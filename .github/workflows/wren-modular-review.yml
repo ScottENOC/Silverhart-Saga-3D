@@ -31,11 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           runs_url="repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=${GITHUB_REF_NAME}&per_page=50"
-          source_run=""
-          for sha in $(git rev-list --max-count=30 "$GITHUB_SHA"); do
-            candidate="$(gh api "$runs_url" --jq ".workflow_runs[] | select(.head_sha == \"$sha\") | .id" | head -n 1)"
-            if [ -n "$candidate" ]; then source_run="$candidate"; break; fi
-          done
+          source_run="$(gh api "$runs_url" --jq '.workflow_runs[0].id')"
           test -n "$source_run"
           status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run" --jq '.status')"
           while [ "$status" != "completed" ]; do
