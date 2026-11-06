@@ -72,6 +72,23 @@ edit("src/core/garments/textures.ts", [
      "const c = cordv > 0.3 ? mul(cordC, 0.85 + 0.2 * cordv) : net ? mul(A, 0.86) : lining;\n        return { c, a: cordv > 0.3 || net ? 1 : 0, h: cordv * 1.4 + (net ? 0.25 : 0) };\n      }, true, 3.5);")
 ])
 
+# Tell outer garment builders when a separate under-top exists. This lets
+# shirts sit farther out only when an underlayer is equipped.
+edit("src/core/garments/kit.ts", [
+    ("layered: { top: boolean; bottom: boolean };",
+     "layered: { top: boolean; bottom: boolean; underTop: boolean };")
+])
+edit("src/core/garments/index.ts", [
+    ("layered: { top: !!d.top || !!d.underTop, bottom: (!!d.bottom && d.bottom !== 'briefs') || !!d.underBottom },",
+     "layered: { top: !!d.top || !!d.underTop, bottom: (!!d.bottom && d.bottom !== 'briefs') || !!d.underBottom, underTop: !!d.underTop },")
+])
+edit("src/core/garments/catalog.ts", [
+    ("offset: cm(0.5), tile: 0.2, relax: 4,",
+     "offset: (v) => cm(0.5) + (g.layered.underTop ? cm(0.7) : 0), tile: 0.2, relax: 4,"),
+    ("offset: cm(1.0), tile: 0.3, relax: 3,",
+     "offset: (v) => cm(1.0) + (g.layered.underTop ? cm(0.7) : 0), tile: 0.3, relax: 3,")
+])
+
 # Add a selectable halter-style lace bra to Ara's top catalogue. It is an
 # underTop item, with separate cup and narrow neck/halter panels.
 edit("src/core/garments/catalog.ts", [
