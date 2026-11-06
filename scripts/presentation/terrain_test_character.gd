@@ -6,7 +6,7 @@ extends CharacterBody3D
 const WREN_MODEL_PATH := "res://art/characters/wren/ara_wren_mobile.glb"
 
 @export var tint: Color = Color(0.35, 0.62, 0.82)
-@export var walks_across_ridge: bool = false
+@export var walks_along_ridge: bool = false
 @export var walk_speed: float = 1.6
 
 var walk_direction: float = 1.0
