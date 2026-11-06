@@ -164,16 +164,16 @@ func _setup_stage() -> void:
 	var camera := Camera3D.new()
 	camera.name = "AraAnimationReviewCamera"
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 2.8
+	camera.size = 3.5
 	camera.position = Vector3(2.8, 2.1, 5.2)
 	root.add_child(camera)
-	camera.look_at(Vector3(0.0, 0.95, 0.0), Vector3.UP)
+	camera.look_at(Vector3(0.0, 1.1, 0.0), Vector3.UP)
 	camera.make_current()
 	print("ARA_REVIEW_CAMERA=", camera.get_path(), " active=", root.get_viewport().get_camera_3d() == camera)
 
 	var label := Label3D.new()
 	label.text = "WREN TALBOT  •  ARA MODULAR RIG"
-	label.position = Vector3(0.0, 2.05, 0.0)
+	label.position = Vector3(0.0, 2.48, 0.0)
 	label.font_size = 48
 	label.pixel_size = 0.0018
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
