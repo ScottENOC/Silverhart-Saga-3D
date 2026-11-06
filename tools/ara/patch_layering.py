@@ -184,3 +184,11 @@ edit("src/core/garments/swimwear.ts", [
     ("id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard']",
      "id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard', 'lace']"),
 ])
+
+
+# The halter's back band and neck/shoulder ties are part of the lace garment,
+# not plain swim cords. Give those same fitted paths the lace textile treatment.
+edit("src/core/garments/swimwear.ts", [
+    ("parts.push({ mesh: halter, material: lace ? { ...stringMat(st), name: 'Halter lace straps' } : stringMat(st), skinAt: trunkLookup(b, halter) });",
+     "parts.push({ mesh: halter, material: lace ? { ...swimMat(g, 'Halter lace bra straps', { ...st, pattern: 'lace' }), name: 'Halter lace bra straps', doubleSided: true } : stringMat(st), skinAt: trunkLookup(b, halter) });"),
+])
