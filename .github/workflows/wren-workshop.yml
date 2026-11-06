@@ -204,10 +204,11 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends blender libegl1 libgl1-mesa-dri
+          sudo apt-get install -y --no-install-recommends blender python3-numpy libegl1 libgl1-mesa-dri
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           export EGL_PLATFORM=surfaceless
           export LIBGL_ALWAYS_SOFTWARE=1
-          blender --background --python-exit-code 1 --python-expr "import bpy, bmesh, mathutils; print('Blender anatomy runtime ready')"
+          blender --background --python-exit-code 1 --python-expr "import bpy, bmesh, mathutils, numpy; print('Blender anatomy runtime ready; NumPy:', numpy.__version__)"
           ARA_INPUT="/tmp/ara-generated/${VARIANT}.glb" \
             ARA_OUTPUT="/tmp/${VARIANT}_anatomy.glb" \
             ARA_PROFILE=female ARA_ADULT=1 \
