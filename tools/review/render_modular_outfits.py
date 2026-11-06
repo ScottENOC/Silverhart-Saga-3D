@@ -44,6 +44,7 @@ def material_names():
 
 def isolate_outfit(keep):
     removed = {}
+    kept_faces = {}
     for obj in [o for o in bpy.context.scene.objects if o.type == "MESH"]:
         mesh = obj.data
         bm = bmesh.new()
@@ -52,6 +53,8 @@ def isolate_outfit(keep):
         for face in bm.faces:
             idx = face.material_index
             name = mesh.materials[idx].name if idx < len(mesh.materials) and mesh.materials[idx] else ""
+            if name in keep:
+                kept_faces[name] = kept_faces.get(name, 0) + 1
             if name in GARMENTS and name not in keep:
                 faces.append(face)
                 removed[name] = removed.get(name, 0) + 1
@@ -63,7 +66,10 @@ def isolate_outfit(keep):
             bm.to_mesh(mesh)
             mesh.update()
         bm.free()
-    return removed
+    missing = sorted(name for name in keep if kept_faces.get(name, 0) == 0)
+    if missing:
+        raise RuntimeError("Requested garment material(s) absent or empty: " + ", ".join(missing))
+    return removed, kept_faces
 
 def bounds():
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
@@ -93,7 +99,9 @@ def render_outfit(input_path, output_root, outfit, keep):
     import_model(input_path)
     available = material_names()
     unknown = sorted(name for name in available if any(k in name.lower() for k in ("pants", "dress", "skirt", "halter", "bra", "brief", "shirt", "bikini", "shoes", "boot", "armor")) and name not in GARMENTS)
-    removed = isolate_outfit(keep)
+    if unknown:
+        raise RuntimeError("Unclassified garment material(s): " + ", ".join(unknown))
+    removed, kept_faces = isolate_outfit(keep)
     centre, radius = bounds()
     scene = bpy.context.scene
     engines = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
@@ -124,6 +132,7 @@ def render_outfit(input_path, output_root, outfit, keep):
     report = {
         "outfit": outfit,
         "kept_materials": sorted(keep),
+        "kept_face_counts": kept_faces,
         "removed_face_counts": removed,
         "available_materials": available,
         "unrecognised_garment_materials": unknown,
