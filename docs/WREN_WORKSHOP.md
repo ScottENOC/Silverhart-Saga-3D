@@ -29,10 +29,11 @@ The Trusted Publisher setup uses GitHub's OIDC identity exchange. No long-lived 
 - Drag: orbit; pinch or wheel: zoom; two-finger drag: pan.
 - Front, back, left, right, three-quarter and reset camera presets.
 - Key/fill light intensity and key-light direction.
+- Model picker entries for the standard Ara character and the separate halter-bra garment fit preview (high-detail and iPhone/mobile exports).
 - Toggle hair, garments/armour, weapon, body hair, tattoo and piercings by mesh-name prefix.
 
-The viewer loads the full character GLB and toggles mesh visibility. It is an inspection tool, not a full material editor or Godot substitute.
+The viewer loads the selected full-character GLB. The halter-bra entries are separate saved Ara exports with `halter_bra_lace` equipped in the top slot; they do not replace the standard shirt model or the existing bikini-top asset. The garment is also registered as an independent `top` item in the pinned Ara garment catalog. The viewer is an inspection tool, not a full material editor or Godot substitute.
 
 ## Build outputs
 
-The Blender source file and component GLBs are uploaded as a downloadable `wren-model-build` GitHub Actions artifact (14-day retention). The viewer and generated full model are uploaded to the private Hugging Face Space. Generated files are not committed back into the source repository.
+The Blender source file and component GLBs are uploaded as a downloadable `wren-model-build` GitHub Actions artifact (14-day retention). The viewer and generated full models (standard and halter-bra previews) are uploaded to the private Hugging Face Space. Generated files are not committed back into the source repository.
