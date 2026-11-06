@@ -23,6 +23,7 @@ def arguments():
     parser.add_argument("--output", default=os.environ.get("ARA_OUTPUT"), required=not bool(os.environ.get("ARA_OUTPUT")))
     parser.add_argument("--profile", choices=("female", "none"), default=os.environ.get("ARA_PROFILE"), required=not bool(os.environ.get("ARA_PROFILE")))
     parser.add_argument("--adult", action="store_true", default=os.environ.get("ARA_ADULT") == "1")
+    parser.add_argument("--fit-existing", action="store_true", help="Only expand lower garments around anatomy already present in the input GLB")
     return parser.parse_args(raw)
 
 
@@ -373,6 +374,25 @@ def main():
 
     # Expand lower garments before adding the anatomy so their surfaces clear it.
     expand_lower_garments(meshes, pelvis_z, body_front_y, width)
+
+    if args.fit_existing:
+        # The modular GLBs already contain the anatomy and piercing sockets
+        # from the integrated body base. Only fit briefs, bikini bottoms and
+        # trousers over that existing geometry; do not add a second sculpt.
+        bpy.ops.object.select_all(action="DESELECT")
+        for obj in bpy.context.scene.objects:
+            if obj.type in {"MESH", "ARMATURE", "EMPTY"}:
+                obj.select_set(True)
+        bpy.context.view_layer.objects.active = armature
+        os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
+        bpy.ops.export_scene.gltf(
+            filepath=os.path.abspath(args.output),
+            export_format="GLB",
+            use_selection=True,
+            export_apply=False,
+        )
+        print("Fitted lower garments around existing adult anatomy")
+        return
 
     collection = bpy.data.collections.new("Adult Anatomy - reviewable sculpt")
     bpy.context.scene.collection.children.link(collection)
