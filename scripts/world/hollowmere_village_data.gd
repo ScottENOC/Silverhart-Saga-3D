@@ -71,7 +71,7 @@ static func is_path(hex: Vector2i) -> bool:
         return true
     if hex.x == 0 and hex.y >= -9 and hex.y <= -7:
         return true
-    if hex == Vector2i(1, 14):
+    if hex == Vector2i(1, 13) or hex == Vector2i(1, 14):
         return true
     if hex.x == 0 and hex.y >= 7 and hex.y <= 13:
         return true
@@ -108,6 +108,7 @@ static func path_cells() -> Array[Vector2i]:
         _append_unique(cells, seen, Vector2i(0, r))
     _append_unique(cells, seen, Vector2i(0, 5))
     _append_unique(cells, seen, Vector2i(0, 15))
+    _append_unique(cells, seen, Vector2i(1, 13))
     _append_unique(cells, seen, Vector2i(1, 14))
     _append_unique(cells, seen, Vector2i(-11, 0))
     _append_unique(cells, seen, Vector2i(-10, 0))
