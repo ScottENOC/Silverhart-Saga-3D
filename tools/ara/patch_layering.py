@@ -52,30 +52,30 @@ edit("src/core/garments/catalog.ts", [
 
 # Extend Ara's existing lace texture into a true open-weave alpha-cutout fabric.
 edit("src/core/garments/kit.ts", [
-    ("export interface GarmentStyle {\\n  pattern: Pattern;\\n  color: string;\\n  color2: string;\\n}",
-     "export interface GarmentStyle {\\n  pattern: Pattern;\\n  color: string;\\n  color2: string;\\n  opacity?: number;\\n}"),
-    ("  const rough = st.pattern === 'leather' ? 0.55 : st.pattern === 'techwear' ? 0.6 : 0.88;\\n  return mat(name, tex, { roughness: rough, ...o });",
-     "  const rough = st.pattern === 'leather' ? 0.55 : st.pattern === 'techwear' ? 0.6 : 0.88;\\n  const opacity = Math.max(0, Math.min(1, st.opacity ?? 1));\\n  return mat(name, tex, { roughness: rough, ...(opacity < 0.999 ? { alpha: 'blend' as const, opacity } : {}), ...o });")
+    ("export interface GarmentStyle {\n  pattern: Pattern;\n  color: string;\n  color2: string;\n}",
+     "export interface GarmentStyle {\n  pattern: Pattern;\n  color: string;\n  color2: string;\n  opacity?: number;\n}"),
+    ("  const rough = st.pattern === 'leather' ? 0.55 : st.pattern === 'techwear' ? 0.6 : 0.88;\n  return mat(name, tex, { roughness: rough, ...o });",
+     "  const rough = st.pattern === 'leather' ? 0.55 : st.pattern === 'techwear' ? 0.6 : 0.88;\n  const opacity = Math.max(0, Math.min(1, st.opacity ?? 1));\n  return mat(name, tex, { roughness: rough, ...(opacity < 0.999 ? { alpha: 'blend' as const, opacity } : {}), ...o });")
 ])
 edit("src/core/params.ts", [
     ("garmentStyles: Record<string, { pattern?: string; color?: string; color2?: string }>;",
      "garmentStyles: Record<string, { pattern?: string; color?: string; color2?: string; opacity?: number }>;"),
-    ("...(typeof o.color2 === 'string' && /^#[0-9a-fA-F]{6}$/.test(o.color2) ? { color2: o.color2 } : {}),\\n      };",
-     "...(typeof o.color2 === 'string' && /^#[0-9a-fA-F]{6}$/.test(o.color2) ? { color2: o.color2 } : {}),\\n        ...(typeof o.opacity === 'number' && Number.isFinite(o.opacity) ? { opacity: Math.max(0, Math.min(1, o.opacity)) } : {}),\\n      };")
+    ("...(typeof o.color2 === 'string' && /^#[0-9a-fA-F]{6}$/.test(o.color2) ? { color2: o.color2 } : {}),\n      };",
+     "...(typeof o.color2 === 'string' && /^#[0-9a-fA-F]{6}$/.test(o.color2) ? { color2: o.color2 } : {}),\n        ...(typeof o.opacity === 'number' && Number.isFinite(o.opacity) ? { opacity: Math.max(0, Math.min(1, o.opacity)) } : {}),\n      };")
 ])
 edit("src/core/garments/index.ts", [
     ("return { pattern, color: o.color ?? def.color, color2: o.color2 ?? def.color2 };",
      "return { pattern, color: o.color ?? def.color, color2: o.color2 ?? def.color2, ...(o.opacity !== undefined ? { opacity: o.opacity } : {}) };")
 ])
 edit("src/core/garments/textures.ts", [
-    ("const c = cordv > 0.3 ? mul(cordC, 0.85 + 0.2 * cordv) : net ? mul(A, 0.86) : lining;\\n        return { c, h: cordv * 1.4 + (net ? 0.25 : 0) };\\n      }, false, 3.5);",
-     "const c = cordv > 0.3 ? mul(cordC, 0.85 + 0.2 * cordv) : net ? mul(A, 0.86) : lining;\\n        return { c, a: cordv > 0.3 || net ? 1 : 0, h: cordv * 1.4 + (net ? 0.25 : 0) };\\n      }, true, 3.5);")
+    ("const c = cordv > 0.3 ? mul(cordC, 0.85 + 0.2 * cordv) : net ? mul(A, 0.86) : lining;\n        return { c, h: cordv * 1.4 + (net ? 0.25 : 0) };\n      }, false, 3.5);",
+     "const c = cordv > 0.3 ? mul(cordC, 0.85 + 0.2 * cordv) : net ? mul(A, 0.86) : lining;\n        return { c, a: cordv > 0.3 || net ? 1 : 0, h: cordv * 1.4 + (net ? 0.25 : 0) };\n      }, true, 3.5);")
 ])
 
 # Add a selectable halter-style lace bra to Ara's top catalogue. It is an
 # underTop item, with separate cup and narrow neck/halter panels.
 edit("src/core/garments/catalog.ts", [
-    ("  // ---------------- Bottoms\\n", """  {
+    ("  // ---------------- Bottoms\n", """  {
     id: 'halter_bra_lace', label: 'Halter lace bra', slot: 'top', patterns: ['lace'], color: '#29242d', color2: '#987b91',
     build: (g, st) => {
       const material = cloth(g, 'Halter lace bra', st);
@@ -92,7 +92,7 @@ edit("src/core/garments/catalog.ts", [
     },
   },
 
-  // ---------------- Bottoms\\n""")
+  // ---------------- Bottoms\n""")
 ])
 
 print("Ara underTop, lace halter bra and briefs layering patch applied.")
