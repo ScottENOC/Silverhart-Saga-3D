@@ -2,7 +2,7 @@ name: Godot validation
 
 on:
   pull_request:
-    branches: [dev, feature/port-action-economy, feature/terrain-character-grounding-test]
+    branches: [dev, feature/port-action-economy, feature/terrain-character-grounding-test, feature/ara-skeleton-animation-validation]
     paths:
       - "project.godot"
       - "scenes/**"
@@ -10,7 +10,7 @@ on:
       - "tests/**"
       - ".github/workflows/godot-validation.yml"
   push:
-    branches: [dev, feature/port-action-economy, feature/terrain-character-grounding-test, feature/ara-skeleton-animation-validation]
+    branches: [dev, feature/port-action-economy, feature/terrain-character-grounding-test, feature/ara-skeleton-animation-validation, feature/ara-visual-animation-review]
     paths:
       - "project.godot"
       - "scenes/**"
@@ -63,6 +63,7 @@ jobs:
           for component in body hair shirt trousers; do
             cp "/tmp/wren-character-assets/modular/${component}.glb" "art/characters/ara_validation/modular/${component}.glb"
           done
+          cp /tmp/wren-character-assets/npcs/npc_female_slim/weapon_sword.glb art/characters/ara_validation/weapon_sword.glb
 
       - name: Import project and build global script class cache
         run: godot --headless --editor --path . --quit
@@ -109,11 +110,29 @@ jobs:
           test -s artifacts/terrain-ridge-oblique.png
           test -s artifacts/terrain-character-grounding.png
 
-      - name: Upload terrain screenshots
+      - name: Capture Ara modular character animations
+        shell: bash
+        run: |
+          set -o pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --path . --rendering-method gl_compatibility --script res://tests/capture_ara_modular_animations.gd 2>&1 | tee /tmp/ara-visual-capture.log
+          if grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to instantiate' /tmp/ara-visual-capture.log; then
+            echo "Godot reported an error while capturing Ara animation poses."
+            exit 1
+          fi
+          grep -q 'ARA_VISUAL_ANIMATION_CAPTURE: PASS' /tmp/ara-visual-capture.log
+          test -s artifacts/ara-animation/ara-wren-idle.png
+          test -s artifacts/ara-animation/ara-wren-walk.png
+          test -s artifacts/ara-animation/ara-wren-run.png
+          test -s artifacts/ara-animation/ara-wren-strafe-left.png
+          test -s artifacts/ara-animation/ara-wren-turn-left.png
+          test -s artifacts/ara-animation/ara-wren-jump.png
+          test -s artifacts/ara-animation/ara-wren-sword-slash.png
+
+      - name: Upload validation screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: terrain-prototype-screenshots
-          path: artifacts/*.png
+          name: terrain-and-ara-animation-screenshots
+          path: artifacts/
           if-no-files-found: warn
           retention-days: 14
