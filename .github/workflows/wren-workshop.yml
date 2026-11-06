@@ -276,6 +276,9 @@ jobs:
             /tmp/ara-generated/ara_wren_benchmark.glb "Fatigue shirt" \
             /tmp/ara-generated/ara_wren_benchmark.glb "Bra" \
             /tmp/ara-generated/ara_wren_benchmark.glb "Briefs" \
+            /tmp/ara-generated/ara_wren_benchmark.glb "Blade steel" \
+            /tmp/ara-generated/ara_wren_benchmark.glb "Brass" \
+            /tmp/ara-generated/ara_wren_benchmark.glb "Grip leather" \
             /tmp/ara-generated/ara_wren_tank_top.glb "Tank top" \
             /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
             /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Bikini strings*=Triangle bikini strings" \
