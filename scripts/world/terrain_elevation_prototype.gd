@@ -99,12 +99,12 @@ func _create_test_characters() -> void:
     _add_test_character("ValleyCharacter", -4.0, 0.0, Color(0.28, 0.62, 0.84), false)
     _add_test_character("SlopeCharacter", 1.5, 0.0, Color(0.86, 0.62, 0.24), false)
     _add_test_character("RidgeCharacter", 5.0, 0.0, Color(0.78, 0.38, 0.32), false)
-    _add_test_character("RidgeWalker", 3.4, 2.5, Color(0.40, 0.76, 0.48), true)
+    _add_test_character("RidgeWalker", 4.6, 2.5, Color(0.40, 0.76, 0.48), true)
 
 func _add_test_character(actor_name: String, x: float, z: float, tint: Color, walking: bool) -> void:
     var actor: CharacterBody3D = TEST_CHARACTER.new()
     actor.name = actor_name
     actor.tint = tint
-    actor.walks_across_ridge = walking
+    actor.walks_along_ridge = walking
     actor.position = Vector3(x, _height_at(x, z) + 0.08, z)
     add_child(actor)
