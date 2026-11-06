@@ -142,6 +142,20 @@ jobs:
           cp /tmp/ara-person-mobile.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_mobile.params.json"
           test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_person_mobile.glb"
 
+          # Male Ara body gets its own anatomy integration; female exports remain unchanged.
+          python - <<'PY'
+          import json
+          p = json.load(open('/tmp/ara-person-body.params.json'))
+          p.update({"name": "Ara Base Person - male body no clothing", "gender": 1, "breastSize": 0.0, "breastFirmness": 0.0})
+          json.dump(p, open('/tmp/ara-person-male-body.params.json', 'w'), indent=2)
+          PY
+          mkdir -p /tmp/ara-male-body-out
+          npm run export -- --params /tmp/ara-person-male-body.params.json --detail high --formats glb --out /tmp/ara-male-body-out
+          MALE_BODY_GLB="$(find /tmp/ara-male-body-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$MALE_BODY_GLB"
+          cp "$MALE_BODY_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male_body_raw.glb"
+          cp /tmp/ara-person-male-body.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male_body.params.json"
+
           # Export the three alternative garments separately. The GLB assembler
           # extracts each garment's skinned material primitive and attaches it
           # to the full-skin base model for independent runtime equipment slots.
@@ -240,8 +254,43 @@ jobs:
           if-no-files-found: error
           retention-days: 2
 
+  integrate-male:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download generated male base
+        uses: actions/download-artifact@v4
+        with:
+          name: ara-generated-models
+          path: /tmp/ara-generated
+      - name: Add male anatomy and render review views
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python tools/blender/add_male_anatomy.py -- --input /tmp/ara-generated/ara_person_male_body_raw.glb --output /tmp/ara_person_male_body.glb --adult
+          mkdir -p art/characters/ara/review/male-body
+          REVIEW_INPUT=/tmp/ara_person_male_body.glb REVIEW_OUTPUT_DIR=art/characters/ara/review/male-body blender --background --python-exit-code 1 --python tools/blender/inspect_character.py
+          for view in front side rear three_quarter; do test -s "art/characters/ara/review/male-body/$view.png"; done
+          mkdir -p art/characters/ara
+          cp /tmp/ara_person_male_body.glb art/characters/ara/ara_person_male_body.glb
+      - name: Save male model and review renders
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-male-body
+          path: |
+            art/characters/ara/ara_person_male_body.glb
+            art/characters/ara/review/male-body/**
+          if-no-files-found: error
+          retention-days: 14
   publish:
-    needs: integrate
+    needs: [integrate, integrate-male]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -349,6 +398,7 @@ jobs:
           cp art/characters/ara/ara_person_modular_underwear.glb site/assets/ara_person_modular_underwear.glb
           cp art/characters/ara/ara_person_mobile.glb site/assets/ara_person_mobile.glb
           cp art/characters/ara/ara_person_body.glb site/assets/ara_person_body.glb
+          cp art/characters/ara/ara_person_male_body.glb site/assets/ara_person_male_body.glb
           cp art/characters/ara/ara_person_tattoo_body.glb site/assets/ara_person_tattoo_body.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
