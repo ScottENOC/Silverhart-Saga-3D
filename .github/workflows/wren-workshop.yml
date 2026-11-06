@@ -15,7 +15,7 @@ permissions:
   contents: read
 concurrency:
   group: wren-workshop-${{ github.ref_name }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   generate:
     runs-on: ubuntu-latest
