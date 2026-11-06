@@ -37,7 +37,8 @@ button:disabled{opacity:.4}
 <div class="row"><span>Lower underwear</span><select id="equipmentLower"><option value="empty">Empty</option><option value="briefs" selected>Briefs</option><option value="string">String bikini bottom</option></select></div>
 <div class="row"><span>Upper underwear</span><select id="equipmentUpper"><option value="empty">Empty</option><option value="bra" selected>Bra</option><option value="halter">Halter lace bra</option><option value="triangle">Triangle bikini top</option></select></div>
 <div class="row"><span>Pants</span><select id="equipmentPants"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue pants</option></select></div>
-<div class="row"><span>Shirt</span><select id="equipmentShirt"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue shirt</option><option value="tank">Tank top</option><option value="backless">Backless dress · side slit</option></select></div>
+<div class="row"><span>Shirt</span><select id="equipmentShirt"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue shirt</option><option value="tank">Tank top</option></select></div>
+<div class="row"><span>Dress</span><select id="equipmentDress"><option value="empty" selected>Empty</option><option value="backless">Backless dress · side slit</option></select></div>
 <div class="row"><span>Armour</span><select id="equipmentArmour"><option value="empty" selected>Empty</option><option value="leather">Ara leather armour</option></select></div>
 <p class="note" id="equipmentStatus">Each slot is independent. Empty removes that layer without removing the body.</p></section>
 <section><h2>Accessories · placement preview</h2>
@@ -156,12 +157,13 @@ function updateBodyUnderlay(){
 // preserving a clean copy so repeated changes do not compound.
 let originalMaterials=new Map(), accessoryGroup=null, selectedMaterial=null;
 const materialSelect=document.querySelector('#materialSelect');
-const equipmentState={lower:'briefs',upper:'bra',pants:'fatigue',shirt:'fatigue',armour:'empty'};
+const equipmentState={lower:'briefs',upper:'bra',pants:'fatigue',shirt:'fatigue',dress:'empty',armour:'empty'};
 const equipmentGroups={
  lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom','String bikini strings']},
  upper:{empty:[],bra:['Bra'],halter:['Halter lace openwork','Halter lace straps'],triangle:['Triangle bikini top','Triangle bikini strings']},
  pants:{empty:[],fatigue:['Fatigue pants','Fatigue pants.001']},
- shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top'],backless:['Backless slit dress','Pencil skirt']},
+ shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top']},
+ dress:{empty:[],backless:['Backless slit dress','Pencil skirt']},
  armour:{empty:[],leather:['Leather armor']}
 };
 function applyEquipment(){
@@ -169,13 +171,13 @@ function applyEquipment(){
  const mode=document.querySelector('#modelmode').value;
  const active=['ara','underwear'].includes(mode), underwearOnly=mode==='underwear';
  if(section)section.hidden=!active;
- for(const id of ['equipmentPants','equipmentShirt','equipmentArmour']){
+ for(const id of ['equipmentPants','equipmentShirt','equipmentDress','equipmentArmour']){
   const row=document.querySelector('#'+id)?.closest('.row');if(row)row.hidden=underwearOnly;
  }
  if(!model||!active)return;
  const byName=new Map();for(const e of originalMaterials.values()){const name=e.material.name;if(!byName.has(name))byName.set(name,[]);byName.get(name).push(e);}const missing=[];
  for(const [slot,options] of Object.entries(equipmentGroups)){
-  if(underwearOnly&&['pants','shirt','armour'].includes(slot))continue;
+  if(underwearOnly&&['pants','shirt','dress','armour'].includes(slot))continue;
   const chosen=options[equipmentState[slot]]||[];
   for(const names of Object.values(options))for(const name of names){
    const entries=byName.get(name)||[];if(!entries.length){if(chosen.includes(name))missing.push(name);continue;}
@@ -184,7 +186,7 @@ function applyEquipment(){
  }
  document.querySelector('#equipmentStatus').textContent=missing.length?'Missing garment asset(s): '+missing.join(', '):'Each slot is independent. Empty removes that layer without removing the body.';
 }
-for(const [slot,id] of [['lower','equipmentLower'],['upper','equipmentUpper'],['pants','equipmentPants'],['shirt','equipmentShirt'],['armour','equipmentArmour']])document.querySelector('#'+id).addEventListener('change',e=>{equipmentState[slot]=e.target.value;applyEquipment();document.querySelector('#saveState').textContent='Equipment changed · not saved';});
+for(const [slot,id] of [['lower','equipmentLower'],['upper','equipmentUpper'],['pants','equipmentPants'],['shirt','equipmentShirt'],['dress','equipmentDress'],['armour','equipmentArmour']])document.querySelector('#'+id).addEventListener('change',e=>{equipmentState[slot]=e.target.value;applyEquipment();document.querySelector('#saveState').textContent='Equipment changed · not saved';});
 function collectMaterials(){
  originalMaterials.clear(); const found=new Map();
  if(!model)return;
@@ -395,7 +397,7 @@ function applySnapshot(data){
  if(!data||typeof data!=='object')return;
  if(data.model&&document.querySelector('#modelmode').value!==data.model){pendingSnapshot=data;document.querySelector('#modelmode').value=data.model;loadModel(data.model);return;}
  if(data.fabric&&document.querySelector('#fabricPreset').querySelector('option[value="'+data.fabric+'"]'))document.querySelector('#fabricPreset').value=data.fabric;
- if(data.equipment){for(const slot of Object.keys(equipmentState)){if(typeof data.equipment[slot]==='string'&&equipmentGroups[slot][data.equipment[slot]]){equipmentState[slot]=data.equipment[slot];const id={lower:'equipmentLower',upper:'equipmentUpper',pants:'equipmentPants',shirt:'equipmentShirt',armour:'equipmentArmour'}[slot];document.querySelector('#'+id).value=equipmentState[slot];}}applyEquipment();}
+ if(data.equipment){for(const slot of Object.keys(equipmentState)){if(typeof data.equipment[slot]==='string'&&equipmentGroups[slot][data.equipment[slot]]){equipmentState[slot]=data.equipment[slot];const id={lower:'equipmentLower',upper:'equipmentUpper',pants:'equipmentPants',shirt:'equipmentShirt',dress:'equipmentDress',armour:'equipmentArmour'}[slot];document.querySelector('#'+id).value=equipmentState[slot];}}applyEquipment();}
  for(const e of originalMaterials.values()){
   const saved=data.materials?.[e.material.name];if(!saved)continue;
   if(saved.color&&e.material.color)e.material.color.set(saved.color);
