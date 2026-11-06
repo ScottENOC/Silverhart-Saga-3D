@@ -304,6 +304,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+      - name: Cut the side slit into the dress skirt
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python tools/blender/add_dress_slit.py -- \\
+            --input art/characters/ara/ara_person_modular.glb \\
+            --output /tmp/ara_person_modular_slit.glb
+          mv /tmp/ara_person_modular_slit.glb art/characters/ara/ara_person_modular.glb
       - name: Fit modular garments around integrated anatomy
         run: |
           set -euo pipefail
