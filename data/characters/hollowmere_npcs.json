@@ -137,7 +137,8 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#776e61"
-      }
+      },
+      "dialogue_id": "garrick_holt"
     },
     {
       "id": "mira_ashbrook",
@@ -200,7 +201,8 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#704b32"
-      }
+      },
+      "dialogue_id": "mira_ashbrook"
     },
     {
       "id": "oskar_vinn",
@@ -264,7 +266,8 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#49372a"
-      }
+      },
+      "dialogue_id": "oskar_vinn"
     },
     {
       "id": "wick_hallow",
@@ -326,7 +329,8 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#aaa49a"
-      }
+      },
+      "dialogue_id": "wick_hallow"
     },
     {
       "id": "dray",
@@ -394,7 +398,8 @@
         "speechShapes": false,
         "expression": "determined",
         "hairColor": "#211a16"
-      }
+      },
+      "dialogue_id": "dray_coltayne"
     },
     {
       "id": "tomlin",
@@ -457,7 +462,8 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#171313"
-      }
+      },
+      "dialogue_id": "tomlin_brask"
     },
     {
       "id": "hask",
@@ -524,12 +530,13 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#6e4d35"
-      }
+      },
+      "dialogue_id": "hask_greel"
     },
     {
       "id": "yvette",
-      "game_id": "yvette",
-      "name": "Yvette",
+      "game_id": "yvette_marlow",
+      "name": "Yvette Marlow",
       "role": "villager",
       "hex": [
         -2,
@@ -590,12 +597,13 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#4d3425"
-      }
+      },
+      "dialogue_id": "yvette_marlow"
     },
     {
       "id": "hendra",
-      "game_id": "hendra",
-      "name": "Hendra",
+      "game_id": "hendra_wells",
+      "name": "Hendra Wells",
       "role": "villager",
       "hex": [
         -3,
@@ -653,7 +661,8 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#554031"
-      }
+      },
+      "dialogue_id": "hendra_wells"
     },
     {
       "id": "tavern_patron",
@@ -718,8 +727,8 @@
     },
     {
       "id": "elder_marta",
-      "game_id": "elder_marta",
-      "name": "Elder Marta",
+      "game_id": "marta_wynfield",
+      "name": "Elder Marta Wynfield",
       "role": "village elder",
       "hex": [
         0,
@@ -777,7 +786,8 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#c1b9a8"
-      }
+      },
+      "dialogue_id": "marta_wynfield"
     },
     {
       "id": "rowan_fletcher",
@@ -844,7 +854,8 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#3c2d22"
-      }
+      },
+      "dialogue_id": "hollowmere_hunter"
     }
   ]
 }
