@@ -22,7 +22,7 @@ button:disabled{opacity:.4}
 <header><strong>WREN WORKSHOP</strong><span>Silverhart Saga 3D · model preview</span></header>
 <main><div id="stage"><div id="status">Loading model…</div><div id="hint">Drag to orbit · Pinch or scroll to zoom · Two-finger drag to pan</div></div>
 <aside>
-<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara" selected>Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option><option value="body">Body · no clothing</option><option value="tattoo-body">Body · tattoos</option><option value="underwear">Underwear · bra and briefs</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
+<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara" selected>Ara 3D Gen · High detail</option><option value="ara-mobile">Ara · Mobile preview</option><option value="body">Body · no clothing</option><option value="tattoo-body">Body · tattoos</option><option value="underwear">Underwear · equipment preview</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
 <section><h2>Camera</h2><div class="buttons"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="three">3/4</button><button id="home">Reset</button></div><div class="row"><span>Auto rotate</span><input id="autorotate" type="checkbox"></div></section>
 <section><h2>Lighting</h2><div class="row"><span>Key light</span><input id="keylight" type="range" min="0" max="5" step=".1" value="3"></div><div class="row"><span>Fill light</span><input id="filllight" type="range" min="0" max="4" step=".1" value="1.4"></div><div class="row"><span>Light direction</span><input id="lightangle" type="range" min="0" max="360" value="35"></div></section>
 <section><h2>Appearance · material inspector</h2>
@@ -94,9 +94,9 @@ function disposeModel(root){
 }
 function loadModel(mode){
  const generation=++loadGeneration;
- const files={'ara':'ara_wren_modular.glb','ara-mobile':'ara_wren_mobile.glb','body':'ara_wren_body.glb','tattoo-body':'ara_wren_tattoo_body.glb','underwear':'ara_wren_underwear.glb'};
+ const files={'ara':'ara_wren_modular.glb','ara-mobile':'ara_wren_mobile.glb','body':'ara_wren_body.glb','tattoo-body':'ara_wren_tattoo_body.glb','underwear':'ara_wren_modular_underwear.glb'};
  const file=files[mode]||'ara_wren_benchmark.glb';
- const labels={'ara':'Ara · modular equipment','ara-mobile':'Ara mobile preview','body':'Ara body · no clothing','tattoo-body':'Ara tattooed body','underwear':'Ara underwear · bra and briefs'};
+ const labels={'ara':'Ara · modular equipment','ara-mobile':'Ara mobile preview','body':'Ara body · no clothing','tattoo-body':'Ara tattooed body','underwear':'Ara · underwear equipment'};
  const label=labels[mode]||'Ara high-detail benchmark';
  const modelUrl=new URL('./assets/'+file+'?v='+encodeURIComponent(buildVersion),window.location.href).href;
  if(model){scene.remove(model);disposeModel(model);model=null;box=null}
@@ -158,8 +158,9 @@ const equipmentState={lower:'briefs',upper:'bra',shirt:'fatigue'};
 const equipmentGroups={lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom']},upper:{empty:[],bra:['Bra'],triangle:['Triangle bikini top']},shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top']}};
 function applyEquipment(){
  const section=document.querySelector('#equipmentSection');
- if(section)section.hidden=document.querySelector('#modelmode').value!=='ara';
- if(!model||document.querySelector('#modelmode').value!=='ara')return;
+ const active=['ara','underwear'].includes(document.querySelector('#modelmode').value);
+ if(section)section.hidden=!active;
+ if(!model||!active)return;
  const byName=new Map([...originalMaterials.values()].map(e=>[e.material.name,e]));const missing=[];
  for(const [slot,options] of Object.entries(equipmentGroups)){const chosen=options[equipmentState[slot]]||[];for(const names of Object.values(options))for(const name of names){const entry=byName.get(name);if(!entry){if(chosen.includes(name))missing.push(name);continue;}entry.meshes.forEach(item=>item.mesh.visible=chosen.includes(name));}}
  document.querySelector('#equipmentStatus').textContent=missing.length?'Missing garment asset(s): '+missing.join(', '):'Each slot is independent. Empty removes that layer without removing the body.';

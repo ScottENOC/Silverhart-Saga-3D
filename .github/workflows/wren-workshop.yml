@@ -292,6 +292,14 @@ jobs:
             /tmp/ara-generated/ara_wren_tank_top.glb "Tank top" \
             /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Triangle bikini top" \
             /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "String bikini bottom"
+          python tools/ara/assemble_modular_glb.py \
+            art/characters/ara/ara_wren_body.glb art/characters/ara/ara_wren_modular_underwear.glb \
+            /tmp/ara-generated/ara_wren_benchmark.glb "Fatigue shirt" \
+            /tmp/ara-generated/ara_wren_benchmark.glb "Bra" \
+            /tmp/ara-generated/ara_wren_benchmark.glb "Briefs" \
+            /tmp/ara-generated/ara_wren_tank_top.glb "Tank top" \
+            /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Triangle bikini top" \
+            /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "String bikini bottom"
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -308,6 +316,7 @@ jobs:
           mkdir -p site/assets
           cp art/characters/ara/ara_wren_benchmark.glb site/assets/ara_wren_benchmark.glb
           cp art/characters/ara/ara_wren_modular.glb site/assets/ara_wren_modular.glb
+          cp art/characters/ara/ara_wren_modular_underwear.glb site/assets/ara_wren_modular_underwear.glb
           cp art/characters/ara/ara_wren_mobile.glb site/assets/ara_wren_mobile.glb
           cp art/characters/ara/ara_wren_body.glb site/assets/ara_wren_body.glb
           cp art/characters/ara/ara_wren_tattoo_body.glb site/assets/ara_wren_tattoo_body.glb
