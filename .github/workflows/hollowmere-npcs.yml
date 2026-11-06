@@ -3,7 +3,7 @@ name: Build Hollowmere Ara characters
 on:
   workflow_dispatch:
   push:
-    branches: [feature/opening-village]
+    branches: [dev, feature/opening-village]
     paths:
       - "data/characters/hollowmere_npcs.json"
       - "tools/ara/build_hollowmere_npcs.py"
