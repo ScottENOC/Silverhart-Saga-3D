@@ -378,11 +378,20 @@ loadModel=function(mode){
  clearAccessories();originalLoadModel(mode);
  const poll=()=>{if(model){collectMaterials();if(pendingSnapshot){const saved=pendingSnapshot;pendingSnapshot=null;applySnapshot(saved);}return;}if(status.textContent.includes('failed'))return;setTimeout(poll,250);};setTimeout(poll,250);
 };
-document.querySelector('#modelmode').onchange=e=>loadModel(e.target.value);
-document.querySelector('#showClothed').onclick=()=>{document.querySelector('#modelmode').value='ara';loadModel('ara')};
-document.querySelector('#showBody').onclick=()=>{document.querySelector('#modelmode').value='body';loadModel('body')};
-document.querySelector('#showTattooBody').onclick=()=>{document.querySelector('#modelmode').value='tattoo-body';loadModel('tattoo-body')};
-document.querySelector('#showUnderwear').onclick=()=>{document.querySelector('#modelmode').value='underwear';loadModel('underwear')};
+function switchModel(mode){
+ if(mode==='underwear'){
+  equipmentState.shirt='empty';
+  document.querySelector('#equipmentShirt').value='empty';
+  document.querySelector('#saveState').textContent='Equipment changed · not saved';
+ }
+ document.querySelector('#modelmode').value=mode;
+ loadModel(mode);
+}
+document.querySelector('#modelmode').onchange=e=>switchModel(e.target.value);
+document.querySelector('#showClothed').onclick=()=>switchModel('ara');
+document.querySelector('#showBody').onclick=()=>switchModel('body');
+document.querySelector('#showTattooBody').onclick=()=>switchModel('tattoo-body');
+document.querySelector('#showUnderwear').onclick=()=>switchModel('underwear');
 loadModel('ara');
 function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
 </script></body></html>
