@@ -97,12 +97,12 @@ edit("src/core/garments/swimwear.ts", [
      "function bikiniTop(g: GCtx, st: GarmentStyle, lace = false): GPart[] {"),
     ("  const m = swimMat(g, 'Bikini top', st);",
      "  const m = swimMat(g, lace ? 'Halter lace' : 'Bikini top', st);"),
-    (`  if (cupMeshes.length) {
+    ("""  if (cupMeshes.length) {
     parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!, material: { ...m, doubleSided: true }, hides });
     // Piping along the cups' edges, on the fabric.
     parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: stringMat(st) });
-  }`,
-     `  if (cupMeshes.length) {
+  }""",
+     """  if (cupMeshes.length) {
     if (lace) {
       // Actual openwork geometry: a fine diamond lattice spans the complete cup,
       // including the lower half. There is no opaque panel behind the strands.
@@ -129,7 +129,7 @@ edit("src/core/garments/swimwear.ts", [
       // Piping along the cups' edges, on the fabric.
       parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: stringMat(st) });
     }
-  }`),
+  }"""),
     ("  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },",
      "  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },\n  { id: 'halter_bra_lace', label: 'Halter lace bra', slot: 'top', patterns: ['solid'], color: '#29242d', color2: '#987b91', build: (g, st) => bikiniTop(g, st, true) },")
 ])
@@ -137,7 +137,7 @@ edit("src/core/garments/swimwear.ts", [
 # Add a backless dress whose skirt deliberately leaves a narrow opening at one side.
 # The skirt arc is 300 degrees, leaving a 60-degree side slit rather than a front gap.
 edit("src/core/garments/catalog.ts", [
-    ("  // ---------------- Bottoms\n", `  {
+    ("  // ---------------- Bottoms\n", """  {
     id: 'backless_slit_dress', label: 'Backless dress (side slit)', slot: 'top',
     patterns: ['solid', 'lace', 'ankara'], color: '#34243d', color2: '#b58b9b',
     build: (g, st) => {
@@ -161,7 +161,7 @@ edit("src/core/garments/catalog.ts", [
     },
   },
 
-  // ---------------- Bottoms\n`)
+  // ---------------- Bottoms\n""")
 ])
 
 print("Ara underTop, full-cup openwork halter, backless side-slit dress and briefs layering patch applied.")
