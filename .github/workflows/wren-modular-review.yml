@@ -1,9 +1,14 @@
 name: Review Wren modular garments
 
 on:
-  workflow_run:
-    workflows: ["Build Wren Workshop"]
-    types: [completed]
+  push:
+    branches: [feature/wren-anatomy-piercings-halter-fit]
+    paths:
+      - ".github/workflows/wren-modular-review.yml"
+
+concurrency:
+  group: wren-modular-review
+  cancel-in-progress: true
 
 permissions:
   actions: read
@@ -11,7 +16,6 @@ permissions:
 
 jobs:
   review-modular-character:
-    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -20,12 +24,34 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
+      - name: Find and wait for the matching Ara Workshop build
+        id: source-run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          runs_url="repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=${GITHUB_REF_NAME}&per_page=50"
+          source_run=""
+          for sha in $(git rev-list --max-count=30 "$GITHUB_SHA"); do
+            candidate="$(gh api "$runs_url" --jq ".workflow_runs[] | select(.head_sha == \"$sha\") | .id" | head -n 1)"
+            if [ -n "$candidate" ]; then source_run="$candidate"; break; fi
+          done
+          test -n "$source_run"
+          status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run" --jq '.status')"
+          while [ "$status" != "completed" ]; do
+            sleep 20
+            status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run" --jq '.status')"
+          done
+          artifact="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run/artifacts" --jq '.artifacts[] | select(.name == "character-pipeline-evaluation" and .expired == false) | .name' | head -n 1)"
+          test "$artifact" = "character-pipeline-evaluation"
+          echo "run_id=$source_run" >> "$GITHUB_OUTPUT"
+
       - name: Download the generated character pipeline artifact
         uses: actions/download-artifact@v4
         with:
           name: character-pipeline-evaluation
           path: /tmp/ara-assets
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.source-run.outputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Blender for multi-angle garment review
