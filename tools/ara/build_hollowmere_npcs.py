@@ -57,6 +57,8 @@ def validate_profiles(profiles: dict) -> None:
     tattoos = tattoos or KNOWN_TATTOOS_FALLBACK
     weapons = weapons or KNOWN_WEAPONS_FALLBACK
     carry = carry or KNOWN_CARRY_FALLBACK
+    weapons.add("none")
+    carry.add("none")
     facial = facial or {"none", "stubble", "mustache", "mustache_stubble", "goatee", "short_beard", "full_beard"}
 
     seen = set()
