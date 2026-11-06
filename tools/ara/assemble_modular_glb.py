@@ -202,4 +202,4 @@ if __name__=='__main__':
     validate_morph_targets(d)
     write(sys.argv[2],d,b)
     check,_=read(sys.argv[2]); validate_morph_targets(check); n=body_node(check)
-    print(f"Wrote {sys.argv[2]} ({Path(sys.argv[2]).stat().st_size:,} bytes), {len(check['meshes'][n['mesh']]['primitives'])} skinned primitives')
+    print(f"Wrote {sys.argv[2]} ({Path(sys.argv[2]).stat().st_size:,} bytes), {len(check['meshes'][n['mesh']]['primitives'])} skinned primitives")
