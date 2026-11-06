@@ -13,14 +13,15 @@ This prototype uses Wren Talbot's actual Ara Workshop character export as the vi
 ## What is exercised
 
 - Three stationary Wren characters spawn over the valley floor, a moderate slope and the ridge crest.
-- A fourth Wren starts on the rising ridge flank and moves uphill toward the crest for 60 physics frames.
+- A fourth Wren starts on the ridge shoulder and walks along it for 60 physics frames.
 - Each character has a capsule collision shape, while Wren's model is a visual child of the physics body.
 - The terrain renderer creates a static concave collision shape from the exact mesh used for rendering.
-- The screenshot capture checks terrain ray hits, grounded state for all four characters, and meaningful uphill progress by the moving character.
+- The screenshot capture checks terrain ray hits, grounded state for all four characters, and meaningful movement along the ridge shoulder.
 
 ## What this does not prove yet
 
 - The mobile export has no walk animation, so the moving Wren translates in a static pose. This does not validate gait, foot locking, retargeted animation or root motion.
+- The steep escarpment is not treated as a walkable ramp; this test does not validate climbing or ledge traversal.
 - It does not yet test the game's hex-step movement controller.
 - It does not yet test slope-specific climbing permissions, edge-profile ledges, animation adaptation, navmesh behaviour or terrain ray picking.
 - The current terrain is still a coarse prototype mesh; successful grounding is not evidence that its visual quality is production-ready.
