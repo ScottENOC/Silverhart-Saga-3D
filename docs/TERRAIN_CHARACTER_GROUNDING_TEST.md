@@ -1,26 +1,26 @@
 # Terrain character grounding test
 
-This prototype uses the generic Ara base-person export as the visible character, attached to a separate physics-driven `CharacterBody3D`. The capsule collision shape remains authoritative for movement and grounding; the character mesh is visual only.
+This prototype uses Wren Talbot's actual Ara Workshop character export as the visible character, attached to a separate physics-driven `CharacterBody3D`. The capsule collision shape remains authoritative for movement and grounding; Wren's mesh is visual only.
 
 ## Workshop model source
 
-- Model: `ara_person_mobile.glb` (neutral Ara base-person mobile preview).
-- Source: successful Wren Workshop character-pipeline GitHub Actions artifact, run `42159056753` (generic Ara base-person build; pending validation).
-- The model is a static rigged GLB with a 66-joint skin and no embedded animation. It is used to assess real character proportions, visible foot contact and body placement against the ridge.
+- Model: `ara_wren_mobile.glb` (Wren Talbot mobile preview export).
+- Source: successful Wren Workshop character-pipeline GitHub Actions artifact, run `41979224139`, artifact `character-pipeline-evaluation`.
+- The export parameters identify Wren by her dark-blue `braid01` hairstyle, fatigue shirt, dark fatigue pants and combat boots. The mobile export uses a 66-joint game rig and does not embed animation.
 - The CI workflow downloads that exact artifact and stages the GLB before Godot's import scan. The source Workshop output is not modified.
-- The build artifact currently has a 14-day retention period. The model should be promoted to the project's managed art assets before this test becomes a permanent CI dependency.
+- The build artifact currently has a 14-day retention period. The GLB should be promoted into managed project art assets before this becomes a permanent CI dependency.
 
 ## What is exercised
 
-- Three stationary Ara base-person characters spawn over the valley floor, a moderate slope and the ridge.
-- A fourth Ara base person moves horizontally toward and across the ridge, reversing when its capsule encounters a wall.
-- Each character has a capsule collision shape, while the visible Ara model is a child of the physics body.
+- Three stationary Wren characters spawn over the valley floor, a moderate slope and the ridge crest.
+- A fourth Wren starts on the rising ridge flank and moves uphill toward the crest for 60 physics frames.
+- Each character has a capsule collision shape, while Wren's model is a visual child of the physics body.
 - The terrain renderer creates a static concave collision shape from the exact mesh used for rendering.
-- The screenshot capture script checks that the terrain can be ray-hit and fails if any character is not reported as grounded.
+- The screenshot capture checks terrain ray hits, grounded state for all four characters, and meaningful uphill progress by the moving character.
 
 ## What this does not prove yet
 
-- The exported model has no walk animation, so the moving character translates in a static pose. This does not validate gait, foot locking, retargeted animation or root motion.
+- The mobile export has no walk animation, so the moving Wren translates in a static pose. This does not validate gait, foot locking, retargeted animation or root motion.
 - It does not yet test the game's hex-step movement controller.
 - It does not yet test slope-specific climbing permissions, edge-profile ledges, animation adaptation, navmesh behaviour or terrain ray picking.
 - The current terrain is still a coarse prototype mesh; successful grounding is not evidence that its visual quality is production-ready.
