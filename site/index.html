@@ -22,7 +22,8 @@ button:disabled{opacity:.4}
 <header><strong>WREN WORKSHOP</strong><span>Silverhart Saga 3D · model preview</span></header>
 <main><div id="stage"><div id="status">Loading model…</div><div id="hint">Drag to orbit · Pinch or scroll to zoom · Two-finger drag to pan</div></div>
 <aside>
-<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara" selected>Ara base person · High detail</option><option value="ara-mobile">Ara · Mobile preview</option><option value="body">Body · no clothing</option><option value="tattoo-body">Body · tattoos</option><option value="underwear">Underwear · equipment preview</option></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
+<section><h2>Model</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="full">Full character</option><option value="sculpt">Sculpt-ready body · clay</option><option value="ara" selected>Ara base person · High detail</option><option value="ara-mobile">Ara · Mobile preview</option><option value="body">Body · no clothing</option><option value="tattoo-body">Body · tattoos</option><option value="underwear">Underwear · equipment preview</option><optgroup label="Hollowmere · Ara characters" id="hollowmereOptions"></optgroup></select></div><p class="note">The sculpt view is the unified body base mesh, without hair, clothing or rig.</p></section>
+<section><h2>Character profile · Ara controls</h2><div class="note" id="profileInfo">Select a Hollowmere character to inspect the exact Ara settings used to generate the model.</div></section>
 <section><h2>Camera</h2><div class="buttons"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="three">3/4</button><button id="home">Reset</button></div><div class="row"><span>Auto rotate</span><input id="autorotate" type="checkbox"></div></section>
 <section><h2>Lighting</h2><div class="row"><span>Key light</span><input id="keylight" type="range" min="0" max="5" step=".1" value="3"></div><div class="row"><span>Fill light</span><input id="filllight" type="range" min="0" max="4" step=".1" value="1.4"></div><div class="row"><span>Light direction</span><input id="lightangle" type="range" min="0" max="360" value="35"></div></section>
 <section><h2>Appearance · material inspector</h2>
@@ -64,6 +65,8 @@ const key=new THREE.DirectionalLight(0xffe1bc,3);key.position.set(2,-3,4);scene.
 const fill=new THREE.DirectionalLight(0xc4d7ff,1.4);fill.position.set(-3,2,2);scene.add(fill);
 scene.add(new THREE.GridHelper(5,50,0x68645d,0x44413c));
 let model=null,box=null,bodyUnderlay=null,bodyUnderlayLoader=null;
+const npcModels=new Map();
+const profileInfo=document.querySelector('#profileInfo');
 
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(stage);resize();
 function frame(name){if(!box)return;const centre=box.getCenter(new THREE.Vector3()),size=box.getSize(new THREE.Vector3()),dist=Math.max(size.z*2,2.1);const dirs={front:new THREE.Vector3(0,0,1),back:new THREE.Vector3(0,0,-1),left:new THREE.Vector3(-1,0,0),right:new THREE.Vector3(1,0,0),three:new THREE.Vector3(1,.45,1.5)};camera.position.copy(centre).add(dirs[name].normalize().multiplyScalar(dist));controls.target.copy(centre);controls.update()}
@@ -92,12 +95,31 @@ function disposeModel(root){
  materials.forEach(m=>m.dispose());
  textures.forEach(t=>t.dispose());
 }
+function araAgeYears(a){if(a<.1875)return 1+(a/.1875)*10;if(a<.5)return 11+((a-.1875)/.3125)*14;return 25+((a-.5)/.5)*65}
+function renderProfileInfo(profile){
+ if(!profile){profileInfo.textContent='Ara base-person preview. Choose a Hollowmere profile to inspect its generated body sliders, eye colour, tattoos and equipment.';return;}
+ const p=profile.params||{};
+ const clothes=[p.top,p.underTop,p.underBottom,p.jacket,p.bottom,p.shoes].filter(x=>x&&x!=='none');
+ const tattoos=(p.tattoos||[]).length?(p.tattoos||[]).join(', '):'None';
+ const accessories=(p.accessories||[]).length?(p.accessories||[]).join(', '):'None';
+ const lines=[
+  profile.name+' · '+(profile.role||'villager'),
+  'Gender slider: '+Math.round((p.gender||0)*100)+'% ('+(p.gender>=.5?'man':'woman')+')',
+  'Age: '+Math.round(araAgeYears(p.age||.5))+' · Height: '+Math.round((p.height||.5)*100)+'% · Weight: '+Math.round((p.weight||.5)*100)+'% · Muscularity: '+Math.round((p.muscle||.5)*100)+'%',
+  'Eyes: '+(p.eyes||'default')+' · Hair: '+(p.hair||'default')+' · Tattoos: '+tattoos,
+  'Clothing: '+(clothes.join(', ')||'None')+' · Accessories: '+accessories+' · Weapon: '+(p.weapon||'none'),
+  'Ara export: '+(profile.detail||'medium')+' detail · '+(p.rig||'game')+' rig'
+ ];
+ profileInfo.textContent=lines.join('  |  ');
+}
 function loadModel(mode){
  const generation=++loadGeneration;
  const files={'ara':'ara_person_modular.glb','ara-mobile':'ara_person_mobile.glb','body':'ara_person_body.glb','tattoo-body':'ara_person_tattoo_body.glb','underwear':'ara_person_modular_underwear.glb'};
- const file=files[mode]||'ara_person_benchmark.glb';
+ const npc=npcModels.get(mode);
+ const file=npc?npc.file:(files[mode]||'ara_person_benchmark.glb');
  const labels={'ara':'Ara · modular equipment','ara-mobile':'Ara mobile preview','body':'Ara body · no clothing','tattoo-body':'Ara tattooed body','underwear':'Ara · underwear equipment'};
- const label=labels[mode]||'Ara high-detail benchmark';
+ const label=npc?(npc.profile.name+' · Ara generated'):(labels[mode]||'Ara high-detail benchmark');
+ renderProfileInfo(npc?npc.profile:null);
  const modelUrl=new URL('./assets/'+file+'?v='+encodeURIComponent(buildVersion),window.location.href).href;
  if(model){scene.remove(model);disposeModel(model);model=null;box=null}
  bodyUnderlay=null;
@@ -412,5 +434,13 @@ document.querySelector('#showBody').onclick=()=>switchModel('body');
 document.querySelector('#showTattooBody').onclick=()=>switchModel('tattoo-body');
 document.querySelector('#showUnderwear').onclick=()=>switchModel('underwear');
 loadModel('ara');
+fetch('./assets/hollowmere/profiles.json').then(r=>{if(!r.ok)throw new Error('Hollowmere profile manifest unavailable');return r.json()}).then(manifest=>{
+ const group=document.querySelector('#hollowmereOptions');
+ for(const profile of (manifest.characters||[])){
+  const mode='npc:'+profile.id;
+  npcModels.set(mode,{file:'hollowmere/'+profile.model,profile});
+  const option=document.createElement('option');option.value=mode;option.textContent=profile.name+' · '+(profile.role||'villager');group.append(option);
+ }
+}).catch(e=>{console.warn('Hollowmere profiles unavailable:',e);});
 function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
 </script></body></html>
