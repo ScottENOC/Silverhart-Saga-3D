@@ -1,22 +1,23 @@
 name: Build Wren Workshop
+# Modular equipment export pipeline: keep garment primitives compact and rig-compatible.
 # Re-run after configuring the HF_ADMIN_TOKEN repository secret.
 on:
   workflow_dispatch:
   push:
-    branches: [dev]
+    branches: [dev, integration/wren-modular-clothing]
     paths:
       - "tools/blender/**"
       - "tools/ara/**"
       - "site/**"
-      - "docs/ARA_CHARACTER_EVALUATION.md"
+      - "docs/CHARACTER_PIPELINE.md"
       - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
 concurrency:
-  group: wren-workshop
-  cancel-in-progress: false
+  group: wren-workshop-${{ github.ref_name }}
+  cancel-in-progress: true
 jobs:
-  build-and-publish:
+  generate:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -27,36 +28,38 @@ jobs:
           set -euo pipefail
           git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
           git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
-          python "$GITHUB_WORKSPACE/tools/ara/patch_halter_bra.py" /tmp/ara-3d-gen/src/core/garments/swimwear.ts
           cd /tmp/ara-3d-gen
           corepack enable
           pnpm install --no-frozen-lockfile
           npm run setup-assets
-          cat > /tmp/ara-wren.params.json <<'JSON'
+          python "$GITHUB_WORKSPACE/tools/ara/patch_layering.py"
+          cat > /tmp/ara-person.params.json <<'JSON'
           {
-            "name": "Wren Talbot - Ara benchmark",
+            "name": "Ara Base Person - dressed preview",
             "seed": 218,
             "gender": 0,
             "age": 0.5,
-            "muscle": 0.62,
-            "weight": 0.42,
-            "height": 0.55,
-            "proportions": 0.68,
+            "muscle": 0.5,
+            "weight": 0.5,
+            "height": 0.5,
+            "proportions": 0.5,
             "african": 0.05,
             "asian": 0.05,
             "caucasian": 0.9,
             "breastSize": 0.5,
             "breastFirmness": 0.55,
-            "hair": "braid01",
-            "hairTint": "#252b62",
+            "hair": "short02",
+            "hairTint": "#2a1e16",
             "outfit": "none",
             "top": "fatigue_shirt",
+            "underTop": "bra",
+            "underBottom": "briefs",
             "jacket": "none",
             "bottom": "fatigue_pants",
-            "underwear": true,
+            "underwear": false,
             "shoes": "combat_boots",
             "hat": "none",
-            "weapon": "sword",
+            "weapon": "none",
             "carry": "none",
             "detail": "high",
             "rig": "game",
@@ -67,108 +70,358 @@ jobs:
             "speechShapes": true,
             "expression": "neutral",
             "garmentStyles": {
-              "fatigue_shirt": {"pattern":"solid","color":"#244b2b","color2":"#d94a72"},
-              "fatigue_pants": {"pattern":"solid","color":"#29292d","color2":"#29292d"}
+              "fatigue_shirt": {"pattern":"solid","color":"#52606b","color2":"#3d4852"},
+              "bra": {"pattern":"solid","color":"#3d4147","color2":"#22262b"},
+              "tank_top": {"pattern":"solid","color":"#52606b","color2":"#3d4852"},
+              "bikini_top": {"pattern":"solid","color":"#3d4147","color2":"#22262b"},
+              "bikini_bottom": {"pattern":"solid","color":"#3d4147","color2":"#22262b"},
+              "fatigue_pants": {"pattern":"solid","color":"#35383d","color2":"#35383d"}
             }
           }
           JSON
-          npm run export -- --params /tmp/ara-wren.params.json --detail high --formats glb --out /tmp/ara-out
+          npm run export -- --params /tmp/ara-person.params.json --detail high --formats glb --out /tmp/ara-out
           mkdir -p "$GITHUB_WORKSPACE/art/characters/ara"
           find /tmp/ara-out -maxdepth 1 -type f -name '*.glb' -print -quit | grep -q .
-          cp /tmp/ara-out/*.glb "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_benchmark.glb"
-          cp /tmp/ara-wren.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren.params.json"
-          test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_benchmark.glb"
+          cp /tmp/ara-out/*.glb "$GITHUB_WORKSPACE/art/characters/ara/ara_person_benchmark.glb"
+          cp /tmp/ara-person.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person.params.json"
+          test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_person_benchmark.glb"
 
-          # Independent garment-slot preview: same Wren, with the new open-lace
-          # halter bra selected in Ara's top slot. The normal shirt preview is untouched.
+          # Ara body-only adult preview: no garments, underwear or shoes.
           python - <<'PY'
           import json
-          p = json.load(open('/tmp/ara-wren.params.json'))
+          p = json.load(open('/tmp/ara-person.params.json'))
           p.update({
-              "name": "Wren Talbot - Halter lace garment preview",
-              "top": "halter_bra_lace",
-              "garmentStyles": {
-                  **p.get("garmentStyles", {}),
-                  "halter_bra_lace": {"pattern":"solid","color":"#3b2529","color2":"#d6b5a5"}
-              }
+              "name": "Ara Base Person - body no clothing",
+              "outfit": "none", "top": "none", "jacket": "none",
+              "bottom": "none", "underTop": "none", "underBottom": "none", "underwear": False, "shoes": "none",
+              "hat": "none", "accessories": [], "earrings": "none", "tattoos": []
           })
-          json.dump(p, open('/tmp/ara-wren-halter.params.json', 'w'), indent=2)
+          json.dump(p, open('/tmp/ara-person-body.params.json', 'w'), indent=2)
           PY
-          mkdir -p /tmp/ara-halter-out
-          npm run export -- --params /tmp/ara-wren-halter.params.json --detail high --formats glb --out /tmp/ara-halter-out
-          HALTER_GLB="$(find /tmp/ara-halter-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
-          test -n "$HALTER_GLB"
-          cp "$HALTER_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter_bra.glb"
-          cp /tmp/ara-wren-halter.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter.params.json"
-          test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter_bra.glb"
+          mkdir -p /tmp/ara-body-out
+          npm run export -- --params /tmp/ara-person-body.params.json --detail high --formats glb --out /tmp/ara-body-out
+          BODY_GLB="$(find /tmp/ara-body-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$BODY_GLB"
+          cp "$BODY_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_body.glb"
+          cp /tmp/ara-person-body.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_body.params.json"
+
+          # The same adult body with Ara's UV-space tattoo layer enabled.
+          python - <<'PY'
+          import json
+          p = json.load(open('/tmp/ara-person-body.params.json'))
+          p.update({"name": "Ara Base Person - tattooed body", "tattoos": ["armband_l", "forearm_l"], "tattooInk": "#20232a"})
+          json.dump(p, open('/tmp/ara-person-tattoo-body.params.json', 'w'), indent=2)
+          PY
+          mkdir -p /tmp/ara-tattoo-body-out
+          npm run export -- --params /tmp/ara-person-tattoo-body.params.json --detail high --formats glb --out /tmp/ara-tattoo-body-out
+          TATTOO_GLB="$(find /tmp/ara-tattoo-body-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$TATTOO_GLB"
+          cp "$TATTOO_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_tattoo_body.glb"
+          cp /tmp/ara-person-tattoo-body.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_tattoo_body.params.json"
+
+          # Generate a separate adult male base body from the same Ara profile.
+          # The anatomy component is added in its own Blender job below.
+          python - <<'PY'
+          import json
+          p = json.load(open('/tmp/ara-person-body.params.json'))
+          p.update({
+              "name": "Ara Base Person - male body",
+              "gender": 1,
+              "breastSize": 0,
+              "breastFirmness": 0
+          })
+          json.dump(p, open('/tmp/ara-person-male.params.json', 'w'), indent=2)
+          PY
+          mkdir -p /tmp/ara-male-out
+          npm run export -- --params /tmp/ara-person-male.params.json --detail high --formats glb --out /tmp/ara-male-out
+          MALE_GLB="$(find /tmp/ara-male-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$MALE_GLB"
+          cp "$MALE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male_raw.glb"
+          cp /tmp/ara-person-male.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male.params.json"
 
           # Separate mobile preview: retain the game rig, but reduce geometry detail
           # and bake facial expression / omit animation clips and facial blend shapes.
           python - <<'PY'
           import json
-          p = json.load(open('/tmp/ara-wren.params.json'))
+          p = json.load(open('/tmp/ara-person.params.json'))
           p.update({
-              "name": "Wren Talbot - Ara mobile preview",
+              "name": "Ara Base Person - mobile preview",
               "detail": "low",
               "animations": False,
               "faceBones": False,
               "faceShapes": False,
               "speechShapes": False
           })
-          json.dump(p, open('/tmp/ara-wren-mobile.params.json', 'w'), indent=2)
+          json.dump(p, open('/tmp/ara-person-mobile.params.json', 'w'), indent=2)
           PY
           mkdir -p /tmp/ara-mobile-out
-          npm run export -- --params /tmp/ara-wren-mobile.params.json --detail low --formats glb --out /tmp/ara-mobile-out
+          npm run export -- --params /tmp/ara-person-mobile.params.json --detail low --formats glb --out /tmp/ara-mobile-out
           MOBILE_GLB="$(find /tmp/ara-mobile-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
           test -n "$MOBILE_GLB"
-          cp "$MOBILE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
-          cp /tmp/ara-wren-mobile.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.params.json"
-          test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_mobile.glb"
+          cp "$MOBILE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_mobile.glb"
+          cp /tmp/ara-person-mobile.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_mobile.params.json"
+          test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_person_mobile.glb"
 
-          # Low-detail version of the same selectable halter-bra preview for iPhone.
+          # Export the three alternative garments separately. The GLB assembler
+          # extracts each garment's skinned material primitive and attaches it
+          # to the full-skin base model for independent runtime equipment slots.
           python - <<'PY'
           import json
-          p = json.load(open('/tmp/ara-wren-mobile.params.json'))
-          p.update({
-              "name": "Wren Talbot - Halter lace mobile preview",
-              "top": "halter_bra_lace",
-              "garmentStyles": {
-                  **p.get("garmentStyles", {}),
-                  "halter_bra_lace": {"pattern":"solid","color":"#3b2529","color2":"#d6b5a5"}
-              }
-          })
-          json.dump(p, open('/tmp/ara-wren-halter-mobile.params.json', 'w'), indent=2)
+          base = json.load(open('/tmp/ara-person.params.json'))
+          variants = {
+              "tank_top": {"top":"tank_top", "underTop":"none", "underBottom":"none", "bottom":"none"},
+              "halter_bra_lace": {"top":"none", "underTop":"halter_bra_lace", "underBottom":"none", "bottom":"none"},
+              "triangle_bikini_top": {"top":"none", "underTop":"bikini_top", "underBottom":"none", "bottom":"none"},
+              "string_bikini_bottom": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none"},
+              "lace_briefs": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none",
+                              "garmentStyles":{"bikini_bottom":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
+              "lace_shirt": {"top":"fatigue_shirt", "underTop":"none", "underBottom":"none", "bottom":"none",
+                             "garmentStyles":{"fatigue_shirt":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
+              "lace_pants": {"top":"none", "underTop":"none", "underBottom":"none", "bottom":"fatigue_pants",
+                             "garmentStyles":{"fatigue_pants":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
+              "backless_slit_dress": {"top":"backless_slit_dress", "underTop":"none", "underBottom":"none", "bottom":"none"},
+              "leather_armor": {"top":"none", "underTop":"none", "underBottom":"none", "bottom":"none", "accessories":["leather_armor"]}
+          }
+          for key, updates in variants.items():
+              p = dict(base)
+              p.update({"name":"Ara Base Person - "+key, "jacket":"none", "underwear":False,
+                        "shoes":"none", "hat":"none", "weapon":"none", "carry":"none"})
+              p.update(updates)
+              json.dump(p, open('/tmp/ara-person-'+key+'.params.json','w'), indent=2)
           PY
-          mkdir -p /tmp/ara-halter-mobile-out
-          npm run export -- --params /tmp/ara-wren-halter-mobile.params.json --detail low --formats glb --out /tmp/ara-halter-mobile-out
-          HALTER_MOBILE_GLB="$(find /tmp/ara-halter-mobile-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
-          test -n "$HALTER_MOBILE_GLB"
-          cp "$HALTER_MOBILE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter_bra_mobile.glb"
-          cp /tmp/ara-wren-halter-mobile.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter_mobile.params.json"
-          test -s "$GITHUB_WORKSPACE/art/characters/ara/ara_wren_halter_bra_mobile.glb"
+          for variant in tank_top halter_bra_lace triangle_bikini_top string_bikini_bottom lace_briefs lace_shirt lace_pants backless_slit_dress leather_armor; do
+            mkdir -p "/tmp/ara-$variant-out"
+            npm run export -- --params "/tmp/ara-person-$variant.params.json" --detail high --formats glb --out "/tmp/ara-$variant-out"
+            VARIANT_GLB="$(find "/tmp/ara-$variant-out" -maxdepth 1 -type f -name '*.glb' -print -quit)"
+            test -n "$VARIANT_GLB"
+            cp "$VARIANT_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_$variant.glb"
+            cp "/tmp/ara-person-$variant.params.json" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_$variant.params.json"
+          done
+      - name: Save raw generated models for parallel integration
+        uses: actions/upload-artifact@v4
+        with:
+          name: ara-generated-models
+          path: |
+            art/characters/ara/*.glb
+            art/characters/ara/*.params.json
+          if-no-files-found: error
+          retention-days: 2
+
+  integrate:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - ara_person_body
+          - ara_person_tattoo_body
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download generated model
+        uses: actions/download-artifact@v4
+        with:
+          name: ara-generated-models
+          path: /tmp/ara-generated
+      - name: Install Blender and integrate adult anatomy
+        shell: bash
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python-expr "import numpy; print('Blender NumPy:', numpy.__version__)"
+          ARA_INPUT="/tmp/ara-generated/${VARIANT}.glb" \
+            ARA_OUTPUT="/tmp/${VARIANT}_anatomy.glb" \
+            ARA_PROFILE=female ARA_ADULT=1 \
+            blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py
+          mkdir -p art/characters/ara
+          mv "/tmp/${VARIANT}_anatomy.glb" "art/characters/ara/${VARIANT}.glb"
+          test -s "art/characters/ara/${VARIANT}.glb"
+          if [ "${VARIANT}" = "ara_person_body" ]; then
+            mkdir -p art/characters/ara/review/body
+            REVIEW_INPUT="art/characters/ara/${VARIANT}.glb" \
+              REVIEW_OUTPUT_DIR=art/characters/ara/review/body \
+              blender --background --python-exit-code 1 --python tools/blender/inspect_character.py
+            for view in front side rear three_quarter; do test -s "art/characters/ara/review/body/$view.png"; done
+          elif [ "${VARIANT}" = "ara_person_benchmark" ]; then
+            mkdir -p art/characters/ara/review/clothed
+            REVIEW_INPUT="art/characters/ara/${VARIANT}.glb" \
+              REVIEW_OUTPUT_DIR=art/characters/ara/review/clothed \
+              blender --background --python-exit-code 1 --python tools/blender/inspect_character.py
+            for view in front side rear three_quarter; do test -s "art/characters/ara/review/clothed/$view.png"; done
+          fi
+      - name: Save integrated model and review renders
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-${{ matrix.variant }}
+          path: |
+            art/characters/ara/${{ matrix.variant }}.glb
+            art/characters/ara/review/**
+          if-no-files-found: error
+          retention-days: 2
+
+  integrate-male:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download generated male base
+        uses: actions/download-artifact@v4
+        with:
+          name: ara-generated-models
+          path: /tmp/ara-generated
+      - name: Add skinned male anatomy and render review angles
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          mkdir -p art/characters/ara/review/male
+          blender --background --python-exit-code 1 --python tools/blender/add_male_anatomy.py -- \
+            --input /tmp/ara-generated/ara_person_male_raw.glb \
+            --output art/characters/ara/ara_person_male_body.glb --adult
+          REVIEW_INPUT=art/characters/ara/ara_person_male_body.glb \
+            REVIEW_OUTPUT_DIR=art/characters/ara/review/male \
+            blender --background --python-exit-code 1 --python tools/blender/inspect_character.py
+          for view in front side rear three_quarter; do
+            test -s "art/characters/ara/review/male/$view.png"
+          done
+      - name: Save male model and review renders
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-ara-male-body
+          path: |
+            art/characters/ara/ara_person_male_body.glb
+            art/characters/ara/review/male/*.png
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: [integrate, integrate-male]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download generated parameter files
+        uses: actions/download-artifact@v4
+        with:
+          name: ara-generated-models
+          path: /tmp/ara-generated
+      - name: Restore parameter files
+        run: |
+          set -euo pipefail
+          mkdir -p art/characters/ara
+          cp /tmp/ara-generated/*.params.json art/characters/ara/
+          # The body and tattoo-body need Blender anatomy integration. These
+          # two previews are consumed as raw Ara exports by the Workshop.
+          cp /tmp/ara-generated/ara_person_benchmark.glb art/characters/ara/
+          cp /tmp/ara-generated/ara_person_mobile.glb art/characters/ara/
+      - name: Collect integrated models and review renders
+        uses: actions/download-artifact@v4
+        with:
+          pattern: processed-*
+          path: art/characters/ara
+          merge-multiple: true
+      - name: Assemble independently selectable equipment model
+        run: |
+          set -euo pipefail
+          python tools/ara/assemble_modular_glb.py \
+            art/characters/ara/ara_person_body.glb art/characters/ara/ara_person_modular.glb \
+            /tmp/ara-generated/ara_person_benchmark.glb "Fatigue pants#1" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Fatigue pants#2" \
+            /tmp/ara-generated/ara_person_backless_slit_dress.glb "Backless slit dress" \
+            /tmp/ara-generated/ara_person_backless_slit_dress.glb "Pencil skirt" \
+            /tmp/ara-generated/ara_person_leather_armor.glb "Leather armor" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Shoes" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Boot shafts" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra straps" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Briefs" \
+            /tmp/ara-generated/ara_person_tank_top.glb "Tank top" \
+            /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
+            /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini strings*=Triangle bikini strings" \
+            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
+            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings" \
+            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini bottom=Lace briefs" \
+            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties" \
+            /tmp/ara-generated/ara_person_lace_shirt.glb "Fatigue shirt=Lace shirt" \
+            /tmp/ara-generated/ara_person_lace_pants.glb "Fatigue pants#1=Lace pants" \
+            /tmp/ara-generated/ara_person_lace_pants.glb "Fatigue pants#2=Lace pants"
+          python tools/ara/assemble_modular_glb.py \
+            art/characters/ara/ara_person_body.glb art/characters/ara/ara_person_modular_underwear.glb \
+            /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra straps" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Briefs" \
+            /tmp/ara-generated/ara_person_tank_top.glb "Tank top" \
+            /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
+            /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini strings*=Triangle bikini strings" \
+            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
+            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings" \
+            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini bottom=Lace briefs" \
+            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties"
+      - name: Install Blender for modular garment fitting
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+      - name: Cut the side slit into the dress skirt
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python tools/blender/add_dress_slit.py -- --input art/characters/ara/ara_person_modular.glb --output /tmp/ara_person_modular_slit.glb
+          mv /tmp/ara_person_modular_slit.glb art/characters/ara/ara_person_modular.glb
+      - name: Fit modular garments around integrated anatomy
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- \
+            --input art/characters/ara/ara_person_modular.glb \
+            --output /tmp/ara_person_modular_fitted.glb \
+            --profile none --adult --fit-existing
+          mv /tmp/ara_person_modular_fitted.glb art/characters/ara/ara_person_modular.glb
+          blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- \
+            --input art/characters/ara/ara_person_modular_underwear.glb \
+            --output /tmp/ara_person_modular_underwear_fitted.glb \
+            --profile none --adult --fit-existing
+          mv /tmp/ara_person_modular_underwear_fitted.glb art/characters/ara/ara_person_modular_underwear.glb
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: character-pipeline-evaluation
           path: |
-            art/characters/ara/ara_wren_benchmark.glb
-            art/characters/ara/ara_wren.params.json
-            art/characters/ara/ara_wren_mobile.glb
-            art/characters/ara/ara_wren_mobile.params.json
-            art/characters/ara/ara_wren_halter_bra.glb
-            art/characters/ara/ara_wren_halter.params.json
-            art/characters/ara/ara_wren_halter_bra_mobile.glb
-            art/characters/ara/ara_wren_halter_mobile.params.json
+            art/characters/ara/*.glb
+            art/characters/ara/*.params.json
+            art/characters/ara/review/**
           if-no-files-found: error
           retention-days: 14
       - name: Assemble private viewer site
         run: |
           set -euo pipefail
           mkdir -p site/assets
-          cp art/characters/ara/ara_wren_benchmark.glb site/assets/ara_wren_benchmark.glb
-          cp art/characters/ara/ara_wren_mobile.glb site/assets/ara_wren_mobile.glb
-          cp art/characters/ara/ara_wren_halter_bra.glb site/assets/ara_wren_halter_bra.glb
-          cp art/characters/ara/ara_wren_halter_bra_mobile.glb site/assets/ara_wren_halter_bra_mobile.glb
+          cp art/characters/ara/ara_person_benchmark.glb site/assets/ara_person_benchmark.glb
+          cp art/characters/ara/ara_person_modular.glb site/assets/ara_person_modular.glb
+          cp art/characters/ara/ara_person_modular_underwear.glb site/assets/ara_person_modular_underwear.glb
+          cp art/characters/ara/ara_person_mobile.glb site/assets/ara_person_mobile.glb
+          cp art/characters/ara/ara_person_body.glb site/assets/ara_person_body.glb
+          cp art/characters/ara/ara_person_tattoo_body.glb site/assets/ara_person_tattoo_body.glb
+          cp art/characters/ara/ara_person_male_body.glb site/assets/ara_person_male_body.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
@@ -177,6 +430,7 @@ jobs:
           curl -LsSf https://hf.co/cli/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Publish to private Hugging Face Space
+        if: github.ref_name == 'dev'
         env:
           HF_TOKEN: ${{ secrets.HF_ADMIN_TOKEN }}
         run: |
