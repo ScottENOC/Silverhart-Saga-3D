@@ -1,6 +1,9 @@
 extends CharacterBody3D
-## Lightweight physics proxy used to validate terrain grounding before production
-## character scenes are ready. Replace the capsule mesh with a character scene later.
+## Physics body used for terrain grounding. When the Wren Workshop export is
+## present, its real character mesh is attached as a visual child; the capsule
+## remains authoritative for collision and movement.
+
+const WREN_MODEL_PATH := "res://art/characters/wren/ara_wren_mobile.glb"
 
 @export var tint: Color = Color(0.35, 0.62, 0.82)
 @export var walks_across_ridge: bool = false
@@ -8,6 +11,7 @@ extends CharacterBody3D
 
 var walk_direction: float = 1.0
 var gravity_strength: float = 18.0
+var uses_workshop_model: bool = false
 
 func _ready() -> void:
 	floor_snap_length = 0.4
@@ -24,18 +28,32 @@ func _ready() -> void:
 	collision.position.y = 0.85
 	add_child(collision)
 
-	var mesh := CapsuleMesh.new()
-	mesh.radius = 0.32
-	mesh.height = 1.7
-	var visual := MeshInstance3D.new()
-	visual.name = "CapsuleProxy"
-	visual.mesh = mesh
-	visual.position.y = 0.85
-	var material := StandardMaterial3D.new()
-	material.albedo_color = tint
-	material.roughness = 0.78
-	visual.material_override = material
-	add_child(visual)
+	# The GLB is supplied to CI from the successful Wren Workshop export.
+	# Keep a capsule visual fallback for local runs where that export is absent.
+	if FileAccess.file_exists(WREN_MODEL_PATH):
+		var character_scene := load(WREN_MODEL_PATH) as PackedScene
+		if character_scene != null:
+			var character := character_scene.instantiate() as Node3D
+			if character != null:
+				character.name = "WrenWorkshopCharacter"
+				add_child(character)
+				uses_workshop_model = true
+
+	if not uses_workshop_model:
+		var mesh := CapsuleMesh.new()
+		mesh.radius = 0.32
+		mesh.height = 1.7
+		var visual := MeshInstance3D.new()
+		visual.name = "CapsuleProxy"
+		visual.mesh = mesh
+		visual.position.y = 0.85
+		var material := StandardMaterial3D.new()
+		material.albedo_color = tint
+		material.roughness = 0.78
+		visual.material_override = material
+		add_child(visual)
+	else:
+		print("Using Wren Workshop character model for ", name)
 
 func _physics_process(delta: float) -> void:
 	velocity.y -= gravity_strength * delta
