@@ -91,6 +91,43 @@ def bone_world_span(armature, names, fallback=None):
     raise RuntimeError("Required anatomical rig landmark not found: " + "/".join(sorted(names)))
 
 
+def pelvis_landmark_from_leg_roots(armature, minimum, height):
+    """Locate the pelvic centre from the left/right femur roots, not Hips-bone midpoint.
+
+    On Ara/Mixamo rigs the Hips bone spans much of the lower torso; its midpoint
+    is not a reliable genital landmark and can place both the sculpt and hood
+    socket up on the abdomen. The paired upper-leg heads identify the hip-joint
+    line. Fail loudly if the expected rig landmarks are absent rather than
+    silently reverting to a visually unsafe torso-height estimate.
+    """
+    aliases = {
+        "left": {"leftupleg", "leftupperleg", "upleg_l", "upperleg_l",
+                 "thigh_l", "leftthigh", "lthigh", "thigh.l"},
+        "right": {"rightupleg", "rightupperleg", "upleg_r", "upperleg_r",
+                  "thigh_r", "rightthigh", "rthigh", "thigh.r"},
+    }
+    found = {}
+    for side, names in aliases.items():
+        bone = next((b for b in armature.data.bones
+                     if b.name.lower().replace(" ", "").replace("-", "_") in names), None)
+        if bone is not None:
+            found[side] = armature.matrix_world @ bone.head_local
+    if len(found) != 2:
+        available = ", ".join(b.name for b in armature.data.bones
+                              if any(token in b.name.lower() for token in ("leg", "thigh", "upleg")))
+        raise RuntimeError(
+            "Cannot locate paired upper-leg roots for pelvic anatomy placement. "
+            f"Found {sorted(found)}; relevant rig bones: {available or 'none'}"
+        )
+    z = (found["left"].z + found["right"].z) * 0.5
+    print(
+        "Pelvic landmark from paired upper-leg roots: "
+        f"left={found['left'].z:.4f}, right={found['right'].z:.4f}, "
+        f"centre={z:.4f} (character height={height:.4f})"
+    )
+    return z
+
+
 def frontmost_vertex_anchor(obj, x_min, x_max, z_min, z_max):
     # Pick an actual evaluated skin vertex in a tightly bounded anatomical region.
     # The vertex normal gives a stable surface orientation for the accessory.
@@ -336,9 +373,10 @@ def main():
     maximum = Vector(tuple(max(b[1][i] for b in all_bounds) for i in range(3)))
     height = maximum.z - minimum.z
     width = max(mesh_world_bounds(skin)[1].x - mesh_world_bounds(skin)[0].x, 0.4)
-    hip_bone = next((b for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), None)
-    pelvis_z = ((armature.matrix_world @ ((hip_bone.head_local + hip_bone.tail_local) * 0.5)).z
-                if hip_bone else minimum.z + height * 0.445)
+    # The Hips bone midpoint is a torso landmark, not a genital landmark.
+    # Use the paired femur roots so the sculpt and clitoral-hood socket are
+    # calibrated to the actual pelvic/hip-joint line.
+    pelvis_z = pelvis_landmark_from_leg_roots(armature, minimum, height)
 
     # Use the actual exposed skin surface when available. In clothed exports,
     # skin is removed under trousers, so use the trouser surface and step inward.
