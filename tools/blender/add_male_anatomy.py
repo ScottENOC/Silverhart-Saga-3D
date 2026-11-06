@@ -121,6 +121,13 @@ def build_component(armature, skin, skin_material, pelvis_z, front_y, height, vo
     for poly in anatomy.data.polygons:
         poly.use_smooth = True
 
+    # Geometry was authored in world coordinates from the evaluated skin surface.
+    # Store it in the same object space/transform as Ara skin before skinning.
+    inverse_skin = skin.matrix_world.inverted()
+    for vertex in anatomy.data.vertices:
+        vertex.co = inverse_skin @ vertex.co
+    anatomy.matrix_world = skin.matrix_world.copy()
+
     anatomy.data.materials.clear()
     anatomy.data.materials.append(skin_material)
     hips = next((b for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), None)
