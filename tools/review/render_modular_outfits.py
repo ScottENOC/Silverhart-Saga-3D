@@ -160,9 +160,14 @@ def main():
         raise SystemExit("usage: blender --background --python render_modular_outfits.py -- INPUT.glb OUTPUT_DIR")
     args = sys.argv[sys.argv.index("--") + 1:]
     input_path, output_root = args[0], args[1]
+    selected = args[2:] or list(OUTFITS)
+    unknown = sorted(set(selected) - set(OUTFITS))
+    if unknown:
+        raise SystemExit("Unknown outfit review(s): " + ", ".join(unknown))
     if not Path(input_path).is_file():
         raise FileNotFoundError(input_path)
-    for outfit, keep in OUTFITS.items():
+    for outfit in selected:
+        keep = OUTFITS[outfit]
         print("Rendering isolated outfit:", outfit, "keep:", sorted(keep), flush=True)
         render_outfit(input_path, output_root, outfit, keep)
 
