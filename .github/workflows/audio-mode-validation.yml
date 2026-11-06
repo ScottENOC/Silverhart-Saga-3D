@@ -1,0 +1,63 @@
+name: Godot audio and mode validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "project.godot"
+      - "scenes/**"
+      - "scripts/audio/**"
+      - "scripts/ui/**"
+      - "tools/import_legacy_audio.py"
+      - ".github/workflows/audio-mode-validation.yml"
+  push:
+    branches: [feature/audio-and-mode-select]
+    paths:
+      - "project.godot"
+      - "scenes/**"
+      - "scripts/audio/**"
+      - "scripts/ui/**"
+      - ".github/workflows/audio-mode-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audio-mode-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  godot-smoke-test:
+    name: Godot 4.7.2 audio and mode smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Verify engine version
+        run: godot --version
+
+      - name: Import project and build global script class cache
+        run: godot --headless --editor --path . --quit
+
+      - name: Smoke-test Campaign and Arena menu startup
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --audio-driver Dummy --path . --quit-after 5 2>&1 | tee /tmp/audio-mode.log
+          if grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to instantiate|Parse Error' /tmp/audio-mode.log; then
+            echo "Godot reported a script or resource error while starting the mode selector."
+            exit 1
+          fi
+
+      - name: Verify referenced scenes and audio import script syntax
+        run: |
+          test -s scenes/main_menu.tscn
+          test -s scenes/arena/arena_placeholder.tscn
+          python -m py_compile tools/import_legacy_audio.py

@@ -4,6 +4,8 @@ A standalone Godot 4 project exploring a 3D implementation of the existing Silve
 
 ## Current status
 
+The project now opens at a Campaign / Arena mode-selection screen. The audio foundation provides separate Music, Dialogue, SFX, Ambience and UI buses, persisted levels, crossfaded music and positional 3D playback. Legacy audio import is documented in docs/AUDIO_MIGRATION.md; the source files are not yet vendored into this repository.
+
 **Milestone:** M1 prototype foundation  
 **Engine baseline:** Godot 4.7.2 stable (GDScript, Forward+)  
 **Target:** Windows PC first  
