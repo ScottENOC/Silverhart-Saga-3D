@@ -133,6 +133,8 @@ static func water_cells() -> Array[Vector2i]:
     return cells
 
 static func is_forest_candidate(hex: Vector2i) -> bool:
+    if not is_in_bounds(hex):
+        return false
     if HexGrid.distance(Vector2i.ZERO, hex) < 17:
         return false
     if is_water(hex) or is_building(hex) or is_path(hex):
