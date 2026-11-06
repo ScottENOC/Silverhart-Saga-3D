@@ -36,6 +36,27 @@ func _capture_views() -> void:
         quit(1)
         return
 
+    var terrain_renderer := terrain_scene.get_node_or_null("ElevationPrototypeTerrain") as HexTerrainRenderer
+    if terrain_renderer == null:
+        push_error("Terrain prototype is missing its HexTerrainRenderer.")
+        quit(1)
+        return
+    var terrain_body := terrain_renderer.get_node_or_null("TerrainCollision") as StaticBody3D
+    if terrain_body == null:
+        push_error("Terrain renderer did not create TerrainCollision.")
+        quit(1)
+        return
+    var terrain_shape_node := terrain_body.get_node_or_null("CollisionShape3D") as CollisionShape3D
+    if terrain_shape_node == null:
+        push_error("TerrainCollision is missing CollisionShape3D.")
+        quit(1)
+        return
+    var terrain_shape := terrain_shape_node.shape as ConcavePolygonShape3D
+    var face_count := terrain_shape.get_faces().size() / 3 if terrain_shape != null else 0
+    print("Terrain collider diagnostics: faces=%d layer=%d mask=%d disabled=%s" % [
+        face_count, terrain_body.collision_layer, terrain_body.collision_mask, terrain_shape_node.disabled
+    ])
+
     # First prove the terrain collision is queryable at the actor start points.
     # This separates a missing / misoriented terrain collider from a character
     # controller or spawn-height problem.
@@ -49,14 +70,22 @@ func _capture_views() -> void:
         var probe_from := probe_actor.global_position + Vector3.UP * 8.0
         var probe_to := probe_actor.global_position + Vector3.DOWN * 8.0
         var query := PhysicsRayQueryParameters3D.create(probe_from, probe_to)
-        query.collision_mask = 1
+        query.collision_mask = 0xFFFFFFFF
         query.exclude = [probe_actor.get_rid()]
         var hit: Dictionary = space_state.intersect_ray(query)
         if hit.is_empty():
-            push_error("Terrain collision ray missed at %s for %s" % [probe_actor.global_position, actor_name])
+            # A second probe accepting back faces distinguishes reversed
+            # triangle winding from a missing/unregistered collision shape.
+            query.hit_back_faces = true
+            hit = space_state.intersect_ray(query)
+            if not hit.is_empty():
+                push_error("Terrain ray only hits back faces for %s; inspect triangle winding. Hit normal: %s" % [actor_name, hit.normal])
+                quit(1)
+                return
+            push_error("Terrain collision ray missed even with back-face hits enabled at %s for %s" % [probe_actor.global_position, actor_name])
             quit(1)
             return
-        print("Terrain ray hit for %s at %s on %s" % [actor_name, hit.position, hit.collider.name])
+        print("Terrain ray hit for %s at %s on %s with normal %s" % [actor_name, hit.position, hit.collider.name, hit.normal])
 
     # Let the CharacterBody3D proxies fall onto the generated terrain collider.
     for _frame in range(30):
