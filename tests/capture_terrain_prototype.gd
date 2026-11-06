@@ -36,6 +36,27 @@ func _capture_views() -> void:
         quit(1)
         return
 
+    # First prove the terrain collision is queryable at the actor start points.
+    # This separates a missing / misoriented terrain collider from a character
+    # controller or spawn-height problem.
+    var space_state := terrain_scene.get_world_3d().direct_space_state
+    for actor_name in ["ValleyCharacter", "SlopeCharacter", "RidgeCharacter", "RidgeWalker"]:
+        var probe_actor := terrain_scene.get_node_or_null(actor_name) as CharacterBody3D
+        if probe_actor == null:
+            push_error("Missing terrain test actor: %s" % actor_name)
+            quit(1)
+            return
+        var probe_from := probe_actor.global_position + Vector3.UP * 8.0
+        var probe_to := probe_actor.global_position + Vector3.DOWN * 8.0
+        var query := PhysicsRayQueryParameters3D.create(probe_from, probe_to)
+        query.collision_mask = 1
+        var hit := space_state.intersect_ray(query)
+        if hit.is_empty():
+            push_error("Terrain collision ray missed at %s for %s" % [probe_actor.global_position, actor_name])
+            quit(1)
+            return
+        print("Terrain ray hit for %s at %s on %s" % [actor_name, hit.position, hit.collider.name])
+
     # Let the CharacterBody3D proxies fall onto the generated terrain collider.
     for _frame in range(30):
         await physics_frame
