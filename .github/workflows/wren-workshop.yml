@@ -287,11 +287,11 @@ jobs:
           export EGL_PLATFORM=surfaceless
           export LIBGL_ALWAYS_SOFTWARE=1
           mkdir -p art/characters/ara/review/male
-          blender --background --python-exit-code 1 --python tools/blender/add_male_anatomy.py -- \\
-            --input /tmp/ara-generated/ara_person_male_raw.glb \\
+          blender --background --python-exit-code 1 --python tools/blender/add_male_anatomy.py -- \
+            --input /tmp/ara-generated/ara_person_male_raw.glb \
             --output art/characters/ara/ara_person_male_body.glb --adult
-          REVIEW_INPUT=art/characters/ara/ara_person_male_body.glb \\
-            REVIEW_OUTPUT_DIR=art/characters/ara/review/male \\
+          REVIEW_INPUT=art/characters/ara/ara_person_male_body.glb \
+            REVIEW_OUTPUT_DIR=art/characters/ara/review/male \
             blender --background --python-exit-code 1 --python tools/blender/inspect_character.py
           for view in front side rear three_quarter; do
             test -s "art/characters/ara/review/male/$view.png"
