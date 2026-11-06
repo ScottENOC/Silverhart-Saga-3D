@@ -205,21 +205,3 @@ edit("src/core/garments/swimwear.ts", [
     ("id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard']",
      "id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard', 'lace', 'fishnet']"),
 ])
-
-
-# The halter's back band and neck/shoulder ties are part of the lace garment,
-# not plain swim cords. Give those same fitted paths the lace textile treatment.
-edit("src/core/garments/swimwear.ts", [
-    ("parts.push({ mesh: halter, material: lace ? { ...stringMat(st), name: 'Halter lace straps' } : stringMat(st), skinAt: trunkLookup(b, halter) });",
-     "parts.push({ mesh: halter, material: lace ? { ...swimMat(g, 'Halter lace bra straps', { ...st, pattern: 'lace' }), name: 'Halter lace bra straps', doubleSided: true } : stringMat(st), skinAt: trunkLookup(b, halter) });"),
-])
-
-
-# Widen the fitted back band and over-shoulder/neck ties on the lace version
-# so the lace treatment reads as a narrow lace strap rather than a hair-thin cord.
-edit("src/core/garments/swimwear.ts", [
-    ("strings.push(cord(layOn(skin, spline([l, ...back.filter((_, i) => i % 4 === 0), r], 4), cm(0.3)), cm(0.14), false, 6));",
-     "strings.push(cord(layOn(skin, spline([l, ...back.filter((_, i) => i % 4 === 0), r], 4), cm(0.3)), lace ? cm(0.25) : cm(0.14), false, 6));"),
-    ("strings.push(cord(laid, cm(0.13), false, 6));",
-     "strings.push(cord(laid, lace ? cm(0.22) : cm(0.13), false, 6));"),
-])
