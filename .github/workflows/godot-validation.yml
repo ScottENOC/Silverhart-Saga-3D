@@ -63,6 +63,7 @@ jobs:
           for component in body hair shirt trousers; do
             cp "/tmp/wren-character-assets/modular/${component}.glb" "art/characters/ara_validation/modular/${component}.glb"
           done
+          cp /tmp/wren-character-assets/npcs/npc_female_slim/boots.glb art/characters/ara_validation/boots.glb
           cp /tmp/wren-character-assets/npcs/npc_female_slim/weapon_sword.glb art/characters/ara_validation/weapon_sword.glb
 
       - name: Import project and build global script class cache
