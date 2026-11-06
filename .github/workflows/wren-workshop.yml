@@ -152,7 +152,8 @@ jobs:
               "tank_top": {"top":"tank_top", "underTop":"none", "underBottom":"none", "bottom":"none"},
               "halter_bra_lace": {"top":"none", "underTop":"halter_bra_lace", "underBottom":"none", "bottom":"none"},
               "triangle_bikini_top": {"top":"none", "underTop":"bikini_top", "underBottom":"none", "bottom":"none"},
-              "string_bikini_bottom": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none"}
+              "string_bikini_bottom": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none"},
+              "backless_slit_dress": {"top":"backless_slit_dress", "underTop":"none", "underBottom":"none", "bottom":"none"}
           }
           for key, updates in variants.items():
               p = dict(base)
@@ -161,7 +162,7 @@ jobs:
               p.update(updates)
               json.dump(p, open('/tmp/ara-person-'+key+'.params.json','w'), indent=2)
           PY
-          for variant in tank_top halter_bra_lace triangle_bikini_top string_bikini_bottom; do
+          for variant in tank_top halter_bra_lace triangle_bikini_top string_bikini_bottom backless_slit_dress; do
             mkdir -p "/tmp/ara-$variant-out"
             npm run export -- --params "/tmp/ara-person-$variant.params.json" --detail high --formats glb --out "/tmp/ara-$variant-out"
             VARIANT_GLB="$(find "/tmp/ara-$variant-out" -maxdepth 1 -type f -name '*.glb' -print -quit)"
@@ -271,6 +272,7 @@ jobs:
             art/characters/ara/ara_person_body.glb art/characters/ara/ara_person_modular.glb \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue pants#1" \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue pants#2" \
+            /tmp/ara-generated/ara_person_backless_slit_dress.glb "Backless slit dress" \
             /tmp/ara-generated/ara_person_benchmark.glb "Shoes" \
             /tmp/ara-generated/ara_person_benchmark.glb "Boot shafts" \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
