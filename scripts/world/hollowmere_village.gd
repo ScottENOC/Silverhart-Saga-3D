@@ -5,6 +5,7 @@ extends Node3D
 
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
 const GROUND_SIZE: float = 220.0
+const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 
 var grass_material: StandardMaterial3D
 var path_material: StandardMaterial3D
@@ -25,6 +26,7 @@ func _ready() -> void:
     _create_bridge()
     _create_signpost()
     _create_forest()
+    _create_characters()
 
 func _material(colour: Color, roughness: float = 0.9, metallic: float = 0.0) -> StandardMaterial3D:
     var result := StandardMaterial3D.new()
@@ -262,3 +264,55 @@ func _add_box(parent: Node3D, node_name: String, position: Vector3, size: Vector
 
 func add_child_to(parent: Node3D, child: Node) -> void:
     parent.add_child(child)
+
+
+func _create_characters() -> void:
+    var manifest_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
+    if manifest_file == null:
+        push_warning("Hollowmere Ara character manifest is not installed; village remains available without NPC models.")
+        return
+    var parsed: Variant = JSON.parse_string(manifest_file.get_as_text())
+    if not parsed is Dictionary:
+        push_warning("Hollowmere Ara character manifest is invalid JSON.")
+        return
+
+    for profile_variant in parsed.get("characters", []):
+        if not profile_variant is Dictionary:
+            continue
+        var profile: Dictionary = profile_variant
+        var character_id := str(profile.get("id", ""))
+        var game_id := str(profile.get("game_id", character_id))
+        var display_name := str(profile.get("name", game_id))
+        var coordinates: Array = profile.get("hex", [0, 0])
+        if character_id.is_empty() or coordinates.size() < 2:
+            continue
+
+        var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
+        var actor := ARA_CHARACTER_ACTOR.new()
+        actor.name = "NPC_" + character_id
+        actor.position = HexGrid.axial_to_world(spawn, HEX_RADIUS)
+        actor.set_meta("character_id", game_id)
+        actor.set_meta("dialogue_id", str(profile.get("dialogue_id", "")))
+        add_child(actor)
+
+        var model_path := "res://art/characters/hollowmere/%s.glb" % character_id
+        var model_loaded: bool = actor.configure(model_path)
+        if not model_loaded:
+            var body := MeshInstance3D.new()
+            var capsule := CapsuleMesh.new()
+            capsule.radius = 0.34
+            capsule.height = 1.75
+            body.mesh = capsule
+            body.position.y = 0.88
+            body.material_override = _material(Color(0.48, 0.38, 0.28))
+            actor.add_child(body)
+
+        var name_label := Label3D.new()
+        name_label.name = "NameLabel"
+        name_label.text = display_name
+        name_label.position.y = 2.15 if model_loaded else 2.25
+        name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+        name_label.font_size = 28
+        name_label.outline_size = 5
+        name_label.modulate = Color(1.0, 0.95, 0.82)
+        actor.add_child(name_label)
