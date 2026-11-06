@@ -42,3 +42,8 @@ The directory is generated output and is not committed to Git. If the pack is ab
 ## Validation
 
 tests/test_hollowmere_village.gd checks map bounds, stream/bridge traversability, road connectivity to all building thresholds, and that every NPC profile has a unique ID, valid normalized sliders and a traversable spawn point. The Hollowmere village validation workflow also imports the project and runs the existing grid, simulation and character tests.
+
+
+## Visual review
+
+Run the **Capture Hollowmere map screenshots** workflow from GitHub Actions to render the map overview, three-quarter village view and tavern character cutaway. The workflow downloads the latest successful Ara NPC artifact before launching Godot, so the screenshots show the actual generated models rather than capsule fallbacks. It uploads them as the `hollowmere-map-screenshots` artifact.
