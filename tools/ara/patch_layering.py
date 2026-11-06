@@ -177,7 +177,7 @@ print("Ara underTop, full-cup openwork halter, backless side-slit dress and brie
 edit("src/core/garments/textures.ts", [
     ("  | 'solid' | 'camo'", "  | 'solid' | 'fishnet' | 'camo'"),
     ("  'solid', 'khaki',", "  'solid', 'fishnet', 'khaki',"),
-    ("    case 'lace': {", `    case 'fishnet': {
+    ("    case 'lace': {", """    case 'fishnet': {
       const N = 28;
       return render(S, (u, v) => {
         const a = frac((u + v) * N), b = frac((u - v) * N);
@@ -187,7 +187,7 @@ edit("src/core/garments/textures.ts", [
         return { c: mul(A, 0.88 + 0.12 * w), a: thread ? 1 : 0, h: thread ? 0.7 : 0 };
       }, true, 1.8);
     }
-    case 'lace': {`)
+    case 'lace': {""")
 ]);
 
 # Permit the lace weave on the three base garment shapes used for the optional
