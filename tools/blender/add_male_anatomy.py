@@ -46,16 +46,17 @@ def find_skin(meshes):
 
 def make_shaft(cx, cy, cz, length, radius, segments=32):
     verts, faces = [], []
-    # Axis points forward (-Y) and gently downwards. The proximal rings are
-    # deliberately inside the pelvis so the join is not a flat cap at the skin.
+    # Flaccid resting axis: predominantly downward (-Z), with only a slight
+    # forward (-Y) component. The proximal rings sit inside the pelvis so the
+    # join is not a flat cap at the skin. Avoid an erect, forward-projecting pose.
     profile = [
         (-0.025, 0.50), (-0.010, 0.78), (0.012, 0.92),
         (0.035, 1.00), (0.58, 0.94), (0.78, 1.00),
         (0.88, 1.08), (0.94, 0.94), (1.00, 0.55),
     ]
     for t, r in profile:
-        y = cy - length * t
-        z = cz - length * t * 0.18
+        y = cy - length * t * 0.22
+        z = cz - length * t * 0.88
         for j in range(segments):
             a = 2.0 * math.pi * j / segments
             verts.append((cx + math.cos(a) * radius * r,
@@ -89,12 +90,13 @@ def add_ellipsoid(name, location, scale):
 
 
 def build_component(armature, skin, skin_material, pelvis_z, front_y, height, voxel_size):
-    length = max(0.085, min(0.115, height * 0.062))
-    radius = max(0.014, min(0.019, height * 0.010))
+    length = max(0.080, min(0.105, height * 0.058))
+    radius = max(0.012, min(0.015, height * 0.0085))
     cx, cy, cz = 0.0, front_y + 0.010, pelvis_z - height * 0.006
 
     parts = [make_shaft(cx, cy, cz, length, radius)]
-    # Scrotal sac hangs below the penile root. Two subtle lobes are fused into
+    # Scrotal sac hangs below the penile root, independent of the shaft's
+    # slight forward angle. Two subtle lobes are fused into
     # one continuous silhouette by voxel remeshing rather than left as spheres.
     sac_y = front_y - 0.010
     sac_z = pelvis_z - height * 0.035
