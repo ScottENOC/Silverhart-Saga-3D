@@ -30,9 +30,14 @@ static func is_building(hex: Vector2i) -> bool:
             return true
     return false
 
+static func is_door(hex: Vector2i) -> bool:
+    return hex == Vector2i(0, 15) or hex == Vector2i(-11, 0) or hex == Vector2i(0, -10) or hex == Vector2i(10, 9) or hex == Vector2i(-4, 9)
+
 static func is_blocked(hex: Vector2i) -> bool:
     if not is_in_bounds(hex):
         return true
+    if is_door(hex):
+        return false
     if is_water(hex) or is_building(hex):
         return true
     return false
@@ -40,10 +45,10 @@ static func is_blocked(hex: Vector2i) -> bool:
 static func terrain_id_at(hex: Vector2i) -> String:
     if is_water(hex):
         return "water"
-    if is_building(hex):
-        return "building"
     if is_path(hex):
         return "path"
+    if is_building(hex):
+        return "building"
     return "grass"
 
 static func is_path(hex: Vector2i) -> bool:
