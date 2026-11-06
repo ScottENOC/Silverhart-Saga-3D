@@ -1,0 +1,80 @@
+name: Godot and Blender validation
+
+concurrency:
+  group: character-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches: [dev]
+  push:
+    branches: [dev, feature/shared-character-system]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  godot:
+    name: Godot headless import and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import project and register global classes
+        run: godot --headless --editor --path . --quit
+      - name: Run hex-grid tests
+        run: godot --headless --path . --script res://tests/test_hex_grid.gd
+      - name: Run simulation tests
+        run: godot --headless --path . --script res://tests/test_simulation.gd
+      - name: Run character appearance tests
+        run: godot --headless --path . --script res://tests/test_character_appearance.gd
+
+  blender-python:
+    name: Blender tool syntax validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile Blender and Ara Python tools
+        run: python -m compileall -q tools/blender tools/ara
+      - name: Test modular GLB morph-target assembly
+        run: python -m unittest discover -s tests -p 'test_assemble_modular_glb.py' -v
+
+  blender-build-review:
+    name: Build Wren body and render four review angles
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python-expr "import numpy; print('Blender NumPy:', numpy.__version__)"
+          blender --version
+      - name: Generate the rigged Wren blockout
+        run: blender --background --python-exit-code 1 --python tools/blender/build_wren_blockout.py
+      - name: Inspect and render the generated GLB
+        run: |
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 --python tools/blender/inspect_character.py -- \
+            --input art/characters/wren/wren_blockout.glb \
+            --output-dir art/characters/wren/review
+      - name: Upload Blender model and multi-angle review
+        uses: actions/upload-artifact@v4
+        with:
+          name: wren-blender-review
+          path: |
+            art/characters/wren/wren_blockout.blend
+            art/characters/wren/wren_blockout.glb
+            art/characters/wren/review/**
+          if-no-files-found: error
+          retention-days: 14

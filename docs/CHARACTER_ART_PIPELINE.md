@@ -2,9 +2,13 @@
 
 ## Goal
 
-Build a reusable 3D character system for Silverhart Saga 3D. The first character is Wren Talbot from Campaign 2's Hollow Tankard opening, but the result must be reusable for the player, companions and NPCs.
+Build a reusable 3D character system for Silverhart Saga 3D. The first milestone is to finish one complete, generic human character using Ara as the base. This is a pipeline and quality benchmark, not Wren Talbot's model. The result must be repeatable so it can support the player, companions and a large NPC cast.
 
-The intended presentation is a stylised, low-poly fantasy character with the visual equipment flexibility of a modern party RPG: the body is not a baked outfit, and changing equipped items changes the visible 3D model.
+The intended presentation is realistic fantasy RPG, with artistic restraint rather than photorealism, and the visual equipment flexibility of a modern party RPG. The body is not a baked outfit; changing equipped items changes the visible 3D model.
+
+The first Ara person must prove that the base body, face, hair, rig, materials, clothing layers and export/import path work together. Keep its appearance deliberately generic rather than baking in Wren's dark-blue braid, signature outfit palette, sword or character-specific proportions. Once this generic person is complete and the production pipeline is repeatable, create Wren as a distinct character preset/model and assess her against the original game's references.
+
+**Status clarification:** the older sections below that refer to a “Wren prototype”, “Wren mesh pass” or `wren_blockout.glb` describe procedural placeholder experiments only. They are not a production Wren model and are not the Ara-based person now being built. Treat them as historical implementation notes until their useful parts are deliberately rebuilt on the Ara foundation.
 
 ## Toolchain
 
@@ -126,9 +130,9 @@ The assembler exposes `configure(appearance)`, `set_component(slot, id)`, `clear
 
 Wren's Hollow Tankard actor now uses the assembler with the braid and sword slots. The Blender component exporter and Godot assembler are committed, but the new component GLBs must be generated locally and imported by Godot before the modular model can appear. The current blockout has no authored garment or armour meshes yet; the exporter and runtime slots support those future assets, but do not pretend that clothing/armour geometry already exists.
 
-## First modelling milestone
+## Later Wren modelling milestone
 
-Create a first reusable human female body/rig and Wren's starting appearance:
+After the generic Ara person and repeatable character pipeline are accepted, create Wren's starting appearance on that foundation:
 - Neutral standing pose, plus a seated pose suitable for the tavern opening.
 - Head, hands and feet included; no facial animation requirement yet.
 - Braid, shirt, trousers and sword as separate assets.
@@ -147,9 +151,9 @@ The first pass is a proportion-and-fit prototype, not final character art. Valid
 - Do not port the original Canvas sprite renderer or its pixel-layer geometry into Godot.
 
 
-## Additional appearance layers
+## Historical placeholder appearance layers — not production Wren assets
 
-The Wren prototype now exports independently swappable cosmetic layers:
+The earlier procedural blockout experiment described independently swappable cosmetic layers:
 - `body_hair`: a groomed pubic-hair style, separate from the skin/body mesh.
 - `tattoo`: a five-point star on the shoulder opposite the braid.
 - `piercings`: paired ear hoops and a left-nipple hoop.
@@ -159,7 +163,7 @@ These are separate GLBs and runtime appearance slots, not baked into the body. W
 The current Blender shapes are still procedural blockout art. Tattoo linework, piercings and body hair need visual inspection in Godot for surface placement, deformation and material scale before they are treated as final assets.
 
 
-## Wren inspection pass — November 2026
+## Historical procedural placeholder inspection — November 2026
 
 - Camera yaw remains unrestricted for a full horizontal orbit. Pitch travels from overhead towards the horizon, with its lower limit calculated from zoom distance and camera-pivot height so the camera stays above the ground. Close inspection has a 1.4 m minimum zoom.
 - The navel is a depression in the torso loft, not a separate colour mark.
