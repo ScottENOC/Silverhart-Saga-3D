@@ -89,6 +89,10 @@ jobs:
           tar -xJf "$BLENDER_ARCHIVE" --strip-components=1 -C "$RUNNER_TEMP/blender"
           echo "$RUNNER_TEMP/blender" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/blender/blender" --version
+      - name: Install system graphics libraries for headless review
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1-mesa-dri libx11-6 libxxf86vm1 libxfixes3 libxrender1 libxi6 libxkbcommon0
       - name: Build skinned anatomy and review renders
         shell: bash
         run: |
