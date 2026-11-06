@@ -335,6 +335,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         actor.add_child(ara_model)
         model_loaded = ara_model.configure("res://art/characters/hollowmere/%s.glb" % ara_model_id)
         if not model_loaded:
+            actor.remove_child(ara_model)
             ara_model.queue_free()
 
     var is_wren: bool = id == "companion_wren_talbot"
