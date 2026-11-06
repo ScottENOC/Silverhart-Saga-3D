@@ -42,6 +42,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
       - name: Run Hollowmere map and profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
+      - name: Launch the opening village scene
+        run: godot --headless --path . --quit-after 10
 
   python:
     name: Validate Ara build tooling
