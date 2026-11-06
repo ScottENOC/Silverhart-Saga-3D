@@ -12,20 +12,23 @@ from mathutils import Vector
 GARMENTS = {
     "Fatigue pants", "Fatigue pants.001",
     "Backless slit dress", "Pencil skirt",
-    "Halter lace openwork", "Halter lace straps",
-    "Shoes", "Boot shafts", "Fatigue shirt", "Bra", "Briefs",
+    "Halter lace bra cups", "Halter lace bra straps",
+    "Shoes", "Boot shafts", "Fatigue shirt", "Lace shirt", "Lace pants", "Lace briefs", "Lace briefs ties", "Bra", "Briefs",
     "Tank top", "Triangle bikini top", "Triangle bikini strings",
     "String bikini bottom", "String bikini strings", "Leather armor",
 }
 OUTFITS = {
     "skin": set(),
-    "halter": {"Halter lace openwork", "Halter lace straps"},
+    "halter": {"Halter lace bra cups", "Halter lace bra straps"},
     "dress": {"Backless slit dress", "Pencil skirt"},
     "pants": {"Fatigue pants", "Fatigue pants.001"},
     "halter_pants": {
-        "Halter lace openwork", "Halter lace straps",
+        "Halter lace bra cups", "Halter lace bra straps",
         "Fatigue pants", "Fatigue pants.001",
     },
+    "lace_briefs": {"Lace briefs", "Lace briefs ties"},
+    "lace_shirt": {"Lace shirt"},
+    "lace_pants": {"Lace pants"},
 }
 
 def clear_scene():
