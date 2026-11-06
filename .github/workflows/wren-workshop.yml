@@ -179,7 +179,7 @@ jobs:
                              "garmentStyles":{"fatigue_shirt":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
               "lace_pants": {"top":"none", "underTop":"none", "underBottom":"none", "bottom":"fatigue_pants",
                              "garmentStyles":{"fatigue_pants":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
-              "backless_slit_dress": {"top":"backless_slit_dress", "underTop":"none", "underBottom":"none", "bottom":"pencil_skirt_midi"},
+              "backless_slit_dress": {"top":"backless_slit_dress", "underTop":"none", "underBottom":"none", "bottom":"none"},
               "leather_armor": {"top":"none", "underTop":"none", "underBottom":"none", "bottom":"none", "accessories":["leather_armor"]}
           }
           for key, updates in variants.items():
