@@ -23,7 +23,7 @@ The file data/characters/hollowmere_npcs.json is the source of truth for the fir
 
 The build is pinned to Ara commit b60b5bece6d383d2cbb7067fd50e7c8e68b5a395. The existing Silverhart patch_layering.py is applied before export so the under-top and under-bottom equipment slots are available. The profile exporter validates the selected catalogue IDs before exporting one full GLB per character.
 
-These settings are build-time Ara values, not live Godot sliders. The Wren Workshop preview displays the saved values for each selected NPC; changing a profile requires another Ara export. The player avatar remains a neutral placeholder until the player-appearance choices are defined.
+These settings are build-time Ara values, not live Godot sliders. The Wren Workshop page now has a profile selector and read-only display for the saved values; the updated page will be published after the current Wren Workshop build finishes and this branch is built. Changing a profile requires another Ara export. The player avatar remains a neutral placeholder until the player-appearance choices are defined.
 
 ## Generated asset pack
 
