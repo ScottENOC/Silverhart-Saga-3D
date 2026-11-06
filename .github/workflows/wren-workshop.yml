@@ -1,6 +1,7 @@
 name: Build Wren Workshop
 # Modular equipment export pipeline: keep garment primitives compact and rig-compatible.
 # Re-run after configuring the HF_ADMIN_TOKEN repository secret.
+# Rebuild requested after correcting the female pelvic landmark calculation.
 on:
   workflow_dispatch:
   push:
