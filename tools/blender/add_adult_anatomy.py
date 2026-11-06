@@ -160,8 +160,13 @@ def create_piercing_sockets(armature, skin, surface_tree, minimum, height, width
 
     # Use the actual breast-height band of the body. Do not derive this from
     # Spine1: on this Ara rig that bone can span the upper abdomen.
-    nipple_z0 = minimum.z + height * 0.62
-    nipple_z1 = minimum.z + height * 0.78
+    # Use the skin mesh bounds rather than all character meshes (hair and
+    # footwear distort whole-character height ratios). The earlier band sat too
+    # low on this Ara body; keep the search above the navel and within the bust.
+    skin_min, skin_max = mesh_world_bounds(skin)
+    skin_height = skin_max.z - skin_min.z
+    nipple_z0 = skin_min.z + skin_height * 0.69
+    nipple_z1 = skin_min.z + skin_height * 0.84
     for side, label in ((1.0, "L"), (-1.0, "R")):
         x0, x1 = ((width*.055, width*.30) if side > 0 else (-width*.30, -width*.055))
         hit = frontmost_vertex_anchor(skin, x0, x1, nipple_z0, nipple_z1)
@@ -234,32 +239,74 @@ def integrate_anatomy_into_skin(skin, pelvis_z, width, height):
 
 
 def expand_lower_garments(objects, pelvis_z, body_front_y, width):
-    # The new external form projects a little beyond Ara's neutral pelvis.
-    # Give briefs a smaller allowance and outer trousers a larger one.
+    # Apply the local pelvic allowance only to vertices belonging to lower-garment
+    # material faces. Modular GLBs can contain skin and garments in one Blender
+    # object; moving every vertex in that object would deform the body itself.
     for obj in objects:
         if obj.type != "MESH":
             continue
-        label = material_name(obj)
-        is_bikini_lower = "bikini bottom" in label or "bikini string" in label
-        is_briefs = "brief" in label or "underwear" in label or is_bikini_lower
-        is_trousers = not is_bikini_lower and any(k in label for k in ("pants", "trouser", "bottom", "breech"))
-        if not (is_briefs or is_trousers):
-            continue
-        amplitude = 0.040 if is_trousers else 0.034
+        briefs_vertices, trouser_vertices = set(), set()
+        for poly in obj.data.polygons:
+            if poly.material_index >= len(obj.material_slots):
+                continue
+            material = obj.material_slots[poly.material_index].material
+            label = material.name.lower() if material else ""
+            is_bikini_lower = "bikini bottom" in label or "bikini string" in label
+            if "brief" in label or "underwear" in label or is_bikini_lower:
+                briefs_vertices.update(poly.vertices)
+            elif any(k in label for k in ("pants", "trouser", "breech")):
+                trouser_vertices.update(poly.vertices)
         inv = obj.matrix_world.inverted()
-        for vert in obj.data.vertices:
-            world = obj.matrix_world @ vert.co
-            if world.y > body_front_y + 0.055:
-                continue
-            if abs(world.x) > width * 0.22 or abs(world.z - pelvis_z) > 0.13:
-                continue
-            fx = (world.x / max(width * 0.18, 0.065)) ** 2
-            fz = ((world.z - pelvis_z) / 0.115) ** 2
-            falloff = max(0.0, 1.0 - fx) * max(0.0, 1.0 - fz)
-            falloff = falloff * falloff
-            world.y -= amplitude * falloff
-            vert.co = inv @ world
+        for indices, amplitude in ((briefs_vertices, 0.034), (trouser_vertices, 0.040)):
+            for index in indices:
+                vert = obj.data.vertices[index]
+                world = obj.matrix_world @ vert.co
+                if world.y > body_front_y + 0.055:
+                    continue
+                if abs(world.x) > width * 0.22 or abs(world.z - pelvis_z) > 0.13:
+                    continue
+                fx = (world.x / max(width * 0.18, 0.065)) ** 2
+                fz = ((world.z - pelvis_z) / 0.115) ** 2
+                falloff = max(0.0, 1.0 - fx) * max(0.0, 1.0 - fz)
+                falloff = falloff * falloff
+                world.y -= amplitude * falloff
+                vert.co = inv @ world
         obj.data.update()
+
+
+def fit_pants_clearance(objects, skin, clearance=0.004):
+    """Push trouser vertices outside the retained skin surface, without moving skin."""
+    tree = build_bvh(skin)
+    for obj in objects:
+        if obj.type != "MESH":
+            continue
+        pants_vertices = set()
+        for poly in obj.data.polygons:
+            if poly.material_index >= len(obj.material_slots):
+                continue
+            material = obj.material_slots[poly.material_index].material
+            label = material.name.lower() if material else ""
+            if any(k in label for k in ("pants", "trouser", "breech")):
+                pants_vertices.update(poly.vertices)
+        if not pants_vertices:
+            continue
+        inv = obj.matrix_world.inverted()
+        moved = 0
+        for index in pants_vertices:
+            vert = obj.data.vertices[index]
+            world = obj.matrix_world @ vert.co
+            nearest = tree.find_nearest(world)
+            if not nearest or nearest[0] is None or nearest[1] is None:
+                continue
+            location, normal, _face, _distance = nearest
+            normal = normal.normalized()
+            signed = (world - location).dot(normal)
+            if signed < clearance:
+                world += normal * (clearance - signed)
+                vert.co = inv @ world
+                moved += 1
+        obj.data.update()
+        print(f"Fitted {obj.name}: moved {moved} trouser vertices to {clearance * 1000:.1f} mm skin clearance")
 
 
 def main():
@@ -339,6 +386,9 @@ def main():
     expand_lower_garments(meshes, pelvis_z, body_front_y, width)
 
     if args.fit_existing:
+        # The base skin remains present beneath transparent clothing. Fit only
+        # trouser material vertices against it; never hide or displace the skin.
+        fit_pants_clearance(meshes, skin, clearance=0.004)
         # The modular GLBs already contain the anatomy and piercing sockets
         # from the integrated body base. Only fit briefs, bikini bottoms and
         # trousers over that existing geometry; do not add a second sculpt.
