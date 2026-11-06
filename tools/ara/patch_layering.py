@@ -169,7 +169,7 @@ edit("src/core/garments/catalog.ts", [
   // ---------------- Bottoms\n""")
 ])
 
-print("Ara underTop, full-cup openwork halter, backless side-slit dress and briefs layering patch applied.")
+print("Ara underTop, separate lace/fishnet halters, backless side-slit dress and briefs layering patch applied.")
 
 
 
