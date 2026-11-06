@@ -85,13 +85,13 @@ static func is_path(hex: Vector2i) -> bool:
         return true
 
     # North-south road, bridge and the signposted crossroads.
-    if hex.x == CROSSROADS.x and hex.y >= -24 and hex.y <= CROSSROADS.y:
+    if hex.x == CROSSROADS.x and hex.y >= -40 and hex.y <= 32:
         return true
     if hex == CROSSROADS:
         return true
 
     # Short visible sections of the four roads leaving the crossroads.
-    if hex.y == CROSSROADS.y and hex.x >= -25 and hex.x <= 16:
+    if hex.y == CROSSROADS.y and hex.x >= -40 and hex.x <= 16:
         return true
     return false
 
@@ -119,10 +119,10 @@ static func path_cells() -> Array[Vector2i]:
     _append_unique(cells, seen, Vector2i(9, 9))
     for q in range(-4, 0):
         _append_unique(cells, seen, Vector2i(q, 9))
-    for r in range(-24, 25):
+    for r in range(-40, 33):
         _append_unique(cells, seen, Vector2i(CROSSROADS.x, r))
     _append_unique(cells, seen, BRIDGE)
-    for q in range(-25, 17):
+    for q in range(-40, 17):
         _append_unique(cells, seen, Vector2i(q, CROSSROADS.y))
     return cells
 
