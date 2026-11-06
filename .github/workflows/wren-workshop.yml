@@ -4,7 +4,7 @@ name: Build Wren Workshop
 on:
   workflow_dispatch:
   push:
-    branches: [dev, integration/wren-modular-clothing]
+    branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy]
     paths:
       - "tools/blender/**"
       - "tools/ara/**"
