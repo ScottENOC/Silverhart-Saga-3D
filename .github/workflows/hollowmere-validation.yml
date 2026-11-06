@@ -2,7 +2,7 @@ name: Hollowmere village validation
 
 on:
   push:
-    branches: [feature/opening-village]
+    branches: [dev, feature/opening-village]
     paths:
       - "scripts/world/**"
       - "scripts/presentation/ara_character_actor.gd"
@@ -10,7 +10,7 @@ on:
       - "tests/test_hollowmere_village.gd"
       - ".github/workflows/hollowmere-validation.yml"
   pull_request:
-    branches: [feature/male-anatomy-skinned-mesh]
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
