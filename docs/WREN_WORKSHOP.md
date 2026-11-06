@@ -4,7 +4,7 @@ The Wren Workshop is a standalone browser-based model inspection tool, separate 
 
 ## Cloud workflow
 
-The GitHub Actions workflow `.github/workflows/wren-workshop.yml` installs Blender from the Ubuntu runner's package repository (Blender 5.0.1 was installed by the runner during the November 6, 2026 build), generates Wren and the modular Ara exports, assembles the viewer site and uploads it to the configured private Hugging Face Space.
+The GitHub Actions workflow `.github/workflows/wren-workshop.yml` installs Blender from the Ubuntu runner's package repository (Blender 5.0.1 was installed by the runner during the November 6, 2026 build), generates a generic Ara base person and modular garment exports, assembles the viewer site and uploads it to the configured private Hugging Face Space.
 
 It runs manually through Actions → Build Wren Workshop → Run workflow, and automatically when Ara/Blender tools, viewer files or the workflow itself change on `dev` or `feature/shared-character-system`.
 
