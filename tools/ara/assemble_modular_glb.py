@@ -66,12 +66,14 @@ def add(target,buf,source_path,selector):
     tn=body_node(target); sn=body_node(src)
     for k in ('translation','rotation','scale','matrix'):
         if tn.get(k)!=sn.get(k): raise ValueError(f'Rigged mesh {k} mismatch in {source_path}')
+    target_name=None
+    if '=' in selector: selector,target_name=selector.split('=',1)
     name=selector; occurrence=0
     if '#' in selector: name,nth=selector.rsplit('#',1); occurrence=int(nth)-1
     matches=[p for p in src['meshes'][sn['mesh']]['primitives'] if p.get('material') is not None and src['materials'][p['material']].get('name')==name]
     if occurrence<0 or occurrence>=len(matches): raise ValueError(f'{selector}: found {len(matches)} in {source_path}; materials={[m.get("name") for m in src["materials"]]}')
     p=copy.deepcopy(matches[occurrence]); sm=copy.deepcopy(src['materials'][p['material']])
-    if occurrence: sm['name']=f'{name}.{occurrence:03d}'
+    sm['name']=target_name or (f'{name}.{occurrence:03d}' if occurrence else name)
 
     ia=src['accessors'][p['indices']]; iv=src['bufferViews'][ia['bufferView']]
     if ia['componentType'] not in (5123,5125): raise ValueError('Unsupported index type')

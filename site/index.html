@@ -155,7 +155,7 @@ function updateBodyUnderlay(){
 let originalMaterials=new Map(), accessoryGroup=null, selectedMaterial=null;
 const materialSelect=document.querySelector('#materialSelect');
 const equipmentState={lower:'briefs',upper:'bra',shirt:'fatigue'};
-const equipmentGroups={lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom']},upper:{empty:[],bra:['Bra'],triangle:['Triangle bikini top']},shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top']}};
+const equipmentGroups={lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom','String bikini strings']},upper:{empty:[],bra:['Bra'],triangle:['Triangle bikini top','Triangle bikini strings']},shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top']}};
 function applyEquipment(){
  const section=document.querySelector('#equipmentSection');
  const active=['ara','underwear'].includes(document.querySelector('#modelmode').value);

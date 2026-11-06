@@ -74,8 +74,8 @@ jobs:
               "fatigue_shirt": {"pattern":"solid","color":"#244b2b","color2":"#d94a72"},
               "bra": {"pattern":"solid","color":"#34343a","color2":"#111114"},
               "tank_top": {"pattern":"solid","color":"#244b2b","color2":"#244b2b"},
-              "triangle_bikini_top": {"pattern":"solid","color":"#34343a","color2":"#111114"},
-              "string_bikini_bottom": {"pattern":"solid","color":"#34343a","color2":"#111114"},
+              "bikini_top": {"pattern":"solid","color":"#34343a","color2":"#111114"},
+              "bikini_bottom": {"pattern":"solid","color":"#34343a","color2":"#111114"},
               "fatigue_pants": {"pattern":"solid","color":"#29292d","color2":"#29292d"}
             }
           }
@@ -170,8 +170,8 @@ jobs:
           base = json.load(open('/tmp/ara-wren.params.json'))
           variants = {
               "tank_top": {"top":"tank_top", "underTop":"none", "underBottom":"none", "bottom":"none"},
-              "triangle_bikini_top": {"top":"none", "underTop":"triangle_bikini_top", "underBottom":"none", "bottom":"none"},
-              "string_bikini_bottom": {"top":"none", "underTop":"none", "underBottom":"string_bikini_bottom", "bottom":"none"}
+              "triangle_bikini_top": {"top":"none", "underTop":"bikini_top", "underBottom":"none", "bottom":"none"},
+              "string_bikini_bottom": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none"}
           }
           for key, updates in variants.items():
               p = dict(base)
@@ -291,8 +291,10 @@ jobs:
             /tmp/ara-generated/ara_wren_benchmark.glb "Bra" \
             /tmp/ara-generated/ara_wren_benchmark.glb "Briefs" \
             /tmp/ara-generated/ara_wren_tank_top.glb "Tank top" \
-            /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Triangle bikini top" \
-            /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "String bikini bottom"
+            /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
+            /tmp/ara-generated/ara_wren_triangle_bikini_top.glb "Bikini strings=Triangle bikini strings" \
+            /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
+            /tmp/ara-generated/ara_wren_string_bikini_bottom.glb "Bikini strings=String bikini strings"
           python tools/ara/assemble_modular_glb.py \
             art/characters/ara/ara_wren_body.glb art/characters/ara/ara_wren_modular_underwear.glb \
             /tmp/ara-generated/ara_wren_benchmark.glb "Fatigue shirt" \
