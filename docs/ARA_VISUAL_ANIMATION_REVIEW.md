@@ -2,7 +2,7 @@
 
 ## Goal
 
-Render Wren Talbot using the separately exported Ara body, braid, fatigue shirt, fatigue trousers and sword, all bound to the 69-bone benchmark rig. The benchmark's 77 imported animation clips drive that one shared skeleton.
+Render Wren Talbot using the separately exported Ara body, braid, fatigue shirt, fatigue trousers, boots and sword, all bound to the 69-bone benchmark rig. The benchmark's 77 imported animation clips drive that one shared skeleton.
 
 ## Captured poses
 
@@ -10,7 +10,7 @@ Render Wren Talbot using the separately exported Ara body, braid, fatigue shirt,
 
 ## Asset source
 
-CI stages the benchmark and modular exports from the Wren Workshop `character-pipeline-evaluation` artifact (workflow run `41979224139`). The sword is the Ara `npc_female_slim/weapon_sword.glb` export; its skin contains the same 69-bone joint list, including `WeaponR`, as the Wren benchmark rig.
+CI stages the benchmark and modular exports from the Wren Workshop `character-pipeline-evaluation` artifact (workflow run `41979224139`). The boots and sword are staged from the Ara `npc_female_slim` component exports; both use the same 69-bone joint list, including `WeaponR`, as the Wren benchmark rig. These are review-compatible NPC accessory exports, not yet a dedicated Wren-specific boots export.
 
 ## What this review establishes
 
