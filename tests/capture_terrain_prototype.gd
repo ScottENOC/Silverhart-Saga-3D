@@ -46,12 +46,17 @@ func _capture_views() -> void:
         push_error("Terrain renderer did not create TerrainCollision.")
         quit(1)
         return
-    var terrain_shape_node := terrain_body.get_node_or_null("CollisionShape3D") as CollisionShape3D
+    var terrain_shape_node := terrain_body.get_node_or_null("TerrainCollisionShape") as CollisionShape3D
     if terrain_shape_node == null:
-        push_error("TerrainCollision is missing CollisionShape3D.")
+        push_error("TerrainCollision is missing its named TerrainCollisionShape child.")
+        print("TerrainCollision children: ", terrain_body.get_children().map(func(child): return "%s (%s)" % [child.name, child.get_class()]))
         quit(1)
         return
     var terrain_shape := terrain_shape_node.shape as ConcavePolygonShape3D
+    if terrain_shape == null:
+        push_error("TerrainCollisionShape does not contain a ConcavePolygonShape3D.")
+        quit(1)
+        return
     var face_count := terrain_shape.get_faces().size() / 3 if terrain_shape != null else 0
     print("Terrain collider diagnostics: faces=%d layer=%d mask=%d disabled=%s" % [
         face_count, terrain_body.collision_layer, terrain_body.collision_mask, terrain_shape_node.disabled
