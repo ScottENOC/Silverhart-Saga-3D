@@ -80,7 +80,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          BLENDER_VERSION="4.2.3"
+          BLENDER_VERSION="4.2.23"
           BLENDER_ARCHIVE="/tmp/blender-${BLENDER_VERSION}-linux-x64.tar.xz"
           curl --fail --location --retry 3 --retry-delay 2 \
             "https://download.blender.org/release/Blender4.2/blender-${BLENDER_VERSION}-linux-x64.tar.xz" \
