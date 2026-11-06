@@ -35,7 +35,7 @@ button:disabled{opacity:.4}
 <section><h2>Clothing · body options</h2><p class="note">Use Body · no clothing to inspect the generated adult base body and its new external anatomy. The full clothed model has a locally expanded trouser/briefs area to make room for the anatomy.</p><div class="buttons"><button id="showClothed">Clothed</button><button id="showBody">No clothing</button><button id="showTattooBody">Tattooed body</button><button id="showUnderwear">Underwear</button></div></section>
 <section id="equipmentSection"><h2>Equipment slots</h2>
 <div class="row"><span>Lower underwear</span><select id="equipmentLower"><option value="empty">Empty</option><option value="briefs" selected>Briefs</option><option value="string">String bikini bottom</option></select></div>
-<div class="row"><span>Upper underwear</span><select id="equipmentUpper"><option value="empty">Empty</option><option value="bra" selected>Bra</option><option value="triangle">Triangle bikini top</option></select></div>
+<div class="row"><span>Upper underwear</span><select id="equipmentUpper"><option value="empty">Empty</option><option value="bra" selected>Bra</option><option value="halter">Halter lace bra</option><option value="triangle">Triangle bikini top</option></select></div>
 <div class="row"><span>Shirt</span><select id="equipmentShirt"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue shirt</option><option value="tank">Tank top</option></select></div>
 <p class="note" id="equipmentStatus">Each slot is independent. Empty removes that layer without removing the body.</p></section>
 <section><h2>Accessories · placement preview</h2>
@@ -155,7 +155,7 @@ function updateBodyUnderlay(){
 let originalMaterials=new Map(), accessoryGroup=null, selectedMaterial=null;
 const materialSelect=document.querySelector('#materialSelect');
 const equipmentState={lower:'briefs',upper:'bra',shirt:'fatigue'};
-const equipmentGroups={lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom','String bikini strings']},upper:{empty:[],bra:['Bra'],triangle:['Triangle bikini top','Triangle bikini strings']},shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top']}};
+const equipmentGroups={lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom','String bikini strings']},upper:{empty:[],bra:['Bra'],halter:['Halter lace bra'],triangle:['Triangle bikini top','Triangle bikini strings']},shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top']}};
 function applyEquipment(){
  const section=document.querySelector('#equipmentSection');
  const active=['ara','underwear'].includes(document.querySelector('#modelmode').value);
@@ -282,6 +282,25 @@ function addHoopAt(hit,radius,material,tilt=0,surfaceOffset=.0025){
  if(tilt)o.rotateZ(tilt);
  accessoryGroup.add(o);return true;
 }
+function addOpenHoopAt(hit,radius,material,surfaceOffset=.0025){
+ if(!hit)return false;
+ const n=hit.normal.clone().normalize();
+ const right=new THREE.Vector3(1,0,0).addScaledVector(n,-n.x).normalize();
+ const up=new THREE.Vector3(0,0,1).addScaledVector(n,-n.z).normalize();
+ const centre=hit.point.clone().addScaledVector(n,surfaceOffset);
+ const points=[];
+ // A 270-degree C-ring with its 90-degree opening centred at the bottom.
+ for(let i=0;i<=36;i++){
+  const a=-Math.PI/4+(Math.PI*1.5*i/36);
+  points.push(centre.clone().addScaledVector(right,Math.cos(a)*radius).addScaledVector(up,Math.sin(a)*radius));
+ }
+ const curve=new THREE.CatmullRomCurve3(points,false,'centripetal');
+ accessoryGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve,72,radius*.19,8,false),material));
+ for(const p of [points[0],points[points.length-1]]){
+  const bead=new THREE.Mesh(new THREE.SphereGeometry(radius*.24,10,8),material);bead.position.copy(p);accessoryGroup.add(bead);
+ }
+ return true;
+}
 function addAccessories(kind){
  if(!model||!box)return;
  if(!accessoryGroup){accessoryGroup=new THREE.Group();accessoryGroup.name='PhoneReviewAccessories';accessoryGroup.userData.reviewAccessories=[];model.add(accessoryGroup);}
@@ -293,9 +312,9 @@ function addAccessories(kind){
  let ok=true;
  if(kind==='earrings'){
   // Seat hoops slightly behind the ear surface so hair naturally occludes them.
-  ok=addHoopAt(socketSurface('SOCKET_Earring_L')||skinSurface(-.085,1.55),.012,silver,0,-.006)&&addHoopAt(socketSurface('SOCKET_Earring_R')||skinSurface(.085,1.55),.012,silver,0,-.006);
+  ok=addHoopAt(socketSurface('SOCKET_Earring_L'),.012,silver,0,.001)&&addHoopAt(socketSurface('SOCKET_Earring_R'),.012,silver,0,.001);
  }else if(kind==='nose'){
-  ok=addHoopAt(socketSurface('SOCKET_NoseRing')||skinSurface(0,1.565),.008,silver);
+  ok=addOpenHoopAt(socketSurface('SOCKET_NoseRing'),.008,silver,.001);
  }else if(kind==='necklace'){
   // Trace a complete horizontal loop around the neck, sampling the actual mesh
   // from above at the front, sides and back rather than drawing a front-only arc.
@@ -315,9 +334,9 @@ function addAccessories(kind){
   }
   }else if(kind==='nipple_left'||kind==='nipple_right'){
   const x=kind==='nipple_left'?.105:-.105;
-  ok=addHoopAt(socketSurface(kind==='nipple_left'?'SOCKET_Nipple_L':'SOCKET_Nipple_R')||skinSurface(x,1.255),.008,silver);
+  ok=addHoopAt(socketSurface(kind==='nipple_left'?'SOCKET_Nipple_L':'SOCKET_Nipple_R'),.008,silver,0,.001);
  }else if(kind==='clit'){
-  const hit=socketSurface('SOCKET_ClitoralHood')||skinSurface(0,.785);
+  const hit=socketSurface('SOCKET_ClitoralHood');
   if(!hit)ok=false;
   else{
    // Small curved surface-mounted barbell: a shallow arc with two end beads.
