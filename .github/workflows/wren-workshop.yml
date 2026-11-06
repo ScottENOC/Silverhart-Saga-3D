@@ -385,6 +385,7 @@ jobs:
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
             /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
             /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra piping" \
             /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra straps" \
             /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra cups" \
             /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra straps" \
