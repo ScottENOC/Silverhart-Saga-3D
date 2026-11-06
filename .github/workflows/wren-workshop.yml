@@ -293,7 +293,7 @@ jobs:
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini strings*=Triangle bikini strings" \
             /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
-            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings"
+            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings" \
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini bottom=Lace briefs" \
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties" \
             /tmp/ara-generated/ara_person_lace_shirt.glb "Fatigue shirt=Lace shirt" \
@@ -310,7 +310,7 @@ jobs:
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini strings*=Triangle bikini strings" \
             /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
-            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings"
+            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings" \
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini bottom=Lace briefs" \
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties"
       - name: Install Blender for modular garment fitting
