@@ -1,0 +1,59 @@
+name: Build Hollowmere Ara characters
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev, feature/opening-village]
+    paths:
+      - "data/characters/hollowmere_npcs.json"
+      - "tools/ara/build_hollowmere_npcs.py"
+      - "tools/ara/patch_layering.py"
+      - ".github/workflows/hollowmere-npcs.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hollowmere-npcs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    name: Generate the Hollowmere cast with Ara
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install and pin Ara 3D Gen
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
+          git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
+          cd /tmp/ara-3d-gen
+          corepack enable
+          pnpm install --no-frozen-lockfile
+          npm run setup-assets
+
+      - name: Apply Silverhart garment-layer contract
+        run: python tools/ara/patch_layering.py
+
+      - name: Validate and generate all village characters
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/ara-3d-gen
+          python -m py_compile "$GITHUB_WORKSPACE/tools/ara/build_hollowmere_npcs.py"
+          python "$GITHUB_WORKSPACE/tools/ara/build_hollowmere_npcs.py" --out "$GITHUB_WORKSPACE/art/characters/hollowmere"
+
+      - name: Upload generated Ara GLBs and parameter files
+        uses: actions/upload-artifact@v4
+        with:
+          name: hollowmere-npc-models
+          path: |
+            art/characters/hollowmere/*.glb
+            art/characters/hollowmere/*.params.json
+            art/characters/hollowmere/profiles.json
+          if-no-files-found: error
+          retention-days: 14
