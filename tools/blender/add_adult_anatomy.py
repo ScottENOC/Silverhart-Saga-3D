@@ -235,7 +235,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
         normal = skin.matrix_world.to_3x3() @ (edge.verts[0].normal + edge.verts[1].normal)
         if normal.length:
             normal.normalize()
-        if abs(world.x) < width*0.25 and abs(world.z-anatomy_z) < 0.105 and normal.y < -0.12:
+        if abs(world.x) < width*0.25 and abs(world.z-anatomy_z) < 0.15 and normal.y < -0.12:
             edges.append(edge)
     if edges:
         bmesh.ops.subdivide_edges(bm, edges=edges, cuts=2, use_grid_fill=True)
@@ -244,20 +244,27 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
     def g(x,z,cx,cz,sx,sz):
         return math.exp(-0.5*(((x-cx)/sx)**2+((z-cz)/sz)**2))
 
-    # Ara faces -Y. Outward shaping moves vertices toward -Y; the central
-    # cleft is a shallow +Y inset. All changes remain on the original skin mesh.
+    # Ara faces -Y. The paired femur-root line is the hip-joint landmark, not
+    # the vulvar centre. The labial folds, cleft and hood are sculpted directly
+    # into the existing skin surface; no attached genital object is added.
+    centre_z = anatomy_z
     for v in bm.verts:
         p = skin.matrix_world @ v.co
         n = skin.matrix_world.to_3x3() @ v.normal
         if n.length:
             n.normalize()
-        if n.y > -0.10 or abs(p.x) > width*0.27 or abs(p.z-anatomy_z) > 0.12:
+        if n.y > -0.10 or abs(p.x) > width*0.27 or abs(p.z-centre_z) > 0.15:
             continue
-        mons = g(p.x,p.z,0.0,anatomy_z+0.052,width*0.105,0.030)
-        outer = g(p.x,p.z,-width*0.055,anatomy_z+0.002,width*0.038,0.047) + g(p.x,p.z,width*0.055,anatomy_z+0.002,width*0.038,0.047)
-        inner = g(p.x,p.z,-width*0.022,anatomy_z-0.004,width*0.016,0.034) + g(p.x,p.z,width*0.022,anatomy_z-0.004,width*0.016,0.034)
-        cleft = g(p.x,p.z,0.0,anatomy_z-0.004,width*0.010,0.041)
-        p.y -= 0.0035*mons + 0.0055*outer + 0.0020*inner - 0.0022*cleft
+        mons = g(p.x,p.z,0.0,centre_z+0.058,width*0.105,0.032)
+        outer_l = g(p.x,p.z,-width*0.060,centre_z-0.004,width*0.036,0.052)
+        outer_r = g(p.x,p.z, width*0.060,centre_z-0.004,width*0.036,0.052)
+        inner_l = g(p.x,p.z,-width*0.024,centre_z-0.006,width*0.017,0.039)
+        inner_r = g(p.x,p.z, width*0.024,centre_z-0.006,width*0.017,0.039)
+        cleft = g(p.x,p.z,0.0,centre_z-0.010,width*0.010,0.047)
+        hood = g(p.x,p.z,0.0,centre_z+0.034,width*0.024,0.012)
+        p.y -= (0.0030*mons + 0.0065*(outer_l+outer_r)
+                + 0.0032*(inner_l+inner_r) + 0.0030*hood
+                - 0.0030*cleft)
         v.co = inv @ p
     bm.normal_update()
     bm.to_mesh(skin.data)
@@ -449,7 +456,7 @@ def main():
     create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, anatomy_z, body_front_y)
     if anatomy is not None:
         # The hood sits just above the vulvar cleft, not on the mons pubis.
-        hood_hit = front_hit_data(surface_tree, 0.0, anatomy_z + 0.022)
+        hood_hit = front_hit_data(surface_tree, 0.0, anatomy_z + 0.034)
         if hood_hit:
             location = hood_hit[0] + hood_hit[1].normalized() * 0.0015
             hip_name = next((b.name for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), "Hips")
