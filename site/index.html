@@ -36,6 +36,8 @@ button:disabled{opacity:.4}
 <section id="equipmentSection"><h2>Equipment slots</h2>
 <div class="row"><span>Lower underwear</span><select id="equipmentLower"><option value="empty">Empty</option><option value="briefs" selected>Briefs</option><option value="string">String bikini bottom</option></select></div>
 <div class="row"><span>Upper underwear</span><select id="equipmentUpper"><option value="empty">Empty</option><option value="bra" selected>Bra</option><option value="halter">Halter lace bra</option><option value="triangle">Triangle bikini top</option></select></div>
+<div class="row"><span>Pants</span><select id="equipmentPants"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue pants</option></select></div>
+<div class="row"><span>Dress</span><select id="equipmentDress"><option value="empty" selected>Empty</option><option value="backless">Backless dress · side slit</option></select></div>
 <div class="row"><span>Shirt</span><select id="equipmentShirt"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue shirt</option><option value="tank">Tank top</option></select></div>
 <p class="note" id="equipmentStatus">Each slot is independent. Empty removes that layer without removing the body.</p></section>
 <section><h2>Accessories · placement preview</h2>
@@ -154,8 +156,14 @@ function updateBodyUnderlay(){
 // preserving a clean copy so repeated changes do not compound.
 let originalMaterials=new Map(), accessoryGroup=null, selectedMaterial=null;
 const materialSelect=document.querySelector('#materialSelect');
-const equipmentState={lower:'briefs',upper:'bra',shirt:'fatigue'};
-const equipmentGroups={lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom','String bikini strings']},upper:{empty:[],bra:['Bra'],halter:['Halter lace bra'],triangle:['Triangle bikini top','Triangle bikini strings']},shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top']}};
+const equipmentState={lower:'briefs',upper:'bra',pants:'fatigue',dress:'empty',shirt:'fatigue'};
+const equipmentGroups={
+ lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom','String bikini strings']},
+ upper:{empty:[],bra:['Bra'],halter:['Halter lace bra','Halter lace openwork'],triangle:['Triangle bikini top','Triangle bikini strings']},
+ pants:{empty:[],fatigue:['Fatigue pants.000','Fatigue pants.001']},
+ dress:{empty:[],backless:['Backless slit dress']},
+ shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top']}
+};
 function applyEquipment(){
  const section=document.querySelector('#equipmentSection');
  const active=['ara','underwear'].includes(document.querySelector('#modelmode').value);
@@ -165,7 +173,7 @@ function applyEquipment(){
  for(const [slot,options] of Object.entries(equipmentGroups)){const chosen=options[equipmentState[slot]]||[];for(const names of Object.values(options))for(const name of names){const entries=byName.get(name)||[];if(!entries.length){if(chosen.includes(name))missing.push(name);continue;}for(const entry of entries)entry.meshes.forEach(item=>item.mesh.visible=chosen.includes(name));}}
  document.querySelector('#equipmentStatus').textContent=missing.length?'Missing garment asset(s): '+missing.join(', '):'Each slot is independent. Empty removes that layer without removing the body.';
 }
-for(const [slot,id] of [['lower','equipmentLower'],['upper','equipmentUpper'],['shirt','equipmentShirt']])document.querySelector('#'+id).addEventListener('change',e=>{equipmentState[slot]=e.target.value;applyEquipment();document.querySelector('#saveState').textContent='Equipment changed · not saved';});
+for(const [slot,id] of [['lower','equipmentLower'],['upper','equipmentUpper'],['pants','equipmentPants'],['dress','equipmentDress'],['shirt','equipmentShirt']])document.querySelector('#'+id).addEventListener('change',e=>{equipmentState[slot]=e.target.value;applyEquipment();document.querySelector('#saveState').textContent='Equipment changed · not saved';});
 function collectMaterials(){
  originalMaterials.clear(); const found=new Map();
  if(!model)return;
