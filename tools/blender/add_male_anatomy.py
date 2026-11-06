@@ -44,6 +44,36 @@ def find_skin(meshes):
     return skin, mat
 
 
+def pelvis_landmark_from_leg_roots(armature, height):
+    """Find the hip-joint line from paired femur roots, not the Hips bone midpoint."""
+    aliases = {
+        "left": {"leftupleg", "leftupperleg", "upleg_l", "upperleg_l",
+                 "thigh_l", "leftthigh", "lthigh", "thigh.l"},
+        "right": {"rightupleg", "rightupperleg", "upleg_r", "upperleg_r",
+                  "thigh_r", "rightthigh", "rthigh", "thigh.r"},
+    }
+    found = {}
+    for side, names in aliases.items():
+        bone = next((b for b in armature.data.bones
+                     if b.name.lower().replace(" ", "").replace("-", "_") in names), None)
+        if bone is not None:
+            found[side] = armature.matrix_world @ bone.head_local
+    if len(found) != 2:
+        relevant = ", ".join(b.name for b in armature.data.bones
+                             if any(token in b.name.lower() for token in ("leg", "thigh", "upleg")))
+        raise RuntimeError(
+            "Cannot locate paired upper-leg roots for male anatomy placement. "
+            f"Found {sorted(found)}; relevant rig bones: {relevant or 'none'}"
+        )
+    z = (found["left"].z + found["right"].z) * 0.5
+    print(
+        "Male pelvic landmark from paired upper-leg roots: "
+        f"left={found['left'].z:.4f}, right={found['right'].z:.4f}, "
+        f"centre={z:.4f}, character height={height:.4f}"
+    )
+    return z
+
+
 def make_shaft(cx, cy, cz, length, radius, segments=32):
     verts, faces = [], []
     # Flaccid resting axis: predominantly downward (-Z), with only a slight
@@ -89,17 +119,17 @@ def add_ellipsoid(name, location, scale):
     return obj
 
 
-def build_component(armature, skin, skin_material, pelvis_z, front_y, height, voxel_size):
+def build_component(armature, skin, skin_material, anatomy_z, front_y, height, voxel_size):
     length = max(0.080, min(0.105, height * 0.058))
     radius = max(0.012, min(0.015, height * 0.0085))
-    cx, cy, cz = 0.0, front_y + 0.010, pelvis_z - height * 0.006
+    cx, cy, cz = 0.0, front_y + 0.010, anatomy_z + height * 0.012
 
     parts = [make_shaft(cx, cy, cz, length, radius)]
     # Scrotal sac hangs below the penile root, independent of the shaft's
     # slight forward angle. Two subtle lobes are fused into
     # one continuous silhouette by voxel remeshing rather than left as spheres.
     sac_y = front_y - 0.010
-    sac_z = pelvis_z - height * 0.035
+    sac_z = anatomy_z - height * 0.010
     parts.append(add_ellipsoid("Scrotum left source", (-radius * 0.72, sac_y, sac_z),
                                (radius * 0.90, radius * 1.00, height * 0.027)))
     parts.append(add_ellipsoid("Scrotum right source", (radius * 0.72, sac_y, sac_z),
@@ -161,10 +191,8 @@ def main():
     skin, skin_material = find_skin(meshes)
     lo, hi = bounds(skin)
     height = hi.z - lo.z
-    hips = next((b for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), None)
-    if hips is None:
-        raise RuntimeError("Ara male rig has no pelvis landmark")
-    pelvis_z = (armature.matrix_world @ ((hips.head_local + hips.tail_local) * 0.5)).z
+    hipline_z = pelvis_landmark_from_leg_roots(armature, height)
+    anatomy_z = hipline_z - height * 0.035
     depsgraph = bpy.context.evaluated_depsgraph_get()
     evaluated = skin.evaluated_get(depsgraph)
     mesh = evaluated.to_mesh()
@@ -173,10 +201,10 @@ def main():
     tree = BVHTree.FromPolygons(verts, faces, all_triangles=False)
     evaluated.to_mesh_clear()
     hit, _normal, _index, _distance = tree.ray_cast(
-        Vector((0.0, -2.0, pelvis_z)), Vector((0.0, 1.0, 0.0)), 4.0)
+        Vector((0.0, -2.0, anatomy_z)), Vector((0.0, 1.0, 0.0)), 4.0)
     if hit is None:
         raise RuntimeError("Could not locate front pelvis surface on Ara male body")
-    build_component(armature, skin, skin_material, pelvis_z, hit.y, height, args.voxel_size)
+    build_component(armature, skin, skin_material, anatomy_z, hit.y, height, args.voxel_size)
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
