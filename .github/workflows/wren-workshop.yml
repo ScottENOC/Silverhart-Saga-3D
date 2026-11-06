@@ -24,6 +24,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Compile anatomy, clothing and review tools
+        run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/review/render_modular_outfits.py
       - name: Build Ara 3D Gen benchmark
         shell: bash
         run: |
