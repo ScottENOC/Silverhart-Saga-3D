@@ -4,7 +4,7 @@ name: Build Wren Workshop
 on:
   workflow_dispatch:
   push:
-    branches: [dev, feature/shared-character-system]
+    branches: [dev, feature/shared-character-system, feature/wren-anatomy-piercings-halter-fit]
     paths:
       - "tools/blender/**"
       - "tools/ara/**"
