@@ -12,7 +12,7 @@ The map uses the same flat-top axial grid as the tavern, with a 40-hex local rad
 - Elder's house at (0, -12).
 - Mira's and Oskar's houses at (12, 9) and (-6, 9).
 - The stream runs along r = -25; the north road crosses it at q = 8.
-- The signposted crossroads is at (8, 24), with the first sections of the four outgoing roads visible.
+- The signposted crossroads is at (8, 24), with four roads extending to the local map boundary: north to Millbrook/Silverhart, south to Old Mac's Farmstead, east to Reddale and west to Emberlode.
 - Forest dressing is deterministic and kept clear of the roads, stream and building footprints.
 
 The exterior currently uses procedural low-poly blockout buildings, dirt-road surfaces, a water strip, a timber bridge, a signpost and simple tree meshes. It is intended to establish scale, navigation and spatial relationships before detailed environment art.
