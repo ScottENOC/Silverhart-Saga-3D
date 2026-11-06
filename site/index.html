@@ -166,11 +166,22 @@ const equipmentGroups={
 };
 function applyEquipment(){
  const section=document.querySelector('#equipmentSection');
- const active=['ara','underwear'].includes(document.querySelector('#modelmode').value);
+ const mode=document.querySelector('#modelmode').value;
+ const active=['ara','underwear'].includes(mode), underwearOnly=mode==='underwear';
  if(section)section.hidden=!active;
+ for(const id of ['equipmentPants','equipmentDress','equipmentShirt']){
+  const row=document.querySelector('#'+id)?.closest('.row');if(row)row.hidden=underwearOnly;
+ }
  if(!model||!active)return;
  const byName=new Map();for(const e of originalMaterials.values()){const name=e.material.name;if(!byName.has(name))byName.set(name,[]);byName.get(name).push(e);}const missing=[];
- for(const [slot,options] of Object.entries(equipmentGroups)){const chosen=options[equipmentState[slot]]||[];for(const names of Object.values(options))for(const name of names){const entries=byName.get(name)||[];if(!entries.length){if(chosen.includes(name))missing.push(name);continue;}for(const entry of entries)entry.meshes.forEach(item=>item.mesh.visible=chosen.includes(name));}}
+ for(const [slot,options] of Object.entries(equipmentGroups)){
+  if(underwearOnly&&['pants','dress','shirt'].includes(slot))continue;
+  const chosen=options[equipmentState[slot]]||[];
+  for(const names of Object.values(options))for(const name of names){
+   const entries=byName.get(name)||[];if(!entries.length){if(chosen.includes(name))missing.push(name);continue;}
+   for(const entry of entries)entry.meshes.forEach(item=>item.mesh.visible=chosen.includes(name));
+  }
+ }
  document.querySelector('#equipmentStatus').textContent=missing.length?'Missing garment asset(s): '+missing.join(', '):'Each slot is independent. Empty removes that layer without removing the body.';
 }
 for(const [slot,id] of [['lower','equipmentLower'],['upper','equipmentUpper'],['pants','equipmentPants'],['dress','equipmentDress'],['shirt','equipmentShirt']])document.querySelector('#'+id).addEventListener('change',e=>{equipmentState[slot]=e.target.value;applyEquipment();document.querySelector('#saveState').textContent='Equipment changed · not saved';});
