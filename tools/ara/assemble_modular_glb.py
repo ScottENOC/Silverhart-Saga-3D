@@ -38,24 +38,51 @@ def append_bytes(target,buf,data,target_type=None):
     vi=len(target.setdefault('bufferViews',[])); target['bufferViews'].append(view)
     return target,buf+data,vi
 
+def accessor_rows(doc, binary, accessor_index):
+    """Materialise an accessor, including sparse-only accessors with implicit zero bases."""
+    accessor=doc['accessors'][accessor_index]
+    fmt,size=COMP[accessor['componentType']]
+    components=COUNT[accessor['type']]
+    elem=size*components
+    pack='<'+fmt*components
+    rows=[[0]*components for _ in range(accessor['count'])]
+    if 'bufferView' in accessor:
+        view=doc['bufferViews'][accessor['bufferView']]
+        stride=view.get('byteStride',elem)
+        start=view.get('byteOffset',0)+accessor.get('byteOffset',0)
+        for index in range(accessor['count']):
+            rows[index]=list(struct.unpack_from(pack,binary,start+index*stride))
+    sparse=accessor.get('sparse')
+    if sparse:
+        indices=sparse['indices']
+        index_fmt,index_size=COMP[indices['componentType']]
+        index_view=doc['bufferViews'][indices['bufferView']]
+        index_start=index_view.get('byteOffset',0)+indices.get('byteOffset',0)
+        values=sparse['values']
+        value_view=doc['bufferViews'][values['bufferView']]
+        value_start=value_view.get('byteOffset',0)+values.get('byteOffset',0)
+        for sparse_index in range(sparse['count']):
+            vertex=struct.unpack_from('<'+index_fmt,binary,index_start+sparse_index*index_size)[0]
+            rows[vertex]=list(struct.unpack_from(pack,binary,value_start+sparse_index*elem))
+    return rows
+
 def compact_accessor(src,sbuf,target,buf,old_ai,vertices,joint_map=None):
-    a=copy.deepcopy(src['accessors'][old_ai]); view=src['bufferViews'][a['bufferView']]
-    fmt,size=COMP[a['componentType']]; n=COUNT[a['type']]; elem=size*n
-    stride=view.get('byteStride',elem); start=view.get('byteOffset',0)+a.get('byteOffset',0)
-    pack='<'+fmt*n; data=bytearray(); rows=[]
-    for vi in vertices:
-        raw=sbuf[start+vi*stride:start+vi*stride+elem]
-        vals=list(struct.unpack(pack,raw))
+    a=copy.deepcopy(src['accessors'][old_ai])
+    fmt,size=COMP[a['componentType']]; n=COUNT[a['type']]
+    pack='<'+fmt*n; rows=[]; data=bytearray()
+    source_rows=accessor_rows(src,sbuf,old_ai)
+    for vertex in vertices:
+        vals=list(source_rows[vertex])
         if joint_map is not None:
             if any(x>=len(joint_map) for x in vals): raise ValueError(f'Invalid source joint index {max(vals)}')
             vals=[joint_map[x] for x in vals]
         rows.append(vals); data.extend(struct.pack(pack,*vals))
-    target,buf,vi=append_bytes(target,buf,bytes(data),34962)
-    a.pop('sparse',None); a['bufferView']=vi; a.pop('byteOffset',None); a['count']=len(vertices)
+    target,buf,view_index=append_bytes(target,buf,bytes(data),34962)
+    a.pop('sparse',None); a['bufferView']=view_index; a.pop('byteOffset',None); a['count']=len(vertices)
     a['min']=[min(row[c] for row in rows) for c in range(n)]
     a['max']=[max(row[c] for row in rows) for c in range(n)]
-    ai=len(target.setdefault('accessors',[])); target['accessors'].append(a)
-    return target,buf,ai
+    new_index=len(target.setdefault('accessors',[])); target['accessors'].append(a)
+    return target,buf,new_index
 
 def add(target,buf,source_path,selector):
     src,sbuf=read(source_path)
