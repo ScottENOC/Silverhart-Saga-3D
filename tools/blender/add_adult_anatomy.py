@@ -10,6 +10,7 @@ Ara GLB axes after Blender import: Z up, character facing -Y.
 import argparse
 import os
 import sys
+import math
 
 import bpy
 from mathutils import Vector, Matrix
@@ -118,43 +119,62 @@ def create_piercing_sockets(armature, skin, surface_tree, minimum, height, width
 
     head_bone = find_bone({"head", "head01"}, find_bone({"neck"}, "Hips"))
     chest_bone = find_bone({"spine2", "spine_2", "chest"}, find_bone({"spine1", "spine_1"}, "Hips"))
-    hip_bone = find_bone({"hips", "hip", "pelvis"}, "Hips")
 
-    # Earrings can use the head's actual front-side surface; keep this legacy
-    # region limited to the ears while the nose and chest use anatomical anchors.
-    head_lo, head_hi, _ = bone_world_span(armature, {"head", "head01"}, (minimum.z + height*.84, minimum.z + height*.96, head_bone))
-    head_z = head_lo + (head_hi-head_lo)*.58
-    for side, label in [(1.0, "L"), (-1.0, "R")]:
-        hit = front_hit_data(surface_tree, side * width * 0.095, head_z)
-        if hit:
-            create_socket(armature, "SOCKET_Earring_" + label, hit[0], hit[1], head_bone)
+    # Ear sockets are selected from the lateral ear contour, not a front-view
+    # point on the cheek. Require a side-facing normal and the lower head band.
+    ear_z = minimum.z + height * 0.875
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = skin.evaluated_get(depsgraph)
+    mesh_eval = evaluated.to_mesh()
+    for side, label in ((1.0, "L"), (-1.0, "R")):
+        best = None
+        for v in mesh_eval.vertices:
+            p = skin.matrix_world @ v.co
+            n = (skin.matrix_world.to_3x3() @ v.normal).normalized()
+            if side*p.x < width*0.13 or side*p.x > width*0.29:
+                continue
+            if abs(p.z-ear_z) > height*0.035 or side*n.x < 0.22:
+                continue
+            score = side*n.x*2.0 - abs(p.z-ear_z)/max(height*0.035, 1e-5)
+            if best is None or score > best[0]:
+                best = (score, p.copy(), n.copy())
+        if best:
+            # Move the earring anchor just clear of the ear surface and slightly
+            # forward of the hairline so hoops remain visible in the Workshop.
+            earring_location = best[1] + best[2] * 0.003 + Vector((0.0, -0.005, 0.0))
+            create_socket(armature, "SOCKET_Earring_" + label, earring_location, best[2], head_bone)
+    evaluated.to_mesh_clear()
 
-    # Nose: find the most anterior skin vertex around the middle/lower face,
-    # not a percentage of total character height.
-    nose_z0 = head_lo + (head_hi-head_lo)*.34
-    nose_z1 = head_lo + (head_hi-head_lo)*.78
-    nose = frontmost_vertex_anchor(skin, -width*.055, width*.055, nose_z0, nose_z1)
+    # Nose ring sits 1 cm below the former anchor, with a fresh surface raycast
+    # at that lower height so the socket remains flush to the nose.
+    head_lo, head_hi, _ = bone_world_span(armature, {"head", "head01"},
+                                          (minimum.z + height*.84, minimum.z + height*.96, head_bone))
+    nose = frontmost_vertex_anchor(skin, -width*.055, width*.055,
+                                   head_lo + (head_hi-head_lo)*.34,
+                                   head_lo + (head_hi-head_lo)*.78)
     if nose:
-        create_socket(armature, "SOCKET_NoseRing", nose[0], nose[1], head_bone)
+        lowered = front_hit_data(surface_tree, nose[0].x, nose[0].z - 0.010)
+        if lowered:
+            create_socket(armature, "SOCKET_NoseRing", lowered[0], lowered[1], head_bone)
 
     necklace_hit = front_hit_data(surface_tree, 0.0, minimum.z + height * 0.82)
     if necklace_hit:
         create_socket(armature, "SOCKET_Necklace", necklace_hit[0], necklace_hit[1], chest_bone)
 
-    # Nipples: select the anterior apex on each actual breast surface, constrained
-    # by the chest/spine bones and lateral chest region. No whole-body height ratio.
-    chest_lo, chest_hi, _ = bone_world_span(armature, {"spine1", "spine_1", "spine2", "spine_2", "chest"},
-                                            (minimum.z + height*.62, minimum.z + height*.79, chest_bone))
-    nipple_z0 = chest_lo - (chest_hi-chest_lo)*.08
-    nipple_z1 = chest_hi + (chest_hi-chest_lo)*.08
-    for side, label in [(1.0, "L"), (-1.0, "R")]:
-        x0, x1 = (width*.055, width*.30) if side > 0 else (-width*.30, -width*.055)
+    # Use the actual breast-height band of the body. Do not derive this from
+    # Spine1: on this Ara rig that bone can span the upper abdomen.
+    # Use the skin mesh bounds rather than all character meshes (hair and
+    # footwear distort whole-character height ratios). The earlier band sat too
+    # low on this Ara body; keep the search above the navel and within the bust.
+    skin_min, skin_max = mesh_world_bounds(skin)
+    skin_height = skin_max.z - skin_min.z
+    nipple_z0 = skin_min.z + skin_height * 0.69
+    nipple_z1 = skin_min.z + skin_height * 0.84
+    for side, label in ((1.0, "L"), (-1.0, "R")):
+        x0, x1 = ((width*.055, width*.30) if side > 0 else (-width*.30, -width*.055))
         hit = frontmost_vertex_anchor(skin, x0, x1, nipple_z0, nipple_z1)
         if hit:
             create_socket(armature, "SOCKET_Nipple_" + label, hit[0], hit[1], chest_bone)
-
-    # The clitoral socket is supplied by the anatomy mesh itself after it is built.
-    # It is added by main() from the hood's exposed surface, not guessed from pelvis depth.
 
 
 def uv_ellipsoid(name, location, scale, collection):
@@ -171,133 +191,125 @@ def uv_ellipsoid(name, location, scale, collection):
     return obj
 
 
-def create_anatomy(pelvis_z, front_y, width, collection, skin_material, armature, surface_tree):
-    # Soft mons above the vulvar cleft, paired outer folds, inner folds and a
-    # modest clitoral hood. Forms overlap so they can be voxel-unified.
-    half = max(0.055, min(0.075, width * 0.145))
-    shapes = []
-    def anchored_y(x, z, depth):
-        # Sample the real body/garment surface at each sculpt centre. The old
-        # single centreline depth produced gaps as the pelvis curves laterally.
-        hit = front_hit_data(surface_tree, x, z)
-        if not hit:
-            raise RuntimeError(f"Cannot anchor anatomy to pelvis surface at x={x:.3f}, z={z:.3f}")
-        return hit[0].y - depth
+def integrate_anatomy_into_skin(skin, pelvis_z, width, height):
+    """Sculpt the existing skin mesh in-place, preserving its UVs/material/weights."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(skin.data)
+    bm.normal_update()
+    inv = skin.matrix_world.inverted()
+    edges = []
+    for edge in bm.edges:
+        mid = (edge.verts[0].co + edge.verts[1].co) * 0.5
+        world = skin.matrix_world @ mid
+        normal = skin.matrix_world.to_3x3() @ (edge.verts[0].normal + edge.verts[1].normal)
+        if normal.length:
+            normal.normalize()
+        if abs(world.x) < width*0.25 and abs(world.z-pelvis_z) < 0.105 and normal.y < -0.12:
+            edges.append(edge)
+    if edges:
+        bmesh.ops.subdivide_edges(bm, edges=edges, cuts=2, use_grid_fill=True)
+        bm.normal_update()
 
-    # Move the sculpt slightly superiorly and posteriorly relative to the old
-    # blockout, and overlap its back edge into the sampled body surface.
-    base_z = pelvis_z + 0.022
-    shapes.append(uv_ellipsoid(
-        "Vulva_Mons_Pubis", (0.0, anchored_y(0.0, base_z + 0.047, 0.013), base_z + 0.047),
-        (half * 0.92, 0.019, 0.044), collection))
-    for side, label in [(-1, "L"), (1, "R")]:
-        x_outer = side * half * 0.34
-        x_inner = side * half * 0.145
-        z = base_z - 0.012
-        shapes.append(uv_ellipsoid(
-            "Vulva_Labia_Majora_" + label,
-            (x_outer, anchored_y(x_outer, z, 0.012), z),
-            (half * 0.39, 0.017, 0.066), collection))
-        shapes.append(uv_ellipsoid(
-            "Vulva_Labia_Minora_" + label,
-            (x_inner, anchored_y(x_inner, z, 0.008), z),
-            (half * 0.145, 0.009, 0.050), collection))
-    hood_z = base_z + 0.040
-    shapes.append(uv_ellipsoid(
-        "Vulva_Clitoral_Hood",
-        (0.0, anchored_y(0.0, hood_z, 0.005), hood_z),
-        (half * 0.17, 0.007, 0.014), collection))
+    def g(x,z,cx,cz,sx,sz):
+        return math.exp(-0.5*(((x-cx)/sx)**2+((z-cz)/sz)**2))
 
-    bpy.ops.object.select_all(action="DESELECT")
-    for obj in shapes:
-        obj.select_set(True)
-    bpy.context.view_layer.objects.active = shapes[0]
-    bpy.ops.object.join()
-    anatomy = bpy.context.object
-    anatomy.name = "Adult_External_Anatomy"
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    anatomy.data.remesh_voxel_size = 0.0035
-    bpy.ops.object.voxel_remesh()
-    smooth = anatomy.modifiers.new("Anatomy surface smoothing", "SMOOTH")
-    smooth.factor = 1.15
-    smooth.iterations = 4
-    sub = anatomy.modifiers.new("Anatomy final surface", "SUBSURF")
-    sub.levels = 1
-    sub.render_levels = 1
-    # Voxel remeshing destroys the original UV layout. Reusing Ara's textured
-    # skin material on this new topology samples unrelated atlas pixels (the
-    # red/purple patches seen in review). Build a clean skin-tone material from
-    # the source material's base colour; do not apply the broken texture atlas.
-    clean_skin = skin_material.copy()
-    clean_skin.name = "Anatomy_Skin_Base"
-    if clean_skin.use_nodes and clean_skin.node_tree:
-        nodes = clean_skin.node_tree.nodes
-        links = clean_skin.node_tree.links
-        principled = next((n for n in nodes if n.type == "BSDF_PRINCIPLED"), None)
-        base_colour = tuple(clean_skin.diffuse_color)
-        for link in list(links):
-            if principled and link.to_node == principled and link.to_socket.name in ("Base Color", "Alpha"):
-                links.remove(link)
-        for node in list(nodes):
-            if node.type == "TEX_IMAGE":
-                nodes.remove(node)
-        if principled:
-            principled.inputs["Base Color"].default_value = base_colour
-            principled.inputs["Alpha"].default_value = 1.0
-    anatomy.data.materials.clear()
-    anatomy.data.materials.append(clean_skin)
-    # Clamp the hidden/back side of the sculpt onto the sampled pelvis surface.
-    # This turns the separate sculpt into a conforming overlay rather than a
-    # collection of ellipsoids floating in front of the body.
-    for vert in anatomy.data.vertices:
-        p = anatomy.matrix_world @ vert.co
-        hit = front_hit_data(surface_tree, p.x, p.z)
-        if hit and p.y > hit[0].y - 0.001:
-            p.y = hit[0].y - 0.001
-            vert.co = anatomy.matrix_world.inverted() @ p
-    for poly in anatomy.data.polygons:
+    # Ara faces -Y. Outward shaping moves vertices toward -Y; the central
+    # cleft is a shallow +Y inset. All changes remain on the original skin mesh.
+    for v in bm.verts:
+        p = skin.matrix_world @ v.co
+        n = skin.matrix_world.to_3x3() @ v.normal
+        if n.length:
+            n.normalize()
+        if n.y > -0.10 or abs(p.x) > width*0.27 or abs(p.z-pelvis_z) > 0.12:
+            continue
+        mons = g(p.x,p.z,0.0,pelvis_z+0.052,width*0.105,0.030)
+        outer = g(p.x,p.z,-width*0.055,pelvis_z+0.002,width*0.038,0.047) + g(p.x,p.z,width*0.055,pelvis_z+0.002,width*0.038,0.047)
+        inner = g(p.x,p.z,-width*0.022,pelvis_z-0.004,width*0.016,0.034) + g(p.x,p.z,width*0.022,pelvis_z-0.004,width*0.016,0.034)
+        cleft = g(p.x,p.z,0.0,pelvis_z-0.004,width*0.010,0.041)
+        p.y -= 0.0035*mons + 0.0055*outer + 0.0020*inner - 0.0022*cleft
+        v.co = inv @ p
+    bm.normal_update()
+    bm.to_mesh(skin.data)
+    bm.free()
+    skin.data.update()
+    for poly in skin.data.polygons:
         poly.use_smooth = True
-
-    # Keep the anatomy attached to the pelvis in the game rig.
-    hip_name = next((b.name for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), None)
-    if not hip_name:
-        raise RuntimeError("Ara rig has no Hips/Pelvis bone for external anatomy")
-    group = anatomy.vertex_groups.new(name=hip_name)
-    group.add(list(range(len(anatomy.data.vertices))), 1.0, "REPLACE")
-    mod = anatomy.modifiers.new("Ara game rig", "ARMATURE")
-    mod.object = armature
-    anatomy["anatomy_profile"] = "adult_female_external"
-    anatomy["review_status"] = "blockout_for_art_review"
-    return anatomy
+    skin["anatomy_profile"] = "adult_female_integrated_skin"
+    skin["review_status"] = "integrated_mesh_blockout_for_art_review"
+    skin["anatomy_method"] = "local_subdivision_and_surface_displacement"
+    return skin
 
 
 def expand_lower_garments(objects, pelvis_z, body_front_y, width):
-    # The new external form projects a little beyond Ara's neutral pelvis.
-    # Give briefs a smaller allowance and outer trousers a larger one.
+    # Apply the local pelvic allowance only to vertices belonging to lower-garment
+    # material faces. Modular GLBs can contain skin and garments in one Blender
+    # object; moving every vertex in that object would deform the body itself.
     for obj in objects:
         if obj.type != "MESH":
             continue
-        label = material_name(obj)
-        is_bikini_lower = "bikini bottom" in label or "bikini string" in label
-        is_briefs = "brief" in label or "underwear" in label or is_bikini_lower
-        is_trousers = not is_bikini_lower and any(k in label for k in ("pants", "trouser", "bottom", "breech"))
-        if not (is_briefs or is_trousers):
-            continue
-        amplitude = 0.040 if is_trousers else 0.034
+        briefs_vertices, trouser_vertices = set(), set()
+        for poly in obj.data.polygons:
+            if poly.material_index >= len(obj.material_slots):
+                continue
+            material = obj.material_slots[poly.material_index].material
+            label = material.name.lower() if material else ""
+            is_bikini_lower = "bikini bottom" in label or "bikini string" in label
+            if "brief" in label or "underwear" in label or is_bikini_lower:
+                briefs_vertices.update(poly.vertices)
+            elif any(k in label for k in ("pants", "trouser", "breech")):
+                trouser_vertices.update(poly.vertices)
         inv = obj.matrix_world.inverted()
-        for vert in obj.data.vertices:
-            world = obj.matrix_world @ vert.co
-            if world.y > body_front_y + 0.055:
-                continue
-            if abs(world.x) > width * 0.22 or abs(world.z - pelvis_z) > 0.13:
-                continue
-            fx = (world.x / max(width * 0.18, 0.065)) ** 2
-            fz = ((world.z - pelvis_z) / 0.115) ** 2
-            falloff = max(0.0, 1.0 - fx) * max(0.0, 1.0 - fz)
-            falloff = falloff * falloff
-            world.y -= amplitude * falloff
-            vert.co = inv @ world
+        for indices, amplitude in ((briefs_vertices, 0.034), (trouser_vertices, 0.040)):
+            for index in indices:
+                vert = obj.data.vertices[index]
+                world = obj.matrix_world @ vert.co
+                if world.y > body_front_y + 0.055:
+                    continue
+                if abs(world.x) > width * 0.22 or abs(world.z - pelvis_z) > 0.13:
+                    continue
+                fx = (world.x / max(width * 0.18, 0.065)) ** 2
+                fz = ((world.z - pelvis_z) / 0.115) ** 2
+                falloff = max(0.0, 1.0 - fx) * max(0.0, 1.0 - fz)
+                falloff = falloff * falloff
+                world.y -= amplitude * falloff
+                vert.co = inv @ world
         obj.data.update()
+
+
+def fit_pants_clearance(objects, skin, clearance=0.004):
+    """Push trouser vertices outside the retained skin surface, without moving skin."""
+    tree = build_bvh(skin)
+    for obj in objects:
+        if obj.type != "MESH":
+            continue
+        pants_vertices = set()
+        for poly in obj.data.polygons:
+            if poly.material_index >= len(obj.material_slots):
+                continue
+            material = obj.material_slots[poly.material_index].material
+            label = material.name.lower() if material else ""
+            if any(k in label for k in ("pants", "trouser", "breech")):
+                pants_vertices.update(poly.vertices)
+        if not pants_vertices:
+            continue
+        inv = obj.matrix_world.inverted()
+        moved = 0
+        for index in pants_vertices:
+            vert = obj.data.vertices[index]
+            world = obj.matrix_world @ vert.co
+            nearest = tree.find_nearest(world)
+            if not nearest or nearest[0] is None or nearest[1] is None:
+                continue
+            location, normal, _face, _distance = nearest
+            normal = normal.normalized()
+            signed = (world - location).dot(normal)
+            if signed < clearance:
+                world += normal * (clearance - signed)
+                vert.co = inv @ world
+                moved += 1
+        obj.data.update()
+        print(f"Fitted {obj.name}: moved {moved} trouser vertices to {clearance * 1000:.1f} mm skin clearance")
 
 
 def main():
@@ -377,6 +389,9 @@ def main():
     expand_lower_garments(meshes, pelvis_z, body_front_y, width)
 
     if args.fit_existing:
+        # The base skin remains present beneath transparent clothing. Fit only
+        # trouser material vertices against it; never hide or displace the skin.
+        fit_pants_clearance(meshes, skin, clearance=0.004)
         # The modular GLBs already contain the anatomy and piercing sockets
         # from the integrated body base. Only fit briefs, bikini bottoms and
         # trousers over that existing geometry; do not add a second sculpt.
@@ -395,19 +410,17 @@ def main():
         print("Fitted lower garments around existing adult anatomy")
         return
 
-    collection = bpy.data.collections.new("Adult Anatomy - reviewable sculpt")
-    bpy.context.scene.collection.children.link(collection)
     anatomy = None
     if args.profile == "female":
-        anatomy = create_anatomy(pelvis_z, body_front_y, width, collection, skin_material, armature, pelvis_surface_tree)
+        anatomy = integrate_anatomy_into_skin(skin, pelvis_z, width, height)
+        surface_tree = build_bvh(skin)
+        pelvis_surface_tree = surface_tree
     create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, pelvis_z, body_front_y)
     if anatomy is not None:
-        anatomy_tree = build_bvh(anatomy)
-        hood_z = pelvis_z + 0.022 + 0.040
-        hood_hit = front_hit_data(anatomy_tree, 0.0, hood_z)
+        # The hood sits just above the vulvar cleft, not on the mons pubis.
+        hood_hit = front_hit_data(surface_tree, 0.0, pelvis_z + 0.022)
         if hood_hit:
-            # Stand the piercing just proud of the hood surface.
-            location = hood_hit[0] + hood_hit[1].normalized() * 0.0025
+            location = hood_hit[0] + hood_hit[1].normalized() * 0.0015
             hip_name = next((b.name for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), "Hips")
             create_socket(armature, "SOCKET_ClitoralHood", location, hood_hit[1], hip_name)
 

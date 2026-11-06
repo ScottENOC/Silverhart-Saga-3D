@@ -4,7 +4,7 @@ name: Build Wren Workshop
 on:
   workflow_dispatch:
   push:
-    branches: [dev, feature/shared-character-system]
+    branches: [dev, feature/shared-character-system, feature/wren-anatomy-piercings-halter-fit]
     paths:
       - "tools/blender/**"
       - "tools/ara/**"
@@ -150,8 +150,11 @@ jobs:
           base = json.load(open('/tmp/ara-person.params.json'))
           variants = {
               "tank_top": {"top":"tank_top", "underTop":"none", "underBottom":"none", "bottom":"none"},
+              "halter_bra_lace": {"top":"none", "underTop":"halter_bra_lace", "underBottom":"none", "bottom":"none"},
               "triangle_bikini_top": {"top":"none", "underTop":"bikini_top", "underBottom":"none", "bottom":"none"},
-              "string_bikini_bottom": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none"}
+              "string_bikini_bottom": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none"},
+              "backless_slit_dress": {"top":"backless_slit_dress", "underTop":"none", "underBottom":"none", "bottom":"pencil_skirt_midi"},
+              "leather_armor": {"top":"none", "underTop":"none", "underBottom":"none", "bottom":"none", "accessories":["leather_armor"]}
           }
           for key, updates in variants.items():
               p = dict(base)
@@ -160,7 +163,7 @@ jobs:
               p.update(updates)
               json.dump(p, open('/tmp/ara-person-'+key+'.params.json','w'), indent=2)
           PY
-          for variant in tank_top triangle_bikini_top string_bikini_bottom; do
+          for variant in tank_top halter_bra_lace triangle_bikini_top string_bikini_bottom backless_slit_dress leather_armor; do
             mkdir -p "/tmp/ara-$variant-out"
             npm run export -- --params "/tmp/ara-person-$variant.params.json" --detail high --formats glb --out "/tmp/ara-$variant-out"
             VARIANT_GLB="$(find "/tmp/ara-$variant-out" -maxdepth 1 -type f -name '*.glb' -print -quit)"
@@ -270,10 +273,15 @@ jobs:
             art/characters/ara/ara_person_body.glb art/characters/ara/ara_person_modular.glb \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue pants#1" \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue pants#2" \
+            /tmp/ara-generated/ara_person_backless_slit_dress.glb "Backless slit dress" \
+            /tmp/ara-generated/ara_person_backless_slit_dress.glb "Pencil skirt" \
+            /tmp/ara-generated/ara_person_leather_armor.glb "Leather armor" \
             /tmp/ara-generated/ara_person_benchmark.glb "Shoes" \
             /tmp/ara-generated/ara_person_benchmark.glb "Boot shafts" \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
             /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace openwork" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace straps" \
             /tmp/ara-generated/ara_person_benchmark.glb "Briefs" \
             /tmp/ara-generated/ara_person_tank_top.glb "Tank top" \
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
@@ -284,6 +292,8 @@ jobs:
             art/characters/ara/ara_person_body.glb art/characters/ara/ara_person_modular_underwear.glb \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
             /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace openwork" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace straps" \
             /tmp/ara-generated/ara_person_benchmark.glb "Briefs" \
             /tmp/ara-generated/ara_person_tank_top.glb "Tank top" \
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
@@ -294,6 +304,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+      - name: Cut the side slit into the dress skirt
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python tools/blender/add_dress_slit.py -- \\
+            --input art/characters/ara/ara_person_modular.glb \\
+            --output /tmp/ara_person_modular_slit.glb
+          mv /tmp/ara_person_modular_slit.glb art/characters/ara/ara_person_modular.glb
       - name: Fit modular garments around integrated anatomy
         run: |
           set -euo pipefail

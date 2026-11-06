@@ -1,0 +1,93 @@
+name: Review Wren modular garments (latest build)
+
+on:
+  push:
+    branches: [feature/wren-anatomy-piercings-halter-fit]
+    paths:
+      - ".github/workflows/wren-modular-review.yml"
+      - ".github/workflows/wren-workshop.yml"
+      - "tools/blender/**"
+      - "tools/ara/**"
+      - "tools/review/**"
+      - "site/index.html"
+
+concurrency:
+  group: wren-modular-review
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  review-modular-character:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out the exact Workshop build revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find and wait for the matching Ara Workshop build
+        id: source-run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          runs_url="repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=${GITHUB_REF_NAME}&per_page=50"
+          source_run="$(gh api "$runs_url" --jq '.workflow_runs[0].id')"
+          test -n "$source_run"
+          while true; do
+            artifact="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run/artifacts" --jq '.artifacts[]? | select(.name == "character-pipeline-evaluation" and .expired == false) | .name' | head -n 1)"
+            if [ "$artifact" = "character-pipeline-evaluation" ]; then
+              break
+            fi
+            status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run" --jq '.status')"
+            if [ "$status" = "completed" ]; then
+              conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run" --jq '.conclusion')"
+              echo "Workshop build ended ($conclusion) without the fitted character artifact" >&2
+              exit 1
+            fi
+            sleep 20
+          done
+          echo "run_id=$source_run" >> "$GITHUB_OUTPUT"
+
+      - name: Download the generated character pipeline artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: character-pipeline-evaluation
+          path: /tmp/ara-assets
+          run-id: ${{ steps.source-run.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Blender for multi-angle garment review
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Render isolated clothing combinations from the actual modular character
+        run: |
+          set -euo pipefail
+          INPUT=/tmp/ara-assets/ara_person_modular.glb
+          OUTPUT=review/outfits
+          test -s "$INPUT"
+          mkdir -p "$OUTPUT"
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- "$INPUT" "$OUTPUT"
+          for outfit in skin halter dress pants halter_pants; do
+            for view in front side rear; do
+              test -s "$OUTPUT/$outfit/$view.png"
+            done
+            test -s "$OUTPUT/$outfit/report.json"
+          done
+
+      - name: Upload isolated outfit review renders and material reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: wren-isolated-outfit-review
+          path: review/outfits/**
+          if-no-files-found: error
+          retention-days: 14
