@@ -128,6 +128,7 @@ jobs:
           p = json.load(open('/tmp/ara-person-body.params.json'))
           p.update({
               "name": "Ara Base Person - male body",
+              "seed": 417,
               "gender": 1,
               "breastSize": 0,
               "breastFirmness": 0
@@ -372,8 +373,6 @@ jobs:
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties" \
             /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini bottom=Fishnet briefs" \
             /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini strings*=Fishnet briefs ties" \
-            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini bottom=Fishnet briefs" \
-            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini strings*=Fishnet briefs ties" \
             /tmp/ara-generated/ara_person_lace_shirt.glb "Fatigue shirt=Lace shirt" \
             /tmp/ara-generated/ara_person_fishnet_shirt.glb "Fatigue shirt=Fishnet shirt" \
             /tmp/ara-generated/ara_person_lace_pants.glb "Fatigue pants#1=Lace pants" \
@@ -396,7 +395,9 @@ jobs:
             /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
             /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings" \
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini bottom=Lace briefs" \
-            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties"
+            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties" \
+            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini bottom=Fishnet briefs" \
+            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini strings*=Fishnet briefs ties"
       - name: Install Blender for modular garment fitting
         run: |
           sudo apt-get update
