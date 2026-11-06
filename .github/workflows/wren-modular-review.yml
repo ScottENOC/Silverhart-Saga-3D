@@ -38,13 +38,19 @@ jobs:
           runs_url="repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=${GITHUB_REF_NAME}&per_page=50"
           source_run="$(gh api "$runs_url" --jq '.workflow_runs[0].id')"
           test -n "$source_run"
-          status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run" --jq '.status')"
-          while [ "$status" != "completed" ]; do
-            sleep 20
+          while true; do
+            artifact="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run/artifacts" --jq '.artifacts[]? | select(.name == "character-pipeline-evaluation" and .expired == false) | .name' | head -n 1)"
+            if [ "$artifact" = "character-pipeline-evaluation" ]; then
+              break
+            fi
             status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run" --jq '.status')"
+            if [ "$status" = "completed" ]; then
+              conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run" --jq '.conclusion')"
+              echo "Workshop build ended ($conclusion) without the fitted character artifact" >&2
+              exit 1
+            fi
+            sleep 20
           done
-          artifact="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$source_run/artifacts" --jq '.artifacts[] | select(.name == "character-pipeline-evaluation" and .expired == false) | .name' | head -n 1)"
-          test "$artifact" = "character-pipeline-evaluation"
           echo "run_id=$source_run" >> "$GITHUB_OUTPUT"
 
       - name: Download the generated character pipeline artifact
