@@ -167,3 +167,20 @@ edit("src/core/garments/catalog.ts", [
 ])
 
 print("Ara underTop, full-cup openwork halter, backless side-slit dress and briefs layering patch applied.")
+
+
+# Permit the lace weave on the three base garment shapes used for the optional
+# lace briefs, shirt and trousers. Geometry stays Ara-fitted to the same body;
+# only the fabric pattern changes in the generated variant.
+edit("src/core/garments/catalog.ts", [
+    ("id: 'fatigue_shirt', label: 'Fatigue shirt', slot: 'top', patterns: ['camo', 'solid', 'khaki']",
+     "id: 'fatigue_shirt', label: 'Fatigue shirt', slot: 'top', patterns: ['camo', 'solid', 'khaki', 'lace']"),
+    ("id: 'briefs', label: 'Briefs', slot: 'bottom', patterns: ['solid']",
+     "id: 'briefs', label: 'Briefs', slot: 'bottom', patterns: ['solid', 'lace']"),
+    ("id: 'fatigue_pants', label: 'Fatigue pants', slot: 'bottom', patterns: ['camo', 'khaki', 'solid']",
+     "id: 'fatigue_pants', label: 'Fatigue pants', slot: 'bottom', patterns: ['camo', 'khaki', 'solid', 'lace']"),
+])
+edit("src/core/garments/swimwear.ts", [
+    ("id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard']",
+     "id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard', 'lace']"),
+])
