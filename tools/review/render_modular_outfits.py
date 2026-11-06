@@ -12,14 +12,15 @@ from mathutils import Vector
 GARMENTS = {
     "Fatigue pants", "Fatigue pants.001",
     "Backless slit dress", "Pencil skirt",
-    "Halter lace bra cups", "Halter lace bra straps",
-    "Shoes", "Boot shafts", "Fatigue shirt", "Lace shirt", "Lace pants", "Lace briefs", "Lace briefs ties", "Bra", "Briefs",
-    "Tank top", "Triangle bikini top", "Triangle bikini strings",
+    "Halter lace bra cups", "Halter lace bra straps", "Halter lace bra piping", "Halter fishnet bra cups", "Halter fishnet bra straps",
+    "Shoes", "Boot shafts", "Fatigue shirt", "Lace shirt", "Lace pants", "Lace briefs", "Lace briefs ties", "Fishnet briefs", "Fishnet briefs ties", "Bra", "Briefs",
+    "Tank top", "Triangle bikini top", "Triangle bikini strings", "Fishnet shirt", "Fishnet pants",
     "String bikini bottom", "String bikini strings", "Leather armor",
 }
 OUTFITS = {
     "skin": set(),
-    "halter": {"Halter lace bra cups", "Halter lace bra straps"},
+    "lace_bra": {"Halter lace bra cups", "Halter lace bra straps", "Halter lace bra piping"},
+    "fishnet_bra": {"Halter fishnet bra cups", "Halter fishnet bra straps"},
     "dress": {"Backless slit dress", "Pencil skirt"},
     "backless_shirt": {"Backless slit dress", "Pencil skirt"},
     "pants": {"Fatigue pants", "Fatigue pants.001"},
@@ -28,8 +29,11 @@ OUTFITS = {
         "Fatigue pants", "Fatigue pants.001",
     },
     "lace_briefs": {"Lace briefs", "Lace briefs ties"},
+    "fishnet_briefs": {"Fishnet briefs", "Fishnet briefs ties"},
     "lace_shirt": {"Lace shirt"},
+    "fishnet_shirt": {"Fishnet shirt"},
     "lace_pants": {"Lace pants"},
+    "fishnet_pants": {"Fishnet pants"},
 }
 
 def clear_scene():
