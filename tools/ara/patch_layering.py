@@ -38,6 +38,25 @@ edit("src/core/garments/index.ts", [
 edit("src/core/garments/catalog.ts", [
     ("  // ---------------- Tops\n", """  // ---------------- Tops
   {
+    id: 'triangle_bikini_top', label: 'Triangle bikini top', slot: 'top', patterns: ['solid'], color: '#34343a', color2: '#111114',
+    build: (g, st) => shellPart(g, {
+      // Two separate front cups with a narrow central gap; independently selectable.
+      covers: (v) => isTrunk(v) && v.tt > 0.55 && v.tt < 0.77 && v.tth > -0.95 && v.tth < 0.95
+        && (Math.abs(v.ax - 0.34 * g.body.L.shoulderX) < 0.22 * g.body.L.shoulderX
+          || Math.abs(v.ax - 0.66 * g.body.L.shoulderX) < 0.22 * g.body.L.shoulderX),
+      offset: cm(0.52), tile: 0.18, relax: 3,
+    }, cloth(g, 'Triangle bikini top', st)),
+  },
+  {
+    id: 'string_bikini_bottom', label: 'String bikini bottom', slot: 'bottom', patterns: ['solid'], color: '#34343a', color2: '#111114',
+    build: (g, st) => shellPart(g, {
+      // High-cut narrow panels; cord geometry can be refined after first visual review.
+      covers: (v) => (isTrunk(v) && v.t < 0.115 && Math.abs(v.tth) < 0.82)
+        || (v.region === REGION.upperleg && v.t < 0.055 && Math.abs(v.tth) < 0.48),
+      offset: cm(0.42), tile: 0.18, relax: 2,
+    }, cloth(g, 'String bikini bottom', st)),
+  },
+  {
     id: 'bra', label: 'Sports bra (under layer)', slot: 'top', patterns: ['solid'], color: '#34343a', color2: '#111114',
     build: (g, st) => shellPart(g, {
       // Close-fitting front and side chest band; thinner than the outer shirt.
