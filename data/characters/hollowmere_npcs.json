@@ -143,8 +143,8 @@
       "name": "Mira Ashbrook",
       "role": "villager",
       "hex": [
-        9,
-        9
+        2,
+        -2
       ],
       "detail": "medium",
       "params": {
@@ -205,8 +205,8 @@
       "name": "Oskar Vinn",
       "role": "villager",
       "hex": [
-        -3,
-        9
+        3,
+        -2
       ],
       "detail": "medium",
       "params": {
