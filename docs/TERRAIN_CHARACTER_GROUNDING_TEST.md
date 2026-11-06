@@ -18,6 +18,14 @@ This prototype uses Wren Talbot's actual Ara Workshop character export as the vi
 - The terrain renderer creates a static concave collision shape from the exact mesh used for rendering.
 - The screenshot capture checks terrain ray hits, grounded state for all four characters, and meaningful movement along the ridge shoulder.
 
+## Verified CI result
+
+- GitHub Actions run: `42188392245` (successful, 6 November 2026).
+- Terrain collision ray probes hit the generated mesh for all four Wren instances.
+- All four instances reported `is_on_floor()` after the physics settling period.
+- RidgeWalker moved `1.424 m` along the ridge shoulder during 60 physics frames and remained grounded.
+- Four 1600×900 screenshots were captured and uploaded as the `terrain-prototype-screenshots` artifact.
+
 ## What this does not prove yet
 
 - The mobile export has no walk animation, so the moving Wren translates in a static pose. This does not validate gait, foot locking, retargeted animation or root motion.
