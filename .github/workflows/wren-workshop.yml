@@ -119,6 +119,26 @@ jobs:
           cp "$TATTOO_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_tattoo_body.glb"
           cp /tmp/ara-person-tattoo-body.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_tattoo_body.params.json"
 
+          # Generate a separate adult male base body from the same Ara profile.
+          # The anatomy component is added in its own Blender job below.
+          python - <<'PY'
+          import json
+          p = json.load(open('/tmp/ara-person-body.params.json'))
+          p.update({
+              "name": "Ara Base Person - male body",
+              "gender": 1,
+              "breastSize": 0,
+              "breastFirmness": 0
+          })
+          json.dump(p, open('/tmp/ara-person-male.params.json', 'w'), indent=2)
+          PY
+          mkdir -p /tmp/ara-male-out
+          npm run export -- --params /tmp/ara-person-male.params.json --detail high --formats glb --out /tmp/ara-male-out
+          MALE_GLB="$(find /tmp/ara-male-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$MALE_GLB"
+          cp "$MALE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male_raw.glb"
+          cp /tmp/ara-person-male.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male.params.json"
+
           # Separate mobile preview: retain the game rig, but reduce geometry detail
           # and bake facial expression / omit animation clips and facial blend shapes.
           python - <<'PY'
@@ -246,8 +266,48 @@ jobs:
           if-no-files-found: error
           retention-days: 2
 
+  integrate-male:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download generated male base
+        uses: actions/download-artifact@v4
+        with:
+          name: ara-generated-models
+          path: /tmp/ara-generated
+      - name: Add skinned male anatomy and render review angles
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          mkdir -p art/characters/ara/review/male
+          blender --background --python-exit-code 1 --python tools/blender/add_male_anatomy.py -- \\
+            --input /tmp/ara-generated/ara_person_male_raw.glb \\
+            --output art/characters/ara/ara_person_male_body.glb --adult
+          REVIEW_INPUT=art/characters/ara/ara_person_male_body.glb \\
+            REVIEW_OUTPUT_DIR=art/characters/ara/review/male \\
+            blender --background --python-exit-code 1 --python tools/blender/inspect_character.py
+          for view in front side rear three_quarter; do
+            test -s "art/characters/ara/review/male/$view.png"
+          done
+      - name: Save male model and review renders
+        uses: actions/upload-artifact@v4
+        with:
+          name: processed-ara-male-body
+          path: |
+            art/characters/ara/ara_person_male_body.glb
+            art/characters/ara/review/male/*.png
+          if-no-files-found: error
+          retention-days: 14
+
   publish:
-    needs: integrate
+    needs: [integrate, integrate-male]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -361,6 +421,7 @@ jobs:
           cp art/characters/ara/ara_person_mobile.glb site/assets/ara_person_mobile.glb
           cp art/characters/ara/ara_person_body.glb site/assets/ara_person_body.glb
           cp art/characters/ara/ara_person_tattoo_body.glb site/assets/ara_person_tattoo_body.glb
+          cp art/characters/ara/ara_person_male_body.glb site/assets/ara_person_male_body.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
