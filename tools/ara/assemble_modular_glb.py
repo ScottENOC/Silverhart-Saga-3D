@@ -32,7 +32,8 @@ def add(target,buf,source_path,mat_name):
     src,sbuf=read(source_path)
     tj=[target['nodes'][i].get('name') for i in target['skins'][0]['joints']]
     sj=[src['nodes'][i].get('name') for i in src['skins'][0]['joints']]
-    if tj!=sj: raise ValueError(f'Skeleton mismatch in {source_path}')
+    if set(tj)!=set(sj): raise ValueError(f'Skeleton bones differ in {source_path}')
+    joint_map=[tj.index(name) for name in sj]
     tn=body_node(target); sn=body_node(src)
     for k in ('translation','rotation','scale','matrix'):
         if tn.get(k)!=sn.get(k): raise ValueError(f'Rigged mesh {k} mismatch in {source_path}')
@@ -62,7 +63,7 @@ def add(target,buf,source_path,mat_name):
     for i in sorted(views,key=lambda x:src['bufferViews'][x].get('byteOffset',0)):
         v=src['bufferViews'][i]; off=v.get('byteOffset',0); payload+=b'\0'*(-len(payload)%4); vm[i]=len(target.setdefault('bufferViews',[]))
         nv=copy.deepcopy(v); nv['buffer']=0; nv['byteOffset']=base+len(payload); target['bufferViews'].append(nv); payload+=sbuf[off:off+v['byteLength']]
-    buf+=payload
+    buf=bytearray(buf+payload)
     am={}
     for i in sorted(used):
         a=copy.deepcopy(src['accessors'][i])
@@ -91,13 +92,25 @@ def add(target,buf,source_path,mat_name):
             for v in x: remap(v)
     remap(sm); mi=len(target.setdefault('materials',[])); target['materials'].append(sm)
     p['attributes']={k:am[v] for k,v in p.get('attributes',{}).items()}
+    # Blender's GLB export can reorder the skin joint array. Remap each copied
+    # JOINTS attribute by bone name so weights still address the target rig.
+    for attr in ('JOINTS_0','JOINTS_1'):
+        if attr not in p['attributes']: continue
+        a=target['accessors'][p['attributes'][attr]]
+        fmt={5121:'B',5123:'H'}.get(a['componentType'])
+        if not fmt or a.get('type')!='VEC4' or 'bufferView' not in a: raise ValueError(f'Unsupported {attr} accessor in {source_path}')
+        view=target['bufferViews'][a['bufferView']]; start=view.get('byteOffset',0)+a.get('byteOffset',0)
+        stride=view.get('byteStride',4*struct.calcsize(fmt)); pack='<4'+fmt
+        for vertex in range(a['count']):
+            off=start+vertex*stride; old=struct.unpack_from(pack,buf,off)
+            struct.pack_into(pack,buf,off,*(joint_map[j] for j in old))
     if 'indices' in p: p['indices']=am[p['indices']]
     for t in p.get('targets',[]):
         for k,v in list(t.items()): t[k]=am[v]
     p['material']=mi; target['meshes'][tn['mesh']]['primitives'].append(p)
     for k in ('extensionsUsed','extensionsRequired'): target[k]=sorted(set(target.get(k,[]))|set(src.get(k,[])))
     print('Added',mat_name,'from',Path(source_path).name)
-    return target,buf
+    return target,bytes(buf)
 
 if __name__=='__main__':
     if len(sys.argv)<3 or (len(sys.argv)-3)%2: raise SystemExit('usage: script BODY.glb OUT.glb SOURCE.glb MATERIAL [SOURCE MATERIAL]...')
