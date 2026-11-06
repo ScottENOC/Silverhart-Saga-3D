@@ -43,6 +43,7 @@ def main():
     skin_lo, skin_hi = world_bounds(skin)
     width = skin_hi.x - skin_lo.x
     height = skin_hi.z - skin_lo.z
+    body_centre_x = (skin_lo.x + skin_hi.x) * 0.5
     hips = next((b for b in armature.data.bones
                  if b.name.lower() in ("hips", "hip", "pelvis")), None)
     if hips is None:
@@ -52,9 +53,10 @@ def main():
     candidates = []
     for obj in meshes:
         slot_index = next((i for i, slot in enumerate(obj.material_slots)
-                           if slot.material and slot.material.name.lower() == "pencil skirt"), None)
+                           if slot.material and slot.material.name.lower().startswith("pencil skirt")), None)
         if slot_index is None:
             continue
+        print(f"Found skirt material on {obj.name}; bounds={world_bounds(obj)}", flush=True)
         bm = bmesh.new()
         bm.from_mesh(obj.data)
         bm.faces.ensure_lookup_table()
@@ -65,12 +67,13 @@ def main():
             centre = obj.matrix_world @ face.calc_center_median()
             # A slim vertical cut on the character's right side, beginning high
             # on the thigh and continuing to the existing skirt hem.
-            if (centre.x > width * 0.38
+            if (centre.x > body_centre_x + width * 0.12
                     and pelvis_z - height * 0.28 < centre.z < pelvis_z - 0.025):
                 remove.append(face)
         candidates.append((obj, bm, remove))
 
     total = sum(len(item[2]) for item in candidates)
+    print(f"Side-slit candidate faces: {total}; body centre X={body_centre_x:.4f}, width={width:.4f}, pelvis Z={pelvis_z:.4f}", flush=True)
     if total < 4:
         for _obj, bm, _faces in candidates:
             bm.free()
