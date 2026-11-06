@@ -2,7 +2,7 @@ name: Godot validation
 
 on:
   pull_request:
-    branches: [dev, feature/port-action-economy]
+    branches: [dev, feature/port-action-economy, feature/terrain-character-grounding-test]
     paths:
       - "project.godot"
       - "scenes/**"
@@ -10,7 +10,7 @@ on:
       - "tests/**"
       - ".github/workflows/godot-validation.yml"
   push:
-    branches: [dev, feature/port-action-economy, feature/terrain-character-grounding-test]
+    branches: [dev, feature/port-action-economy, feature/terrain-character-grounding-test, feature/ara-skeleton-animation-validation]
     paths:
       - "project.godot"
       - "scenes/**"
@@ -44,7 +44,7 @@ jobs:
       - name: Verify engine version
         run: godot --version
 
-      # Fetch Wren Talbot's actual Ara Workshop character export.
+      # Fetch the exact Wren Ara export set used by the character pipeline.
       - name: Download Wren Workshop character export
         uses: actions/download-artifact@v4
         with:
@@ -54,13 +54,29 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: /tmp/wren-character-assets
 
-      - name: Stage Wren Workshop character for Godot import
+      - name: Stage Wren Workshop character assets
         run: |
-          mkdir -p art/characters/wren
+          set -euo pipefail
+          mkdir -p art/characters/wren art/characters/ara_validation/modular
           cp /tmp/wren-character-assets/ara_wren_mobile.glb art/characters/wren/ara_wren_mobile.glb
+          cp /tmp/wren-character-assets/ara_wren_benchmark.glb art/characters/ara_validation/ara_wren_benchmark.glb
+          for component in body hair shirt trousers; do
+            cp "/tmp/wren-character-assets/modular/${component}.glb" "art/characters/ara_validation/modular/${component}.glb"
+          done
 
       - name: Import project and build global script class cache
         run: godot --headless --editor --path . --quit
+
+      - name: Run Ara skeleton and animation integration test
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/test_ara_animation_import.gd 2>&1 | tee /tmp/ara-animation-test.log
+          if grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to instantiate' /tmp/ara-animation-test.log; then
+            echo "Godot reported an import or script error in the Ara animation test."
+            exit 1
+          fi
+          grep -q 'ARA_ANIMATION_INTEGRATION_TEST: PASS' /tmp/ara-animation-test.log
 
       - name: Run hex-grid tests
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
