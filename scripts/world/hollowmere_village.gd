@@ -68,7 +68,7 @@ func _create_paths_and_stream() -> void:
 func _add_hex_surface(node_name: String, cells: Array[Vector2i], material: Material, elevation: float) -> void:
     var surface := SurfaceTool.new()
     surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-    var corners := HexGrid.corner_offsets(HEX_RADIUS * 0.98)
+    var corners := HexGrid.corner_offsets(HEX_RADIUS * 1.005)
     for hex in cells:
         var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
         for i in range(HexGrid.SIDE_COUNT):
