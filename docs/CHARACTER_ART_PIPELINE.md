@@ -240,3 +240,10 @@ The first 3D pass uses the same dark ochre and pale gold palette. The briefs use
 Clothing colour and opacity are material properties, not baked into a body texture. `ModularCharacterAssembler.set_component_layer_colour(slot, layer_name, colour, opacity)` provides per-mesh-layer runtime tint/opacity. For example, the bra cups, cup trim, briefs front/back and waistband trim can be controlled independently. Cut-outs remain geometric holes and are unaffected by colour changes. No duplicate body model is needed for clothing colour variants.
 
 The authored Wren bra preset is explicitly `underwear_bra_strapless`: it should be a bandeau/strapless bra with a continuous under-bust band, not shoulder straps. If a later item uses shoulder straps, those will be separately modelled and must attach to the cup geometry and follow the body's surface.
+
+
+## Player avatar baseline — November 7, 2026
+
+The Ara build manifest now includes a dedicated `player_avatar` profile, separate from the named village cast. It uses a deliberately neutral, high-detail adult human base, balanced body proportions, a neutral tunic/trouser outfit, no weapon and a game-ready rig with idle animation. The player profile is built by the same pinned Ara export pipeline and included in the generated character artifact. Hollow Tankard loads this GLB for the player instead of the capsule fallback; the NPC spawn loop explicitly skips the player entry to avoid a duplicate actor.
+
+The character creator stores the selected appearance independently of this baseline. The next implementation task is to expose supported Ara parameters and material variants as actual model changes in the preview: eye/hair/skin colour can be material variants; body shape, facial structure and hairstyle changes require generated Ara variants or compatible modular assets. Do not imply those geometry choices are live until they are wired and visually validated. The player baseline is a starting asset, not a claim that the full wardrobe catalogue is already available.

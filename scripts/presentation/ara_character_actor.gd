@@ -77,3 +77,24 @@ func _collect_meshes(node: Node, output: Array[MeshInstance3D]) -> void:
         output.append(node as MeshInstance3D)
     for child in node.get_children():
         _collect_meshes(child, output)
+
+
+func tint_materials(name_fragment: String, colour: Color) -> int:
+    if model_root == null:
+        return 0
+    var changed := 0
+    var meshes: Array[MeshInstance3D] = []
+    _collect_meshes(model_root, meshes)
+    for mesh_instance in meshes:
+        if mesh_instance.mesh == null:
+            continue
+        for surface in range(mesh_instance.mesh.get_surface_count()):
+            var source := mesh_instance.get_active_material(surface)
+            var material_name := source.resource_name.to_lower() if source != null else ""
+            if not material_name.contains(name_fragment.to_lower()) and not mesh_instance.name.to_lower().contains(name_fragment.to_lower()):
+                continue
+            var material := source.duplicate() as StandardMaterial3D if source is StandardMaterial3D else StandardMaterial3D.new()
+            material.albedo_color = Color(colour.r, colour.g, colour.b, material.albedo_color.a)
+            mesh_instance.set_surface_override_material(surface, material)
+            changed += 1
+    return changed
