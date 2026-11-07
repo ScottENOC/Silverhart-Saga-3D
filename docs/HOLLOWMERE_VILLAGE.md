@@ -23,7 +23,7 @@ The file data/characters/hollowmere_npcs.json is the source of truth for the fir
 
 The build is pinned to Ara commit b60b5bece6d383d2cbb7067fd50e7c8e68b5a395. The existing Silverhart patch_layering.py is applied before export so the under-top and under-bottom equipment slots are available. The profile exporter validates the selected catalogue IDs before exporting one full GLB per character. The generated files include a skinned rig and Ara's 77 animation clips; the Godot AraCharacterActor starts the Idle clip when it is available.
 
-The NPC GLBs in this pass remain Ara-generated and clothed; the separate Silverhart adult-anatomy post-process is not baked into the village cast yet. This keeps the first cast strictly driven by Ara's catalogue and sliders. These settings are build-time Ara values, not live Godot sliders. The Wren Workshop page now has a profile selector and read-only display for the saved values; the updated page will be published after the current Wren Workshop build finishes and this branch is built. Changing a profile requires another Ara export. The player avatar remains a neutral placeholder until the player-appearance choices are defined.
+The NPC GLBs in this pass remain Ara-generated and clothed; the separate Silverhart adult-anatomy post-process is not baked into the village cast yet. This keeps the first cast strictly driven by Ara's catalogue and sliders. These settings are build-time Ara values, not live Godot sliders. The Wren Workshop page has a profile selector and read-only display for the saved values. Changing a profile requires another Ara export. The player avatar remains a neutral placeholder until the player-appearance choices are defined.
 
 ## Generated asset pack
 
@@ -33,11 +33,11 @@ The Build Hollowmere Ara characters workflow uploads an artifact named hollowmer
 - The exact .params.json file used for each export.
 - profiles.json, the manifest used by the Wren Workshop preview.
 
-Download and extract that artifact into the Godot repository so the GLBs are at:
+The Godot web-export workflow now locates the latest successful, unexpired hollowmere-npc-models artifact on dev and downloads it automatically before Godot imports the project. The GLBs are installed at:
 
 art/characters/hollowmere/<profile-id>.glb
 
-The directory is generated output and is not committed to Git. If the pack is absent, the Godot scene deliberately falls back to simple capsule actors so the map and movement tests can still run.
+The directory is generated output and is not committed to Git. The artifact is retained for 90 days. A missing or incomplete pack now fails the production web build rather than silently publishing capsule NPCs. The CI validators check all 13 expected GLBs, then load each through Godot and confirm that its animation track survived import. The local scene still has capsule fallbacks so a fresh developer checkout can run before the artifact is downloaded.
 
 ## Validation
 
