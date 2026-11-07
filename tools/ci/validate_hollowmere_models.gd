@@ -16,8 +16,8 @@ func _run() -> void:
         expected[str(profile.get("id", ""))] = true
 
     var profiles: Array = generated.get("characters", [])
-    if expected.size() != 13 or profiles.size() != expected.size():
-        _fail("Expected exactly 13 generated Ara character profiles.")
+    if expected.size() != 14 or profiles.size() != expected.size() or not expected.has("player_avatar"):
+        _fail("Expected 13 NPCs plus the generated player_avatar Ara profile.")
         return
 
     for profile_variant in profiles:
@@ -45,7 +45,7 @@ func _run() -> void:
             return
         instance.free()
 
-    print("Godot imported all 13 Hollowmere Ara models with animation tracks.")
+    print("Godot imported all 14 Hollowmere Ara models (13 NPCs plus player avatar) with animation tracks.")
     quit(0)
 
 func _read_json(path: String) -> Dictionary:
