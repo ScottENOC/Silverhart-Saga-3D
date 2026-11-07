@@ -232,8 +232,14 @@ jobs:
             if [[ "$file_name" != ara_person_* ]]; then file_name="ara_person_$file_name"; fi
             test -s "art/characters/ara/${file_name}.glb"
             params_name="$file_name"
+            # The benchmark export uses the canonical ara_person.params.json name.
+            if [ "$model" = "ara_person_benchmark" ]; then params_name="ara_person"; fi
             if [ "$model" = "ara_person_male_raw" ]; then params_name="ara_person_male"; fi
-            test -s "art/characters/ara/${params_name}.params.json"
+            if [ ! -s "art/characters/ara/${params_name}.params.json" ]; then
+              echo "::error::Missing parameter file for ${model}: art/characters/ara/${params_name}.params.json"
+              ls -lah art/characters/ara/
+              exit 1
+            fi
           done
       - name: Save raw generated models for parallel integration
         uses: actions/upload-artifact@v4
