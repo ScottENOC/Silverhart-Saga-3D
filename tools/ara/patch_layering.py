@@ -182,7 +182,7 @@ edit("src/core/garments/textures.ts", [
       return render(S, (u, v) => {
         const a = frac((u + v) * N), b = frac((u - v) * N);
         const da = Math.min(a, 1 - a), db = Math.min(b, 1 - b);
-        const thread = Math.min(da, db) < 0.055;
+        const thread = Math.min(da, db) < 0.095;
         const w = weave(u, v, 220);
         return { c: mul(A, 0.88 + 0.12 * w), a: thread ? 1 : 0, h: thread ? 0.7 : 0 };
       }, true, 1.8);

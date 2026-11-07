@@ -3,7 +3,7 @@ name: Build Wren Workshop
 on:
   workflow_dispatch:
   push:
-    branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates]
+    branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates, fix/dress-selector-and-loading-review]
     paths:
       - "tools/blender/**"
       - "tools/ara/**"
@@ -557,6 +557,15 @@ jobs:
           run-id: ${{ steps.hollowmere-build.outputs.run_id }}
           github-token: ${{ github.token }}
           path: site/hollowmere
+      - name: Make the Ara-integrated build the canonical game
+        if: steps.game-build.outputs.ready == 'true' && steps.hollowmere-build.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf site/game
+          mkdir -p site/game
+          cp -a site/hollowmere/. site/game/
+          echo "The /game and /hollowmere entries now use the same Ara-integrated build."
       - name: Configure GitHub Pages
         if: steps.game-build.outputs.ready == 'true'
         uses: actions/configure-pages@v5
