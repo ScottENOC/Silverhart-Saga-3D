@@ -19,9 +19,16 @@ var turn_scheduler: CombatTurnScheduler = CombatTurnScheduler.new()
 var is_in_combat: bool = false
 var pending_reaction: Dictionary = {}
 var next_reaction_request_id: int = 1
+var pending_attack_context: Dictionary = {}
 
 func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
+    turn_scheduler.turn_started.connect(_on_combat_turn_started)
+
+func _on_combat_turn_started(character_id: String) -> void:
+    var state := get_character(character_id)
+    if state != null:
+        state.parries_remaining = 3
 
 func _process(delta: float) -> void:
     advance_real_time(delta)
@@ -166,6 +173,8 @@ func _finish_pending_reaction(choice_id: String, reason: String) -> Dictionary:
     action_committed.emit(SimulationEvent.new("reaction_resolved", reactor_id, "", {
         "choice_id": choice_id, "reason": reason, "source_event_id": source_event_id
     }))
+    if not pending_attack_context.is_empty():
+        _resume_pending_attack(choice_id, reason)
     if is_in_combat and turn_scheduler.has_active_turn():
         var active := get_current_turn_character()
         if active == null or not active.can_act():
@@ -210,21 +219,113 @@ func _submit_attack(request: SimulationActionRequest, random_seed: int) -> Dicti
         return {"ok": false, "reason": "not_attacker_turn"}
     var attacker := get_character(request.actor_id)
     var target := get_character(request.target_id)
+    if attacker == null or target == null:
+        return SimulationActionResult.new("attack", false, "missing_combatant", request.actor_id, request.target_id).to_dict()
+
+    var reactions := _attack_reaction_options(attacker, target, request.options)
+    if not reactions.is_empty():
+        pending_attack_context = {
+            "attacker_id": request.actor_id,
+            "target_id": request.target_id,
+            "options": request.options.duplicate(true),
+            "random_seed": random_seed
+        }
+        var reaction_result := request_reaction(target.id, reactions, "attack:%s:%s" % [request.actor_id, request.target_id])
+        if bool(reaction_result.get("pending", false)):
+            return {"ok": true, "pending": true, "action_type": "attack", "request_id": reaction_result.get("request_id", 0)}
+        pending_attack_context.clear()
+
+    return _resolve_attack_action(request.actor_id, request.target_id, request.options, random_seed)
+
+## Source-ported sword/dagger parry eligibility. Active dodge is not a separate
+## source reaction: passive dodge remains part of hit chance in CombatRules.
+func _attack_reaction_options(attacker: CharacterState, target: CharacterState, options: Dictionary) -> Array[Dictionary]:
+    var result: Array[Dictionary] = []
+    if target.reaction_blocked or not target.can_act() or target.parries_remaining <= 0:
+        return result
+    if bool(options.get("is_ranged", false)):
+        return result
+    var weapon_id := String(target.equipment.get("weapon", ""))
+    var skill_base := "sword" if weapon_id == "sword_arrow_deflection" else weapon_id
+    if skill_base != "sword" and skill_base != "dagger":
+        return result
+    if int(target.skills.get("%s_parry" % skill_base, 0)) <= 0 or target.time_points < 3.0:
+        return result
+    var cost := 3.0
+    if int(target.skills.get("%s_parry_cost" % skill_base, 0)) > 0:
+        cost -= 1.0
+    if target.can_spend_time_points(cost):
+        result.append({
+            "id": "parry",
+            "name": "Parry",
+            "tp_cost": cost,
+            "effect": "parry",
+            "skill_base": skill_base,
+            "attacker_id": attacker.id
+        })
+    return result
+
+func _resume_pending_attack(choice_id: String, reason: String) -> void:
+    var context := pending_attack_context.duplicate(true)
+    pending_attack_context.clear()
+    if reason == "combat_ended":
+        return
+    var attacker_id := String(context.get("attacker_id", ""))
+    var target_id := String(context.get("target_id", ""))
+    var attacker := get_character(attacker_id)
+    var target := get_character(target_id)
+    var options: Dictionary = context.get("options", {})
+    var seed := int(context.get("random_seed", 0))
+    if attacker == null or target == null:
+        return
+
+    if choice_id == "parry" and reason == "selected":
+        var reactor := get_character(String(pending_reaction.get("reactor_id", target_id)))
+        # pending_reaction has already been cleared by _finish_pending_reaction;
+        # the defender is the attack target for this first source-backed slice.
+        reactor = target
+        reactor.parries_remaining = maxi(0, reactor.parries_remaining - 1)
+        var skill_base := String(options.get("parry_skill_base", reactor.equipment.get("weapon", "sword")))
+        var bonus := float(reactor.skills.get("%s_parry_chance" % skill_base, 0)) * 5.0
+        var rng_parry := RandomNumberGenerator.new()
+        if seed == 0:
+            rng_parry.randomize()
+        else:
+            rng_parry.seed = seed
+        var parry_roll := float(rng_parry.randi_range(0, 99))
+        var parry_chance := 50.0 + reactor.to_hit_melee + bonus - attacker.passive_dodge
+        if parry_roll < parry_chance:
+            var attack_cost := float(options.get("time_point_cost", 0.0))
+            if attacker.can_spend_time_points(attack_cost):
+                attacker.spend_time_points(attack_cost)
+            var parry_payload := {"hit": false, "parried": true, "parry_roll": parry_roll, "parry_chance": parry_chance, "damage": 0}
+            var parry_result := SimulationActionResult.new("attack", true, "", attacker_id, target_id, parry_payload).to_dict()
+            action_committed.emit(SimulationEvent.new("attack_resolved", attacker_id, target_id, parry_result))
+            combat_action_resolved.emit(parry_result)
+            if attacker.should_end_turn():
+                try_end_current_turn()
+            return
+
+    _resolve_attack_action(attacker_id, target_id, options, seed)
+
+func _resolve_attack_action(attacker_id: String, target_id: String, options: Dictionary, random_seed: int) -> Dictionary:
+    var attacker := get_character(attacker_id)
+    var target := get_character(target_id)
     var rng := RandomNumberGenerator.new()
     if random_seed == 0:
         rng.randomize()
     else:
         rng.seed = random_seed
-    var result := CombatRules.resolve_attack(attacker, target, request.options, rng)
+    var result := CombatRules.resolve_attack(attacker, target, options, rng)
     if bool(result.get("ok", false)):
-        var typed_result := SimulationActionResult.new("attack", true, "", request.actor_id, request.target_id, result)
+        var typed_result := SimulationActionResult.new("attack", true, "", attacker_id, target_id, result)
         var result_data := typed_result.to_dict()
-        action_committed.emit(SimulationEvent.new("attack_resolved", request.actor_id, request.target_id, result_data))
+        action_committed.emit(SimulationEvent.new("attack_resolved", attacker_id, target_id, result_data))
         combat_action_resolved.emit(result_data)
         if attacker != null and attacker.should_end_turn():
             try_end_current_turn()
         return result_data
-    return SimulationActionResult.new("attack", false, String(result.get("reason", "action_failed")), request.actor_id, request.target_id, result).to_dict()
+    return SimulationActionResult.new("attack", false, String(result.get("reason", "action_failed")), attacker_id, target_id, result).to_dict()
 
 func _submit_move(request: SimulationActionRequest) -> Dictionary:
     var state := get_character(request.actor_id)
