@@ -243,7 +243,7 @@ func _attack_reaction_options(attacker: CharacterState, target: CharacterState, 
     var result: Array[Dictionary] = []
     if target.reaction_blocked or not target.can_act() or target.parries_remaining <= 0:
         return result
-    if bool(options.get("is_ranged", false)):
+    if bool(options.get("is_ranged", String(options.get("weapon_id", "")) == "bow")):
         return result
     var weapon_id := String(target.equipment.get("weapon", ""))
     var skill_base := "sword" if weapon_id == "sword_arrow_deflection" else weapon_id
@@ -280,10 +280,8 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
         return
 
     if choice_id == "parry" and reason == "selected":
-        var reactor := get_character(String(pending_reaction.get("reactor_id", target_id)))
-        # pending_reaction has already been cleared by _finish_pending_reaction;
-        # the defender is the attack target for this first source-backed slice.
-        reactor = target
+        # The defender is the attack target for this first source-backed slice.
+        var reactor := target
         reactor.parries_remaining = maxi(0, reactor.parries_remaining - 1)
         var skill_base := String(options.get("parry_skill_base", reactor.equipment.get("weapon", "sword")))
         var bonus := float(reactor.skills.get("%s_parry_chance" % skill_base, 0)) * 5.0
@@ -306,7 +304,8 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
                 try_end_current_turn()
             return
 
-    _resolve_attack_action(attacker_id, target_id, options, seed)
+    var followup_seed := seed + 1 if seed != 0 else 0
+    _resolve_attack_action(attacker_id, target_id, options, followup_seed)
 
 func _resolve_attack_action(attacker_id: String, target_id: String, options: Dictionary, random_seed: int) -> Dictionary:
     var attacker := get_character(attacker_id)
