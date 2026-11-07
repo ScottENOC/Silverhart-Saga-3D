@@ -5,6 +5,7 @@ signal character_moved(character_id: String, from_hex: Vector2i, to_hex: Vector2
 signal world_tick(tick_index: int, world_seconds: float)
 signal combat_started
 signal combat_ended
+signal combat_action_resolved(result: Dictionary)
 
 var map_data: HexMapData = HexMapData.new()
 var characters: Dictionary = {}
@@ -70,6 +71,30 @@ func end_combat() -> void:
     turn_scheduler.clear()
     is_in_combat = false
     combat_ended.emit()
+
+func try_attack_character(
+    attacker_id: String,
+    target_id: String,
+    options: Dictionary = {},
+    random_seed: int = 0
+) -> Dictionary:
+    if not is_in_combat or not turn_scheduler.has_active_turn():
+        return {"ok": false, "reason": "no_active_combat_turn"}
+    if turn_scheduler.current_character_id != attacker_id:
+        return {"ok": false, "reason": "not_attacker_turn"}
+    var attacker := get_character(attacker_id)
+    var target := get_character(target_id)
+    var rng := RandomNumberGenerator.new()
+    if random_seed == 0:
+        rng.randomize()
+    else:
+        rng.seed = random_seed
+    var result := CombatRules.resolve_attack(attacker, target, options, rng)
+    if bool(result.get("ok", false)):
+        combat_action_resolved.emit(result)
+        if attacker.should_end_turn():
+            try_end_current_turn()
+    return result
 
 func get_current_turn_character() -> CharacterState:
     if not turn_scheduler.has_active_turn():
