@@ -83,7 +83,7 @@ static func _curved_barbell_mesh(tube_radius: float, half_span: float) -> ArrayM
 	var sides := 8
 	for i in range(steps + 1):
 		var t := float(i) / float(steps)
-		var x := lerp(-half_span, half_span, t)
+		var x: float = lerpf(-half_span, half_span, t)
 		var y := 0.0018 * sin(PI * t)
 		var centre := Vector3(x, y, 0.0)
 		var tangent := Vector3(1.0, 0.0018 * PI * cos(PI * t) / (2.0 * half_span), 0.0).normalized()
