@@ -11,6 +11,7 @@ on:
       - "scripts/**"
       - "data/**"
       - "tools/pwa/**"
+      - "tools/ci/**"
       - ".github/workflows/godot-web-export.yml"
   pull_request:
     branches: [dev]
@@ -41,6 +42,41 @@ jobs:
       - name: Check out game project
         uses: actions/checkout@v4
 
+      - name: Locate latest successful Hollowmere Ara character pack
+        id: ara-pack
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARA_RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/hollowmere-npcs.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          if [ -z "$ARA_RUN" ]; then
+            echo "No successful Hollowmere Ara character generation run exists on dev." >&2
+            exit 1
+          fi
+          ARA_ARTIFACT="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$ARA_RUN/artifacts" --jq '.artifacts[] | select(.name == "hollowmere-npc-models" and .expired == false) | .id' | head -n 1)"
+          if [ -z "$ARA_ARTIFACT" ]; then
+            echo "The latest successful Hollowmere Ara run has no unexpired hollowmere-npc-models artifact." >&2
+            echo "Re-run the Build Hollowmere Ara characters workflow on dev." >&2
+            exit 1
+          fi
+          echo "run_id=$ARA_RUN" >> "$GITHUB_OUTPUT"
+
+      - name: Download generated Hollowmere Ara character models
+        uses: actions/download-artifact@v4
+        with:
+          name: hollowmere-npc-models
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.ara-pack.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: art/characters/hollowmere
+
+      - name: Verify all 13 generated character assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ci/validate_hollowmere_models.py
+
       - name: Install Godot 4.7.2 and Web export templates
         uses: chickensoft-games/setup-godot@v2
         with:
@@ -54,6 +90,7 @@ jobs:
           set -euo pipefail
           godot --version
           godot --headless --editor --path . --quit
+          godot --headless --path . --script res://tools/ci/validate_hollowmere_models.gd
           mkdir -p dist/game
           godot --headless --path . --export-release "Web" dist/game/index.html
           test -s dist/game/index.html
