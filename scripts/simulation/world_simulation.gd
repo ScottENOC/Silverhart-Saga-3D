@@ -6,6 +6,7 @@ signal world_tick(tick_index: int, world_seconds: float)
 signal combat_started
 signal combat_ended
 signal combat_action_resolved(result: Dictionary)
+signal action_committed(event: SimulationEvent)
 
 var map_data: HexMapData = HexMapData.new()
 var characters: Dictionary = {}
@@ -72,29 +73,75 @@ func end_combat() -> void:
     is_in_combat = false
     combat_ended.emit()
 
-func try_attack_character(
-    attacker_id: String,
-    target_id: String,
-    options: Dictionary = {},
-    random_seed: int = 0
-) -> Dictionary:
+func try_attack_character(attacker_id: String, target_id: String, options: Dictionary = {}, random_seed: int = 0) -> Dictionary:
+    return submit_action(SimulationActionRequest.attack(attacker_id, target_id, options), random_seed)
+
+## Authoritative entry point for simulation actions.
+func submit_action(request: SimulationActionRequest, random_seed: int = 0) -> Dictionary:
+    if request == null:
+        return {"ok": false, "reason": "missing_action_request"}
+    match request.action_type:
+        SimulationActionRequest.ActionType.ATTACK:
+            return _submit_attack(request, random_seed)
+        SimulationActionRequest.ActionType.MOVE:
+            return _submit_move(request)
+        _:
+            return {"ok": false, "reason": "unsupported_action_type"}
+
+func _submit_attack(request: SimulationActionRequest, random_seed: int) -> Dictionary:
     if not is_in_combat or not turn_scheduler.has_active_turn():
         return {"ok": false, "reason": "no_active_combat_turn"}
-    if turn_scheduler.current_character_id != attacker_id:
+    if turn_scheduler.current_character_id != request.actor_id:
         return {"ok": false, "reason": "not_attacker_turn"}
-    var attacker := get_character(attacker_id)
-    var target := get_character(target_id)
+    var attacker := get_character(request.actor_id)
+    var target := get_character(request.target_id)
     var rng := RandomNumberGenerator.new()
     if random_seed == 0:
         rng.randomize()
     else:
         rng.seed = random_seed
-    var result := CombatRules.resolve_attack(attacker, target, options, rng)
+    var result := CombatRules.resolve_attack(attacker, target, request.options, rng)
     if bool(result.get("ok", false)):
-        combat_action_resolved.emit(result)
-        if attacker.should_end_turn():
+        var typed_result := SimulationActionResult.new("attack", true, "", request.actor_id, request.target_id, result)
+        var result_data := typed_result.to_dict()
+        action_committed.emit(SimulationEvent.new("attack_resolved", request.actor_id, request.target_id, result_data))
+        combat_action_resolved.emit(result_data)
+        if attacker != null and attacker.should_end_turn():
             try_end_current_turn()
-    return result
+        return result_data
+    return SimulationActionResult.new("attack", false, String(result.get("reason", "action_failed")), request.actor_id, request.target_id, result).to_dict()
+
+func _submit_move(request: SimulationActionRequest) -> Dictionary:
+    var state := get_character(request.actor_id)
+    var terrain_cost := bool(request.options.get("terrain_cost", false))
+    var combat_step := bool(request.options.get("combat_step", false))
+    if state == null or not state.can_act():
+        return {"ok": false, "reason": "actor_unavailable"}
+    if not _can_move_to(state, request.destination):
+        return {"ok": false, "reason": "invalid_destination"}
+    if combat_step and is_in_combat:
+        if not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != request.actor_id:
+            return {"ok": false, "reason": "not_actor_turn"}
+        if state.time_points <= float(ActionEconomy.turn_end_threshold(state.quick_recovery_rank)):
+            return {"ok": false, "reason": "turn_movement_exhausted"}
+    var cost := request.time_point_cost
+    if terrain_cost:
+        cost = MovementRules.step_cost(map_data, state.axial, request.destination, state)
+    if not is_finite(cost) or cost < 0.0:
+        return {"ok": false, "reason": "invalid_action_cost"}
+    if not state.can_spend_time_points(cost):
+        return {"ok": false, "reason": "insufficient_time_points"}
+    var origin := state.axial
+    if not state.spend_time_points(cost):
+        return {"ok": false, "reason": "insufficient_time_points"}
+    _commit_move(state, request.destination)
+    var payload := {"from_hex": origin, "to_hex": request.destination, "time_point_cost": cost}
+    var typed_result := SimulationActionResult.new("move", true, "", request.actor_id, "", payload)
+    var result_data := typed_result.to_dict()
+    action_committed.emit(SimulationEvent.new("character_moved", request.actor_id, "", result_data))
+    if is_in_combat and state.should_end_turn():
+        try_end_current_turn()
+    return result_data
 
 func get_current_turn_character() -> CharacterState:
     if not turn_scheduler.has_active_turn():
@@ -126,20 +173,9 @@ func try_move_character(character_id: String, destination: Vector2i) -> bool:
     _commit_move(state, destination)
     return true
 
-func try_move_character_action(
-    character_id: String,
-    destination: Vector2i,
-    time_point_cost: float = 5.0
-) -> bool:
-    var state := get_character(character_id)
-    if state == null or not state.can_spend_time_points(time_point_cost):
-        return false
-    if not _can_move_to(state, destination):
-        return false
-    if not state.spend_time_points(time_point_cost):
-        return false
-    _commit_move(state, destination)
-    return true
+func try_move_character_action(character_id: String, destination: Vector2i, time_point_cost: float = 5.0) -> bool:
+    var result := submit_action(SimulationActionRequest.move(character_id, destination, time_point_cost))
+    return bool(result.get("ok", false))
 
 func find_path(character_id: String, destination: Vector2i) -> Array[Vector2i]:
     var state := get_character(character_id)
@@ -157,23 +193,11 @@ func movement_cost(character_id: String, destination: Vector2i) -> float:
 ## In combat, the final step may take TP below the normal turn-end threshold,
 ## matching the original game's movement allowance.
 func try_move_character_step(character_id: String, destination: Vector2i) -> bool:
-    var state := get_character(character_id)
-    if not _can_move_to(state, destination):
-        return false
-    if is_in_combat:
-        if not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != character_id:
-            return false
-        if state.time_points <= float(ActionEconomy.turn_end_threshold(state.quick_recovery_rank)):
-            return false
-    var cost := MovementRules.step_cost(map_data, state.axial, destination, state)
-    if not is_in_combat and not state.can_spend_time_points(cost):
-        return false
-    state.time_points -= cost
-    state.total_time_points_spent += cost
-    _commit_move(state, destination)
-    if is_in_combat and state.should_end_turn():
-        try_end_current_turn()
-    return true
+    var request := SimulationActionRequest.move(character_id, destination, 0.0)
+    request.options["terrain_cost"] = true
+    request.options["combat_step"] = true
+    var result := submit_action(request)
+    return bool(result.get("ok", false))
 
 func _can_move_to(state: CharacterState, destination: Vector2i) -> bool:
     if state == null:
