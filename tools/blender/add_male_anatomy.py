@@ -1,8 +1,6 @@
-"""Build a separate, skin-matched male external anatomy component for an adult Ara GLB.
+"""Sculpt adult male external anatomy directly into the existing Ara skin mesh.
 
-The penis and scrotum are one continuous remeshed body-part object, independently
-skinned to the canonical Hips bone. The root is buried slightly into the pelvis.
-This is a reviewable blockout; proportions and deformation require visual review.
+The penis, glans and scrotum are integrated surface forms, not attached objects.
 Ara GLB axes after Blender import: Z up, character facing -Y.
 """
 import argparse
@@ -72,109 +70,6 @@ def pelvis_landmark_from_leg_roots(armature, height):
         f"centre={z:.4f}, character height={height:.4f}"
     )
     return z
-
-
-def make_shaft(cx, cy, cz, length, radius, segments=32):
-    verts, faces = [], []
-    # Flaccid resting axis: predominantly downward (-Z), with only a slight
-    # forward (-Y) component. The proximal rings sit inside the pelvis so the
-    # join is not a flat cap at the skin. Avoid an erect, forward-projecting pose.
-    profile = [
-        (-0.025, 0.50), (-0.010, 0.78), (0.012, 0.92),
-        (0.035, 1.00), (0.58, 0.94), (0.78, 1.00),
-        (0.88, 1.08), (0.94, 0.94), (1.00, 0.55),
-    ]
-    for t, r in profile:
-        y = cy - length * t * 0.22
-        z = cz - length * t * 0.88
-        for j in range(segments):
-            a = 2.0 * math.pi * j / segments
-            verts.append((cx + math.cos(a) * radius * r,
-                          y,
-                          z + math.sin(a) * radius * r * 0.88))
-    for ring in range(len(profile) - 1):
-        for j in range(segments):
-            a = ring * segments + j
-            b = ring * segments + (j + 1) % segments
-            c = (ring + 1) * segments + (j + 1) % segments
-            d = (ring + 1) * segments + j
-            faces.append((a, b, c, d))
-    faces.append(tuple(range(segments - 1, -1, -1)))
-    start = (len(profile) - 1) * segments
-    faces.append(tuple(start + j for j in range(segments)))
-    mesh = bpy.data.meshes.new("Male anatomy shaft source")
-    mesh.from_pydata(verts, [], faces)
-    mesh.update()
-    obj = bpy.data.objects.new("Male anatomy shaft source", mesh)
-    bpy.context.collection.objects.link(obj)
-    return obj
-
-
-def add_ellipsoid(name, location, scale):
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=40, ring_count=28, location=location)
-    obj = bpy.context.object
-    obj.name = name
-    obj.scale = scale
-    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-    return obj
-
-
-def build_component(armature, skin, skin_material, anatomy_z, front_y, height, voxel_size):
-    length = max(0.080, min(0.105, height * 0.058))
-    radius = max(0.012, min(0.015, height * 0.0085))
-    cx, cy, cz = 0.0, front_y + 0.010, anatomy_z + height * 0.012
-
-    parts = [make_shaft(cx, cy, cz, length, radius)]
-    # Scrotal sac hangs below the penile root, independent of the shaft's
-    # slight forward angle. Two subtle lobes are fused into
-    # one continuous silhouette by voxel remeshing rather than left as spheres.
-    sac_y = front_y - 0.010
-    sac_z = anatomy_z - height * 0.010
-    parts.append(add_ellipsoid("Scrotum left source", (-radius * 0.72, sac_y, sac_z),
-                               (radius * 0.90, radius * 1.00, height * 0.027)))
-    parts.append(add_ellipsoid("Scrotum right source", (radius * 0.72, sac_y, sac_z),
-                               (radius * 0.90, radius * 1.00, height * 0.027)))
-
-    bpy.ops.object.select_all(action="DESELECT")
-    for obj in parts:
-        obj.select_set(True)
-    bpy.context.view_layer.objects.active = parts[0]
-    bpy.ops.object.join()
-    anatomy = bpy.context.object
-    anatomy.name = "Body_Genital_Male"
-    anatomy.data.name = "Body_Genital_Male_Mesh"
-    anatomy.data.remesh_voxel_size = voxel_size
-    bpy.ops.object.voxel_remesh()
-    smooth = anatomy.modifiers.new("Anatomy surface relax", "SMOOTH")
-    smooth.factor = 0.65
-    smooth.iterations = 4
-    bpy.context.view_layer.objects.active = anatomy
-    bpy.ops.object.modifier_apply(modifier=smooth.name)
-    for poly in anatomy.data.polygons:
-        poly.use_smooth = True
-
-    # Geometry was authored in world coordinates from the evaluated skin surface.
-    # Store it in the same object space/transform as Ara skin before skinning.
-    inverse_skin = skin.matrix_world.inverted()
-    for vertex in anatomy.data.vertices:
-        vertex.co = inverse_skin @ vertex.co
-    anatomy.matrix_world = skin.matrix_world.copy()
-
-    anatomy.data.materials.clear()
-    anatomy.data.materials.append(skin_material)
-    hips = next((b for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), None)
-    if hips is None:
-        raise RuntimeError("Ara male rig has no Hips/Hip/Pelvis bone")
-    group = anatomy.vertex_groups.new(name=hips.name)
-    group.add(list(range(len(anatomy.data.vertices))), 1.0, "REPLACE")
-    modifier = anatomy.modifiers.new("Canonical character rig", "ARMATURE")
-    modifier.object = armature
-    anatomy["anatomy_component"] = "male_external_genitalia"
-    anatomy["anatomy_parts"] = "penis_and_scrotum"
-    anatomy["anatomy_method"] = "separate_continuous_voxel_remeshed_skinned_body_part"
-    anatomy["review_status"] = "adult_anatomy_blockout_for_art_review"
-    anatomy["skin_material_source"] = skin_material.name
-    return anatomy
 
 
 
