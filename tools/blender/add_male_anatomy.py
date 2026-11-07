@@ -177,6 +177,82 @@ def build_component(armature, skin, skin_material, anatomy_z, front_y, height, v
     return anatomy
 
 
+
+def integrate_male_anatomy_into_skin(skin, anatomy_z, width, height):
+    """Shape the existing Ara skin surface into flaccid male anatomy.
+
+    The shaft, glans, scrotum and raphe are surface deformations of the body
+    mesh, retaining its material, UVs, vertex groups and armature modifier.
+    No separate genital object is created or attached.
+    """
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(skin.data)
+    bm.normal_update()
+    inv = skin.matrix_world.inverted()
+    local_edges = []
+    for edge in bm.edges:
+        mid = (edge.verts[0].co + edge.verts[1].co) * 0.5
+        world = skin.matrix_world @ mid
+        normal = skin.matrix_world.to_3x3() @ (edge.verts[0].normal + edge.verts[1].normal)
+        if normal.length:
+            normal.normalize()
+        if (normal.y < -0.12 and abs(world.x) < width * 0.20
+                and abs(world.z - anatomy_z) < height * 0.12):
+            local_edges.append(edge)
+    if local_edges:
+        bmesh.ops.subdivide_edges(bm, edges=local_edges, cuts=4, use_grid_fill=True)
+        bm.normal_update()
+
+    def g(x, z, cx, cz, sx, sz):
+        return math.exp(-0.5 * (((x-cx)/sx)**2 + ((z-cz)/sz)**2))
+
+    # Scale every dimension to the actual character, not a fixed-world-size prop.
+    shaft_len = height * 0.075
+    shaft_radius = width * 0.027
+    shaft_top = anatomy_z + height * 0.010
+    shaft_mid = shaft_top - shaft_len * 0.46
+    shaft_tip = shaft_top - shaft_len * 0.88
+    for v in bm.verts:
+        p = skin.matrix_world @ v.co
+        n = skin.matrix_world.to_3x3() @ v.normal
+        if n.length:
+            n.normalize()
+        if n.y > -0.10 or abs(p.x) > width * 0.22 or abs(p.z-anatomy_z) > height*0.15:
+            continue
+        # The flaccid shaft rests downwards, close to the body, with a gentle
+        # forward curve. Its proximal root fades smoothly into the pubic mound.
+        root = g(p.x,p.z,0.0,shaft_top,width*0.040,height*0.020)
+        shaft = g(p.x,p.z,0.0,shaft_mid,shaft_radius,height*0.043)
+        distal = g(p.x,p.z,0.0,shaft_tip,shaft_radius*1.06,height*0.014)
+        glans = g(p.x,p.z,0.0,shaft_tip-height*0.010,shaft_radius*1.12,height*0.012)
+        corona = g(p.x,p.z,0.0,shaft_tip-height*0.021,shaft_radius*1.18,height*0.005)
+        meatus = g(p.x,p.z,0.0,shaft_tip-height*0.010,shaft_radius*0.18,height*0.0025)
+        scrotum = g(p.x,p.z,0.0,anatomy_z-height*0.052,width*0.075,height*0.030)
+        testis_l = g(p.x,p.z,-width*0.026,anatomy_z-height*0.050,width*0.026,height*0.024)
+        testis_r = g(p.x,p.z, width*0.026,anatomy_z-height*0.050,width*0.026,height*0.024)
+        raphe = g(p.x,p.z,0.0,anatomy_z-height*0.052,width*0.004,height*0.026)
+        # Continuous surface relief: no exposed sphere pair and no breadstick forms.
+        outward = (0.010*root + 0.017*shaft + 0.020*distal
+                   + 0.012*glans + 0.003*corona
+                   + 0.013*scrotum + 0.003*(testis_l+testis_r))
+        inward = 0.004*meatus + 0.002*raphe
+        p.y -= outward
+        p.y += inward
+        v.co = inv @ p
+    bm.normal_update()
+    bm.to_mesh(skin.data)
+    bm.free()
+    skin.data.update()
+    for poly in skin.data.polygons:
+        poly.use_smooth = True
+    skin["anatomy_profile"] = "adult_male_integrated_skin"
+    skin["anatomy_method"] = "local_subdivision_and_surface_displacement"
+    skin["anatomy_parts"] = "root,flaccid_shaft,glans,corona,meatus,scrotum,paired_testes,raphe"
+    skin["review_status"] = "integrated_mesh_blockout_for_art_review"
+    return skin
+
+
 def main():
     args = arguments()
     if not args.adult:
@@ -204,7 +280,7 @@ def main():
         Vector((0.0, -2.0, anatomy_z)), Vector((0.0, 1.0, 0.0)), 4.0)
     if hit is None:
         raise RuntimeError("Could not locate front pelvis surface on Ara male body")
-    build_component(armature, skin, skin_material, anatomy_z, hit.y, height, args.voxel_size)
+    integrate_male_anatomy_into_skin(skin, anatomy_z, hi.x - lo.x, height)
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
