@@ -74,7 +74,7 @@ jobs:
           for name in ("index.service.worker.js", "index.apple-touch-icon.png", "index.144x144.png", "index.180x180.png", "index.512x512.png", "index.wasm", "index.pck", "build-version.txt"):
               assert (root / name).is_file() and (root / name).stat().st_size > 0, name
           for name in ("index.apple-touch-icon.png", "index.144x144.png", "index.180x180.png", "index.512x512.png"):
-              assert (root / name).read_bytes().startswith(b"\\x89PNG\\r\\n\\x1a\\n"), name
+              assert (root / name).read_bytes().startswith(b"\x89PNG\r\n\x1a\n"), name
           worker = (root / "index.service.worker.js").read_text()
           assert "ENSURE_CROSSORIGIN_ISOLATION_HEADERS" in worker
           html = (root / "index.html").read_text()
