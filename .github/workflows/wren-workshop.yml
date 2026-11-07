@@ -2,6 +2,12 @@ name: Build Wren Workshop
 # Modular equipment export pipeline: keep garment primitives compact and rig-compatible.
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Optional immutable GitHub Release tag for this Ara runtime asset package (leave blank for CI artifact only)"
+        required: false
+        type: string
+        default: ""
   push:
     branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates]
     paths:
@@ -16,7 +22,7 @@ on:
       - "docs/CHARACTER_PIPELINE.md"
       - ".github/workflows/wren-workshop.yml"
 permissions:
-  contents: read
+  contents: write
   actions: read
   pages: write
   id-token: write
@@ -505,6 +511,59 @@ jobs:
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
+      - name: Assemble versioned Ara runtime asset package
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_DIR="$GITHUB_WORKSPACE/art/characters/ara_runtime_package"
+          mkdir -p "$PACKAGE_DIR"
+          for asset in ara_person_benchmark.glb ara_person_body.glb ara_person_modular.glb ara_person_modular_underwear.glb ara_person_male_body.glb; do
+            source="art/characters/ara/$asset"
+            test -s "$source"
+            cp "$source" "$PACKAGE_DIR/$asset"
+          done
+          export PACKAGE_DIR
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          package = Path(os.environ["PACKAGE_DIR"])
+          assets = {}
+          for path in sorted(package.glob("*.glb")):
+              payload = path.read_bytes()
+              assets[path.name] = {"size_bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
+          manifest = {
+              "schema_version": 1,
+              "package_version": os.environ["GITHUB_SHA"],
+              "source_commit": os.environ["GITHUB_SHA"],
+              "generator": {
+                  "repository": "https://github.com/olatunde85/3d-gen",
+                  "commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395"
+              },
+              "assets": assets
+          }
+          (package / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+          PY
+          cd "$PACKAGE_DIR"
+          zip -q -r "$GITHUB_WORKSPACE/ara-runtime-assets.zip" .
+          test -s "$GITHUB_WORKSPACE/ara-runtime-assets.zip"
+      - name: Upload Ara runtime package versioned by source commit
+        uses: actions/upload-artifact@v4
+        with:
+          name: ara-runtime-assets-${{ github.sha }}
+          path: ara-runtime-assets.zip
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish Ara runtime package as a GitHub Release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" ara-runtime-assets.zip \
+            --target "$GITHUB_SHA" \
+            --title "Ara runtime assets $RELEASE_TAG" \
+            --notes "Generated from Silverhart-Saga-3D commit $GITHUB_SHA using Ara 3D Gen b60b5bece6d383d2cbb7067fd50e7c8e68b5a395. See manifest.json inside the package for SHA-256 checksums and asset provenance."
       - name: Save standalone Wren Workshop site artifact
         if: github.ref_name == 'dev'
         uses: actions/upload-artifact@v4
@@ -524,3 +583,32 @@ jobs:
       - name: Deploy Wren Workshop only
         if: github.ref_name == 'dev'
         uses: actions/deploy-pages@v4
+  ara-game-integration:
+    name: Validate generated Ara assets in Godot
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the exact runtime package built by this workflow
+        uses: actions/download-artifact@v4
+        with:
+          name: ara-runtime-assets-${{ github.sha }}
+          path: /tmp/ara-package
+      - name: Install and unpack the pinned runtime assets
+        run: |
+          set -euo pipefail
+          mkdir -p art/characters/ara_runtime
+          unzip -q /tmp/ara-package/ara-runtime-assets.zip -d art/characters/ara_runtime
+          test -s art/characters/ara_runtime/manifest.json
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import project and validate packaged Ara rig, meshes and animation
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --quit
+          godot --headless --path . --script res://tests/test_ara_animation_import.gd
+
