@@ -74,13 +74,13 @@ func _on_character_created(profile: Dictionary) -> void:
     village.name = "HollowmereVillage"
     add_child(village)
 
-    _set_loading_stage("Building the Hollow Tankard interior and hex movement map…", 55.0)
+    _set_loading_stage("Building the Hollow Tankard, hex map, NPCs and Ara character models…", 55.0)
     await get_tree().process_frame
     tavern = HOLLOW_TANKARD_SCRIPT.new()
     tavern.name = "HollowTankard"
     add_child(tavern)
 
-    _set_loading_stage("Loading Ara character models, NPCs and animations…", 85.0)
+    _set_loading_stage("Applying your chosen character appearance…", 85.0)
     await get_tree().process_frame
     if tavern.has_method("apply_player_profile"):
         tavern.apply_player_profile(profile)
