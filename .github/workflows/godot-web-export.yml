@@ -71,7 +71,7 @@ jobs:
           github-token: ${{ github.token }}
           path: art/characters/hollowmere
 
-      - name: Verify all 13 generated character assets
+      - name: Verify all 13 NPCs and the player avatar
         shell: bash
         run: |
           set -euo pipefail
