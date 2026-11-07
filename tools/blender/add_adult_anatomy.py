@@ -238,15 +238,16 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
         if abs(world.x) < width*0.25 and abs(world.z-anatomy_z) < 0.15 and normal.y < -0.12:
             edges.append(edge)
     if edges:
-        bmesh.ops.subdivide_edges(bm, edges=edges, cuts=2, use_grid_fill=True)
+        # Higher local tessellation gives the labial folds and vestibular
+        # recess enough vertices to read at ordinary camera distance.
+        bmesh.ops.subdivide_edges(bm, edges=edges, cuts=4, use_grid_fill=True)
         bm.normal_update()
 
     def g(x,z,cx,cz,sx,sz):
         return math.exp(-0.5*(((x-cx)/sx)**2+((z-cz)/sz)**2))
 
-    # Ara faces -Y. The paired femur-root line is the hip-joint landmark, not
-    # the vulvar centre. The labial folds, cleft and hood are sculpted directly
-    # into the existing skin surface; no attached genital object is added.
+    # Ara faces -Y. All forms below are continuous deformations of the
+    # existing skin mesh: no attached genital mesh, decal or material overlay.
     centre_z = anatomy_z
     for v in bm.verts:
         p = skin.matrix_world @ v.co
@@ -255,16 +256,28 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
             n.normalize()
         if n.y > -0.10 or abs(p.x) > width*0.27 or abs(p.z-centre_z) > 0.15:
             continue
-        mons = g(p.x,p.z,0.0,centre_z+0.058,width*0.105,0.032)
-        outer_l = g(p.x,p.z,-width*0.060,centre_z-0.004,width*0.036,0.052)
-        outer_r = g(p.x,p.z, width*0.060,centre_z-0.004,width*0.036,0.052)
-        inner_l = g(p.x,p.z,-width*0.024,centre_z-0.006,width*0.017,0.039)
-        inner_r = g(p.x,p.z, width*0.024,centre_z-0.006,width*0.017,0.039)
-        cleft = g(p.x,p.z,0.0,centre_z-0.010,width*0.010,0.047)
-        hood = g(p.x,p.z,0.0,centre_z+0.034,width*0.024,0.012)
-        p.y -= (0.0030*mons + 0.0065*(outer_l+outer_r)
-                + 0.0032*(inner_l+inner_r) + 0.0030*hood
-                - 0.0030*cleft)
+        mons = g(p.x,p.z,0.0,centre_z+0.060,width*0.105,0.034)
+        outer_l = g(p.x,p.z,-width*0.060,centre_z-0.004,width*0.034,0.050)
+        outer_r = g(p.x,p.z, width*0.060,centre_z-0.004,width*0.034,0.050)
+        inner_l = g(p.x,p.z,-width*0.024,centre_z-0.006,width*0.016,0.038)
+        inner_r = g(p.x,p.z, width*0.024,centre_z-0.006,width*0.016,0.038)
+        # The cleft is a genuine central groove, with paired raised labial
+        # ridges. The vestibule and openings are recessed into the same skin.
+        cleft = g(p.x,p.z,0.0,centre_z-0.010,width*0.009,0.043)
+        vestibule = g(p.x,p.z,0.0,centre_z-0.040,width*0.018,0.016)
+        urethra = g(p.x,p.z,0.0,centre_z-0.027,width*0.0045,0.004)
+        vaginal = g(p.x,p.z,0.0,centre_z-0.060,width*0.012,0.010)
+        hood = g(p.x,p.z,0.0,centre_z+0.034,width*0.023,0.012)
+        glans = g(p.x,p.z,0.0,centre_z+0.024,width*0.006,0.005)
+        frenulum = g(p.x,p.z,0.0,centre_z+0.012,width*0.004,0.006)
+        # Displacements are intentionally visible but restrained: 8–16 mm
+        # folds and 3–5 mm recesses, scaled to this character's proportions.
+        outward = (0.010*mons + 0.014*(outer_l+outer_r)
+                   + 0.009*(inner_l+inner_r) + 0.008*hood
+                   + 0.003*glans + 0.002*frenulum)
+        inward = 0.006*cleft + 0.005*vestibule + 0.004*urethra + 0.007*vaginal
+        p.y -= outward
+        p.y += inward
         v.co = inv @ p
     bm.normal_update()
     bm.to_mesh(skin.data)
