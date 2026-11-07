@@ -14,7 +14,7 @@ on:
       - "tools/blender/**"
       - "tools/ara/**"
       - "tests/test_assemble_modular_glb.py"
-      - ".github/workflows/character-validation.yml"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
