@@ -36,11 +36,11 @@ The old project is a substantial game, not just a hex movement prototype: its so
 
 The first attack resolver is a foundation, not a complete combat port. The next work should be ordered to avoid layering more mechanics on an incomplete state model:
 
-1. **Unify action resolution (M1):** introduce typed action requests/results/events and route movement and attacks through the same validation/commit path. Preserve deterministic tests and TP accounting.
-2. **Port combatant lifecycle (M2):** reproduce the source game's downed/unconscious HP band, true-death threshold, targetability/turn eligibility, recovery and terminal cleanup. Use `tests/combat-downed-state.spec.js` as the initial behavioural reference.
-3. **Port reactions and turn transitions:** model reaction requests as simulation state/events (not UI modals), spend TP correctly, and ensure dead/unconscious characters cannot leave unresolved reaction waits. Reference `tests/reaction-death-detection.spec.js`.
-4. **Complete attack context:** weapon readiness, attack range/type, facing, cover and line of sight; then interruption and forced movement.
-5. **Build one complete encounter:** add simple tactical AI, encounter start/end conditions and loot, then connect the resolver to the 3D actor/animation presentation.
+1. **Completed in this slice:** typed action requests/results/events provide a shared validation/commit path for movement and attacks; compatibility wrappers remain for existing callers.
+2. **Completed in this slice:** negative-HP downed band, unconscious targetability/turn exclusion, healing wake-up and the -50% max-HP true-death threshold are represented in character state and attack resolution.
+3. **Next:** reactions and turn transitions as simulation state/events, including immediate resolution for dead/unconscious reactors. Reference `tests/reaction-death-detection.spec.js`.
+4. **Then:** weapon readiness, attack range/type, facing, cover and line of sight; then interruption and forced movement.
+5. **Encounter slice:** simple tactical AI, encounter start/end conditions and loot, connected to 3D actor/animation presentation.
 
 Do not begin a broad spell/skill/content migration until these shared action and character-state foundations are in place. The first campaign vertical slice remains the Hollow Tankard opening, but its combat branch should consume this reusable combat loop rather than bespoke scripted damage.
 
@@ -63,7 +63,7 @@ Do not begin a broad spell/skill/content migration until these shared action and
 - [x] Initial deterministic attack resolver: seeded hit roll, base hit chance, damage, reductions, TP spending and defeated-state result.
 - [ ] Complete attack resolution: weapon readiness, attack type/range, criticals, facing, cover and line of sight.
 - [ ] Combat turn lifecycle: action costs, initiative, reactions, interruption, forced movement, combat start/end and encounter boundaries.
-- [ ] Downed/unconscious/death states, recovery, corpse/loot handling and companion/NPC consequences. The current resolver marks any zero-HP character dead; the source game's downed band and true-death threshold are not ported yet.
+- [ ] Downed/unconscious/death states, recovery, corpse/loot handling and companion/NPC consequences. The resolver now preserves negative HP: characters at or below zero but above -50% max HP are unconscious, while <= -50% max HP is true death.
 - [ ] Status-effect framework: duration, stacking/refresh rules, periodic effects, dispel/cleanse, resistances and save/load.
 - [ ] Tactical AI: perception, threat selection, movement/attack/cast choices, retreat and faction/relationship-aware hostility.
 - [ ] Terrain interactions: climbing, ledges, falls/fall damage, doors, walls, stairs, multi-storey buildings, hazards, traps, cover and height-aware LOS.
