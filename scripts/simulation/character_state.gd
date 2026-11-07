@@ -7,6 +7,20 @@ var axial: Vector2i
 var facing_direction: int = 2 # HexGrid direction index; 2 initially faces the W key direction.
 var health: int = 100
 var max_health: int = 100
+var side: String = "neutral"
+var base_damage: int = 1
+var to_hit_melee: float = 0.0
+var to_hit_ranged: float = 0.0
+var passive_dodge: float = 0.0
+var base_reduction: int = 0
+var armour_reduction: int = 0
+var shield_reduction: int = 0
+var helmet_reduction: int = 0
+var temp_reduction: int = 0
+var caught_off_guard: bool = false
+var climbing: bool = false
+var reaction_blocked: bool = false
+var tags: Array[String] = []
 var alive: bool = true
 var unconscious: bool = false
 var is_rider: bool = false
@@ -59,6 +73,20 @@ func to_dict() -> Dictionary:
         "facing_direction": facing_direction,
         "health": health,
         "max_health": max_health,
+        "side": side,
+        "base_damage": base_damage,
+        "to_hit_melee": to_hit_melee,
+        "to_hit_ranged": to_hit_ranged,
+        "passive_dodge": passive_dodge,
+        "base_reduction": base_reduction,
+        "armour_reduction": armour_reduction,
+        "shield_reduction": shield_reduction,
+        "helmet_reduction": helmet_reduction,
+        "temp_reduction": temp_reduction,
+        "caught_off_guard": caught_off_guard,
+        "climbing": climbing,
+        "reaction_blocked": reaction_blocked,
+        "tags": tags.duplicate(),
         "alive": alive,
         "unconscious": unconscious,
         "is_rider": is_rider,
@@ -81,6 +109,22 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.facing_direction = posmod(int(data.get("facing_direction", 2)), 6)
     state.health = int(data.get("health", 100))
     state.max_health = int(data.get("max_health", 100))
+    state.side = String(data.get("side", "neutral"))
+    state.base_damage = int(data.get("base_damage", 1))
+    state.to_hit_melee = float(data.get("to_hit_melee", 0.0))
+    state.to_hit_ranged = float(data.get("to_hit_ranged", 0.0))
+    state.passive_dodge = float(data.get("passive_dodge", 0.0))
+    state.base_reduction = int(data.get("base_reduction", 0))
+    state.armour_reduction = int(data.get("armour_reduction", 0))
+    state.shield_reduction = int(data.get("shield_reduction", 0))
+    state.helmet_reduction = int(data.get("helmet_reduction", 0))
+    state.temp_reduction = int(data.get("temp_reduction", 0))
+    state.caught_off_guard = bool(data.get("caught_off_guard", false))
+    state.climbing = bool(data.get("climbing", false))
+    state.reaction_blocked = bool(data.get("reaction_blocked", false))
+    var saved_tags: Array = data.get("tags", [])
+    for tag in saved_tags:
+        state.tags.append(String(tag))
     state.alive = bool(data.get("alive", true))
     state.unconscious = bool(data.get("unconscious", false))
     state.is_rider = bool(data.get("is_rider", false))

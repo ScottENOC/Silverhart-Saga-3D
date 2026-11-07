@@ -33,3 +33,19 @@ One adult base-body and rig contract should support Wren and a large NPC cast. N
 ## Important limitations
 
 The generic Ara person is still an assembled character export, not proof that arbitrary clothing combinations can be added at runtime. The current build adds a separate bra under-layer and briefs under the selected trousers during export; the material slots are independently dyeable, hideable and opacity-adjustable. More garment combinations require extending the generator's layer contract. Dynamic dyeing can be tested on a material slot, but changing the underlying fabric weave requires a shader/texture implementation and a known material contract. Ara can generate native tattoos (for example `armband_l` and `forearm_l`) into its UV-space skin-detail texture; the current viewer demonstrates them through a separately generated tattooed body GLB. The Godot appearance resource stores tattoo IDs but does not yet dynamically repaint the skin-detail texture at runtime. Phone-preview jewellery is raycast to mesh surfaces, but its anchor coordinates still need review against the generic base person's proportions. The user has confirmed that the current transparency preview reveals the underlying body without obvious missing-skin gaps; continue checking this across different garments and poses. The external vulva sculpt is weighted to the pelvis and trousers/briefs receive a local outward adjustment, but this must be checked from front, side and three-quarter views before treating clipping as solved. The sculpt is a first anatomical pass, not a medically validated or final topology-integrated model.
+
+
+## Runtime asset delivery and versioning
+
+Generated GLBs are build outputs, not hand-maintained source files. They should not be committed into ordinary game-code changes or assumed to exist on every checkout.
+
+The Wren Workshop pipeline now has an explicit delivery boundary:
+
+1. Ara and Blender generate and assemble the candidate models.
+2. The workflow creates a runtime package containing the selected benchmark, body, modular outfit, modular underlayer and male-body GLBs.
+3. `manifest.json` records the Silverhart source commit, pinned Ara generator commit, each file's byte size and SHA-256 hash.
+4. The package is uploaded as `ara-runtime-assets-<source-commit>` with 90-day Actions artifact retention.
+5. A manual Wren Workshop dispatch may provide a unique `release_tag` to publish the exact ZIP as a GitHub Release. Production builds should pin that release tag rather than resolve a moving latest version.
+6. A separate Godot integration job downloads the artifact from the same Wren Workshop run and validates the actual files. The regular Godot gameplay test suite remains independent of generated GLBs.
+
+The generated package is a candidate runtime dependency. It does not automatically mean every included variant is already used by the playable game. Runtime adoption remains an explicit game integration step; the package and its tests ensure that the chosen assets are reproducible and compatible when that step is taken.

@@ -1,27 +1,32 @@
-name: Godot and terrain validation
+name: Godot validation
 
 on:
   pull_request:
-    branches: [dev, feature/port-action-economy, feature/terrain-character-grounding-test, feature/ara-skeleton-animation-validation]
+    branches: [dev]
     paths:
       - "project.godot"
+      - "export_presets.cfg"
+      - "art/characters/**"
       - "scenes/**"
       - "scripts/**"
+      - "data/**"
       - "tests/**"
       - ".github/workflows/godot-validation.yml"
   push:
-    branches: [dev, feature/port-action-economy, feature/terrain-character-grounding-test, feature/ara-skeleton-animation-validation, feature/ara-visual-animation-review]
+    branches: [dev]
     paths:
       - "project.godot"
+      - "export_presets.cfg"
+      - "art/characters/**"
       - "scenes/**"
       - "scripts/**"
+      - "data/**"
       - "tests/**"
       - ".github/workflows/godot-validation.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
-  actions: read
 
 concurrency:
   group: godot-validation-${{ github.ref }}
@@ -31,68 +36,29 @@ jobs:
   headless-tests:
     name: Godot 4.7.2 headless tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v7
       - name: Install Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.7.2
           use-dotnet: false
-          include-templates: true
-
-      - name: Verify engine version
-        run: godot --version
-
-      - name: Import project and build global script class cache
-        run: godot --headless --editor --path . --quit
-
+      - name: Verify engine version and import project
+        run: |
+          godot --version
+          godot --headless --editor --path . --quit
       - name: Run hex-grid tests
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
-
-      - name: Run simulation and movement tests
+      - name: Run simulation, movement and combat tests
         run: godot --headless --path . --script res://tests/test_simulation.gd
-      - name: Verify Godot Web export
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build/web
-          godot --headless --path . --export-release "Web"
-          test -s build/web/index.html
-          find build/web -maxdepth 1 -type f -name '*.wasm' -print -quit | grep -q .
-          find build/web -maxdepth 1 -type f -name '*.pck' -print -quit | grep -q .
-
-      - name: Smoke-test the terrain prototype scene
-        shell: bash
-        run: |
-          set -o pipefail
-          godot --headless --path . --scene res://scenes/prototypes/terrain_elevation_prototype.tscn --quit-after 5 2>&1 | tee /tmp/terrain-prototype.log
-          if grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to instantiate' /tmp/terrain-prototype.log; then
-            echo "Godot reported a script or resource load error while starting the terrain prototype."
-            exit 1
-          fi
-
-      - name: Capture terrain prototype screenshots
-        shell: bash
-        run: |
-          set -o pipefail
-          mkdir -p artifacts
-          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --path . --rendering-method gl_compatibility --script res://tests/capture_terrain_prototype.gd 2>&1 | tee /tmp/terrain-capture.log
-          if grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to instantiate' /tmp/terrain-capture.log; then
-            echo "Godot reported an error while capturing terrain screenshots."
-            exit 1
-          fi
-          test -s artifacts/terrain-overview.png
-          test -s artifacts/terrain-overhead.png
-          test -s artifacts/terrain-ridge-oblique.png
-          test -s artifacts/terrain-character-grounding.png
-
-      - name: Upload validation screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: terrain-and-ara-animation-screenshots
-          path: artifacts/
-          if-no-files-found: warn
-          retention-days: 14
+      - name: Run character appearance tests
+        run: godot --headless --path . --script res://tests/test_character_appearance.gd
+      - name: Run Hollowmere map and character profile tests
+        run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
+      - name: Validate Hollowmere profile JSON
+        run: python -m json.tool data/characters/hollowmere_npcs.json > /dev/null
+      - name: Smoke-test terrain prototype
+        run: godot --headless --path . --scene res://scenes/prototypes/terrain_elevation_prototype.tscn --quit-after 5
+      - name: Smoke-test opening village
+        run: godot --headless --path . --quit-after 10

@@ -11,6 +11,7 @@ func _initialize() -> void:
     _test_elevation_rules()
     _test_world_clock()
     _test_combat_turn_scheduler()
+    _test_combat_resolution()
     if _failures > 0:
         push_error("%d test assertion(s) failed." % _failures)
         quit(1)
@@ -221,4 +222,87 @@ func _test_combat_turn_scheduler() -> void:
     _check(loaded.get_character("player") != null)
     _check(is_equal_approx(loaded.clock.world_seconds, sim.clock.world_seconds))
     loaded.free()
+    sim.free()
+
+func _test_combat_resolution() -> void:
+    var attacker := CharacterState.new("hero", "Hero")
+    var target := CharacterState.new("guard", "Guard")
+    attacker.side = "player"
+    attacker.base_damage = 8
+    attacker.to_hit_melee = 20.0
+    attacker.time_points = 30.0
+    attacker.skills["orc_brute_strength"] = 1
+    target.health = 30
+    target.max_health = 30
+    target.passive_dodge = 10.0
+    target.armour_reduction = 3
+    target.shield_reduction = 2
+    var rng := RandomNumberGenerator.new()
+    rng.seed = 7
+    var result := CombatRules.resolve_attack(attacker, target, {
+        "time_point_cost": 10.0,
+        "weapon_damage": 4,
+        "weapon_id": "sword",
+        "attacker_terrain_hit_bonus": 5.0
+    }, rng)
+    _check(bool(result.get("ok", false)))
+    _check(float(result.get("hit_chance", 0.0)) == 65.0)
+    _check(is_equal_approx(attacker.time_points, 20.0))
+    if bool(result.get("hit", false)):
+        _check(int(result.get("raw_damage", 0)) == 14)
+        _check(int(result.get("reduction", 0)) == 5)
+        _check(int(result.get("damage", 0)) == 9)
+        _check(target.health == 21)
+
+    var guarded := CharacterState.new("armoured", "Armoured")
+    guarded.health = 20
+    guarded.max_health = 20
+    guarded.base_reduction = 2
+    guarded.armour_reduction = 4
+    guarded.shield_reduction = 3
+    guarded.caught_off_guard = true
+    _check(CombatRules.damage_reduction(guarded) == 0)
+    guarded.caught_off_guard = false
+    guarded.climbing = true
+    _check(CombatRules.damage_reduction(guarded) == 6)
+
+    var lethal_rng := RandomNumberGenerator.new()
+    lethal_rng.seed = 3
+    attacker.to_hit_melee = 100.0
+    attacker.time_points = 20.0
+    target.health = 1
+    target.alive = true
+    var lethal := CombatRules.resolve_attack(attacker, target, {
+        "time_point_cost": 5.0,
+        "weapon_damage": 20
+    }, lethal_rng)
+    _check(bool(lethal.get("hit", false)))
+    _check(bool(lethal.get("target_defeated", false)))
+    _check(not target.alive and target.health == 0)
+
+    var poor := CharacterState.new("poor", "Poor")
+    poor.time_points = 1.0
+    var before_health := target.health
+    var rejected := CombatRules.resolve_attack(poor, target, {"time_point_cost": 5.0}, lethal_rng)
+    _check(not bool(rejected.get("ok", false)))
+    _check(target.health == before_health)
+
+    var sim := WorldSimulation.new()
+    var sim_attacker := CharacterState.new("sim_hero", "Hero", Vector2i.ZERO)
+    var sim_target := CharacterState.new("sim_guard", "Guard", Vector2i(1, 0))
+    sim_attacker.to_hit_melee = 100.0
+    sim_attacker.base_damage = 12
+    sim_attacker.time_points = 50.0
+    sim.register_character(sim_attacker)
+    sim.register_character(sim_target)
+    sim.is_in_combat = true
+    sim.turn_scheduler.current_character_id = "sim_hero"
+    var integrated := sim.try_attack_character("sim_hero", "sim_guard", {
+        "time_point_cost": 5.0
+    }, 11)
+    _check(bool(integrated.get("ok", false)))
+    _check(bool(integrated.get("hit", false)))
+    _check(sim_target.health == 88)
+    _check(is_equal_approx(sim_attacker.time_points, 45.0))
+    _check(not bool(sim.try_attack_character("sim_guard", "sim_hero", {}, 11).get("ok", false)))
     sim.free()

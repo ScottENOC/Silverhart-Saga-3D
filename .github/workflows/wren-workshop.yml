@@ -2,16 +2,27 @@ name: Build Wren Workshop
 # Modular equipment export pipeline: keep garment primitives compact and rig-compatible.
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Optional immutable GitHub Release tag for this Ara runtime asset package (leave blank for CI artifact only)"
+        required: false
+        type: string
+        default: ""
   push:
     branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates]
     paths:
-      - "tools/blender/**"
-      - "tools/ara/**"
+      - "tools/ara/patch_layering.py"
+      - "tools/ara/assemble_modular_glb.py"
+      - "tools/blender/add_adult_anatomy.py"
+      - "tools/blender/add_male_anatomy.py"
+      - "tools/blender/add_dress_slit.py"
+      - "tools/blender/inspect_character.py"
+      - "tools/review/render_modular_outfits.py"
       - "site/**"
       - "docs/CHARACTER_PIPELINE.md"
       - ".github/workflows/wren-workshop.yml"
 permissions:
-  contents: read
+  contents: write
   actions: read
   pages: write
   id-token: write
@@ -23,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Compile anatomy, clothing and review tools
         run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/review/render_modular_outfits.py
       - name: Build Ara 3D Gen benchmark
@@ -212,7 +223,7 @@ jobs:
             cp "/tmp/ara-person-$variant.params.json" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_$variant.params.json"
           done
       - name: Save raw generated models for parallel integration
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ara-generated-models
           path: |
@@ -232,9 +243,9 @@ jobs:
           - ara_person_body
           - ara_person_tattoo_body
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Download generated model
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ara-generated-models
           path: /tmp/ara-generated
@@ -271,7 +282,7 @@ jobs:
             for view in front side rear three_quarter; do test -s "art/characters/ara/review/clothed/$view.png"; done
           fi
       - name: Save integrated model and review renders
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: processed-${{ matrix.variant }}
           path: |
@@ -285,9 +296,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Download generated male base
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ara-generated-models
           path: /tmp/ara-generated
@@ -311,7 +322,7 @@ jobs:
             test -s "art/characters/ara/review/male/$view.png"
           done
       - name: Save male model and review renders
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: processed-ara-male-body
           path: |
@@ -328,9 +339,9 @@ jobs:
       group: combined-pages-deployment
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Download generated parameter files
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ara-generated-models
           path: /tmp/ara-generated
@@ -344,7 +355,7 @@ jobs:
           cp /tmp/ara-generated/ara_person_benchmark.glb art/characters/ara/
           cp /tmp/ara-generated/ara_person_mobile.glb art/characters/ara/
       - name: Collect integrated models and review renders
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: processed-*
           path: art/characters/ara
@@ -477,7 +488,7 @@ jobs:
             fi
           done
       - name: Keep generated models as build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: character-pipeline-evaluation
           path: |
@@ -500,9 +511,62 @@ jobs:
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
+      - name: Assemble versioned Ara runtime asset package
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_DIR="$GITHUB_WORKSPACE/art/characters/ara_runtime_package"
+          mkdir -p "$PACKAGE_DIR"
+          for asset in ara_person_benchmark.glb ara_person_body.glb ara_person_modular.glb ara_person_modular_underwear.glb ara_person_male_body.glb; do
+            source="art/characters/ara/$asset"
+            test -s "$source"
+            cp "$source" "$PACKAGE_DIR/$asset"
+          done
+          export PACKAGE_DIR
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          package = Path(os.environ["PACKAGE_DIR"])
+          assets = {}
+          for path in sorted(package.glob("*.glb")):
+              payload = path.read_bytes()
+              assets[path.name] = {"size_bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
+          manifest = {
+              "schema_version": 1,
+              "package_version": os.environ["GITHUB_SHA"],
+              "source_commit": os.environ["GITHUB_SHA"],
+              "generator": {
+                  "repository": "https://github.com/olatunde85/3d-gen",
+                  "commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395"
+              },
+              "assets": assets
+          }
+          (package / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+          PY
+          cd "$PACKAGE_DIR"
+          zip -q -r "$GITHUB_WORKSPACE/ara-runtime-assets.zip" .
+          test -s "$GITHUB_WORKSPACE/ara-runtime-assets.zip"
+      - name: Upload Ara runtime package versioned by source commit
+        uses: actions/upload-artifact@v7
+        with:
+          name: ara-runtime-assets-${{ github.sha }}
+          path: ara-runtime-assets.zip
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish Ara runtime package as a GitHub Release
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" ara-runtime-assets.zip \
+            --target "$GITHUB_SHA" \
+            --title "Ara runtime assets $RELEASE_TAG" \
+            --notes "Generated from Silverhart-Saga-3D commit $GITHUB_SHA using Ara 3D Gen b60b5bece6d383d2cbb7067fd50e7c8e68b5a395. See manifest.json inside the package for SHA-256 checksums and asset provenance."
       - name: Save standalone Wren Workshop site artifact
         if: github.ref_name == 'dev'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wren-workshop-site
           path: site/
@@ -510,12 +574,41 @@ jobs:
           retention-days: 90
       - name: Configure GitHub Pages
         if: github.ref_name == 'dev'
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Upload Wren-only Pages site
         if: github.ref_name == 'dev'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
       - name: Deploy Wren Workshop only
         if: github.ref_name == 'dev'
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
+  ara-game-integration:
+    name: Validate generated Ara assets in Godot
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download the exact runtime package built by this workflow
+        uses: actions/download-artifact@v8
+        with:
+          name: ara-runtime-assets-${{ github.sha }}
+          path: /tmp/ara-package
+      - name: Install and unpack the pinned runtime assets
+        run: |
+          set -euo pipefail
+          mkdir -p art/characters/ara_runtime
+          unzip -q /tmp/ara-package/ara-runtime-assets.zip -d art/characters/ara_runtime
+          test -s art/characters/ara_runtime/manifest.json
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import project and validate packaged Ara rig, meshes and animation
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --quit
+          godot --headless --path . --script res://tests/test_ara_animation_import.gd
+

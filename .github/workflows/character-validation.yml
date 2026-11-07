@@ -1,50 +1,39 @@
-name: Godot and Blender validation
-
-concurrency:
-  group: character-validation-${{ github.ref }}
-  cancel-in-progress: true
+name: Character pipeline validation
 
 on:
   pull_request:
     branches: [dev]
+    paths:
+      - "tools/blender/**"
+      - "tools/ara/**"
+      - "tests/test_assemble_modular_glb.py"
+      - ".github/workflows/**"
   push:
-    branches: [dev, feature/shared-character-system]
+    branches: [dev]
+    paths:
+      - "tools/blender/**"
+      - "tools/ara/**"
+      - "tests/test_assemble_modular_glb.py"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: character-pipeline-validation-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  godot:
-    name: Godot headless import and tests
+  python-tools:
+    name: Validate character pipeline tools
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Godot 4.7.2
-        uses: chickensoft-games/setup-godot@v2
-        with:
-          version: 4.7.2
-          use-dotnet: false
-      - name: Import project and register global classes
-        run: godot --headless --editor --path . --quit
-      - name: Run hex-grid tests
-        run: godot --headless --path . --script res://tests/test_hex_grid.gd
-      - name: Run simulation tests
-        run: godot --headless --path . --script res://tests/test_simulation.gd
-      - name: Run character appearance tests
-        run: godot --headless --path . --script res://tests/test_character_appearance.gd
-
-  blender-python:
-    name: Blender tool syntax validation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Compile Blender and Ara Python tools
+      - uses: actions/checkout@v7
+      - name: Lint GitHub Actions workflows
+        uses: reviewdog/action-actionlint@v1
+      - name: Compile Ara and Blender Python tools
         run: python -m compileall -q tools/blender tools/ara
-      - name: Test modular GLB morph-target assembly
+      - name: Test modular GLB assembly
         run: python -m unittest discover -s tests -p 'test_assemble_modular_glb.py' -v
-
-  # The old procedural Wren blockout build has been retired. Ara is the
-  # current shared character base; legacy scripts remain in tools/blender as
-  # historical experiments but are not built or rendered in CI.
