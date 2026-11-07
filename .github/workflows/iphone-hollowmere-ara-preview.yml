@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  actions: read
+  actions: write
 
 concurrency:
   group: iphone-hollowmere-ara-preview
@@ -101,3 +101,12 @@ jobs:
           path: build/web/
           if-no-files-found: error
           retention-days: 14
+
+      - name: Trigger combined GitHub Pages deployment
+        if: github.ref == 'refs/heads/dev'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run godot-web-export.yml --ref dev
+          echo "Triggered a fresh combined Pages deployment after the Hollowmere artifact was saved."
