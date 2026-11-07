@@ -10,6 +10,17 @@ on:
       - "scenes/**"
       - "scripts/**"
       - "data/**"
+      - "tools/pwa/**"
+      - ".github/workflows/godot-web-export.yml"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "scenes/**"
+      - "scripts/**"
+      - "data/**"
+      - "tools/pwa/**"
       - ".github/workflows/godot-web-export.yml"
 
 permissions:
@@ -48,7 +59,29 @@ jobs:
           test -s dist/game/index.html
           find dist/game -maxdepth 1 -type f -name '*.wasm' -print -quit | grep -q .
           find dist/game -maxdepth 1 -type f -name '*.pck' -print -quit | grep -q .
-          printf '%s\\n' "${GITHUB_SHA}" > dist/game/build-version.txt
+          printf '%s\n' "${GITHUB_SHA}" > dist/game/build-version.txt
+          python tools/pwa/package_godot_pwa.py --directory dist/game --version "${GITHUB_SHA}"
+          python -m py_compile tools/pwa/package_godot_pwa.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("dist/game")
+          manifest = json.loads((root / "index.manifest.json").read_text())
+          assert manifest["start_url"] == "./index.html"
+          assert manifest["scope"] == "./"
+          assert manifest["display"] == "standalone"
+          assert manifest["name"] == "Silverhart Saga"
+          for name in ("index.service.worker.js", "index.apple-touch-icon.png", "index.144x144.png", "index.180x180.png", "index.512x512.png", "index.wasm", "index.pck", "build-version.txt"):
+              assert (root / name).is_file() and (root / name).stat().st_size > 0, name
+          for name in ("index.apple-touch-icon.png", "index.144x144.png", "index.180x180.png", "index.512x512.png"):
+              assert (root / name).read_bytes().startswith(b"\x89PNG\r\n\x1a\n"), name
+          worker = (root / "index.service.worker.js").read_text()
+          assert "ENSURE_CROSSORIGIN_ISOLATION_HEADERS" in worker
+          html = (root / "index.html").read_text()
+          assert 'rel="manifest"' in html and "index.service.worker.js" in html and "silverhart-update-now" in html
+          assert not (root / "service-worker.js").exists()
+          print("Godot native PWA package verified")
+          PY
 
       - name: Save browser build for combined Pages deployment
         uses: actions/upload-artifact@v4
