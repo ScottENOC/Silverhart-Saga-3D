@@ -17,9 +17,9 @@ The game remains a web app; this does not install a native App Store package. It
 ## First test pass
 
 - Launch once while online and allow the game to finish loading.
-- Close the app and launch it again from the Home Screen.
+- Close the app and launch it again while still online. Godot's built-in service worker then controls the page load and can cache the large WebAssembly and game-pack files.
 - Check that the game starts and that saved settings/appearance remain available.
-- Turn on Airplane Mode and relaunch to test the files cached during the first online session. Offline play is best-effort: iOS may evict website storage, and files that were never downloaded cannot be available offline.
+- Turn on Airplane Mode and relaunch to test the cached game. Offline play is best-effort: iOS may evict website storage, and a first launch alone may not have cached every large game file.
 - Restore connectivity. When a newer build is published, the app should show an **Update now** prompt. Use it at a safe point in the game; the app reloads into the new build.
 - Tap the small **i** button at the lower-right of the game to view build, network, viewport, WebGL and browser-storage diagnostics. Include this information when reporting a phone-specific problem.
 
