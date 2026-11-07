@@ -289,7 +289,8 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
         poly.use_smooth = True
     skin["anatomy_profile"] = "adult_female_integrated_skin"
     skin["review_status"] = "integrated_mesh_blockout_for_art_review"
-    skin["anatomy_method"] = "local_subdivision_and_surface_displacement"\n    skin["anatomy_parts"] = "mons,labia_majora,labia_minora,clitoral_hood,clitoral_glans,frenulum,vestibule,urethral_meatus,vaginal_opening,posterior_fourchette,perineal_transition"
+    skin["anatomy_method"] = "local_subdivision_and_surface_displacement"
+    skin["anatomy_parts"] = "mons,labia_majora,labia_minora,clitoral_hood,clitoral_glans,frenulum,vestibule,urethral_meatus,vaginal_opening,posterior_fourchette,perineal_transition"
     return skin
 
 
