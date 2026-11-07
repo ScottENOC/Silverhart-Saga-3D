@@ -395,8 +395,13 @@ jobs:
           path: |
             art/characters/ara/ara_person_modular.glb
             art/characters/ara/ara_person_modular_underwear.glb
-            art/characters/ara/review/outfits/
-          key: ara-modular-b60b5be-v1-${{ hashFiles('tools/ara/assemble_modular_glb.py', 'tools/blender/add_dress_slit.py', 'tools/blender/add_adult_anatomy.py', 'tools/review/render_modular_outfits.py') }}
+          key: ara-modular-b60b5be-v1-${{ hashFiles('tools/ara/assemble_modular_glb.py', 'tools/blender/add_dress_slit.py', 'tools/blender/add_adult_anatomy.py') }}
+      - name: Restore outfit review renders
+        id: review-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: art/characters/ara/review/outfits/
+          key: ara-review-b60b5be-v1-${{ hashFiles('tools/ara/assemble_modular_glb.py', 'tools/blender/add_dress_slit.py', 'tools/blender/add_adult_anatomy.py', 'tools/review/render_modular_outfits.py') }}
       - name: Assemble independently selectable equipment model
         if: steps.modular-cache.outputs.cache-hit != 'true'
         run: |
@@ -452,8 +457,8 @@ jobs:
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties" \
             /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini bottom=Fishnet briefs" \
             /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini strings*=Fishnet briefs ties"
-      - name: Install Blender for modular garment fitting
-        if: steps.modular-cache.outputs.cache-hit != 'true'
+      - name: Install Blender for modular garment fitting and review
+        if: steps.modular-cache.outputs.cache-hit != 'true' || steps.review-cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
@@ -483,7 +488,7 @@ jobs:
             --profile none --adult --fit-existing
           mv /tmp/ara_person_modular_underwear_fitted.glb art/characters/ara/ara_person_modular_underwear.glb
       - name: Render dress review angles (non-blocking)
-        if: steps.modular-cache.outputs.cache-hit != 'true'
+        if: steps.review-cache.outputs.cache-hit != 'true'
         id: dress-review
         continue-on-error: true
         shell: bash
@@ -499,7 +504,8 @@ jobs:
           for view in front side rear; do test -s "$OUT/dress/$view.png"; done
           test -s "$OUT/dress/report.json"
       - name: Render lace and fishnet garment review angles
-        if: steps.modular-cache.outputs.cache-hit != 'true'
+        if: steps.review-cache.outputs.cache-hit != 'true'
+        id: lace-review
         shell: bash
         run: |
           set -euo pipefail
@@ -516,6 +522,12 @@ jobs:
             for view in front side rear; do test -s "$OUT/$outfit/$view.png"; done
             test -s "$OUT/$outfit/report.json"
           done
+      - name: Cache successful outfit review renders
+        if: steps.review-cache.outputs.cache-hit != 'true' && steps.dress-review.outcome == 'success' && steps.lace-review.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: art/characters/ara/review/outfits/
+          key: ara-review-b60b5be-v1-${{ hashFiles('tools/ara/assemble_modular_glb.py', 'tools/blender/add_dress_slit.py', 'tools/blender/add_adult_anatomy.py', 'tools/review/render_modular_outfits.py') }}
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
