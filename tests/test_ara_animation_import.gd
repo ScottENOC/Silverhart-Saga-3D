@@ -7,7 +7,6 @@ const MANIFEST_PATH := ASSET_ROOT + "manifest.json"
 const BENCHMARK_PATH := ASSET_ROOT + "ara_person_benchmark.glb"
 const RIGGED_ASSETS := [
 	"ara_person_body.glb",
-	"ara_person_modular.glb",
 	"ara_person_modular_underwear.glb",
 	"ara_person_male_body.glb"
 ]
