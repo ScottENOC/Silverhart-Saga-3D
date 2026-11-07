@@ -1,43 +1,30 @@
 # Wren Workshop
 
-The Wren Workshop is a standalone browser-based model inspection tool, separate from the Godot game. It is published to a **private Hugging Face Static Space**. The GitHub source repository is public; the Hugging Face Space remains private.
+The Wren Workshop is a standalone browser-based model inspection/customisation prototype, separate from the Godot game. It is published as a static site through **GitHub Pages**:
+
+- Live viewer: https://scottenoc.github.io/Silverhart-Saga-3D/
+- Source: `.github/workflows/wren-workshop.yml`
+- Deployment target: GitHub Pages only; it does not depend on the Godot web export or Hollowmere preview workflows.
 
 ## Cloud workflow
 
-The GitHub Actions workflow `.github/workflows/wren-workshop.yml` installs Blender from the Ubuntu runner's package repository (Blender 5.0.1 was installed by the runner during the November 6, 2026 build), generates a generic Ara base person and modular garment exports, assembles the viewer site and uploads it to the configured private Hugging Face Space.
+The Wren workflow builds a generic female Ara base, a male Ara body, anatomy-integrated body variants, and modular female garment variants. It assembles the static viewer site and deploys that site to GitHub Pages.
 
-It runs manually through Actions → Build Wren Workshop → Run workflow, and automatically when Ara/Blender tools, viewer files or the workflow itself change on `dev` or `feature/shared-character-system`.
+The workflow runs manually through Actions → Build Wren Workshop → Run workflow, and automatically on relevant changes to Ara/Blender tools, viewer files, the character pipeline documentation or the workflow itself on its configured branches.
 
-The workflow uses standard GitHub-hosted Ubuntu runners. Because this repository is public, standard GitHub-hosted runner minutes are free. Build artifacts and Actions logs are visible to people who can access this public repository.
+The current character source is Ara. The old procedural Wren blockout scripts are retained as historical experiments only; they are not part of the current build or review path. Wren Talbot remains a later character preset/model to be built on the reusable Ara foundation.
 
-## One-time setup
+## Viewer scope and limitations
 
-1. Create a free account at https://huggingface.co/ if you do not already have one.
-2. Create a new **Space**. Choose **Static** as the SDK and set **Visibility** to **Private**. Do not choose Gradio or Docker.
-3. In the GitHub repository, open Settings → Secrets and variables → Actions → Variables and add:
-   - Name: `HF_SPACE_ID`
-   - Value: your Hugging Face Space ID, exactly `your-huggingface-username/wren-workshop`
-4. In GitHub, open Settings → Secrets and variables → Actions → Secrets and add:
-   - Name: `HF_ADMIN_TOKEN`
-   - Value: a Hugging Face access token with write access to the target Space.
-5. In GitHub, open Actions → Build Wren Workshop → Run workflow, select the desired branch, and run it.
+- Female Ara: modular clothing and accessory inspection.
+- Female Ara body-only and tattooed-body inspection views.
+- Male Ara: anatomy preview. Male clothing fitting and accessory sockets are not yet implemented.
+- The viewer is a browser-based asset inspection/customisation prototype, not a substitute for in-game Godot validation.
 
-### Authentication note
+## Build outputs and retention
 
-The current workflow uses the `HF_ADMIN_TOKEN` GitHub Actions secret. It does **not** currently use Hugging Face Trusted Publisher / OIDC authentication, despite earlier documentation describing that intended setup. The token is not stored in the repository source, but anyone with repository access can see workflow definitions and public build logs. Prefer a narrowly scoped Hugging Face token while this workflow uses a long-lived secret. Migrating to Trusted Publisher OIDC requires configuring the Space to trust the exact repository, branch and workflow, then changing the workflow and removing the secret.
-
-## Viewer controls
-
-- Drag: orbit; pinch or wheel: zoom; two-finger drag: pan.
-- Front, back, left, right, three-quarter and reset camera presets.
-- Key/fill light intensity and key-light direction.
-- Toggle hair, garments/armour, weapon, body hair, tattoo and piercings by mesh-name prefix.
-
-The viewer loads the full character GLB and toggles mesh visibility. It is an inspection tool, not a full material editor or Godot substitute.
-
-## Build outputs
-
-- Intermediate generated-model and integrated-model artifacts are retained for 2 days so dependent jobs can assemble and publish them.
-- The final `character-pipeline-evaluation` artifact contains generated models, parameters and review renders and is retained for 14 days.
-- These artifacts are visible to repository readers because the GitHub repository is public.
-- The viewer and generated full model are uploaded to the private Hugging Face Space. Generated files are not committed back into the source repository.
+- Raw Ara model/parameter artifacts are retained for 2 days for dependent integration jobs.
+- Intermediate integrated body artifacts are retained for 2 days.
+- Male body/review and final character-pipeline evaluation artifacts are retained for 14 days.
+- The standalone `wren-workshop-site` artifact is retained for 90 days.
+- Build artifacts and logs are visible to readers of this public repository. Generated models are not committed to the source repository; the published site contains the models needed by the viewer.

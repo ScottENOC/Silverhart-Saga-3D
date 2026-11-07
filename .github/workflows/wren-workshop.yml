@@ -454,13 +454,27 @@ jobs:
           export LIBGL_ALWAYS_SOFTWARE=1
           OUT=art/characters/ara/review/outfits
           mkdir -p "$OUT"
-          blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
-            art/characters/ara/ara_person_modular.glb "$OUT" \
-            lace_bra fishnet_bra lace_briefs fishnet_briefs \
-            lace_shirt fishnet_shirt lace_pants fishnet_pants
+          # Run one outfit per Blender process. Repeated glTF imports/renders in a
+          # single Blender 5.x process can accumulate renderer state and segfault
+          # during shutdown after all PNGs have been written (exit 139).
           for outfit in lace_bra fishnet_bra lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants; do
+            echo "Reviewing $outfit in an isolated Blender process"
+            set +e
+            blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
+              art/characters/ara/ara_person_modular.glb "$OUT" "$outfit"
+            blender_status=$?
+            set -e
+            # Accept a shutdown-only crash only if every output is present and non-empty.
             for view in front side rear; do test -s "$OUT/$outfit/$view.png"; done
             test -s "$OUT/$outfit/report.json"
+            if [ "$blender_status" -ne 0 ]; then
+              if [ "$blender_status" -eq 139 ]; then
+                echo "::warning::$outfit rendered all review files but Blender segfaulted on shutdown (139); retaining verified outputs."
+              else
+                echo "::error::Blender failed while rendering $outfit (exit $blender_status)."
+                exit "$blender_status"
+              fi
+            fi
           done
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
