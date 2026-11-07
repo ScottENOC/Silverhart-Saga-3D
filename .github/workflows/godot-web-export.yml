@@ -12,6 +12,16 @@ on:
       - "data/**"
       - "tools/pwa/**"
       - ".github/workflows/godot-web-export.yml"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "scenes/**"
+      - "scripts/**"
+      - "data/**"
+      - "tools/pwa/**"
+      - ".github/workflows/godot-web-export.yml"
 
 permissions:
   contents: read
@@ -51,6 +61,21 @@ jobs:
           find dist/game -maxdepth 1 -type f -name '*.pck' -print -quit | grep -q .
           printf '%s\\n' "${GITHUB_SHA}" > dist/game/build-version.txt
           python tools/pwa/package_godot_pwa.py --directory dist/game --version "${GITHUB_SHA}"
+          python -m py_compile tools/pwa/package_godot_pwa.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("dist/game")
+          manifest = json.loads((root / "manifest.webmanifest").read_text())
+          assert manifest["start_url"] == "./"
+          assert manifest["scope"] == "./"
+          assert manifest["display"] == "standalone"
+          for name in ("service-worker.js", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "build-version.txt"):
+              assert (root / name).is_file() and (root / name).stat().st_size > 0, name
+          html = (root / "index.html").read_text()
+          assert 'rel="manifest"' in html and "silverhart-update-now" in html
+          print("PWA package verified")
+          PY
 
       - name: Save browser build for combined Pages deployment
         uses: actions/upload-artifact@v4
