@@ -10,14 +10,6 @@ on:
       - "site/**"
       - "docs/CHARACTER_PIPELINE.md"
       - ".github/workflows/wren-workshop.yml"
-  pull_request:
-    branches: [dev, fix/dress-selector-and-loading-review]
-    paths:
-      - "tools/blender/**"
-      - "tools/ara/**"
-      - "site/**"
-      - "docs/CHARACTER_PIPELINE.md"
-      - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
   actions: read
