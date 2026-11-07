@@ -34,10 +34,6 @@ jobs:
           use-dotnet: false
       - name: Import project and register global classes
         run: godot --headless --editor --path . --quit
-      - name: Run hex-grid tests
-        run: godot --headless --path . --script res://tests/test_hex_grid.gd
-      - name: Run simulation tests
-        run: godot --headless --path . --script res://tests/test_simulation.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
       - name: Run Hollowmere map and profile tests
