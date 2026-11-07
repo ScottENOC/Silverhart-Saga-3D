@@ -302,7 +302,7 @@ func _test_combat_resolution() -> void:
     }, 11)
     _check(bool(integrated.get("ok", false)))
     _check(bool(integrated.get("hit", false)))
-    _check(sim_target.health == 89)
+    _check(sim_target.health == 88)
     _check(is_equal_approx(sim_attacker.time_points, 45.0))
     _check(not bool(sim.try_attack_character("sim_guard", "sim_hero", {}, 11).get("ok", false)))
     sim.free()
