@@ -229,6 +229,14 @@ jobs:
             cp "$VARIANT_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_$variant.glb"
             cp "/tmp/ara-person-$variant.params.json" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_$variant.params.json"
           done
+      - name: Verify cached or freshly generated Ara exports
+        shell: bash
+        run: |
+          set -euo pipefail
+          for model in ara_person_benchmark ara_person_body ara_person_tattoo_body ara_person_male_raw ara_person_mobile tank_top halter_bra_lace halter_bra_fishnet triangle_bikini_top string_bikini_bottom lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants backless_slit_dress leather_armor; do
+            test -s "art/characters/ara/${model}.glb"
+            test -s "art/characters/ara/${model}.params.json"
+          done
       - name: Save raw generated models for parallel integration
         uses: actions/upload-artifact@v4
         with:
@@ -296,7 +304,7 @@ jobs:
             art/characters/ara/${{ matrix.variant }}.glb
             art/characters/ara/review/**
           if-no-files-found: error
-          retention-days: 2
+          retention-days: 30
 
   integrate-male:
     needs: generate
