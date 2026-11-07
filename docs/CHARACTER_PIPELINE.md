@@ -37,8 +37,12 @@ The generic Ara person is still an assembled character export, not proof that ar
 
 ## CI reuse and invalidation
 
-The Wren Workshop workflow caches the expensive upstream Ara GLB exports using the pinned Ara generator revision and the Ara layering patch as the cache key. Changes to anatomy integration scripts, Blender fitting, review renders, or Workshop UI should reuse those unchanged source exports rather than cloning Ara, reinstalling its dependencies, and exporting every character and garment again.
+The Wren Workshop pipeline caches three stages independently:
 
-**Cache maintenance:** the exported Ara parameters and garment variant definitions currently live inside `.github/workflows/wren-workshop.yml`. If those embedded parameters or variants change, increment the `ara-generated-...-v1` cache-key suffix in that workflow. If the pinned Ara generator revision changes, update the revision in both the clone step and cache key. The cache is an optimisation only: a cache miss performs the full export, and every run still uploads a normal Actions artifact for downstream jobs.
+1. **Ara source exports** — keyed by the pinned Ara generator revision and `tools/ara/patch_layering.py`. Anatomy, Blender fitting, review-render, and Workshop UI edits reuse the exported source GLBs without cloning Ara, installing pnpm dependencies/assets, or exporting every character and garment again.
+2. **Anatomy integration** — female and male integrated bodies plus their review renders are cached against the relevant anatomy and inspection scripts. A change to an anatomy script invalidates only the affected integration cache.
+3. **Modular equipment assembly and fitting** — the assembled/fitted modular GLBs and outfit review renders are cached against the assembler, dress-slit, anatomy-fit, and outfit-review scripts. A Workshop site/UI-only change can therefore skip Blender assembly, garment fitting, and outfit rendering as well as the upstream work.
+
+**Cache maintenance:** exported Ara parameters and garment variant definitions currently live inside `.github/workflows/wren-workshop.yml`. If those embedded parameters or variants change, increment the corresponding `ara-generated-...-v1`, `ara-integrated-...-v1`, and/or `ara-modular-...-v1` cache-key suffixes as applicable. A change to the pinned Ara generator revision must update the revision in both the clone step and all cache keys. The caches are optimisations only: a cache miss rebuilds that stage, and normal Actions artifacts are still uploaded for downstream jobs and review.
 
 Male anatomy is built and reviewed by the main Wren pipeline from the same cached Ara source exports as the female anatomy. There is no separate male workflow that independently clones Ara and repeats the male export/integration.
