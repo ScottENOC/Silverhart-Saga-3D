@@ -59,7 +59,7 @@ jobs:
           test -s dist/game/index.html
           find dist/game -maxdepth 1 -type f -name '*.wasm' -print -quit | grep -q .
           find dist/game -maxdepth 1 -type f -name '*.pck' -print -quit | grep -q .
-          printf '%s\\n' "${GITHUB_SHA}" > dist/game/build-version.txt
+          printf '%s\n' "${GITHUB_SHA}" > dist/game/build-version.txt
           python tools/pwa/package_godot_pwa.py --directory dist/game --version "${GITHUB_SHA}"
           python -m py_compile tools/pwa/package_godot_pwa.py
           python - <<'PY'
