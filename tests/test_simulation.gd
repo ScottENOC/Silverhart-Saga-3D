@@ -12,6 +12,8 @@ func _initialize() -> void:
     _test_world_clock()
     _test_combat_turn_scheduler()
     _test_combat_resolution()
+    _test_downed_and_death_lifecycle()
+    _test_unified_action_contract()
     if _failures > 0:
         push_error("%d test assertion(s) failed." % _failures)
         quit(1)
@@ -278,7 +280,7 @@ func _test_combat_resolution() -> void:
     }, lethal_rng)
     _check(bool(lethal.get("hit", false)))
     _check(bool(lethal.get("target_defeated", false)))
-    _check(not target.alive and target.health == 0)
+    _check(not target.alive and target.health <= -target.max_health * 0.5)
 
     var poor := CharacterState.new("poor", "Poor")
     poor.time_points = 1.0
@@ -305,4 +307,54 @@ func _test_combat_resolution() -> void:
     _check(sim_target.health == 88)
     _check(is_equal_approx(sim_attacker.time_points, 45.0))
     _check(not bool(sim.try_attack_character("sim_guard", "sim_hero", {}, 11).get("ok", false)))
+    sim.free()
+
+func _test_downed_and_death_lifecycle() -> void:
+    var target := CharacterState.new("target", "Target")
+    target.max_health = 100
+    target.health = 20
+    _check(target.apply_damage(40) == "downed")
+    _check(target.alive and target.unconscious)
+    _check(target.health == -20, "Downed HP remains negative rather than clamping to zero")
+    _check(target.can_be_targeted(), "Unconscious living characters remain valid targets")
+    _check(not target.can_act(), "Unconscious characters cannot act")
+    _check(not target.can_start_combat_turn(), "Unconscious characters cannot receive turns")
+    _check(target.apply_healing(15) == "revived_from_unconscious")
+    _check(target.health == -5 and not target.unconscious and target.alive)
+    _check(target.apply_damage(46) == "died")
+    _check(not target.alive and not target.unconscious)
+    _check(target.health <= -50, "True death occurs at or below -50% maximum HP")
+    _check(target.apply_healing(100) == "unchanged", "Healing does not silently resurrect true-dead characters")
+    var second := CharacterState.new("second", "Second")
+    second.health = 1
+    second.apply_damage(51)
+    _check(not second.alive and not second.unconscious, "Exact -50% HP boundary is true death")
+
+func _test_unified_action_contract() -> void:
+    var sim := WorldSimulation.new()
+    sim.map_data.add_cell(Vector2i(0, 0))
+    sim.map_data.add_cell(Vector2i(1, 0))
+    var mover := CharacterState.new("mover", "Mover", Vector2i.ZERO)
+    mover.time_points = 20.0
+    sim.register_character(mover)
+    var move_result := sim.submit_action(SimulationActionRequest.move("mover", Vector2i(1, 0), 5.0))
+    _check(bool(move_result.get("ok", false)))
+    _check(mover.axial == Vector2i(1, 0))
+    _check(is_equal_approx(mover.time_points, 15.0))
+    var attacker := CharacterState.new("attacker", "Attacker", Vector2i(0, 1))
+    var victim := CharacterState.new("victim", "Victim", Vector2i(1, 1))
+    attacker.to_hit_melee = 100.0
+    attacker.base_damage = 10
+    attacker.time_points = 20.0
+    victim.health = 10
+    victim.max_health = 100
+    sim.register_character(attacker)
+    sim.register_character(victim)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = "attacker"
+    var attack_result := sim.submit_action(SimulationActionRequest.attack("attacker", "victim", {"time_point_cost": 5.0}), 19)
+    _check(bool(attack_result.get("ok", false)))
+    _check(victim.unconscious and victim.alive, "Attack downs rather than kills in the negative HP band")
+    _check(bool(attack_result.get("target_unconscious", false)))
+    _check(String(attack_result.get("action_type", "")) == "attack")
     sim.free()
