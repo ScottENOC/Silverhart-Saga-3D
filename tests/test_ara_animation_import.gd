@@ -118,11 +118,15 @@ func _validate_manifest() -> Dictionary:
 		if not FileAccess.file_exists(asset_path):
 			continue
 		var expected: Dictionary = assets[asset_name]
-		_check(FileAccess.get_length(asset_path) == int(expected.get("size_bytes", -1)),
+		_check(_file_size(asset_path) == int(expected.get("size_bytes", -1)),
 			"Packaged asset size matches manifest: " + asset_name)
 		_check(FileAccess.get_sha256(asset_path) == str(expected.get("sha256", "")),
 			"Packaged asset SHA-256 matches manifest: " + asset_name)
 	return manifest
+
+func _file_size(path: String) -> int:
+	var file := FileAccess.open(path, FileAccess.READ)
+	return file.get_length() if file != null else -1
 
 func _load_scene(path: String, label: String) -> Node3D:
 	var packed := load(path) as PackedScene
