@@ -38,10 +38,10 @@ The first attack resolver is a foundation, not a complete combat port. The next 
 
 1. **Completed in this slice:** typed action requests/results/events provide a shared validation/commit path for movement and attacks; compatibility wrappers remain for existing callers.
 2. **Completed in this slice:** negative-HP downed band, unconscious targetability/turn exclusion, healing wake-up and the -50% max-HP true-death threshold are represented in character state and attack resolution.
-3. **Completed in this slice:** reaction requests are simulation events; dead, unconscious or reaction-blocked reactors resolve immediately with no choice, and incapacitation during a pending request clears it immediately. Pending reactions hold normal turn completion and transient waits are not restored from saves.
-4. **Next:** connect reaction requests to attack/movement triggers and implement reaction effects (parry, dodge, intercept, sidestep), then port attack range/type, facing, cover and line of sight.
-4. **Then:** weapon readiness, attack range/type, facing, cover and line of sight; then interruption and forced movement.
-5. **Encounter slice:** simple tactical AI, encounter start/end conditions and loot, connected to 3D actor/animation presentation.
+3. **Completed in the previous slice:** reaction requests are simulation events; dead, unconscious or reaction-blocked reactors resolve immediately with no choice, and incapacitation during a pending request clears it immediately. Pending reactions hold normal turn completion and transient waits are not restored from saves.
+4. **Initial attack-reaction integration in this slice:** a source-eligible sword/dagger defender can interrupt an attack with Parry. Damage is held until the reaction resolves; a successful parry cancels the hit, consumes the defender's per-turn parry allowance and TP, and still charges the attacker for the attempted action. Parry chance and efficiency/mastery modifiers follow the original game's skill rules. Passive dodge remains part of hit chance; the source does not define a separate generic active-dodge reaction.
+5. **Next:** connect movement triggers and implement Spear Intercept, Spear Halt and Sidestep with validated destination selection. Then extend attack reactions to Protector/Shield Other and other source-backed counters; port range/type, facing, cover and line of sight.
+6. **Encounter slice:** simple tactical AI, encounter start/end conditions and loot, connected to 3D actor/animation presentation.
 
 Do not begin a broad spell/skill/content migration until these shared action and character-state foundations are in place. The first campaign vertical slice remains the Hollow Tankard opening, but its combat branch should consume this reusable combat loop rather than bespoke scripted damage.
 
@@ -62,8 +62,8 @@ Do not begin a broad spell/skill/content migration until these shared action and
 ### M2 — Tactical combat and traversal
 
 - [x] Initial deterministic attack resolver: seeded hit roll, base hit chance, damage, reductions, TP spending and defeated-state result.
-- [ ] Complete attack resolution: weapon readiness, attack type/range, criticals, facing, cover and line of sight.
-- [ ] Combat turn lifecycle: action costs, initiative, reactions, interruption, forced movement, combat start/end and encounter boundaries.
+- [ ] Complete attack resolution: weapon readiness, attack type/range, criticals, facing, cover and line of sight. Initial sword/dagger Parry reaction is implemented.
+- [ ] Combat turn lifecycle: action costs, initiative, movement reactions, remaining defensive reactions, interruption, forced movement, combat start/end and encounter boundaries. Initial defender Parry interruption is implemented.
 - [ ] Downed/unconscious/death states, recovery, corpse/loot handling and companion/NPC consequences. The resolver now preserves negative HP: characters at or below zero but above -50% max HP are unconscious, while <= -50% max HP is true death.
 - [ ] Status-effect framework: duration, stacking/refresh rules, periodic effects, dispel/cleanse, resistances and save/load.
 - [ ] Tactical AI: perception, threat selection, movement/attack/cast choices, retreat and faction/relationship-aware hostility.
