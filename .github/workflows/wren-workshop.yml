@@ -256,7 +256,17 @@ jobs:
         with:
           name: ara-generated-models
           path: /tmp/ara-generated
+      # Reuse the processed body and review renders when anatomy inputs are unchanged.
+      - name: Restore integrated female anatomy
+        id: anatomy-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            art/characters/ara/${{ matrix.variant }}.glb
+            art/characters/ara/review/body/
+          key: ara-integrated-${{ matrix.variant }}-b60b5be-v1-${{ hashFiles('tools/blender/add_adult_anatomy.py', 'tools/blender/inspect_character.py') }}
       - name: Install Blender and integrate adult anatomy
+        if: steps.anatomy-cache.outputs.cache-hit != 'true'
         shell: bash
         env:
           VARIANT: ${{ matrix.variant }}
@@ -309,7 +319,17 @@ jobs:
         with:
           name: ara-generated-models
           path: /tmp/ara-generated
+      # The male body uses the same upstream Ara export cache as the female body.
+      - name: Restore integrated male anatomy
+        id: male-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            art/characters/ara/ara_person_male_body.glb
+            art/characters/ara/review/male/
+          key: ara-integrated-male-b60b5be-v1-${{ hashFiles('tools/blender/add_male_anatomy.py', 'tools/blender/inspect_character.py') }}
       - name: Add skinned male anatomy and render review angles
+        if: steps.male-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -367,7 +387,18 @@ jobs:
           pattern: processed-*
           path: art/characters/ara
           merge-multiple: true
+      # Site-only edits reuse the fully assembled/fitted modular GLBs and review renders.
+      - name: Restore assembled modular character assets
+        id: modular-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            art/characters/ara/ara_person_modular.glb
+            art/characters/ara/ara_person_modular_underwear.glb
+            art/characters/ara/review/outfits/
+          key: ara-modular-b60b5be-v1-${{ hashFiles('tools/ara/assemble_modular_glb.py', 'tools/blender/add_dress_slit.py', 'tools/blender/add_adult_anatomy.py', 'tools/review/render_modular_outfits.py') }}
       - name: Assemble independently selectable equipment model
+        if: steps.modular-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           python tools/ara/assemble_modular_glb.py \
@@ -422,6 +453,7 @@ jobs:
             /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini bottom=Fishnet briefs" \
             /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini strings*=Fishnet briefs ties"
       - name: Install Blender for modular garment fitting
+        if: steps.modular-cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
@@ -434,6 +466,7 @@ jobs:
           blender --background --python-exit-code 1 --python tools/blender/add_dress_slit.py -- --input art/characters/ara/ara_person_modular.glb --output /tmp/ara_person_modular_slit.glb
           mv /tmp/ara_person_modular_slit.glb art/characters/ara/ara_person_modular.glb
       - name: Fit modular garments around integrated anatomy
+        if: steps.modular-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
@@ -450,6 +483,7 @@ jobs:
             --profile none --adult --fit-existing
           mv /tmp/ara_person_modular_underwear_fitted.glb art/characters/ara/ara_person_modular_underwear.glb
       - name: Render dress review angles (non-blocking)
+        if: steps.modular-cache.outputs.cache-hit != 'true'
         id: dress-review
         continue-on-error: true
         shell: bash
@@ -465,6 +499,7 @@ jobs:
           for view in front side rear; do test -s "$OUT/dress/$view.png"; done
           test -s "$OUT/dress/report.json"
       - name: Render lace and fishnet garment review angles
+        if: steps.modular-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
