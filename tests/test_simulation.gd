@@ -14,6 +14,7 @@ func _initialize() -> void:
     _test_combat_resolution()
     _test_downed_and_death_lifecycle()
     _test_unified_action_contract()
+    _test_attack_waits_for_parry_resolution()
     _test_reaction_resolution_safety()
     _test_incapacitated_turn_cleanup()
     if _failures > 0:
@@ -48,6 +49,9 @@ func _test_character_round_trip() -> void:
     _check(restored.quick_recovery_rank == 4)
     _check(int(restored.skills["fastMovement"]) == 2)
     _check(String(restored.equipment["armour"]) == "light_armor")
+    original.parries_remaining = 1
+    restored = CharacterState.from_dict(original.to_dict())
+    _check(restored.parries_remaining == 1, "Parry allowance must survive character serialization")
 
 func _test_movement_validation() -> void:
     var sim := WorldSimulation.new()
