@@ -24,13 +24,25 @@ The old project is a substantial game, not just a hex movement prototype: its so
 | Character state | Foundation | Attributes, full derived stats, XP/levels, mana, stamina/resources, status effects, identity/relationships |
 | Time Points | Initial rules implemented | All action costs, regeneration modifiers, combat/exploration differences and reactions |
 | World clock/calendar | Fixed-step clock and 12-month calendar implemented | Source event hooks, sleep/rest, time speed and world scheduling |
-| Combat initiative | Highest-TP scheduler implemented | Full combat lifecycle, active turns, AI, interruption, death/downed states and cleanup |
+| Combat | Highest-TP initiative and initial deterministic attack resolver implemented (hit chance, damage, reductions, TP cost, seeded outcomes) | Unified action contract, range/weapon readiness/critical/facing/cover/LOS, reactions, downed/death lifecycle, AI, encounter start/end and cleanup |
 | Movement | Paid adjacent movement and weighted A* implemented | Roads, cover, encumbrance, hamstring, friendly squeezing, mounts, occupancy exceptions, reactions, visibility-aware path costs and NPC pathing |
 | Elevation | 3D height samples and slope/climbing costs in progress | Ledges, falls, ladders/stairs, climbing actions, fall damage and height-aware LOS |
 | Presentation | 3D hex terrain, camera, actor and Ara modular-character integration | Combat/interaction animation hooks and state-driven UI |
 | Hollowmere | Village/tavern blockout and authored NPC data | Event-driven opening, dialogue, branching consequences, interiors and full playable loop |
 | Save/load | Character/world-clock dictionary serialisation only | Versioned whole-world persistence and round-trip tests |
 | Other gameplay systems | Not yet represented in the simulation layer | See backlog below |
+
+## Current next porting slice
+
+The first attack resolver is a foundation, not a complete combat port. The next work should be ordered to avoid layering more mechanics on an incomplete state model:
+
+1. **Unify action resolution (M1):** introduce typed action requests/results/events and route movement and attacks through the same validation/commit path. Preserve deterministic tests and TP accounting.
+2. **Port combatant lifecycle (M2):** reproduce the source game's downed/unconscious HP band, true-death threshold, targetability/turn eligibility, recovery and terminal cleanup. Use `tests/combat-downed-state.spec.js` as the initial behavioural reference.
+3. **Port reactions and turn transitions:** model reaction requests as simulation state/events (not UI modals), spend TP correctly, and ensure dead/unconscious characters cannot leave unresolved reaction waits. Reference `tests/reaction-death-detection.spec.js`.
+4. **Complete attack context:** weapon readiness, attack range/type, facing, cover and line of sight; then interruption and forced movement.
+5. **Build one complete encounter:** add simple tactical AI, encounter start/end conditions and loot, then connect the resolver to the 3D actor/animation presentation.
+
+Do not begin a broad spell/skill/content migration until these shared action and character-state foundations are in place. The first campaign vertical slice remains the Hollow Tankard opening, but its combat branch should consume this reusable combat loop rather than bespoke scripted damage.
 
 ## Port backlog and order
 
@@ -42,15 +54,16 @@ The old project is a substantial game, not just a hex movement prototype: its so
 - [x] Highest-Time-Point initiative selection.
 - [x] Paid hex movement and weighted A* using the same terrain cost resolver.
 - [ ] Complete character model: attributes, derived stats, HP/mana, regeneration, XP, levels, class/race traits, status effects and resistances.
-- [ ] Action command/result/event contract. All actions (move, attack, cast, interact, use item, rest) go through the same authoritative resolver.
+- [ ] Action command/result/event contract. The current move and attack entry points are separate; unify move, attack, cast, interact, use item and rest behind one authoritative resolver.
 - [ ] Tick pipeline: world time, TP regeneration, HP/mana/status ticks, upkeep, schedules and world events, with combat-turn pauses matching the source.
 - [ ] Whole-world versioned save/load: characters, party, map diffs, explored/known state, inventory, quests, relationships, factions, regions, schedules, events and campaign flags.
 
 ### M2 — Tactical combat and traversal
 
-- [ ] Basic attack resolution: weapon readiness, attack type/range, hit/defence, damage, criticals, facing, cover and line of sight.
+- [x] Initial deterministic attack resolver: seeded hit roll, base hit chance, damage, reductions, TP spending and defeated-state result.
+- [ ] Complete attack resolution: weapon readiness, attack type/range, criticals, facing, cover and line of sight.
 - [ ] Combat turn lifecycle: action costs, initiative, reactions, interruption, forced movement, combat start/end and encounter boundaries.
-- [ ] Downed/unconscious/death states, recovery, corpse/loot handling and companion/NPC consequences.
+- [ ] Downed/unconscious/death states, recovery, corpse/loot handling and companion/NPC consequences. The current resolver marks any zero-HP character dead; the source game's downed band and true-death threshold are not ported yet.
 - [ ] Status-effect framework: duration, stacking/refresh rules, periodic effects, dispel/cleanse, resistances and save/load.
 - [ ] Tactical AI: perception, threat selection, movement/attack/cast choices, retreat and faction/relationship-aware hostility.
 - [ ] Terrain interactions: climbing, ledges, falls/fall damage, doors, walls, stairs, multi-storey buildings, hazards, traps, cover and height-aware LOS.
