@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Compile anatomy, clothing and review tools
         run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/review/render_modular_outfits.py
       - name: Build Ara 3D Gen benchmark
@@ -223,7 +223,7 @@ jobs:
             cp "/tmp/ara-person-$variant.params.json" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_$variant.params.json"
           done
       - name: Save raw generated models for parallel integration
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ara-generated-models
           path: |
@@ -243,9 +243,9 @@ jobs:
           - ara_person_body
           - ara_person_tattoo_body
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Download generated model
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ara-generated-models
           path: /tmp/ara-generated
@@ -282,7 +282,7 @@ jobs:
             for view in front side rear three_quarter; do test -s "art/characters/ara/review/clothed/$view.png"; done
           fi
       - name: Save integrated model and review renders
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: processed-${{ matrix.variant }}
           path: |
@@ -296,9 +296,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Download generated male base
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ara-generated-models
           path: /tmp/ara-generated
@@ -322,7 +322,7 @@ jobs:
             test -s "art/characters/ara/review/male/$view.png"
           done
       - name: Save male model and review renders
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: processed-ara-male-body
           path: |
@@ -339,9 +339,9 @@ jobs:
       group: combined-pages-deployment
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Download generated parameter files
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ara-generated-models
           path: /tmp/ara-generated
@@ -355,7 +355,7 @@ jobs:
           cp /tmp/ara-generated/ara_person_benchmark.glb art/characters/ara/
           cp /tmp/ara-generated/ara_person_mobile.glb art/characters/ara/
       - name: Collect integrated models and review renders
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: processed-*
           path: art/characters/ara
@@ -488,7 +488,7 @@ jobs:
             fi
           done
       - name: Keep generated models as build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: character-pipeline-evaluation
           path: |
@@ -547,7 +547,7 @@ jobs:
           zip -q -r "$GITHUB_WORKSPACE/ara-runtime-assets.zip" .
           test -s "$GITHUB_WORKSPACE/ara-runtime-assets.zip"
       - name: Upload Ara runtime package versioned by source commit
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ara-runtime-assets-${{ github.sha }}
           path: ara-runtime-assets.zip
@@ -566,7 +566,7 @@ jobs:
             --notes "Generated from Silverhart-Saga-3D commit $GITHUB_SHA using Ara 3D Gen b60b5bece6d383d2cbb7067fd50e7c8e68b5a395. See manifest.json inside the package for SHA-256 checksums and asset provenance."
       - name: Save standalone Wren Workshop site artifact
         if: github.ref_name == 'dev'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wren-workshop-site
           path: site/
@@ -574,24 +574,24 @@ jobs:
           retention-days: 90
       - name: Configure GitHub Pages
         if: github.ref_name == 'dev'
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Upload Wren-only Pages site
         if: github.ref_name == 'dev'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
       - name: Deploy Wren Workshop only
         if: github.ref_name == 'dev'
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
   ara-game-integration:
     name: Validate generated Ara assets in Godot
     needs: publish
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Download the exact runtime package built by this workflow
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ara-runtime-assets-${{ github.sha }}
           path: /tmp/ara-package
