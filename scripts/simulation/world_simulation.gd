@@ -213,6 +213,8 @@ func submit_action(request: SimulationActionRequest, random_seed: int = 0) -> Di
             return {"ok": false, "reason": "unsupported_action_type"}
 
 func _submit_attack(request: SimulationActionRequest, random_seed: int) -> Dictionary:
+    if not pending_reaction.is_empty():
+        return {"ok": false, "reason": "reaction_pending"}
     if not is_in_combat or not turn_scheduler.has_active_turn():
         return {"ok": false, "reason": "no_active_combat_turn"}
     if turn_scheduler.current_character_id != request.actor_id:
@@ -327,6 +329,8 @@ func _resolve_attack_action(attacker_id: String, target_id: String, options: Dic
     return SimulationActionResult.new("attack", false, String(result.get("reason", "action_failed")), attacker_id, target_id, result).to_dict()
 
 func _submit_move(request: SimulationActionRequest) -> Dictionary:
+    if not pending_reaction.is_empty():
+        return {"ok": false, "reason": "reaction_pending"}
     var state := get_character(request.actor_id)
     var terrain_cost := bool(request.options.get("terrain_cost", false))
     var combat_step := bool(request.options.get("combat_step", false))
