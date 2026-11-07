@@ -41,6 +41,36 @@ func _init(character_id: String = "", character_name: String = "", start_hex: Ve
     display_name = character_name
     axial = start_hex
 
+func can_be_targeted() -> bool:
+    return alive
+
+func can_act() -> bool:
+    return alive and not unconscious
+
+## Source behaviour: 0..-50% max HP is unconscious; <= -50% is true death.
+func apply_damage(amount: int) -> String:
+    if not alive or amount <= 0:
+        return "unchanged"
+    health -= amount
+    if float(health) <= -float(max_health) * 0.5:
+        alive = false
+        unconscious = false
+        return "died"
+    if health <= 0:
+        unconscious = true
+        return "downed"
+    return "damaged"
+
+## Healing above zero wakes an unconscious living character. True death is terminal.
+func apply_healing(amount: int) -> String:
+    if not alive or amount <= 0:
+        return "unchanged"
+    health = mini(max_health, health + amount)
+    if unconscious and health > 0:
+        unconscious = false
+        return "revived_from_unconscious"
+    return "healed"
+
 func can_start_combat_turn() -> bool:
     return ActionEconomy.can_start_combat_turn(
         time_points, alive, unconscious, is_rider, combat_dormant
