@@ -227,7 +227,9 @@ jobs:
           set -euo pipefail
           for model in ara_person_benchmark ara_person_body ara_person_tattoo_body ara_person_male_raw ara_person_mobile tank_top halter_bra_lace halter_bra_fishnet triangle_bikini_top string_bikini_bottom lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants backless_slit_dress leather_armor; do
             test -s "art/characters/ara/${model}.glb"
-            test -s "art/characters/ara/${model}.params.json"
+            params_name="$model"
+            if [ "$model" = "ara_person_male_raw" ]; then params_name="ara_person_male"; fi
+            test -s "art/characters/ara/${params_name}.params.json"
           done
       - name: Save raw generated models for parallel integration
         uses: actions/upload-artifact@v4
