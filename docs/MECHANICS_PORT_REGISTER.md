@@ -38,7 +38,8 @@ The first attack resolver is a foundation, not a complete combat port. The next 
 
 1. **Completed in this slice:** typed action requests/results/events provide a shared validation/commit path for movement and attacks; compatibility wrappers remain for existing callers.
 2. **Completed in this slice:** negative-HP downed band, unconscious targetability/turn exclusion, healing wake-up and the -50% max-HP true-death threshold are represented in character state and attack resolution.
-3. **Next:** reactions and turn transitions as simulation state/events, including immediate resolution for dead/unconscious reactors. Reference `tests/reaction-death-detection.spec.js`.
+3. **Completed in this slice:** reaction requests are simulation events; dead, unconscious or reaction-blocked reactors resolve immediately with no choice, and incapacitation during a pending request clears it immediately. Pending reactions hold normal turn completion and transient waits are not restored from saves.
+4. **Next:** connect reaction requests to attack/movement triggers and implement reaction effects (parry, dodge, intercept, sidestep), then port attack range/type, facing, cover and line of sight.
 4. **Then:** weapon readiness, attack range/type, facing, cover and line of sight; then interruption and forced movement.
 5. **Encounter slice:** simple tactical AI, encounter start/end conditions and loot, connected to 3D actor/animation presentation.
 
@@ -54,7 +55,7 @@ Do not begin a broad spell/skill/content migration until these shared action and
 - [x] Highest-Time-Point initiative selection.
 - [x] Paid hex movement and weighted A* using the same terrain cost resolver.
 - [ ] Complete character model: attributes, derived stats, HP/mana, regeneration, XP, levels, class/race traits, status effects and resistances.
-- [ ] Action command/result/event contract. The current move and attack entry points are separate; unify move, attack, cast, interact, use item and rest behind one authoritative resolver.
+- [x] Initial action command/result/event contract for movement and attacks. Extend it to cast, interact, use item and rest as those systems are ported.
 - [ ] Tick pipeline: world time, TP regeneration, HP/mana/status ticks, upkeep, schedules and world events, with combat-turn pauses matching the source.
 - [ ] Whole-world versioned save/load: characters, party, map diffs, explored/known state, inventory, quests, relationships, factions, regions, schedules, events and campaign flags.
 
