@@ -300,7 +300,7 @@ func _create_characters() -> void:
     # The player remains a neutral placeholder until a player-appearance
     # choice is made. Every named village character is loaded from the shared
     # Ara profile manifest and its generated GLB when that asset pack is installed.
-    _spawn_character("player", "You", Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true)
+    _spawn_character("player", "Adventurer", Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true, "player_avatar")
 
     var profile_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
     if profile_file == null:
@@ -314,6 +314,8 @@ func _create_characters() -> void:
         if not profile_variant is Dictionary:
             continue
         var profile: Dictionary = profile_variant
+        if str(profile.get("role", "")) == "player avatar":
+            continue
         var coordinates: Array = profile.get("hex", [0, 0])
         if coordinates.size() < 2:
             continue
