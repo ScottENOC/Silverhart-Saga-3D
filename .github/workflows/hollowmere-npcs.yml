@@ -56,4 +56,4 @@ jobs:
             art/characters/hollowmere/*.params.json
             art/characters/hollowmere/profiles.json
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 90
