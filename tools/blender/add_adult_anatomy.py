@@ -91,6 +91,36 @@ def bone_world_span(armature, names, fallback=None):
     raise RuntimeError("Required anatomical rig landmark not found: " + "/".join(sorted(names)))
 
 
+def pelvis_landmark_from_leg_roots(armature, height):
+    """Use paired femur roots as the hip-joint line, not the long Hips bone midpoint."""
+    aliases = {
+        "left": {"leftupleg", "leftupperleg", "upleg_l", "upperleg_l",
+                 "thigh_l", "leftthigh", "lthigh", "thigh.l"},
+        "right": {"rightupleg", "rightupperleg", "upleg_r", "upperleg_r",
+                  "thigh_r", "rightthigh", "rthigh", "thigh.r"},
+    }
+    found = {}
+    for side, names in aliases.items():
+        bone = next((b for b in armature.data.bones
+                     if b.name.lower().replace(" ", "").replace("-", "_") in names), None)
+        if bone is not None:
+            found[side] = armature.matrix_world @ bone.head_local
+    if len(found) != 2:
+        relevant = ", ".join(b.name for b in armature.data.bones
+                             if any(token in b.name.lower() for token in ("leg", "thigh", "upleg")))
+        raise RuntimeError(
+            "Cannot locate paired upper-leg roots for pelvic anatomy placement. "
+            f"Found {sorted(found)}; relevant rig bones: {relevant or 'none'}"
+        )
+    z = (found["left"].z + found["right"].z) * 0.5
+    print(
+        "Pelvic landmark from paired upper-leg roots: "
+        f"left={found['left'].z:.4f}, right={found['right'].z:.4f}, "
+        f"centre={z:.4f}, character height={height:.4f}"
+    )
+    return z
+
+
 def frontmost_vertex_anchor(obj, x_min, x_max, z_min, z_max):
     # Pick an actual evaluated skin vertex in a tightly bounded anatomical region.
     # The vertex normal gives a stable surface orientation for the accessory.
@@ -191,7 +221,7 @@ def uv_ellipsoid(name, location, scale, collection):
     return obj
 
 
-def integrate_anatomy_into_skin(skin, pelvis_z, width, height):
+def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
     """Sculpt the existing skin mesh in-place, preserving its UVs/material/weights."""
     import bmesh
     bm = bmesh.new()
@@ -205,7 +235,7 @@ def integrate_anatomy_into_skin(skin, pelvis_z, width, height):
         normal = skin.matrix_world.to_3x3() @ (edge.verts[0].normal + edge.verts[1].normal)
         if normal.length:
             normal.normalize()
-        if abs(world.x) < width*0.25 and abs(world.z-pelvis_z) < 0.105 and normal.y < -0.12:
+        if abs(world.x) < width*0.25 and abs(world.z-anatomy_z) < 0.15 and normal.y < -0.12:
             edges.append(edge)
     if edges:
         bmesh.ops.subdivide_edges(bm, edges=edges, cuts=2, use_grid_fill=True)
@@ -214,20 +244,27 @@ def integrate_anatomy_into_skin(skin, pelvis_z, width, height):
     def g(x,z,cx,cz,sx,sz):
         return math.exp(-0.5*(((x-cx)/sx)**2+((z-cz)/sz)**2))
 
-    # Ara faces -Y. Outward shaping moves vertices toward -Y; the central
-    # cleft is a shallow +Y inset. All changes remain on the original skin mesh.
+    # Ara faces -Y. The paired femur-root line is the hip-joint landmark, not
+    # the vulvar centre. The labial folds, cleft and hood are sculpted directly
+    # into the existing skin surface; no attached genital object is added.
+    centre_z = anatomy_z
     for v in bm.verts:
         p = skin.matrix_world @ v.co
         n = skin.matrix_world.to_3x3() @ v.normal
         if n.length:
             n.normalize()
-        if n.y > -0.10 or abs(p.x) > width*0.27 or abs(p.z-pelvis_z) > 0.12:
+        if n.y > -0.10 or abs(p.x) > width*0.27 or abs(p.z-centre_z) > 0.15:
             continue
-        mons = g(p.x,p.z,0.0,pelvis_z+0.052,width*0.105,0.030)
-        outer = g(p.x,p.z,-width*0.055,pelvis_z+0.002,width*0.038,0.047) + g(p.x,p.z,width*0.055,pelvis_z+0.002,width*0.038,0.047)
-        inner = g(p.x,p.z,-width*0.022,pelvis_z-0.004,width*0.016,0.034) + g(p.x,p.z,width*0.022,pelvis_z-0.004,width*0.016,0.034)
-        cleft = g(p.x,p.z,0.0,pelvis_z-0.004,width*0.010,0.041)
-        p.y -= 0.0035*mons + 0.0055*outer + 0.0020*inner - 0.0022*cleft
+        mons = g(p.x,p.z,0.0,centre_z+0.058,width*0.105,0.032)
+        outer_l = g(p.x,p.z,-width*0.060,centre_z-0.004,width*0.036,0.052)
+        outer_r = g(p.x,p.z, width*0.060,centre_z-0.004,width*0.036,0.052)
+        inner_l = g(p.x,p.z,-width*0.024,centre_z-0.006,width*0.017,0.039)
+        inner_r = g(p.x,p.z, width*0.024,centre_z-0.006,width*0.017,0.039)
+        cleft = g(p.x,p.z,0.0,centre_z-0.010,width*0.010,0.047)
+        hood = g(p.x,p.z,0.0,centre_z+0.034,width*0.024,0.012)
+        p.y -= (0.0030*mons + 0.0065*(outer_l+outer_r)
+                + 0.0032*(inner_l+inner_r) + 0.0030*hood
+                - 0.0030*cleft)
         v.co = inv @ p
     bm.normal_update()
     bm.to_mesh(skin.data)
@@ -336,14 +373,15 @@ def main():
     maximum = Vector(tuple(max(b[1][i] for b in all_bounds) for i in range(3)))
     height = maximum.z - minimum.z
     width = max(mesh_world_bounds(skin)[1].x - mesh_world_bounds(skin)[0].x, 0.4)
-    hip_bone = next((b for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), None)
-    pelvis_z = ((armature.matrix_world @ ((hip_bone.head_local + hip_bone.tail_local) * 0.5)).z
-                if hip_bone else minimum.z + height * 0.445)
+    # The Hips bone midpoint sits too high on this rig; the paired femur heads
+    # identify the actual hip-joint line. The vulvar centre is inferior to it.
+    hipline_z = pelvis_landmark_from_leg_roots(armature, height)
+    anatomy_z = hipline_z - height * 0.035
 
     # Use the actual exposed skin surface when available. In clothed exports,
     # skin is removed under trousers, so use the trouser surface and step inward.
     surface_tree = build_bvh(skin)
-    hit = front_hit(surface_tree, 0.0, pelvis_z)
+    hit = front_hit(surface_tree, 0.0, anatomy_z)
     body_front_y = hit.y if hit is not None else None
     pelvis_surface_tree = surface_tree
     if body_front_y is None:
@@ -353,7 +391,7 @@ def main():
         candidates = []
         x_samples = [0.0, -0.025, 0.025, -0.05, 0.05, -0.075, 0.075,
                      -width * 0.10, width * 0.10, -width * 0.14, width * 0.14]
-        z_samples = [pelvis_z + dz for dz in (0.0, -0.015, 0.015, -0.03, 0.03,
+        z_samples = [anatomy_z + dz for dz in (0.0, -0.015, 0.015, -0.03, 0.03,
                                                -0.045, 0.045, -0.06, 0.06)]
         # Prefer a lower-garment mesh when its material is identifiable, but
         # also inspect all remaining meshes: Ara's material labels vary by export.
@@ -368,7 +406,7 @@ def main():
                     if result:
                         location, normal = result
                         if normal.y < -0.15:
-                            candidates.append((abs(z - pelvis_z) + abs(x) * 0.35,
+                            candidates.append((abs(z - anatomy_z) + abs(x) * 0.35,
                                                location.y, location, candidate_obj.name))
             if candidates and any(k in material_name(candidate_obj) for k in ("pants", "trouser", "brief", "underwear")):
                 break
@@ -386,7 +424,7 @@ def main():
         raise RuntimeError("Could not locate the front pelvis surface after grid scan. Meshes: " + " | ".join(details))
 
     # Expand lower garments before adding the anatomy so their surfaces clear it.
-    expand_lower_garments(meshes, pelvis_z, body_front_y, width)
+    expand_lower_garments(meshes, anatomy_z, body_front_y, width)
 
     if args.fit_existing:
         # The base skin remains present beneath transparent clothing. Fit only
@@ -412,13 +450,13 @@ def main():
 
     anatomy = None
     if args.profile == "female":
-        anatomy = integrate_anatomy_into_skin(skin, pelvis_z, width, height)
+        anatomy = integrate_anatomy_into_skin(skin, anatomy_z, width, height)
         surface_tree = build_bvh(skin)
         pelvis_surface_tree = surface_tree
-    create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, pelvis_z, body_front_y)
+    create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, anatomy_z, body_front_y)
     if anatomy is not None:
         # The hood sits just above the vulvar cleft, not on the mons pubis.
-        hood_hit = front_hit_data(surface_tree, 0.0, pelvis_z + 0.022)
+        hood_hit = front_hit_data(surface_tree, 0.0, anatomy_z + 0.034)
         if hood_hit:
             location = hood_hit[0] + hood_hit[1].normalized() * 0.0015
             hip_name = next((b.name for b in armature.data.bones if b.name.lower() in ("hips", "hip", "pelvis")), "Hips")

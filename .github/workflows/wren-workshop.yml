@@ -4,7 +4,7 @@ name: Build Wren Workshop
 on:
   workflow_dispatch:
   push:
-    branches: [dev, integration/wren-modular-clothing]
+    branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy]
     paths:
       - "tools/blender/**"
       - "tools/ara/**"
@@ -24,6 +24,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Compile anatomy, clothing and review tools
+        run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/review/render_modular_outfits.py
       - name: Build Ara 3D Gen benchmark
         shell: bash
         run: |
@@ -128,6 +130,7 @@ jobs:
           p = json.load(open('/tmp/ara-person-body.params.json'))
           p.update({
               "name": "Ara Base Person - male body",
+              "seed": 417,
               "gender": 1,
               "breastSize": 0,
               "breastFirmness": 0
@@ -172,15 +175,24 @@ jobs:
           base = json.load(open('/tmp/ara-person.params.json'))
           variants = {
               "tank_top": {"top":"tank_top", "underTop":"none", "underBottom":"none", "bottom":"none"},
-              "halter_bra_lace": {"top":"none", "underTop":"halter_bra_lace", "underBottom":"none", "bottom":"none"},
+              "halter_bra_lace": {"top":"none", "underTop":"halter_bra_lace", "underBottom":"none", "bottom":"none",
+                                  "garmentStyles":{"halter_bra_lace":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
+              "halter_bra_fishnet": {"top":"none", "underTop":"halter_bra_fishnet", "underBottom":"none", "bottom":"none",
+                                     "garmentStyles":{"halter_bra_fishnet":{"pattern":"fishnet","color":"#29242d","color2":"#987b91"}}},
               "triangle_bikini_top": {"top":"none", "underTop":"bikini_top", "underBottom":"none", "bottom":"none"},
               "string_bikini_bottom": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none"},
               "lace_briefs": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none",
                               "garmentStyles":{"bikini_bottom":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
+              "fishnet_briefs": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none",
+                                 "garmentStyles":{"bikini_bottom":{"pattern":"fishnet","color":"#29242d","color2":"#987b91"}}},
               "lace_shirt": {"top":"fatigue_shirt", "underTop":"none", "underBottom":"none", "bottom":"none",
                              "garmentStyles":{"fatigue_shirt":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
+              "fishnet_shirt": {"top":"fatigue_shirt", "underTop":"none", "underBottom":"none", "bottom":"none",
+                                "garmentStyles":{"fatigue_shirt":{"pattern":"fishnet","color":"#29242d","color2":"#987b91"}}},
               "lace_pants": {"top":"none", "underTop":"none", "underBottom":"none", "bottom":"fatigue_pants",
                              "garmentStyles":{"fatigue_pants":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
+              "fishnet_pants": {"top":"none", "underTop":"none", "underBottom":"none", "bottom":"fatigue_pants",
+                                "garmentStyles":{"fatigue_pants":{"pattern":"fishnet","color":"#29242d","color2":"#987b91"}}},
               "backless_slit_dress": {"top":"backless_slit_dress", "underTop":"none", "underBottom":"none", "bottom":"none"},
               "leather_armor": {"top":"none", "underTop":"none", "underBottom":"none", "bottom":"none", "accessories":["leather_armor"]}
           }
@@ -191,7 +203,7 @@ jobs:
               p.update(updates)
               json.dump(p, open('/tmp/ara-person-'+key+'.params.json','w'), indent=2)
           PY
-          for variant in tank_top halter_bra_lace triangle_bikini_top string_bikini_bottom lace_briefs lace_shirt lace_pants backless_slit_dress leather_armor; do
+          for variant in tank_top halter_bra_lace halter_bra_fishnet triangle_bikini_top string_bikini_bottom lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants backless_slit_dress leather_armor; do
             mkdir -p "/tmp/ara-$variant-out"
             npm run export -- --params "/tmp/ara-person-$variant.params.json" --detail high --formats glb --out "/tmp/ara-$variant-out"
             VARIANT_GLB="$(find "/tmp/ara-$variant-out" -maxdepth 1 -type f -name '*.glb' -print -quit)"
@@ -349,7 +361,10 @@ jobs:
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
             /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
             /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra piping" \
             /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra straps" \
+            /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra straps" \
             /tmp/ara-generated/ara_person_benchmark.glb "Briefs" \
             /tmp/ara-generated/ara_person_tank_top.glb "Tank top" \
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
@@ -358,15 +373,23 @@ jobs:
             /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings" \
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini bottom=Lace briefs" \
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties" \
+            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini bottom=Fishnet briefs" \
+            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini strings*=Fishnet briefs ties" \
             /tmp/ara-generated/ara_person_lace_shirt.glb "Fatigue shirt=Lace shirt" \
+            /tmp/ara-generated/ara_person_fishnet_shirt.glb "Fatigue shirt=Fishnet shirt" \
             /tmp/ara-generated/ara_person_lace_pants.glb "Fatigue pants#1=Lace pants" \
-            /tmp/ara-generated/ara_person_lace_pants.glb "Fatigue pants#2=Lace pants"
+            /tmp/ara-generated/ara_person_lace_pants.glb "Fatigue pants#2=Lace pants" \
+            /tmp/ara-generated/ara_person_fishnet_pants.glb "Fatigue pants#1=Fishnet pants" \
+            /tmp/ara-generated/ara_person_fishnet_pants.glb "Fatigue pants#2=Fishnet pants"
           python tools/ara/assemble_modular_glb.py \
             art/characters/ara/ara_person_body.glb art/characters/ara/ara_person_modular_underwear.glb \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
             /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
             /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra piping" \
             /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra straps" \
+            /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra straps" \
             /tmp/ara-generated/ara_person_benchmark.glb "Briefs" \
             /tmp/ara-generated/ara_person_tank_top.glb "Tank top" \
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
@@ -374,7 +397,9 @@ jobs:
             /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
             /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings" \
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini bottom=Lace briefs" \
-            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties"
+            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties" \
+            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini bottom=Fishnet briefs" \
+            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini strings*=Fishnet briefs ties"
       - name: Install Blender for modular garment fitting
         run: |
           sudo apt-get update
@@ -403,6 +428,23 @@ jobs:
             --output /tmp/ara_person_modular_underwear_fitted.glb \
             --profile none --adult --fit-existing
           mv /tmp/ara_person_modular_underwear_fitted.glb art/characters/ara/ara_person_modular_underwear.glb
+      - name: Render lace and fishnet garment review angles
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          OUT=art/characters/ara/review/outfits
+          mkdir -p "$OUT"
+          blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
+            art/characters/ara/ara_person_modular.glb "$OUT" \
+            lace_bra fishnet_bra lace_briefs fishnet_briefs \
+            lace_shirt fishnet_shirt lace_pants fishnet_pants
+          for outfit in lace_bra fishnet_bra lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants; do
+            for view in front side rear; do test -s "$OUT/$outfit/$view.png"; done
+            test -s "$OUT/$outfit/report.json"
+          done
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v4
         with:
