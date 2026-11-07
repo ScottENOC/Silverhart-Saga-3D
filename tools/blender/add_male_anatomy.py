@@ -185,7 +185,7 @@ def main():
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=os.path.abspath(args.output), export_format="GLB",
                               use_selection=True, export_apply=False, export_animations=True)
-    print("Exported separate skinned male anatomy component; inspect front, side and three-quarter views.")
+    print("Exported integrated male skin sculpt; inspect front, side and three-quarter views.")
 
 
 if __name__ == "__main__":
