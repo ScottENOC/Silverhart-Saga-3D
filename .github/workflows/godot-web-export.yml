@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out game project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Locate latest successful Hollowmere Ara character pack
         id: ara-pack
@@ -53,7 +53,7 @@ jobs:
           echo "run_id=$ARA_RUN" >> "$GITHUB_OUTPUT"
 
       - name: Download generated Hollowmere Ara character models
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: hollowmere-npc-models
           repository: ${{ github.repository }}
@@ -111,7 +111,7 @@ jobs:
           PY
 
       - name: Save browser build for combined Pages deployment
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: godot-web-export
           path: dist/game/
