@@ -43,6 +43,13 @@ def clear_scene():
 def import_model(path):
     bpy.ops.import_scene.gltf(filepath=os.path.abspath(path))
 
+def canonical_garment_name(name):
+    """Collapse Blender's import-time .001/.002 material copies to their source slot."""
+    if name in GARMENTS:
+        return name
+    base = __import__("re").sub(r"\\.\\d{3}$", "", name)
+    return base if base in GARMENTS else name
+
 def material_names():
     names = set()
     for obj in bpy.context.scene.objects:
@@ -60,7 +67,8 @@ def isolate_outfit(keep):
         faces = []
         for face in bm.faces:
             idx = face.material_index
-            name = mesh.materials[idx].name if idx < len(mesh.materials) and mesh.materials[idx] else ""
+            raw_name = mesh.materials[idx].name if idx < len(mesh.materials) and mesh.materials[idx] else ""
+            name = canonical_garment_name(raw_name)
             if name in keep:
                 kept_faces[name] = kept_faces.get(name, 0) + 1
             if name in GARMENTS and name not in keep:
@@ -106,7 +114,9 @@ def render_outfit(input_path, output_root, outfit, keep):
     clear_scene()
     import_model(input_path)
     available = material_names()
-    unknown = sorted(name for name in available if any(k in name.lower() for k in ("pants", "dress", "skirt", "halter", "bra", "brief", "shirt", "bikini", "shoes", "boot", "armor")) and name not in GARMENTS)
+    unknown = sorted(name for name in available
+                     if any(k in name.lower() for k in ("pants", "dress", "skirt", "halter", "bra", "brief", "shirt", "bikini", "shoes", "boot", "armor"))
+                     and canonical_garment_name(name) not in GARMENTS)
     if unknown:
         raise RuntimeError("Unclassified garment material(s): " + ", ".join(unknown))
     removed, kept_faces = isolate_outfit(keep)
