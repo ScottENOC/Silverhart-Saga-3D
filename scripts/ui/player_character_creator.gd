@@ -51,7 +51,7 @@ func _build_screen() -> void:
     scroll.add_child(centre)
 
     var panel := VBoxContainer.new()
-    panel.custom_minimum_size = Vector2(560, 0)
+    panel.custom_minimum_size = Vector2(340, 0)
     panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     panel.add_theme_constant_override("separation", 10)
     centre.add_child(panel)
@@ -110,7 +110,7 @@ func _line_edit(parent: VBoxContainer, label_text: String, placeholder: String) 
     parent.add_child(row)
     var label := Label.new()
     label.text = label_text
-    label.custom_minimum_size.x = 205
+    label.custom_minimum_size.x = 145
     row.add_child(label)
     var field := LineEdit.new()
     field.placeholder_text = placeholder
