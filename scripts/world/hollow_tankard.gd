@@ -755,3 +755,22 @@ func _add_box(parent: Node3D, node_name: String, position: Vector3, size: Vector
     instance.material_override = material
     parent.add_child(instance)
     return instance
+
+
+func apply_player_profile(profile: Dictionary) -> void:
+    var actor := actor_by_id.get("player") as Node3D
+    if actor == null:
+        return
+    actor.set_meta("player_profile", profile.duplicate(true))
+    var name_label := actor.get_node_or_null("Label3D") as Label3D
+    if name_label != null:
+        name_label.text = str(profile.get("name", "Adventurer"))
+    # The current capsule placeholder has no authored eyes or hair surfaces.
+    # Apply skin tone to its visible head; preserve all other choices in profile
+    # data until the generic Ara player model exposes modular material slots.
+    var head := actor.get_node_or_null("MeshInstance3D2") as MeshInstance3D
+    if head != null:
+        var skin := Color.from_string(str(profile.get("skin_colour", "#b9825f")), Color(0.72, 0.57, 0.43))
+        head.material_override = _material(skin)
+    actor.set_meta("gender_presentation", str(profile.get("gender_presentation", "Androgynous")))
+    actor.set_meta("pronouns", str(profile.get("pronouns", "they/them")))
