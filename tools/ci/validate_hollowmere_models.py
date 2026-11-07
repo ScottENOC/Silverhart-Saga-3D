@@ -22,8 +22,10 @@ def main() -> None:
     expected = {item["id"] for item in source.get("characters", [])}
     actual_items = generated.get("characters", [])
     actual = {item.get("id") for item in actual_items}
-    if len(expected) != 13:
-        fail(f"source cast changed unexpectedly: expected 13 profiles, found {len(expected)}")
+    if len(expected) != 14:
+        fail(f"source cast changed unexpectedly: expected 13 village NPCs plus 1 player avatar, found {len(expected)}")
+    if not any(item.get("id") == "player_avatar" and item.get("role") == "player avatar" for item in source.get("characters", [])):
+        fail("generic Ara player avatar profile is missing")
     if len(actual_items) != len(expected) or actual != expected:
         fail(f"profile mismatch; missing={sorted(expected - actual)}, extra={sorted(actual - expected)}")
 
