@@ -1,41 +1,10 @@
 #!/usr/bin/env python3
-"""Add install/update/offline support to the exported Godot web build."""
+"""Add version, safe update prompt and on-device diagnostics to Godot's native PWA."""
 from __future__ import annotations
 
 import argparse
 import json
-import math
-import struct
-import zlib
 from pathlib import Path
-
-
-def png_icon(path: Path, size: int) -> None:
-    """Write a small, dependency-free app icon PNG."""
-    rows = []
-    for y in range(size):
-        row = bytearray([0])
-        for x in range(size):
-            nx = (x - size / 2) / (size / 2)
-            ny = (y - size / 2) / (size / 2)
-            # Deep navy background with a restrained gold compass/rising-sun mark.
-            r, g, b = 15, 20, 31
-            radius = math.hypot(nx, ny)
-            if 0.55 < radius < 0.63:
-                r, g, b = 205, 170, 103
-            if abs(nx) < 0.075 and -0.38 < ny < 0.34:
-                r, g, b = 231, 203, 145
-            if abs(ny - (0.28 - abs(nx) * 0.42)) < 0.055 and abs(nx) < 0.34:
-                r, g, b = 231, 203, 145
-            if abs(ny + 0.28) < 0.045 and abs(nx) < 0.25:
-                r, g, b = 205, 170, 103
-            row.extend((r, g, b, 255))
-        rows.append(bytes(row))
-    raw = b"".join(rows)
-    def chunk(kind: bytes, data: bytes) -> bytes:
-        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff)
-    header = struct.pack(">2I5B", size, size, 8, 6, 0, 0, 0)
-    path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
 
 
 def main() -> None:
@@ -45,105 +14,28 @@ def main() -> None:
     args = parser.parse_args()
     root = args.directory
     index = root / "index.html"
-    if not index.is_file():
-        raise SystemExit(f"Godot export is missing: {index}")
-    html = index.read_text(encoding="utf-8")
+    manifest_path = root / "index.manifest.json"
+    worker_path = root / "index.service.worker.js"
     version = args.version.strip()
+
+    if not index.is_file() or not manifest_path.is_file() or not worker_path.is_file():
+        raise SystemExit("Godot's native PWA export is incomplete (expected index.html, index.manifest.json and index.service.worker.js).")
     if not version:
         raise SystemExit("A non-empty build version is required.")
 
-    manifest = {
-        "id": "./",
-        "name": "Silverhart Saga",
-        "short_name": "Silverhart",
-        "description": "Silverhart Saga — game prototype",
-        "start_url": "./",
-        "scope": "./",
-        "display": "standalone",
-        "background_color": "#0f141f",
-        "theme_color": "#0f141f",
-        "icons": [
-            {"src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-            {"src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
-        ]
-    }
-    (root / "manifest.webmanifest").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    (root / "icon.svg").write_text(
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#0f141f"/><circle cx="256" cy="256" r="174" fill="none" stroke="#cdaa67" stroke-width="18"/><path d="M256 110v205m-92-24 92 75 92-75M174 365h164" fill="none" stroke="#e7cb91" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/></svg>\n',
-        encoding="utf-8",
-    )
-    png_icon(root / "icon-192.png", 192)
-    png_icon(root / "icon-512.png", 512)
-    png_icon(root / "apple-touch-icon.png", 180)
+    # Keep Godot's own manifest, icons and service worker. The native worker
+    # handles offline wasm/pck caching and COOP/COEP response headers.
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["name"] = "Silverhart Saga"
+    manifest["short_name"] = "Silverhart"
+    manifest["scope"] = "./"
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
-    sw = r"""const CACHE_NAME = "silverhart-game-__VERSION__";
-const CACHE_PREFIX = "silverhart-game-";
-const APP_ROOT = new URL("./", self.location.href);
-self.addEventListener("install", event => {
-  event.waitUntil((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    await cache.addAll([
-      new URL("./", APP_ROOT).href,
-      new URL("./manifest.webmanifest", APP_ROOT).href,
-      new URL("./apple-touch-icon.png", APP_ROOT).href,
-      new URL("./icon-192.png", APP_ROOT).href,
-      new URL("./icon-512.png", APP_ROOT).href,
-      new URL("./build-version.txt", APP_ROOT).href
-    ]);
-  })());
-});
-self.addEventListener("message", event => {
-  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
-});
-self.addEventListener("activate", event => {
-  event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map(key => caches.delete(key)));
-    await self.clients.claim();
-  })());
-});
-self.addEventListener("fetch", event => {
-  const request = event.request;
-  if (request.method !== "GET" || request.headers.has("range")) return;
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin || !url.pathname.startsWith(APP_ROOT.pathname)) return;
-  if (request.mode === "navigate") {
-    event.respondWith((async () => {
-      try {
-        const response = await fetch(request);
-        if (response && response.ok) {
-          const cache = await caches.open(CACHE_NAME);
-          cache.put(new URL("./", APP_ROOT).href, response.clone()).catch(() => {});
-        }
-        return response;
-      } catch (_) {
-        return (await caches.match(new URL("./", APP_ROOT).href)) || Response.error();
-      }
-    })());
-    return;
-  }
-  event.respondWith((async () => {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    try {
-      const response = await fetch(request);
-      if (response && response.status === 200 && response.type === "basic") {
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(request, response.clone()).catch(() => {});
-      }
-      return response;
-    } catch (_) {
-      return Response.error();
-    }
-  })());
-});
-""".replace("__VERSION__", version)
-    (root / "service-worker.js").write_text(sw, encoding="utf-8")
+    html = index.read_text(encoding="utf-8")
+    if 'rel="manifest"' not in html or "index.service.worker.js" not in html:
+        raise SystemExit("Godot's native PWA manifest or service-worker configuration is missing.")
 
     head = """
-<link rel="manifest" href="./manifest.webmanifest">
-<link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <meta name="theme-color" content="#0f141f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Silverhart">
@@ -165,40 +57,55 @@ self.addEventListener("fetch", event => {
   var updateButton = document.getElementById("silverhart-update-now");
   var diagnostics = document.getElementById("silverhart-diagnostics");
   var waitingWorker = null;
-  var reloading = false;
-  if ("serviceWorker" in navigator && location.protocol === "https:") {
-    navigator.serviceWorker.register("./service-worker.js", {scope:"./", updateViaCache:"none"}).then(function(reg){
+  var lastError = "none";
+  function showUpdate(worker){
+    if(!worker || !navigator.serviceWorker.controller)return;
+    waitingWorker=worker;
+    banner.style.display="block";
+  }
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready.then(function(reg){
       function inspect(worker){
         if(!worker)return;
         worker.addEventListener("statechange",function(){
           if(worker.state==="installed" && navigator.serviceWorker.controller){
-            waitingWorker=reg.waiting||worker;
-            banner.style.display="block";
+            showUpdate(reg.waiting||worker);
           }
         });
       }
-      if(reg.waiting && navigator.serviceWorker.controller){waitingWorker=reg.waiting;banner.style.display="block";}
+      if(reg.waiting)showUpdate(reg.waiting);
       if(reg.installing)inspect(reg.installing);
       reg.addEventListener("updatefound",function(){inspect(reg.installing);});
-      reg.update().catch(function(){});
+      reg.update().catch(function(error){console.warn("Silverhart update check:",error);});
     }).catch(function(error){console.warn("Silverhart service worker:",error);});
   }
   updateButton.addEventListener("click",function(){
-    if(waitingWorker)waitingWorker.postMessage({type:"SKIP_WAITING"});
+    if(!waitingWorker)return;
+    updateButton.disabled=true;
+    updateButton.textContent="Updating…";
+    // Godot's native worker understands "update": it activates the waiting
+    // worker and navigates open clients after its cache is ready.
+    waitingWorker.postMessage("update");
   });
-  navigator.serviceWorker && navigator.serviceWorker.addEventListener("controllerchange",function(){
-    if(!reloading){reloading=true;location.reload();}
-  });
+  window.addEventListener("error",function(event){lastError=event.message||"JavaScript error";});
+  window.addEventListener("unhandledrejection",function(event){lastError=String(event.reason||"Unhandled promise rejection");});
   function diagnosticsText(){
     var lines=["Silverhart Saga diagnostics","Build: "+build,"URL: "+location.href,
       "Network: "+(navigator.onLine?"online":"offline"),
-      "Service worker: "+(navigator.serviceWorker&&navigator.serviceWorker.controller?"controlling":"not controlling"),
       "Viewport: "+window.innerWidth+" × "+window.innerHeight,
       "Screen: "+screen.width+" × "+screen.height,
       "Device pixel ratio: "+window.devicePixelRatio,
-      "WebGL: "+(function(){try{return !!document.createElement("canvas").getContext("webgl2")?"WebGL 2":!!document.createElement("canvas").getContext("webgl")?"WebGL":"unavailable";}catch(e){return "error";}})()];
-    if(navigator.storage&&navigator.storage.estimate){navigator.storage.estimate().then(function(s){diagnostics.textContent=lines.concat(["Storage used: "+Math.round((s.usage||0)/1048576)+" MB","Storage quota: "+Math.round((s.quota||0)/1048576)+" MB"]).join("\n");});}
-    else diagnostics.textContent=lines.join("\n");
+      "WebGL: "+(function(){try{return !!document.createElement("canvas").getContext("webgl2")?"WebGL 2":!!document.createElement("canvas").getContext("webgl")?"WebGL":"unavailable";}catch(e){return "error";}})(),
+      "Last JavaScript error: "+lastError];
+    if(navigator.serviceWorker){
+      navigator.serviceWorker.getRegistration().then(function(reg){
+        lines.push("Service worker: "+(reg&&reg.active?reg.active.scriptURL+" ("+reg.active.state+")":"not active"));
+        if(reg&&reg.waiting)lines.push("Update: waiting");
+        if(navigator.storage&&navigator.storage.estimate){
+          navigator.storage.estimate().then(function(s){diagnostics.textContent=lines.concat(["Storage used: "+Math.round((s.usage||0)/1048576)+" MB","Storage quota: "+Math.round((s.quota||0)/1048576)+" MB"]).join("\n");});
+        }else diagnostics.textContent=lines.join("\n");
+      }).catch(function(){diagnostics.textContent=lines.join("\n");});
+    }else diagnostics.textContent=lines.join("\n");
   }
   document.getElementById("silverhart-diagnostics-toggle").addEventListener("click",function(){
     diagnostics.style.display=diagnostics.style.display==="block"?"none":"block";
@@ -209,13 +116,10 @@ self.addEventListener("fetch", event => {
 })();
 </script>
 """.replace("__VERSION__", version)
-    if 'rel="manifest"' not in html:
-        if "</head>" not in html:
-            raise SystemExit("Godot HTML export has no </head> insertion point.")
-        html = html.replace("</head>", head + "\n</head>", 1)
     if "silverhart-update-now" not in html:
-        if "</body>" not in html:
-            raise SystemExit("Godot HTML export has no </body> insertion point.")
+        if "</head>" not in html or "</body>" not in html:
+            raise SystemExit("Godot HTML export is missing a head or body insertion point.")
+        html = html.replace("</head>", head + "\n</head>", 1)
         html = html.replace("</body>", runtime + "\n</body>", 1)
     index.write_text(html, encoding="utf-8")
 
