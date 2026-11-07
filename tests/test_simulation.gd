@@ -361,6 +361,38 @@ func _test_unified_action_contract() -> void:
     _check(String(attack_result.get("action_type", "")) == "attack")
     sim.free()
 
+func _test_attack_waits_for_parry_resolution() -> void:
+    var sim := WorldSimulation.new()
+    sim.map_data.add_cell(Vector2i.ZERO)
+    sim.map_data.add_cell(Vector2i(1, 0))
+    var attacker := CharacterState.new("attacker", "Attacker", Vector2i.ZERO)
+    var defender := CharacterState.new("defender", "Defender", Vector2i(1, 0))
+    attacker.to_hit_melee = 100.0
+    attacker.base_damage = 20
+    attacker.time_points = 30.0
+    defender.time_points = 20.0
+    defender.health = 100
+    defender.max_health = 100
+    defender.to_hit_melee = 100.0
+    defender.equipment["weapon"] = "sword"
+    defender.skills["sword_parry"] = 1
+    sim.register_character(attacker)
+    sim.register_character(defender)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = "attacker"
+
+    var pending := sim.try_attack_character("attacker", "defender", {"time_point_cost": 5.0}, 41)
+    _check(bool(pending.get("pending", false)), "A qualified defender should be offered a parry before damage resolves")
+    _check(defender.health == 100, "Damage must not land while the reaction is pending")
+    _check(is_equal_approx(attacker.time_points, 30.0), "Attacker TP must not be spent before the reaction resolves")
+    var resolved := sim.resolve_reaction("parry")
+    _check(bool(resolved.get("ok", false)))
+    _check(defender.health == 100, "A successful parry cancels the incoming attack")
+    _check(defender.parries_remaining == 2, "A parry consumes one per-turn parry use")
+    _check(is_equal_approx(defender.time_points, 17.0), "The defender pays the source-defined 3 TP parry cost")
+    _check(is_equal_approx(attacker.time_points, 25.0), "A successful parry still consumes the attack action's TP cost")
+    sim.free()
+
 func _test_reaction_resolution_safety() -> void:
     var sim := WorldSimulation.new()
     var reactor := CharacterState.new("reactor", "Reactor", Vector2i.ZERO)
