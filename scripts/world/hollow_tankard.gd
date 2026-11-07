@@ -300,7 +300,7 @@ func _create_characters() -> void:
     # The player remains a neutral placeholder until a player-appearance
     # choice is made. Every named village character is loaded from the shared
     # Ara profile manifest and its generated GLB when that asset pack is installed.
-    _spawn_character("player", "You", Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true)
+    _spawn_character("player", "Adventurer", Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true, "player_avatar")
 
     var profile_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
     if profile_file == null:
@@ -314,6 +314,8 @@ func _create_characters() -> void:
         if not profile_variant is Dictionary:
             continue
         var profile: Dictionary = profile_variant
+        if str(profile.get("role", "")) == "player avatar":
+            continue
         var coordinates: Array = profile.get("hex", [0, 0])
         if coordinates.size() < 2:
             continue
@@ -370,6 +372,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     # copied into art/characters/hollowmere/.
     if not model_loaded:
         var body := MeshInstance3D.new()
+        body.name = "PlayerBody"
         var body_mesh := CapsuleMesh.new()
         body_mesh.radius = 0.34
         body_mesh.height = 1.75
@@ -379,6 +382,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         actor.add_child(body)
 
         var head := MeshInstance3D.new()
+        head.name = "PlayerHead"
         var head_mesh := SphereMesh.new()
         head_mesh.radius = 0.22
         head_mesh.height = 0.44
@@ -388,6 +392,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         actor.add_child(head)
 
     var name_label := Label3D.new()
+    name_label.name = "PlayerNameLabel" if is_player else "CharacterNameLabel"
     name_label.text = "You" if is_player else display_name
     name_label.position.y = 2.08 if model_loaded else 2.25
     name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -755,3 +760,43 @@ func _add_box(parent: Node3D, node_name: String, position: Vector3, size: Vector
     instance.material_override = material
     parent.add_child(instance)
     return instance
+
+
+func apply_player_profile(profile: Dictionary) -> void:
+    var actor := actor_by_id.get("player") as Node3D
+    if actor == null:
+        return
+    actor.set_meta("player_profile", profile.duplicate(true))
+    var name_label := actor.get_node_or_null("PlayerNameLabel") as Label3D
+    if name_label != null:
+        name_label.text = str(profile.get("name", "Adventurer"))
+    var skin := Color.from_string(str(profile.get("skin_colour", "#b9825f")), Color(0.72, 0.57, 0.43))
+    var ara := actor.get_node_or_null("CharacterModel")
+    if ara is AraCharacterActor:
+        # Ara material names vary by export; only apply a tint where a matching
+        # named surface exists. Keep the complete profile for later variants.
+        ara.tint_materials("skin", skin)
+        var eye_colours := {
+            "Brown": Color("#49301f"), "Light brown": Color("#795334"),
+            "Dark brown": Color("#24170f"), "Green": Color("#55744b"),
+            "Blue": Color("#426f9a"), "Grey": Color("#777d83"),
+            "Ice blue": Color("#9bc8df")
+        }
+        ara.tint_materials("eye", eye_colours.get(str(profile.get("eye_colour", "Brown")), Color("#49301f")))
+        var hair_colours := {
+            "Black": Color("#171513"), "Dark brown": Color("#49372a"),
+            "Chestnut": Color("#75452d"), "Blonde": Color("#c6a45e"),
+            "Red": Color("#9a422e"), "Silver": Color("#aaa9a3"),
+            "White": Color("#e4dfd2"), "Blue": Color("#354d91"),
+            "Green": Color("#426b49")
+        }
+        ara.tint_materials("hair", hair_colours.get(str(profile.get("hair_colour", "Dark brown")), Color("#49372a")))
+    else:
+        var head := actor.get_node_or_null("PlayerHead") as MeshInstance3D
+        if head != null:
+            head.material_override = _material(skin)
+        var body := actor.get_node_or_null("PlayerBody") as MeshInstance3D
+        if body != null:
+            body.material_override = _material(skin)
+    actor.set_meta("gender_presentation", str(profile.get("gender_presentation", "Androgynous")))
+    actor.set_meta("pronouns", str(profile.get("pronouns", "they/them")))
