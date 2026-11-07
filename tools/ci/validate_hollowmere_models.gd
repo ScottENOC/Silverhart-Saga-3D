@@ -21,7 +21,7 @@ func _run() -> void:
         return
 
     for profile_variant in profiles:
-        if not profile_variant is Dictionary:
+        if not (profile_variant is Dictionary):
             _fail("Generated character profile is not an object.")
             return
         var profile: Dictionary = profile_variant
@@ -35,7 +35,7 @@ func _run() -> void:
             _fail("Godot could not import/load " + model_path)
             return
         var instance := packed.instantiate()
-        if not instance is Node3D:
+        if not (instance is Node3D):
             _fail("Ara model root is not Node3D: " + character_id)
             return
         var animation_player := _find_animation_player(instance)
