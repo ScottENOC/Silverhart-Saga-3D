@@ -1,10 +1,72 @@
 #!/usr/bin/env python3
-"""Add version, safe update prompt and on-device diagnostics to Godot's native PWA."""
+"""Add branded icons, build version, safe update prompt and diagnostics to Godot's native PWA."""
 from __future__ import annotations
 
 import argparse
 import json
+import math
+import struct
+import zlib
 from pathlib import Path
+
+
+def segment_distance(x: float, y: float, x1: float, y1: float, x2: float, y2: float) -> float:
+    dx, dy = x2 - x1, y2 - y1
+    length = dx * dx + dy * dy
+    t = 0.0 if length == 0 else max(0.0, min(1.0, ((x - x1) * dx + (y - y1) * dy) / length))
+    return math.hypot(x - (x1 + t * dx), y - (y1 + t * dy))
+
+
+def inside_polygon(x: float, y: float, points: list[tuple[float, float]]) -> bool:
+    inside = False
+    j = len(points) - 1
+    for i, (xi, yi) in enumerate(points):
+        xj, yj = points[j]
+        if ((yi > y) != (yj > y)) and x < (xj - xi) * (y - yi) / ((yj - yi) or 1e-12) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def png_icon(path: Path, size: int) -> None:
+    """Draw a simple silver-and-gold stag emblem without external image libraries."""
+    antlers = [
+        (-0.07, -0.12, -0.28, -0.36), (-0.28, -0.36, -0.34, -0.66),
+        (-0.28, -0.36, -0.57, -0.42), (-0.22, -0.29, -0.49, -0.21),
+        (-0.49, -0.21, -0.61, -0.06),
+        (0.07, -0.12, 0.28, -0.36), (0.28, -0.36, 0.34, -0.66),
+        (0.28, -0.36, 0.57, -0.42), (0.22, -0.29, 0.49, -0.21),
+        (0.49, -0.21, 0.61, -0.06),
+    ]
+    head = [(-0.17, -0.18), (0.0, -0.29), (0.17, -0.18), (0.14, 0.16), (0.0, 0.36), (-0.14, 0.16)]
+    rows = []
+    for py in range(size):
+        row = bytearray([0])
+        y = (py + 0.5 - size / 2) / (size / 2)
+        for px in range(size):
+            x = (px + 0.5 - size / 2) / (size / 2)
+            r, g, b = 15, 20, 31
+            radius = math.hypot(x, y)
+            if 0.72 < radius < 0.77:
+                r, g, b = 184, 151, 91
+            if any(segment_distance(x, y, *line) < 0.027 for line in antlers):
+                r, g, b = 225, 198, 139
+            if inside_polygon(x, y, head):
+                r, g, b = 196, 165, 108
+            # A small pale muzzle and two dark eyes give the emblem a readable face.
+            if abs(x) < 0.035 and 0.12 < y < 0.25:
+                r, g, b = 238, 226, 197
+            if math.hypot(x - 0.075, y - 0.015) < 0.018 or math.hypot(x + 0.075, y - 0.015) < 0.018:
+                r, g, b = 15, 20, 31
+            row.extend((r, g, b, 255))
+        rows.append(bytes(row))
+    raw = b"".join(rows)
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff)
+
+    header = struct.pack(">2I5B", size, size, 8, 6, 0, 0, 0)
+    path.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
 
 
 def main() -> None:
@@ -23,13 +85,21 @@ def main() -> None:
     if not version:
         raise SystemExit("A non-empty build version is required.")
 
-    # Keep Godot's own manifest, icons and service worker. The native worker
-    # handles offline wasm/pck caching and COOP/COEP response headers.
+    # Keep Godot's own manifest and service worker. The native worker handles
+    # offline wasm/pck caching and COOP/COEP response headers.
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["name"] = "Silverhart Saga"
     manifest["short_name"] = "Silverhart"
     manifest["scope"] = "./"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+    # Replace the default Godot placeholder artwork with a branded app icon,
+    # preserving the exact filenames referenced by the native manifest/shell.
+    png_icon(root / "index.icon.png", 64)
+    png_icon(root / "index.144x144.png", 144)
+    png_icon(root / "index.180x180.png", 180)
+    png_icon(root / "index.512x512.png", 512)
+    png_icon(root / "index.apple-touch-icon.png", 180)
 
     html = index.read_text(encoding="utf-8")
     if 'rel="manifest"' not in html or "index.service.worker.js" not in html:
