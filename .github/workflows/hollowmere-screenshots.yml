@@ -7,14 +7,12 @@ on:
       - "scripts/world/**"
       - "scenes/**"
       - "tests/capture_hollowmere_overview.gd"
-      - ".github/workflows/hollowmere-screenshots.yml"
   pull_request:
     branches: [dev]
     paths:
       - "scripts/world/**"
       - "scenes/**"
       - "tests/capture_hollowmere_overview.gd"
-      - ".github/workflows/hollowmere-screenshots.yml"
   workflow_dispatch:
 
 permissions:
