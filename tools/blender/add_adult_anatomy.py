@@ -277,7 +277,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
         outward = (0.010*mons + 0.014*(outer_l+outer_r)
                    + 0.009*(inner_l+inner_r) + 0.008*hood
                    + 0.003*glans + 0.002*frenulum + 0.002*fourchette)
-        inward = 0.006*cleft + 0.005*vestibule + 0.004*urethra + 0.007*vaginal
+        inward = 0.006*cleft + 0.005*vestibule + 0.004*urethra + 0.007*vaginal + 0.001*perineum
         p.y -= outward
         p.y += inward
         v.co = inv @ p
