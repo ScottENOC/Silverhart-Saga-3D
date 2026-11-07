@@ -1,6 +1,8 @@
 class_name CharacterState
 extends RefCounted
 
+signal lifecycle_changed(character_id: String, transition: String)
+
 var id: String
 var display_name: String
 var axial: Vector2i
@@ -55,9 +57,11 @@ func apply_damage(amount: int) -> String:
     if float(health) <= -float(max_health) * 0.5:
         alive = false
         unconscious = false
+        lifecycle_changed.emit(id, "died")
         return "died"
     if health <= 0:
         unconscious = true
+        lifecycle_changed.emit(id, "downed")
         return "downed"
     return "damaged"
 
@@ -68,6 +72,7 @@ func apply_healing(amount: int) -> String:
     health = mini(max_health, health + amount)
     if unconscious and health > 0:
         unconscious = false
+        lifecycle_changed.emit(id, "revived")
         return "revived_from_unconscious"
     return "healed"
 
