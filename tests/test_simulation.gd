@@ -14,6 +14,8 @@ func _initialize() -> void:
     _test_combat_resolution()
     _test_downed_and_death_lifecycle()
     _test_unified_action_contract()
+    _test_reaction_resolution_safety()
+    _test_incapacitated_turn_cleanup()
     if _failures > 0:
         push_error("%d test assertion(s) failed." % _failures)
         quit(1)
@@ -357,4 +359,80 @@ func _test_unified_action_contract() -> void:
     _check(victim.unconscious and victim.alive, "Attack downs rather than kills in the negative HP band")
     _check(bool(attack_result.get("target_unconscious", false)))
     _check(String(attack_result.get("action_type", "")) == "attack")
+    sim.free()
+
+func _test_reaction_resolution_safety() -> void:
+    var sim := WorldSimulation.new()
+    var reactor := CharacterState.new("reactor", "Reactor", Vector2i.ZERO)
+    reactor.time_points = 20.0
+    sim.register_character(reactor)
+    sim.start_combat()
+    var requested_count := [0]
+    var resolved_count := [0]
+    var last_choice := [""]
+    var last_reason := [""]
+    sim.reaction_requested.connect(func(_id: String, _options: Array[Dictionary], _request_id: int, _source: String) -> void:
+        requested_count[0] += 1
+    )
+    sim.reaction_resolved.connect(func(_id: String, choice: String, _request_id: int, reason: String) -> void:
+        resolved_count[0] += 1
+        last_choice[0] = choice
+        last_reason[0] = reason
+    )
+
+    reactor.alive = false
+    var dead_result := sim.request_reaction("reactor", [{"id": "parry", "name": "Parry", "tp_cost": 3.0}])
+    _check(bool(dead_result.get("ok", false)) and not bool(dead_result.get("pending", true)))
+    _check(resolved_count[0] == 1 and last_choice[0].is_empty())
+    _check(last_reason[0] == "reactor_unavailable")
+    _check(requested_count[0] == 0 and sim.pending_reaction.is_empty())
+
+    reactor.alive = true
+    reactor.unconscious = true
+    var unconscious_result := sim.request_reaction("reactor", [{"id": "parry", "tp_cost": 3.0}])
+    _check(not bool(unconscious_result.get("pending", true)))
+    _check(resolved_count[0] == 2 and last_choice[0].is_empty())
+    _check(sim.pending_reaction.is_empty())
+
+    reactor.unconscious = false
+    var opened := sim.request_reaction("reactor", [
+        {"id": "parry", "name": "Parry", "tp_cost": 3.0},
+        {"id": "dodge", "name": "Dodge", "tp_cost": 5.0}
+    ], "attack_001")
+    _check(bool(opened.get("pending", false)))
+    _check(requested_count[0] == 1 and not sim.pending_reaction.is_empty())
+    _check(not sim.try_end_current_turn(), "A pending reaction must prevent normal turn completion")
+    _check(not sim.resolve_reaction("unknown").get("ok", false), "Invalid choices must not consume the pending request")
+    var chosen := sim.resolve_reaction("parry")
+    _check(bool(chosen.get("ok", false)) and String(chosen.get("choice_id", "")) == "parry")
+    _check(is_equal_approx(reactor.time_points, 17.0))
+    _check(resolved_count[0] == 3 and last_choice[0] == "parry" and last_reason[0] == "selected")
+    _check(sim.pending_reaction.is_empty())
+
+    reactor.time_points = 20.0
+    var death_wait := sim.request_reaction("reactor", [{"id": "parry", "tp_cost": 3.0}], "attack_002")
+    _check(bool(death_wait.get("pending", false)))
+    reactor.apply_damage(150)
+    _check(not reactor.alive)
+    _check(sim.pending_reaction.is_empty(), "Death while a reaction is pending must clear the wait immediately")
+    _check(resolved_count[0] == 4 and last_choice[0].is_empty() and last_reason[0] == "reactor_incapacitated")
+
+    reactor.alive = true
+    reactor.health = 100
+    reactor.unconscious = false
+    reactor.reaction_blocked = true
+    var blocked := sim.request_reaction("reactor", [{"id": "parry", "tp_cost": 3.0}])
+    _check(not bool(blocked.get("pending", true)) and String(blocked.get("reason", "")) == "reactor_unavailable")
+    _check(sim.pending_reaction.is_empty())
+    sim.free()
+
+func _test_incapacitated_turn_cleanup() -> void:
+    var sim := WorldSimulation.new()
+    var actor := CharacterState.new("actor", "Actor", Vector2i.ZERO)
+    actor.time_points = 120.0
+    sim.register_character(actor)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = "actor"
+    actor.apply_damage(150)
+    _check(not sim.turn_scheduler.has_active_turn(), "An incapacitated active combatant must relinquish their turn")
     sim.free()
