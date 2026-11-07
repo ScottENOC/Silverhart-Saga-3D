@@ -2,6 +2,7 @@
 """Render isolated modular outfit variants from the exact assembled Wren GLB."""
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -47,7 +48,7 @@ def canonical_garment_name(name):
     """Collapse Blender's import-time .001/.002 material copies to their source slot."""
     if name in GARMENTS:
         return name
-    base = __import__("re").sub(r"\.\d{3}$", "", name)
+    base = re.sub(r"\.\d{3}$", "", name)
     return base if base in GARMENTS else name
 
 def material_names():
