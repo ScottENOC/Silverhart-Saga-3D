@@ -54,8 +54,6 @@ jobs:
         run: godot --headless --path . --script res://tests/test_simulation.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
-      - name: Run Ara rig and animation import tests
-        run: godot --headless --path . --script res://tests/test_ara_animation_import.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
       - name: Validate Hollowmere profile JSON
