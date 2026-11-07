@@ -10,6 +10,14 @@ on:
       - "site/**"
       - "docs/CHARACTER_PIPELINE.md"
       - ".github/workflows/wren-workshop.yml"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "tools/blender/**"
+      - "tools/ara/**"
+      - "site/**"
+      - "docs/CHARACTER_PIPELINE.md"
+      - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
   actions: read
@@ -26,7 +34,17 @@ jobs:
       - uses: actions/checkout@v4
       - name: Compile anatomy, clothing and review tools
         run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/review/render_modular_outfits.py
+      # Cache the expensive upstream Ara exports. Bump the v1 suffix when
+      # the inline Ara export parameters or garment variant definitions change.
+      # Anatomy and Workshop UI edits deliberately reuse these unchanged inputs.
+      - name: Restore generated Ara exports
+        id: ara-cache
+        uses: actions/cache@v4
+        with:
+          path: art/characters/ara
+          key: ara-generated-b60b5be-v1-${{ hashFiles('tools/ara/patch_layering.py') }}
       - name: Build Ara 3D Gen benchmark
+        if: steps.ara-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -219,7 +237,7 @@ jobs:
             art/characters/ara/*.glb
             art/characters/ara/*.params.json
           if-no-files-found: error
-          retention-days: 2
+          retention-days: 30
 
   integrate:
     needs: generate
