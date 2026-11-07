@@ -112,7 +112,7 @@ func _validate_manifest() -> Dictionary:
 		_check(assets.has(asset_name), "Manifest declares " + asset_name)
 		if not assets.has(asset_name):
 			continue
-		var asset_path := ASSET_ROOT + asset_name
+		var asset_path: String = ASSET_ROOT + str(asset_name)
 		_check(FileAccess.file_exists(asset_path), "Packaged asset exists: " + asset_name)
 		if not FileAccess.file_exists(asset_path):
 			continue
