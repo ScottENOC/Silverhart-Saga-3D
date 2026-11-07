@@ -3,7 +3,7 @@ name: Build Wren Workshop
 on:
   workflow_dispatch:
   push:
-    branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy]
+    branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates]
     paths:
       - "tools/blender/**"
       - "tools/ara/**"
@@ -431,6 +431,21 @@ jobs:
             --output /tmp/ara_person_modular_underwear_fitted.glb \
             --profile none --adult --fit-existing
           mv /tmp/ara_person_modular_underwear_fitted.glb art/characters/ara/ara_person_modular_underwear.glb
+      - name: Render dress review angles (non-blocking)
+        id: dress-review
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          OUT=art/characters/ara/review/outfits
+          mkdir -p "$OUT"
+          blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
+            art/characters/ara/ara_person_modular.glb "$OUT" dress
+          for view in front side rear; do test -s "$OUT/dress/$view.png"; done
+          test -s "$OUT/dress/report.json"
       - name: Render lace and fishnet garment review angles
         shell: bash
         run: |
