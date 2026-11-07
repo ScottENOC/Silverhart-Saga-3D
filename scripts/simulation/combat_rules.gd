@@ -74,7 +74,7 @@ static func resolve_attack(
 ) -> Dictionary:
     if attacker == null or target == null:
         return {"ok": false, "reason": "missing_combatant"}
-    if not attacker.alive or not target.alive:
+    if not attacker.can_act() or not target.can_be_targeted():
         return {"ok": false, "reason": "combatant_unavailable"}
     if attacker == target:
         return {"ok": false, "reason": "cannot_attack_self"}
@@ -104,13 +104,13 @@ static func resolve_attack(
         if target.side == "player":
             final_damage = roundi(final_damage * 1.1)
 
-    target.health -= final_damage
-    if target.health <= 0:
-        target.health = 0
-        target.alive = false
+    var lifecycle := target.apply_damage(final_damage)
     return {
         "ok": true, "hit": true, "roll": roll,
         "hit_chance": chance, "raw_damage": raw,
         "reduction": reduction, "damage": final_damage,
-        "target_defeated": not target.alive
+        "target_defeated": not target.alive,
+        "target_unconscious": target.unconscious,
+        "target_lifecycle": lifecycle,
+        "target_health": target.health
     }
