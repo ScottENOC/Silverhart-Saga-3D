@@ -325,7 +325,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     concurrency:
-      group: wren-pages-deployment
+      group: combined-pages-deployment
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
@@ -486,7 +486,7 @@ jobs:
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
-      - name: Save Wren Workshop site for combined Pages deployment
+      - name: Save standalone Wren Workshop site artifact
         if: github.ref_name == 'dev'
         uses: actions/upload-artifact@v4
         with:
