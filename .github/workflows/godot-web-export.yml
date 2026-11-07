@@ -10,6 +10,7 @@ on:
       - "scenes/**"
       - "scripts/**"
       - "data/**"
+      - "tools/pwa/**"
       - ".github/workflows/godot-web-export.yml"
 
 permissions:
@@ -49,6 +50,7 @@ jobs:
           find dist/game -maxdepth 1 -type f -name '*.wasm' -print -quit | grep -q .
           find dist/game -maxdepth 1 -type f -name '*.pck' -print -quit | grep -q .
           printf '%s\\n' "${GITHUB_SHA}" > dist/game/build-version.txt
+          python tools/pwa/package_godot_pwa.py --directory dist/game --version "${GITHUB_SHA}"
 
       - name: Save browser build for combined Pages deployment
         uses: actions/upload-artifact@v4
