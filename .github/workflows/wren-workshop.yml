@@ -11,7 +11,7 @@ on:
       - "docs/CHARACTER_PIPELINE.md"
       - ".github/workflows/wren-workshop.yml"
   pull_request:
-    branches: [dev]
+    branches: [dev, fix/dress-selector-and-loading-review]
     paths:
       - "tools/blender/**"
       - "tools/ara/**"
