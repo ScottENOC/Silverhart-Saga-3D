@@ -286,3 +286,23 @@ func _test_combat_resolution() -> void:
     var rejected := CombatRules.resolve_attack(poor, target, {"time_point_cost": 5.0}, lethal_rng)
     _check(not bool(rejected.get("ok", false)))
     _check(target.health == before_health)
+
+    var sim := WorldSimulation.new()
+    var sim_attacker := CharacterState.new("sim_hero", "Hero", Vector2i.ZERO)
+    var sim_target := CharacterState.new("sim_guard", "Guard", Vector2i(1, 0))
+    sim_attacker.to_hit_melee = 100.0
+    sim_attacker.base_damage = 12
+    sim_attacker.time_points = 50.0
+    sim.register_character(sim_attacker)
+    sim.register_character(sim_target)
+    sim.is_in_combat = true
+    sim.turn_scheduler.current_character_id = "sim_hero"
+    var integrated := sim.try_attack_character("sim_hero", "sim_guard", {
+        "time_point_cost": 5.0
+    }, 11)
+    _check(bool(integrated.get("ok", false)))
+    _check(bool(integrated.get("hit", false)))
+    _check(sim_target.health == 89)
+    _check(is_equal_approx(sim_attacker.time_points, 45.0))
+    _check(not bool(sim.try_attack_character("sim_guard", "sim_hero", {}, 11).get("ok", false)))
+    sim.free()
