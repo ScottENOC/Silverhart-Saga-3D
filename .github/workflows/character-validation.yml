@@ -45,36 +45,6 @@ jobs:
       - name: Test modular GLB morph-target assembly
         run: python -m unittest discover -s tests -p 'test_assemble_modular_glb.py' -v
 
-  blender-build-review:
-    name: Build Wren body and render four review angles
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Blender
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
-          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          export EGL_PLATFORM=surfaceless
-          export LIBGL_ALWAYS_SOFTWARE=1
-          blender --background --python-exit-code 1 --python-expr "import numpy; print('Blender NumPy:', numpy.__version__)"
-          blender --version
-      - name: Generate the rigged Wren blockout
-        run: blender --background --python-exit-code 1 --python tools/blender/build_wren_blockout.py
-      - name: Inspect and render the generated GLB
-        run: |
-          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          blender --background --python-exit-code 1 --python tools/blender/inspect_character.py -- \
-            --input art/characters/wren/wren_blockout.glb \
-            --output-dir art/characters/wren/review
-      - name: Upload Blender model and multi-angle review
-        uses: actions/upload-artifact@v4
-        with:
-          name: wren-blender-review
-          path: |
-            art/characters/wren/wren_blockout.blend
-            art/characters/wren/wren_blockout.glb
-            art/characters/wren/review/**
-          if-no-files-found: error
-          retention-days: 14
+  # The old procedural Wren blockout build has been retired. Ara is the
+  # current shared character base; legacy scripts remain in tools/blender as
+  # historical experiments but are not built or rendered in CI.
