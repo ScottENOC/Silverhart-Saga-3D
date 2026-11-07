@@ -86,6 +86,8 @@ self.addEventListener("install", event => {
       new URL("./", APP_ROOT).href,
       new URL("./manifest.webmanifest", APP_ROOT).href,
       new URL("./apple-touch-icon.png", APP_ROOT).href,
+      new URL("./icon-192.png", APP_ROOT).href,
+      new URL("./icon-512.png", APP_ROOT).href,
       new URL("./build-version.txt", APP_ROOT).href
     ]);
   })());
