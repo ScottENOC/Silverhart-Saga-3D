@@ -66,15 +66,19 @@ jobs:
           import json
           from pathlib import Path
           root = Path("dist/game")
-          manifest = json.loads((root / "manifest.webmanifest").read_text())
-          assert manifest["start_url"] == "./"
+          manifest = json.loads((root / "index.manifest.json").read_text())
+          assert manifest["start_url"] == "./index.html"
           assert manifest["scope"] == "./"
           assert manifest["display"] == "standalone"
-          for name in ("service-worker.js", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "build-version.txt"):
+          assert manifest["name"] == "Silverhart Saga"
+          for name in ("index.service.worker.js", "index.apple-touch-icon.png", "index.wasm", "index.pck", "build-version.txt"):
               assert (root / name).is_file() and (root / name).stat().st_size > 0, name
+          worker = (root / "index.service.worker.js").read_text()
+          assert "ENSURE_CROSSORIGIN_ISOLATION_HEADERS" in worker
           html = (root / "index.html").read_text()
-          assert 'rel="manifest"' in html and "silverhart-update-now" in html
-          print("PWA package verified")
+          assert 'rel="manifest"' in html and "index.service.worker.js" in html and "silverhart-update-now" in html
+          assert not (root / "service-worker.js").exists()
+          print("Godot native PWA package verified")
           PY
 
       - name: Save browser build for combined Pages deployment
