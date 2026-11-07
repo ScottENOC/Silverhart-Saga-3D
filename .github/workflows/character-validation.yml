@@ -18,7 +18,6 @@ on:
       - "tests/test_assemble_modular_glb.py"
       - "tools/blender/**"
       - "tools/ara/**"
-      - ".github/workflows/character-validation.yml"
   push:
     branches: [dev, feature/shared-character-system]
     paths:
@@ -32,7 +31,6 @@ on:
       - "tests/test_assemble_modular_glb.py"
       - "tools/blender/**"
       - "tools/ara/**"
-      - ".github/workflows/character-validation.yml"
   workflow_dispatch:
 
 permissions:
