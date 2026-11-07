@@ -230,6 +230,7 @@ func _submit_attack(request: SimulationActionRequest, random_seed: int) -> Dicti
             "attacker_id": request.actor_id,
             "target_id": request.target_id,
             "options": request.options.duplicate(true),
+            "parry_skill_base": String(reactions[0].get("skill_base", "")),
             "random_seed": random_seed
         }
         var reaction_result := request_reaction(target.id, reactions, "attack:%s:%s" % [request.actor_id, request.target_id])
@@ -245,9 +246,10 @@ func _attack_reaction_options(attacker: CharacterState, target: CharacterState, 
     var result: Array[Dictionary] = []
     if target.reaction_blocked or not target.can_act() or target.parries_remaining <= 0:
         return result
-    if bool(options.get("is_ranged", String(options.get("weapon_id", "")) == "bow")):
-        return result
     var weapon_id := String(target.equipment.get("weapon", ""))
+    var is_ranged := bool(options.get("is_ranged", String(options.get("weapon_id", "")) == "bow"))
+    if is_ranged and weapon_id != "sword_arrow_deflection":
+        return result
     var skill_base := "sword" if weapon_id == "sword_arrow_deflection" else weapon_id
     if skill_base != "sword" and skill_base != "dagger":
         return result
@@ -285,7 +287,9 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
         # The defender is the attack target for this first source-backed slice.
         var reactor := target
         reactor.parries_remaining = maxi(0, reactor.parries_remaining - 1)
-        var skill_base := String(options.get("parry_skill_base", reactor.equipment.get("weapon", "sword")))
+        var skill_base := String(context.get("parry_skill_base", reactor.equipment.get("weapon", "sword")))
+        if skill_base == "sword_arrow_deflection":
+            skill_base = "sword"
         var bonus := float(reactor.skills.get("%s_parry_chance" % skill_base, 0)) * 5.0
         var rng_parry := RandomNumberGenerator.new()
         if seed == 0:
