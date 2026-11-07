@@ -362,7 +362,7 @@ jobs:
           name: processed-ara-male-body
           path: |
             art/characters/ara/ara_person_male*_body.glb
-            art/characters/ara/review/male/**/*.png
+            art/characters/ara/review/male*/*.png
           if-no-files-found: error
           retention-days: 14
 
