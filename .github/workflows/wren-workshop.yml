@@ -155,6 +155,36 @@ jobs:
           cp "$MALE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male_raw.glb"
           cp /tmp/ara-person-male.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male.params.json"
 
+          # Two proportion variants exercise the anatomy generator against
+          # different measured body heights, widths, muscle and weight values.
+          python - <<'PY'
+          import json
+          base = json.load(open('/tmp/ara-person-body.params.json'))
+          profiles = {
+              "small": {"height": 0.28, "muscle": 0.28, "weight": 0.32},
+              "large": {"height": 0.76, "muscle": 0.76, "weight": 0.72}
+          }
+          for label, shape in profiles.items():
+              p = dict(base)
+              p.update({
+                  "name": "Ara Base Person - male " + label + " build",
+                  "seed": 417,
+                  "gender": 1,
+                  "breastSize": 0,
+                  "breastFirmness": 0,
+                  **shape
+              })
+              json.dump(p, open('/tmp/ara-person-male-' + label + '.params.json', 'w'), indent=2)
+          PY
+          for profile in small large; do
+            mkdir -p "/tmp/ara-male-$profile-out"
+            npm run export -- --params "/tmp/ara-person-male-$profile.params.json" --detail high --formats glb --out "/tmp/ara-male-$profile-out"
+            PROFILE_GLB="$(find "/tmp/ara-male-$profile-out" -maxdepth 1 -type f -name '*.glb' -print -quit)"
+            test -n "$PROFILE_GLB"
+            cp "$PROFILE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male_${profile}_raw.glb"
+            cp "/tmp/ara-person-male-$profile.params.json" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male_$profile.params.json"
+          done
+
           # Separate mobile preview: retain the game rig, but reduce geometry detail
           # and bake facial expression / omit animation clips and facial blend shapes.
           python - <<'PY'
@@ -302,7 +332,7 @@ jobs:
         with:
           name: ara-generated-models
           path: /tmp/ara-generated
-      - name: Add skinned male anatomy and render review angles
+      - name: Build male anatomy across three body profiles and render review angles
         shell: bash
         run: |
           set -euo pipefail
@@ -311,23 +341,28 @@ jobs:
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           export EGL_PLATFORM=surfaceless
           export LIBGL_ALWAYS_SOFTWARE=1
-          mkdir -p art/characters/ara/review/male
-          blender --background --python-exit-code 1 --python tools/blender/add_male_anatomy.py -- \
-            --input /tmp/ara-generated/ara_person_male_raw.glb \
-            --output art/characters/ara/ara_person_male_body.glb --adult
-          REVIEW_INPUT=art/characters/ara/ara_person_male_body.glb \
-            REVIEW_OUTPUT_DIR=art/characters/ara/review/male \
-            blender --background --python-exit-code 1 --python tools/blender/inspect_character.py
-          for view in front side rear three_quarter; do
-            test -s "art/characters/ara/review/male/$view.png"
-          done
-      - name: Save male model and review renders
+          while read -r profile input output review_dir; do
+            echo "Building male anatomy profile: $profile"
+            mkdir -p "$review_dir"
+            blender --background --python-exit-code 1 --python tools/blender/add_male_anatomy.py -- \
+              --input "$input" --output "$output" --adult --profile-name "$profile"
+            REVIEW_INPUT="$output" REVIEW_OUTPUT_DIR="$review_dir" \
+              blender --background --python-exit-code 1 --python tools/blender/inspect_character.py
+            for view in front side rear three_quarter; do
+              test -s "$review_dir/$view.png"
+            done
+          done <<'PROFILES'
+          base /tmp/ara-generated/ara_person_male_raw.glb art/characters/ara/ara_person_male_body.glb art/characters/ara/review/male
+          small /tmp/ara-generated/ara_person_male_small_raw.glb art/characters/ara/ara_person_male_small_body.glb art/characters/ara/review/male-small
+          large /tmp/ara-generated/ara_person_male_large_raw.glb art/characters/ara/ara_person_male_large_body.glb art/characters/ara/review/male-large
+          PROFILES
+      - name: Save male models and review renders
         uses: actions/upload-artifact@v7
         with:
           name: processed-ara-male-body
           path: |
-            art/characters/ara/ara_person_male_body.glb
-            art/characters/ara/review/male/*.png
+            art/characters/ara/ara_person_male*_body.glb
+            art/characters/ara/review/male*/*.png
           if-no-files-found: error
           retention-days: 14
 
