@@ -270,11 +270,13 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
         hood = g(p.x,p.z,0.0,centre_z+0.034,width*0.023,0.012)
         glans = g(p.x,p.z,0.0,centre_z+0.024,width*0.006,0.005)
         frenulum = g(p.x,p.z,0.0,centre_z+0.012,width*0.004,0.006)
+        fourchette = g(p.x,p.z,0.0,centre_z-0.087,width*0.018,0.006)
+        perineum = g(p.x,p.z,0.0,centre_z-0.115,width*0.045,0.022)
         # Displacements are intentionally visible but restrained: 8–16 mm
         # folds and 3–5 mm recesses, scaled to this character's proportions.
         outward = (0.010*mons + 0.014*(outer_l+outer_r)
                    + 0.009*(inner_l+inner_r) + 0.008*hood
-                   + 0.003*glans + 0.002*frenulum)
+                   + 0.003*glans + 0.002*frenulum + 0.002*fourchette)
         inward = 0.006*cleft + 0.005*vestibule + 0.004*urethra + 0.007*vaginal
         p.y -= outward
         p.y += inward
@@ -287,7 +289,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
         poly.use_smooth = True
     skin["anatomy_profile"] = "adult_female_integrated_skin"
     skin["review_status"] = "integrated_mesh_blockout_for_art_review"
-    skin["anatomy_method"] = "local_subdivision_and_surface_displacement"
+    skin["anatomy_method"] = "local_subdivision_and_surface_displacement"\n    skin["anatomy_parts"] = "mons,labia_majora,labia_minora,clitoral_hood,clitoral_glans,frenulum,vestibule,urethral_meatus,vaginal_opening,posterior_fourchette,perineal_transition"
     return skin
 
 
