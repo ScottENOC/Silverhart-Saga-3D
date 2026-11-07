@@ -13,16 +13,6 @@ on:
       - "tools/pwa/**"
       - "tools/ci/**"
       - ".github/workflows/godot-web-export.yml"
-  pull_request:
-    branches: [dev]
-    paths:
-      - "project.godot"
-      - "export_presets.cfg"
-      - "scenes/**"
-      - "scripts/**"
-      - "data/**"
-      - "tools/pwa/**"
-      - ".github/workflows/godot-web-export.yml"
 
 permissions:
   contents: read
