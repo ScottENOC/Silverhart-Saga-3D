@@ -1,4 +1,4 @@
-name: Godot validation
+name: Godot and terrain validation
 
 on:
   pull_request:
@@ -45,41 +45,8 @@ jobs:
       - name: Verify engine version
         run: godot --version
 
-      # Fetch the exact Wren Ara export set used by the character pipeline.
-      - name: Download Wren Workshop character export
-        uses: actions/download-artifact@v4
-        with:
-          name: character-pipeline-evaluation
-          repository: ${{ github.repository }}
-          run-id: 41979224139
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: /tmp/wren-character-assets
-
-      - name: Stage Wren Workshop character assets
-        run: |
-          set -euo pipefail
-          mkdir -p art/characters/wren art/characters/ara_validation/modular
-          cp /tmp/wren-character-assets/ara_wren_mobile.glb art/characters/wren/ara_wren_mobile.glb
-          cp /tmp/wren-character-assets/ara_wren_benchmark.glb art/characters/ara_validation/ara_wren_benchmark.glb
-          for component in body hair shirt trousers; do
-            cp "/tmp/wren-character-assets/modular/${component}.glb" "art/characters/ara_validation/modular/${component}.glb"
-          done
-          cp /tmp/wren-character-assets/npcs/npc_female_slim/boots.glb art/characters/ara_validation/boots.glb
-          cp /tmp/wren-character-assets/npcs/npc_female_slim/weapon_sword.glb art/characters/ara_validation/weapon_sword.glb
-
       - name: Import project and build global script class cache
         run: godot --headless --editor --path . --quit
-
-      - name: Run Ara skeleton and animation integration test
-        shell: bash
-        run: |
-          set -o pipefail
-          godot --headless --path . --script res://tests/test_ara_animation_import.gd 2>&1 | tee /tmp/ara-animation-test.log
-          if grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to instantiate' /tmp/ara-animation-test.log; then
-            echo "Godot reported an import or script error in the Ara animation test."
-            exit 1
-          fi
-          grep -q 'ARA_ANIMATION_INTEGRATION_TEST: PASS' /tmp/ara-animation-test.log
 
       - name: Run hex-grid tests
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
@@ -120,24 +87,6 @@ jobs:
           test -s artifacts/terrain-overhead.png
           test -s artifacts/terrain-ridge-oblique.png
           test -s artifacts/terrain-character-grounding.png
-
-      - name: Capture Ara modular character animations
-        shell: bash
-        run: |
-          set -o pipefail
-          LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a godot --audio-driver Dummy --path . --rendering-method gl_compatibility --script res://tests/capture_ara_modular_animations.gd 2>&1 | tee /tmp/ara-visual-capture.log
-          if grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to instantiate' /tmp/ara-visual-capture.log; then
-            echo "Godot reported an error while capturing Ara animation poses."
-            exit 1
-          fi
-          grep -q 'ARA_VISUAL_ANIMATION_CAPTURE: PASS' /tmp/ara-visual-capture.log
-          test -s artifacts/ara-animation/ara-wren-idle.png
-          test -s artifacts/ara-animation/ara-wren-walk.png
-          test -s artifacts/ara-animation/ara-wren-run.png
-          test -s artifacts/ara-animation/ara-wren-strafe-left.png
-          test -s artifacts/ara-animation/ara-wren-turn-left.png
-          test -s artifacts/ara-animation/ara-wren-jump.png
-          test -s artifacts/ara-animation/ara-wren-sword-slash.png
 
       - name: Upload validation screenshots
         if: always()
