@@ -1,0 +1,134 @@
+name: Build Godot Web Export
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "scenes/**"
+      - "scripts/**"
+      - "data/**"
+      - ".github/workflows/godot-web-export.yml"
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: godot-web-export-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out game project
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2 and Web export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Import project and export browser build
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --version
+          godot --headless --editor --path . --quit
+          mkdir -p dist/game
+          godot --headless --path . --export-release "Web" dist/game/index.html
+          test -s dist/game/index.html
+          find dist/game -maxdepth 1 -type f -name '*.wasm' -print -quit | grep -q .
+          find dist/game -maxdepth 1 -type f -name '*.pck' -print -quit | grep -q .
+          printf '%s\\n' "${GITHUB_SHA}" > dist/game/build-version.txt
+
+      - name: Save browser build for combined Pages deployment
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-web-export
+          path: dist/game/
+          if-no-files-found: error
+          retention-days: 90
+
+  deploy:
+    needs: export
+    if: github.ref_name == 'dev'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: combined-pages-deployment
+      cancel-in-progress: false
+    steps:
+      - name: Check out site shell
+        uses: actions/checkout@v4
+
+      - name: Locate latest successful Wren Workshop site
+        id: wren-build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          WREN_RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          if [ -z "$WREN_RUN" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "No successful Wren Workshop site build yet; the Wren workflow will deploy once it finishes."
+            exit 0
+          fi
+          WREN_ARTIFACT="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$WREN_RUN/artifacts" --jq '.artifacts[] | select(.name == "wren-workshop-site" and .expired == false) | .id' | head -n 1)"
+          if [ -z "$WREN_ARTIFACT" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Latest successful Wren workflow has no unexpired site artifact."
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "run_id=$WREN_RUN" >> "$GITHUB_OUTPUT"
+
+      - name: Download latest Wren Workshop site
+        if: steps.wren-build.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: wren-workshop-site
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.wren-build.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: site
+
+      - name: Add current Godot browser build
+        if: steps.wren-build.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: godot-web-export
+          path: /tmp/godot-web-export
+
+      - name: Assemble and deploy combined Pages site
+        if: steps.wren-build.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p site/game
+          cp -a /tmp/godot-web-export/. site/game/
+          test -s site/index.html
+          test -s site/game/index.html
+          test -s site/game/build-version.txt
+
+      - name: Configure GitHub Pages
+        if: steps.wren-build.outputs.ready == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Upload combined site
+        if: steps.wren-build.outputs.ready == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy combined site
+        if: steps.wren-build.outputs.ready == 'true'
+        uses: actions/deploy-pages@v4

@@ -1,6 +1,5 @@
 name: Build Wren Workshop
 # Modular equipment export pipeline: keep garment primitives compact and rig-compatible.
-# Re-run after configuring the HF_ADMIN_TOKEN repository secret.
 on:
   workflow_dispatch:
   push:
@@ -13,6 +12,7 @@ on:
       - ".github/workflows/wren-workshop.yml"
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 concurrency:
@@ -324,6 +324,9 @@ jobs:
     needs: [integrate, integrate-male]
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    concurrency:
+      group: combined-pages-deployment
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - name: Download generated parameter files
@@ -455,7 +458,7 @@ jobs:
             art/characters/ara/review/**
           if-no-files-found: error
           retention-days: 14
-      - name: Assemble private viewer site
+      - name: Assemble Wren Workshop site
         run: |
           set -euo pipefail
           mkdir -p site/assets
@@ -469,15 +472,53 @@ jobs:
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
+      - name: Save Wren Workshop site for combined Pages deployment
+        if: github.ref_name == 'dev'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wren-workshop-site
+          path: site/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Locate latest successful Godot web export
+        if: github.ref_name == 'dev'
+        id: game-build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          GAME_RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/godot-web-export.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          if [ -z "$GAME_RUN" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "No successful Godot web export yet; the game workflow will deploy once it finishes."
+            exit 0
+          fi
+          GAME_ARTIFACT="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$GAME_RUN/artifacts" --jq '.artifacts[] | select(.name == "godot-web-export" and .expired == false) | .id' | head -n 1)"
+          if [ -z "$GAME_ARTIFACT" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Latest successful Godot workflow has no unexpired web export artifact."
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "run_id=$GAME_RUN" >> "$GITHUB_OUTPUT"
+      - name: Download latest Godot browser build
+        if: steps.game-build.outputs.ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: godot-web-export
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.game-build.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: site/game
       - name: Configure GitHub Pages
-        if: github.ref_name == 'dev'
+        if: steps.game-build.outputs.ready == 'true'
         uses: actions/configure-pages@v5
-      - name: Upload Wren Workshop site
-        if: github.ref_name == 'dev'
+      - name: Upload combined site
+        if: steps.game-build.outputs.ready == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
-      - name: Deploy Wren Workshop to GitHub Pages
-        if: github.ref_name == 'dev'
-        id: deployment
+      - name: Deploy combined site
+        if: steps.game-build.outputs.ready == 'true'
         uses: actions/deploy-pages@v4

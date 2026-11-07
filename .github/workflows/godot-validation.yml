@@ -40,6 +40,7 @@ jobs:
         with:
           version: 4.7.2
           use-dotnet: false
+          include-templates: true
 
       - name: Verify engine version
         run: godot --version
@@ -85,6 +86,15 @@ jobs:
 
       - name: Run simulation and movement tests
         run: godot --headless --path . --script res://tests/test_simulation.gd
+      - name: Verify Godot Web export
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web"
+          test -s build/web/index.html
+          find build/web -maxdepth 1 -type f -name '*.wasm' -print -quit | grep -q .
+          find build/web -maxdepth 1 -type f -name '*.pck' -print -quit | grep -q .
 
       - name: Smoke-test the terrain prototype scene
         shell: bash

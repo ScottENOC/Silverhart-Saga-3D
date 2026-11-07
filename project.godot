@@ -16,6 +16,7 @@ window/stretch/mode="canvas_items"
 [rendering]
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="mobile"
+renderer/rendering_method.web="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
 environment/defaults/default_clear_color=Color(0.11, 0.14, 0.16, 1)
 
