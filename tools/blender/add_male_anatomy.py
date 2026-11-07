@@ -171,7 +171,7 @@ def create_uv_surface(name, centre, scale, material, armature, pelvis_bone,
             b = ring * segments + (segment + 1) % segments
             c = (ring + 1) * segments + (segment + 1) % segments
             d = (ring + 1) * segments + segment
-            faces.append((a, b, c, d))
+            faces.append((a, d, c, b))  # outward-facing winding for the UV surface
     return create_mesh_object(name, vertices, faces, material, armature, pelvis_bone)
 
 
