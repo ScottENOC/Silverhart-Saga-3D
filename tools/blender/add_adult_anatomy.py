@@ -1,9 +1,10 @@
-"""Add a restrained adult external vulva sculpt to an Ara GLB.
+"""Sculpt adult female external anatomy directly into the existing Ara skin mesh.
 
-The anatomy is a separate skin-matched mesh weighted to the Hips bone. It is
-intended as a reviewable production starting point, not a claim of finished
-medical/anatomical accuracy. On clothed exports, lower garments are expanded
-locally at the front pelvis to reduce intersection with the new anatomy.
+The mons, labial folds, clitoral structures, vestibule and external openings
+are surface deformations of the original skin mesh. Its material, UVs, vertex
+groups and rig remain in place; no genital object is attached. This is an
+anatomy sculpt pass requiring multi-angle visual review before acceptance.
+On clothed exports, lower garments are fitted around the deformed body surface.
 
 Ara GLB axes after Blender import: Z up, character facing -Y.
 """
