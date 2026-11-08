@@ -3,6 +3,8 @@ extends Node3D
 
 const MODULAR_CHARACTER_ASSEMBLER = preload("res://scripts/presentation/modular_character_assembler.gd")
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
+const PLAYER_FEMALE_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
+const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
@@ -412,11 +414,14 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
 
     var model_loaded := false
-    if not ara_model_id.is_empty():
-        var ara_model := ARA_CHARACTER_ACTOR.new()
+    if is_player or not ara_model_id.is_empty():
+        var ara_model := ARA_CHARACTER_ACTOR.new() as AraCharacterActor
         ara_model.name = "CharacterModel"
         actor.add_child(ara_model)
-        model_loaded = ara_model.configure("res://art/characters/hollowmere/%s.glb" % ara_model_id)
+        var model_path := "res://art/characters/hollowmere/%s.glb" % ara_model_id
+        if is_player:
+            model_path = PLAYER_MALE_ASSET if str(player_profile.get("body_variant", "female")) == "male" else PLAYER_FEMALE_ASSET
+        model_loaded = ara_model.configure(model_path)
         if not model_loaded:
             actor.remove_child(ara_model)
             ara_model.queue_free()
@@ -1153,33 +1158,19 @@ func apply_player_profile(profile: Dictionary) -> void:
     var name_label := actor.get_node_or_null("PlayerNameLabel") as Label3D
     if name_label != null:
         name_label.text = str(profile.get("name", "Adventurer"))
-    var skin := Color.from_string(str(profile.get("skin_colour", "#b9825f")), Color(0.72, 0.57, 0.43))
     var ara := actor.get_node_or_null("CharacterModel")
     if ara is AraCharacterActor:
-        # Ara material names vary by export; only apply a tint where a matching
-        # named surface exists. Keep the complete profile for later variants.
-        ara.tint_materials("skin", skin)
-        var eye_colours := {
-            "Brown": Color("#49301f"), "Light brown": Color("#795334"),
-            "Dark brown": Color("#24170f"), "Green": Color("#55744b"),
-            "Blue": Color("#426f9a"), "Grey": Color("#777d83"),
-            "Ice blue": Color("#9bc8df")
-        }
-        ara.tint_materials("eye", eye_colours.get(str(profile.get("eye_colour", "Brown")), Color("#49301f")))
-        var hair_colours := {
-            "Black": Color("#171513"), "Dark brown": Color("#49372a"),
-            "Chestnut": Color("#75452d"), "Blonde": Color("#c6a45e"),
-            "Red": Color("#9a422e"), "Silver": Color("#aaa9a3"),
-            "White": Color("#e4dfd2"), "Blue": Color("#354d91"),
-            "Green": Color("#426b49")
-        }
-        ara.tint_materials("hair", hair_colours.get(str(profile.get("hair_colour", "Dark brown")), Color("#49372a")))
+        (ara as AraCharacterActor).apply_player_profile(profile)
     else:
+        # The capsule fallback is deliberately neutral when a Workshop body
+        # export is unavailable; never silently display the wrong body variant.
+        var skin := Color.from_string(str(profile.get("skin_colour", "#b9825f")), Color(0.72, 0.57, 0.43))
         var head := actor.get_node_or_null("PlayerHead") as MeshInstance3D
         if head != null:
             head.material_override = _material(skin)
         var body := actor.get_node_or_null("PlayerBody") as MeshInstance3D
         if body != null:
             body.material_override = _material(skin)
-    actor.set_meta("gender_presentation", str(profile.get("gender_presentation", "Androgynous")))
-    actor.set_meta("pronouns", str(profile.get("pronouns", "they/them")))
+        actor.set_meta("body_variant", str(profile.get("body_variant", "female")))
+        actor.set_meta("gender_presentation", str(profile.get("gender_presentation", "Androgynous")))
+        actor.set_meta("pronouns", str(profile.get("pronouns", "they/them")))
