@@ -129,7 +129,11 @@ func tint_materials(name_fragment: String, colour: Color) -> int:
             var material_name := source.resource_name.to_lower() if source != null else ""
             if not material_name.contains(name_fragment.to_lower()) and not mesh_instance.name.to_lower().contains(name_fragment.to_lower()):
                 continue
-            var material := source.duplicate() as StandardMaterial3D if source is StandardMaterial3D else StandardMaterial3D.new()
+            var original_key := "ara_original_tint_material_%d" % surface
+            if not mesh_instance.has_meta(original_key):
+                mesh_instance.set_meta(original_key, source)
+            var original := mesh_instance.get_meta(original_key) as Material
+            var material := original.duplicate() as StandardMaterial3D if original is StandardMaterial3D else StandardMaterial3D.new()
             material.albedo_color = Color(colour.r, colour.g, colour.b, material.albedo_color.a)
             mesh_instance.set_surface_override_material(surface, material)
             changed += 1
