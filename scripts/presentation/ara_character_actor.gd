@@ -6,6 +6,8 @@ extends Node3D
 var model_root: Node3D
 var animation_player: AnimationPlayer
 var loaded_asset_path: String = ""
+var hair_instances: Array[MeshInstance3D] = []
+var current_hair_colour: Color = Color("#49372a")
 
 func configure(glb_path: String) -> bool:
     if model_root != null and is_instance_valid(model_root):
@@ -13,6 +15,7 @@ func configure(glb_path: String) -> bool:
         model_root.queue_free()
     model_root = null
     animation_player = null
+    hair_instances.clear()
     loaded_asset_path = ""
     if not ResourceLoader.exists(glb_path):
         push_warning("Ara character asset is not installed: " + glb_path)
@@ -51,7 +54,9 @@ func apply_player_profile(profile: Dictionary) -> void:
     }
     tint_materials("skin", skin)
     tint_materials("eye", eye_colours.get(str(profile.get("eye_colour", "Brown")), Color("#49301f")))
-    tint_materials("hair", hair_colours.get(str(profile.get("hair_colour", "Dark brown")), Color("#49372a")))
+    current_hair_colour = hair_colours.get(str(profile.get("hair_colour", "Dark brown")), Color("#49372a"))
+    tint_materials("hair", current_hair_colour)
+    _tint_attached_hair(current_hair_colour)
 
     # Height and build are intentionally modest whole-model proportion controls
     # until the Ara exports expose validated body morph targets.
@@ -61,6 +66,119 @@ func apply_player_profile(profile: Dictionary) -> void:
     set_meta("body_variant", str(profile.get("body_variant", "female")))
     set_meta("gender_presentation", str(profile.get("gender_presentation", "Feminine")))
     set_meta("pronouns", str(profile.get("pronouns", "they/them")))
+
+## Attach a standalone Ara hair GLB to this character's existing skeleton.
+## Both exports must use the same pinned Ara rig and bone ordering.
+func set_hairstyle(glb_path: String) -> bool:
+    if model_root == null or not ResourceLoader.exists(glb_path):
+        return false
+    var target_skeleton := _find_skeleton(model_root)
+    if target_skeleton == null:
+        push_warning("Cannot attach Ara hair: character has no Skeleton3D")
+        return false
+    var packed := load(glb_path) as PackedScene
+    if packed == null:
+        return false
+    var source_root := packed.instantiate()
+    var source_skeleton := _find_skeleton(source_root)
+    if source_skeleton == null or not _same_skeleton(source_skeleton, target_skeleton):
+        source_root.free()
+        push_warning("Cannot attach Ara hair: exported skeleton does not match the character")
+        return false
+    var source_meshes: Array[MeshInstance3D] = []
+    _collect_skinned_meshes(source_root, source_meshes)
+    if source_meshes.is_empty():
+        source_root.free()
+        push_warning("Cannot attach Ara hair: GLB contains no skinned MeshInstance3D")
+        return false
+
+    clear_hairstyle()
+    _set_embedded_hair_visible(false)
+    for source_mesh in source_meshes:
+        var instance := source_mesh.duplicate() as MeshInstance3D
+        if instance == null:
+            continue
+        instance.name = "Swappable_" + source_mesh.name
+        model_root.add_child(instance)
+        instance.skeleton = instance.get_path_to(target_skeleton)
+        hair_instances.append(instance)
+    source_root.free()
+    if hair_instances.is_empty():
+        _set_embedded_hair_visible(true)
+        return false
+    _tint_attached_hair(current_hair_colour)
+    return true
+
+func clear_hairstyle() -> void:
+    for instance in hair_instances:
+        if is_instance_valid(instance):
+            instance.queue_free()
+    hair_instances.clear()
+    _set_embedded_hair_visible(true)
+
+func _same_skeleton(a: Skeleton3D, b: Skeleton3D) -> bool:
+    if a.get_bone_count() != b.get_bone_count():
+        return false
+    for index in range(a.get_bone_count()):
+        if a.get_bone_name(index) != b.get_bone_name(index):
+            return false
+    return true
+
+func _find_skeleton(node: Node) -> Skeleton3D:
+    if node is Skeleton3D:
+        return node as Skeleton3D
+    for child in node.get_children():
+        var found := _find_skeleton(child)
+        if found != null:
+            return found
+    return null
+
+func _collect_skinned_meshes(node: Node, output: Array[MeshInstance3D]) -> void:
+    if node is MeshInstance3D:
+        var mesh_instance := node as MeshInstance3D
+        if mesh_instance.skin != null and mesh_instance.mesh != null:
+            output.append(mesh_instance)
+    for child in node.get_children():
+        _collect_skinned_meshes(child, output)
+
+func _set_embedded_hair_visible(visible: bool) -> void:
+    if model_root == null:
+        return
+    var meshes: Array[MeshInstance3D] = []
+    _collect_meshes(model_root, meshes)
+    for mesh_instance in meshes:
+        if hair_instances.has(mesh_instance) or mesh_instance.mesh == null:
+            continue
+        for surface in range(mesh_instance.mesh.get_surface_count()):
+            var source := mesh_instance.get_active_material(surface)
+            var material_name := source.resource_name.to_lower() if source != null else ""
+            if not _is_hair_material(material_name):
+                continue
+            var meta_key := "ara_embedded_hair_material_%d" % surface
+            if not mesh_instance.has_meta(meta_key):
+                mesh_instance.set_meta(meta_key, source)
+            var original := mesh_instance.get_meta(meta_key) as Material
+            if visible:
+                mesh_instance.set_surface_override_material(surface, original)
+            else:
+                var hidden := original.duplicate() as StandardMaterial3D if original is StandardMaterial3D else StandardMaterial3D.new()
+                hidden.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+                hidden.albedo_color.a = 0.0
+                hidden.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+                mesh_instance.set_surface_override_material(surface, hidden)
+
+func _is_hair_material(material_name: String) -> bool:
+    return material_name.contains("hair") or material_name.contains("braid") or material_name.contains("buzz") or material_name.contains("spike")
+
+func _tint_attached_hair(colour: Color) -> void:
+    for mesh_instance in hair_instances:
+        if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
+            continue
+        for surface in range(mesh_instance.mesh.get_surface_count()):
+            var source := mesh_instance.get_active_material(surface)
+            var material := source.duplicate() as StandardMaterial3D if source is StandardMaterial3D else StandardMaterial3D.new()
+            material.albedo_color = Color(colour.r, colour.g, colour.b, material.albedo_color.a)
+            mesh_instance.set_surface_override_material(surface, material)
 
 func set_garment_visible(material_fragment: String, visible: bool) -> bool:
     if model_root == null:
