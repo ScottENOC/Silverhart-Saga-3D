@@ -150,7 +150,7 @@ A mechanic is considered ported only when:
 
 The first social-simulation mechanic is implemented in `scripts/simulation/campaign_journal.gd`. Quest definitions are registered as data; runtime state is held by the simulation, not by a scene or dialogue widget. The journal supports prerequisite gating, required and optional objective progress, one-time branch decisions, explicit completion/failure and per-faction standing deltas. It serializes quest states, objective progress, decisions and faction standings. Journal changes are forwarded through `WorldSimulation.action_committed` as `SimulationEvent` values so later dialogue, NPC and world systems can react without coupling to UI.
 
-This is deliberately a mechanics foundation, not yet the Hollowmere Ironbond quest content. Do not invent dialogue or outcomes: next migrate the original Campaign 2 opening dialogue and consequences into definitions that use this journal, then connect the dialogue interaction layer.
+The journal foundation now supports the first source-backed Hollowmere quest and dialogue slice below. Continue migrating campaign content into data definitions and simulation-owned effects; do not copy browser callbacks or global window state.
 
 
 ## Hollowmere opening dialogue and ambient chatter
@@ -164,3 +164,4 @@ Ambient chatter uses the original `ambientChatterExpansion.js` as its behavioura
 Headless tests cover the shakedown content and journal data, branch availability and faction deltas, chatter eligibility, event gating, midnight time windows and pair cooldowns.
 
 The campaign journal now also stores individual NPC standing changes with reasons and round-trip serialization, allowing dialogue branches to affect named characters independently of faction-wide standing. The original authority cascade to Hollowmere's elder, baron and the kingdom remains pending until those social actors and reputation dimensions are migrated.
+
