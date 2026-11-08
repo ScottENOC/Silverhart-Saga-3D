@@ -99,6 +99,18 @@ func request_reaction(reactor_id: String, options: Array[Dictionary], source_eve
     if not pending_reaction.is_empty():
         return _emit_immediate_reaction_resolution(reactor_id, "another_reaction_pending", source_event_id)
 
+    # Preserve the specific unavailable reason for a normal single-reactor
+    # request, while still allowing nearby allies to protect an incapacitated
+    # target when their options explicitly name a different reactor.
+    var primary := get_character(reactor_id)
+    var has_other_reactor := false
+    for option in options:
+        if String(option.get("reactor_id", reactor_id)) != reactor_id:
+            has_other_reactor = true
+            break
+    if (primary == null or not primary.can_act() or primary.reaction_blocked) and not has_other_reactor:
+        return _emit_immediate_reaction_resolution(reactor_id, "reactor_unavailable", source_event_id)
+
     # A single incoming action may offer choices to the defender and nearby
     # allies. Each option names its own TP-paying reactor; the prompt remains
     # presentation-only and the simulation validates that owner on selection.
