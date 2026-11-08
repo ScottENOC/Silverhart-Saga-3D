@@ -8,7 +8,7 @@ The Wren Workshop is a standalone browser-based model inspection/customisation p
 
 ## Cloud workflow
 
-The Wren workflow builds a generic female Ara base, a male Ara body, anatomy-integrated body variants, and modular female garment variants. It assembles the static viewer site and deploys that site to GitHub Pages.
+The Wren workflow builds a generic female Ara base, one female body-only export, a male Ara body, anatomy-integrated body assets, and modular female garment variants. Tattoos are applied in the browser at runtime; no tattoo-specific body model is generated or integrated. It assembles the static viewer site and deploys that site to GitHub Pages.
 
 The workflow runs manually through Actions → Build Wren Workshop → Run workflow, and automatically on relevant changes to Ara/Blender tools, viewer files, the character pipeline documentation or the workflow itself on its configured branches.
 
@@ -17,7 +17,7 @@ The current character source is Ara. The old procedural Wren blockout scripts ar
 ## Viewer scope and limitations
 
 - Female Ara: modular clothing and accessory inspection.
-- Female Ara body-only and tattooed-body inspection views.
+- Female Ara body-only inspection and live browser-based tattoo customisation. Tattoos are surface decals applied to the loaded skin, saved with the appearance, and do not require a second body GLB.
 - Male Ara: anatomy preview. Male clothing fitting and accessory sockets are not yet implemented.
 - The viewer is a browser-based asset inspection/customisation prototype, not a substitute for in-game Godot validation.
 

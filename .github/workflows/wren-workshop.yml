@@ -37,6 +37,22 @@ jobs:
       - uses: actions/checkout@v7
       - name: Compile anatomy, clothing and review tools
         run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/review/render_modular_outfits.py
+      - name: Validate Wren Workshop JavaScript
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path('site/index.html').read_text()
+          match = re.search(r'<script type="module">\s*(.*?)\s*</script>', html, re.S)
+          if not match:
+              raise SystemExit('Wren Workshop module script was not found')
+          Path('/tmp/wren-workshop.mjs').write_text(match.group(1))
+          PY
+          node --check /tmp/wren-workshop.mjs
+          if grep -R -n 'ara_person_tattoo_body' site; then
+            echo 'Obsolete tattoo-body asset reference remains' >&2
+            exit 1
+          fi
       - name: Build Ara 3D Gen benchmark
         shell: bash
         run: |
@@ -119,20 +135,6 @@ jobs:
           test -n "$BODY_GLB"
           cp "$BODY_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_body.glb"
           cp /tmp/ara-person-body.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_body.params.json"
-
-          # The same adult body with Ara's UV-space tattoo layer enabled.
-          python - <<'PY'
-          import json
-          p = json.load(open('/tmp/ara-person-body.params.json'))
-          p.update({"name": "Ara Base Person - tattooed body", "tattoos": ["armband_l", "forearm_l"], "tattooInk": "#20232a"})
-          json.dump(p, open('/tmp/ara-person-tattoo-body.params.json', 'w'), indent=2)
-          PY
-          mkdir -p /tmp/ara-tattoo-body-out
-          npm run export -- --params /tmp/ara-person-tattoo-body.params.json --detail high --formats glb --out /tmp/ara-tattoo-body-out
-          TATTOO_GLB="$(find /tmp/ara-tattoo-body-out -maxdepth 1 -type f -name '*.glb' -print -quit)"
-          test -n "$TATTOO_GLB"
-          cp "$TATTOO_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_tattoo_body.glb"
-          cp /tmp/ara-person-tattoo-body.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_tattoo_body.params.json"
 
           # Generate a separate adult male base body from the same Ara profile.
           # The anatomy component is added in its own Blender job below.
@@ -271,7 +273,6 @@ jobs:
       matrix:
         variant:
           - ara_person_body
-          - ara_person_tattoo_body
     steps:
       - uses: actions/checkout@v7
       - name: Download generated model
@@ -385,8 +386,7 @@ jobs:
           set -euo pipefail
           mkdir -p art/characters/ara
           cp /tmp/ara-generated/*.params.json art/characters/ara/
-          # The body and tattoo-body need Blender anatomy integration. These
-          # two previews are consumed as raw Ara exports by the Workshop.
+          # The body-only export is consumed as the base skin in the Workshop.
           cp /tmp/ara-generated/ara_person_benchmark.glb art/characters/ara/
           cp /tmp/ara-generated/ara_person_mobile.glb art/characters/ara/
       - name: Collect integrated models and review renders
@@ -541,7 +541,6 @@ jobs:
           cp art/characters/ara/ara_person_modular_underwear.glb site/assets/ara_person_modular_underwear.glb
           cp art/characters/ara/ara_person_mobile.glb site/assets/ara_person_mobile.glb
           cp art/characters/ara/ara_person_body.glb site/assets/ara_person_body.glb
-          cp art/characters/ara/ara_person_tattoo_body.glb site/assets/ara_person_tattoo_body.glb
           cp art/characters/ara/ara_person_male_body.glb site/assets/ara_person_male_body.glb
           cp art/characters/ara/ara_person_male_small_body.glb site/assets/ara_person_male_small_body.glb
           cp art/characters/ara/ara_person_male_large_body.glb site/assets/ara_person_male_large_body.glb
