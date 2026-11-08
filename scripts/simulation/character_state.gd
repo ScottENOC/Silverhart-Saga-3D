@@ -6,6 +6,25 @@ signal lifecycle_changed(character_id: String, transition: String)
 var id: String
 var display_name: String
 var axial: Vector2i
+var race: String = "human"
+var character_class: String = "fighter"
+var level: int = 1
+var experience: int = 0
+var attributes: Dictionary = {}
+var class_levels: Dictionary = {}
+var free_skill_ranks: Dictionary = {}
+var current_mana: int = 0
+var max_mana: int = 0
+var mana_caps: Dictionary = {"arcane": 10, "divine": 10, "nature": 10}
+var max_spell_slots: int = 8
+var unlocked_base_spells: Array[String] = []
+var gold: int = 0
+var game_mode: String = "campaign"
+var campaign_id: String = "2"
+var difficulty_mode: String = "normal"
+var ironman_mode: bool = false
+var gender_presentation: String = "Masculine"
+var pronouns: String = "they/them"
 var facing_direction: int = 2 # HexGrid direction index; 2 initially faces the W key direction.
 var health: int = 100
 var max_health: int = 100
@@ -169,6 +188,25 @@ func to_dict() -> Dictionary:
     return {
         "id": id,
         "display_name": display_name,
+        "race": race,
+        "character_class": character_class,
+        "level": level,
+        "experience": experience,
+        "attributes": attributes.duplicate(true),
+        "class_levels": class_levels.duplicate(true),
+        "free_skill_ranks": free_skill_ranks.duplicate(true),
+        "current_mana": current_mana,
+        "max_mana": max_mana,
+        "mana_caps": mana_caps.duplicate(true),
+        "max_spell_slots": max_spell_slots,
+        "unlocked_base_spells": unlocked_base_spells.duplicate(),
+        "gold": gold,
+        "game_mode": game_mode,
+        "campaign_id": campaign_id,
+        "difficulty_mode": difficulty_mode,
+        "ironman_mode": ironman_mode,
+        "gender_presentation": gender_presentation,
+        "pronouns": pronouns,
         "axial_q": axial.x,
         "axial_r": axial.y,
         "facing_direction": facing_direction,
@@ -212,6 +250,26 @@ static func from_dict(data: Dictionary) -> CharacterState:
         Vector2i(int(data.get("axial_q", 0)), int(data.get("axial_r", 0)))
     )
     state.facing_direction = posmod(int(data.get("facing_direction", 2)), 6)
+    state.race = String(data.get("race", "human"))
+    state.character_class = String(data.get("character_class", "fighter"))
+    state.level = maxi(1, int(data.get("level", 1)))
+    state.experience = maxi(0, int(data.get("experience", 0)))
+    state.attributes = data.get("attributes", {}).duplicate(true)
+    state.class_levels = data.get("class_levels", {}).duplicate(true)
+    state.free_skill_ranks = data.get("free_skill_ranks", {}).duplicate(true)
+    state.current_mana = int(data.get("current_mana", 0))
+    state.max_mana = int(data.get("max_mana", 0))
+    state.mana_caps = data.get("mana_caps", {"arcane": 10, "divine": 10, "nature": 10}).duplicate(true)
+    state.max_spell_slots = int(data.get("max_spell_slots", 8))
+    for spell_id in data.get("unlocked_base_spells", []):
+        state.unlocked_base_spells.append(String(spell_id))
+    state.gold = int(data.get("gold", 0))
+    state.game_mode = String(data.get("game_mode", "campaign"))
+    state.campaign_id = String(data.get("campaign_id", "2"))
+    state.difficulty_mode = String(data.get("difficulty_mode", "normal"))
+    state.ironman_mode = bool(data.get("ironman_mode", false))
+    state.gender_presentation = String(data.get("gender_presentation", "Masculine"))
+    state.pronouns = String(data.get("pronouns", "they/them"))
     state.health = int(data.get("health", 100))
     state.max_health = int(data.get("max_health", 100))
     state.side = String(data.get("side", "neutral"))
