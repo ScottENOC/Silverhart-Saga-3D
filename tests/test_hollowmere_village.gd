@@ -1,5 +1,7 @@
 extends SceneTree
 
+const MAIN_CAMPAIGN_MAP = preload("res://scripts/world/main_campaign_world_map_data.gd")
+
 func _initialize() -> void:
     _test_village_bounds_and_terrain()
     _test_road_network_connectivity()
@@ -81,3 +83,27 @@ func _test_hollowmere_character_manifest() -> void:
         var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
         assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
         assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % profile["id"])
+
+func _test_main_campaign_world_map() -> void:
+    var grid := MAIN_CAMPAIGN_MAP.generate_grid()
+    assert(grid.size() == 16, "The original Campaign 2 strategic map must have 16 rows")
+    for row in grid:
+        assert(row.size() == 16, "Every strategic map row must have 16 cells")
+
+    assert(grid[0][0]["terrain"] == "ocean", "The western edge should be ocean")
+    assert(grid[6][6]["faction"] == "humans", "Hollowmere should be in human lands")
+    assert(grid[15][5]["faction"] == "elves", "The southern forest belt should be elven territory")
+    assert(grid[1][14]["faction"] == "dwarves", "The north-east mountain block should be dwarven")
+    assert(grid[10][12]["faction"] == "orcs", "The eastern territory should be orc-held")
+
+    assert(grid[6][6]["poi"]["name"] == "Hollowmere", "Hollowmere must be the starting-village marker")
+    assert(grid[3][6]["poi"]["name"] == "Millbrook", "Millbrook should lie north of Hollowmere")
+    assert(grid[2][6]["poi"]["name"] == "Silverhart", "Silverhart should lie beyond Millbrook")
+    assert(grid[6][7]["poi"]["name"] == "Reddale", "Reddale should lie east of Hollowmere")
+    assert(grid[6][4]["poi"]["name"] == "Emberlode", "Emberlode should lie west of Hollowmere")
+    assert(grid[7][6]["poi"]["name"] == "Old Mac's Farmstead", "The farmstead should lie south of Hollowmere")
+
+    assert(MAIN_CAMPAIGN_MAP.RIVER_PATH.size() == 15, "The source river path should contain 15 strategic cells")
+    assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[0] == Vector2i(1, 5))
+    assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[14] == Vector2i(15, 4))
+    assert(MAIN_CAMPAIGN_MAP.world_cell_from_local_hex(Vector2i(8, 24)) == Vector2i(6, 6), "The local crossroads must map to Hollowmere's world cell")

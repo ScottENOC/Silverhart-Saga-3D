@@ -99,7 +99,7 @@ Do not begin a broad spell/skill/content migration until these shared action and
 
 - [ ] Regional prosperity/security/other stats and cascading consequences.
 - [ ] World pulse/event queue: caravans, bandit camps, wilderness incidents, rumours, faction pressure, seasonal effects and autonomous events.
-- [ ] Distinct local hex map and wider world/region map, travel routes, fog of war, map knowledge and location discovery.
+- [x] Distinct local Hollowmere hex map and initial 16×16 Main Campaign regional reference map, translated from the original Campaign 2 terrain/faction layout and river path. [ ] Travel routes, fog of war, map knowledge and location discovery.
 - [ ] Settlements, shops/hours, markets, resources, prices, recruitment, construction and player property.
 - [ ] Campaign 2 content migration: Hollowmere opening first, then farmstead/goblin camp/Emberlode/Emberwood/Millbrook/Reddale/Silverhart/Northwatch/Ridgehold and associated dungeons, arcs and siege branches.
 - [ ] Preserve explicitly gated set pieces: for example, Northwatch attackers/catapult/crew must remain dormant until the appropriate dialogue or explicit siege trigger; ordinary combat must not activate the siege.
@@ -138,9 +138,9 @@ A mechanic is considered ported only when:
 
 ## Game start and race/class creation
 
-- [x] Game-start UI separates Campaign and Arena selection. Arena is explicitly unavailable until its lobby/combat loop is ported; the current playable campaign opens in Small World / Hollowmere. Main Campaign is retained as a future option.
+- [x] Game-start UI separates Campaign and Arena selection. The Main Campaign now opens in Hollowmere using the original Campaign 2 content identity (internal ID `2`); Arena remains unavailable until its lobby/combat loop is ported.
 - [x] Five source races and six source classes are represented as data with their exact attribute bonuses from `Hex-crpg/data.js`.
 - [x] Player creation applies race/class bonuses into attribute pools, writes race/class tree marker ranks, initializes level 1 and classLevels, and assigns source class starting equipment.
 - [x] Easy mode applies the original +50% starting gold and free Health rank (+10 HP). Hard mode applies the original 10% player damage dealt/taken modifier.
 - [x] Race/class, mode, campaign, difficulty, Ironman intent, gold, attributes, identity and equipment are serialized on CharacterState.
-- [ ] Full racial/class skill trees and rank purchasing; class-specific mana/spell progression; Arena and Main Campaign runtime modes; Ironman save enforcement.
+- [x] Main Campaign start selection and first regional map reference view are connected to the Hollowmere opening. [ ] Full racial/class skill trees and rank purchasing; class-specific mana/spell progression; complete Main Campaign world/travel runtime; Arena; Ironman save enforcement.

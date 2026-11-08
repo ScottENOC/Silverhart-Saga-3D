@@ -39,7 +39,7 @@ func _create_loading_overlay() -> void:
     centre.add_child(stack)
 
     var heading := Label.new()
-    heading.text = "ENTERING HOLLOWMERE"
+    heading.text = "ENTERING HOLLOWMERE — MAIN CAMPAIGN"
     heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     heading.add_theme_font_size_override("font_size", 22)
     stack.add_child(heading)
