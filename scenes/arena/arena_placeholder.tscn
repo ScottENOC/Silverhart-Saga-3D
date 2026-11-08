@@ -1,0 +1,1 @@
+[gd_scene load_steps=2 format=3]\n\n[ext_resource type="Script" path="res://scripts/ui/arena_placeholder.gd" id="1_arena"]\n\n[node name="ArenaPlaceholder" type="Control"]\nlayout_mode = 3\nanchors_preset = 15\nanchor_right = 1.0\nanchor_bottom = 1.0\ngrow_horizontal = 2\ngrow_vertical = 2\nscript = ExtResource("1_arena")\n
