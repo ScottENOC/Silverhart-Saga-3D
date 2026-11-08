@@ -676,7 +676,7 @@ func _set_move_destination(destination: Vector2i) -> void:
     _show_path_markers(path)
 
 func _advance_path_step() -> void:
-    if simulation.clock.paused:
+    if simulation.clock.paused or not simulation.pending_reaction.is_empty():
         return
     if active_path.size() < 2:
         active_path.clear()
