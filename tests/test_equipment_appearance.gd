@@ -44,6 +44,21 @@ func _test_material_profiles_and_surface_isolation() -> void:
     assert(wood.metallic == 0.0)
     assert(wood.roughness > 0.7)
 
+    var unknown_material := StandardMaterial3D.new()
+    unknown_material.resource_name = "Material.001"
+    unknown_material.metallic = 0.15
+    unknown_material.roughness = 0.55
+    var unknown_mesh := BoxMesh.new()
+    unknown_mesh.material = unknown_material
+    var unknown_surface := MeshInstance3D.new()
+    unknown_surface.name = "UnknownSurface"
+    unknown_surface.mesh = unknown_mesh
+    var unknown_root := Node3D.new()
+    unknown_root.add_child(unknown_surface)
+    assert(EquipmentAppearance.apply_to(unknown_root, {"unknown_surface":{"profile":"gold"}}) == 0)
+    var preserved := unknown_surface.get_active_material(0) as StandardMaterial3D
+    assert(is_equal_approx(preserved.metallic, 0.15))
+    assert(is_equal_approx(preserved.roughness, 0.55))
     var heraldry_source := StandardMaterial3D.new()
     heraldry_source.resource_name = "HeraldryFace"
     var heraldry_mesh := BoxMesh.new()
@@ -66,3 +81,4 @@ func _test_material_profiles_and_surface_isolation() -> void:
     root_b.free()
     shield_root.free()
     heraldry_root.free()
+    unknown_root.free()
