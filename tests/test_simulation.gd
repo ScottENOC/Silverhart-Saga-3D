@@ -77,6 +77,12 @@ func _test_hollowmere_encounter() -> void:
     var attack := simulation.try_attack_character("player", "tomlin_brask", {"time_point_cost": 10.0, "weapon_id": "sword"}, 9127)
     _check(bool(attack.get("ok", false)), "The encounter should use the real WorldSimulation attack resolver")
     _check(player.time_points == 141.0, "The main attack should consume the source 10 TP cost")
+    simulation.turn_scheduler.current_character_id = "garrick_holt"
+    var ally_attack := simulation.try_attack_character("garrick_holt", "tomlin_brask", {"time_point_cost": 10.0, "weapon_id": "club"}, 9128)
+    _check(bool(ally_attack.get("ok", false)), "Garrick should use the same simulation attack resolver as the player")
+    _check(garrick.time_points == 140.0)
+    _check(simulation.try_end_current_turn(true))
+    _check(garrick.time_points == 80.0, "AI allies should forfeit unused TP after their single action")
     _check(not HollowmereEncounter.enemies_defeated(simulation))
     _check(not HollowmereEncounter.party_defeated(simulation))
     simulation.get_character("dray_coltayne").apply_damage(1000)
