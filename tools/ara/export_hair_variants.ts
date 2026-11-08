@@ -64,14 +64,10 @@ for (const sex of ['female', 'male'] as const) {
   const baseFile = await exportCharacter(lib, baseCharacter, 'glb');
   writeFileSync(join(output, `${sex}_base.glb`), baseFile.data);
 
-  const genderTag = sex;
-  const catalogHair = lib.catalog.hair
-    .filter((item) => {
-      const tags = item.tags.map((tag) => tag.toLowerCase());
-      const genderTags = tags.filter((tag) => tag === 'male' || tag === 'female');
-      return genderTags.length === 0 || genderTags.includes(genderTag);
-    })
-    .map((item) => item.id);
+  // Hair proxies are fitted against the head surface and can be used across
+  // either body variant. Export the same catalogue styles for both sexes so the
+  // creator never presents a style that only exists for the other body choice.
+  const catalogHair = lib.catalog.hair.map((item) => item.id);
   const available = curated.filter((id) =>
     ['buzz', 'mohawk', 'cornrows', 'box_braids'].includes(id) || catalogHair.includes(id),
   );
