@@ -321,9 +321,10 @@ def fuse_male_anatomy(parts, armature, pelvis_bone, body_height):
     fused.name = "Male anatomy · unified body surface"
     fused.data.name = "MaleAnatomyUnifiedMesh"
 
+    voxel_size = max(body_height * 0.00135, 0.0015)
     remesh = fused.modifiers.new("Fuse anatomy intersections", "REMESH")
     remesh.mode = "VOXEL"
-    remesh.voxel_size = max(body_height * 0.00135, 0.0015)
+    remesh.voxel_size = voxel_size
     remesh.use_smooth_shade = True
     bpy.context.view_layer.objects.active = fused
     bpy.ops.object.modifier_apply(modifier=remesh.name)
@@ -352,7 +353,7 @@ def fuse_male_anatomy(parts, armature, pelvis_bone, body_height):
     fused["anatomy_parts"] = "integrated_root,shaft,glans,corona,scrotal_sac"
     fused["anatomy_method"] = "single_voxel_fused_skin_surface"
     fused["review_status"] = "unified_geometry_requires_multi_angle_visual_acceptance"
-    fused["remesh_voxel_size"] = remesh.voxel_size if remesh.name in fused.modifiers else max(body_height * 0.00135, 0.0015)
+    fused["remesh_voxel_size"] = voxel_size
     return fused
 
 def main():
