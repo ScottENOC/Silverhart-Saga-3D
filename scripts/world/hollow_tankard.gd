@@ -928,7 +928,7 @@ func _begin_shakedown_combat() -> void:
     encounter_active = true
     enemy_turn_processed = false
     enemy_turn_waiting_for_reaction = false
-    if active_character_id != "player" and active_character_id != "companion_wren_talbot":
+    if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(active_character_id):
         active_character_id = "player"
     _update_combat_ui()
 
@@ -950,52 +950,58 @@ func _update_combat(_delta: float) -> void:
     if not simulation.pending_reaction.is_empty():
         return
     var current := simulation.get_current_turn_character()
-    if current == null or current.side != "enemy" or enemy_turn_processed:
+    if current == null or enemy_turn_processed:
+        return
+    var is_ai_turn := current.side == "enemy" or (current.side == "player" and not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(current.id))
+    if not is_ai_turn:
         return
     enemy_turn_processed = true
-    _run_enemy_combat_turn(current)
+    _run_ai_combat_turn(current)
 
 
-func _run_enemy_combat_turn(enemy: CharacterState) -> void:
-    var target := _nearest_party_target(enemy)
+func _run_ai_combat_turn(combatant: CharacterState) -> void:
+    var target := _nearest_opponent_target(combatant)
     if target == null:
         simulation.try_end_current_turn(true)
         return
-    if HexGrid.distance(enemy.axial, target.axial) <= _attack_range_for(enemy):
-        var weapon_id := String(enemy.equipment.get("weapon", ""))
-        var weapon: Dictionary = enemy.equipped_item_data.get("weapon", {})
-        var result := simulation.try_attack_character(enemy.id, target.id, {
+    if HexGrid.distance(combatant.axial, target.axial) <= _attack_range_for(combatant):
+        var weapon_id := String(combatant.equipment.get("weapon", ""))
+        var weapon: Dictionary = combatant.equipped_item_data.get("weapon", {})
+        var result := simulation.try_attack_character(combatant.id, target.id, {
             "time_point_cost": 10.0,
             "weapon_id": weapon_id,
             "is_ranged": String(weapon.get("subType", "")) == "ranged"
-        }, int(enemy.id.hash()))
+        }, int(combatant.id.hash()))
         if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
             enemy_turn_waiting_for_reaction = true
         else:
             simulation.try_end_current_turn(true)
         return
-    var next_step := _best_enemy_approach_step(enemy, target)
+    var next_step := _best_enemy_approach_step(combatant, target)
     if next_step == INVALID_HEX:
         simulation.try_end_current_turn(true)
         return
-    var moved := simulation.try_move_character_step(enemy.id, next_step)
+    var moved := simulation.try_move_character_step(combatant.id, next_step)
     if moved and not simulation.pending_reaction.is_empty():
         enemy_turn_waiting_for_reaction = true
     else:
         simulation.try_end_current_turn(true)
 
 
-func _nearest_party_target(enemy: CharacterState) -> CharacterState:
+func _nearest_opponent_target(combatant: CharacterState) -> CharacterState:
     var best: CharacterState
     var best_distance := 999
-    for party_id in HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_IDS:
-        var member := simulation.get_character(party_id)
-        if member == null or not member.can_act():
+    var opponent_ids: Array[String] = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS
+    if combatant.side == "enemy":
+        opponent_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.COMBAT_ALLY_IDS
+    for opponent_id in opponent_ids:
+        var opponent := simulation.get_character(opponent_id)
+        if opponent == null or not opponent.can_act():
             continue
-        var distance := HexGrid.distance(enemy.axial, member.axial)
+        var distance := HexGrid.distance(combatant.axial, opponent.axial)
         if distance < best_distance:
             best_distance = distance
-            best = member
+            best = opponent
     return best
 
 
@@ -1085,8 +1091,10 @@ func _update_combat_ui() -> void:
         combat_status_label.text = "Waiting for the next combat turn..."
     elif current.side == "enemy":
         combat_status_label.text = "%s is acting..." % current.display_name
-    elif current.id != active_character_id:
+    elif current.id != active_character_id and HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(current.id):
         combat_status_label.text = "Switch to %s with Tab." % current.display_name
+    elif current.id != active_character_id:
+        combat_status_label.text = "%s is acting..." % current.display_name
     else:
         combat_status_label.text = "%s  ·  HP %d/%d  ·  TP %d" % [current.display_name, current.health, current.max_health, roundi(current.time_points)]
 
