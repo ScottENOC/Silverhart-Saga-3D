@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Compile anatomy, clothing and review tools
-        run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/review/render_modular_outfits.py
+        run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
       - name: Validate Wren Workshop JavaScript
         run: |
           python - <<'PY'
@@ -372,7 +372,6 @@ jobs:
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue pants#2" \
             /tmp/ara-generated/ara_person_backless_slit_dress.glb "Backless slit dress" \
             /tmp/ara-generated/ara_person_backless_slit_dress.glb "Pencil skirt" \
-            /tmp/ara-generated/ara_person_leather_armor.glb "Leather armor" \
             /tmp/ara-generated/ara_person_benchmark.glb "Shoes" \
             /tmp/ara-generated/ara_person_benchmark.glb "Boot shafts" \
             /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
@@ -445,6 +444,16 @@ jobs:
             --output /tmp/ara_person_modular_underwear_fitted.glb \
             --profile none --adult --fit-existing
           mv /tmp/ara_person_modular_underwear_fitted.glb art/characters/ara/ara_person_modular_underwear.glb
+      - name: Replace small Ara accessory with full-coverage leather armour
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python tools/blender/create_full_coverage_armor.py -- \
+            --input art/characters/ara/ara_person_modular.glb \
+            --output /tmp/ara_person_modular_armour.glb
+          mv /tmp/ara_person_modular_armour.glb art/characters/ara/ara_person_modular.glb
       - name: Render and validate dress review angles
         id: dress-review
         shell: bash
@@ -490,6 +499,11 @@ jobs:
               fi
             fi
           done
+          echo "Rendering full-coverage armour review"
+          blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
+            art/characters/ara/ara_person_modular.glb "$OUT" armor
+          for view in front side rear; do test -s "$OUT/armor/$view.png"; done
+          test -s "$OUT/armor/report.json"
       - name: Keep generated models as build artifacts
         uses: actions/upload-artifact@v7
         with:
