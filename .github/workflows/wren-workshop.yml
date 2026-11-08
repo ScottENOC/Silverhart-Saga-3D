@@ -37,6 +37,22 @@ jobs:
       - uses: actions/checkout@v7
       - name: Compile anatomy, clothing and review tools
         run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/review/render_modular_outfits.py
+      - name: Validate Wren Workshop JavaScript
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          html = Path('site/index.html').read_text()
+          match = re.search(r'<script type="module">\\s*(.*?)\\s*</script>', html, re.S)
+          if not match:
+              raise SystemExit('Wren Workshop module script was not found')
+          Path('/tmp/wren-workshop.mjs').write_text(match.group(1))
+          PY
+          node --check /tmp/wren-workshop.mjs
+          if grep -R -n 'ara_person_tattoo_body' site .github/workflows/wren-workshop.yml; then
+            echo 'Obsolete tattoo-body asset reference remains' >&2
+            exit 1
+          fi
       - name: Build Ara 3D Gen benchmark
         shell: bash
         run: |
