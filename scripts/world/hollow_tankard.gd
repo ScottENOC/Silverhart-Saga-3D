@@ -4,7 +4,7 @@ extends Node3D
 const MODULAR_CHARACTER_ASSEMBLER = preload("res://scripts/presentation/modular_character_assembler.gd")
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
-const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
+const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")\nconst WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const CHARACTER_CREATION_RULES = preload("res://scripts/simulation/character_creation_rules.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
@@ -18,7 +18,7 @@ const ROOF_RIDGE_HEIGHT: float = 5.8
 
 var simulation: WorldSimulation
 var reaction_prompt: CanvasLayer
-var character_panel: CharacterPanel
+var character_panel: CharacterPanel\nvar world_map_panel: CanvasLayer
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
 var actor_by_id: Dictionary = {}
