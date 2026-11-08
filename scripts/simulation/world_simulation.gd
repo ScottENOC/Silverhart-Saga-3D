@@ -458,7 +458,7 @@ func _movement_reaction_options(mover: CharacterState, next_hex: Vector2i) -> Ar
                     "reactor_id": reactor.id
                 })
 
-        var armour: Variant = reactor.equipment.get("armour", "")
+        var armour: Variant = reactor.equipped_item_data.get("armour", reactor.equipment.get("armour", ""))
         var light_or_unarmoured := false
         if armour is Dictionary:
             light_or_unarmoured = String(armour.get("weight_class", "")) == "light"
