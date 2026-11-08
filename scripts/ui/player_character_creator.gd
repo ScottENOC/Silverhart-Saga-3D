@@ -57,6 +57,7 @@ func _ready() -> void:
     layer = 100
     _build_screen()
     _load_saved_profile()
+    call_deferred("_refresh_appearance_preview", 0)
 
 func _build_screen() -> void:
     var backdrop := ColorRect.new()
@@ -237,7 +238,6 @@ func _build_screen() -> void:
     start_button.pressed.connect(_finish)
     panel.add_child(start_button)
     _update_mode_controls(game_mode_select.selected)
-    call_deferred("_refresh_appearance_preview", 0)
 
 func _section(parent: VBoxContainer, text_value: String) -> void:
     var label := Label.new()
@@ -304,7 +304,6 @@ func _load_saved_profile() -> void:
     _select_text(shirt_select, str(data.get("shirt", "Simple tunic")))
     _select_text(trousers_select, str(data.get("legwear", "Trousers")))
     _refresh_character_preview(0)
-    _refresh_appearance_preview(0)
     _update_mode_controls(game_mode_select.selected)
 
 func _select_metadata(select: OptionButton, value: String) -> void:
