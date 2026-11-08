@@ -717,6 +717,7 @@ func _can_move_to(state: CharacterState, destination: Vector2i) -> bool:
 func _commit_move(state: CharacterState, destination: Vector2i) -> void:
     ensure_exploration_region(destination)
     var origin: Vector2i = state.axial
+    ensure_resource_at(destination)
     occupied_hexes.erase(origin)
     state.axial = destination
     occupied_hexes[destination] = state.id
