@@ -1,0 +1,188 @@
+{
+  "source": "Hex-crpg/data.js raceData/classData and characterCreation.js createCharacterData/initializePlayer",
+  "schema_version": 1,
+  "races": {
+    "human": {
+      "label": "Human",
+      "description": "Adaptable generalist with a wildcard point.",
+      "bonus": {
+        "agility": 1,
+        "strength": 1,
+        "endurance": 1,
+        "wildcard": 1
+      }
+    },
+    "dwarf": {
+      "label": "Dwarf",
+      "description": "Sturdy and strong, with access to the dwarf skill tree.",
+      "bonus": {
+        "dwarf": 1,
+        "endurance": 2,
+        "strength": 1
+      }
+    },
+    "elf": {
+      "label": "Elf",
+      "description": "Agile and naturally attuned to arcane study.",
+      "bonus": {
+        "elf": 1,
+        "agility": 2,
+        "arcane": 1
+      }
+    },
+    "goblin": {
+      "label": "Goblin",
+      "description": "Quick, opportunistic skirmisher with a goblin skill tree.",
+      "bonus": {
+        "goblin": 1,
+        "agility": 2,
+        "weapons": 1
+      }
+    },
+    "orc": {
+      "label": "Orc",
+      "description": "Powerful, resilient front-line combatant.",
+      "bonus": {
+        "orc": 1,
+        "strength": 2,
+        "endurance": 1
+      }
+    }
+  },
+  "classes": {
+    "fighter": {
+      "label": "Fighter",
+      "description": "A disciplined front-line combatant.",
+      "bonus": {
+        "fighter": 1,
+        "strength": 2,
+        "endurance": 2,
+        "weapons": 2
+      },
+      "starting_equipment": [
+        "sword"
+      ],
+      "equipped": [
+        "sword"
+      ]
+    },
+    "rogue": {
+      "label": "Rogue",
+      "description": "A mobile opportunist with ranged options.",
+      "bonus": {
+        "rogue": 1,
+        "agility": 3,
+        "weapons": 1,
+        "endurance": 2
+      },
+      "starting_equipment": [
+        "dagger",
+        "torch",
+        "bow"
+      ],
+      "equipped": [
+        "dagger"
+      ]
+    },
+    "cleric": {
+      "label": "Cleric",
+      "description": "A resilient divine practitioner.",
+      "bonus": {
+        "cleric": 1,
+        "divine": 2,
+        "endurance": 2,
+        "weapons": 1,
+        "strength": 1
+      },
+      "starting_equipment": [
+        "club",
+        "wooden_shield"
+      ],
+      "equipped": [
+        "club",
+        "wooden_shield"
+      ]
+    },
+    "wizard": {
+      "label": "Wizard",
+      "description": "A dedicated arcane scholar.",
+      "bonus": {
+        "wizard": 1,
+        "arcane": 4,
+        "endurance": 1,
+        "agility": 1
+      },
+      "starting_equipment": [
+        "dagger"
+      ],
+      "equipped": [
+        "dagger"
+      ]
+    },
+    "druid": {
+      "label": "Druid",
+      "description": "A nature practitioner with a practical weapon.",
+      "bonus": {
+        "druid": 1,
+        "nature": 2,
+        "endurance": 2,
+        "strength": 1,
+        "agility": 1
+      },
+      "starting_equipment": [
+        "club"
+      ],
+      "equipped": [
+        "club"
+      ]
+    },
+    "monk": {
+      "label": "Monk",
+      "description": "A disciplined martial artist following the open palm.",
+      "bonus": {
+        "monk": 1,
+        "Way of the open palm": 2,
+        "strength": 1,
+        "endurance": 2,
+        "agility": 1
+      },
+      "starting_equipment": [
+        "dagger"
+      ],
+      "equipped": [
+        "dagger"
+      ]
+    }
+  },
+  "difficulties": {
+    "easy": {
+      "label": "Easy",
+      "description": "50% more starting gold and one free Health rank (+10 current and maximum HP). Other legacy easy-mode adjustments are not yet ported."
+    },
+    "normal": {
+      "label": "Normal",
+      "description": "Standard starting resources and combat rules."
+    },
+    "hard": {
+      "label": "Hard",
+      "description": "Player attacks deal 10% less damage; incoming attacks deal 10% more damage."
+    }
+  },
+  "starting_resources": {
+    "1": 150,
+    "2": 65,
+    "3": 0
+  },
+  "base_attributes": [
+    "strength",
+    "endurance",
+    "agility",
+    "weapons",
+    "divine",
+    "nature",
+    "arcane",
+    "wildcard",
+    "monk",
+    "Way of the open palm"
+  ]
+}

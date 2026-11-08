@@ -5,6 +5,7 @@ const MODULAR_CHARACTER_ASSEMBLER = preload("res://scripts/presentation/modular_
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
+const CHARACTER_CREATION_RULES = preload("res://scripts/simulation/character_creation_rules.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -22,6 +23,7 @@ var camera_rig: OrbitCameraRig
 var roof_group: Node3D
 var actor_by_id: Dictionary = {}
 var starting_loadouts: Dictionary = {}
+var player_profile: Dictionary = {}
 var party_member_ids: Array[String] = ["player", "companion_wren_talbot"]
 var active_party_index: int = 0
 var active_character_id: String = "player"
@@ -309,7 +311,7 @@ func _create_characters() -> void:
     # The player remains a neutral placeholder until a player-appearance
     # choice is made. Every named village character is loaded from the shared
     # Ara profile manifest and its generated GLB when that asset pack is installed.
-    _spawn_character("player", "Adventurer", Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true, "player_avatar")
+    _spawn_character("player", String(player_profile.get("name", "Adventurer")), Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true, "player_avatar")
 
     var profile_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
     if profile_file == null:
@@ -373,8 +375,12 @@ func _apply_starting_loadout(state: CharacterState) -> void:
 
 func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, ara_model_id: String = "") -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
-    var state := CharacterState.new(id, display_name, spawn_hex)
-    _apply_starting_loadout(state)
+    var state: CharacterState
+    if is_player:
+        state = CHARACTER_CREATION_RULES.create_player_state(player_profile, id, spawn_hex)
+    else:
+        state = CharacterState.new(id, display_name, spawn_hex)
+        _apply_starting_loadout(state)
     state.time_points = state.max_time_points
     simulation.register_character(state)
 

@@ -131,6 +131,19 @@ func _build_character_tab(parent: VBoxContainer, state: CharacterState) -> void:
     var status := "Alive" if state.alive else "Dead"
     if state.unconscious:
         status = "Downed / unconscious"
+    _add_section(parent, "IDENTITY & PROGRESSION")
+    _add_stat(parent, "Race", state.race.capitalize())
+    _add_stat(parent, "Class", state.character_class.capitalize())
+    _add_stat(parent, "Level / XP", "%d / %d" % [state.level, state.experience])
+    _add_stat(parent, "Gold", str(state.gold))
+    _add_stat(parent, "Difficulty", state.difficulty_mode.capitalize())
+    _add_section(parent, "ATTRIBUTE POOLS")
+    var attribute_keys: Array = state.attributes.keys()
+    attribute_keys.sort()
+    for attribute_key in attribute_keys:
+        var attribute_value := int(state.attributes[attribute_key])
+        if attribute_value != 0:
+            _add_stat(parent, String(attribute_key).capitalize(), "+%d" % attribute_value)
     _add_section(parent, "STATUS")
     _add_stat(parent, "Condition", status)
     _add_stat(parent, "Faction", state.side.capitalize())

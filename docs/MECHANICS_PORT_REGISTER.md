@@ -56,7 +56,7 @@ Do not begin a broad spell/skill/content migration until these shared action and
 - [x] Time Point combat-readiness and turn-end thresholds.
 - [x] Highest-Time-Point initiative selection.
 - [x] Paid hex movement and weighted A* using the same terrain cost resolver.
-- [ ] Complete character model: attributes, derived stats, HP/mana, regeneration, XP, levels, class/race traits, status effects and resistances.
+- [x] Initial source-backed character creation: race/class attribute pools and tree markers, class levels, level/XP fields, mana caps, gold, difficulty, identity and class starting equipment. Full derived stats, mana use/regeneration, XP/level progression, racial/class skill trees and status effects remain to be ported.
 - [x] Initial action command/result/event contract for movement and attacks. Extend it to cast, interact, use item and rest as those systems are ported.
 - [ ] Tick pipeline: world time, TP regeneration, HP/mana/status ticks, upkeep, schedules and world events, with combat-turn pauses matching the source.
 - [ ] Whole-world versioned save/load: characters, party, map diffs, explored/known state, inventory, quests, relationships, factions, regions, schedules, events and campaign flags.
@@ -77,7 +77,8 @@ Do not begin a broad spell/skill/content migration until these shared action and
 
 ### M3 — Character progression, equipment and magic
 
-- [ ] Attribute and skill trees, rank limits, prerequisites, skill costs, respec/difficulty rules and derived effects.
+- [x] Character-creation race/class bonuses and initial class level are data-backed from the original game; class/race markers populate the relevant attribute pools. Easy mode applies its source starting gold bonus and free Health rank (+10 HP); hard mode applies the source 10% damage dealt/taken modifier.
+- [ ] Full attribute and skill trees, rank limits, prerequisites, skill costs, respec/difficulty rules and derived effects.
 - [ ] XP/level progression and NPC progression policies/modes.
 - [x] Initial persistent inventory item instances, equipment-slot swap/unequip operations, and data-backed Character/Inventory panel. The original 63-item catalogue (including source stats, prices, descriptions and carry weights) is now data-backed; Hollowmere NPC starting equipment is assigned from the original campaign data. The inventory panel uses a 2D SVG icon atlas migrated from the original game. Equipped item damage/reduction and armour weight metadata feed combat/movement rules.
 - [ ] Remaining inventory systems: original shared-party pool, stack rules, currency, loot, shops, equipment readiness, encumbrance, item identity and complete inventory persistence. The current slice uses per-character item instances; the player avatar has no starting kit until class selection is implemented.
@@ -133,3 +134,13 @@ A mechanic is considered ported only when:
 - it is connected to relevant existing systems;
 - its data and state survive save/load; and
 - the feature is playable in the 3D world, not just represented in code.
+
+
+## Game start and race/class creation
+
+- [x] Game-start UI separates Campaign and Arena selection. Arena is explicitly unavailable until its lobby/combat loop is ported; the current playable campaign opens in Small World / Hollowmere. Main Campaign is retained as a future option.
+- [x] Five source races and six source classes are represented as data with their exact attribute bonuses from `Hex-crpg/data.js`.
+- [x] Player creation applies race/class bonuses into attribute pools, writes race/class tree marker ranks, initializes level 1 and classLevels, and assigns source class starting equipment.
+- [x] Easy mode applies the original +50% starting gold and free Health rank (+10 HP). Hard mode applies the original 10% player damage dealt/taken modifier.
+- [x] Race/class, mode, campaign, difficulty, Ironman intent, gold, attributes, identity and equipment are serialized on CharacterState.
+- [ ] Full racial/class skill trees and rank purchasing; class-specific mana/spell progression; Arena and Main Campaign runtime modes; Ironman save enforcement.

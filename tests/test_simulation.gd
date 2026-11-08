@@ -4,6 +4,7 @@ var _failures: int = 0
 
 func _initialize() -> void:
     _test_character_round_trip()
+    _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
     _test_equipped_item_combat_effects()
     _test_movement_validation()
@@ -753,3 +754,104 @@ func _test_item_catalog_and_hollowmere_loadouts() -> void:
     _check(dray.inventory.is_empty(), "Starting equipment should be equipped, not duplicated in carried items")
 
 
+
+
+func _test_race_class_character_creation() -> void:
+    var profile := {"name":"Aldara","race":"human","character_class":"fighter","game_mode":"campaign","campaign_id":"2","difficulty_mode":"normal","gender_presentation":"Feminine","pronouns":"she/her"}
+    var fighter := CharacterCreationRules.create_player_state(profile, "player", Vector2i(-1, 2))
+    _check(fighter.display_name == "Aldara")
+    _check(fighter.race == "human" and fighter.character_class == "fighter")
+    _check(fighter.side == "player")
+    _check(fighter.level == 1 and fighter.experience == 0)
+    _check(int(fighter.attributes.get("strength", 0)) == 3)
+    _check(int(fighter.attributes.get("endurance", 0)) == 3)
+    _check(int(fighter.attributes.get("agility", 0)) == 1)
+    _check(int(fighter.attributes.get("wildcard", 0)) == 1)
+    _check(int(fighter.attributes.get("fighter", 0)) == 1)
+    _check(int(fighter.attributes.get("weapons", 0)) == 2)
+    _check(int(fighter.class_levels.get("fighter", 0)) == 1)
+    _check(fighter.gold == 65)
+    _check(String(fighter.equipment.get("weapon", "")) == "sword")
+    _check(fighter.inventory.is_empty())
+    _check(String(fighter.equipped_item_data.get("weapon", {}).get("id", "")) == "sword")
+    var round_trip := CharacterState.from_dict(fighter.to_dict())
+    _check(round_trip.race == "human" and round_trip.character_class == "fighter")
+    _check(round_trip.attributes == fighter.attributes and round_trip.class_levels == fighter.class_levels)
+    _check(round_trip.gold == 65 and round_trip.campaign_id == "2")
+
+    var rogue_profile := profile.duplicate(true)
+    rogue_profile["race"] = "dwarf"
+    rogue_profile["character_class"] = "rogue"
+    var rogue := CharacterCreationRules.create_player_state(rogue_profile, "rogue", Vector2i.ZERO)
+    _check(int(rogue.attributes.get("dwarf", 0)) == 1 and int(rogue.attributes.get("rogue", 0)) == 1)
+    _check(int(rogue.attributes.get("endurance", 0)) == 4 and int(rogue.attributes.get("agility", 0)) == 3)
+    _check(String(rogue.equipment.get("weapon", "")) == "dagger")
+    _check(rogue.inventory.size() == 2, "Rogue carries bow and torch")
+
+    var cleric_profile := profile.duplicate(true)
+    cleric_profile["character_class"] = "cleric"
+    var cleric := CharacterCreationRules.create_player_state(cleric_profile, "cleric", Vector2i.ZERO)
+    _check(String(cleric.equipment.get("weapon", "")) == "club")
+    _check(String(cleric.equipment.get("offhand", "")) == "wooden_shield")
+    _check(CombatRules.damage_reduction(cleric) == 1)
+
+
+    var expected_races := {
+        "human":{"agility":1,"strength":1,"endurance":1,"wildcard":1},
+        "dwarf":{"dwarf":1,"endurance":2,"strength":1},
+        "elf":{"elf":1,"agility":2,"arcane":1},
+        "goblin":{"goblin":1,"agility":2,"weapons":1},
+        "orc":{"orc":1,"strength":2,"endurance":1}
+    }
+    var fighter_bonuses: Dictionary = CharacterCreationRules.class_definition("fighter").get("bonus", {})
+    for race_id in expected_races:
+        var race_profile := profile.duplicate(true)
+        race_profile["race"] = race_id
+        var race_state := CharacterCreationRules.create_player_state(race_profile, "race_" + race_id, Vector2i.ZERO)
+        for attribute in expected_races[race_id]:
+            _check(int(race_state.attributes.get(attribute, 0)) == int(expected_races[race_id][attribute]) + int(fighter_bonuses.get(attribute, 0)), "Race bonus mismatch: %s / %s" % [race_id, attribute])
+
+    var expected_classes := {
+        "fighter":{"weapon":"sword","carried":0},
+        "rogue":{"weapon":"dagger","carried":2},
+        "cleric":{"weapon":"club","carried":0},
+        "wizard":{"weapon":"dagger","carried":0},
+        "druid":{"weapon":"club","carried":0},
+        "monk":{"weapon":"dagger","carried":0}
+    }
+    for class_id in expected_classes:
+        var class_profile := profile.duplicate(true)
+        class_profile["character_class"] = class_id
+        var class_state := CharacterCreationRules.create_player_state(class_profile, "class_" + class_id, Vector2i.ZERO)
+        _check(String(class_state.equipment.get("weapon", "")) == String(expected_classes[class_id]["weapon"]), "Class starting weapon mismatch: %s" % class_id)
+        _check(class_state.inventory.size() == int(expected_classes[class_id]["carried"]), "Class carried starting items mismatch: %s" % class_id)
+        _check(int(class_state.class_levels.get(class_id, 0)) == 1, "Class level marker missing: %s" % class_id)
+
+    var easy_profile := profile.duplicate(true)
+    easy_profile["difficulty_mode"] = "easy"
+    var easy := CharacterCreationRules.create_player_state(easy_profile, "easy", Vector2i.ZERO)
+    _check(easy.gold == 98)
+    _check(easy.max_health == 110 and easy.health == 110)
+    _check(int(easy.skills.get("health", 0)) == 1 and int(easy.free_skill_ranks.get("health", 0)) == 1)
+
+    var hard_profile := profile.duplicate(true)
+    hard_profile["difficulty_mode"] = "hard"
+    var hard := CharacterCreationRules.create_player_state(hard_profile, "hard", Vector2i.ZERO)
+    var target := CharacterState.new("hard_target", "Target")
+    target.health = 100
+    target.max_health = 100
+    hard.to_hit_melee = 100.0
+    hard.time_points = 10.0
+    var rng := RandomNumberGenerator.new()
+    rng.seed = 1
+    var result := CombatRules.resolve_attack(hard, target, {"time_point_cost":1.0, "bonus_damage":10}, rng)
+    _check(int(result.get("damage", 0)) == 13, "Hard mode reduces player damage by 10 percent")
+    var enemy := CharacterState.new("enemy", "Enemy")
+    enemy.to_hit_melee = 100.0
+    enemy.base_damage = 10
+    enemy.time_points = 10.0
+    var hard_target := CharacterCreationRules.create_player_state(hard_profile, "hard_target_player", Vector2i(1, 0))
+    hard_target.health = 100
+    hard_target.max_health = 100
+    var incoming := CombatRules.resolve_attack(enemy, hard_target, {"time_point_cost":1.0}, rng)
+    _check(int(incoming.get("damage", 0)) == 11, "Hard mode increases incoming damage by 10 percent")

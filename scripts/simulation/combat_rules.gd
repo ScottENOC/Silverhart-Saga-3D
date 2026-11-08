@@ -105,7 +105,7 @@ static func resolve_attack(
     var raw := raw_damage(attacker, options)
     var reduction := damage_reduction(target)
     var final_damage := maxi(1, raw - reduction)
-    if bool(options.get("hard_difficulty", false)):
+    if bool(options.get("hard_difficulty", false)) or attacker.difficulty_mode == "hard" or target.difficulty_mode == "hard":
         if attacker.side == "player":
             final_damage = maxi(1, roundi(final_damage * 0.9))
         if target.side == "player":

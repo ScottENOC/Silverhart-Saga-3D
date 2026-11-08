@@ -5,6 +5,8 @@ extends CanvasLayer
 
 signal completed(profile: Dictionary)
 
+const RULES = preload("res://scripts/simulation/character_creation_rules.gd")
+
 const SAVE_PATH := "user://player_appearance.json"
 const SKIN_TONES := ["Porcelain", "Fair", "Light", "Medium", "Olive", "Brown", "Deep brown"]
 const SKIN_COLOURS := ["#f2d8c4", "#e8c2a2", "#d6a47e", "#b9825f", "#9a6849", "#70452f", "#45291f"]
@@ -16,6 +18,16 @@ const PRESENTATIONS := ["Masculine", "Feminine", "Androgynous", "Mixed", "Custom
 const PRONOUN_SETS := ["He / him", "She / her", "They / them", "Use my name", "Custom"]
 
 var name_edit: LineEdit
+var game_mode_select: OptionButton
+var campaign_select: OptionButton
+var difficulty_select: OptionButton
+var ironman_check: CheckBox
+var arena_rewards_check: CheckBox
+var race_select: OptionButton
+var class_select: OptionButton
+var rules_preview: Label
+var mode_note: Label
+var start_button: Button
 var presentation_select: OptionButton
 var pronoun_select: OptionButton
 var custom_pronouns: LineEdit
@@ -51,7 +63,7 @@ func _build_screen() -> void:
     scroll.add_child(centre)
 
     var panel := VBoxContainer.new()
-    panel.custom_minimum_size = Vector2(340, 0)
+    panel.custom_minimum_size = Vector2(560, 0)
     panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     panel.add_theme_constant_override("separation", 10)
     centre.add_child(panel)
@@ -69,8 +81,51 @@ func _build_screen() -> void:
     intro.add_theme_color_override("font_color", Color(0.78, 0.79, 0.78))
     panel.add_child(intro)
 
-    _section(panel, "IDENTITY")
+    _section(panel, "GAME MODE")
+    game_mode_select = _option_row(panel, "Mode", ["Campaign", "Arena"])
+    campaign_select = _option_row(panel, "Campaign", ["Small World — Hollowmere", "Main Campaign — coming later"])
+    campaign_select.set_item_metadata(0, "2")
+    campaign_select.set_item_metadata(1, "3")
+    campaign_select.set_item_disabled(1, true)
+    difficulty_select = _option_row(panel, "Difficulty", ["Easy", "Normal", "Hard"])
+    for i in range(3):
+        difficulty_select.set_item_metadata(i, ["easy", "normal", "hard"][i])
+    ironman_check = CheckBox.new()
+    ironman_check.text = "Ironman run (save enforcement not yet ported)"
+    panel.add_child(ironman_check)
+    arena_rewards_check = CheckBox.new()
+    arena_rewards_check.text = "Arena roguelike rewards"
+    arena_rewards_check.button_pressed = true
+    panel.add_child(arena_rewards_check)
+    mode_note = Label.new()
+    mode_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    mode_note.add_theme_color_override("font_color", Color(0.9, 0.75, 0.48))
+    panel.add_child(mode_note)
+    game_mode_select.item_selected.connect(_update_mode_controls)
+    _update_mode_controls(0)
+
+    _section(panel, "IDENTITY & CHARACTER")
     name_edit = _line_edit(panel, "Character name", "Your name")
+    race_select = _option_row(panel, "Race", [])
+    for race_id in RULES.race_ids():
+        race_select.add_item(String(RULES.race_definition(race_id).get("label", race_id)))
+        race_select.set_item_metadata(race_select.item_count - 1, race_id)
+    class_select = _option_row(panel, "Class", [])
+    for class_id in RULES.class_ids():
+        class_select.add_item(String(RULES.class_definition(class_id).get("label", class_id)))
+        class_select.set_item_metadata(class_select.item_count - 1, class_id)
+    _select_metadata(race_select, "human")
+    _select_metadata(class_select, "fighter")
+    _select_metadata(difficulty_select, "normal")
+    race_select.item_selected.connect(_refresh_character_preview)
+    class_select.item_selected.connect(_refresh_character_preview)
+    difficulty_select.item_selected.connect(_refresh_character_preview)
+    rules_preview = Label.new()
+    rules_preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    rules_preview.add_theme_font_size_override("font_size", 13)
+    rules_preview.add_theme_color_override("font_color", Color(0.82, 0.82, 0.78))
+    panel.add_child(rules_preview)
+    _refresh_character_preview(0)
     presentation_select = _option_row(panel, "Gender presentation", PRESENTATIONS)
     pronoun_select = _option_row(panel, "Pronouns", PRONOUN_SETS)
     custom_pronouns = _line_edit(panel, "Custom pronouns (optional)", "e.g. xe / xem / xyr")
@@ -92,11 +147,12 @@ func _build_screen() -> void:
     note.add_theme_color_override("font_color", Color(0.9, 0.75, 0.48))
     panel.add_child(note)
 
-    var start := Button.new()
-    start.text = "BEGIN IN HOLLOWMERE"
-    start.custom_minimum_size = Vector2(0, 52)
-    start.pressed.connect(_finish)
-    panel.add_child(start)
+    start_button = Button.new()
+    start_button.text = "BEGIN IN HOLLOWMERE"
+    start_button.custom_minimum_size = Vector2(0, 52)
+    start_button.pressed.connect(_finish)
+    panel.add_child(start_button)
+    _update_mode_controls(game_mode_select.selected)
 
 func _section(parent: VBoxContainer, text_value: String) -> void:
     var label := Label.new()
@@ -143,6 +199,13 @@ func _load_saved_profile() -> void:
         return
     var data: Dictionary = parsed
     name_edit.text = str(data.get("name", ""))
+    _select_metadata(race_select, str(data.get("race", "human")))
+    _select_metadata(class_select, str(data.get("character_class", "fighter")))
+    _select_text(game_mode_select, "Campaign" if str(data.get("game_mode", "campaign")) == "campaign" else "Arena")
+    _select_metadata(difficulty_select, str(data.get("difficulty_mode", "normal")))
+    ironman_check.button_pressed = bool(data.get("ironman_mode", false))
+    _select_metadata(campaign_select, str(data.get("campaign_id", "2")))
+    arena_rewards_check.button_pressed = bool(data.get("arena_roguelike_rewards", true))
     _select_text(presentation_select, str(data.get("gender_presentation", "Masculine")))
     _select_text(pronoun_select, str(data.get("pronoun_preset", "They / them")))
     custom_pronouns.text = str(data.get("custom_pronouns", ""))
@@ -153,6 +216,35 @@ func _load_saved_profile() -> void:
     _select_text(body_select, str(data.get("body_build", "Average")))
     _select_text(shirt_select, str(data.get("shirt", "Simple tunic")))
     _select_text(trousers_select, str(data.get("legwear", "Trousers")))
+    _refresh_character_preview(0)
+    _update_mode_controls(game_mode_select.selected)
+
+func _select_metadata(select: OptionButton, value: String) -> void:
+    for index in range(select.item_count):
+        if String(select.get_item_metadata(index)) == value:
+            select.select(index)
+            return
+
+func _selected_id(select: OptionButton, fallback: String) -> String:
+    if select == null or select.selected < 0:
+        return fallback
+    var value: Variant = select.get_item_metadata(select.selected)
+    return String(value) if value != null else fallback
+
+func _refresh_character_preview(_index: int) -> void:
+    if rules_preview != null:
+        rules_preview.text = RULES.preview_text(_selected_id(race_select, "human"), _selected_id(class_select, "fighter"), _selected_id(difficulty_select, "normal"))
+
+func _update_mode_controls(_index: int) -> void:
+    if game_mode_select == null:
+        return
+    var arena := game_mode_select.get_item_text(game_mode_select.selected) == "Arena"
+    campaign_select.visible = not arena
+    arena_rewards_check.visible = arena
+    mode_note.text = "Arena is selected, but its lobby and combat loop have not yet been ported. Select Campaign to begin the playable Hollowmere opening." if arena else "Small World (Campaign 2) opens in Hollowmere. Main Campaign content is not yet ported. Ironman save enforcement is also pending."
+    if start_button != null:
+        start_button.disabled = arena
+        start_button.text = "ARENA MODE NOT YET AVAILABLE" if arena else "BEGIN IN HOLLOWMERE"
 
 func _select_text(select: OptionButton, value: String) -> void:
     for index in range(select.item_count):
@@ -161,6 +253,9 @@ func _select_text(select: OptionButton, value: String) -> void:
             return
 
 func _finish() -> void:
+    if game_mode_select.get_item_text(game_mode_select.selected) == "Arena":
+        mode_note.text = "Arena is not yet playable. Choose Campaign to start."
+        return
     var pronoun_value := pronoun_select.get_item_text(pronoun_select.selected)
     var custom_value := custom_pronouns.text.strip_edges()
     if pronoun_value == "Custom" and custom_value.is_empty():
@@ -168,8 +263,15 @@ func _finish() -> void:
         custom_pronouns.placeholder_text = "Please enter your pronouns"
         return
     var profile := {
-        "schema_version": 1,
+        "schema_version": 2,
         "name": name_edit.text.strip_edges() if not name_edit.text.strip_edges().is_empty() else "Adventurer",
+        "race": _selected_id(race_select, "human"),
+        "character_class": _selected_id(class_select, "fighter"),
+        "game_mode": "campaign",
+        "campaign_id": _selected_id(campaign_select, "2"),
+        "arena_roguelike_rewards": arena_rewards_check.button_pressed,
+        "difficulty_mode": _selected_id(difficulty_select, "normal"),
+        "ironman_mode": ironman_check.button_pressed,
         "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
         "pronoun_preset": pronoun_value,
         "pronouns": custom_value if pronoun_value == "Custom" else _pronouns_for(pronoun_value),
