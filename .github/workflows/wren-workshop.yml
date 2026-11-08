@@ -567,7 +567,16 @@ jobs:
             --title "Ara runtime assets $RELEASE_TAG" \
             --notes "Generated from Silverhart-Saga-3D commit $GITHUB_SHA using Ara 3D Gen b60b5bece6d383d2cbb7067fd50e7c8e68b5a395. See manifest.json inside the package for SHA-256 checksums and asset provenance."
 
-      - name: Locate latest successful Godot browser build
+      - name: Save Wren Workshop site artifact before deployment
+        if: github.ref_name == 'dev'
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-workshop-site
+          path: site/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Locate latest available Godot browser build
         if: github.ref_name == 'dev'
         id: game-build
         env:
@@ -575,7 +584,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/godot-web-export.yml/runs?branch=dev&status=success&per_page=10" --jq '.workflow_runs[].id')"
+          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/godot-web-export.yml/runs?branch=dev&per_page=10" --jq '.workflow_runs[].id')"
           for run_id in $RUNS; do
             artifact_name="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name == "godot-web-export" and .expired == false) | .name' | head -n 1 || true)"
             if [ -n "$artifact_name" ]; then
@@ -629,14 +638,6 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Save standalone Wren Workshop site artifact
-        if: github.ref_name == 'dev'
-        uses: actions/upload-artifact@v7
-        with:
-          name: wren-workshop-site
-          path: site/
-          if-no-files-found: error
-          retention-days: 90
   ara-game-integration:
     name: Validate generated Ara assets in Godot
     needs: publish
