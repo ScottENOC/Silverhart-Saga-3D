@@ -26,13 +26,7 @@ concurrency:
 
 jobs:
   export:
-    concurrency:
-      group: combined-pages-deployment
-      cancel-in-progress: false
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: https://scottenoc.github.io/Silverhart-Saga-3D/game/
     timeout-minutes: 20
     steps:
       - name: Check out game project
@@ -169,6 +163,29 @@ jobs:
           path: dist/game/
           if-no-files-found: error
           retention-days: 90
+
+
+  deploy:
+    needs: export
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: combined-pages-deployment
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: https://scottenoc.github.io/Silverhart-Saga-3D/game/
+    steps:
+      - name: Check out dev site shell
+        uses: actions/checkout@v7
+        with:
+          ref: dev
+
+      - name: Download Godot browser build from this run
+        uses: actions/download-artifact@v8
+        with:
+          name: godot-web-export
+          path: /tmp/godot-game
 
       - name: Locate latest available Wren Workshop site artifact
         id: workshop-site
