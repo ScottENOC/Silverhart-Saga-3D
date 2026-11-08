@@ -23,6 +23,7 @@ var caught_off_guard: bool = false
 var climbing: bool = false
 var reaction_blocked: bool = false
 var parries_remaining: int = 3
+var sidesteps_remaining: int = 3
 var tags: Array[String] = []
 var alive: bool = true
 var unconscious: bool = false
@@ -123,6 +124,7 @@ func to_dict() -> Dictionary:
         "climbing": climbing,
         "reaction_blocked": reaction_blocked,
         "parries_remaining": parries_remaining,
+        "sidesteps_remaining": sidesteps_remaining,
         "tags": tags.duplicate(),
         "alive": alive,
         "unconscious": unconscious,
@@ -160,6 +162,7 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.climbing = bool(data.get("climbing", false))
     state.reaction_blocked = bool(data.get("reaction_blocked", false))
     state.parries_remaining = clampi(int(data.get("parries_remaining", 3)), 0, 3)
+    state.sidesteps_remaining = clampi(int(data.get("sidesteps_remaining", 3)), 0, 3)
     var saved_tags: Array = data.get("tags", [])
     for tag in saved_tags:
         state.tags.append(String(tag))

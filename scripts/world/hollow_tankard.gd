@@ -118,6 +118,7 @@ func _create_simulation() -> void:
     simulation.character_moved.connect(_on_character_moved)
     simulation.reaction_requested.connect(_on_reaction_requested)
     simulation.reaction_resolved.connect(_on_reaction_resolved)
+    simulation.movement_reaction_resolved.connect(_on_movement_reaction_resolved)
 
 func _is_wall_cell_blocked(world: Vector3) -> bool:
     # The south-wall gap is the only opening. The nearest grid cells to the
@@ -537,6 +538,11 @@ func _on_reaction_resolved(_reactor_id: String, _choice_id: String, _request_id:
     if reaction_prompt != null:
         reaction_prompt.dismiss()
 
+func _on_movement_reaction_resolved(_mover_id: String, halted: bool) -> void:
+    if halted:
+        active_path.clear()
+        _clear_path_markers()
+
 func _on_zoom_slider_changed(value: float) -> void:
     camera_rig.set_zoom(value)
 
@@ -670,7 +676,7 @@ func _set_move_destination(destination: Vector2i) -> void:
     _show_path_markers(path)
 
 func _advance_path_step() -> void:
-    if simulation.clock.paused:
+    if simulation.clock.paused or not simulation.pending_reaction.is_empty():
         return
     if active_path.size() < 2:
         active_path.clear()

@@ -17,6 +17,9 @@ func _initialize() -> void:
     _test_attack_waits_for_parry_resolution()
     _test_protector_ally_parry()
     _test_shield_other_reduces_one_attack()
+    _test_spear_halt_commits_one_step_then_stops()
+    _test_spear_intercept_resolves_before_movement()
+    _test_sidestep_uses_a_second_stage_destination()
     _test_reaction_resolution_safety()
     _test_incapacitated_turn_cleanup()
     if _failures > 0:
@@ -52,8 +55,10 @@ func _test_character_round_trip() -> void:
     _check(int(restored.skills["fastMovement"]) == 2)
     _check(String(restored.equipment["armour"]) == "light_armor")
     original.parries_remaining = 1
+    original.sidesteps_remaining = 2
     restored = CharacterState.from_dict(original.to_dict())
     _check(restored.parries_remaining == 1, "Parry allowance must survive character serialization")
+    _check(restored.sidesteps_remaining == 2, "Sidestep allowance must survive character serialization")
 
 func _test_movement_validation() -> void:
     var sim := WorldSimulation.new()
@@ -469,6 +474,94 @@ func _test_shield_other_reduces_one_attack() -> void:
     _check(is_equal_approx(protector.time_points, 19.0), "Shield Other ally pays 1 TP")
     _check(is_equal_approx(target.time_points, 10.0), "Protected target does not pay ally TP")
     sim.free()
+
+func _test_spear_halt_commits_one_step_then_stops() -> void:
+    var sim := WorldSimulation.new()
+    sim.map_data.add_cell(Vector2i.ZERO)
+    sim.map_data.add_cell(Vector2i(1, 0))
+    sim.map_data.add_cell(Vector2i(0, 1))
+    var mover := CharacterState.new("mover", "Mover", Vector2i.ZERO)
+    var guard := CharacterState.new("guard", "Spear Guard", Vector2i(0, 1))
+    mover.time_points = 100.0
+    guard.time_points = 20.0
+    guard.equipment["weapon"] = "spear"
+    guard.skills["spear_halt"] = 1
+    sim.register_character(mover)
+    sim.register_character(guard)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = "mover"
+    var halt_events := [false]
+    sim.movement_reaction_resolved.connect(func(_id: String, halted: bool) -> void: halt_events[0] = halted)
+
+    var pending := sim.try_move_character_step("mover", Vector2i(1, 0))
+    _check(pending and not sim.pending_reaction.is_empty(), "Spear Halt should pause the movement step")
+    _check(mover.axial == Vector2i.ZERO, "Mover must not commit position before the reaction resolves")
+    var resolved := sim.resolve_reaction("spear_halt_guard")
+    _check(bool(resolved.get("ok", false)))
+    _check(mover.axial == Vector2i(1, 0), "Spear Halt commits the triggering step")
+    _check(halt_events[0], "Spear Halt signals the path controller to stop remaining steps")
+    _check(is_equal_approx(guard.time_points, 19.0), "Spear Halt costs 1 TP")
+    sim.free()
+
+
+func _test_spear_intercept_resolves_before_movement() -> void:
+    var sim := WorldSimulation.new()
+    sim.map_data.add_cell(Vector2i.ZERO)
+    sim.map_data.add_cell(Vector2i(1, 0))
+    sim.map_data.add_cell(Vector2i(0, 1))
+    var mover := CharacterState.new("mover", "Mover", Vector2i.ZERO)
+    var guard := CharacterState.new("interceptor", "Spear Guard", Vector2i(0, 1))
+    mover.time_points = 100.0
+    mover.health = 100
+    guard.time_points = 20.0
+    guard.to_hit_melee = 100.0
+    guard.base_damage = 10
+    guard.equipment["weapon"] = "spear"
+    guard.skills["spear_intercept"] = 1
+    sim.register_character(mover)
+    sim.register_character(guard)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = "mover"
+
+    var pending := sim.try_move_character_step("mover", Vector2i(1, 0))
+    _check(pending and not sim.pending_reaction.is_empty(), "Spear Intercept should pause movement")
+    var resolved := sim.resolve_reaction("spear_intercept_interceptor")
+    _check(bool(resolved.get("ok", false)))
+    _check(mover.health == 90, "Spear Intercept attacks the mover before the step commits")
+    _check(mover.axial == Vector2i(1, 0), "Movement continues after Spear Intercept")
+    _check(is_equal_approx(guard.time_points, 15.0), "Spear Intercept costs 5 TP")
+    sim.free()
+
+
+func _test_sidestep_uses_a_second_stage_destination() -> void:
+    var sim := WorldSimulation.new()
+    for q in range(-1, 3):
+        for r in range(-1, 3):
+            sim.map_data.add_cell(Vector2i(q, r))
+    var mover := CharacterState.new("mover", "Mover", Vector2i.ZERO)
+    var defender := CharacterState.new("sidestepper", "Sidestepper", Vector2i(0, 1))
+    mover.time_points = 100.0
+    defender.time_points = 20.0
+    defender.skills["sidestep"] = 1
+    defender.sidesteps_remaining = 3
+    sim.register_character(mover)
+    sim.register_character(defender)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = "mover"
+
+    var pending := sim.try_move_character_step("mover", Vector2i(1, 0))
+    _check(pending and not sim.pending_reaction.is_empty(), "Sidestep should be offered as a movement reaction")
+    var first_stage := sim.resolve_reaction("sidestep_sidestepper")
+    _check(bool(first_stage.get("pending", false)) and String(first_stage.get("stage", "")) == "sidestep_destination", "Choosing Sidestep opens a destination stage without spending TP")
+    _check(is_equal_approx(defender.time_points, 20.0), "Sidestep TP is not spent before a destination is chosen")
+    var second_stage := sim.resolve_reaction("sidestep_to_1_1")
+    _check(bool(second_stage.get("ok", false)))
+    _check(defender.axial == Vector2i(1, 1), "Sidestep moves the reactor to the selected adjacent free hex")
+    _check(defender.sidesteps_remaining == 2, "Sidestep consumes one allowance")
+    _check(is_equal_approx(defender.time_points, 14.0), "Sidestep costs 6 TP")
+    _check(mover.axial == Vector2i(1, 0), "Mover continues after Sidestep")
+    sim.free()
+
 
 func _test_reaction_resolution_safety() -> void:
     var sim := WorldSimulation.new()
