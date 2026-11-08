@@ -8,6 +8,9 @@ on:
     paths:
       - tools/ara/export_hair_variants.ts
       - .github/workflows/ara-hair-variants.yml
+      - scripts/presentation/ara_character_actor.gd
+      - scripts/ui/player_character_creator.gd
+      - tests/test_ara_hair_assets.gd
 
 permissions:
   contents: write
