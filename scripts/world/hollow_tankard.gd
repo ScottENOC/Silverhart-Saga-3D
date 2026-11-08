@@ -597,14 +597,14 @@ func _create_hud() -> void:
     var character_panel_button := Button.new()
     character_panel_button.text = "Character  [C]"
     character_panel_button.position = Vector2(260.0, 54.0)
-    character_panel_button.custom_minimum_size = Vector2(170.0, 42.0)
+    character_panel_button.custom_minimum_size = Vector2(145.0, 42.0)
     character_panel_button.pressed.connect(_toggle_character_panel)
     layer.add_child(character_panel_button)
 
     var world_map_button := Button.new()
     world_map_button.text = "World Map"
     world_map_button.position = Vector2(445.0, 54.0)
-    world_map_button.custom_minimum_size = Vector2(150.0, 42.0)
+    world_map_button.custom_minimum_size = Vector2(140.0, 42.0)
     world_map_button.pressed.connect(_toggle_world_map)
     layer.add_child(world_map_button)
 

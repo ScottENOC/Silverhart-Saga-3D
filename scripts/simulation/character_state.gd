@@ -48,6 +48,8 @@ var alive: bool = true
 var unconscious: bool = false
 var is_rider: bool = false
 var combat_dormant: bool = false
+## If true, the player cannot squeeze past this NPC during exploration.
+var impassable_to_player: bool = false
 
 # The original game accumulates Time Points continuously. 100 TP makes an
 # entity eligible to act in combat; a player turn normally ends at 80 TP.
@@ -232,6 +234,7 @@ func to_dict() -> Dictionary:
         "unconscious": unconscious,
         "is_rider": is_rider,
         "combat_dormant": combat_dormant,
+        "impassable_to_player": impassable_to_player,
         "time_points": time_points,
         "time_points_per_tick": time_points_per_tick,
         "max_time_points": max_time_points,
@@ -294,6 +297,7 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.unconscious = bool(data.get("unconscious", false))
     state.is_rider = bool(data.get("is_rider", false))
     state.combat_dormant = bool(data.get("combat_dormant", false))
+    state.impassable_to_player = bool(data.get("impassable_to_player", false))
     state.time_points = float(data.get("time_points", 0.0))
     state.time_points_per_tick = float(data.get("time_points_per_tick", 1.0))
     state.max_time_points = float(data.get("max_time_points", ActionEconomy.DEFAULT_MAX_TP))

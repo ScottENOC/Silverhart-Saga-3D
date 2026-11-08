@@ -667,8 +667,8 @@
       "name": "Bram Fenwick",
       "role": "background patron",
       "hex": [
-        0,
-        2
+        3,
+        -2
       ],
       "detail": "low",
       "params": {

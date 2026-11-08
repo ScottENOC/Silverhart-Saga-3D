@@ -170,21 +170,6 @@ func _build_character_tab(parent: VBoxContainer, state: CharacterState) -> void:
     _add_stat(parent, "Parries remaining", str(state.parries_remaining))
     _add_stat(parent, "Sidesteps remaining", str(state.sidesteps_remaining))
 
-    _add_section(parent, "EQUIPPED")
-    for slot in ["weapon", "armour", "offhand", "helmet", "accessory"]:
-        var item_name := "—"
-        if state.equipped_item_data.has(slot):
-            var equipped_item: Dictionary = state.equipped_item_data[slot]
-            item_name = String(equipped_item.get("name", state.equipment.get(slot, "Unknown")))
-        elif not String(state.equipment.get(slot, "")).is_empty():
-            item_name = String(state.equipment.get(slot, ""))
-        _add_stat(parent, slot.capitalize(), item_name)
-        if state.equipped_item_data.has(slot):
-            var unequip := Button.new()
-            unequip.text = "Unequip %s" % slot
-            unequip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-            unequip.pressed.connect(_unequip_slot.bind(slot))
-            parent.add_child(unequip)
 
 
 func _build_inventory_tab(parent: VBoxContainer, state: CharacterState) -> void:

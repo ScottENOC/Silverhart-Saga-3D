@@ -36,7 +36,7 @@ func configure(glb_path: String) -> bool:
     add_child(model_root)
     loaded_asset_path = glb_path
     animation_player = _find_animation_player(model_root)
-    _play_idle_if_available()
+    call_deferred("_play_idle_if_available")
     return true
 
 ## Attach modular garment surfaces to this actor's own Ara skeleton.
@@ -387,12 +387,20 @@ func set_garment_visible(material_fragment: String, visible: bool) -> bool:
     return changed
 
 func _play_idle_if_available() -> void:
-    if animation_player == null:
+    if animation_player == null or not is_instance_valid(animation_player):
+        push_warning("Ara character has no AnimationPlayer; it will remain in its exported rest pose.")
         return
+    var idle_clip := ""
     for animation_name in animation_player.get_animation_list():
-        if str(animation_name).to_lower().contains("idle"):
-            animation_player.play(animation_name)
-            return
+        if String(animation_name).to_lower() == "idle":
+            idle_clip = String(animation_name)
+            break
+        if idle_clip.is_empty() and String(animation_name).to_lower().contains("idle"):
+            idle_clip = String(animation_name)
+    if idle_clip.is_empty():
+        push_warning("Ara character has no idle animation. Available clips: %s" % [", ".join(animation_player.get_animation_list())])
+        return
+    animation_player.play(idle_clip)
 
 func _find_animation_player(node: Node) -> AnimationPlayer:
     if node is AnimationPlayer:
