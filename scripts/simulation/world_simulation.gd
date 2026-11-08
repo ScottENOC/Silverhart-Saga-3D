@@ -512,7 +512,10 @@ func _resume_pending_move(choice_id: String, reason: String) -> void:
     if reason == "combat_ended":
         return
     var mover := get_character(String(context.get("mover_id", "")))
-    if mover == null or not mover.can_act():
+    if mover == null:
+        return
+    if not mover.can_act():
+        movement_reaction_resolved.emit(mover.id, true)
         return
 
     var selected: Dictionary = {}
@@ -525,7 +528,8 @@ func _resume_pending_move(choice_id: String, reason: String) -> void:
         var reactor := get_character(String(selected.get("reactor_id", "")))
         if reactor != null and reactor.can_act():
             var rng := RandomNumberGenerator.new()
-            rng.randomize()
+            var reaction_seed := int(context.get("reaction_request_id", 1))
+            rng.seed = maxi(1, reaction_seed)
             var intercept := CombatRules.resolve_attack(reactor, mover, {"time_point_cost": 0.0, "weapon_id": "spear"}, rng)
             if bool(intercept.get("ok", false)):
                 var typed_intercept := SimulationActionResult.new("attack", true, "", reactor.id, mover.id, intercept).to_dict()
@@ -605,6 +609,7 @@ func _submit_move(request: SimulationActionRequest) -> Dictionary:
             var first_reactor_id := String(movement_reactions[0].get("reactor_id", ""))
             var reaction_request := request_reaction(first_reactor_id, movement_reactions, "move:%s:%s:%s" % [state.id, request.destination.x, request.destination.y])
             if bool(reaction_request.get("pending", false)):
+                pending_move_context["reaction_request_id"] = int(reaction_request.get("request_id", 0))
                 return {"ok": true, "pending": true, "action_type": "move", "request_id": reaction_request.get("request_id", 0)}
             pending_move_context.clear()
 
