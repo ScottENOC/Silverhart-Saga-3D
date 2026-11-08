@@ -157,7 +157,7 @@ jobs:
           cp "$MALE_GLB" "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male_raw.glb"
           cp /tmp/ara-person-male.params.json "$GITHUB_WORKSPACE/art/characters/ara/ara_person_male.params.json"
 
-          # One standard male body is generated for iterative anatomy review.\n\n          # Separate mobile preview: retain the game rig, but reduce geometry detail
+          # One standard male body is generated for iterative anatomy review.          # Separate mobile preview: retain the game rig, but reduce geometry detail
           # and bake facial expression / omit animation clips and facial blend shapes.
           python - <<'PY'
           import json
@@ -327,8 +327,8 @@ jobs:
         with:
           name: processed-ara-male-body
           path: |
-            art/characters/ara/ara_person_male*_body.glb
-            art/characters/ara/review/male*/*.png
+            art/characters/ara/ara_person_male_body.glb
+            art/characters/ara/review/male/*.png
           if-no-files-found: error
           retention-days: 14
 
@@ -507,8 +507,6 @@ jobs:
           cp art/characters/ara/ara_person_mobile.glb site/assets/ara_person_mobile.glb
           cp art/characters/ara/ara_person_body.glb site/assets/ara_person_body.glb
           cp art/characters/ara/ara_person_male_body.glb site/assets/ara_person_male_body.glb
-          cp art/characters/ara/ara_person_male_small_body.glb site/assets/ara_person_male_small_body.glb
-          cp art/characters/ara/ara_person_male_large_body.glb site/assets/ara_person_male_large_body.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
