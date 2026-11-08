@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "ScottENOC/Hex-crpg",
+    "file": "gameEngine.js",
+    "functions": [
+      "setupArenaLobby",
+      "startArenaFight",
+      "grantArenaVictoryReward"
+    ],
+    "pool_constant": "ARENA_MONSTER_POOL"
+  },
+  "description": "Source-backed Arena roster. Lobby previews and encounter selection must draw from the same opponent pool. The current legacy Arena is a progression roguelike with scenario variants, boss encounters, caged beasts and rewards.",
+  "opponent_pool": [
+    "goblin",
+    "orc",
+    "skeleton",
+    "zombie",
+    "imp",
+    "spider",
+    "troll",
+    "wraith",
+    "basilisk",
+    "harpy",
+    "minotaur",
+    "revenant",
+    "wolf_rider_goblin",
+    "elite_goblin",
+    "wolf",
+    "boar",
+    "tiger",
+    "horse_archer"
+  ],
+  "beast_pool": [
+    "wolf",
+    "boar",
+    "tiger",
+    "dragon_young",
+    "dragon_adult",
+    "dragon_ancient"
+  ],
+  "unlocks": [
+    {
+      "opponent": "dragon_young",
+      "fights_completed": 6
+    },
+    {
+      "opponent": "dragon_adult",
+      "fights_completed": 12
+    },
+    {
+      "opponent": "dragon_ancient",
+      "fights_completed": 20
+    }
+  ],
+  "scenario_types": [
+    "standard",
+    "void_bridge",
+    "ranged_standoff",
+    "tunnel_boss",
+    "flag_defend",
+    "flag_attack",
+    "lava_flood",
+    "three_way"
+  ],
+  "lobby_npcs": [
+    {
+      "id": "arena_announcer",
+      "display_name": "Arena Announcer",
+      "legacy_visual_reference": "images/characters/npcs/arena/announcer.png",
+      "model_archetype": "ara_human",
+      "model_status": "3d_model_required"
+    },
+    {
+      "id": "arena_mercenary",
+      "display_name": "Mercenary Recruiter",
+      "legacy_visual_reference": "images/characters/npcs/arena/mercenary.png",
+      "model_archetype": "ara_human",
+      "model_status": "3d_model_required"
+    },
+    {
+      "id": "arena_shopkeeper",
+      "display_name": "Arena Shopkeeper",
+      "legacy_visual_reference": "images/characters/npcs/arena/shopkeeper.png",
+      "model_archetype": "ara_human",
+      "model_status": "3d_model_required"
+    }
+  ],
+  "notes": [
+    "The source Arena rolls opponents from ARENA_MONSTER_POOL and previews combatants from that same pool.",
+    "Dragon variants are added to the preview pool at six, twelve and twenty completed fights respectively.",
+    "Scenario names are source-backed. Their map geometry and win conditions still need porting.",
+    "Named arena boss configurations/rewards need a separate extraction before their progression is implemented."
+  ]
+}
