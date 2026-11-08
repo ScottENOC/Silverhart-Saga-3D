@@ -43,6 +43,8 @@ static func raw_damage(attacker: CharacterState, options: Dictionary = {}) -> in
     damage += int(options.get("wild_fury_bonus", 0))
     damage += int(attacker.skills.get("meleeDamage", 0))
     damage += int(options.get("bonus_damage", 0))
+    var equipped_weapon: Dictionary = attacker.equipped_item_data.get("weapon", {})
+    damage += int(equipped_weapon.get("damage", 0))
     if bool(options.get("is_offhand", false)):
         damage -= 2
     if String(options.get("weapon_id", "")) == "axe" and int(attacker.skills.get("dwarf_axe_mastery", 0)) > 0:
@@ -60,8 +62,13 @@ static func damage_reduction(target: CharacterState) -> int:
     if target.caught_off_guard:
         return 0
     var reduction := target.base_reduction + target.armour_reduction
+    var equipped_armour: Dictionary = target.equipped_item_data.get("armour", {})
+    reduction += int(equipped_armour.get("reduction", 0))
     if not target.climbing:
         reduction += target.shield_reduction
+        var equipped_shield: Dictionary = target.equipped_item_data.get("offhand", {})
+        if String(equipped_shield.get("type", "")) == "shield":
+            reduction += int(equipped_shield.get("reduction", 0))
     reduction += target.helmet_reduction + target.temp_reduction
     reduction += 2 * int(target.skills.get("spectral_form", 0) > 0)
     return maxi(0, reduction)
