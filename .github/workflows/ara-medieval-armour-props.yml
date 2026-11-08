@@ -22,10 +22,12 @@ jobs:
       - name: Install Blender
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender
+          sudo apt-get install -y blender python3-numpy
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
       - name: Generate standalone shield and helmet GLBs
         run: |
           set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           blender --background --python tools/ara/build_medieval_armor_props.py -- --output art/characters/ara_runtime/props
           test "$(find art/characters/ara_runtime/props -name '*.glb' | wc -l)" -eq 7
       - name: Import and smoke-test in Godot
