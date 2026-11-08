@@ -110,6 +110,15 @@ static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing:
                         {"id": "leave", "label": "It could have been worse.", "text": "Garrick looks back to the bar. Aye, it could have."}
                     ]
                 }
+            if shakedown_resolved and shakedown_choice == "stay_out":
+                return {
+                    "speaker": "Garrick Holt",
+                    "text": "You stood aside while they took my money. I understand why, but I won't pretend it did not sting.",
+                    "choices": [
+                        {"id": "news", "label": "What's the word around here?", "text": "People are keeping their heads down. No one wants to be the next example."},
+                        {"id": "leave", "label": "I am sorry.", "text": "Garrick gives a small nod and turns back to the bar."}
+                    ]
+                }
             if shakedown_resolved:
                 return {
                     "speaker": "Garrick Holt",
