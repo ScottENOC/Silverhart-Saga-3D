@@ -140,6 +140,7 @@ static func apply_shield_heraldry(root: Node, design: Dictionary) -> int:
                     material.set_shader_parameter("field_pattern", int(patterns.get(str(design.get("pattern", "plain")), 0)))
                     material.set_shader_parameter("emblem", int(emblems.get(str(design.get("emblem", "none")), 0)))
                     material.set_shader_parameter("border_width", clampf(float(design.get("border_width", 0.0)), 0.0, 0.18))
+                    mesh_instance.set_meta("equipment_surface_%d" % surface, "heraldry_face")
                     mesh_instance.set_surface_override_material(surface, material)
                     changed += 1
         for child in node.get_children():
