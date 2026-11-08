@@ -60,10 +60,10 @@ func _build_screen() -> void:
 
     var scroll := ScrollContainer.new()
     scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-    scroll.offset_left = 24
-    scroll.offset_top = 18
-    scroll.offset_right = -24
-    scroll.offset_bottom = -18
+    scroll.offset_left = 12
+    scroll.offset_top = 12
+    scroll.offset_right = -12
+    scroll.offset_bottom = -12
     add_child(scroll)
 
     var centre := CenterContainer.new()
@@ -71,7 +71,7 @@ func _build_screen() -> void:
     scroll.add_child(centre)
 
     var panel := VBoxContainer.new()
-    panel.custom_minimum_size = Vector2(560, 0)
+    panel.custom_minimum_size = Vector2(0, 0)
     panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     panel.add_theme_constant_override("separation", 10)
     centre.add_child(panel)
@@ -207,7 +207,7 @@ func _build_screen() -> void:
     var height_row := HBoxContainer.new()
     var height_label := Label.new()
     height_label.text = "Height"
-    height_label.custom_minimum_size.x = 205
+    height_label.custom_minimum_size.x = 135
     height_row.add_child(height_label)
     height_row.add_child(height_slider)
     panel.add_child(height_row)
@@ -245,7 +245,7 @@ func _line_edit(parent: VBoxContainer, label_text: String, placeholder: String) 
     parent.add_child(row)
     var label := Label.new()
     label.text = label_text
-    label.custom_minimum_size.x = 145
+    label.custom_minimum_size.x = 120
     row.add_child(label)
     var field := LineEdit.new()
     field.placeholder_text = placeholder
@@ -258,7 +258,7 @@ func _option_row(parent: VBoxContainer, label_text: String, values: Array) -> Op
     parent.add_child(row)
     var label := Label.new()
     label.text = label_text
-    label.custom_minimum_size.x = 205
+    label.custom_minimum_size.x = 135
     row.add_child(label)
     var select := OptionButton.new()
     select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
