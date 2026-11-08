@@ -23,6 +23,7 @@ OUTFITS = {
     "lace_bra": {"Halter lace bra cups", "Halter lace bra straps", "Halter lace bra piping"},
     "fishnet_bra": {"Halter fishnet bra cups", "Halter fishnet bra straps"},
     "dress": {"Backless slit dress", "Pencil skirt"},
+    "armor": {"Leather armor"},
     "backless_shirt": {"Backless slit dress", "Pencil skirt"},
     "pants": {"Fatigue pants", "Fatigue pants.001"},
     "halter_pants": {
