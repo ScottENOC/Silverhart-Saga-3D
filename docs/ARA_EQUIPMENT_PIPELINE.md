@@ -9,7 +9,7 @@ The pinned Ara 3D Gen source has a grip-origin prop pipeline and a WeaponR rig s
 
 Each is exported as its own GLB prop, with the origin at the hand grip. The props are colour/material independent: equipment variants such as the Starforged Blade can reuse the sword mesh and apply a different material treatment at runtime.
 
-The build_medieval_equipment workflow-dispatch input controls these additional exports. It is deliberately not run on every ordinary push because each prop requires a generator build. The resulting props are copied to site/assets/props/ and included in the versioned Ara runtime package.
+The manual GitHub Actions workflow, Build Ara Medieval Props, produces these exports on demand. It is deliberately separate from the main Wren Workshop workflow so ordinary builds do not incur seven extra Ara generator runs. It uploads a versioned prop bundle and runs a Godot import smoke test.
 
 ## Existing game item mapping
 
