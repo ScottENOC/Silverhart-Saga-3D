@@ -53,7 +53,6 @@ for (const sex of ['female', 'male'] as const) {
     bottom: 'none',
     shoes: 'none',
     hat: 'none',
-    weapon: 'none',
     animations: false,
     faceBones: false,
     faceShapes: false,
