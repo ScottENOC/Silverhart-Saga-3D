@@ -328,7 +328,8 @@ func _refresh_appearance_preview(_index: int) -> void:
     var variant := "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female"
     var asset_path := MALE_PREVIEW_ASSET if variant == "male" else FEMALE_PREVIEW_ASSET
     if not ResourceLoader.exists(asset_path):
-        asset_path = MALE_PREVIEW_FALLBACK if variant == "male" else FEMALE_PREVIEW_FALLBACK
+        preview_status.text = "Preview asset not found: %s. Your appearance choices can still be saved." % asset_path
+        return
     if preview_variant_loaded != variant:
         var body_resource := await _load_preview_asset(asset_path, "%s Ara body model" % variant.capitalize(), 0, 2)
         if body_resource == null or not preview_actor.configure(asset_path):
