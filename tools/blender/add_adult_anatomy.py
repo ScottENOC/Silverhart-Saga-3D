@@ -242,7 +242,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
         normal = skin.matrix_world.to_3x3() @ (edge.verts[0].normal + edge.verts[1].normal)
         if normal.length:
             normal.normalize()
-        if abs(world.x) < width*0.25 and abs(world.z-pelvis_z) < 0.105 and normal.y < -0.12:
+        if abs(world.x) < width*0.25 and abs(world.z-anatomy_z) < 0.125 and normal.y < -0.12:
             edges.append(edge)
     if edges:
         bmesh.ops.subdivide_edges(bm, edges=edges, cuts=2, use_grid_fill=True)
