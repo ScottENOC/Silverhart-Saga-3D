@@ -16,6 +16,7 @@ on:
       - "tools/blender/add_adult_anatomy.py"
       - "tools/blender/add_male_anatomy.py"
       - "tools/blender/add_dress_slit.py"
+      - "tools/blender/create_full_coverage_armor.py"
       - "tools/blender/inspect_character.py"
       - "tools/review/render_modular_outfits.py"
       - "site/**"
