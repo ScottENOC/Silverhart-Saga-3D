@@ -32,6 +32,9 @@ jobs:
       - name: Check out game project
         uses: actions/checkout@v7
 
+      - name: Fetch verified Kenney Nature Kit models
+        run: python tools/ci/fetch_kenney_nature_assets.py
+
       - name: Locate latest successful Hollowmere Ara character pack
         id: ara-pack
         env:
