@@ -335,7 +335,7 @@ func _attack_reaction_options(attacker: CharacterState, target: CharacterState, 
         if HexGrid.distance(ally.axial, target.axial) > 1:
             continue
 
-        var offhand: Variant = ally.equipment.get("offhand", {})
+        var offhand: Variant = ally.equipped_item_data.get("offhand", ally.equipment.get("offhand", {}))
         if offhand is Dictionary and String(offhand.get("type", "")) == "shield" and ally.can_spend_time_points(1.0):
             result.append({
                 "id": "shield_other_%s" % ally.id,
