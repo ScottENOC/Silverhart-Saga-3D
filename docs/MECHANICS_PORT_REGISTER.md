@@ -81,7 +81,7 @@ Do not begin a broad spell/skill/content migration until these shared action and
 - [ ] Full attribute and skill trees, rank limits, prerequisites, skill costs, respec/difficulty rules and derived effects.
 - [ ] XP/level progression and NPC progression policies/modes.
 - [x] Initial persistent inventory item instances, equipment-slot swap/unequip operations, and data-backed Character/Inventory panel. The original 63-item catalogue (including source stats, prices, descriptions and carry weights) is now data-backed; Hollowmere NPC starting equipment is assigned from the original campaign data. The inventory panel uses a 2D SVG icon atlas migrated from the original game. Equipped item damage/reduction and armour weight metadata feed combat/movement rules.
-- [ ] Remaining inventory systems: original shared-party pool, stack rules, currency, loot, shops, equipment readiness, encumbrance, item identity and complete inventory persistence. The current slice uses per-character item instances; the player avatar has no starting kit until class selection is implemented.
+- [ ] Remaining inventory systems: original shared-party pool, stack rules, currency, loot, shops, equipment readiness, encumbrance, item identity and complete inventory persistence. The current slice uses per-character item instances; class-based player starting kits are now assigned during character creation.
 - [ ] Spells as simulation actions with targeting, range, costs, durations/upkeep, interruption, multi-target/fork modifiers, summons and world effects.
 - [ ] Preserve the original design principle: magic and skills are **world verbs**, not merely damage buttons. Include traversal, concealment, illusion, divination, communication, influence, manipulation, investigation and transformation where supported by the source.
 - [ ] Crafting, gathering, farming, construction, camp deployment, resource processing and trade.
@@ -89,11 +89,11 @@ Do not begin a broad spell/skill/content migration until these shared action and
 ### M4 — Social simulation, dialogue and quests
 
 - [ ] Data-driven dialogue graph with conditions, choices, command effects, skill checks and persistent consequences.
-- [ ] Quest state machine: prerequisites, stages, optional branches, failure/expiry, rewards and journal history.
+- [x] Initial simulation-owned quest journal: definition registration, prerequisites, staged objectives with required/optional completion, persistent decision choices, quest completion/failure and faction-standing deltas. State serializes independently of UI. [ ] Data-backed dialogue graphs, skill checks/command effects, timed expiry, rewards and full journal history.
 - [ ] Party/companion roster, affinity, multiple relationship dimensions, personality/knowledge, banter, conversation memory, agency and companion quest chains.
 - [ ] NPC identity and persistence independent of loaded 3D actors; schedules, routines, sleep/work/tavern movement, civilian persistence and road travellers.
 - [ ] Disguise/equipment identity and dialogue reactions; hearing/range and social-facing rules.
-- [ ] Faction standings and reputation remain separate dimensions. Preserve faction-specific beliefs, hostility thresholds, double-cross consequences and political state.
+- [x] Initial faction-standing ledger is part of the campaign journal and records reasoned deltas independently per faction. [ ] Source-specific reputation dimensions, hostility thresholds, faction beliefs, double-cross consequences and political state.
 
 ### M5 — Living world, economy and campaign
 
@@ -144,3 +144,10 @@ A mechanic is considered ported only when:
 - [x] Easy mode applies the original +50% starting gold and free Health rank (+10 HP). Hard mode applies the original 10% player damage dealt/taken modifier.
 - [x] Race/class, mode, campaign, difficulty, Ironman intent, gold, attributes, identity and equipment are serialized on CharacterState.
 - [x] Main Campaign start selection and first regional map reference view are connected to the Hollowmere opening. [ ] Full racial/class skill trees and rank purchasing; class-specific mana/spell progression; complete Main Campaign world/travel runtime; Arena; Ironman save enforcement.
+
+
+## Campaign quest journal foundation
+
+The first social-simulation mechanic is implemented in `scripts/simulation/campaign_journal.gd`. Quest definitions are registered as data; runtime state is held by the simulation, not by a scene or dialogue widget. The journal supports prerequisite gating, required and optional objective progress, one-time branch decisions, explicit completion/failure and per-faction standing deltas. It serializes quest states, objective progress, decisions and faction standings. Journal changes are forwarded through `WorldSimulation.action_committed` as `SimulationEvent` values so later dialogue, NPC and world systems can react without coupling to UI.
+
+This is deliberately a mechanics foundation, not yet the Hollowmere Ironbond quest content. Do not invent dialogue or outcomes: next migrate the original Campaign 2 opening dialogue and consequences into definitions that use this journal, then connect the dialogue interaction layer.
