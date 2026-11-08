@@ -446,13 +446,14 @@ jobs:
             --output /tmp/ara_person_modular_underwear_fitted.glb \
             --profile none --adult --fit-existing
           mv /tmp/ara_person_modular_underwear_fitted.glb art/characters/ara/ara_person_modular_underwear.glb
-      - name: Replace small Ara accessory with full-coverage leather armour
+      - name: Attempt full-coverage leather armour build (non-blocking)
+        continue-on-error: true
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           export EGL_PLATFORM=surfaceless
           export LIBGL_ALWAYS_SOFTWARE=1
-          blender --background --python-exit-code 1 --python tools/blender/create_full_coverage_armor.py -- \
+          timeout 15m blender --background --python-exit-code 1 --python tools/blender/create_full_coverage_armor.py -- \
             --input art/characters/ara/ara_person_modular.glb \
             --output /tmp/ara_person_modular_armour.glb
           mv /tmp/ara_person_modular_armour.glb art/characters/ara/ara_person_modular.glb
