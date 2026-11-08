@@ -149,7 +149,7 @@ jobs:
           # The anatomy component is added in its own Blender job below.
           python - <<'PY'
           import json
-          p = json.load(open('/tmp/ara-person-body.params.json'))
+          p = json.load(open('/tmp/ara-person.params.json'))
           p.update({
               "name": "Ara Base Person - male body",
               "seed": 417,
