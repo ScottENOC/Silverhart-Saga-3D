@@ -100,6 +100,17 @@ func _build_screen() -> void:
     preview_viewport.own_world_3d = true
     preview_container.add_child(preview_viewport)
     panel.add_child(preview_container)
+    var preview_rotation_row := HBoxContainer.new()
+    preview_rotation_row.alignment = BoxContainer.ALIGNMENT_CENTER
+    var rotate_left := Button.new()
+    rotate_left.text = "Rotate left"
+    rotate_left.pressed.connect(func(): _rotate_preview(-30.0))
+    preview_rotation_row.add_child(rotate_left)
+    var rotate_right := Button.new()
+    rotate_right.text = "Rotate right"
+    rotate_right.pressed.connect(func(): _rotate_preview(30.0))
+    preview_rotation_row.add_child(rotate_right)
+    panel.add_child(preview_rotation_row)
     var preview_world := Node3D.new()
     preview_world.name = "PreviewWorld"
     preview_viewport.add_child(preview_world)
@@ -330,6 +341,10 @@ func _refresh_appearance_preview(_index: int) -> void:
     }
     preview_actor.apply_player_profile(profile)
     preview_status.text = "Male Workshop body (replaceable export; clothing fit still in progress)." if variant == "male" else "Female Ara player baseline. Hair style and garment geometry are not yet independently swappable."
+
+func _rotate_preview(degrees: float) -> void:
+    if preview_actor != null and is_instance_valid(preview_actor):
+        preview_actor.rotate_y(deg_to_rad(degrees))
 
 func _refresh_appearance_preview_value(_value: float) -> void:
     _refresh_appearance_preview(0)
