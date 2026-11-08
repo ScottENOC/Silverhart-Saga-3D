@@ -337,7 +337,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     concurrency:
-      group: combined-pages-deployment
+      group: wren-workshop-publish-${{ github.ref_name }}
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
@@ -571,17 +571,6 @@ jobs:
           path: site/
           if-no-files-found: error
           retention-days: 90
-      - name: Configure GitHub Pages
-        if: github.ref_name == 'dev'
-        uses: actions/configure-pages@v6
-      - name: Upload Wren-only Pages site
-        if: github.ref_name == 'dev'
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: site
-      - name: Deploy Wren Workshop only
-        if: github.ref_name == 'dev'
-        uses: actions/deploy-pages@v5
   ara-game-integration:
     name: Validate generated Ara assets in Godot
     needs: publish
