@@ -1085,7 +1085,7 @@ func _test_race_class_character_creation() -> void:
     hard_target.health = 100
     hard_target.max_health = 100
     var incoming := CombatRules.resolve_attack(enemy, hard_target, {"time_point_cost":1.0}, rng)
-    _check(int(incoming.get("damage", 0)) == 9, "Hard mode increases incoming damage by 10 percent after fighter armour and shield reduction")
+    _check(int(incoming.get("damage", 0)) == 8, "Hard mode increases incoming damage after the fighter starting armour and shield reduce it")
 
 
 func _test_campaign_journal() -> void:
