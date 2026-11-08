@@ -73,6 +73,7 @@ var dialogue_choices_box: VBoxContainer
 var attack_button: Button
 var end_turn_button: Button
 var combat_status_label: Label
+var resource_status_label: Label
 var encounter_active: bool = false
 var enemy_turn_processed: bool = false
 var enemy_turn_waiting_for_reaction: bool = false
@@ -512,10 +513,24 @@ func _create_hud() -> void:
     var layer := CanvasLayer.new()
     var label := Label.new()
     label.position = Vector2(22.0, 18.0)
-    label.text = "HOLLOW TANKARD   |   W/A/S/D/Q/E: move   |   F: talk   |   Space: attack   |   Enter: end turn   |   Click: pathfind   |   [ ]: turn   |   V: roof"
+    label.text = "HOLLOW TANKARD   |   W/A/S/D/Q/E: move   |   F: talk   |   G: gather   |   Space: attack   |   Enter: end turn   |   Click: pathfind   |   [ ]: turn   |   V: roof"
     label.add_theme_font_size_override("font_size", 18)
     label.add_theme_color_override("font_color", Color(0.94, 0.93, 0.86))
     layer.add_child(label)
+
+    resource_status_label = Label.new()
+    resource_status_label.position = Vector2(22.0, 238.0)
+    resource_status_label.custom_minimum_size = Vector2(420.0, 36.0)
+    resource_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    resource_status_label.add_theme_color_override("font_color", Color(0.96, 0.88, 0.64))
+    layer.add_child(resource_status_label)
+
+    var gather_button := Button.new()
+    gather_button.text = "Gather [G]"
+    gather_button.position = Vector2(610.0, 18.0)
+    gather_button.custom_minimum_size = Vector2(145.0, 42.0)
+    gather_button.pressed.connect(_gather_at_player)
+    layer.add_child(gather_button)
 
     party_switch_button = Button.new()
     party_switch_button.text = "Active: You  [Tab] Switch"
@@ -1284,6 +1299,35 @@ func _process(delta: float) -> void:
     path_step_accumulator = 0.0
     _advance_path_step()
 
+
+func _gather_at_player() -> void:
+    var player := simulation.get_character("player")
+    if player == null:
+        return
+    var result := simulation.harvest_resource_at("player", player.axial)
+    if not bool(result.get("ok", false)):
+        var reason := String(result.get("reason", "no_resource_here"))
+        var messages := {
+            "no_resource_here": "Nothing useful to gather on this hex.",
+            "resource_depleted": "This resource has been exhausted for now.",
+            "resource_regrowing": "This spot needs more time to recover.",
+            "requires_pickaxe": "You need to carry a pickaxe to mine this outcrop.",
+            "requires_axe": "You need to carry an axe to harvest timber.",
+            "character_unavailable": "You cannot gather while incapacitated."
+        }
+        resource_status_label.text = String(messages.get(reason, "You cannot gather here."))
+        return
+    var names: Array[String] = []
+    for item_id in result.get("item_ids", []):
+        var definition := ItemCatalog.get_definition(String(item_id))
+        names.append(String(definition.get("name", item_id)))
+    var gathered_text := ""
+    for item_name in names:
+        if not gathered_text.is_empty():
+            gathered_text += ", "
+        gathered_text += item_name
+    resource_status_label.text = "Gathered: " + gathered_text
+
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseButton:
         var mouse_event := event as InputEventMouseButton
@@ -1302,6 +1346,10 @@ func _unhandled_input(event: InputEvent) -> void:
             return
         if key_event.keycode == KEY_ENTER or key_event.keycode == KEY_KP_ENTER:
             _end_active_turn()
+            get_viewport().set_input_as_handled()
+            return
+        if key_event.keycode == KEY_G:
+            _gather_at_player()
             get_viewport().set_input_as_handled()
             return
         if key_event.keycode == KEY_F:

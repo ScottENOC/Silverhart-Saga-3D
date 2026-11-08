@@ -16,6 +16,7 @@ func _initialize() -> void:
     _test_terrain_pathfinding()
     _test_elevation_rules()
     _test_world_clock()
+    _test_wilderness_resources_and_chunk_streaming()
     _test_combat_turn_scheduler()
     _test_combat_resolution()
     _test_downed_and_death_lifecycle()
@@ -34,6 +35,41 @@ func _initialize() -> void:
         return
     print("WorldSimulation tests passed.")
     quit(0)
+
+
+func _test_wilderness_resources_and_chunk_streaming() -> void:
+    var simulation := WorldSimulation.new()
+    var player := CharacterState.new("gatherer", "Gatherer", Vector2i(0, 0))
+    var pickaxe := ItemCatalog.create_instance("pickaxe", "test_pickaxe")
+    _check(player.add_inventory_item(pickaxe), "Gatherer should be able to carry a pickaxe")
+    simulation.register_character(player)
+    var ore_hex := Vector2i(60, 60)
+    simulation.map_data.add_cell(ore_hex, 0.0, true, "rocky_outcrop")
+    simulation.wilderness_resources.nodes["60,60"] = {
+        "type": "ore_node", "item_id": "ore_gold", "depleted": false, "regrow_at": 0.0
+    }
+    var mined := simulation.harvest_resource_at("gatherer", ore_hex)
+    _check(bool(mined.get("ok", false)), "Pickaxe should unlock ore harvesting")
+    _check(int(mined.get("amount", 0)) >= 1, "Mining should produce at least one ore item")
+    _check(bool(simulation.wilderness_resources.nodes["60,60"].get("depleted", false)), "Mined ore should deplete")
+    var saved := simulation.to_dict()
+    var restored := WorldSimulation.new()
+    restored.load_dict(saved)
+    _check(bool(restored.wilderness_resources.nodes["60,60"].get("depleted", false)), "Resource depletion must survive save/load")
+    restored.wilderness_resources.advance_time(72.0 * WorldClock.SECONDS_PER_HOUR)
+    _check(not bool(restored.wilderness_resources.nodes["60,60"].get("depleted", true)), "Ore should regenerate after 72 game hours")
+
+    var chunks := HexWorldChunkStreamer.new()
+    var map := HexMapData.new()
+    chunks.load_around(map, Vector2i(100, 100))
+    _check(chunks.active_chunk_count() == 9, "A radius-one load should activate nine chunks")
+    _check(map.has_cell(Vector2i(100, 100)), "The active region should contain its centre hex")
+    var terrain_a := HexWorldChunkStreamer.terrain_for_hex(Vector2i(100, 100), 1)
+    var terrain_b := HexWorldChunkStreamer.terrain_for_hex(Vector2i(100, 100), 1)
+    _check(terrain_a == terrain_b, "Chunk terrain must be deterministic for a stable world seed")
+    chunks.load_around(map, Vector2i(300, 300))
+    _check(chunks.active_chunk_count() == 9, "Moving far away should keep the active chunk budget bounded")
+    _check(not map.has_cell(Vector2i(100, 100)), "Old generated chunks should unload when outside the active region")
 
 func _check(condition: bool, message: String = "Assertion failed") -> void:
     if not condition:
