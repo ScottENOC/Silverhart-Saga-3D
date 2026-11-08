@@ -8,10 +8,12 @@ on:
       - "export_presets.cfg"
       - "art/characters/**"
       - "art/ui/**"
+      - "art/environment/**"
       - "scenes/**"
       - "scripts/**"
       - "data/**"
       - "tests/**"
+      - "tools/ci/**"
       - ".github/workflows/godot-validation.yml"
   push:
     branches: [dev]
@@ -41,6 +43,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+      - name: Fetch verified Kenney Nature Kit models
+        run: python tools/ci/fetch_kenney_nature_assets.py
       - name: Install Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
         with:
@@ -58,6 +62,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
       - name: Run seasonal tree tests
         run: godot --headless --path . --script res://tests/test_seasonal_trees.gd
+      - name: Run wilderness resource visual tests
+        run: godot --headless --path . --script res://tests/test_wilderness_resource_visuals.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
       - name: Validate Hollowmere and item data JSON

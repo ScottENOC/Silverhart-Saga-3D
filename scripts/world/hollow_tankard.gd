@@ -11,6 +11,7 @@ const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map
 const CHARACTER_CREATION_RULES = preload("res://scripts/simulation/character_creation_rules.gd")
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
 const SEASONAL_TREE_SCRIPT = preload("res://scripts/presentation/seasonal_tree_visual.gd")
+const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
@@ -75,6 +76,7 @@ var attack_button: Button
 var end_turn_button: Button
 var combat_status_label: Label
 var resource_status_label: Label
+var resource_visuals_by_hex: Dictionary = {}
 var encounter_active: bool = false
 var enemy_turn_processed: bool = false
 var enemy_turn_waiting_for_reaction: bool = false
@@ -84,7 +86,7 @@ func _ready() -> void:
     _create_lighting()
     _create_simulation()
     _create_ground_and_hexes()
-    _create_seasonal_tree_test_grove()
+    _create_wilderness_gatherable_grove()
     _create_building()
     _create_furniture()
     _create_characters()
@@ -158,36 +160,51 @@ func _create_simulation() -> void:
     simulation.movement_reaction_resolved.connect(_on_movement_reaction_resolved)
     simulation.turn_scheduler.turn_started.connect(_on_combat_turn_started)
 
-func _create_seasonal_tree_test_grove() -> void:
-    # A small ring of real 3D tree meshes makes the season system visible around
-    # the opening tavern. These placeholders are deliberately replaceable by
-    # imported GLB trees while retaining the same calendar API.
-    var placements: Array[Dictionary] = [
-        {"position": Vector3(-11.0, 0.0, -8.0), "evergreen": false, "seed": 11},
-        {"position": Vector3(-13.0, 0.0, -2.0), "evergreen": true, "seed": 12},
-        {"position": Vector3(-10.0, 0.0, 8.0), "evergreen": false, "seed": 13},
-        {"position": Vector3(-6.0, 0.0, 11.0), "evergreen": false, "seed": 14},
-        {"position": Vector3(6.0, 0.0, 11.0), "evergreen": true, "seed": 15},
-        {"position": Vector3(10.0, 0.0, 8.0), "evergreen": false, "seed": 16},
-        {"position": Vector3(13.0, 0.0, 2.0), "evergreen": false, "seed": 17},
-        {"position": Vector3(11.0, 0.0, -8.0), "evergreen": true, "seed": 18},
-        {"position": Vector3(6.0, 0.0, -11.0), "evergreen": false, "seed": 19},
-        {"position": Vector3(-6.0, 0.0, -11.0), "evergreen": false, "seed": 20},
+func _create_wilderness_gatherable_grove() -> void:
+    # Kenney Nature Kit GLBs provide the base trees. These are a compact
+    # outdoor test grove immediately outside the tavern's playable footprint.
+    var decorative_trees: Array[Dictionary] = [
+        {"position": Vector3(-7.5, 0.0, -17.3), "evergreen": false, "seed": 21, "species": "oak"},
+        {"position": Vector3(7.5, 0.0, 17.3), "evergreen": false, "seed": 22, "species": "default"},
+        {"position": Vector3(-7.5, 0.0, 8.66), "evergreen": true, "seed": 23, "species": "default"},
+        {"position": Vector3(7.5, 0.0, -17.3), "evergreen": true, "seed": 24, "species": "default"},
     ]
-    for placement in placements:
+    for placement in decorative_trees:
         var tree := SEASONAL_TREE_SCRIPT.new() as SeasonalTreeVisual
         tree.evergreen = bool(placement["evergreen"])
         tree.tree_seed = int(placement["seed"])
-        tree.tree_scale = 1.15 if tree.evergreen else 1.0
+        tree.tree_scale = 3.4
+        tree.species_variant = String(placement["species"])
         tree.position = placement["position"]
         add_child(tree)
         tree.refresh_month(int(simulation.clock.calendar_date()["month_index"]))
+
+    # Authored tutorial gatherables are deliberately close enough to test on
+    # the first visit. Random wilderness spawning remains outside Hollowmere.
+    var resource_placements: Array[Dictionary] = [
+        {"hex": Vector2i(-6, 2), "terrain": "forest", "node": {"type": "fruit_tree", "available": true, "regrow_at": 0.0}},
+        {"hex": Vector2i(6, -2), "terrain": "forest", "node": {"type": "timber_tree", "available": true, "regrow_at": 0.0}},
+        {"hex": Vector2i(5, 4), "terrain": "grass", "node": {"type": "herb_patch", "available": true, "regrow_at": 0.0}},
+        {"hex": Vector2i(4, -5), "terrain": "rocky_outcrop", "node": {"type": "ore_node", "item_id": "ore_iron", "depleted": false, "regrow_at": 0.0}},
+        {"hex": Vector2i(-6, -2), "terrain": "rocky_outcrop", "node": {"type": "stone_deposit", "depleted": false, "regrow_at": 0.0}},
+    ]
+    for placement in resource_placements:
+        var hex: Vector2i = placement["hex"]
+        var state: Dictionary = placement["node"]
+        simulation.set_authored_resource_at(hex, String(placement["terrain"]), state)
+        var visual := RESOURCE_VISUAL_SCRIPT.new() as WildernessResourceVisual
+        visual.name = "Resource_%d_%d" % [hex.x, hex.y]
+        visual.position = HexGrid.axial_to_world(hex, HEX_RADIUS, 0.0)
+        add_child(visual)
+        visual.refresh(state, int(simulation.clock.calendar_date()["month_index"]))
+        resource_visuals_by_hex[hex] = visual
 
 func _on_world_clock_ticked(_tick_index: int, _world_seconds: float) -> void:
     var month_index := int(simulation.clock.calendar_date()["month_index"])
     for tree in get_tree().get_nodes_in_group("seasonal_trees"):
         if tree is SeasonalTreeVisual:
             tree.refresh_month(month_index)
+    _refresh_resource_visuals()
 
 func _is_wall_cell_blocked(world: Vector3) -> bool:
     # The south-wall gap is the only opening. The nearest grid cells to the
@@ -1361,6 +1378,23 @@ func _gather_at_player() -> void:
             gathered_text += ", "
         gathered_text += item_name
     resource_status_label.text = "Gathered: " + gathered_text
+    _refresh_resource_visual_at(player.axial)
+
+func _refresh_resource_visual_at(hex: Vector2i) -> void:
+    if not resource_visuals_by_hex.has(hex):
+        return
+    var visual := resource_visuals_by_hex[hex] as WildernessResourceVisual
+    if not is_instance_valid(visual):
+        return
+    visual.refresh(simulation.ensure_resource_at(hex), int(simulation.clock.calendar_date()["month_index"]))
+
+func _refresh_resource_visuals() -> void:
+    var month_index := int(simulation.clock.calendar_date()["month_index"])
+    for key in resource_visuals_by_hex:
+        var hex: Vector2i = key
+        var visual := resource_visuals_by_hex[key] as WildernessResourceVisual
+        if is_instance_valid(visual):
+            visual.refresh(simulation.ensure_resource_at(hex), month_index)
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseButton:

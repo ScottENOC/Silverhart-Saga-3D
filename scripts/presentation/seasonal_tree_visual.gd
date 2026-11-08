@@ -1,17 +1,18 @@
 class_name SeasonalTreeVisual
 extends Node3D
-## Lightweight procedural tree placeholder with calendar-driven seasonal forms.
-## The visual interface is intentionally asset-agnostic so GLB trees can replace
-## these meshes later without changing world-season logic.
+## Seasonal tree presentation. Uses imported Kenney Nature Kit GLBs when the
+## build has bootstrapped them; procedural branches remain the winter fallback.
 
 const SPRING := "spring"
 const SUMMER := "summer"
 const AUTUMN := "autumn"
 const WINTER := "winter"
+const ASSET_ROOT := "res://art/environment/kenney_nature/"
 
 @export var evergreen: bool = false
 @export var tree_seed: int = 1
-@export var tree_scale: float = 1.0
+@export var tree_scale: float = 4.0
+@export_enum("oak", "default") var species_variant: String = "oak"
 
 var current_season: String = ""
 
@@ -44,6 +45,37 @@ func _rebuild_visual() -> void:
     var rng := RandomNumberGenerator.new()
     rng.seed = abs(tree_seed) + 1
 
+    var imported := false
+    if evergreen:
+        imported = _add_imported_tree("tree_pine_tall_a.glb")
+    elif current_season == AUTUMN:
+        imported = _add_imported_tree("tree_%s_fall.glb" % species_variant)
+    elif current_season != WINTER:
+        imported = _add_imported_tree("tree_%s.glb" % species_variant)
+
+    if not imported:
+        _build_procedural_fallback(rng)
+    if current_season == WINTER and evergreen:
+        _add_snow_accents(rng)
+
+func _add_imported_tree(file_name: String) -> bool:
+    var asset_path := ASSET_ROOT + file_name
+    if not ResourceLoader.exists(asset_path):
+        return false
+    var packed := load(asset_path) as PackedScene
+    if packed == null:
+        push_warning("Seasonal tree asset could not be loaded: " + asset_path)
+        return false
+    var model := packed.instantiate() as Node3D
+    if model == null:
+        push_warning("Seasonal tree asset root is not Node3D: " + asset_path)
+        return false
+    model.name = "ImportedTreeModel"
+    model.scale = Vector3.ONE * tree_scale
+    add_child(model)
+    return true
+
+func _build_procedural_fallback(rng: RandomNumberGenerator) -> void:
     var trunk := CylinderMesh.new()
     trunk.top_radius = 0.13
     trunk.bottom_radius = 0.21
@@ -58,12 +90,8 @@ func _rebuild_visual() -> void:
     else:
         _build_deciduous_canopy(rng)
 
-    if current_season == WINTER:
-        _add_snow_accents(rng)
-
 func _build_deciduous_canopy(rng: RandomNumberGenerator) -> void:
     var palette: Array[Color]
-    var clusters := 3
     match current_season:
         SPRING:
             palette = [Color(0.48, 0.68, 0.34), Color(0.61, 0.76, 0.43), Color(0.76, 0.78, 0.48)]
@@ -73,8 +101,7 @@ func _build_deciduous_canopy(rng: RandomNumberGenerator) -> void:
             palette = [Color(0.78, 0.39, 0.12), Color(0.84, 0.58, 0.16), Color(0.62, 0.20, 0.10)]
         _:
             palette = [Color(0.3, 0.45, 0.25)]
-    if current_season == AUTUMN and rng.randf() < 0.35:
-        clusters = 2
+    var clusters := 2 if current_season == AUTUMN and rng.randf() < 0.35 else 3
     for i in range(clusters):
         var canopy := SphereMesh.new()
         canopy.radius = rng.randf_range(0.82, 1.08)
@@ -104,13 +131,19 @@ func _build_evergreen(rng: RandomNumberGenerator) -> void:
         _add_mesh("Needles_%d" % i, cone, Vector3(0.0, 1.55 + float(i) * 0.65, 0.0), _material(green))
 
 func _build_bare_branches(rng: RandomNumberGenerator) -> void:
-    for i in range(6):
+    var trunk := CylinderMesh.new()
+    trunk.top_radius = 0.07
+    trunk.bottom_radius = 0.19
+    trunk.height = 2.8
+    trunk.radial_segments = 7
+    _add_mesh("BareTrunk", trunk, Vector3(0.0, 1.4, 0.0), _material(Color(0.25, 0.14, 0.075)))
+    for i in range(8):
         var branch := CylinderMesh.new()
-        branch.top_radius = 0.025
+        branch.top_radius = 0.018
         branch.bottom_radius = 0.075
-        branch.height = rng.randf_range(0.75, 1.25)
+        branch.height = rng.randf_range(0.85, 1.45)
         branch.radial_segments = 5
-        var angle := TAU * float(i) / 6.0 + rng.randf_range(-0.2, 0.2)
+        var angle := TAU * float(i) / 8.0 + rng.randf_range(-0.2, 0.2)
         var branch_node := MeshInstance3D.new()
         branch_node.name = "BareBranch_%d" % i
         branch_node.mesh = branch
