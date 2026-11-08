@@ -107,6 +107,28 @@ func _create_paths_and_stream() -> void:
 	var lane_widths := PackedFloat32Array([2.1, 2.0, 2.0, 2.4, 2.2, 2.0, 2.2])
 	add_child(ORGANIC_FEATURES.make_ribbon("TavernVillageLane", village_lane, lane_widths, path_material, 0.0, 8))
 
+	# Retain the village's ring road and individual building spurs, but soften
+	# their visible geometry so the roads no longer read as hex-cell borders.
+	var ring_points: Array[Vector3] = []
+	for hex in [Vector2i(-8, -6), Vector2i(0, -6), Vector2i(8, -6), Vector2i(8, 0), Vector2i(8, 6), Vector2i(0, 6), Vector2i(-8, 6), Vector2i(-8, 0), Vector2i(-8, -6)]:
+		ring_points.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.028))
+	var ring_widths := PackedFloat32Array([1.9, 2.0, 2.1, 2.0, 2.1, 2.0, 2.1, 2.0, 1.9])
+	add_child(ORGANIC_FEATURES.make_ribbon("TavernRingRoad", ring_points, ring_widths, path_material, 0.0, 6))
+
+	var spurs: Array = [
+		{"name": "StoreLane", "points": [Vector2i(0, 6), Vector2i(0, 10), Vector2i(0, 15)]},
+		{"name": "ChapelLane", "points": [Vector2i(-8, 0), Vector2i(-10, 0), Vector2i(-11, 0)]},
+		{"name": "ElderLane", "points": [Vector2i(0, -6), Vector2i(0, -8), Vector2i(0, -10)]},
+		{"name": "MiraLane", "points": [Vector2i(8, 6), Vector2i(9, 8), Vector2i(10, 9)]},
+		{"name": "OskarLane", "points": [Vector2i(-4, 6), Vector2i(-4, 8), Vector2i(-4, 9)]}
+	]
+	for spur in spurs:
+		var points: Array[Vector3] = []
+		for hex in spur["points"]:
+			points.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.032))
+		var widths := PackedFloat32Array([1.8, 1.7, 1.6])
+		add_child(ORGANIC_FEATURES.make_ribbon(String(spur["name"]), points, widths, path_material, 0.0, 8))
+
 func _add_hex_surface(node_name: String, cells: Array[Vector2i], material: Material, elevation: float) -> void:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
