@@ -167,7 +167,7 @@ func _create_wilderness_gatherable_grove() -> void:
         {"position": Vector3(-7.5, 0.0, -17.3), "evergreen": false, "seed": 21, "species": "oak"},
         {"position": Vector3(7.5, 0.0, 17.3), "evergreen": false, "seed": 22, "species": "default"},
         {"position": Vector3(-7.5, 0.0, 8.66), "evergreen": true, "seed": 23, "species": "default"},
-        {"position": Vector3(7.5, 0.0, -8.66), "evergreen": true, "seed": 24, "species": "default"},
+        {"position": Vector3(7.5, 0.0, -17.3), "evergreen": true, "seed": 24, "species": "default"},
     ]
     for placement in decorative_trees:
         var tree := SEASONAL_TREE_SCRIPT.new() as SeasonalTreeVisual
@@ -184,8 +184,8 @@ func _create_wilderness_gatherable_grove() -> void:
     var resource_placements: Array[Dictionary] = [
         {"hex": Vector2i(-6, 2), "terrain": "forest", "node": {"type": "fruit_tree", "available": true, "regrow_at": 0.0}},
         {"hex": Vector2i(6, -2), "terrain": "forest", "node": {"type": "timber_tree", "available": true, "regrow_at": 0.0}},
-        {"hex": Vector2i(0, 6), "terrain": "grass", "node": {"type": "herb_patch", "available": true, "regrow_at": 0.0}},
-        {"hex": Vector2i(0, -6), "terrain": "rocky_outcrop", "node": {"type": "ore_node", "item_id": "ore_iron", "depleted": false, "regrow_at": 0.0}},
+        {"hex": Vector2i(5, 4), "terrain": "grass", "node": {"type": "herb_patch", "available": true, "regrow_at": 0.0}},
+        {"hex": Vector2i(4, -5), "terrain": "rocky_outcrop", "node": {"type": "ore_node", "item_id": "ore_iron", "depleted": false, "regrow_at": 0.0}},
         {"hex": Vector2i(-6, -2), "terrain": "rocky_outcrop", "node": {"type": "stone_deposit", "depleted": false, "regrow_at": 0.0}},
     ]
     for placement in resource_placements:
