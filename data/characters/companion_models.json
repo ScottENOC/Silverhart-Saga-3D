@@ -28,29 +28,18 @@
         "facialHair": "short_beard",
         "tattoos": [],
         "outfit": "none",
-        "top": "long_tunic",
+        "top": "none",
         "underTop": "none",
         "underBottom": "none",
         "jacket": "none",
-        "bottom": "trousers",
+        "bottom": "none",
         "underwear": false,
         "shoes": "combat_boots",
         "hat": "none",
         "weapon": "sword",
         "carry": "none",
         "accessories": [],
-        "garmentStyles": {
-          "long_tunic": {
-            "pattern": "solid",
-            "color": "#263b50",
-            "color2": "#a49a7d"
-          },
-          "trousers": {
-            "pattern": "solid",
-            "color": "#343536",
-            "color2": "#343536"
-          }
-        }
+        "garmentStyles": {}
       }
     }
   ]
