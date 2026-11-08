@@ -175,7 +175,7 @@ def create_uv_surface(name, centre, scale, material, armature, pelvis_bone,
     return create_mesh_object(name, vertices, faces, material, armature, pelvis_bone)
 
 
-def create_shaft(tree, material, armature, pelvis_bone, width, height, anatomy_z):
+def create_shaft(tree, material, armature, pelvis_bone, width, height, anatomy_z, anchor_y):
     # The shaft is a swept, tapered surface, angled naturally down from its root.
     length = height * 0.078
     radius = width * 0.022
@@ -202,14 +202,15 @@ def create_shaft(tree, material, armature, pelvis_bone, width, height, anatomy_z
         t = ring / ring_count
         z = top_z - length * t
         centre_x = width * 0.004 * math.sin(t * math.pi * 0.8)
-        surface_y = front_surface_y(tree, centre_x, z)
+        # The centreline can pass between the upper legs, where no skin ray hit exists.
+        # Keep the shaft rooted to the sampled pubic surface instead of sampling the gap.
         r = radius * interpolate(t)
         depth_radius = r * 0.88
         embed = depth_radius * 0.48
         for side in range(sides):
             angle = 2.0 * math.pi * side / sides
             x = centre_x + r * math.cos(angle)
-            y = surface_y - embed - depth_radius * math.sin(angle)
+            y = anchor_y - embed - depth_radius * math.sin(angle)
             vertices.append((x, y, z))
     for ring in range(ring_count):
         for side in range(sides):
@@ -224,9 +225,9 @@ def create_shaft(tree, material, armature, pelvis_bone, width, height, anatomy_z
     return obj, top_z - length, radius
 
 
-def create_glans(tree, material, armature, pelvis_bone, width, height, tip_z, shaft_radius):
+def create_glans(tree, material, armature, pelvis_bone, width, height, tip_z, shaft_radius, anchor_y):
     glans_z = tip_z + height * 0.006
-    surface_y = front_surface_y(tree, 0.0, glans_z)
+    surface_y = anchor_y
     depth = shaft_radius * 0.92
     centre = Vector((0.0, surface_y - depth * 0.52, glans_z))
     glans = create_uv_surface(
@@ -258,9 +259,9 @@ def create_glans(tree, material, armature, pelvis_bone, width, height, tip_z, sh
     return glans, corona
 
 
-def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy_z):
+def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy_z, anchor_y):
     centre_z = anatomy_z - height * 0.046
-    surface_y = front_surface_y(tree, 0.0, centre_z)
+    surface_y = anchor_y
     depth = height * 0.020
     centre = Vector((0.0, surface_y - depth * 0.48, centre_z))
     sac = create_uv_surface(
@@ -272,10 +273,10 @@ def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy
     return sac
 
 
-def add_meatus_detail(tree, skin_material, armature, pelvis_bone, height, tip_z, shaft_radius):
+def add_meatus_detail(tree, skin_material, armature, pelvis_bone, height, tip_z, shaft_radius, anchor_y):
     # A very small recessed-looking, darker oval at the distal glans surface.
     glans_z = tip_z + height * 0.006
-    surface_y = front_surface_y(tree, 0.0, glans_z) - shaft_radius * 1.42
+    surface_y = anchor_y - shaft_radius * 1.42
     detail_material = skin_material.copy()
     detail_material.name = "Anatomy detail · subtle meatus"
     if detail_material.use_nodes:
@@ -317,18 +318,18 @@ def main():
     surface_tree = build_surface_tree(skin)
 
     # Fail early if the front pelvis surface cannot be sampled.
-    front_surface_y(surface_tree, 0.0, anatomy_z)
+    pelvic_surface_y = front_surface_y(surface_tree, 0.0, anatomy_z)
     shaft, tip_z, shaft_radius = create_shaft(
-        surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z
+        surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z, pelvic_surface_y
     )
     glans, corona = create_glans(
-        surface_tree, skin_material, armature, pelvis_bone, width, height, tip_z, shaft_radius
+        surface_tree, skin_material, armature, pelvis_bone, width, height, tip_z, shaft_radius, pelvic_surface_y
     )
     scrotum = create_scrotum(
-        surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z
+        surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z, pelvic_surface_y
     )
     meatus = add_meatus_detail(
-        surface_tree, skin_material, armature, pelvis_bone, height, tip_z, shaft_radius
+        surface_tree, skin_material, armature, pelvis_bone, height, tip_z, shaft_radius, pelvic_surface_y
     )
 
     for obj in (shaft, glans, corona, scrotum, meatus):
