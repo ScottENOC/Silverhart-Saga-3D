@@ -746,7 +746,7 @@ func _interact_with_nearest_npc() -> void:
         if actor_id == active_character_id or party_member_ids.has(actor_id):
             continue
         var state := simulation.get_character(actor_id)
-        if state == null or not state.alive:
+        if state == null or not state.can_act() or state.side != "neutral":
             continue
         var distance := HexGrid.distance(player_state.axial, state.axial)
         if distance <= 2 and distance < nearest_distance:
@@ -1000,7 +1000,7 @@ func _attack_active_character() -> void:
         return
     var weapon_id := String(current.equipment.get("weapon", ""))
     var result := simulation.try_attack_character(current.id, target.id, {
-        "time_point_cost": 20.0,
+        "time_point_cost": 10.0,
         "weapon_id": weapon_id
     }, int(current.id.hash() + target.id.hash()))
     if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
@@ -1069,18 +1069,18 @@ func _update_combat_ui() -> void:
 func _check_encounter_resolution() -> void:
     if not encounter_active:
         return
-    if HOLLOWMERE_ENCOUNTER_SCRIPT.enemies_defeated(simulation):
-        simulation.end_combat()
-        encounter_active = false
-        _resolve_shakedown("fight")
-        _show_speech_bubble("garrick_holt", HollowmereCampaignContent.shakedown_victory_text())
-        _show_dialogue("Garrick Holt", HollowmereCampaignContent.shakedown_victory_text(), [{"id": "continue", "label": "Continue", "text": ""}])
-    elif HOLLOWMERE_ENCOUNTER_SCRIPT.party_defeated(simulation):
+    if HOLLOWMERE_ENCOUNTER_SCRIPT.party_defeated(simulation):
         simulation.end_combat()
         encounter_active = false
         shakedown_resolved = true
         simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The party was defeated during the Ironbond shakedown.")
         _show_dialogue("Garrick Holt", "The soldiers overpower you. Garrick has no choice but to surrender the due. The confrontation is lost.", [{"id": "continue", "label": "Continue", "text": ""}])
+    elif HOLLOWMERE_ENCOUNTER_SCRIPT.enemies_defeated(simulation):
+        simulation.end_combat()
+        encounter_active = false
+        _resolve_shakedown("fight")
+        _show_speech_bubble("garrick_holt", HollowmereCampaignContent.shakedown_victory_text())
+        _show_dialogue("Garrick Holt", HollowmereCampaignContent.shakedown_victory_text(), [{"id": "continue", "label": "Continue", "text": ""}])
 
 func _toggle_character_panel() -> void:
     if character_panel != null:
