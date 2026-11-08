@@ -391,8 +391,7 @@ def fit_female_clothing(objects, skin):
         ("bra", "halter", "fatigue shirt", "tank top", "shirt", "dress"),
         clearance=0.0045,
     )
-    print(f"Female garment fitting complete: {lower} lower-body and upper-body vertices adjusted")
-        print(f"Fitted {obj.name}: moved {moved} trouser vertices to {clearance * 1000:.1f} mm skin clearance")
+    print(f"Female garment fitting complete: {lower} lower-body and {upper} upper-body vertices adjusted")
 
 
 def main():
