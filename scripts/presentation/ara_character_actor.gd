@@ -7,6 +7,10 @@ var model_root: Node3D
 var animation_player: AnimationPlayer
 var loaded_asset_path: String = ""
 var hair_instances: Array[MeshInstance3D] = []
+var modular_garment_meshes: Array[MeshInstance3D] = []
+var equipment_attachments: Dictionary = {}
+const MODULAR_GARMENT_ASSET := "res://art/characters/ara_runtime/ara_person_modular.glb"
+const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
 var current_hair_colour: Color = Color("#49372a")
 
 func configure(glb_path: String) -> bool:
@@ -34,6 +38,179 @@ func configure(glb_path: String) -> bool:
     animation_player = _find_animation_player(model_root)
     _play_idle_if_available()
     return true
+
+## Attach modular garment surfaces to this actor's own Ara skeleton.
+## The original body mesh remains visible, preventing transparent clothing from
+## cutting holes in the skin beneath it.
+func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> bool:
+    _clear_modular_garments()
+    if model_root == null or not ResourceLoader.exists(glb_path):
+        return false
+    var target_skeleton := _find_skeleton(model_root)
+    if target_skeleton == null:
+        push_warning("Cannot attach modular garments: target Ara body has no Skeleton3D")
+        return false
+    var packed := load(glb_path) as PackedScene
+    if packed == null:
+        return false
+    var source_root := packed.instantiate()
+    var source_skeleton := _find_skeleton(source_root)
+    if source_skeleton == null or not _same_skeleton(source_skeleton, target_skeleton):
+        source_root.free()
+        push_warning("Cannot attach modular garments: Workshop skeleton does not match actor skeleton")
+        return false
+    var source_meshes: Array[MeshInstance3D] = []
+    _collect_skinned_meshes(source_root, source_meshes)
+    if source_meshes.is_empty():
+        source_root.free()
+        push_warning("Modular garment export contains no skinned meshes")
+        return false
+    for source_mesh in source_meshes:
+        var instance := MeshInstance3D.new()
+        instance.name = "AraModularGarments_" + source_mesh.name
+        instance.mesh = source_mesh.mesh
+        instance.skin = source_mesh.skin
+        instance.transform = source_mesh.transform
+        model_root.add_child(instance)
+        instance.skeleton = instance.get_path_to(target_skeleton)
+        modular_garment_meshes.append(instance)
+        for surface in range(instance.mesh.get_surface_count()):
+            _set_modular_surface_visible(instance, surface, false)
+    source_root.free()
+    set_meta("modular_garments_loaded", not modular_garment_meshes.is_empty())
+    return not modular_garment_meshes.is_empty()
+
+
+func _clear_modular_garments() -> void:
+    for instance in modular_garment_meshes:
+        if is_instance_valid(instance):
+            instance.queue_free()
+    modular_garment_meshes.clear()
+
+
+func _surface_label(mesh_instance: MeshInstance3D, surface: int) -> String:
+    var material := mesh_instance.mesh.surface_get_material(surface)
+    var material_name := material.resource_name.to_lower() if material != null else ""
+    return material_name + " " + mesh_instance.mesh.surface_get_name(surface).to_lower()
+
+
+func _set_modular_surface_visible(mesh_instance: MeshInstance3D, surface: int, visible: bool) -> void:
+    var key := "ara_modular_original_%d" % surface
+    if not mesh_instance.has_meta(key):
+        mesh_instance.set_meta(key, mesh_instance.mesh.surface_get_material(surface))
+    var original := mesh_instance.get_meta(key) as Material
+    if visible:
+        mesh_instance.set_surface_override_material(surface, original)
+        return
+    var hidden := original.duplicate() as StandardMaterial3D if original is StandardMaterial3D else StandardMaterial3D.new()
+    hidden.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+    hidden.albedo_color.a = 0.0
+    hidden.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+    mesh_instance.set_surface_override_material(surface, hidden)
+
+
+## Render the actual equipped item instances from CharacterState.
+func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
+    if modular_garment_meshes.is_empty():
+        configure_modular_garments()
+    var visible_garments: Array[String] = []
+    var weapon_id := ""
+    var offhand_id := ""
+    var helmet_id := ""
+    for slot_variant in equipped_item_data:
+        var slot := String(slot_variant)
+        var item: Variant = equipped_item_data[slot_variant]
+        if not item is Dictionary:
+            continue
+        var item_id := String(item.get("id", ""))
+        match slot:
+            "armour":
+                if item_id in ["reinforced_leather_armor", "light_armor", "medium_armor", "heavy_armor"]:
+                    visible_garments.append("leather armor")
+            "weapon":
+                weapon_id = item_id
+            "offhand":
+                offhand_id = item_id
+            "helmet":
+                helmet_id = item_id
+    for mesh_instance in modular_garment_meshes:
+        if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
+            continue
+        for surface in range(mesh_instance.mesh.get_surface_count()):
+            var label := _surface_label(mesh_instance, surface)
+            var show_surface := false
+            for fragment in visible_garments:
+                if label.contains(fragment):
+                    show_surface = true
+                    break
+            _set_modular_surface_visible(mesh_instance, surface, show_surface)
+    _set_equipment_prop("weapon", _weapon_prop_id(weapon_id), "WeaponR")
+    var shield_prop := "round_shield" if offhand_id == "wooden_shield" else ("kite_shield" if offhand_id == "bulwark_shield" else "")
+    _set_equipment_prop("offhand", shield_prop, "WeaponL")
+    _set_equipment_prop("helmet", _helmet_prop_id(helmet_id), "Head")
+
+
+func _weapon_prop_id(item_id: String) -> String:
+    match item_id:
+        "sword", "sword_arrow_deflection", "starforged_blade": return "sword"
+        "dagger", "featherweight_dagger": return "knife"
+        "axe", "hatchet": return "axe"
+        "spear", "stormcaller_spear": return "spear"
+        "bow", "nightowl_bow": return "bow"
+        "club", "ashenwood_club": return "club"
+        "mace": return "mace"
+        _: return ""
+
+
+func _helmet_prop_id(item_id: String) -> String:
+    match item_id:
+        "nasal_helm", "huntsman_helm": return "nasal_helm"
+        _: return ""
+
+
+func _set_equipment_prop(slot: String, prop_id: String, socket_name: String) -> void:
+    if equipment_attachments.has(slot):
+        var previous: Node = equipment_attachments[slot]
+        if is_instance_valid(previous):
+            previous.queue_free()
+        equipment_attachments.erase(slot)
+    if prop_id.is_empty():
+        return
+    var prop_path := EQUIPMENT_PROP_ROOT + prop_id + ".glb"
+    if not ResourceLoader.exists(prop_path):
+        push_warning("Equipped %s visual '%s' is not installed at %s" % [slot, prop_id, prop_path])
+        return
+    var skeleton := _find_skeleton(model_root) if model_root != null else null
+    if skeleton == null:
+        return
+    var candidates: Array[String] = []
+    match socket_name:
+        "WeaponR":
+            candidates = ["WeaponR", "Hand.R", "hand_r", "mixamorig:RightHand", "RightHand"]
+        "WeaponL":
+            candidates = ["WeaponL", "Hand.L", "hand_l", "mixamorig:LeftHand", "LeftHand"]
+        _:
+            candidates = ["Head", "head", "mixamorig:Head"]
+    var bone_name := ""
+    for candidate in candidates:
+        if skeleton.find_bone(candidate) >= 0:
+            bone_name = candidate
+            break
+    if bone_name.is_empty():
+        push_warning("Cannot attach equipped %s: no compatible %s bone in Ara skeleton" % [prop_id, socket_name])
+        return
+    var packed := load(prop_path) as PackedScene
+    if packed == null:
+        return
+    var attachment := BoneAttachment3D.new()
+    attachment.name = "Equipment_" + slot
+    attachment.bone_name = bone_name
+    skeleton.add_child(attachment)
+    var prop := packed.instantiate()
+    prop.name = prop_id
+    attachment.add_child(prop)
+    equipment_attachments[slot] = attachment
+
 
 func apply_player_profile(profile: Dictionary) -> void:
     if model_root == null:

@@ -1,6 +1,8 @@
 class_name CharacterPanel
 extends Control
 
+signal equipment_changed(character_id: String)
+
 const ITEM_CATALOG = preload("res://scripts/simulation/item_catalog.gd")
 ## Data-backed character sheet and inventory/equipment panel.
 ## It reads CharacterState directly; it does not maintain a parallel UI model.
@@ -300,12 +302,14 @@ func _add_label_to(parent: VBoxContainer, text_value: String) -> void:
 func _equip_item(instance_id: String) -> void:
     var state := simulation.get_character(character_id) if simulation != null else null
     if state != null and state.equip_inventory_item(instance_id):
+        equipment_changed.emit(character_id)
         refresh()
 
 
 func _unequip_slot(slot: String) -> void:
     var state := simulation.get_character(character_id) if simulation != null else null
     if state != null and state.unequip_equipment_slot(slot):
+        equipment_changed.emit(character_id)
         refresh()
 
 

@@ -6,6 +6,7 @@ extends CanvasLayer
 signal completed(profile: Dictionary)
 
 const RULES = preload("res://scripts/simulation/character_creation_rules.gd")
+const ITEM_CATALOG = preload("res://scripts/simulation/item_catalog.gd")
 
 const SAVE_PATH := "user://player_appearance.json"
 const SKIN_TONES := ["Porcelain", "Fair", "Light", "Medium", "Olive", "Brown", "Deep brown"]
@@ -45,8 +46,6 @@ var eye_select: OptionButton
 var hair_colour_select: OptionButton
 var hair_style_select: OptionButton
 var body_select: OptionButton
-var shirt_select: OptionButton
-var trousers_select: OptionButton
 var body_variant_select: OptionButton
 var height_slider: HSlider
 var preview_status: Label
@@ -186,6 +185,7 @@ func _build_screen() -> void:
     _select_metadata(difficulty_select, "normal")
     race_select.item_selected.connect(_refresh_character_preview)
     class_select.item_selected.connect(_refresh_character_preview)
+    class_select.item_selected.connect(_refresh_appearance_preview)
     difficulty_select.item_selected.connect(_refresh_character_preview)
     rules_preview = Label.new()
     rules_preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -222,12 +222,15 @@ func _build_screen() -> void:
         selector.item_selected.connect(_refresh_appearance_preview)
     height_slider.value_changed.connect(_refresh_appearance_preview_value)
 
-    _section(panel, "STARTING CLOTHING (visual fit in progress)")
-    shirt_select = _option_row(panel, "Shirt", ["Simple tunic", "Linen shirt", "Blouse", "Vest", "No shirt"])
-    trousers_select = _option_row(panel, "Legwear", ["Trousers", "Skirt", "Long skirt", "Shorts"])
+    _section(panel, "STARTING EQUIPMENT")
+    var equipment_note := Label.new()
+    equipment_note.text = "Your selected class determines its starting inventory. Equipped armour, weapons and shields appear on the preview when their Workshop and prop assets are installed. You can change equipment later from the in-game Inventory screen."
+    equipment_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    equipment_note.add_theme_color_override("font_color", Color(0.78, 0.82, 0.76))
+    panel.add_child(equipment_note)
 
     var note := Label.new()
-    note.text = "Skin, eye and hair colour update the preview where the exported model exposes matching materials. Hair styles use separate skinned Ara exports and are tinted independently; install the generated Ara hair bundle to enable the full selector. Height and build still use restrained whole-model scaling until true anatomical morphs are validated. Starting shirt and legwear selections are saved but do not yet swap garment meshes; clothing will be fitted to the final Ara body exports."
+    note.text = "Appearance choices use the shared Ara character rig. Hairstyles are separate skinned exports; body proportions use only morph targets present in the exported model."
     note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     note.add_theme_color_override("font_color", Color(0.9, 0.75, 0.48))
     panel.add_child(note)
@@ -301,8 +304,6 @@ func _load_saved_profile() -> void:
     _select_text(hair_style_select, str(data.get("hair_style", "Short 2")))
     _select_text(body_select, str(data.get("body_build", "Average")))
     height_slider.value = clampf(float(data.get("height_scale", 1.0)), 0.90, 1.10)
-    _select_text(shirt_select, str(data.get("shirt", "Simple tunic")))
-    _select_text(trousers_select, str(data.get("legwear", "Trousers")))
     _refresh_character_preview(0)
     _update_mode_controls(game_mode_select.selected)
 
@@ -351,6 +352,7 @@ func _refresh_appearance_preview(_index: int) -> void:
     profile["height"] = inverse_lerp(0.90, 1.10, height_slider.value)
     profile["muscle"] = inverse_lerp(0.96, 1.055, float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)))
     preview_actor.apply_player_profile(profile)
+    preview_actor.apply_equipment_visuals(_preview_equipment_for_class())
     var hair_id := String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02"))
     var hair_path := "res://art/characters/ara_runtime/hair/%s_%s.glb" % [variant, hair_id]
     var using_ara_base := preview_actor.loaded_asset_path.contains("/ara_runtime/")
@@ -369,6 +371,18 @@ func _refresh_appearance_preview(_index: int) -> void:
         preview_status.text = "Loaded 1 of 2 assets · %s body ready. FAILED: hairstyle asset %s is missing or incompatible with the body skeleton." % [variant.capitalize(), hair_id]
     else:
         preview_status.text = "Loaded 1 of 1 assets · Legacy preview model ready. Install the Ara hair bundle to enable separate hairstyles."
+
+func _preview_equipment_for_class() -> Dictionary:
+    var definition := RULES.class_definition(_selected_id(class_select, "fighter"))
+    var equipped: Dictionary = {}
+    for item_id_variant in definition.get("equipped", []):
+        var item_id := String(item_id_variant)
+        var item := ITEM_CATALOG.get_definition(item_id)
+        var slot := String(item.get("equipment_slot", ""))
+        if not slot.is_empty():
+            equipped[slot] = item
+    return equipped
+
 
 func _load_preview_asset(path: String, description: String, loaded_count: int, total_count: int) -> Resource:
     if ResourceLoader.has_cached(path):
@@ -457,9 +471,7 @@ func _finish() -> void:
         "hair_colour": hair_colour_select.get_item_text(hair_colour_select.selected),
         "hair_style": hair_style_select.get_item_text(hair_style_select.selected),
         "hair_style_id": String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02")),
-        "body_build": body_select.get_item_text(body_select.selected),
-        "shirt": shirt_select.get_item_text(shirt_select.selected),
-        "legwear": trousers_select.get_item_text(trousers_select.selected)
+        "body_build": body_select.get_item_text(body_select.selected)
     }
     var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
     if file != null:

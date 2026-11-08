@@ -119,6 +119,9 @@ def main() -> None:
         detail = args.detail or profile.get("detail", "medium")
         params = dict(profile["params"])
         params["name"] = profile["name"]
+        # Equipment is owned by CharacterState and rendered by Godot socket attachments.
+        # Do not bake a duplicate weapon into each generated NPC mesh.
+        params["weapon"] = "none"
         params["detail"] = detail
         params.setdefault("rig", "game")
         params.setdefault("restPose", "A")

@@ -471,17 +471,23 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.add_child(ara_model)
     var body_variant := str(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+    if not is_player and not ara_model_id.is_empty():
+        var authored_npc_path := "res://art/characters/hollowmere/%s.glb" % ara_model_id
+        if ResourceLoader.exists(authored_npc_path):
+            model_path = authored_npc_path
     var model_loaded := ara_model.configure(model_path)
     if model_loaded:
         if is_player:
             ara_model.apply_player_profile(player_profile)
-            _attach_ara_hair(ara_model, body_variant, str(player_profile.get("hair_style_id", "short02")))
         else:
             var params: Dictionary = npc_profile.get("params", {})
             ara_model.apply_npc_parameters(params)
-            _attach_ara_hair(ara_model, body_variant, str(params.get("hair", "short02")))
+        if model_path.contains("/ara_runtime/"):
+            _attach_ara_hair(ara_model, body_variant, str(player_profile.get("hair_style_id", "short02")) if is_player else str(npc_profile.get("params", {}).get("hair", "short02")))
+        ara_model.configure_modular_garments()
+        ara_model.apply_equipment_visuals(state.equipped_item_data)
     else:
-        push_error("Character '%s' could not load shared Ara base '%s'. No primitive substitute will be shown." % [display_name, model_path])
+        push_error("Character '%s' could not load Ara model '%s'. No primitive substitute will be shown." % [display_name, model_path])
         ara_model.queue_free()
 
     var name_label := Label3D.new()
@@ -539,7 +545,7 @@ func _create_hud() -> void:
 
     var menu_button := Button.new()
     menu_button.text = "Menu"
-    menu_button.position = Vector2(22.0, 56.0)
+    menu_button.position = Vector2(22.0, 104.0)
     menu_button.custom_minimum_size = Vector2(112.0, 40.0)
     layer.add_child(menu_button)
     var game_menu := PopupMenu.new()
@@ -555,7 +561,7 @@ func _create_hud() -> void:
     game_menu.id_pressed.connect(_on_game_menu_selected)
     layer.add_child(game_menu)
     menu_button.pressed.connect(func():
-        game_menu.position = Vector2i(22, 100)
+        game_menu.position = Vector2i(22, 148)
         game_menu.popup()
     )
 
@@ -690,6 +696,7 @@ func _create_hud() -> void:
     character_panel.name = "CharacterPanel"
     layer.add_child(character_panel)
     character_panel.configure(simulation, active_character_id)
+    character_panel.equipment_changed.connect(_on_character_equipment_changed)
     _create_dialogue_panel(layer)
 
     world_map_panel = WORLD_MAP_PANEL_SCRIPT.new() as CanvasLayer
@@ -1226,6 +1233,16 @@ func _check_encounter_resolution() -> void:
         HollowmereCampaignContent.complete_shakedown(simulation.campaign_journal)
         _show_speech_bubble("garrick_holt", HollowmereCampaignContent.shakedown_victory_text())
         _show_dialogue("Garrick Holt", HollowmereCampaignContent.shakedown_victory_text(), [{"id": "continue", "label": "Continue", "text": ""}])
+
+func _on_character_equipment_changed(changed_character_id: String) -> void:
+    var state := simulation.get_character(changed_character_id) if simulation != null else null
+    var actor := actor_by_id.get(changed_character_id) as Node3D
+    if state == null or actor == null:
+        return
+    var ara := actor.get_node_or_null("CharacterModel")
+    if ara is AraCharacterActor:
+        (ara as AraCharacterActor).apply_equipment_visuals(state.equipped_item_data)
+
 
 func _toggle_character_panel() -> void:
     if character_panel != null:

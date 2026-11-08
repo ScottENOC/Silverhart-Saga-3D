@@ -2,6 +2,13 @@ name: Build Ara Medieval Armour Props
 
 on:
   workflow_dispatch:
+  push:
+    branches: [dev]
+    paths:
+      - "tools/ara/patch_medieval_weapons.py"
+      - "tools/ara/build_medieval_armor_props.py"
+      - ".github/workflows/ara-medieval-props.yml"
+      - ".github/workflows/ara-medieval-armour-props.yml"
 
 permissions:
   contents: read
