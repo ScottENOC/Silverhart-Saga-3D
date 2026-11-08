@@ -52,8 +52,7 @@ static func shakedown_choices() -> Array[Dictionary]:
             "ironbond_delta": -35,
             "npc_deltas": {"garrick_holt": 25, "mira_ashbrook": 20, "oskar_vinn": 20},
             "arc_side": "crown",
-            "available": false,
-            "unavailable_reason": "The encounter AI and attack-targeting interface are not yet connected to this opening."
+            "available": true
         }
     ]
 
@@ -86,16 +85,38 @@ static func resolve_shakedown(journal: CampaignJournal, choice_id: String) -> Di
         return completion
     return {"ok": true, "choice": selected.duplicate(true)}
 
-static func npc_greeting(npc_id: String, shakedown_resolved: bool) -> Dictionary:
+static func shakedown_victory_text() -> String:
+    return "It's over... thank you. I didn't think anyone would stand with us against the Company."
+
+
+static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing: int = 0, shakedown_choice: String = "") -> Dictionary:
     match npc_id:
         "garrick_holt":
+            if shakedown_resolved and shakedown_choice == "fight":
+                return {
+                    "speaker": "Garrick Holt",
+                    "text": "You stood up to them when the rest of us were afraid to. The Tankard won't forget it.",
+                    "choices": [
+                        {"id": "news", "label": "What's the word around here?", "text": "Word travels. Some folk think Ironbond will come back harder; others reckon they have learned Hollowmere won't bend so easily."},
+                        {"id": "leave", "label": "You'd have done the same.", "text": "Garrick shakes his head. "I only wish I'd had the courage sooner.""}
+                    ]
+                }
+            if shakedown_resolved and shakedown_choice == "encourage_pay":
+                return {
+                    "speaker": "Garrick Holt",
+                    "text": "You made your position clear. I won't pretend I liked it, but at least the Company left without breaking the place.",
+                    "choices": [
+                        {"id": "news", "label": "What's the word around here?", "text": "People are keeping their heads down. No one wants to be the next example."},
+                        {"id": "leave", "label": "It could have been worse.", "text": "Garrick looks back to the bar. "Aye. It could.""}
+                    ]
+                }
             if shakedown_resolved:
                 return {
                     "speaker": "Garrick Holt",
-                    "text": "Thanks again for that, friend. The Tankard's doors are always open to you.",
+                    "text": "Thanks for not making things worse, friend. The Tankard's doors are still open to you.",
                     "choices": [
                         {"id": "news", "label": "What's the word around here?", "text": "Quiet, lately. Same faces, same ale. I'll take it — quiet's been hard-earned around here."},
-                        {"id": "leave", "label": "Glad to help.", "text": "Garrick gives you a grateful nod."}
+                        {"id": "leave", "label": "Glad to help.", "text": "Garrick gives you a tired nod."}
                     ]
                 }
             return {
@@ -108,18 +129,32 @@ static func npc_greeting(npc_id: String, shakedown_resolved: bool) -> Dictionary
                 ]
             }
         "mira_ashbrook":
+            var mira_text := "Quiet little village, Hollowmere. Most days, anyway."
+            if shakedown_choice == "fight":
+                mira_text = "I heard what happened with Ironbond. It took courage to stand with Garrick. I only hope they don't return with more men."
+            elif shakedown_choice == "encourage_pay":
+                mira_text = "I heard you backed the Company. Maybe that kept the peace today, but it leaves a bitter taste."
+            elif shakedown_choice == "stay_out":
+                mira_text = "Garrick paid them in the end. I can't blame anyone for keeping their head down, but it shouldn't have to be this way."
             return {
                 "speaker": "Mira Ashbrook",
-                "text": "Quiet little village, Hollowmere. Most days, anyway.",
+                "text": mira_text,
                 "choices": [
                     {"id": "news", "label": "Any news from further out?", "text": "My cousin rode with the Silverhart levy up to the borderlands, fighting off orc raiders. Last letter said the raids have gotten worse — bigger warbands than the old stories tell. I try not to think on it too much."},
                     {"id": "leave", "label": "Good to know.", "text": "Mira nods and returns to her thoughts."}
                 ]
             }
         "oskar_vinn":
+            var oskar_text := "First time in Hollowmere? Mind the Ironbond lot if they're about."
+            if shakedown_choice == "fight":
+                oskar_text = "Heard you took on Ironbond. Not a bad scrap, by the sound of it. Shame I missed it."
+            elif shakedown_choice == "encourage_pay":
+                oskar_text = "So you stood with the Company. Practical, perhaps. Doesn't make them any more welcome."
+            elif shakedown_choice == "stay_out":
+                oskar_text = "Can't say I blame you for staying out of it. Three armed men aren't an easy argument."
             return {
                 "speaker": "Oskar Vinn",
-                "text": "First time in Hollowmere? Mind the Ironbond lot if they're about.",
+                "text": oskar_text,
                 "choices": [
                     {"id": "spar", "label": "Care to spar? Friendly bout.", "text": "Ha! Thought you'd never ask. Don't hold back on my account." , "available": false, "unavailable_reason": "The duel encounter is not connected to the 3D combat interface yet."},
                     {"id": "news", "label": "Heard anything worth knowing?", "text": "The levies keep marching north. Orc raiders on the border, apparently — worse than usual this year."},
