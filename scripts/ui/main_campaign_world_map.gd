@@ -21,7 +21,7 @@ func _build_panel() -> void:
     add_child(centre)
 
     var panel := PanelContainer.new()
-    panel.custom_minimum_size = Vector2(840.0, 640.0)
+    panel.custom_minimum_size = Vector2(800.0, 600.0)
     centre.add_child(panel)
 
     var layout := VBoxContainer.new()
@@ -39,7 +39,7 @@ func _build_panel() -> void:
 
     var close_button := Button.new()
     close_button.text = "Close"
-    close_button.pressed.connect(hide)
+    close_button.pressed.connect(func(): hide())
     header.add_child(close_button)
 
     var subtitle := Label.new()
@@ -48,7 +48,7 @@ func _build_panel() -> void:
     layout.add_child(subtitle)
 
     map_view = WorldMapView.new()
-    map_view.custom_minimum_size = Vector2(800.0, 470.0)
+    map_view.custom_minimum_size = Vector2(760.0, 440.0)
     map_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     layout.add_child(map_view)
 
@@ -72,7 +72,7 @@ func toggle_panel() -> void:
         map_view.queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
-    if not visible or not event is InputEventKey:
+    if not visible or not (event is InputEventKey):
         return
     var key_event := event as InputEventKey
     if key_event.pressed and not key_event.echo and key_event.keycode == KEY_ESCAPE:
@@ -97,7 +97,7 @@ class WorldMapView extends Control:
                 var points := _hex_points(centre)
                 var cell: Dictionary = grid[row][column]
                 draw_colored_polygon(points, _terrain_colour(String(cell["terrain"])))
-                var outline := PackedVector2Array(points)
+                var outline: PackedVector2Array = points.duplicate()
                 outline.append(points[0])
                 draw_polyline(outline, _faction_colour(String(cell["faction"])), 1.4, true)
 
