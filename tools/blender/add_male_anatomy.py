@@ -356,6 +356,34 @@ def fuse_male_anatomy(parts, armature, pelvis_bone, body_height):
     fused["remesh_voxel_size"] = voxel_size
     return fused
 
+
+def merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone):
+    """Attach the fused anatomy geometry to the original full-rig body mesh.
+
+    Keeping it as a separate pelvis-only skinned mesh can make glTF emit a
+    reduced joint palette for that component. Joining it into the original
+    Ara skin mesh makes the body and anatomy share the body's complete rig
+    and existing skin modifier.
+    """
+    # The anatomy vertices are already in character/world space. Blender's
+    # join operation converts the selected object's geometry into the
+    # active skin object's local space.
+    for modifier in list(anatomy.modifiers):
+        anatomy.modifiers.remove(modifier)
+    if skin.vertex_groups.get(pelvis_bone) is None:
+        skin.vertex_groups.new(name=pelvis_bone)
+
+    bpy.ops.object.select_all(action="DESELECT")
+    skin.select_set(True)
+    anatomy.select_set(True)
+    bpy.context.view_layer.objects.active = skin
+    bpy.ops.object.join()
+
+    skin["male_anatomy_geometry"] = "joined_into_original_ara_skin_mesh"
+    skin["male_anatomy_rig"] = "shares_full_original_ara_skeleton"
+    skin["male_anatomy_parts"] = "integrated_root,shaft,glans,corona,scrotal_sac"
+    return skin
+
 def main():
     args = arguments()
     if not args.adult:
@@ -394,6 +422,9 @@ def main():
         [shaft, glans, corona, scrotum], armature, pelvis_bone, height
     )
     anatomy["profile_name"] = args.profile_name
+    # Join into the original Ara body mesh so the exported GLB retains one
+    # full-rig skin rather than a separate pelvis-only skeleton palette.
+    skin = merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone)
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
