@@ -126,7 +126,6 @@ func _create_simulation() -> void:
     simulation.clock.set_world_seconds(11.0 * 3600.0)
     add_child(simulation)
     simulation.campaign_journal.register_quest_definition(HollowmereCampaignContent.shakedown_quest_definition())
-    simulation.campaign_journal.start_quest(HollowmereCampaignContent.QUEST_ID)
 
     # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
     for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
@@ -677,6 +676,9 @@ func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary]) -
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
     var choice_id := String(choice.get("id", ""))
+    if choice_id == "continue":
+        _close_dialogue()
+        return
     if choice.has("ironbond_delta"):
         _resolve_shakedown(choice_id)
         var response := String(choice.get("response", ""))
@@ -753,6 +755,10 @@ func _resolve_shakedown(choice_id: String) -> void:
 
 
 func _run_opening_sequence() -> void:
+    var player_state := simulation.get_character("player")
+    if player_state == null or player_state.race in ["goblin", "orc"]:
+        return
+    simulation.campaign_journal.start_quest(HollowmereCampaignContent.QUEST_ID)
     await get_tree().create_timer(2.0).timeout
     if not is_instance_valid(self):
         return
