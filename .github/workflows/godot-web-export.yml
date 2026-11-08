@@ -228,7 +228,7 @@ jobs:
             cp -a site/. dist/pages/
           fi
           mkdir -p dist/pages/game
-          cp -a dist/game/. dist/pages/game/
+          cp -a /tmp/godot-game/. dist/pages/game/
           test -s dist/pages/index.html
           test -s dist/pages/game/index.html
           test -s dist/pages/game/index.wasm
