@@ -148,7 +148,8 @@ func _build_character_tab(parent: VBoxContainer, state: CharacterState) -> void:
     for slot in ["weapon", "armour", "offhand", "helmet", "ring", "amulet"]:
         var item_name := "—"
         if state.equipped_item_data.has(slot):
-            item_name = String(state.equipped_item_data[slot].get("name", state.equipment.get(slot, "Unknown")))
+            var equipped_item: Dictionary = state.equipped_item_data[slot]
+            item_name = String(equipped_item.get("name", state.equipment.get(slot, "Unknown")))
         elif not String(state.equipment.get(slot, "")).is_empty():
             item_name = String(state.equipment.get(slot, ""))
         _add_stat(parent, slot.capitalize(), item_name)
