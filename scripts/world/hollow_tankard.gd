@@ -17,7 +17,7 @@ const ROOF_RIDGE_HEIGHT: float = 5.8
 
 var simulation: WorldSimulation
 var reaction_prompt: CanvasLayer
-var character_panel: Control
+var character_panel: CharacterPanel
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
 var actor_by_id: Dictionary = {}
@@ -528,7 +528,7 @@ func _create_hud() -> void:
 
     add_child(layer)
 
-    character_panel = CHARACTER_PANEL_SCRIPT.new()
+    character_panel = CHARACTER_PANEL_SCRIPT.new() as CharacterPanel
     character_panel.name = "CharacterPanel"
     layer.add_child(character_panel)
     character_panel.configure(simulation, active_character_id)
