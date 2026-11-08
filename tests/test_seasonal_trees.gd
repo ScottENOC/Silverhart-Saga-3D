@@ -25,7 +25,11 @@ func _initialize() -> void:
     root.add_child(evergreen)
     evergreen.refresh_month(9)
     _check(evergreen.current_season == SeasonalTreeVisual.WINTER, "Evergreen should receive winter season state")
-    _check(evergreen.get_child_count() >= 6, "Evergreen should retain its needles and show winter snow accents")
+    if ResourceLoader.exists("res://art/environment/kenney_nature/tree_pine_tall_a.glb"):
+        _check(evergreen.has_node("ImportedTreeModel"), "Evergreen should use the imported Kenney pine model")
+        _check(evergreen.get_child_count() >= 4, "Evergreen should retain its pine model and winter snow accents")
+    else:
+        _check(evergreen.get_child_count() >= 6, "Procedural evergreen fallback should retain needles and snow accents")
 
     if failures > 0:
         push_error("%d seasonal tree test(s) failed." % failures)
