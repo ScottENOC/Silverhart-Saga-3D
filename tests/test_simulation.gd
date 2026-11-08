@@ -803,12 +803,13 @@ func _test_race_class_character_creation() -> void:
         "goblin":{"goblin":1,"agility":2,"weapons":1},
         "orc":{"orc":1,"strength":2,"endurance":1}
     }
+    var fighter_bonuses: Dictionary = CharacterCreationRules.class_definition("fighter").get("bonus", {})
     for race_id in expected_races:
         var race_profile := profile.duplicate(true)
         race_profile["race"] = race_id
         var race_state := CharacterCreationRules.create_player_state(race_profile, "race_" + race_id, Vector2i.ZERO)
         for attribute in expected_races[race_id]:
-            _check(int(race_state.attributes.get(attribute, 0)) == int(expected_races[race_id][attribute]), "Race bonus mismatch: %s / %s" % [race_id, attribute])
+            _check(int(race_state.attributes.get(attribute, 0)) == int(expected_races[race_id][attribute]) + int(fighter_bonuses.get(attribute, 0)), "Race bonus mismatch: %s / %s" % [race_id, attribute])
 
     var expected_classes := {
         "fighter":{"weapon":"sword","carried":0},
