@@ -94,24 +94,43 @@ func end_combat() -> void:
 ## Request a reaction without coupling simulation rules to a UI modal.
 ## Options use {id, name, tp_cost}; an ineligible reactor resolves to no choice immediately.
 func request_reaction(reactor_id: String, options: Array[Dictionary], source_event_id: String = "") -> Dictionary:
-    var state := get_character(reactor_id)
     if not is_in_combat:
         return _emit_immediate_reaction_resolution(reactor_id, "not_in_combat", source_event_id)
-    if state == null or not state.can_act() or state.reaction_blocked:
-        return _emit_immediate_reaction_resolution(reactor_id, "reactor_unavailable", source_event_id)
     if not pending_reaction.is_empty():
         return _emit_immediate_reaction_resolution(reactor_id, "another_reaction_pending", source_event_id)
 
+    # Preserve the specific unavailable reason for a normal single-reactor
+    # request, while still allowing nearby allies to protect an incapacitated
+    # target when their options explicitly name a different reactor.
+    var primary := get_character(reactor_id)
+    var has_other_reactor := false
+    for option in options:
+        if String(option.get("reactor_id", reactor_id)) != reactor_id:
+            has_other_reactor = true
+            break
+    if (primary == null or not primary.can_act() or primary.reaction_blocked) and not has_other_reactor:
+        return _emit_immediate_reaction_resolution(reactor_id, "reactor_unavailable", source_event_id)
+
+    # A single incoming action may offer choices to the defender and nearby
+    # allies. Each option names its own TP-paying reactor; the prompt remains
+    # presentation-only and the simulation validates that owner on selection.
     var available: Array[Dictionary] = []
+    var reactor_ids: Array[String] = []
     for option in options:
         var option_id := String(option.get("id", ""))
+        var option_reactor_id := String(option.get("reactor_id", reactor_id))
+        var option_reactor := get_character(option_reactor_id)
         var tp_cost := float(option.get("tp_cost", option.get("tpCost", 0.0)))
-        if option_id.is_empty() or not is_finite(tp_cost) or tp_cost < 0.0:
+        if option_id.is_empty() or option_reactor == null or not option_reactor.can_act() or option_reactor.reaction_blocked:
             continue
-        if state.can_spend_time_points(tp_cost):
-            var clean_option := option.duplicate(true)
-            clean_option["tp_cost"] = tp_cost
-            available.append(clean_option)
+        if not is_finite(tp_cost) or tp_cost < 0.0 or not option_reactor.can_spend_time_points(tp_cost):
+            continue
+        var clean_option := option.duplicate(true)
+        clean_option["tp_cost"] = tp_cost
+        clean_option["reactor_id"] = option_reactor_id
+        available.append(clean_option)
+        if not reactor_ids.has(option_reactor_id):
+            reactor_ids.append(option_reactor_id)
     if available.is_empty():
         return _emit_immediate_reaction_resolution(reactor_id, "no_available_reaction", source_event_id)
 
@@ -120,6 +139,7 @@ func request_reaction(reactor_id: String, options: Array[Dictionary], source_eve
     pending_reaction = {
         "request_id": request_id,
         "reactor_id": reactor_id,
+        "reactor_ids": reactor_ids,
         "source_event_id": source_event_id,
         "options": available
     }
@@ -130,10 +150,7 @@ func request_reaction(reactor_id: String, options: Array[Dictionary], source_eve
 func resolve_reaction(choice_id: String = "") -> Dictionary:
     if pending_reaction.is_empty():
         return {"ok": false, "reason": "no_pending_reaction"}
-    var reactor_id := String(pending_reaction.get("reactor_id", ""))
-    var state := get_character(reactor_id)
-    if state == null or not state.can_act() or state.reaction_blocked:
-        return _finish_pending_reaction("", "reactor_unavailable")
+    var default_reactor_id := String(pending_reaction.get("reactor_id", ""))
     if choice_id.is_empty():
         return _finish_pending_reaction("", "declined")
 
@@ -144,9 +161,14 @@ func resolve_reaction(choice_id: String = "") -> Dictionary:
             break
     if selected.is_empty():
         return {"ok": false, "reason": "invalid_reaction_choice"}
+    var reactor_id := String(selected.get("reactor_id", default_reactor_id))
+    var state := get_character(reactor_id)
+    if state == null or not state.can_act() or state.reaction_blocked:
+        return _finish_pending_reaction("", "reactor_unavailable")
     var cost := float(selected.get("tp_cost", 0.0))
     if not state.spend_time_points(cost):
         return _finish_pending_reaction("", "insufficient_time_points")
+    pending_reaction["selected_reactor_id"] = reactor_id
     return _finish_pending_reaction(choice_id, "selected")
 
 func cancel_pending_reaction(reason: String = "cancelled") -> Dictionary:
@@ -166,7 +188,7 @@ func _emit_immediate_reaction_resolution(reactor_id: String, reason: String, sou
 func _finish_pending_reaction(choice_id: String, reason: String) -> Dictionary:
     var request := pending_reaction.duplicate(true)
     pending_reaction.clear()
-    var reactor_id := String(request.get("reactor_id", ""))
+    var reactor_id := String(request.get("selected_reactor_id", request.get("reactor_id", "")))
     var request_id := int(request.get("request_id", 0))
     var source_event_id := String(request.get("source_event_id", ""))
     reaction_resolved.emit(reactor_id, choice_id, request_id, reason)
@@ -191,7 +213,7 @@ func _on_character_lifecycle_changed(character_id: String, _transition: String) 
     var state := get_character(character_id)
     if state == null:
         return
-    if not state.can_act() and not pending_reaction.is_empty() and String(pending_reaction.get("reactor_id", "")) == character_id:
+    if not state.can_act() and not pending_reaction.is_empty() and (String(pending_reaction.get("reactor_id", "")) == character_id or pending_reaction.get("reactor_ids", []).has(character_id)):
         _finish_pending_reaction("", "reactor_incapacitated")
     if not state.can_act() and turn_scheduler.has_active_turn() and turn_scheduler.current_character_id == character_id:
         if pending_reaction.is_empty():
@@ -230,7 +252,7 @@ func _submit_attack(request: SimulationActionRequest, random_seed: int) -> Dicti
             "attacker_id": request.actor_id,
             "target_id": request.target_id,
             "options": request.options.duplicate(true),
-            "parry_skill_base": String(reactions[0].get("skill_base", "")),
+            "reactions": reactions.duplicate(true),
             "random_seed": random_seed
         }
         var reaction_result := request_reaction(target.id, reactions, "attack:%s:%s" % [request.actor_id, request.target_id])
@@ -244,29 +266,63 @@ func _submit_attack(request: SimulationActionRequest, random_seed: int) -> Dicti
 ## source reaction: passive dodge remains part of hit chance in CombatRules.
 func _attack_reaction_options(attacker: CharacterState, target: CharacterState, options: Dictionary) -> Array[Dictionary]:
     var result: Array[Dictionary] = []
-    if target.reaction_blocked or not target.can_act() or target.parries_remaining <= 0:
+    if target.reaction_blocked:
         return result
-    var weapon_id := String(target.equipment.get("weapon", ""))
-    var is_ranged := bool(options.get("is_ranged", String(options.get("weapon_id", "")) == "bow"))
-    if is_ranged and weapon_id != "sword_arrow_deflection":
-        return result
-    var skill_base := "sword" if weapon_id == "sword_arrow_deflection" else weapon_id
-    if skill_base != "sword" and skill_base != "dagger":
-        return result
-    if int(target.skills.get("%s_parry" % skill_base, 0)) <= 0 or target.time_points < 3.0:
-        return result
-    var cost := 3.0
-    if int(target.skills.get("%s_parry_cost" % skill_base, 0)) > 0:
-        cost -= 1.0
-    if target.can_spend_time_points(cost):
-        result.append({
-            "id": "parry",
-            "name": "Parry",
-            "tp_cost": cost,
-            "effect": "parry",
-            "skill_base": skill_base,
-            "attacker_id": attacker.id
-        })
+    if target.can_act() and target.parries_remaining > 0:
+        var weapon_id := String(target.equipment.get("weapon", ""))
+        var is_ranged := bool(options.get("is_ranged", String(options.get("weapon_id", "")) == "bow"))
+        if not is_ranged or weapon_id == "sword_arrow_deflection":
+            var skill_base := "sword" if weapon_id == "sword_arrow_deflection" else weapon_id
+            if (skill_base == "sword" or skill_base == "dagger") and int(target.skills.get("%s_parry" % skill_base, 0)) > 0:
+                var cost := 3.0
+                if int(target.skills.get("%s_parry_cost" % skill_base, 0)) > 0:
+                    cost -= 1.0
+                if target.can_spend_time_points(cost):
+                    result.append({
+                        "id": "parry",
+                        "name": "Parry",
+                        "tp_cost": cost,
+                        "effect": "parry",
+                        "reactor_id": target.id,
+                        "skill_base": skill_base,
+                        "attacker_id": attacker.id
+                    })
+
+    # Source-backed adjacent ally reactions. The old engine requires an
+    # actual shield in the offhand for Shield Other, and a sword/dagger plus
+    # matching parry skill for Protector. Equipment dictionaries are explicit
+    # item instances; legacy string-only slots are not guessed to be shields.
+    for ally_value in characters.values():
+        var ally := ally_value as CharacterState
+        if ally == null or ally == target or not ally.can_act() or ally.side != target.side or ally.reaction_blocked:
+            continue
+        if HexGrid.distance(ally.axial, target.axial) > 1:
+            continue
+
+        var offhand: Variant = ally.equipment.get("offhand", {})
+        if offhand is Dictionary and String(offhand.get("type", "")) == "shield" and ally.can_spend_time_points(1.0):
+            result.append({
+                "id": "shield_other_%s" % ally.id,
+                "name": "Shield Other — %s" % ally.display_name,
+                "tp_cost": 1.0,
+                "effect": "shield_other",
+                "reactor_id": ally.id,
+                "shield_reduction": int(offhand.get("reduction", ally.shield_reduction)) + int(ally.skills.get("shield_proficiency", 0))
+            })
+
+        var weapon_id := String(ally.equipment.get("weapon", ""))
+        if int(ally.skills.get("protector", 0)) > 0 and ally.parries_remaining > 0 and (weapon_id == "sword" or weapon_id == "dagger") and int(ally.skills.get("%s_parry" % weapon_id, 0)) > 0:
+            var protector_cost := 2.0 if int(ally.skills.get("%s_parry_cost" % weapon_id, 0)) > 0 else 3.0
+            if ally.can_spend_time_points(protector_cost):
+                result.append({
+                    "id": "protector_parry_%s" % ally.id,
+                    "name": "Protector Parry — %s" % ally.display_name,
+                    "tp_cost": protector_cost,
+                    "effect": "protector_parry",
+                    "reactor_id": ally.id,
+                    "weapon_id": weapon_id,
+                    "parry_skill_base": weapon_id
+                })
     return result
 
 func _resume_pending_attack(choice_id: String, reason: String) -> void:
@@ -283,31 +339,56 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
     if attacker == null or target == null:
         return
 
-    if choice_id == "parry" and reason == "selected":
-        # The defender is the attack target for this first source-backed slice.
-        var reactor := target
-        reactor.parries_remaining = maxi(0, reactor.parries_remaining - 1)
-        var skill_base := String(context.get("parry_skill_base", reactor.equipment.get("weapon", "sword")))
-        if skill_base == "sword_arrow_deflection":
-            skill_base = "sword"
-        var bonus := float(reactor.skills.get("%s_parry_chance" % skill_base, 0)) * 5.0
-        var rng_parry := RandomNumberGenerator.new()
-        if seed == 0:
-            rng_parry.randomize()
-        else:
-            rng_parry.seed = seed
-        var parry_roll := float(rng_parry.randi_range(0, 99))
-        var parry_chance := 50.0 + reactor.to_hit_melee + bonus - attacker.passive_dodge
-        if parry_roll < parry_chance:
-            var attack_cost := float(options.get("time_point_cost", 0.0))
-            if attacker.can_spend_time_points(attack_cost):
-                attacker.spend_time_points(attack_cost)
-            var parry_payload := {"hit": false, "parried": true, "parry_roll": parry_roll, "parry_chance": parry_chance, "damage": 0}
-            var parry_result := SimulationActionResult.new("attack", true, "", attacker_id, target_id, parry_payload).to_dict()
-            action_committed.emit(SimulationEvent.new("attack_resolved", attacker_id, target_id, parry_result))
-            combat_action_resolved.emit(parry_result)
-            if attacker.should_end_turn():
-                try_end_current_turn()
+    var selected: Dictionary = {}
+    for candidate in context.get("reactions", []):
+        if String(candidate.get("id", "")) == choice_id:
+            selected = candidate
+            break
+
+    if reason == "selected" and not selected.is_empty():
+        var effect := String(selected.get("effect", ""))
+        var reactor := get_character(String(selected.get("reactor_id", target_id)))
+        if reactor == null or not reactor.can_act():
+            _resolve_attack_action(attacker_id, target_id, options, seed + 1 if seed != 0 else 0)
+            return
+
+        if effect == "parry" or effect == "protector_parry":
+            if effect == "protector_parry":
+                reactor.parries_remaining = maxi(0, reactor.parries_remaining - 1)
+            else:
+                reactor.parries_remaining = maxi(0, reactor.parries_remaining - 1)
+            var skill_base := String(selected.get("skill_base", selected.get("parry_skill_base", reactor.equipment.get("weapon", "sword"))))
+            var chance_multiplier := 10.0 if effect == "protector_parry" else 5.0
+            var bonus := float(reactor.skills.get("%s_parry_chance" % skill_base, 0)) * chance_multiplier
+            var rng_parry := RandomNumberGenerator.new()
+            if seed == 0:
+                rng_parry.randomize()
+            else:
+                rng_parry.seed = seed
+            var parry_roll := float(rng_parry.randi_range(0, 99))
+            var parry_chance := 50.0 + reactor.to_hit_melee + bonus - attacker.passive_dodge
+            if parry_roll < parry_chance:
+                var attack_cost := float(options.get("time_point_cost", 0.0))
+                if attacker.can_spend_time_points(attack_cost):
+                    attacker.spend_time_points(attack_cost)
+                var parry_payload := {
+                    "hit": false, "parried": true, "parry_type": effect,
+                    "reactor_id": reactor.id, "parry_roll": parry_roll,
+                    "parry_chance": parry_chance, "damage": 0
+                }
+                var parry_result := SimulationActionResult.new("attack", true, "", attacker_id, target_id, parry_payload).to_dict()
+                action_committed.emit(SimulationEvent.new("attack_resolved", attacker_id, target_id, parry_result))
+                combat_action_resolved.emit(parry_result)
+                if attacker.should_end_turn():
+                    try_end_current_turn()
+                return
+
+        elif effect == "shield_other":
+            var bonus_reduction := int(selected.get("shield_reduction", 0))
+            target.temp_reduction += bonus_reduction
+            var shield_seed := seed + 1 if seed != 0 else 0
+            _resolve_attack_action(attacker_id, target_id, options, shield_seed)
+            target.temp_reduction -= bonus_reduction
             return
 
     var followup_seed := seed + 1 if seed != 0 else 0

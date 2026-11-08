@@ -48,7 +48,7 @@ func present(reactor_id: String, options: Array[Dictionary], request_id: int) ->
     stack.add_child(heading)
 
     var description := Label.new()
-    description.text = "%s must respond." % reactor_id
+    description.text = "Nearby defenders may react. Each option is paid for by the named character."
     description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     stack.add_child(description)
