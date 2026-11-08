@@ -74,7 +74,7 @@ func _test_hollowmere_encounter() -> void:
     _check(bystander.combat_dormant and bystander.side == "neutral", "Other tavern bystanders must not enter combat initiative")
     simulation.advance_world_seconds(0.1)
     _check(simulation.get_current_turn_character() == player, "Highest-TP player should receive the first test turn")
-    var attack := simulation.try_attack_character("player", "dray_coltayne", {"time_point_cost": 10.0, "weapon_id": "sword"}, 9127)
+    var attack := simulation.try_attack_character("player", "tomlin_brask", {"time_point_cost": 10.0, "weapon_id": "sword"}, 9127)
     _check(bool(attack.get("ok", false)), "The encounter should use the real WorldSimulation attack resolver")
     _check(player.time_points == 141.0, "The main attack should consume the source 10 TP cost")
     _check(not HollowmereEncounter.enemies_defeated(simulation))
