@@ -94,11 +94,8 @@ func end_combat() -> void:
 ## Request a reaction without coupling simulation rules to a UI modal.
 ## Options use {id, name, tp_cost}; an ineligible reactor resolves to no choice immediately.
 func request_reaction(reactor_id: String, options: Array[Dictionary], source_event_id: String = "") -> Dictionary:
-    var primary := get_character(reactor_id)
     if not is_in_combat:
         return _emit_immediate_reaction_resolution(reactor_id, "not_in_combat", source_event_id)
-    if primary == null or not primary.can_act() or primary.reaction_blocked:
-        return _emit_immediate_reaction_resolution(reactor_id, "reactor_unavailable", source_event_id)
     if not pending_reaction.is_empty():
         return _emit_immediate_reaction_resolution(reactor_id, "another_reaction_pending", source_event_id)
 
