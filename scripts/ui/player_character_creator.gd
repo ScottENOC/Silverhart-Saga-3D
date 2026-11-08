@@ -215,12 +215,12 @@ func _build_screen() -> void:
         selector.item_selected.connect(_refresh_appearance_preview)
     height_slider.value_changed.connect(_refresh_appearance_preview_value)
 
-    _section(panel, "STARTING CLOTHING")
+    _section(panel, "STARTING CLOTHING (visual fit in progress)")
     shirt_select = _option_row(panel, "Shirt", ["Simple tunic", "Linen shirt", "Blouse", "Vest", "No shirt"])
     trousers_select = _option_row(panel, "Legwear", ["Trousers", "Skirt", "Long skirt", "Shorts"])
 
     var note := Label.new()
-    note.text = "Skin, eye and hair colour update the preview where the exported model exposes matching materials. Height and build currently use restrained whole-model scaling; true anatomical morphs and selectable hairstyles require later Ara variants. The male preview uses the replaceable Workshop body export; clothing will be fitted to its final geometry as that asset is approved."
+    note.text = "Skin, eye and hair colour update the preview where the exported model exposes matching materials. Height and build currently use restrained whole-model scaling; true anatomical morphs and selectable hairstyles require later Ara variants. Starting shirt and legwear selections are saved but do not yet swap garment meshes. The male preview uses the replaceable Workshop body export; clothing will be fitted to its final geometry as that asset is approved."
     note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     note.add_theme_color_override("font_color", Color(0.9, 0.75, 0.48))
     panel.add_child(note)
