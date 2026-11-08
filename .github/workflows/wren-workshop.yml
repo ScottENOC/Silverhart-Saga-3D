@@ -255,7 +255,14 @@ jobs:
               npm run export -- --params /tmp/silverhart-prop.params.json --detail high --formats glb --out /tmp/silverhart-prop-out
               PROP_ZIP="$(find /tmp/silverhart-prop-out -maxdepth 1 -type f -name '*.zip' -print -quit)"
               test -n "$PROP_ZIP"
-              PROP_ENTRY="$(unzip -Z1 "$PROP_ZIP" | grep -E '(^|/)silverhart_prop_'"$weapon"'\.glb
+              PROP_ENTRY="$(unzip -Z1 "$PROP_ZIP" | grep "silverhart_prop_"$weapon".glb" | head -n 1)"
+              test -n "$PROP_ENTRY"
+              unzip -p "$PROP_ZIP" "$PROP_ENTRY" > "$GITHUB_WORKSPACE/art/characters/ara/props/$weapon.glb"
+              test -s "$GITHUB_WORKSPACE/art/characters/ara/props/$weapon.glb"
+            done
+          fi
+      - name: Save raw generated models for parallel integration
+        uses: actions/upload-artifact@v7
         with:
           name: ara-generated-models
           path: |
