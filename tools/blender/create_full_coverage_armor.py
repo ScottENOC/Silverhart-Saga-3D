@@ -17,6 +17,7 @@ def arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--style", choices=("leather", "steel"), default="leather")
     return parser.parse_args(raw)
 
 
@@ -104,16 +105,18 @@ def main():
     armour = bpy.data.objects.new("Full coverage leather armour", mesh)
     bpy.context.collection.objects.link(armour)
 
-    material = bpy.data.materials.get("Leather armor")
+    material_name = "Silver Vigil plate" if args.style == "steel" else "Leather armor"
+    base_colour = (0.20, 0.24, 0.29, 1.0) if args.style == "steel" else (0.105, 0.055, 0.028, 1.0)
+    material = bpy.data.materials.get(material_name)
     if material is None:
-        material = bpy.data.materials.new("Leather armor")
-    material.diffuse_color = (0.105, 0.055, 0.028, 1.0)
+        material = bpy.data.materials.new(material_name)
+    material.diffuse_color = base_colour
     material.use_nodes = True
     principled = material.node_tree.nodes.get("Principled BSDF")
     if principled:
-        principled.inputs["Base Color"].default_value = (0.105, 0.055, 0.028, 1.0)
-        principled.inputs["Roughness"].default_value = 0.72
-        principled.inputs["Metallic"].default_value = 0.08
+        principled.inputs["Base Color"].default_value = base_colour
+        principled.inputs["Roughness"].default_value = 0.34 if args.style == "steel" else 0.72
+        principled.inputs["Metallic"].default_value = 0.72 if args.style == "steel" else 0.08
     mesh.materials.append(material)
     for poly in mesh.polygons:
         poly.use_smooth = True
@@ -138,6 +141,7 @@ def main():
     bevel.width = 0.0025
     bevel.segments = 2
     armour["coverage"] = "chest,back,shoulders,upper_arms,thighs,lower_legs"
+    armour["style"] = args.style
     armour["source"] = "Ara body surface with original skin weights"
     armour["selected_surface_faces"] = len(selected_faces)
     armour["review_status"] = "first_pass_full_coverage_armour_requires_visual_review"

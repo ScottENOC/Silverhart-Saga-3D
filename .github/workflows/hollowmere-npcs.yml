@@ -2,6 +2,15 @@ name: Build Hollowmere Ara characters
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [dev]
+    paths:
+      - "data/characters/companion_models.json"
+      - "data/characters/hollowmere_npcs.json"
+      - "data/characters/companion_models.json"
+      - "tools/ara/build_hollowmere_npcs.py"
+      - "tools/blender/create_full_coverage_armor.py"
+      - ".github/workflows/hollowmere-npcs.yml"
   push:
     branches: [dev, feature/opening-village]
     paths:
@@ -25,6 +34,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Blender for character finishing
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender
+
       - name: Install and pin Ara 3D Gen
         shell: bash
         run: |
@@ -46,6 +60,30 @@ jobs:
           cd /tmp/ara-3d-gen
           python -m py_compile "$GITHUB_WORKSPACE/tools/ara/build_hollowmere_npcs.py"
           python "$GITHUB_WORKSPACE/tools/ara/build_hollowmere_npcs.py" --out "$GITHUB_WORKSPACE/art/characters/hollowmere"
+
+      - name: Generate Ser Aldric from the companion profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/ara-3d-gen
+          python "$GITHUB_WORKSPACE/tools/ara/build_hollowmere_npcs.py" \\
+            --profiles "$GITHUB_WORKSPACE/data/characters/companion_models.json" \\
+            --out "$GITHUB_WORKSPACE/art/characters/companions"
+          blender --background --python "$GITHUB_WORKSPACE/tools/blender/create_full_coverage_armor.py" -- \\
+            --input "$GITHUB_WORKSPACE/art/characters/companions/ser_aldric_thorne.glb" \\
+            --output "$GITHUB_WORKSPACE/art/characters/companions/ser_aldric_thorne_armoured.glb" \\
+            --style steel
+
+      - name: Upload first companion model for visual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: ser-aldric-companion-model
+          path: |
+            art/characters/companions/ser_aldric_thorne_armoured.glb
+            art/characters/companions/ser_aldric_thorne.params.json
+            art/characters/companions/profiles.json
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Upload generated Ara GLBs and parameter files
         uses: actions/upload-artifact@v4
