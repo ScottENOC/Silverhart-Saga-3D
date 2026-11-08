@@ -10,6 +10,7 @@ const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const CHARACTER_CREATION_RULES = preload("res://scripts/simulation/character_creation_rules.gd")
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
+const SEASONAL_TREE_SCRIPT = preload("res://scripts/presentation/seasonal_tree_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
@@ -83,6 +84,7 @@ func _ready() -> void:
     _create_lighting()
     _create_simulation()
     _create_ground_and_hexes()
+    _create_seasonal_tree_test_grove()
     _create_building()
     _create_furniture()
     _create_characters()
@@ -135,6 +137,7 @@ func _create_simulation() -> void:
     simulation.name = "WorldSimulation"
     # Campaign 2 opens at 11:00 on the first day, matching the browser game.
     simulation.clock.set_world_seconds(11.0 * 3600.0)
+    simulation.clock.ticked.connect(_on_world_clock_ticked)
     add_child(simulation)
     simulation.campaign_journal.register_quest_definition(HollowmereCampaignContent.shakedown_quest_definition())
     # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
@@ -154,6 +157,37 @@ func _create_simulation() -> void:
     simulation.reaction_resolved.connect(_on_reaction_resolved)
     simulation.movement_reaction_resolved.connect(_on_movement_reaction_resolved)
     simulation.turn_scheduler.turn_started.connect(_on_combat_turn_started)
+
+func _create_seasonal_tree_test_grove() -> void:
+    # A small ring of real 3D tree meshes makes the season system visible around
+    # the opening tavern. These placeholders are deliberately replaceable by
+    # imported GLB trees while retaining the same calendar API.
+    var placements: Array[Dictionary] = [
+        {"position": Vector3(-11.0, 0.0, -8.0), "evergreen": false, "seed": 11},
+        {"position": Vector3(-13.0, 0.0, -2.0), "evergreen": true, "seed": 12},
+        {"position": Vector3(-10.0, 0.0, 8.0), "evergreen": false, "seed": 13},
+        {"position": Vector3(-6.0, 0.0, 11.0), "evergreen": false, "seed": 14},
+        {"position": Vector3(6.0, 0.0, 11.0), "evergreen": true, "seed": 15},
+        {"position": Vector3(10.0, 0.0, 8.0), "evergreen": false, "seed": 16},
+        {"position": Vector3(13.0, 0.0, 2.0), "evergreen": false, "seed": 17},
+        {"position": Vector3(11.0, 0.0, -8.0), "evergreen": true, "seed": 18},
+        {"position": Vector3(6.0, 0.0, -11.0), "evergreen": false, "seed": 19},
+        {"position": Vector3(-6.0, 0.0, -11.0), "evergreen": false, "seed": 20},
+    ]
+    for placement in placements:
+        var tree := SEASONAL_TREE_SCRIPT.new() as SeasonalTreeVisual
+        tree.evergreen = bool(placement["evergreen"])
+        tree.tree_seed = int(placement["seed"])
+        tree.tree_scale = 1.15 if tree.evergreen else 1.0
+        tree.position = placement["position"]
+        add_child(tree)
+        tree.refresh_month(int(simulation.clock.calendar_date()["month_index"]))
+
+func _on_world_clock_ticked(_tick_index: int, _world_seconds: float) -> void:
+    var month_index := int(simulation.clock.calendar_date()["month_index"])
+    for tree in get_tree().get_nodes_in_group("seasonal_trees"):
+        if tree is SeasonalTreeVisual:
+            tree.refresh_month(month_index)
 
 func _is_wall_cell_blocked(world: Vector3) -> bool:
     # The south-wall gap is the only opening. The nearest grid cells to the
