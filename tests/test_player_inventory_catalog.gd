@@ -12,7 +12,8 @@ func _initialize() -> void:
         "character_class": "fighter",
         "game_mode": "campaign",
         "campaign_id": "2",
-        "difficulty_mode": "normal"
+        "difficulty_mode": "normal",
+        "grant_all_catalogue_items": true
     }
     var state := RULES.create_player_state(profile, "inventory_test", Vector2i.ZERO)
     var owned: Dictionary = {}
