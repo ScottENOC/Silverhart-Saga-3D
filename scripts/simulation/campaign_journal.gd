@@ -176,7 +176,8 @@ func faction_standing(faction_id: String) -> int:
 func quest_state(quest_id: String) -> Dictionary:
     if not quests.has(quest_id):
         return {}
-    return (quests[quest_id] as Dictionary).duplicate(true)
+    var state: Dictionary = quests[quest_id]
+    return state.duplicate(true)
 
 
 func to_dict() -> Dictionary:
