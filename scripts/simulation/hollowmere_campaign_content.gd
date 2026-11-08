@@ -98,7 +98,7 @@ static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing:
                     "text": "You stood up to them when the rest of us were afraid to. The Tankard won't forget it.",
                     "choices": [
                         {"id": "news", "label": "What's the word around here?", "text": "Word travels. Some folk think Ironbond will come back harder; others reckon they have learned Hollowmere won't bend so easily."},
-                        {"id": "leave", "label": "You'd have done the same.", "text": "Garrick shakes his head. "I only wish I'd had the courage sooner.""}
+                        {"id": "leave", "label": "You'd have done the same.", "text": "Garrick shakes his head. He wishes he had found the courage sooner."}
                     ]
                 }
             if shakedown_resolved and shakedown_choice == "encourage_pay":
@@ -107,7 +107,7 @@ static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing:
                     "text": "You made your position clear. I won't pretend I liked it, but at least the Company left without breaking the place.",
                     "choices": [
                         {"id": "news", "label": "What's the word around here?", "text": "People are keeping their heads down. No one wants to be the next example."},
-                        {"id": "leave", "label": "It could have been worse.", "text": "Garrick looks back to the bar. "Aye. It could.""}
+                        {"id": "leave", "label": "It could have been worse.", "text": "Garrick looks back to the bar. Aye, it could have."}
                     ]
                 }
             if shakedown_resolved:
@@ -161,6 +161,12 @@ static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing:
                     {"id": "leave", "label": "Noted.", "text": "Oskar gives you a nod."}
                 ]
             }
+        "wick_hallow":
+            return {"speaker": "Wick Hallow", "text": "If you need something for the road, I can help. If you need it on credit, I can help you leave.", "choices": [{"id": "supplies", "label": "What sells well around here?", "text": "Lamp oil, rope, salt and anything that keeps in a pack. Folk buy more of those when the roads turn rough."}, {"id": "news", "label": "Heard any news?", "text": "Caravans are taking the longer road. No one says why unless they have had a drink or three."}, {"id": "leave", "label": "Just looking.", "text": "Wick nods and resumes sorting his shelves."}]}
+        "yvette_marlow":
+            return {"speaker": "Yvette Marlow", "text": "There is always something happening in this village. Usually just outside my window.", "choices": [{"id": "ironbond", "label": "What do you make of Ironbond?", "text": "They call it a fee. Funny how the fee always rises when someone says no."}, {"id": "news", "label": "Anything else happening?", "text": "The north road has been busy with levy riders. More than I remember seeing in spring."}, {"id": "leave", "label": "Fair enough.", "text": "Yvette gives you a small smile."}]}
+        "hendra_wells":
+            return {"speaker": "Hendra Wells", "text": "Sit if you like. The bench wobbles, but it has never thrown anyone who was not already falling.", "choices": [{"id": "village", "label": "How long have you lived here?", "text": "Long enough to know the river moods and which roofs leak. Not long enough to stop being surprised by people."}, {"id": "ironbond", "label": "Does Ironbond trouble the village often?", "text": "Often enough that people know when to look away. That is the part I dislike most."}, {"id": "leave", "label": "Thanks.", "text": "Hendra returns to her drink."}]}
         "companion_wren_talbot":
             return {"speaker": "Wren Talbot", "text": "Well, here we are then. Try not to get us both killed, yeah?", "choices": [{"id": "leave", "label": "I'll do my best.", "text": "Wren grins."}]}
         _:
