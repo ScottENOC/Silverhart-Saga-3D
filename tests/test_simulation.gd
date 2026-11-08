@@ -5,6 +5,7 @@ var _failures: int = 0
 func _initialize() -> void:
     _test_character_round_trip()
     _test_campaign_journal()
+    _test_hollowmere_campaign_content()
     _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
     _test_equipped_item_combat_effects()
@@ -37,6 +38,60 @@ func _check(condition: bool, message: String = "Assertion failed") -> void:
     if not condition:
         _failures += 1
         push_error(message)
+
+
+func _test_hollowmere_campaign_content() -> void:
+    var definition := HollowmereCampaignContent.shakedown_quest_definition()
+    _check(String(definition.get("id", "")) == HollowmereCampaignContent.QUEST_ID, "Hollowmere shakedown must have a stable quest ID")
+    _check(definition.get("objectives", []).size() == 1, "Shakedown should have one required response objective")
+
+    var opening := HollowmereCampaignContent.opening_lines()
+    _check(opening.size() == 4, "Opening should preserve narrator, Dray, Garrick and Dray's threat lines")
+    _check(String(opening[1].get("speaker_id", "")) == "dray_coltayne")
+    _check(String(opening[2].get("speaker_id", "")) == "garrick_holt")
+
+    var choices := HollowmereCampaignContent.shakedown_choices()
+    _check(choices.size() == 3, "Original shakedown should retain all three response branches")
+    _check(bool(choices[0].get("available", false)), "Stay out branch should be available")
+    _check(bool(choices[1].get("available", false)), "Encourage pay branch should be available")
+    _check(not bool(choices[2].get("available", true)), "Fight branch must remain gated until encounter AI and targeting are connected")
+    _check(int(choices[0].get("ironbond_delta", 0)) == 5)
+    _check(int(choices[1].get("ironbond_delta", 0)) == 15)
+    _check(int(choices[2].get("ironbond_delta", 0)) == -35)
+
+    var garrick := HollowmereCampaignContent.npc_greeting("garrick_holt", false)
+    _check(String(garrick.get("speaker", "")) == "Garrick Holt")
+    _check(garrick.get("choices", []).size() >= 2, "Garrick should offer the Ironbond question and local news")
+
+    var exchanges := HollowmereCampaignContent.ambient_exchanges()
+    _check(exchanges.size() >= 15, "Hollowmere should have a varied set of ambient exchanges")
+    var has_aftermath := false
+    for exchange_value in exchanges:
+        var exchange: Dictionary = exchange_value
+        if String(exchange.get("id", "")) == "ironbond_aftermath":
+            has_aftermath = true
+    _check(has_aftermath, "Ambient content should include the Ironbond aftermath conversation")
+
+    var chatter := AmbientChatter.new()
+    var rng := RandomNumberGenerator.new()
+    rng.seed = 9127
+    var first := chatter.choose_exchange("mira_ashbrook", "oskar_vinn", "civilian", "civilian", 100.0, 12, 50, false, rng)
+    _check(not first.is_empty(), "Nearby NPC pair should receive an eligible daytime exchange")
+    _check(String(first.get("id", "")) != "ironbond_aftermath", "Unresolved shakedown chatter must not leak early")
+    chatter.record_exchange(first, "mira_ashbrook", "oskar_vinn", 100.0)
+    var blocked := chatter.choose_exchange("oskar_vinn", "mira_ashbrook", "civilian", "civilian", 150.0, 12, 50, false, rng)
+    _check(blocked.is_empty(), "The same NPC pair should observe the 120-second cooldown")
+    var aftermath := {
+        "id": "ironbond_aftermath",
+        "topic": "ironbond-aftermath",
+        "roles": ["any"],
+        "requires_shakedown": true
+    }
+    _check(not chatter._is_eligible(aftermath, "civilian", "civilian", 12, 50, false), "Event chatter must be gated until the shakedown resolves")
+    _check(chatter._is_eligible(aftermath, "civilian", "civilian", 12, 50, true), "Event chatter should unlock after the shakedown resolves")
+    var night_exchange := {"id": "night", "topic": "time", "roles": ["any"], "hour_start": 21, "hour_end": 5}
+    _check(chatter._is_eligible(night_exchange, "civilian", "civilian", 23, 50, false), "Night chatter should wrap across midnight")
+    _check(not chatter._is_eligible(night_exchange, "civilian", "civilian", 12, 50, false), "Night chatter should not run at midday")
 
 func _test_character_round_trip() -> void:
     var original := CharacterState.new("npc_garrick_holt", "Garrick Holt", Vector2i(2, -1))
