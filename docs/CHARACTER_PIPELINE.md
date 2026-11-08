@@ -49,3 +49,7 @@ The Wren Workshop pipeline now has an explicit delivery boundary:
 6. A separate Godot integration job downloads the artifact from the same Wren Workshop run and validates the actual files. The regular Godot gameplay test suite remains independent of generated GLBs.
 
 The generated package is a candidate runtime dependency. It does not automatically mean every included variant is already used by the playable game. Runtime adoption remains an explicit game integration step; the package and its tests ensure that the chosen assets are reproducible and compatible when that step is taken.
+
+## Split dress variants
+
+The Workshop keeps two independently selectable versions of the backless split dress. The original uses the existing cut and remains unchanged. The second variant is duplicated from the same stitched bodice/skirt garment, then receives a tapered slit: approximately 0.25% of body width at its upper point, widening to 5.7% at the hem (75% of the original slit width). The new cut is bisected along straight tapered boundaries and reaches the hem itself, rather than leaving a strip of hem across the opening. In the Workshop Shirt slot, choose **Backless slit dress · original** or **Backless slit dress · tapered v2**. The Wren Workshop workflow renders front, side and rear review images for both variants; inspect these before promoting the new version as the default.
