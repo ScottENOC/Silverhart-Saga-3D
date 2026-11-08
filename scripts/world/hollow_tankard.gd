@@ -894,6 +894,186 @@ func _run_ambient_exchange(first_id: String, second_id: String, exchange: Dictio
             await get_tree().create_timer(2.0).timeout
     ambient_exchange_running = false
 
+func _begin_shakedown_combat() -> void:
+    _close_dialogue()
+    var result := HOLLOWMERE_ENCOUNTER_SCRIPT.start(simulation)
+    if not bool(result.get("ok", false)):
+        _show_dialogue("Hollowmere", "The confrontation cannot begin: " + String(result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
+        return
+    encounter_active = true
+    enemy_turn_processed = false
+    enemy_turn_waiting_for_reaction = false
+    if not active_character_id in ["player", "companion_wren_talbot"]:
+        active_character_id = "player"
+    _update_combat_ui()
+
+
+func _on_combat_turn_started(_character_id: String) -> void:
+    enemy_turn_processed = false
+
+
+func _update_combat(delta: float) -> void:
+    if not encounter_active or simulation == null or not simulation.is_in_combat:
+        return
+    _check_encounter_resolution()
+    if not encounter_active or not simulation.is_in_combat:
+        return
+    if enemy_turn_waiting_for_reaction and simulation.pending_reaction.is_empty():
+        enemy_turn_waiting_for_reaction = false
+        simulation.try_end_current_turn(true)
+        return
+    if not simulation.pending_reaction.is_empty():
+        return
+    var current := simulation.get_current_turn_character()
+    if current == null or current.side != "enemy" or enemy_turn_processed:
+        return
+    enemy_turn_processed = true
+    _run_enemy_combat_turn(current)
+
+
+func _run_enemy_combat_turn(enemy: CharacterState) -> void:
+    var target := _nearest_party_target(enemy)
+    if target == null:
+        simulation.try_end_current_turn(true)
+        return
+    if HexGrid.distance(enemy.axial, target.axial) <= 1:
+        var weapon_id := String(enemy.equipment.get("weapon", ""))
+        var result := simulation.try_attack_character(enemy.id, target.id, {
+            "time_point_cost": 20.0,
+            "weapon_id": weapon_id
+        }, int(enemy.id.hash()))
+        if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
+            enemy_turn_waiting_for_reaction = true
+        else:
+            simulation.try_end_current_turn(true)
+        return
+    var next_step := _best_enemy_approach_step(enemy, target)
+    if next_step == INVALID_HEX:
+        simulation.try_end_current_turn(true)
+        return
+    var moved := simulation.try_move_character_step(enemy.id, next_step)
+    if moved and not simulation.pending_reaction.is_empty():
+        enemy_turn_waiting_for_reaction = true
+    else:
+        simulation.try_end_current_turn(true)
+
+
+func _nearest_party_target(enemy: CharacterState) -> CharacterState:
+    var best: CharacterState
+    var best_distance := 999
+    for party_id in HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_IDS:
+        var member := simulation.get_character(party_id)
+        if member == null or not member.can_act():
+            continue
+        var distance := HexGrid.distance(enemy.axial, member.axial)
+        if distance < best_distance:
+            best_distance = distance
+            best = member
+    return best
+
+
+func _best_enemy_approach_step(enemy: CharacterState, target: CharacterState) -> Vector2i:
+    var best_path: Array[Vector2i] = []
+    for destination in HexGrid.neighbors(target.axial):
+        if not simulation.map_data.is_walkable(destination) or simulation.occupied_hexes.has(destination):
+            continue
+        var path := simulation.find_path(enemy.id, destination)
+        if path.size() < 2:
+            continue
+        if best_path.is_empty() or path.size() < best_path.size():
+            best_path = path
+    return best_path[1] if best_path.size() > 1 else INVALID_HEX
+
+
+func _attack_active_character() -> void:
+    if not encounter_active or not simulation.is_in_combat or not simulation.pending_reaction.is_empty():
+        return
+    var current := simulation.get_current_turn_character()
+    if current == null or current.id != active_character_id or current.side != "player":
+        combat_status_label.text = "It is not this character turn. Switch party members with Tab."
+        return
+    var target := _nearest_adjacent_enemy(current)
+    if target == null:
+        combat_status_label.text = "No enemy in reach. Move adjacent to an Ironbond soldier first."
+        return
+    var weapon_id := String(current.equipment.get("weapon", ""))
+    var result := simulation.try_attack_character(current.id, target.id, {
+        "time_point_cost": 20.0,
+        "weapon_id": weapon_id
+    }, int(current.id.hash() + target.id.hash()))
+    if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
+        combat_status_label.text = "Resolving a defensive reaction..."
+    elif bool(result.get("ok", false)):
+        combat_status_label.text = "Attack resolved against %s." % target.display_name
+    else:
+        combat_status_label.text = "Attack unavailable: %s" % String(result.get("reason", "unknown"))
+    _check_encounter_resolution()
+
+
+func _nearest_adjacent_enemy(attacker: CharacterState) -> CharacterState:
+    var best: CharacterState
+    var best_distance := 999
+    for enemy_id in HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS:
+        var enemy := simulation.get_character(enemy_id)
+        if enemy == null or not enemy.can_act():
+            continue
+        var distance := HexGrid.distance(attacker.axial, enemy.axial)
+        if distance <= 1 and distance < best_distance:
+            best_distance = distance
+            best = enemy
+    return best
+
+
+func _end_active_turn() -> void:
+    if not encounter_active or not simulation.is_in_combat or not simulation.pending_reaction.is_empty():
+        return
+    var current := simulation.get_current_turn_character()
+    if current == null or current.id != active_character_id or current.side != "player":
+        return
+    simulation.try_end_current_turn(true)
+
+
+func _update_combat_ui() -> void:
+    if attack_button == null or end_turn_button == null or combat_status_label == null:
+        return
+    var combat_visible := encounter_active and simulation != null and simulation.is_in_combat
+    attack_button.visible = combat_visible
+    end_turn_button.visible = combat_visible
+    combat_status_label.visible = combat_visible
+    if not combat_visible:
+        return
+    var current := simulation.get_current_turn_character()
+    var player_turn := current != null and current.side == "player" and current.id == active_character_id and current.can_act() and simulation.pending_reaction.is_empty()
+    attack_button.disabled = not player_turn or _nearest_adjacent_enemy(current) == null
+    end_turn_button.disabled = not player_turn
+    if not simulation.pending_reaction.is_empty():
+        combat_status_label.text = "Reaction pending..."
+    elif current == null:
+        combat_status_label.text = "Waiting for the next combat turn..."
+    elif current.side == "enemy":
+        combat_status_label.text = "%s is acting..." % current.display_name
+    elif current.id != active_character_id:
+        combat_status_label.text = "Switch to %s with Tab." % current.display_name
+    else:
+        combat_status_label.text = "%s  ·  HP %d/%d  ·  TP %d" % [current.display_name, current.health, current.max_health, roundi(current.time_points)]
+
+
+func _check_encounter_resolution() -> void:
+    if not encounter_active:
+        return
+    if HOLLOWMERE_ENCOUNTER_SCRIPT.enemies_defeated(simulation):
+        simulation.end_combat()
+        encounter_active = false
+        _resolve_shakedown("fight")
+        _show_speech_bubble("garrick_holt", HollowmereCampaignContent.shakedown_victory_text())
+        _show_dialogue("Garrick Holt", HollowmereCampaignContent.shakedown_victory_text(), [{"id": "continue", "label": "Continue", "text": ""}])
+    elif HOLLOWMERE_ENCOUNTER_SCRIPT.party_defeated(simulation):
+        simulation.end_combat()
+        encounter_active = false
+        shakedown_resolved = true
+        simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The party was defeated during the Ironbond shakedown.")
+        _show_dialogue("Garrick Holt", "The soldiers overpower you. Garrick has no choice but to surrender the due. The confrontation is lost.", [{"id": "continue", "label": "Continue", "text": ""}])
+
 func _toggle_character_panel() -> void:
     if character_panel != null:
         character_panel.toggle_panel()
