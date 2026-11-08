@@ -97,6 +97,9 @@ func _test_hollowmere_encounter() -> void:
     mira.apply_damage(1000)
     oskar.apply_damage(1000)
     _check(HollowmereEncounter.party_defeated(simulation), "The encounter should detect all five player-side combatants defeated")
+    HollowmereEncounter.finish(simulation)
+    _check(garrick.side == "neutral" and garrick.combat_dormant, "Defenders should return to neutral NPC status after combat")
+    _check(player.side == "player" and not player.combat_dormant, "The player should remain an active party character")
     simulation.end_combat()
     simulation.free()
 
