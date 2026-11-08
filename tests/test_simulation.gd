@@ -795,6 +795,37 @@ func _test_race_class_character_creation() -> void:
     _check(String(cleric.equipment.get("offhand", "")) == "wooden_shield")
     _check(CombatRules.damage_reduction(cleric) == 1)
 
+
+    var expected_races := {
+        "human":{"agility":1,"strength":1,"endurance":1,"wildcard":1},
+        "dwarf":{"dwarf":1,"endurance":2,"strength":1},
+        "elf":{"elf":1,"agility":2,"arcane":1},
+        "goblin":{"goblin":1,"agility":2,"weapons":1},
+        "orc":{"orc":1,"strength":2,"endurance":1}
+    }
+    for race_id in expected_races:
+        var race_profile := profile.duplicate(true)
+        race_profile["race"] = race_id
+        var race_state := CharacterCreationRules.create_player_state(race_profile, "race_" + race_id, Vector2i.ZERO)
+        for attribute in expected_races[race_id]:
+            _check(int(race_state.attributes.get(attribute, 0)) == int(expected_races[race_id][attribute]), "Race bonus mismatch: %s / %s" % [race_id, attribute])
+
+    var expected_classes := {
+        "fighter":{"weapon":"sword","carried":0},
+        "rogue":{"weapon":"dagger","carried":2},
+        "cleric":{"weapon":"club","carried":0},
+        "wizard":{"weapon":"dagger","carried":0},
+        "druid":{"weapon":"club","carried":0},
+        "monk":{"weapon":"dagger","carried":0}
+    }
+    for class_id in expected_classes:
+        var class_profile := profile.duplicate(true)
+        class_profile["character_class"] = class_id
+        var class_state := CharacterCreationRules.create_player_state(class_profile, "class_" + class_id, Vector2i.ZERO)
+        _check(String(class_state.equipment.get("weapon", "")) == String(expected_classes[class_id]["weapon"]), "Class starting weapon mismatch: %s" % class_id)
+        _check(class_state.inventory.size() == int(expected_classes[class_id]["carried"]), "Class carried starting items mismatch: %s" % class_id)
+        _check(int(class_state.class_levels.get(class_id, 0)) == 1, "Class level marker missing: %s" % class_id)
+
     var easy_profile := profile.duplicate(true)
     easy_profile["difficulty_mode"] = "easy"
     var easy := CharacterCreationRules.create_player_state(easy_profile, "easy", Vector2i.ZERO)
