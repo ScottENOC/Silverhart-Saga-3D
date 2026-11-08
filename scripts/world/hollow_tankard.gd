@@ -792,11 +792,36 @@ func _run_opening_sequence() -> void:
         var line: Dictionary = line_value
         var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
         if speaker_id == "narrator":
-            speaker_id = "dray_coltayne"
-        _show_speech_bubble(speaker_id, String(line.get("text", "")))
+            _show_world_narration(String(line.get("text", "")))
+        else:
+            _show_speech_bubble(speaker_id, String(line.get("text", "")))
         await get_tree().create_timer(2.25).timeout
     if not shakedown_resolved:
         _show_dialogue("Dray Coltayne", "What do you do?", HollowmereCampaignContent.shakedown_choices())
+
+
+func _show_world_narration(text: String) -> void:
+    var bubble := Label3D.new()
+    bubble.name = "NarrationBubble"
+    bubble.text = text
+    bubble.position = Vector3(0.0, 4.4, 0.0)
+    bubble.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    bubble.font_size = 22
+    bubble.pixel_size = 0.008
+    bubble.outline_size = 6
+    bubble.modulate = Color(0.98, 0.96, 0.86)
+    add_child(bubble)
+    var timer := Timer.new()
+    timer.one_shot = true
+    timer.wait_time = 2.15
+    add_child(timer)
+    timer.timeout.connect(func():
+        if is_instance_valid(bubble):
+            bubble.queue_free()
+        if is_instance_valid(timer):
+            timer.queue_free()
+    )
+    timer.start()
 
 
 func _show_speech_bubble(character_id: String, text: String) -> void:
