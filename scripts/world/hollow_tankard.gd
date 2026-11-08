@@ -1149,12 +1149,14 @@ func _check_encounter_resolution() -> void:
         return
     if HOLLOWMERE_ENCOUNTER_SCRIPT.party_defeated(simulation):
         simulation.end_combat()
+        HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation)
         encounter_active = false
         shakedown_resolved = true
         simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The party was defeated during the Ironbond shakedown.")
         _show_dialogue("Garrick Holt", "The soldiers overpower you. Garrick has no choice but to surrender the due. The confrontation is lost.", [{"id": "continue", "label": "Continue", "text": ""}])
     elif HOLLOWMERE_ENCOUNTER_SCRIPT.enemies_defeated(simulation):
         simulation.end_combat()
+        HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation)
         encounter_active = false
         HollowmereCampaignContent.complete_shakedown(simulation.campaign_journal)
         _show_speech_bubble("garrick_holt", HollowmereCampaignContent.shakedown_victory_text())
