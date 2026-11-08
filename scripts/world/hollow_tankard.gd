@@ -788,16 +788,40 @@ func _run_opening_sequence() -> void:
     if not is_instance_valid(self) or shakedown_started:
         return
     shakedown_started = true
-    for line_value in HollowmereCampaignContent.opening_lines():
-        var line: Dictionary = line_value
+    var opening_lines := HollowmereCampaignContent.opening_lines()
+    for index in range(opening_lines.size()):
+        var line: Dictionary = opening_lines[index]
         var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
         if speaker_id == "narrator":
             _show_world_narration(String(line.get("text", "")))
+            await _move_shakedown_soldiers_inside()
         else:
             _show_speech_bubble(speaker_id, String(line.get("text", "")))
         await get_tree().create_timer(2.25).timeout
     if not shakedown_resolved:
         _show_dialogue("Dray Coltayne", "What do you do?", HollowmereCampaignContent.shakedown_choices())
+
+
+func _move_shakedown_soldiers_inside() -> void:
+    var preferred_destinations: Array[Vector2i] = [Vector2i(0, 3), Vector2i(-2, 3), Vector2i(2, 3)]
+    var fallback_destinations: Array[Vector2i] = [Vector2i(-1, 3), Vector2i(1, 3), Vector2i(0, 2), Vector2i(2, 2), Vector2i(-2, 2)]
+    for index in range(HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.size()):
+        var character_id := HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS[index]
+        var best_path: Array[Vector2i] = []
+        var destinations: Array[Vector2i] = [preferred_destinations[index]]
+        destinations.append_array(fallback_destinations)
+        for destination in destinations:
+            if not simulation.map_data.is_walkable(destination) or simulation.occupied_hexes.has(destination):
+                continue
+            var path := simulation.find_path(character_id, destination)
+            if path.size() > 1 and (best_path.is_empty() or path.size() < best_path.size()):
+                best_path = path
+        for step_index in range(1, best_path.size()):
+            if not simulation.try_move_character_step(character_id, best_path[step_index]):
+                break
+            await get_tree().create_timer(0.24).timeout
+            if not is_instance_valid(self):
+                return
 
 
 func _show_world_narration(text: String) -> void:
