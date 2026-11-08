@@ -70,7 +70,10 @@ func apply_player_profile(profile: Dictionary) -> void:
 ## Attach a standalone Ara hair GLB to this character's existing skeleton.
 ## Both exports must use the same pinned Ara rig and bone ordering.
 func set_hairstyle(glb_path: String) -> bool:
-    if model_root == null or not ResourceLoader.exists(glb_path):
+    if model_root == null:
+        return false
+    if not ResourceLoader.exists(glb_path):
+        clear_hairstyle()
         return false
     var target_skeleton := _find_skeleton(model_root)
     if target_skeleton == null:
