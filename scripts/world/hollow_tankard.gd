@@ -1274,11 +1274,6 @@ func _toggle_wren_bra() -> void:
     wren_bra_enabled = not wren_bra_enabled
     if model is AraCharacterActor:
         (model as AraCharacterActor).set_garment_visible("Bra", wren_bra_enabled)
-    elif model is ModularCharacterAssembler:
-        if wren_bra_enabled:
-            (model as ModularCharacterAssembler).set_component("underwear_bra", "strapless")
-        else:
-            (model as ModularCharacterAssembler).clear_slot("underwear_bra")
     bra_toggle_button.text = "Bra: " + ("on" if wren_bra_enabled else "off")
 
 func _toggle_wren_briefs() -> void:
@@ -1288,11 +1283,6 @@ func _toggle_wren_briefs() -> void:
     wren_briefs_enabled = not wren_briefs_enabled
     if model is AraCharacterActor:
         (model as AraCharacterActor).set_garment_visible("Briefs", wren_briefs_enabled)
-    elif model is ModularCharacterAssembler:
-        if wren_briefs_enabled:
-            (model as ModularCharacterAssembler).set_component("underwear_briefs", "full_coverage")
-        else:
-            (model as ModularCharacterAssembler).clear_slot("underwear_briefs")
     briefs_toggle_button.text = "Briefs: " + ("on" if wren_briefs_enabled else "off")
 
 func _switch_party_member() -> void:

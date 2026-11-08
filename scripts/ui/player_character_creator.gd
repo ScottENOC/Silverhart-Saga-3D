@@ -137,7 +137,7 @@ func _build_screen() -> void:
     var preview_camera := Camera3D.new()
     preview_camera.position = Vector3(0, 1.05, 3.4)
     preview_camera.fov = 35
-    preview_camera.look_at(Vector3(0, 0.95, 0), Vector3.UP)
+    preview_camera.look_at_from_position(preview_camera.position, Vector3(0, 0.95, 0), Vector3.UP)
     preview_world.add_child(preview_camera)
     preview_camera.current = true
     preview_actor = ARA_ACTOR.new() as AraCharacterActor

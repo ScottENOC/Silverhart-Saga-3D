@@ -279,7 +279,7 @@ func apply_body_parameters(profile: Dictionary) -> void:
         if mesh_instance.mesh == null:
             continue
         for shape_index in range(mesh_instance.mesh.get_blend_shape_count()):
-            var shape_name := mesh_instance.mesh.get_blend_shape_name(shape_index).to_lower().replace("_", "").replace("-", "").replace(" ", "")
+            var shape_name: String = String(mesh_instance.mesh.get_blend_shape_name(shape_index)).to_lower().replace("_", "").replace("-", "").replace(" ", "")
             for parameter in aliases.keys():
                 for alias in aliases[parameter]:
                     if shape_name == alias or shape_name.ends_with(alias):
