@@ -38,7 +38,8 @@ static func season_for_month(month_index: int) -> String:
 
 func _rebuild_visual() -> void:
     for child in get_children():
-        child.queue_free()
+        remove_child(child)
+        child.free()
 
     var rng := RandomNumberGenerator.new()
     rng.seed = abs(tree_seed) + 1
@@ -101,8 +102,6 @@ func _build_evergreen(rng: RandomNumberGenerator) -> void:
         cone.height = 1.35
         cone.radial_segments = 7
         _add_mesh("Needles_%d" % i, cone, Vector3(0.0, 1.55 + float(i) * 0.65, 0.0), _material(green))
-    if current_season == WINTER:
-        _add_snow_accents(rng)
 
 func _build_bare_branches(rng: RandomNumberGenerator) -> void:
     for i in range(6):
