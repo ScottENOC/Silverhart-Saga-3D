@@ -65,6 +65,12 @@ func _test_hollowmere_campaign_content() -> void:
     var stay_out := HollowmereCampaignContent.resolve_shakedown(journal, "stay_out")
     _check(bool(stay_out.get("ok", false)), "Stay-out choice should resolve through the campaign journal")
     _check(journal.faction_standing("ironbond_company") == 5, "Stay-out should apply the source Ironbond standing change")
+    _check(journal.npc_standing("garrick_holt") == -10, "Staying out should lower Garrick's standing")
+    _check(journal.npc_standing("mira_ashbrook") == -5 and journal.npc_standing("oskar_vinn") == -5, "Staying out should disappoint the two tavern patrons")
+    var restored_journal := CampaignJournal.new()
+    restored_journal.register_quest_definition(definition)
+    restored_journal.load_dict(journal.to_dict())
+    _check(restored_journal.npc_standing("garrick_holt") == -10, "Individual NPC standing must survive journal serialization")
     _check(String(journal.quest_state(HollowmereCampaignContent.QUEST_ID).get("status", "")) == "completed")
     _check(String(journal.quest_state(HollowmereCampaignContent.QUEST_ID).get("decisions", {}).get("response", "")) == "stay_out")
 
@@ -74,6 +80,8 @@ func _test_hollowmere_campaign_content() -> void:
     var encourage := HollowmereCampaignContent.resolve_shakedown(second_journal, "encourage_pay")
     _check(bool(encourage.get("ok", false)))
     _check(second_journal.faction_standing("ironbond_company") == 15)
+    _check(second_journal.npc_standing("garrick_holt") == 5)
+    _check(second_journal.npc_standing("mira_ashbrook") == 0 and second_journal.npc_standing("oskar_vinn") == 0)
     _check(String(second_journal.quest_state(HollowmereCampaignContent.QUEST_ID).get("decisions", {}).get("ironbond_arc_side", "")) == "ironbond")
     _check(not bool(HollowmereCampaignContent.resolve_shakedown(second_journal, "fight").get("ok", false)), "Unported fight branch must not resolve through the simulation")
 
