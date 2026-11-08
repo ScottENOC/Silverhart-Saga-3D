@@ -38,12 +38,75 @@ var max_time_points: float = ActionEconomy.DEFAULT_MAX_TP
 var total_time_points_spent: float = 0.0
 var quick_recovery_rank: int = 0
 var skills: Dictionary = {}
+# equipment remains a compact slot -> gameplay item ID map for existing rules.
+# equipped_item_data stores the corresponding item instance metadata, while
+# inventory stores carried item instances with stable instance IDs.
 var equipment: Dictionary = {}
+var inventory: Array[Dictionary] = []
+var equipped_item_data: Dictionary = {}
 
 func _init(character_id: String = "", character_name: String = "", start_hex: Vector2i = Vector2i.ZERO) -> void:
     id = character_id
     display_name = character_name
     axial = start_hex
+
+func add_inventory_item(item: Dictionary) -> bool:
+    var instance_id := String(item.get("instance_id", ""))
+    var item_id := String(item.get("id", ""))
+    var quantity := int(item.get("quantity", 1))
+    if instance_id.is_empty() or item_id.is_empty() or quantity < 1:
+        return false
+    for existing in inventory:
+        if String(existing.get("instance_id", "")) == instance_id:
+            return false
+    inventory.append(item.duplicate(true))
+    return true
+
+
+func remove_inventory_item(instance_id: String, quantity: int = 1) -> bool:
+    if instance_id.is_empty() or quantity < 1:
+        return false
+    for index in range(inventory.size()):
+        if String(inventory[index].get("instance_id", "")) != instance_id:
+            continue
+        var current_quantity := int(inventory[index].get("quantity", 1))
+        if current_quantity < quantity:
+            return false
+        if current_quantity == quantity:
+            inventory.remove_at(index)
+        else:
+            inventory[index]["quantity"] = current_quantity - quantity
+        return true
+    return false
+
+
+func equip_inventory_item(instance_id: String) -> bool:
+    for index in range(inventory.size()):
+        var item: Dictionary = inventory[index]
+        if String(item.get("instance_id", "")) != instance_id:
+            continue
+        var slot := String(item.get("equipment_slot", ""))
+        var item_id := String(item.get("id", ""))
+        if slot.is_empty() or item_id.is_empty() or int(item.get("quantity", 1)) != 1:
+            return false
+        if equipped_item_data.has(slot):
+            inventory.append((equipped_item_data[slot] as Dictionary).duplicate(true))
+        equipment[slot] = item_id
+        equipped_item_data[slot] = item.duplicate(true)
+        inventory.remove_at(index)
+        return true
+    return false
+
+
+func unequip_equipment_slot(slot: String) -> bool:
+    if slot.is_empty() or not equipped_item_data.has(slot):
+        return false
+    var item: Dictionary = equipped_item_data[slot]
+    inventory.append(item.duplicate(true))
+    equipped_item_data.erase(slot)
+    equipment.erase(slot)
+    return true
+
 
 func can_be_targeted() -> bool:
     return alive
@@ -137,6 +200,8 @@ func to_dict() -> Dictionary:
         "quick_recovery_rank": quick_recovery_rank,
         "skills": skills.duplicate(true),
         "equipment": equipment.duplicate(true),
+        "inventory": inventory.duplicate(true),
+        "equipped_item_data": equipped_item_data.duplicate(true),
     }
 
 static func from_dict(data: Dictionary) -> CharacterState:
@@ -177,4 +242,9 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.quick_recovery_rank = clampi(int(data.get("quick_recovery_rank", 0)), 0, ActionEconomy.MAX_QUICK_RECOVERY_RANK)
     state.skills = data.get("skills", {}).duplicate(true)
     state.equipment = data.get("equipment", {}).duplicate(true)
+    var saved_inventory: Array = data.get("inventory", [])
+    for item in saved_inventory:
+        if item is Dictionary:
+            state.inventory.append(item.duplicate(true))
+    state.equipped_item_data = data.get("equipped_item_data", {}).duplicate(true)
     return state
