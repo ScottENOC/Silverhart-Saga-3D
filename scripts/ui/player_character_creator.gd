@@ -104,6 +104,9 @@ func _build_screen() -> void:
     for class_id in RULES.class_ids():
         class_select.add_item(String(RULES.class_definition(class_id).get("label", class_id)))
         class_select.set_item_metadata(class_select.item_count - 1, class_id)
+    _select_metadata(race_select, "human")
+    _select_metadata(class_select, "fighter")
+    _select_metadata(difficulty_select, "normal")
     race_select.item_selected.connect(_refresh_character_preview)
     class_select.item_selected.connect(_refresh_character_preview)
     difficulty_select.item_selected.connect(_refresh_character_preview)
@@ -139,6 +142,7 @@ func _build_screen() -> void:
     start_button.custom_minimum_size = Vector2(0, 52)
     start_button.pressed.connect(_finish)
     panel.add_child(start_button)
+    _update_mode_controls(game_mode_select.selected)
 
 func _section(parent: VBoxContainer, text_value: String) -> void:
     var label := Label.new()
@@ -225,7 +229,9 @@ func _update_mode_controls(_index: int) -> void:
     var arena := game_mode_select.get_item_text(game_mode_select.selected) == "Arena"
     mode_note.text = "Arena is selected, but its lobby and combat loop have not yet been ported. Select Campaign to begin the playable Hollowmere opening." if arena else "Campaign 2 — Small World opens in Hollowmere. Main Campaign content is not yet ported. Ironman save enforcement is also pending."
     start_button.disabled = arena
-    start_button.text = "ARENA MODE NOT YET AVAILABLE" if arena else "BEGIN IN HOLLOWMERE"
+    if start_button != null:
+        start_button.disabled = arena
+        start_button.text = "ARENA MODE NOT YET AVAILABLE" if arena else "BEGIN IN HOLLOWMERE"
 
 func _select_text(select: OptionButton, value: String) -> void:
     for index in range(select.item_count):
