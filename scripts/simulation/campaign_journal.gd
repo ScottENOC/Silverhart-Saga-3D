@@ -230,8 +230,8 @@ func merchant_influence_for(faction_id: String, kingdom_id: String) -> float:
 func adjust_faction_standing(faction_id: String, amount: int, reason: String = "") -> Dictionary:
     if faction_id.strip_edges().is_empty():
         return {"ok": false, "reason": "missing_faction_id"}
-    var previous := int(faction_standings.get(faction_id, 0))
-    var next_value := previous + amount
+    var previous := float(faction_standings.get(faction_id, 0.0))
+    var next_value := previous + float(amount)
     faction_standings[faction_id] = next_value
     _emit_event("faction_standing_changed", {
         "faction_id": faction_id,
@@ -249,8 +249,8 @@ func faction_standing(faction_id: String) -> float:
 func adjust_npc_standing(npc_id: String, amount: int, reason: String = "") -> Dictionary:
     if npc_id.strip_edges().is_empty():
         return {"ok": false, "reason": "missing_npc_id"}
-    var previous := int(npc_standings.get(npc_id, 0))
-    var next_value := previous + amount
+    var previous := float(npc_standings.get(npc_id, 0.0))
+    var next_value := previous + float(amount)
     npc_standings[npc_id] = next_value
     _emit_event("npc_standing_changed", {
         "npc_id": npc_id,
