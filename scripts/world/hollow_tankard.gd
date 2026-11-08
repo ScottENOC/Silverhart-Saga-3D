@@ -903,7 +903,7 @@ func _begin_shakedown_combat() -> void:
     encounter_active = true
     enemy_turn_processed = false
     enemy_turn_waiting_for_reaction = false
-    if not active_character_id in ["player", "companion_wren_talbot"]:
+    if active_character_id != "player" and active_character_id != "companion_wren_talbot":
         active_character_id = "player"
     _update_combat_ui()
 
@@ -912,7 +912,7 @@ func _on_combat_turn_started(_character_id: String) -> void:
     enemy_turn_processed = false
 
 
-func _update_combat(delta: float) -> void:
+func _update_combat(_delta: float) -> void:
     if not encounter_active or simulation == null or not simulation.is_in_combat:
         return
     _check_encounter_resolution()
@@ -936,11 +936,13 @@ func _run_enemy_combat_turn(enemy: CharacterState) -> void:
     if target == null:
         simulation.try_end_current_turn(true)
         return
-    if HexGrid.distance(enemy.axial, target.axial) <= 1:
+    if HexGrid.distance(enemy.axial, target.axial) <= _attack_range_for(enemy):
         var weapon_id := String(enemy.equipment.get("weapon", ""))
+        var weapon: Dictionary = enemy.equipped_item_data.get("weapon", {})
         var result := simulation.try_attack_character(enemy.id, target.id, {
-            "time_point_cost": 20.0,
-            "weapon_id": weapon_id
+            "time_point_cost": 10.0,
+            "weapon_id": weapon_id,
+            "is_ranged": String(weapon.get("subType", "")) == "ranged"
         }, int(enemy.id.hash()))
         if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
             enemy_turn_waiting_for_reaction = true
@@ -992,7 +994,7 @@ func _attack_active_character() -> void:
     if current == null or current.id != active_character_id or current.side != "player":
         combat_status_label.text = "It is not this character turn. Switch party members with Tab."
         return
-    var target := _nearest_adjacent_enemy(current)
+    var target := _nearest_enemy_in_attack_range(current)
     if target == null:
         combat_status_label.text = "No enemy in reach. Move adjacent to an Ironbond soldier first."
         return
@@ -1010,7 +1012,13 @@ func _attack_active_character() -> void:
     _check_encounter_resolution()
 
 
-func _nearest_adjacent_enemy(attacker: CharacterState) -> CharacterState:
+func _attack_range_for(attacker: CharacterState) -> int:
+    if attacker == null:
+        return 1
+    var weapon: Dictionary = attacker.equipped_item_data.get("weapon", {})
+    return maxi(1, 1 + int(weapon.get("range", 0)))
+
+func _nearest_enemy_in_attack_range(attacker: CharacterState) -> CharacterState:
     var best: CharacterState
     var best_distance := 999
     for enemy_id in HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS:
@@ -1018,7 +1026,7 @@ func _nearest_adjacent_enemy(attacker: CharacterState) -> CharacterState:
         if enemy == null or not enemy.can_act():
             continue
         var distance := HexGrid.distance(attacker.axial, enemy.axial)
-        if distance <= 1 and distance < best_distance:
+        if distance <= _attack_range_for(attacker) and distance < best_distance:
             best_distance = distance
             best = enemy
     return best
@@ -1044,7 +1052,7 @@ func _update_combat_ui() -> void:
         return
     var current := simulation.get_current_turn_character()
     var player_turn := current != null and current.side == "player" and current.id == active_character_id and current.can_act() and simulation.pending_reaction.is_empty()
-    attack_button.disabled = not player_turn or _nearest_adjacent_enemy(current) == null
+    attack_button.disabled = not player_turn or _nearest_enemy_in_attack_range(current) == null
     end_turn_button.disabled = not player_turn
     if not simulation.pending_reaction.is_empty():
         combat_status_label.text = "Reaction pending..."
