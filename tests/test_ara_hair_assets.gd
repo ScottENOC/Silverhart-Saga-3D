@@ -1,7 +1,8 @@
 extends SceneTree
-## Verifies that split Ara hair exports retain a compatible skinned rig.
+## Verifies split Ara hair exports retain skinning and can bind to the matching base skeleton.
 
 const ROOT := "res://art/characters/ara_runtime/hair"
+const ACTOR_SCRIPT := preload("res://scripts/presentation/ara_character_actor.gd")
 
 func _initialize() -> void:
     var manifest_path := ROOT + "/manifest.json"
@@ -12,13 +13,27 @@ func _initialize() -> void:
     for sex in ["female", "male"]:
         assert(characters.has(sex), "Missing %s character bundle" % sex)
         var entry: Dictionary = characters[sex]
-        _check_scene(ROOT + "/" + str(entry.get("base", "")), false)
+        var base_path := ROOT + "/" + str(entry.get("base", ""))
+        _check_scene(base_path, false)
+        var actor := ACTOR_SCRIPT.new() as AraCharacterActor
+        root.add_child(actor)
+        assert(actor.configure(base_path), "Actor could not load %s base" % sex)
         var styles: Dictionary = entry.get("hairstyles", {})
         assert(not styles.is_empty(), "No hairstyles exported for %s" % sex)
         for style in styles.keys():
             var style_entry: Dictionary = styles[style]
-            _check_scene(ROOT + "/" + str(style_entry.get("file", "")), true)
-    print("ARA_HAIR_ASSET_TEST: PASS")
+            var hair_path := ROOT + "/" + str(style_entry.get("file", ""))
+            _check_scene(hair_path, true)
+            assert(actor.set_hairstyle(hair_path), "Actor rejected %s/%s hair" % [sex, style])
+            assert(not actor.hair_instances.is_empty(), "Actor attached no meshes for %s/%s" % [sex, style])
+            var target := _find_skeleton(actor.model_root)
+            assert(target != null, "Base actor skeleton disappeared")
+            for hair_mesh in actor.hair_instances:
+                assert(hair_mesh.get_node_or_null(hair_mesh.skeleton) == target,
+                    "Hair mesh was not rebound to the base skeleton: %s/%s" % [sex, style])
+        actor.clear_hairstyle()
+        actor.queue_free()
+    print("ARA_HAIR_ASSET_TEST: PASS (skinning and runtime skeleton attachment)")
     quit(0)
 
 func _check_scene(path: String, require_skinned_hair: bool) -> void:
@@ -40,6 +55,15 @@ func _check_scene(path: String, require_skinned_hair: bool) -> void:
                 break
         assert(skinned, "Hair mesh lost skin weights: %s" % path)
     instance.free()
+
+func _find_skeleton(node: Node) -> Skeleton3D:
+    if node is Skeleton3D:
+        return node as Skeleton3D
+    for child in node.get_children():
+        var found := _find_skeleton(child)
+        if found != null:
+            return found
+    return null
 
 func _collect(node: Node, skeletons: Array[Skeleton3D], meshes: Array[MeshInstance3D]) -> void:
     if node is Skeleton3D:
