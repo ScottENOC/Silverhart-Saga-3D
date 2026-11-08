@@ -56,6 +56,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_simulation.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
+      - name: Run seasonal tree tests
+        run: godot --headless --path . --script res://tests/test_seasonal_trees.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
       - name: Validate Hollowmere and item data JSON
