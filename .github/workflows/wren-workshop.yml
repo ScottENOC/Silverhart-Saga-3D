@@ -43,13 +43,13 @@ jobs:
           import re
           from pathlib import Path
           html = Path('site/index.html').read_text()
-          match = re.search(r'<script type="module">\\s*(.*?)\\s*</script>', html, re.S)
+          match = re.search(r'<script type="module">\s*(.*?)\s*</script>', html, re.S)
           if not match:
               raise SystemExit('Wren Workshop module script was not found')
           Path('/tmp/wren-workshop.mjs').write_text(match.group(1))
           PY
           node --check /tmp/wren-workshop.mjs
-          if grep -R -n 'ara_person_tattoo_body' site .github/workflows/wren-workshop.yml; then
+          if grep -R -n 'ara_person_tattoo_body' site; then
             echo 'Obsolete tattoo-body asset reference remains' >&2
             exit 1
           fi
