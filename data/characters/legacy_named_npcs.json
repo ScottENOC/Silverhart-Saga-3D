@@ -1,0 +1,1284 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "ScottENOC/Hex-crpg",
+    "file": "campaign2Content.js"
+  },
+  "description": "All race/gender-identifiable named NPC records extracted from the legacy campaign content. Repeated generic role names are retained as separate roster entries. Existing Hollowmere profiles are referenced where available; other identities require saved Ara appearance profiles and generated GLBs.",
+  "named_npcs": [
+    {
+      "id": "garrick_holt_human_male",
+      "display_name": "Garrick Holt",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/garrick_holt.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "mira_ashbrook_human_female",
+      "display_name": "Mira Ashbrook",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/mira_ashbrook.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "oskar_vinn_human_male",
+      "display_name": "Oskar Vinn",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/oskar_vinn.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "wick_hallow_human_male",
+      "display_name": "Wick Hallow",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/wick_hallow.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "dray_coltayne_human_male",
+      "display_name": "Dray Coltayne",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/dray.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "tomlin_brask_human_male",
+      "display_name": "Tomlin Brask",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/tomlin.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "hask_greel_human_male",
+      "display_name": "Hask Greel",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/hask.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "yvette_marlow_human_female",
+      "display_name": "Yvette Marlow",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/yvette.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "hendra_wells_human_female",
+      "display_name": "Hendra Wells",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/hendra.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "tavern_patron_human_male",
+      "display_name": "Tavern Patron",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/tavern_patron.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "tam_wells_human_male",
+      "display_name": "Tam Wells",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "renn_ashby_human_female",
+      "display_name": "Renn Ashby",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "rowan_fletcher_human_male",
+      "display_name": "Rowan Fletcher",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/rowan_fletcher.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "old_mac_human_male",
+      "display_name": "Old Mac",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "captain_ilsa_rennick_human_female",
+      "display_name": "Captain Ilsa Rennick",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "watchman_bram_oswick_human_male",
+      "display_name": "Watchman Bram Oswick",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "reeve_aldous_finch_human_male",
+      "display_name": "Reeve Aldous Finch",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "nella_brook_human_female",
+      "display_name": "Nella Brook",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "torvald_anvik_human_male",
+      "display_name": "Torvald Anvik",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "mirella_thorn_human_female",
+      "display_name": "Mirella Thorn",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "ser_aldric_thorne_human_male",
+      "display_name": "Ser Aldric Thorne",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "reyna_fletcher_human_female",
+      "display_name": "Reyna Fletcher",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "mirabel_quill_elf_female",
+      "display_name": "Mirabel Quill",
+      "race": "elf",
+      "gender": "female",
+      "visual_archetype": "ara_elf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "fenn_oakheart_human_male",
+      "display_name": "Fenn Oakheart",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "petra_hollis_human_female",
+      "display_name": "Petra Hollis",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "elder_marta_wynfield_human_female",
+      "display_name": "Elder Marta Wynfield",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "hollowmere_profile_available",
+      "model_asset": "res://art/characters/hollowmere/elder_marta.glb",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "corran_vale_human_male",
+      "display_name": "Corran Vale",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "bettina_marrow_dwarf_female",
+      "display_name": "Bettina Marrow",
+      "race": "dwarf",
+      "gender": "female",
+      "visual_archetype": "ara_dwarf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "baron_corwin_aldervale_human_male",
+      "display_name": "Baron Corwin Aldervale",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "guildmaster_petra_voss_human_female",
+      "display_name": "Guildmaster Petra Voss",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "guild_watchman_corley_human_male",
+      "display_name": "Guild Watchman Corley",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "guild_assassin_human_female",
+      "display_name": "Guild Assassin",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "steward_halvard_greer_human_male",
+      "display_name": "Steward Halvard Greer",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "queen_seraphine_corrin_human_female",
+      "display_name": "Queen Seraphine Corrin",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "royal_guard_denna_human_female",
+      "display_name": "Royal Guard Denna",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "royal_guard_corwin_human_male",
+      "display_name": "Royal Guard Corwin",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "royal_guard_ashe_human_male",
+      "display_name": "Royal Guard Ashe",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "royal_guard_petra_human_female",
+      "display_name": "Royal Guard Petra",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "royal_guard_osric_human_male",
+      "display_name": "Royal Guard Osric",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "royal_guard_isolde_human_female",
+      "display_name": "Royal Guard Isolde",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "wall_guard_brennan_human_male",
+      "display_name": "Wall Guard Brennan",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "wall_guard_yara_human_female",
+      "display_name": "Wall Guard Yara",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "wall_guard_tomas_human_male",
+      "display_name": "Wall Guard Tomas",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "wall_guard_sela_human_female",
+      "display_name": "Wall Guard Sela",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "wall_guard_draven_human_male",
+      "display_name": "Wall Guard Draven",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "wall_guard_ottilie_human_female",
+      "display_name": "Wall Guard Ottilie",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "tomas_wren_human_male",
+      "display_name": "Tomas Wren",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "master_builder_hallis_dwarf_female",
+      "display_name": "Master Builder Hallis",
+      "race": "dwarf",
+      "gender": "female",
+      "visual_archetype": "ara_dwarf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "petra_ashfield_human_female",
+      "display_name": "Petra Ashfield",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "ossian_fell_human_male",
+      "display_name": "Ossian Fell",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "mirelle_sondhe_human_female",
+      "display_name": "Mirelle Sondhe",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "corvin_ashe_elf_male",
+      "display_name": "Corvin Ashe",
+      "race": "elf",
+      "gender": "male",
+      "visual_archetype": "ara_elf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "perrin_vance_human_male",
+      "display_name": "Perrin Vance",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "quartermaster_osric_vane_human_male",
+      "display_name": "Quartermaster Osric Vane",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "tessa_nightshade_human_female",
+      "display_name": "Tessa Nightshade",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "corvin_ashe_human_male",
+      "display_name": "Corvin Ashe",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "marsh_dobbins_human_male",
+      "display_name": "Marsh Dobbins",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "del_ashworth_human_male",
+      "display_name": "Del Ashworth",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "rennik_coalmarrow_human_male",
+      "display_name": "Rennik Coalmarrow",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "mira_selk_human_female",
+      "display_name": "Mira Selk",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "silas_crane_human_male",
+      "display_name": "Silas Crane",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "the_bone_trader_human_male",
+      "display_name": "The Bone Trader",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "lady_miriel_corstane_human_female",
+      "display_name": "Lady Miriel Corstane",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "chancellor_merric_vane_human_male",
+      "display_name": "Chancellor Merric Vane",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "court_wizard_thessaly_elf_female",
+      "display_name": "Court Wizard Thessaly",
+      "race": "elf",
+      "gender": "female",
+      "visual_archetype": "ara_elf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "ambassador_elarion_elf_male",
+      "display_name": "Ambassador Elarion",
+      "race": "elf",
+      "gender": "male",
+      "visual_archetype": "ara_elf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "ambassador_brokk_stonehammer_dwarf_male",
+      "display_name": "Ambassador Brokk Stonehammer",
+      "race": "dwarf",
+      "gender": "male",
+      "visual_archetype": "ara_dwarf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "ambassador_cassia_wren_human_female",
+      "display_name": "Ambassador Cassia Wren",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "ambassador_toren_aldwyn_human_male",
+      "display_name": "Ambassador Toren Aldwyn",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "factor_willem_drass_human_male",
+      "display_name": "Factor Willem Drass",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "high_cleric_adelram_human_male",
+      "display_name": "High Cleric Adelram",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "old_hessa_dwarf_female",
+      "display_name": "Old Hessa",
+      "race": "dwarf",
+      "gender": "female",
+      "visual_archetype": "ara_dwarf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "fort_soldier_halric_human_male",
+      "display_name": "Fort Soldier Halric",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "fort_soldier_wenna_human_female",
+      "display_name": "Fort Soldier Wenna",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "fort_soldier_dunstan_human_male",
+      "display_name": "Fort Soldier Dunstan",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "fort_soldier_ysolt_human_female",
+      "display_name": "Fort Soldier Ysolt",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "fort_soldier_bram_human_male",
+      "display_name": "Fort Soldier Bram",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "fort_soldier_cadha_human_female",
+      "display_name": "Fort Soldier Cadha",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "commander_ysolde_hart_human_female",
+      "display_name": "Commander Ysolde Hart",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "quartermaster_rurik_voss_human_male",
+      "display_name": "Quartermaster Rurik Voss",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "elder_nessa_wren_elf_female",
+      "display_name": "Elder Nessa Wren",
+      "race": "elf",
+      "gender": "female",
+      "visual_archetype": "ara_elf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "king_balrik_deepholm_dwarf_male",
+      "display_name": "King Balrik Deepholm",
+      "race": "dwarf",
+      "gender": "male",
+      "visual_archetype": "ara_dwarf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "hall_guard_dwarf_male",
+      "display_name": "Hall Guard",
+      "race": "dwarf",
+      "gender": "male",
+      "visual_archetype": "ara_dwarf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "hall_guard_dwarf_female",
+      "display_name": "Hall Guard",
+      "race": "dwarf",
+      "gender": "female",
+      "visual_archetype": "ara_dwarf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "foreman_dornik_coalbeard_dwarf_male",
+      "display_name": "Foreman Dornik Coalbeard",
+      "race": "dwarf",
+      "gender": "male",
+      "visual_archetype": "ara_dwarf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "ingra_silvertongue_dwarf_female",
+      "display_name": "Ingra Silvertongue",
+      "race": "dwarf",
+      "gender": "female",
+      "visual_archetype": "ara_dwarf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "thrain_emberhand_dwarf_male",
+      "display_name": "Thrain Emberhand",
+      "race": "dwarf",
+      "gender": "male",
+      "visual_archetype": "ara_dwarf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "sentinel_ilyndra_elf_female",
+      "display_name": "Sentinel Ilyndra",
+      "race": "elf",
+      "gender": "female",
+      "visual_archetype": "ara_elf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "sentinel_thaeril_elf_male",
+      "display_name": "Sentinel Thaeril",
+      "race": "elf",
+      "gender": "male",
+      "visual_archetype": "ara_elf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "loremaster_faelan_elf_male",
+      "display_name": "Loremaster Faelan",
+      "race": "elf",
+      "gender": "male",
+      "visual_archetype": "ara_elf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "healer_sylwen_elf_female",
+      "display_name": "Healer Sylwen",
+      "race": "elf",
+      "gender": "female",
+      "visual_archetype": "ara_elf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "bowmaster_ellandrie_elf_female",
+      "display_name": "Bowmaster Ellandrie",
+      "race": "elf",
+      "gender": "female",
+      "visual_archetype": "ara_elf",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "hollis_vane_human_male",
+      "display_name": "Hollis Vane",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "sergeant_bell_human_female",
+      "display_name": "Sergeant Bell",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "nix_the_cutpurse_human_male",
+      "display_name": "Nix the Cutpurse",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "osric_fenn_human_male",
+      "display_name": "Osric Fenn",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "greta_aldwyn_human_female",
+      "display_name": "Greta Aldwyn",
+      "race": "human",
+      "gender": "female",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    },
+    {
+      "id": "tomlin_reed_human_male",
+      "display_name": "Tomlin Reed",
+      "race": "human",
+      "gender": "male",
+      "visual_archetype": "ara_human",
+      "model_status": "appearance_profile_required",
+      "model_asset": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "campaign2Content.js"
+      }
+    }
+  ]
+}

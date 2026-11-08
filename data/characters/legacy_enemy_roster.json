@@ -1,0 +1,430 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "ScottENOC/Hex-crpg",
+    "file": "monsters.js"
+  },
+  "description": "Every legacy monster template, grouped into reusable 3D model archetypes. Sprite paths are visual reference material only; no legacy 2D image is treated as a finished 3D model.",
+  "enemies": [
+    {
+      "id": "goblin",
+      "legacy_template_id": "goblin",
+      "display_name": "Goblin",
+      "model_archetype": "goblin_humanoid",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/goblin.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "elite_goblin",
+      "legacy_template_id": "elite_goblin",
+      "display_name": "Elite Goblin",
+      "model_archetype": "goblin_elite",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/elite_goblin.svg",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "orc",
+      "legacy_template_id": "orc",
+      "display_name": "Orc",
+      "model_archetype": "orc_humanoid",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/orc.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "bandit",
+      "legacy_template_id": "bandit",
+      "display_name": "Bandit",
+      "model_archetype": "human_bandit",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "siege_engine",
+      "legacy_template_id": "siege_engine",
+      "display_name": "Siege Engine",
+      "model_archetype": "siege_construct",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "wolf",
+      "legacy_template_id": "wolf",
+      "display_name": "Wolf",
+      "model_archetype": "wolf",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/wolf.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "deer",
+      "legacy_template_id": "deer",
+      "display_name": "Deer",
+      "model_archetype": "quadruped",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "wild_boar",
+      "legacy_template_id": "wild_boar",
+      "display_name": "Wild Boar",
+      "model_archetype": "boar",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/boar.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "horse",
+      "legacy_template_id": "horse",
+      "display_name": "Horse",
+      "model_archetype": "horse",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/horse.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "troll",
+      "legacy_template_id": "troll",
+      "display_name": "Troll",
+      "model_archetype": "troll",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/troll.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "dragon_young",
+      "legacy_template_id": "dragon_young",
+      "display_name": "Dragon Young",
+      "model_archetype": "dragon",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/dragon.svg",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "dragon_adult",
+      "legacy_template_id": "dragon_adult",
+      "display_name": "Dragon Adult",
+      "model_archetype": "dragon",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/dragon.svg",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "dragon_ancient",
+      "legacy_template_id": "dragon_ancient",
+      "display_name": "Dragon Ancient",
+      "model_archetype": "dragon",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/dragon.svg",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "skeleton",
+      "legacy_template_id": "skeleton",
+      "display_name": "Skeleton",
+      "model_archetype": "skeleton",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/skeleton.svg",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "zombie",
+      "legacy_template_id": "zombie",
+      "display_name": "Zombie",
+      "model_archetype": "undead",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/zombie.svg",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "imp",
+      "legacy_template_id": "imp",
+      "display_name": "Imp",
+      "model_archetype": "imp",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/imp.svg",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "spider",
+      "legacy_template_id": "spider",
+      "display_name": "Spider",
+      "model_archetype": "spider",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/spider_1.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "bear",
+      "legacy_template_id": "bear",
+      "display_name": "Bear",
+      "model_archetype": "ursine",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "ogre",
+      "legacy_template_id": "ogre",
+      "display_name": "Ogre",
+      "model_archetype": "giant_humanoid",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "boar",
+      "legacy_template_id": "boar",
+      "display_name": "Boar",
+      "model_archetype": "boar",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/boar.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "tiger",
+      "legacy_template_id": "tiger",
+      "display_name": "Tiger",
+      "model_archetype": "tiger",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/tiger.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "eagle",
+      "legacy_template_id": "eagle",
+      "display_name": "Eagle",
+      "model_archetype": "eagle",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/eagle.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "unicorn",
+      "legacy_template_id": "unicorn",
+      "display_name": "Unicorn",
+      "model_archetype": "unicorn",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/unicorn.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "wraith",
+      "legacy_template_id": "wraith",
+      "display_name": "Wraith",
+      "model_archetype": "spectral",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/wraith.svg",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "basilisk",
+      "legacy_template_id": "basilisk",
+      "display_name": "Basilisk",
+      "model_archetype": "basilisk",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/basilisk.svg",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "harpy",
+      "legacy_template_id": "harpy",
+      "display_name": "Harpy",
+      "model_archetype": "harpy",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/harpy.svg",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "minotaur",
+      "legacy_template_id": "minotaur",
+      "display_name": "Minotaur",
+      "model_archetype": "minotaur",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/minotaur.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "revenant",
+      "legacy_template_id": "revenant",
+      "display_name": "Revenant",
+      "model_archetype": "undead_elite",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/revenant.svg",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "wolf_rider_goblin",
+      "legacy_template_id": "wolf_rider_goblin",
+      "display_name": "Wolf Rider Goblin",
+      "model_archetype": "goblin_humanoid",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "horse_archer",
+      "legacy_template_id": "horse_archer",
+      "display_name": "Horse Archer",
+      "model_archetype": "mounted_humanoid",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": "images/characters/creatures/horse.png",
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "grishnak",
+      "legacy_template_id": "Grishnak",
+      "display_name": "Grishnak",
+      "model_archetype": "humanoid_or_creature_variant",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "sir_alistair",
+      "legacy_template_id": "Sir Alistair",
+      "display_name": "Sir Alistair",
+      "model_archetype": "humanoid_or_creature_variant",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "viper",
+      "legacy_template_id": "Viper",
+      "display_name": "Viper",
+      "model_archetype": "humanoid_or_creature_variant",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "krog_the_unstoppable",
+      "legacy_template_id": "Krog the Unstoppable",
+      "display_name": "Krog The Unstoppable",
+      "model_archetype": "humanoid_or_creature_variant",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    },
+    {
+      "id": "sylvara_the_huntress",
+      "legacy_template_id": "Sylvara the Huntress",
+      "display_name": "Sylvara The Huntress",
+      "model_archetype": "humanoid_or_creature_variant",
+      "model_status": "3d_model_required",
+      "legacy_visual_reference": null,
+      "source": {
+        "repository": "ScottENOC/Hex-crpg",
+        "file": "monsters.js"
+      }
+    }
+  ]
+}
