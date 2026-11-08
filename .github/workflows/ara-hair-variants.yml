@@ -2,9 +2,15 @@ name: Build Ara Hair Variants
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/ara-hairstyles-medieval-equipment
+    paths:
+      - tools/ara/export_hair_variants.ts
+      - .github/workflows/ara-hair-variants.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -12,6 +18,12 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
 
       - name: Build pinned Ara hair variants
         shell: bash
@@ -23,6 +35,7 @@ jobs:
           cd /tmp/ara-3d-gen
           corepack enable
           pnpm install --no-frozen-lockfile
+          pnpm exec tsc --noEmit
           npm run setup-assets
           pnpm exec tsx scripts/silverhart-hair-cli.ts --out "$GITHUB_WORKSPACE/art/characters/ara_runtime/hair"
 
@@ -38,6 +51,20 @@ jobs:
           set -euo pipefail
           godot --headless --editor --path . --quit
           godot --headless --path . --script res://tests/test_ara_hair_assets.gd
+
+      - name: Commit generated hair assets to this feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add art/characters/ara_runtime/hair/
+          if ! git diff --cached --quiet; then
+            git commit -m "Add generated Ara hair variants"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          else
+            echo "Generated Ara hair assets are unchanged."
+          fi
 
       - name: Upload hair bundle
         uses: actions/upload-artifact@v7
