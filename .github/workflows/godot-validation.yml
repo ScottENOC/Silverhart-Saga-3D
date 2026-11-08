@@ -62,6 +62,7 @@ jobs:
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null
           python -m json.tool data/characters/hollowmere_loadouts.json > /dev/null
+          python -m json.tool data/characters/character_creation_rules.json > /dev/null
           python -m json.tool data/items/item_definitions.json > /dev/null
       - name: Smoke-test terrain prototype
         run: godot --headless --path . --scene res://scenes/prototypes/terrain_elevation_prototype.tscn --quit-after 5
