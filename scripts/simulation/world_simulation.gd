@@ -254,30 +254,27 @@ func _submit_attack(request: SimulationActionRequest, random_seed: int) -> Dicti
 ## source reaction: passive dodge remains part of hit chance in CombatRules.
 func _attack_reaction_options(attacker: CharacterState, target: CharacterState, options: Dictionary) -> Array[Dictionary]:
     var result: Array[Dictionary] = []
-    if target.reaction_blocked or not target.can_act() or target.parries_remaining <= 0:
+    if target.reaction_blocked:
         return result
-    var weapon_id := String(target.equipment.get("weapon", ""))
-    var is_ranged := bool(options.get("is_ranged", String(options.get("weapon_id", "")) == "bow"))
-    if is_ranged and weapon_id != "sword_arrow_deflection":
-        return result
-    var skill_base := "sword" if weapon_id == "sword_arrow_deflection" else weapon_id
-    if skill_base != "sword" and skill_base != "dagger":
-        return result
-    if int(target.skills.get("%s_parry" % skill_base, 0)) <= 0 or target.time_points < 3.0:
-        return result
-    var cost := 3.0
-    if int(target.skills.get("%s_parry_cost" % skill_base, 0)) > 0:
-        cost -= 1.0
-    if target.can_spend_time_points(cost):
-        result.append({
-            "id": "parry",
-            "name": "Parry",
-            "tp_cost": cost,
-            "effect": "parry",
-            "reactor_id": target.id,
-            "skill_base": skill_base,
-            "attacker_id": attacker.id
-        })
+    if target.can_act() and target.parries_remaining > 0:
+        var weapon_id := String(target.equipment.get("weapon", ""))
+        var is_ranged := bool(options.get("is_ranged", String(options.get("weapon_id", "")) == "bow"))
+        if not is_ranged or weapon_id == "sword_arrow_deflection":
+            var skill_base := "sword" if weapon_id == "sword_arrow_deflection" else weapon_id
+            if (skill_base == "sword" or skill_base == "dagger") and int(target.skills.get("%s_parry" % skill_base, 0)) > 0:
+                var cost := 3.0
+                if int(target.skills.get("%s_parry_cost" % skill_base, 0)) > 0:
+                    cost -= 1.0
+                if target.can_spend_time_points(cost):
+                    result.append({
+                        "id": "parry",
+                        "name": "Parry",
+                        "tp_cost": cost,
+                        "effect": "parry",
+                        "reactor_id": target.id,
+                        "skill_base": skill_base,
+                        "attacker_id": attacker.id
+                    })
 
     # Source-backed adjacent ally reactions. The old engine requires an
     # actual shield in the offhand for Shield Other, and a sword/dagger plus
