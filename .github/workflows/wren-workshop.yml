@@ -338,7 +338,7 @@ jobs:
     timeout-minutes: 45
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://scottenoc.github.io/Silverhart-Saga-3D/
     concurrency:
       group: combined-pages-deployment
       cancel-in-progress: false
