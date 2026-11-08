@@ -6,6 +6,7 @@ func _initialize() -> void:
     _test_character_round_trip()
     _test_campaign_journal()
     _test_hollowmere_campaign_content()
+    _test_hollowmere_encounter()
     _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
     _test_equipped_item_combat_effects()
@@ -40,6 +41,45 @@ func _check(condition: bool, message: String = "Assertion failed") -> void:
         push_error(message)
 
 
+func _test_hollowmere_encounter() -> void:
+    var simulation := WorldSimulation.new()
+    var player := CharacterState.new("player", "Adventurer", Vector2i(0, 0))
+    player.side = "player"
+    player.time_points = 151.0
+    simulation.register_character(player)
+    var wren := CharacterState.new("companion_wren_talbot", "Wren Talbot", Vector2i(1, 0))
+    simulation.register_character(wren)
+    for entry in [["dray_coltayne", Vector2i(0, 1)], ["tomlin_brask", Vector2i(1, 1)], ["hask_greel", Vector2i(2, 1)]]:
+        var enemy := CharacterState.new(String(entry[0]), String(entry[0]), entry[1])
+        simulation.register_character(enemy)
+    var bystander := CharacterState.new("garrick_holt", "Garrick Holt", Vector2i(3, 1))
+    simulation.register_character(bystander)
+    var started := HollowmereEncounter.start(simulation)
+    _check(bool(started.get("ok", false)), "Hollowmere encounter should start with its authored cast")
+    _check(simulation.is_in_combat)
+    _check(player.side == "player" and wren.side == "player")
+    _check(not player.combat_dormant and not wren.combat_dormant)
+    _check(simulation.get_character("dray_coltayne").side == "enemy")
+    _check(not simulation.get_character("dray_coltayne").combat_dormant)
+    _check(bystander.combat_dormant and bystander.side == "neutral", "Tavern bystanders must not enter combat initiative")
+    simulation.advance_world_seconds(0.1)
+    _check(simulation.get_current_turn_character() == player, "Highest-TP player should receive the first test turn")
+    var attack := simulation.try_attack_character("player", "dray_coltayne", {"time_point_cost": 20.0, "weapon_id": "sword"}, 9127)
+    _check(bool(attack.get("ok", false)), "The encounter should use the real WorldSimulation attack resolver")
+    _check(not HollowmereEncounter.enemies_defeated(simulation))
+    _check(not HollowmereEncounter.party_defeated(simulation))
+    simulation.get_character("dray_coltayne").apply_damage(1000)
+    simulation.get_character("tomlin_brask").apply_damage(1000)
+    simulation.get_character("hask_greel").apply_damage(1000)
+    _check(HollowmereEncounter.enemies_defeated(simulation), "Downed or dead Ironbond soldiers should end the encounter")
+    _check(not HollowmereEncounter.party_defeated(simulation))
+    simulation.get_character("player").apply_damage(1000)
+    simulation.get_character("companion_wren_talbot").apply_damage(1000)
+    _check(HollowmereEncounter.party_defeated(simulation), "The encounter should detect a defeated party")
+    simulation.end_combat()
+    simulation.free()
+
+
 func _test_hollowmere_campaign_content() -> void:
     var definition := HollowmereCampaignContent.shakedown_quest_definition()
     _check(String(definition.get("id", "")) == HollowmereCampaignContent.QUEST_ID, "Hollowmere shakedown must have a stable quest ID")
@@ -54,7 +94,7 @@ func _test_hollowmere_campaign_content() -> void:
     _check(choices.size() == 3, "Original shakedown should retain all three response branches")
     _check(bool(choices[0].get("available", false)), "Stay out branch should be available")
     _check(bool(choices[1].get("available", false)), "Encourage pay branch should be available")
-    _check(not bool(choices[2].get("available", true)), "Fight branch must remain gated until encounter AI and targeting are connected")
+    _check(bool(choices[2].get("available", false)), "Fight branch should be available now that the encounter is implemented")
     _check(int(choices[0].get("ironbond_delta", 0)) == 5)
     _check(int(choices[1].get("ironbond_delta", 0)) == 15)
     _check(int(choices[2].get("ironbond_delta", 0)) == -35)
@@ -83,14 +123,21 @@ func _test_hollowmere_campaign_content() -> void:
     _check(second_journal.npc_standing("garrick_holt") == 5)
     _check(second_journal.npc_standing("mira_ashbrook") == 0 and second_journal.npc_standing("oskar_vinn") == 0)
     _check(String(second_journal.quest_state(HollowmereCampaignContent.QUEST_ID).get("decisions", {}).get("ironbond_arc_side", "")) == "ironbond")
-    _check(not bool(HollowmereCampaignContent.resolve_shakedown(second_journal, "fight").get("ok", false)), "Unported fight branch must not resolve through the simulation")
+    var fight_journal := CampaignJournal.new()
+    fight_journal.register_quest_definition(definition)
+    fight_journal.start_quest(HollowmereCampaignContent.QUEST_ID)
+    var fight_result := HollowmereCampaignContent.resolve_shakedown(fight_journal, "fight")
+    _check(bool(fight_result.get("ok", false)), "The fight branch should resolve after combat victory")
+    _check(fight_journal.faction_standing("ironbond_company") == -35)
+    _check(fight_journal.npc_standing("garrick_holt") == 25 and fight_journal.npc_standing("mira_ashbrook") == 20)
+    _check(not bool(HollowmereCampaignContent.resolve_shakedown(second_journal, "fight").get("ok", false)), "A second branch cannot overwrite the recorded response")
 
     var garrick := HollowmereCampaignContent.npc_greeting("garrick_holt", false)
     _check(String(garrick.get("speaker", "")) == "Garrick Holt")
     _check(garrick.get("choices", []).size() >= 2, "Garrick should offer the Ironbond question and local news")
 
     var exchanges := HollowmereCampaignContent.ambient_exchanges()
-    _check(exchanges.size() >= 15, "Hollowmere should have a varied set of ambient exchanges")
+    _check(exchanges.size() >= 40, "Hollowmere should have a broad set of ambient exchanges")
     var has_aftermath := false
     for exchange_value in exchanges:
         var exchange: Dictionary = exchange_value
@@ -115,6 +162,12 @@ func _test_hollowmere_campaign_content() -> void:
     }
     _check(not chatter._is_eligible(aftermath, "civilian", "civilian", 12, 50, false), "Event chatter must be gated until the shakedown resolves")
     _check(chatter._is_eligible(aftermath, "civilian", "civilian", 12, 50, true), "Event chatter should unlock after the shakedown resolves")
+    var fight_only := {"id": "fight_after", "topic": "ironbond", "roles": ["any"], "requires_shakedown": true, "shakedown_choice": "fight"}
+    _check(not chatter._is_eligible(fight_only, "civilian", "civilian", 12, 50, false, "fight"))
+    _check(not chatter._is_eligible(fight_only, "civilian", "civilian", 12, 50, true, "stay_out"))
+    _check(chatter._is_eligible(fight_only, "civilian", "civilian", 12, 50, true, "fight"), "Outcome-specific chatter should unlock only for its matching branch")
+    var wick := HollowmereCampaignContent.npc_greeting("wick_hallow", false)
+    _check(String(wick.get("speaker", "")) == "Wick Hallow", "Wick should have a real talk tree")
     var night_exchange := {"id": "night", "topic": "time", "roles": ["any"], "hour_start": 21, "hour_end": 5}
     _check(chatter._is_eligible(night_exchange, "civilian", "civilian", 23, 50, false), "Night chatter should wrap across midnight")
     _check(not chatter._is_eligible(night_exchange, "civilian", "civilian", 12, 50, false), "Night chatter should not run at midday")
