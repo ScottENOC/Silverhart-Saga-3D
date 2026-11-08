@@ -162,14 +162,22 @@ jobs:
           PY
 
 
-      - name: Locate latest successful Wren Workshop site artifact
+      - name: Save browser build artifact before deployment
+        uses: actions/upload-artifact@v7
+        with:
+          name: godot-web-export
+          path: dist/game/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Locate latest available Wren Workshop site artifact
         id: workshop-site
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=dev&status=success&per_page=10" --jq '.workflow_runs[].id')"
+          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=dev&per_page=10" --jq '.workflow_runs[].id')"
           for run_id in $RUNS; do
             artifact_name="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name == "wren-workshop-site" and .expired == false) | .name' | head -n 1 || true)"
             if [ -n "$artifact_name" ]; then
@@ -221,11 +229,4 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Save browser build for combined Pages deployment
-        uses: actions/upload-artifact@v7
-        with:
-          name: godot-web-export
-          path: dist/game/
-          if-no-files-found: error
-          retention-days: 90
 
