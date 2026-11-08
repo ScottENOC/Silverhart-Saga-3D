@@ -8,12 +8,14 @@ static func base_cost_for(state: CharacterState) -> float:
     var skills: Dictionary = state.skills
     var equipment: Dictionary = state.equipment
     var armour_id := String(equipment.get("armour", ""))
-    var light_or_unarmoured := armour_id.is_empty() or armour_id == "light_armor"
+    var armour_item: Dictionary = state.equipped_item_data.get("armour", {})
+    var light_or_unarmoured := armour_id.is_empty() or armour_id == "light_armor" or String(armour_item.get("weight_class", "")) == "light"
     if light_or_unarmoured:
         cost -= float(skills.get("fastMovement", skills.get("fast_movement", 0)))
     var offhand_id := String(equipment.get("offhand", ""))
-    var has_shield := bool(equipment.get("offhand_is_shield", false)) or offhand_id == "shield"
-    if armour_id.is_empty() and not has_shield and int(skills.get("swift_step", 0)) > 0:
+    var offhand_item: Dictionary = state.equipped_item_data.get("offhand", {})
+    var has_shield := bool(equipment.get("offhand_is_shield", false)) or offhand_id == "shield" or String(offhand_item.get("type", "")) == "shield"
+    if armour_id.is_empty() and armour_item.is_empty() and not has_shield and int(skills.get("swift_step", 0)) > 0:
         cost -= 1.0
     return maxf(1.0, cost)
 
