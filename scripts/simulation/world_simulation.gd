@@ -31,6 +31,8 @@ func _on_combat_turn_started(character_id: String) -> void:
     var state := get_character(character_id)
     if state != null:
         state.parries_remaining = 3
+        state.sidesteps_remaining = 3
+        state.reaction_blocked = false
 
 func _process(delta: float) -> void:
     advance_real_time(delta)
