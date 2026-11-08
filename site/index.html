@@ -22,7 +22,7 @@ button:disabled{opacity:.4}
 <header><strong>WREN WORKSHOP</strong><span>Female and male Ara character preview</span></header>
 <main><div id="stage"><div id="status">Loading model…</div><div id="hint">Drag to orbit · Pinch or scroll to zoom · Two-finger drag to pan</div></div>
 <aside>
-<section><h2>Character</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="ara" selected>Female Ara · clothing and accessories</option><option value="body">Female Ara · body-only view</option><option value="male-body">Male Ara · standard build</option><option value="male-body-small">Male Ara · smaller build</option><option value="male-body-large">Male Ara · larger build</option></select></div><p class="note">The male anatomy review includes standard, smaller and larger body profiles. Compare the same anatomical geometry across all three; male clothing and accessory fitting remains a separate step.</p></section>
+<section><h2>Character</h2><div class="row"><span>Preview</span><select id="modelmode"><option value="ara" selected>Female Ara · clothing and accessories</option><option value="body">Female Ara · body-only view</option><option value="male-body">Male Ara · standard build</option></select></div><p class="note">The Workshop currently exposes one standard male Ara body for iterative anatomy review. Male clothing and accessory fitting remains a separate step.</p></section>
 <section><h2>Camera</h2><div class="buttons"><button data-view="front">Front</button><button data-view="back">Back</button><button data-view="left">Left</button><button data-view="right">Right</button><button data-view="three">3/4</button><button id="home">Reset</button></div><div class="row"><span>Auto rotate</span><input id="autorotate" type="checkbox"></div></section>
 <section><h2>Lighting</h2><div class="row"><span>Key light</span><input id="keylight" type="range" min="0" max="5" step=".1" value="3"></div><div class="row"><span>Fill light</span><input id="filllight" type="range" min="0" max="4" step=".1" value="1.4"></div><div class="row"><span>Light direction</span><input id="lightangle" type="range" min="0" max="360" value="35"></div></section>
 <section><h2>Appearance · material inspector</h2>
@@ -108,9 +108,9 @@ function loadModel(mode){
  document.querySelector('#tattooSection').hidden=maleMode;
  document.querySelectorAll('[data-tattoo]').forEach(b=>{b.disabled=maleMode;});
 
- const files={'ara':'ara_person_modular.glb','ara-mobile':'ara_person_mobile.glb','body':'ara_person_body.glb','male-body':'ara_person_male_body.glb','male-body-small':'ara_person_male_small_body.glb','male-body-large':'ara_person_male_large_body.glb','underwear':'ara_person_modular_underwear.glb'};
+ const files={'ara':'ara_person_modular.glb','ara-mobile':'ara_person_mobile.glb','body':'ara_person_body.glb','male-body':'ara_person_male_body.glb','underwear':'ara_person_modular_underwear.glb'};
  const file=files[mode]||'ara_person_benchmark.glb';
- const labels={'ara':'Ara · modular equipment','ara-mobile':'Ara mobile preview','body':'Ara body · no clothing','male-body':'Ara male body · standard build','male-body-small':'Ara male body · smaller build','male-body-large':'Ara male body · larger build','underwear':'Ara · underwear equipment'};
+ const labels={'ara':'Ara · modular equipment','ara-mobile':'Ara mobile preview','body':'Ara body · no clothing','male-body':'Ara male body · standard build','underwear':'Ara · underwear equipment'};
  const label=labels[mode]||'Ara high-detail benchmark';
  const modelUrl=new URL('./assets/'+file+'?v='+encodeURIComponent(buildVersion),window.location.href).href;
  if(model){scene.remove(model);disposeModel(model);model=null;box=null}
