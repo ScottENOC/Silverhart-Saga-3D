@@ -32,7 +32,6 @@ static func shakedown_choices() -> Array[Dictionary]:
             "label": "Stay out of it.",
             "response": "Garrick pays up, shoulders slumped. The soldiers leave with their due.",
             "ironbond_delta": 5,
-            "npc_deltas": {"garrick_holt": -10, "mira_ashbrook": -5, "oskar_vinn": -5},
             "arc_side": "",
             "available": true
         },
@@ -41,7 +40,6 @@ static func shakedown_choices() -> Array[Dictionary]:
             "label": "Tell Garrick to pay — and back it with a threat.",
             "response": "You back the demand with a hard stare. The soldiers take their due and leave without further trouble.",
             "ironbond_delta": 15,
-            "npc_deltas": {"garrick_holt": 5, "mira_ashbrook": 0, "oskar_vinn": 0},
             "arc_side": "ironbond",
             "available": true
         },
@@ -50,16 +48,39 @@ static func shakedown_choices() -> Array[Dictionary]:
             "label": "Side with Garrick. Fight them.",
             "response": "",
             "ironbond_delta": -35,
-            "npc_deltas": {"garrick_holt": 25, "mira_ashbrook": 20, "oskar_vinn": 20},
             "arc_side": "crown",
             "available": true
         }
     ]
 
 
+static func initialize_social_standings(journal: CampaignJournal) -> void:
+    if journal == null:
+        return
+    journal.seed_npc_reputation("garrick_holt", 5.0, 0.0)
+    journal.seed_npc_reputation("mira_ashbrook", 5.0, 0.0)
+    journal.seed_npc_reputation("oskar_vinn", 5.0, 0.0)
+    journal.seed_npc_reputation("hollowmere_elder", 5.0, 0.0)
+    journal.seed_npc_reputation("hollowmere_baron", 5.0, 0.0)
+    journal.seed_faction_reputation("ironbond_company", 5.0, 0.0)
+    journal.seed_faction_reputation("silverhart_kingdom", 5.0, 0.0)
+    journal.seed_merchant_influence("ironbond_company", "silverhart_kingdom", 30.0)
+
+
+static func _cascade_reputation(journal: CampaignJournal, standing_delta: float, knowledge_delta: float, reason: String) -> void:
+    var falloff := 0.4
+    var authority_ids: Array[String] = ["garrick_holt", "hollowmere_elder", "hollowmere_baron"]
+    for index in range(authority_ids.size()):
+        var multiplier := pow(falloff, index)
+        journal.adjust_npc_reputation(authority_ids[index], standing_delta * multiplier, knowledge_delta * multiplier, reason)
+    var kingdom_multiplier := pow(falloff, authority_ids.size())
+    journal.adjust_faction_reputation("silverhart_kingdom", standing_delta * kingdom_multiplier, knowledge_delta * kingdom_multiplier, reason)
+
+
 static func resolve_shakedown(journal: CampaignJournal, choice_id: String) -> Dictionary:
     if journal == null:
         return {"ok": false, "reason": "missing_journal"}
+    initialize_social_standings(journal)
     var selected: Dictionary = {}
     for choice_value in shakedown_choices():
         var choice: Dictionary = choice_value
@@ -72,11 +93,26 @@ static func resolve_shakedown(journal: CampaignJournal, choice_id: String) -> Di
     if not bool(decision.get("ok", false)):
         return decision
     journal.set_objective_progress(QUEST_ID, "response", 1.0)
-    journal.adjust_faction_standing("ironbond_company", int(selected.get("ironbond_delta", 0)), "Hollowmere shakedown: " + choice_id)
-    var npc_deltas: Dictionary = selected.get("npc_deltas", {})
-    for npc_id_value in npc_deltas.keys():
-        var npc_id := String(npc_id_value)
-        journal.adjust_npc_standing(npc_id, int(npc_deltas[npc_id_value]), "Hollowmere shakedown: " + choice_id)
+    var reason := "Hollowmere shakedown: " + choice_id
+    match choice_id:
+        "stay_out":
+            _cascade_reputation(journal, -10.0, 10.0, reason)
+            journal.adjust_npc_reputation("mira_ashbrook", -5.0, 5.0, reason)
+            journal.adjust_npc_reputation("oskar_vinn", -5.0, 5.0, reason)
+            journal.adjust_faction_reputation("ironbond_company", 5.0, 5.0, reason)
+            journal.adjust_merchant_influence("ironbond_company", "silverhart_kingdom", 1.0, reason)
+        "encourage_pay":
+            _cascade_reputation(journal, 5.0, 15.0, reason)
+            journal.adjust_npc_reputation("mira_ashbrook", 0.0, 10.0, reason)
+            journal.adjust_npc_reputation("oskar_vinn", 0.0, 10.0, reason)
+            journal.adjust_faction_reputation("ironbond_company", 15.0, 15.0, reason)
+            journal.adjust_merchant_influence("ironbond_company", "silverhart_kingdom", 2.0, reason)
+        "fight":
+            _cascade_reputation(journal, 25.0, 20.0, reason)
+            journal.adjust_npc_reputation("mira_ashbrook", 20.0, 20.0, reason)
+            journal.adjust_npc_reputation("oskar_vinn", 20.0, 20.0, reason)
+            journal.adjust_faction_reputation("ironbond_company", -35.0, 25.0, reason)
+            journal.adjust_merchant_influence("ironbond_company", "silverhart_kingdom", -2.0, reason)
     var arc_side := String(selected.get("arc_side", ""))
     if not arc_side.is_empty():
         journal.record_decision(QUEST_ID, "ironbond_arc_side", arc_side)
@@ -85,11 +121,12 @@ static func resolve_shakedown(journal: CampaignJournal, choice_id: String) -> Di
         return completion
     return {"ok": true, "choice": selected.duplicate(true)}
 
+
 static func shakedown_victory_text() -> String:
     return "It's over... thank you. I didn't think anyone would stand with us against the Company."
 
 
-static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing: int = 0, shakedown_choice: String = "") -> Dictionary:
+static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing: float = 0.0, shakedown_choice: String = "") -> Dictionary:
     match npc_id:
         "garrick_holt":
             if shakedown_resolved and shakedown_choice == "fight":
