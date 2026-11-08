@@ -33,6 +33,7 @@ MATS = {
     "wood": material("Oak", WOOD, 0.0, 0.78),
     "brass": material("Brass", BRASS, 0.82, 0.3),
     "leather": material("Leather", LEATHER, 0.0, 0.8),
+    "heraldry": material("HeraldryFace", (0.62, 0.08, 0.08, 1.0), 0.0, 0.78),
 }
 
 def clear_scene():
@@ -57,6 +58,20 @@ def shield_mesh(name, outline, thickness=0.035, mat="wood"):
     mesh = bpy.data.meshes.new(name + "Mesh")
     mesh.from_pydata(verts, [], faces)
     mesh.materials.append(MATS[mat])
+    mesh.materials.append(MATS["heraldry"])
+    # The +Z front is its own material surface for independent heraldry.
+    mesh.polygons[1].material_index = 1
+    uv_layer = mesh.uv_layers.new(name="ShieldFaceUV")
+    min_x = min(point[0] for point in outline)
+    max_x = max(point[0] for point in outline)
+    min_y = min(point[1] for point in outline)
+    max_y = max(point[1] for point in outline)
+    width = max(max_x - min_x, 0.0001)
+    height = max(max_y - min_y, 0.0001)
+    for polygon in mesh.polygons:
+        for loop_index in polygon.loop_indices:
+            vertex = mesh.vertices[mesh.loops[loop_index].vertex_index].co
+            uv_layer.data[loop_index].uv = ((vertex.x - min_x) / width, (vertex.y - min_y) / height)
     mesh.update()
     obj = bpy.data.objects.new(name, mesh)
     bpy.context.collection.objects.link(obj)
