@@ -462,10 +462,10 @@ def main():
 
     anatomy = None
     if args.profile == "female":
-        anatomy = integrate_anatomy_into_skin(skin, pelvis_z, width, height)
+        anatomy = integrate_anatomy_into_skin(skin, anatomy_z, width, height)
         surface_tree = build_bvh(skin)
         pelvis_surface_tree = surface_tree
-    create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, pelvis_z, body_front_y)
+    create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, anatomy_z, body_front_y)
     if anatomy is not None:
         # The hood sits just above the vulvar cleft, not on the mons pubis.
         hood_hit = front_hit_data(surface_tree, 0.0, anatomy_z + 0.034)
