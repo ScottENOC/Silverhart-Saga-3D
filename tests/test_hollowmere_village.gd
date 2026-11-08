@@ -1,5 +1,7 @@
 extends SceneTree
 
+const MAIN_CAMPAIGN_MAP = preload("res://scripts/world/main_campaign_world_map_data.gd")
+
 func _initialize() -> void:
     _test_village_bounds_and_terrain()
     _test_road_network_connectivity()
