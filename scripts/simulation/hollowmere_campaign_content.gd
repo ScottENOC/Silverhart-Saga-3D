@@ -32,6 +32,7 @@ static func shakedown_choices() -> Array[Dictionary]:
             "label": "Stay out of it.",
             "response": "Garrick pays up, shoulders slumped. The soldiers leave with their due.",
             "ironbond_delta": 5,
+            "npc_deltas": {"garrick_holt": -10, "mira_ashbrook": -5, "oskar_vinn": -5},
             "arc_side": "",
             "available": true
         },
@@ -40,6 +41,7 @@ static func shakedown_choices() -> Array[Dictionary]:
             "label": "Tell Garrick to pay — and back it with a threat.",
             "response": "You back the demand with a hard stare. The soldiers take their due and leave without further trouble.",
             "ironbond_delta": 15,
+            "npc_deltas": {"garrick_holt": 5, "mira_ashbrook": 0, "oskar_vinn": 0},
             "arc_side": "ironbond",
             "available": true
         },
@@ -48,6 +50,7 @@ static func shakedown_choices() -> Array[Dictionary]:
             "label": "Side with Garrick. Fight them.",
             "response": "",
             "ironbond_delta": -35,
+            "npc_deltas": {"garrick_holt": 25, "mira_ashbrook": 20, "oskar_vinn": 20},
             "arc_side": "crown",
             "available": false,
             "unavailable_reason": "The encounter AI and attack-targeting interface are not yet connected to this opening."
@@ -71,6 +74,10 @@ static func resolve_shakedown(journal: CampaignJournal, choice_id: String) -> Di
         return decision
     journal.set_objective_progress(QUEST_ID, "response", 1.0)
     journal.adjust_faction_standing("ironbond_company", int(selected.get("ironbond_delta", 0)), "Hollowmere shakedown: " + choice_id)
+    var npc_deltas: Dictionary = selected.get("npc_deltas", {})
+    for npc_id_value in npc_deltas.keys():
+        var npc_id := String(npc_id_value)
+        journal.adjust_npc_standing(npc_id, int(npc_deltas[npc_id_value]), "Hollowmere shakedown: " + choice_id)
     var arc_side := String(selected.get("arc_side", ""))
     if not arc_side.is_empty():
         journal.record_decision(QUEST_ID, "ironbond_arc_side", arc_side)
