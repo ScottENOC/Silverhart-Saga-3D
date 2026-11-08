@@ -12,6 +12,7 @@ on:
       - "data/**"
       - "tools/pwa/**"
       - "tools/ci/**"
+      - "tools/import_legacy_audio.py"
       - ".github/workflows/godot-web-export.yml"
 
 permissions:
@@ -111,6 +112,12 @@ jobs:
         run: |
           set -euo pipefail
           python tools/ci/validate_hollowmere_models.py
+
+      - name: Install FFmpeg for legacy audio import
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Import original music, dialogue and parry effects
+        run: python tools/import_legacy_audio.py
 
       - name: Install Godot 4.7.2 and Web export templates
         uses: chickensoft-games/setup-godot@v2
