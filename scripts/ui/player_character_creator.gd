@@ -19,8 +19,10 @@ const PRONOUN_SETS := ["He / him", "She / her", "They / them", "Use my name", "C
 
 var name_edit: LineEdit
 var game_mode_select: OptionButton
+var campaign_select: OptionButton
 var difficulty_select: OptionButton
 var ironman_check: CheckBox
+var arena_rewards_check: CheckBox
 var race_select: OptionButton
 var class_select: OptionButton
 var rules_preview: Label
@@ -81,12 +83,20 @@ func _build_screen() -> void:
 
     _section(panel, "GAME MODE")
     game_mode_select = _option_row(panel, "Mode", ["Campaign", "Arena"])
+    campaign_select = _option_row(panel, "Campaign", ["Small World — Hollowmere", "Main Campaign — coming later"])
+    campaign_select.set_item_metadata(0, "2")
+    campaign_select.set_item_metadata(1, "3")
+    campaign_select.set_item_disabled(1, true)
     difficulty_select = _option_row(panel, "Difficulty", ["Easy", "Normal", "Hard"])
     for i in range(3):
         difficulty_select.set_item_metadata(i, ["easy", "normal", "hard"][i])
     ironman_check = CheckBox.new()
     ironman_check.text = "Ironman run (save enforcement not yet ported)"
     panel.add_child(ironman_check)
+    arena_rewards_check = CheckBox.new()
+    arena_rewards_check.text = "Arena roguelike rewards"
+    arena_rewards_check.button_pressed = true
+    panel.add_child(arena_rewards_check)
     mode_note = Label.new()
     mode_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     mode_note.add_theme_color_override("font_color", Color(0.9, 0.75, 0.48))
@@ -194,6 +204,8 @@ func _load_saved_profile() -> void:
     _select_text(game_mode_select, "Campaign" if str(data.get("game_mode", "campaign")) == "campaign" else "Arena")
     _select_metadata(difficulty_select, str(data.get("difficulty_mode", "normal")))
     ironman_check.button_pressed = bool(data.get("ironman_mode", false))
+    _select_metadata(campaign_select, str(data.get("campaign_id", "2")))
+    arena_rewards_check.button_pressed = bool(data.get("arena_roguelike_rewards", true))
     _select_text(presentation_select, str(data.get("gender_presentation", "Masculine")))
     _select_text(pronoun_select, str(data.get("pronoun_preset", "They / them")))
     custom_pronouns.text = str(data.get("custom_pronouns", ""))
@@ -227,7 +239,9 @@ func _update_mode_controls(_index: int) -> void:
     if game_mode_select == null:
         return
     var arena := game_mode_select.get_item_text(game_mode_select.selected) == "Arena"
-    mode_note.text = "Arena is selected, but its lobby and combat loop have not yet been ported. Select Campaign to begin the playable Hollowmere opening." if arena else "Campaign 2 — Small World opens in Hollowmere. Main Campaign content is not yet ported. Ironman save enforcement is also pending."
+    campaign_select.visible = not arena
+    arena_rewards_check.visible = arena
+    mode_note.text = "Arena is selected, but its lobby and combat loop have not yet been ported. Select Campaign to begin the playable Hollowmere opening." if arena else "Small World (Campaign 2) opens in Hollowmere. Main Campaign content is not yet ported. Ironman save enforcement is also pending."
     start_button.disabled = arena
     if start_button != null:
         start_button.disabled = arena
@@ -255,7 +269,8 @@ func _finish() -> void:
         "race": _selected_id(race_select, "human"),
         "character_class": _selected_id(class_select, "fighter"),
         "game_mode": "campaign",
-        "campaign_id": "2",
+        "campaign_id": _selected_id(campaign_select, "2"),
+        "arena_roguelike_rewards": arena_rewards_check.button_pressed,
         "difficulty_mode": _selected_id(difficulty_select, "normal"),
         "ironman_mode": ironman_check.button_pressed,
         "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
