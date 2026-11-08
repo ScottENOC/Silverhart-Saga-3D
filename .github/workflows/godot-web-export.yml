@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://scottenoc.github.io/Silverhart-Saga-3D/game/
     timeout-minutes: 20
     steps:
       - name: Check out game project
