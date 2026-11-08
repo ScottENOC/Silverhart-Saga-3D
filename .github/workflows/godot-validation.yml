@@ -74,5 +74,7 @@ jobs:
           python -m json.tool data/items/item_definitions.json > /dev/null
       - name: Smoke-test terrain prototype
         run: godot --headless --path . --scene res://scenes/prototypes/terrain_elevation_prototype.tscn --quit-after 5
+      - name: Smoke-test campaign character creation and opening scene
+        run: godot --headless --path . --scene res://scenes/main.tscn --quit-after 10
       - name: Smoke-test opening village
         run: godot --headless --path . --quit-after 10
