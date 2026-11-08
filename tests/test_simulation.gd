@@ -480,6 +480,12 @@ func _test_combat_turn_scheduler() -> void:
     _check(loaded.get_character("guard") != null)
     _check(loaded.get_character("player") != null)
     _check(is_equal_approx(loaded.clock.world_seconds, sim.clock.world_seconds))
+    var forced_actor := CharacterState.new("forced_actor", "Forced Actor", Vector2i(3, 0))
+    forced_actor.time_points = 140.0
+    loaded.register_character(forced_actor)
+    loaded.turn_scheduler.current_character_id = "forced_actor"
+    _check(loaded.try_end_current_turn(true), "Forced end should relinquish the active turn")
+    _check(forced_actor.time_points == 80.0, "Voluntary turn end should forfeit unused TP to avoid immediate reselection")
     loaded.free()
     sim.free()
 
