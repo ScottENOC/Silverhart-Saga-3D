@@ -13,6 +13,7 @@ signal movement_reaction_resolved(mover_id: String, halted: bool)
 
 var campaign_journal: CampaignJournal = CampaignJournal.new()
 var map_data: HexMapData = HexMapData.new()
+var world_chunks: HexWorldChunkStreamer = HexWorldChunkStreamer.new()
 var wilderness_resources: WildernessResourceSystem = WildernessResourceSystem.new()
 var characters: Dictionary = {}
 var occupied_hexes: Dictionary = {}
@@ -669,6 +670,9 @@ func try_move_character_action(character_id: String, destination: Vector2i, time
     var result := submit_action(SimulationActionRequest.move(character_id, destination, time_point_cost))
     return bool(result.get("ok", false))
 
+func ensure_exploration_region(centre: Vector2i, chunk_radius: int = HexWorldChunkStreamer.DEFAULT_LOAD_RADIUS) -> int:
+    return world_chunks.load_around(map_data, centre, chunk_radius)
+
 func ensure_resource_at(hex: Vector2i) -> Dictionary:
     return wilderness_resources.ensure_node(hex, map_data.terrain_id_at(hex))
 
@@ -677,6 +681,7 @@ func harvest_resource_at(character_id: String, hex: Vector2i) -> Dictionary:
     return wilderness_resources.harvest(hex, map_data.terrain_id_at(hex), character, clock.world_seconds)
 
 func find_path(character_id: String, destination: Vector2i) -> Array[Vector2i]:
+    ensure_exploration_region(destination)
     var state := get_character(character_id)
     if state == null:
         return []
@@ -710,6 +715,7 @@ func _can_move_to(state: CharacterState, destination: Vector2i) -> bool:
     return true
 
 func _commit_move(state: CharacterState, destination: Vector2i) -> void:
+    ensure_exploration_region(destination)
     var origin: Vector2i = state.axial
     occupied_hexes.erase(origin)
     state.axial = destination
