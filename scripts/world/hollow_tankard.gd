@@ -8,6 +8,7 @@ const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const CHARACTER_CREATION_RULES = preload("res://scripts/simulation/character_creation_rules.gd")
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
+const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -67,6 +68,12 @@ var dialogue_panel: PanelContainer
 var dialogue_speaker_label: Label
 var dialogue_body_label: Label
 var dialogue_choices_box: VBoxContainer
+var attack_button: Button
+var end_turn_button: Button
+var combat_status_label: Label
+var encounter_active: bool = false
+var enemy_turn_processed: bool = false
+var enemy_turn_waiting_for_reaction: bool = false
 
 func _ready() -> void:
     _create_materials()
@@ -143,6 +150,7 @@ func _create_simulation() -> void:
     simulation.reaction_requested.connect(_on_reaction_requested)
     simulation.reaction_resolved.connect(_on_reaction_resolved)
     simulation.movement_reaction_resolved.connect(_on_movement_reaction_resolved)
+    simulation.turn_scheduler.turn_started.connect(_on_combat_turn_started)
 
 func _is_wall_cell_blocked(world: Vector3) -> bool:
     # The south-wall gap is the only opening. The nearest grid cells to the
@@ -407,7 +415,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.name = id
     actor.position = _hex_world_position(spawn_hex)
     actor.set_meta("character_id", id)
-    actor.set_meta("ambient_enabled", not is_player)
+    actor.set_meta("ambient_enabled", not is_player and id != "companion_wren_talbot")
     actor.set_meta("ambient_role", _ambient_role_for_id(id))
     actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
 
@@ -499,7 +507,7 @@ func _create_hud() -> void:
     var layer := CanvasLayer.new()
     var label := Label.new()
     label.position = Vector2(22.0, 18.0)
-    label.text = "HOLLOW TANKARD   |   W/A/S/D/Q/E: move one hex   |   F: talk   |   Click: pathfind   |   [ ]: turn   |   Right-drag: orbit   |   V: roof"
+    label.text = "HOLLOW TANKARD   |   W/A/S/D/Q/E: move   |   F: talk   |   Space: attack   |   Enter: end turn   |   Click: pathfind   |   [ ]: turn   |   V: roof"
     label.add_theme_font_size_override("font_size", 18)
     label.add_theme_color_override("font_color", Color(0.94, 0.93, 0.86))
     layer.add_child(label)
@@ -524,6 +532,29 @@ func _create_hud() -> void:
     world_map_button.custom_minimum_size = Vector2(150.0, 42.0)
     world_map_button.pressed.connect(_toggle_world_map)
     layer.add_child(world_map_button)
+
+    attack_button = Button.new()
+    attack_button.text = "Attack [Space]"
+    attack_button.position = Vector2(610.0, 54.0)
+    attack_button.custom_minimum_size = Vector2(145.0, 42.0)
+    attack_button.visible = false
+    attack_button.pressed.connect(_attack_active_character)
+    layer.add_child(attack_button)
+
+    end_turn_button = Button.new()
+    end_turn_button.text = "End Turn [Enter]"
+    end_turn_button.position = Vector2(765.0, 54.0)
+    end_turn_button.custom_minimum_size = Vector2(160.0, 42.0)
+    end_turn_button.visible = false
+    end_turn_button.pressed.connect(_end_active_turn)
+    layer.add_child(end_turn_button)
+
+    combat_status_label = Label.new()
+    combat_status_label.position = Vector2(610.0, 104.0)
+    combat_status_label.custom_minimum_size = Vector2(360.0, 54.0)
+    combat_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    combat_status_label.visible = false
+    layer.add_child(combat_status_label)
 
     bra_toggle_button = Button.new()
     bra_toggle_button.text = "Bra: on"
@@ -679,6 +710,9 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
     if choice_id == "continue":
         _close_dialogue()
         return
+    if choice_id == "fight":
+        _begin_shakedown_combat()
+        return
     if choice.has("ironbond_delta"):
         _resolve_shakedown(choice_id)
         var response := String(choice.get("response", ""))
@@ -721,7 +755,11 @@ func _interact_with_nearest_npc() -> void:
     if nearest_id.is_empty():
         _show_dialogue("No one nearby", "Move closer to someone if you want to speak with them.", [{"id": "continue", "label": "Close", "text": ""}])
         return
-    var conversation := HollowmereCampaignContent.npc_greeting(nearest_id, shakedown_resolved)
+    var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
+    var decisions: Dictionary = quest_state.get("decisions", {})
+    var response_choice := String(decisions.get("response", ""))
+    var standing := simulation.campaign_journal.npc_standing(nearest_id)
+    var conversation := HollowmereCampaignContent.npc_greeting(nearest_id, shakedown_resolved, standing, response_choice)
     var choices: Array[Dictionary] = []
     for choice_value in conversation.get("choices", []):
         var choice: Dictionary = choice_value
@@ -812,7 +850,7 @@ func _update_ambient_chatter(delta: float) -> void:
         var actor_id := String(actor_id_value)
         var actor := actor_by_id.get(actor_id) as Node3D
         var state := simulation.get_character(actor_id)
-        if actor != null and bool(actor.get_meta("ambient_enabled", false)) and state != null and state.alive:
+        if actor != null and bool(actor.get_meta("ambient_enabled", false)) and state != null and state.can_act() and state.side == "neutral":
             candidates.append(actor_id)
     if candidates.size() < 2:
         return
@@ -831,11 +869,14 @@ func _update_ambient_chatter(delta: float) -> void:
     var first_actor := actor_by_id.get(first_id) as Node3D
     var second_actor := actor_by_id.get(second_id) as Node3D
     var hour := int(fposmod(simulation.clock.world_seconds, 86400.0) / 3600.0)
+    var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
+    var decisions: Dictionary = quest_state.get("decisions", {})
+    var response_choice := String(decisions.get("response", ""))
     var exchange := ambient_chatter.choose_exchange(
         first_id, second_id,
         String(first_actor.get_meta("ambient_role", "civilian")),
         String(second_actor.get_meta("ambient_role", "civilian")),
-        simulation.clock.world_seconds, hour, ambient_security, shakedown_resolved, ambient_rng
+        simulation.clock.world_seconds, hour, ambient_security, shakedown_resolved, ambient_rng, response_choice
     )
     if exchange.is_empty():
         return
@@ -937,6 +978,8 @@ func _switch_party_member() -> void:
 
 func _process(delta: float) -> void:
     _update_ambient_chatter(delta)
+    _update_combat(delta)
+    _update_combat_ui()
     if active_path.size() < 2:
         return
     path_step_accumulator += delta
@@ -957,6 +1000,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
     if event is InputEventKey and event.pressed and not event.echo:
         var key_event := event as InputEventKey
+        if key_event.keycode == KEY_SPACE:
+            _attack_active_character()
+            get_viewport().set_input_as_handled()
+            return
+        if key_event.keycode == KEY_ENTER or key_event.keycode == KEY_KP_ENTER:
+            _end_active_turn()
+            get_viewport().set_input_as_handled()
+            return
         if key_event.keycode == KEY_F:
             _interact_with_nearest_npc()
             get_viewport().set_input_as_handled()
