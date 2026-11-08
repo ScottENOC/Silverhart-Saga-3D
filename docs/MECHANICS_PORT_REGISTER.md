@@ -79,7 +79,8 @@ Do not begin a broad spell/skill/content migration until these shared action and
 
 - [ ] Attribute and skill trees, rank limits, prerequisites, skill costs, respec/difficulty rules and derived effects.
 - [ ] XP/level progression and NPC progression policies/modes.
-- [ ] Inventory instances, stack rules, currency, loot, shops, equipment slots, armour/weapon/shield readiness, encumbrance and item identity.
+- [x] Initial persistent inventory item instances, equipment-slot swap/unequip operations, and data-backed Character/Inventory panel. Equipped item instance damage/reduction and armour weight metadata now feed the existing combat/movement rules.
+- [ ] Full source item catalogue, stack rules, currency, loot, shops, equipment readiness, encumbrance, item identity and complete inventory persistence.
 - [ ] Spells as simulation actions with targeting, range, costs, durations/upkeep, interruption, multi-target/fork modifiers, summons and world effects.
 - [ ] Preserve the original design principle: magic and skills are **world verbs**, not merely damage buttons. Include traversal, concealment, illusion, divination, communication, influence, manipulation, investigation and transformation where supported by the source.
 - [ ] Crafting, gathering, farming, construction, camp deployment, resource processing and trade.
