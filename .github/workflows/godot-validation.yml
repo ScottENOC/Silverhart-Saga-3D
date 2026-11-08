@@ -60,6 +60,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_simulation.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
+      - name: Run player inventory catalogue tests
+        run: godot --headless --path . --script res://tests/test_player_inventory_catalog.gd
       - name: Run seasonal tree tests
         run: godot --headless --path . --script res://tests/test_seasonal_trees.gd
       - name: Run wilderness resource visual tests
