@@ -3,6 +3,7 @@ extends Node3D
 
 const MODULAR_CHARACTER_ASSEMBLER = preload("res://scripts/presentation/modular_character_assembler.gd")
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
+const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -14,6 +15,7 @@ const WALL_HEIGHT: float = 3.2
 const ROOF_RIDGE_HEIGHT: float = 5.8
 
 var simulation: WorldSimulation
+var reaction_prompt: CanvasLayer
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
 var actor_by_id: Dictionary = {}
@@ -114,6 +116,8 @@ func _create_simulation() -> void:
             simulation.map_data.add_cell(hex, 0.0, not blocked, terrain_id)
 
     simulation.character_moved.connect(_on_character_moved)
+    simulation.reaction_requested.connect(_on_reaction_requested)
+    simulation.reaction_resolved.connect(_on_reaction_resolved)
 
 func _is_wall_cell_blocked(world: Vector3) -> bool:
     # The south-wall gap is the only opening. The nearest grid cells to the
@@ -513,6 +517,25 @@ func _create_hud() -> void:
     zoom_panel.add_child(zoom_in_button)
 
     add_child(layer)
+
+    # Reactions are requested by the simulation and displayed here. The UI
+    # never decides eligibility or spends TP; it returns a choice ID only.
+    reaction_prompt = REACTION_PROMPT_SCRIPT.new()
+    reaction_prompt.name = "ReactionPrompt"
+    reaction_prompt.choice_selected.connect(_on_reaction_choice_selected)
+    add_child(reaction_prompt)
+
+func _on_reaction_requested(reactor_id: String, options: Array[Dictionary], request_id: int, _source_event_id: String) -> void:
+    if reaction_prompt != null:
+        reaction_prompt.present(reactor_id, options, request_id)
+
+func _on_reaction_choice_selected(choice_id: String, _request_id: int) -> void:
+    if simulation != null:
+        simulation.resolve_reaction(choice_id)
+
+func _on_reaction_resolved(_reactor_id: String, _choice_id: String, _request_id: int, _reason: String) -> void:
+    if reaction_prompt != null:
+        reaction_prompt.dismiss()
 
 func _on_zoom_slider_changed(value: float) -> void:
     camera_rig.set_zoom(value)
