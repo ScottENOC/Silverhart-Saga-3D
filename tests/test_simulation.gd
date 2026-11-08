@@ -812,13 +812,14 @@ func _test_race_class_character_creation() -> void:
     hard.time_points = 10.0
     var rng := RandomNumberGenerator.new()
     rng.seed = 1
-    var result := CombatRules.resolve_attack(hard, target, {"time_point_cost":1.0}, rng)
-    _check(int(result.get("damage", 0)) == 4, "Hard mode reduces player damage by 10 percent")
+    var result := CombatRules.resolve_attack(hard, target, {"time_point_cost":1.0, "bonus_damage":10}, rng)
+    _check(int(result.get("damage", 0)) == 13, "Hard mode reduces player damage by 10 percent")
     var enemy := CharacterState.new("enemy", "Enemy")
     enemy.to_hit_melee = 100.0
+    enemy.base_damage = 10
     enemy.time_points = 10.0
     var hard_target := CharacterCreationRules.create_player_state(hard_profile, "hard_target_player", Vector2i(1, 0))
     hard_target.health = 100
     hard_target.max_health = 100
     var incoming := CombatRules.resolve_attack(enemy, hard_target, {"time_point_cost":1.0}, rng)
-    _check(int(incoming.get("damage", 0)) == 5, "Hard mode increases incoming damage by 10 percent")
+    _check(int(incoming.get("damage", 0)) == 11, "Hard mode increases incoming damage by 10 percent")
