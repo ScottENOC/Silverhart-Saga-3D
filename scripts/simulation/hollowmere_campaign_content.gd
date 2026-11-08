@@ -55,6 +55,30 @@ static func shakedown_choices() -> Array[Dictionary]:
     ]
 
 
+static func resolve_shakedown(journal: CampaignJournal, choice_id: String) -> Dictionary:
+    if journal == null:
+        return {"ok": false, "reason": "missing_journal"}
+    var selected: Dictionary = {}
+    for choice_value in shakedown_choices():
+        var choice: Dictionary = choice_value
+        if String(choice.get("id", "")) == choice_id and bool(choice.get("available", true)):
+            selected = choice
+            break
+    if selected.is_empty():
+        return {"ok": false, "reason": "choice_unavailable"}
+    var decision := journal.record_decision(QUEST_ID, "response", choice_id)
+    if not bool(decision.get("ok", false)):
+        return decision
+    journal.set_objective_progress(QUEST_ID, "response", 1.0)
+    journal.adjust_faction_standing("ironbond_company", int(selected.get("ironbond_delta", 0)), "Hollowmere shakedown: " + choice_id)
+    var arc_side := String(selected.get("arc_side", ""))
+    if not arc_side.is_empty():
+        journal.record_decision(QUEST_ID, "ironbond_arc_side", arc_side)
+    var completion := journal.complete_quest(QUEST_ID)
+    if not bool(completion.get("ok", false)):
+        return completion
+    return {"ok": true, "choice": selected.duplicate(true)}
+
 static func npc_greeting(npc_id: String, shakedown_resolved: bool) -> Dictionary:
     match npc_id:
         "garrick_holt":
