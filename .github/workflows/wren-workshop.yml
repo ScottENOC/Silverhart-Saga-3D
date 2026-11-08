@@ -543,6 +543,8 @@ jobs:
           cp art/characters/ara/ara_person_body.glb site/assets/ara_person_body.glb
           cp art/characters/ara/ara_person_tattoo_body.glb site/assets/ara_person_tattoo_body.glb
           cp art/characters/ara/ara_person_male_body.glb site/assets/ara_person_male_body.glb
+          cp art/characters/ara/ara_person_male_small_body.glb site/assets/ara_person_male_small_body.glb
+          cp art/characters/ara/ara_person_male_large_body.glb site/assets/ara_person_male_large_body.glb
           printf '%s\\n' "${GITHUB_SHA}" > site/build-version.txt
           test -s site/index.html
           test -s site/README.md
