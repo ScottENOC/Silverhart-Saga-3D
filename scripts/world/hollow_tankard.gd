@@ -1321,7 +1321,12 @@ func _gather_at_player() -> void:
     for item_id in result.get("item_ids", []):
         var definition := ItemCatalog.get_definition(String(item_id))
         names.append(String(definition.get("name", item_id)))
-    resource_status_label.text = "Gathered: " + ", ".join(names)
+    var gathered_text := ""
+    for item_name in names:
+        if not gathered_text.is_empty():
+            gathered_text += ", "
+        gathered_text += item_name
+    resource_status_label.text = "Gathered: " + gathered_text
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseButton:
