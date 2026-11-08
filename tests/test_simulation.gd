@@ -15,6 +15,8 @@ func _initialize() -> void:
     _test_downed_and_death_lifecycle()
     _test_unified_action_contract()
     _test_attack_waits_for_parry_resolution()
+    _test_protector_ally_parry()
+    _test_shield_other_reduces_one_attack()
     _test_reaction_resolution_safety()
     _test_incapacitated_turn_cleanup()
     if _failures > 0:
@@ -395,6 +397,77 @@ func _test_attack_waits_for_parry_resolution() -> void:
     _check(defender.parries_remaining == 2, "A parry consumes one per-turn parry use")
     _check(is_equal_approx(defender.time_points, 17.0), "The defender pays the source-defined 3 TP parry cost")
     _check(is_equal_approx(attacker.time_points, 25.0), "A successful parry still consumes the attack action's TP cost")
+    sim.free()
+
+func _test_protector_ally_parry() -> void:
+    var sim := WorldSimulation.new()
+    sim.map_data.add_cell(Vector2i.ZERO)
+    sim.map_data.add_cell(Vector2i(1, 0))
+    sim.map_data.add_cell(Vector2i(0, 1))
+    var attacker := CharacterState.new("attacker", "Attacker", Vector2i.ZERO)
+    var target := CharacterState.new("target", "Target", Vector2i(1, 0))
+    var protector := CharacterState.new("protector", "Protector", Vector2i(0, 1))
+    attacker.to_hit_melee = 100.0
+    attacker.base_damage = 20
+    attacker.time_points = 30.0
+    target.side = "player"
+    target.time_points = 10.0
+    protector.side = "player"
+    protector.time_points = 20.0
+    protector.to_hit_melee = 100.0
+    protector.equipment["weapon"] = "sword"
+    protector.skills["protector"] = 1
+    protector.skills["sword_parry"] = 1
+    sim.register_character(attacker)
+    sim.register_character(target)
+    sim.register_character(protector)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = "attacker"
+
+    var pending := sim.try_attack_character("attacker", "target", {"time_point_cost": 5.0}, 77)
+    _check(bool(pending.get("pending", false)), "An eligible adjacent Protector should be offered a reaction")
+    _check(target.health == 100, "Protector choice must be offered before attack damage")
+    var chosen := sim.resolve_reaction("protector_parry_protector")
+    _check(bool(chosen.get("ok", false)))
+    _check(target.health == 100, "A successful Protector parry cancels the attack")
+    _check(protector.parries_remaining == 2, "Protector consumes one parry allowance")
+    _check(is_equal_approx(protector.time_points, 17.0), "Protector pays their own 3 TP")
+    _check(is_equal_approx(target.time_points, 10.0), "Protected target does not pay the ally's TP cost")
+    _check(is_equal_approx(attacker.time_points, 25.0), "A successful Protector parry still charges the attack")
+    sim.free()
+
+func _test_shield_other_reduces_one_attack() -> void:
+    var sim := WorldSimulation.new()
+    sim.map_data.add_cell(Vector2i.ZERO)
+    sim.map_data.add_cell(Vector2i(1, 0))
+    sim.map_data.add_cell(Vector2i(0, 1))
+    var attacker := CharacterState.new("attacker", "Attacker", Vector2i.ZERO)
+    var target := CharacterState.new("target", "Target", Vector2i(1, 0))
+    var protector := CharacterState.new("shield_ally", "Shield Ally", Vector2i(0, 1))
+    attacker.to_hit_melee = 100.0
+    attacker.base_damage = 20
+    attacker.time_points = 30.0
+    target.side = "player"
+    target.time_points = 10.0
+    protector.side = "player"
+    protector.time_points = 20.0
+    protector.equipment["offhand"] = {"id": "round_shield", "type": "shield", "reduction": 4}
+    protector.skills["shield_other"] = 1
+    protector.skills["shield_proficiency"] = 1
+    sim.register_character(attacker)
+    sim.register_character(target)
+    sim.register_character(protector)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = "attacker"
+
+    var pending := sim.try_attack_character("attacker", "target", {"time_point_cost": 5.0}, 91)
+    _check(bool(pending.get("pending", false)), "An adjacent shield ally should be offered Shield Other")
+    var chosen := sim.resolve_reaction("shield_other_shield_ally")
+    _check(bool(chosen.get("ok", false)))
+    _check(target.health == 85, "Shield Other should reduce only this incoming hit by shield plus proficiency")
+    _check(target.temp_reduction == 0, "Temporary Shield Other reduction must be removed after the attack")
+    _check(is_equal_approx(protector.time_points, 19.0), "Shield Other ally pays 1 TP")
+    _check(is_equal_approx(target.time_points, 10.0), "Protected target does not pay ally TP")
     sim.free()
 
 func _test_reaction_resolution_safety() -> void:
