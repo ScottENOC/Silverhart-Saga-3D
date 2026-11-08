@@ -8,6 +8,9 @@ on:
       - "data/characters/hollowmere_npcs.json"
       - "tools/ara/build_hollowmere_npcs.py"
       - "tools/ara/patch_layering.py"
+      - "tools/ara/integrate_hollowmere_anatomy.py"
+      - "tools/blender/add_adult_anatomy.py"
+      - "tools/blender/add_male_anatomy.py"
       - ".github/workflows/hollowmere-npcs.yml"
 
 permissions:
