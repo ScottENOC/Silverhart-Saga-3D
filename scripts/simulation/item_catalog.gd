@@ -28,6 +28,18 @@ static func _definitions() -> Dictionary:
     return _definitions_cache
 
 
+static func get_item_ids() -> Array[String]:
+    var result: Array[String] = []
+    for item_id in _definitions().keys():
+        result.append(String(item_id))
+    result.sort()
+    return result
+
+
+static func get_all_definitions() -> Dictionary:
+    return _definitions().duplicate(true)
+
+
 static func get_definition(item_id: String) -> Dictionary:
     var definitions := _definitions()
     var value: Variant = definitions.get(item_id, {})

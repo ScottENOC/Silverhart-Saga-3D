@@ -93,6 +93,23 @@ static func create_player_state(profile: Dictionary, character_id: String, start
         if state.add_inventory_item(item) and equipped_ids.has(item_id):
             if not state.equip_inventory_item(String(item.instance_id)):
                 push_error("Could not equip starting item: %s" % item_id)
+
+    # Optional development inventory. The character creator enables this
+    # temporarily; simulation tests and future normal campaign starts stay clean.
+    if bool(profile.get("grant_all_catalogue_items", false)):
+        var owned_item_ids: Dictionary = {}
+        for item in state.inventory:
+            owned_item_ids[String(item.get("id", ""))] = true
+        for item in state.equipped_item_data.values():
+            owned_item_ids[String(item.get("id", ""))] = true
+        for item_id in ITEM_CATALOG.get_item_ids():
+            if owned_item_ids.has(item_id):
+                continue
+            var item := ITEM_CATALOG.create_instance(item_id, "catalog_%s_%s" % [character_id, item_id])
+            if item.is_empty() or not state.add_inventory_item(item):
+                push_error("Could not seed development inventory item: %s" % item_id)
+                continue
+            owned_item_ids[item_id] = true
     return state
 
 static func preview_text(race_id: String, class_id: String, difficulty_id: String) -> String:

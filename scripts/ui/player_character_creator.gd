@@ -46,6 +46,7 @@ var height_slider: HSlider
 var preview_status: Label
 var preview_actor: AraCharacterActor
 var preview_variant_loaded: String = ""
+var all_items_check: CheckBox
 
 func _ready() -> void:
     layer = 100
@@ -225,6 +226,11 @@ func _build_screen() -> void:
     note.add_theme_color_override("font_color", Color(0.9, 0.75, 0.48))
     panel.add_child(note)
 
+    all_items_check = CheckBox.new()
+    all_items_check.text = "Development inventory: start with one of every catalogue item"
+    all_items_check.button_pressed = true
+    panel.add_child(all_items_check)
+
     start_button = Button.new()
     start_button.text = "BEGIN MAIN CAMPAIGN"
     start_button.custom_minimum_size = Vector2(0, 52)
@@ -285,6 +291,7 @@ func _load_saved_profile() -> void:
     ironman_check.button_pressed = bool(data.get("ironman_mode", false))
     _select_metadata(campaign_select, str(data.get("campaign_id", "2")))
     arena_rewards_check.button_pressed = bool(data.get("arena_roguelike_rewards", true))
+    all_items_check.button_pressed = bool(data.get("grant_all_catalogue_items", true))
     _select_text(body_variant_select, "Male" if str(data.get("body_variant", "female")) == "male" else "Female")
     _select_text(presentation_select, str(data.get("gender_presentation", "Masculine")))
     _select_text(pronoun_select, str(data.get("pronoun_preset", "They / them")))
@@ -400,7 +407,8 @@ func _finish() -> void:
         "hair_style": hair_style_select.get_item_text(hair_style_select.selected),
         "body_build": body_select.get_item_text(body_select.selected),
         "shirt": shirt_select.get_item_text(shirt_select.selected),
-        "legwear": trousers_select.get_item_text(trousers_select.selected)
+        "legwear": trousers_select.get_item_text(trousers_select.selected),
+        "grant_all_catalogue_items": all_items_check.button_pressed
     }
     var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
     if file != null:
