@@ -63,7 +63,6 @@ var ambient_exchange_running: bool = false
 var ambient_security: int = 50
 var shakedown_started: bool = false
 var shakedown_resolved: bool = false
-var shakedown_soldiers_waiting_outside: bool = false
 var dialogue_open: bool = false
 var dialogue_panel: PanelContainer
 var dialogue_speaker_label: Label
@@ -536,7 +535,7 @@ func _create_hud() -> void:
 
     attack_button = Button.new()
     attack_button.text = "Attack [Space]"
-    attack_button.position = Vector2(610.0, 54.0)
+    attack_button.position = Vector2(610.0, 70.0)
     attack_button.custom_minimum_size = Vector2(145.0, 42.0)
     attack_button.visible = false
     attack_button.pressed.connect(_attack_active_character)
@@ -544,14 +543,14 @@ func _create_hud() -> void:
 
     end_turn_button = Button.new()
     end_turn_button.text = "End Turn [Enter]"
-    end_turn_button.position = Vector2(765.0, 54.0)
+    end_turn_button.position = Vector2(765.0, 70.0)
     end_turn_button.custom_minimum_size = Vector2(160.0, 42.0)
     end_turn_button.visible = false
     end_turn_button.pressed.connect(_end_active_turn)
     layer.add_child(end_turn_button)
 
     combat_status_label = Label.new()
-    combat_status_label.position = Vector2(610.0, 104.0)
+    combat_status_label.position = Vector2(610.0, 120.0)
     combat_status_label.custom_minimum_size = Vector2(360.0, 54.0)
     combat_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     combat_status_label.visible = false
@@ -736,7 +735,7 @@ func _close_dialogue() -> void:
 
 
 func _interact_with_nearest_npc() -> void:
-    if dialogue_open or encounter_active or shakedown_started and not shakedown_resolved:
+    if dialogue_open or ambient_exchange_running or encounter_active or shakedown_started and not shakedown_resolved:
         return
     var player_state := simulation.get_character(active_character_id)
     if player_state == null:
@@ -816,7 +815,6 @@ func _move_shakedown_soldiers_outside() -> void:
             await get_tree().create_timer(0.24).timeout
             if not is_instance_valid(self):
                 return
-    shakedown_soldiers_waiting_outside = true
 
 
 func _move_shakedown_soldiers_inside() -> void:
