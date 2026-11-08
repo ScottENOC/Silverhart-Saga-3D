@@ -237,7 +237,7 @@ func _build_screen() -> void:
     start_button.pressed.connect(_finish)
     panel.add_child(start_button)
     _update_mode_controls(game_mode_select.selected)
-    _refresh_appearance_preview(0)
+    call_deferred("_refresh_appearance_preview", 0)
 
 func _section(parent: VBoxContainer, text_value: String) -> void:
     var label := Label.new()
@@ -331,8 +331,9 @@ func _refresh_appearance_preview(_index: int) -> void:
     if not ResourceLoader.exists(asset_path):
         asset_path = MALE_PREVIEW_FALLBACK if variant == "male" else FEMALE_PREVIEW_FALLBACK
     if preview_variant_loaded != variant:
-        if not preview_actor.configure(asset_path):
-            preview_status.text = "Preview asset unavailable: %s. The selected body choice will still be saved." % asset_path
+        var body_resource := await _load_preview_asset(asset_path, "%s Ara body model" % variant.capitalize(), 0, 2)
+        if body_resource == null or not preview_actor.configure(asset_path):
+            preview_status.text = "Preview asset unavailable or failed to instantiate: %s. Your appearance choices can still be saved." % asset_path
             preview_variant_loaded = ""
             return
         preview_variant_loaded = variant
@@ -350,20 +351,48 @@ func _refresh_appearance_preview(_index: int) -> void:
     preview_actor.apply_player_profile(profile)
     var hair_id := String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02"))
     var hair_path := "res://art/characters/ara_runtime/hair/%s_%s.glb" % [variant, hair_id]
-    var using_ara_base := preview_actor.loaded_asset_path.contains("/ara_runtime/hair/")
+    var using_ara_base := preview_actor.loaded_asset_path.contains("/ara_runtime/")
     var hair_loaded := false
     if using_ara_base:
         if hair_id == "none":
             preview_actor.clear_hairstyle()
             hair_loaded = true
+            preview_status.text = "Loaded 2 of 2 assets · %s body ready · no separate hairstyle required." % variant.capitalize()
         elif ResourceLoader.exists(hair_path):
-            hair_loaded = preview_actor.set_hairstyle(hair_path)
+            var hair_resource := await _load_preview_asset(hair_path, "%s hairstyle (%s)" % [hair_style_select.get_item_text(hair_style_select.selected), hair_id], 1, 2)
+            hair_loaded = hair_resource != null and preview_actor.set_hairstyle(hair_path)
     if using_ara_base and hair_loaded:
-        preview_status.text = "%s Ara base · %s hairstyle · hair colour is independently tintable." % [variant.capitalize(), hair_style_select.get_item_text(hair_style_select.selected)]
+        preview_status.text = "Loaded 2 of 2 assets · %s body and %s hairstyle ready. Hair colour is independently tintable." % [variant.capitalize(), hair_style_select.get_item_text(hair_style_select.selected)]
     elif using_ara_base:
-        preview_status.text = "Ara %s base loaded, but hairstyle asset is missing or failed its skeleton compatibility check: %s" % [variant, hair_id]
+        preview_status.text = "Loaded 1 of 2 assets · %s body ready. FAILED: hairstyle asset %s is missing or incompatible with the body skeleton." % [variant.capitalize(), hair_id]
     else:
-        preview_status.text = "Legacy preview model loaded. Run the Ara Hair Variants workflow and install its hair bundle to enable the real hairstyle selector."
+        preview_status.text = "Loaded 1 of 1 assets · Legacy preview model ready. Install the Ara hair bundle to enable separate hairstyles."
+
+func _load_preview_asset(path: String, description: String, loaded_count: int, total_count: int) -> Resource:
+    if ResourceLoader.has_cached(path):
+        preview_status.text = "Loaded %d of %d assets · Currently loading: %s (cached)" % [loaded_count + 1, total_count, description]
+        return load(path)
+    var request_error := ResourceLoader.load_threaded_request(path)
+    if request_error != OK and request_error != ERR_BUSY:
+        preview_status.text = "FAILED to start loading %s (error %d)." % [description, request_error]
+        return null
+    var progress: Array = []
+    var status := ResourceLoader.load_threaded_get_status(path, progress)
+    while status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+        var percent := int(round(float(progress[0]) * 100.0)) if not progress.is_empty() else 0
+        preview_status.text = "Loaded %d of %d assets\nCurrently loading: %s (%d%%)" % [loaded_count, total_count, description, percent]
+        await get_tree().process_frame
+        progress.clear()
+        status = ResourceLoader.load_threaded_get_status(path, progress)
+    if status != ResourceLoader.THREAD_LOAD_LOADED:
+        preview_status.text = "FAILED loading %s (status %d). Check the Godot Output panel for the resource error." % [description, status]
+        return null
+    var resource := ResourceLoader.load_threaded_get(path)
+    if resource == null:
+        preview_status.text = "FAILED loading %s: Godot returned an empty resource." % description
+        return null
+    preview_status.text = "Loaded %d of %d assets · Finished: %s" % [loaded_count + 1, total_count, description]
+    return resource
 
 func _rotate_preview(degrees: float) -> void:
     if preview_actor != null and is_instance_valid(preview_actor):
