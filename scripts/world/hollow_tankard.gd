@@ -747,7 +747,7 @@ func _interact_with_nearest_npc() -> void:
         if actor_id == active_character_id or party_member_ids.has(actor_id):
             continue
         var state := simulation.get_character(actor_id)
-        if state == null or not state.can_act() or state.side != "neutral":
+        if state == null or not state.can_act() or state.side == "enemy":
             continue
         var distance := HexGrid.distance(player_state.axial, state.axial)
         if distance <= 2 and distance < nearest_distance:
