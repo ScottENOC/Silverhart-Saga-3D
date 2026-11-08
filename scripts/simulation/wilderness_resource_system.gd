@@ -58,6 +58,12 @@ func ensure_node(hex: Vector2i, terrain_id: String) -> Dictionary:
         nodes[key] = node
     return node.duplicate(true)
 
+func set_authored_node(hex: Vector2i, node: Dictionary) -> void:
+    if node.is_empty() or String(node.get("type", "")).is_empty():
+        nodes.erase(_key(hex))
+        return
+    nodes[_key(hex)] = node.duplicate(true)
+
 func harvest(hex: Vector2i, terrain_id: String, character: CharacterState, world_seconds: float) -> Dictionary:
     if character == null or not character.can_act():
         return _failure("character_unavailable")
