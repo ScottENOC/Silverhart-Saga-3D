@@ -903,7 +903,7 @@ func _ambient_role_for_id(character_id: String) -> String:
 
 
 func _update_ambient_chatter(delta: float) -> void:
-    if dialogue_open or simulation == null or simulation.is_in_combat or simulation.clock.paused or ambient_exchange_running:
+    if dialogue_open or shakedown_started and not shakedown_resolved or simulation == null or simulation.is_in_combat or simulation.clock.paused or ambient_exchange_running:
         return
     ambient_accumulator += delta
     if ambient_accumulator < 16.0:
