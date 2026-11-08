@@ -57,8 +57,9 @@ static func shakedown_choices() -> Array[Dictionary]:
 static func initialize_social_standings(journal: CampaignJournal, player_race: String = "human") -> void:
     if journal == null:
         return
-    var human_standing := 5.0 if player_race == "human" else 0.0
-    if player_race == "goblin" or player_race == "orc":
+    var normalized_race := player_race.to_lower()
+    var human_standing := 5.0 if normalized_race == "human" else 0.0
+    if normalized_race == "goblin" or normalized_race == "orc":
         human_standing = -15.0
     journal.seed_npc_reputation("garrick_holt", human_standing, 0.0)
     journal.seed_npc_reputation("mira_ashbrook", human_standing, 0.0)
