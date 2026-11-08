@@ -21,7 +21,33 @@ static func is_in_bounds(hex: Vector2i) -> bool:
     return HexGrid.distance(Vector2i.ZERO, hex) <= MAP_RADIUS
 
 static func is_water(hex: Vector2i) -> bool:
-    return hex.y == STREAM_R and hex.x >= STREAM_Q_MIN and hex.x <= STREAM_Q_MAX and hex != BRIDGE
+    if hex.x < STREAM_Q_MIN or hex.x > STREAM_Q_MAX or hex == BRIDGE:
+        return false
+    var centre_r := _river_centre_r(hex.x)
+    var half_width := _river_half_width(hex.x)
+    return absf(float(hex.y) - centre_r) <= half_width
+
+static func _river_centre_r(q: int) -> float:
+    var samples: Array[Vector2i] = [
+        Vector2i(-30, -22), Vector2i(-24, -24), Vector2i(-18, -22),
+        Vector2i(-12, -24), Vector2i(-6, -27), Vector2i(0, -23),
+        Vector2i(5, -24), Vector2i(8, -25), Vector2i(12, -27),
+        Vector2i(18, -25), Vector2i(24, -28), Vector2i(30, -25)
+    ]
+    for index in range(samples.size() - 1):
+        if q <= samples[index + 1].x:
+            var t := inverse_lerp(float(samples[index].x), float(samples[index + 1].x), float(q))
+            return lerpf(float(samples[index].y), float(samples[index + 1].y), t)
+    return float(samples.back().y)
+
+static func _river_half_width(q: int) -> float:
+    var q_samples := PackedInt32Array([-30, -24, -18, -12, -6, 0, 5, 8, 12, 18, 24, 30])
+    var width_samples := PackedFloat32Array([1.0, 1.5, 1.8, 1.4, 1.8, 1.5, 1.1, 0.65, 1.4, 1.8, 1.5, 1.0])
+    for index in range(q_samples.size() - 1):
+        if q <= q_samples[index + 1]:
+            var t := inverse_lerp(float(q_samples[index]), float(q_samples[index + 1]), float(q))
+            return lerpf(width_samples[index], width_samples[index + 1], t)
+    return width_samples.back()
 
 static func is_building(hex: Vector2i) -> bool:
     for building in BUILDINGS:
@@ -129,9 +155,12 @@ static func path_cells() -> Array[Vector2i]:
 static func water_cells() -> Array[Vector2i]:
     var cells: Array[Vector2i] = []
     for q in range(STREAM_Q_MIN, STREAM_Q_MAX + 1):
-        var hex := Vector2i(q, STREAM_R)
-        if hex != BRIDGE:
-            cells.append(hex)
+        var centre_r := _river_centre_r(q)
+        var half_width := _river_half_width(q)
+        for r in range(floori(centre_r - half_width), ceili(centre_r + half_width) + 1):
+            var hex := Vector2i(q, r)
+            if is_water(hex):
+                cells.append(hex)
     return cells
 
 static func is_forest_candidate(hex: Vector2i) -> bool:
