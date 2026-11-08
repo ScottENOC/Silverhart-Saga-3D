@@ -38,6 +38,8 @@ static func _apply_recursive(node: Node, options: Dictionary) -> int:
                 var slot := _surface_slot(mesh_instance, source, surface)
                 var requested: Dictionary = options.get(slot, {})
                 var category := _category_for_slot(slot, source.resource_name.to_lower())
+                if category == "heraldry":
+                    continue # Kept under its own shader so material recolouring cannot erase the design.
                 var profile_id := str(requested.get("profile", _default_profile(category)))
                 if not _profile_allowed(category, profile_id):
                     push_warning("Rejected equipment finish '%s' for surface '%s' (%s)." % [profile_id, slot, category])
@@ -67,6 +69,8 @@ static func _surface_slot(mesh_instance: MeshInstance3D, source: Material, surfa
 
 static func _category_for_slot(slot: String, material_name: String) -> String:
     var combined := slot + "_" + material_name
+    if _contains_any(combined, ["heraldry", "shield_face"]):
+        return "heraldry"
     if _contains_any(combined, ["wood", "oak", "haft", "stave", "shield_body"]):
         return "wood"
     if _contains_any(combined, ["leather", "grip", "handle", "wrap"]):
@@ -91,6 +95,7 @@ static func _default_profile(category: String) -> String:
         "leather": return "leather"
         "cloth": return "cloth"
         "metal": return "steel"
+        "heraldry": return "painted_wood"
         _: return "steel"
 
 static func _profile_allowed(category: String, profile_id: String) -> bool:
@@ -101,6 +106,7 @@ static func _profile_allowed(category: String, profile_id: String) -> bool:
         "leather": return profile_id == "leather"
         "cloth": return profile_id == "cloth"
         "metal": return profile_id in ["steel", "dark_steel", "gold", "brass"]
+        "heraldry": return profile_id in ["painted_wood", "cloth"]
         _: return profile_id in ["steel", "dark_steel", "gold", "brass", "wood", "leather", "cloth"]
 
 
