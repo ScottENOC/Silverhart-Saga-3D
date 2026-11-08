@@ -44,6 +44,25 @@ func _test_material_profiles_and_surface_isolation() -> void:
     assert(wood.metallic == 0.0)
     assert(wood.roughness > 0.7)
 
+    var heraldry_source := StandardMaterial3D.new()
+    heraldry_source.resource_name = "HeraldryFace"
+    var heraldry_mesh := BoxMesh.new()
+    heraldry_mesh.material = heraldry_source
+    var shield_face := MeshInstance3D.new()
+    shield_face.mesh = heraldry_mesh
+    var heraldry_root := Node3D.new()
+    heraldry_root.add_child(shield_face)
+    assert(EquipmentAppearance.apply_shield_heraldry(heraldry_root, {
+        "field_colour": "#8b2028",
+        "secondary_colour": "#e8dfc8",
+        "pattern": "halves_vertical",
+        "emblem": "tree"
+    }) == 1)
+    assert(shield_face.get_active_material(0) is ShaderMaterial)
+    EquipmentAppearance.apply_to(heraldry_root)
+    assert(shield_face.get_active_material(0) is ShaderMaterial)
+
     root_a.free()
     root_b.free()
     shield_root.free()
+    heraldry_root.free()
