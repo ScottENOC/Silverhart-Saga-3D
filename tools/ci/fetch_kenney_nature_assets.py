@@ -13,7 +13,7 @@ import zipfile
 from pathlib import Path
 
 ARCHIVE_URL = "https://kenney.nl/media/pages/assets/nature-kit/37ac38a37b-1677698939/kenney_nature-kit.zip"
-ARCHIVE_SHA256 = "fa7974a0d342bfe63c38664ba9f8ec1a4aab8ea25f099bdc56870e33588c4d9d"
+ARCHIVE_SHA256 = "586e549734bcba350235694dcd482fbf25dff8c38d31073107eba9f2ebb2344e"
 OUTPUT = Path("art/environment/kenney_nature")
 
 # output filename: acceptable case-insensitive basenames in the official ZIP.
