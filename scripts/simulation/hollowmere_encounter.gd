@@ -66,6 +66,25 @@ static func start(simulation: WorldSimulation) -> Dictionary:
     return {"ok": true, "enemy_ids": ENEMY_IDS.duplicate(), "party_ids": COMBAT_ALLY_IDS.duplicate()}
 
 
+static func finish(simulation: WorldSimulation) -> void:
+    if simulation == null:
+        return
+    for ally_id in ALLY_IDS:
+        var ally := simulation.get_character(ally_id)
+        if ally != null:
+            ally.side = "neutral"
+            ally.combat_dormant = true
+    for enemy_id in ENEMY_IDS:
+        var enemy := simulation.get_character(enemy_id)
+        if enemy != null:
+            enemy.combat_dormant = true
+    for player_id in PLAYER_CONTROLLED_IDS:
+        var player := simulation.get_character(player_id)
+        if player != null:
+            player.side = "player"
+            player.combat_dormant = false
+
+
 static func enemies_defeated(simulation: WorldSimulation) -> bool:
     if simulation == null:
         return false
