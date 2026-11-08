@@ -133,6 +133,7 @@ func _create_simulation() -> void:
     simulation.clock.set_world_seconds(11.0 * 3600.0)
     add_child(simulation)
     simulation.campaign_journal.register_quest_definition(HollowmereCampaignContent.shakedown_quest_definition())
+    HollowmereCampaignContent.initialize_social_standings(simulation.campaign_journal)
 
     # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
     for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
