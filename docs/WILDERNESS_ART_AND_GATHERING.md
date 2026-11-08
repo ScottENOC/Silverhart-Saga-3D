@@ -17,7 +17,7 @@ python tools/ci/fetch_kenney_nature_assets.py
 godot --headless --editor --path . --quit
 ```
 
-The source archive is intentionally not committed. This keeps the repository small while ensuring the browser export and validation jobs use the same pinned asset release.
+The models are intentionally not committed. This keeps the repository small while ensuring the browser export and validation jobs use the same pinned model files.
 
 ## Seasonal trees
 
