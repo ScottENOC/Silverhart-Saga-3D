@@ -12,7 +12,13 @@ const SKIN_TONES := ["Porcelain", "Fair", "Light", "Medium", "Olive", "Brown", "
 const SKIN_COLOURS := ["#f2d8c4", "#e8c2a2", "#d6a47e", "#b9825f", "#9a6849", "#70452f", "#45291f"]
 const EYE_COLOURS := ["Brown", "Light brown", "Dark brown", "Green", "Blue", "Grey", "Ice blue"]
 const HAIR_COLOURS := ["Black", "Dark brown", "Chestnut", "Blonde", "Red", "Silver", "White", "Blue", "Green"]
-const HAIR_STYLES := ["Short", "Long", "Braid", "Curly", "Wavy", "Shaved", "Ponytail"]
+const HAIR_STYLES := ["Short 1", "Short 2", "Short 3", "Short 4", "Afro", "Bob 1", "Bob 2", "Braid", "Long", "Ponytail", "Buzz cut", "Mohawk", "Cornrows", "Box braids", "None"]
+const HAIR_STYLE_IDS := {
+    "Short 1": "short01", "Short 2": "short02", "Short 3": "short03", "Short 4": "short04",
+    "Afro": "afro01", "Bob 1": "bob01", "Bob 2": "bob02", "Braid": "braid01",
+    "Long": "long01", "Ponytail": "ponytail01", "Buzz cut": "buzz",
+    "Mohawk": "mohawk", "Cornrows": "cornrows", "Box braids": "box_braids", "None": "none"
+}
 const BODY_BUILDS := ["Lean", "Average", "Broad", "Muscular", "Soft", "Androgynous"]
 const PRESENTATIONS := ["Masculine", "Feminine", "Androgynous", "Mixed", "Custom"]
 const PRONOUN_SETS := ["He / him", "She / her", "They / them", "Use my name", "Custom"]
@@ -220,7 +226,7 @@ func _build_screen() -> void:
     trousers_select = _option_row(panel, "Legwear", ["Trousers", "Skirt", "Long skirt", "Shorts"])
 
     var note := Label.new()
-    note.text = "Skin, eye and hair colour update the preview where the exported model exposes matching materials. Height and build currently use restrained whole-model scaling; true anatomical morphs and selectable hairstyles require later Ara variants. Starting shirt and legwear selections are saved but do not yet swap garment meshes. The male preview uses the replaceable Workshop body export; clothing will be fitted to its final geometry as that asset is approved."
+    note.text = "Skin, eye and hair colour update the preview where the exported model exposes matching materials. Hair styles use separate skinned Ara exports and are tinted independently; install the generated Ara hair bundle to enable the full selector. Height and build still use restrained whole-model scaling until true anatomical morphs are validated. Starting shirt and legwear selections are saved but do not yet swap garment meshes; clothing will be fitted to the final Ara body exports."
     note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     note.add_theme_color_override("font_color", Color(0.9, 0.75, 0.48))
     panel.add_child(note)
@@ -292,7 +298,7 @@ func _load_saved_profile() -> void:
     _select_text(skin_select, str(data.get("skin_tone", "Medium")))
     _select_text(eye_select, str(data.get("eye_colour", "Brown")))
     _select_text(hair_colour_select, str(data.get("hair_colour", "Dark brown")))
-    _select_text(hair_style_select, str(data.get("hair_style", "Short")))
+    _select_text(hair_style_select, str(data.get("hair_style", "Short 2")))
     _select_text(body_select, str(data.get("body_build", "Average")))
     height_slider.value = clampf(float(data.get("height_scale", 1.0)), 0.90, 1.10)
     _select_text(shirt_select, str(data.get("shirt", "Simple tunic")))
@@ -322,6 +328,8 @@ func _refresh_appearance_preview(_index: int) -> void:
         return
     var variant := "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female"
     var asset_path := MALE_PREVIEW_ASSET if variant == "male" else FEMALE_PREVIEW_ASSET
+    if not ResourceLoader.exists(asset_path):
+        asset_path = MALE_PREVIEW_FALLBACK if variant == "male" else FEMALE_PREVIEW_FALLBACK
     if preview_variant_loaded != variant:
         if not preview_actor.configure(asset_path):
             preview_status.text = "Preview asset unavailable: %s. The selected body choice will still be saved." % asset_path
@@ -340,7 +348,22 @@ func _refresh_appearance_preview(_index: int) -> void:
         "pronouns": "they/them"
     }
     preview_actor.apply_player_profile(profile)
-    preview_status.text = "Male Workshop body (replaceable export; clothing fit still in progress)." if variant == "male" else "Female Ara player baseline. Hair style and garment geometry are not yet independently swappable."
+    var hair_id := String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02"))
+    var hair_path := "res://art/characters/ara_runtime/hair/%s_%s.glb" % [variant, hair_id]
+    var using_ara_base := preview_actor.loaded_asset_path.contains("/ara_runtime/hair/")
+    var hair_loaded := false
+    if using_ara_base:
+        if hair_id == "none":
+            preview_actor.clear_hairstyle()
+            hair_loaded = true
+        elif ResourceLoader.exists(hair_path):
+            hair_loaded = preview_actor.set_hairstyle(hair_path)
+    if using_ara_base and hair_loaded:
+        preview_status.text = "%s Ara base · %s hairstyle · hair colour is independently tintable." % [variant.capitalize(), hair_style_select.get_item_text(hair_style_select.selected)]
+    elif using_ara_base:
+        preview_status.text = "Ara %s base loaded, but hairstyle asset is missing or failed its skeleton compatibility check: %s" % [variant, hair_id]
+    else:
+        preview_status.text = "Legacy preview model loaded. Run the Ara Hair Variants workflow and install its hair bundle to enable the real hairstyle selector."
 
 func _rotate_preview(degrees: float) -> void:
     if preview_actor != null and is_instance_valid(preview_actor):
@@ -398,6 +421,7 @@ func _finish() -> void:
         "eye_colour": eye_select.get_item_text(eye_select.selected),
         "hair_colour": hair_colour_select.get_item_text(hair_colour_select.selected),
         "hair_style": hair_style_select.get_item_text(hair_style_select.selected),
+        "hair_style_id": String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02")),
         "body_build": body_select.get_item_text(body_select.selected),
         "shirt": shirt_select.get_item_text(shirt_select.selected),
         "legwear": trousers_select.get_item_text(trousers_select.selected)

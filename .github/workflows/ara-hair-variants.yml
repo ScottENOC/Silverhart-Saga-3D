@@ -1,0 +1,82 @@
+name: Build Ara Hair Variants
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/ara-hairstyles-medieval-equipment
+    paths:
+      - tools/ara/export_hair_variants.ts
+      - .github/workflows/ara-hair-variants.yml
+      - scripts/presentation/ara_character_actor.gd
+      - scripts/ui/player_character_creator.gd
+      - tests/test_ara_hair_assets.gd
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ara-hair-variants-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Build pinned Ara hair variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
+          git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
+          cp tools/ara/export_hair_variants.ts /tmp/ara-3d-gen/scripts/silverhart-hair-cli.ts
+          cd /tmp/ara-3d-gen
+          corepack enable
+          pnpm install --no-frozen-lockfile
+          pnpm exec tsc --noEmit
+          npm run setup-assets
+          pnpm exec tsx scripts/silverhart-hair-cli.ts --out "$GITHUB_WORKSPACE/art/characters/ara_runtime/hair"
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import and validate skinned hair variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --quit
+          godot --headless --path . --script res://tests/test_ara_hair_assets.gd
+
+      - name: Commit generated hair assets to this feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f art/characters/ara_runtime/hair/
+          if ! git diff --cached --quiet; then
+            git commit -m "Add generated Ara hair variants"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          else
+            echo "Generated Ara hair assets are unchanged."
+          fi
+
+      - name: Upload hair bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: ara-hair-variants-${{ github.sha }}
+          path: art/characters/ara_runtime/hair/
+          if-no-files-found: error
+          retention-days: 90
