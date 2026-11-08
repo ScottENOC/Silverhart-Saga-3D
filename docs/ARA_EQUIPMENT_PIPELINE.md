@@ -35,4 +35,4 @@ The other shield and helmet assets are additional visual variants for future cat
 
 ## Hairstyles
 
-Ara exposes independent `hair` and `hairTint` parameters. The intended Silverhart approach is one geometry export per hairstyle and runtime material tinting, so colour options do not multiply export count. The current player creator stores a hairstyle choice but does not swap the hair mesh. Geometry extraction must preserve the character skeleton/skin weights and be verified against the pinned generator before it can safely replace hair at runtime. That extraction and selector integration remain outstanding; the current dropdown is not yet functional.
+See [ARA_HAIR_PIPELINE.md](ARA_HAIR_PIPELINE.md). Hair is extracted from Ara's material groups with its skin weights preserved, exported as standalone skinned GLBs, and selected in the player creator. Hair colour is applied as a runtime material tint. The manual/branch-triggered build workflow validates the generated meshes before committing them to the feature branch.
