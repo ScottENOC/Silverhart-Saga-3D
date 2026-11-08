@@ -690,7 +690,7 @@ func find_path(character_id: String, destination: Vector2i) -> Array[Vector2i]:
     var state := get_character(character_id)
     if state == null:
         return []
-    return HexPathfinder.find_path(map_data, occupied_hexes, state.axial, destination, state)
+    return HexPathfinder.find_path(map_data, occupied_hexes, state.axial, destination, state, characters, is_in_combat)
 
 func movement_cost(character_id: String, destination: Vector2i) -> float:
     var state := get_character(character_id)
@@ -716,12 +716,52 @@ func _can_move_to(state: CharacterState, destination: Vector2i) -> bool:
     if not map_data.is_walkable(destination):
         return false
     if occupied_hexes.has(destination):
+        var occupant := get_character(String(occupied_hexes[destination]))
+        if not _can_pass_through_character(state, occupant):
+            return false
+        if _find_npc_sidestep_hex(occupant, state.axial) == Vector2i(999999, 999999):
+            return false
+    return true
+
+func _can_pass_through_character(mover: CharacterState, occupant: CharacterState) -> bool:
+    if mover == null or occupant == null:
+        return false
+    if occupant.impassable_to_player and mover.side != "enemy":
+        return false
+    if (mover.side == "enemy") != (occupant.side == "enemy") and (mover.side == "enemy" or occupant.side == "enemy"):
         return false
     return true
+
+func _find_npc_sidestep_hex(occupant: CharacterState, mover_origin: Vector2i) -> Vector2i:
+    if occupant == null:
+        return Vector2i(999999, 999999)
+    var candidates := HexGrid.neighbors(occupant.axial)
+    candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+        var da := HexGrid.distance(a, mover_origin)
+        var db := HexGrid.distance(b, mover_origin)
+        if da == db:
+            return a.x < b.x if a.x != b.x else a.y < b.y
+        return da > db
+    )
+    for candidate in candidates:
+        if candidate == mover_origin or not map_data.is_walkable(candidate) or occupied_hexes.has(candidate):
+            continue
+        return candidate
+    return Vector2i(999999, 999999)
 
 func _commit_move(state: CharacterState, destination: Vector2i) -> void:
     ensure_exploration_region(destination)
     var origin: Vector2i = state.axial
+    var occupant_id := String(occupied_hexes.get(destination, ""))
+    if not occupant_id.is_empty():
+        var occupant := get_character(occupant_id)
+        var sidestep := _find_npc_sidestep_hex(occupant, origin)
+        if occupant != null and sidestep != Vector2i(999999, 999999):
+            var occupant_origin := occupant.axial
+            occupied_hexes.erase(occupant_origin)
+            occupant.axial = sidestep
+            occupied_hexes[sidestep] = occupant.id
+            character_moved.emit(occupant.id, occupant_origin, sidestep)
     ensure_resource_at(destination)
     occupied_hexes.erase(origin)
     state.axial = destination

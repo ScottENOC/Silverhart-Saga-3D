@@ -2,7 +2,7 @@ class_name HexPathfinder
 extends RefCounted
 
 ## Weighted A* over the logical hex map. Execution uses the same step-cost resolver.
-static func find_path(map_data: HexMapData, occupied_hexes: Dictionary, start: Vector2i, target: Vector2i, state: CharacterState) -> Array[Vector2i]:
+static func find_path(map_data: HexMapData, occupied_hexes: Dictionary, start: Vector2i, target: Vector2i, state: CharacterState, characters: Dictionary = {}, combat_active: bool = false) -> Array[Vector2i]:
     var empty: Array[Vector2i] = []
     if state == null or not map_data.is_walkable(start) or not map_data.is_walkable(target):
         return empty
@@ -34,7 +34,9 @@ static func find_path(map_data: HexMapData, occupied_hexes: Dictionary, start: V
             if not map_data.is_walkable(neighbour):
                 continue
             if occupied_hexes.has(neighbour) and neighbour != start:
-                continue
+                var occupant := characters.get(String(occupied_hexes[neighbour])) as CharacterState
+                if not _can_pass_through(state, occupant, combat_active):
+                    continue
             var tentative := float(g_score[current]) + MovementRules.step_cost(map_data, current, neighbour, state)
             if tentative >= float(g_score.get(neighbour, INF)):
                 continue
@@ -44,3 +46,12 @@ static func find_path(map_data: HexMapData, occupied_hexes: Dictionary, start: V
             if not open.has(neighbour):
                 open.append(neighbour)
     return empty
+
+static func _can_pass_through(mover: CharacterState, occupant: CharacterState, _combat_active: bool) -> bool:
+    if mover == null or occupant == null:
+        return false
+    if occupant.impassable_to_player and mover.side != "enemy":
+        return false
+    if (mover.side == "enemy") != (occupant.side == "enemy") and (mover.side == "enemy" or occupant.side == "enemy"):
+        return false
+    return true
