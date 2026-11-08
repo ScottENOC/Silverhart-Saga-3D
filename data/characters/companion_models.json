@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "generator": "Ara 3D Gen + Blender finishing",
+  "generator_commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395",
+  "description": "First named companion model. Aldric is authored separately from the Hollowmere resident roster; location_id links him to the source-backed Skarn-tooth goblin camp encounter, not a village spawn.",
+  "characters": [
+    {
+      "id": "ser_aldric_thorne",
+      "game_id": "companion_ser_aldric_thorne",
+      "name": "Ser Aldric Thorne",
+      "role": "companion",
+      "location_id": "skarn_tooth_camp",
+      "detail": "high",
+      "params": {
+        "seed": 1047,
+        "gender": 1,
+        "age": 0.78,
+        "muscle": 0.72,
+        "weight": 0.62,
+        "height": 0.63,
+        "proportions": 0.65,
+        "african": 0.05,
+        "asian": 0.4,
+        "caucasian": 0.55,
+        "eyes": "darkbrown",
+        "hair": "short03",
+        "hairTint": "#30231d",
+        "facialHair": "short_beard",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "long_tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "combat_boots",
+        "hat": "none",
+        "weapon": "sword",
+        "carry": "none",
+        "accessories": [],
+        "garmentStyles": {
+          "long_tunic": {
+            "pattern": "solid",
+            "color": "#263b50",
+            "color2": "#a49a7d"
+          },
+          "trousers": {
+            "pattern": "solid",
+            "color": "#343536",
+            "color2": "#343536"
+          }
+        }
+      }
+    }
+  ]
+}
