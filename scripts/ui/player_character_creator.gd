@@ -325,9 +325,6 @@ func _refresh_appearance_preview(_index: int) -> void:
         "height_scale": height_slider.value,
         "build_scale": float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)),
         "body_variant": variant,
-        "body_variant": "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female",
-        "height_scale": height_slider.value,
-        "build_scale": float({"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04, "Androgynous": 1.0}.get(body_select.get_item_text(body_select.selected), 1.0)),
         "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
         "pronouns": "they/them"
     }
@@ -374,6 +371,9 @@ func _finish() -> void:
         "arena_roguelike_rewards": arena_rewards_check.button_pressed,
         "difficulty_mode": _selected_id(difficulty_select, "normal"),
         "ironman_mode": ironman_check.button_pressed,
+        "body_variant": "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female",
+        "height_scale": height_slider.value,
+        "build_scale": float({"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04, "Androgynous": 1.0}.get(body_select.get_item_text(body_select.selected), 1.0)),
         "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
         "pronoun_preset": pronoun_value,
         "pronouns": custom_value if pronoun_value == "Custom" else _pronouns_for(pronoun_value),
