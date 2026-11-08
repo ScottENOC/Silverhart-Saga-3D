@@ -9,7 +9,13 @@ The pinned Ara 3D Gen source has a grip-origin prop pipeline and a WeaponR rig s
 
 Each is exported as its own GLB prop, with the origin at the hand grip. The props are colour/material independent: equipment variants such as the Starforged Blade can reuse the sword mesh and apply a different material treatment at runtime.
 
-The manual GitHub Actions workflow, Build Ara Medieval Props, produces these exports on demand. It is deliberately separate from the main Wren Workshop workflow so ordinary builds do not incur seven extra Ara generator runs. It uploads a versioned prop bundle and runs a Godot import smoke test.
+The manual GitHub Actions workflow, **Build Ara Medieval Props**, produces these exports on demand. It is deliberately separate from the main Wren Workshop workflow so ordinary builds do not incur seven extra Ara generator runs. It uploads a versioned prop bundle and runs a Godot import smoke test.
+
+## Standalone armour blockouts
+
+A second manual workflow, **Build Ara Medieval Armour Props**, creates three shield silhouettes (round, kite and heater) and four helmet silhouettes (nasal helm, kettle hat, great helm and bascinet) as independent GLBs using Blender. These are intentionally first-pass blockout meshes, not fitted or approved equipment. Their attachment origins and dimensions need review against the actual male and female Ara character exports before runtime use.
+
+Shields are intended for a left-hand/off-hand attachment; helmets for a head attachment. They must remain independent from the character body so equipment can be changed without regenerating a person. The current actor does not yet attach these props.
 
 ## Existing game item mapping
 
@@ -22,11 +28,11 @@ The manual GitHub Actions workflow, Build Ara Medieval Props, produces these exp
 | bow, hunting_bow, nightowl_bow | bow |
 | club, ashenwood_club | club |
 | (future) mace | mace |
+| wooden_shield | round_shield |
+| nasal_helm | nasal_helm |
 
-## Next equipment attachments
-
-The current Ara prop socket is for the right hand. Shields need a dedicated left-hand/off-hand attachment and helmets need a head attachment. They should be exported and attached independently rather than baked into a full character GLB. The next asset pass should add round, kite and heater shields, plus a nasal helm, kettle hat, great helm and bascinet, with a fit check against both male and female Ara bodies.
+The other shield and helmet assets are additional visual variants for future catalogue entries.
 
 ## Hairstyles
 
-Ara has independent hair and hairTint parameters. The pinned generator exposes MakeHuman styles plus procedural buzz, mohawk, cornrows and box braids. The intended Silverhart implementation is one geometry export per hairstyle and runtime material tinting; no per-colour Ara exports are required. The hair export/extraction and runtime selector are a separate step from this hand-prop build.
+Ara exposes independent `hair` and `hairTint` parameters. The intended Silverhart approach is one geometry export per hairstyle and runtime material tinting, so colour options do not multiply export count. The current player creator stores a hairstyle choice but does not swap the hair mesh. Geometry extraction must preserve the character skeleton/skin weights and be verified against the pinned generator before it can safely replace hair at runtime. That extraction and selector integration remain outstanding; the current dropdown is not yet functional.
