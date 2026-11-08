@@ -1,10 +1,9 @@
 class_name HollowTankard
 extends Node3D
 
-const MODULAR_CHARACTER_ASSEMBLER = preload("res://scripts/presentation/modular_character_assembler.gd")
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
-const PLAYER_FEMALE_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
-const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
+const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/hair/female_base.glb"
+const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/hair/male_base.glb"
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
@@ -389,10 +388,8 @@ func _create_furniture() -> void:
 
 func _create_characters() -> void:
     starting_loadouts = _load_starting_loadouts()
-    # The player remains a neutral placeholder until a player-appearance
-    # choice is made. Every named village character is loaded from the shared
-    # Ara profile manifest and its generated GLB when that asset pack is installed.
-    _spawn_character("player", String(player_profile.get("name", "Adventurer")), Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true, "player_avatar")
+    # Player and NPCs use the shared gendered Ara base mesh.
+    _spawn_character("player", String(player_profile.get("name", "Adventurer")), Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true)
 
     var profile_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
     if profile_file == null:
@@ -417,7 +414,7 @@ func _create_characters() -> void:
         var display_name := str(profile.get("name", actor_id))
         if actor_id.is_empty() or model_id.is_empty():
             continue
-        _spawn_character(actor_id, display_name, spawn, Color(0.42, 0.34, 0.25), false, model_id)
+        _spawn_character(actor_id, display_name, spawn, Color(0.42, 0.34, 0.25), false, model_id, profile)
 
 
 func _load_starting_loadouts() -> Dictionary:
@@ -454,7 +451,7 @@ func _apply_starting_loadout(state: CharacterState) -> void:
             push_error("Could not equip starting item '%s' on %s." % [item_id, state.id])
 
 
-func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, ara_model_id: String = "") -> void:
+func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, ara_model_id: String = "", npc_profile: Dictionary = {}) -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
     var state: CharacterState
     if is_player:
@@ -473,65 +470,28 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.set_meta("ambient_role", _ambient_role_for_id(id))
     actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
 
-    var model_loaded := false
-    if is_player or not ara_model_id.is_empty():
-        var ara_model := ARA_CHARACTER_ACTOR.new() as AraCharacterActor
-        ara_model.name = "CharacterModel"
-        actor.add_child(ara_model)
-        var model_path := "res://art/characters/hollowmere/%s.glb" % ara_model_id
+    var ara_model := ARA_CHARACTER_ACTOR.new() as AraCharacterActor
+    ara_model.name = "CharacterModel"
+    actor.add_child(ara_model)
+    var body_variant := str(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
+    var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+    var model_loaded := ara_model.configure(model_path)
+    if model_loaded:
         if is_player:
-            model_path = PLAYER_MALE_ASSET if str(player_profile.get("body_variant", "female")) == "male" else PLAYER_FEMALE_ASSET
-        model_loaded = ara_model.configure(model_path)
-        if not model_loaded:
-            actor.remove_child(ara_model)
-            ara_model.queue_free()
-
-    var is_wren: bool = id == "companion_wren_talbot"
-    if not model_loaded and is_wren:
-        # Preserve the earlier modular Wren path as a fallback for local
-        # checkouts that have not installed the generated Ara village pack.
-        var character_model := MODULAR_CHARACTER_ASSEMBLER.new()
-        character_model.name = "CharacterModel"
-        actor.add_child(character_model)
-        model_loaded = character_model.configure({
-            "hair": "braid",
-            "body_hair": "groomed",
-            "weapon": "sword",
-            "underwear_bra": "strapless",
-            "underwear_briefs": "full_coverage",
-            "tattoo": "star_shoulder",
-            "piercings": "wren_set",
-        })
-        if not model_loaded:
-            character_model.queue_free()
-
-    # Capsule fallback keeps the map testable before the Ara GLB artifact is
-    # copied into art/characters/hollowmere/.
-    if not model_loaded:
-        var body := MeshInstance3D.new()
-        body.name = "PlayerBody"
-        var body_mesh := CapsuleMesh.new()
-        body_mesh.radius = 0.34
-        body_mesh.height = 1.75
-        body.mesh = body_mesh
-        body.position.y = 0.88
-        body.material_override = _material(colour)
-        actor.add_child(body)
-
-        var head := MeshInstance3D.new()
-        head.name = "PlayerHead"
-        var head_mesh := SphereMesh.new()
-        head_mesh.radius = 0.22
-        head_mesh.height = 0.44
-        head.mesh = head_mesh
-        head.position.y = 1.78
-        head.material_override = _material(Color(0.72, 0.57, 0.43))
-        actor.add_child(head)
+            ara_model.apply_player_profile(player_profile)
+            _attach_ara_hair(ara_model, body_variant, str(player_profile.get("hair_style_id", "short02")))
+        else:
+            var params: Dictionary = npc_profile.get("params", {})
+            ara_model.apply_npc_parameters(params)
+            _attach_ara_hair(ara_model, body_variant, str(params.get("hair", "short02")))
+    else:
+        push_error("Character '%s' could not load shared Ara base '%s'. No primitive substitute will be shown." % [display_name, model_path])
+        ara_model.queue_free()
 
     var name_label := Label3D.new()
     name_label.name = "PlayerNameLabel" if is_player else "CharacterNameLabel"
     name_label.text = "You" if is_player else display_name
-    name_label.position.y = 2.08 if model_loaded else 2.25
+    name_label.position.y = 2.08
     name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
     name_label.font_size = 32
     name_label.outline_size = 6
@@ -540,6 +500,18 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
 
     add_child(actor)
     actor_by_id[id] = actor
+
+
+func _attach_ara_hair(actor: AraCharacterActor, body_variant: String, hair_id: String) -> void:
+    if hair_id.is_empty() or hair_id == "none":
+        actor.clear_hairstyle()
+        return
+    var hair_path := "res://art/characters/ara_runtime/hair/%s_%s.glb" % [body_variant, hair_id]
+    if not ResourceLoader.exists(hair_path):
+        push_warning("Ara hairstyle '%s' is unavailable at %s; retaining base hair." % [hair_id, hair_path])
+        return
+    if not actor.set_hairstyle(hair_path):
+        push_warning("Ara hairstyle '%s' could not be attached to the shared %s body." % [hair_id, body_variant])
 
 func _create_camera() -> void:
     camera_rig = OrbitCameraRig.new()

@@ -58,11 +58,7 @@ func apply_player_profile(profile: Dictionary) -> void:
     tint_materials("hair", current_hair_colour)
     _tint_attached_hair(current_hair_colour)
 
-    # Height and build are intentionally modest whole-model proportion controls
-    # until the Ara exports expose validated body morph targets.
-    var height_factor := clampf(float(profile.get("height_scale", 1.0)), 0.90, 1.10)
-    var build_factor := clampf(float(profile.get("build_scale", 1.0)), 0.92, 1.08)
-    model_root.scale = Vector3(build_factor, height_factor, build_factor)
+    apply_body_parameters(profile)
     set_meta("body_variant", str(profile.get("body_variant", "female")))
     set_meta("gender_presentation", str(profile.get("gender_presentation", "Feminine")))
     set_meta("pronouns", str(profile.get("pronouns", "they/them")))
@@ -259,3 +255,68 @@ func tint_materials(name_fragment: String, colour: Color) -> int:
             mesh_instance.set_surface_override_material(surface, material)
             changed += 1
     return changed
+
+
+func apply_body_parameters(profile: Dictionary) -> void:
+    if model_root == null:
+        return
+    var aliases := {
+        "muscle": ["muscle", "muscularity", "musclemass", "bodymuscle"],
+        "weight": ["weight", "bodyweight", "fat", "bodyfat", "adiposity"],
+        "height": ["height", "bodyheight", "stature"],
+        "proportions": ["proportion", "proportions", "bodyproportion"]
+    }
+    var values := {
+        "muscle": clampf(float(profile.get("muscle", 0.5)), 0.0, 1.0),
+        "weight": clampf(float(profile.get("weight", 0.5)), 0.0, 1.0),
+        "height": clampf(float(profile.get("height", 0.5)), 0.0, 1.0),
+        "proportions": clampf(float(profile.get("proportions", 0.5)), 0.0, 1.0)
+    }
+    var applied := 0
+    var meshes: Array[MeshInstance3D] = []
+    _collect_meshes(model_root, meshes)
+    for mesh_instance in meshes:
+        if mesh_instance.mesh == null:
+            continue
+        for shape_index in range(mesh_instance.mesh.get_blend_shape_count()):
+            var shape_name := mesh_instance.mesh.get_blend_shape_name(shape_index).to_lower().replace("_", "").replace("-", "").replace(" ", "")
+            for parameter in aliases.keys():
+                for alias in aliases[parameter]:
+                    if shape_name == alias or shape_name.ends_with(alias):
+                        mesh_instance.set_blend_shape_value(shape_index, values[parameter])
+                        applied += 1
+                        break
+    set_meta("body_parameters", values)
+    set_meta("body_morph_targets_applied", applied)
+
+func apply_npc_parameters(params: Dictionary) -> void:
+    if model_root == null:
+        return
+    var gender := int(params.get("gender", 0))
+    var skin := Color("#b9825f")
+    var african := float(params.get("african", 0.0))
+    var asian := float(params.get("asian", 0.0))
+    if african >= 0.6:
+        skin = Color("#70452f")
+    elif asian >= 0.5:
+        skin = Color("#b58a68")
+    elif float(params.get("caucasian", 0.0)) >= 0.6:
+        skin = Color("#d6a47e")
+    var eye_id := str(params.get("eyes", "brown")).to_lower()
+    var eye_map := {"brown": "Brown", "brownlight": "Light brown", "darkbrown": "Dark brown", "green": "Green", "blue": "Blue", "grey": "Grey"}
+    var hair_tint := Color.from_string(str(params.get("hairTint", "#49372a")), Color("#49372a"))
+    var profile := {
+        "skin_colour": skin.to_html(false),
+        "eye_colour": eye_map.get(eye_id, "Brown"),
+        "hair_colour": "Dark brown",
+        "height": float(params.get("height", 0.5)),
+        "muscle": float(params.get("muscle", 0.5)),
+        "weight": float(params.get("weight", 0.5)),
+        "proportions": float(params.get("proportions", 0.5)),
+        "body_variant": "male" if gender == 1 else "female",
+        "gender_presentation": "Masculine" if gender == 1 else "Feminine",
+        "pronouns": "they/them"
+    }
+    apply_player_profile(profile)
+    tint_materials("hair", hair_tint)
+    current_hair_colour = hair_tint

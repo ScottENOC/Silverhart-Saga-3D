@@ -22,8 +22,8 @@ const HAIR_STYLE_IDS := {
 const BODY_BUILDS := ["Lean", "Average", "Broad", "Muscular", "Soft", "Androgynous"]
 const PRESENTATIONS := ["Masculine", "Feminine", "Androgynous", "Mixed", "Custom"]
 const PRONOUN_SETS := ["He / him", "She / her", "They / them", "Use my name", "Custom"]
-const FEMALE_PREVIEW_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
-const MALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
+const FEMALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/hair/female_base.glb"
+const MALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/hair/male_base.glb"
 const ARA_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 
 var name_edit: LineEdit
@@ -348,6 +348,8 @@ func _refresh_appearance_preview(_index: int) -> void:
         "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
         "pronouns": "they/them"
     }
+    profile["height"] = inverse_lerp(0.90, 1.10, height_slider.value)
+    profile["muscle"] = inverse_lerp(0.96, 1.055, float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)))
     preview_actor.apply_player_profile(profile)
     var hair_id := String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02"))
     var hair_path := "res://art/characters/ara_runtime/hair/%s_%s.glb" % [variant, hair_id]
