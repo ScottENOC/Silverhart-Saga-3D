@@ -47,6 +47,18 @@ jobs:
           python -m py_compile "$GITHUB_WORKSPACE/tools/ara/build_hollowmere_npcs.py"
           python "$GITHUB_WORKSPACE/tools/ara/build_hollowmere_npcs.py" --out "$GITHUB_WORKSPACE/art/characters/hollowmere"
 
+      - name: Install Blender for gendered adult anatomy integration
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Integrate Workshop anatomy into every adult NPC model
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/ara/integrate_hollowmere_anatomy.py
+          python tools/ara/integrate_hollowmere_anatomy.py --directory art/characters/hollowmere
+
       - name: Upload generated Ara GLBs and parameter files
         uses: actions/upload-artifact@v4
         with:

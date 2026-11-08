@@ -1,16 +1,21 @@
 extends SceneTree
 const ACTOR_SCRIPT = preload("res://scripts/presentation/ara_character_actor.gd")
-const BODY_PATH := "res://art/characters/ara_runtime/hair/female_base.glb"
+const BODY_PATH := "res://art/characters/ara_runtime/ara_person_body.glb"
+const MALE_BODY_PATH := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const MODULAR_PATH := "res://art/characters/ara_runtime/ara_person_modular.glb"
 func _initialize() -> void:
     call_deferred("_run")
 func _run() -> void:
     assert(ResourceLoader.exists(BODY_PATH), "Missing female Ara base body")
+    assert(ResourceLoader.exists(MALE_BODY_PATH), "Missing Workshop male anatomy-integrated body")
     assert(ResourceLoader.exists(MODULAR_PATH), "Missing Workshop modular clothing model")
     var actor := ACTOR_SCRIPT.new()
     root.add_child(actor)
     assert(actor.configure(BODY_PATH), "Could not configure Ara base body")
     assert(actor.configure_modular_garments(MODULAR_PATH), "Could not attach modular garments to the Ara rig")
+    var male_actor := ACTOR_SCRIPT.new()
+    root.add_child(male_actor)
+    assert(male_actor.configure(MALE_BODY_PATH), "Could not configure Workshop male anatomy-integrated body")
     var props_available := ResourceLoader.exists("res://art/characters/ara_runtime/props/sword.glb") and ResourceLoader.exists("res://art/characters/ara_runtime/props/round_shield.glb")
     actor.apply_equipment_visuals({
         "armour": {"id": "reinforced_leather_armor"},
@@ -27,4 +32,5 @@ func _run() -> void:
     else:
         print("ARA_RUNTIME_EQUIPMENT_TEST: PARTIAL (modular armour passed; prop bundle not yet available)")
     actor.queue_free()
+    male_actor.queue_free()
     quit(0)
