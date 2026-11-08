@@ -21,6 +21,7 @@ var character_panel: CharacterPanel
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
 var actor_by_id: Dictionary = {}
+var starting_loadouts: Dictionary = {}
 var party_member_ids: Array[String] = ["player", "companion_wren_talbot"]
 var active_party_index: int = 0
 var active_character_id: String = "player"
@@ -304,6 +305,7 @@ func _create_furniture() -> void:
     _add_box(furniture, "StoolSeat", Vector3(5.9, 0.85, -2.2), Vector3(0.7, 0.12, 0.7), dark_wood_material)
 
 func _create_characters() -> void:
+    starting_loadouts = _load_starting_loadouts()
     # The player remains a neutral placeholder until a player-appearance
     # choice is made. Every named village character is loaded from the shared
     # Ara profile manifest and its generated GLB when that asset pack is installed.
@@ -334,9 +336,45 @@ func _create_characters() -> void:
             continue
         _spawn_character(actor_id, display_name, spawn, Color(0.42, 0.34, 0.25), false, model_id)
 
+
+func _load_starting_loadouts() -> Dictionary:
+    var file := FileAccess.open("res://data/characters/hollowmere_loadouts.json", FileAccess.READ)
+    if file == null:
+        push_error("Hollowmere starting loadouts are missing.")
+        return {}
+    var parsed: Variant = JSON.parse_string(file.get_as_text())
+    if not parsed is Dictionary:
+        push_error("Hollowmere starting loadouts are not valid JSON.")
+        return {}
+    var characters: Variant = parsed.get("characters", {})
+    if characters is Dictionary:
+        return characters
+    return {}
+
+
+func _apply_starting_loadout(state: CharacterState) -> void:
+    var item_ids: Variant = starting_loadouts.get(state.id, [])
+    if not item_ids is Array:
+        push_error("Starting loadout for %s is not an array." % state.id)
+        return
+    for index in range(item_ids.size()):
+        var item_id := String(item_ids[index])
+        var instance_id := "start_%s_%s_%02d" % [state.id, item_id, index]
+        var item := ItemCatalog.create_instance(item_id, instance_id)
+        if item.is_empty():
+            push_error("Unknown starting item '%s' for %s." % [item_id, state.id])
+            continue
+        if not state.add_inventory_item(item):
+            push_error("Could not add starting item '%s' to %s." % [item_id, state.id])
+            continue
+        if not state.equip_inventory_item(instance_id):
+            push_error("Could not equip starting item '%s' on %s." % [item_id, state.id])
+
+
 func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, ara_model_id: String = "") -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
     var state := CharacterState.new(id, display_name, spawn_hex)
+    _apply_starting_loadout(state)
     state.time_points = state.max_time_points
     simulation.register_character(state)
 

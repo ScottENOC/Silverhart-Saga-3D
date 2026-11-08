@@ -79,8 +79,8 @@ Do not begin a broad spell/skill/content migration until these shared action and
 
 - [ ] Attribute and skill trees, rank limits, prerequisites, skill costs, respec/difficulty rules and derived effects.
 - [ ] XP/level progression and NPC progression policies/modes.
-- [x] Initial persistent inventory item instances, equipment-slot swap/unequip operations, and data-backed Character/Inventory panel. Equipped item instance damage/reduction and armour weight metadata now feed the existing combat/movement rules.
-- [ ] Full source item catalogue, stack rules, currency, loot, shops, equipment readiness, encumbrance, item identity and complete inventory persistence.
+- [x] Initial persistent inventory item instances, equipment-slot swap/unequip operations, and data-backed Character/Inventory panel. The original 63-item catalogue (including source stats, prices, descriptions and carry weights) is now data-backed; Hollowmere NPC starting equipment is assigned from the original campaign data. The inventory panel uses a 2D SVG icon atlas migrated from the original game. Equipped item damage/reduction and armour weight metadata feed combat/movement rules.
+- [ ] Remaining inventory systems: original shared-party pool, stack rules, currency, loot, shops, equipment readiness, encumbrance, item identity and complete inventory persistence. The current slice uses per-character item instances; the player avatar has no starting kit until class selection is implemented.
 - [ ] Spells as simulation actions with targeting, range, costs, durations/upkeep, interruption, multi-target/fork modifiers, summons and world effects.
 - [ ] Preserve the original design principle: magic and skills are **world verbs**, not merely damage buttons. Include traversal, concealment, illusion, divination, communication, influence, manipulation, investigation and transformation where supported by the source.
 - [ ] Crafting, gathering, farming, construction, camp deployment, resource processing and trade.

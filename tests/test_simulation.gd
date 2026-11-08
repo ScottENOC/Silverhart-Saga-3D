@@ -4,6 +4,7 @@ var _failures: int = 0
 
 func _initialize() -> void:
     _test_character_round_trip()
+    _test_item_catalog_and_hollowmere_loadouts()
     _test_equipped_item_combat_effects()
     _test_movement_validation()
     _test_time_point_rules()
@@ -706,3 +707,49 @@ func _test_incapacitated_turn_cleanup() -> void:
     actor.apply_damage(150)
     _check(not sim.turn_scheduler.has_active_turn(), "An incapacitated active combatant must relinquish their turn")
     sim.free()
+
+
+func _test_item_catalog_and_hollowmere_loadouts() -> void:
+    var sword := ItemCatalog.create_instance("sword", "catalog_sword_001")
+    _check(not sword.is_empty(), "Original sword definition should load")
+    _check(int(sword.get("damage", 0)) == 3, "Sword damage should match Hex-crpg")
+    _check(String(sword.get("equipment_slot", "")) == "weapon", "Sword should map to the weapon slot")
+    _check(int(sword.get("icon_index", -1)) >= 0, "Sword should have a 2D inventory icon")
+
+    var medium_armour := ItemCatalog.create_instance("medium_armor", "catalog_armour_001")
+    _check(int(medium_armour.get("reduction", 0)) == 2, "Medium armour reduction should match Hex-crpg")
+    _check(String(medium_armour.get("weight_class", "")) == "medium", "Medium armour should retain its movement class")
+    var shield := ItemCatalog.create_instance("wooden_shield", "catalog_shield_001")
+    _check(String(shield.get("type", "")) == "shield", "Offhand shield must retain shield type for Shield Other")
+    _check(String(shield.get("equipment_slot", "")) == "offhand", "Shield should map to the offhand slot")
+
+    var loadout_file := FileAccess.open("res://data/characters/hollowmere_loadouts.json", FileAccess.READ)
+    _check(loadout_file != null, "Hollowmere loadout data should exist")
+    if loadout_file == null:
+        return
+    var parsed: Variant = JSON.parse_string(loadout_file.get_as_text())
+    _check(parsed is Dictionary, "Hollowmere loadout data should parse")
+    if not parsed is Dictionary:
+        return
+    var loadouts: Dictionary = parsed.get("characters", {})
+    _check(loadouts.get("dray_coltayne", []) == ["sword", "medium_armor", "wooden_shield"], "Dray's loadout should match the original campaign")
+    _check(loadouts.get("tomlin_brask", []) == ["spear", "light_armor"], "Tomlin's loadout should match the original campaign")
+    _check(loadouts.get("hask_greel", []) == ["axe", "light_armor"], "Hask's loadout should match the original campaign")
+    _check(loadouts.get("companion_wren_talbot", []) == ["sword"], "Wren should retain the sword shown in the Ara profile")
+    _check(not loadouts.has("player"), "Do not invent a player class kit before class selection exists")
+
+    var dray := CharacterState.new("dray_coltayne", "Dray Coltayne", Vector2i.ZERO)
+    var dray_items: Array = loadouts.get("dray_coltayne", [])
+    for index in range(dray_items.size()):
+        var item_id := String(dray_items[index])
+        var instance_id := "test_dray_%s_%02d" % [item_id, index]
+        var item := ItemCatalog.create_instance(item_id, instance_id)
+        _check(dray.add_inventory_item(item), "Dray should accept source item %s" % item_id)
+        _check(dray.equip_inventory_item(instance_id), "Dray should equip source item %s" % item_id)
+    _check(String(dray.equipment.get("weapon", "")) == "sword", "Dray's sword should be equipped")
+    _check(String(dray.equipment.get("armour", "")) == "medium_armor", "Dray's medium armour should be equipped")
+    _check(String(dray.equipment.get("offhand", "")) == "wooden_shield", "Dray's shield should be equipped")
+    _check(CombatRules.damage_reduction(dray) == 3, "Dray's armour and shield should affect damage reduction")
+    _check(dray.inventory.is_empty(), "Starting equipment should be equipped, not duplicated in carried items")
+
+

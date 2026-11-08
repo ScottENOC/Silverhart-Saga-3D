@@ -7,6 +7,7 @@ on:
       - "project.godot"
       - "export_presets.cfg"
       - "art/characters/**"
+      - "art/ui/**"
       - "scenes/**"
       - "scripts/**"
       - "data/**"
@@ -18,6 +19,7 @@ on:
       - "project.godot"
       - "export_presets.cfg"
       - "art/characters/**"
+      - "art/ui/**"
       - "scenes/**"
       - "scripts/**"
       - "data/**"
@@ -56,8 +58,11 @@ jobs:
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
-      - name: Validate Hollowmere profile JSON
-        run: python -m json.tool data/characters/hollowmere_npcs.json > /dev/null
+      - name: Validate Hollowmere and item data JSON
+        run: |
+          python -m json.tool data/characters/hollowmere_npcs.json > /dev/null
+          python -m json.tool data/characters/hollowmere_loadouts.json > /dev/null
+          python -m json.tool data/items/item_definitions.json > /dev/null
       - name: Smoke-test terrain prototype
         run: godot --headless --path . --scene res://scenes/prototypes/terrain_elevation_prototype.tscn --quit-after 5
       - name: Smoke-test opening village
