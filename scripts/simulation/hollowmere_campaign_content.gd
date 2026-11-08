@@ -114,7 +114,7 @@ static func npc_greeting(npc_id: String, shakedown_resolved: bool) -> Dictionary
                 "speaker": "Oskar Vinn",
                 "text": "First time in Hollowmere? Mind the Ironbond lot if they're about.",
                 "choices": [
-                    {"id": "spar", "label": "Care to spar? Friendly bout.", "text": "Ha! Thought you'd never ask. Don't hold back on my account."},
+                    {"id": "spar", "label": "Care to spar? Friendly bout.", "text": "Ha! Thought you'd never ask. Don't hold back on my account." , "available": false, "unavailable_reason": "The duel encounter is not connected to the 3D combat interface yet."},
                     {"id": "news", "label": "Heard anything worth knowing?", "text": "The levies keep marching north. Orc raiders on the border, apparently — worse than usual this year."},
                     {"id": "leave", "label": "Noted.", "text": "Oskar gives you a nod."}
                 ]
