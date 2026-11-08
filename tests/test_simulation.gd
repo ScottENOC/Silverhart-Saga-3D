@@ -179,7 +179,7 @@ func _test_hollowmere_campaign_content() -> void:
     var known_journal := CampaignJournal.new()
     known_journal.seed_npc_reputation("known_npc", 0.0, 100.0)
     known_journal.adjust_npc_reputation("known_npc", 10.0, 0.0, "dampening test")
-    _check(known_journal.npc_standing("known_npc") == 3.0, "Known relationships should dampen reputation swings to 30 percent")
+    _check(is_equal_approx(known_journal.npc_standing("known_npc"), 3.0), "Known relationships should dampen reputation swings to 30 percent")
     _check(not bool(HollowmereCampaignContent.resolve_shakedown(second_journal, "fight").get("ok", false)), "A second branch cannot overwrite the recorded response")
 
     var garrick := HollowmereCampaignContent.npc_greeting("garrick_holt", false)
