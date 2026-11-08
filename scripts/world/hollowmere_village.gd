@@ -69,7 +69,7 @@ func _create_paths_and_stream() -> void:
 	var river_points: Array[Vector3] = []
 	var river_qr: Array[Vector2i] = [
 		Vector2i(-30, -22), Vector2i(-24, -24), Vector2i(-18, -22),
-		Vector2i(-12, -24), Vector2i(-6, -27), Vector2i(0, -23),
+		Vector2i(-12, -24), Vector2i(-6, -27), Vector2i(0, -24),
 		Vector2i(5, -24), Vector2i(8, -25), Vector2i(12, -27),
 		Vector2i(18, -25), Vector2i(24, -28), Vector2i(30, -25)
 	]
@@ -225,7 +225,7 @@ func _create_bridge() -> void:
 	bridge.position = centre
 	# The river follows the q-axis direction; rotate the bridge so its deck
 	# meets the channel at a convincing crossing angle.
-	bridge.rotation.y = deg_to_rad(-30.0)
+	bridge.rotation.y = deg_to_rad(-5.0)
 	add_child(bridge)
 	_add_box(bridge, "StreamBridgeDeck", Vector3(0.0, 0.18, 0.0), Vector3(2.8, 0.24, 4.8), timber_material)
 	for side in [-1.0, 1.0]:
