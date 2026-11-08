@@ -16,6 +16,9 @@ const HAIR_STYLES := ["Short", "Long", "Braid", "Curly", "Wavy", "Shaved", "Pony
 const BODY_BUILDS := ["Lean", "Average", "Broad", "Muscular", "Soft", "Androgynous"]
 const PRESENTATIONS := ["Masculine", "Feminine", "Androgynous", "Mixed", "Custom"]
 const PRONOUN_SETS := ["He / him", "She / her", "They / them", "Use my name", "Custom"]
+const FEMALE_PREVIEW_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
+const MALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
+const ARA_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 
 var name_edit: LineEdit
 var game_mode_select: OptionButton
@@ -38,6 +41,11 @@ var hair_style_select: OptionButton
 var body_select: OptionButton
 var shirt_select: OptionButton
 var trousers_select: OptionButton
+var body_variant_select: OptionButton
+var height_slider: HSlider
+var preview_status: Label
+var preview_actor: AraCharacterActor
+var preview_variant_loaded: String = ""
 
 func _ready() -> void:
     layer = 100
@@ -80,6 +88,49 @@ func _build_screen() -> void:
     intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     intro.add_theme_color_override("font_color", Color(0.78, 0.79, 0.78))
     panel.add_child(intro)
+
+    _section(panel, "LIVE CHARACTER PREVIEW")
+    var preview_container := SubViewportContainer.new()
+    preview_container.custom_minimum_size = Vector2(0, 280)
+    preview_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    preview_container.stretch = true
+    var preview_viewport := SubViewport.new()
+    preview_viewport.name = "CharacterPreviewViewport"
+    preview_viewport.size = Vector2i(720, 420)
+    preview_viewport.own_world_3d = true
+    preview_container.add_child(preview_viewport)
+    panel.add_child(preview_container)
+    var preview_world := Node3D.new()
+    preview_world.name = "PreviewWorld"
+    preview_viewport.add_child(preview_world)
+    var preview_environment := WorldEnvironment.new()
+    var environment := Environment.new()
+    environment.background_mode = Environment.BG_COLOR
+    environment.background_color = Color(0.12, 0.14, 0.16)
+    environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+    environment.ambient_light_color = Color(0.72, 0.70, 0.66)
+    environment.ambient_light_energy = 0.8
+    preview_environment.environment = environment
+    preview_world.add_child(preview_environment)
+    var preview_light := DirectionalLight3D.new()
+    preview_light.rotation_degrees = Vector3(-28, -25, 0)
+    preview_light.light_energy = 1.4
+    preview_world.add_child(preview_light)
+    var preview_camera := Camera3D.new()
+    preview_camera.position = Vector3(0, 1.05, 3.4)
+    preview_camera.fov = 35
+    preview_camera.look_at(Vector3(0, 0.95, 0), Vector3.UP)
+    preview_world.add_child(preview_camera)
+    preview_camera.current = true
+    preview_actor = ARA_ACTOR.new() as AraCharacterActor
+    preview_actor.name = "PreviewCharacter"
+    preview_world.add_child(preview_actor)
+    preview_status = Label.new()
+    preview_status.text = "Loading character preview…"
+    preview_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    preview_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    preview_status.add_theme_color_override("font_color", Color(0.9, 0.75, 0.48))
+    panel.add_child(preview_status)
 
     _section(panel, "GAME MODE")
     game_mode_select = _option_row(panel, "Mode", ["Campaign", "Arena"])
@@ -124,6 +175,8 @@ func _build_screen() -> void:
     rules_preview.add_theme_color_override("font_color", Color(0.82, 0.82, 0.78))
     panel.add_child(rules_preview)
     _refresh_character_preview(0)
+    body_variant_select = _option_row(panel, "Body model", ["Female", "Male"])
+    body_variant_select.item_selected.connect(_refresh_appearance_preview)
     presentation_select = _option_row(panel, "Gender presentation", PRESENTATIONS)
     pronoun_select = _option_row(panel, "Pronouns", PRONOUN_SETS)
     custom_pronouns = _line_edit(panel, "Custom pronouns (optional)", "e.g. xe / xem / xyr")
@@ -134,13 +187,29 @@ func _build_screen() -> void:
     hair_colour_select = _option_row(panel, "Hair colour", HAIR_COLOURS)
     hair_style_select = _option_row(panel, "Hair style", HAIR_STYLES)
     body_select = _option_row(panel, "Body build", BODY_BUILDS)
+    height_slider = HSlider.new()
+    height_slider.min_value = 0.90
+    height_slider.max_value = 1.10
+    height_slider.step = 0.01
+    height_slider.value = 1.0
+    height_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    var height_row := HBoxContainer.new()
+    var height_label := Label.new()
+    height_label.text = "Height"
+    height_label.custom_minimum_size.x = 205
+    height_row.add_child(height_label)
+    height_row.add_child(height_slider)
+    panel.add_child(height_row)
+    for selector in [skin_select, eye_select, hair_colour_select, hair_style_select, body_select, presentation_select]:
+        selector.item_selected.connect(_refresh_appearance_preview)
+    height_slider.value_changed.connect(_refresh_appearance_preview_value)
 
     _section(panel, "STARTING CLOTHING")
     shirt_select = _option_row(panel, "Shirt", ["Simple tunic", "Linen shirt", "Blouse", "Vest", "No shirt"])
     trousers_select = _option_row(panel, "Legwear", ["Trousers", "Skirt", "Long skirt", "Shorts"])
 
     var note := Label.new()
-    note.text = "Appearance choices are saved to your character profile. The current player model is still a placeholder; detailed Ara face, hair and body variants will appear once the generic player model and modular assets are built."
+    note.text = "Skin, eye and hair colour update the preview where the exported model exposes matching materials. Height and build currently use restrained whole-model scaling; true anatomical morphs and selectable hairstyles require later Ara variants. The male preview uses the replaceable Workshop body export; clothing will be fitted to its final geometry as that asset is approved."
     note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     note.add_theme_color_override("font_color", Color(0.9, 0.75, 0.48))
     panel.add_child(note)
@@ -151,6 +220,7 @@ func _build_screen() -> void:
     start_button.pressed.connect(_finish)
     panel.add_child(start_button)
     _update_mode_controls(game_mode_select.selected)
+    _refresh_appearance_preview(0)
 
 func _section(parent: VBoxContainer, text_value: String) -> void:
     var label := Label.new()
@@ -204,6 +274,7 @@ func _load_saved_profile() -> void:
     ironman_check.button_pressed = bool(data.get("ironman_mode", false))
     _select_metadata(campaign_select, str(data.get("campaign_id", "2")))
     arena_rewards_check.button_pressed = bool(data.get("arena_roguelike_rewards", true))
+    _select_text(body_variant_select, "Male" if str(data.get("body_variant", "female")) == "male" else "Female")
     _select_text(presentation_select, str(data.get("gender_presentation", "Masculine")))
     _select_text(pronoun_select, str(data.get("pronoun_preset", "They / them")))
     custom_pronouns.text = str(data.get("custom_pronouns", ""))
@@ -212,9 +283,11 @@ func _load_saved_profile() -> void:
     _select_text(hair_colour_select, str(data.get("hair_colour", "Dark brown")))
     _select_text(hair_style_select, str(data.get("hair_style", "Short")))
     _select_text(body_select, str(data.get("body_build", "Average")))
+    height_slider.value = clampf(float(data.get("height_scale", 1.0)), 0.90, 1.10)
     _select_text(shirt_select, str(data.get("shirt", "Simple tunic")))
     _select_text(trousers_select, str(data.get("legwear", "Trousers")))
     _refresh_character_preview(0)
+    _refresh_appearance_preview(0)
     _update_mode_controls(game_mode_select.selected)
 
 func _select_metadata(select: OptionButton, value: String) -> void:
@@ -232,6 +305,37 @@ func _selected_id(select: OptionButton, fallback: String) -> String:
 func _refresh_character_preview(_index: int) -> void:
     if rules_preview != null:
         rules_preview.text = RULES.preview_text(_selected_id(race_select, "human"), _selected_id(class_select, "fighter"), _selected_id(difficulty_select, "normal"))
+
+func _refresh_appearance_preview(_index: int) -> void:
+    if preview_actor == null or not is_instance_valid(preview_actor):
+        return
+    var variant := "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female"
+    var asset_path := MALE_PREVIEW_ASSET if variant == "male" else FEMALE_PREVIEW_ASSET
+    if preview_variant_loaded != variant:
+        if not preview_actor.configure(asset_path):
+            preview_status.text = "Preview asset unavailable: %s. The selected body choice will still be saved." % asset_path
+            preview_variant_loaded = ""
+            return
+        preview_variant_loaded = variant
+    var build_factors := {"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04, "Androgynous": 1.0}
+    var profile := {
+        "skin_colour": SKIN_COLOURS[skin_select.selected],
+        "eye_colour": eye_select.get_item_text(eye_select.selected),
+        "hair_colour": hair_colour_select.get_item_text(hair_colour_select.selected),
+        "height_scale": height_slider.value,
+        "build_scale": float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)),
+        "body_variant": variant,
+        "body_variant": "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female",
+        "height_scale": height_slider.value,
+        "build_scale": float({"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04, "Androgynous": 1.0}.get(body_select.get_item_text(body_select.selected), 1.0)),
+        "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
+        "pronouns": "they/them"
+    }
+    preview_actor.apply_player_profile(profile)
+    preview_status.text = "Male Workshop body (replaceable export; clothing fit still in progress)." if variant == "male" else "Female Ara player baseline. Hair style and garment geometry are not yet independently swappable."
+
+func _refresh_appearance_preview_value(_value: float) -> void:
+    _refresh_appearance_preview(0)
 
 func _update_mode_controls(_index: int) -> void:
     if game_mode_select == null:
@@ -261,7 +365,7 @@ func _finish() -> void:
         custom_pronouns.placeholder_text = "Please enter your pronouns"
         return
     var profile := {
-        "schema_version": 2,
+        "schema_version": 3,
         "name": name_edit.text.strip_edges() if not name_edit.text.strip_edges().is_empty() else "Adventurer",
         "race": _selected_id(race_select, "human"),
         "character_class": _selected_id(class_select, "fighter"),
