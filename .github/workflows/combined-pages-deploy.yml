@@ -1,0 +1,121 @@
+name: Deploy combined GitHub Pages site
+
+on:
+  workflow_run:
+    workflows:
+      - Build Godot Web Export
+      - Build Wren Workshop
+    types: [completed]
+    branches: [dev]
+
+permissions:
+  actions: read
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: combined-pages-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out dev site shell
+        uses: actions/checkout@v7
+        with:
+          ref: dev
+
+      - name: Locate latest successful game and Workshop site artifacts
+        id: artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          GAME_RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/godot-web-export.yml/runs?branch=dev&status=success&per_page=10" --jq '.workflow_runs[].id')"
+          GAME_RUN=""
+          for run_id in $GAME_RUNS; do
+            artifact_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name == "godot-web-export" and .expired == false) | .id' | head -n 1 || true)"
+            if [ -n "$artifact_id" ]; then
+              GAME_RUN="$run_id"
+              break
+            fi
+          done
+          if [ -z "$GAME_RUN" ]; then
+            echo "No successful Godot web export artifact exists on dev." >&2
+            exit 1
+          fi
+          echo "game_run=$GAME_RUN" >> "$GITHUB_OUTPUT"
+
+          WREN_RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=dev&status=success&per_page=10" --jq '.workflow_runs[].id')"
+          WREN_RUN=""
+          for run_id in $WREN_RUNS; do
+            artifact_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name == "wren-workshop-site" and .expired == false) | .id' | head -n 1 || true)"
+            if [ -n "$artifact_id" ]; then
+              WREN_RUN="$run_id"
+              break
+            fi
+          done
+          if [ -n "$WREN_RUN" ]; then
+            echo "wren_found=true" >> "$GITHUB_OUTPUT"
+            echo "wren_run=$WREN_RUN" >> "$GITHUB_OUTPUT"
+          else
+            echo "wren_found=false" >> "$GITHUB_OUTPUT"
+            echo "No successful Workshop site artifact exists; using the checked-in site shell."
+          fi
+
+      - name: Download Godot browser build
+        uses: actions/download-artifact@v8
+        with:
+          name: godot-web-export
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.artifacts.outputs.game_run }}
+          github-token: ${{ github.token }}
+          path: /tmp/godot-game
+
+      - name: Download latest Wren Workshop site
+        if: steps.artifacts.outputs.wren_found == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: wren-workshop-site
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.artifacts.outputs.wren_run }}
+          github-token: ${{ github.token }}
+          path: /tmp/wren-site
+
+      - name: Assemble root Workshop and /game browser build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          if [ "${{ steps.artifacts.outputs.wren_found }}" = "true" ]; then
+            cp -a /tmp/wren-site/. dist/
+          else
+            cp -a site/. dist/
+          fi
+          mkdir -p dist/game
+          cp -a /tmp/godot-game/. dist/game/
+          test -s dist/index.html
+          test -s dist/game/index.html
+          test -s dist/game/index.wasm
+          test -s dist/game/index.pck
+          printf 'Workshop: %s\nGame: %s\n' "root" "game/" > dist/DEPLOYMENT.txt
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload combined Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+      - name: Deploy combined Pages site
+        id: deployment
+        uses: actions/deploy-pages@v5
