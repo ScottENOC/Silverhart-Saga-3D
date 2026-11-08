@@ -14,7 +14,7 @@ var pair_last_spoken: Dictionary = {}
 
 func choose_exchange(first_id: String, second_id: String, first_role: String, second_role: String,
         world_seconds: float, hour: int, security: int, shakedown_resolved: bool,
-        rng: RandomNumberGenerator) -> Dictionary:
+        rng: RandomNumberGenerator, shakedown_choice: String = "") -> Dictionary:
     var pair_key := _pair_key(first_id, second_id)
     if pair_last_spoken.has(pair_key) and world_seconds - float(pair_last_spoken[pair_key]) < PAIR_COOLDOWN_SECONDS:
         return {}
@@ -22,7 +22,7 @@ func choose_exchange(first_id: String, second_id: String, first_role: String, se
     var eligible: Array[Dictionary] = []
     for exchange_value in HollowmereCampaignContent.ambient_exchanges():
         var exchange: Dictionary = exchange_value
-        if not _is_eligible(exchange, first_role, second_role, hour, security, shakedown_resolved):
+        if not _is_eligible(exchange, first_role, second_role, hour, security, shakedown_resolved, shakedown_choice):
             continue
         eligible.append(exchange)
     if eligible.is_empty():
@@ -62,11 +62,14 @@ func record_exchange(exchange: Dictionary, first_id: String, second_id: String, 
 
 
 func _is_eligible(exchange: Dictionary, first_role: String, second_role: String,
-        hour: int, security: int, shakedown_resolved: bool) -> bool:
+        hour: int, security: int, shakedown_resolved: bool, shakedown_choice: String = "") -> bool:
     var roles: Array = exchange.get("roles", ["any"])
     if not roles.has("any") and not roles.has(first_role) and not roles.has(second_role):
         return false
     if bool(exchange.get("requires_shakedown", false)) and not shakedown_resolved:
+        return false
+    var required_choice := String(exchange.get("shakedown_choice", ""))
+    if not required_choice.is_empty() and required_choice != shakedown_choice:
         return false
     if exchange.has("security_below") and security >= int(exchange["security_below"]):
         return false

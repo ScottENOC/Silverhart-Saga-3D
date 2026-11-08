@@ -52,6 +52,10 @@ func try_end_turn(characters: Dictionary, forced: bool = false) -> bool:
         return false
     if not state.should_end_turn(forced):
         return false
+    if forced:
+        # Voluntarily ending a turn forfeits the unused action budget so the
+        # same high-TP actor cannot immediately be selected again.
+        state.time_points = minf(state.time_points, float(ActionEconomy.turn_end_threshold()))
 
     var ended_id := current_character_id
     current_character_id = ""

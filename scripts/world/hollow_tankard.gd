@@ -10,6 +10,7 @@ const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const CHARACTER_CREATION_RULES = preload("res://scripts/simulation/character_creation_rules.gd")
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
+const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -69,6 +70,12 @@ var dialogue_panel: PanelContainer
 var dialogue_speaker_label: Label
 var dialogue_body_label: Label
 var dialogue_choices_box: VBoxContainer
+var attack_button: Button
+var end_turn_button: Button
+var combat_status_label: Label
+var encounter_active: bool = false
+var enemy_turn_processed: bool = false
+var enemy_turn_waiting_for_reaction: bool = false
 
 func _ready() -> void:
     _create_materials()
@@ -78,6 +85,7 @@ func _ready() -> void:
     _create_building()
     _create_furniture()
     _create_characters()
+    HollowmereCampaignContent.initialize_social_standings(simulation.campaign_journal, String(player_profile.get("race", "human")))
     _create_camera()
     _create_hud()
     ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
@@ -128,7 +136,6 @@ func _create_simulation() -> void:
     simulation.clock.set_world_seconds(11.0 * 3600.0)
     add_child(simulation)
     simulation.campaign_journal.register_quest_definition(HollowmereCampaignContent.shakedown_quest_definition())
-
     # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
     for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
         for r in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
@@ -145,6 +152,7 @@ func _create_simulation() -> void:
     simulation.reaction_requested.connect(_on_reaction_requested)
     simulation.reaction_resolved.connect(_on_reaction_resolved)
     simulation.movement_reaction_resolved.connect(_on_movement_reaction_resolved)
+    simulation.turn_scheduler.turn_started.connect(_on_combat_turn_started)
 
 func _is_wall_cell_blocked(world: Vector3) -> bool:
     # The south-wall gap is the only opening. The nearest grid cells to the
@@ -409,7 +417,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.name = id
     actor.position = _hex_world_position(spawn_hex)
     actor.set_meta("character_id", id)
-    actor.set_meta("ambient_enabled", not is_player)
+    actor.set_meta("ambient_enabled", not is_player and id != "companion_wren_talbot")
     actor.set_meta("ambient_role", _ambient_role_for_id(id))
     actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
 
@@ -504,7 +512,7 @@ func _create_hud() -> void:
     var layer := CanvasLayer.new()
     var label := Label.new()
     label.position = Vector2(22.0, 18.0)
-    label.text = "HOLLOW TANKARD   |   W/A/S/D/Q/E: move one hex   |   F: talk   |   Click: pathfind   |   [ ]: turn   |   Right-drag: orbit   |   V: roof"
+    label.text = "HOLLOW TANKARD   |   W/A/S/D/Q/E: move   |   F: talk   |   Space: attack   |   Enter: end turn   |   Click: pathfind   |   [ ]: turn   |   V: roof"
     label.add_theme_font_size_override("font_size", 18)
     label.add_theme_color_override("font_color", Color(0.94, 0.93, 0.86))
     layer.add_child(label)
@@ -529,6 +537,29 @@ func _create_hud() -> void:
     world_map_button.custom_minimum_size = Vector2(150.0, 42.0)
     world_map_button.pressed.connect(_toggle_world_map)
     layer.add_child(world_map_button)
+
+    attack_button = Button.new()
+    attack_button.text = "Attack [Space]"
+    attack_button.position = Vector2(610.0, 70.0)
+    attack_button.custom_minimum_size = Vector2(145.0, 42.0)
+    attack_button.visible = false
+    attack_button.pressed.connect(_attack_active_character)
+    layer.add_child(attack_button)
+
+    end_turn_button = Button.new()
+    end_turn_button.text = "End Turn [Enter]"
+    end_turn_button.position = Vector2(765.0, 70.0)
+    end_turn_button.custom_minimum_size = Vector2(160.0, 42.0)
+    end_turn_button.visible = false
+    end_turn_button.pressed.connect(_end_active_turn)
+    layer.add_child(end_turn_button)
+
+    combat_status_label = Label.new()
+    combat_status_label.position = Vector2(610.0, 120.0)
+    combat_status_label.custom_minimum_size = Vector2(360.0, 54.0)
+    combat_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    combat_status_label.visible = false
+    layer.add_child(combat_status_label)
 
     bra_toggle_button = Button.new()
     bra_toggle_button.text = "Bra: on"
@@ -684,8 +715,12 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
     if choice_id == "continue":
         _close_dialogue()
         return
+    if choice_id == "fight":
+        _begin_shakedown_combat()
+        return
     if choice.has("ironbond_delta"):
         _resolve_shakedown(choice_id)
+        await _move_shakedown_soldiers_outside()
         var response := String(choice.get("response", ""))
         if response.is_empty():
             response = "You stand with Garrick. The encounter is ready to begin once combat targeting and enemy AI are connected."
@@ -705,7 +740,7 @@ func _close_dialogue() -> void:
 
 
 func _interact_with_nearest_npc() -> void:
-    if dialogue_open or shakedown_started and not shakedown_resolved:
+    if dialogue_open or ambient_exchange_running or encounter_active or shakedown_started and not shakedown_resolved:
         return
     var player_state := simulation.get_character(active_character_id)
     if player_state == null:
@@ -717,7 +752,7 @@ func _interact_with_nearest_npc() -> void:
         if actor_id == active_character_id or party_member_ids.has(actor_id):
             continue
         var state := simulation.get_character(actor_id)
-        if state == null or not state.alive:
+        if state == null or not state.can_act() or state.side == "enemy":
             continue
         var distance := HexGrid.distance(player_state.axial, state.axial)
         if distance <= 2 and distance < nearest_distance:
@@ -726,7 +761,11 @@ func _interact_with_nearest_npc() -> void:
     if nearest_id.is_empty():
         _show_dialogue("No one nearby", "Move closer to someone if you want to speak with them.", [{"id": "continue", "label": "Close", "text": ""}])
         return
-    var conversation := HollowmereCampaignContent.npc_greeting(nearest_id, shakedown_resolved)
+    var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
+    var decisions: Dictionary = quest_state.get("decisions", {})
+    var response_choice := String(decisions.get("response", ""))
+    var standing := simulation.campaign_journal.npc_standing(nearest_id)
+    var conversation := HollowmereCampaignContent.npc_greeting(nearest_id, shakedown_resolved, standing, response_choice)
     var choices: Array[Dictionary] = []
     for choice_value in conversation.get("choices", []):
         var choice: Dictionary = choice_value
@@ -755,15 +794,78 @@ func _run_opening_sequence() -> void:
     if not is_instance_valid(self) or shakedown_started:
         return
     shakedown_started = true
-    for line_value in HollowmereCampaignContent.opening_lines():
-        var line: Dictionary = line_value
+    var opening_lines := HollowmereCampaignContent.opening_lines()
+    for index in range(opening_lines.size()):
+        var line: Dictionary = opening_lines[index]
         var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
         if speaker_id == "narrator":
-            speaker_id = "dray_coltayne"
-        _show_speech_bubble(speaker_id, String(line.get("text", "")))
+            _show_world_narration(String(line.get("text", "")))
+            await _move_shakedown_soldiers_inside()
+        else:
+            _show_speech_bubble(speaker_id, String(line.get("text", "")))
         await get_tree().create_timer(2.25).timeout
     if not shakedown_resolved:
         _show_dialogue("Dray Coltayne", "What do you do?", HollowmereCampaignContent.shakedown_choices())
+
+
+func _move_shakedown_soldiers_outside() -> void:
+    var wait_hexes: Array[Vector2i] = [Vector2i(-1, 6), Vector2i(0, 6), Vector2i(1, 6)]
+    for index in range(HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.size()):
+        var character_id := HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS[index]
+        var destination := wait_hexes[index]
+        var path := simulation.find_path(character_id, destination)
+        for step_index in range(1, path.size()):
+            if not simulation.try_move_character_step(character_id, path[step_index]):
+                break
+            await get_tree().create_timer(0.24).timeout
+            if not is_instance_valid(self):
+                return
+
+
+func _move_shakedown_soldiers_inside() -> void:
+    var preferred_destinations: Array[Vector2i] = [Vector2i(0, 3), Vector2i(-2, 3), Vector2i(2, 3)]
+    var fallback_destinations: Array[Vector2i] = [Vector2i(-1, 3), Vector2i(1, 3), Vector2i(0, 2), Vector2i(2, 2), Vector2i(-2, 2)]
+    for index in range(HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.size()):
+        var character_id := HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS[index]
+        var best_path: Array[Vector2i] = []
+        var destinations: Array[Vector2i] = [preferred_destinations[index]]
+        destinations.append_array(fallback_destinations)
+        for destination in destinations:
+            if not simulation.map_data.is_walkable(destination) or simulation.occupied_hexes.has(destination):
+                continue
+            var path := simulation.find_path(character_id, destination)
+            if path.size() > 1 and (best_path.is_empty() or path.size() < best_path.size()):
+                best_path = path
+        for step_index in range(1, best_path.size()):
+            if not simulation.try_move_character_step(character_id, best_path[step_index]):
+                break
+            await get_tree().create_timer(0.24).timeout
+            if not is_instance_valid(self):
+                return
+
+
+func _show_world_narration(text: String) -> void:
+    var bubble := Label3D.new()
+    bubble.name = "NarrationBubble"
+    bubble.text = text
+    bubble.position = Vector3(0.0, 4.4, 0.0)
+    bubble.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    bubble.font_size = 22
+    bubble.pixel_size = 0.008
+    bubble.outline_size = 6
+    bubble.modulate = Color(0.98, 0.96, 0.86)
+    add_child(bubble)
+    var timer := Timer.new()
+    timer.one_shot = true
+    timer.wait_time = 2.15
+    add_child(timer)
+    timer.timeout.connect(func():
+        if is_instance_valid(bubble):
+            bubble.queue_free()
+        if is_instance_valid(timer):
+            timer.queue_free()
+    )
+    timer.start()
 
 
 func _show_speech_bubble(character_id: String, text: String) -> void:
@@ -806,7 +908,7 @@ func _ambient_role_for_id(character_id: String) -> String:
 
 
 func _update_ambient_chatter(delta: float) -> void:
-    if dialogue_open or simulation == null or simulation.is_in_combat or simulation.clock.paused or ambient_exchange_running:
+    if dialogue_open or shakedown_started and not shakedown_resolved or simulation == null or simulation.is_in_combat or simulation.clock.paused or ambient_exchange_running:
         return
     ambient_accumulator += delta
     if ambient_accumulator < 16.0:
@@ -817,7 +919,7 @@ func _update_ambient_chatter(delta: float) -> void:
         var actor_id := String(actor_id_value)
         var actor := actor_by_id.get(actor_id) as Node3D
         var state := simulation.get_character(actor_id)
-        if actor != null and bool(actor.get_meta("ambient_enabled", false)) and state != null and state.alive:
+        if actor != null and bool(actor.get_meta("ambient_enabled", false)) and state != null and state.can_act() and state.side == "neutral":
             candidates.append(actor_id)
     if candidates.size() < 2:
         return
@@ -836,11 +938,14 @@ func _update_ambient_chatter(delta: float) -> void:
     var first_actor := actor_by_id.get(first_id) as Node3D
     var second_actor := actor_by_id.get(second_id) as Node3D
     var hour := int(fposmod(simulation.clock.world_seconds, 86400.0) / 3600.0)
+    var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
+    var decisions: Dictionary = quest_state.get("decisions", {})
+    var response_choice := String(decisions.get("response", ""))
     var exchange := ambient_chatter.choose_exchange(
         first_id, second_id,
         String(first_actor.get_meta("ambient_role", "civilian")),
         String(second_actor.get_meta("ambient_role", "civilian")),
-        simulation.clock.world_seconds, hour, ambient_security, shakedown_resolved, ambient_rng
+        simulation.clock.world_seconds, hour, ambient_security, shakedown_resolved, ambient_rng, response_choice
     )
     if exchange.is_empty():
         return
@@ -858,6 +963,210 @@ func _run_ambient_exchange(first_id: String, second_id: String, exchange: Dictio
             await get_tree().create_timer(2.0).timeout
     ambient_exchange_running = false
 
+func _begin_shakedown_combat() -> void:
+    _close_dialogue()
+    var branch_result := HollowmereCampaignContent.apply_shakedown_choice(simulation.campaign_journal, "fight")
+    if not bool(branch_result.get("ok", false)):
+        _show_dialogue("Hollowmere", "The choice could not be recorded: " + String(branch_result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
+        return
+    shakedown_resolved = true
+    var result := HOLLOWMERE_ENCOUNTER_SCRIPT.start(simulation)
+    if not bool(result.get("ok", false)):
+        simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The fight could not start: " + String(result.get("reason", "unknown error")))
+        _show_dialogue("Hollowmere", "The confrontation cannot begin: " + String(result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
+        return
+    encounter_active = true
+    enemy_turn_processed = false
+    enemy_turn_waiting_for_reaction = false
+    if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(active_character_id):
+        active_character_id = "player"
+    _update_combat_ui()
+
+
+func _on_combat_turn_started(_character_id: String) -> void:
+    enemy_turn_processed = false
+
+
+func _update_combat(_delta: float) -> void:
+    if not encounter_active or simulation == null or not simulation.is_in_combat:
+        return
+    _check_encounter_resolution()
+    if not encounter_active or not simulation.is_in_combat:
+        return
+    if enemy_turn_waiting_for_reaction and simulation.pending_reaction.is_empty():
+        enemy_turn_waiting_for_reaction = false
+        simulation.try_end_current_turn(true)
+        return
+    if not simulation.pending_reaction.is_empty():
+        return
+    var current := simulation.get_current_turn_character()
+    if current == null or enemy_turn_processed:
+        return
+    var is_ai_turn := current.side == "enemy" or (current.side == "player" and not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(current.id))
+    if not is_ai_turn:
+        return
+    enemy_turn_processed = true
+    _run_ai_combat_turn(current)
+
+
+func _run_ai_combat_turn(combatant: CharacterState) -> void:
+    var target := _nearest_opponent_target(combatant)
+    if target == null:
+        simulation.try_end_current_turn(true)
+        return
+    if HexGrid.distance(combatant.axial, target.axial) <= _attack_range_for(combatant):
+        var weapon_id := String(combatant.equipment.get("weapon", ""))
+        var weapon: Dictionary = combatant.equipped_item_data.get("weapon", {})
+        var result := simulation.try_attack_character(combatant.id, target.id, {
+            "time_point_cost": 10.0,
+            "weapon_id": weapon_id,
+            "is_ranged": String(weapon.get("subType", "")) == "ranged"
+        }, int(combatant.id.hash()))
+        if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
+            enemy_turn_waiting_for_reaction = true
+        else:
+            simulation.try_end_current_turn(true)
+        return
+    var next_step := _best_enemy_approach_step(combatant, target)
+    if next_step == INVALID_HEX:
+        simulation.try_end_current_turn(true)
+        return
+    var moved := simulation.try_move_character_step(combatant.id, next_step)
+    if moved and not simulation.pending_reaction.is_empty():
+        enemy_turn_waiting_for_reaction = true
+    else:
+        simulation.try_end_current_turn(true)
+
+
+func _nearest_opponent_target(combatant: CharacterState) -> CharacterState:
+    var best: CharacterState
+    var best_distance := 999
+    var opponent_ids: Array[String] = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS
+    if combatant.side == "enemy":
+        opponent_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.COMBAT_ALLY_IDS
+    for opponent_id in opponent_ids:
+        var opponent := simulation.get_character(opponent_id)
+        if opponent == null or not opponent.can_act():
+            continue
+        var distance := HexGrid.distance(combatant.axial, opponent.axial)
+        if distance < best_distance:
+            best_distance = distance
+            best = opponent
+    return best
+
+
+func _best_enemy_approach_step(enemy: CharacterState, target: CharacterState) -> Vector2i:
+    var best_path: Array[Vector2i] = []
+    for destination in HexGrid.neighbors(target.axial):
+        if not simulation.map_data.is_walkable(destination) or simulation.occupied_hexes.has(destination):
+            continue
+        var path := simulation.find_path(enemy.id, destination)
+        if path.size() < 2:
+            continue
+        if best_path.is_empty() or path.size() < best_path.size():
+            best_path = path
+    return best_path[1] if best_path.size() > 1 else INVALID_HEX
+
+
+func _attack_active_character() -> void:
+    if not encounter_active or not simulation.is_in_combat or not simulation.pending_reaction.is_empty():
+        return
+    var current := simulation.get_current_turn_character()
+    if current == null or current.id != active_character_id or current.side != "player":
+        combat_status_label.text = "It is not this character turn. Switch party members with Tab."
+        return
+    var target := _nearest_enemy_in_attack_range(current)
+    if target == null:
+        combat_status_label.text = "No enemy in reach. Move adjacent to an Ironbond soldier first."
+        return
+    var weapon_id := String(current.equipment.get("weapon", ""))
+    var result := simulation.try_attack_character(current.id, target.id, {
+        "time_point_cost": 10.0,
+        "weapon_id": weapon_id
+    }, int(current.id.hash() + target.id.hash()))
+    if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
+        combat_status_label.text = "Resolving a defensive reaction..."
+    elif bool(result.get("ok", false)):
+        combat_status_label.text = "Attack resolved against %s." % target.display_name
+    else:
+        combat_status_label.text = "Attack unavailable: %s" % String(result.get("reason", "unknown"))
+    _check_encounter_resolution()
+
+
+func _attack_range_for(attacker: CharacterState) -> int:
+    if attacker == null:
+        return 1
+    var weapon: Dictionary = attacker.equipped_item_data.get("weapon", {})
+    return maxi(1, 1 + int(weapon.get("range", 0)))
+
+func _nearest_enemy_in_attack_range(attacker: CharacterState) -> CharacterState:
+    var best: CharacterState
+    var best_distance := 999
+    for enemy_id in HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS:
+        var enemy := simulation.get_character(enemy_id)
+        if enemy == null or not enemy.can_act():
+            continue
+        var distance := HexGrid.distance(attacker.axial, enemy.axial)
+        if distance <= _attack_range_for(attacker) and distance < best_distance:
+            best_distance = distance
+            best = enemy
+    return best
+
+
+func _end_active_turn() -> void:
+    if not encounter_active or not simulation.is_in_combat or not simulation.pending_reaction.is_empty():
+        return
+    var current := simulation.get_current_turn_character()
+    if current == null or current.id != active_character_id or current.side != "player":
+        return
+    simulation.try_end_current_turn(true)
+
+
+func _update_combat_ui() -> void:
+    if attack_button == null or end_turn_button == null or combat_status_label == null:
+        return
+    var combat_visible := encounter_active and simulation != null and simulation.is_in_combat
+    attack_button.visible = combat_visible
+    end_turn_button.visible = combat_visible
+    combat_status_label.visible = combat_visible
+    if not combat_visible:
+        return
+    var current := simulation.get_current_turn_character()
+    var player_turn := current != null and current.side == "player" and current.id == active_character_id and current.can_act() and simulation.pending_reaction.is_empty()
+    attack_button.disabled = not player_turn or _nearest_enemy_in_attack_range(current) == null
+    end_turn_button.disabled = not player_turn
+    if not simulation.pending_reaction.is_empty():
+        combat_status_label.text = "Reaction pending..."
+    elif current == null:
+        combat_status_label.text = "Waiting for the next combat turn..."
+    elif current.side == "enemy":
+        combat_status_label.text = "%s is acting..." % current.display_name
+    elif current.id != active_character_id and HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(current.id):
+        combat_status_label.text = "Switch to %s with Tab." % current.display_name
+    elif current.id != active_character_id:
+        combat_status_label.text = "%s is acting..." % current.display_name
+    else:
+        combat_status_label.text = "%s  ·  HP %d/%d  ·  TP %d" % [current.display_name, current.health, current.max_health, roundi(current.time_points)]
+
+
+func _check_encounter_resolution() -> void:
+    if not encounter_active:
+        return
+    if HOLLOWMERE_ENCOUNTER_SCRIPT.party_defeated(simulation):
+        simulation.end_combat()
+        HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation)
+        encounter_active = false
+        shakedown_resolved = true
+        simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The party was defeated during the Ironbond shakedown.")
+        _show_dialogue("Garrick Holt", "The soldiers overpower you. Garrick has no choice but to surrender the due. The confrontation is lost.", [{"id": "continue", "label": "Continue", "text": ""}])
+    elif HOLLOWMERE_ENCOUNTER_SCRIPT.enemies_defeated(simulation):
+        simulation.end_combat()
+        HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation)
+        encounter_active = false
+        HollowmereCampaignContent.complete_shakedown(simulation.campaign_journal)
+        _show_speech_bubble("garrick_holt", HollowmereCampaignContent.shakedown_victory_text())
+        _show_dialogue("Garrick Holt", HollowmereCampaignContent.shakedown_victory_text(), [{"id": "continue", "label": "Continue", "text": ""}])
+
 func _toggle_character_panel() -> void:
     if character_panel != null:
         character_panel.toggle_panel()
@@ -868,8 +1177,31 @@ func _toggle_world_map() -> void:
 
 
 func _on_reaction_requested(reactor_id: String, options: Array[Dictionary], request_id: int, _source_event_id: String) -> void:
+    if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(reactor_id):
+        _resolve_ai_reaction(reactor_id, options)
+        return
     if reaction_prompt != null:
         reaction_prompt.present(reactor_id, options, request_id)
+
+
+func _resolve_ai_reaction(reactor_id: String, options: Array[Dictionary]) -> void:
+    var selected_id := ""
+    var selected_priority := -1
+    for option_value in options:
+        var option: Dictionary = option_value
+        var option_id := String(option.get("id", ""))
+        var option_reactor_id := String(option.get("reactor_id", reactor_id))
+        var priority := 0
+        if option_id == "parry" and option_reactor_id == reactor_id:
+            priority = 4
+        elif option_id == "protector_parry":
+            priority = 3
+        elif option_id == "shield_other":
+            priority = 2
+        if priority > selected_priority:
+            selected_priority = priority
+            selected_id = option_id
+    simulation.resolve_reaction(selected_id)
 
 func _on_reaction_choice_selected(choice_id: String, _request_id: int) -> void:
     if simulation != null:
@@ -942,6 +1274,8 @@ func _switch_party_member() -> void:
 
 func _process(delta: float) -> void:
     _update_ambient_chatter(delta)
+    _update_combat(delta)
+    _update_combat_ui()
     if active_path.size() < 2:
         return
     path_step_accumulator += delta
@@ -962,6 +1296,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
     if event is InputEventKey and event.pressed and not event.echo:
         var key_event := event as InputEventKey
+        if key_event.keycode == KEY_SPACE:
+            _attack_active_character()
+            get_viewport().set_input_as_handled()
+            return
+        if key_event.keycode == KEY_ENTER or key_event.keycode == KEY_KP_ENTER:
+            _end_active_turn()
+            get_viewport().set_input_as_handled()
+            return
         if key_event.keycode == KEY_F:
             _interact_with_nearest_npc()
             get_viewport().set_input_as_handled()
