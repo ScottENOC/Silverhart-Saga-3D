@@ -13,7 +13,6 @@ on:
       - "tools/pwa/**"
       - "tools/ci/**"
       - ".github/workflows/godot-web-export.yml"
-      - ".github/workflows/combined-pages-deploy.yml"
 
 permissions:
   contents: read
