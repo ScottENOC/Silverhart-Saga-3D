@@ -61,6 +61,48 @@ jobs:
           github-token: ${{ github.token }}
           path: art/characters/hollowmere
 
+      - name: Locate the newest available Wren Workshop runtime package
+        id: workshop-assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=dev&per_page=10" --jq '.workflow_runs[].id')"
+          for run_id in $RUNS; do
+            artifact_name="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.expired == false) | select(.name | startswith("ara-runtime-assets-")) | .name' | head -n 1 || true)"
+            if [ -n "$artifact_name" ]; then
+              echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+              echo "artifact_name=$artifact_name" >> "$GITHUB_OUTPUT"
+              echo "found=true" >> "$GITHUB_OUTPUT"
+              echo "Using replaceable Workshop body package $artifact_name from run $run_id."
+              exit 0
+            fi
+          done
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          echo "No unexpired Workshop runtime package found; male preview will report its asset as unavailable."
+
+      - name: Download the latest Workshop body package
+        if: steps.workshop-assets.outputs.found == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ steps.workshop-assets.outputs.artifact_name }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.workshop-assets.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: /tmp/workshop-package
+
+      - name: Install replaceable Workshop body assets
+        if: steps.workshop-assets.outputs.found == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p art/characters/ara_runtime
+          unzip -q /tmp/workshop-package/ara-runtime-assets.zip -d art/characters/ara_runtime
+          if [ ! -s art/characters/ara_runtime/ara_person_male_body.glb ]; then
+            echo "::warning::Workshop package does not yet contain ara_person_male_body.glb."
+          fi
+
       - name: Verify all 13 NPCs and the player avatar
         shell: bash
         run: |
