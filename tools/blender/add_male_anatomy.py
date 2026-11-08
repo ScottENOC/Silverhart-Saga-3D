@@ -295,6 +295,66 @@ def add_meatus_detail(tree, skin_material, armature, pelvis_bone, height, tip_z,
     return obj
 
 
+
+def fuse_male_anatomy(parts, armature, pelvis_bone, body_height):
+    """Fuse the shaft, glans and scrotum into one smooth, watertight skin mesh.
+
+    The old blockout exported several intersecting primitives. Their separate
+    silhouettes and intersections caused the detached/toy-like appearance.
+    This pass removes their individual rig modifiers, joins the surfaces,
+    voxel-remeshes the overlaps into one continuous component, smooths the
+    transitions, then applies one pelvis skinning group.
+    """
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in parts:
+        for modifier in list(obj.modifiers):
+            obj.modifiers.remove(modifier)
+        # The source vertices are already authored in character/world space.
+        world = obj.matrix_world.copy()
+        obj.parent = None
+        obj.matrix_world = world
+        obj.select_set(True)
+
+    fused = parts[0]
+    bpy.context.view_layer.objects.active = fused
+    bpy.ops.object.join()
+    fused.name = "Male anatomy · unified body surface"
+    fused.data.name = "MaleAnatomyUnifiedMesh"
+
+    remesh = fused.modifiers.new("Fuse anatomy intersections", "REMESH")
+    remesh.mode = "VOXEL"
+    remesh.voxel_size = max(body_height * 0.00135, 0.0015)
+    remesh.use_smooth_shade = True
+    bpy.context.view_layer.objects.active = fused
+    bpy.ops.object.modifier_apply(modifier=remesh.name)
+
+    smooth = fused.modifiers.new("Soften fused transitions", "SMOOTH")
+    smooth.factor = 0.65
+    smooth.iterations = 5
+    bpy.ops.object.modifier_apply(modifier=smooth.name)
+
+    # Recalculate normals after remeshing and keep a single skin material.
+    bpy.context.view_layer.objects.active = fused
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.mesh.normals_make_consistent(inside=False)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for polygon in fused.data.polygons:
+        polygon.use_smooth = True
+
+    group = fused.vertex_groups.new(name=pelvis_bone)
+    group.add(list(range(len(fused.data.vertices))), 1.0, "REPLACE")
+    fused.parent = armature
+    fused.matrix_parent_inverse = armature.matrix_world.inverted()
+    armature_mod = fused.modifiers.new("Ara pelvis skinning", "ARMATURE")
+    armature_mod.object = armature
+    fused["anatomy_profile"] = "adult_male"
+    fused["anatomy_parts"] = "integrated_root,shaft,glans,corona,scrotal_sac"
+    fused["anatomy_method"] = "single_voxel_fused_skin_surface"
+    fused["review_status"] = "unified_geometry_requires_multi_angle_visual_acceptance"
+    fused["remesh_voxel_size"] = remesh.voxel_size if remesh.name in fused.modifiers else max(body_height * 0.00135, 0.0015)
+    return fused
+
 def main():
     args = arguments()
     if not args.adult:
@@ -328,13 +388,11 @@ def main():
     scrotum = create_scrotum(
         surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z, pelvic_surface_y
     )
-    meatus = add_meatus_detail(
-        surface_tree, skin_material, armature, pelvis_bone, height, tip_z, shaft_radius, pelvic_surface_y
-    )
 
-    for obj in (shaft, glans, corona, scrotum, meatus):
-        obj["review_status"] = "geometry_pass_requires_visual_acceptance"
-        obj["profile_name"] = args.profile_name
+    anatomy = fuse_male_anatomy(
+        [shaft, glans, corona, scrotum], armature, pelvis_bone, height
+    )
+    anatomy["profile_name"] = args.profile_name
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
@@ -347,9 +405,10 @@ def main():
         use_selection=True, export_apply=False, export_animations=True
     )
     print(
-        "Exported explicit adult male anatomy geometry: shaft, glans, corona, "
-        "meatus and paired scrotal contours; all parts pelvis-weighted and "
-        f"scaled to body width={width:.4f}, height={height:.4f}."
+        "Exported one voxel-fused adult male anatomy surface: integrated root, "
+        "tapered shaft, glans/corona transition and paired scrotal contours; "
+        "single pelvis-weighted mesh scaled to body width="
+        f"{width:.4f}, height={height:.4f}."
     )
 
 
