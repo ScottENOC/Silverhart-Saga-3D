@@ -1126,8 +1126,31 @@ func _toggle_world_map() -> void:
 
 
 func _on_reaction_requested(reactor_id: String, options: Array[Dictionary], request_id: int, _source_event_id: String) -> void:
+    if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(reactor_id):
+        _resolve_ai_reaction(reactor_id, options)
+        return
     if reaction_prompt != null:
         reaction_prompt.present(reactor_id, options, request_id)
+
+
+func _resolve_ai_reaction(reactor_id: String, options: Array[Dictionary]) -> void:
+    var selected_id := ""
+    var selected_priority := -1
+    for option_value in options:
+        var option: Dictionary = option_value
+        var option_id := String(option.get("id", ""))
+        var option_reactor_id := String(option.get("reactor_id", reactor_id))
+        var priority := 0
+        if option_id == "parry" and option_reactor_id == reactor_id:
+            priority = 4
+        elif option_id == "protector_parry":
+            priority = 3
+        elif option_id == "shield_other":
+            priority = 2
+        if priority > selected_priority:
+            selected_priority = priority
+            selected_id = option_id
+    simulation.resolve_reaction(selected_id)
 
 func _on_reaction_choice_selected(choice_id: String, _request_id: int) -> void:
     if simulation != null:
