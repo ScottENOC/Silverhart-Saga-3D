@@ -63,6 +63,7 @@ var ambient_exchange_running: bool = false
 var ambient_security: int = 50
 var shakedown_started: bool = false
 var shakedown_resolved: bool = false
+var shakedown_soldiers_waiting_outside: bool = false
 var dialogue_open: bool = false
 var dialogue_panel: PanelContainer
 var dialogue_speaker_label: Label
@@ -715,6 +716,7 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
         return
     if choice.has("ironbond_delta"):
         _resolve_shakedown(choice_id)
+        await _move_shakedown_soldiers_outside()
         var response := String(choice.get("response", ""))
         if response.is_empty():
             response = "You stand with Garrick. The encounter is ready to begin once combat targeting and enemy AI are connected."
@@ -800,6 +802,21 @@ func _run_opening_sequence() -> void:
         await get_tree().create_timer(2.25).timeout
     if not shakedown_resolved:
         _show_dialogue("Dray Coltayne", "What do you do?", HollowmereCampaignContent.shakedown_choices())
+
+
+func _move_shakedown_soldiers_outside() -> void:
+    var wait_hexes: Array[Vector2i] = [Vector2i(-1, 6), Vector2i(0, 6), Vector2i(1, 6)]
+    for index in range(HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.size()):
+        var character_id := HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS[index]
+        var destination := wait_hexes[index]
+        var path := simulation.find_path(character_id, destination)
+        for step_index in range(1, path.size()):
+            if not simulation.try_move_character_step(character_id, path[step_index]):
+                break
+            await get_tree().create_timer(0.24).timeout
+            if not is_instance_valid(self):
+                return
+    shakedown_soldiers_waiting_outside = true
 
 
 func _move_shakedown_soldiers_inside() -> void:
