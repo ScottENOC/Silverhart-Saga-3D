@@ -537,15 +537,15 @@ func _create_camera() -> void:
 func _create_hud() -> void:
     var layer := CanvasLayer.new()
     var title_label := Label.new()
-    title_label.position = Vector2(22.0, 18.0)
-    title_label.text = "HOLLOW TANKARD"
+    title_label.position = Vector2(22.0, 68.0)
+    title_label.text = "LOCATION  /  HOLLOW TANKARD"
     title_label.add_theme_font_size_override("font_size", 20)
     title_label.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
     layer.add_child(title_label)
 
     var menu_button := Button.new()
     menu_button.text = "Menu"
-    menu_button.position = Vector2(22.0, 104.0)
+    menu_button.position = Vector2(22.0, 18.0)
     menu_button.custom_minimum_size = Vector2(112.0, 40.0)
     layer.add_child(menu_button)
     var game_menu := PopupMenu.new()
@@ -561,7 +561,7 @@ func _create_hud() -> void:
     game_menu.id_pressed.connect(_on_game_menu_selected)
     layer.add_child(game_menu)
     menu_button.pressed.connect(func():
-        game_menu.position = Vector2i(22, 148)
+        game_menu.position = Vector2i(22, 62)
         game_menu.popup()
     )
 
@@ -574,7 +574,7 @@ func _create_hud() -> void:
     game_menu.set_meta("controls_dialog", controls_dialog)
 
     resource_status_label = Label.new()
-    resource_status_label.position = Vector2(22.0, 238.0)
+    resource_status_label.position = Vector2(22.0, 112.0)
     resource_status_label.custom_minimum_size = Vector2(420.0, 36.0)
     resource_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     resource_status_label.add_theme_color_override("font_color", Color(0.96, 0.88, 0.64))
@@ -582,35 +582,42 @@ func _create_hud() -> void:
 
     var gather_button := Button.new()
     gather_button.text = "Gather [G]"
-    gather_button.position = Vector2(610.0, 18.0)
+    gather_button.position = Vector2(840.0, 18.0)
     gather_button.custom_minimum_size = Vector2(145.0, 42.0)
     gather_button.pressed.connect(_gather_at_player)
     layer.add_child(gather_button)
 
     party_switch_button = Button.new()
     party_switch_button.text = "Active: You  [Tab] Switch"
-    party_switch_button.position = Vector2(22.0, 54.0)
+    party_switch_button.position = Vector2(145.0, 18.0)
     party_switch_button.custom_minimum_size = Vector2(230.0, 42.0)
     party_switch_button.pressed.connect(_switch_party_member)
     layer.add_child(party_switch_button)
 
     var character_panel_button := Button.new()
     character_panel_button.text = "Character  [C]"
-    character_panel_button.position = Vector2(260.0, 54.0)
+    character_panel_button.position = Vector2(385.0, 18.0)
     character_panel_button.custom_minimum_size = Vector2(145.0, 42.0)
-    character_panel_button.pressed.connect(_toggle_character_panel)
+    character_panel_button.pressed.connect(_open_character_panel)
     layer.add_child(character_panel_button)
+
+    var inventory_panel_button := Button.new()
+    inventory_panel_button.text = "Inventory  [I]"
+    inventory_panel_button.position = Vector2(540.0, 18.0)
+    inventory_panel_button.custom_minimum_size = Vector2(140.0, 42.0)
+    inventory_panel_button.pressed.connect(_open_inventory_panel)
+    layer.add_child(inventory_panel_button)
 
     var world_map_button := Button.new()
     world_map_button.text = "World Map"
-    world_map_button.position = Vector2(445.0, 54.0)
+    world_map_button.position = Vector2(690.0, 18.0)
     world_map_button.custom_minimum_size = Vector2(140.0, 42.0)
     world_map_button.pressed.connect(_toggle_world_map)
     layer.add_child(world_map_button)
 
     attack_button = Button.new()
     attack_button.text = "Attack [Space]"
-    attack_button.position = Vector2(610.0, 70.0)
+    attack_button.position = Vector2(840.0, 70.0)
     attack_button.custom_minimum_size = Vector2(145.0, 42.0)
     attack_button.visible = false
     attack_button.pressed.connect(_attack_active_character)
@@ -618,7 +625,7 @@ func _create_hud() -> void:
 
     end_turn_button = Button.new()
     end_turn_button.text = "End Turn [Enter]"
-    end_turn_button.position = Vector2(765.0, 70.0)
+    end_turn_button.position = Vector2(995.0, 70.0)
     end_turn_button.custom_minimum_size = Vector2(160.0, 42.0)
     end_turn_button.visible = false
     end_turn_button.pressed.connect(_end_active_turn)
@@ -1245,8 +1252,19 @@ func _on_character_equipment_changed(changed_character_id: String) -> void:
 
 
 func _toggle_character_panel() -> void:
+    _open_character_panel()
+
+func _open_character_panel() -> void:
     if character_panel != null:
-        character_panel.toggle_panel()
+        character_panel.set_tab("character")
+        if not character_panel.visible:
+            character_panel.toggle_panel()
+
+func _open_inventory_panel() -> void:
+    if character_panel != null:
+        character_panel.set_tab("inventory")
+        if not character_panel.visible:
+            character_panel.toggle_panel()
 
 func _toggle_world_map() -> void:
     if world_map_panel != null and world_map_panel.has_method("toggle_panel"):
@@ -1410,10 +1428,7 @@ func _unhandled_input(event: InputEvent) -> void:
             get_viewport().set_input_as_handled()
             return
         if key_event.keycode == KEY_I:
-            if character_panel != null:
-                character_panel.set_tab("inventory")
-                if not character_panel.visible:
-                    character_panel.toggle_panel()
+            _open_inventory_panel()
             get_viewport().set_input_as_handled()
             return
         if key_event.keycode == KEY_V:

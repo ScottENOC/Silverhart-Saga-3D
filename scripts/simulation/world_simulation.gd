@@ -741,7 +741,7 @@ func _find_npc_sidestep_hex(occupant: CharacterState, mover_origin: Vector2i) ->
         var db := HexGrid.distance(b, mover_origin)
         if da == db:
             return a.x < b.x if a.x != b.x else a.y < b.y
-        return da > db
+        return da < db
     )
     for candidate in candidates:
         if candidate == mover_origin or not map_data.is_walkable(candidate) or occupied_hexes.has(candidate):
