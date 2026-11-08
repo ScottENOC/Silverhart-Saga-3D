@@ -614,9 +614,9 @@ func _switch_party_member() -> void:
     if target != null:
         camera_rig.follow_target = target
         var display_name := "You" if active_character_id == "player" else "Wren"
-        party_switch_button.text = "Active: " + display_name
+        party_switch_button.text = "Active: " + display_name + "  [Tab] Switch"
     if character_panel != null:
-        character_panel.set_character(active_character_id) + "  [Tab] Switch"
+        character_panel.set_character(active_character_id)
 
 func _process(delta: float) -> void:
     if active_path.size() < 2:
