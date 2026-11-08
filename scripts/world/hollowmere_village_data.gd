@@ -30,7 +30,7 @@ static func is_water(hex: Vector2i) -> bool:
 static func _river_centre_r(q: int) -> float:
     var samples: Array[Vector2i] = [
         Vector2i(-30, -22), Vector2i(-24, -24), Vector2i(-18, -22),
-        Vector2i(-12, -24), Vector2i(-6, -27), Vector2i(0, -23),
+        Vector2i(-12, -24), Vector2i(-6, -27), Vector2i(0, -24),
         Vector2i(5, -24), Vector2i(8, -25), Vector2i(12, -27),
         Vector2i(18, -25), Vector2i(24, -28), Vector2i(30, -25)
     ]
