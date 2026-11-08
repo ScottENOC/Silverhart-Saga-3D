@@ -17,7 +17,7 @@ EquipmentAppearance.apply_to(sword_instance, {
 
 Profiles currently include steel, dark steel, gold, brass, wood, painted wood, leather and cloth. Material categories constrain the finish: wood can be natural or painted but cannot become metallic; leather and cloth remain non-metallic; metal can be steel, dark steel, gold or brass. Gold is a metallic PBR material, not merely yellow paint.
 
-For reliable categorisation, exported props should use descriptive material names such as `Steel`, `Brass`, `Oak`, `Leather`, `Blade`, `Grip` and `HeraldryFace`. Unknown surface names fall back to a neutral steel profile and should be given explicit metadata before production use.
+For reliable categorisation, exported props should use descriptive material names such as `Steel`, `Brass`, `Oak`, `Leather`, `Blade`, `Grip` and `HeraldryFace`. Unknown surface names retain their imported PBR values; only an explicitly requested colour-only override is applied. Give production surfaces descriptive names or explicit metadata before requesting a material finish.
 
 ## Shield heraldry
 
