@@ -395,7 +395,7 @@ function surfacePoint(x,y,skinOnly=false){
  const worldNormal=hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
  const normalEnd=model.worldToLocal(hit.point.clone().add(worldNormal));
  const normal=normalEnd.sub(point).normalize();
- return {point,normal};
+ return {point,normal,object:hit.object};
 }
 function socketSurface(name){
  if(!model)return null;
