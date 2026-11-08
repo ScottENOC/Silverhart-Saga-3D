@@ -336,8 +336,11 @@ jobs:
     needs: [integrate, integrate-male]
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     concurrency:
-      group: wren-workshop-publish-${{ github.ref_name }}
+      group: combined-pages-deployment
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
@@ -563,7 +566,8 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "Ara runtime assets $RELEASE_TAG" \
             --notes "Generated from Silverhart-Saga-3D commit $GITHUB_SHA using Ara 3D Gen b60b5bece6d383d2cbb7067fd50e7c8e68b5a395. See manifest.json inside the package for SHA-256 checksums and asset provenance."
-      - name: Save standalone Wren Workshop site artifact
+
+      - name: Save Wren Workshop site artifact before deployment
         if: github.ref_name == 'dev'
         uses: actions/upload-artifact@v7
         with:
@@ -571,6 +575,69 @@ jobs:
           path: site/
           if-no-files-found: error
           retention-days: 90
+
+      - name: Locate latest available Godot browser build
+        if: github.ref_name == 'dev'
+        id: game-build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/godot-web-export.yml/runs?branch=dev&per_page=10" --jq '.workflow_runs[].id')"
+          for run_id in $RUNS; do
+            artifact_name="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name == "godot-web-export" and .expired == false) | .name' | head -n 1 || true)"
+            if [ -n "$artifact_name" ]; then
+              echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+              echo "found=true" >> "$GITHUB_OUTPUT"
+              echo "Using Godot browser build from run $run_id."
+              exit 0
+            fi
+          done
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          echo "No successful Godot browser build exists yet; publishing Workshop only."
+
+      - name: Download latest Godot browser build
+        if: github.ref_name == 'dev' && steps.game-build.outputs.found == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: godot-web-export
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.game-build.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: /tmp/godot-game
+
+      - name: Assemble combined Pages site
+        if: github.ref_name == 'dev'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/pages
+          cp -a site/. dist/pages/
+          if [ "${{ steps.game-build.outputs.found }}" = "true" ]; then
+            mkdir -p dist/pages/game
+            cp -a /tmp/godot-game/. dist/pages/game/
+            test -s dist/pages/game/index.html
+            test -s dist/pages/game/index.wasm
+            test -s dist/pages/game/index.pck
+          fi
+          test -s dist/pages/index.html
+
+      - name: Configure GitHub Pages
+        if: github.ref_name == 'dev'
+        uses: actions/configure-pages@v6
+
+      - name: Upload combined Pages artifact
+        if: github.ref_name == 'dev'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist/pages
+
+      - name: Deploy combined Pages site
+        if: github.ref_name == 'dev'
+        id: deployment
+        uses: actions/deploy-pages@v5
+
   ara-game-integration:
     name: Validate generated Ara assets in Godot
     needs: publish
