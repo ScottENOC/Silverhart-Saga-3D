@@ -36,12 +36,8 @@ var active_party_index: int = 0
 var active_character_id: String = "player"
 var party_switch_button: Button
 var zoom_slider: HSlider
-var bra_toggle_button: Button
-var briefs_toggle_button: Button
 var rotate_left_button: Button
 var rotate_right_button: Button
-var wren_bra_enabled: bool = true
-var wren_briefs_enabled: bool = true
 var tile_mesh: ArrayMesh
 var path_material: StandardMaterial3D
 var active_path: Array[Vector2i] = []
@@ -534,12 +530,42 @@ func _create_camera() -> void:
 
 func _create_hud() -> void:
     var layer := CanvasLayer.new()
-    var label := Label.new()
-    label.position = Vector2(22.0, 18.0)
-    label.text = "HOLLOW TANKARD   |   W/A/S/D/Q/E: move   |   F: talk   |   G: gather   |   Space: attack   |   Enter: end turn   |   Click: pathfind   |   [ ]: turn   |   V: roof"
-    label.add_theme_font_size_override("font_size", 18)
-    label.add_theme_color_override("font_color", Color(0.94, 0.93, 0.86))
-    layer.add_child(label)
+    var title_label := Label.new()
+    title_label.position = Vector2(22.0, 18.0)
+    title_label.text = "HOLLOW TANKARD"
+    title_label.add_theme_font_size_override("font_size", 20)
+    title_label.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
+    layer.add_child(title_label)
+
+    var menu_button := Button.new()
+    menu_button.text = "Menu"
+    menu_button.position = Vector2(22.0, 56.0)
+    menu_button.custom_minimum_size = Vector2(112.0, 40.0)
+    layer.add_child(menu_button)
+    var game_menu := PopupMenu.new()
+    game_menu.name = "GameMenu"
+    game_menu.add_item("Controls", 0)
+    game_menu.add_separator()
+    game_menu.add_item("Settings — coming later", 1)
+    game_menu.add_item("Save game — coming later", 2)
+    game_menu.add_item("Load game — coming later", 3)
+    game_menu.add_item("Return to main menu — coming later", 4)
+    for menu_index in range(1, 5):
+        game_menu.set_item_disabled(menu_index, true)
+    game_menu.id_pressed.connect(_on_game_menu_selected)
+    layer.add_child(game_menu)
+    menu_button.pressed.connect(func():
+        game_menu.position = Vector2i(22, 100)
+        game_menu.popup()
+    )
+
+    var controls_dialog := AcceptDialog.new()
+    controls_dialog.name = "ControlsDialog"
+    controls_dialog.title = "Hollow Tankard — Controls"
+    controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nF — talk to nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nV — toggle roof"
+    controls_dialog.min_size = Vector2i(420, 430)
+    layer.add_child(controls_dialog)
+    game_menu.set_meta("controls_dialog", controls_dialog)
 
     resource_status_label = Label.new()
     resource_status_label.position = Vector2(22.0, 238.0)
@@ -598,20 +624,6 @@ func _create_hud() -> void:
     combat_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     combat_status_label.visible = false
     layer.add_child(combat_status_label)
-
-    bra_toggle_button = Button.new()
-    bra_toggle_button.text = "Bra: on"
-    bra_toggle_button.position = Vector2(22.0, 104.0)
-    bra_toggle_button.custom_minimum_size = Vector2(150.0, 38.0)
-    bra_toggle_button.pressed.connect(_toggle_wren_bra)
-    layer.add_child(bra_toggle_button)
-
-    briefs_toggle_button = Button.new()
-    briefs_toggle_button.text = "Briefs: on"
-    briefs_toggle_button.position = Vector2(22.0, 148.0)
-    briefs_toggle_button.custom_minimum_size = Vector2(150.0, 38.0)
-    briefs_toggle_button.pressed.connect(_toggle_wren_briefs)
-    layer.add_child(briefs_toggle_button)
 
     var facing_panel := HBoxContainer.new()
     facing_panel.position = Vector2(22.0, 194.0)
@@ -690,6 +702,16 @@ func _create_hud() -> void:
     reaction_prompt.name = "ReactionPrompt"
     reaction_prompt.choice_selected.connect(_on_reaction_choice_selected)
     add_child(reaction_prompt)
+
+
+func _on_game_menu_selected(item_id: int) -> void:
+    if item_id != 0:
+        return
+    var menu := get_tree().root.find_child("GameMenu", true, false) as PopupMenu
+    if menu != null:
+        var dialog := menu.get_meta("controls_dialog") as AcceptDialog
+        if dialog != null:
+            dialog.popup_centered()
 
 
 func _create_dialogue_panel(layer: CanvasLayer) -> void:
@@ -1260,30 +1282,6 @@ func _on_zoom_slider_changed(value: float) -> void:
 func _on_camera_zoom_changed(value: float) -> void:
     if is_instance_valid(zoom_slider):
         zoom_slider.set_value_no_signal(value)
-
-func _get_wren_model() -> Node3D:
-    var wren: Node3D = actor_by_id.get("companion_wren_talbot") as Node3D
-    if wren == null:
-        return null
-    return wren.get_node_or_null("CharacterModel") as Node3D
-
-func _toggle_wren_bra() -> void:
-    var model := _get_wren_model()
-    if model == null:
-        return
-    wren_bra_enabled = not wren_bra_enabled
-    if model is AraCharacterActor:
-        (model as AraCharacterActor).set_garment_visible("Bra", wren_bra_enabled)
-    bra_toggle_button.text = "Bra: " + ("on" if wren_bra_enabled else "off")
-
-func _toggle_wren_briefs() -> void:
-    var model := _get_wren_model()
-    if model == null:
-        return
-    wren_briefs_enabled = not wren_briefs_enabled
-    if model is AraCharacterActor:
-        (model as AraCharacterActor).set_garment_visible("Briefs", wren_briefs_enabled)
-    briefs_toggle_button.text = "Briefs: " + ("on" if wren_briefs_enabled else "off")
 
 func _switch_party_member() -> void:
     if party_member_ids.is_empty():

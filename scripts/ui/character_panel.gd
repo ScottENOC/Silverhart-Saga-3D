@@ -11,15 +11,16 @@ var active_tab: String = "character"
 var _body: VBoxContainer
 var _heading: Label
 var _panel: PanelContainer
+var _scroll: ScrollContainer
 
 
 func _ready() -> void:
     set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-    offset_left = -430.0
+    offset_left = -500.0
     offset_right = -18.0
     offset_top = 82.0
     offset_bottom = 820.0
-    custom_minimum_size = Vector2(412.0, 620.0)
+    custom_minimum_size = Vector2(482.0, 620.0)
     _build_shell()
     visible = false
 
@@ -45,8 +46,10 @@ func set_character(next_character_id: String) -> void:
 func set_tab(tab_id: String) -> void:
     if tab_id != "character" and tab_id != "inventory":
         return
+    if active_tab == tab_id:
+        return
     active_tab = tab_id
-    refresh()
+    refresh(true)
 
 
 func toggle_panel() -> void:
@@ -55,9 +58,12 @@ func toggle_panel() -> void:
         refresh()
 
 
-func refresh() -> void:
+func refresh(reset_scroll: bool = false) -> void:
     if _body == null:
         return
+    var previous_scroll := 0
+    if not reset_scroll and is_instance_valid(_scroll):
+        previous_scroll = _scroll.scroll_vertical
     for child in _body.get_children():
         _body.remove_child(child)
         child.queue_free()
@@ -78,20 +84,23 @@ func refresh() -> void:
     character_tab.pressed.connect(set_tab.bind("character"))
     tabs.add_child(character_tab)
     var inventory_tab := Button.new()
-    inventory_tab.text = "Inventory & equipment"
+    inventory_tab.text = "Inventory"
     inventory_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     inventory_tab.disabled = active_tab == "inventory"
     inventory_tab.pressed.connect(set_tab.bind("inventory"))
     tabs.add_child(inventory_tab)
 
-    var scroll := ScrollContainer.new()
-    scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-    scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    _body.add_child(scroll)
+    _scroll = ScrollContainer.new()
+    _scroll.name = "CharacterContentScroll"
+    _scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+    _scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    _body.add_child(_scroll)
     var content := VBoxContainer.new()
     content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     content.add_theme_constant_override("separation", 8)
-    scroll.add_child(content)
+    _scroll.add_child(content)
+    if previous_scroll > 0:
+        call_deferred("_restore_scroll_position", previous_scroll)
 
     if active_tab == "character":
         _build_character_tab(content, state)
@@ -258,17 +267,21 @@ func _add_section(parent: VBoxContainer, text_value: String) -> void:
 
 func _add_stat(parent: VBoxContainer, label_text: String, value_text: String) -> void:
     var row := HBoxContainer.new()
-    row.add_theme_constant_override("separation", 8)
+    row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    row.custom_minimum_size.y = 28.0
+    row.add_theme_constant_override("separation", 10)
     parent.add_child(row)
     var label := Label.new()
     label.text = label_text
+    label.custom_minimum_size.x = 150.0
     label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     label.add_theme_color_override("font_color", Color(0.78, 0.78, 0.78))
     row.add_child(label)
     var value := Label.new()
     value.text = value_text
+    value.custom_minimum_size.x = 132.0
     value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-    value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    value.autowrap_mode = TextServer.AUTOWRAP_OFF
     row.add_child(value)
 
 
@@ -301,8 +314,13 @@ func _on_action_committed(_event: SimulationEvent) -> void:
 
 
 func _on_world_tick(_tick_index: int, _world_seconds: float) -> void:
-    if visible:
-        refresh()
+    # Rebuilding controls every simulation tick destroys active tab buttons and resets scrolling.
+    pass
+
+
+func _restore_scroll_position(value: int) -> void:
+    if is_instance_valid(_scroll):
+        _scroll.scroll_vertical = value
 
 
 func _on_combat_action_resolved(_result: Dictionary) -> void:

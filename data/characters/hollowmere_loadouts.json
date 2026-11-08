@@ -1,18 +1,55 @@
 {
   "source": "Hex-crpg/campaign2Content.js Hollowmere NPC equipment and campaign2Hunter; Wren's sword follows the Hollowmere Ara profile weapon field.",
   "characters": {
-    "companion_wren_talbot": ["sword"],
-    "garrick_holt": ["club"],
-    "mira_ashbrook": ["dagger"],
-    "oskar_vinn": ["sword"],
-    "wick_hallow": [],
-    "dray_coltayne": ["sword", "medium_armor", "wooden_shield"],
-    "tomlin_brask": ["spear", "light_armor"],
-    "hask_greel": ["axe", "light_armor"],
-    "rowan_fletcher": ["bow", "light_armor"]
+    "companion_wren_talbot": [
+      "sword",
+      "reinforced_leather_armor",
+      "wooden_shield"
+    ],
+    "garrick_holt": [],
+    "mira_ashbrook": [
+      "dagger"
+    ],
+    "oskar_vinn": [
+      "sword"
+    ],
+    "wick_hallow": [
+      "dagger"
+    ],
+    "dray_coltayne": [
+      "sword",
+      "medium_armor",
+      "wooden_shield"
+    ],
+    "tomlin_brask": [
+      "spear",
+      "light_armor"
+    ],
+    "hask_greel": [
+      "axe",
+      "light_armor"
+    ],
+    "yvette_marlow": [
+      "dagger"
+    ],
+    "hendra_wells": [
+      "bow",
+      "light_armor"
+    ],
+    "tavern_patron": [
+      "club"
+    ],
+    "marta_wynfield": [
+      "club"
+    ],
+    "rowan_fletcher": [
+      "bow",
+      "light_armor"
+    ]
   },
   "notes": [
-    "The player avatar is intentionally not assigned a class kit: the current player creator has no class selection, whereas the original game grants different starting equipment by class.",
-    "This slice assigns authored equipment to Hollowmere characters. The original shared-party inventory model is not yet migrated; these instances currently belong to their character."
+    "Every authored Hollowmere NPC and companion receives a deterministic opening inventory of valid game item instances.",
+    "Weapons and armour are assigned by role; civilians and the tavern keeper are not automatically equipped as soldiers.",
+    "Clothing meshes remain a separate Ara runtime asset dependency; item definitions alone do not create visible 3D garments."
   ]
 }

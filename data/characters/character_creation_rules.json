@@ -60,10 +60,14 @@
         "weapons": 2
       },
       "starting_equipment": [
-        "sword"
+        "sword",
+        "reinforced_leather_armor",
+        "wooden_shield"
       ],
       "equipped": [
-        "sword"
+        "sword",
+        "reinforced_leather_armor",
+        "wooden_shield"
       ]
     },
     "rogue": {
