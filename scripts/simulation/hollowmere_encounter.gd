@@ -43,7 +43,8 @@ static func start(simulation: WorldSimulation) -> Dictionary:
         ally.health = ally.max_health
         ally.base_damage = int(ally_profile["damage"])
         ally.to_hit_melee = float(ally_profile["melee_hit"])
-        ally.skills = ally_profile["skills"].duplicate(true)
+        var ally_skills: Dictionary = ally_profile.get("skills", {})
+        ally.skills = ally_skills.duplicate(true)
         ally.tags.append("hollowmere_defender")
         ally.time_points = ally.max_time_points
 
@@ -56,7 +57,8 @@ static func start(simulation: WorldSimulation) -> Dictionary:
         enemy.health = enemy.max_health
         enemy.base_damage = int(enemy_profile["damage"])
         enemy.to_hit_melee = float(enemy_profile["melee_hit"])
-        enemy.skills = enemy_profile["skills"].duplicate(true)
+        var enemy_skills: Dictionary = enemy_profile.get("skills", {})
+        enemy.skills = enemy_skills.duplicate(true)
         enemy.tags.append("ironbond_soldier")
         enemy.time_points = enemy.max_time_points
 
