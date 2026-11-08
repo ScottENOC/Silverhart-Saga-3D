@@ -9,6 +9,7 @@ signal combat_action_resolved(result: Dictionary)
 signal action_committed(event: SimulationEvent)
 signal reaction_requested(reactor_id: String, options: Array[Dictionary], request_id: int, source_event_id: String)
 signal reaction_resolved(reactor_id: String, choice_id: String, request_id: int, reason: String)
+signal movement_reaction_resolved(mover_id: String, halted: bool)
 
 var map_data: HexMapData = HexMapData.new()
 var characters: Dictionary = {}
@@ -20,6 +21,7 @@ var is_in_combat: bool = false
 var pending_reaction: Dictionary = {}
 var next_reaction_request_id: int = 1
 var pending_attack_context: Dictionary = {}
+var pending_move_context: Dictionary = {}
 
 func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
@@ -165,6 +167,36 @@ func resolve_reaction(choice_id: String = "") -> Dictionary:
     var state := get_character(reactor_id)
     if state == null or not state.can_act() or state.reaction_blocked:
         return _finish_pending_reaction("", "reactor_unavailable")
+
+    # Sidestep is deliberately a two-stage reaction. The first selection
+    # opens a validated destination list but spends nothing until a legal hex
+    # is chosen.
+    if String(pending_reaction.get("stage", "")) != "sidestep_destination" and String(selected.get("effect", "")) == "sidestep":
+        var mover_destination: Vector2i = pending_move_context.get("destination", Vector2i(999999, 999999))
+        var destinations := _sidestep_destination_options(state, mover_destination)
+        if destinations.is_empty():
+            return _finish_pending_reaction("", "no_sidestep_destination")
+        pending_reaction["stage"] = "sidestep_destination"
+        pending_reaction["sidestep_reactor_id"] = reactor_id
+        pending_reaction["selected_option"] = selected.duplicate(true)
+        pending_reaction["options"] = destinations
+        reaction_requested.emit(reactor_id, destinations.duplicate(true), int(pending_reaction.get("request_id", 0)), "sidestep_destination")
+        return {"ok": true, "pending": true, "stage": "sidestep_destination", "request_id": pending_reaction.get("request_id", 0)}
+
+    if String(pending_reaction.get("stage", "")) == "sidestep_destination":
+        var original_option: Dictionary = pending_reaction.get("selected_option", {})
+        var original_reactor_id := String(pending_reaction.get("sidestep_reactor_id", ""))
+        var sidestep_reactor := get_character(original_reactor_id)
+        var destination: Vector2i = selected.get("destination", Vector2i.ZERO)
+        if sidestep_reactor == null or not sidestep_reactor.can_act() or not _is_valid_sidestep_destination(sidestep_reactor, destination, pending_move_context.get("destination", Vector2i(999999, 999999))):
+            return {"ok": false, "reason": "invalid_sidestep_destination"}
+        if not sidestep_reactor.spend_time_points(float(original_option.get("tp_cost", 0.0))):
+            return _finish_pending_reaction("", "insufficient_time_points")
+        sidestep_reactor.sidesteps_remaining = maxi(0, sidestep_reactor.sidesteps_remaining - 1)
+        _commit_move(sidestep_reactor, destination)
+        pending_reaction["selected_reactor_id"] = original_reactor_id
+        return _finish_pending_reaction(String(original_option.get("id", "sidestep")), "selected")
+
     var cost := float(selected.get("tp_cost", 0.0))
     if not state.spend_time_points(cost):
         return _finish_pending_reaction("", "insufficient_time_points")
@@ -197,6 +229,8 @@ func _finish_pending_reaction(choice_id: String, reason: String) -> Dictionary:
     }))
     if not pending_attack_context.is_empty():
         _resume_pending_attack(choice_id, reason)
+    if not pending_move_context.is_empty():
+        _resume_pending_move(choice_id, reason)
     if is_in_combat and turn_scheduler.has_active_turn():
         var active := get_current_turn_character()
         if active == null or not active.can_act():
@@ -394,6 +428,126 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
     var followup_seed := seed + 1 if seed != 0 else 0
     _resolve_attack_action(attacker_id, target_id, options, followup_seed)
 
+func _movement_reaction_options(mover: CharacterState, next_hex: Vector2i) -> Array[Dictionary]:
+    var result: Array[Dictionary] = []
+    for value in characters.values():
+        var reactor := value as CharacterState
+        if reactor == null or reactor == mover or not reactor.can_act() or reactor.reaction_blocked:
+            continue
+        if HexGrid.distance(next_hex, reactor.axial) > 1:
+            continue
+
+        var weapon_id := String(reactor.equipment.get("weapon", ""))
+        if weapon_id == "spear":
+            if int(reactor.skills.get("spear_intercept", 0)) > 0 and reactor.can_spend_time_points(5.0):
+                result.append({
+                    "id": "spear_intercept_%s" % reactor.id,
+                    "name": "Spear Intercept — %s" % reactor.display_name,
+                    "tp_cost": 5.0,
+                    "effect": "spear_intercept",
+                    "reactor_id": reactor.id
+                })
+            if int(reactor.skills.get("spear_halt", 0)) > 0 and reactor.can_spend_time_points(1.0):
+                result.append({
+                    "id": "spear_halt_%s" % reactor.id,
+                    "name": "Spear Halt — %s" % reactor.display_name,
+                    "tp_cost": 1.0,
+                    "effect": "spear_halt",
+                    "reactor_id": reactor.id
+                })
+
+        var armour: Variant = reactor.equipment.get("armour", "")
+        var light_or_unarmoured := false
+        if armour is Dictionary:
+            light_or_unarmoured = String(armour.get("weight_class", "")) == "light"
+        else:
+            var armour_id := String(armour)
+            light_or_unarmoured = armour_id.is_empty() or armour_id == "light_armor"
+        if int(reactor.skills.get("sidestep", 0)) > 0 and reactor.sidesteps_remaining > 0 and light_or_unarmoured:
+            var sidestep_cost := 5.0 if int(reactor.skills.get("sidestep_mastery", 0)) > 0 else 6.0
+            if reactor.can_spend_time_points(sidestep_cost):
+                result.append({
+                    "id": "sidestep_%s" % reactor.id,
+                    "name": "Sidestep — %s" % reactor.display_name,
+                    "tp_cost": sidestep_cost,
+                    "effect": "sidestep",
+                    "reactor_id": reactor.id
+                })
+    return result
+
+
+func _sidestep_destination_options(reactor: CharacterState, mover_destination: Vector2i) -> Array[Dictionary]:
+    var result: Array[Dictionary] = []
+    for direction in HexGrid.DIRECTIONS:
+        var destination: Vector2i = reactor.axial + direction
+        if not _is_valid_sidestep_destination(reactor, destination, mover_destination):
+            continue
+        result.append({
+            "id": "sidestep_to_%s_%s" % [destination.x, destination.y],
+            "name": "Move to hex (%s, %s)" % [destination.x, destination.y],
+            "tp_cost": 0.0,
+            "reactor_id": reactor.id,
+            "destination": destination
+        })
+    return result
+
+
+func _is_valid_sidestep_destination(reactor: CharacterState, destination: Vector2i, mover_destination: Vector2i) -> bool:
+    if reactor == null or destination == mover_destination or not _can_move_to(reactor, destination):
+        return false
+    if map_data.terrain_id_at(destination).to_lower() == "water":
+        return false
+    # Equal forward/reverse elevation multipliers of 1.0 identify same-height
+    # neighbors; a free sidestep must not climb or drop.
+    var forward := TerrainElevationRules.movement_multiplier(map_data, reactor.axial, destination, reactor)
+    var reverse := TerrainElevationRules.movement_multiplier(map_data, destination, reactor.axial, reactor)
+    return is_finite(forward) and is_finite(reverse) and is_equal_approx(forward, 1.0) and is_equal_approx(reverse, 1.0)
+
+
+func _resume_pending_move(choice_id: String, reason: String) -> void:
+    var context := pending_move_context.duplicate(true)
+    pending_move_context.clear()
+    if reason == "combat_ended":
+        return
+    var mover := get_character(String(context.get("mover_id", "")))
+    if mover == null or not mover.can_act():
+        return
+
+    var selected: Dictionary = {}
+    for option in context.get("reactions", []):
+        if String(option.get("id", "")) == choice_id:
+            selected = option
+            break
+    var effect := String(selected.get("effect", "")) if reason == "selected" else ""
+    if effect == "spear_intercept":
+        var reactor := get_character(String(selected.get("reactor_id", "")))
+        if reactor != null and reactor.can_act():
+            var rng := RandomNumberGenerator.new()
+            rng.randomize()
+            var intercept := CombatRules.resolve_attack(reactor, mover, {"time_point_cost": 0.0, "weapon_id": "spear"}, rng)
+            if bool(intercept.get("ok", false)):
+                var typed_intercept := SimulationActionResult.new("attack", true, "", reactor.id, mover.id, intercept).to_dict()
+                action_committed.emit(SimulationEvent.new("attack_resolved", reactor.id, mover.id, typed_intercept))
+                combat_action_resolved.emit(typed_intercept)
+
+    var halt_after_step := effect == "spear_halt"
+    var origin: Vector2i = context.get("origin", mover.axial)
+    var destination: Vector2i = context.get("destination", mover.axial)
+    if mover.axial != origin or not _can_move_to(mover, destination):
+        movement_reaction_resolved.emit(mover.id, true)
+        return
+    var cost := float(context.get("time_point_cost", 0.0))
+    if not mover.spend_time_points(cost):
+        movement_reaction_resolved.emit(mover.id, true)
+        return
+    _commit_move(mover, destination)
+    var payload := {"from_hex": origin, "to_hex": destination, "time_point_cost": cost, "halted_by_reaction": halt_after_step}
+    var result_data := SimulationActionResult.new("move", true, "", mover.id, "", payload).to_dict()
+    action_committed.emit(SimulationEvent.new("character_moved", mover.id, "", result_data))
+    movement_reaction_resolved.emit(mover.id, halt_after_step)
+    if mover.should_end_turn():
+        try_end_current_turn()
+
 func _resolve_attack_action(attacker_id: String, target_id: String, options: Dictionary, random_seed: int) -> Dictionary:
     var attacker := get_character(attacker_id)
     var target := get_character(target_id)
@@ -435,6 +589,23 @@ func _submit_move(request: SimulationActionRequest) -> Dictionary:
         return {"ok": false, "reason": "invalid_action_cost"}
     if not state.can_spend_time_points(cost):
         return {"ok": false, "reason": "insufficient_time_points"}
+
+    if is_in_combat and combat_step:
+        var movement_reactions := _movement_reaction_options(state, request.destination)
+        if not movement_reactions.is_empty():
+            pending_move_context = {
+                "mover_id": state.id,
+                "origin": state.axial,
+                "destination": request.destination,
+                "time_point_cost": cost,
+                "reactions": movement_reactions.duplicate(true)
+            }
+            var first_reactor_id := String(movement_reactions[0].get("reactor_id", ""))
+            var reaction_request := request_reaction(first_reactor_id, movement_reactions, "move:%s:%s:%s" % [state.id, request.destination.x, request.destination.y])
+            if bool(reaction_request.get("pending", false)):
+                return {"ok": true, "pending": true, "action_type": "move", "request_id": reaction_request.get("request_id", 0)}
+            pending_move_context.clear()
+
     var origin := state.axial
     if not state.spend_time_points(cost):
         return {"ok": false, "reason": "insufficient_time_points"}
