@@ -37,7 +37,7 @@ button:disabled{opacity:.4}
 <div class="row"><span>Briefs</span><select id="equipmentLower"><option value="empty">Empty</option><option value="briefs" selected>Briefs</option><option value="string">String bikini bottom</option><option value="lace">Lace briefs</option><option value="fishnet">Fishnet briefs</option></select></div>
 <div class="row"><span>Bra</span><select id="equipmentUpper"><option value="empty">Empty</option><option value="bra" selected>Bra</option><option value="lace">Lace halter bra</option><option value="fishnet">Fishnet halter bra</option><option value="triangle">Triangle bikini top</option></select></div>
 <div class="row"><span>Pants</span><select id="equipmentPants"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue pants</option><option value="lace">Lace pants</option><option value="fishnet">Fishnet pants</option></select></div>
-<div class="row"><span>Shirt</span><select id="equipmentShirt"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue shirt</option><option value="tank">Tank top</option><option value="lace">Lace shirt</option><option value="fishnet">Fishnet shirt</option><option value="backless">Backless slit dress</option></select></div>
+<div class="row"><span>Shirt</span><select id="equipmentShirt"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue shirt</option><option value="tank">Tank top</option><option value="lace">Lace shirt</option><option value="fishnet">Fishnet shirt</option><option value="backless">Backless slit dress · original</option><option value="backless_v2">Backless slit dress · tapered v2</option></select></div>
 <div class="row"><span>Armour</span><select id="equipmentArmour"><option value="empty" selected>Empty</option><option value="leather">Ara leather armour</option></select></div>
 <p class="note" id="equipmentStatus">Each slot is independent. Empty removes that layer without removing the body.</p></section>
 <section id="tattooSection"><h2>Tattoos · live customisation</h2>
@@ -175,7 +175,7 @@ const equipmentGroups={
  lower:{empty:[],briefs:['Briefs'],string:['String bikini bottom','String bikini strings'],lace:['Lace briefs','Lace briefs ties'],fishnet:['Fishnet briefs','Fishnet briefs ties']},
  upper:{empty:[],bra:['Bra'],lace:['Halter lace bra cups','Halter lace bra piping','Halter lace bra straps'],fishnet:['Halter fishnet bra cups','Halter fishnet bra straps'],triangle:['Triangle bikini top','Triangle bikini strings']},
  pants:{empty:[],fatigue:['Fatigue pants','Fatigue pants.001'],lace:['Lace pants'],fishnet:['Fishnet pants']},
- shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top'],lace:['Lace shirt'],fishnet:['Fishnet shirt'],backless:['Backless slit dress','Pencil skirt']},
+ shirt:{empty:[],fatigue:['Fatigue shirt'],tank:['Tank top'],lace:['Lace shirt'],fishnet:['Fishnet shirt'],backless:['Backless slit dress','Pencil skirt'],backless_v2:['Backless slit dress v2','Pencil skirt v2']},
  armour:{empty:[],leather:['Leather armor']}
 };
 function applyEquipment(){
