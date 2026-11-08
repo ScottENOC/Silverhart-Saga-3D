@@ -83,10 +83,8 @@ func _build_screen() -> void:
 
     _section(panel, "GAME MODE")
     game_mode_select = _option_row(panel, "Mode", ["Campaign", "Arena"])
-    campaign_select = _option_row(panel, "Campaign", ["Small World — Hollowmere", "Main Campaign — coming later"])
+    campaign_select = _option_row(panel, "Campaign", ["Main Campaign — Hollowmere"])
     campaign_select.set_item_metadata(0, "2")
-    campaign_select.set_item_metadata(1, "3")
-    campaign_select.set_item_disabled(1, true)
     difficulty_select = _option_row(panel, "Difficulty", ["Easy", "Normal", "Hard"])
     for i in range(3):
         difficulty_select.set_item_metadata(i, ["easy", "normal", "hard"][i])
