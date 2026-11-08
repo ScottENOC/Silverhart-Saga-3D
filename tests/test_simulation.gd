@@ -4,6 +4,7 @@ var _failures: int = 0
 
 func _initialize() -> void:
     _test_character_round_trip()
+    _test_equipped_item_combat_effects()
     _test_movement_validation()
     _test_time_point_rules()
     _test_action_movement_cost()
@@ -81,6 +82,52 @@ func _test_character_round_trip() -> void:
     _check(restored.remove_inventory_item("item_sword_001"), "Inventory item should be removable")
     _check(restored.inventory.is_empty())
 
+func _test_equipped_item_combat_effects() -> void:
+    var attacker := CharacterState.new("attacker", "Attacker", Vector2i.ZERO)
+    attacker.base_damage = 1
+    var sword := {
+        "instance_id": "weapon_001",
+        "id": "sword",
+        "name": "Short sword",
+        "type": "weapon",
+        "equipment_slot": "weapon",
+        "damage": 5,
+        "quantity": 1
+    }
+    _check(attacker.add_inventory_item(sword))
+    _check(attacker.equip_inventory_item("weapon_001"))
+    _check(CombatRules.raw_damage(attacker) == 6, "Equipped weapon instance damage must affect combat")
+
+    var armour := {
+        "instance_id": "armour_001",
+        "id": "leather_armour",
+        "name": "Leather armour",
+        "type": "armour",
+        "equipment_slot": "armour",
+        "weight_class": "light",
+        "reduction": 3,
+        "quantity": 1
+    }
+    var shield := {
+        "instance_id": "shield_001",
+        "id": "round_shield",
+        "name": "Round shield",
+        "type": "shield",
+        "equipment_slot": "offhand",
+        "reduction": 2,
+        "quantity": 1
+    }
+    var defender := CharacterState.new("defender", "Defender", Vector2i(1, 0))
+    _check(defender.add_inventory_item(armour))
+    _check(defender.add_inventory_item(shield))
+    _check(defender.equip_inventory_item("armour_001"))
+    _check(defender.equip_inventory_item("shield_001"))
+    _check(CombatRules.damage_reduction(defender) == 5, "Equipped armour and shield instance reductions must affect defence")
+    _check(is_equal_approx(MovementRules.base_cost_for(defender), 5.0), "Light armour should not apply a heavy-armour movement penalty")
+    var restored := CharacterState.from_dict(defender.to_dict())
+    _check(restored.equipped_item_data.has("armour") and restored.equipped_item_data.has("offhand"), "Equipped item instances must survive save/load")
+    _check(CombatRules.damage_reduction(restored) == 5)
+    
 func _test_movement_validation() -> void:
     var sim := WorldSimulation.new()
     sim.map_data.add_cell(Vector2i(0, 0))
