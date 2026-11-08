@@ -41,8 +41,8 @@ button:disabled{opacity:.4}
 <div class="row"><span>Armour</span><select id="equipmentArmour"><option value="empty" selected>Empty</option><option value="leather">Ara leather armour</option></select></div>
 <p class="note" id="equipmentStatus">Each slot is independent. Empty removes that layer without removing the body.</p></section>
 <section id="tattooSection"><h2>Tattoos · live customisation</h2>
-<div class="row"><span>Left upper-arm band</span><input id="tattooArmband" type="checkbox" data-tattoo></div>
-<div class="row"><span>Left forearm motif</span><input id="tattooForearm" type="checkbox" data-tattoo></div>
+<div class="row"><span>Tribal armband · left</span><input id="tattooArmband" type="checkbox" data-tattoo></div>
+<div class="row"><span>Forearm bands · left</span><input id="tattooForearm" type="checkbox" data-tattoo></div>
 <div class="row"><span>Ink colour</span><input id="tattooColor" type="color" value="#20232a"></div>
 <p class="note">Tattoos are added to the loaded skin in the browser. They can be changed without rebuilding or reloading the character model.</p>
 </section>
@@ -296,14 +296,11 @@ function tattooTexture(kind){
    ctx.beginPath();ctx.moveTo(x,76);ctx.lineTo(x+18,128);ctx.lineTo(x,180);ctx.lineTo(x-18,128);ctx.closePath();ctx.fill();
   }
  }else{
-  ctx.lineWidth=10;
-  ctx.beginPath();ctx.moveTo(128,18);ctx.bezierCurveTo(78,66,178,92,128,238);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(128,18);ctx.bezierCurveTo(178,66,78,92,128,238);ctx.stroke();
-  for(const y of [64,112,160,208]){
-   ctx.beginPath();ctx.moveTo(128,y);ctx.lineTo(84,y-18);ctx.lineTo(64,y);ctx.lineTo(84,y+18);ctx.closePath();ctx.stroke();
-   ctx.beginPath();ctx.moveTo(128,y);ctx.lineTo(172,y-18);ctx.lineTo(192,y);ctx.lineTo(172,y+18);ctx.closePath();ctx.stroke();
+  // Ara's forearm design is three circumferential bands along the lower arm.
+  ctx.lineWidth=14;
+  for(const y of [58,128,198]){
+   ctx.beginPath();ctx.moveTo(8,y);ctx.lineTo(248,y);ctx.stroke();
   }
-  ctx.beginPath();ctx.arc(128,128,24,0,Math.PI*2);ctx.stroke();
  }
  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.needsUpdate=true;
  return texture;
