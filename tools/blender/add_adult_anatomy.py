@@ -331,25 +331,33 @@ def expand_lower_garments(objects, pelvis_z, body_front_y, width):
         obj.data.update()
 
 
-def fit_pants_clearance(objects, skin, clearance=0.004):
-    """Push trouser vertices outside the retained skin surface, without moving skin."""
+def fit_garment_clearance(objects, skin, material_tokens, clearance=0.004):
+    """Push selected garment vertices just outside the full retained skin surface.
+
+    The body remains untouched. Fitting is performed against the integrated
+    female Ara skin, so briefs/bikini bottoms clear the vulvar contour and
+    bras/tops clear the lower breast fold instead of relying on the original
+    generic body shell offset.
+    """
     tree = build_bvh(skin)
+    tokens = tuple(token.lower() for token in material_tokens)
+    moved_total = 0
     for obj in objects:
         if obj.type != "MESH":
             continue
-        pants_vertices = set()
+        garment_vertices = set()
         for poly in obj.data.polygons:
             if poly.material_index >= len(obj.material_slots):
                 continue
             material = obj.material_slots[poly.material_index].material
             label = material.name.lower() if material else ""
-            if any(k in label for k in ("pants", "trouser", "breech")):
-                pants_vertices.update(poly.vertices)
-        if not pants_vertices:
+            if any(token in label for token in tokens):
+                garment_vertices.update(poly.vertices)
+        if not garment_vertices:
             continue
         inv = obj.matrix_world.inverted()
         moved = 0
-        for index in pants_vertices:
+        for index in garment_vertices:
             vert = obj.data.vertices[index]
             world = obj.matrix_world @ vert.co
             nearest = tree.find_nearest(world)
@@ -362,7 +370,28 @@ def fit_pants_clearance(objects, skin, clearance=0.004):
                 world += normal * (clearance - signed)
                 vert.co = inv @ world
                 moved += 1
-        obj.data.update()
+        if moved:
+            obj.data.update()
+            print(f"Garment clearance: {obj.name} moved {moved} vertices ({clearance:.4f} m)")
+            moved_total += moved
+    return moved_total
+
+
+def fit_female_clothing(objects, skin):
+    # Lower garments need a little more stand-off around the integrated vulvar
+    # contour; upper layers need a smaller clearance to avoid the inframammary
+    # fold without making the clothing visibly float away from the chest.
+    lower = fit_garment_clearance(
+        objects, skin,
+        ("brief", "bikini bottom", "bikini strings", "pants", "trouser", "breech"),
+        clearance=0.006,
+    )
+    upper = fit_garment_clearance(
+        objects, skin,
+        ("bra", "halter", "fatigue shirt", "tank top", "shirt", "dress"),
+        clearance=0.0045,
+    )
+    print(f"Female garment fitting complete: {lower} lower-body and upper-body vertices adjusted")
         print(f"Fitted {obj.name}: moved {moved} trouser vertices to {clearance * 1000:.1f} mm skin clearance")
 
 
@@ -446,7 +475,7 @@ def main():
     if args.fit_existing:
         # The base skin remains present beneath transparent clothing. Fit only
         # trouser material vertices against it; never hide or displace the skin.
-        fit_pants_clearance(meshes, skin, clearance=0.004)
+        fit_female_clothing(meshes, skin)
         # The modular GLBs already contain the anatomy and piercing sockets
         # from the integrated body base. Only fit briefs, bikini bottoms and
         # trousers over that existing geometry; do not add a second sculpt.
