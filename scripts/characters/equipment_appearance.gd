@@ -103,6 +103,43 @@ static func _profile_allowed(category: String, profile_id: String) -> bool:
         "metal": return profile_id in ["steel", "dark_steel", "gold", "brass"]
         _: return profile_id in ["steel", "dark_steel", "gold", "brass", "wood", "leather", "cloth"]
 
+
+## Apply heraldry only to the dedicated front-face surface exported by the
+## shield builder. Pattern and emblem are data values, not unique shield meshes.
+static func apply_shield_heraldry(root: Node, design: Dictionary) -> int:
+    if root == null:
+        return 0
+    var shader := load("res://shaders/shield_heraldry.gdshader") as Shader
+    if shader == null:
+        push_warning("Shield heraldry shader is unavailable.")
+        return 0
+    var changed := 0
+    var patterns := {"plain": 0, "halves_vertical": 1, "halves_horizontal": 2, "diagonal": 3, "stripe": 4, "cross": 5}
+    var emblems := {"none": 0, "roundel": 1, "cross": 2, "lozenge": 3, "star": 4, "tree": 5}
+    var stack: Array[Node] = [root]
+    while not stack.is_empty():
+        var node: Node = stack.pop_back()
+        if node is MeshInstance3D:
+            var mesh_instance := node as MeshInstance3D
+            if mesh_instance.mesh != null:
+                for surface in range(mesh_instance.mesh.get_surface_count()):
+                    var source := mesh_instance.get_active_material(surface)
+                    if source == null or not source.resource_name.to_lower().replace(" ", "").contains("heraldryface"):
+                        continue
+                    var material := ShaderMaterial.new()
+                    material.shader = shader
+                    material.set_shader_parameter("field_colour", Color.from_string(str(design.get("field_colour", "#9e2424")), Color("#9e2424")))
+                    material.set_shader_parameter("secondary_colour", Color.from_string(str(design.get("secondary_colour", "#e7dfc6")), Color("#e7dfc6")))
+                    material.set_shader_parameter("emblem_colour", Color.from_string(str(design.get("emblem_colour", "#20232a")), Color("#20232a")))
+                    material.set_shader_parameter("field_pattern", int(patterns.get(str(design.get("pattern", "plain")), 0)))
+                    material.set_shader_parameter("emblem", int(emblems.get(str(design.get("emblem", "none")), 0)))
+                    material.set_shader_parameter("border_width", clampf(float(design.get("border_width", 0.0)), 0.0, 0.18))
+                    mesh_instance.set_surface_override_material(surface, material)
+                    changed += 1
+        for child in node.get_children():
+            stack.append(child)
+    return changed
+
 static func _duplicate_standard(source: Material) -> StandardMaterial3D:
     if source is StandardMaterial3D:
         return (source as StandardMaterial3D).duplicate() as StandardMaterial3D
