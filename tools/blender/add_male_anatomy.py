@@ -175,88 +175,137 @@ def create_uv_surface(name, centre, scale, material, armature, pelvis_bone,
     return create_mesh_object(name, vertices, faces, material, armature, pelvis_bone)
 
 
-def create_shaft(tree, material, armature, pelvis_bone, width, height, anatomy_z, anchor_y):
-    # The shaft is a swept, tapered surface, angled naturally down from its root.
-    length = height * 0.078
-    radius = width * 0.022
-    top_z = anatomy_z + height * 0.012
-    ring_count, sides = 40, 48
-    vertices, faces = [], []
-    profile = [
-        (0.00, 0.30), (0.07, 0.62), (0.18, 0.82), (0.48, 0.92),
-        (0.70, 0.94), (0.78, 0.98), (0.84, 1.04), (0.90, 1.00),
-        (0.96, 0.80), (1.00, 0.48),
+def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
+                                  body_height, anatomy_z, anchor_y):
+    """Reuse Ara's own middle-finger surface as the phallus modelling template.
+
+    Extracts only the skin-material faces weighted to the right middle finger,
+    then transforms that existing organic surface from the finger bone axis to
+    the pelvic attachment axis. This preserves Ara's native surface character
+    and avoids synthetic cylinders, UV spheres, torus seams and voxel remeshing.
+    """
+    import bmesh
+
+    chain_names = (
+        "RightHandMiddle1", "RightHandMiddle2", "RightHandMiddle3"
+    )
+    bones = []
+    for name in chain_names:
+        bone = armature.data.bones.get(name)
+        if bone is None:
+            raise RuntimeError(f"Ara finger-template bone is missing: {name}")
+        bones.append(bone)
+
+    source_base = armature.matrix_world @ bones[0].head_local
+    source_tip = armature.matrix_world @ bones[-1].tail_local
+    source_axis = source_tip - source_base
+    source_length = source_axis.length
+    if source_length < 0.025:
+        raise RuntimeError(f"Ara middle-finger template is unexpectedly short: {source_length:.4f} m")
+    source_axis.normalize()
+
+    group_indices = {
+        group.name: group.index for group in skin.vertex_groups
+        if group.name in chain_names
+    }
+    if len(group_indices) != len(chain_names):
+        raise RuntimeError(
+            "Ara skin mesh is missing middle-finger vertex groups: "
+            + ", ".join(sorted(set(chain_names) - set(group_indices)))
+        )
+
+    group_weights = [dict() for _ in skin.data.vertices]
+    for vertex in skin.data.vertices:
+        for assignment in vertex.groups:
+            if assignment.group in group_indices.values():
+                group_weights[vertex.index][assignment.group] = assignment.weight
+
+    selected_faces = []
+    for polygon in skin.data.polygons:
+        if polygon.material_index >= len(skin.material_slots):
+            continue
+        face_material = skin.material_slots[polygon.material_index].material
+        if face_material is None or "skin" not in face_material.name.lower():
+            continue
+        weighted_vertices = sum(
+            1 for index in polygon.vertices
+            if any(group_weights[index].get(group_index, 0.0) > 0.08
+                   for group_index in group_indices.values())
+        )
+        if weighted_vertices < 2:
+            continue
+        centre_local = sum((skin.data.vertices[index].co for index in polygon.vertices),
+                           Vector()) / len(polygon.vertices)
+        centre_world = skin.matrix_world @ centre_local
+        relative = centre_world - source_base
+        along = relative.dot(source_axis)
+        radial = (relative - source_axis * along).length
+        if -0.006 <= along <= source_length * 1.08 and radial <= 0.030:
+            selected_faces.append(polygon)
+
+    if len(selected_faces) < 500:
+        raise RuntimeError(
+            f"Could only extract {len(selected_faces)} Ara middle-finger skin faces; "
+            "refusing to fall back to synthetic anatomy"
+        )
+
+    used_indices = sorted({index for polygon in selected_faces for index in polygon.vertices})
+    remap = {old: new for new, old in enumerate(used_indices)}
+    source_vertices = [
+        skin.matrix_world @ skin.data.vertices[index].co for index in used_indices
+    ]
+    faces = [
+        tuple(remap[index] for index in polygon.vertices) for polygon in selected_faces
     ]
 
-    def interpolate(t):
-        for i in range(len(profile) - 1):
-            if profile[i][0] <= t <= profile[i + 1][0]:
-                a, va = profile[i]
-                b, vb = profile[i + 1]
-                f = (t - a) / (b - a)
-                f = f * f * (3.0 - 2.0 * f)
-                return va + (vb - va) * f
-        return profile[-1][1]
+    # A resting organ projects forward and slightly downward from the pubic root.
+    target_axis = Vector((0.0, -0.94, -0.34)).normalized()
+    rotation = source_axis.rotation_difference(target_axis)
+    target_length = body_height * 0.074
+    length_scale = target_length / source_length
+    radial_scale = length_scale * 1.16
+    target_base = Vector((
+        0.0,
+        anchor_y + body_height * 0.006,
+        anatomy_z + body_height * 0.009,
+    ))
 
-    for ring in range(ring_count + 1):
-        t = ring / ring_count
-        z = top_z - length * t
-        centre_x = width * 0.004 * math.sin(t * math.pi * 0.8)
-        # The centreline can pass between the upper legs, where no skin ray hit exists.
-        # Keep the shaft rooted to the sampled pubic surface instead of sampling the gap.
-        r = radius * interpolate(t)
-        depth_radius = r * 0.88
-        embed = depth_radius * 0.48
-        for side in range(sides):
-            angle = 2.0 * math.pi * side / sides
-            x = centre_x + r * math.cos(angle)
-            y = anchor_y - embed - depth_radius * math.sin(angle)
-            vertices.append((x, y, z))
-    for ring in range(ring_count):
-        for side in range(sides):
-            a = ring * sides + side
-            b = ring * sides + (side + 1) % sides
-            c = (ring + 1) * sides + (side + 1) % sides
-            d = (ring + 1) * sides + side
-            faces.append((a, b, c, d))
-    obj = create_mesh_object("Male anatomy · tapered shaft and root",
-                             vertices, faces, material, armature, pelvis_bone)
-    obj["anatomy_parts"] = "root,shaft,corona_transition"
-    return obj, top_z - length, radius
+    vertices = []
+    for point in source_vertices:
+        relative = point - source_base
+        along = relative.dot(source_axis)
+        radial = relative - source_axis * along
+        transformed = (
+            source_axis * (along * length_scale) + radial * radial_scale
+        )
+        vertices.append(tuple(target_base + rotation @ transformed))
 
-
-def create_glans(tree, material, armature, pelvis_bone, width, height, tip_z, shaft_radius, anchor_y):
-    glans_z = tip_z + height * 0.006
-    surface_y = anchor_y
-    depth = shaft_radius * 0.92
-    centre = Vector((0.0, surface_y - depth * 0.52, glans_z))
-    glans = create_uv_surface(
-        "Male anatomy · distinct glans", centre,
-        Vector((shaft_radius * 1.13, depth, height * 0.0105)),
-        material, armature, pelvis_bone, segments=64, rings=40
-    )
-    glans["anatomy_parts"] = "glans,corona"
-    # A narrow raised corona follows the glans base as a continuous toroidal ridge.
-    major = shaft_radius * 1.07
-    minor = shaft_radius * 0.13
-    bpy.ops.mesh.primitive_torus_add(
-        major_segments=64, minor_segments=12, location=(0.0, surface_y - depth * 0.88, glans_z + height * 0.004)
-    )
-    corona = bpy.context.object
-    corona.name = "Male anatomy · corona ridge"
-    corona.scale = (major, major * 0.78, minor)
-    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-    corona.data.materials.append(material)
-    for polygon in corona.data.polygons:
+    mesh = bpy.data.meshes.new("AraFingerDerivedPhallusMesh")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.materials.append(material)
+    mesh.update()
+    phallus = bpy.data.objects.new("Male anatomy · Ara finger-derived surface", mesh)
+    bpy.context.collection.objects.link(phallus)
+    for polygon in mesh.polygons:
         polygon.use_smooth = True
-    group = corona.vertex_groups.new(name=pelvis_bone)
-    group.add(list(range(len(corona.data.vertices))), 1.0, "REPLACE")
-    corona.parent = armature
-    corona.matrix_parent_inverse = armature.matrix_world.inverted()
-    modifier = corona.modifiers.new("Ara pelvis skinning", "ARMATURE")
+    group = phallus.vertex_groups.new(name=pelvis_bone)
+    group.add(list(range(len(mesh.vertices))), 1.0, "REPLACE")
+    phallus.parent = armature
+    phallus.matrix_parent_inverse = armature.matrix_world.inverted()
+    modifier = phallus.modifiers.new("Ara pelvis skinning", "ARMATURE")
     modifier.object = armature
-    corona["anatomy_parts"] = "corona"
-    return glans, corona
+    phallus["anatomy_parts"] = "finger_derived_root,shaft,rounded_distal_tip"
+    phallus["source_template"] = "Ara_RightHandMiddleFinger_skin_surface"
+    phallus["source_face_count"] = len(selected_faces)
+    phallus["source_length_m"] = source_length
+    phallus["target_length_m"] = target_length
+    phallus["anatomy_method"] = "native_Ara_finger_surface_transformed_and_pelvis_weighted"
+    print(
+        "Ara finger-derived anatomy: "
+        f"faces={len(selected_faces)}, source_length={source_length:.4f} m, "
+        f"target_length={target_length:.4f} m, radial_scale={radial_scale:.3f}"
+    )
+    return phallus
 
 
 def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy_z, anchor_y):
@@ -296,65 +345,34 @@ def add_meatus_detail(tree, skin_material, armature, pelvis_bone, height, tip_z,
 
 
 
-def fuse_male_anatomy(parts, armature, pelvis_bone, body_height):
-    """Fuse the shaft, glans and scrotum into one smooth, watertight skin mesh.
-
-    The old blockout exported several intersecting primitives. Their separate
-    silhouettes and intersections caused the detached/toy-like appearance.
-    This pass removes their individual rig modifiers, joins the surfaces,
-    voxel-remeshes the overlaps into one continuous component, smooths the
-    transitions, then applies one pelvis skinning group.
-    """
+def join_male_anatomy_parts(parts, armature, pelvis_bone):
+    """Join the finger-derived shaft and scrotal form without voxel remeshing."""
     bpy.ops.object.select_all(action="DESELECT")
     for obj in parts:
         for modifier in list(obj.modifiers):
             obj.modifiers.remove(modifier)
-        # The source vertices are already authored in character/world space.
         world = obj.matrix_world.copy()
         obj.parent = None
         obj.matrix_world = world
         obj.select_set(True)
-
-    fused = parts[0]
-    bpy.context.view_layer.objects.active = fused
+    combined = parts[0]
+    bpy.context.view_layer.objects.active = combined
     bpy.ops.object.join()
-    fused.name = "Male anatomy · unified body surface"
-    fused.data.name = "MaleAnatomyUnifiedMesh"
-
-    voxel_size = max(body_height * 0.00135, 0.0015)
-    remesh = fused.modifiers.new("Fuse anatomy intersections", "REMESH")
-    remesh.mode = "VOXEL"
-    remesh.voxel_size = voxel_size
-    remesh.use_smooth_shade = True
-    bpy.context.view_layer.objects.active = fused
-    bpy.ops.object.modifier_apply(modifier=remesh.name)
-
-    smooth = fused.modifiers.new("Soften fused transitions", "SMOOTH")
-    smooth.factor = 0.65
-    smooth.iterations = 5
-    bpy.ops.object.modifier_apply(modifier=smooth.name)
-
-    # Recalculate normals after remeshing and keep a single skin material.
-    bpy.context.view_layer.objects.active = fused
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.mesh.normals_make_consistent(inside=False)
-    bpy.ops.object.mode_set(mode="OBJECT")
-    for polygon in fused.data.polygons:
-        polygon.use_smooth = True
-
-    group = fused.vertex_groups.new(name=pelvis_bone)
-    group.add(list(range(len(fused.data.vertices))), 1.0, "REPLACE")
-    fused.parent = armature
-    fused.matrix_parent_inverse = armature.matrix_world.inverted()
-    armature_mod = fused.modifiers.new("Ara pelvis skinning", "ARMATURE")
-    armature_mod.object = armature
-    fused["anatomy_profile"] = "adult_male"
-    fused["anatomy_parts"] = "integrated_root,shaft,glans,corona,scrotal_sac"
-    fused["anatomy_method"] = "single_voxel_fused_skin_surface"
-    fused["review_status"] = "unified_geometry_requires_multi_angle_visual_acceptance"
-    fused["remesh_voxel_size"] = voxel_size
-    return fused
+    combined.name = "Male anatomy · Ara-derived unified surface"
+    combined.data.name = "AraDerivedMaleAnatomyMesh"
+    group = combined.vertex_groups.get(pelvis_bone)
+    if group is None:
+        group = combined.vertex_groups.new(name=pelvis_bone)
+    group.add(list(range(len(combined.data.vertices))), 1.0, "REPLACE")
+    combined.parent = armature
+    combined.matrix_parent_inverse = armature.matrix_world.inverted()
+    modifier = combined.modifiers.new("Ara pelvis skinning", "ARMATURE")
+    modifier.object = armature
+    combined["anatomy_profile"] = "adult_male"
+    combined["anatomy_method"] = "Ara_middle_finger_surface_plus_contoured_scrotum_no_voxel_remesh"
+    combined["anatomy_parts"] = "integrated_root,shaft,rounded_tip,scrotal_sac"
+    combined["review_status"] = "native_Ara_geometry_requires_multi_angle_visual_acceptance"
+    return combined
 
 
 def merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone):
@@ -408,18 +426,15 @@ def main():
 
     # Fail early if the front pelvis surface cannot be sampled.
     pelvic_surface_y = front_surface_y(surface_tree, 0.0, anatomy_z)
-    shaft, tip_z, shaft_radius = create_shaft(
-        surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z, pelvic_surface_y
-    )
-    glans, corona = create_glans(
-        surface_tree, skin_material, armature, pelvis_bone, width, height, tip_z, shaft_radius, pelvic_surface_y
+    phallus = create_finger_derived_phallus(
+        skin, skin_material, armature, pelvis_bone, height, anatomy_z, pelvic_surface_y
     )
     scrotum = create_scrotum(
         surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z, pelvic_surface_y
     )
 
-    anatomy = fuse_male_anatomy(
-        [shaft, glans, corona, scrotum], armature, pelvis_bone, height
+    anatomy = join_male_anatomy_parts(
+        [phallus, scrotum], armature, pelvis_bone
     )
     anatomy["profile_name"] = args.profile_name
     # Join into the original Ara body mesh so the exported GLB retains one
@@ -437,10 +452,9 @@ def main():
         use_selection=True, export_apply=False, export_animations=True
     )
     print(
-        "Exported one voxel-fused adult male anatomy surface: integrated root, "
-        "tapered shaft, glans/corona transition and paired scrotal contours; "
-        "single pelvis-weighted mesh scaled to body width="
-        f"{width:.4f}, height={height:.4f}."
+        "Exported Ara middle-finger-derived adult male anatomy surface with "
+        "a native rounded fingertip profile, plus paired scrotal contours; "
+        "integrated into the original full-rig skin mesh."
     )
 
 
