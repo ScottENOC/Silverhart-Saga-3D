@@ -59,6 +59,27 @@ func _test_character_round_trip() -> void:
     restored = CharacterState.from_dict(original.to_dict())
     _check(restored.parries_remaining == 1, "Parry allowance must survive character serialization")
     _check(restored.sidesteps_remaining == 2, "Sidestep allowance must survive character serialization")
+    var carried_sword := {
+        "instance_id": "item_sword_001",
+        "id": "sword",
+        "name": "Short sword",
+        "type": "weapon",
+        "equipment_slot": "weapon",
+        "quantity": 1,
+        "description": "A practical one-handed blade."
+    }
+    _check(original.add_inventory_item(carried_sword), "Character should accept a valid item instance")
+    _check(not original.add_inventory_item(carried_sword), "Duplicate item instance IDs must be rejected")
+    _check(original.equip_inventory_item("item_sword_001"), "An item with an equipment slot should be equippable")
+    _check(String(original.equipment.get("weapon", "")) == "sword")
+    _check(original.inventory.is_empty())
+    restored = CharacterState.from_dict(original.to_dict())
+    _check(String(restored.equipment.get("weapon", "")) == "sword")
+    _check(restored.equipped_item_data.has("weapon"), "Equipped item instance data must persist")
+    _check(restored.unequip_equipment_slot("weapon"), "Equipped item should be unequippable")
+    _check(restored.inventory.size() == 1, "Unequipped item should return to inventory")
+    _check(restored.remove_inventory_item("item_sword_001"), "Inventory item should be removable")
+    _check(restored.inventory.is_empty())
 
 func _test_movement_validation() -> void:
     var sim := WorldSimulation.new()
