@@ -7,6 +7,7 @@ head centre. Dimensions are metre-scale approximations and require visual fit
 review against the pinned male/female Ara exports before game integration.
 """
 import argparse
+import sys
 from pathlib import Path
 import bpy
 from mathutils import Vector
@@ -127,7 +128,8 @@ def build_helmet(kind, out):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", required=True, type=Path)
-    args = parser.parse_args()
+    raw = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[-2:]
+    args = parser.parse_args(raw)
     args.output.mkdir(parents=True, exist_ok=True)
     for kind in ("round", "kite", "heater"):
         build_shield(kind, args.output / f"{kind}_shield.glb")

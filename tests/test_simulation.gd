@@ -967,7 +967,7 @@ func _test_item_catalog_and_hollowmere_loadouts() -> void:
     _check(loadouts.get("dray_coltayne", []) == ["sword", "medium_armor", "wooden_shield"], "Dray's loadout should match the original campaign")
     _check(loadouts.get("tomlin_brask", []) == ["spear", "light_armor"], "Tomlin's loadout should match the original campaign")
     _check(loadouts.get("hask_greel", []) == ["axe", "light_armor"], "Hask's loadout should match the original campaign")
-    _check(loadouts.get("companion_wren_talbot", []) == ["sword"], "Wren should retain the sword shown in the Ara profile")
+    _check(loadouts.get("companion_wren_talbot", []) == ["sword", "reinforced_leather_armor", "wooden_shield"], "Wren should retain the sword shown in the Ara profile")
     _check(not loadouts.has("player"), "Do not invent a player class kit before class selection exists")
 
     var dray := CharacterState.new("dray_coltayne", "Dray Coltayne", Vector2i.ZERO)
