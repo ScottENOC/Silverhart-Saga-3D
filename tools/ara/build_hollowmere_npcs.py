@@ -101,15 +101,16 @@ def validate_profiles(profiles: dict) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--profiles", type=Path, default=PROFILE_FILE)
     parser.add_argument("--detail", choices=("low", "medium", "high"), default=None)
     args = parser.parse_args()
 
     if not (ARA_ROOT / "package.json").exists() or not (ARA_ROOT / "src").exists():
         raise SystemExit("Run this script from the pinned Ara 3D Gen repository root")
-    if not PROFILE_FILE.exists():
-        raise SystemExit(f"Missing character profile file: {PROFILE_FILE}")
+    if not args.profiles.exists():
+        raise SystemExit(f"Missing character profile file: {args.profiles}")
 
-    manifest = json.loads(PROFILE_FILE.read_text())
+    manifest = json.loads(args.profiles.read_text())
     validate_profiles(manifest)
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -158,7 +159,8 @@ def main() -> None:
             "name": profile["name"],
             "role": profile["role"],
             "dialogue_id": profile.get("dialogue_id", ""),
-            "hex": profile["hex"],
+            "hex": profile.get("hex", []),
+            "location_id": profile.get("location_id", ""),
             "detail": detail,
             "model": f"{character_id}.glb",
             "params": params,
