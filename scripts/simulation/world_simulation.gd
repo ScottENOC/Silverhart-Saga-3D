@@ -676,6 +676,11 @@ func ensure_exploration_region(centre: Vector2i, chunk_radius: int = HexWorldChu
 func ensure_resource_at(hex: Vector2i) -> Dictionary:
     return wilderness_resources.ensure_node(hex, map_data.terrain_id_at(hex))
 
+func set_authored_resource_at(hex: Vector2i, terrain_id: String, node: Dictionary) -> void:
+    var elevation := map_data.elevation_at(hex)
+    map_data.add_cell(hex, elevation, true, terrain_id)
+    wilderness_resources.set_authored_node(hex, node)
+
 func harvest_resource_at(character_id: String, hex: Vector2i) -> Dictionary:
     var character := get_character(character_id)
     return wilderness_resources.harvest(hex, map_data.terrain_id_at(hex), character, clock.world_seconds)
