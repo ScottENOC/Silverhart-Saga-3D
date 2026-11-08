@@ -14,7 +14,7 @@ const PROFILES := {
     "cloth": {"colour": "#8b2835", "metallic": 0.0, "roughness": 0.92}
 }
 
-const METAL_SLOTS := ["blade", "head", "metal", "rim", "boss", "guard", "pommel", "helmet", "plate", "mail", "trim"]
+const METAL_SLOTS := ["blade", "head", "metal", "steel", "iron", "silver", "bronze", "rim", "boss", "guard", "pommel", "helmet", "plate", "mail", "trim"]
 const WOOD_OR_LEATHER_SLOTS := ["haft", "grip", "handle", "stave", "shield_body", "wood"]
 const CLOTH_SLOTS := ["banner", "tabard", "surcoat", "cloth"]
 
@@ -40,6 +40,15 @@ static func _apply_recursive(node: Node, options: Dictionary) -> int:
                 var category := _category_for_slot(slot, source.resource_name.to_lower())
                 if category == "heraldry":
                     continue # Kept under its own shader so material recolouring cannot erase the design.
+                if category == "neutral":
+                    # Unknown imported surfaces retain their original PBR values.
+                    # A colour-only override is safe; never assume an unknown surface is metal.
+                    if requested.has("colour"):
+                        var neutral_material := _duplicate_standard(source)
+                        neutral_material.albedo_color = Color.from_string(str(requested["colour"]), neutral_material.albedo_color)
+                        mesh_instance.set_surface_override_material(surface, neutral_material)
+                        changed += 1
+                    continue
                 var profile_id := str(requested.get("profile", _default_profile(category)))
                 if not _profile_allowed(category, profile_id):
                     push_warning("Rejected equipment finish '%s' for surface '%s' (%s)." % [profile_id, slot, category])
@@ -63,6 +72,8 @@ static func _surface_slot(mesh_instance: MeshInstance3D, source: Material, surfa
     if mesh_instance.has_meta("equipment_slot"):
         return str(mesh_instance.get_meta("equipment_slot")).to_lower()
     var material_name := source.resource_name.to_lower().replace(" ", "_").replace("-", "_")
+    if material_name in ["material", "material_001", "defaultmaterial", "default_material"]:
+        material_name = ""
     if not material_name.is_empty():
         return material_name
     return mesh_instance.name.to_lower().replace(" ", "_")
