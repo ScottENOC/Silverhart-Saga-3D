@@ -139,8 +139,10 @@ static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing:
             }
         "mira_ashbrook":
             var mira_text := "Quiet little village, Hollowmere. Most days, anyway."
-            if shakedown_choice == "fight":
-                mira_text = "I heard what happened with Ironbond. It took courage to stand with Garrick. I only hope they don't return with more men."
+            if npc_standing >= 20:
+                mira_text = "I heard what happened with Ironbond. It took courage to stand with Garrick. I only hope they do not return with more men."
+            elif shakedown_choice == "fight":
+                mira_text = "I heard what happened with Ironbond. It took courage to stand with Garrick. I only hope they do not return with more men."
             elif shakedown_choice == "encourage_pay":
                 mira_text = "I heard you backed the Company. Maybe that kept the peace today, but it leaves a bitter taste."
             elif shakedown_choice == "stay_out":
@@ -155,7 +157,9 @@ static func npc_greeting(npc_id: String, shakedown_resolved: bool, npc_standing:
             }
         "oskar_vinn":
             var oskar_text := "First time in Hollowmere? Mind the Ironbond lot if they're about."
-            if shakedown_choice == "fight":
+            if npc_standing >= 20:
+                oskar_text = "Heard you took on Ironbond. Not a bad scrap, by the sound of it. Shame I missed it."
+            elif shakedown_choice == "fight":
                 oskar_text = "Heard you took on Ironbond. Not a bad scrap, by the sound of it. Shame I missed it."
             elif shakedown_choice == "encourage_pay":
                 oskar_text = "So you stood with the Company. Practical, perhaps. Doesn't make them any more welcome."
