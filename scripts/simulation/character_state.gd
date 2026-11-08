@@ -90,7 +90,8 @@ func equip_inventory_item(instance_id: String) -> bool:
         if slot.is_empty() or item_id.is_empty() or int(item.get("quantity", 1)) != 1:
             return false
         if equipped_item_data.has(slot):
-            inventory.append((equipped_item_data[slot] as Dictionary).duplicate(true))
+            var previously_equipped: Dictionary = equipped_item_data[slot]
+            inventory.append(previously_equipped.duplicate(true))
         equipment[slot] = item_id
         equipped_item_data[slot] = item.duplicate(true)
         inventory.remove_at(index)
