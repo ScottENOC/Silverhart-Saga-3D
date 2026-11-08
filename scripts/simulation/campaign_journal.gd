@@ -8,6 +8,7 @@ signal journal_event(event: Dictionary)
 var quest_definitions: Dictionary = {}
 var quests: Dictionary = {}
 var faction_standings: Dictionary = {}
+var npc_standings: Dictionary = {}
 
 
 func register_quest_definition(definition: Dictionary) -> Dictionary:
@@ -172,6 +173,26 @@ func adjust_faction_standing(faction_id: String, amount: int, reason: String = "
 func faction_standing(faction_id: String) -> int:
     return int(faction_standings.get(faction_id, 0))
 
+func adjust_npc_standing(npc_id: String, amount: int, reason: String = "") -> Dictionary:
+    if npc_id.strip_edges().is_empty():
+        return {"ok": false, "reason": "missing_npc_id"}
+    var previous := int(npc_standings.get(npc_id, 0))
+    var next_value := previous + amount
+    npc_standings[npc_id] = next_value
+    _emit_event("npc_standing_changed", {
+        "npc_id": npc_id,
+        "previous": previous,
+        "current": next_value,
+        "delta": amount,
+        "reason": reason
+    })
+    return {"ok": true, "previous": previous, "current": next_value}
+
+
+func npc_standing(npc_id: String) -> int:
+    return int(npc_standings.get(npc_id, 0))
+
+
 
 func quest_state(quest_id: String) -> Dictionary:
     if not quests.has(quest_id):
@@ -183,13 +204,15 @@ func quest_state(quest_id: String) -> Dictionary:
 func to_dict() -> Dictionary:
     return {
         "quests": quests.duplicate(true),
-        "faction_standings": faction_standings.duplicate(true)
+        "faction_standings": faction_standings.duplicate(true),
+        "npc_standings": npc_standings.duplicate(true)
     }
 
 
 func load_dict(data: Dictionary) -> void:
     quests.clear()
     faction_standings.clear()
+    npc_standings.clear()
     var saved_quests: Variant = data.get("quests", {})
     if saved_quests is Dictionary:
         for quest_id_value in saved_quests.keys():
@@ -201,6 +224,10 @@ func load_dict(data: Dictionary) -> void:
     if saved_standings is Dictionary:
         for faction_id_value in saved_standings.keys():
             faction_standings[String(faction_id_value)] = int(saved_standings[faction_id_value])
+    var saved_npc_standings: Variant = data.get("npc_standings", {})
+    if saved_npc_standings is Dictionary:
+        for npc_id_value in saved_npc_standings.keys():
+            npc_standings[String(npc_id_value)] = int(saved_npc_standings[npc_id_value])
 
 
 func _emit_event(event_type: String, payload: Dictionary) -> void:

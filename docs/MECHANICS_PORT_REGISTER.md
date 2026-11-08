@@ -88,9 +88,9 @@ Do not begin a broad spell/skill/content migration until these shared action and
 
 ### M4 — Social simulation, dialogue and quests
 
-- [ ] Data-driven dialogue graph with conditions, choices, command effects, skill checks and persistent consequences.
-- [x] Initial simulation-owned quest journal: definition registration, prerequisites, staged objectives with required/optional completion, persistent decision choices, quest completion/failure and faction-standing deltas. State serializes independently of UI. [ ] Data-backed dialogue graphs, skill checks/command effects, timed expiry, rewards and full journal history.
-- [ ] Party/companion roster, affinity, multiple relationship dimensions, personality/knowledge, banter, conversation memory, agency and companion quest chains.
+- [x] Initial source-backed Hollowmere opening dialogue and branching social resolution, connected to the campaign journal. [ ] Reusable dialogue graph conditions, skill checks, command effects and broader campaign migration.
+- [x] Initial simulation-owned quest journal: definition registration, prerequisites, staged objectives with required/optional completion, persistent decision choices, quest completion/failure and faction-standing deltas. State serializes independently of UI. [ ] Timed expiry, rewards and full journal history.
+- [x] Initial nearby-NPC ambient chatter: role/time/event-aware exchange selection, pair cooldowns and anti-repeat memory in Hollowmere. [ ] Persistent personality, relationship-aware banter, NPC knowledge and conversation memory.
 - [ ] NPC identity and persistence independent of loaded 3D actors; schedules, routines, sleep/work/tavern movement, civilian persistence and road travellers.
 - [ ] Disguise/equipment identity and dialogue reactions; hearing/range and social-facing rules.
 - [x] Initial faction-standing ledger is part of the campaign journal and records reasoned deltas independently per faction. [ ] Source-specific reputation dimensions, hostility thresholds, faction beliefs, double-cross consequences and political state.
@@ -150,4 +150,18 @@ A mechanic is considered ported only when:
 
 The first social-simulation mechanic is implemented in `scripts/simulation/campaign_journal.gd`. Quest definitions are registered as data; runtime state is held by the simulation, not by a scene or dialogue widget. The journal supports prerequisite gating, required and optional objective progress, one-time branch decisions, explicit completion/failure and per-faction standing deltas. It serializes quest states, objective progress, decisions and faction standings. Journal changes are forwarded through `WorldSimulation.action_committed` as `SimulationEvent` values so later dialogue, NPC and world systems can react without coupling to UI.
 
-This is deliberately a mechanics foundation, not yet the Hollowmere Ironbond quest content. Do not invent dialogue or outcomes: next migrate the original Campaign 2 opening dialogue and consequences into definitions that use this journal, then connect the dialogue interaction layer.
+The journal foundation now supports the first source-backed Hollowmere quest and dialogue slice below. Continue migrating campaign content into data definitions and simulation-owned effects; do not copy browser callbacks or global window state.
+
+
+## Hollowmere opening dialogue and ambient chatter
+
+The initial Hollowmere social slice now registers the original Ironbond shakedown as a simulation-owned quest and presents the source-authored opening lines from `campaign2Dialogue.js`. The player can choose to stay out of the dispute or reinforce Ironbond's demand. Both branches record a persistent decision, complete the response objective and apply the source faction-standing delta to `ironbond_company` (+5 or +15 respectively). They also apply the source individual reputation deltas to Garrick, Mira and Oskar; the journal serializes these NPC standings separately from faction standings. The original fight branch remains visible but unavailable until the encounter AI and attack-targeting interface can support it; it is not represented as a working combat encounter.
+
+Garrick, Mira, Oskar and Wren have initial talk interactions. Press **F** near an NPC to talk. Dialogue presentation is separate from the content definitions and simulation journal.
+
+Ambient chatter uses the original `ambientChatterExpansion.js` as its behavioural reference: nearby NPC pairs exchange short conversations, with a 120-second in-world pair cooldown, recent-exchange/topic suppression, role-specific options, time-of-day conditions and shakedown aftermath hooks. Security-threshold exchanges are defined, but regional security is not yet connected to this scene. Chatter is presented as temporary speech bubbles over the actors and pauses during dialogue or combat. The current content set is the first Hollowmere subset, not the entire old game's multi-settlement catalogue or personality/relationship layer.
+
+Headless tests cover the shakedown content and journal data, branch availability and faction deltas, chatter eligibility, event gating, midnight time windows and pair cooldowns.
+
+The campaign journal now also stores individual NPC standing changes with reasons and round-trip serialization, allowing dialogue branches to affect named characters independently of faction-wide standing. The original authority cascade to Hollowmere's elder, baron and the kingdom remains pending until those social actors and reputation dimensions are migrated.
+
