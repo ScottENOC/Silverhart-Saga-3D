@@ -54,16 +54,19 @@ static func shakedown_choices() -> Array[Dictionary]:
     ]
 
 
-static func initialize_social_standings(journal: CampaignJournal) -> void:
+static func initialize_social_standings(journal: CampaignJournal, player_race: String = "human") -> void:
     if journal == null:
         return
-    journal.seed_npc_reputation("garrick_holt", 5.0, 0.0)
-    journal.seed_npc_reputation("mira_ashbrook", 5.0, 0.0)
-    journal.seed_npc_reputation("oskar_vinn", 5.0, 0.0)
-    journal.seed_npc_reputation("hollowmere_elder", 5.0, 0.0)
-    journal.seed_npc_reputation("hollowmere_baron", 5.0, 0.0)
-    journal.seed_faction_reputation("ironbond_company", 5.0, 0.0)
-    journal.seed_faction_reputation("silverhart_kingdom", 5.0, 0.0)
+    var human_standing := 5.0 if player_race == "human" else 0.0
+    if player_race == "goblin" or player_race == "orc":
+        human_standing = -15.0
+    journal.seed_npc_reputation("garrick_holt", human_standing, 0.0)
+    journal.seed_npc_reputation("mira_ashbrook", human_standing, 0.0)
+    journal.seed_npc_reputation("oskar_vinn", human_standing, 0.0)
+    journal.seed_npc_reputation("hollowmere_elder", human_standing, 0.0)
+    journal.seed_npc_reputation("hollowmere_baron", human_standing, 0.0)
+    journal.seed_faction_reputation("ironbond_company", human_standing, 0.0)
+    journal.seed_faction_reputation("silverhart_kingdom", human_standing, 0.0)
     journal.seed_merchant_influence("ironbond_company", "silverhart_kingdom", 30.0)
 
 
@@ -77,7 +80,7 @@ static func _cascade_reputation(journal: CampaignJournal, standing_delta: float,
     journal.adjust_faction_reputation("silverhart_kingdom", standing_delta * kingdom_multiplier, knowledge_delta * kingdom_multiplier, reason)
 
 
-static func resolve_shakedown(journal: CampaignJournal, choice_id: String) -> Dictionary:
+static func apply_shakedown_choice(journal: CampaignJournal, choice_id: String) -> Dictionary:
     if journal == null:
         return {"ok": false, "reason": "missing_journal"}
     initialize_social_standings(journal)
@@ -116,10 +119,25 @@ static func resolve_shakedown(journal: CampaignJournal, choice_id: String) -> Di
     var arc_side := String(selected.get("arc_side", ""))
     if not arc_side.is_empty():
         journal.record_decision(QUEST_ID, "ironbond_arc_side", arc_side)
-    var completion := journal.complete_quest(QUEST_ID)
+    return {"ok": true, "choice": selected.duplicate(true)}
+
+
+static func complete_shakedown(journal: CampaignJournal) -> Dictionary:
+    if journal == null:
+        return {"ok": false, "reason": "missing_journal"}
+    return journal.complete_quest(QUEST_ID)
+
+
+static func resolve_shakedown(journal: CampaignJournal, choice_id: String) -> Dictionary:
+    var result := apply_shakedown_choice(journal, choice_id)
+    if not bool(result.get("ok", false)):
+        return result
+    if choice_id == "fight":
+        return result
+    var completion := complete_shakedown(journal)
     if not bool(completion.get("ok", false)):
         return completion
-    return {"ok": true, "choice": selected.duplicate(true)}
+    return result
 
 
 static func shakedown_victory_text() -> String:
