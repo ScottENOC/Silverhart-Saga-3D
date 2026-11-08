@@ -4,6 +4,7 @@ extends Node3D
 const MODULAR_CHARACTER_ASSEMBLER = preload("res://scripts/presentation/modular_character_assembler.gd")
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
+const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -16,6 +17,7 @@ const ROOF_RIDGE_HEIGHT: float = 5.8
 
 var simulation: WorldSimulation
 var reaction_prompt: CanvasLayer
+var character_panel: Control
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
 var actor_by_id: Dictionary = {}
@@ -444,6 +446,13 @@ func _create_hud() -> void:
     party_switch_button.pressed.connect(_switch_party_member)
     layer.add_child(party_switch_button)
 
+    var character_panel_button := Button.new()
+    character_panel_button.text = "Character  [C]"
+    character_panel_button.position = Vector2(260.0, 54.0)
+    character_panel_button.custom_minimum_size = Vector2(170.0, 42.0)
+    character_panel_button.pressed.connect(_toggle_character_panel)
+    layer.add_child(character_panel_button)
+
     bra_toggle_button = Button.new()
     bra_toggle_button.text = "Bra: on"
     bra_toggle_button.position = Vector2(22.0, 104.0)
@@ -519,12 +528,22 @@ func _create_hud() -> void:
 
     add_child(layer)
 
+    character_panel = CHARACTER_PANEL_SCRIPT.new()
+    character_panel.name = "CharacterPanel"
+    layer.add_child(character_panel)
+    character_panel.configure(simulation, active_character_id)
+
     # Reactions are requested by the simulation and displayed here. The UI
     # never decides eligibility or spends TP; it returns a choice ID only.
     reaction_prompt = REACTION_PROMPT_SCRIPT.new()
     reaction_prompt.name = "ReactionPrompt"
     reaction_prompt.choice_selected.connect(_on_reaction_choice_selected)
     add_child(reaction_prompt)
+
+func _toggle_character_panel() -> void:
+    if character_panel != null:
+        character_panel.toggle_panel()
+
 
 func _on_reaction_requested(reactor_id: String, options: Array[Dictionary], request_id: int, _source_event_id: String) -> void:
     if reaction_prompt != null:
@@ -595,7 +614,9 @@ func _switch_party_member() -> void:
     if target != null:
         camera_rig.follow_target = target
         var display_name := "You" if active_character_id == "player" else "Wren"
-        party_switch_button.text = "Active: " + display_name + "  [Tab] Switch"
+        party_switch_button.text = "Active: " + display_name
+    if character_panel != null:
+        character_panel.set_character(active_character_id) + "  [Tab] Switch"
 
 func _process(delta: float) -> void:
     if active_path.size() < 2:
@@ -620,6 +641,17 @@ func _unhandled_input(event: InputEvent) -> void:
         var key_event := event as InputEventKey
         if key_event.keycode == KEY_TAB:
             _switch_party_member()
+            get_viewport().set_input_as_handled()
+            return
+        if key_event.keycode == KEY_C:
+            _toggle_character_panel()
+            get_viewport().set_input_as_handled()
+            return
+        if key_event.keycode == KEY_I:
+            if character_panel != null:
+                character_panel.set_tab("inventory")
+                if not character_panel.visible:
+                    character_panel.toggle_panel()
             get_viewport().set_input_as_handled()
             return
         if key_event.keycode == KEY_V:
