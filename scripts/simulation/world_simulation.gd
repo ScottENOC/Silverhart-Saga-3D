@@ -13,6 +13,7 @@ signal movement_reaction_resolved(mover_id: String, halted: bool)
 
 var campaign_journal: CampaignJournal = CampaignJournal.new()
 var map_data: HexMapData = HexMapData.new()
+var wilderness_resources: WildernessResourceSystem = WildernessResourceSystem.new()
 var characters: Dictionary = {}
 var occupied_hexes: Dictionary = {}
 var player_character_id: String = "player"
@@ -651,6 +652,7 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
         if state != null and state.alive:
             state.regenerate_time_points()
 
+    wilderness_resources.advance_time(world_seconds)
     world_tick.emit(tick_index, world_seconds)
 
 ## Debug/prototype movement remains free so the M1 movement harness is usable.
@@ -666,6 +668,13 @@ func try_move_character(character_id: String, destination: Vector2i) -> bool:
 func try_move_character_action(character_id: String, destination: Vector2i, time_point_cost: float = 5.0) -> bool:
     var result := submit_action(SimulationActionRequest.move(character_id, destination, time_point_cost))
     return bool(result.get("ok", false))
+
+func ensure_resource_at(hex: Vector2i) -> Dictionary:
+    return wilderness_resources.ensure_node(hex, map_data.terrain_id_at(hex))
+
+func harvest_resource_at(character_id: String, hex: Vector2i) -> Dictionary:
+    var character := get_character(character_id)
+    return wilderness_resources.harvest(hex, map_data.terrain_id_at(hex), character, clock.world_seconds)
 
 func find_path(character_id: String, destination: Vector2i) -> Array[Vector2i]:
     var state := get_character(character_id)
@@ -716,12 +725,14 @@ func to_dict() -> Dictionary:
         "world_clock": clock.to_dict(),
         "is_in_combat": is_in_combat,
         "characters": character_data,
+        "wilderness_resources": wilderness_resources.to_dict(),
     }
 
 func load_dict(data: Dictionary) -> void:
     characters.clear()
     occupied_hexes.clear()
     clock.load_dict(data.get("world_clock", {}))
+    wilderness_resources.load_dict(data.get("wilderness_resources", {}))
     is_in_combat = bool(data.get("is_in_combat", false))
     var saved_characters: Dictionary = data.get("characters", {})
     for character_id in saved_characters:
