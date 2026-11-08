@@ -40,6 +40,12 @@ button:disabled{opacity:.4}
 <div class="row"><span>Shirt</span><select id="equipmentShirt"><option value="empty">Empty</option><option value="fatigue" selected>Fatigue shirt</option><option value="tank">Tank top</option><option value="lace">Lace shirt</option><option value="fishnet">Fishnet shirt</option><option value="backless">Backless slit dress</option></select></div>
 <div class="row"><span>Armour</span><select id="equipmentArmour"><option value="empty" selected>Empty</option><option value="leather">Ara leather armour</option></select></div>
 <p class="note" id="equipmentStatus">Each slot is independent. Empty removes that layer without removing the body.</p></section>
+<section id="tattooSection"><h2>Tattoos · live customisation</h2>
+<div class="row"><span>Left upper-arm band</span><input id="tattooArmband" type="checkbox"></div>
+<div class="row"><span>Left forearm motif</span><input id="tattooForearm" type="checkbox"></div>
+<div class="row"><span>Ink colour</span><input id="tattooColor" type="color" value="#20232a"></div>
+<p class="note">Tattoos are added to the loaded skin in the browser. They can be changed without rebuilding or reloading the character model.</p>
+</section>
 <section><h2>Accessories · placement preview</h2>
 <div class="buttons"><button data-accessory="earrings">Earrings</button><button data-accessory="nose">Nose ring</button><button data-accessory="necklace">Necklace</button></div>
 <div class="buttons"><button data-accessory="nipple_left">Left nipple piercing</button><button data-accessory="nipple_right">Right nipple piercing</button><button data-accessory="clit">Clitoral hood piercing</button></div>
@@ -55,7 +61,7 @@ button:disabled{opacity:.4}
 </aside></main>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <script type="module">
-import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';import {DecalGeometry} from 'three/addons/geometries/DecalGeometry.js';
 const stage=document.querySelector('#stage'),status=document.querySelector('#status'),error=document.querySelector('#error');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x292b2e);
 const camera=new THREE.PerspectiveCamera(35,1,.01,100);camera.position.set(2.7,1.9,4.4);
@@ -96,13 +102,15 @@ function disposeModel(root){
 }
 function loadModel(mode){
  const generation=++loadGeneration;
- const maleMode=mode==='male-body';
+ const maleMode=mode.startsWith('male-body');
  document.querySelector('#accessoryNote').textContent=maleMode?'Male Ara anatomy is available; clothing and accessory placement are not yet fitted to the male rig.':'Jewellery uses the female Ara rig sockets and surface placement. Body piercings are easiest to inspect with No clothing.';
  document.querySelectorAll('[data-accessory]').forEach(b=>{b.disabled=maleMode&&b.dataset.accessory!=='clear';});
+ document.querySelector('#tattooSection').hidden=maleMode;
+ document.querySelectorAll('[data-tattoo]').forEach(b=>{b.disabled=maleMode;});
 
- const files={'ara':'ara_person_modular.glb','ara-mobile':'ara_person_mobile.glb','body':'ara_person_body.glb','tattoo-body':'ara_person_tattoo_body.glb','male-body':'ara_person_male_body.glb','male-body-small':'ara_person_male_small_body.glb','male-body-large':'ara_person_male_large_body.glb','underwear':'ara_person_modular_underwear.glb'};
+ const files={'ara':'ara_person_modular.glb','ara-mobile':'ara_person_mobile.glb','body':'ara_person_body.glb','male-body':'ara_person_male_body.glb','male-body-small':'ara_person_male_small_body.glb','male-body-large':'ara_person_male_large_body.glb','underwear':'ara_person_modular_underwear.glb'};
  const file=files[mode]||'ara_person_benchmark.glb';
- const labels={'ara':'Ara · modular equipment','ara-mobile':'Ara mobile preview','body':'Ara body · no clothing','tattoo-body':'Ara tattooed body','male-body':'Ara male body · standard build','male-body-small':'Ara male body · smaller build','male-body-large':'Ara male body · larger build','underwear':'Ara · underwear equipment'};
+ const labels={'ara':'Ara · modular equipment','ara-mobile':'Ara mobile preview','body':'Ara body · no clothing','male-body':'Ara male body · standard build','male-body-small':'Ara male body · smaller build','male-body-large':'Ara male body · larger build','underwear':'Ara · underwear equipment'};
  const label=labels[mode]||'Ara high-detail benchmark';
  const modelUrl=new URL('./assets/'+file+'?v='+encodeURIComponent(buildVersion),window.location.href).href;
  if(model){scene.remove(model);disposeModel(model);model=null;box=null}
@@ -111,6 +119,7 @@ function loadModel(mode){
  new GLTFLoader().load(modelUrl,g=>{
   if(generation!==loadGeneration){disposeModel(g.scene);return}
   model=g.scene;scene.add(model);box=new THREE.Box3().setFromObject(model);frame('three');status.textContent=label+' loaded';
+  if(!maleMode)updateTattooPreview();
   if(['full','ara-mobile'].includes(mode))loadBodyUnderlay(generation);
  },x=>{if(generation===loadGeneration){if(x.total)status.textContent='Loading model · '+Math.round(x.loaded/x.total*100)+'%';else status.textContent='Downloading model…'}},async e=>{
   if(generation!==loadGeneration)return;
@@ -158,7 +167,8 @@ function updateBodyUnderlay(){
 
 // Phone-review appearance tools. These operate on the imported GLB materials,
 // preserving a clean copy so repeated changes do not compound.
-let originalMaterials=new Map(), accessoryGroup=null, selectedMaterial=null;
+let originalMaterials=new Map(), accessoryGroup=null, selectedMaterial=null, tattooGroup=null;
+const tattooState={armband_l:false,forearm_l:false,color:'#20232a'};
 const materialSelect=document.querySelector('#materialSelect');
 const equipmentState={lower:'briefs',upper:'bra',pants:'fatigue',shirt:'fatigue',armour:'empty'};
 const equipmentGroups={
@@ -256,6 +266,105 @@ document.querySelector('#resetMaterials').onclick=()=>{
  }
  selectMaterial();updateBodyUnderlay();document.querySelector('#saveState').textContent='Materials reset to imported values';
 };
+
+// Runtime tattoos are lightweight surface decals on the currently loaded skin.
+// They are deliberately separate from the character GLB: changing a tattoo does
+// not require another Ara export or a second body model.
+function clearTattoos(){
+ if(tattooGroup&&model){
+  model.remove(tattooGroup);
+  tattooGroup.traverse(o=>{
+   o.geometry?.dispose();
+   if(o.material){
+    (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>{
+     if(m.map)m.map.dispose();
+     m.dispose();
+    });
+   }
+  });
+ }
+ tattooGroup=null;
+}
+function tattooTexture(kind){
+ const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;
+ const ctx=canvas.getContext('2d');ctx.strokeStyle='#ffffff';ctx.fillStyle='#ffffff';
+ ctx.lineWidth=12;ctx.lineCap='round';ctx.lineJoin='round';
+ if(kind==='armband_l'){
+  ctx.beginPath();ctx.moveTo(12,76);ctx.lineTo(244,76);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(12,180);ctx.lineTo(244,180);ctx.stroke();
+  for(let x=28;x<=228;x+=40){
+   ctx.beginPath();ctx.moveTo(x,76);ctx.lineTo(x+18,128);ctx.lineTo(x,180);ctx.lineTo(x-18,128);ctx.closePath();ctx.fill();
+  }
+ }else{
+  ctx.lineWidth=10;
+  ctx.beginPath();ctx.moveTo(128,18);ctx.bezierCurveTo(78,66,178,92,128,238);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(128,18);ctx.bezierCurveTo(178,66,78,92,128,238);ctx.stroke();
+  for(const y of [64,112,160,208]){
+   ctx.beginPath();ctx.moveTo(128,y);ctx.lineTo(84,y-18);ctx.lineTo(64,y);ctx.lineTo(84,y+18);ctx.closePath();ctx.stroke();
+   ctx.beginPath();ctx.moveTo(128,y);ctx.lineTo(172,y-18);ctx.lineTo(192,y);ctx.lineTo(172,y+18);ctx.closePath();ctx.stroke();
+  }
+  ctx.beginPath();ctx.arc(128,128,24,0,Math.PI*2);ctx.stroke();
+ }
+ const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.needsUpdate=true;
+ return texture;
+}
+function tattooSurface(kind){
+ if(!box)return null;
+ const size=box.getSize(new THREE.Vector3()),centre=box.getCenter(new THREE.Vector3());
+ const y=box.min.y+size.y*(kind==='armband_l'?.68:.53);
+ // Find the outer edge of the left arm at the target height. This uses the
+ // loaded body's actual proportions rather than fixed world coordinates.
+ let best=null;
+ for(let f=.12;f<=.49;f+=.01){
+  const hit=surfacePoint(centre.x-size.x*f,y,true);
+  if(hit&&(!best||Math.abs(hit.point.x-centre.x)>Math.abs(best.point.x-centre.x)))best=hit;
+ }
+ return best;
+}
+function addTattoo(kind){
+ if(!model||!box)return false;
+ const hit=tattooSurface(kind);
+ if(!hit)return false;
+ const worldPoint=model.localToWorld(hit.point.clone());
+ const worldNormal=hit.normal.clone().transformDirection(model.matrixWorld).normalize();
+ worldPoint.addScaledVector(worldNormal,.0015);
+ const orientation=new THREE.Euler().setFromQuaternion(
+  new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),worldNormal)
+ );
+ const bounds=box.getSize(new THREE.Vector3());
+ const decalSize=kind==='armband_l'
+  ?new THREE.Vector3(bounds.x*.13,bounds.y*.026,bounds.z*.09)
+  :new THREE.Vector3(bounds.x*.105,bounds.y*.075,bounds.z*.09);
+ const geometry=new DecalGeometry(hit.object,worldPoint,orientation,decalSize);
+ geometry.applyMatrix4(model.matrixWorld.clone().invert());
+ const material=new THREE.MeshStandardMaterial({
+  color:new THREE.Color(tattooState.color),map:tattooTexture(kind),transparent:true,
+  alphaTest:.04,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,
+  polygonOffsetUnits:-4,side:THREE.DoubleSide,roughness:1
+ });
+ const decal=new THREE.Mesh(geometry,material);decal.name='RuntimeTattoo_'+kind;decal.renderOrder=1;decal.frustumCulled=false;
+ tattooGroup.add(decal);
+ return true;
+}
+function updateTattooPreview(){
+ if(!model||!box)return;
+ clearTattoos();
+ if(document.querySelector('#modelmode').value.startsWith('male-body'))return;
+ const selected=['armband_l','forearm_l'].filter(k=>tattooState[k]);
+ if(!selected.length)return;
+ tattooGroup=new THREE.Group();tattooGroup.name='RuntimeTattoos';model.add(tattooGroup);
+ const failed=[];
+ for(const kind of selected)if(!addTattoo(kind))failed.push(kind);
+ if(failed.length){
+  document.querySelector('#saveState').textContent='Could not locate skin for: '+failed.join(', ')+'. Try Body · no clothing.';
+ }else{
+  document.querySelector('#saveState').textContent='Tattoos updated on the loaded character';
+ }
+}
+document.querySelector('#tattooArmband').addEventListener('change',e=>{tattooState.armband_l=e.target.checked;updateTattooPreview();});
+document.querySelector('#tattooForearm').addEventListener('change',e=>{tattooState.forearm_l=e.target.checked;updateTattooPreview();});
+document.querySelector('#tattooColor').addEventListener('input',e=>{tattooState.color=e.target.value;updateTattooPreview();});
+
 function clearAccessories(){if(accessoryGroup&&model){model.remove(accessoryGroup);accessoryGroup.traverse(o=>{o.geometry?.dispose();if(o.material){(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.dispose())}})}accessoryGroup=null;}
 function getSurfaceMeshes(skinOnly=false){
  const found=[];if(!model)return found;
@@ -392,7 +501,7 @@ document.querySelectorAll('[data-accessory]').forEach(b=>b.addEventListener('cli
 }));
 function appearanceSnapshot(){
  const materials={};for(const [key,e] of originalMaterials){materials[e.material.name||key]={color:e.material.color?'#'+e.material.color.getHexString():null,roughness:e.material.roughness??null,metalness:e.material.metalness??null,opacity:e.material.userData.previewOpacity??e.material.opacity??1,visible:e.material.userData.previewVisible!==false};}
- return {schema_version:2,model:document.querySelector('#modelmode').value,fabric:document.querySelector('#fabricPreset').value,equipment:{...equipmentState},materials,accessories:accessoryGroup?(accessoryGroup.userData.reviewAccessories||[]):[]};
+ return {schema_version:3,model:document.querySelector('#modelmode').value,fabric:document.querySelector('#fabricPreset').value,equipment:{...equipmentState},materials,accessories:accessoryGroup?(accessoryGroup.userData.reviewAccessories||[]):[],tattoos:{...tattooState}};
 }
 let pendingSnapshot=null;
 function applySnapshot(data){
@@ -407,6 +516,14 @@ function applySnapshot(data){
   if(Number.isFinite(saved.metalness)&&'metalness' in e.material)e.material.metalness=saved.metalness;
  }
  clearAccessories();for(const a of (data.accessories||[])){if(['earrings','nose','necklace','nipple_left','nipple_right','clit'].includes(a))addAccessories(a);}
+ if(data.tattoos){
+  tattooState.armband_l=!!data.tattoos.armband_l;tattooState.forearm_l=!!data.tattoos.forearm_l;
+  if(typeof data.tattoos.color==='string'&&/^#[0-9a-f]{6}$/i.test(data.tattoos.color))tattooState.color=data.tattoos.color;
+  document.querySelector('#tattooArmband').checked=tattooState.armband_l;
+  document.querySelector('#tattooForearm').checked=tattooState.forearm_l;
+  document.querySelector('#tattooColor').value=tattooState.color;
+  updateTattooPreview();
+ }
  document.querySelector('#saveState').textContent='Saved appearance restored';
 }
 document.querySelector('#saveAppearance').onclick=()=>{
@@ -422,7 +539,7 @@ document.querySelector('#exportAppearance').onclick=()=>{
 };
 const originalLoadModel=loadModel;
 loadModel=function(mode){
- clearAccessories();originalLoadModel(mode);
+ clearAccessories();clearTattoos();originalLoadModel(mode);
  const poll=()=>{if(model){collectMaterials();if(pendingSnapshot){const saved=pendingSnapshot;pendingSnapshot=null;applySnapshot(saved);}return;}if(status.textContent.includes('failed'))return;setTimeout(poll,250);};setTimeout(poll,250);
 };
 function switchModel(mode){
