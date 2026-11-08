@@ -732,27 +732,10 @@ func _interact_with_nearest_npc() -> void:
 func _resolve_shakedown(choice_id: String) -> void:
     if shakedown_resolved:
         return
-    var selected: Dictionary = {}
-    for choice_value in HollowmereCampaignContent.shakedown_choices():
-        var choice: Dictionary = choice_value
-        if String(choice.get("id", "")) == choice_id and bool(choice.get("available", true)):
-            selected = choice
-            break
-    if selected.is_empty():
+    var result := HollowmereCampaignContent.resolve_shakedown(simulation.campaign_journal, choice_id)
+    if not bool(result.get("ok", false)):
         return
-    var journal := simulation.campaign_journal
-    var quest_id := HollowmereCampaignContent.QUEST_ID
-    var decision := journal.record_decision(quest_id, "response", choice_id)
-    if not bool(decision.get("ok", false)):
-        return
-    journal.set_objective_progress(quest_id, "response", 1.0)
-    journal.adjust_faction_standing("ironbond_company", int(selected.get("ironbond_delta", 0)), "Hollowmere shakedown: " + choice_id)
-    var arc_side := String(selected.get("arc_side", ""))
-    if not arc_side.is_empty():
-        journal.record_decision(quest_id, "ironbond_arc_side", arc_side)
-    journal.complete_quest(quest_id)
     shakedown_resolved = true
-
 
 func _run_opening_sequence() -> void:
     var player_state := simulation.get_character("player")
