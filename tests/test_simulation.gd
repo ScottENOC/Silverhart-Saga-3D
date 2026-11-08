@@ -4,6 +4,7 @@ var _failures: int = 0
 
 func _initialize() -> void:
     _test_character_round_trip()
+    _test_campaign_journal()
     _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
     _test_equipped_item_combat_effects()
@@ -855,3 +856,65 @@ func _test_race_class_character_creation() -> void:
     hard_target.max_health = 100
     var incoming := CombatRules.resolve_attack(enemy, hard_target, {"time_point_cost":1.0}, rng)
     _check(int(incoming.get("damage", 0)) == 11, "Hard mode increases incoming damage by 10 percent")
+
+
+func _test_campaign_journal() -> void:
+    var journal := CampaignJournal.new()
+    var intro_definition := {
+        "id": "hollowmere_arrival",
+        "title": "A Place to Begin",
+        "objectives": [
+            {"id": "speak_to_garrick", "target": 1, "required": true}
+        ]
+    }
+    var opening_definition := {
+        "id": "ironbond_shakedown",
+        "title": "The Ironbond Shakedown",
+        "prerequisites": ["hollowmere_arrival"],
+        "objectives": [
+            {"id": "hear_the_demand", "target": 1, "required": true},
+            {"id": "gather_witnesses", "target": 2, "required": true},
+            {"id": "keep_patron_safe", "target": 1, "required": false}
+        ]
+    }
+    _check(bool(journal.register_quest_definition(intro_definition).get("ok", false)))
+    _check(bool(journal.register_quest_definition(opening_definition).get("ok", false)))
+    _check(String(journal.register_quest_definition(opening_definition).get("reason", "")) == "duplicate_quest_definition")
+    _check(String(journal.start_quest("missing_quest").get("reason", "")) == "unknown_quest")
+    _check(String(journal.start_quest("ironbond_shakedown").get("reason", "")) == "prerequisite_incomplete")
+
+    _check(bool(journal.start_quest("hollowmere_arrival").get("ok", false)))
+    _check(bool(journal.set_objective_progress("hollowmere_arrival", "speak_to_garrick", 1.0).get("completed", false)))
+    _check(bool(journal.complete_quest("hollowmere_arrival").get("ok", false)))
+    _check(bool(journal.start_quest("ironbond_shakedown").get("ok", false)))
+
+    _check(bool(journal.set_objective_progress("ironbond_shakedown", "hear_the_demand", 5.0).get("completed", false)), "Objective progress clamps to its target")
+    _check(String(journal.complete_quest("ironbond_shakedown").get("reason", "")) == "required_objectives_incomplete", "Required objectives block quest completion")
+    _check(bool(journal.set_objective_progress("ironbond_shakedown", "gather_witnesses", 1.0).get("ok", false)))
+    _check(not bool(journal.complete_quest("ironbond_shakedown").get("ok", false)))
+    _check(bool(journal.set_objective_progress("ironbond_shakedown", "gather_witnesses", 2.0).get("completed", false)))
+    _check(bool(journal.record_decision("ironbond_shakedown", "response_to_demand", "stand_with_townsfolk").get("ok", false)))
+    _check(String(journal.record_decision("ironbond_shakedown", "response_to_demand", "pay_the_company").get("reason", "")) == "decision_already_recorded")
+
+    _check(int(journal.adjust_faction_standing("ironbond_company", -2, "defied the shakedown").get("current", 0)) == -2)
+    _check(int(journal.adjust_faction_standing("hollowmere", 1, "stood with the villagers").get("current", 0)) == 1)
+    _check(bool(journal.complete_quest("ironbond_shakedown").get("ok", false)), "Optional objectives do not block completion")
+    _check(String(journal.quest_state("ironbond_shakedown").get("status", "")) == "completed")
+    _check(journal.faction_standing("ironbond_company") == -2)
+
+    var saved := journal.to_dict()
+    var restored := CampaignJournal.new()
+    restored.register_quest_definition(intro_definition)
+    restored.register_quest_definition(opening_definition)
+    restored.load_dict(saved)
+    _check(restored.to_dict() == saved, "Quest states, decisions and standings survive serialization")
+
+    var simulation := WorldSimulation.new()
+    var forwarded: Array = []
+    simulation.action_committed.connect(func(event: SimulationEvent) -> void:
+        forwarded.append(event)
+    )
+    simulation.campaign_journal.register_quest_definition(intro_definition)
+    simulation.campaign_journal.start_quest("hollowmere_arrival")
+    _check(not forwarded.is_empty(), "Journal events flow through the simulation event stream")
+    _check(String(forwarded[0].event_type) == "quest_started")

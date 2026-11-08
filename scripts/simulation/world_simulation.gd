@@ -11,6 +11,7 @@ signal reaction_requested(reactor_id: String, options: Array[Dictionary], reques
 signal reaction_resolved(reactor_id: String, choice_id: String, request_id: int, reason: String)
 signal movement_reaction_resolved(mover_id: String, halted: bool)
 
+var campaign_journal: CampaignJournal = CampaignJournal.new()
 var map_data: HexMapData = HexMapData.new()
 var characters: Dictionary = {}
 var occupied_hexes: Dictionary = {}
@@ -26,6 +27,11 @@ var pending_move_context: Dictionary = {}
 func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
     turn_scheduler.turn_started.connect(_on_combat_turn_started)
+    campaign_journal.journal_event.connect(_on_campaign_journal_event)
+
+func _on_campaign_journal_event(event: Dictionary) -> void:
+    var event_type := String(event.get("event_type", "campaign_event"))
+    action_committed.emit(SimulationEvent.new(event_type, "", "", event))
 
 func _on_combat_turn_started(character_id: String) -> void:
     var state := get_character(character_id)
