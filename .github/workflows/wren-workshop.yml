@@ -14,7 +14,7 @@ on:
         type: boolean
         default: true
   push:
-    branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates]
+    branches: [dev, feat/ara-hairstyles-medieval-equipment, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates]
     paths:
       - "tools/ara/patch_layering.py"
       - "tools/ara/patch_medieval_weapons.py"
@@ -235,7 +235,14 @@ jobs:
           done
 
           # Separate grip-origin medieval props are generated only on manual runs.
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.build_medieval_equipment }}" = "true" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BUILD_EQUIPMENT="${{ inputs.build_medieval_equipment }}"
+          elif [ "${{ github.ref_name }}" = "feat/ara-hairstyles-medieval-equipment" ]; then
+            BUILD_EQUIPMENT=true
+          else
+            BUILD_EQUIPMENT=false
+          fi
+          if [ "$BUILD_EQUIPMENT" = "true" ]; then
             mkdir -p "$GITHUB_WORKSPACE/art/characters/ara/props"
             for weapon in sword knife axe spear bow mace club; do
               python - "$weapon" <<'PY'
