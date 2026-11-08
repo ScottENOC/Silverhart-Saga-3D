@@ -7,6 +7,7 @@ const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const CHARACTER_CREATION_RULES = preload("res://scripts/simulation/character_creation_rules.gd")
+const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -54,6 +55,18 @@ var dark_wood_material: StandardMaterial3D
 var plaster_material: StandardMaterial3D
 var roof_material: StandardMaterial3D
 var glass_material: StandardMaterial3D
+var ambient_chatter: AmbientChatter
+var ambient_rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var ambient_accumulator: float = 0.0
+var ambient_exchange_running: bool = false
+var ambient_security: int = 50
+var shakedown_started: bool = false
+var shakedown_resolved: bool = false
+var dialogue_open: bool = false
+var dialogue_panel: PanelContainer
+var dialogue_speaker_label: Label
+var dialogue_body_label: Label
+var dialogue_choices_box: VBoxContainer
 
 func _ready() -> void:
     _create_materials()
@@ -65,6 +78,9 @@ func _ready() -> void:
     _create_characters()
     _create_camera()
     _create_hud()
+    ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
+    ambient_rng.randomize()
+    _run_opening_sequence()
 
 func _create_materials() -> void:
     grass_material = _material(Color(0.28, 0.38, 0.27))
@@ -109,6 +125,8 @@ func _create_simulation() -> void:
     # Campaign 2 opens at 11:00 on the first day, matching the browser game.
     simulation.clock.set_world_seconds(11.0 * 3600.0)
     add_child(simulation)
+    simulation.campaign_journal.register_quest_definition(HollowmereCampaignContent.shakedown_quest_definition())
+    simulation.campaign_journal.start_quest(HollowmereCampaignContent.QUEST_ID)
 
     # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
     for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
@@ -390,6 +408,8 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.name = id
     actor.position = _hex_world_position(spawn_hex)
     actor.set_meta("character_id", id)
+    actor.set_meta("ambient_enabled", not is_player)
+    actor.set_meta("ambient_role", _ambient_role_for_id(id))
     actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
 
     var model_loaded := false
@@ -480,7 +500,7 @@ func _create_hud() -> void:
     var layer := CanvasLayer.new()
     var label := Label.new()
     label.position = Vector2(22.0, 18.0)
-    label.text = "HOLLOW TANKARD   |   W/A/S/D/Q/E: move one hex   |   Click: pathfind   |   [ ]: turn   |   Right-drag: orbit   |   V: roof"
+    label.text = "HOLLOW TANKARD   |   W/A/S/D/Q/E: move one hex   |   F: talk   |   Click: pathfind   |   [ ]: turn   |   Right-drag: orbit   |   V: roof"
     label.add_theme_font_size_override("font_size", 18)
     label.add_theme_color_override("font_color", Color(0.94, 0.93, 0.86))
     layer.add_child(label)
@@ -585,6 +605,7 @@ func _create_hud() -> void:
     character_panel.name = "CharacterPanel"
     layer.add_child(character_panel)
     character_panel.configure(simulation, active_character_id)
+    _create_dialogue_panel(layer)
 
     world_map_panel = WORLD_MAP_PANEL_SCRIPT.new() as CanvasLayer
     world_map_panel.name = "MainCampaignWorldMap"
@@ -596,6 +617,252 @@ func _create_hud() -> void:
     reaction_prompt.name = "ReactionPrompt"
     reaction_prompt.choice_selected.connect(_on_reaction_choice_selected)
     add_child(reaction_prompt)
+
+
+func _create_dialogue_panel(layer: CanvasLayer) -> void:
+    dialogue_panel = PanelContainer.new()
+    dialogue_panel.name = "CampaignDialoguePanel"
+    dialogue_panel.anchor_left = 0.5
+    dialogue_panel.anchor_right = 0.5
+    dialogue_panel.anchor_top = 1.0
+    dialogue_panel.anchor_bottom = 1.0
+    dialogue_panel.offset_left = -310.0
+    dialogue_panel.offset_right = 310.0
+    dialogue_panel.offset_top = -300.0
+    dialogue_panel.offset_bottom = -22.0
+    dialogue_panel.visible = false
+    layer.add_child(dialogue_panel)
+
+    var column := VBoxContainer.new()
+    column.add_theme_constant_override("separation", 10)
+    dialogue_panel.add_child(column)
+
+    dialogue_speaker_label = Label.new()
+    dialogue_speaker_label.add_theme_font_size_override("font_size", 22)
+    dialogue_speaker_label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.55))
+    column.add_child(dialogue_speaker_label)
+
+    dialogue_body_label = Label.new()
+    dialogue_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    dialogue_body_label.custom_minimum_size = Vector2(580.0, 76.0)
+    dialogue_body_label.add_theme_font_size_override("font_size", 18)
+    column.add_child(dialogue_body_label)
+
+    dialogue_choices_box = VBoxContainer.new()
+    dialogue_choices_box.add_theme_constant_override("separation", 6)
+    column.add_child(dialogue_choices_box)
+
+
+func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary]) -> void:
+    if dialogue_panel == null:
+        return
+    dialogue_open = true
+    dialogue_speaker_label.text = speaker
+    dialogue_body_label.text = body
+    for child in dialogue_choices_box.get_children():
+        child.queue_free()
+    for choice_value in choices:
+        var choice: Dictionary = choice_value
+        var button := Button.new()
+        button.text = String(choice.get("label", "Continue"))
+        button.custom_minimum_size = Vector2(0.0, 38.0)
+        button.disabled = not bool(choice.get("available", true))
+        if not button.disabled:
+            button.pressed.connect(func(): _select_dialogue_choice(choice.duplicate(true)))
+        else:
+            button.tooltip_text = String(choice.get("unavailable_reason", "Not available yet."))
+        dialogue_choices_box.add_child(button)
+    dialogue_panel.visible = true
+
+
+func _select_dialogue_choice(choice: Dictionary) -> void:
+    var choice_id := String(choice.get("id", ""))
+    if choice.has("ironbond_delta"):
+        _resolve_shakedown(choice_id)
+        var response := String(choice.get("response", ""))
+        if response.is_empty():
+            response = "You stand with Garrick. The encounter is ready to begin once combat targeting and enemy AI are connected."
+        _show_dialogue("Hollowmere", response, [{"id": "continue", "label": "Continue", "text": ""}])
+        return
+
+    var response_text := String(choice.get("text", ""))
+    if choice_id == "spar":
+        response_text += "\n\nA full sparring encounter is not connected to the 3D combat interface yet."
+    _show_dialogue(dialogue_speaker_label.text, response_text, [{"id": "continue", "label": "Continue", "text": ""}])
+
+
+func _close_dialogue() -> void:
+    dialogue_open = false
+    if dialogue_panel != null:
+        dialogue_panel.visible = false
+
+
+func _interact_with_nearest_npc() -> void:
+    if dialogue_open or shakedown_started and not shakedown_resolved:
+        return
+    var player_state := simulation.get_character(active_character_id)
+    if player_state == null:
+        return
+    var nearest_id := ""
+    var nearest_distance := 999
+    for actor_id_value in actor_by_id.keys():
+        var actor_id := String(actor_id_value)
+        if actor_id == active_character_id or party_member_ids.has(actor_id):
+            continue
+        var state := simulation.get_character(actor_id)
+        if state == null or not state.alive:
+            continue
+        var distance := HexGrid.distance(player_state.axial, state.axial)
+        if distance <= 2 and distance < nearest_distance:
+            nearest_distance = distance
+            nearest_id = actor_id
+    if nearest_id.is_empty():
+        _show_dialogue("No one nearby", "Move closer to someone if you want to speak with them.", [{"id": "continue", "label": "Close", "text": ""}])
+        return
+    var conversation := HollowmereCampaignContent.npc_greeting(nearest_id, shakedown_resolved)
+    var choices: Array[Dictionary] = []
+    for choice_value in conversation.get("choices", []):
+        var choice: Dictionary = choice_value
+        choices.append(choice.duplicate(true))
+    _show_dialogue(String(conversation.get("speaker", nearest_id)), String(conversation.get("text", "")), choices)
+
+
+func _resolve_shakedown(choice_id: String) -> void:
+    if shakedown_resolved:
+        return
+    var selected: Dictionary = {}
+    for choice_value in HollowmereCampaignContent.shakedown_choices():
+        var choice: Dictionary = choice_value
+        if String(choice.get("id", "")) == choice_id and bool(choice.get("available", true)):
+            selected = choice
+            break
+    if selected.is_empty():
+        return
+    var journal := simulation.campaign_journal
+    var quest_id := HollowmereCampaignContent.QUEST_ID
+    var decision := journal.record_decision(quest_id, "response", choice_id)
+    if not bool(decision.get("ok", false)):
+        return
+    journal.set_objective_progress(quest_id, "response", 1.0)
+    journal.adjust_faction_standing("ironbond_company", int(selected.get("ironbond_delta", 0)), "Hollowmere shakedown: " + choice_id)
+    var arc_side := String(selected.get("arc_side", ""))
+    if not arc_side.is_empty():
+        journal.record_decision(quest_id, "ironbond_arc_side", arc_side)
+    journal.complete_quest(quest_id)
+    shakedown_resolved = true
+
+
+func _run_opening_sequence() -> void:
+    await get_tree().create_timer(2.0).timeout
+    if not is_instance_valid(self):
+        return
+    _show_speech_bubble("companion_wren_talbot", "Well, here we are then. Try not to get us both killed, yeah?")
+    await get_tree().create_timer(6.0).timeout
+    if not is_instance_valid(self) or shakedown_started:
+        return
+    shakedown_started = true
+    for line_value in HollowmereCampaignContent.opening_lines():
+        var line: Dictionary = line_value
+        var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
+        if speaker_id == "narrator":
+            speaker_id = "dray_coltayne"
+        _show_speech_bubble(speaker_id, String(line.get("text", "")))
+        await get_tree().create_timer(2.25).timeout
+    if not shakedown_resolved:
+        _show_dialogue("Dray Coltayne", "What do you do?", HollowmereCampaignContent.shakedown_choices())
+
+
+func _show_speech_bubble(character_id: String, text: String) -> void:
+    var actor := actor_by_id.get(character_id) as Node3D
+    if actor == null:
+        return
+    var bubble := Label3D.new()
+    bubble.name = "SpeechBubble"
+    bubble.text = text
+    bubble.position = Vector3(0.0, 3.0, 0.0)
+    bubble.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    bubble.font_size = 22
+    bubble.pixel_size = 0.008
+    bubble.outline_size = 6
+    bubble.modulate = Color(1.0, 0.97, 0.86)
+    actor.add_child(bubble)
+    var timer := Timer.new()
+    timer.one_shot = true
+    timer.wait_time = 2.15
+    actor.add_child(timer)
+    timer.timeout.connect(func():
+        if is_instance_valid(bubble):
+            bubble.queue_free()
+        if is_instance_valid(timer):
+            timer.queue_free()
+    )
+    timer.start()
+
+
+func _ambient_role_for_id(character_id: String) -> String:
+    if character_id in ["dray_coltayne", "tomlin_brask", "hask_greel"]:
+        return "guard"
+    if character_id == "garrick_holt":
+        return "merchant"
+    if character_id == "wick_hallow":
+        return "merchant"
+    if character_id == "companion_wren_talbot":
+        return "civilian"
+    return "civilian"
+
+
+func _update_ambient_chatter(delta: float) -> void:
+    if dialogue_open or simulation == null or simulation.is_in_combat or simulation.clock.paused or ambient_exchange_running:
+        return
+    ambient_accumulator += delta
+    if ambient_accumulator < 16.0:
+        return
+    ambient_accumulator = 0.0
+    var candidates: Array[String] = []
+    for actor_id_value in actor_by_id.keys():
+        var actor_id := String(actor_id_value)
+        var actor := actor_by_id.get(actor_id) as Node3D
+        var state := simulation.get_character(actor_id)
+        if actor != null and bool(actor.get_meta("ambient_enabled", false)) and state != null and state.alive:
+            candidates.append(actor_id)
+    if candidates.size() < 2:
+        return
+    var pairs: Array[Array] = []
+    for i in range(candidates.size()):
+        for j in range(i + 1, candidates.size()):
+            var first_state := simulation.get_character(candidates[i])
+            var second_state := simulation.get_character(candidates[j])
+            if first_state != null and second_state != null and HexGrid.distance(first_state.axial, second_state.axial) <= 2:
+                pairs.append([candidates[i], candidates[j]])
+    if pairs.is_empty():
+        return
+    var pair: Array = pairs[ambient_rng.randi_range(0, pairs.size() - 1)]
+    var first_id := String(pair[0])
+    var second_id := String(pair[1])
+    var first_actor := actor_by_id.get(first_id) as Node3D
+    var second_actor := actor_by_id.get(second_id) as Node3D
+    var hour := int(fposmod(simulation.clock.world_seconds, 86400.0) / 3600.0)
+    var exchange := ambient_chatter.choose_exchange(
+        first_id, second_id,
+        String(first_actor.get_meta("ambient_role", "civilian")),
+        String(second_actor.get_meta("ambient_role", "civilian")),
+        simulation.clock.world_seconds, hour, ambient_security, shakedown_resolved, ambient_rng
+    )
+    if exchange.is_empty():
+        return
+    ambient_chatter.record_exchange(exchange, first_id, second_id, simulation.clock.world_seconds)
+    _run_ambient_exchange(first_id, second_id, exchange)
+
+
+func _run_ambient_exchange(first_id: String, second_id: String, exchange: Dictionary) -> void:
+    ambient_exchange_running = true
+    var lines: Array = exchange.get("lines", [])
+    for index in range(lines.size()):
+        var speaker_id := first_id if index % 2 == 0 else second_id
+        _show_speech_bubble(speaker_id, String(lines[index]))
+        if index < lines.size() - 1:
+            await get_tree().create_timer(2.0).timeout
+    ambient_exchange_running = false
 
 func _toggle_character_panel() -> void:
     if character_panel != null:
@@ -680,6 +947,7 @@ func _switch_party_member() -> void:
         character_panel.set_character(active_character_id)
 
 func _process(delta: float) -> void:
+    _update_ambient_chatter(delta)
     if active_path.size() < 2:
         return
     path_step_accumulator += delta
@@ -700,6 +968,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
     if event is InputEventKey and event.pressed and not event.echo:
         var key_event := event as InputEventKey
+        if key_event.keycode == KEY_F:
+            _interact_with_nearest_npc()
+            get_viewport().set_input_as_handled()
+            return
         if key_event.keycode == KEY_TAB:
             _switch_party_member()
             get_viewport().set_input_as_handled()
