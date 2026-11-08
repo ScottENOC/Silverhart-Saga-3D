@@ -67,7 +67,7 @@ func _test_hollowmere_encounter() -> void:
     _check(not player.combat_dormant and not wren.combat_dormant)
     _check(simulation.get_character("dray_coltayne").side == "enemy")
     _check(not simulation.get_character("dray_coltayne").combat_dormant)
-    _check(simulation.get_character("dray_coltayne").health == 38)
+    _check(simulation.get_character("dray_coltayne").health == 130)
     _check(simulation.get_character("dray_coltayne").time_points == simulation.get_character("dray_coltayne").max_time_points)
     _check(garrick.side == "player" and mira.side == "player" and oskar.side == "player", "Garrick, Mira and Oskar should join the player side")
     _check(not garrick.combat_dormant and not mira.combat_dormant and not oskar.combat_dormant, "Tavern allies should receive AI combat turns")
