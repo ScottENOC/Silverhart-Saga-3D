@@ -179,7 +179,7 @@ def cut_tapered_slit(obj, skin, armature):
     pelvis_z = (armature.matrix_world @ ((hips.head_local + hips.tail_local) * 0.5)).z
     upper_z = pelvis_z - (skin_hi.z - skin_lo.z) * 0.28
     slit_x = body_centre_x + body_width * 0.155
-    top_width = body_width * 0.0025
+    top_width = body_width * 0.004
     bottom_width = body_width * 0.057
     if upper_z <= hem_z:
         raise RuntimeError("Tapered slit start is not above the skirt hem")
