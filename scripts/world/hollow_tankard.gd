@@ -83,6 +83,7 @@ func _ready() -> void:
     _create_building()
     _create_furniture()
     _create_characters()
+    HollowmereCampaignContent.initialize_social_standings(simulation.campaign_journal, String(player_profile.get("race", "human")))
     _create_camera()
     _create_hud()
     ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
@@ -133,8 +134,6 @@ func _create_simulation() -> void:
     simulation.clock.set_world_seconds(11.0 * 3600.0)
     add_child(simulation)
     simulation.campaign_journal.register_quest_definition(HollowmereCampaignContent.shakedown_quest_definition())
-    HollowmereCampaignContent.initialize_social_standings(simulation.campaign_journal)
-
     # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
     for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
         for r in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
@@ -735,7 +734,7 @@ func _close_dialogue() -> void:
 
 
 func _interact_with_nearest_npc() -> void:
-    if dialogue_open or shakedown_started and not shakedown_resolved:
+    if dialogue_open or encounter_active or shakedown_started and not shakedown_resolved:
         return
     var player_state := simulation.get_character(active_character_id)
     if player_state == null:
@@ -922,8 +921,14 @@ func _run_ambient_exchange(first_id: String, second_id: String, exchange: Dictio
 
 func _begin_shakedown_combat() -> void:
     _close_dialogue()
+    var branch_result := HollowmereCampaignContent.apply_shakedown_choice(simulation.campaign_journal, "fight")
+    if not bool(branch_result.get("ok", false)):
+        _show_dialogue("Hollowmere", "The choice could not be recorded: " + String(branch_result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
+        return
+    shakedown_resolved = true
     var result := HOLLOWMERE_ENCOUNTER_SCRIPT.start(simulation)
     if not bool(result.get("ok", false)):
+        simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The fight could not start: " + String(result.get("reason", "unknown error")))
         _show_dialogue("Hollowmere", "The confrontation cannot begin: " + String(result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
         return
     encounter_active = true
@@ -1112,7 +1117,7 @@ func _check_encounter_resolution() -> void:
     elif HOLLOWMERE_ENCOUNTER_SCRIPT.enemies_defeated(simulation):
         simulation.end_combat()
         encounter_active = false
-        _resolve_shakedown("fight")
+        HollowmereCampaignContent.complete_shakedown(simulation.campaign_journal)
         _show_speech_bubble("garrick_holt", HollowmereCampaignContent.shakedown_victory_text())
         _show_dialogue("Garrick Holt", HollowmereCampaignContent.shakedown_victory_text(), [{"id": "continue", "label": "Continue", "text": ""}])
 
