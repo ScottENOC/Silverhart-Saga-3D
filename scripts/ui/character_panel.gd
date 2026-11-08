@@ -1,5 +1,7 @@
 class_name CharacterPanel
 extends Control
+
+const ITEM_CATALOG = preload("res://scripts/simulation/item_catalog.gd")
 ## Data-backed character sheet and inventory/equipment panel.
 ## It reads CharacterState directly; it does not maintain a parallel UI model.
 
@@ -145,7 +147,7 @@ func _build_character_tab(parent: VBoxContainer, state: CharacterState) -> void:
     _add_stat(parent, "Sidesteps remaining", str(state.sidesteps_remaining))
 
     _add_section(parent, "EQUIPPED")
-    for slot in ["weapon", "armour", "offhand", "helmet", "ring", "amulet"]:
+    for slot in ["weapon", "armour", "offhand", "helmet", "accessory"]:
         var item_name := "—"
         if state.equipped_item_data.has(slot):
             var equipped_item: Dictionary = state.equipped_item_data[slot]
@@ -172,9 +174,11 @@ func _build_inventory_tab(parent: VBoxContainer, state: CharacterState) -> void:
             parent.add_child(row)
             var item_name := String(item.get("name", item.get("id", "Unknown item")))
             var quantity := int(item.get("quantity", 1))
+            _add_item_icon(row, item)
             var detail := Label.new()
             detail.text = "%s  ×%d" % [item_name, quantity]
             detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+            detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
             detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
             row.add_child(detail)
             var slot := String(item.get("equipment_slot", ""))
@@ -192,13 +196,43 @@ func _build_inventory_tab(parent: VBoxContainer, state: CharacterState) -> void:
     for slot in state.equipped_item_data.keys():
         has_equipment = true
         var item: Dictionary = state.equipped_item_data[slot]
-        _add_stat(parent, String(slot).capitalize(), String(item.get("name", item.get("id", "Unknown"))))
+        var row := HBoxContainer.new()
+        row.add_theme_constant_override("separation", 8)
+        parent.add_child(row)
+        _add_item_icon(row, item)
+        var item_label := Label.new()
+        item_label.text = "%s — %s" % [String(slot).capitalize(), String(item.get("name", item.get("id", "Unknown")))]
+        item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+        item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+        row.add_child(item_label)
         var unequip := Button.new()
         unequip.text = "Unequip"
         unequip.pressed.connect(_unequip_slot.bind(String(slot)))
-        parent.add_child(unequip)
+        row.add_child(unequip)
     if not has_equipment:
         _add_label_to(parent, "No item instances equipped. Legacy equipment IDs remain visible on the Character tab.")
+
+
+
+func _add_item_icon(parent: Control, item: Dictionary) -> void:
+    var texture := ITEM_CATALOG.get_icon_texture(item)
+    if texture != null:
+        var image := TextureRect.new()
+        image.texture = texture
+        image.custom_minimum_size = Vector2(44.0, 44.0)
+        image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+        image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+        image.tooltip_text = String(item.get("name", item.get("id", "Item")))
+        parent.add_child(image)
+        return
+    var placeholder := Label.new()
+    placeholder.text = "◇"
+    placeholder.custom_minimum_size = Vector2(44.0, 44.0)
+    placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    placeholder.tooltip_text = "Item artwork unavailable"
+    parent.add_child(placeholder)
 
 
 func _add_section(parent: VBoxContainer, text_value: String) -> void:
