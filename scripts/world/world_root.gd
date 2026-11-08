@@ -78,6 +78,7 @@ func _on_character_created(profile: Dictionary) -> void:
     await get_tree().process_frame
     tavern = HOLLOW_TANKARD_SCRIPT.new()
     tavern.name = "HollowTankard"
+    tavern.set("player_profile", profile.duplicate(true))
     add_child(tavern)
 
     _set_loading_stage("Applying your chosen character appearance…", 85.0)
