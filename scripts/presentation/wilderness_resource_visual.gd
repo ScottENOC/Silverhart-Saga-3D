@@ -73,12 +73,13 @@ func _build_tree(fruit_tree: bool, available: bool) -> void:
             add_child(instance)
 
 func _build_ore() -> void:
-    var rock := "rock_large_d.glb" if int(resource_state.get("item_id", "ore_iron").hash()) % 2 == 0 else "rock_large_a.glb"
+    var ore_item_id := String(resource_state.get("item_id", "ore_iron"))
+    var rock := "rock_large_d.glb" if posmod(ore_item_id.hash(), 2) == 0 else "rock_large_a.glb"
     if not _add_asset(rock, Vector3.ONE * 2.1):
         _add_fallback_rock()
     if bool(resource_state.get("depleted", false)):
         return
-    var item_id := String(resource_state.get("item_id", "ore_iron"))
+    var item_id := ore_item_id
     var crystal_colour := Color(0.58, 0.60, 0.62)
     if item_id == "ore_silver":
         crystal_colour = Color(0.72, 0.80, 0.86)
