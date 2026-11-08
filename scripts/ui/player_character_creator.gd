@@ -75,7 +75,7 @@ func _build_screen() -> void:
     panel.add_child(title)
 
     var intro := Label.new()
-    intro.text = "Choose who arrives in Hollowmere. Identity, presentation and appearance are independent."
+    intro.text = "Choose who arrives in Hollowmere, the opening village of the Main Campaign. Identity, presentation and appearance are independent."
     intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     intro.add_theme_color_override("font_color", Color(0.78, 0.79, 0.78))
@@ -148,7 +148,7 @@ func _build_screen() -> void:
     panel.add_child(note)
 
     start_button = Button.new()
-    start_button.text = "BEGIN IN HOLLOWMERE"
+    start_button.text = "BEGIN MAIN CAMPAIGN"
     start_button.custom_minimum_size = Vector2(0, 52)
     start_button.pressed.connect(_finish)
     panel.add_child(start_button)
@@ -241,10 +241,10 @@ func _update_mode_controls(_index: int) -> void:
     var arena := game_mode_select.get_item_text(game_mode_select.selected) == "Arena"
     campaign_select.visible = not arena
     arena_rewards_check.visible = arena
-    mode_note.text = "Arena is selected, but its lobby and combat loop have not yet been ported. Select Campaign to begin the playable Hollowmere opening." if arena else "Small World (Campaign 2) opens in Hollowmere. Main Campaign content is not yet ported. Ironman save enforcement is also pending."
+    mode_note.text = "Arena is selected, but its lobby and combat loop have not yet been ported. Select Campaign to begin the playable Hollowmere opening." if arena else "The Main Campaign opens in Hollowmere using the original Campaign 2 village and regional map. The wider campaign is being migrated in stages. Ironman save enforcement is still pending."
     if start_button != null:
         start_button.disabled = arena
-        start_button.text = "ARENA MODE NOT YET AVAILABLE" if arena else "BEGIN IN HOLLOWMERE"
+        start_button.text = "ARENA MODE NOT YET AVAILABLE" if arena else "BEGIN MAIN CAMPAIGN"
 
 func _select_text(select: OptionButton, value: String) -> void:
     for index in range(select.item_count):
