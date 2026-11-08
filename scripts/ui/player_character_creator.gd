@@ -242,7 +242,6 @@ func _update_mode_controls(_index: int) -> void:
     campaign_select.visible = not arena
     arena_rewards_check.visible = arena
     mode_note.text = "Arena is selected, but its lobby and combat loop have not yet been ported. Select Campaign to begin the playable Hollowmere opening." if arena else "Small World (Campaign 2) opens in Hollowmere. Main Campaign content is not yet ported. Ironman save enforcement is also pending."
-    start_button.disabled = arena
     if start_button != null:
         start_button.disabled = arena
         start_button.text = "ARENA MODE NOT YET AVAILABLE" if arena else "BEGIN IN HOLLOWMERE"
