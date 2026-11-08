@@ -29,7 +29,8 @@ permissions:
   id-token: write
 concurrency:
   group: wren-workshop-${{ github.ref_name }}
-  cancel-in-progress: true
+  # Queue newer pushes instead of interrupting an active model build or publish.
+  cancel-in-progress: false
 jobs:
   generate:
     runs-on: ubuntu-latest
