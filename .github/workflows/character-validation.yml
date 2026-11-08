@@ -7,6 +7,11 @@ on:
       - "tools/blender/**"
       - "tools/ara/**"
       - "tests/test_assemble_modular_glb.py"
+      - "data/characters/legacy_named_npcs.json"
+      - "data/characters/legacy_enemy_roster.json"
+      - "data/arena/arena_opponents.json"
+      - "tools/ci/validate_legacy_character_rosters.py"
+      - "tests/test_legacy_character_rosters.py"
       - ".github/workflows/**"
   push:
     branches: [dev]
@@ -37,3 +42,5 @@ jobs:
         run: python -m compileall -q tools/blender tools/ara
       - name: Test modular GLB assembly
         run: python -m unittest discover -s tests -p 'test_assemble_modular_glb.py' -v
+      - name: Validate complete legacy NPC, enemy and Arena rosters
+        run: python -m unittest discover -s tests -p 'test_legacy_character_rosters.py' -v
