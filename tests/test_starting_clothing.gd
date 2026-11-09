@@ -63,4 +63,3 @@ func _test_npc_clothing_inventory() -> void:
     assert(npc.equipped_item_data.has("shoes"), "NPC footwear should be equipped from its Ara profile")
     assert(npc.inventory.is_empty(), "Equipped NPC clothing should no longer remain in carried inventory")
     world.free()
-    npc.free()
