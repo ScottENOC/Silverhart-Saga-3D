@@ -1,6 +1,6 @@
 {
   "source": "ScottENOC/Hex-crpg equipment.js, with partyInventory.js runtime weight/container rules",
-  "item_count": 63,
+  "item_count": 76,
   "icon_atlas": {
     "path": "res://art/ui/item_icon_atlas.svg",
     "columns": 8,
@@ -788,6 +788,110 @@
       "weight": 0,
       "icon_key": "deepholds_sealed_letter",
       "icon_index": 56
+    },
+    "bra": {
+      "id": "bra",
+      "name": "Basic Bra",
+      "type": "clothing",
+      "equipment_slot": "underTop",
+      "garment_visual": "bra",
+      "weight": 0.5
+    },
+    "briefs": {
+      "id": "briefs",
+      "name": "Basic Briefs",
+      "type": "clothing",
+      "equipment_slot": "underBottom",
+      "garment_visual": "briefs",
+      "weight": 0.3
+    },
+    "long_tunic": {
+      "id": "long_tunic",
+      "name": "Long Tunic",
+      "type": "clothing",
+      "equipment_slot": "shirt",
+      "garment_visual": "long_tunic",
+      "weight": 1.5
+    },
+    "trousers": {
+      "id": "trousers",
+      "name": "Trousers",
+      "type": "clothing",
+      "equipment_slot": "pants",
+      "garment_visual": "trousers",
+      "weight": 2
+    },
+    "tunic": {
+      "id": "tunic",
+      "name": "Tunic",
+      "type": "clothing",
+      "equipment_slot": "shirt",
+      "garment_visual": "tunic",
+      "weight": 1.2
+    },
+    "wrapper_long": {
+      "id": "wrapper_long",
+      "name": "Long Wrapper",
+      "type": "clothing",
+      "equipment_slot": "pants",
+      "garment_visual": "wrapper_long",
+      "weight": 1.1
+    },
+    "uniform_shirt": {
+      "id": "uniform_shirt",
+      "name": "Uniform Shirt",
+      "type": "clothing",
+      "equipment_slot": "shirt",
+      "garment_visual": "uniform_shirt",
+      "weight": 1.5
+    },
+    "fatigue_pants": {
+      "id": "fatigue_pants",
+      "name": "Fatigue Trousers",
+      "type": "clothing",
+      "equipment_slot": "pants",
+      "garment_visual": "fatigue_pants",
+      "weight": 2
+    },
+    "wrapper_knee": {
+      "id": "wrapper_knee",
+      "name": "Knee-length Wrapper",
+      "type": "clothing",
+      "equipment_slot": "pants",
+      "garment_visual": "wrapper_knee",
+      "weight": 0.9
+    },
+    "tattered_shirt": {
+      "id": "tattered_shirt",
+      "name": "Tattered Shirt",
+      "type": "clothing",
+      "equipment_slot": "shirt",
+      "garment_visual": "tattered_shirt",
+      "weight": 0.8
+    },
+    "fatigue_shirt": {
+      "id": "fatigue_shirt",
+      "name": "Fatigue Shirt",
+      "type": "clothing",
+      "equipment_slot": "shirt",
+      "garment_visual": "fatigue_shirt",
+      "weight": 1.5
+    },
+    "sandals": {
+      "id": "sandals",
+      "name": "Sandals",
+      "type": "clothing",
+      "equipment_slot": "shoes",
+      "garment_visual": "sandals",
+      "weight": 0.5
+    },
+    "combat_boots": {
+      "id": "combat_boots",
+      "name": "Combat Boots",
+      "type": "clothing",
+      "equipment_slot": "shoes",
+      "garment_visual": "combat_boots",
+      "weight": 1.5
     }
   }
 }
