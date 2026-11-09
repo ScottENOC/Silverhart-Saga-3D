@@ -66,7 +66,11 @@ log "Checking Wren Workshop runtime package"
 WORKSHOP="$(latest_artifact_prefix wren-workshop.yml ara-runtime-assets-)" || die "No unexpired Workshop runtime package in the latest ten runs. Run Build Wren Workshop on dev."
 WORKSHOP_RUN="${WORKSHOP%%|*}"
 WORKSHOP_NAME="${WORKSHOP#*|}"
-if [[ ! -f "$CACHE/workshop.run" || "$(cat "$CACHE/workshop.run")" != "$WORKSHOP_RUN" || ! -s art/characters/ara_runtime/ara_person_modular.glb ]]; then
+RUNTIME_MISSING=0
+for asset in ara_person_body.glb ara_person_male_body.glb ara_person_modular.glb ara_person_modular_underwear.glb ara_person_benchmark.glb; do
+  [[ -s "art/characters/ara_runtime/$asset" ]] || RUNTIME_MISSING=1
+done
+if [[ ! -f "$CACHE/workshop.run" || "$(cat "$CACHE/workshop.run")" != "$WORKSHOP_RUN" || "$RUNTIME_MISSING" -eq 1 ]]; then
   log "Downloading Workshop package from run $WORKSHOP_RUN"
   download_artifact "$WORKSHOP_RUN" "$WORKSHOP_NAME" "$CACHE/workshop"
   PACKAGE="$(find "$CACHE/workshop" -type f -name ara-runtime-assets.zip -print -quit)"
@@ -123,6 +127,9 @@ log "Running Ara body/clothing/equipment smoke test"
 
 VERSION="local-$(date +%Y%m%d-%H%M%S)"
 OUTPUT="$ROOT/build/web"
+# Remove only the previous generated web export so stale WASM/PCK files cannot
+# make a failed or incomplete export appear successful.
+rm -rf "$OUTPUT"
 mkdir -p "$OUTPUT"
 log "Exporting Web build to build/web"
 "$GODOT_BIN" --headless --path "$ROOT" --export-release Web "$OUTPUT/index.html"
