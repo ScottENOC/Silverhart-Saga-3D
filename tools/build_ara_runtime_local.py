@@ -217,10 +217,13 @@ def main():
     garments=RAW/"ara_person_garments.glb"
     npc_manifest=ROOT/"data/characters/hollowmere_npcs.json"
     npc_profiles=json.loads(npc_manifest.read_text(encoding="utf-8"))["characters"]
-    # Hollowmere GLBs use game_id filenames (e.g. companion_wren_talbot.glb).
+    # Fingerprint both legacy profile-id and newer game-id filenames. The
+    # builder prefers an existing profile-id GLB and falls back to game_id.
     npc_models=[
-        ROOT/"art/characters/hollowmere"/(str(profile.get("game_id") or profile.get("id") or "")+".glb")
+        ROOT/"art/characters/hollowmere"/(str(value)+".glb")
         for profile in npc_profiles
+        for value in dict.fromkeys([profile.get("id", ""), profile.get("game_id", "")])
+        if value
     ]
     garment_builder=ROOT/"tools/blender/build_ara_garment_library.py"
     garment_report=garments.with_suffix(".report.json")
