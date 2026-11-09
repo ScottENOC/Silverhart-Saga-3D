@@ -127,10 +127,55 @@ def expected_from_profile(profile: dict) -> set[str]:
 
 
 def validate_rig(source: bpy.types.Object, target: bpy.types.Object, path: Path) -> None:
-    source_names = [bone.name for bone in source.data.bones]
-    target_names = [bone.name for bone in target.data.bones]
+    source_bones = list(source.data.bones)
+    target_bones = list(target.data.bones)
+    source_names = [bone.name for bone in source_bones]
+    target_names = [bone.name for bone in target_bones]
     if source_names != target_names:
         raise RuntimeError(f"{path.name}: Ara skeleton bone names/order differ from canonical base")
+    for source_bone, target_bone in zip(source_bones, target_bones):
+        for row in range(4):
+            for column in range(4):
+                if abs(source_bone.matrix_local[row][column] - target_bone.matrix_local[row][column]) > 1e-4:
+                    raise RuntimeError(
+                        f"{path.name}: rest transform differs for bone {source_bone.name}; "
+                        "refusing unsafe garment retarget"
+                    )
+
+
+def validate_mesh_skinning(obj: bpy.types.Object, source_armature: bpy.types.Object, path: Path) -> dict:
+    if obj.type != "MESH" or not obj.data.vertices:
+        raise RuntimeError(f"{path.name}/{obj.name}: garment mesh has no vertices")
+    modifiers = [m for m in obj.modifiers if m.type == "ARMATURE"]
+    if not modifiers or not any(m.object == source_armature for m in modifiers):
+        raise RuntimeError(f"{path.name}/{obj.name}: no Armature modifier bound to its imported skeleton")
+    bone_names = {bone.name for bone in source_armature.data.bones}
+    group_names = {group.name for group in obj.vertex_groups}
+    unknown = sorted(group_names - bone_names)
+    if unknown:
+        raise RuntimeError(f"{path.name}/{obj.name}: vertex groups do not match skeleton bones: {unknown[:8]}")
+    if not group_names:
+        raise RuntimeError(f"{path.name}/{obj.name}: garment has no skin-weight vertex groups")
+    weighted_vertices = 0
+    total_weighted = 0.0
+    for vertex in obj.data.vertices:
+        weight = sum(entry.weight for entry in vertex.groups)
+        if weight > 1e-6:
+            weighted_vertices += 1
+            total_weighted += weight
+    coverage = weighted_vertices / len(obj.data.vertices)
+    if coverage < 0.95:
+        raise RuntimeError(
+            f"{path.name}/{obj.name}: only {coverage:.1%} of vertices have skin weights; "
+            "refusing to export a rigid or partially unskinned garment"
+        )
+    return {
+        "vertices": len(obj.data.vertices),
+        "weighted_vertices": weighted_vertices,
+        "weight_coverage": round(coverage, 5),
+        "mean_vertex_weight_sum": round(total_weighted / max(weighted_vertices, 1), 5),
+        "vertex_groups": len(group_names),
+    }
 
 
 def attach_piece(
@@ -187,6 +232,8 @@ def main() -> None:
     seen: set[str] = set()
     piece_counts: dict[str, int] = {}
     kept: list[bpy.types.Object] = []
+    extraction_report: dict[str, dict] = {}
+    missing_npc_sources: list[str] = []
 
     def process_source(path: Path, expected: set[str] | None, variant: str, label: str) -> None:
         imported, source_armature = import_glb(path)
@@ -203,17 +250,26 @@ def main() -> None:
             item_key = f"{item_id}:{variant}"
             if not item_id or item_key in seen:
                 continue
+            skin_report = validate_mesh_skinning(obj, source_armature, path)
             selected.setdefault(item_id, []).append(obj)
+            extraction_report.setdefault(item_key, {
+                "source": str(path.name),
+                "variant": variant,
+                "pieces": [],
+            })["pieces"].append({
+                "object": obj.name,
+                "material": names[0],
+                **skin_report,
+            })
 
         for item_id, objects in selected.items():
             item_key = f"{item_id}:{variant}"
             for obj in objects:
-                piece_key = f"{item_key}"
-                piece_counts[piece_key] = piece_counts.get(piece_key, 0) + 1
-                attach_piece(obj, source_armature, target_armature, item_id, variant, piece_counts[piece_key])
+                piece_counts[item_key] = piece_counts.get(item_key, 0) + 1
+                attach_piece(obj, source_armature, target_armature, item_id, variant, piece_counts[item_key])
                 kept.append(obj)
             seen.add(item_key)
-            log(f"{label}: extracted {item_id} ({len(objects)} mesh piece(s))")
+            log(f"{label}: extracted {item_id} ({len(objects)} independently skinned piece(s))")
 
         for obj in list(set(imported) | set(pieces)):
             if obj not in kept and obj.name in bpy.data.objects:
@@ -222,13 +278,17 @@ def main() -> None:
     # Prefer the actual NPC garment geometry and its material assignment. The
     # profile restricts extraction to the clothing item that person wears.
     for profile in profiles:
-        character_id = str(profile.get("id", ""))
+        # Hollowmere exports are named by game_id, not the shorter profile id.
+        character_id = str(profile.get("game_id") or profile.get("id") or "")
         if not character_id:
             continue
         source = args.npc_dir / f"{character_id}.glb"
-        if source.is_file():
-            variant = "male" if int(profile.get("params", {}).get("gender", 0)) == 1 else "female"
-            process_source(source, expected_from_profile(profile), variant, character_id)
+        variant = "male" if int(profile.get("params", {}).get("gender", 0)) == 1 else "female"
+        if not source.is_file():
+            missing_npc_sources.append(character_id)
+            log(f"WARNING: NPC source missing: {source}; generic Ara garments may be used")
+            continue
+        process_source(source, expected_from_profile(profile), variant, character_id)
 
     # Fill generic underwear, Workshop-only garments and armour not worn by an NPC.
     process_source(args.modular, None, "any", "Ara modular")
@@ -261,8 +321,26 @@ def main() -> None:
         export_animations=False,
         export_apply=False,
     )
-    log(f"Wrote {args.output} with {len(kept)} independent garment mesh object(s)")
+    report_path = args.output.with_suffix(".report.json")
+    report = {
+        "schema_version": 2,
+        "output": str(args.output),
+        "mesh_object_count": len(kept),
+        "available_visual_variants": sorted(seen),
+        "extractions": extraction_report,
+        "missing_npc_sources": missing_npc_sources,
+        "validation": {
+            "skeleton_bone_names_and_order": "passed",
+            "skeleton_rest_transforms": "passed",
+            "armature_modifiers": "passed for every extracted piece",
+            "vertex_groups": "matched to skeleton bones",
+            "skin_weight_coverage_minimum": 0.95,
+        },
+    }
+    report_path.write_text(json.dumps(report, indent=2) + "\\n", encoding="utf-8")
+    log(f"Wrote {args.output} with {len(kept)} independently skinned garment mesh object(s)")
     log("Inventory visuals available: " + ", ".join(sorted(seen)))
+    log(f"Validation report: {report_path}")
 
 
 if __name__ == "__main__":
