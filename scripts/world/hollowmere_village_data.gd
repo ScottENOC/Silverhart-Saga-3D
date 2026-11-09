@@ -2,19 +2,24 @@ class_name HollowmereVillageData
 extends RefCounted
 ## Shared local-map layout for Hollowmere. Axial coordinates match the tavern grid.
 
-const MAP_RADIUS: int = 40
+const MAP_RADIUS: int = 66
 const STREAM_R: int = -25
 const STREAM_Q_MIN: int = -30
 const STREAM_Q_MAX: int = 30
 const CROSSROADS := Vector2i(8, 24)
 const BRIDGE := Vector2i(8, STREAM_R)
+const FARMHOUSE := Vector2i(12, 54)
+const FARM_BARN := Vector2i(22, 51)
+const SOUTH_ROAD_CENTRELINE: Array[Vector2i] = [Vector2i(8, 24), Vector2i(9, 30), Vector2i(8, 36), Vector2i(10, 42), Vector2i(12, 48), Vector2i(12, 54)]
 
 const BUILDINGS := [
     {"id": "general_store", "center": Vector2i(0, 18), "half_q": 3, "half_r": 2},
     {"id": "chapel", "center": Vector2i(-14, 0), "half_q": 2, "half_r": 3},
     {"id": "elder_house", "center": Vector2i(0, -12), "half_q": 2, "half_r": 2},
     {"id": "mira_house", "center": Vector2i(12, 9), "half_q": 2, "half_r": 2},
-    {"id": "oskar_house", "center": Vector2i(-6, 9), "half_q": 2, "half_r": 2}
+    {"id": "oskar_house", "center": Vector2i(-6, 9), "half_q": 2, "half_r": 2},
+    {"id": "old_mac_farmhouse", "center": FARMHOUSE, "half_q": 3, "half_r": 2},
+    {"id": "old_mac_barn", "center": FARM_BARN, "half_q": 4, "half_r": 3}
 ]
 
 static func is_in_bounds(hex: Vector2i) -> bool:
@@ -116,9 +121,14 @@ static func is_path(hex: Vector2i) -> bool:
     if hex == CROSSROADS:
         return true
 
-    # Short visible sections of the four roads leaving the crossroads.
+    # Short visible sections of the east-west roads leaving the crossroads.
     if hex.y == CROSSROADS.y and hex.x >= -40 and hex.x <= 16:
         return true
+
+    # Winding southern road to Old Mac's Farmstead.
+    for point in SOUTH_ROAD_CENTRELINE:
+        if HexGrid.distance(hex, point) <= 1:
+            return true
     return false
 
 static func path_cells() -> Array[Vector2i]:
@@ -150,6 +160,12 @@ static func path_cells() -> Array[Vector2i]:
     _append_unique(cells, seen, BRIDGE)
     for q in range(-40, 17):
         _append_unique(cells, seen, Vector2i(q, CROSSROADS.y))
+    # Include the curved farm road and its walkable verge in the local route data.
+    for q in range(2, 20):
+        for r in range(22, 58):
+            var hex := Vector2i(q, r)
+            if is_path(hex):
+                _append_unique(cells, seen, hex)
     return cells
 
 static func water_cells() -> Array[Vector2i]:
