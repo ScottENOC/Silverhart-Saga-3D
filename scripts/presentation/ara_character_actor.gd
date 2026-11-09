@@ -86,7 +86,12 @@ func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> boo
         instance.skeleton = instance.get_path_to(target_skeleton)
         modular_garment_meshes.append(instance)
         for surface in range(instance.mesh.get_surface_count()):
-            _set_modular_surface_visible(instance, surface, false)
+            # The modular export may contain body/skin surfaces as well as
+            # garments. Only hide surfaces positively identified as garments;
+            # unknown surfaces stay visible rather than risking holes in skin.
+            var label := _normalise_garment_label(_surface_label(instance, surface) + " " + instance.name)
+            if _is_known_garment_surface(label):
+                _set_modular_surface_visible(instance, surface, false)
     source_root.free()
     set_meta("modular_garments_loaded", not modular_garment_meshes.is_empty())
     return not modular_garment_meshes.is_empty()
@@ -146,15 +151,18 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
             "helmet":
                 helmet_id = item_id
 
-    # First toggle any garments baked into authored NPC/player GLBs. The
-    # modular layer is then restored from its own original-material metadata.
-    for garment_visual in GARMENT_VISUALS:
-        set_garment_visible(garment_visual, visible_garments.has(garment_visual))
+    # Authored character GLBs contain body and appearance geometry whose
+    # material names can overlap garment labels. Never hide surfaces on the
+    # character's base model: that can remove the skin beneath clothing.
+    # Inventory-driven visibility is restricted to positively identified
+    # garment surfaces in the separate modular clothing export.
     for mesh_instance in modular_garment_meshes:
         if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
             continue
         for surface in range(mesh_instance.mesh.get_surface_count()):
             var label := _normalise_garment_label(_surface_label(mesh_instance, surface) + " " + mesh_instance.name)
+            if not _is_known_garment_surface(label):
+                continue
             var show_surface := false
             for fragment in visible_garments:
                 if _garment_label_matches(label, fragment):
@@ -170,6 +178,12 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
 
 func _normalise_garment_label(value: String) -> String:
     return value.to_lower().replace("_", "").replace("-", "").replace(" ", "")
+
+func _is_known_garment_surface(label: String) -> bool:
+    for garment_id in GARMENT_VISUALS:
+        if _garment_label_matches(label, garment_id):
+            return true
+    return false
 
 
 func _garment_label_matches(label: String, garment_id: String) -> bool:
