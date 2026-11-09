@@ -36,7 +36,9 @@ jobs:
           tar -xzf /tmp/cosmo-tree-gen.tar.gz -C /tmp/cosmo-tree-gen
           cp -a /tmp/cosmo-tree-gen/cosmo_tree_gen-main/addons/cosmo_tree_gen/. addons/cosmo_tree_gen/
           mkdir -p demo/materials
-          cp -a /tmp/cosmo-tree-gen/cosmo_tree_gen-main/demo/materials/. demo/materials/
+          for material in leaves_02 leaves_04 leaves_05 leaves_06 leaves_07; do
+            curl -L --fail --retry 3 "https://raw.githubusercontent.com/FrogCosmonaut/cosmo_tree_gen/main/demo/materials/${material}.tres" -o "demo/materials/${material}.tres"
+          done
           sed -i 's|load("./exporter.gd")|load("res://addons/cosmo_tree_gen/core/exporter.gd")|' addons/cosmo_tree_gen/core/cosmo_tree_gen.gd
           mkdir -p addons/cosmo_tree_gen/presets
           for preset in cherry laurel pine spruce tree_fern willow winter_oak; do
@@ -86,7 +88,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add project.godot addons/cosmo_tree_gen art/environment/trees/cosmo_generated
+          git add project.godot addons/cosmo_tree_gen demo/materials art/environment/trees/cosmo_generated
           if git diff --cached --quiet; then
             echo "No generated changes to commit."
             exit 0
