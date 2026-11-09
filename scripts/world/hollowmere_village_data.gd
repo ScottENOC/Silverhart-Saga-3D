@@ -2,26 +2,60 @@ class_name HollowmereVillageData
 extends RefCounted
 ## Shared local-map layout for Hollowmere. Axial coordinates match the tavern grid.
 
-const MAP_RADIUS: int = 40
+const MAP_RADIUS: int = 96
 const STREAM_R: int = -25
 const STREAM_Q_MIN: int = -30
 const STREAM_Q_MAX: int = 30
 const CROSSROADS := Vector2i(8, 24)
 const BRIDGE := Vector2i(8, STREAM_R)
+const FARMHOUSE := Vector2i(12, 54)
+const FARM_BARN := Vector2i(22, 51)
+const FARMHOUSE_DOOR := Vector2i(12, 57)
+const FARM_BARN_DOOR := Vector2i(22, 49)
+const SOUTH_ROAD_CENTRELINE: Array[Vector2i] = [Vector2i(8, 24), Vector2i(9, 30), Vector2i(8, 36), Vector2i(10, 42), Vector2i(12, 48), Vector2i(12, 54), FARMHOUSE_DOOR]
+const FARMYARD_CENTRELINE: Array[Vector2i] = [FARMHOUSE_DOOR, Vector2i(16, 56), Vector2i(19, 52), FARM_BARN_DOOR]
 
 const BUILDINGS := [
     {"id": "general_store", "center": Vector2i(0, 18), "half_q": 3, "half_r": 2},
     {"id": "chapel", "center": Vector2i(-14, 0), "half_q": 2, "half_r": 3},
     {"id": "elder_house", "center": Vector2i(0, -12), "half_q": 2, "half_r": 2},
     {"id": "mira_house", "center": Vector2i(12, 9), "half_q": 2, "half_r": 2},
-    {"id": "oskar_house", "center": Vector2i(-6, 9), "half_q": 2, "half_r": 2}
+    {"id": "oskar_house", "center": Vector2i(-6, 9), "half_q": 2, "half_r": 2},
+    {"id": "old_mac_farmhouse", "center": FARMHOUSE, "half_q": 3, "half_r": 2},
+    {"id": "old_mac_barn", "center": FARM_BARN, "half_q": 4, "half_r": 3}
 ]
 
 static func is_in_bounds(hex: Vector2i) -> bool:
     return HexGrid.distance(Vector2i.ZERO, hex) <= MAP_RADIUS
 
 static func is_water(hex: Vector2i) -> bool:
-    return hex.y == STREAM_R and hex.x >= STREAM_Q_MIN and hex.x <= STREAM_Q_MAX and hex != BRIDGE
+    if hex.x < STREAM_Q_MIN or hex.x > STREAM_Q_MAX or hex == BRIDGE:
+        return false
+    var centre_r := _river_centre_r(hex.x)
+    var half_width := _river_half_width(hex.x)
+    return absf(float(hex.y) - centre_r) <= half_width
+
+static func _river_centre_r(q: int) -> float:
+    var samples: Array[Vector2i] = [
+        Vector2i(-30, -22), Vector2i(-24, -24), Vector2i(-18, -22),
+        Vector2i(-12, -24), Vector2i(-6, -27), Vector2i(0, -24),
+        Vector2i(5, -24), Vector2i(8, -25), Vector2i(12, -27),
+        Vector2i(18, -25), Vector2i(24, -28), Vector2i(30, -25)
+    ]
+    for index in range(samples.size() - 1):
+        if q <= samples[index + 1].x:
+            var t := inverse_lerp(float(samples[index].x), float(samples[index + 1].x), float(q))
+            return lerpf(float(samples[index].y), float(samples[index + 1].y), t)
+    return float(samples.back().y)
+
+static func _river_half_width(q: int) -> float:
+    var q_samples := PackedInt32Array([-30, -24, -18, -12, -6, 0, 5, 8, 12, 18, 24, 30])
+    var width_samples := PackedFloat32Array([1.0, 1.5, 1.8, 1.4, 1.8, 1.5, 1.1, 0.65, 1.4, 1.8, 1.5, 1.0])
+    for index in range(q_samples.size() - 1):
+        if q <= q_samples[index + 1]:
+            var t := inverse_lerp(float(q_samples[index]), float(q_samples[index + 1]), float(q))
+            return lerpf(width_samples[index], width_samples[index + 1], t)
+    return width_samples.back()
 
 static func is_building(hex: Vector2i) -> bool:
     for building in BUILDINGS:
@@ -31,7 +65,7 @@ static func is_building(hex: Vector2i) -> bool:
     return false
 
 static func is_door(hex: Vector2i) -> bool:
-    return hex == Vector2i(0, 15) or hex == Vector2i(-11, 0) or hex == Vector2i(0, -10) or hex == Vector2i(10, 9) or hex == Vector2i(-4, 9)
+    return hex == Vector2i(0, 15) or hex == Vector2i(-11, 0) or hex == Vector2i(0, -10) or hex == Vector2i(10, 9) or hex == Vector2i(-4, 9) or hex == FARMHOUSE_DOOR or hex == FARM_BARN_DOOR
 
 static func is_blocked(hex: Vector2i) -> bool:
     if not is_in_bounds(hex):
@@ -90,9 +124,24 @@ static func is_path(hex: Vector2i) -> bool:
     if hex == CROSSROADS:
         return true
 
-    # Short visible sections of the four roads leaving the crossroads.
+    # Short visible sections of the east-west roads leaving the crossroads.
     if hex.y == CROSSROADS.y and hex.x >= -40 and hex.x <= 16:
         return true
+
+    # Winding southern road to Old Mac's Farmstead.
+    for route in [SOUTH_ROAD_CENTRELINE, FARMYARD_CENTRELINE]:
+        for index in range(route.size() - 1):
+            if _is_near_axial_segment(hex, route[index], route[index + 1], 1):
+                return true
+    return false
+
+static func _is_near_axial_segment(hex: Vector2i, start: Vector2i, finish: Vector2i, tolerance: int) -> bool:
+    var steps := maxi(1, HexGrid.distance(start, finish) * 2)
+    for step in range(steps + 1):
+        var t := float(step) / float(steps)
+        var sample := Vector2i(roundi(lerpf(float(start.x), float(finish.x), t)), roundi(lerpf(float(start.y), float(finish.y), t)))
+        if HexGrid.distance(hex, sample) <= tolerance:
+            return true
     return false
 
 static func path_cells() -> Array[Vector2i]:
@@ -124,18 +173,32 @@ static func path_cells() -> Array[Vector2i]:
     _append_unique(cells, seen, BRIDGE)
     for q in range(-40, 17):
         _append_unique(cells, seen, Vector2i(q, CROSSROADS.y))
+    # Include the curved farm road and its walkable verge in the local route data.
+    for q in range(2, 31):
+        for r in range(22, 61):
+            var hex := Vector2i(q, r)
+            if is_path(hex):
+                _append_unique(cells, seen, hex)
     return cells
 
 static func water_cells() -> Array[Vector2i]:
     var cells: Array[Vector2i] = []
     for q in range(STREAM_Q_MIN, STREAM_Q_MAX + 1):
-        var hex := Vector2i(q, STREAM_R)
-        if hex != BRIDGE:
-            cells.append(hex)
+        var centre_r := _river_centre_r(q)
+        var half_width := _river_half_width(q)
+        for r in range(floori(centre_r - half_width), ceili(centre_r + half_width) + 1):
+            var hex := Vector2i(q, r)
+            if is_water(hex):
+                cells.append(hex)
     return cells
+
+static func is_farm_land(hex: Vector2i) -> bool:
+    return hex.x >= -2 and hex.x <= 40 and hex.y >= 39 and hex.y <= 76
 
 static func is_forest_candidate(hex: Vector2i) -> bool:
     if not is_in_bounds(hex):
+        return false
+    if is_farm_land(hex):
         return false
     if HexGrid.distance(Vector2i.ZERO, hex) < 17:
         return false
