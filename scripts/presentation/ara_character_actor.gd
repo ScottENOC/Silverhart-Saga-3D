@@ -89,7 +89,7 @@ func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> boo
             # The modular export may contain body/skin surfaces as well as
             # garments. Only hide surfaces positively identified as garments;
             # unknown surfaces stay visible rather than risking holes in skin.
-            var label := _normalise_garment_label(_surface_label(instance, surface) + " " + instance.name)
+            var label := _surface_label(instance, surface) + " " + instance.name
             if _is_known_garment_surface(label):
                 _set_modular_surface_visible(instance, surface, false)
     source_root.free()
@@ -151,24 +151,28 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
             "helmet":
                 helmet_id = item_id
 
-    # Authored character GLBs contain body and appearance geometry whose
-    # material names can overlap garment labels. Never hide surfaces on the
-    # character's base model: that can remove the skin beneath clothing.
-    # Inventory-driven visibility is restricted to positively identified
-    # garment surfaces in the separate modular clothing export.
-    for mesh_instance in modular_garment_meshes:
-        if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
-            continue
-        for surface in range(mesh_instance.mesh.get_surface_count()):
-            var label := _normalise_garment_label(_surface_label(mesh_instance, surface) + " " + mesh_instance.name)
-            if not _is_known_garment_surface(label):
+    # Clothing can be exported either as surfaces in the authored character
+    # GLB or in the separate modular clothing GLB. Drive both through the same
+    # item metadata. Only surfaces with an explicit garment token are touched;
+    # body, skin, hair and other appearance surfaces remain untouched.
+    if model_root != null:
+        var character_meshes: Array[MeshInstance3D] = []
+        _collect_meshes(model_root, character_meshes)
+        for mesh_instance in character_meshes:
+            if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
                 continue
-            var show_surface := false
-            for fragment in visible_garments:
-                if _garment_label_matches(label, fragment):
-                    show_surface = true
-                    break
-            _set_modular_surface_visible(mesh_instance, surface, show_surface)
+            if hair_instances.has(mesh_instance):
+                continue
+            for surface in range(mesh_instance.mesh.get_surface_count()):
+                var label := _surface_label(mesh_instance, surface) + " " + mesh_instance.name
+                if not _is_known_garment_surface(label):
+                    continue
+                var show_surface := false
+                for fragment in visible_garments:
+                    if _garment_label_matches(label, fragment):
+                        show_surface = true
+                        break
+                _set_modular_surface_visible(mesh_instance, surface, show_surface)
 
     _set_equipment_prop("weapon", _weapon_prop_id(weapon_id), "WeaponR")
     var shield_prop := "round_shield" if offhand_id == "wooden_shield" else ( "kite_shield" if offhand_id == "bulwark_shield" else "")
@@ -187,14 +191,36 @@ func _is_known_garment_surface(label: String) -> bool:
 
 
 func _garment_label_matches(label: String, garment_id: String) -> bool:
-    var haystack := _normalise_garment_label(label)
-    var needle := _normalise_garment_label(garment_id)
-    # Avoid treating a hair braid as a bra, or a long tunic as a short tunic.
-    if needle == "bra" and haystack.contains("braid"):
+    # Match complete name tokens, not arbitrary substrings. The old substring
+    # test could classify body/skin surfaces as clothing (for example "braid"
+    # as "bra") and could confuse "tunic" with "long_tunic".
+    var separator_pattern := RegEx.new()
+    separator_pattern.compile("[^a-z0-9]+")
+    var label_tokens := separator_pattern.sub(label.to_lower(), " ", true).strip_edges().split(" ", false)
+    var garment_tokens := separator_pattern.sub(garment_id.to_lower(), " ", true).strip_edges().split(" ", false)
+    if garment_tokens.is_empty() or label_tokens.size() < garment_tokens.size():
         return false
-    if needle == "tunic" and haystack.contains("longtunic"):
-        return false
-    return haystack.contains(needle)
+    for start in range(label_tokens.size() - garment_tokens.size() + 1):
+        # A short tunic must not match the "tunic" component of "long_tunic".
+        if garment_tokens.size() == 1 and garment_tokens[0] == "tunic" and start > 0 and label_tokens[start - 1] == "long":
+            continue
+        var matches := true
+        for offset in range(garment_tokens.size()):
+            var label_token: String = label_tokens[start + offset]
+            var garment_token: String = garment_tokens[offset]
+            # Permit numbered exports such as "trousers01", but not unrelated
+            # words that merely begin with the garment name.
+            if label_token != garment_token:
+                if not label_token.begins_with(garment_token):
+                    matches = false
+                    break
+                var suffix := label_token.trim_prefix(garment_token)
+                if not suffix.is_valid_int():
+                    matches = false
+                    break
+        if matches:
+            return true
+    return false
 
 
 func _weapon_prop_id(item_id: String) -> String:
