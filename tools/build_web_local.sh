@@ -7,7 +7,7 @@ REPO="ScottENOC/Silverhart-Saga-3D"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 PYTHON_BIN=python
-GODOT_BIN="\${GODOT_BIN:-godot}"
+GODOT_BIN="${GODOT_BIN:-godot}"
 
 log()  { printf '\n[Silverhart] %s\n' "$*"; }
 warn() { printf '\n[Warning] %s\n' "$*" >&2; }
@@ -64,8 +64,8 @@ fi
 
 log "Checking Wren Workshop runtime package"
 WORKSHOP="$(latest_artifact_prefix wren-workshop.yml ara-runtime-assets-)" || die "No unexpired Workshop runtime package in the latest ten runs. Run Build Wren Workshop on dev."
-WORKSHOP_RUN="\${WORKSHOP%%|*}"
-WORKSHOP_NAME="\${WORKSHOP#*|}"
+WORKSHOP_RUN="${WORKSHOP%%|*}"
+WORKSHOP_NAME="${WORKSHOP#*|}"
 if [[ ! -f "$CACHE/workshop.run" || "$(cat "$CACHE/workshop.run")" != "$WORKSHOP_RUN" || ! -s art/characters/ara_runtime/ara_person_modular.glb ]]; then
   log "Downloading Workshop package from run $WORKSHOP_RUN"
   download_artifact "$WORKSHOP_RUN" "$WORKSHOP_NAME" "$CACHE/workshop"
