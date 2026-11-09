@@ -62,24 +62,9 @@ else
   log "NPC pack already cached (run $ARA_RUN)"
 fi
 
-log "Checking Wren Workshop runtime package"
-WORKSHOP="$(latest_artifact_prefix wren-workshop.yml ara-runtime-assets-)" || die "No unexpired Workshop runtime package in the latest ten runs. Run Build Wren Workshop on dev."
-WORKSHOP_RUN="${WORKSHOP%%|*}"
-WORKSHOP_NAME="${WORKSHOP#*|}"
-RUNTIME_MISSING=0
-for asset in ara_person_body.glb ara_person_male_body.glb ara_person_modular.glb ara_person_modular_underwear.glb ara_person_benchmark.glb; do
-  [[ -s "art/characters/ara_runtime/$asset" ]] || RUNTIME_MISSING=1
-done
-if [[ ! -f "$CACHE/workshop.run" || "$(cat "$CACHE/workshop.run")" != "$WORKSHOP_RUN" || "$RUNTIME_MISSING" -eq 1 ]]; then
-  log "Downloading Workshop package from run $WORKSHOP_RUN"
-  download_artifact "$WORKSHOP_RUN" "$WORKSHOP_NAME" "$CACHE/workshop"
-  PACKAGE="$(find "$CACHE/workshop" -type f -name ara-runtime-assets.zip -print -quit)"
-  [[ -n "$PACKAGE" ]] || die "Workshop artifact did not contain ara-runtime-assets.zip."
-  unzip -o -q "$PACKAGE" -d art/characters/ara_runtime
-  printf '%s' "$WORKSHOP_RUN" > "$CACHE/workshop.run"
-else
-  log "Workshop package already cached (run $WORKSHOP_RUN)"
-fi
+log "Building Ara runtime assets locally (lazy cache)"
+"$PYTHON_BIN" tools/build_ara_runtime_local.py
+
 
 download_optional_props() {
   local workflow="$1" prefix="$2" marker="$3" label="$4" run name
