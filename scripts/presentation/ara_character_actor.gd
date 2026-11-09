@@ -23,6 +23,10 @@ func configure(glb_path: String) -> bool:
     animation_player = null
     hair_instances.clear()
     loaded_asset_path = ""
+    # The base GLB is authoritative. Set this before any garment library is attached,
+    # rather than relying on a caller to remember the metadata.
+    set_meta("body_variant", "male" if glb_path.get_file().to_lower().contains("male") else "female")
+    set_meta("modular_garments_loaded", false)
     if not ResourceLoader.exists(glb_path):
         push_warning("Ara character asset is not installed: " + glb_path)
         return false
@@ -181,11 +185,21 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
             "helmet":
                 helmet_id = item_id
 
+    var available_visuals: Dictionary = {}
     for garment_mesh in modular_garment_meshes:
         if not is_instance_valid(garment_mesh):
             continue
         var garment_visual := String(garment_mesh.get_meta("garment_visual", ""))
+        available_visuals[garment_visual] = true
         garment_mesh.visible = visible_garments.has(garment_visual)
+
+    for garment_visual in visible_garments:
+        if not available_visuals.has(garment_visual):
+            push_warning(
+                "Equipped garment visual '%s' has no matching independent mesh for %s body. "
+                % [garment_visual, String(get_meta("body_variant", "unknown"))]
+                + "Check item_definitions.json and the local Ara garment-library build."
+            )
 
     _set_equipment_prop("weapon", _weapon_prop_id(weapon_id), "WeaponR")
     var shield_prop := "round_shield" if offhand_id == "wooden_shield" else ("kite_shield" if offhand_id == "bulwark_shield" else "")
