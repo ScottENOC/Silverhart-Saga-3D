@@ -114,7 +114,8 @@
       "active": false,
       "reaction": true,
       "dynamic_prerequisite": true,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "dynamic_prerequisite_rule": "protector_parry"
     },
     {
       "id": "battle_reflexes",
@@ -714,7 +715,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "anti_prerequisite": "druid_foliage_expertise"
     },
     {
       "id": "druid_foliage_expertise",
@@ -726,7 +728,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "anti_prerequisite": "elf_foliage_expertise"
     },
     {
       "id": "druid_knowledge_nature",
@@ -738,7 +741,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "anti_prerequisite": "elf_knowledge_nature"
     },
     {
       "id": "elf_knowledge_nature",
@@ -750,7 +754,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "anti_prerequisite": "druid_knowledge_nature"
     },
     {
       "id": "nature_butchery",
@@ -762,7 +767,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": true,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "dynamic_prerequisite_rule": "knowledge_nature"
     },
     {
       "id": "nature_bounty",
@@ -774,7 +780,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": true,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "dynamic_prerequisite_rule": "knowledge_nature"
     },
     {
       "id": "nature_ranger",
@@ -786,7 +793,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": true,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "dynamic_prerequisite_rule": "knowledge_nature"
     },
     {
       "id": "knowledge_religion",
@@ -1098,7 +1106,9 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": true,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "dynamic_prerequisite_rule": "quest_granted_only",
+      "quest_granted_only": true
     },
     {
       "id": "poison_bite",
@@ -1650,7 +1660,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": true,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "dynamic_prerequisite_rule": "elven_grace"
     },
     {
       "id": "whisper_step",
