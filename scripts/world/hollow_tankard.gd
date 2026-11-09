@@ -3,6 +3,7 @@ extends Node3D
 
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_body.glb"
+const PLAYER_CUSTOM_FEMALE_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
 const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
@@ -447,6 +448,30 @@ func _apply_starting_loadout(state: CharacterState) -> void:
             push_error("Could not equip starting item '%s' on %s." % [item_id, state.id])
 
 
+func _apply_npc_clothing_loadout(state: CharacterState, npc_profile: Dictionary) -> void:
+    var params: Dictionary = npc_profile.get("params", {})
+    var clothing_parameters := [
+        {"parameter": "underTop", "slot": "underTop"},
+        {"parameter": "underBottom", "slot": "underBottom"},
+        {"parameter": "top", "slot": "shirt"},
+        {"parameter": "bottom", "slot": "pants"},
+        {"parameter": "shoes", "slot": "shoes"}
+    ]
+    for entry in clothing_parameters:
+        var garment_id := String(params.get(entry.parameter, "none"))
+        if garment_id.is_empty() or garment_id == "none":
+            continue
+        var item := ItemCatalog.create_instance(garment_id, "start_%s_clothing_%s" % [state.id, entry.slot])
+        if item.is_empty():
+            push_warning("NPC %s has Ara garment '%s' without an inventory definition." % [state.id, garment_id])
+            continue
+        if not state.add_inventory_item(item):
+            push_error("Could not add NPC clothing '%s' to %s." % [garment_id, state.id])
+            continue
+        if not state.equip_inventory_item(String(item.instance_id)):
+            push_error("Could not equip NPC clothing '%s' on %s." % [garment_id, state.id])
+
+
 func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, ara_model_id: String = "", npc_profile: Dictionary = {}) -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
     var state: CharacterState
@@ -455,6 +480,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     else:
         state = CharacterState.new(id, display_name, spawn_hex)
         _apply_starting_loadout(state)
+        _apply_npc_clothing_loadout(state, npc_profile)
     state.time_points = state.max_time_points
     simulation.register_character(state)
 
@@ -471,6 +497,8 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.add_child(ara_model)
     var body_variant := str(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+    if is_player and body_variant == "female" and ResourceLoader.exists(PLAYER_CUSTOM_FEMALE_ASSET):
+        model_path = PLAYER_CUSTOM_FEMALE_ASSET
     if not is_player and not ara_model_id.is_empty():
         var authored_npc_path := "res://art/characters/hollowmere/%s.glb" % ara_model_id
         if ResourceLoader.exists(authored_npc_path):
@@ -484,7 +512,10 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
             ara_model.apply_npc_parameters(params)
         if model_path.contains("/ara_runtime/"):
             _attach_ara_hair(ara_model, body_variant, str(player_profile.get("hair_style_id", "short02")) if is_player else str(npc_profile.get("params", {}).get("hair", "short02")))
-        ara_model.configure_modular_garments()
+        # Authored Hollowmere NPC GLBs already contain their selected Ara garments.
+        # Runtime base bodies and the player avatar need the separate modular layer.
+        if is_player or model_path.contains("/ara_runtime/"):
+            ara_model.configure_modular_garments()
         ara_model.apply_equipment_visuals(state.equipped_item_data)
     else:
         push_error("Character '%s' could not load Ara model '%s'. No primitive substitute will be shown." % [display_name, model_path])
