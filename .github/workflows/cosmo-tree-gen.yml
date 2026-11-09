@@ -1,0 +1,90 @@
+name: Generate Cosmo tree collection
+
+on:
+  push:
+    branches: [feature/cosmo-tree-gen-evaluation]
+    paths:
+      - ".github/workflows/cosmo-tree-gen.yml"
+      - "tools/cosmo_tree_gen/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cosmo-tree-gen-evaluation
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    name: Generate and save procedural tree assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out evaluation branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/cosmo-tree-gen-evaluation
+          fetch-depth: 0
+
+      - name: Download Cosmo Tree Gen source
+        run: |
+          set -euo pipefail
+          mkdir -p addons/cosmo_tree_gen
+          curl -L --fail --retry 3 https://github.com/FrogCosmonaut/cosmo_tree_gen/archive/refs/heads/main.tar.gz -o /tmp/cosmo-tree-gen.tar.gz
+          tar -xzf /tmp/cosmo-tree-gen.tar.gz --strip-components=2 -C addons/cosmo_tree_gen cosmo_tree_gen-main/addons/cosmo_tree_gen
+          mkdir -p addons/cosmo_tree_gen/presets
+          for preset in cherry laurel pine spruce tree_fern willow winter_oak; do
+            curl -L --fail --retry 3 "https://raw.githubusercontent.com/FrogCosmonaut/cosmo_tree_gen/main/demo/extra_presets/${preset}.tres" -o "addons/cosmo_tree_gen/presets/${preset}.tres"
+          done
+          curl -L --fail --retry 3 https://raw.githubusercontent.com/FrogCosmonaut/cosmo_tree_gen/main/LICENSE.md -o addons/cosmo_tree_gen/UPSTREAM_LICENSE.md
+          test -f addons/cosmo_tree_gen/plugin.cfg
+          test -f addons/cosmo_tree_gen/core/cosmo_tree_gen.gd
+
+      - name: Enable the generator plugin for this project
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("project.godot")
+          s = p.read_text()
+          marker = '[editor_plugins]\nenabled=PackedStringArray("res://addons/cosmo_tree_gen/plugin.cfg")'
+          if "[editor_plugins]" in s:
+              if "cosmo_tree_gen/plugin.cfg" not in s:
+                  s = s.replace("[editor_plugins]", marker + "\n", 1)
+          else:
+              s += "\n" + marker + "\n"
+          p.write_text(s)
+          PY
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import plugin and presets
+        run: godot --headless --editor --path . --quit
+
+      - name: Generate tree collection
+        run: godot --headless --editor --path . --script res://tools/cosmo_tree_gen/generate_collection.gd
+
+      - name: Verify generated GLB collection
+        run: |
+          set -euo pipefail
+          count="$(find art/environment/trees/cosmo_generated -maxdepth 1 -type f -name '*.glb' | wc -l)"
+          echo "Generated GLB count: $count"
+          test "$count" -ge 10
+          du -sh art/environment/trees/cosmo_generated
+
+      - name: Commit generated assets to feature branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add project.godot addons/cosmo_tree_gen art/environment/trees/cosmo_generated
+          if git diff --cached --quiet; then
+            echo "No generated changes to commit."
+            exit 0
+          fi
+          git commit -m "Add Cosmo procedural tree collection"
+          git push origin HEAD:feature/cosmo-tree-gen-evaluation
