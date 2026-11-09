@@ -85,7 +85,8 @@ static func create_player_state(profile: Dictionary, character_id: String, start
     # Clothing is ordinary inventory equipment, not baked into the body model.
     # All players start dressed; feminine presentations also receive a bra.
     var starting_clothing: Array[String] = ["briefs", "long_tunic", "trousers"]
-    if state.gender_presentation.to_lower() == "feminine":
+    var feminine_body := String(profile.get("body_variant", "")).to_lower() == "female"
+    if state.gender_presentation.to_lower() == "feminine" or feminine_body:
         starting_clothing.append("bra")
     for clothing_index in range(starting_clothing.size()):
         var clothing_id := starting_clothing[clothing_index]
