@@ -27,8 +27,8 @@ static func make_ribbon(
             var t := float(step) / float(samples_per_segment)
             sampled_points.append(_catmull_rom(p0, p1, p2, p3, t))
             sampled_widths.append(lerpf(widths[segment], widths[segment + 1], t))
-    sampled_points.append(control_points.back())
-    sampled_widths.append(widths.back())
+    sampled_points.append(control_points[control_points.size() - 1])
+    sampled_widths.append(widths[widths.size() - 1])
 
     var surface := SurfaceTool.new()
     surface.begin(Mesh.PRIMITIVE_TRIANGLES)
