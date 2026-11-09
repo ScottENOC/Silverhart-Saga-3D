@@ -153,7 +153,11 @@ These are representative, not the entire parity suite. A complete test inventory
 7. **Do not invent content to fill a gap.** Mark it Not yet ported until supported by source data.
 8. **Maintain a deviation register.** Every 3D adaptation records the source behaviour, the 3D implementation and why the gameplay outcome remains equivalent.
 
-## 8. Next extraction sequence
+## 8. NPC/dialogue inventory
+
+The companion source index is [Campaign 2 NPC and dialogue content index](campaign2_npc_dialogue_index.md). It records the first-pass name, dialogue-ID, quest-ID and helper-function inventory from `campaign2Content.js` and `campaign2Dialogue.js`. Treat those as migration inputs, not as counts of active NPCs or a complete canonical quest list.
+
+## 9. Next extraction sequence
 
 1. Extract and validate the complete strategic 16×16 map and its marker/faction data.
 2. Produce a machine-readable Hollowmere manifest (terrain, water, roads, buildings, objects, interiors, NPCs, schedules and quest anchors) and compare it against the existing 3D village.
