@@ -69,12 +69,15 @@ def main():
     if current != PIN:
         run([git,"fetch","origin"],cwd=GEN); run([git,"checkout",PIN],cwd=GEN)
     if not (GEN/"node_modules").exists() or not (GEN/"node_modules/.modules.yaml").exists():
-        run(["corepack","enable"],cwd=GEN)
         run([pnpm,"install","--no-frozen-lockfile"],cwd=GEN)
     if not (GEN/"assets").exists() or not any((GEN/"assets").iterdir()):
         run([npm,"run","setup-assets"],cwd=GEN)
     patch=ROOT/"tools/ara/patch_layering.py"
-    run([py,patch],cwd=GEN)
+    patch_stamp=CACHE/"stamps"/"layering-patch.sha256"
+    patch_hash=digest([patch],PIN)
+    if not patch_stamp.is_file() or patch_stamp.read_text().strip()!=patch_hash:
+        run([py,patch],cwd=GEN)
+        patch_stamp.parent.mkdir(parents=True,exist_ok=True); patch_stamp.write_text(patch_hash+"\\n")
     base={
       "name":"Ara Base Person - dressed preview","seed":218,"gender":0,"age":0.5,
       "muscle":0.5,"weight":0.5,"height":0.5,"proportions":0.5,
@@ -136,7 +139,7 @@ def main():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_out,"--adult","--profile-name","standard"])
     cached("male-anatomy",[male_out],[male_raw,ROOT/"tools/blender/add_male_anatomy.py"],"blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_action)
     # Modular GLB assembly, then dress slit and garment fitting.
-    modular=ARA/"ara_person_modular.glb"; underwear=ARA/"ara_person_modular_underwear.glb"
+    modular=RAW/"ara_person_modular_assembled.glb"; underwear=RAW/"ara_person_modular_underwear_assembled.glb"
     benchmark=ARA/"ara_person_benchmark.glb"; body_final=female_out
     def assemble():
         args=[py,ROOT/"tools/ara/assemble_modular_glb.py",body_final,modular,
