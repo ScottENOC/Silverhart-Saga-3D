@@ -32,7 +32,9 @@ jobs:
           set -euo pipefail
           mkdir -p addons/cosmo_tree_gen
           curl -L --fail --retry 3 https://github.com/FrogCosmonaut/cosmo_tree_gen/archive/refs/heads/main.tar.gz -o /tmp/cosmo-tree-gen.tar.gz
-          tar -xzf /tmp/cosmo-tree-gen.tar.gz --strip-components=2 -C addons/cosmo_tree_gen cosmo_tree_gen-main/addons/cosmo_tree_gen
+          mkdir -p /tmp/cosmo-tree-gen
+          tar -xzf /tmp/cosmo-tree-gen.tar.gz -C /tmp/cosmo-tree-gen
+          cp -a /tmp/cosmo-tree-gen/cosmo_tree_gen-main/addons/cosmo_tree_gen/. addons/cosmo_tree_gen/
           mkdir -p addons/cosmo_tree_gen/presets
           for preset in cherry laurel pine spruce tree_fern willow winter_oak; do
             curl -L --fail --retry 3 "https://raw.githubusercontent.com/FrogCosmonaut/cosmo_tree_gen/main/demo/extra_presets/${preset}.tres" -o "addons/cosmo_tree_gen/presets/${preset}.tres"
