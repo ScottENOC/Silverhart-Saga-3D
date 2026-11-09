@@ -46,7 +46,7 @@ func _test_player_starting_clothing() -> void:
 
 
 func _test_npc_clothing_inventory() -> void:
-    var world := NPC_WORLD.new()
+    var world = NPC_WORLD.new()
     var npc = CHARACTER_STATE.new("test_npc", "Test NPC", Vector2i.ZERO)
     world._apply_npc_clothing_loadout(npc, {
         "params": {
