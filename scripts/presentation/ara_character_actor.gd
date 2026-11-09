@@ -95,7 +95,9 @@ func _surface_label(mesh_instance: MeshInstance3D, surface: int) -> String:
 
 
 func _set_modular_surface_visible(mesh_instance: MeshInstance3D, surface: int, visible: bool) -> void:
-    var key := "ara_modular_original_%d" % surface
+    # Surface indices repeat across separate garment meshes. Include the mesh
+    # instance ID so each surface restores its own source material.
+    var key := "ara_modular_original_%d_%d" % [mesh_instance.get_instance_id(), surface]
     if not mesh_instance.has_meta(key):
         mesh_instance.set_meta(key, mesh_instance.mesh.surface_get_material(surface))
     var original := mesh_instance.get_meta(key) as Material
