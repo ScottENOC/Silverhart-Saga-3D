@@ -147,11 +147,11 @@ def main():
         env=os.environ.copy(); env.update({"ARA_INPUT":str(female_raw),"ARA_OUTPUT":str(RAW/"ara_person_body_anatomy.glb"),"ARA_PROFILE":"female","ARA_ADULT":"1"})
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_adult_anatomy.py"],env=env)
         shutil.copy2(RAW/"ara_person_body_anatomy.glb",female_out)
-    cached("female-anatomy",[female_out],[female_raw,ROOT/"tools/blender/add_adult_anatomy.py"],"blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],female)
+    cached("female-anatomy",[female_out],[female_raw,ROOT/"tools/blender/add_adult_anatomy.py"],"female-anatomy-v2:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],female)
     male_out=ARA/"ara_person_male_body.glb"; male_raw=RAW/"ara_person_male_raw.glb"
     def male_action():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_out,"--adult","--profile-name","standard"])
-    cached("male-anatomy",[male_out],[male_raw,ROOT/"tools/blender/add_male_anatomy.py"],"blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_action)
+    cached("male-anatomy",[male_out],[male_raw,ROOT/"tools/blender/add_male_anatomy.py"],"male-anatomy-v2:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_action)
     # Modular GLB assembly, then dress slit and garment fitting.
     modular=RAW/"ara_person_modular_assembled.glb"; underwear=RAW/"ara_person_modular_underwear_assembled.glb"
     benchmark=ARA/"ara_person_benchmark.glb"; body_final=female_out
