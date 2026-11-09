@@ -341,7 +341,7 @@ def main() -> None:
             "skin_weight_coverage_minimum": 0.95,
         },
     }
-    report_path.write_text(json.dumps(report, indent=2) + "\\n", encoding="utf-8")
+    report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     log(f"Wrote {args.output} with {len(kept)} independently skinned garment mesh object(s)")
     log("Inventory visuals available: " + ", ".join(sorted(seen)))
     log(f"Validation report: {report_path}")
