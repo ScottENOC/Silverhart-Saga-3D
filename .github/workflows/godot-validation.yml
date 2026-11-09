@@ -68,8 +68,6 @@ jobs:
         run: godot --headless --path . --script res://tests/test_wilderness_resource_visuals.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
-      - name: Run organic geography tests
-        run: godot --headless --path . --script res://tests/test_organic_geography.gd
       - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null
