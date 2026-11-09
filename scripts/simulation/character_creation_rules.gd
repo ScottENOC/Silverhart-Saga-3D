@@ -82,6 +82,22 @@ static func create_player_state(profile: Dictionary, character_id: String, start
         state.free_skill_ranks["health"] = 1
         state.max_health += 10
         state.health += 10
+    # Clothing is ordinary inventory equipment, not baked into the body model.
+    # All players start dressed; feminine presentations also receive a bra.
+    var starting_clothing: Array[String] = ["briefs", "long_tunic", "trousers"]
+    var feminine_body := String(profile.get("body_variant", "")).to_lower() == "female"
+    if state.gender_presentation.to_lower() == "feminine" or feminine_body:
+        starting_clothing.append("bra")
+    for clothing_index in range(starting_clothing.size()):
+        var clothing_id := starting_clothing[clothing_index]
+        var clothing_instance_id := "start_%s_clothing_%s" % [character_id, clothing_id]
+        var clothing_item := ITEM_CATALOG.create_instance(clothing_id, clothing_instance_id)
+        if clothing_item.is_empty() or not state.add_inventory_item(clothing_item):
+            push_error("Could not add starting clothing item: %s" % clothing_id)
+            continue
+        if not state.equip_inventory_item(clothing_instance_id):
+            push_error("Could not equip starting clothing item: %s" % clothing_id)
+
     var equipped_ids: Array = profession.get("equipped", [])
     var starting_ids: Array = profession.get("starting_equipment", [])
     for index in range(starting_ids.size()):

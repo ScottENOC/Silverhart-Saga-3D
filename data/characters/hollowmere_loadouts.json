@@ -48,8 +48,8 @@
     ]
   },
   "notes": [
-    "Every authored Hollowmere NPC and companion receives a deterministic opening inventory of valid game item instances.",
-    "Weapons and armour are assigned by role; civilians and the tavern keeper are not automatically equipped as soldiers.",
-    "Clothing meshes remain a separate Ara runtime asset dependency; item definitions alone do not create visible 3D garments."
+    "Every authored Hollowmere NPC and companion receives deterministic weapon and armour inventory from this file.",
+    "Clothing and footwear inventory is created from each character's existing Ara appearance parameters in hollowmere_npcs.json.",
+    "Equipped item instances drive the visible garment surfaces on each character; authored NPC GLBs retain their own appearance-specific garment meshes."
   ]
 }

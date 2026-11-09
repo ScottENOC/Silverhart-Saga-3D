@@ -11,6 +11,7 @@ var modular_garment_meshes: Array[MeshInstance3D] = []
 var equipment_attachments: Dictionary = {}
 const MODULAR_GARMENT_ASSET := "res://art/characters/ara_runtime/ara_person_modular.glb"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
+const GARMENT_VISUALS := ["bra", "briefs", "long_tunic", "trousers", "tunic", "wrapper_long", "uniform_shirt", "fatigue_pants", "wrapper_knee", "tattered_shirt", "fatigue_shirt", "sandals", "combat_boots", "leather armor"]
 var current_hair_colour: Color = Color("#49372a")
 
 func configure(glb_path: String) -> bool:
@@ -65,6 +66,16 @@ func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> boo
         source_root.free()
         push_warning("Modular garment export contains no skinned meshes")
         return false
+    var scene_root := get_tree().root if get_tree() != null else null
+    if scene_root != null and not scene_root.has_meta("ara_modular_surface_dumped"):
+        scene_root.set_meta("ara_modular_surface_dumped", true)
+        for source_mesh in source_meshes:
+            for surface in range(source_mesh.mesh.get_surface_count()):
+                print("[Ara modular] %s / %s" % [
+                    source_mesh.name,
+                    _surface_label(source_mesh, surface)
+                ])
+
     for source_mesh in source_meshes:
         var instance := MeshInstance3D.new()
         instance.name = "AraModularGarments_" + source_mesh.name
@@ -95,7 +106,7 @@ func _surface_label(mesh_instance: MeshInstance3D, surface: int) -> String:
 
 
 func _set_modular_surface_visible(mesh_instance: MeshInstance3D, surface: int, visible: bool) -> void:
-    var key := "ara_modular_original_%d" % surface
+    var key := "ara_modular_original_%d_%d" % [mesh_instance.get_instance_id(), surface]
     if not mesh_instance.has_meta(key):
         mesh_instance.set_meta(key, mesh_instance.mesh.surface_get_material(surface))
     var original := mesh_instance.get_meta(key) as Material
@@ -111,8 +122,6 @@ func _set_modular_surface_visible(mesh_instance: MeshInstance3D, surface: int, v
 
 ## Render the actual equipped item instances from CharacterState.
 func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
-    if modular_garment_meshes.is_empty():
-        configure_modular_garments()
     var visible_garments: Array[String] = []
     var weapon_id := ""
     var offhand_id := ""
@@ -123,6 +132,9 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
         if not item is Dictionary:
             continue
         var item_id := String(item.get("id", ""))
+        var garment_visual := String(item.get("garment_visual", ""))
+        if not garment_visual.is_empty() and not visible_garments.has(garment_visual):
+            visible_garments.append(garment_visual)
         match slot:
             "armour":
                 if item_id in ["reinforced_leather_armor", "light_armor", "medium_armor", "heavy_armor"]:
@@ -133,21 +145,42 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
                 offhand_id = item_id
             "helmet":
                 helmet_id = item_id
+
+    # First toggle any garments baked into authored NPC/player GLBs. The
+    # modular layer is then restored from its own original-material metadata.
+    for garment_visual in GARMENT_VISUALS:
+        set_garment_visible(garment_visual, visible_garments.has(garment_visual))
     for mesh_instance in modular_garment_meshes:
         if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
             continue
         for surface in range(mesh_instance.mesh.get_surface_count()):
-            var label := _surface_label(mesh_instance, surface)
+            var label := _normalise_garment_label(_surface_label(mesh_instance, surface) + " " + mesh_instance.name)
             var show_surface := false
             for fragment in visible_garments:
-                if label.contains(fragment):
+                if _garment_label_matches(label, fragment):
                     show_surface = true
                     break
             _set_modular_surface_visible(mesh_instance, surface, show_surface)
+
     _set_equipment_prop("weapon", _weapon_prop_id(weapon_id), "WeaponR")
-    var shield_prop := "round_shield" if offhand_id == "wooden_shield" else ("kite_shield" if offhand_id == "bulwark_shield" else "")
+    var shield_prop := "round_shield" if offhand_id == "wooden_shield" else ( "kite_shield" if offhand_id == "bulwark_shield" else "")
     _set_equipment_prop("offhand", shield_prop, "WeaponL")
     _set_equipment_prop("helmet", _helmet_prop_id(helmet_id), "Head")
+
+
+func _normalise_garment_label(value: String) -> String:
+    return value.to_lower().replace("_", "").replace("-", "").replace(" ", "")
+
+
+func _garment_label_matches(label: String, garment_id: String) -> bool:
+    var haystack := _normalise_garment_label(label)
+    var needle := _normalise_garment_label(garment_id)
+    # Avoid treating a hair braid as a bra, or a long tunic as a short tunic.
+    if needle == "bra" and haystack.contains("braid"):
+        return false
+    if needle == "tunic" and haystack.contains("longtunic"):
+        return false
+    return haystack.contains(needle)
 
 
 func _weapon_prop_id(item_id: String) -> String:
@@ -330,7 +363,7 @@ func _set_embedded_hair_visible(visible: bool) -> void:
             var material_name := source.resource_name.to_lower() if source != null else ""
             if not _is_hair_material(material_name):
                 continue
-            var meta_key := "ara_embedded_hair_material_%d" % surface
+            var meta_key := "ara_embedded_hair_material_%d_%d" % [mesh_instance.get_instance_id(), surface]
             if not mesh_instance.has_meta(meta_key):
                 mesh_instance.set_meta(meta_key, source)
             var original := mesh_instance.get_meta(meta_key) as Material
@@ -359,7 +392,6 @@ func _tint_attached_hair(colour: Color) -> void:
 func set_garment_visible(material_fragment: String, visible: bool) -> bool:
     if model_root == null:
         return false
-    var needle := material_fragment.to_lower()
     var changed := false
     var meshes: Array[MeshInstance3D] = []
     _collect_meshes(model_root, meshes)
@@ -367,13 +399,12 @@ func set_garment_visible(material_fragment: String, visible: bool) -> bool:
         if mesh_instance.mesh == null:
             continue
         for surface in range(mesh_instance.mesh.get_surface_count()):
-            var source := mesh_instance.get_active_material(surface)
-            var material_name := source.resource_name.to_lower() if source != null else ""
-            if not material_name.contains(needle) and not mesh_instance.name.to_lower().contains(needle):
+            var label := _normalise_garment_label(_surface_label(mesh_instance, surface) + " " + mesh_instance.name)
+            if not _garment_label_matches(label, material_fragment):
                 continue
-            var meta_key := "ara_original_material_%d" % surface
+            var meta_key := "ara_original_material_%d_%d" % [mesh_instance.get_instance_id(), surface]
             if not mesh_instance.has_meta(meta_key):
-                mesh_instance.set_meta(meta_key, source)
+                mesh_instance.set_meta(meta_key, mesh_instance.mesh.surface_get_material(surface))
             var original := mesh_instance.get_meta(meta_key) as Material
             if visible:
                 mesh_instance.set_surface_override_material(surface, original)
@@ -385,6 +416,7 @@ func set_garment_visible(material_fragment: String, visible: bool) -> bool:
                 mesh_instance.set_surface_override_material(surface, hidden)
             changed = true
     return changed
+
 
 func _play_idle_if_available() -> void:
     if animation_player == null or not is_instance_valid(animation_player):
