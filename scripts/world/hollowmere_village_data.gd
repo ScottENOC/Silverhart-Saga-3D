@@ -2,7 +2,7 @@ class_name HollowmereVillageData
 extends RefCounted
 ## Shared local-map layout for Hollowmere. Axial coordinates match the tavern grid.
 
-const MAP_RADIUS: int = 66
+const MAP_RADIUS: int = 96
 const STREAM_R: int = -25
 const STREAM_Q_MIN: int = -30
 const STREAM_Q_MAX: int = 30
@@ -126,8 +126,17 @@ static func is_path(hex: Vector2i) -> bool:
         return true
 
     # Winding southern road to Old Mac's Farmstead.
-    for point in SOUTH_ROAD_CENTRELINE:
-        if HexGrid.distance(hex, point) <= 1:
+    for index in range(SOUTH_ROAD_CENTRELINE.size() - 1):
+        if _is_near_axial_segment(hex, SOUTH_ROAD_CENTRELINE[index], SOUTH_ROAD_CENTRELINE[index + 1], 1):
+            return true
+    return false
+
+static func _is_near_axial_segment(hex: Vector2i, start: Vector2i, finish: Vector2i, tolerance: int) -> bool:
+    var steps := maxi(1, HexGrid.distance(start, finish) * 2)
+    for step in range(steps + 1):
+        var t := float(step) / float(steps)
+        var sample := Vector2i(roundi(lerpf(float(start.x), float(finish.x), t)), roundi(lerpf(float(start.y), float(finish.y), t)))
+        if HexGrid.distance(hex, sample) <= tolerance:
             return true
     return false
 
@@ -179,8 +188,13 @@ static func water_cells() -> Array[Vector2i]:
                 cells.append(hex)
     return cells
 
+static func is_farm_land(hex: Vector2i) -> bool:
+    return hex.x >= -2 and hex.x <= 40 and hex.y >= 39 and hex.y <= 76
+
 static func is_forest_candidate(hex: Vector2i) -> bool:
     if not is_in_bounds(hex):
+        return false
+    if is_farm_land(hex):
         return false
     if HexGrid.distance(Vector2i.ZERO, hex) < 17:
         return false
