@@ -68,12 +68,15 @@ jobs:
         run: godot --headless --path . --script res://tests/test_wilderness_resource_visuals.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
+      - name: Run Campaign 2 road manifest tests
+        run: godot --headless --path . --script res://tests/test_campaign2_road_paths.gd
       - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null
           python -m json.tool data/characters/hollowmere_loadouts.json > /dev/null
           python -m json.tool data/characters/character_creation_rules.json > /dev/null
           python -m json.tool data/items/item_definitions.json > /dev/null
+          python -m json.tool data/world/campaign2_road_paths.json > /dev/null
       - name: Smoke-test terrain prototype
         run: godot --headless --path . --scene res://scenes/prototypes/terrain_elevation_prototype.tscn --quit-after 5
       - name: Smoke-test campaign character creation and opening scene
