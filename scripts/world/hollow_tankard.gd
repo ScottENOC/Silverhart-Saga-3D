@@ -3,6 +3,7 @@ extends Node3D
 
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_body.glb"
+const PLAYER_CUSTOM_FEMALE_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
 const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
@@ -471,6 +472,8 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.add_child(ara_model)
     var body_variant := str(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+    if is_player and body_variant == "female" and ResourceLoader.exists(PLAYER_CUSTOM_FEMALE_ASSET):
+        model_path = PLAYER_CUSTOM_FEMALE_ASSET
     if not is_player and not ara_model_id.is_empty():
         var authored_npc_path := "res://art/characters/hollowmere/%s.glb" % ara_model_id
         if ResourceLoader.exists(authored_npc_path):
