@@ -34,6 +34,19 @@ def command(name, override=None):
 def run(args, cwd=ROOT, env=None):
     log("$ " + " ".join(map(str,args)))
     subprocess.run(list(map(str,args)), cwd=cwd, env=env, check=True)
+
+def run_pnpm(args, cwd):
+    """Run the pinned pnpm via Corepack on Windows when no global shim exists."""
+    pnpm = shutil.which("pnpm")
+    if pnpm:
+        run([pnpm, *args], cwd=cwd)
+        return
+    corepack = shutil.which("corepack")
+    if not corepack:
+        fail("Cannot find pnpm or Corepack. Install Node.js 20+ and enable Corepack.")
+    command_line = "corepack pnpm@10.19.0 " + subprocess.list2cmdline(list(map(str, args)))
+    log("$ " + command_line)
+    subprocess.run(command_line, cwd=cwd, check=True, shell=True)
 def digest(paths, extra=""):
     h=hashlib.sha256(extra.encode())
     for p in paths:
@@ -60,7 +73,7 @@ def cached(stage, outputs, inputs, extra, action):
     stamp.parent.mkdir(parents=True,exist_ok=True); stamp.write_text(expected+"\n")
 def main():
     CACHE.mkdir(parents=True,exist_ok=True); RAW.mkdir(parents=True,exist_ok=True); ARA.mkdir(parents=True,exist_ok=True)
-    git=command("git"); node=command("node"); npm=command("npm"); pnpm=command("pnpm"); blender=command("blender",os.environ.get("BLENDER_BIN"))
+    git=command("git"); node=command("node"); npm=command("npm"); blender=command("blender",os.environ.get("BLENDER_BIN"))
     py=sys.executable
     if not (GEN/".git").exists():
         log("Cloning pinned Ara 3D Gen source")
@@ -69,7 +82,7 @@ def main():
     if current != PIN:
         run([git,"fetch","origin"],cwd=GEN); run([git,"checkout",PIN],cwd=GEN)
     if not (GEN/"node_modules").exists() or not (GEN/"node_modules/.modules.yaml").exists():
-        run([pnpm,"install","--no-frozen-lockfile"],cwd=GEN)
+        run_pnpm(["install","--no-frozen-lockfile"],cwd=GEN)
     if not (GEN/"public"/"assets").exists() or not any((GEN/"public"/"assets").iterdir()):
         run([npm,"run","setup-assets"],cwd=GEN)
     patch=ROOT/"tools/ara/patch_layering.py"
