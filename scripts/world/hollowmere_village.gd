@@ -4,7 +4,7 @@ extends Node3D
 ## intentionally blockout-quality; the underlying layout is the authored map.
 
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
-const GROUND_SIZE: float = 220.0
+const GROUND_SIZE: float = 420.0
 const ORGANIC_FEATURES = preload("res://scripts/world/organic_world_features.gd")
 
 var grass_material: StandardMaterial3D
@@ -17,12 +17,17 @@ var dark_wood_material: StandardMaterial3D
 var roof_material: StandardMaterial3D
 var glass_material: StandardMaterial3D
 var foliage_materials: Array[StandardMaterial3D] = []
+var field_material: StandardMaterial3D
+var crop_material: StandardMaterial3D
+var pasture_material: StandardMaterial3D
+var fence_material: StandardMaterial3D
 
 func _ready() -> void:
 	_create_materials()
 	_create_ground()
 	_create_paths_and_stream()
 	_create_buildings()
+	_create_farmstead()
 	_create_bridge()
 	_create_signpost()
 	_create_forest()
@@ -46,6 +51,10 @@ func _create_materials() -> void:
 	roof_material = _material(Color(0.24, 0.25, 0.22))
 	glass_material = _material(Color(0.29, 0.45, 0.49, 0.72), 0.18)
 	glass_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	field_material = _material(Color(0.30, 0.32, 0.17))
+	crop_material = _material(Color(0.48, 0.43, 0.22))
+	pasture_material = _material(Color(0.24, 0.34, 0.19))
+	fence_material = _material(Color(0.28, 0.17, 0.09))
 	foliage_materials = [
 		_material(Color(0.19, 0.30, 0.17)),
 		_material(Color(0.24, 0.35, 0.19)),
@@ -89,9 +98,9 @@ func _create_paths_and_stream() -> void:
 	# Main roads wander gently between authored destinations. The logical
 	# route cells remain the existing axial paths used by movement/pathfinding.
 	var north_south: Array[Vector3] = []
-	for hex in [Vector2i(8, -40), Vector2i(9, -32), Vector2i(8, -25), Vector2i(7, -17), Vector2i(8, -9), Vector2i(7, -2), Vector2i(8, 7), Vector2i(8, 16), Vector2i(8, 24), Vector2i(11, 28), Vector2i(16, 32)]:
+	for hex in [Vector2i(8, -40), Vector2i(9, -32), Vector2i(8, -25), Vector2i(7, -17), Vector2i(8, -9), Vector2i(7, -2), Vector2i(8, 7), Vector2i(8, 16), Vector2i(8, 24), Vector2i(11, 28), Vector2i(16, 32), Vector2i(14, 38), Vector2i(11, 44), Vector2i(12, 50), Vector2i(12, 54)]:
 		north_south.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.025))
-	var road_widths := PackedFloat32Array([2.5, 2.8, 2.6, 2.4, 2.5, 2.8, 2.5, 2.6, 3.1, 2.8, 2.4])
+	var road_widths := PackedFloat32Array([2.5, 2.8, 2.6, 2.4, 2.5, 2.8, 2.5, 2.6, 3.1, 2.8, 2.4, 2.6, 2.4, 2.6, 2.8])
 	add_child(ORGANIC_FEATURES.make_ribbon("NorthSouthRoad", north_south, road_widths, path_material, 0.0, 8))
 
 	var east_west: Array[Vector3] = []
@@ -159,6 +168,98 @@ func _create_buildings() -> void:
 	_create_cottage("OskarHouse", Vector2i(-6, 9), 5.5, 5.0, 2.5, 1.45, "east")
 	_add_store_sign()
 	_add_chapel_bell_tower()
+
+func _create_farmstead() -> void:
+	# The southern signposted road reaches Old Mac's working farm.
+	_create_cottage("OldMacFarmhouse", HollowmereVillageData.FARMHOUSE, 8.0, 6.4, 2.9, 1.8, "south")
+	var barn_centre := HexGrid.axial_to_world(HollowmereVillageData.FARM_BARN, HEX_RADIUS)
+	var barn := Node3D.new()
+	barn.name = "OldMacBarn"
+	barn.position = barn_centre
+	add_child(barn)
+	_add_box(barn, "BarnFoundation", Vector3(0.0, 0.12, 0.0), Vector3(13.0, 0.24, 9.0), stone_material)
+	_add_box(barn, "BarnRearWall", Vector3(0.0, 2.1, 4.2), Vector3(12.5, 4.0, 0.25), timber_material)
+	_add_box(barn, "BarnLeftWall", Vector3(-6.1, 2.1, 0.0), Vector3(0.25, 4.0, 8.5), timber_material)
+	_add_box(barn, "BarnRightWall", Vector3(6.1, 2.1, 0.0), Vector3(0.25, 4.0, 8.5), timber_material)
+	_add_box(barn, "BarnFrontLeft", Vector3(-3.9, 2.1, -4.2), Vector3(4.5, 4.0, 0.25), timber_material)
+	_add_box(barn, "BarnFrontRight", Vector3(3.9, 2.1, -4.2), Vector3(4.5, 4.0, 0.25), timber_material)
+	_add_box(barn, "BarnDoorLeft", Vector3(-1.55, 1.8, -4.32), Vector3(0.18, 3.5, 0.16), dark_wood_material)
+	_add_box(barn, "BarnDoorRight", Vector3(1.55, 1.8, -4.32), Vector3(0.18, 3.5, 0.16), dark_wood_material)
+	var roof_a := _add_box(barn, "BarnRoofA", Vector3(-3.0, 5.0, 0.0), Vector3(7.2, 0.25, 10.0), roof_material)
+	roof_a.rotation_degrees.z = -28.0
+	var roof_b := _add_box(barn, "BarnRoofB", Vector3(3.0, 5.0, 0.0), Vector3(7.2, 0.25, 10.0), roof_material)
+	roof_b.rotation_degrees.z = 28.0
+	_add_box(barn, "BarnRidge", Vector3(0.0, 6.7, 0.0), Vector3(0.25, 0.25, 10.2), dark_wood_material)
+
+	# Irregular fields sit beside the farm track; crop rows are separate reusable ribbons.
+	_add_farm_field("NorthwestField", [Vector2i(0, 42), Vector2i(13, 40), Vector2i(19, 52), Vector2i(4, 58)], field_material)
+	_add_farm_field("EasternCropField", [Vector2i(19, 42), Vector2i(34, 40), Vector2i(38, 55), Vector2i(23, 60)], field_material)
+	_add_farm_field("SouthernPasture", [Vector2i(1, 61), Vector2i(15, 62), Vector2i(17, 74), Vector2i(2, 73)], pasture_material)
+	_add_crop_rows()
+	_add_farm_fence("FarmyardFence", [Vector2i(5, 50), Vector2i(8, 47), Vector2i(18, 47), Vector2i(26, 51), Vector2i(24, 59), Vector2i(15, 61), Vector2i(7, 58), Vector2i(5, 50)])
+	_add_farm_fence("PastureFence", [Vector2i(1, 61), Vector2i(15, 62), Vector2i(17, 74), Vector2i(2, 73), Vector2i(1, 61)])
+
+func _add_farm_field(node_name: String, corners: Array[Vector2i], material: Material) -> void:
+	var points: Array[Vector3] = []
+	var centre := Vector3.ZERO
+	for hex in corners:
+		var point := HexGrid.axial_to_world(hex, HEX_RADIUS, -0.16)
+		points.append(point)
+		centre += point
+	centre /= float(points.size())
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for index in range(points.size()):
+		surface.set_normal(Vector3.UP)
+		surface.add_vertex(centre)
+		surface.add_vertex(points[index])
+		surface.add_vertex(points[(index + 1) % points.size()])
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	instance.mesh = surface.commit()
+	instance.material_override = material
+	add_child(instance)
+
+func _add_crop_rows() -> void:
+	for row in range(8):
+		var q := 3 + row
+		var start := HexGrid.axial_to_world(Vector2i(q, 43), HEX_RADIUS, -0.10)
+		var finish := HexGrid.axial_to_world(Vector2i(q + 9, 53), HEX_RADIUS, -0.10)
+		add_child(ORGANIC_FEATURES.make_ribbon("CropRowNorthwest%d" % row, [start, (start + finish) * 0.5 + Vector3(0.0, 0.0, 0.8), finish], PackedFloat32Array([0.16, 0.20, 0.16]), crop_material, 0.0, 4))
+	for row in range(9):
+		var q := 22 + row
+		var start := HexGrid.axial_to_world(Vector2i(q, 43), HEX_RADIUS, -0.10)
+		var finish := HexGrid.axial_to_world(Vector2i(q - 1, 57), HEX_RADIUS, -0.10)
+		add_child(ORGANIC_FEATURES.make_ribbon("CropRowEast%d" % row, [start, finish], PackedFloat32Array([0.16, 0.16]), crop_material, 0.0, 4))
+
+func _add_farm_fence(node_name: String, points: Array[Vector2i]) -> void:
+	var root := Node3D.new()
+	root.name = node_name
+	add_child(root)
+	var post_mesh := CylinderMesh.new()
+	post_mesh.top_radius = 0.07
+	post_mesh.bottom_radius = 0.11
+	post_mesh.height = 1.25
+	post_mesh.radial_segments = 6
+	for index in range(points.size() - 1):
+		var a := HexGrid.axial_to_world(points[index], HEX_RADIUS, 0.0)
+		var b := HexGrid.axial_to_world(points[index + 1], HEX_RADIUS, 0.0)
+		var distance := a.distance_to(b)
+		var segments := maxi(1, ceili(distance / 2.5))
+		for step in range(segments + 1):
+			var t := float(step) / float(segments)
+			var position := a.lerp(b, t)
+			var post := MeshInstance3D.new()
+			post.mesh = post_mesh
+			post.position = position + Vector3.UP * 0.62
+			post.material_override = fence_material
+			root.add_child(post)
+		var midpoint := (a + b) * 0.5
+		var direction := b - a
+		var rail := _add_box(root, "FenceRail", midpoint + Vector3.UP * 0.42, Vector3(0.12, 0.12, distance), fence_material)
+		rail.rotation.y = atan2(direction.x, direction.z)
+		var upper := _add_box(root, "FenceRailUpper", midpoint + Vector3.UP * 0.82, Vector3(0.12, 0.12, distance), fence_material)
+		upper.rotation.y = atan2(direction.x, direction.z)
 
 func _create_cottage(id: String, centre_hex: Vector2i, width: float, depth: float, wall_height: float, roof_rise: float, door_side: String) -> void:
 	var root := Node3D.new()
@@ -294,8 +395,8 @@ func _create_forest() -> void:
 	var canopy_mesh := SphereMesh.new()
 	canopy_mesh.radius = 0.95
 	canopy_mesh.height = 1.9
-	for q in range(-40, 41, 4):
-		for r in range(-40, 41, 4):
+	for q in range(-96, 97, 4):
+		for r in range(-96, 97, 4):
 			var hex := Vector2i(q, r)
 			if not HollowmereVillageData.is_forest_candidate(hex):
 				continue
