@@ -4,12 +4,14 @@
 The original `ScottENOC/Hex-crpg` `main` branch is authoritative. Adjacent JSON files are source-derived static catalogues, not proof that effects are implemented. Source currently defines 186 skill entries and 15 base spells.
 
 ## One progression model for every character
-The main character, companions, named NPCs, generated humanoid NPCs and combatant enemies use the same rules for attribute pools, skill budgets, prerequisites, rank caps and effects. They differ only in who chooses the spend.
+The main character, companions, named NPCs, generated humanoid NPCs and combatant enemies use the same rules for attribute pools, skill budgets, prerequisites, rank caps and effects. They differ in who chooses the spend and when.
 
-- **Player:** race + ordered class levels generate attribute pools. Player explicitly spends points in the skill UI. Unspent points persist through save/load.
-- **Companions:** same purchase validator; authored build preferences guide automatic allocation. Identity/class build remains stable. Level-ups allocate only newly earned points.
-- **Named NPCs:** authored race, class levels, preferred picks, equipment and archetype. Validate picks in purchase order. Invalid or over-budget picks become warnings, never silent free grants.
-- **Generated humanoids:** deterministic seeded race/class packages and fully legal point spending. Build should fit role, equipment and faction.
+- **Player/main character:** race + ordered class levels generate attribute pools. The player explicitly spends points in the skill UI. Unspent points persist through save/load.
+- **Companions at recruitment:** when a companion first joins the party, automatically allocate all skill points accumulated through their current level. Use their race, class/level history, role, equipment and authored build preferences to create a legal, coherent build. This is a one-time recruitment initialisation, not a recurring auto-build policy.
+- **Companions after recruitment:** from the moment they join, all newly earned skill points remain unspent until the user allocates them. Do not automatically spend companion points on level-up. The UI should make each companion's available points visible and allow the user to choose their skills.
+- **Companion departure/rejoin:** preserve the companion's existing ranks, spent-point ledger, unspent points and recruitment-initialisation marker. Rejoining must not rebuild them or grant/spend the same points again. A genuinely new companion instance should be initialised once when first recruited.
+- **Named NPCs who are not party companions:** use authored race, class levels, preferred picks, equipment and archetype. Validate picks in purchase order. Invalid or over-budget picks become warnings, never silent free grants. If one becomes a party companion, apply the one-time recruitment rule only to any valid unspent budget; preserve authored ranks and spending.
+- **Generated humanoid NPCs who are not party companions:** deterministic seeded race/class packages and fully legal point spending. Build should fit role, equipment and faction.
 - **Civilians:** explicit zero-class/zero-skill progression mode.
 - **Non-humanoid creatures:** innate/template abilities and creature-specific policies; do not force humanoid class rules.
 
@@ -19,12 +21,13 @@ Preserve original calculation: race bonuses + bonuses from each class level prod
 - spent points by skill and pool;
 - remaining points by pool;
 - explicitly free/innate ranks exempt from spending;
-- authored intent, unmet picks, progression mode and deterministic seed.
+- authored intent, unmet picks, progression mode and deterministic seed;
+- for companions, whether one-time recruitment allocation has occurred and the point-balance snapshot at recruitment.
 
-For every pool, spent + remaining must reconcile to earned budget. Prevent level-up, reload, respawn or companion rejoin from awarding points twice.
+For every pool, spent + remaining must reconcile to earned budget. Prevent level-up, reload, respawn or companion rejoin from awarding points twice. Recruitment allocation may spend only the companion's then-current unspent budget; it must not overwrite prior authored or earned ranks.
 
 ## NPC skill-spending policy
-Port the original layers as behavioural reference:
+Port the original layers as behavioural reference for non-party NPCs and for the one-time companion recruitment build:
 - `npcProgression.js`: race profiles, class packages, legal spending, equipment requirements and priorities.
 - `npcProgressionPolicy.js`: deterministic weighted package choice, legacy reconciliation and equipment legality.
 - `namedNpcProgression.js`: stable authored named builds.
@@ -32,13 +35,15 @@ Port the original layers as behavioural reference:
 - `companionProgression.js`: stable companion identities and preferred builds.
 - `npcBuilder.js` and `campaign2Content.js`: authored skill-pick examples.
 
-AI spending order:
+Automatic allocation order:
 1. Make equipped weapon, armour, shield and mount legal.
 2. Buy prerequisites in valid order.
 3. Meet archetype/class must-haves.
-4. Prefer skills the NPC can actually use (no shield reaction without shield, no bow mastery without bow).
-5. Spend remaining points via deterministic weighted priorities.
+4. Prefer skills the character can actually use (no shield reaction without shield, no bow mastery without bow).
+5. Spend remaining eligible points via deterministic weighted priorities.
 6. Avoid mutually exclusive/unusable duplicates; report legitimate leftovers.
+
+**Important boundary:** the automatic allocator must not run on a party companion's ordinary level-up after recruitment. At that point it is only a recommendation/reference for the player, not an authority that spends points.
 
 ## Magic
 Port base spells and learn/unlock skills together:
@@ -51,18 +56,18 @@ Port base spells and learn/unlock skills together:
 - NPC spellbooks containing only learned, valid and affordable variants;
 - tactical AI selection based on target, expected effect, mana, TP, role and friendly-fire risk.
 
-NPCs need both knowledge and a valid built spell variant, plus an AI policy for when to cast. Player-created spells remain player-authored and must never be overwritten by NPC generation.
+NPCs need both knowledge and a valid built spell variant, plus an AI policy for when to cast. Player-created spells remain player-authored and must never be overwritten by NPC generation. Party companions' newly earned skill points remain player-controlled as described above; spell learning/unlocking must respect that same ownership boundary rather than silently spending their points.
 
 ## Proposed 3D architecture
 1. `data/skills/skill_definitions.json` — source metadata, tree, prerequisites, rank limits and effect identifiers.
 2. `data/magic/base_spells.json` — spell definitions and targeting/effect metadata.
 3. `scripts/simulation/skill_catalog.gd` — loading, validation and lookup.
 4. `scripts/simulation/skill_progression.gd` — budget calculation, legal purchase, rank checks, respec and reconciliation.
-5. `scripts/simulation/npc_skill_spending.gd` — deterministic role/equipment-aware build generation.
+5. `scripts/simulation/npc_skill_spending.gd` — deterministic role/equipment-aware build generation, with a recruitment-only entry point for companions.
 6. `scripts/simulation/spell_catalog.gd` + `spell_builder.gd` — spell definitions and variant/cost generation.
 7. `scripts/simulation/spell_casting.gd` — cast validation and effects.
 8. `scripts/simulation/npc_spell_planner.gd` — NPC spellbook construction and tactical choice.
-9. Extend `CharacterState` save/load with budgets, spent ranks, free ranks, unlocks, spell variants and progression provenance.
+9. Extend `CharacterState` save/load with budgets, spent ranks, free ranks, unlocks, spell variants and progression provenance, including companion recruitment state.
 
 Do not create a second parallel skills dictionary. Existing reads in `world_simulation.gd` and `combat_rules.gd` should be migrated incrementally to the shared model without regressing their current behaviour.
 
@@ -78,17 +83,19 @@ Do not create a second parallel skills dictionary. Existing reads in `world_simu
 - Race + class budgets match source calculations for every playable race/class.
 - Purchases validate pool, wildcard, prerequisite, rank cap, mutually exclusive choices and point availability.
 - Player, companion, authored NPC, generated NPC and civilian fixtures reconcile budget = spent + remaining (free ranks separately tracked).
+- Companion recruitment auto-allocates the accumulated budget exactly once; ordinary post-recruitment level-ups add unspent points and never trigger automatic spending.
+- Companion departure/rejoin preserves ranks and balances without rebuilding or duplication.
 - NPC builds deterministic for fixed seed; every purchase legal and equipment legal without free proficiency.
 - Level-up grants points once; save/load and respawn do not duplicate them.
 - Existing 3D combat mechanics retain behaviour after integration.
 - Spell variants match source cost formula; unaffordable/illegal casts rejected.
 - NPCs only generate spells learned and affordable, then choose contextually sensible casts.
-- Regression fixtures cover player, companions, named NPCs, generic humanoids, civilians and monsters.
+- Regression fixtures cover player, newly recruited companions, established companions levelling up, rejoining companions, named NPCs, generic humanoids, civilians and monsters.
 
 ## Implementation order
 1. Add source-derived catalogues (this PR).
 2. Implement point budget and purchase validator; wire player UI and save/load.
-3. Port deterministic NPC spending; migrate authored NPCs and companions.
+3. Port deterministic NPC spending for non-party NPCs and one-time companion recruitment; ensure party companion level-ups remain player-controlled.
 4. Port spell builder/casting; verify combat integration.
-5. Port NPC spellbook generation and tactical casting.
+5. Port NPC spellbook generation and tactical casting, respecting player control of party companions.
 6. Port remaining effects by family with regression tests.
