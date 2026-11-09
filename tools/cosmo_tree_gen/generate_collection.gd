@@ -45,7 +45,7 @@ func _run_collection() -> void:
 				"Include Collisions": true,
 			})
 			tree.free()
-			if error_code != OK:
+			if error_code != OK or not FileAccess.file_exists(output_path):
 				push_error("Cosmo export failed for %s: %s" % [output_path, error_string(error_code)])
 				quit(1)
 				return
