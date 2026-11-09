@@ -65,6 +65,19 @@ func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> boo
         source_root.free()
         push_warning("Modular garment export contains no skinned meshes")
         return false
+
+    # Emit the source surface names once per running game. Equipment visibility
+    # is material-name driven, so this makes mismatches diagnosable in Godot.
+    var scene_root := get_tree().root if get_tree() != null else null
+    if scene_root != null and not scene_root.has_meta("ara_modular_surface_dumped"):
+        scene_root.set_meta("ara_modular_surface_dumped", true)
+        for source_mesh in source_meshes:
+            for surface in range(source_mesh.mesh.get_surface_count()):
+                print("[Ara modular] %s / %s" % [
+                    source_mesh.name,
+                    _surface_label(source_mesh, surface)
+                ])
+
     for source_mesh in source_meshes:
         var instance := MeshInstance3D.new()
         instance.name = "AraModularGarments_" + source_mesh.name
