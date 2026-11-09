@@ -66,15 +66,9 @@ func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> boo
         source_root.free()
         push_warning("Modular garment export contains no skinned meshes")
         return false
-    var scene_root := get_tree().root if get_tree() != null else null
-    if scene_root != null and not scene_root.has_meta("ara_modular_surface_dumped"):
-        scene_root.set_meta("ara_modular_surface_dumped", true)
-        for source_mesh in source_meshes:
-            for surface in range(source_mesh.mesh.get_surface_count()):
-                print("[Ara modular] %s / %s" % [
-                    source_mesh.name,
-                    _surface_label(source_mesh, surface)
-                ])
+    # Spawn setup runs before the actor is added to the active scene. Defer
+    # diagnostics so the complete authored + modular model can be inspected.
+    call_deferred("_dump_garment_surface_report")
 
     for source_mesh in source_meshes:
         var instance := MeshInstance3D.new()
@@ -96,6 +90,36 @@ func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> boo
     set_meta("modular_garments_loaded", not modular_garment_meshes.is_empty())
     return not modular_garment_meshes.is_empty()
 
+
+func _dump_garment_surface_report() -> void:
+    var tree := get_tree()
+    if tree == null or tree.root.has_meta("ara_garment_surface_reported"):
+        return
+    tree.root.set_meta("ara_garment_surface_reported", true)
+    if model_root == null or not is_instance_valid(model_root):
+        return
+
+    print("[Ara garment report] BEGIN actor=%s asset=%s" % [get_path(), loaded_asset_path])
+    var meshes: Array[MeshInstance3D] = []
+    _collect_meshes(model_root, meshes)
+    for mesh_instance in meshes:
+        if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
+            continue
+        print("[Ara garment report] MESH path=%s mesh=%s surfaces=%d" % [
+            str(model_root.get_path_to(mesh_instance)),
+            mesh_instance.mesh.resource_name,
+            mesh_instance.mesh.get_surface_count()
+        ])
+        for surface in range(mesh_instance.mesh.get_surface_count()):
+            var material := mesh_instance.get_active_material(surface)
+            var material_name := material.resource_name if material != null else "<none>"
+            print("[Ara garment report] SURFACE mesh=%s index=%d name=%s material=%s" % [
+                mesh_instance.name,
+                surface,
+                mesh_instance.mesh.surface_get_name(surface),
+                material_name
+            ])
+    print("[Ara garment report] END")
 
 func _clear_modular_garments() -> void:
     for instance in modular_garment_meshes:
