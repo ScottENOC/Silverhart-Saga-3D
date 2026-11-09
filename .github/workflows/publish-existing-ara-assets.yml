@@ -38,14 +38,14 @@ jobs:
         with:
           name: ara-generated-models
           repository: ${{ github.repository }}
-          run-id: ${{ inputs.source_run_id }}
+          run-id: ${{ inputs.source_run_id || '42537648604' }}
           github-token: ${{ github.token }}
           path: /tmp/ara-generated
 
       - name: Download existing anatomy-integrated female and male bodies
         shell: bash
         env:
-          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id || '42537648604' }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
@@ -233,12 +233,12 @@ jobs:
           zip -q -r "$GITHUB_WORKSPACE/ara-runtime-assets.zip" .
           test -s "$GITHUB_WORKSPACE/ara-runtime-assets.zip"
         env:
-          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id || '42537648604' }}
 
       - name: Upload versioned Ara runtime package
         uses: actions/upload-artifact@v7
         with:
-          name: ara-runtime-assets-existing-${{ inputs.source_run_id }}-${{ github.sha }}
+          name: ara-runtime-assets-existing-${{ inputs.source_run_id || '42537648604' }}-${{ github.sha }}
           path: ara-runtime-assets.zip
           if-no-files-found: error
           retention-days: 90
