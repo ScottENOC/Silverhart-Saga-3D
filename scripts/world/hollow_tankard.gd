@@ -2,7 +2,7 @@ class_name HollowTankard
 extends Node3D
 
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
-const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_body.glb"
+const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_modular_underwear.glb"
 const PLAYER_CUSTOM_FEMALE_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
 const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
