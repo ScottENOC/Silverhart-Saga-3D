@@ -382,7 +382,6 @@ func _tint_attached_hair(colour: Color) -> void:
 func set_garment_visible(material_fragment: String, visible: bool) -> bool:
     if model_root == null:
         return false
-    var needle := _normalise_garment_label(material_fragment)
     var changed := false
     var meshes: Array[MeshInstance3D] = []
     _collect_meshes(model_root, meshes)
