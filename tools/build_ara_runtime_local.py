@@ -217,16 +217,23 @@ def main():
     garments=RAW/"ara_person_garments.glb"
     npc_manifest=ROOT/"data/characters/hollowmere_npcs.json"
     npc_profiles=json.loads(npc_manifest.read_text(encoding="utf-8"))["characters"]
-    npc_models=[ROOT/"art/characters/hollowmere"/(str(profile["id"])+".glb") for profile in npc_profiles]
+    # Hollowmere GLBs use game_id filenames (e.g. companion_wren_talbot.glb).
+    npc_models=[
+        ROOT/"art/characters/hollowmere"/(str(profile.get("game_id") or profile.get("id") or "")+".glb")
+        for profile in npc_profiles
+    ]
     garment_builder=ROOT/"tools/blender/build_ara_garment_library.py"
+    garment_report=garments.with_suffix(".report.json")
     def build_garment_library():
         run([blender,"--background","--python-exit-code","1","--python",garment_builder,
           "--","--base-body",female_out,"--modular",modular,"--underwear",underwear,
           "--armor",ARA/"ara_person_leather_armor.glb","--wrapper-knee",ARA/"ara_person_wrapper_knee.glb","--npc-manifest",npc_manifest,
           "--npc-dir",ROOT/"art/characters/hollowmere","--output",garments])
-    cached("garment-library",[garments],
+        if not garment_report.is_file():
+            fail("Garment builder completed without its skinning validation report.")
+    cached("garment-library",[garments,garment_report],
       [female_out,modular,underwear,ARA/"ara_person_leather_armor.glb",ARA/"ara_person_wrapper_knee.glb",npc_manifest,*npc_models,garment_builder],
-      "garment-library-v1:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+      "garment-library-v2-game-id-skin-validation:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
       build_garment_library)
 
     # Review renders are also cached independently, so changing one outfit
