@@ -109,8 +109,11 @@ func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> boo
     source_root.free()
     set_meta("modular_garments_loaded", not modular_garment_meshes.is_empty())
     if modular_garment_meshes.is_empty():
-        push_warning("Garment library contains no nodes named Garment__<visual>__<piece>")
+        push_warning("Garment library contains no nodes named Garment__<visual>__<variant>__<piece>")
         return false
+    print("[Character assembly] garment_library=%s variant=%s independent_meshes=%d" % [
+        glb_path, target_variant, modular_garment_meshes.size()
+    ])
     return true
 
 
