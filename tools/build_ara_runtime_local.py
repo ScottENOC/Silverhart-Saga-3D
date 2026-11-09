@@ -22,7 +22,7 @@ FILES = [
     "ara_person_string_bikini_bottom.glb", "ara_person_lace_briefs.glb",
     "ara_person_fishnet_briefs.glb", "ara_person_lace_shirt.glb",
     "ara_person_fishnet_shirt.glb", "ara_person_lace_pants.glb",
-    "ara_person_fishnet_pants.glb", "ara_person_backless_slit_dress.glb",
+    "ara_person_fishnet_pants.glb", "ara_person_wrapper_knee.glb", "ara_person_backless_slit_dress.glb",
     "ara_person_leather_armor.glb",
 ]
 def log(s): print(f"\n[ Ara local ] {s}", flush=True)
@@ -112,6 +112,7 @@ def main():
     mobile=dict(base); mobile.update({"name":"Ara Base Person - mobile preview","detail":"low","animations":False,"faceBones":False,"faceShapes":False,"speechShapes":False})
     variants={
       "tank_top":{"top":"tank_top","underTop":"none","underBottom":"none","bottom":"none"},
+      "wrapper_knee":{"top":"none","underTop":"none","underBottom":"none","bottom":"wrapper_knee"},
       "halter_bra_lace":{"top":"none","underTop":"halter_bra_lace","underBottom":"none","bottom":"none","garmentStyles":{"halter_bra_lace":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
       "halter_bra_fishnet":{"top":"none","underTop":"halter_bra_fishnet","underBottom":"none","bottom":"none","garmentStyles":{"halter_bra_fishnet":{"pattern":"fishnet","color":"#29242d","color2":"#987b91"}}},
       "triangle_bikini_top":{"top":"none","underTop":"bikini_top","underBottom":"none","bottom":"none"},
@@ -124,7 +125,7 @@ def main():
       "fishnet_pants":{"top":"none","underTop":"none","underBottom":"none","bottom":"fatigue_pants","garmentStyles":{"fatigue_pants":{"pattern":"fishnet","color":"#29242d","color2":"#987b91"}}},
       "backless_slit_dress":{"top":"backless_slit_dress","underTop":"none","underBottom":"none","bottom":"none"},
       "leather_armor":{"top":"none","underTop":"none","underBottom":"none","bottom":"none","accessories":["leather_armor"]}}
-    params={"ara_person_benchmark":base,"ara_person_body":body,"ara_person_male_raw":male,"ara_person_mobile":mobile}
+    params={"ara_person_benchmark":base,"ara_person_body":body,"ara_person_male_raw":male,"ara_person_mobile":mobile,"ara_person_wrapper_knee":dict(body, name="Ara Wrapper Knee Source", bottom="wrapper_knee")}
     for k,v in variants.items():
         p=dict(base); p.update({"name":"Ara Base Person - "+k,"jacket":"none","underwear":False,"shoes":"none","hat":"none","weapon":"none","carry":"none"}); p.update(v); params["ara_person_"+k]=p
     def export(key,p):
@@ -211,6 +212,23 @@ def main():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_adult_anatomy.py","--","--input",underwear,"--output",fitted_under,"--profile","none","--adult","--fit-existing"],env=env)
         shutil.copy2(fitted_under,underwear)
     cached("garment-fit",[modular,underwear],inputs+[ROOT/"tools/blender/add_dress_slit.py",ROOT/"tools/blender/add_adult_anatomy.py"],"blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],fit)
+    # Convert combined Ara/NPC clothing surfaces into independently skinned
+    # garment objects. This is local Blender work, never a GitHub Actions job.
+    garments=RAW/"ara_person_garments.glb"
+    npc_manifest=ROOT/"data/characters/hollowmere_npcs.json"
+    npc_profiles=json.loads(npc_manifest.read_text(encoding="utf-8"))["characters"]
+    npc_models=[ROOT/"art/characters/hollowmere"/(str(profile["id"])+".glb") for profile in npc_profiles]
+    garment_builder=ROOT/"tools/blender/build_ara_garment_library.py"
+    def build_garment_library():
+        run([blender,"--background","--python-exit-code","1","--python",garment_builder,
+          "--","--base-body",female_out,"--modular",modular,"--underwear",underwear,
+          "--armor",ARA/"ara_person_leather_armor.glb","--wrapper-knee",ARA/"ara_person_wrapper_knee.glb","--npc-manifest",npc_manifest,
+          "--npc-dir",ROOT/"art/characters/hollowmere","--output",garments])
+    cached("garment-library",[garments],
+      [female_out,modular,underwear,ARA/"ara_person_leather_armor.glb",ARA/"ara_person_wrapper_knee.glb",npc_manifest,*npc_models,garment_builder],
+      "garment-library-v1:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+      build_garment_library)
+
     # Review renders are also cached independently, so changing one outfit
     # review does not regenerate Ara meshes or rerun anatomy integration.
     review_root=ARA/"review"
@@ -234,13 +252,13 @@ def main():
 
     # Package exact files consumed by the game; include checksums and provenance.
     package=RUNTIME
-    names=["ara_person_benchmark.glb","ara_person_body.glb","ara_person_modular.glb","ara_person_modular_underwear.glb","ara_person_male_body.glb"]
     sources={
         "ara_person_benchmark.glb": ARA/"ara_person_benchmark.glb",
         "ara_person_body.glb": ARA/"ara_person_body.glb",
         "ara_person_modular.glb": modular,
         "ara_person_modular_underwear.glb": underwear,
         "ara_person_male_body.glb": ARA/"ara_person_male_body.glb",
+        "ara_person_garments.glb": garments,
     }
     names=list(sources)
     def pack():
@@ -252,9 +270,9 @@ def main():
         assets={}
         for name in names:
             b=(package/name).read_bytes(); assets[name]={"size_bytes":len(b),"sha256":hashlib.sha256(b).hexdigest()}
-        manifest={"schema_version":1,"package_version":"local-"+digest([ARA/x for x in names])[:16],"source_commit":current,"generator":{"repository":"https://github.com/olatunde85/3d-gen","commit":PIN},"assets":assets}
+        manifest={"schema_version":1,"package_version":"local-"+digest(list(sources.values()))[:16],"source_commit":current,"generator":{"repository":"https://github.com/olatunde85/3d-gen","commit":PIN},"assets":assets}
         (package/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
-    cached("runtime-package",[package/"manifest.json"]+[package/n for n in names],[ARA/n for n in names],"runtime-package-v1",pack)
+    cached("runtime-package",[package/"manifest.json"]+[package/n for n in names],list(sources.values()),"runtime-package-v2",pack)
     log("Ara + Blender runtime assets ready. Cached stages will be skipped on the next run.")
 
 if __name__=="__main__":

@@ -50,6 +50,6 @@
   "notes": [
     "Every authored Hollowmere NPC and companion receives deterministic weapon and armour inventory from this file.",
     "Clothing and footwear inventory is created from each character's existing Ara appearance parameters in hollowmere_npcs.json.",
-    "Equipped item instances drive the visible garment surfaces on each character; authored NPC GLBs retain their own appearance-specific garment meshes."
+    "Every character is assembled from a shared gendered Ara base body, a personal appearance profile, and inventory. Equipped item instances show or remove independent skinned garment objects; authored pre-dressed NPC GLBs are not runtime character bases."
   ]
 }

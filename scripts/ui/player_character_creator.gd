@@ -337,6 +337,9 @@ func _refresh_appearance_preview(_index: int) -> void:
             preview_status.text = "Preview asset unavailable or failed to instantiate: %s. Your appearance choices can still be saved." % asset_path
             preview_variant_loaded = ""
             return
+        preview_actor.set_meta("body_variant", variant)
+        if not preview_actor.configure_modular_garments():
+            preview_status.text = "Base body loaded, but the local garment library has not been built yet."
         preview_variant_loaded = variant
     var build_factors := {"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04, "Androgynous": 1.0}
     var profile := {

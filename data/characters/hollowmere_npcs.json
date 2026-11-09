@@ -2,7 +2,7 @@
   "schema_version": 1,
   "generator": "Ara 3D Gen",
   "generator_commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395",
-  "description": "First-pass Hollowmere adult cast. All appearance values are explicit Ara parameters or IDs from the pinned Ara catalogue. Body sliders are normalized 0..1. NPC appearance is build-time data; Godot does not pretend to regenerate Ara geometry at runtime.",
+  "description": "Hollowmere adult appearance profiles. Each person uses the shared male or female anatomy-integrated Ara base; these Ara parameters and catalogue IDs define their individual body settings, colours, hairstyle and garment styles. Body sliders are normalized 0..1. Godot applies supported profile settings and attaches exported skinned hair/garment assets at runtime; it does not generate new Ara geometry at runtime.",
   "characters": [
     {
       "id": "wren_talbot",

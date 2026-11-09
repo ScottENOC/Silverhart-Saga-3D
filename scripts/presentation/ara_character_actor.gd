@@ -9,12 +9,13 @@ var loaded_asset_path: String = ""
 var hair_instances: Array[MeshInstance3D] = []
 var modular_garment_meshes: Array[MeshInstance3D] = []
 var equipment_attachments: Dictionary = {}
-const MODULAR_GARMENT_ASSET := "res://art/characters/ara_runtime/ara_person_modular.glb"
+const MODULAR_GARMENT_ASSET := "res://art/characters/ara_runtime/ara_person_garments.glb"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
-const GARMENT_VISUALS := ["bra", "briefs", "long_tunic", "trousers", "tunic", "wrapper_long", "uniform_shirt", "fatigue_pants", "wrapper_knee", "tattered_shirt", "fatigue_shirt", "sandals", "combat_boots", "leather armor"]
 var current_hair_colour: Color = Color("#49372a")
 
 func configure(glb_path: String) -> bool:
+    _clear_modular_garments()
+    equipment_attachments.clear()
     if model_root != null and is_instance_valid(model_root):
         remove_child(model_root)
         model_root.queue_free()
@@ -43,51 +44,70 @@ func configure(glb_path: String) -> bool:
     call_deferred("_dump_garment_surface_report")
     return true
 
-## Attach modular garment surfaces to this actor's own Ara skeleton.
-## The original body mesh remains visible, preventing transparent clothing from
-## cutting holes in the skin beneath it.
+## The original body remains untouched; inventory controls separate garment nodes.
+## Attach independently skinned garment objects to this character's Ara skeleton.
+## Each garment is a separate mesh node, so equipment visibility never edits body surfaces.
 func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> bool:
     _clear_modular_garments()
     if model_root == null or not ResourceLoader.exists(glb_path):
+        push_warning("Character garment library is unavailable: " + glb_path)
         return false
     var target_skeleton := _find_skeleton(model_root)
     if target_skeleton == null:
-        push_warning("Cannot attach modular garments: target Ara body has no Skeleton3D")
+        push_warning("Cannot attach garments: target Ara body has no Skeleton3D")
         return false
     var packed := load(glb_path) as PackedScene
     if packed == null:
+        push_warning("Cannot load character garment library: " + glb_path)
         return false
     var source_root := packed.instantiate()
     var source_skeleton := _find_skeleton(source_root)
     if source_skeleton == null or not _same_skeleton(source_skeleton, target_skeleton):
         source_root.free()
-        push_warning("Cannot attach modular garments: Workshop skeleton does not match actor skeleton")
+        push_warning("Cannot attach garments: garment library skeleton does not match actor skeleton")
         return false
     var source_meshes: Array[MeshInstance3D] = []
     _collect_skinned_meshes(source_root, source_meshes)
-    if source_meshes.is_empty():
-        source_root.free()
-        push_warning("Modular garment export contains no skinned meshes")
-        return false
+    var target_variant := String(get_meta("body_variant", "female"))
+    var available_variants: Dictionary = {}
     for source_mesh in source_meshes:
-        var instance := MeshInstance3D.new()
-        instance.name = "AraModularGarments_" + source_mesh.name
-        instance.mesh = source_mesh.mesh
-        instance.skin = source_mesh.skin
-        instance.transform = source_mesh.transform
+        var source_parts := source_mesh.name.split("__", false, 3)
+        if source_parts.size() < 4 or source_parts[0] != "Garment":
+            continue
+        var source_visual := String(source_parts[1])
+        var source_variant := String(source_parts[2])
+        if not available_variants.has(source_visual):
+            available_variants[source_visual] = []
+        if not available_variants[source_visual].has(source_variant):
+            available_variants[source_visual].append(source_variant)
+    for source_mesh in source_meshes:
+        var parts := source_mesh.name.split("__", false, 3)
+        if parts.size() < 4 or parts[0] != "Garment":
+            continue
+        var garment_visual := String(parts[1])
+        var garment_variant := String(parts[2])
+        if garment_visual.is_empty():
+            continue
+        if garment_variant != target_variant:
+            var matching_variants: Array = available_variants.get(garment_visual, [])
+            if garment_variant != "any" or matching_variants.has(target_variant):
+                continue
+        var instance := source_mesh.duplicate() as MeshInstance3D
+        if instance == null:
+            continue
+        instance.name = "Equippable_" + garment_visual + "_" + str(modular_garment_meshes.size())
         model_root.add_child(instance)
         instance.skeleton = instance.get_path_to(target_skeleton)
+        instance.visible = false
+        instance.set_meta("garment_visual", garment_visual)
+        instance.set_meta("garment_body_variant", garment_variant)
         modular_garment_meshes.append(instance)
-        for surface in range(instance.mesh.get_surface_count()):
-            # The modular export may contain body/skin surfaces as well as
-            # garments. Only hide surfaces positively identified as garments;
-            # unknown surfaces stay visible rather than risking holes in skin.
-            var label := _surface_label(instance, surface) + " " + instance.name
-            if _is_known_garment_surface(label):
-                _set_modular_surface_visible(instance, surface, false)
     source_root.free()
     set_meta("modular_garments_loaded", not modular_garment_meshes.is_empty())
-    return not modular_garment_meshes.is_empty()
+    if modular_garment_meshes.is_empty():
+        push_warning("Garment library contains no nodes named Garment__<visual>__<piece>")
+        return false
+    return true
 
 
 func _dump_garment_surface_report() -> void:
@@ -133,22 +153,8 @@ func _surface_label(mesh_instance: MeshInstance3D, surface: int) -> String:
     return material_name + " " + mesh_instance.mesh.surface_get_name(surface).to_lower()
 
 
-func _set_modular_surface_visible(mesh_instance: MeshInstance3D, surface: int, visible: bool) -> void:
-    var key := "ara_modular_original_%d_%d" % [mesh_instance.get_instance_id(), surface]
-    if not mesh_instance.has_meta(key):
-        mesh_instance.set_meta(key, mesh_instance.mesh.surface_get_material(surface))
-    var original := mesh_instance.get_meta(key) as Material
-    if visible:
-        mesh_instance.set_surface_override_material(surface, original)
-        return
-    var hidden := original.duplicate() as StandardMaterial3D if original is StandardMaterial3D else StandardMaterial3D.new()
-    hidden.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-    hidden.albedo_color.a = 0.0
-    hidden.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-    mesh_instance.set_surface_override_material(surface, hidden)
-
-
-## Render the actual equipped item instances from CharacterState.
+## Equipment state selects independent garment objects and hand/head props.
+## No body mesh or body material is hidden when an item is unequipped.
 func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
     var visible_garments: Array[String] = []
     var weapon_id := ""
@@ -166,7 +172,8 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
         match slot:
             "armour":
                 if item_id in ["reinforced_leather_armor", "light_armor", "medium_armor", "heavy_armor"]:
-                    visible_garments.append("leather armor")
+                    if not visible_garments.has("leather_armor"):
+                        visible_garments.append("leather_armor")
             "weapon":
                 weapon_id = item_id
             "offhand":
@@ -174,76 +181,38 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
             "helmet":
                 helmet_id = item_id
 
-    # Clothing can be exported either as surfaces in the authored character
-    # GLB or in the separate modular clothing GLB. Drive both through the same
-    # item metadata. Only surfaces with an explicit garment token are touched;
-    # body, skin, hair and other appearance surfaces remain untouched.
-    if model_root != null:
-        var character_meshes: Array[MeshInstance3D] = []
-        _collect_meshes(model_root, character_meshes)
-        for mesh_instance in character_meshes:
-            if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
-                continue
-            if hair_instances.has(mesh_instance):
-                continue
-            for surface in range(mesh_instance.mesh.get_surface_count()):
-                var label := _surface_label(mesh_instance, surface) + " " + mesh_instance.name
-                if not _is_known_garment_surface(label):
-                    continue
-                var show_surface := false
-                for fragment in visible_garments:
-                    if _garment_label_matches(label, fragment):
-                        show_surface = true
-                        break
-                _set_modular_surface_visible(mesh_instance, surface, show_surface)
+    for garment_mesh in modular_garment_meshes:
+        if not is_instance_valid(garment_mesh):
+            continue
+        var garment_visual := String(garment_mesh.get_meta("garment_visual", ""))
+        garment_mesh.visible = visible_garments.has(garment_visual)
 
     _set_equipment_prop("weapon", _weapon_prop_id(weapon_id), "WeaponR")
-    var shield_prop := "round_shield" if offhand_id == "wooden_shield" else ( "kite_shield" if offhand_id == "bulwark_shield" else "")
+    var shield_prop := "round_shield" if offhand_id == "wooden_shield" else ("kite_shield" if offhand_id == "bulwark_shield" else "")
     _set_equipment_prop("offhand", shield_prop, "WeaponL")
     _set_equipment_prop("helmet", _helmet_prop_id(helmet_id), "Head")
 
 
-func _normalise_garment_label(value: String) -> String:
-    return value.to_lower().replace("_", "").replace("-", "").replace(" ", "")
-
-func _is_known_garment_surface(label: String) -> bool:
-    for garment_id in GARMENT_VISUALS:
-        if _garment_label_matches(label, garment_id):
-            return true
-    return false
-
-
-func _garment_label_matches(label: String, garment_id: String) -> bool:
-    # Match complete name tokens, not arbitrary substrings. The old substring
-    # test could classify body/skin surfaces as clothing (for example "braid"
-    # as "bra") and could confuse "tunic" with "long_tunic".
-    var separator_pattern := RegEx.new()
-    separator_pattern.compile("[^a-z0-9]+")
-    var label_tokens := separator_pattern.sub(label.to_lower(), " ", true).strip_edges().split(" ", false)
-    var garment_tokens := separator_pattern.sub(garment_id.to_lower(), " ", true).strip_edges().split(" ", false)
-    if garment_tokens.is_empty() or label_tokens.size() < garment_tokens.size():
-        return false
-    for start in range(label_tokens.size() - garment_tokens.size() + 1):
-        # A short tunic must not match the "tunic" component of "long_tunic".
-        if garment_tokens.size() == 1 and garment_tokens[0] == "tunic" and start > 0 and label_tokens[start - 1] == "long":
+## Apply the per-person colour choices stored beside the NPC's appearance profile.
+## The geometry remains a shared garment asset; only its material tint is individual.
+func apply_garment_styles(styles: Dictionary) -> void:
+    for garment_mesh in modular_garment_meshes:
+        if not is_instance_valid(garment_mesh) or garment_mesh.mesh == null:
             continue
-        var matches := true
-        for offset in range(garment_tokens.size()):
-            var label_token: String = label_tokens[start + offset]
-            var garment_token: String = garment_tokens[offset]
-            # Permit numbered exports such as "trousers01", but not unrelated
-            # words that merely begin with the garment name.
-            if label_token != garment_token:
-                if not label_token.begins_with(garment_token):
-                    matches = false
-                    break
-                var suffix := label_token.trim_prefix(garment_token)
-                if not suffix.is_valid_int():
-                    matches = false
-                    break
-        if matches:
-            return true
-    return false
+        var garment_visual := String(garment_mesh.get_meta("garment_visual", ""))
+        var style: Variant = styles.get(garment_visual, {})
+        if not style is Dictionary:
+            continue
+        var colour_text := String(style.get("color", ""))
+        if colour_text.is_empty():
+            continue
+        var tint := Color.from_string(colour_text, Color.WHITE)
+        for surface in range(garment_mesh.mesh.get_surface_count()):
+            var source := garment_mesh.get_active_material(surface)
+            if source is StandardMaterial3D:
+                var material := source.duplicate() as StandardMaterial3D
+                material.albedo_color = tint
+                garment_mesh.set_surface_override_material(surface, material)
 
 
 func _weapon_prop_id(item_id: String) -> String:

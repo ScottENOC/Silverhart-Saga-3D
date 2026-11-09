@@ -3,7 +3,6 @@ extends Node3D
 
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_body.glb"
-const PLAYER_CUSTOM_FEMALE_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
 const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
@@ -407,11 +406,10 @@ func _create_characters() -> void:
             continue
         var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
         var actor_id := str(profile.get("game_id", profile.get("id", "")))
-        var model_id := str(profile.get("id", ""))
         var display_name := str(profile.get("name", actor_id))
-        if actor_id.is_empty() or model_id.is_empty():
+        if actor_id.is_empty():
             continue
-        _spawn_character(actor_id, display_name, spawn, Color(0.42, 0.34, 0.25), false, model_id, profile)
+        _spawn_character(actor_id, display_name, spawn, Color(0.42, 0.34, 0.25), false, profile)
 
 
 func _load_starting_loadouts() -> Dictionary:
@@ -472,7 +470,7 @@ func _apply_npc_clothing_loadout(state: CharacterState, npc_profile: Dictionary)
             push_error("Could not equip NPC clothing '%s' on %s." % [garment_id, state.id])
 
 
-func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, ara_model_id: String = "", npc_profile: Dictionary = {}) -> void:
+func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, npc_profile: Dictionary = {}) -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
     var state: CharacterState
     if is_player:
@@ -496,13 +494,9 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     ara_model.name = "CharacterModel"
     actor.add_child(ara_model)
     var body_variant := str(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
+    # Every adult uses one of the two shared, anatomy-integrated Ara base bodies.
+    # Character-specific identity is applied from the appearance profile below.
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
-    if is_player and body_variant == "female" and ResourceLoader.exists(PLAYER_CUSTOM_FEMALE_ASSET):
-        model_path = PLAYER_CUSTOM_FEMALE_ASSET
-    if not is_player and not ara_model_id.is_empty():
-        var authored_npc_path := "res://art/characters/hollowmere/%s.glb" % ara_model_id
-        if ResourceLoader.exists(authored_npc_path):
-            model_path = authored_npc_path
     var model_loaded := ara_model.configure(model_path)
     if model_loaded:
         if is_player:
@@ -510,12 +504,14 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         else:
             var params: Dictionary = npc_profile.get("params", {})
             ara_model.apply_npc_parameters(params)
-        if model_path.contains("/ara_runtime/"):
-            _attach_ara_hair(ara_model, body_variant, str(player_profile.get("hair_style_id", "short02")) if is_player else str(npc_profile.get("params", {}).get("hair", "short02")))
-        # Authored Hollowmere NPC GLBs already contain their selected Ara garments.
-        # Runtime base bodies and the player avatar need the separate modular layer.
-        if is_player or model_path.contains("/ara_runtime/"):
-            ara_model.configure_modular_garments()
+        # Hair and equipment are separate skinned objects attached to the shared rig.
+        var hair_id := str(player_profile.get("hair_style_id", "short02")) if is_player else str(npc_profile.get("params", {}).get("hair", "short02"))
+        _attach_ara_hair(ara_model, body_variant, hair_id)
+        if not ara_model.configure_modular_garments():
+            push_warning("Character '%s' has no usable modular garment library." % display_name)
+        if not is_player:
+            var appearance_params: Dictionary = npc_profile.get("params", {})
+            ara_model.apply_garment_styles(appearance_params.get("garmentStyles", {}))
         ara_model.apply_equipment_visuals(state.equipped_item_data)
     else:
         push_error("Character '%s' could not load Ara model '%s'. No primitive substitute will be shown." % [display_name, model_path])
