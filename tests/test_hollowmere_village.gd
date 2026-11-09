@@ -60,8 +60,8 @@ func _test_road_network_connectivity() -> void:
         Vector2i(0, -10),
         Vector2i(10, 9),
         Vector2i(-4, 9),
-        HollowmereVillageData.FARMHOUSE,
-        HollowmereVillageData.FARM_BARN
+        HollowmereVillageData.FARMHOUSE_DOOR,
+        HollowmereVillageData.FARM_BARN_DOOR
     ]:
         assert(visited.has(destination), "Village road does not connect to %s" % destination)
 
@@ -69,7 +69,7 @@ func _test_building_thresholds() -> void:
     assert(HollowmereVillageData.is_blocked(Vector2i(0, 18)), "General-store footprint should block movement")
     assert(HollowmereVillageData.is_blocked(Vector2i(-14, 0)), "Chapel footprint should block movement")
     assert(HollowmereVillageData.is_blocked(Vector2i(0, -12)), "Elder-house footprint should block movement")
-    for door in [Vector2i(0, 15), Vector2i(-11, 0), Vector2i(0, -10), Vector2i(10, 9), Vector2i(-4, 9)]:
+    for door in [Vector2i(0, 15), Vector2i(-11, 0), Vector2i(0, -10), Vector2i(10, 9), Vector2i(-4, 9), HollowmereVillageData.FARMHOUSE_DOOR, HollowmereVillageData.FARM_BARN_DOOR]:
         assert(not HollowmereVillageData.is_blocked(door), "Building entrance should remain traversable: %s" % door)
 
 func _test_hollowmere_character_manifest() -> void:

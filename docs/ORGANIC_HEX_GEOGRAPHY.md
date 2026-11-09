@@ -22,7 +22,9 @@ The geography layer must be deterministic and shared by simulation queries and r
 - The bridge remains a traversable logical cell and its deck is angled to meet the river at the narrow crossing.
 - The existing path-cell network and axial movement remain the gameplay authority.
 
-This is the first local presentation pass. It does not yet replace the flat ground plane with a full continuous elevation mesh, and it does not yet provide partial water coverage within individual hexes.
+This first local pass also extends Hollowmere south to Old Mac's Farmstead: the local radius and ground plane are enlarged, the road bends to the farmhouse entrance, and a farmyard lane connects the farmhouse and barn. The farmhouse, barn, irregular fields, crop rows and fenced pasture are currently procedural blockout geometry; no Ara or Blender asset generation is required. The logical door cells remain traversable while building footprints remain blocked.
+
+It does not yet replace the flat ground plane with a full continuous elevation mesh, and it does not yet provide partial water coverage within individual hexes.
 
 ## Sub-hex terrain coverage
 

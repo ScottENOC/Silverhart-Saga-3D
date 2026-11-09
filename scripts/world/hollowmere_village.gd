@@ -98,9 +98,9 @@ func _create_paths_and_stream() -> void:
 	# Main roads wander gently between authored destinations. The logical
 	# route cells remain the existing axial paths used by movement/pathfinding.
 	var north_south: Array[Vector3] = []
-	for hex in [Vector2i(8, -40), Vector2i(9, -32), Vector2i(8, -25), Vector2i(7, -17), Vector2i(8, -9), Vector2i(7, -2), Vector2i(8, 7), Vector2i(8, 16), Vector2i(8, 24), Vector2i(11, 28), Vector2i(16, 32), Vector2i(14, 38), Vector2i(11, 44), Vector2i(12, 50), Vector2i(12, 54)]:
+	for hex in [Vector2i(8, -40), Vector2i(9, -32), Vector2i(8, -25), Vector2i(7, -17), Vector2i(8, -9), Vector2i(7, -2), Vector2i(8, 7), Vector2i(8, 16), Vector2i(8, 24), Vector2i(11, 28), Vector2i(16, 32), Vector2i(14, 38), Vector2i(11, 44), Vector2i(12, 50), Vector2i(12, 54), HollowmereVillageData.FARMHOUSE_DOOR]:
 		north_south.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.025))
-	var road_widths := PackedFloat32Array([2.5, 2.8, 2.6, 2.4, 2.5, 2.8, 2.5, 2.6, 3.1, 2.8, 2.4, 2.6, 2.4, 2.6, 2.8])
+	var road_widths := PackedFloat32Array([2.5, 2.8, 2.6, 2.4, 2.5, 2.8, 2.5, 2.6, 3.1, 2.8, 2.4, 2.6, 2.4, 2.6, 2.8, 2.5])
 	add_child(ORGANIC_FEATURES.make_ribbon("NorthSouthRoad", north_south, road_widths, path_material, 0.0, 8))
 
 	var east_west: Array[Vector3] = []
@@ -198,6 +198,10 @@ func _create_farmstead() -> void:
 	_add_crop_rows()
 	_add_farm_fence("FarmyardFence", [Vector2i(5, 50), Vector2i(8, 47), Vector2i(18, 47), Vector2i(26, 51), Vector2i(24, 59), Vector2i(15, 61), Vector2i(7, 58), Vector2i(5, 50)])
 	_add_farm_fence("PastureFence", [Vector2i(1, 61), Vector2i(15, 62), Vector2i(17, 74), Vector2i(2, 73), Vector2i(1, 61)])
+	var yard_lane: Array[Vector3] = []
+	for hex in HollowmereVillageData.FARMYARD_CENTRELINE:
+		yard_lane.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.035))
+	add_child(ORGANIC_FEATURES.make_ribbon("FarmyardLane", yard_lane, PackedFloat32Array([2.2, 2.0, 2.0, 2.0]), path_material, 0.0, 8))
 
 func _add_farm_field(node_name: String, corners: Array[Vector2i], material: Material) -> void:
 	var points: Array[Vector3] = []

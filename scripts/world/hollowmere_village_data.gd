@@ -10,7 +10,10 @@ const CROSSROADS := Vector2i(8, 24)
 const BRIDGE := Vector2i(8, STREAM_R)
 const FARMHOUSE := Vector2i(12, 54)
 const FARM_BARN := Vector2i(22, 51)
-const SOUTH_ROAD_CENTRELINE: Array[Vector2i] = [Vector2i(8, 24), Vector2i(9, 30), Vector2i(8, 36), Vector2i(10, 42), Vector2i(12, 48), Vector2i(12, 54)]
+const FARMHOUSE_DOOR := Vector2i(12, 57)
+const FARM_BARN_DOOR := Vector2i(22, 49)
+const SOUTH_ROAD_CENTRELINE: Array[Vector2i] = [Vector2i(8, 24), Vector2i(9, 30), Vector2i(8, 36), Vector2i(10, 42), Vector2i(12, 48), Vector2i(12, 54), FARMHOUSE_DOOR]
+const FARMYARD_CENTRELINE: Array[Vector2i] = [FARMHOUSE_DOOR, Vector2i(16, 56), Vector2i(19, 52), FARM_BARN_DOOR]
 
 const BUILDINGS := [
     {"id": "general_store", "center": Vector2i(0, 18), "half_q": 3, "half_r": 2},
@@ -62,7 +65,7 @@ static func is_building(hex: Vector2i) -> bool:
     return false
 
 static func is_door(hex: Vector2i) -> bool:
-    return hex == Vector2i(0, 15) or hex == Vector2i(-11, 0) or hex == Vector2i(0, -10) or hex == Vector2i(10, 9) or hex == Vector2i(-4, 9)
+    return hex == Vector2i(0, 15) or hex == Vector2i(-11, 0) or hex == Vector2i(0, -10) or hex == Vector2i(10, 9) or hex == Vector2i(-4, 9) or hex == FARMHOUSE_DOOR or hex == FARM_BARN_DOOR
 
 static func is_blocked(hex: Vector2i) -> bool:
     if not is_in_bounds(hex):
@@ -126,9 +129,10 @@ static func is_path(hex: Vector2i) -> bool:
         return true
 
     # Winding southern road to Old Mac's Farmstead.
-    for index in range(SOUTH_ROAD_CENTRELINE.size() - 1):
-        if _is_near_axial_segment(hex, SOUTH_ROAD_CENTRELINE[index], SOUTH_ROAD_CENTRELINE[index + 1], 1):
-            return true
+    for route in [SOUTH_ROAD_CENTRELINE, FARMYARD_CENTRELINE]:
+        for index in range(route.size() - 1):
+            if _is_near_axial_segment(hex, route[index], route[index + 1], 1):
+                return true
     return false
 
 static func _is_near_axial_segment(hex: Vector2i, start: Vector2i, finish: Vector2i, tolerance: int) -> bool:
@@ -170,8 +174,8 @@ static func path_cells() -> Array[Vector2i]:
     for q in range(-40, 17):
         _append_unique(cells, seen, Vector2i(q, CROSSROADS.y))
     # Include the curved farm road and its walkable verge in the local route data.
-    for q in range(2, 20):
-        for r in range(22, 58):
+    for q in range(2, 31):
+        for r in range(22, 61):
             var hex := Vector2i(q, r)
             if is_path(hex):
                 _append_unique(cells, seen, hex)
