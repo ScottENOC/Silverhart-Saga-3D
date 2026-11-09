@@ -501,6 +501,7 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     # This is consumed by garment variant selection and is useful in runtime reports.
     ara_model.set_meta("body_variant", body_variant)
     var model_loaded := ara_model.configure(model_path)
+    print("[Character assembly] actor=%s variant=%s base_asset=%s loaded=%s" % [id, body_variant, model_path, model_loaded])
     if model_loaded:
         if is_player:
             ara_model.apply_player_profile(player_profile)
