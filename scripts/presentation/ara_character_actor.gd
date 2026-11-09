@@ -89,7 +89,7 @@ func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> boo
             # The modular export may contain body/skin surfaces as well as
             # garments. Only hide surfaces positively identified as garments;
             # unknown surfaces stay visible rather than risking holes in skin.
-            var label := _normalise_garment_label(_surface_label(instance, surface) + " " + instance.name)
+            var label := _surface_label(instance, surface) + " " + instance.name
             if _is_known_garment_surface(label):
                 _set_modular_surface_visible(instance, surface, false)
     source_root.free()
