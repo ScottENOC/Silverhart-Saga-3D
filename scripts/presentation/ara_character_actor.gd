@@ -201,6 +201,9 @@ func _garment_label_matches(label: String, garment_id: String) -> bool:
     if garment_tokens.is_empty() or label_tokens.size() < garment_tokens.size():
         return false
     for start in range(label_tokens.size() - garment_tokens.size() + 1):
+        # A short tunic must not match the "tunic" component of "long_tunic".
+        if garment_tokens.size() == 1 and garment_tokens[0] == "tunic" and start > 0 and label_tokens[start - 1] == "long":
+            continue
         var matches := true
         for offset in range(garment_tokens.size()):
             var label_token: String = label_tokens[start + offset]
