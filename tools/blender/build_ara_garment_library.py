@@ -278,17 +278,21 @@ def main() -> None:
     # Prefer the actual NPC garment geometry and its material assignment. The
     # profile restricts extraction to the clothing item that person wears.
     for profile in profiles:
-        # Hollowmere exports are named by game_id, not the shorter profile id.
-        character_id = str(profile.get("game_id") or profile.get("id") or "")
-        if not character_id:
-            continue
-        source = args.npc_dir / f"{character_id}.glb"
+        # Existing Hollowmere assets are commonly named by profile id (e.g.
+        # wren_talbot.glb); accept game_id as a fallback for newer exports.
+        candidates = [
+            str(profile.get("id") or ""),
+            str(profile.get("game_id") or ""),
+        ]
+        candidates = list(dict.fromkeys(value for value in candidates if value))
+        source = next((args.npc_dir / (value + ".glb") for value in candidates
+                       if (args.npc_dir / (value + ".glb")).is_file()), None)
         variant = "male" if int(profile.get("params", {}).get("gender", 0)) == 1 else "female"
-        if not source.is_file():
-            missing_npc_sources.append(character_id)
-            log(f"WARNING: NPC source missing: {source}; generic Ara garments may be used")
+        if source is None:
+            missing_npc_sources.append("|".join(candidates))
+            log(f"WARNING: NPC source missing for ids {candidates}; generic Ara garments may be used")
             continue
-        process_source(source, expected_from_profile(profile), variant, character_id)
+        process_source(source, expected_from_profile(profile), variant, source.stem)
 
     # Fill generic underwear, Workshop-only garments and armour not worn by an NPC.
     process_source(args.modular, None, "any", "Ara modular")
