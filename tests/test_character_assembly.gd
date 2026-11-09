@@ -25,7 +25,10 @@ func _run() -> void:
         if not actor.configure(body_path):
             _fail("Could not load base body: " + body_path)
             return
-        actor.set_meta("body_variant", "male" if body_path == MALE_BODY else "female")
+        var expected_variant := "male" if body_path == MALE_BODY else "female"
+        if String(actor.get_meta("body_variant", "")) != expected_variant:
+            _fail("Base body path resolved to the wrong variant: " + body_path)
+            return
         if not actor.configure_modular_garments():
             _fail("Could not attach independent garment library to: " + body_path)
             return
@@ -37,6 +40,14 @@ func _run() -> void:
                 available.append(visual)
             if garment.visible:
                 _fail("Garment should start unequipped: " + visual)
+                return
+            if garment.skin == null or garment.skeleton.is_empty():
+                _fail("Garment is not independently skinned: " + garment.name)
+                return
+            var bound_skeleton := garment.get_node_or_null(garment.skeleton) as Skeleton3D
+            var actor_skeleton := actor._find_skeleton(actor.model_root)
+            if bound_skeleton == null or bound_skeleton != actor_skeleton:
+                _fail("Garment is not bound to this character's skeleton: " + garment.name)
                 return
         for visual in available:
             if not all_available.has(visual):
