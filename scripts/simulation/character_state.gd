@@ -13,6 +13,15 @@ var experience: int = 0
 var attributes: Dictionary = {}
 var class_levels: Dictionary = {}
 var free_skill_ranks: Dictionary = {}
+## Persistent paid-point accounting. attributes stores the remaining spendable pools.
+var skill_budget_by_pool: Dictionary = {}
+var skill_spent_by_pool: Dictionary = {}
+var skill_spent_by_id: Dictionary = {}
+var skill_point_grants: Dictionary = {}
+var skill_progression_initialized: bool = false
+## Companion recruitment is a one-time automatic allocation boundary.
+var companion_recruitment_initialized: bool = false
+var progression_mode: String = "player"
 var current_mana: int = 0
 var max_mana: int = 0
 var mana_caps: Dictionary = {"arcane": 10, "divine": 10, "nature": 10}
@@ -197,6 +206,13 @@ func to_dict() -> Dictionary:
         "attributes": attributes.duplicate(true),
         "class_levels": class_levels.duplicate(true),
         "free_skill_ranks": free_skill_ranks.duplicate(true),
+        "skill_budget_by_pool": skill_budget_by_pool.duplicate(true),
+        "skill_spent_by_pool": skill_spent_by_pool.duplicate(true),
+        "skill_spent_by_id": skill_spent_by_id.duplicate(true),
+        "skill_point_grants": skill_point_grants.duplicate(true),
+        "skill_progression_initialized": skill_progression_initialized,
+        "companion_recruitment_initialized": companion_recruitment_initialized,
+        "progression_mode": progression_mode,
         "current_mana": current_mana,
         "max_mana": max_mana,
         "mana_caps": mana_caps.duplicate(true),
@@ -260,6 +276,13 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.attributes = data.get("attributes", {}).duplicate(true)
     state.class_levels = data.get("class_levels", {}).duplicate(true)
     state.free_skill_ranks = data.get("free_skill_ranks", {}).duplicate(true)
+    state.skill_budget_by_pool = data.get("skill_budget_by_pool", {}).duplicate(true)
+    state.skill_spent_by_pool = data.get("skill_spent_by_pool", {}).duplicate(true)
+    state.skill_spent_by_id = data.get("skill_spent_by_id", {}).duplicate(true)
+    state.skill_point_grants = data.get("skill_point_grants", {}).duplicate(true)
+    state.skill_progression_initialized = bool(data.get("skill_progression_initialized", false))
+    state.companion_recruitment_initialized = bool(data.get("companion_recruitment_initialized", false))
+    state.progression_mode = String(data.get("progression_mode", "player"))
     state.current_mana = int(data.get("current_mana", 0))
     state.max_mana = int(data.get("max_mana", 0))
     state.mana_caps = data.get("mana_caps", {"arcane": 10, "divine": 10, "nature": 10}).duplicate(true)
