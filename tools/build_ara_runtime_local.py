@@ -198,6 +198,27 @@ def main():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_adult_anatomy.py","--","--input",underwear,"--output",fitted_under,"--profile","none","--adult","--fit-existing"],env=env)
         shutil.copy2(fitted_under,underwear)
     cached("garment-fit",[modular,underwear],inputs+[ROOT/"tools/blender/add_dress_slit.py",ROOT/"tools/blender/add_adult_anatomy.py"],"blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],fit)
+    # Review renders are also cached independently, so changing one outfit
+    # review does not regenerate Ara meshes or rerun anatomy integration.
+    review_root=ARA/"review"
+    review_env=os.environ.copy(); review_env.update({"EGL_PLATFORM":"surfaceless","LIBGL_ALWAYS_SOFTWARE":"1"})
+    def review_character(label, model, folder):
+        outputs=[review_root/folder/f"{view}.png" for view in ["front","side","rear","three_quarter"]]
+        def action():
+            outdir=review_root/folder; outdir.mkdir(parents=True,exist_ok=True)
+            env2=review_env.copy(); env2.update({"REVIEW_INPUT":str(model),"REVIEW_OUTPUT_DIR":str(outdir)})
+            run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/inspect_character.py"],env=env2)
+        cached("review-"+label,outputs,[model,ROOT/"tools/blender/inspect_character.py"],"blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],action)
+    review_character("female-body",female_out,"body")
+    review_character("male-body",male_out,"male")
+    outfit_script=ROOT/"tools/review/render_modular_outfits.py"
+    for outfit in ["dress","lace_bra","fishnet_bra","lace_briefs","fishnet_briefs","lace_shirt","fishnet_shirt","lace_pants","fishnet_pants"]:
+        outputs=[review_root/"outfits"/outfit/f"{view}.png" for view in ["front","side","rear"]]+[review_root/"outfits"/outfit/"report.json"]
+        def render_action(outfit=outfit):
+            outdir=review_root/"outfits"
+            run([blender,"--background","--python-exit-code","1","--python",outfit_script,"--",fitted,outdir,outfit],env=review_env)
+        cached("review-outfit-"+outfit,outputs,[fitted,outfit_script],"blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],render_action)
+
     # Package exact files consumed by the game; include checksums and provenance.
     package=RUNTIME
     names=["ara_person_benchmark.glb","ara_person_body.glb","ara_person_modular.glb","ara_person_modular_underwear.glb","ara_person_male_body.glb"]
