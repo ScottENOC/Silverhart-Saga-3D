@@ -35,6 +35,9 @@ jobs:
           mkdir -p /tmp/cosmo-tree-gen
           tar -xzf /tmp/cosmo-tree-gen.tar.gz -C /tmp/cosmo-tree-gen
           cp -a /tmp/cosmo-tree-gen/cosmo_tree_gen-main/addons/cosmo_tree_gen/. addons/cosmo_tree_gen/
+          mkdir -p demo/materials
+          cp -a /tmp/cosmo-tree-gen/cosmo_tree_gen-main/demo/materials/. demo/materials/
+          sed -i 's|load("./exporter.gd")|load("res://addons/cosmo_tree_gen/core/exporter.gd")|' addons/cosmo_tree_gen/core/cosmo_tree_gen.gd
           mkdir -p addons/cosmo_tree_gen/presets
           for preset in cherry laurel pine spruce tree_fern willow winter_oak; do
             curl -L --fail --retry 3 "https://raw.githubusercontent.com/FrogCosmonaut/cosmo_tree_gen/main/demo/extra_presets/${preset}.tres" -o "addons/cosmo_tree_gen/presets/${preset}.tres"
