@@ -403,35 +403,6 @@ func _tint_attached_hair(colour: Color) -> void:
             material.albedo_color = Color(colour.r, colour.g, colour.b, material.albedo_color.a)
             mesh_instance.set_surface_override_material(surface, material)
 
-func set_garment_visible(material_fragment: String, visible: bool) -> bool:
-    if model_root == null:
-        return false
-    var changed := false
-    var meshes: Array[MeshInstance3D] = []
-    _collect_meshes(model_root, meshes)
-    for mesh_instance in meshes:
-        if mesh_instance.mesh == null:
-            continue
-        for surface in range(mesh_instance.mesh.get_surface_count()):
-            var label := _normalise_garment_label(_surface_label(mesh_instance, surface) + " " + mesh_instance.name)
-            if not _garment_label_matches(label, material_fragment):
-                continue
-            var meta_key := "ara_original_material_%d_%d" % [mesh_instance.get_instance_id(), surface]
-            if not mesh_instance.has_meta(meta_key):
-                mesh_instance.set_meta(meta_key, mesh_instance.mesh.surface_get_material(surface))
-            var original := mesh_instance.get_meta(meta_key) as Material
-            if visible:
-                mesh_instance.set_surface_override_material(surface, original)
-            else:
-                var hidden := original.duplicate() as StandardMaterial3D if original is StandardMaterial3D else StandardMaterial3D.new()
-                hidden.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-                hidden.albedo_color.a = 0.0
-                hidden.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-                mesh_instance.set_surface_override_material(surface, hidden)
-            changed = true
-    return changed
-
-
 func _play_idle_if_available() -> void:
     if animation_player == null or not is_instance_valid(animation_player):
         push_warning("Ara character has no AnimationPlayer; it will remain in its exported rest pose.")
