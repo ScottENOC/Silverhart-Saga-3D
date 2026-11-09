@@ -1,0 +1,57 @@
+{
+  "seed": 1952,
+  "gender": 1,
+  "age": 0.58,
+  "muscle": 0.7,
+  "weight": 0.48,
+  "height": 0.68,
+  "proportions": 0.62,
+  "african": 0.05,
+  "asian": 0.05,
+  "caucasian": 0.9,
+  "eyes": "green",
+  "hair": "short03",
+  "hairTint": "#3c2d22",
+  "facialHair": "short_beard",
+  "beardColor": "#3c2d22",
+  "tattoos": [
+    "forearm_l"
+  ],
+  "tattooInk": "#4b3a2c",
+  "outfit": "none",
+  "top": "tattered_shirt",
+  "underTop": "none",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "trousers",
+  "underwear": false,
+  "shoes": "combat_boots",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [
+    "crossed_straps"
+  ],
+  "garmentStyles": {
+    "tattered_shirt": {
+      "pattern": "tattered",
+      "color": "#6b604b",
+      "color2": "#4b4032"
+    },
+    "trousers": {
+      "pattern": "solid",
+      "color": "#3b3328",
+      "color2": "#3b3328"
+    }
+  },
+  "detail": "medium",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#3c2d22",
+  "name": "Rowan Fletcher"
+}

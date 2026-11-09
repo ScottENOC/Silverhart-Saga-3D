@@ -5,16 +5,40 @@ bottoms. The patch is strict: if Ara changes its source contract, the build fail
 """
 from pathlib import Path
 
-ROOT = Path("/tmp/ara-3d-gen")
+ROOT = Path.cwd()
 
 
 def edit(path, replacements):
     file = ROOT / path
     source = file.read_text()
+
     for old, new in replacements:
+        if (
+            path == "src/core/garments/index.ts"
+            and old.startswith("  let top =")
+            and "const underTop = pieces" in source
+            and "const underBottom = pieces" in source
+        ):
+            continue
         if old not in source:
-            raise SystemExit(f"Ara source contract changed in {path}; missing: {old[:100]!r}")
+            # Accept an already-applied replacement, including when
+            # subsequent patches have extended the replacement further.
+            if new in source:
+                continue
+
+            # Some later patches extend an earlier replacement.
+            # Check whether the original anchor has already been consumed.
+            if path == "src/core/garments/index.ts" and old.startswith("layered:"):
+                if "underTop: !!d.underTop" in source and "underwear: false" in source:
+                    continue
+
+            raise SystemExit(
+                f"Ara source contract changed in {path}; "
+                f"neither original nor replacement text found: {old[:100]!r}"
+            )
+
         source = source.replace(old, new, 1)
+
     file.write_text(source)
 
 
@@ -31,7 +55,8 @@ edit("src/core/garments/index.ts", [
     ("    top,\n    jacket,", "    top,\n    underTop,\n    underBottom,\n    jacket,"),
     ("[d.top, d.jacket, d.bottom, ...d.accessories]", "[d.underBottom, d.bottom, d.underTop, d.top, d.jacket, ...d.accessories]"),
     ("if (!d.top && !d.jacket && !d.bottom && !d.accessories.length && !d.footwear)", "if (!d.top && !d.underTop && !d.underBottom && !d.jacket && !d.bottom && !d.accessories.length && !d.footwear)"),
-    ("layered: { top: !!d.top, bottom: !!d.bottom && d.bottom !== 'briefs' },\n    underwear: d.underwear,", "layered: { top: !!d.top || !!d.underTop, bottom: (!!d.bottom && d.bottom !== 'briefs') || !!d.underBottom },\n    // Briefs are added once below, independently of the selected outer bottoms.\n    underwear: false,"),
+    ("layered: { top: !!d.top, bottom: !!d.bottom && d.bottom !== 'briefs' },\n    underwear: d.underwear,",
+     "layered: { top: !!d.top || !!d.underTop, bottom: (!!d.bottom && d.bottom !== 'briefs') || !!d.underBottom, underTop: !!d.underTop },\n    // Briefs are added once below, independently of the selected outer bottoms.\n    underwear: false,"),
     ("if (id === d.bottom || id === d.top || id === d.jacket) {", "if (id === d.underBottom || id === d.bottom || id === d.underTop || id === d.top || id === d.jacket) {"),
     ("for (const id of [d.bottom, d.top, d.jacket, ...d.accessories]) dress(id);", "for (const id of [d.underBottom, d.bottom, d.underTop, d.top, d.jacket, ...d.accessories]) dress(id);\n  if (d.underwear && !d.underBottom && d.bottom && d.bottom !== 'briefs') parts.push(...briefsUnder({ ...g, underwear: true }));"),
 ])

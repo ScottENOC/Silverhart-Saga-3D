@@ -235,9 +235,20 @@ def main():
     # Package exact files consumed by the game; include checksums and provenance.
     package=RUNTIME
     names=["ara_person_benchmark.glb","ara_person_body.glb","ara_person_modular.glb","ara_person_modular_underwear.glb","ara_person_male_body.glb"]
+    sources={
+        "ara_person_benchmark.glb": ARA/"ara_person_benchmark.glb",
+        "ara_person_body.glb": ARA/"ara_person_body.glb",
+        "ara_person_modular.glb": modular,
+        "ara_person_modular_underwear.glb": underwear,
+        "ara_person_male_body.glb": ARA/"ara_person_male_body.glb",
+    }
+    names=list(sources)
     def pack():
         package.mkdir(parents=True,exist_ok=True)
-        for name in names: shutil.copy2(ARA/name,package/name)
+        for name,source in sources.items():
+            if not source.is_file():
+                fail(f"Runtime package source missing: {source}")
+            shutil.copy2(source,package/name)
         assets={}
         for name in names:
             b=(package/name).read_bytes(); assets[name]={"size_bytes":len(b),"sha256":hashlib.sha256(b).hexdigest()}

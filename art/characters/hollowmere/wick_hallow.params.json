@@ -1,0 +1,52 @@
+{
+  "seed": 1064,
+  "gender": 1,
+  "age": 0.88,
+  "muscle": 0.3,
+  "weight": 0.48,
+  "height": 0.43,
+  "proportions": 0.44,
+  "african": 0.05,
+  "asian": 0.05,
+  "caucasian": 0.9,
+  "eyes": "blue",
+  "hair": "buzz",
+  "hairTint": "#aaa49a",
+  "facialHair": "full_beard",
+  "beardColor": "#898176",
+  "tattoos": [],
+  "outfit": "none",
+  "top": "long_tunic",
+  "underTop": "none",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "trousers",
+  "underwear": false,
+  "shoes": "sandals",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [],
+  "garmentStyles": {
+    "long_tunic": {
+      "pattern": "solid",
+      "color": "#766d59",
+      "color2": "#514b40"
+    },
+    "trousers": {
+      "pattern": "solid",
+      "color": "#484238",
+      "color2": "#484238"
+    }
+  },
+  "detail": "medium",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#aaa49a",
+  "name": "Wick Hallow"
+}

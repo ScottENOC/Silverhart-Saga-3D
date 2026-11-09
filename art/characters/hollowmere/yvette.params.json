@@ -1,0 +1,56 @@
+{
+  "seed": 1508,
+  "gender": 0,
+  "age": 0.56,
+  "muscle": 0.4,
+  "weight": 0.4,
+  "height": 0.52,
+  "proportions": 0.48,
+  "african": 0.05,
+  "asian": 0.05,
+  "caucasian": 0.9,
+  "eyes": "bluegreen",
+  "hair": "bob02",
+  "hairTint": "#4d3425",
+  "facialHair": "none",
+  "tattoos": [
+    "armband_l"
+  ],
+  "tattooInk": "#6b5140",
+  "outfit": "none",
+  "top": "tunic",
+  "underTop": "bra",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "wrapper_knee",
+  "underwear": false,
+  "shoes": "sandals",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [
+    "bead_necklace"
+  ],
+  "garmentStyles": {
+    "tunic": {
+      "pattern": "solid",
+      "color": "#6b4c3a",
+      "color2": "#b18a59"
+    },
+    "wrapper_knee": {
+      "pattern": "solid",
+      "color": "#3d4d55",
+      "color2": "#3d4d55"
+    }
+  },
+  "detail": "medium",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#4d3425",
+  "name": "Yvette Marlow"
+}

@@ -1,0 +1,53 @@
+{
+  "seed": 1841,
+  "gender": 0,
+  "age": 0.9,
+  "muscle": 0.28,
+  "weight": 0.48,
+  "height": 0.42,
+  "proportions": 0.46,
+  "african": 0.05,
+  "asian": 0.05,
+  "caucasian": 0.9,
+  "eyes": "grey",
+  "hair": "long01",
+  "hairTint": "#c1b9a8",
+  "facialHair": "none",
+  "tattoos": [],
+  "outfit": "none",
+  "top": "long_tunic",
+  "underTop": "bra",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "wrapper_long",
+  "underwear": false,
+  "shoes": "sandals",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [
+    "bead_necklace"
+  ],
+  "garmentStyles": {
+    "long_tunic": {
+      "pattern": "solid",
+      "color": "#776f5b",
+      "color2": "#c0ad82"
+    },
+    "wrapper_long": {
+      "pattern": "solid",
+      "color": "#554d40",
+      "color2": "#554d40"
+    }
+  },
+  "detail": "medium",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#c1b9a8",
+  "name": "Elder Marta Wynfield"
+}

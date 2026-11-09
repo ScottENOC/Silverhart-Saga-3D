@@ -1,0 +1,61 @@
+{
+  "seed": 218,
+  "gender": 0,
+  "age": 0.5,
+  "muscle": 0.62,
+  "weight": 0.42,
+  "height": 0.55,
+  "proportions": 0.58,
+  "african": 0.05,
+  "asian": 0.05,
+  "caucasian": 0.9,
+  "eyes": "brownlight",
+  "hair": "braid01",
+  "hairTint": "#252b62",
+  "facialHair": "none",
+  "tattoos": [],
+  "outfit": "none",
+  "top": "fatigue_shirt",
+  "underTop": "bra",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "fatigue_pants",
+  "underwear": false,
+  "shoes": "combat_boots",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [],
+  "garmentStyles": {
+    "fatigue_shirt": {
+      "pattern": "solid",
+      "color": "#244b2b",
+      "color2": "#a64c50"
+    },
+    "bra": {
+      "pattern": "solid",
+      "color": "#55452d",
+      "color2": "#d0c3a2"
+    },
+    "briefs": {
+      "pattern": "solid",
+      "color": "#55452d",
+      "color2": "#d0c3a2"
+    },
+    "fatigue_pants": {
+      "pattern": "solid",
+      "color": "#29292d",
+      "color2": "#29292d"
+    }
+  },
+  "detail": "high",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#252b62",
+  "name": "Wren Talbot"
+}
