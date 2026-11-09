@@ -147,7 +147,7 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
             var label := _normalise_garment_label(_surface_label(mesh_instance, surface) + " " + mesh_instance.name)
             var show_surface := false
             for fragment in visible_garments:
-                if label.contains(_normalise_garment_label(fragment)):
+                if _garment_label_matches(label, fragment):
                     show_surface = true
                     break
             _set_modular_surface_visible(mesh_instance, surface, show_surface)
@@ -160,6 +160,17 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
 
 func _normalise_garment_label(value: String) -> String:
     return value.to_lower().replace("_", "").replace("-", "").replace(" ", "")
+
+
+func _garment_label_matches(label: String, garment_id: String) -> bool:
+    var haystack := _normalise_garment_label(label)
+    var needle := _normalise_garment_label(garment_id)
+    # Avoid treating a hair braid as a bra, or a long tunic as a short tunic.
+    if needle == "bra" and haystack.contains("braid"):
+        return false
+    if needle == "tunic" and haystack.contains("longtunic"):
+        return false
+    return haystack.contains(needle)
 
 
 func _weapon_prop_id(item_id: String) -> String:
@@ -380,7 +391,7 @@ func set_garment_visible(material_fragment: String, visible: bool) -> bool:
             continue
         for surface in range(mesh_instance.mesh.get_surface_count()):
             var label := _normalise_garment_label(_surface_label(mesh_instance, surface) + " " + mesh_instance.name)
-            if not label.contains(needle):
+            if not _garment_label_matches(label, material_fragment):
                 continue
             var meta_key := "ara_original_material_%d_%d" % [mesh_instance.get_instance_id(), surface]
             if not mesh_instance.has_meta(meta_key):
