@@ -12,10 +12,16 @@ func _initialize() -> void:
 
 func _test_village_bounds_and_terrain() -> void:
     assert(HollowmereVillageData.is_in_bounds(Vector2i(12, 26)), "Rowan's crossroads area must be inside the playable map")
-    assert(not HollowmereVillageData.is_in_bounds(Vector2i(40, 40)), "The outer map boundary must reject distant cells")
+    assert(not HollowmereVillageData.is_in_bounds(Vector2i(60, 60)), "The expanded outer map boundary must still reject distant cells")
     assert(HollowmereVillageData.is_water(Vector2i(0, HollowmereVillageData.STREAM_R)), "The stream should be water")
     assert(HollowmereVillageData.is_blocked(Vector2i(0, HollowmereVillageData.STREAM_R)), "The stream must block movement")
     assert(not HollowmereVillageData.is_water(HollowmereVillageData.BRIDGE), "The bridge must replace the water tile")
+    assert(HollowmereVillageData.is_in_bounds(HollowmereVillageData.FARMHOUSE), "The farmhouse must be inside the expanded local map")
+    assert(HollowmereVillageData.is_in_bounds(HollowmereVillageData.FARM_BARN), "The barn must be inside the expanded local map")
+    assert(HollowmereVillageData.is_building(HollowmereVillageData.FARMHOUSE), "The farmhouse footprint must block movement")
+    assert(HollowmereVillageData.is_building(HollowmereVillageData.FARM_BARN), "The barn footprint must block movement")
+    assert(HollowmereVillageData.is_farm_land(Vector2i(10, 60)), "Agricultural fields must be tagged as farm land")
+    assert(not HollowmereVillageData.is_forest_candidate(Vector2i(10, 60)), "Procedural trees must not grow through farm fields")
     assert(not HollowmereVillageData.is_blocked(HollowmereVillageData.BRIDGE), "The bridge must be traversable")
     assert(HollowmereVillageData.terrain_id_at(Vector2i(0, 15)) == "path", "The general-store threshold should be a path")
 
@@ -46,13 +52,16 @@ func _test_road_network_connectivity() -> void:
         HollowmereVillageData.BRIDGE,
         Vector2i(8, -40),
         Vector2i(8, 32),
+        Vector2i(12, 54),
         Vector2i(-40, 24),
         Vector2i(16, 24),
         Vector2i(0, 15),
         Vector2i(-11, 0),
         Vector2i(0, -10),
         Vector2i(10, 9),
-        Vector2i(-4, 9)
+        Vector2i(-4, 9),
+        HollowmereVillageData.FARMHOUSE,
+        HollowmereVillageData.FARM_BARN
     ]:
         assert(visited.has(destination), "Village road does not connect to %s" % destination)
 
