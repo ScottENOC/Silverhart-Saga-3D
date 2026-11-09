@@ -1,6 +1,10 @@
 name: Publish Existing Ara Assets
 
 on:
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/publish-existing-ara-assets.yml"
   workflow_dispatch:
     inputs:
       source_run_id:
