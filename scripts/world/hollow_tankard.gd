@@ -497,6 +497,9 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     # Every adult uses one of the two shared, anatomy-integrated Ara base bodies.
     # Character-specific identity is applied from the appearance profile below.
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+    # Keep the actor metadata explicit as well as deriving it from the loaded GLB.
+    # This is consumed by garment variant selection and is useful in runtime reports.
+    ara_model.set_meta("body_variant", body_variant)
     var model_loaded := ara_model.configure(model_path)
     if model_loaded:
         if is_player:
