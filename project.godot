@@ -27,3 +27,6 @@ run/max_fps=60
 
 [autoload]
 AudioManager="*res://scripts/audio/audio_manager.gd"
+
+[editor_plugins]
+enabled=PackedStringArray("res://addons/cosmo_tree_gen/plugin.cfg")
