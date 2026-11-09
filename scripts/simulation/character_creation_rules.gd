@@ -109,6 +109,7 @@ static func create_player_state(profile: Dictionary, character_id: String, start
         if state.add_inventory_item(item) and equipped_ids.has(item_id):
             if not state.equip_inventory_item(String(item.instance_id)):
                 push_error("Could not equip starting item: %s" % item_id)
+    SkillProgression.initialise(state)
     return state
 
 static func preview_text(race_id: String, class_id: String, difficulty_id: String) -> String:
