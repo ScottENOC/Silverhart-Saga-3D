@@ -4,6 +4,7 @@ var _failures: int = 0
 
 func _initialize() -> void:
     _test_character_round_trip()
+    _test_skill_catalogue_and_progression()
     _test_campaign_journal()
     _test_hollowmere_campaign_content()
     _test_hollowmere_encounter()
@@ -70,6 +71,72 @@ func _test_wilderness_resources_and_chunk_streaming() -> void:
     chunks.load_around(map, Vector2i(300, 300))
     _check(chunks.active_chunk_count() == 9, "Moving far away should keep the active chunk budget bounded")
     _check(not map.has_cell(Vector2i(100, 100)), "Old generated chunks should unload when outside the active region")
+
+func _test_skill_catalogue_and_progression() -> void:
+    var definitions := SkillCatalog.definitions()
+    _check(definitions.size() == 186, "The source skill catalogue should contain all 186 unique entries")
+    _check(int(SkillCatalog.get_skill("health").get("max_ranks", -1)) == 0, "A zero rank cap means unlimited ranks")
+
+    var character := CharacterState.new("skill_test", "Skill Test")
+    character.attributes = {"endurance": 3, "strength": 0, "wildcard": 1, "nature": 1, "druid": 1, "elf": 1}
+    SkillProgression.initialise(character)
+    _check(bool(SkillProgression.purchase(character, "health").get("ok", false)))
+    _check(bool(SkillProgression.purchase(character, "health").get("ok", false)))
+    _check(bool(SkillProgression.purchase(character, "health").get("ok", false)))
+    _check(int(character.skills.get("health", 0)) == 3, "Unlimited-rank skills can be purchased repeatedly while points remain")
+    _check(String(SkillProgression.purchase(character, "health").get("reason", "")) == "insufficient_skill_points")
+
+    var prerequisite_character := CharacterState.new("prereq_test", "Prerequisite Test")
+    prerequisite_character.attributes = {"strength": 2}
+    SkillProgression.initialise(prerequisite_character)
+    _check(String(SkillProgression.can_purchase(prerequisite_character, "medium_armor_training").get("reason", "")) == "prerequisite_missing")
+    _check(bool(SkillProgression.purchase(prerequisite_character, "light_armor_training").get("ok", false)))
+    _check(bool(SkillProgression.purchase(prerequisite_character, "medium_armor_training").get("ok", false)))
+    _check(String(SkillProgression.can_purchase(prerequisite_character, "heavy_armor_training").get("reason", "")) == "insufficient_skill_points")
+
+    var wildcard_character := CharacterState.new("wildcard_test", "Wildcard Test")
+    wildcard_character.attributes = {"wildcard": 1}
+    SkillProgression.initialise(wildcard_character)
+    var wildcard_purchase := SkillProgression.purchase(wildcard_character, "shove")
+    _check(bool(wildcard_purchase.get("ok", false)) and String(wildcard_purchase.get("funding_pool", "")) == "wildcard", "Wildcard points may fund standard trees")
+    _check(String(SkillProgression.can_purchase(wildcard_character, "monster_regeneration").get("reason", "")) != "ok", "Creature-only skills must not be purchasable from the player skill system")
+
+    var misc_character := CharacterState.new("misc_test", "Misc Test")
+    misc_character.attributes = {"endurance": 1, "agility": 1}
+    SkillProgression.initialise(misc_character)
+    var misc_check := SkillProgression.can_purchase(misc_character, "cooking")
+    _check(String(misc_check.get("reason", "")) == "funding_pool_choice_required", "Misc skills ask which attribute pool should pay when several are available")
+    var misc_purchase := SkillProgression.purchase(misc_character, "cooking", "agility")
+    _check(bool(misc_purchase.get("ok", false)) and int(misc_character.attributes.get("agility", 0)) == 0, "Misc skill purchases deduct from the selected pool")
+
+    var nature_character := CharacterState.new("nature_test", "Nature Test")
+    nature_character.attributes = {"nature": 1}
+    SkillProgression.initialise(nature_character)
+    _check(String(SkillProgression.can_purchase(nature_character, "nature_butchery").get("reason", "")) == "dynamic_prerequisite_missing")
+    nature_character.skills["druid_knowledge_nature"] = 1
+    _check(bool(SkillProgression.purchase(nature_character, "nature_butchery").get("ok", false)), "Nature skills require either source Knowledge: Nature rank")
+
+    var incompatible_character := CharacterState.new("anti_test", "Anti Test")
+    incompatible_character.attributes = {"elf": 1}
+    incompatible_character.skills["druid_foliage_expertise"] = 1
+    SkillProgression.initialise(incompatible_character)
+    _check(String(SkillProgression.can_purchase(incompatible_character, "elf_foliage_expertise").get("reason", "")) == "incompatible_skill_learned", "Anti-prerequisites prevent incompatible choices")
+
+    var quest_character := CharacterState.new("quest_test", "Quest Test")
+    quest_character.attributes = {"druid": 1}
+    SkillProgression.initialise(quest_character)
+    _check(String(SkillProgression.can_purchase(quest_character, "learn_unicorn_summon").get("reason", "")) == "quest_granted_only", "Quest-only skills cannot be purchased")
+
+    var grant := SkillProgression.grant_points(quest_character, "druid", 2, "level_2_druid")
+    _check(bool(grant.get("ok", false)))
+    _check(String(SkillProgression.grant_points(quest_character, "druid", 2, "level_2_druid").get("reason", "")) == "grant_already_applied", "A level grant identifier can only be applied once")
+    var report := SkillProgression.accounting_report(quest_character)
+    _check(bool(report.get("pools", {}).get("druid", {}).get("balanced", false)), "Earned, spent and remaining points must reconcile by pool")
+    var restored := CharacterState.from_dict(quest_character.to_dict())
+    _check(restored.skill_budget_by_pool == quest_character.skill_budget_by_pool)
+    _check(restored.skill_spent_by_pool == quest_character.skill_spent_by_pool)
+    _check(restored.skill_point_grants == quest_character.skill_point_grants)
+    _check(restored.skill_progression_initialized, "Skill point accounting survives save/load")
 
 func _check(condition: bool, message: String = "Assertion failed") -> void:
     if not condition:
