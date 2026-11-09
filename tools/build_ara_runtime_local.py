@@ -70,7 +70,7 @@ def main():
         run([git,"fetch","origin"],cwd=GEN); run([git,"checkout",PIN],cwd=GEN)
     if not (GEN/"node_modules").exists() or not (GEN/"node_modules/.modules.yaml").exists():
         run([pnpm,"install","--no-frozen-lockfile"],cwd=GEN)
-    if not (GEN/"assets").exists() or not any((GEN/"assets").iterdir()):
+    if not (GEN/"public"/"assets").exists() or not any((GEN/"public"/"assets").iterdir()):
         run([npm,"run","setup-assets"],cwd=GEN)
     patch=ROOT/"tools/ara/patch_layering.py"
     patch_stamp=CACHE/"stamps"/"layering-patch.sha256"
