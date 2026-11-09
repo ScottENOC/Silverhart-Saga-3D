@@ -38,6 +38,9 @@ func configure(glb_path: String) -> bool:
     loaded_asset_path = glb_path
     animation_player = _find_animation_player(model_root)
     call_deferred("_play_idle_if_available")
+    # Report the loaded character model regardless of whether the separate
+    # modular-clothing export is available or successfully attached.
+    call_deferred("_dump_garment_surface_report")
     return true
 
 ## Attach modular garment surfaces to this actor's own Ara skeleton.
@@ -66,10 +69,6 @@ func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> boo
         source_root.free()
         push_warning("Modular garment export contains no skinned meshes")
         return false
-    # Spawn setup runs before the actor is added to the active scene. Defer
-    # diagnostics so the complete authored + modular model can be inspected.
-    call_deferred("_dump_garment_surface_report")
-
     for source_mesh in source_meshes:
         var instance := MeshInstance3D.new()
         instance.name = "AraModularGarments_" + source_mesh.name
@@ -92,12 +91,12 @@ func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> boo
 
 
 func _dump_garment_surface_report() -> void:
-    var tree := get_tree()
-    if tree == null or tree.root.has_meta("ara_garment_surface_reported"):
+    if has_meta("ara_garment_surface_reported"):
         return
-    tree.root.set_meta("ara_garment_surface_reported", true)
     if model_root == null or not is_instance_valid(model_root):
+        print("[Ara garment report] SKIPPED: character model is not configured")
         return
+    set_meta("ara_garment_surface_reported", true)
 
     print("[Ara garment report] BEGIN actor=%s asset=%s" % [get_path(), loaded_asset_path])
     var meshes: Array[MeshInstance3D] = []
