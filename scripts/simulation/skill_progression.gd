@@ -4,7 +4,9 @@ extends RefCounted
 ## learnSkill() rules. Skill effects are intentionally applied by later ports.
 
 const STANDARD_TREES := [
-    "arcane", "divine", "nature", "strength", "endurance", "agility", "weapons", "misc"
+    "arcane", "divine", "nature", "strength", "endurance", "agility", "weapons", "misc",
+    "fighter", "rogue", "cleric", "wizard", "druid", "monk", "Way of the open palm",
+    "dwarf", "elf", "goblin", "orc"
 ]
 const NON_PURCHASABLE_TREES := [
     "monster_skills", "paladin", "lich", "runesmith", "leatherworker"
@@ -42,7 +44,7 @@ static func _pool_options(character: CharacterState, skill: Dictionary) -> Array
         return options
     if int(character.attributes.get(tree, 0)) > 0:
         options.append(tree)
-    elif STANDARD_TREES.has(tree) and int(character.attributes.get("wildcard", 0)) > 0:
+    elif tree != "misc" and int(character.attributes.get("wildcard", 0)) > 0:
         options.append("wildcard")
     return options
 
@@ -149,22 +151,17 @@ static func grant_level(character: CharacterState, class_id: String, grant_id: S
     var profession := CharacterCreationRules.class_definition(class_id)
     if race.is_empty() or profession.is_empty():
         return {"ok": false, "reason": "unknown_race_or_class"}
-    var race_bonus: Dictionary = race.get("bonus", {})
     var class_bonus: Dictionary = profession.get("bonus", {})
     var pools: Dictionary = {}
-    var pool_keys := {}
-    for pool in race_bonus:
-        pool_keys[String(pool)] = true
     for pool in class_bonus:
-        pool_keys[String(pool)] = true
-    for pool in pool_keys:
-        var amount := int(race_bonus.get(pool, 0)) + int(class_bonus.get(pool, 0))
+        var amount := int(class_bonus.get(pool, 0))
         if amount == 0:
             continue
         character.attributes[pool] = int(character.attributes.get(pool, 0)) + amount
         character.skill_budget_by_pool[pool] = int(character.skill_budget_by_pool.get(pool, 0)) + amount
         pools[pool] = amount
     character.class_levels[class_id] = int(character.class_levels.get(class_id, 0)) + 1
+    character.class_level_sequence.append(class_id)
     character.level += 1
     character.skill_point_grants[grant_key] = {
         "type": "class_level",
