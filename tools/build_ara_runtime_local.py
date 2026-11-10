@@ -416,6 +416,22 @@ def main():
       "garment-library-v5-no-shoes-canonical-skeleton:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
       build_garment_library)
 
+    # Compare the raw Ara exports before anatomy processing. This isolates
+    # generator gender morph failures from Blender anatomy integration.
+    gender_report=ARA/"ara_person_gender_anatomy_validation.json"
+    gender_validator=ROOT/"tools/blender/validate_ara_gender_variants.py"
+    def validate_gender_variants():
+        run([blender,"--background","--python-exit-code","1","--python",gender_validator,"--",
+          "--female-raw",RAW/"ara_person_body.glb",
+          "--male-raw",male_raw,
+          "--female-final",female_out,
+          "--male-final",male_out,
+          "--output",gender_report])
+    cached("validate-gender-anatomy",[gender_report],
+      [RAW/"ara_person_body.glb",male_raw,female_out,male_out,gender_validator],
+      "gender-anatomy-diagnostics-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+      validate_gender_variants)
+
     # Review renders are also cached independently, so changing one outfit
     # review does not regenerate Ara meshes or rerun anatomy integration.
     review_root=ARA/"review"
@@ -427,6 +443,10 @@ def main():
             env2=review_env.copy(); env2.update({"REVIEW_INPUT":str(model),"REVIEW_OUTPUT_DIR":str(outdir)})
             run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/inspect_character.py"],env=env2)
         cached("review-"+label,outputs,[model,ROOT/"tools/blender/inspect_character.py"],"blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],action)
+    # Keep raw, pre-anatomy views beside final views. If these already look
+    # alike, the problem is upstream in Ara generation rather than Blender.
+    review_character("female-body-raw",RAW/"ara_person_body.glb","body_raw")
+    review_character("male-body-raw",male_raw,"male_raw")
     review_character("female-body",female_out,"body")
     review_character("wren-body",wren_out,"wren_body")
     review_character("wren-dressed",wren_dressed_out,"wren_dressed")
