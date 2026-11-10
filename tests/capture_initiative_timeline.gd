@@ -15,11 +15,19 @@ func _run_capture() -> void:
     var wren := CharacterState.new("companion_wren_talbot", "Wren Talbot", Vector2i(1, 0))
     wren.side = "player"
     wren.time_points = 116.0
+    wren.health = 92
+    wren.max_health = 100
+    wren.current_mana = 8
+    wren.max_mana = 30
     simulation.register_character(wren)
 
     var guard := CharacterState.new("dray_coltayne", "Dray Coltayne", Vector2i(0, 1))
     guard.side = "enemy"
     guard.time_points = 134.0
+    guard.health = 64
+    guard.max_health = 120
+    guard.current_mana = 17
+    guard.max_mana = 40
     simulation.register_character(guard)
 
     var downed := CharacterState.new("fallen_ally", "Fallen Ally", Vector2i(1, 1))
