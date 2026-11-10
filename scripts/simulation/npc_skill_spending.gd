@@ -186,6 +186,12 @@ static func build_npc(character: CharacterState, options: Dictionary) -> Diction
     character.class_levels = _counts(sequence)
     character.level = sequence.size()
     character.attributes = _build_attributes(race, sequence)
+    character.skill_progression_initialized = false
+    character.skill_budget_by_pool.clear()
+    character.skill_spent_by_pool.clear()
+    character.skill_spent_by_id.clear()
+    character.skill_point_grants.clear()
+    character.companion_recruitment_initialized = false
     character.skills = {}
     character.free_skill_ranks = {}
     character.npc_progression_warnings.clear()
@@ -197,8 +203,10 @@ static func build_npc(character: CharacterState, options: Dictionary) -> Diction
     character.progression_mode = String(options.get("mode", "population"))
     SkillProgression.initialise(character)
     character.npc_skill_point_budget = SkillProgression.available_points(character)
-    _apply_innate_skills(character, options.get("innate_skills", {}))
-    _apply_innate_skills(character, INNATE_RACE_SKILLS.get(race, {}))
+    var combined_innate: Dictionary = INNATE_RACE_SKILLS.get(race, {}).duplicate(true)
+    for skill_id in options.get("innate_skills", {}):
+        combined_innate[skill_id] = maxi(int(combined_innate.get(skill_id, 0)), int(options.innate_skills[skill_id]))
+    _apply_innate_skills(character, combined_innate)
     var archetype: Array = options.get("archetype_skills", [])
     var result := _spend_all(character, character.npc_preferred_skills, archetype, character.npc_progression_seed)
     _check_equipment_legality(character)
@@ -214,6 +222,12 @@ static func build_civilian(character: CharacterState, race: String = "human") ->
     character.class_levels.clear()
     character.level = 1
     character.attributes = _build_empty_attributes()
+    character.skill_progression_initialized = false
+    character.skill_budget_by_pool.clear()
+    character.skill_spent_by_pool.clear()
+    character.skill_spent_by_id.clear()
+    character.skill_point_grants.clear()
+    character.companion_recruitment_initialized = false
     character.skills.clear()
     character.free_skill_ranks.clear()
     character.npc_skill_point_budget = 0
@@ -384,7 +398,11 @@ static func _priority_list(character: CharacterState, preferred: Dictionary, arc
         if not priorities.has(skill_id) and not SkillCatalog.get_skill(skill_id).is_empty():
             priorities.append(skill_id)
     var preferred_ids: Array = preferred.keys()
-    preferred_ids.sort_custom(func(a, b): return int(preferred[b]) > int(preferred[a]))
+    preferred_ids.sort_custom(func(a, b):
+        var rank_a := int(preferred[a])
+        var rank_b := int(preferred[b])
+        return rank_a > rank_b if rank_a != rank_b else String(a) < String(b)
+    )
     for skill_id in preferred_ids:
         add.call(String(skill_id))
     for skill_id in archetype:
