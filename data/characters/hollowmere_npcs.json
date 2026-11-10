@@ -972,7 +972,7 @@
         "hairColor": "#594a3c"
       },
       "dialogue_id": "ser_aldric_captive",
-      "companion_dialogue_id": "companion_ser_aldric_thorne"
+      "companion_dialogue_id": "companion_ser_aldric"
     },
     {
       "id": "nix_sharpear",
@@ -1100,7 +1100,7 @@
         "hairColor": "#30231c"
       },
       "dialogue_id": "orc_warlord",
-      "companion_dialogue_id": "companion_warlord_grukk_ironhide"
+      "companion_dialogue_id": "companion_orc_warlord"
     },
     {
       "id": "reyna_fletcher",
@@ -1159,7 +1159,7 @@
         "hairColor": "#704b32"
       },
       "dialogue_id": "reyna_fletcher",
-      "companion_dialogue_id": "companion_reyna_fletcher"
+      "companion_dialogue_id": "reyna_fletcher"
     },
     {
       "id": "mirabel_quill",
@@ -1217,7 +1217,7 @@
         "hairColor": "#8b765e"
       },
       "dialogue_id": "mirabel_quill",
-      "companion_dialogue_id": "companion_mirabel_quill"
+      "companion_dialogue_id": "mirabel_quill"
     },
     {
       "id": "fenn_oakheart",
@@ -1274,7 +1274,7 @@
         "hairColor": "#57422d"
       },
       "dialogue_id": "fenn_oakheart",
-      "companion_dialogue_id": "companion_fenn_oakheart"
+      "companion_dialogue_id": "fenn_oakheart"
     },
     {
       "id": "brother_alden",
@@ -1331,7 +1331,7 @@
         "hairColor": "#82715e"
       },
       "dialogue_id": "brother_alden",
-      "companion_dialogue_id": "companion_brother_alden"
+      "companion_dialogue_id": "brother_alden"
     },
     {
       "id": "snik_fangtooth",
@@ -1392,7 +1392,7 @@
         "hairColor": "#251d17"
       },
       "dialogue_id": "snik_fangtooth",
-      "companion_dialogue_id": "companion_snik_fangtooth"
+      "companion_dialogue_id": "snik_fangtooth"
     }
   ]
 }
