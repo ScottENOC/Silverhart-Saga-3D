@@ -193,10 +193,26 @@ def main():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_adult_anatomy.py"],env=env)
         shutil.copy2(RAW/"ara_person_wren_dressed_anatomy.glb",wren_dressed_out)
     cached("wren-dressed-anatomy",[wren_dressed_out],[wren_dressed_raw,ROOT/"tools/blender/add_adult_anatomy.py"],"wren-dressed-anatomy-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],build_wren_dressed)
+    # Ara shifts the generated rest skeleton when footwear is present. Rebase
+    # this known root-only offset onto the bare-body skeleton before extracting
+    # independent garments; the normaliser refuses any unexpected rig changes
+    # and verifies evaluated mesh vertices remain unchanged.
+    wren_dressed_normalized=ARA/"ara_person_wren_dressed_normalized.glb"
+    wren_normalization_report=ARA/"ara_person_wren_dressed_normalization.json"
+    normalizer=ROOT/"tools/blender/normalize_ara_garment_rig.py"
+    def normalize_wren_garment_rig():
+        run([blender,"--background","--python-exit-code","1","--python",normalizer,"--",
+          "--reference",wren_out,"--candidate",wren_dressed_out,
+          "--output",wren_dressed_normalized,"--report",wren_normalization_report])
+    cached("normalize-wren-garment-rig",[wren_dressed_normalized,wren_normalization_report],
+      [wren_out,wren_dressed_out,normalizer],
+      "canonical-rest-rig-rebase-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+      normalize_wren_garment_rig)
+
     wren_validation=ARA/"ara_person_wren_body.validation.json"
     def validate_wren_body():
-        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/validate_ara_body_variant.py","--","--reference",wren_out,"--candidate",wren_dressed_out,"--output",wren_validation])
-    cached("validate-wren-body",[wren_validation],[wren_out,wren_dressed_out,ROOT/"tools/blender/validate_ara_body_variant.py"],"same-profile-ara-rest-pose-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],validate_wren_body)
+        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/validate_ara_body_variant.py","--","--reference",wren_out,"--candidate",wren_dressed_normalized,"--output",wren_validation])
+    cached("validate-wren-body",[wren_validation],[wren_out,wren_dressed_normalized,ROOT/"tools/blender/validate_ara_body_variant.py"],"same-profile-ara-rest-pose-v2:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],validate_wren_body)
     male_out=ARA/"ara_person_male_body.glb"; male_raw=RAW/"ara_person_male_raw.glb"
     def male_action():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_out,"--adult","--profile-name","standard"])
@@ -268,13 +284,13 @@ def main():
     garment_report=garments.with_suffix(".report.json")
     def build_garment_library():
         run([blender,"--background","--python-exit-code","1","--python",garment_builder,
-          "--","--base-body",wren_out,"--profile-source",wren_dressed_out,
+          "--","--base-body",wren_out,"--profile-source",wren_dressed_normalized,
           "--npc-manifest",npc_manifest,"--profile-id","wren_talbot","--output",garments])
         if not garment_report.is_file():
             fail("Garment builder completed without its skinning validation report.")
     cached("garment-library",[garments,garment_report],
-      [wren_out,wren_dressed_out,npc_manifest,garment_builder],
-      "garment-library-v3-same-profile-ara-skeleton:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+      [wren_out,wren_dressed_normalized,npc_manifest,garment_builder],
+      "garment-library-v4-normalized-canonical-skeleton:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
       build_garment_library)
 
     # Review renders are also cached independently, so changing one outfit
