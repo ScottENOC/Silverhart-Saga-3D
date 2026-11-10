@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
 import bpy
@@ -211,7 +212,10 @@ def main() -> None:
     parser.add_argument("--npc-manifest", type=Path, required=True)
     parser.add_argument("--npc-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args()
+    # Blender processes its own CLI options; pass only arguments after `--`
+    # to argparse. Calling parse_args() directly sees Blender's argv instead.
+    blender_args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    args = parser.parse_args(blender_args)
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     base_objects, target_armature = import_glb(args.base_body)
