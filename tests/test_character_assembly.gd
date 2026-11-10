@@ -1,9 +1,11 @@
 extends SceneTree
 
 const ARA_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
+const ITEM_CATALOG = preload("res://scripts/simulation/item_catalog.gd")
 const WREN_BODY := "res://art/characters/ara_runtime/bodies/wren_talbot.glb"
 const GARMENT_LIBRARY := "res://art/characters/ara_runtime/ara_person_garments.glb"
-const REQUIRED_VISUALS := ["bra", "fatigue_shirt", "fatigue_pants", "combat_boots"]
+const WREN_BRAID := "res://art/characters/ara_runtime/hair/female_braid01.glb"
+const REQUIRED_VISUALS := ["bra", "bikini_bottom", "fatigue_shirt", "fatigue_pants"]
 
 func _initialize() -> void:
     call_deferred("_run")
@@ -31,6 +33,21 @@ func _run() -> void:
         return
     if not bool(actor.get_meta("body_profile_baked", false)):
         _fail("Wren's profile-specific body was not marked as macro-morph baked.")
+        return
+
+    if not ResourceLoader.exists(WREN_BRAID) or not actor.set_hairstyle(WREN_BRAID):
+        _fail("Wren's separate Ara braid could not be attached to her body skeleton.")
+        return
+    if actor.hair_instances.is_empty():
+        _fail("Wren's Ara braid attachment produced no visible skinned meshes.")
+        return
+
+    var bikini_item := ITEM_CATALOG.create_instance("bikini_bottom", "test_wren_bikini_bottom")
+    if bikini_item.is_empty():
+        _fail("Ara bikini bottom is missing from the item catalogue.")
+        return
+    if String(bikini_item.get("equipment_slot", "")) != "underBottom" or String(bikini_item.get("garment_visual", "")) != "bikini_bottom":
+        _fail("Ara bikini bottom inventory slot/visual mapping is incorrect.")
         return
 
     var body_meshes: Array[MeshInstance3D] = []
@@ -89,6 +106,17 @@ func _run() -> void:
         _fail("Equipping Wren's bra did not show its independent garment mesh.")
         return
 
+    actor.apply_equipment_visuals({
+        "underBottom": bikini_item
+    })
+    var bikini_visible := false
+    for garment in actor.modular_garment_meshes:
+        if String(garment.get_meta("garment_visual", "")) == "bikini_bottom" and garment.visible:
+            bikini_visible = true
+    if not bikini_visible:
+        _fail("Equipping Wren's Ara bikini bottom did not show its independent garment mesh.")
+        return
+
     actor.apply_equipment_visuals({})
     for garment in actor.modular_garment_meshes:
         if garment.visible:
@@ -99,7 +127,7 @@ func _run() -> void:
             _fail("Equipment changed base-body mesh visibility: " + mesh.name)
             return
 
-    print("[Character assembly test] PASS Wren bare Ara body, facial morphs, profile-matched garments and equip/unequip.")
+    print("[Character assembly test] PASS Wren bare Ara body, braid attachment, bikini-bottom inventory mapping, facial morphs, garments and equip/unequip.")
     quit(0)
 
 
