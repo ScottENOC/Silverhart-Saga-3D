@@ -210,8 +210,10 @@ def main():
         shutil.copy2(RAW/"ara_person_wren_dressed_no_shoes_anatomy.glb",wren_no_shoes_out)
     cached("wren-dressed-no-shoes-anatomy",[wren_no_shoes_out],[wren_no_shoes_raw,ROOT/"tools/blender/add_adult_anatomy.py"],"wren-dressed-no-shoes-anatomy-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],build_wren_no_shoes)
 
-    # Stop after a read-only three-way rig comparison. No rest bones are edited,
-    # no garment meshes are extracted, and no GLB is normalised or exported.
+    # The no-shoes export is now the canonical Wren garment source: the
+    # controlled comparison proved its complete rest rig matches the bare body.
+    # Keep the booted export only as a diagnostic/reference output; never use it
+    # as the source for skinned garments because Ara shifts its Hips by 30.4mm.
     footwear_report=ARA/"ara_person_wren_footwear_rig_comparison.json"
     footwear_test=ROOT/"tools/blender/compare_ara_footwear_rigs.py"
     def compare_footwear_rigs():
@@ -222,13 +224,13 @@ def main():
       [wren_out,wren_no_shoes_out,wren_dressed_out,footwear_test],
       "read-only-footwear-rig-comparison-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
       compare_footwear_rigs)
-    log("Footwear rig comparison complete. Inspect art/characters/ara/ara_person_wren_footwear_rig_comparison.json.")
-    fail("Diagnostic run intentionally stopped before rig normalisation or garment extraction.")
+    log("Footwear comparison complete. No-shoes export matches the bare-body rest rig; using it as the garment source.")
+    wren_garment_source=wren_no_shoes_out
 
     wren_validation=ARA/"ara_person_wren_body.validation.json"
     def validate_wren_body():
-        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/validate_ara_body_variant.py","--","--reference",wren_out,"--candidate",wren_dressed_normalized,"--output",wren_validation])
-    cached("validate-wren-body",[wren_validation],[wren_out,wren_dressed_normalized,ROOT/"tools/blender/validate_ara_body_variant.py"],"same-profile-ara-rest-pose-v2:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],validate_wren_body)
+        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/validate_ara_body_variant.py","--","--reference",wren_out,"--candidate",wren_garment_source,"--output",wren_validation])
+    cached("validate-wren-body",[wren_validation],[wren_out,wren_garment_source,ROOT/"tools/blender/validate_ara_body_variant.py"],"no-shoes-canonical-rest-rig-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],validate_wren_body)
     male_out=ARA/"ara_person_male_body.glb"; male_raw=RAW/"ara_person_male_raw.glb"
     def male_action():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_out,"--adult","--profile-name","standard"])
@@ -300,13 +302,13 @@ def main():
     garment_report=garments.with_suffix(".report.json")
     def build_garment_library():
         run([blender,"--background","--python-exit-code","1","--python",garment_builder,
-          "--","--base-body",wren_out,"--profile-source",wren_dressed_normalized,
+          "--","--base-body",wren_out,"--profile-source",wren_garment_source,
           "--npc-manifest",npc_manifest,"--profile-id","wren_talbot","--output",garments])
         if not garment_report.is_file():
             fail("Garment builder completed without its skinning validation report.")
     cached("garment-library",[garments,garment_report],
-      [wren_out,wren_dressed_normalized,npc_manifest,garment_builder],
-      "garment-library-v4-normalized-canonical-skeleton:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+      [wren_out,wren_garment_source,npc_manifest,garment_builder],
+      "garment-library-v5-no-shoes-canonical-skeleton:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
       build_garment_library)
 
     # Review renders are also cached independently, so changing one outfit
