@@ -326,11 +326,11 @@ static func _soft_cap(skill_id: String) -> int:
 static func _dynamic_dependencies(skill_id: String) -> Array:
     match skill_id:
         "protector":
-            return [["sword_parry", 1], ["dagger_parry", 1]]
+            return [["sword_parry|dagger_parry", 1]]
         "nature_bounty", "nature_butchery", "nature_ranger":
-            return [["druid_knowledge_nature", 1], ["elf_knowledge_nature", 1]]
+            return [["druid_knowledge_nature|elf_knowledge_nature", 1]]
         "elven_grace":
-            return [["elf_foliage_expertise", 1], ["elf_darkvision", 1]]
+            return [["elf_foliage_expertise|elf_darkvision", 1]]
         "axe_cleave":
             return [["axe_dmg", 2]]
         "headsmans_blow":
