@@ -82,7 +82,8 @@ static func can_purchase(character: CharacterState, skill_id: String, context: D
     var max_ranks := int(skill.get("max_ranks", 0))
     if max_ranks > 0 and current_rank >= max_ranks:
         return {"ok": false, "reason": "maximum_rank_reached"}
-    var prerequisite := String(skill.get("prerequisite", ""))
+    var prerequisite_value: Variant = skill.get("prerequisite", null)
+    var prerequisite := "" if prerequisite_value == null else String(prerequisite_value)
     if not prerequisite.is_empty() and int(character.skills.get(prerequisite, 0)) <= 0:
         return {"ok": false, "reason": "prerequisite_missing", "prerequisite": prerequisite}
     var anti_prerequisite := String(skill.get("anti_prerequisite", ""))
