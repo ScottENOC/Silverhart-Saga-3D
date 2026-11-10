@@ -1,46 +1,78 @@
 # Unified character assembly
 
-Silverhart characters are assembled at runtime from three independent sources:
+Silverhart characters are generated from the Ara female or male base, with each person's Ara body settings applied during the local asset build. The resulting bare body is then combined at runtime with that person's appearance profile, hairstyle, inventory and equipment.
 
-1. **Base body** — `art/characters/ara_runtime/ara_person_body.glb` or `ara_person_male_body.glb`. These are the anatomy-integrated adult Ara bases.
-2. **Appearance profile** — the player profile or an entry in `data/characters/hollowmere_npcs.json`. It supplies body variant, body parameters, skin/eye/hair choices and hairstyle.
-3. **Inventory** — `CharacterState` inventory/equipment. Clothing and armour select independent skinned meshes from `ara_person_garments.glb`; weapons, shields and helmets use the existing bone-attachment prop path.
+## Body generation and morphs
 
-The character's body is never hidden to simulate removing clothes. Garment meshes are separate nodes, initially invisible, and inventory equipment toggles their `visible` state. Garment meshes carry a `body_variant` tag (`female`, `male`, or `any`) so a fitted variant is preferred and a generic garment is used only when no matching body-specific mesh exists.
+Ara's body controls (gender, age, muscle, weight, height, proportions, ethnicity, breast settings and detail sliders) are applied by the generator when it creates the mesh. They are baked into the exported body geometry; Ara's current GLB exporter does not expose those 935 body targets as runtime blend shapes.
 
-## NPC source data
+Facial expression blend shapes are exported separately (20 expression shapes when speech shapes are disabled; speech adds 14 more). Godot can use those facial targets at runtime.
 
-- `hollowmere_npcs.json` is the authoritative personal appearance profile.
-- `hollowmere_loadouts.json` defines starting weapon and armour inventory.
-- NPC clothing inventory is created from the `top`, `underTop`, `underBottom`, `bottom` and `shoes` profile fields.
-- `art/characters/hollowmere/*.glb` files are **asset-conversion inputs only**. Runtime spawning no longer loads these pre-dressed character models as the person's body.
+Consequences:
 
-## Build the garment library locally
+- A person's body proportions must be present in their generated bare-body GLB. Storing muscle, weight, height and proportions in a profile does not make them runtime morphs.
+- The female anatomy modification is a Blender skin-mesh sculpt pass. It changes the pelvic skin geometry and does not edit the fingers or other bones.
+- Ara places its skeleton from the generated body's joints. The game rig uses the same bone definitions, but rest transforms can vary with the generated body profile. Do not assume a Wren garment can safely be rebound to an unrelated default female skeleton just because the bone names match.
 
-The independent garment library is assembled from the existing NPC garment geometry, Ara modular exports and the anatomy-integrated shared skeleton. This is deliberately local Blender work, not a GitHub Actions job.
+## Runtime assembly
 
-From the repository root, run:
+1. **Bare body** — a profile-generated, anatomy-integrated Ara GLB. Wren's pilot asset is art/characters/ara_runtime/bodies/wren_talbot.glb.
+2. **Appearance profile** — data/characters/hollowmere_npcs.json supplies the Ara generation parameters, skin/eye/hair colours, hairstyle and garment styles.
+3. **Hair** — a separate Ara skinned export attached to the character's skeleton.
+4. **Inventory** — CharacterState is authoritative. Clothing and armour are separate skinned meshes; weapons, shields and helmets use the existing bone-attachment prop path.
+
+The body is never hidden to simulate removing clothes. Garment meshes are independent nodes and inventory equipment toggles their visibility.
+
+## Wren pilot asset pipeline
+
+Wren is the first profile being validated end to end:
+
+- Generate a bare female Ara body using Wren's exact profile settings.
+- Apply the adult female anatomy sculpt to that bare body.
+- Generate a second Ara export with the same Wren body settings, game rig, A-pose and facial-shape settings, but with Wren's current inventory garments.
+- Apply the same anatomy and garment-clearance pass to the dressed export.
+- Extract Wren's garments from that matching dressed export and validate its bone names, order and rest transforms against the bare Wren body.
+- Package the bare body and matching garment library for Godot.
+
+The old art/characters/hollowmere/*.glb models are visual/legacy references only. They are not used as the source of the new Wren body or garments; an older export may have been made with different Ara parameters or generator versions.
+
+This is deliberately a Wren-only pilot. Other NPCs still fall back to the shared gender base until their own profile-generated bare bodies and matching garment sources have been built. Do not attach Wren's garment library to another character.
+
+## Build locally
+
+This pipeline is local Blender work, not a GitHub Actions job.
+
+From the repository root:
 
 ```bash
+export BLENDER_BIN="/c/Program Files/Blender Foundation/Blender 5.2/blender.exe"
 python tools/build_ara_runtime_local.py
 ```
 
-If Blender is not on PATH, set `BLENDER_BIN` to the installed Blender executable before running the command. The pipeline writes `art/characters/ara_runtime/ara_person_garments.glb` and updates the runtime manifest. Its intermediate cache is under `build/local-cache/ara`.
+The pipeline caches completed Ara exports, anatomy passes, validation, garment extraction and review renders under build/local-cache/ara. A failed later stage should not require repeating successful earlier stages unless an input fingerprint changes.
 
-The Blender conversion checks that source skeleton bone names and ordering match the canonical Ara body, extracts clothing by material, and writes separate skinned objects named:
+Important outputs:
 
-```text
-Garment__<garment_visual>__<body_variant>__<piece>
-```
+- art/characters/ara_runtime/bodies/wren_talbot.glb — bare Wren body, with Wren's Ara macro settings baked in and the modified adult female anatomy.
+- art/characters/ara_runtime/ara_person_garments.glb — Wren-profile garments only, extracted from the matching Wren Ara export.
+- art/characters/ara/ara_person_wren_body.validation.json — rig and facial-morph validation report.
+- art/characters/ara/review/wren_body/ and wren_dressed/ — front, side, rear and three-quarter review renders.
 
-The Godot actor attaches only the matching body variant (or an `any` fallback) and toggles each garment object from equipped inventory.
+## Validation contract
 
-## Verify in Godot
+The bare Wren body and Wren dressed source must have:
 
-After the local asset build and Godot import have completed:
+- Identical bone names and ordering.
+- Identical bone rest transforms (within the validator's strict tolerance).
+- Facial morph targets present in both exports.
+- The expected clothing materials present in the dressed source.
+
+The garment builder independently validates the source rig and each extracted mesh's skinning before exporting separate garment nodes.
+
+After the local build and Godot import, run:
 
 ```bash
 "C:/Program Files/Godot/Godot.exe" --headless --path . --script tests/test_character_assembly.gd
 ```
 
-The test checks both adult body variants, required inventory garment visuals, equip/unequip visibility, and that base-body mesh visibility is unchanged. It does not replace visual inspection in the running game.
+The automated test does not replace visual inspection in the running game. Review Wren from the front, side and rear, then equip/unequip one garment and confirm the underlying body remains visible and correctly shaped.
