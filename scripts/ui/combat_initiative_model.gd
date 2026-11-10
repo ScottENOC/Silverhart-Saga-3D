@@ -29,8 +29,10 @@ static func build_entries(characters: Dictionary, current_character_id: String =
     entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
         var a_tp := float(a.get("time_points", 0.0))
         var b_tp := float(b.get("time_points", 0.0))
-        if not is_equal_approx(a_tp, b_tp):
-            return a_tp > b_tp
+        if a_tp > b_tp:
+            return true
+        if a_tp < b_tp:
+            return false
         return String(a.get("id", "")) < String(b.get("id", ""))
     )
     return entries
