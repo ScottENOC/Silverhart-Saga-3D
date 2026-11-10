@@ -201,6 +201,7 @@ func _create_farmstead() -> void:
 	_add_crop_rows()
 	_add_farm_fence("FarmyardFence", [Vector2i(5, 50), Vector2i(8, 47), Vector2i(18, 47), Vector2i(26, 51), Vector2i(24, 59), Vector2i(15, 61), Vector2i(7, 58), Vector2i(5, 50)])
 	_add_farm_fence("PastureFence", [Vector2i(1, 61), Vector2i(15, 62), Vector2i(17, 74), Vector2i(2, 73), Vector2i(1, 61)])
+	_add_broken_fence_and_blood_trail()
 	var yard_lane: Array[Vector3] = []
 	for hex in HollowmereVillageData.FARMYARD_CENTRELINE:
 		yard_lane.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.035))
@@ -211,6 +212,35 @@ func _create_farm_animals() -> void:
 	_spawn_creature("FarmCowA", "cow", "farm", Vector2i(5, 66), 0.82)
 	_spawn_creature("FarmCowB", "cow", "farm", Vector2i(10, 69), 0.82)
 	_spawn_creature("FarmCowC", "cow", "farm", Vector2i(13, 64), 0.82)
+	# A farm horse is present as a visible future mount candidate.
+	_spawn_creature("FarmHorse", "horse", "mount", Vector2i(20, 54), 0.82)
+
+func _add_broken_fence_and_blood_trail() -> void:
+	var gap_hex := Vector2i(1, 67)
+	var gap_centre := HexGrid.axial_to_world(gap_hex, HEX_RADIUS, 0.04)
+	var broken := Node3D.new()
+	broken.name = "BrokenPastureFence"
+	broken.position = gap_centre
+	add_child(broken)
+	var rail_a := _add_box(broken, "BrokenRailA", Vector3(-0.55, 0.32, -0.25), Vector3(1.3, 0.10, 0.12), fence_material)
+	rail_a.rotation.y = deg_to_rad(-24.0)
+	var rail_b := _add_box(broken, "BrokenRailB", Vector3(0.55, 0.22, 0.22), Vector3(1.0, 0.10, 0.12), dark_wood_material)
+	rail_b.rotation.y = deg_to_rad(18.0)
+
+	var blood_material := _material(Color(0.22, 0.045, 0.025))
+	var trail_hexes: Array[Vector2i] = [Vector2i(1, 67), Vector2i(-4, 68), Vector2i(-10, 69), Vector2i(-17, 70), Vector2i(-24, 71), Vector2i(-31, 72), Vector2i(-38, 73)]
+	for index in range(trail_hexes.size()):
+		var stain := MeshInstance3D.new()
+		stain.name = "BloodTrail_%02d" % index
+		var mesh := CylinderMesh.new()
+		mesh.top_radius = 0.13 if index < 3 else 0.075
+		mesh.bottom_radius = mesh.top_radius
+		mesh.height = 0.018
+		mesh.radial_segments = 7
+		stain.mesh = mesh
+		stain.material_override = blood_material
+		stain.position = HexGrid.axial_to_world(trail_hexes[index], HEX_RADIUS, 0.015)
+		add_child(stain)
 
 func _create_wilderness_animals() -> void:
 	# Ambient wildlife is placed in the outer forest belt, away from the
