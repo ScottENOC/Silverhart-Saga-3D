@@ -5,6 +5,7 @@ var _failures: int = 0
 func _initialize() -> void:
     _test_character_round_trip()
     _test_skill_catalogue_and_progression()
+    _test_npc_skill_spending_and_companion_boundary()
     _test_campaign_journal()
     _test_hollowmere_campaign_content()
     _test_hollowmere_encounter()
@@ -1173,6 +1174,69 @@ func _test_race_class_character_creation() -> void:
     var incoming := CombatRules.resolve_attack(enemy, hard_target, {"time_point_cost":1.0}, rng)
     _check(int(incoming.get("damage", 0)) == 8, "Hard mode increases incoming damage after the fighter starting armour and shield reduce it")
 
+
+
+func _test_npc_skill_spending_and_companion_boundary() -> void:
+    var population_a := CharacterState.new("goblin_a", "Goblin A")
+    var population_b := CharacterState.new("goblin_b", "Goblin B")
+    var build_a := NPCSkillSpending.build_population(population_a, "goblin", 3, "hollowmere:spawn:12,8")
+    var build_b := NPCSkillSpending.build_population(population_b, "goblin", 3, "hollowmere:spawn:12,8")
+    _check(bool(build_a.get("ok", false)) and bool(build_b.get("ok", false)), "Generated humanoid NPCs should build successfully")
+    _check(population_a.class_level_sequence == population_b.class_level_sequence, "Population class packages must be deterministic for the same seed")
+    _check(population_a.skills == population_b.skills, "Population skill allocation must be deterministic for the same seed")
+    _check(population_a.attributes == population_b.attributes, "Population point balances must be deterministic for the same seed")
+    var population_report := SkillProgression.accounting_report(population_a)
+    for pool in population_report.get("pools", {}):
+        var row: Dictionary = population_report.pools[pool]
+        _check(bool(row.get("balanced", false)), "Generated NPC point budgets must reconcile by pool")
+
+    var authored := CharacterState.new("authored_guard", "Authored Guard")
+    authored.equipment["weapon"] = "sword"
+    var authored_build := NPCSkillSpending.build_authored(
+        authored, "human", ["fighter", "fighter"],
+        {"sword_hit": 1, "sword_dmg": 1}, "named:authored_guard"
+    )
+    _check(bool(authored_build.get("ok", false)), "Authored NPCs should use the shared legal skill spender")
+    _check(int(authored.skills.get("sword_hit", 0)) >= 1 and int(authored.skills.get("sword_dmg", 0)) >= 1, "Authored weapon preferences should be purchased with their prerequisites")
+    _check(authored.class_level_sequence == ["fighter", "fighter"], "Authored ordered class histories must be retained")
+
+    var companion := CharacterState.new("companion_test", "Companion Test")
+    companion.race = "human"
+    companion.character_class = "fighter"
+    companion.level = 1
+    companion.class_levels = {"fighter": 1}
+    companion.class_level_sequence = ["fighter"]
+    companion.attributes = {"endurance": 2, "strength": 1, "agility": 1, "weapons": 1}
+    companion.equipment["weapon"] = "sword"
+    SkillProgression.initialise(companion)
+    _check(bool(SkillProgression.purchase(companion, "health").get("ok", false)), "Pre-recruitment authored skill spending should be retained")
+    companion.npc_preferred_skills = {"sword_hit": 1}
+    var recruited := NPCSkillSpending.recruit_companion(companion, {}, "companion:first_join")
+    _check(bool(recruited.get("ok", false)), "First recruitment should initialise a companion's remaining build")
+    _check(companion.companion_recruitment_initialized and companion.progression_mode == "companion")
+    _check(int(companion.skills.get("health", 0)) >= 1, "Recruitment must preserve skills already earned or authored")
+    _check(int(companion.skill_spent_by_id.get("health", 0)) == 1, "Recruitment must preserve the prior paid-point ledger")
+    var ranks_at_recruitment := companion.skills.duplicate(true)
+    var remaining_at_recruitment := SkillProgression.available_points(companion)
+    var rejoin := NPCSkillSpending.recruit_companion(companion, {}, "companion:rejoin")
+    _check(String(rejoin.get("reason", "")) == "already_recruited_once", "Leaving and rejoining must not run recruitment allocation again")
+    _check(companion.skills == ranks_at_recruitment and SkillProgression.available_points(companion) == remaining_at_recruitment, "Rejoining must not rebuild skills or duplicate spending")
+
+    var attributes_before_level := companion.attributes.duplicate(true)
+    var ranks_before_level := companion.skills.duplicate(true)
+    var level_up := SkillProgression.grant_level(companion, "rogue", "companion_level_2")
+    _check(bool(level_up.get("ok", false)), "A recruited companion should receive normal class-level point grants")
+    _check(companion.skills == ranks_before_level, "Post-recruitment level-ups must not auto-spend companion points")
+    _check(int(companion.attributes.get("agility", 0)) == int(attributes_before_level.get("agility", 0)) + 3, "Level-up should grant the class bonus without re-awarding race bonuses")
+    _check(int(companion.attributes.get("endurance", 0)) == int(attributes_before_level.get("endurance", 0)) + 2)
+    _check(SkillProgression.available_points(companion) == remaining_at_recruitment + 7, "New companion points remain available for player allocation")
+    var restored := CharacterState.from_dict(companion.to_dict())
+    _check(restored.companion_recruitment_initialized and restored.progression_mode == "companion", "Recruitment state survives save/load")
+    _check(restored.class_level_sequence == companion.class_level_sequence, "Ordered multiclass history survives save/load")
+
+    var civilian := CharacterState.new("civilian_test", "Civilian Test")
+    var civilian_result := NPCSkillSpending.build_civilian(civilian)
+    _check(bool(civilian_result.get("ok", false)) and SkillProgression.available_points(civilian) == 0, "Civilians use an explicit zero-class, zero-point progression mode")
 
 func _test_campaign_journal() -> void:
     var journal := CampaignJournal.new()
