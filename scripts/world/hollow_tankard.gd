@@ -954,8 +954,8 @@ func _run_opening_sequence() -> void:
         var line: Dictionary = line_value
         var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
         if speaker_id == "narrator":
-            cinematic_director.stage_confrontation()
             if not soldiers_entered:
+                cinematic_director.stage_confrontation()
                 # Start the real hex movement as the entrance is announced,
                 # rather than making the enforcers appear only after narration.
                 var entrance_movement = _move_shakedown_soldiers_inside()
