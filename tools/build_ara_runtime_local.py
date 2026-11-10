@@ -196,7 +196,7 @@ def main():
     wren_validation=ARA/"ara_person_wren_body.validation.json"
     def validate_wren_body():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/validate_ara_body_variant.py","--","--reference",wren_out,"--candidate",wren_dressed_out,"--output",wren_validation])
-    cached("validate-wren-body",[wren_validation],[female_out,wren_out,ROOT/"tools/blender/validate_ara_body_variant.py"],"canonical-ara-rest-pose-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],validate_wren_body)
+    cached("validate-wren-body",[wren_validation],[wren_out,wren_dressed_out,ROOT/"tools/blender/validate_ara_body_variant.py"],"canonical-ara-rest-pose-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],validate_wren_body)
     male_out=ARA/"ara_person_male_body.glb"; male_raw=RAW/"ara_person_male_raw.glb"
     def male_action():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_out,"--adult","--profile-name","standard"])
