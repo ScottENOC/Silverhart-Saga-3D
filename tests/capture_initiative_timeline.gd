@@ -57,11 +57,14 @@ func _run_capture() -> void:
     await create_timer(0.5).timeout
 
     var image := get_root().get_texture().get_image()
-    var error := image.save_png("artifacts/initiative-timeline.png")
+    var output_directory := ProjectSettings.globalize_path("res://artifacts")
+    DirAccess.make_dir_recursive_absolute(output_directory)
+    var output_path := output_directory.path_join("initiative-timeline.png")
+    var error := image.save_png(output_path)
     if error != OK:
         push_error("Could not save initiative screenshot: %s" % error)
         quit(1)
         return
 
-    print("Initiative screenshot saved: artifacts/initiative-timeline.png")
+    print("Initiative screenshot saved: %s" % output_path)
     quit(0)
