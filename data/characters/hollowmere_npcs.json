@@ -970,7 +970,8 @@
         "carry": "none",
         "accessories": [],
         "hairColor": "#594a3c"
-      }
+      },
+      "dialogue_id": "companion_ser_aldric"
     },
     {
       "id": "nix_sharpear",
@@ -1032,7 +1033,8 @@
         "carry": "none",
         "accessories": [],
         "hairColor": "#30251b"
-      }
+      },
+      "dialogue_id": "companion_nix_sharpear"
     },
     {
       "id": "warlord_grukk_ironhide",
@@ -1094,7 +1096,8 @@
         "carry": "none",
         "accessories": [],
         "hairColor": "#30231c"
-      }
+      },
+      "dialogue_id": "companion_orc_warlord"
     },
     {
       "id": "reyna_fletcher",
@@ -1151,7 +1154,8 @@
         "carry": "none",
         "accessories": [],
         "hairColor": "#704b32"
-      }
+      },
+      "dialogue_id": ""
     },
     {
       "id": "mirabel_quill",
@@ -1207,7 +1211,8 @@
         "carry": "none",
         "accessories": [],
         "hairColor": "#8b765e"
-      }
+      },
+      "dialogue_id": ""
     },
     {
       "id": "fenn_oakheart",
@@ -1262,7 +1267,8 @@
         "carry": "none",
         "accessories": [],
         "hairColor": "#57422d"
-      }
+      },
+      "dialogue_id": ""
     },
     {
       "id": "brother_alden",
@@ -1317,7 +1323,8 @@
         "carry": "none",
         "accessories": [],
         "hairColor": "#82715e"
-      }
+      },
+      "dialogue_id": "brother_alden"
     },
     {
       "id": "snik_fangtooth",
@@ -1376,7 +1383,8 @@
         "carry": "none",
         "accessories": [],
         "hairColor": "#251d17"
-      }
+      },
+      "dialogue_id": ""
     }
   ]
 }
