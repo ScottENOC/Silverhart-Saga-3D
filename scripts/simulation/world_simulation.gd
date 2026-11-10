@@ -143,6 +143,16 @@ func party_members() -> Array[CharacterState]:
 func get_character(character_id: String) -> CharacterState:
     return characters.get(character_id) as CharacterState
 
+
+## Player and recruited companion points remain unspent; ordinary NPCs auto-allocate.
+func grant_character_level(character_id: String, class_id: String, grant_id: String) -> Dictionary:
+    var state := get_character(character_id)
+    if state == null:
+        return {"ok": false, "reason": "unknown_character"}
+    if state.progression_mode == "player" or state.progression_mode == "companion" or state.companion_recruitment_initialized:
+        return SkillProgression.grant_level(state, class_id, grant_id)
+    return NPCSkillSpending.grant_npc_level(state, class_id, grant_id)
+
 func start_combat() -> void:
     if is_in_combat:
         return
