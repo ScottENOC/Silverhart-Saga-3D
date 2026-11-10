@@ -103,6 +103,12 @@ def main():
             "Expected Ara facial morph targets in both exports; "
             f"bare={len(ref_shapes)}, dressed={len(candidate_shapes)}"
         )
+    if ref_shapes != candidate_shapes:
+        raise RuntimeError(
+            "Bare and dressed exports have different facial morph target names: "
+            f"bare_only={sorted(set(ref_shapes)-set(candidate_shapes))}, "
+            f"dressed_only={sorted(set(candidate_shapes)-set(ref_shapes))}"
+        )
 
     report = {
         "schema_version": 1,
