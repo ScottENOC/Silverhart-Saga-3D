@@ -408,7 +408,7 @@ def main():
         if not garment_report.is_file():
             fail("Garment builder completed without its skinning validation report.")
     cached("garment-library",[garments,garment_report],
-      [wren_out,wren_garment_source,npc_manifest,ROOT/"data/items/item_definitions.json",ROOT/"tools/character_definitions.py",garment_builder],
+      [wren_out,wren_garment_source,npc_manifest,garment_builder],
       "garment-library-v5-no-shoes-canonical-skeleton:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
       build_garment_library)
 
