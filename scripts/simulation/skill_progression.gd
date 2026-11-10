@@ -146,10 +146,9 @@ static func grant_level(character: CharacterState, class_id: String, grant_id: S
     var grant_key := "level:" + grant_id
     if character.skill_point_grants.has(grant_key):
         return {"ok": false, "reason": "grant_already_applied"}
-    var race := CharacterCreationRules.race_definition(character.race)
     var profession := CharacterCreationRules.class_definition(class_id)
-    if race.is_empty() or profession.is_empty():
-        return {"ok": false, "reason": "unknown_race_or_class"}
+    if profession.is_empty():
+        return {"ok": false, "reason": "unknown_class"}
     var class_bonus: Dictionary = profession.get("bonus", {})
     var pools: Dictionary = {}
     for pool in class_bonus:
