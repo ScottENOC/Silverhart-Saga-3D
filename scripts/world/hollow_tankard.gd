@@ -1315,7 +1315,10 @@ func _check_farm_wolf_proximity() -> void:
 		return
 	# The den is deliberately well beyond the farm and the village sightline.
 	var den := Vector2i(-42, 72)
-	if HexGrid.distance(player.axial, den) > 8:
+	var distance_to_den := HexGrid.distance(player.axial, den)
+	if distance_to_den > 8:
+		if farm_wolves_spawned:
+			farm_wolves_retry_armed = true
 		return
 	if not farm_wolves_spawned or farm_wolves_retry_armed and _farm_wolves_remaining() > 0:
 		_start_farm_wolf_encounter()
@@ -1397,7 +1400,7 @@ func _check_farm_wolf_resolution() -> void:
 			if member != null:
 				member.side = "player"
 				member.combat_dormant = false
-		farm_wolves_retry_armed = true
+		farm_wolves_retry_armed = false
 		_show_dialogue("Wilderness", "The wolves drive you back. They remain at their den, and Old Mac's cattle are still in danger. You can return when ready.", [{"id": "continue", "label": "Retreat.", "text": ""}])
 		return
 
