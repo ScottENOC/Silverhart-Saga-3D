@@ -29,9 +29,10 @@ Wren is the first profile being validated end to end:
 
 - Generate a bare female Ara body using Wren's exact profile settings.
 - Apply the adult female anatomy sculpt to that bare body.
-- Generate a second Ara export with the same Wren body settings, game rig, A-pose and facial-shape settings, but with Wren's current inventory garments.
+- Generate a second Ara export with the same Wren body settings, game rig, A-pose and facial-shape settings, but with Wren's current inventory garments (including combat boots).
 - Apply the same anatomy and garment-clearance pass to the dressed export.
-- Extract Wren's garments from that matching dressed export and validate its bone names, order and rest transforms against the bare Wren body.
+- Ara's footwear option shifts the generated skeleton's common rest-bone origin by about 3 cm in this Wren profile. The local pipeline therefore runs tools/blender/normalize_ara_garment_rig.py before extraction. It accepts only a common Hips-origin translation plus the measured sub-millimetre WeaponR socket residual, rebases the candidate rest bones onto the bare-body skeleton, and checks that evaluated mesh vertices do not move.
+- Validate the normalized export's bone names, order, rest transforms and facial morphs against the bare Wren body, then extract garments from that normalized source.
 - Package the bare body and matching garment library for Godot.
 
 The old art/characters/hollowmere/*.glb models are not used as the source of Wren's new body or garments; an older export may have been made with different Ara parameters or generator versions. They remain a temporary runtime visual fallback for NPCs whose profile-generated bodies are not built yet, so the migration does not leave those characters undressed. This fallback is transitional and is not the target architecture.
@@ -54,8 +55,10 @@ The pipeline caches completed Ara exports, anatomy passes, validation, garment e
 Important outputs:
 
 - art/characters/ara_runtime/bodies/wren_talbot.glb — bare Wren body, with Wren's Ara macro settings baked in and the modified adult female anatomy.
-- art/characters/ara_runtime/ara_person_garments.glb — Wren-profile garments only, extracted from the matching Wren Ara export.
-- art/characters/ara/ara_person_wren_body.validation.json — rig and facial-morph validation report.
+- art/characters/ara/ara_person_wren_dressed_normalized.glb — Wren's dressed source rebased to the canonical bare-body rest skeleton.
+- art/characters/ara/ara_person_wren_dressed_normalization.json — root/socket correction and evaluated-mesh preservation report.
+- art/characters/ara_runtime/ara_person_garments.glb — Wren-profile garments only, extracted from the normalized Wren Ara export.
+- art/characters/ara/ara_person_wren_body.validation.json — final rig and facial-morph validation report.
 - art/characters/ara/review/wren_body/ and wren_dressed/ — front, side, rear and three-quarter review renders.
 
 ## Validation contract
@@ -63,7 +66,9 @@ Important outputs:
 The bare Wren body and Wren dressed source must have:
 
 - Identical bone names and ordering.
-- Identical bone rest transforms (within the validator's strict tolerance).
+- The normalisation preflight must prove that every bone difference is explained by the common Hips translation, except the bounded WeaponR socket residual.
+- After normalisation, every bone rest transform must match the canonical bare-body rig within 1e-5.
+- Evaluated garment-source mesh vertices must remain unchanged by normalisation (maximum displacement 1e-5 m).
 - Facial morph targets present in both exports.
 - The expected clothing materials present in the dressed source.
 
