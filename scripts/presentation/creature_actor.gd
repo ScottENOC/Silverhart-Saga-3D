@@ -5,7 +5,7 @@ extends Node3D
 ## runtime because the packs do not share one naming convention.
 
 @export_file("*.gltf", "*.glb") var model_path: String = ""
-@export_enum("cow", "bull", "horse", "donkey", "alpaca", "wolf", "fox", "deer", "stag", "husky") var creature_kind: String = "cow"
+@export_enum("cow", "bull", "horse", "donkey", "alpaca", "wolf", "fox", "deer", "stag", "husky", "shiba_inu") var creature_kind: String = "cow"
 @export_enum("farm", "passive_wildlife", "predator", "mount") var behaviour: String = "farm"
 @export_range(0.1, 4.0, 0.05) var model_scale: float = 1.0
 @export var idle_animation_hints: PackedStringArray = PackedStringArray(["idle", "graze", "eat", "stand"])
@@ -50,7 +50,7 @@ func _load_model() -> void:
             idle_animation_hints = PackedStringArray(["graze", "idle", "stand", "look"])
         "fox":
             idle_animation_hints = PackedStringArray(["idle", "stand", "look", "alert"])
-        "wolf", "husky":
+        "wolf", "husky", "shiba_inu":
             idle_animation_hints = PackedStringArray(["idle", "stand", "look", "alert"])
         "horse", "donkey", "alpaca":
             idle_animation_hints = PackedStringArray(["idle", "stand", "graze", "eat"])
