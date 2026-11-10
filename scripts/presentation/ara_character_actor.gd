@@ -41,6 +41,10 @@ func configure(glb_path: String) -> bool:
     model_root.name = "AraModel"
     add_child(model_root)
     loaded_asset_path = glb_path
+    var normalized_asset_path := glb_path.replace("\\", "/")
+    var profile_body := normalized_asset_path.contains("/bodies/")
+    set_meta("body_profile_id", glb_path.get_file().get_basename() if profile_body else "")
+    set_meta("body_profile_baked", profile_body)
     animation_player = _find_animation_player(model_root)
     call_deferred("_play_idle_if_available")
     # Report the loaded character model regardless of whether the separate
@@ -53,6 +57,11 @@ func configure(glb_path: String) -> bool:
 ## Each garment is a separate mesh node, so equipment visibility never edits body surfaces.
 func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> bool:
     _clear_modular_garments()
+    # The current pilot garment library was extracted from Wren's matching Ara
+    # profile export. Do not attach it to another person's differently fitted rig.
+    if String(get_meta("body_profile_id", "")) != "wren_talbot":
+        push_warning("No profile-matched Ara garment library is built for body profile '%s' yet." % String(get_meta("body_profile_id", "generic")))
+        return false
     if model_root == null or not ResourceLoader.exists(glb_path):
         push_warning("Character garment library is unavailable: " + glb_path)
         return false
@@ -497,17 +506,24 @@ func tint_materials(name_fragment: String, colour: Color) -> int:
 func apply_body_parameters(profile: Dictionary) -> void:
     if model_root == null:
         return
-    var aliases := {
-        "muscle": ["muscle", "muscularity", "musclemass", "bodymuscle"],
-        "weight": ["weight", "bodyweight", "fat", "bodyfat", "adiposity"],
-        "height": ["height", "bodyheight", "stature"],
-        "proportions": ["proportion", "proportions", "bodyproportion"]
-    }
     var values := {
         "muscle": clampf(float(profile.get("muscle", 0.5)), 0.0, 1.0),
         "weight": clampf(float(profile.get("weight", 0.5)), 0.0, 1.0),
         "height": clampf(float(profile.get("height", 0.5)), 0.0, 1.0),
         "proportions": clampf(float(profile.get("proportions", 0.5)), 0.0, 1.0)
+    }
+    set_meta("body_parameters", values)
+    if bool(get_meta("body_profile_baked", false)):
+        # Ara's GLB export bakes body macro controls into the generated mesh;
+        # this profile-specific bare body already contains these values.
+        set_meta("body_morph_targets_applied", 0)
+        return
+
+    var aliases := {
+        "muscle": ["muscle", "muscularity", "musclemass", "bodymuscle"],
+        "weight": ["weight", "bodyweight", "fat", "bodyfat", "adiposity"],
+        "height": ["height", "bodyheight", "stature"],
+        "proportions": ["proportion", "proportions", "bodyproportion"]
     }
     var applied := 0
     var meshes: Array[MeshInstance3D] = []
@@ -523,8 +539,9 @@ func apply_body_parameters(profile: Dictionary) -> void:
                         mesh_instance.set_blend_shape_value(shape_index, values[parameter])
                         applied += 1
                         break
-    set_meta("body_parameters", values)
     set_meta("body_morph_targets_applied", applied)
+    if applied == 0:
+        push_warning("Ara GLB exports bake body macro settings into geometry; this generic body has no runtime muscle/weight/height/proportion morphs. A profile-specific Ara body export is required.")
 
 func apply_npc_parameters(params: Dictionary) -> void:
     if model_root == null:
