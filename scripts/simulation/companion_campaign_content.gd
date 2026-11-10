@@ -5,13 +5,14 @@ extends RefCounted
 ## systems call complete_objective when the relevant world event exists.
 
 const DEFINITIONS := [
+    {"id":"goblin_threat","title":"The Skarn-tooth Tribe","description":"Resolve the goblin threat. Nix Sharpear joins only if the tribe is peacefully allied.","objectives":[{"id":"resolved","description":"Resolve the goblin threat and choose the goblin alliance.","target":1.0,"required":true}]},
+    {"id":"star_fort_companion","title":"A Choice at Star Fort","description":"Resolve the Star Fort encounter and choose the greenskin alliance; Snik Fangtooth will then offer to join.","objectives":[{"id":"greenskin_resolution","description":"Choose the greenskin side at Star Fort.","target":1.0,"required":true}]},
     {"id":"aldric_rescue","title":"A Debt at the Goblin Camp","description":"Find Ser Aldric Thorne captive at the goblin camp and free him.","objectives":[{"id":"freed","description":"Free Ser Aldric from captivity.","target":1.0,"required":true}]},
     {"id":"orc_stronghold_trust","title":"Prove Your Strength","description":"Deal with the troll denning east of Skarnak's Hold and earn the orc stronghold's trust.","objectives":[{"id":"troll_slain","description":"Defeat the troll threatening the orc scouts and cattle.","target":1.0,"required":true}]},
     {"id":"reyna_bear_hunt","title":"The Grain-Raiding Bear","description":"Help Reyna Fletcher stop the bear raiding Old Mac's grain stores.","objectives":[{"id":"bear_slain","description":"Defeat the bear at Old Mac's Farmstead.","target":1.0,"required":true}]},
     {"id":"mirabel_spider_ruin","title":"The Ruin's Quiet","description":"Clear the spider nest at the nearby ruin so Mirabel can recover what is inside.","objectives":[{"id":"nest_cleared","description":"Defeat the spiders guarding the ruin.","target":1.0,"required":true}]},
     {"id":"fenn_herb_gathering","title":"Three Bundles for the Grove","description":"Gather three bundles of herbs for Fenn Oakheart.","objectives":[{"id":"herbs_delivered","description":"Deliver three bundles of herbs to Fenn.","target":3.0,"required":true}]},
     {"id":"northwatch_siege","title":"Hold Northwatch","description":"Help defend Northwatch. Brother Alden will consider joining after the battle.","objectives":[{"id":"defended","description":"Resolve the Northwatch siege in the defenders' favour.","target":1.0,"required":true}]},
-    {"id":"star_fort_companion","title":"A Choice at Star Fort","description":"Resolve the Star Fort encounter and choose the greenskin alliance; Snik Fangtooth will then offer to join.","objectives":[{"id":"greenskin_resolution","description":"Choose the greenskin side at Star Fort.","target":1.0,"required":true}]}
 ]
 
 const PROFILES := {
@@ -25,6 +26,9 @@ const PROFILES := {
     "snik_fangtooth":{"name":"Snik Fangtooth","quest":"star_fort_companion"}
 }
 
+static func is_companion_id(character_id: String) -> bool:
+    return PROFILES.has(character_id)
+
 static func register_quest_definitions(journal: CampaignJournal) -> void:
     if journal == null:
         return
@@ -32,6 +36,14 @@ static func register_quest_definitions(journal: CampaignJournal) -> void:
         var definition: Dictionary = definition_value
         if not journal.quest_definitions.has(String(definition.id)):
             journal.register_quest_definition(definition)
+
+static func complete_with_decision(journal: CampaignJournal, quest_id: String, objective_id: String, decision_id: String, choice_id: String) -> Dictionary:
+    if journal == null:
+        return {"ok":false,"reason":"missing_journal"}
+    var decision := journal.record_decision(quest_id, decision_id, choice_id)
+    if not bool(decision.get("ok", false)):
+        return decision
+    return complete_objective(journal, quest_id, objective_id)
 
 static func complete_objective(journal: CampaignJournal, quest_id: String, objective_id: String) -> Dictionary:
     if journal == null:
@@ -120,7 +132,7 @@ static func conversation(character_id: String, journal: CampaignJournal, invento
                 choices.append(_choice("start:"+quest_id,"I'll clear out the ruin."))
         "fenn_oakheart":
             var herb_count := _count_item(inventory, "herbs")
-            recruit_ready = herb_count >= 3
+            recruit_ready = _started(journal, quest_id) and herb_count >= 3
             if recruit_ready:
                 body = "Three bundles, gathered clean — you've got a feel for this place. The grove doesn't need me the way it used to. I think I'm ready to see more of the world than these trees."
                 choices.append(_choice("recruit:"+character_id,"Give the herbs, and join me."))
