@@ -13,9 +13,12 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "tools"))
+from character_definitions import ara_export_params, load_item_catalog, validate_character_definitions
 PROFILE_FILE = ROOT / "data" / "characters" / "hollowmere_npcs.json"
 ARA_ROOT = Path.cwd()
 
@@ -42,7 +45,8 @@ def source_ids(path: str, pattern: str) -> set[str]:
     return set(re.findall(pattern, file.read_text()))
 
 
-def validate_profiles(profiles: dict) -> None:
+def validate_profiles(profiles: dict, item_catalog: dict) -> None:
+    validate_character_definitions(profiles, item_catalog)
     garments = source_ids("src/core/garments/catalog.ts", r"\bid:\s*'([^']+)'")
     garments.add("none")
     # The Silverhart patch adds this exact under-layer ID to Ara's catalogue.
@@ -67,7 +71,7 @@ def validate_profiles(profiles: dict) -> None:
         if not character_id or character_id in seen:
             raise SystemExit(f"Missing or duplicate character id: {character_id!r}")
         seen.add(character_id)
-        params = profile.get("params", {})
+        params = ara_export_params(profile, item_catalog, include_equipped=True)
         for key in ("gender", "age", "muscle", "weight", "height", "proportions", "african", "asian", "caucasian"):
             value = params.get(key)
             if not isinstance(value, (int, float)) or not 0.0 <= float(value) <= 1.0:
@@ -110,15 +114,15 @@ def main() -> None:
         raise SystemExit(f"Missing character profile file: {PROFILE_FILE}")
 
     manifest = json.loads(PROFILE_FILE.read_text())
-    validate_profiles(manifest)
+    item_catalog = load_item_catalog()
+    validate_profiles(manifest, item_catalog)
     args.out.mkdir(parents=True, exist_ok=True)
 
     built = []
     for profile in manifest["characters"]:
         character_id = profile["id"]
         detail = args.detail or profile.get("detail", "medium")
-        params = dict(profile["params"])
-        params["name"] = profile["name"]
+        params = ara_export_params(profile, item_catalog, include_equipped=True, name=profile["name"], detail=detail)
         # Equipment is owned by CharacterState and rendered by Godot socket attachments.
         # Do not bake a duplicate weapon into each generated NPC mesh.
         params["weapon"] = "none"
@@ -164,6 +168,9 @@ def main() -> None:
             "hex": profile["hex"],
             "detail": detail,
             "model": f"{character_id}.glb",
+            "appearance": profile["appearance"],
+            "inventory": profile["inventory"],
+            "equipped": profile["equipped"],
             "params": params,
         })
         shutil.rmtree(export_dir)
