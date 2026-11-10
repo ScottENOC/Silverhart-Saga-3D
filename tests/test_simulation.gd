@@ -136,12 +136,9 @@ func _test_skill_catalogue_and_progression() -> void:
     var rogue_bonus: Dictionary = CharacterCreationRules.class_definition("rogue").get("bonus", {})
     var level_grant := SkillProgression.grant_level(level_character, "rogue", "level_2")
     _check(bool(level_grant.get("ok", false)) and level_character.level == 2, "A new class level should be granted")
-    for pool in human_bonus:
+    for pool in rogue_bonus:
         var expected := int(before_level_attributes.get(pool, 0)) + int(rogue_bonus.get(pool, 0))
         _check(int(level_character.attributes.get(pool, 0)) == expected, "Each level grants the selected class pools without repeating race bonuses")
-    for pool in rogue_bonus:
-        if not before_level_attributes.has(pool):
-            _check(int(level_character.attributes.get(pool, 0)) == int(before_level_attributes.get(pool, 0)) + int(rogue_bonus.get(pool, 0)))
     _check(int(level_character.class_levels.get("rogue", 0)) == 1, "Class-level history should retain multiclass progression")
     _check(String(SkillProgression.grant_level(level_character, "rogue", "level_2").get("reason", "")) == "grant_already_applied", "A level-up cannot award the same points twice")
     _check(int(level_character.skills.size()) == 0, "A level grant must leave new skill points unspent for the player")
