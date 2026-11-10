@@ -137,6 +137,13 @@ def main():
       "shoes":wren_profile.get("params",{}).get("shoes","none"),
       "garmentStyles":wren_profile.get("params",{}).get("garmentStyles",{})
     })
+    # Diagnostic control: identical Wren garments and body profile, but no footwear.
+    # Comparing this export with the booted one isolates Ara's footwear effect.
+    wren_dressed_no_shoes=dict(wren_dressed)
+    wren_dressed_no_shoes.update({
+      "name":"Ara Base Person - Wren Talbot garment source no shoes",
+      "shoes":"none"
+    })
     male=dict(body); male.update({"name":"Ara Base Person - male body","seed":417,"gender":1,"breastSize":0,"breastFirmness":0})
     mobile=dict(base); mobile.update({"name":"Ara Base Person - mobile preview","detail":"low","animations":False,"faceBones":False,"faceShapes":False,"speechShapes":False})
     variants={
@@ -154,7 +161,7 @@ def main():
       "fishnet_pants":{"top":"none","underTop":"none","underBottom":"none","bottom":"fatigue_pants","garmentStyles":{"fatigue_pants":{"pattern":"fishnet","color":"#29242d","color2":"#987b91"}}},
       "backless_slit_dress":{"top":"backless_slit_dress","underTop":"none","underBottom":"none","bottom":"none"},
       "leather_armor":{"top":"none","underTop":"none","underBottom":"none","bottom":"none","accessories":["leather_armor"]}}
-    params={"ara_person_benchmark":base,"ara_person_body":body,"ara_person_male_raw":male,"ara_person_mobile":mobile,"ara_person_wrapper_knee":dict(body, name="Ara Wrapper Knee Source", bottom="wrapper_knee"),"ara_person_wren_body":wren_body,"ara_person_wren_dressed":wren_dressed}
+    params={"ara_person_benchmark":base,"ara_person_body":body,"ara_person_male_raw":male,"ara_person_mobile":mobile,"ara_person_wrapper_knee":dict(body, name="Ara Wrapper Knee Source", bottom="wrapper_knee"),"ara_person_wren_body":wren_body,"ara_person_wren_dressed":wren_dressed,"ara_person_wren_dressed_no_shoes":wren_dressed_no_shoes}
     for k,v in variants.items():
         p=dict(base); p.update({"name":"Ara Base Person - "+k,"jacket":"none","underwear":False,"shoes":"none","hat":"none","weapon":"none","carry":"none"}); p.update(v); params["ara_person_"+k]=p
     def export(key,p):
@@ -193,21 +200,30 @@ def main():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_adult_anatomy.py"],env=env)
         shutil.copy2(RAW/"ara_person_wren_dressed_anatomy.glb",wren_dressed_out)
     cached("wren-dressed-anatomy",[wren_dressed_out],[wren_dressed_raw,ROOT/"tools/blender/add_adult_anatomy.py"],"wren-dressed-anatomy-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],build_wren_dressed)
-    # Ara shifts the generated rest skeleton when footwear is present. Rebase
-    # this known root-only offset onto the bare-body skeleton before extracting
-    # independent garments; the normaliser refuses any unexpected rig changes
-    # and verifies evaluated mesh vertices remain unchanged.
-    wren_dressed_normalized=ARA/"ara_person_wren_dressed_normalized.glb"
-    wren_normalization_report=ARA/"ara_person_wren_dressed_normalization.json"
-    normalizer=ROOT/"tools/blender/normalize_ara_garment_rig.py"
-    def normalize_wren_garment_rig():
-        run([blender,"--background","--python-exit-code","1","--python",normalizer,"--",
-          "--reference",wren_out,"--candidate",wren_dressed_out,
-          "--output",wren_dressed_normalized,"--report",wren_normalization_report])
-    cached("normalize-wren-garment-rig",[wren_dressed_normalized,wren_normalization_report],
-      [wren_out,wren_dressed_out,normalizer],
-      "canonical-rest-rig-rebase-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
-      normalize_wren_garment_rig)
+    # Build the same Wren garment source without shoes as a controlled test.
+    # Both dressed variants receive the identical adult anatomy pass.
+    wren_no_shoes_raw=RAW/"ara_person_wren_dressed_no_shoes.glb"
+    wren_no_shoes_out=ARA/"ara_person_wren_dressed_no_shoes.glb"
+    def build_wren_no_shoes():
+        env=os.environ.copy(); env.update({"ARA_INPUT":str(wren_no_shoes_raw),"ARA_OUTPUT":str(RAW/"ara_person_wren_dressed_no_shoes_anatomy.glb"),"ARA_PROFILE":"female","ARA_ADULT":"1"})
+        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_adult_anatomy.py"],env=env)
+        shutil.copy2(RAW/"ara_person_wren_dressed_no_shoes_anatomy.glb",wren_no_shoes_out)
+    cached("wren-dressed-no-shoes-anatomy",[wren_no_shoes_out],[wren_no_shoes_raw,ROOT/"tools/blender/add_adult_anatomy.py"],"wren-dressed-no-shoes-anatomy-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],build_wren_no_shoes)
+
+    # Stop after a read-only three-way rig comparison. No rest bones are edited,
+    # no garment meshes are extracted, and no GLB is normalised or exported.
+    footwear_report=ARA/"ara_person_wren_footwear_rig_comparison.json"
+    footwear_test=ROOT/"tools/blender/compare_ara_footwear_rigs.py"
+    def compare_footwear_rigs():
+        run([blender,"--background","--python-exit-code","1","--python",footwear_test,"--",
+          "--reference",wren_out,"--no-shoes",wren_no_shoes_out,
+          "--with-shoes",wren_dressed_out,"--report",footwear_report])
+    cached("compare-wren-footwear-rigs",[footwear_report],
+      [wren_out,wren_no_shoes_out,wren_dressed_out,footwear_test],
+      "read-only-footwear-rig-comparison-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+      compare_footwear_rigs)
+    log("Footwear rig comparison complete. Inspect art/characters/ara/ara_person_wren_footwear_rig_comparison.json.")
+    fail("Diagnostic run intentionally stopped before rig normalisation or garment extraction.")
 
     wren_validation=ARA/"ara_person_wren_body.validation.json"
     def validate_wren_body():
