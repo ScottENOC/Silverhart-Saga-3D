@@ -215,7 +215,7 @@ func _render_entries(entries: Array[Dictionary], current: CharacterState) -> voi
         _add_stat_bar(content, "HP", int(entry["health"]), int(entry["max_health"]), Color("#a94f4b"))
         if int(entry["max_mana"]) > 0:
             _add_stat_bar(content, "MP", int(entry["mana"]), int(entry["max_mana"]), Color("#477eb5"))
-        _add_tp_bar(content, float(entry["time_points"]))
+        _add_tp_value(content, float(entry["time_points"]))
 
         _cards.add_child(card)
 
@@ -244,29 +244,13 @@ func _add_stat_bar(parent: VBoxContainer, prefix: String, value: int, maximum: i
     bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
     line.add_child(bar)
 
-func _add_tp_bar(parent: VBoxContainer, value: float) -> void:
-    var line := HBoxContainer.new()
-    line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    line.add_theme_constant_override("separation", 4)
-    parent.add_child(line)
-
+func _add_tp_value(parent: VBoxContainer, value: float) -> void:
     var label := Label.new()
     label.text = "TP %.0f" % value
-    label.custom_minimum_size = Vector2(67.0, 0.0)
-    label.add_theme_font_size_override("font_size", 9)
+    label.add_theme_font_size_override("font_size", 10)
     label.add_theme_color_override("font_color", Color("#d9c18d"))
     label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    line.add_child(label)
-
-    var bar := ProgressBar.new()
-    bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    bar.min_value = 0.0
-    bar.max_value = TP_REGENERATION_GATE
-    bar.value = clampf(value, 0.0, TP_REGENERATION_GATE)
-    bar.show_percentage = false
-    bar.custom_minimum_size = Vector2(0.0, 6.0)
-    bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    line.add_child(bar)
+    parent.add_child(label)
 
 func _on_card_pressed(character_id: String) -> void:
     character_selected.emit(character_id)
