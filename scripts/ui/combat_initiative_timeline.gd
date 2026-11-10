@@ -54,7 +54,7 @@ func refresh() -> void:
             String(entry["display_name"]),
             String(entry["side"]),
             str(bool(entry["is_unconscious"])),
-            str(bool(entry["is_active"])) + (portrait.resource_path if portrait != null else "")
+            str(bool(entry["is_active"])) + (str(portrait.get_instance_id()) if portrait != null else "")
         ]
     visible = true
     if signature == _last_signature:
