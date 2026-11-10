@@ -1,6 +1,6 @@
 {
   "source": "ScottENOC/Hex-crpg equipment.js, with partyInventory.js runtime weight/container rules",
-  "item_count": 76,
+  "item_count": 77,
   "icon_atlas": {
     "path": "res://art/ui/item_icon_atlas.svg",
     "columns": 8,
