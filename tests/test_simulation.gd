@@ -1,5 +1,7 @@
 extends SceneTree
 
+const INITIATIVE_MODEL = preload("res://scripts/ui/combat_initiative_model.gd")
+
 var _failures: int = 0
 
 func _initialize() -> void:
@@ -18,6 +20,7 @@ func _initialize() -> void:
     _test_world_clock()
     _test_wilderness_resources_and_chunk_streaming()
     _test_combat_turn_scheduler()
+    _test_initiative_timeline_model()
     _test_combat_resolution()
     _test_downed_and_death_lifecycle()
     _test_unified_action_contract()
@@ -539,6 +542,54 @@ func _test_combat_turn_scheduler() -> void:
     _check(forced_actor.time_points == 80.0, "Voluntary turn end should forfeit unused TP to avoid immediate reselection")
     loaded.free()
     sim.free()
+
+func _test_initiative_timeline_model() -> void:
+    var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+    player.side = "player"
+    player.time_points = 80.0
+    var enemy := CharacterState.new("enemy_guard", "Guard", Vector2i(1, 0))
+    enemy.side = "enemy"
+    enemy.time_points = 120.0
+    var downed := CharacterState.new("downed_ally", "Downed Ally", Vector2i(0, 1))
+    downed.side = "player"
+    downed.time_points = 110.0
+    downed.unconscious = true
+    var dormant := CharacterState.new("tavern_guest", "Tavern Guest", Vector2i(1, 1))
+    dormant.side = "player"
+    dormant.combat_dormant = true
+    dormant.time_points = 150.0
+    var rider := CharacterState.new("horse", "Horse", Vector2i(2, 0))
+    rider.side = "player"
+    rider.is_rider = true
+    rider.time_points = 149.0
+    var neutral := CharacterState.new("villager", "Villager", Vector2i(2, 1))
+    neutral.side = "neutral"
+    neutral.time_points = 148.0
+
+    var characters := {
+        "player": player,
+        "enemy_guard": enemy,
+        "downed_ally": downed,
+        "tavern_guest": dormant,
+        "horse": rider,
+        "villager": neutral
+    }
+    var entries: Array[Dictionary] = INITIATIVE_MODEL.build_entries(characters, "player")
+    _check(entries.size() == 3, "Initiative should include active player/enemy combatants but exclude dormant NPCs, riders and neutral bystanders")
+    _check(String(entries[0]["id"]) == "enemy_guard", "Timeline should sort highest TP first")
+    _check(String(entries[1]["id"]) == "downed_ally", "Living unconscious combatants remain visible in the timeline")
+    _check(bool(entries[1]["is_unconscious"]) and not bool(entries[1]["can_start_turn"]), "Downed combatants should be visible but not eligible to act")
+    _check(String(entries[2]["id"]) == "player" and bool(entries[2]["is_active"]), "Current actor should be marked independently of its TP rank")
+    _check(is_equal_approx(float(entries[0]["time_points_ratio"]), 0.8), "TP bar ratio should use the character's configured TP maximum")
+
+    var tied_a := CharacterState.new("ally_a", "Ally A")
+    var tied_b := CharacterState.new("ally_b", "Ally B")
+    tied_a.side = "player"
+    tied_b.side = "player"
+    tied_a.time_points = 100.0
+    tied_b.time_points = 100.0
+    var tied := INITIATIVE_MODEL.build_entries({"ally_b": tied_b, "ally_a": tied_a})
+    _check(String(tied[0]["id"]) == "ally_a" and String(tied[1]["id"]) == "ally_b", "Equal TP display order should be stable by ID")
 
 func _test_combat_resolution() -> void:
     var attacker := CharacterState.new("hero", "Hero")
