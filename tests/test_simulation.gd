@@ -85,6 +85,8 @@ func _test_skill_catalogue_and_progression() -> void:
     _check(bool(SkillProgression.purchase(character, "health").get("ok", false)))
     _check(bool(SkillProgression.purchase(character, "health").get("ok", false)))
     _check(int(character.skills.get("health", 0)) == 3, "Unlimited-rank skills can be purchased repeatedly while points remain")
+    _check(bool(SkillProgression.purchase(character, "health").get("ok", false)), "Wildcard points may also fund a standard tree")
+    _check(int(character.skills.get("health", 0)) == 4)
     _check(String(SkillProgression.purchase(character, "health").get("reason", "")) == "insufficient_skill_points")
 
     var prerequisite_character := CharacterState.new("prereq_test", "Prerequisite Test")
@@ -1215,11 +1217,12 @@ func _test_npc_skill_spending_and_companion_boundary() -> void:
     SkillProgression.initialise(companion)
     _check(bool(SkillProgression.purchase(companion, "health").get("ok", false)), "Pre-recruitment authored skill spending should be retained")
     companion.npc_preferred_skills = {"sword_hit": 1}
+    var paid_health_before_recruitment := int(companion.skill_spent_by_id.get("health", 0))
     var recruited := NPCSkillSpending.recruit_companion(companion, {}, "companion:first_join")
     _check(bool(recruited.get("ok", false)), "First recruitment should initialise a companion's remaining build")
     _check(companion.companion_recruitment_initialized and companion.progression_mode == "companion")
     _check(int(companion.skills.get("health", 0)) >= 1, "Recruitment must preserve skills already earned or authored")
-    _check(int(companion.skill_spent_by_id.get("health", 0)) == 1, "Recruitment must preserve the prior paid-point ledger")
+    _check(int(companion.skill_spent_by_id.get("health", 0)) >= paid_health_before_recruitment, "Recruitment must preserve and extend, not reset, the prior paid-point ledger")
     var ranks_at_recruitment := companion.skills.duplicate(true)
     var remaining_at_recruitment := SkillProgression.available_points(companion)
     var rejoin := NPCSkillSpending.recruit_companion(companion, {}, "companion:rejoin")
