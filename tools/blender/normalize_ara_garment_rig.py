@@ -74,16 +74,27 @@ def evaluated_mesh_snapshot(meshes):
     return snapshot
 
 
-def max_geometry_delta(before, after):
+def geometry_diagnostics(before, after):
     if before.keys() != after.keys():
         raise RuntimeError("Mesh object set changed during rig normalisation")
-    maximum = 0.0
+    result = {}
     for name in before:
         if len(before[name]) != len(after[name]):
             raise RuntimeError(f"{name}: evaluated vertex count changed during normalisation")
-        for a, b in zip(before[name], after[name]):
-            maximum = max(maximum, (Vector(a) - Vector(b)).length)
-    return maximum
+        deltas = [Vector(b) - Vector(a) for a, b in zip(before[name], after[name])]
+        if not deltas:
+            result[name] = {"vertices": 0, "max_displacement_metres": 0.0}
+            continue
+        max_index = max(range(len(deltas)), key=lambda i: deltas[i].length)
+        mean_delta = sum(deltas, Vector()) / len(deltas)
+        result[name] = {
+            "vertices": len(deltas),
+            "max_displacement_metres": deltas[max_index].length,
+            "max_displacement_vertex": max_index,
+            "mean_displacement_vector_metres": [round(v, 9) for v in mean_delta],
+            "mean_displacement_length_metres": mean_delta.length,
+        }
+    return result
 
 
 def main():
@@ -201,8 +212,30 @@ def main():
             )
 
     geometry_after = evaluated_mesh_snapshot(candidate_meshes)
-    geometry_delta = max_geometry_delta(geometry_before, geometry_after)
+    geometry_report = geometry_diagnostics(geometry_before, geometry_after)
+    geometry_delta = max(
+        (item["max_displacement_metres"] for item in geometry_report.values()),
+        default=0.0,
+    )
     if geometry_delta > EPSILON:
+        diagnostics = {
+            "schema_version": 1,
+            "failure": "evaluated_mesh_geometry_changed",
+            "root_translation_removed_metres": [round(v, 9) for v in root_delta],
+            "maximum_vertex_displacement_metres": geometry_delta,
+            "per_mesh": geometry_report,
+            "note": "Diagnostic only; no normalized GLB was exported.",
+        }
+        args.report.parent.mkdir(parents=True, exist_ok=True)
+        args.report.write_text(json.dumps(diagnostics, indent=2) + "\\n", encoding="utf-8")
+        for name, item in geometry_report.items():
+            print(
+                f"[Ara rig normalisation] mesh={name} "
+                f"max_displacement={item['max_displacement_metres']:.7g}m "
+                f"mean_vector={item.get('mean_displacement_vector_metres')}",
+                flush=True,
+            )
+        print("[Ara rig normalisation] Geometry diagnostics: " + str(args.report), flush=True)
         raise RuntimeError(
             f"Normalisation changed evaluated mesh geometry by up to "
             f"{geometry_delta:.7g}m; refusing to export."
