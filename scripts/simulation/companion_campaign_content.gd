@@ -136,7 +136,7 @@ static func conversation(character_id: String, journal: CampaignJournal, invento
                 body = "There's a ruin nearby with something in it worth reading — old enough to matter, if the rumours are even half true. Spiders have made a nest of the entrance, though, and I'm no fighter. Clear them out and whatever's inside is worth knowing about."
                 choices.append(_choice("start:"+quest_id,"I'll clear out the ruin."))
         "fenn_oakheart":
-            var herb_count := _count_item(inventory, "herbs")
+            var herb_count := count_item(inventory, "herbs")
             recruit_ready = _started(journal, quest_id) and herb_count >= 3
             if recruit_ready:
                 body = "Three bundles, gathered clean — you've got a feel for this place. The grove doesn't need me the way it used to. I think I'm ready to see more of the world than these trees."
@@ -171,7 +171,7 @@ static func conversation(character_id: String, journal: CampaignJournal, invento
         choices.append(_choice("continue","Understood."))
     return {"speaker":name,"text":body,"choices":choices}
 
-static func _count_item(inventory: Array[Dictionary], item_id: String) -> int:
+static func count_item(inventory: Array[Dictionary], item_id: String) -> int:
     var count := 0
     for item in inventory:
         if String(item.get("id", "")) == item_id:
@@ -179,7 +179,7 @@ static func _count_item(inventory: Array[Dictionary], item_id: String) -> int:
     return count
 
 static func consume_item(inventory: Array[Dictionary], item_id: String, amount: int) -> bool:
-    if amount <= 0 or _count_item(inventory, item_id) < amount:
+    if amount <= 0 or count_item(inventory, item_id) < amount:
         return false
     var remaining := amount
     for index in range(inventory.size() - 1, -1, -1):
