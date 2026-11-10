@@ -25,7 +25,10 @@ func configure(glb_path: String) -> bool:
     loaded_asset_path = ""
     # The base GLB is authoritative. Set this before any garment library is attached,
     # rather than relying on a caller to remember the metadata.
-    set_meta("body_variant", "male" if glb_path.get_file().to_lower().contains("male") else "female")
+    var configured_variant := String(get_meta("body_variant", ""))
+    if configured_variant not in ["male", "female"]:
+        configured_variant = "male" if glb_path.get_file().to_lower().contains("male") else "female"
+    set_meta("body_variant", configured_variant)
     set_meta("modular_garments_loaded", false)
     if not ResourceLoader.exists(glb_path):
         push_warning("Ara character asset is not installed: " + glb_path)
