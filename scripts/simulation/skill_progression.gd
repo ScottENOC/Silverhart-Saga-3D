@@ -163,6 +163,12 @@ static func grant_level(character: CharacterState, class_id: String, grant_id: S
     character.class_levels[class_id] = int(character.class_levels.get(class_id, 0)) + 1
     character.class_level_sequence.append(class_id)
     character.level += 1
+    if character.progression_mode != "player":
+        var granted_total := 0
+        for amount in pools.values():
+            granted_total += int(amount)
+        character.npc_skill_point_budget += granted_total
+        character.npc_unspent_skill_points += granted_total
     character.skill_point_grants[grant_key] = {
         "type": "class_level",
         "class_id": class_id,
