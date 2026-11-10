@@ -34,7 +34,8 @@ Wren is the first profile being validated end to end:
 - Compare the bare body, dressed/no-shoes export and dressed/booted export with tools/blender/compare_ara_footwear_rigs.py.
 - The comparison established that the no-shoes export matches the bare body's complete 69-bone rest rig exactly, while the booted export shifts Hips by 30.421 mm. Therefore, footwear must not be present during generation of a skinned garment source.
 - Use the no-shoes export as the canonical Wren garment source. The booted export is retained only for diagnostics; it is never normalised or used to extract skinned garments.
-- Package the bare body and matching garment library for Godot. Boots will be treated as separate equipment assets, not baked into the body or garment-source skeleton.
+- The garment-library builder deliberately excludes the `shoes` slot from required skinned garments. It records configured footwear (such as `female:combat_boots`) in the build report's `deferred_equipment` list instead of failing the build when that footwear is absent from the no-shoes source.
+- Package the bare body and matching garment library for Godot. Boots and sandals will be treated as separate equipment assets, not baked into the body or garment-source skeleton. Until those assets exist, their absence is explicit in the report; the builder does not fabricate footwear or silently substitute another mesh.
 
 The old art/characters/hollowmere/*.glb models are not used as the source of Wren's new body or garments; an older export may have been made with different Ara parameters or generator versions. They remain a temporary runtime visual fallback for NPCs whose profile-generated bodies are not built yet, so the migration does not leave those characters undressed. This fallback is transitional and is not the target architecture.
 
