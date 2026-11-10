@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Build a shared library of independently skinned Ara garment objects.
+"""Build a profile-matched library of independently skinned Ara garment objects.
 
-The female anatomy-integrated Ara body supplies the canonical skeleton. Garment
-geometry is extracted from the existing Hollowmere character exports first,
-then the modular Ara exports fill generic items not represented by an NPC.
-Every output mesh is retargeted to the canonical skeleton and named
-Garment__<garment_visual>__<body_variant>__<piece>, which Godot uses as the inventory binding.
+The target is the bare body generated from one character's Ara profile. Garment
+geometry comes from a second Ara export made with the same body parameters, rig
+and rest pose, so its skin weights and rest transforms match the target body.
+Legacy NPC exports and unrelated profile exports are not used as garment sources.
+Every output mesh is named Garment__<garment_visual>__<body_variant>__<piece>,
+which Godot uses as the inventory binding.
 Run locally through build_ara_runtime_local.py; this requires Blender.
 """
 from __future__ import annotations
