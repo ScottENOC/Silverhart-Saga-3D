@@ -110,6 +110,52 @@ def geometry_diagnostics(before, after):
     return result
 
 
+def armature_skinning_state(armature, meshes):
+    def matrix_rows(matrix):
+        return [[round(value, 9) for value in row] for row in matrix]
+
+    pose_bones = {}
+    for bone in armature.data.bones:
+        pose = armature.pose.bones.get(bone.name)
+        if pose is None:
+            continue
+        pose_bones[bone.name] = {
+            "pose_basis": matrix_rows(pose.matrix_basis),
+            "pose_matrix": matrix_rows(pose.matrix),
+            "rest_matrix": matrix_rows(bone.matrix_local),
+            "pose_vs_rest_max_delta": matrix_delta(pose.matrix, bone.matrix_local),
+        }
+
+    mesh_state = {}
+    for obj in meshes:
+        modifiers = []
+        for modifier in obj.modifiers:
+            if modifier.type != "ARMATURE":
+                continue
+            modifiers.append({
+                "name": modifier.name,
+                "target_armature": modifier.object.name if modifier.object else None,
+                "use_vertex_groups": modifier.use_vertex_groups,
+                "use_bone_envelopes": modifier.use_bone_envelopes,
+                "use_deform_preserve_volume": modifier.use_deform_preserve_volume,
+                "show_viewport": modifier.show_viewport,
+                "show_render": modifier.show_render,
+            })
+        mesh_state[obj.name] = {
+            "matrix_world": matrix_rows(obj.matrix_world),
+            "matrix_local": matrix_rows(obj.matrix_local),
+            "parent": obj.parent.name if obj.parent else None,
+            "modifiers": modifiers,
+        }
+
+    return {
+        "armature_matrix_world": matrix_rows(armature.matrix_world),
+        "pose_position": armature.data.pose_position,
+        "pose_bones": pose_bones,
+        "meshes": mesh_state,
+    }
+
+
 def main():
     args = arguments()
     bpy.ops.object.select_all(action="SELECT")
@@ -162,6 +208,7 @@ def main():
             )
 
     geometry_before = evaluated_mesh_snapshot(candidate_meshes)
+    skinning_state_before = armature_skinning_state(candidate_armature, candidate_meshes)
 
     # Shift every candidate rest bone by the same armature-space vector.
     # This removes the generated footwear ground-reference offset while
@@ -225,6 +272,7 @@ def main():
             )
 
     geometry_after = evaluated_mesh_snapshot(candidate_meshes)
+    skinning_state_after = armature_skinning_state(candidate_armature, candidate_meshes)
     geometry_report = geometry_diagnostics(geometry_before, geometry_after)
     geometry_delta = max(
         (item["max_displacement_metres"] for item in geometry_report.values()),
@@ -237,6 +285,8 @@ def main():
             "root_translation_removed_metres": [round(v, 9) for v in root_delta],
             "maximum_vertex_displacement_metres": geometry_delta,
             "per_mesh": geometry_report,
+            "skinning_state_before": skinning_state_before,
+            "skinning_state_after": skinning_state_after,
             "note": "Diagnostic only; no normalized GLB was exported.",
         }
         args.report.parent.mkdir(parents=True, exist_ok=True)
