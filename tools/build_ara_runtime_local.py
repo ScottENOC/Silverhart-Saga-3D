@@ -7,6 +7,7 @@ tool versions and relevant source scripts. Safe to rerun after interruption.
 from __future__ import annotations
 import hashlib, json, os, shutil, subprocess, sys
 from pathlib import Path
+from character_definitions import ara_export_params, load_item_catalog
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / "build" / "local-cache" / "ara"
@@ -213,11 +214,13 @@ def main():
         "fatigue_pants":{"pattern":"solid","color":"#35383d","color2":"#35383d"}}}
     body=dict(base); body.update({"name":"Ara Base Person - body no clothing","outfit":"none","top":"none","jacket":"none","bottom":"none","underTop":"none","underBottom":"none","underwear":False,"shoes":"none","hat":"none","accessories":[],"earrings":"none","tattoos":[]})
     npc_manifest=ROOT/"data/characters/hollowmere_npcs.json"
-    npc_profiles=json.loads(npc_manifest.read_text(encoding="utf-8"))["characters"]
+    npc_manifest_data=json.loads(npc_manifest.read_text(encoding="utf-8"))
+    item_catalog=load_item_catalog()
+    npc_profiles=npc_manifest_data["characters"]
     wren_profile=next((profile for profile in npc_profiles if profile.get("id")=="wren_talbot"),None)
     if wren_profile is None: fail("Cannot build the Wren Ara body: wren_talbot profile is missing")
     wren_body=dict(body)
-    wren_body.update(wren_profile.get("params",{}))
+    wren_body.update(ara_export_params(wren_profile,item_catalog,include_equipped=False,name="Ara Base Person - Wren Talbot bare body"))
     wren_body.update({
       "name":"Ara Base Person - Wren Talbot bare body",
       "outfit":"none","top":"none","underTop":"none","underBottom":"none",
@@ -231,16 +234,8 @@ def main():
     # A second export uses exactly the same body parameters and rig settings,
     # but includes Wren's current inventory garments. Its clothes are extracted
     # only after the anatomy pass, so their fit and skeleton match her bare body.
-    wren_dressed=dict(wren_body)
-    wren_dressed.update({
-      "name":"Ara Base Person - Wren Talbot garment source",
-      "top":wren_profile.get("params",{}).get("top","none"),
-      "underTop":wren_profile.get("params",{}).get("underTop","none"),
-      "underBottom":wren_profile.get("params",{}).get("underBottom","none"),
-      "bottom":wren_profile.get("params",{}).get("bottom","none"),
-      "shoes":wren_profile.get("params",{}).get("shoes","none"),
-      "garmentStyles":wren_profile.get("params",{}).get("garmentStyles",{})
-    })
+    wren_dressed=ara_export_params(wren_profile,item_catalog,include_equipped=True,name="Ara Base Person - Wren Talbot garment source")
+    wren_dressed.update({"hair":"none","accessories":[],"earrings":"none"})
     # Diagnostic control: identical Wren garments and body profile, but no footwear.
     # Comparing this export with the booted one isolates Ara's footwear effect.
     wren_dressed_no_shoes=dict(wren_dressed)
@@ -277,7 +272,7 @@ def main():
             found=next(out.glob("*.glb"),None)
             if not found: fail(f"Ara export {key} produced no GLB")
             shutil.copy2(found,glb)
-        cached("ara-"+key,[glb],[param,patch],PIN+":"+str(current),action)
+        cached("ara-"+key,[glb],[param,patch,ROOT/"tools/character_definitions.py",ROOT/"data/items/item_definitions.json"],PIN+":"+str(current),action)
         shutil.copy2(glb,ARA/(key+".glb")); shutil.copy2(param,ARA/(key+".params.json"))
     for key,p in params.items(): export(key,p)
     # Anatomy integration: female base and male base, cached separately.
