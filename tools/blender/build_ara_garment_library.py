@@ -53,6 +53,9 @@ MATERIAL_TO_ITEMS = {
     "triangle bikini strings": ("bra",),
     "string bikini bottom": ("bikini_bottom",),
     "string bikini strings": ("bikini_bottom",),
+    # Names used by the current Ara GLB export.
+    "bikini bottom": ("bikini_bottom",),
+    "bikini strings": ("bikini_bottom",),
     "lace briefs": ("briefs",),
     "lace briefs ties": ("briefs",),
     "fishnet briefs": ("briefs",),
