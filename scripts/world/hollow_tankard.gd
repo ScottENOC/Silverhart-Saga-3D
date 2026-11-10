@@ -481,6 +481,28 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         state = CharacterState.new(id, display_name, spawn_hex)
         _apply_starting_loadout(state)
         _apply_npc_clothing_loadout(state, npc_profile)
+        var progression: Dictionary = npc_profile.get("progression", {})
+        if not progression.is_empty():
+            var class_sequence: Array[String] = []
+            for class_id in progression.get("class_levels", []):
+                class_sequence.append(String(class_id))
+            var preferred_skills: Dictionary = {}
+            for skill_id in progression.get("skill_picks", []):
+                var key := String(skill_id)
+                preferred_skills[key] = int(preferred_skills.get(key, 0)) + 1
+            var build_result := NPCSkillSpending.build_authored(
+                state,
+                String(progression.get("race", "human")),
+                class_sequence,
+                preferred_skills,
+                String(progression.get("seed", "canonical-companion:" + id))
+            )
+            if not bool(build_result.get("ok", false)):
+                push_error("Could not build canonical companion %s: %s" % [id, build_result])
+        for extra_item_id in npc_profile.get("extra_inventory", []):
+            var extra_item := ItemCatalog.create_instance(String(extra_item_id), "start_%s_extra_%s" % [id, String(extra_item_id)])
+            if not extra_item.is_empty():
+                state.add_inventory_item(extra_item)
     state.time_points = state.max_time_points
     simulation.register_character(state)
 
