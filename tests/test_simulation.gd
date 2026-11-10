@@ -550,6 +550,10 @@ func _test_initiative_timeline_model() -> void:
     var enemy := CharacterState.new("enemy_guard", "Guard", Vector2i(1, 0))
     enemy.side = "enemy"
     enemy.time_points = 120.0
+    enemy.health = 64
+    enemy.max_health = 120
+    enemy.current_mana = 17
+    enemy.max_mana = 40
     var downed := CharacterState.new("downed_ally", "Downed Ally", Vector2i(0, 1))
     downed.side = "player"
     downed.time_points = 110.0
