@@ -66,6 +66,7 @@ static func create_player_state(profile: Dictionary, character_id: String, start
     state.gender_presentation = String(profile.get("gender_presentation", "Masculine"))
     state.pronouns = String(profile.get("pronouns", "they/them"))
     state.class_levels = {class_id: 1}
+    state.class_level_sequence = [class_id]
     state.gold = int(_data().get("starting_resources", {}).get(state.campaign_id, 0))
     state.tags = ["humanoid", "race_%s" % race_id]
     var attributes: Dictionary = {}
