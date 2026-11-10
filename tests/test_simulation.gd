@@ -4,8 +4,11 @@ var _failures: int = 0
 
 func _initialize() -> void:
     _test_character_round_trip()
+    _test_skill_catalogue_and_progression()
+    _test_npc_skill_spending_and_companion_boundary()
     _test_campaign_journal()
     _test_hollowmere_campaign_content()
+    _test_companion_campaign_dialogue_and_recruitment()
     _test_hollowmere_encounter()
     _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
@@ -70,6 +73,89 @@ func _test_wilderness_resources_and_chunk_streaming() -> void:
     chunks.load_around(map, Vector2i(300, 300))
     _check(chunks.active_chunk_count() == 9, "Moving far away should keep the active chunk budget bounded")
     _check(not map.has_cell(Vector2i(100, 100)), "Old generated chunks should unload when outside the active region")
+
+func _test_skill_catalogue_and_progression() -> void:
+    var definitions := SkillCatalog.definitions()
+    _check(definitions.size() == 257, "The source skill catalogue should contain all 186 unique entries")
+    _check(int(SkillCatalog.get_skill("health").get("max_ranks", -1)) == 0, "A zero rank cap means unlimited ranks")
+
+    var character := CharacterState.new("skill_test", "Skill Test")
+    character.attributes = {"endurance": 3, "strength": 0, "wildcard": 1, "nature": 1, "druid": 1, "elf": 1}
+    SkillProgression.initialise(character)
+    _check(bool(SkillProgression.purchase(character, "health").get("ok", false)))
+    _check(bool(SkillProgression.purchase(character, "health").get("ok", false)))
+    _check(bool(SkillProgression.purchase(character, "health").get("ok", false)))
+    _check(int(character.skills.get("health", 0)) == 3, "Unlimited-rank skills can be purchased repeatedly while points remain")
+    _check(bool(SkillProgression.purchase(character, "health").get("ok", false)), "Wildcard points may also fund a standard tree")
+    _check(int(character.skills.get("health", 0)) == 4)
+    _check(String(SkillProgression.purchase(character, "health").get("reason", "")) == "insufficient_skill_points")
+
+    var prerequisite_character := CharacterState.new("prereq_test", "Prerequisite Test")
+    prerequisite_character.attributes = {"strength": 2}
+    SkillProgression.initialise(prerequisite_character)
+    _check(String(SkillProgression.can_purchase(prerequisite_character, "medium_armor_training").get("reason", "")) == "prerequisite_missing")
+    _check(bool(SkillProgression.purchase(prerequisite_character, "light_armor_training").get("ok", false)))
+    _check(bool(SkillProgression.purchase(prerequisite_character, "medium_armor_training").get("ok", false)))
+    _check(String(SkillProgression.can_purchase(prerequisite_character, "heavy_armor_training").get("reason", "")) == "insufficient_skill_points")
+
+    var wildcard_character := CharacterState.new("wildcard_test", "Wildcard Test")
+    wildcard_character.attributes = {"wildcard": 1}
+    SkillProgression.initialise(wildcard_character)
+    var wildcard_purchase := SkillProgression.purchase(wildcard_character, "shove")
+    _check(bool(wildcard_purchase.get("ok", false)) and String(wildcard_purchase.get("funding_pool", "")) == "wildcard", "Wildcard points may fund standard trees")
+    _check(String(SkillProgression.can_purchase(wildcard_character, "regeneration").get("reason", "")) != "ok", "Creature-only skills must not be purchasable from the player skill system")
+
+    var misc_character := CharacterState.new("misc_test", "Misc Test")
+    misc_character.attributes = {"endurance": 1, "agility": 1}
+    SkillProgression.initialise(misc_character)
+    var misc_check := SkillProgression.can_purchase(misc_character, "cooking")
+    _check(String(misc_check.get("reason", "")) == "funding_pool_choice_required", "Misc skills ask which attribute pool should pay when several are available")
+    var misc_purchase := SkillProgression.purchase(misc_character, "cooking", "agility")
+    _check(bool(misc_purchase.get("ok", false)) and int(misc_character.attributes.get("agility", 0)) == 0, "Misc skill purchases deduct from the selected pool")
+
+    var nature_character := CharacterState.new("nature_test", "Nature Test")
+    nature_character.attributes = {"nature": 1}
+    SkillProgression.initialise(nature_character)
+    _check(String(SkillProgression.can_purchase(nature_character, "nature_butchery").get("reason", "")) == "dynamic_prerequisite_missing")
+    nature_character.skills["druid_knowledge_nature"] = 1
+    _check(bool(SkillProgression.purchase(nature_character, "nature_butchery").get("ok", false)), "Nature skills require either source Knowledge: Nature rank")
+
+    var incompatible_character := CharacterState.new("anti_test", "Anti Test")
+    incompatible_character.attributes = {"elf": 1}
+    incompatible_character.skills["druid_foliage_expertise"] = 1
+    SkillProgression.initialise(incompatible_character)
+    _check(String(SkillProgression.can_purchase(incompatible_character, "elf_foliage_expertise").get("reason", "")) == "incompatible_skill_learned", "Anti-prerequisites prevent incompatible choices")
+
+    var quest_character := CharacterState.new("quest_test", "Quest Test")
+    quest_character.attributes = {"druid": 1}
+    SkillProgression.initialise(quest_character)
+    _check(String(SkillProgression.can_purchase(quest_character, "learn_unicorn_summon").get("reason", "")) == "quest_granted_only", "Quest-only skills cannot be purchased")
+
+    var level_character := CharacterCreationRules.create_player_state({
+        "name": "Level Test", "race": "human", "character_class": "fighter",
+        "game_mode": "campaign", "campaign_id": "2", "difficulty_mode": "normal"
+    }, "level_test", Vector2i.ZERO)
+    var before_level_attributes := level_character.attributes.duplicate(true)
+    var rogue_bonus: Dictionary = CharacterCreationRules.class_definition("rogue").get("bonus", {})
+    var level_grant := SkillProgression.grant_level(level_character, "rogue", "level_2")
+    _check(bool(level_grant.get("ok", false)) and level_character.level == 2, "A new class level should be granted")
+    for pool in rogue_bonus:
+        var expected := int(before_level_attributes.get(pool, 0)) + int(rogue_bonus.get(pool, 0))
+        _check(int(level_character.attributes.get(pool, 0)) == expected, "Each level grants the selected class pools without repeating race bonuses")
+    _check(int(level_character.class_levels.get("rogue", 0)) == 1, "Class-level history should retain multiclass progression")
+    _check(String(SkillProgression.grant_level(level_character, "rogue", "level_2").get("reason", "")) == "grant_already_applied", "A level-up cannot award the same points twice")
+    _check(int(level_character.skills.size()) == 0, "A level grant must leave new skill points unspent for the player")
+
+    var grant := SkillProgression.grant_points(quest_character, "druid", 2, "level_2_druid")
+    _check(bool(grant.get("ok", false)))
+    _check(String(SkillProgression.grant_points(quest_character, "druid", 2, "level_2_druid").get("reason", "")) == "grant_already_applied", "A level grant identifier can only be applied once")
+    var report := SkillProgression.accounting_report(quest_character)
+    _check(bool(report.get("pools", {}).get("druid", {}).get("balanced", false)), "Earned, spent and remaining points must reconcile by pool")
+    var restored := CharacterState.from_dict(quest_character.to_dict())
+    _check(restored.skill_budget_by_pool == quest_character.skill_budget_by_pool)
+    _check(restored.skill_spent_by_pool == quest_character.skill_spent_by_pool)
+    _check(restored.skill_point_grants == quest_character.skill_point_grants)
+    _check(restored.skill_progression_initialized, "Skill point accounting survives save/load")
 
 func _check(condition: bool, message: String = "Assertion failed") -> void:
     if not condition:
@@ -261,6 +347,69 @@ func _test_hollowmere_campaign_content() -> void:
     var night_exchange := {"id": "night", "topic": "time", "roles": ["any"], "hour_start": 21, "hour_end": 5}
     _check(chatter._is_eligible(night_exchange, "civilian", "civilian", 23, 50, false), "Night chatter should wrap across midnight")
     _check(not chatter._is_eligible(night_exchange, "civilian", "civilian", 12, 50, false), "Night chatter should not run at midday")
+
+func _test_companion_campaign_dialogue_and_recruitment() -> void:
+    var journal := CampaignJournal.new()
+    CompanionCampaignContent.register_quest_definitions(journal)
+    _check(journal.quest_definitions.size() >= 8, "All companion recruitment quests should be registered")
+    var empty_inventory: Array[Dictionary] = []
+    var no_party: Array[String] = []
+
+    var aldric_before := CompanionCampaignContent.conversation("ser_aldric_thorne", journal, empty_inventory, no_party)
+    _check(not _has_companion_recruit_choice(aldric_before), "Aldric must not recruit before being freed")
+    _check(bool(journal.start_quest("aldric_rescue").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "aldric_rescue", "freed").get("ok", false)))
+    var aldric_after := CompanionCampaignContent.conversation("ser_aldric_thorne", journal, empty_inventory, no_party)
+    _check(_has_companion_recruit_choice(aldric_after), "Aldric should offer to join after rescue")
+
+    _check(bool(journal.start_quest("goblin_threat").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_with_decision(journal, "goblin_threat", "resolved", "resolution", "goblin_alliance").get("ok", false)))
+    var nix_after := CompanionCampaignContent.conversation("nix_sharpear", journal, empty_inventory, no_party)
+    _check(_has_companion_recruit_choice(nix_after), "Nix should join only after the peaceful goblin alliance")
+
+    _check(bool(journal.start_quest("orc_stronghold_trust").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "orc_stronghold_trust", "troll_slain").get("ok", false)))
+    var grukk_without_trust := CompanionCampaignContent.conversation("warlord_grukk_ironhide", journal, empty_inventory, no_party)
+    _check(not _has_companion_recruit_choice(grukk_without_trust), "Grukk must require deeper orc faction trust after the troll quest")
+    journal.adjust_faction_standing("orc_raiders", 40, "companion recruitment test")
+    var grukk_with_trust := CompanionCampaignContent.conversation("warlord_grukk_ironhide", journal, empty_inventory, no_party)
+    _check(_has_companion_recruit_choice(grukk_with_trust), "Grukk should offer to join at 40 orc standing")
+
+    _check(bool(journal.start_quest("reyna_bear_hunt").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "reyna_bear_hunt", "bear_slain").get("ok", false)))
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Reyna should join after the bear is defeated")
+
+    _check(bool(journal.start_quest("mirabel_spider_ruin").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "mirabel_spider_ruin", "nest_cleared").get("ok", false)))
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("mirabel_quill", journal, empty_inventory, no_party)), "Mirabel should join after the ruin is cleared")
+
+    _check(bool(journal.start_quest("fenn_herb_gathering").get("ok", false)))
+    var two_herbs: Array[Dictionary] = [{"id":"herbs","quantity":2,"instance_id":"herbs_a"}]
+    _check(not _has_companion_recruit_choice(CompanionCampaignContent.conversation("fenn_oakheart", journal, two_herbs, no_party)), "Fenn should require all three herb bundles")
+    var three_herbs: Array[Dictionary] = [{"id":"herbs","quantity":3,"instance_id":"herbs_a"}]
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("fenn_oakheart", journal, three_herbs, no_party)), "Fenn should offer to join when three herbs are available")
+
+    _check(bool(journal.start_quest("northwatch_siege").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "northwatch_siege", "defended").get("ok", false)))
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("brother_alden", journal, empty_inventory, no_party)), "Alden should offer to join after Northwatch is defended")
+
+    _check(bool(journal.start_quest("star_fort_companion").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_with_decision(journal, "star_fort_companion", "greenskin_resolution", "side", "greenskin").get("ok", false)))
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("snik_fangtooth", journal, empty_inventory, no_party)), "Snik should offer to join only after the greenskin Star Fort outcome")
+
+    var restored := CampaignJournal.new()
+    CompanionCampaignContent.register_quest_definitions(restored)
+    restored.load_dict(journal.to_dict())
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("nix_sharpear", restored, empty_inventory, no_party)), "Companion quest outcomes should persist through journal save/load")
+
+
+func _has_companion_recruit_choice(conversation: Dictionary) -> bool:
+    for choice_value in conversation.get("choices", []):
+        var choice: Dictionary = choice_value
+        if String(choice.get("id", "")).begins_with("recruit:"):
+            return true
+    return false
+
 
 func _test_character_round_trip() -> void:
     var original := CharacterState.new("npc_garrick_holt", "Garrick Holt", Vector2i(2, -1))
@@ -1087,6 +1236,125 @@ func _test_race_class_character_creation() -> void:
     var incoming := CombatRules.resolve_attack(enemy, hard_target, {"time_point_cost":1.0}, rng)
     _check(int(incoming.get("damage", 0)) == 8, "Hard mode increases incoming damage after the fighter starting armour and shield reduce it")
 
+
+
+func _test_npc_skill_spending_and_companion_boundary() -> void:
+    var population_a := CharacterState.new("goblin_a", "Goblin A")
+    var population_b := CharacterState.new("goblin_b", "Goblin B")
+    var build_a := NPCSkillSpending.build_population(population_a, "goblin", 3, "hollowmere:spawn:12,8")
+    var build_b := NPCSkillSpending.build_population(population_b, "goblin", 3, "hollowmere:spawn:12,8")
+    _check(bool(build_a.get("ok", false)) and bool(build_b.get("ok", false)), "Generated humanoid NPCs should build successfully")
+    _check(population_a.class_level_sequence == population_b.class_level_sequence, "Population class packages must be deterministic for the same seed")
+    _check(population_a.skills == population_b.skills, "Population skill allocation must be deterministic for the same seed")
+    _check(population_a.attributes == population_b.attributes, "Population point balances must be deterministic for the same seed")
+    var population_report := SkillProgression.accounting_report(population_a)
+    for pool in population_report.get("pools", {}):
+        var row: Dictionary = population_report.pools[pool]
+        _check(bool(row.get("balanced", false)), "Generated NPC point budgets must reconcile by pool")
+
+
+    var troll := CharacterState.new("troll_npc", "Troll NPC")
+    var troll_build := NPCSkillSpending.build_population(troll, "troll", 1, "troll:population")
+    _check(bool(troll_build.get("ok", false)), "Non-player humanoid races should use the shared NPC progression rules")
+    _check(int(troll.skills.get("regeneration", 0)) == 1 and int(troll.free_skill_ranks.get("regeneration", 0)) == 1, "Racial innate abilities are tracked separately from paid ranks")
+    var troll_level := NPCSkillSpending.grant_npc_level(troll, "fighter", "troll:level2")
+    _check(bool(troll_level.get("ok", false)), "Non-player humanoid races can progress through class levels")
+
+    var authored := CharacterState.new("authored_guard", "Authored Guard")
+    authored.equipment["weapon"] = "sword"
+    var authored_build := NPCSkillSpending.build_authored(
+        authored, "human", ["fighter", "fighter"],
+        {"sword_hit": 1, "sword_dmg": 1}, "named:authored_guard"
+    )
+    _check(bool(authored_build.get("ok", false)), "Authored NPCs should use the shared legal skill spender")
+    _check(int(authored.skills.get("sword_hit", 0)) >= 1 and int(authored.skills.get("sword_dmg", 0)) >= 1, "Authored weapon preferences should be purchased with their prerequisites")
+    _check(authored.class_level_sequence == ["fighter", "fighter"], "Authored ordered class histories must be retained")
+
+    var companion := CharacterState.new("companion_test", "Companion Test")
+    companion.race = "human"
+    companion.character_class = "fighter"
+    companion.level = 1
+    companion.class_levels = {"fighter": 1}
+    companion.class_level_sequence = ["fighter"]
+    companion.attributes = {"endurance": 2, "strength": 1, "agility": 1, "weapons": 1}
+    companion.equipment["weapon"] = "sword"
+    SkillProgression.initialise(companion)
+    _check(bool(SkillProgression.purchase(companion, "health").get("ok", false)), "Pre-recruitment authored skill spending should be retained")
+    companion.npc_preferred_skills = {"sword_hit": 1}
+    var paid_health_before_recruitment := int(companion.skill_spent_by_id.get("health", 0))
+    var recruited := NPCSkillSpending.recruit_companion(companion, {}, "companion:first_join")
+    _check(bool(recruited.get("ok", false)), "First recruitment should initialise a companion's remaining build")
+    _check(companion.companion_recruitment_initialized and companion.progression_mode == "companion")
+    _check(int(companion.skills.get("health", 0)) >= 1, "Recruitment must preserve skills already earned or authored")
+    _check(int(companion.skill_spent_by_id.get("health", 0)) >= paid_health_before_recruitment, "Recruitment must preserve and extend, not reset, the prior paid-point ledger")
+    var ranks_at_recruitment := companion.skills.duplicate(true)
+    var remaining_at_recruitment := SkillProgression.available_points(companion)
+    var rejoin := NPCSkillSpending.recruit_companion(companion, {}, "companion:rejoin")
+    _check(String(rejoin.get("reason", "")) == "already_recruited_once", "Leaving and rejoining must not run recruitment allocation again")
+    _check(companion.skills == ranks_at_recruitment and SkillProgression.available_points(companion) == remaining_at_recruitment, "Rejoining must not rebuild skills or duplicate spending")
+
+    var attributes_before_level := companion.attributes.duplicate(true)
+    var ranks_before_level := companion.skills.duplicate(true)
+    var level_up := SkillProgression.grant_level(companion, "rogue", "companion_level_2")
+    _check(bool(level_up.get("ok", false)), "A recruited companion should receive normal class-level point grants")
+    _check(companion.skills == ranks_before_level, "Post-recruitment level-ups must not auto-spend companion points")
+    _check(int(companion.attributes.get("agility", 0)) == int(attributes_before_level.get("agility", 0)) + 3, "Level-up should grant the class bonus without re-awarding race bonuses")
+    _check(int(companion.attributes.get("endurance", 0)) == int(attributes_before_level.get("endurance", 0)) + 2)
+    _check(SkillProgression.available_points(companion) == remaining_at_recruitment + 7, "New companion points remain available for player allocation")
+    var restored := CharacterState.from_dict(companion.to_dict())
+    _check(restored.companion_recruitment_initialized and restored.progression_mode == "companion", "Recruitment state survives save/load")
+    _check(restored.class_level_sequence == companion.class_level_sequence, "Ordered multiclass history survives save/load")
+
+
+    var simulation := WorldSimulation.new()
+    var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+    player.side = "player"
+    simulation.register_character(player)
+    var party_candidate := CharacterState.new("party_candidate", "Party Candidate", Vector2i(1, 0))
+    party_candidate.race = "human"
+    party_candidate.class_level_sequence = ["fighter"]
+    party_candidate.class_levels = {"fighter": 1}
+    party_candidate.attributes = {"endurance": 1, "strength": 1, "agility": 1, "weapons": 1}
+    SkillProgression.initialise(party_candidate)
+    simulation.register_character(party_candidate)
+    var join_result := simulation.recruit_companion("party_candidate", {}, "party_candidate:first_join")
+    _check(bool(join_result.get("ok", false)) and simulation.is_party_member("party_candidate"), "WorldSimulation should recruit and track a companion")
+    _check(bool(simulation.dismiss_companion("party_candidate").get("ok", false)), "A companion can leave the active party without being deleted")
+    var rejoin_result := simulation.recruit_companion("party_candidate", {}, "party_candidate:rejoin")
+    _check(bool(rejoin_result.get("ok", false)) and String(rejoin_result.get("reason", "")) == "rejoined_existing_companion", "WorldSimulation should rejoin an existing companion without rebuilding")
+    var party_ranks_before_level := party_candidate.skills.duplicate(true)
+    var party_points_before_level := SkillProgression.available_points(party_candidate)
+    var party_level := simulation.grant_character_level("party_candidate", "rogue", "party_candidate:level2")
+    _check(bool(party_level.get("ok", false)), "WorldSimulation should grant a companion's class level")
+    _check(party_candidate.skills == party_ranks_before_level, "WorldSimulation must not auto-spend post-recruitment companion points")
+    _check(SkillProgression.available_points(party_candidate) == party_points_before_level + 7, "Companion level-up pools remain available for player allocation")
+
+    var ordinary_npc := CharacterState.new("ordinary_npc", "Ordinary NPC", Vector2i(2, 0))
+    var ordinary_build := NPCSkillSpending.build_population(ordinary_npc, "goblin", 1, "ordinary_npc:population")
+    _check(bool(ordinary_build.get("ok", false)))
+    simulation.register_character(ordinary_npc)
+    var npc_spent_before := 0
+    for value in ordinary_npc.skill_spent_by_pool.values():
+        npc_spent_before += int(value)
+    var npc_level := simulation.grant_character_level("ordinary_npc", "fighter", "ordinary_npc:level2")
+    var npc_spent_after := 0
+    for value in ordinary_npc.skill_spent_by_pool.values():
+        npc_spent_after += int(value)
+    _check(bool(npc_level.get("ok", false)) and String(npc_level.get("reason", "")) == "npc_level_granted_and_allocated", "Non-party NPC level-ups should automatically allocate their new points")
+    _check(npc_spent_after > npc_spent_before, "Non-party NPCs should spend new level points automatically")
+    var npc_report := SkillProgression.accounting_report(ordinary_npc)
+    for pool in npc_report.get("pools", {}):
+        _check(bool(npc_report.pools[pool].get("balanced", false)), "NPC level-up budgets must remain reconciled")
+
+    var world_saved := simulation.to_dict()
+    var world_restored := WorldSimulation.new()
+    world_restored.load_dict(world_saved)
+    _check(world_restored.is_party_member("party_candidate"), "Party membership survives world save/load")
+    _check(world_restored.get_character("party_candidate").companion_recruitment_initialized, "Companion recruitment history survives world save/load")
+
+    var civilian := CharacterState.new("civilian_test", "Civilian Test")
+    var civilian_result := NPCSkillSpending.build_civilian(civilian)
+    _check(bool(civilian_result.get("ok", false)) and SkillProgression.available_points(civilian) == 0, "Civilians use an explicit zero-class, zero-point progression mode")
 
 func _test_campaign_journal() -> void:
     var journal := CampaignJournal.new()
