@@ -106,6 +106,17 @@ func _run() -> void:
         _fail("Equipping Wren's bra did not show its independent garment mesh.")
         return
 
+    # Canonical character definitions store equipped values as item IDs, not
+    # expanded catalogue dictionaries. The runtime actor must resolve both.
+    actor.apply_equipment_visuals({"underTop": "bra"})
+    var id_equipped_visible := false
+    for garment in actor.modular_garment_meshes:
+        if String(garment.get_meta("garment_visual", "")) == "bra" and garment.visible:
+            id_equipped_visible = true
+    if not id_equipped_visible:
+        _fail("Equipping the canonical string item ID 'bra' did not show its garment mesh.")
+        return
+
     actor.apply_equipment_visuals({
         "underBottom": bikini_item
     })
