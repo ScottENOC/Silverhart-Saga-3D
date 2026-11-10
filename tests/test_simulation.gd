@@ -1234,6 +1234,29 @@ func _test_npc_skill_spending_and_companion_boundary() -> void:
     _check(restored.companion_recruitment_initialized and restored.progression_mode == "companion", "Recruitment state survives save/load")
     _check(restored.class_level_sequence == companion.class_level_sequence, "Ordered multiclass history survives save/load")
 
+
+    var simulation := WorldSimulation.new()
+    var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+    player.side = "player"
+    simulation.register_character(player)
+    var party_candidate := CharacterState.new("party_candidate", "Party Candidate", Vector2i(1, 0))
+    party_candidate.race = "human"
+    party_candidate.class_level_sequence = ["fighter"]
+    party_candidate.class_levels = {"fighter": 1}
+    party_candidate.attributes = {"endurance": 1, "strength": 1, "agility": 1, "weapons": 1}
+    SkillProgression.initialise(party_candidate)
+    simulation.register_character(party_candidate)
+    var join_result := simulation.recruit_companion("party_candidate", {}, "party_candidate:first_join")
+    _check(bool(join_result.get("ok", false)) and simulation.is_party_member("party_candidate"), "WorldSimulation should recruit and track a companion")
+    _check(bool(simulation.dismiss_companion("party_candidate").get("ok", false)), "A companion can leave the active party without being deleted")
+    var rejoin_result := simulation.recruit_companion("party_candidate", {}, "party_candidate:rejoin")
+    _check(bool(rejoin_result.get("ok", false)) and String(rejoin_result.get("reason", "")) == "rejoined_existing_companion", "WorldSimulation should rejoin an existing companion without rebuilding")
+    var world_saved := simulation.to_dict()
+    var world_restored := WorldSimulation.new()
+    world_restored.load_dict(world_saved)
+    _check(world_restored.is_party_member("party_candidate"), "Party membership survives world save/load")
+    _check(world_restored.get_character("party_candidate").companion_recruitment_initialized, "Companion recruitment history survives world save/load")
+
     var civilian := CharacterState.new("civilian_test", "Civilian Test")
     var civilian_result := NPCSkillSpending.build_civilian(civilian)
     _check(bool(civilian_result.get("ok", false)) and SkillProgression.available_points(civilian) == 0, "Civilians use an explicit zero-class, zero-point progression mode")
