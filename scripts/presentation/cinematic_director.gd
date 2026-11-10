@@ -26,6 +26,7 @@ func begin(actors: Dictionary, gameplay_hud: CanvasLayer, gameplay_camera: Camer
     _save_actor_transforms()
     _stage_table_conversation()
     _create_table_mugs()
+    _log_actor_animation_catalogues()
 
     if is_instance_valid(_gameplay_hud):
         _gameplay_hud.visible = false
@@ -98,7 +99,7 @@ func present_line(line: Dictionary, duration: float = 3.5) -> void:
         return
     _subtitle_label.text = speaker + "\n\n" + spoken_text
     if not speaker_id.is_empty() and speaker_id != "narrator":
-        play_actor_animation(speaker_id, ["talk", "speaking", "gesture"], ["idle", "sit"])
+        play_actor_animation(speaker_id, ["Talk with gestures", "talk_with_gestures"], ["Sit idle", "Idle"])
 
     # A process-frame wait lets the skip control interrupt a line immediately,
     # rather than forcing the player to wait for a long timer to expire.
@@ -135,6 +136,23 @@ func finish() -> void:
 
 
 
+## Log the actual imported clip names once for the two actors in this scene.
+## This is the authoritative runtime list; documentation labels alone do not
+## prove a particular exported GLB contains every clip.
+func _log_actor_animation_catalogues() -> void:
+    for actor_id in ["player", "companion_wren_talbot"]:
+        var actor := _actors.get(actor_id) as Node
+        if actor == null or not is_instance_valid(actor):
+            continue
+        var character_model := actor.get_node_or_null("CharacterModel") as AraCharacterActor
+        if character_model != null:
+            print("[Ara animation catalogue] actor=%s asset=%s clips=%s" % [
+                actor_id,
+                character_model.loaded_asset_path,
+                ", ".join(character_model.available_animation_names())
+            ])
+
+
 ## Put the player and Wren at the existing east dining table for the opening.
 ## Their world transforms are restored when the cinematic hands control back.
 func _save_actor_transforms() -> void:
@@ -155,8 +173,8 @@ func _stage_table_conversation() -> void:
     player.rotation.y = 0.0
     wren.global_position = Vector3(2.65, 0.0, -1.25)
     wren.rotation.y = PI
-    play_actor_animation("player", ["sit", "sitting", "seated"], ["idle"])
-    play_actor_animation("companion_wren_talbot", ["sit", "sitting", "seated"], ["idle"])
+    play_actor_animation("player", ["Sit idle", "sit_idle"], ["Idle"])
+    play_actor_animation("companion_wren_talbot", ["Sit idle", "sit_idle"], ["Idle"])
 
 
 func _create_table_mugs() -> void:
@@ -178,21 +196,41 @@ func _create_table_mugs() -> void:
         _table_mugs.append(mug)
 
 
-## Called as the Ironbond entrance is announced.
+## Called as the Ironbond entrance is announced. Both characters stand from
+## their benches, then take a short step to the end of their own bench so they
+## are visibly standing beside (not on or behind) their seats.
 func stage_confrontation() -> void:
     for mug in _table_mugs:
         if is_instance_valid(mug):
             mug.visible = false
+
+    play_actor_animation("player", ["Stand up (on a chair)", "stand_up_on_chair"], ["Idle"])
+    play_actor_animation("companion_wren_talbot", ["Stand up (on a chair)", "stand_up_on_chair"], ["Idle"])
+    var stand_elapsed := 0.0
+    while stand_elapsed < 1.25 and not _skipped and not _finished:
+        var frame_start := Time.get_ticks_msec()
+        await get_tree().process_frame
+        stand_elapsed += float(Time.get_ticks_msec() - frame_start) / 1000.0
+
+    if _skipped or _finished:
+        return
+
     var player := _actors.get("player") as Node3D
     var wren := _actors.get("companion_wren_talbot") as Node3D
     if player != null and is_instance_valid(player):
-        player.global_position = Vector3(2.1, 0.0, 1.0)
+        play_actor_animation("player", ["Walk"], ["Idle"])
+        var player_tween := create_tween()
+        player_tween.tween_property(player, "global_position", Vector3(1.38, 0.0, 1.55), 0.65)
+        await player_tween.finished
         player.rotation.y = PI
-        play_actor_animation("player", ["stand", "standing", "rise"], ["idle"])
-    if wren != null and is_instance_valid(wren):
-        wren.global_position = Vector3(3.2, 0.0, 1.0)
-        wren.rotation.y = PI
-        play_actor_animation("companion_wren_talbot", ["stand", "standing", "rise"], ["idle"])
+        play_actor_animation("player", ["Idle"], [])
+    if wren != null and is_instance_valid(wren) and not _skipped:
+        play_actor_animation("companion_wren_talbot", ["Walk"], ["Idle"])
+        var wren_tween := create_tween()
+        wren_tween.tween_property(wren, "global_position", Vector3(3.92, 0.0, -1.55), 0.65)
+        await wren_tween.finished
+        wren.rotation.y = 0.0
+        play_actor_animation("companion_wren_talbot", ["Idle"], [])
 
 
 ## Resolve the AraCharacterActor wrapper below a live world actor and play a
