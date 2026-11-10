@@ -36,7 +36,7 @@ Wren is the first profile being validated end to end:
 
 The old art/characters/hollowmere/*.glb models are not used as the source of Wren's new body or garments; an older export may have been made with different Ara parameters or generator versions. They remain a temporary runtime visual fallback for NPCs whose profile-generated bodies are not built yet, so the migration does not leave those characters undressed. This fallback is transitional and is not the target architecture.
 
-This is deliberately a Wren-only pilot. Wren uses her new bare Ara body and matching garment library. Other NPCs temporarily retain their existing visual assets until their own profile-generated bare bodies and matching garment sources have been built. Do not attach Wren's garment library to another character.
+This is deliberately a Wren-only pilot. Wren uses her new bare Ara body and matching garment library. Other NPCs temporarily retain their existing visual assets until their own profile-generated bare bodies and matching garment sources have been built. The player creator still uses the generic female/male preview bodies; its body macro sliders are not yet connected to profile-specific Ara body generation, and Wren's garment library is deliberately not attached to the player. Do not attach Wren's garment library to another character.
 
 ## Build locally
 
