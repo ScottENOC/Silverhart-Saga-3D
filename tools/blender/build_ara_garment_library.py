@@ -123,12 +123,25 @@ def choose_item(material_name: str, expected: set[str] | None) -> str:
 
 
 def expected_from_profile(profile: dict) -> set[str]:
+    """Return clothing visuals that belong in the skinned garment library.
+
+    Footwear is deliberately excluded: Ara's footwear changes the generated
+    rest rig, so shoes/boots must be built and attached as separate equipment
+    assets rather than extracted from this no-shoes garment source.
+    """
     params = profile.get("params", {})
     return {
         str(params.get(key, ""))
-        for key in ("top", "underTop", "underBottom", "bottom", "shoes", "jacket", "hat")
+        for key in ("top", "underTop", "underBottom", "bottom", "jacket", "hat")
         if str(params.get(key, "")) not in ("", "none")
     }
+
+
+def deferred_equipment_from_profile(profile: dict) -> set[str]:
+    """Return equipment slots intentionally outside the garment-library build."""
+    params = profile.get("params", {})
+    footwear = str(params.get("shoes", ""))
+    return {footwear} if footwear not in ("", "none") else set()
 
 
 def validate_rig(source: bpy.types.Object, target: bpy.types.Object, path: Path) -> None:
@@ -289,10 +302,12 @@ def main() -> None:
     if not profiles:
         raise RuntimeError(f"No NPC appearance profile found for pilot id {args.profile_id!r}")
     expected_by_variant: dict[str, set[str]] = {"female": set(), "male": set()}
+    deferred_equipment_by_variant: dict[str, set[str]] = {"female": set(), "male": set()}
     for profile in profiles:
         params = profile.get("params", {})
         variant = "male" if int(params.get("gender", 0)) == 1 else "female"
         expected_by_variant[variant].update(expected_from_profile(profile))
+        deferred_equipment_by_variant[variant].update(deferred_equipment_from_profile(profile))
 
     seen: set[str] = set()
     piece_counts: dict[str, int] = {}
@@ -378,7 +393,12 @@ def main() -> None:
         "available_visual_variants": sorted(seen),
         "extractions": extraction_report,
         "profile_scope": args.profile_id,
-        "source_policy": "Same-profile Ara export only; legacy NPC GLBs are not imported",
+        "deferred_equipment": sorted(
+            f"{variant}:{item_id}"
+            for variant, item_ids in deferred_equipment_by_variant.items()
+            for item_id in item_ids
+        ),
+        "source_policy": "Same-profile no-shoes Ara export only; footwear is deferred to separate equipment assets; legacy NPC GLBs are not imported",
         "validation": {
             "skeleton_bone_names_and_order": "passed",
             "skeleton_rest_transforms": "passed",
