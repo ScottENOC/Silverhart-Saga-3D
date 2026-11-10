@@ -50,22 +50,37 @@ def relative_matrix(bone):
 def compare(reference, candidate):
     ref_bones = {bone.name: bone for bone in reference.data.bones}
     candidate_bones = {bone.name: bone for bone in candidate.data.bones}
-    same_order = list(ref_bones) == list(candidate_bones)
-    same_hierarchy = same_order and all(
+    ref_order = list(ref_bones)
+    candidate_order = list(candidate_bones)
+    ref_names = set(ref_bones)
+    candidate_names = set(candidate_bones)
+    same_names = ref_names == candidate_names
+    same_order = ref_order == candidate_order
+    common_names = sorted(ref_names & candidate_names)
+    same_hierarchy = same_names and all(
         (ref_bones[name].parent.name if ref_bones[name].parent else None)
         == (candidate_bones[name].parent.name if candidate_bones[name].parent else None)
-        for name in ref_bones
+        for name in common_names
     )
     result = {
         "armature_world_matrix_delta": matrix_delta(reference.matrix_world, candidate.matrix_world),
-        "bone_names_and_order_match": same_order,
+        "bone_names_match": same_names,
+        "bone_order_match": same_order,
         "bone_hierarchy_match": same_hierarchy,
         "reference_bone_count": len(ref_bones),
         "candidate_bone_count": len(candidate_bones),
+        "reference_bone_order": ref_order,
+        "candidate_bone_order": candidate_order,
+        "bone_order_differences": [
+            {"index": i, "reference": ref_order[i] if i < len(ref_order) else None,
+             "candidate": candidate_order[i] if i < len(candidate_order) else None}
+            for i in range(max(len(ref_order), len(candidate_order)))
+            if i >= len(ref_order) or i >= len(candidate_order) or ref_order[i] != candidate_order[i]
+        ],
     }
-    if not same_order:
-        result["missing_from_candidate"] = sorted(set(ref_bones) - set(candidate_bones))
-        result["extra_in_candidate"] = sorted(set(candidate_bones) - set(ref_bones))
+    if not same_names:
+        result["missing_from_candidate"] = sorted(ref_names - candidate_names)
+        result["extra_in_candidate"] = sorted(candidate_names - ref_names)
         return result
 
     root_delta = ref_bones["Hips"].head_local - candidate_bones["Hips"].head_local
