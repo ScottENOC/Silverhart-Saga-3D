@@ -52,7 +52,9 @@ export BLENDER_BIN="/c/Program Files/Blender Foundation/Blender 5.2/blender.exe"
 python tools/build_ara_runtime_local.py
 ```
 
-The pipeline caches completed Ara exports, anatomy passes, validation, garment extraction and review renders under build/local-cache/ara. A failed later stage should not require repeating successful earlier stages unless an input fingerprint changes.
+The pipeline caches completed Ara exports, anatomy passes, validation, garment extraction and review renders under build/local-cache/ara. Cache entries are JSON manifests with a UTC build timestamp, a content fingerprint for declared inputs, and checksums/sizes for every output. A cache hit requires all three to match; missing inputs are errors, and modified or missing outputs force a rebuild. Each stage includes the scripts that directly control it in its fingerprint. The garment-fit stage consumes the actual modular assembly outputs and writes to separate fitted files, so downstream fitting cannot silently mutate the assembly cache.
+
+By default, unchanged and checksum-verified cache entries can be reused regardless of age. To require fresh results, run the complete pipeline with `--force`, or set a maximum successful-cache age in hours with `--max-cache-age-hours`. Old pre-manifest cache stamps are treated as misses.
 
 Important outputs:
 
