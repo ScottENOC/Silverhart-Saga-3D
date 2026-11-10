@@ -916,6 +916,12 @@ func _run_opening_sequence() -> void:
     }
     await cinematic_director.present_line(wren_intro, 3.6)
     if not cinematic_director.was_skipped():
+        cinematic_director.play_actor_animation("player", ["drink", "sip"], ["sit", "idle"])
+        cinematic_director.play_actor_animation("companion_wren_talbot", ["drink", "sip"], ["sit", "idle"])
+        await get_tree().create_timer(1.8).timeout
+        cinematic_director.play_actor_animation("player", ["sit", "sitting"], ["idle"])
+        cinematic_director.play_actor_animation("companion_wren_talbot", ["sit", "sitting"], ["idle"])
+    if not cinematic_director.was_skipped():
         await cinematic_director.present_line({
             "speaker_id": "player",
             "speaker": "You",
@@ -948,6 +954,7 @@ func _run_opening_sequence() -> void:
         var line: Dictionary = line_value
         var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
         if speaker_id == "narrator":
+            cinematic_director.stage_confrontation()
             if not soldiers_entered:
                 # Start the real hex movement as the entrance is announced,
                 # rather than making the enforcers appear only after narration.
@@ -987,6 +994,9 @@ func _move_shakedown_soldiers_outside() -> void:
 
 
 func _move_shakedown_soldiers_inside() -> void:
+    if is_instance_valid(cinematic_director):
+        for character_id in HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS:
+            cinematic_director.play_actor_animation(character_id, ["walk", "walking"], ["idle"])
     var preferred_destinations: Array[Vector2i] = [Vector2i(0, 3), Vector2i(-2, 3), Vector2i(2, 3)]
     var fallback_destinations: Array[Vector2i] = [Vector2i(-1, 3), Vector2i(1, 3), Vector2i(0, 2), Vector2i(2, 2), Vector2i(-2, 2)]
     for index in range(HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.size()):
@@ -1006,6 +1016,9 @@ func _move_shakedown_soldiers_inside() -> void:
             await get_tree().create_timer(0.24).timeout
             if not is_instance_valid(self):
                 return
+    if is_instance_valid(cinematic_director):
+        for character_id in HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS:
+            cinematic_director.play_actor_animation(character_id, ["idle", "stand"], [])
 
 
 func _show_world_narration(text: String) -> void:
