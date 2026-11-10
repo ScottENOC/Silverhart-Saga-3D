@@ -13,6 +13,8 @@ const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter
 const SEASONAL_TREE_SCRIPT = preload("res://scripts/presentation/seasonal_tree_visual.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
+const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
+const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -74,6 +76,13 @@ var combat_status_label: Label
 var resource_status_label: Label
 var resource_visuals_by_hex: Dictionary = {}
 var encounter_active: bool = false
+var active_combat_kind: String = "ironbond"
+var active_enemy_ids: Array[String] = []
+var active_party_ids: Array[String] = []
+var farm_wolves_spawned: bool = false
+var farm_wolves_retry_armed: bool = false
+var wilderness_steps_since_spawn: int = 0
+var wilderness_creature_nodes: Array[Node3D] = []
 var enemy_turn_processed: bool = false
 var enemy_turn_waiting_for_reaction: bool = false
 
@@ -138,6 +147,7 @@ func _create_simulation() -> void:
     simulation.clock.ticked.connect(_on_world_clock_ticked)
     add_child(simulation)
     simulation.campaign_journal.register_quest_definition(HollowmereCampaignContent.shakedown_quest_definition())
+    simulation.campaign_journal.register_quest_definition(FARM_WOLVES_QUEST_SCRIPT.definition())
     # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
     for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
         for r in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
@@ -412,6 +422,9 @@ func _create_characters() -> void:
         if actor_id.is_empty() or model_id.is_empty():
             continue
         _spawn_character(actor_id, display_name, spawn, Color(0.42, 0.34, 0.25), false, model_id, profile)
+
+    # Old Mac lives at his farmstead on the same continuous axial world grid.
+    _spawn_character("old_mac", "Old Mac", Vector2i(12, 58), Color(0.42, 0.34, 0.25), false, "", {"params": {"gender": 1}})
 
 
 func _load_starting_loadouts() -> Dictionary:
@@ -817,6 +830,25 @@ func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary]) -
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
     var choice_id := String(choice.get("id", ""))
+    if choice_id == "farm_wolves_accept":
+        var accepted := FARM_WOLVES_QUEST_SCRIPT.accept(simulation.campaign_journal)
+        if bool(accepted.get("ok", false)):
+            _show_dialogue("Old Mac", "Bless you. The fence is broken on the western side of the pasture. I found blood leading into the trees. Their den must be out there somewhere.", [{"id": "continue", "label": "I'll follow the trail.", "text": ""}])
+        else:
+            _show_dialogue("Old Mac", "I cannot ask you to take that on just now.", [{"id": "continue", "label": "All right.", "text": ""}])
+        return
+    if choice_id == "farm_wolves_turn_in":
+        var player := simulation.get_character("player")
+        var reward := FARM_WOLVES_QUEST_SCRIPT.turn_in(simulation.campaign_journal, player)
+        if bool(reward.get("ok", false)):
+            _show_dialogue("Old Mac", "I won't forget what you've done. Take this, and know the farm owes you a favour.", [{"id": "continue", "label": "Thank you.", "text": ""}])
+            resource_status_label.text = "Quest complete: Wolves at the Farm  ·  +25 gold  ·  +150 XP"
+        else:
+            _show_dialogue("Old Mac", "The cattle are not safe yet.", [{"id": "continue", "label": "I'll return.", "text": ""}])
+        return
+    if choice_id == "farm_wolves_continue" or choice_id == "farm_wolves_decline":
+        _show_dialogue("Old Mac", String(choice.get("text", "Take care on the road.")), [{"id": "continue", "label": "Continue", "text": ""}])
+        return
     if choice_id == "continue":
         _close_dialogue()
         return
@@ -870,6 +902,10 @@ func _interact_with_nearest_npc() -> void:
     var decisions: Dictionary = quest_state.get("decisions", {})
     var response_choice := String(decisions.get("response", ""))
     var standing := simulation.campaign_journal.npc_standing(nearest_id)
+    if nearest_id == "old_mac":
+        var farm_conversation := FARM_WOLVES_QUEST_SCRIPT.greeting(simulation.campaign_journal, _farm_wolves_remaining())
+        _show_dialogue(String(farm_conversation.get("speaker", "Old Mac")), String(farm_conversation.get("text", "")), farm_conversation.get("choices", []))
+        return
     var conversation := HollowmereCampaignContent.npc_greeting(nearest_id, shakedown_resolved, standing, response_choice)
     var choices: Array[Dictionary] = []
     for choice_value in conversation.get("choices", []):
@@ -1081,6 +1117,9 @@ func _begin_shakedown_combat() -> void:
         _show_dialogue("Hollowmere", "The confrontation cannot begin: " + String(result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
         return
     encounter_active = true
+    active_combat_kind = "ironbond"
+    active_enemy_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.duplicate()
+    active_party_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.COMBAT_ALLY_IDS.duplicate()
     enemy_turn_processed = false
     enemy_turn_waiting_for_reaction = false
     if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(active_character_id):
@@ -1146,9 +1185,9 @@ func _run_ai_combat_turn(combatant: CharacterState) -> void:
 func _nearest_opponent_target(combatant: CharacterState) -> CharacterState:
     var best: CharacterState
     var best_distance := 999
-    var opponent_ids: Array[String] = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS
+    var opponent_ids: Array[String] = active_enemy_ids
     if combatant.side == "enemy":
-        opponent_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.COMBAT_ALLY_IDS
+        opponent_ids = active_party_ids
     for opponent_id in opponent_ids:
         var opponent := simulation.get_character(opponent_id)
         if opponent == null or not opponent.can_act():
@@ -1182,7 +1221,7 @@ func _attack_active_character() -> void:
         return
     var target := _nearest_enemy_in_attack_range(current)
     if target == null:
-        combat_status_label.text = "No enemy in reach. Move adjacent to an Ironbond soldier first."
+        combat_status_label.text = "No enemy in reach. Move closer to an enemy first."
         return
     var weapon_id := String(current.equipment.get("weapon", ""))
     var result := simulation.try_attack_character(current.id, target.id, {
@@ -1207,7 +1246,7 @@ func _attack_range_for(attacker: CharacterState) -> int:
 func _nearest_enemy_in_attack_range(attacker: CharacterState) -> CharacterState:
     var best: CharacterState
     var best_distance := 999
-    for enemy_id in HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS:
+    for enemy_id in active_enemy_ids:
         var enemy := simulation.get_character(enemy_id)
         if enemy == null or not enemy.can_act():
             continue
@@ -1254,8 +1293,145 @@ func _update_combat_ui() -> void:
         combat_status_label.text = "%s  ·  HP %d/%d  ·  TP %d" % [current.display_name, current.health, current.max_health, roundi(current.time_points)]
 
 
+func _farm_wolves_remaining() -> int:
+	if not farm_wolves_spawned:
+		return -1
+	var remaining := 0
+	for wolf_id in FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS:
+		var wolf := simulation.get_character(wolf_id)
+		if wolf != null and wolf.can_act():
+			remaining += 1
+	return remaining
+
+
+func _check_farm_wolf_proximity() -> void:
+	if simulation == null or encounter_active:
+		return
+	var quest := simulation.campaign_journal.quest_state(FARM_WOLVES_QUEST_SCRIPT.QUEST_ID)
+	if String(quest.get("status", "")) != "active":
+		return
+	var player := simulation.get_character("player")
+	if player == null:
+		return
+	# The den is deliberately well beyond the farm and the village sightline.
+	var den := Vector2i(-42, 72)
+	var distance_to_den := HexGrid.distance(player.axial, den)
+	if distance_to_den > 8:
+		if farm_wolves_spawned:
+			farm_wolves_retry_armed = true
+		return
+	if not farm_wolves_spawned or farm_wolves_retry_armed and _farm_wolves_remaining() > 0:
+		_start_farm_wolf_encounter()
+
+
+func _start_farm_wolf_encounter() -> void:
+	if simulation.is_in_combat or farm_wolves_spawned and _farm_wolves_remaining() == 0:
+		return
+	if not farm_wolves_spawned:
+		farm_wolves_spawned = true
+		var den := Vector2i(-42, 72)
+		var offsets: Array[Vector2i] = [Vector2i(-1, -1), Vector2i(1, 0), Vector2i(0, 1)]
+		for index in range(FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size()):
+			var wolf_id := FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS[index]
+			var preferred := den + offsets[index]
+			var spawn_hex := _find_valid_spawn_hex(preferred)
+			var wolf := CharacterState.new(wolf_id, "Wolf", spawn_hex)
+			wolf.side = "enemy"
+			wolf.max_health = 75
+			wolf.health = 75
+			wolf.base_damage = 4
+			wolf.to_hit_melee = 4.0
+			wolf.skills = {"bite_hit": 1, "bite_dmg": 1}
+			wolf.tags.append("animal")
+			wolf.tags.append("farm_quest_wolf")
+			wolf.time_points = wolf.max_time_points
+			simulation.register_character(wolf)
+
+			var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+			actor.name = wolf_id
+			actor.creature_kind = "wolf"
+			actor.behaviour = "predator"
+			actor.model_scale = 0.76
+			actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
+			actor.position = _hex_world_position(spawn_hex)
+			add_child(actor)
+			actor_by_id[wolf_id] = actor
+	farm_wolves_retry_armed = false
+
+	active_combat_kind = "farm_wolves"
+	active_enemy_ids = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
+	active_party_ids = FARM_WOLVES_QUEST_SCRIPT.PARTY_IDS.duplicate()
+	for value in simulation.characters.values():
+		var state: CharacterState = value
+		state.combat_dormant = true
+		if active_party_ids.has(state.id):
+			state.side = "player"
+			state.combat_dormant = false
+		elif active_enemy_ids.has(state.id):
+			state.side = "enemy"
+			state.combat_dormant = false
+			state.time_points = state.max_time_points
+	simulation.start_combat()
+	encounter_active = true
+	enemy_turn_processed = false
+	enemy_turn_waiting_for_reaction = false
+	if not active_party_ids.has(active_character_id):
+		active_character_id = "player"
+	_update_combat_ui()
+	_show_dialogue("Wilderness", "A low growl rolls through the trees. Three wolves emerge from the den and spread out to surround you.", [{"id": "continue", "label": "Stand your ground.", "text": ""}])
+
+
+func _check_farm_wolf_resolution() -> void:
+	var party_defeated := true
+	for party_id in active_party_ids:
+		var member := simulation.get_character(party_id)
+		if member != null and member.can_act():
+			party_defeated = false
+			break
+	if party_defeated:
+		simulation.end_combat()
+		encounter_active = false
+		for wolf_id in active_enemy_ids:
+			var wolf := simulation.get_character(wolf_id)
+			if wolf != null:
+				wolf.combat_dormant = true
+		for party_id in active_party_ids:
+			var member := simulation.get_character(party_id)
+			if member != null:
+				member.side = "player"
+				member.combat_dormant = false
+		farm_wolves_retry_armed = false
+		_show_dialogue("Wilderness", "The wolves drive you back. They remain at their den, and Old Mac's cattle are still in danger. You can return when ready.", [{"id": "continue", "label": "Retreat.", "text": ""}])
+		return
+
+	var all_defeated := true
+	for wolf_id in active_enemy_ids:
+		var wolf := simulation.get_character(wolf_id)
+		if wolf != null and wolf.can_act():
+			all_defeated = false
+			break
+	if all_defeated:
+		simulation.end_combat()
+		encounter_active = false
+		for wolf_id in active_enemy_ids:
+			var wolf := simulation.get_character(wolf_id)
+			if wolf != null:
+				wolf.combat_dormant = true
+		for party_id in active_party_ids:
+			var member := simulation.get_character(party_id)
+			if member != null:
+				member.side = "player"
+				member.combat_dormant = false
+		FARM_WOLVES_QUEST_SCRIPT.record_wolf_defeat(simulation.campaign_journal, FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size())
+		resource_status_label.text = "The wolf pack is defeated. Return to Old Mac."
+		_show_dialogue("Wilderness", "The last wolf falls. The den is quiet. Old Mac will want to know the cattle are safe.", [{"id": "continue", "label": "Return to the farm.", "text": ""}])
+
+
 func _check_encounter_resolution() -> void:
     if not encounter_active:
+        return
+    if active_combat_kind == "farm_wolves":
+        _check_farm_wolf_resolution()
         return
     if HOLLOWMERE_ENCOUNTER_SCRIPT.party_defeated(simulation):
         simulation.end_combat()
@@ -1366,6 +1542,7 @@ func _switch_party_member() -> void:
 
 func _process(delta: float) -> void:
     _update_ambient_chatter(delta)
+    _check_farm_wolf_proximity()
     _update_combat(delta)
     _update_combat_ui()
     if active_path.size() < 2:
@@ -1610,9 +1787,70 @@ func _find_valid_spawn_hex(preferred: Vector2i) -> Vector2i:
     return candidates[0]
 
 func _on_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
-    var actor: HexActorPresentation = actor_by_id.get(character_id) as HexActorPresentation
+    var actor := actor_by_id.get(character_id) as Node3D
     if actor != null:
-        actor.present_move_to(_hex_world_position(to_hex))
+        var destination := _hex_world_position(to_hex)
+        if actor is CreatureActor:
+            var creature := actor as CreatureActor
+            creature.play_move()
+            var tween := create_tween()
+            tween.tween_property(creature, "global_position", destination, 0.24)
+            tween.tween_callback(creature.play_idle)
+        elif actor is HexActorPresentation:
+            (actor as HexActorPresentation).present_move_to(destination)
+    if character_id == "player":
+        _maybe_spawn_wilderness_creature(to_hex)
+
+
+func _maybe_spawn_wilderness_creature(player_hex: Vector2i) -> void:
+    # Keep the authored settlement/farm quiet. Wildlife starts beyond the
+    # original 35-hex Hollowmere safety radius and is rolled by travel, not
+    # every frame, so it cannot spam into existence.
+    if HexGrid.distance(Vector2i.ZERO, player_hex) <= 35 or HollowmereVillageData.is_farm_land(player_hex):
+        return
+    wilderness_steps_since_spawn += 1
+    if wilderness_steps_since_spawn < 12:
+        return
+    wilderness_steps_since_spawn = 0
+    var player_world := _hex_world_position(player_hex)
+    for index in range(wilderness_creature_nodes.size() - 1, -1, -1):
+        var existing := wilderness_creature_nodes[index]
+        if not is_instance_valid(existing) or existing.global_position.distance_to(player_world) > 60.0:
+            if is_instance_valid(existing):
+                existing.queue_free()
+            wilderness_creature_nodes.remove_at(index)
+    if wilderness_creature_nodes.size() >= 5 or ambient_rng.randf() > 0.42:
+        return
+
+    var kinds: Array[String] = ["wolf", "fox", "deer", "stag"]
+    var weights := PackedFloat32Array([0.25, 0.25, 0.30, 0.20])
+    var roll := ambient_rng.randf()
+    var kind := "deer"
+    var cumulative := 0.0
+    for index in range(kinds.size()):
+        cumulative += weights[index]
+        if roll <= cumulative:
+            kind = kinds[index]
+            break
+
+    for attempt in range(18):
+        var candidate := player_hex + Vector2i(ambient_rng.randi_range(-12, 12), ambient_rng.randi_range(-12, 12))
+        if HexGrid.distance(player_hex, candidate) < 7 or HexGrid.distance(player_hex, candidate) > 13:
+            continue
+        if HexGrid.distance(Vector2i.ZERO, candidate) <= 35 or HollowmereVillageData.is_farm_land(candidate):
+            continue
+        if not simulation.map_data.is_walkable(candidate) or simulation.occupied_hexes.has(candidate):
+            continue
+        var creature := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+        creature.name = "Wilderness_%s_%d" % [kind, wilderness_creature_nodes.size() + 1]
+        creature.creature_kind = kind
+        creature.behaviour = "predator" if kind == "wolf" else "passive_wildlife"
+        creature.model_scale = 0.72 if kind == "fox" else 0.78
+        creature.model_path = "res://art/creatures/quaternius/%s.gltf" % kind.capitalize()
+        creature.position = _hex_world_position(candidate)
+        add_child(creature)
+        wilderness_creature_nodes.append(creature)
+        return
 
 func _hex_world_position(hex: Vector2i) -> Vector3:
     var centre := HexGrid.axial_to_world(hex, HEX_RADIUS)

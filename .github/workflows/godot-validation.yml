@@ -9,6 +9,7 @@ on:
       - "art/characters/**"
       - "art/ui/**"
       - "art/environment/**"
+      - "art/creatures/**"
       - "scenes/**"
       - "scripts/**"
       - "data/**"
@@ -66,6 +67,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_seasonal_trees.gd
       - name: Run wilderness resource visual tests
         run: godot --headless --path . --script res://tests/test_wilderness_resource_visuals.gd
+      - name: Run farm wolf quest and creature asset tests
+        run: godot --headless --path . --script res://tests/test_farm_wolves_quest.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
       - name: Validate Hollowmere and item data JSON
