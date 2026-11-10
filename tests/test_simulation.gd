@@ -507,6 +507,11 @@ func _test_combat_turn_scheduler() -> void:
     sim.register_character(player)
     sim.register_character(guard)
     sim.start_combat()
+    var late_joiner := CharacterState.new("late_joiner", "Late Joiner", Vector2i(2, 0))
+    late_joiner.side = "player"
+    late_joiner.time_points = 12.0
+    sim.register_character(late_joiner)
+    _check(is_equal_approx(late_joiner.time_points, 100.0), "A character joining an active combat should receive 100 TP")
     _check(sim.advance_world_seconds(0.4) == 1)
     _check(not sim.turn_scheduler.has_active_turn())
     _check(is_equal_approx(player.time_points, 100.5))
