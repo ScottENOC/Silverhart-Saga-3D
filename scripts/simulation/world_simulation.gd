@@ -18,6 +18,7 @@ var wilderness_resources: WildernessResourceSystem = WildernessResourceSystem.ne
 var characters: Dictionary = {}
 var occupied_hexes: Dictionary = {}
 var player_character_id: String = "player"
+var party_member_ids: Array[String] = []
 var clock: WorldClock = WorldClock.new()
 var turn_scheduler: CombatTurnScheduler = CombatTurnScheduler.new()
 var is_in_combat: bool = false
@@ -83,7 +84,61 @@ func register_character(state: CharacterState) -> void:
         return
     characters[state.id] = state
     occupied_hexes[state.axial] = state.id
+    if state.id == player_character_id or state.side == "player":
+        if not party_member_ids.has(state.id):
+            party_member_ids.append(state.id)
     _attach_character_lifecycle(state)
+
+
+## Build and register a humanoid NPC using the shared source-derived progression service.
+func build_and_register_npc(state: CharacterState, options: Dictionary) -> Dictionary:
+    if state == null:
+        return {"ok": false, "reason": "missing_character"}
+    if characters.has(state.id):
+        return {"ok": false, "reason": "duplicate_character_id"}
+    var result := NPCSkillSpending.build_npc(state, options)
+    if not bool(result.get("ok", false)):
+        return result
+    register_character(state)
+    return result
+
+## Recruitment is a one-time progression transition; rejoining only restores party membership.
+func recruit_companion(character_id: String, preferred_skills: Dictionary = {}, seed: String = "") -> Dictionary:
+    var state := get_character(character_id)
+    if state == null:
+        return {"ok": false, "reason": "unknown_character"}
+    if character_id == player_character_id:
+        return {"ok": false, "reason": "player_is_not_recruitable"}
+    var result := NPCSkillSpending.recruit_companion(state, preferred_skills, seed)
+    var reason := String(result.get("reason", ""))
+    if not bool(result.get("ok", false)) and reason != "already_recruited_once":
+        return result
+    if not party_member_ids.has(character_id):
+        party_member_ids.append(character_id)
+    if reason == "already_recruited_once":
+        return {"ok": true, "reason": "rejoined_existing_companion", "remaining": SkillProgression.available_points(state)}
+    return result
+
+## Leaving the active party never deletes or rebuilds the character's progression state.
+func dismiss_companion(character_id: String) -> Dictionary:
+    if character_id == player_character_id:
+        return {"ok": false, "reason": "cannot_dismiss_player"}
+    var index := party_member_ids.find(character_id)
+    if index < 0:
+        return {"ok": false, "reason": "not_in_party"}
+    party_member_ids.remove_at(index)
+    return {"ok": true, "reason": "companion_dismissed"}
+
+func is_party_member(character_id: String) -> bool:
+    return party_member_ids.has(character_id)
+
+func party_members() -> Array[CharacterState]:
+    var result: Array[CharacterState] = []
+    for character_id in party_member_ids:
+        var state := get_character(character_id)
+        if state != null:
+            result.append(state)
+    return result
 
 func get_character(character_id: String) -> CharacterState:
     return characters.get(character_id) as CharacterState
@@ -776,6 +831,8 @@ func to_dict() -> Dictionary:
     return {
         "world_clock": clock.to_dict(),
         "is_in_combat": is_in_combat,
+        "player_character_id": player_character_id,
+        "party_member_ids": party_member_ids.duplicate(),
         "characters": character_data,
         "wilderness_resources": wilderness_resources.to_dict(),
     }
@@ -783,6 +840,8 @@ func to_dict() -> Dictionary:
 func load_dict(data: Dictionary) -> void:
     characters.clear()
     occupied_hexes.clear()
+    party_member_ids.clear()
+    player_character_id = String(data.get("player_character_id", "player"))
     clock.load_dict(data.get("world_clock", {}))
     wilderness_resources.load_dict(data.get("wilderness_resources", {}))
     is_in_combat = bool(data.get("is_in_combat", false))
@@ -796,6 +855,12 @@ func load_dict(data: Dictionary) -> void:
             continue
         characters[state.id] = state
         occupied_hexes[state.axial] = state.id
+    for member_id in data.get("party_member_ids", []):
+        var saved_member_id := String(member_id)
+        if characters.has(saved_member_id) and not party_member_ids.has(saved_member_id):
+            party_member_ids.append(saved_member_id)
+    if party_member_ids.is_empty() and characters.has(player_character_id):
+        party_member_ids.append(player_character_id)
 
     # Do not restore transient UI reaction waits or half-finished turns.
     pending_reaction.clear()
