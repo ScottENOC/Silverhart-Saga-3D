@@ -1290,6 +1290,132 @@ func _update_combat_ui() -> void:
         combat_status_label.text = "%s  ·  HP %d/%d  ·  TP %d" % [current.display_name, current.health, current.max_health, roundi(current.time_points)]
 
 
+func _farm_wolves_remaining() -> int:
+	if not farm_wolves_spawned:
+		return FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size()
+	var remaining := 0
+	for wolf_id in FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS:
+		var wolf := simulation.get_character(wolf_id)
+		if wolf != null and wolf.can_act():
+			remaining += 1
+	return remaining
+
+
+func _check_farm_wolf_proximity() -> void:
+	if simulation == null or encounter_active or farm_wolves_spawned:
+		return
+	var quest := simulation.campaign_journal.quest_state(FARM_WOLVES_QUEST_SCRIPT.QUEST_ID)
+	if String(quest.get("status", "")) != "active":
+		return
+	var player := simulation.get_character("player")
+	if player == null:
+		return
+	# The den is deliberately well beyond the farm and the village sightline.
+	var den := Vector2i(-42, 72)
+	if HexGrid.distance(player.axial, den) <= 8:
+		_start_farm_wolf_encounter()
+
+
+func _start_farm_wolf_encounter() -> void:
+	if farm_wolves_spawned or simulation.is_in_combat:
+		return
+	farm_wolves_spawned = true
+	var den := Vector2i(-42, 72)
+	var offsets: Array[Vector2i] = [Vector2i(-1, -1), Vector2i(1, 0), Vector2i(0, 1)]
+	for index in range(FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size()):
+		var wolf_id := FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS[index]
+		var preferred := den + offsets[index]
+		var spawn_hex := _find_valid_spawn_hex(preferred)
+		var wolf := CharacterState.new(wolf_id, "Wolf", spawn_hex)
+		wolf.side = "enemy"
+		wolf.max_health = 75
+		wolf.health = 75
+		wolf.base_damage = 4
+		wolf.to_hit_melee = 4.0
+		wolf.skills = {"bite_hit": 1, "bite_dmg": 1}
+		wolf.tags.append("animal")
+		wolf.tags.append("farm_quest_wolf")
+		wolf.time_points = wolf.max_time_points
+		simulation.register_character(wolf)
+
+		var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+		actor.name = wolf_id
+		actor.creature_kind = "wolf"
+		actor.behaviour = "predator"
+		actor.model_scale = 0.76
+		actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
+		actor.position = _hex_world_position(spawn_hex)
+		add_child(actor)
+		actor_by_id[wolf_id] = actor
+
+	active_combat_kind = "farm_wolves"
+	active_enemy_ids = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
+	active_party_ids = FARM_WOLVES_QUEST_SCRIPT.PARTY_IDS.duplicate()
+	for value in simulation.characters.values():
+		var state: CharacterState = value
+		state.combat_dormant = true
+		if active_party_ids.has(state.id):
+			state.side = "player"
+			state.combat_dormant = false
+		elif active_enemy_ids.has(state.id):
+			state.side = "enemy"
+			state.combat_dormant = false
+			state.time_points = state.max_time_points
+	simulation.start_combat()
+	encounter_active = true
+	enemy_turn_processed = false
+	enemy_turn_waiting_for_reaction = false
+	if not active_party_ids.has(active_character_id):
+		active_character_id = "player"
+	_update_combat_ui()
+	_show_dialogue("Wilderness", "A low growl rolls through the trees. Three wolves emerge from the den and spread out to surround you.", [{"id": "continue", "label": "Stand your ground.", "text": ""}])
+
+
+func _check_farm_wolf_resolution() -> void:
+	var party_defeated := true
+	for party_id in active_party_ids:
+		var member := simulation.get_character(party_id)
+		if member != null and member.can_act():
+			party_defeated = false
+			break
+	if party_defeated:
+		simulation.end_combat()
+		encounter_active = false
+		for wolf_id in active_enemy_ids:
+			var wolf := simulation.get_character(wolf_id)
+			if wolf != null:
+				wolf.combat_dormant = true
+		for party_id in active_party_ids:
+			var member := simulation.get_character(party_id)
+			if member != null:
+				member.side = "player"
+				member.combat_dormant = false
+		_show_dialogue("Wilderness", "The wolves drive you back. They remain at their den, and Old Mac's cattle are still in danger.", [{"id": "continue", "label": "Retreat.", "text": ""}])
+		return
+
+	var all_defeated := true
+	for wolf_id in active_enemy_ids:
+		var wolf := simulation.get_character(wolf_id)
+		if wolf != null and wolf.can_act():
+			all_defeated = false
+			break
+	if all_defeated:
+		simulation.end_combat()
+		encounter_active = false
+		for wolf_id in active_enemy_ids:
+			var wolf := simulation.get_character(wolf_id)
+			if wolf != null:
+				wolf.combat_dormant = true
+		for party_id in active_party_ids:
+			var member := simulation.get_character(party_id)
+			if member != null:
+				member.side = "player"
+				member.combat_dormant = false
+		FARM_WOLVES_QUEST_SCRIPT.record_wolf_defeat(simulation.campaign_journal, FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size())
+		resource_status_label.text = "The wolf pack is defeated. Return to Old Mac."
+		_show_dialogue("Wilderness", "The last wolf falls. The den is quiet. Old Mac will want to know the cattle are safe.", [{"id": "continue", "label": "Return to the farm.", "text": ""}])
+
+
 func _check_encounter_resolution() -> void:
     if not encounter_active:
         return
