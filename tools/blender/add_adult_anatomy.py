@@ -275,7 +275,8 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
                 continue
             vertex.co = deformed
             for key_block in key_blocks[1:]:
-                key_block.data[vertex.index].co += delta
+                key_point = key_block.data[vertex.index]
+                key_point.co = key_point.co + delta
         skin.data.update()
         after_keys = skin.data.shape_keys
         if after_keys is None or len(after_keys.key_blocks) != len(key_blocks):
