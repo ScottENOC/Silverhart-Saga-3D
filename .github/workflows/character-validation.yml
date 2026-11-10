@@ -6,6 +6,11 @@ on:
     paths:
       - "tools/blender/**"
       - "tools/ara/**"
+      - "tools/character_definitions.py"
+      - "tools/ci/validate_character_definitions.py"
+      - "data/characters/hollowmere_npcs.json"
+      - "data/items/item_definitions.json"
+      - "tests/test_character_definitions.py"
       - "tests/test_assemble_modular_glb.py"
       - "data/characters/legacy_named_npcs.json"
       - "data/characters/legacy_enemy_roster.json"
@@ -18,6 +23,11 @@ on:
     paths:
       - "tools/blender/**"
       - "tools/ara/**"
+      - "tools/character_definitions.py"
+      - "tools/ci/validate_character_definitions.py"
+      - "data/characters/hollowmere_npcs.json"
+      - "data/items/item_definitions.json"
+      - "tests/test_character_definitions.py"
       - "tests/test_assemble_modular_glb.py"
       - ".github/workflows/**"
   workflow_dispatch:
@@ -39,7 +49,11 @@ jobs:
       - name: Lint GitHub Actions workflows
         uses: reviewdog/action-actionlint@v1
       - name: Compile Ara and Blender Python tools
-        run: python -m compileall -q tools/blender tools/ara
+        run: python -m compileall -q tools/character_definitions.py tools/blender tools/ara
+      - name: Validate canonical character inventory and equipment
+        run: python tools/ci/validate_character_definitions.py
+      - name: Test canonical character definitions
+        run: python -m unittest discover -s tests -p "test_character_definitions.py" -v
       - name: Test modular GLB assembly
         run: python -m unittest discover -s tests -p 'test_assemble_modular_glb.py' -v
       - name: Validate complete legacy NPC, enemy and Arena rosters
