@@ -1295,7 +1295,7 @@ func _update_combat_ui() -> void:
 
 func _farm_wolves_remaining() -> int:
 	if not farm_wolves_spawned:
-		return FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size()
+		return -1
 	var remaining := 0
 	for wolf_id in FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS:
 		var wolf := simulation.get_character(wolf_id)
