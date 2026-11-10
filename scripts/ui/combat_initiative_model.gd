@@ -18,7 +18,6 @@ static func build_entries(characters: Dictionary, current_character_id: String =
             "display_name": state.display_name,
             "side": state.side,
             "time_points": state.time_points,
-            "time_points_ratio": clampf(state.time_points / 150.0, 0.0, 1.0),
             "health": state.health,
             "max_health": maxi(1, state.max_health),
             "mana": state.current_mana,
