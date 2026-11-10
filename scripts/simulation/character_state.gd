@@ -55,7 +55,7 @@ var impassable_to_player: bool = false
 
 # The original game accumulates Time Points continuously. 100 TP makes an
 # entity eligible to act in combat; a player turn normally ends at 80 TP.
-var time_points: float = 0.0
+var time_points: float = ActionEconomy.COMBAT_TURN_READY_TP
 var time_points_per_tick: float = 1.0
 var max_time_points: float = ActionEconomy.DEFAULT_MAX_TP
 var total_time_points_spent: float = 0.0
