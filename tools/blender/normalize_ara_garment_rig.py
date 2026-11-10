@@ -85,12 +85,25 @@ def geometry_diagnostics(before, after):
         if not deltas:
             result[name] = {"vertices": 0, "max_displacement_metres": 0.0}
             continue
+        magnitudes = sorted(delta.length for delta in deltas)
         max_index = max(range(len(deltas)), key=lambda i: deltas[i].length)
         mean_delta = sum(deltas, Vector()) / len(deltas)
+
+        def percentile(fraction):
+            index = min(len(magnitudes) - 1, round((len(magnitudes) - 1) * fraction))
+            return magnitudes[index]
+
         result[name] = {
             "vertices": len(deltas),
             "max_displacement_metres": deltas[max_index].length,
             "max_displacement_vertex": max_index,
+            "max_vertex_before_world": [round(v, 9) for v in before[name][max_index]],
+            "max_vertex_after_world": [round(v, 9) for v in after[name][max_index]],
+            "max_vertex_displacement_vector_metres": [round(v, 9) for v in deltas[max_index]],
+            "mean_displacement_metres": sum(magnitudes) / len(magnitudes),
+            "p50_displacement_metres": percentile(0.50),
+            "p90_displacement_metres": percentile(0.90),
+            "p99_displacement_metres": percentile(0.99),
             "mean_displacement_vector_metres": [round(v, 9) for v in mean_delta],
             "mean_displacement_length_metres": mean_delta.length,
         }
