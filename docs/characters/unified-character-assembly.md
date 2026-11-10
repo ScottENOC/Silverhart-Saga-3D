@@ -31,9 +31,10 @@ Wren is the first profile being validated end to end:
 - Apply the adult female anatomy sculpt to that bare body.
 - Generate two additional Ara exports with identical Wren body settings and garments: one with footwear disabled, and one with Wren's configured combat boots.
 - Apply the same adult anatomy pass to all three body/dressed exports.
-- Run the read-only three-way rig comparison in tools/blender/compare_ara_footwear_rigs.py. It compares the bare body, dressed/no-shoes export and dressed/booted export, including armature transforms, every rest-bone matrix and parent-relative bone transforms.
-- This diagnostic run intentionally stops before rig normalisation or garment extraction. We will only choose the next pipeline approach after the report establishes whether footwear causes the Hips/root shift.
-- Package the bare body and matching garment library for Godot.
+- Compare the bare body, dressed/no-shoes export and dressed/booted export with tools/blender/compare_ara_footwear_rigs.py.
+- The comparison established that the no-shoes export matches the bare body's complete 69-bone rest rig exactly, while the booted export shifts Hips by 30.421 mm. Therefore, footwear must not be present during generation of a skinned garment source.
+- Use the no-shoes export as the canonical Wren garment source. The booted export is retained only for diagnostics; it is never normalised or used to extract skinned garments.
+- Package the bare body and matching garment library for Godot. Boots will be treated as separate equipment assets, not baked into the body or garment-source skeleton.
 
 The old art/characters/hollowmere/*.glb models are not used as the source of Wren's new body or garments; an older export may have been made with different Ara parameters or generator versions. They remain a temporary runtime visual fallback for NPCs whose profile-generated bodies are not built yet, so the migration does not leave those characters undressed. This fallback is transitional and is not the target architecture.
 
@@ -55,9 +56,9 @@ The pipeline caches completed Ara exports, anatomy passes, validation, garment e
 Important outputs:
 
 - art/characters/ara_runtime/bodies/wren_talbot.glb — bare Wren body, with Wren's Ara macro settings baked in and the modified adult female anatomy.
-- art/characters/ara/ara_person_wren_dressed_normalized.glb — Wren's dressed source rebased to the canonical bare-body rest skeleton.
-- art/characters/ara/ara_person_wren_dressed_normalization.json — root/socket correction and evaluated-mesh preservation report.
-- art/characters/ara_runtime/ara_person_garments.glb — Wren-profile garments only, extracted from the normalized Wren Ara export.
+- art/characters/ara/ara_person_wren_dressed_no_shoes.glb — Wren's garment source, generated with footwear disabled and proven to share the bare body's rest rig.
+- art/characters/ara/ara_person_wren_footwear_rig_comparison.json — diagnostic proving the no-shoes rig matches and the booted rig has a 30.421 mm Hips offset.
+- art/characters/ara_runtime/ara_person_garments.glb — Wren-profile garments only, extracted from the no-shoes Ara export.
 - art/characters/ara/ara_person_wren_body.validation.json — final rig and facial-morph validation report.
 - art/characters/ara/review/wren_body/ and wren_dressed/ — front, side, rear and three-quarter review renders.
 
@@ -66,9 +67,8 @@ Important outputs:
 The bare Wren body and Wren dressed source must have:
 
 - Identical bone names and ordering.
-- The normalisation preflight must prove that every bone difference is explained by the common Hips translation, except the bounded WeaponR socket residual.
-- After normalisation, every bone rest transform must match the canonical bare-body rig within 1e-5.
-- Evaluated garment-source mesh vertices must remain unchanged by normalisation (maximum displacement 1e-5 m).
+- The selected garment source must match the bare body's bone names, order, hierarchy and every rest-bone transform within 1e-5.
+- The garment source must be generated with footwear disabled. A footwear-enabled export is rejected as a garment source because its Hips rest position differs.
 - Facial morph targets present in both exports.
 - The expected clothing materials present in the dressed source.
 
