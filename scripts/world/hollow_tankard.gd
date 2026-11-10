@@ -13,6 +13,7 @@ const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter
 const SEASONAL_TREE_SCRIPT = preload("res://scripts/presentation/seasonal_tree_visual.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
+const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -138,6 +139,7 @@ func _create_simulation() -> void:
     simulation.clock.ticked.connect(_on_world_clock_ticked)
     add_child(simulation)
     simulation.campaign_journal.register_quest_definition(HollowmereCampaignContent.shakedown_quest_definition())
+    COMPANION_CAMPAIGN_SCRIPT.register_quest_definitions(simulation.campaign_journal)
     # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
     for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
         for r in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
@@ -839,6 +841,18 @@ func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary]) -
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
     var choice_id := String(choice.get("id", ""))
+    if choice_id.begins_with("start:"):
+        var quest_id := choice_id.trim_prefix("start:")
+        var start_result := simulation.campaign_journal.start_quest(quest_id)
+        if bool(start_result.get("ok", false)):
+            _show_companion_dialogue(String(choice.get("companion_id", "")))
+        else:
+            _show_dialogue("Campaign journal", "That quest could not be started: %s." % String(start_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+        return
+    if choice_id.begins_with("recruit:"):
+        var companion_id := choice_id.trim_prefix("recruit:")
+        _recruit_staged_companion(companion_id)
+        return
     if choice_id == "continue":
         _close_dialogue()
         return
@@ -888,6 +902,9 @@ func _interact_with_nearest_npc() -> void:
     if nearest_id.is_empty():
         _show_dialogue("No one nearby", "Move closer to someone if you want to speak with them.", [{"id": "continue", "label": "Close", "text": ""}])
         return
+    if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(nearest_id):
+        _show_companion_dialogue(nearest_id)
+        return
     var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
     var decisions: Dictionary = quest_state.get("decisions", {})
     var response_choice := String(decisions.get("response", ""))
@@ -898,6 +915,61 @@ func _interact_with_nearest_npc() -> void:
         var choice: Dictionary = choice_value
         choices.append(choice.duplicate(true))
     _show_dialogue(String(conversation.get("speaker", nearest_id)), String(conversation.get("text", "")), choices)
+
+
+func _show_companion_dialogue(character_id: String) -> void:
+    var player_state := simulation.get_character("player")
+    if player_state == null:
+        return
+    var conversation: Dictionary = COMPANION_CAMPAIGN_SCRIPT.conversation(
+        character_id,
+        simulation.campaign_journal,
+        player_state.inventory,
+        simulation.party_member_ids
+    )
+    if conversation.is_empty():
+        return
+    var choices: Array[Dictionary] = []
+    for choice_value in conversation.get("choices", []):
+        var choice: Dictionary = choice_value.duplicate(true)
+        if String(choice.get("id", "")).begins_with("start:"):
+            choice["companion_id"] = character_id
+        choices.append(choice)
+    _show_dialogue(String(conversation.get("speaker", character_id)), String(conversation.get("text", "")), choices)
+
+
+func _recruit_staged_companion(character_id: String) -> void:
+    var state := simulation.get_character(character_id)
+    if state == null:
+        _show_dialogue("Recruitment", "That companion is not present in this location.", [{"id":"continue","label":"Continue","text":""}])
+        return
+    if simulation.is_party_member(character_id):
+        _show_dialogue(state.display_name, "I'm already travelling with you.", [{"id":"continue","label":"Continue","text":""}])
+        return
+    var player_state := simulation.get_character("player")
+    if player_state == null:
+        return
+    if character_id == "fenn_oakheart" and COMPANION_CAMPAIGN_SCRIPT._count_item(player_state.inventory, "herbs") < 3:
+        _show_companion_dialogue(character_id)
+        return
+    var recruit_result := simulation.recruit_companion(character_id)
+    if not bool(recruit_result.get("ok", false)):
+        _show_dialogue("Recruitment", "Could not recruit %s: %s." % [state.display_name, String(recruit_result.get("reason", "unknown reason"))], [{"id":"continue","label":"Continue","text":""}])
+        return
+    if character_id == "fenn_oakheart":
+        COMPANION_CAMPAIGN_SCRIPT.consume_item(player_state.inventory, "herbs", 3)
+        COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "fenn_herb_gathering", "herbs_delivered")
+    state.side = "player"
+    if not party_member_ids.has(character_id):
+        party_member_ids.append(character_id)
+    var actor := actor_by_id.get(character_id) as Node3D
+    if actor != null:
+        actor.set_meta("ambient_enabled", false)
+    if party_switch_button != null and active_character_id == character_id:
+        party_switch_button.text = "Active: %s  [Tab] Switch" % state.display_name
+    if character_panel != null and active_character_id == character_id:
+        character_panel.set_character(active_character_id)
+    _show_dialogue(state.display_name, "%s joins your party. Their existing skills and equipment are preserved; future skill points are yours to allocate." % state.display_name, [{"id":"continue","label":"Continue","text":""}])
 
 
 func _resolve_shakedown(choice_id: String) -> void:
@@ -1381,7 +1453,8 @@ func _switch_party_member() -> void:
     var target: Node3D = actor_by_id.get(active_character_id) as Node3D
     if target != null:
         camera_rig.follow_target = target
-        var display_name := "You" if active_character_id == "player" else "Wren"
+        var active_state := simulation.get_character(active_character_id)
+        var display_name := "You" if active_character_id == "player" else (active_state.display_name if active_state != null else active_character_id)
         party_switch_button.text = "Active: " + display_name + "  [Tab] Switch"
     if character_panel != null:
         character_panel.set_character(active_character_id)
