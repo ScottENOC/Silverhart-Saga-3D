@@ -326,8 +326,21 @@ func apply_player_profile(profile: Dictionary) -> void:
     tint_materials("skin", skin)
     tint_materials("eye", eye_colours.get(str(profile.get("eye_colour", "Brown")), Color("#49301f")))
     current_hair_colour = hair_colours.get(str(profile.get("hair_colour", "Dark brown")), Color("#49372a"))
-    tint_materials("hair", current_hair_colour)
+    var skin_surfaces := tint_materials("skin", skin)
+    var eye_surfaces := tint_materials("eye", eye_colours.get(str(profile.get("eye_colour", "Brown")), Color("#49301f")))
+    var hair_surfaces := tint_materials("hair", current_hair_colour)
     _tint_attached_hair(current_hair_colour)
+    print("[Ara appearance] skin_surfaces=%d eye_surfaces=%d embedded_hair_surfaces=%d attached_hair_meshes=%d" % [
+        skin_surfaces, eye_surfaces, hair_surfaces, hair_instances.size()
+    ])
+
+    # Ara's macro body controls are baked into GLB geometry, so the current
+    # creator's height/build choices use a conservative whole-body scale until
+    # profile-specific body exports are generated. This is intentionally
+    # separate from gender: male/female selection chooses a different base GLB.
+    var height_scale := clampf(float(profile.get("height_scale", 1.0)), 0.90, 1.10)
+    var build_scale := clampf(float(profile.get("build_scale", 1.0)), 0.90, 1.10)
+    model_root.scale = Vector3(build_scale, height_scale, build_scale)
 
     apply_body_parameters(profile)
     set_meta("body_variant", str(profile.get("body_variant", "female")))
@@ -369,7 +382,12 @@ func set_hairstyle(glb_path: String) -> bool:
         if instance == null:
             continue
         instance.name = "Swappable_" + source_mesh.name
+        # Hair GLBs may nest their skinned mesh below transformed nodes. Preserve
+        # the mesh transform relative to the exported scene root when flattening
+        # it onto the character root, otherwise the hairstyle can load off-head.
+        var root_relative_transform := source_root.global_transform.affine_inverse() * source_mesh.global_transform
         model_root.add_child(instance)
+        instance.transform = root_relative_transform
         instance.skeleton = instance.get_path_to(target_skeleton)
         hair_instances.append(instance)
     source_root.free()
