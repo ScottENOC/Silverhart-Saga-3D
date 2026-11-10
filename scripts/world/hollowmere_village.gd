@@ -214,6 +214,9 @@ func _create_farm_animals() -> void:
 	_spawn_creature("FarmCowC", "cow", "farm", Vector2i(13, 64), 0.82)
 	# A farm horse is present as a visible future mount candidate.
 	_spawn_creature("FarmHorse", "horse", "mount", Vector2i(24, 57), 0.82)
+	# A second coat variant and a small farm dog use their own original glTF scenes.
+	_spawn_creature("FarmWhiteHorse", "horse", "mount", Vector2i(27, 61), 0.82, "Horse_White.gltf")
+	_spawn_creature("FarmShiba", "shiba_inu", "farm", Vector2i(19, 60), 0.48, "ShibaInu.gltf")
 
 func _add_broken_fence_and_blood_trail() -> void:
 	var gap_hex := Vector2i(1, 67)
@@ -251,13 +254,14 @@ func _create_wilderness_animals() -> void:
 	_spawn_creature("WildernessFox", "fox", "passive_wildlife", Vector2i(-29, -30), 0.72)
 	_spawn_creature("WildernessWolf", "wolf", "predator", Vector2i(39, 39), 0.76)
 
-func _spawn_creature(actor_name: String, kind: String, behaviour_name: String, hex: Vector2i, scale_factor: float) -> void:
+func _spawn_creature(actor_name: String, kind: String, behaviour_name: String, hex: Vector2i, scale_factor: float, asset_filename: String = "") -> void:
 	var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
 	actor.name = actor_name
 	actor.creature_kind = kind
 	actor.behaviour = behaviour_name
 	actor.model_scale = scale_factor
-	actor.model_path = "res://art/creatures/quaternius/%s.gltf" % kind.capitalize()
+	var filename := asset_filename if not asset_filename.is_empty() else "%s.gltf" % kind.capitalize()
+	actor.model_path = "res://art/creatures/quaternius/%s" % filename
 	actor.position = HexGrid.axial_to_world(hex, HEX_RADIUS, 0.0)
 	actor.rotation.y = deg_to_rad(float(posmod(hex.x * 37 + hex.y * 19, 360)))
 	add_child(actor)
