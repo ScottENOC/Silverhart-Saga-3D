@@ -41,6 +41,19 @@ func _load_model() -> void:
         push_warning("No AnimationPlayer found in creature model: %s" % model_path)
         return
     animation_names = animation_player.get_animation_list()
+    # Prefer the most characteristic resting loop when a pack supplies one;
+    # the remaining hints are fallbacks for animals with smaller clip sets.
+    match creature_kind:
+        "cow", "bull":
+            idle_animation_hints = PackedStringArray(["graze", "eat", "idle", "stand"])
+        "deer", "stag":
+            idle_animation_hints = PackedStringArray(["graze", "idle", "stand", "look"])
+        "fox":
+            idle_animation_hints = PackedStringArray(["idle", "stand", "look", "alert"])
+        "wolf", "husky":
+            idle_animation_hints = PackedStringArray(["idle", "stand", "look", "alert"])
+        "horse", "donkey", "alpaca":
+            idle_animation_hints = PackedStringArray(["idle", "stand", "graze", "eat"])
     play_idle()
 
 func _find_animation_player(root: Node) -> AnimationPlayer:
