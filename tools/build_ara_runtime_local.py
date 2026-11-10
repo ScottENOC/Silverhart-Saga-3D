@@ -7,7 +7,7 @@ tool versions and relevant source scripts. Safe to rerun after interruption.
 from __future__ import annotations
 import hashlib, json, os, shutil, subprocess, sys
 from pathlib import Path
-from character_definitions import ara_export_params, load_item_catalog
+from character_definitions import ara_export_params, load_item_catalog, validate_character_definitions
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / "build" / "local-cache" / "ara"
@@ -216,6 +216,7 @@ def main():
     npc_manifest=ROOT/"data/characters/hollowmere_npcs.json"
     npc_manifest_data=json.loads(npc_manifest.read_text(encoding="utf-8"))
     item_catalog=load_item_catalog()
+    validate_character_definitions(npc_manifest_data,item_catalog)
     npc_profiles=npc_manifest_data["characters"]
     wren_profile=next((profile for profile in npc_profiles if profile.get("id")=="wren_talbot"),None)
     if wren_profile is None: fail("Cannot build the Wren Ara body: wren_talbot profile is missing")
@@ -407,7 +408,7 @@ def main():
         if not garment_report.is_file():
             fail("Garment builder completed without its skinning validation report.")
     cached("garment-library",[garments,garment_report],
-      [wren_out,wren_garment_source,npc_manifest,garment_builder],
+      [wren_out,wren_garment_source,npc_manifest,ROOT/"data/items/item_definitions.json",ROOT/"tools/character_definitions.py",garment_builder],
       "garment-library-v5-no-shoes-canonical-skeleton:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
       build_garment_library)
 
