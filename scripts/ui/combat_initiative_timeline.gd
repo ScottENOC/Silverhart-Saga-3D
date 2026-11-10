@@ -142,8 +142,11 @@ func _render_entries(entries: Array[Dictionary], current: CharacterState) -> voi
         var content := VBoxContainer.new()
         content.add_theme_constant_override("separation", 2)
         card.add_child(content)
+        content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+        content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
         var name_label := Label.new()
+        name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
         name_label.text = String(entry["display_name"])
         name_label.clip_text = true
         name_label.add_theme_font_size_override("font_size", 12)
@@ -151,6 +154,7 @@ func _render_entries(entries: Array[Dictionary], current: CharacterState) -> voi
         content.add_child(name_label)
 
         var status_label := Label.new()
+        status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
         if bool(entry["is_unconscious"]):
             status_label.text = "DOWNED"
         elif is_active:
@@ -164,11 +168,13 @@ func _render_entries(entries: Array[Dictionary], current: CharacterState) -> voi
         content.add_child(status_label)
 
         var tp_label := Label.new()
+        tp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
         tp_label.text = "TP  %.0f / %.0f" % [float(entry["time_points"]), float(entry["max_time_points"])]
         tp_label.add_theme_font_size_override("font_size", 10)
         content.add_child(tp_label)
 
         var tp_bar := ProgressBar.new()
+        tp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
         tp_bar.min_value = 0.0
         tp_bar.max_value = 1.0
         tp_bar.value = float(entry["time_points_ratio"])
