@@ -33,6 +33,6 @@ func _test_source_backed_quest_flow() -> void:
 	assert(is_equal_approx(journal.npc_standing("old_mac"), 15.0))
 
 func _test_creature_assets_exist() -> void:
-	for filename in ["Cow.gltf", "Horse.gltf", "Wolf.gltf", "Fox.gltf", "Deer.gltf", "Stag.gltf"]:
-		var path := "res://art/creatures/quaternius/" + filename
+	for filename in ["Cow.gltf", "Horse.gltf", "Horse_White.gltf", "ShibaInu.gltf", "Wolf.gltf", "Fox.gltf", "Deer.gltf", "Stag.gltf"]:
+		var path: String = "res://art/creatures/quaternius/" + filename
 		assert(FileAccess.file_exists(path), "Missing creature asset: " + path)
