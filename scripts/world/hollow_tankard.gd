@@ -1776,9 +1776,18 @@ func _find_valid_spawn_hex(preferred: Vector2i) -> Vector2i:
     return candidates[0]
 
 func _on_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
-    var actor: HexActorPresentation = actor_by_id.get(character_id) as HexActorPresentation
-    if actor != null:
-        actor.present_move_to(_hex_world_position(to_hex))
+    var actor := actor_by_id.get(character_id) as Node3D
+    if actor == null:
+        return
+    var destination := _hex_world_position(to_hex)
+    if actor is CreatureActor:
+        var creature := actor as CreatureActor
+        creature.play_move()
+        var tween := create_tween()
+        tween.tween_property(creature, "global_position", destination, 0.24)
+        tween.tween_callback(creature.play_idle)
+    elif actor is HexActorPresentation:
+        (actor as HexActorPresentation).present_move_to(destination)
 
 func _hex_world_position(hex: Vector2i) -> Vector3:
     var centre := HexGrid.axial_to_world(hex, HEX_RADIUS)
