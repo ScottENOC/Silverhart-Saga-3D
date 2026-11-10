@@ -544,6 +544,9 @@ func _test_combat_turn_scheduler() -> void:
     sim.free()
 
 func _test_initiative_timeline_model() -> void:
+    var fresh := CharacterState.new("fresh", "Fresh Adventurer", Vector2i(-5, 0))
+    _check(is_equal_approx(fresh.time_points, 100.0), "New characters should begin with 100 TP")
+
     var player := CharacterState.new("player", "Player", Vector2i.ZERO)
     player.side = "player"
     player.time_points = 80.0
