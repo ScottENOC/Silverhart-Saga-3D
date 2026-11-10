@@ -17,11 +17,23 @@ Consequences:
 ## Runtime assembly
 
 1. **Bare body** — a profile-generated, anatomy-integrated Ara GLB. Wren's pilot asset is art/characters/ara_runtime/bodies/wren_talbot.glb.
-2. **Appearance profile** — data/characters/hollowmere_npcs.json supplies the Ara generation parameters, skin/eye/hair colours, hairstyle and garment styles.
+2. **Canonical character definition** — each record in data/characters/hollowmere_npcs.json owns appearance, inventory and equipped item IDs. data/items/item_definitions.json is the global item catalogue. No second NPC loadout file is maintained.
 3. **Hair** — a separate Ara skinned export attached to the character's skeleton.
-4. **Inventory** — CharacterState is authoritative. Clothing and armour are separate skinned meshes; weapons, shields and helmets use the existing bone-attachment prop path.
+4. **Runtime state** — CharacterState owns mutable inventory during play. Authored NPC starting inventory and equipped slots come from the same canonical character record; Ara parameter JSON and generated profiles.json are derived outputs only. Clothing and armour are separate skinned meshes; weapons, shields and helmets use the existing bone-attachment prop path.
 
 The body is never hidden to simulate removing clothes. Garment meshes are independent nodes and inventory equipment toggles their visibility.
+
+## One source of truth
+
+`data/characters/hollowmere_npcs.json` schema version 2 is the only authored source for each cast member. Every character record contains:
+
+- `appearance`: body sliders, skin/eye/hair choices, tattoos, cosmetic Ara accessories and garment dye/style settings. It contains no equipment-slot fields.
+- `inventory`: item IDs owned by that character, including currently equipped items.
+- `equipped`: equipment-slot to item-ID mapping. Every equipped item must also exist in inventory, and its slot must match `data/items/item_definitions.json`.
+
+`tools/character_definitions.py` validates these relationships and derives Ara export parameters from `appearance` plus `equipped`. The NPC exporter and local Blender pipeline both use this helper. Generated `*.params.json` and `profiles.json` files are disposable outputs; edits to them are overwritten and cannot change the source definition. The former `hollowmere_loadouts.json` was migrated into each character record and removed.
+
+CI runs `tools/ci/validate_character_definitions.py` and `tests/test_character_definitions.py`. A duplicate gear field in `appearance`, an unknown inventory item, an equipped item not owned, or a slot mismatch fails validation.
 
 ## Wren pilot asset pipeline
 
