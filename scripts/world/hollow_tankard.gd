@@ -916,11 +916,13 @@ func _run_opening_sequence() -> void:
     }
     await cinematic_director.present_line(wren_intro, 3.6)
     if not cinematic_director.was_skipped():
-        cinematic_director.play_actor_animation("player", ["drink", "sip"], ["sit", "idle"])
-        cinematic_director.play_actor_animation("companion_wren_talbot", ["drink", "sip"], ["sit", "idle"])
+        # Ara has no dedicated drinking clip in its documented catalogue.
+        # Keep the tankards on the table and let the characters remain seated.
+        cinematic_director.play_actor_animation("player", ["Sit idle"], ["Idle"])
+        cinematic_director.play_actor_animation("companion_wren_talbot", ["Sit idle"], ["Idle"])
         await get_tree().create_timer(1.8).timeout
-        cinematic_director.play_actor_animation("player", ["sit", "sitting"], ["idle"])
-        cinematic_director.play_actor_animation("companion_wren_talbot", ["sit", "sitting"], ["idle"])
+        cinematic_director.play_actor_animation("player", ["Sit idle"], ["Idle"])
+        cinematic_director.play_actor_animation("companion_wren_talbot", ["Sit idle"], ["Idle"])
     if not cinematic_director.was_skipped():
         await cinematic_director.present_line({
             "speaker_id": "player",
@@ -955,7 +957,7 @@ func _run_opening_sequence() -> void:
         var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
         if speaker_id == "narrator":
             if not soldiers_entered:
-                cinematic_director.stage_confrontation()
+                await cinematic_director.stage_confrontation()
                 # Start the real hex movement as the entrance is announced,
                 # rather than making the enforcers appear only after narration.
                 var entrance_movement = _move_shakedown_soldiers_inside()
