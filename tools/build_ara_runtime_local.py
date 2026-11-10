@@ -274,7 +274,7 @@ def main():
             fail("Garment builder completed without its skinning validation report.")
     cached("garment-library",[garments,garment_report],
       [wren_out,wren_dressed_out,npc_manifest,garment_builder],
-      "garment-library-v2-game-id-skin-validation:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+      "garment-library-v3-same-profile-ara-skeleton:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
       build_garment_library)
 
     # Review renders are also cached independently, so changing one outfit
@@ -317,7 +317,9 @@ def main():
         for name,source in sources.items():
             if not source.is_file():
                 fail(f"Runtime package source missing: {source}")
-            shutil.copy2(source,package/name)
+            destination=package/name
+            destination.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copy2(source,destination)
         assets={}
         for name in names:
             b=(package/name).read_bytes(); assets[name]={"size_bytes":len(b),"sha256":hashlib.sha256(b).hexdigest()}
