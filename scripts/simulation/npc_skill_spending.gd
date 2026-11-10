@@ -98,7 +98,7 @@ static func _build_attributes(race: String, class_sequence: Array[String]) -> Di
     for pool in race_bonus:
         attributes[pool] = int(attributes.get(pool, 0)) + int(race_bonus[pool])
     for class_id in class_sequence:
-        var class_bonus := CharacterCreationRules.class_definition(class_id).get("bonus", {})
+        var class_bonus: Dictionary = CharacterCreationRules.class_definition(class_id).get("bonus", {})
         for pool in class_bonus:
             attributes[pool] = int(attributes.get(pool, 0)) + int(class_bonus[pool])
     if _racial_tree(race).is_empty():
@@ -446,7 +446,7 @@ static func _priority_list(character: CharacterState, preferred: Dictionary, arc
     for class_id in character.class_level_sequence:
         for skill_id in TREE_PRIORITIES.get(class_id, []):
             add.call(String(skill_id))
-        var school := {"wizard": "arcane", "cleric": "divine", "druid": "nature"}.get(class_id, "")
+        var school: String = {"wizard": "arcane", "cleric": "divine", "druid": "nature"}.get(class_id, "")
         for skill_id in TREE_PRIORITIES.get(school, []):
             add.call(String(skill_id))
     for skill_id in TREE_PRIORITIES.get(_racial_tree(character.race), []):
