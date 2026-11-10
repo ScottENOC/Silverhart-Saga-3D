@@ -82,3 +82,34 @@ After the local build and Godot import, run:
 ```
 
 The automated test does not replace visual inspection in the running game. Review Wren from the front, side and rear, then equip/unequip one garment and confirm the underlying body remains visible and correctly shaped.
+
+## Visual validation status — blocked, not complete
+
+The first in-game review exposed failures that the initial Wren pilot validation did not cover. The presence of a generated GLB and a successful garment extraction are not proof that the correct body, anatomy, hair, or inventory state is visible in Godot.
+
+### Confirmed implementation gaps from code review
+
+- The player creator still previews the generic assets `ara_person_body.glb` and `ara_person_male_body.glb`. It does not request a profile-generated body from the selected Ara macro settings. The body-build and height controls currently feed scale/tint metadata and cannot reproduce Ara's baked body morphs.
+- The campaign player spawn also selects those same generic female/male assets. It does not build or select a body generated from the saved player appearance profile. Therefore, the player creator's gender choice is not yet proof of a correct sex-specific base mesh.
+- Wren's body pipeline explicitly sets `hair: none` on the bare-body export. Her braid must therefore come from the separate hair GLB at `art/characters/ara_runtime/hair/female_braid01.glb`. The campaign code attempts to attach that asset, but the local Ara build/package stage does not currently declare hairstyle GLBs among its packaged outputs. The braid is not guaranteed to exist in a clean runtime package.
+- The female anatomy pass is invoked for Wren and the generic female body, while the male anatomy pass is invoked for the generic male body. The current validation checks skeletons and facial morphs, not that the expected anatomy geometry is present, correctly positioned, or visible in Godot.
+- The modular garment pilot is Wren-specific. It is not evidence that the player or other NPCs have correctly fitted clothing for their body profile.
+- The current equipment attachment code toggles independent garment meshes but has no validated body-occlusion/clipping solution for anatomy intersecting clothing. Male anatomy under trousers/underwear is explicitly unvalidated.
+
+### Required visual acceptance tests
+
+Do not mark the character-assembly milestone complete until all of these have been checked in the running Godot project:
+
+1. **Female base:** front, side and rear inspection confirms the intended adult female anatomy is part of the skin mesh, not a missing/hidden accessory.
+2. **Male base:** front, side and rear inspection confirms a genuinely male torso/pelvis silhouette, no unintended breasts, and the male anatomy is correctly attached and weighted.
+3. **Wren:** her profile-generated body has the female anatomy pass; her blue `braid01` is loaded; fatigue shirt, bra and fatigue pants are visible and correctly fitted.
+4. **Player:** female and male choices load distinct correct base assets. The male choice must not be a female torso with only male anatomy added.
+5. **Appearance controls:** changing hair style and colour changes the visible hairstyle; changing eye and skin colour changes the intended materials. Unsupported controls must be disabled or clearly identified, not silently accepted.
+6. **Clothing/anatomy matrix:** for both body variants, inspect bare, underwear, trousers and fully clothed states from front, side and rear. No genital geometry may protrude through clothing; no body mesh may disappear when garments are equipped or removed.
+7. **NPC fallback:** every NPC must either use a validated profile-generated Ara body with its appearance/equipment assembled, or an explicitly documented legacy complete outfit. Never substitute a naked generic base when profile assets are missing.
+
+### Current disposition
+
+PR #87 remains a draft. The Wren garment extraction and footwear deferral are pipeline progress only. The body/anatomy/appearance/runtime milestone is **blocked pending asset inspection and Godot visual validation**. Do not merge this PR on the strength of the garment-builder passing alone.
+
+The next local build should be inspected using the generated review renders under `art/characters/ara/review/` before runtime testing. If the anatomy is absent in those renders, investigate the Blender anatomy stage. If it is present there but absent in-game, investigate the packaged GLB path, selected actor asset and Godot import. This separates asset-generation failures from runtime assembly failures instead of applying another speculative visibility patch.
