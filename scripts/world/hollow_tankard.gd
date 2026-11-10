@@ -949,7 +949,7 @@ func _recruit_staged_companion(character_id: String) -> void:
     var player_state := simulation.get_character("player")
     if player_state == null:
         return
-    if character_id == "fenn_oakheart" and COMPANION_CAMPAIGN_SCRIPT._count_item(player_state.inventory, "herbs") < 3:
+    if character_id == "fenn_oakheart" and COMPANION_CAMPAIGN_SCRIPT.count_item(player_state.inventory, "herbs") < 3:
         _show_companion_dialogue(character_id)
         return
     var recruit_result := simulation.recruit_companion(character_id)
