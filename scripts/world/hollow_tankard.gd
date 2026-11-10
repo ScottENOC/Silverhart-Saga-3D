@@ -494,9 +494,17 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     ara_model.name = "CharacterModel"
     actor.add_child(ara_model)
     var body_variant := str(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
-    # Every adult uses one of the two shared, anatomy-integrated Ara base bodies.
-    # Character-specific identity is applied from the appearance profile below.
+    # Every adult is generated from Ara's female or male base. Profile-specific
+    # body geometry is used when available; otherwise the shared gender base is a fallback.
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+    if not is_player:
+        # Use a bare, profile-generated Ara body when one has been built.
+        # Wren is the first validated profile; other NPCs temporarily fall
+        # back to the shared gender base until their own profile exports exist.
+        var profile_id := str(npc_profile.get("id", ""))
+        var profile_body_path := "res://art/characters/ara_runtime/bodies/%s.glb" % profile_id
+        if not profile_id.is_empty() and ResourceLoader.exists(profile_body_path):
+            model_path = profile_body_path
     # Keep the actor metadata explicit as well as deriving it from the loaded GLB.
     # This is consumed by garment variant selection and is useful in runtime reports.
     ara_model.set_meta("body_variant", body_variant)
