@@ -459,6 +459,27 @@ func available_animation_names() -> PackedStringArray:
     return animation_player.get_animation_list()
 
 
+## Play a named clip from the Ara documentation catalogue.
+## Ara's exported GLB may add loop suffixes or rig prefixes, so matching still
+## resolves against the actual imported AnimationPlayer names.
+func play_documented_animation(action: String, fallback_terms: Array[String] = [], blend_seconds: float = 0.2) -> String:
+    var documented_names: Dictionary = {
+        "idle": ["Idle"],
+        "walk": ["Walk"],
+        "talk": ["Talk with gestures", "Talk"],
+        "sit_down": ["Sit down"],
+        "sit_idle": ["Sit idle"],
+        "stand_up": ["Stand up (on a chair)"],
+        "open_door": ["Open door"],
+        "pick_up": ["Pick up (ground)"],
+        "carry_idle": ["Carry idle"]
+    }
+    var preferred: Array[String] = []
+    for clip_name in documented_names.get(action, []):
+        preferred.append(String(clip_name))
+    return play_animation_matching(preferred, fallback_terms, blend_seconds)
+
+
 ## Play the first clip whose name contains one of the supplied terms.
 ## Matching is case-insensitive because Ara exports may prefix clip names.
 ## Returns the actual clip name, or an empty string when no match exists.
