@@ -152,7 +152,7 @@ def cached(stage, outputs, inputs, extra, action):
     }
     stamp.parent.mkdir(parents=True, exist_ok=True)
     temporary_stamp = stamp.with_suffix(".json.tmp")
-    temporary_stamp.write_text(json.dumps(record, indent=2) + "\\n", encoding="utf-8")
+    temporary_stamp.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
     temporary_stamp.replace(stamp)
 
 def parse_build_options():
