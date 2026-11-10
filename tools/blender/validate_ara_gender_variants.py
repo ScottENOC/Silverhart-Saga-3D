@@ -71,17 +71,18 @@ def mesh_summary(obj):
     }
 
 
-def compare_meshes(a, b):
+def compare_vertices(pa, pb, polygon_count_a, polygon_count_b):
     result = {
-        "same_vertex_count": len(a.data.vertices) == len(b.data.vertices),
-        "same_polygon_count": len(a.data.polygons) == len(b.data.polygons),
+        "same_vertex_count": len(pa) == len(pb),
+        "same_polygon_count": polygon_count_a == polygon_count_b,
     }
     if not result["same_vertex_count"]:
         result["comparable_by_vertex_index"] = False
         return result
-    pa = [a.matrix_world @ vertex.co for vertex in a.data.vertices]
-    pb = [b.matrix_world @ vertex.co for vertex in b.data.vertices]
-    deltas = [(x - y).length for x, y in zip(pa, pb)]
+    deltas = [
+        sum((pa[i][axis] - pb[i][axis]) ** 2 for axis in range(3)) ** 0.5
+        for i in range(len(pa))
+    ]
     result.update({
         "comparable_by_vertex_index": True,
         "rms_vertex_displacement_metres": round(
@@ -102,9 +103,14 @@ def inspect(label, path):
         {"object": obj.name, "anatomy_profile": obj.get("anatomy_profile")}
         for obj in meshes if obj.get("anatomy_profile")
     ]
+    world_vertices = [
+        tuple((skin.matrix_world @ vertex.co))
+        for vertex in skin.data.vertices
+    ]
     return {
         "path": str(path),
         "skin": mesh_summary(skin),
+        "_world_vertices": world_vertices,
         "mesh_count": len(meshes),
         "all_meshes": [
             {"object": obj.name, "vertices": len(obj.data.vertices),
@@ -125,22 +131,25 @@ def main():
         "male_final": args.male_final,
     }
     records = {}
-    skin_objects = {}
+    vertex_sets = {}
     for label, path in paths.items():
         record = inspect(label, path)
-        skin_objects[label] = record.pop("_skin_object")
+        vertex_sets[label] = record.pop("_world_vertices")
         records[label] = record
     report = {
         "schema_version": 1,
         "purpose": "diagnose Ara gender morph output and anatomy integration",
         "models": records,
         "comparisons": {
-            "raw_female_vs_raw_male": compare_meshes(
-                skin_objects["female_raw"], skin_objects["male_raw"]),
-            "female_raw_vs_female_final": compare_meshes(
-                skin_objects["female_raw"], skin_objects["female_final"]),
-            "male_raw_vs_male_final": compare_meshes(
-                skin_objects["male_raw"], skin_objects["male_final"]),
+            "raw_female_vs_raw_male": compare_vertices(
+                vertex_sets["female_raw"], vertex_sets["male_raw"],
+                records["female_raw"]["skin"]["polygons"], records["male_raw"]["skin"]["polygons"]),
+            "female_raw_vs_female_final": compare_vertices(
+                vertex_sets["female_raw"], vertex_sets["female_final"],
+                records["female_raw"]["skin"]["polygons"], records["female_final"]["skin"]["polygons"]),
+            "male_raw_vs_male_final": compare_vertices(
+                vertex_sets["male_raw"], vertex_sets["male_final"],
+                records["male_raw"]["skin"]["polygons"], records["male_final"]["skin"]["polygons"]),
         },
         "interpretation_notes": [
             "Raw female/male geometry is the decisive test of Ara gender morphing.",
