@@ -129,18 +129,18 @@ def expected_from_profile(profile: dict) -> set[str]:
     rest rig, so shoes/boots must be built and attached as separate equipment
     assets rather than extracted from this no-shoes garment source.
     """
-    params = profile.get("params", {})
+    equipped = profile.get("equipped", {})
     return {
-        str(params.get(key, ""))
-        for key in ("top", "underTop", "underBottom", "bottom", "jacket", "hat")
-        if str(params.get(key, "")) not in ("", "none")
+        str(equipped.get(slot, ""))
+        for slot in ("shirt", "underTop", "underBottom", "pants", "jacket", "helmet")
+        if str(equipped.get(slot, "")) not in ("", "none")
     }
 
 
 def deferred_equipment_from_profile(profile: dict) -> set[str]:
     """Return equipment slots intentionally outside the garment-library build."""
-    params = profile.get("params", {})
-    footwear = str(params.get("shoes", ""))
+    equipped = profile.get("equipped", {})
+    footwear = str(equipped.get("shoes", ""))
     return {footwear} if footwear not in ("", "none") else set()
 
 
@@ -304,8 +304,8 @@ def main() -> None:
     expected_by_variant: dict[str, set[str]] = {"female": set(), "male": set()}
     deferred_equipment_by_variant: dict[str, set[str]] = {"female": set(), "male": set()}
     for profile in profiles:
-        params = profile.get("params", {})
-        variant = "male" if int(params.get("gender", 0)) == 1 else "female"
+        appearance = profile.get("appearance", {})
+        variant = "male" if int(appearance.get("gender", 0)) == 1 else "female"
         expected_by_variant[variant].update(expected_from_profile(profile))
         deferred_equipment_by_variant[variant].update(deferred_equipment_from_profile(profile))
 
@@ -357,7 +357,7 @@ def main() -> None:
     # Use a second Ara export generated from the exact same body parameters,
     # rig and rest-pose settings as the bare character body. This ensures the
     # garment weights and profile-specific rest transforms match the target.
-    variant = "male" if int(profiles[0].get("params", {}).get("gender", 0)) == 1 else "female"
+    variant = "male" if int(profiles[0].get("appearance", {}).get("gender", 0)) == 1 else "female"
     process_source(args.profile_source, expected_by_variant[variant], variant, "Ara profile export")
 
     missing = sorted(
