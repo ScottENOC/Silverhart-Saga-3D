@@ -1812,6 +1812,13 @@ func _maybe_spawn_wilderness_creature(player_hex: Vector2i) -> void:
     if wilderness_steps_since_spawn < 12:
         return
     wilderness_steps_since_spawn = 0
+    var player_world := _hex_world_position(player_hex)
+    for index in range(wilderness_creature_nodes.size() - 1, -1, -1):
+        var existing := wilderness_creature_nodes[index]
+        if not is_instance_valid(existing) or existing.global_position.distance_to(player_world) > 60.0:
+            if is_instance_valid(existing):
+                existing.queue_free()
+            wilderness_creature_nodes.remove_at(index)
     if wilderness_creature_nodes.size() >= 5 or ambient_rng.randf() > 0.42:
         return
 
