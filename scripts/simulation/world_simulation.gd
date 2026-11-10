@@ -81,6 +81,10 @@ func register_character(state: CharacterState) -> void:
     if occupied_hexes.has(state.axial):
         push_error("Cannot register %s: hex %s is already occupied." % [state.id, state.axial])
         return
+    # A combatant who enters an encounter after it has started joins with a
+    # full turn available, matching the campaign's intended encounter rule.
+    if is_in_combat and state.side != "neutral" and not state.combat_dormant:
+        state.time_points = ActionEconomy.COMBAT_TURN_READY_TP
     characters[state.id] = state
     occupied_hexes[state.axial] = state.id
     _attach_character_lifecycle(state)
