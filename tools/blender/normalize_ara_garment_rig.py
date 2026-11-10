@@ -152,9 +152,7 @@ def main():
 
     # The weapon socket has a separately measured sub-millimetre residual.
     # Copy its canonical rest placement after applying the common translation.
-    edit_bones["WeaponR"].head = ref_bones["WeaponR"].head_local
-    edit_bones["WeaponR"].tail = ref_bones["WeaponR"].tail_local
-    edit_bones["WeaponR"].roll = ref_bones["WeaponR"].roll
+    edit_bones["WeaponR"].matrix = ref_bones["WeaponR"].matrix_local.copy()
     bpy.ops.object.mode_set(mode="OBJECT")
     bpy.context.view_layer.update()
 
