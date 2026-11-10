@@ -204,7 +204,7 @@ def main():
                 "preflight_deltas": preflight,
             }
             args.report.parent.mkdir(parents=True, exist_ok=True)
-            args.report.write_text(json.dumps(diagnostics, indent=2) + "\\n", encoding="utf-8")
+            args.report.write_text(json.dumps(diagnostics, indent=2) + "\n", encoding="utf-8")
             print("[Ara rig normalisation] Failure diagnostics: " + str(args.report), flush=True)
             raise RuntimeError(
                 f"Normalised skeleton still differs at {name}: "
@@ -227,7 +227,7 @@ def main():
             "note": "Diagnostic only; no normalized GLB was exported.",
         }
         args.report.parent.mkdir(parents=True, exist_ok=True)
-        args.report.write_text(json.dumps(diagnostics, indent=2) + "\\n", encoding="utf-8")
+        args.report.write_text(json.dumps(diagnostics, indent=2) + "\n", encoding="utf-8")
         for name, item in geometry_report.items():
             print(
                 f"[Ara rig normalisation] mesh={name} "
