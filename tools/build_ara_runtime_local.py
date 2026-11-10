@@ -195,7 +195,7 @@ def main():
     cached("wren-dressed-anatomy",[wren_dressed_out],[wren_dressed_raw,ROOT/"tools/blender/add_adult_anatomy.py"],"wren-dressed-anatomy-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],build_wren_dressed)
     wren_validation=ARA/"ara_person_wren_body.validation.json"
     def validate_wren_body():
-        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/validate_ara_body_variant.py","--","--reference",female_out,"--candidate",wren_out,"--output",wren_validation])
+        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/validate_ara_body_variant.py","--","--reference",wren_out,"--candidate",wren_dressed_out,"--output",wren_validation])
     cached("validate-wren-body",[wren_validation],[female_out,wren_out,ROOT/"tools/blender/validate_ara_body_variant.py"],"canonical-ara-rest-pose-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],validate_wren_body)
     male_out=ARA/"ara_person_male_body.glb"; male_raw=RAW/"ara_person_male_raw.glb"
     def male_action():
@@ -268,9 +268,8 @@ def main():
     garment_report=garments.with_suffix(".report.json")
     def build_garment_library():
         run([blender,"--background","--python-exit-code","1","--python",garment_builder,
-          "--","--base-body",female_out,"--modular",modular,"--underwear",underwear,
-          "--armor",ARA/"ara_person_leather_armor.glb","--wrapper-knee",ARA/"ara_person_wrapper_knee.glb","--npc-manifest",npc_manifest,"--profile-id","wren_talbot",
-          "--output",garments])
+          "--","--base-body",wren_out,"--profile-source",wren_dressed_out,
+          "--npc-manifest",npc_manifest,"--profile-id","wren_talbot","--output",garments])
         if not garment_report.is_file():
             fail("Garment builder completed without its skinning validation report.")
     cached("garment-library",[garments,garment_report],
