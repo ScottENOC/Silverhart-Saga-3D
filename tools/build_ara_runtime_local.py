@@ -90,7 +90,7 @@ def main():
     patch_hash=digest([patch],PIN)
     if not patch_stamp.is_file() or patch_stamp.read_text().strip()!=patch_hash:
         run([py,patch],cwd=GEN)
-        patch_stamp.parent.mkdir(parents=True,exist_ok=True); patch_stamp.write_text(patch_hash+"\\n")
+        patch_stamp.parent.mkdir(parents=True,exist_ok=True); patch_stamp.write_text(patch_hash+"\n")
     base={
       "name":"Ara Base Person - dressed preview","seed":218,"gender":0,"age":0.5,
       "muscle":0.5,"weight":0.5,"height":0.5,"proportions":0.5,
