@@ -133,15 +133,58 @@ def validate_rig(source: bpy.types.Object, target: bpy.types.Object, path: Path)
     source_names = [bone.name for bone in source_bones]
     target_names = [bone.name for bone in target_bones]
     if source_names != target_names:
-        raise RuntimeError(f"{path.name}: Ara skeleton bone names/order differ from canonical base")
+        missing = sorted(set(target_names) - set(source_names))
+        extra = sorted(set(source_names) - set(target_names))
+        raise RuntimeError(
+            f"{path.name}: Ara skeleton bone names/order differ from canonical base; "
+            f"missing={missing[:12]}, extra={extra[:12]}, "
+            f"source_count={len(source_names)}, target_count={len(target_names)}"
+        )
+
+    differences = []
     for source_bone, target_bone in zip(source_bones, target_bones):
-        for row in range(4):
-            for column in range(4):
-                if abs(source_bone.matrix_local[row][column] - target_bone.matrix_local[row][column]) > 1e-4:
-                    raise RuntimeError(
-                        f"{path.name}: rest transform differs for bone {source_bone.name}; "
-                        "refusing unsafe garment retarget"
-                    )
+        source_matrix = source_bone.matrix_local
+        target_matrix = target_bone.matrix_local
+        max_element_delta = max(
+            abs(source_matrix[row][column] - target_matrix[row][column])
+            for row in range(4) for column in range(4)
+        )
+        if max_element_delta <= 1e-4:
+            continue
+        source_rotation = source_matrix.to_3x3().to_quaternion()
+        target_rotation = target_matrix.to_3x3().to_quaternion()
+        rotation_delta = source_rotation.rotation_difference(target_rotation).angle
+        translation_delta = source_matrix.translation - target_matrix.translation
+        differences.append({
+            "bone": source_bone.name,
+            "max_matrix_element_delta": max_element_delta,
+            "translation_delta": [round(value, 7) for value in translation_delta],
+            "translation_distance": translation_delta.length,
+            "rotation_delta_degrees": rotation_delta * 57.295779513,
+            "source_matrix": [[round(value, 7) for value in row] for row in source_matrix],
+            "target_matrix": [[round(value, 7) for value in row] for row in target_matrix],
+        })
+
+    if differences:
+        differences.sort(key=lambda item: item["max_matrix_element_delta"], reverse=True)
+        log(f"{path.name}: {len(differences)} bone rest transforms differ from canonical Ara rig")
+        log(
+            f"{path.name}: armature object transform delta="
+            f"{max(abs(source.matrix_world[r][c] - target.matrix_world[r][c]) for r in range(4) for c in range(4)):.7g}"
+        )
+        for item in differences[:20]:
+            log(
+                f"{path.name}: bone={item['bone']} "
+                f"matrix_delta={item['max_matrix_element_delta']:.7g} "
+                f"translation={item['translation_delta']} "
+                f"translation_distance={item['translation_distance']:.7g} "
+                f"rotation_delta={item['rotation_delta_degrees']:.5f}deg"
+            )
+        raise RuntimeError(
+            f"{path.name}: rest transforms differ for {len(differences)} bone(s); "
+            "refusing unsafe garment retarget. Full per-bone matrices are logged above "
+            "for the 20 largest differences."
+        )
 
 
 def validate_mesh_skinning(obj: bpy.types.Object, source_armature: bpy.types.Object, path: Path) -> dict:
