@@ -6,6 +6,7 @@ extends RefCounted
 
 const DEFINITIONS := [
     {"id":"goblin_threat","title":"The Skarn-tooth Tribe","description":"Resolve the goblin threat. Nix Sharpear joins only if the tribe is peacefully allied.","objectives":[{"id":"resolved","description":"Resolve the goblin threat and choose the goblin alliance.","target":1.0,"required":true}]},
+    {"id":"goblin_threat","title":"The Skarn-tooth Tribe","description":"Resolve the goblin threat. Nix Sharpear joins only if the tribe is peacefully allied.","objectives":[{"id":"resolved","description":"Resolve the goblin threat and choose the goblin alliance.","target":1.0,"required":true}]},
     {"id":"star_fort_companion","title":"A Choice at Star Fort","description":"Resolve the Star Fort encounter and choose the greenskin alliance; Snik Fangtooth will then offer to join.","objectives":[{"id":"greenskin_resolution","description":"Choose the greenskin side at Star Fort.","target":1.0,"required":true}]},
     {"id":"aldric_rescue","title":"A Debt at the Goblin Camp","description":"Find Ser Aldric Thorne captive at the goblin camp and free him.","objectives":[{"id":"freed","description":"Free Ser Aldric from captivity.","target":1.0,"required":true}]},
     {"id":"orc_stronghold_trust","title":"Prove Your Strength","description":"Deal with the troll denning east of Skarnak's Hold and earn the orc stronghold's trust.","objectives":[{"id":"troll_slain","description":"Defeat the troll threatening the orc scouts and cattle.","target":1.0,"required":true}]},
@@ -29,6 +30,9 @@ const PROFILES := {
 static func is_companion_id(character_id: String) -> bool:
     return PROFILES.has(character_id)
 
+static func is_companion_id(character_id: String) -> bool:
+    return PROFILES.has(character_id)
+
 static func register_quest_definitions(journal: CampaignJournal) -> void:
     if journal == null:
         return
@@ -36,6 +40,14 @@ static func register_quest_definitions(journal: CampaignJournal) -> void:
         var definition: Dictionary = definition_value
         if not journal.quest_definitions.has(String(definition.id)):
             journal.register_quest_definition(definition)
+
+static func complete_with_decision(journal: CampaignJournal, quest_id: String, objective_id: String, decision_id: String, choice_id: String) -> Dictionary:
+    if journal == null:
+        return {"ok":false,"reason":"missing_journal"}
+    var decision := journal.record_decision(quest_id, decision_id, choice_id)
+    if not bool(decision.get("ok", false)):
+        return decision
+    return complete_objective(journal, quest_id, objective_id)
 
 static func complete_with_decision(journal: CampaignJournal, quest_id: String, objective_id: String, decision_id: String, choice_id: String) -> Dictionary:
     if journal == null:
