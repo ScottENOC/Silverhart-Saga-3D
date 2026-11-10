@@ -163,6 +163,26 @@ def main():
     for name, delta in post_deltas.items():
         tolerance = MAX_WEAPON_SOCKET_DELTA if name == "WeaponR" else EPSILON
         if delta > tolerance:
+            ref_bone = ref_bones[name]
+            candidate_bone = candidate_bones[name]
+            diagnostics = {
+                "schema_version": 1,
+                "failure": "post_translation_rest_bone_mismatch",
+                "bone": name,
+                "root_delta": [round(v, 9) for v in root_delta],
+                "root_delta_length": root_delta.length,
+                "reference_head": [round(v, 9) for v in ref_bone.head_local],
+                "candidate_head_after_edit": [round(v, 9) for v in candidate_bone.head_local],
+                "reference_tail": [round(v, 9) for v in ref_bone.tail_local],
+                "candidate_tail_after_edit": [round(v, 9) for v in candidate_bone.tail_local],
+                "reference_matrix": [[round(v, 9) for v in row] for row in ref_bone.matrix_local],
+                "candidate_matrix_after_edit": [[round(v, 9) for v in row] for row in candidate_bone.matrix_local],
+                "all_post_deltas": post_deltas,
+                "preflight_deltas": preflight,
+            }
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(diagnostics, indent=2) + "\\n", encoding="utf-8")
+            print("[Ara rig normalisation] Failure diagnostics: " + str(args.report), flush=True)
             raise RuntimeError(
                 f"Normalised skeleton still differs at {name}: "
                 f"{delta:.7g} (limit {tolerance:.7g})"
