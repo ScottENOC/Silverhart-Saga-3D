@@ -383,7 +383,7 @@ func set_hairstyle(glb_path: String) -> bool:
         # Hair GLBs may nest their skinned mesh below transformed nodes. Preserve
         # the mesh transform relative to the exported scene root when flattening
         # it onto the character root, otherwise the hairstyle can load off-head.
-        var root_relative_transform := source_root.global_transform.affine_inverse() * source_mesh.global_transform
+        var root_relative_transform: Transform3D = source_root.global_transform.affine_inverse() * source_mesh.global_transform
         model_root.add_child(instance)
         instance.transform = root_relative_transform
         instance.skeleton = instance.get_path_to(target_skeleton)
