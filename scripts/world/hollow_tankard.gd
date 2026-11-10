@@ -13,6 +13,7 @@ const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter
 const SEASONAL_TREE_SCRIPT = preload("res://scripts/presentation/seasonal_tree_visual.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
+const CINEMATIC_DIRECTOR_SCRIPT = preload("res://scripts/presentation/cinematic_director.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -68,6 +69,8 @@ var dialogue_panel: PanelContainer
 var dialogue_speaker_label: Label
 var dialogue_body_label: Label
 var dialogue_choices_box: VBoxContainer
+var gameplay_hud_layer: CanvasLayer
+var cinematic_director: CinematicDirector
 var attack_button: Button
 var end_turn_button: Button
 var combat_status_label: Label
@@ -567,6 +570,7 @@ func _create_camera() -> void:
 
 func _create_hud() -> void:
     var layer := CanvasLayer.new()
+    gameplay_hud_layer = layer
     var title_label := Label.new()
     title_label.position = Vector2(22.0, 68.0)
     title_label.text = "LOCATION  /  HOLLOW TANKARD"
@@ -891,24 +895,74 @@ func _run_opening_sequence() -> void:
     if player_state == null or player_state.race in ["goblin", "orc"]:
         return
     simulation.campaign_journal.start_quest(HollowmereCampaignContent.QUEST_ID)
-    await get_tree().create_timer(2.0).timeout
-    if not is_instance_valid(self):
-        return
-    _show_speech_bubble("companion_wren_talbot", "Well, here we are then. Try not to get us both killed, yeah?")
-    await get_tree().create_timer(6.0).timeout
+    await get_tree().create_timer(1.0).timeout
     if not is_instance_valid(self) or shakedown_started:
         return
+
     shakedown_started = true
+    cinematic_director = CINEMATIC_DIRECTOR_SCRIPT.new() as CinematicDirector
+    cinematic_director.name = "HollowmereOpeningCinematic"
+    add_child(cinematic_director)
+    var gameplay_camera := camera_rig.get_node_or_null("PitchPivot/Camera3D") as Camera3D
+    cinematic_director.begin(actor_by_id, gameplay_hud_layer, gameplay_camera)
+
+    # Give the player and Wren a little room to establish their dynamic before
+    # the Ironbond interruption. These are deliberately short, character-led
+    # exchanges; the player is not forced to make a gameplay decision here.
+    var wren_intro := {
+        "speaker_id": "companion_wren_talbot",
+        "speaker": "Wren Talbot",
+        "text": "Well, here we are then. Try not to get us both killed, yeah?"
+    }
+    await cinematic_director.present_line(wren_intro, 3.6)
+    if not cinematic_director.was_skipped():
+        await cinematic_director.present_line({
+            "speaker_id": "player",
+            "speaker": "You",
+            "text": "You always introduce a place like that?"
+        }, 3.0)
+    if not cinematic_director.was_skipped():
+        await cinematic_director.present_line({
+            "speaker_id": "companion_wren_talbot",
+            "speaker": "Wren Talbot",
+            "text": "Only the places where I reckon trouble's already waiting."
+        }, 3.4)
+    if not cinematic_director.was_skipped():
+        await cinematic_director.present_line({
+            "speaker_id": "player",
+            "speaker": "You",
+            "text": "And you reckon that here?"
+        }, 2.8)
+    if not cinematic_director.was_skipped():
+        await cinematic_director.present_line({
+            "speaker_id": "companion_wren_talbot",
+            "speaker": "Wren Talbot",
+            "text": "I reckon you have a talent for finding it."
+        }, 3.4)
+
+    var soldiers_entered := false
     var opening_lines := HollowmereCampaignContent.opening_lines()
-    for index in range(opening_lines.size()):
-        var line: Dictionary = opening_lines[index]
+    for line_value in opening_lines:
+        if cinematic_director.was_skipped():
+            break
+        var line: Dictionary = line_value
         var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
         if speaker_id == "narrator":
-            _show_world_narration(String(line.get("text", "")))
-            await _move_shakedown_soldiers_inside()
+            await cinematic_director.present_line(line, 3.2)
+            if not soldiers_entered:
+                await _move_shakedown_soldiers_inside()
+                soldiers_entered = true
         else:
-            _show_speech_bubble(speaker_id, String(line.get("text", "")))
-        await get_tree().create_timer(2.25).timeout
+            await cinematic_director.present_line(line, 4.0)
+
+    # Skipping skips presentation only. It must never bypass the arrival,
+    # move the decision off-screen, or silently resolve the player's choice.
+    if not soldiers_entered:
+        await _move_shakedown_soldiers_inside()
+    if not is_instance_valid(self):
+        return
+
+    cinematic_director.finish()
     if not shakedown_resolved:
         _show_dialogue("Dray Coltayne", "What do you do?", HollowmereCampaignContent.shakedown_choices())
 
