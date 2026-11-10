@@ -47,7 +47,11 @@ func refresh() -> void:
         signature_parts.append("%s:%.2f:%s:%s" % [
             String(entry["id"]),
             float(entry["time_points"]),
+            float(entry["max_time_points"]),
+            String(entry["display_name"]),
+            String(entry["side"]),
             str(bool(entry["is_unconscious"])),
+            str(bool(entry["can_start_turn"])),
             str(bool(entry["is_active"]))
         ])
     var signature := "|".join(signature_parts)
