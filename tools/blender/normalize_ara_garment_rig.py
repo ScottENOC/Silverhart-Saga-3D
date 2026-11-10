@@ -3,8 +3,8 @@
 
 This is deliberately conservative: it accepts only the known Wren case where
 all rest-bone transforms become identical after one common translation, with
-a sub-millimetre WeaponR socket discrepancy. It then copies the canonical
-WeaponR rest transform and verifies evaluated mesh geometry is unchanged
+a sub-millimetre WeaponR socket discrepancy. It isolates the candidate
+armature before editing and verifies evaluated mesh geometry is unchanged
 before exporting a normalized GLB.
 """
 from __future__ import annotations
@@ -142,8 +142,14 @@ def main():
     # Shift every candidate rest bone by the same armature-space vector.
     # This removes the generated footwear ground-reference offset while
     # preserving all parent-relative transforms and bone lengths.
-    bpy.context.view_layer.objects.active = candidate_armature
+    # The GLB importer can leave objects from both imports selected.
+    # Explicitly isolate the candidate armature before entering Edit Mode:
+    # Blender supports multi-object armature editing, which must not be
+    # allowed to affect the reference rig during this operation.
+    bpy.ops.object.select_all(action="DESELECT")
     candidate_armature.select_set(True)
+    bpy.context.view_layer.objects.active = candidate_armature
+    bpy.context.view_layer.update()
     bpy.ops.object.mode_set(mode="EDIT")
     edit_bones = candidate_armature.data.edit_bones
     for bone in edit_bones:
