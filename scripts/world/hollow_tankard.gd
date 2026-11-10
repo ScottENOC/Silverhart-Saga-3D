@@ -80,6 +80,8 @@ var active_combat_kind: String = "ironbond"
 var active_enemy_ids: Array[String] = []
 var active_party_ids: Array[String] = []
 var farm_wolves_spawned: bool = false
+var wilderness_steps_since_spawn: int = 0
+var wilderness_creature_nodes: Array[Node3D] = []
 var enemy_turn_processed: bool = false
 var enemy_turn_waiting_for_reaction: bool = false
 
@@ -1777,17 +1779,62 @@ func _find_valid_spawn_hex(preferred: Vector2i) -> Vector2i:
 
 func _on_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
     var actor := actor_by_id.get(character_id) as Node3D
-    if actor == null:
+    if actor != null:
+        var destination := _hex_world_position(to_hex)
+        if actor is CreatureActor:
+            var creature := actor as CreatureActor
+            creature.play_move()
+            var tween := create_tween()
+            tween.tween_property(creature, "global_position", destination, 0.24)
+            tween.tween_callback(creature.play_idle)
+        elif actor is HexActorPresentation:
+            (actor as HexActorPresentation).present_move_to(destination)
+    if character_id == "player":
+        _maybe_spawn_wilderness_creature(to_hex)
+
+
+func _maybe_spawn_wilderness_creature(player_hex: Vector2i) -> void:
+    # Keep the authored settlement/farm quiet. Wildlife starts beyond the
+    # original 35-hex Hollowmere safety radius and is rolled by travel, not
+    # every frame, so it cannot spam into existence.
+    if HexGrid.distance(Vector2i.ZERO, player_hex) <= 35 or HollowmereVillageData.is_farm_land(player_hex):
         return
-    var destination := _hex_world_position(to_hex)
-    if actor is CreatureActor:
-        var creature := actor as CreatureActor
-        creature.play_move()
-        var tween := create_tween()
-        tween.tween_property(creature, "global_position", destination, 0.24)
-        tween.tween_callback(creature.play_idle)
-    elif actor is HexActorPresentation:
-        (actor as HexActorPresentation).present_move_to(destination)
+    wilderness_steps_since_spawn += 1
+    if wilderness_steps_since_spawn < 12:
+        return
+    wilderness_steps_since_spawn = 0
+    if wilderness_creature_nodes.size() >= 5 or ambient_rng.randf() > 0.42:
+        return
+
+    var kinds: Array[String] = ["wolf", "fox", "deer", "stag"]
+    var weights := PackedFloat32Array([0.25, 0.25, 0.30, 0.20])
+    var roll := ambient_rng.randf()
+    var kind := "deer"
+    var cumulative := 0.0
+    for index in range(kinds.size()):
+        cumulative += weights[index]
+        if roll <= cumulative:
+            kind = kinds[index]
+            break
+
+    for attempt in range(18):
+        var candidate := player_hex + Vector2i(ambient_rng.randi_range(-12, 12), ambient_rng.randi_range(-12, 12))
+        if HexGrid.distance(player_hex, candidate) < 7 or HexGrid.distance(player_hex, candidate) > 13:
+            continue
+        if HexGrid.distance(Vector2i.ZERO, candidate) <= 35 or HollowmereVillageData.is_farm_land(candidate):
+            continue
+        if not simulation.map_data.is_walkable(candidate) or simulation.occupied_hexes.has(candidate):
+            continue
+        var creature := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+        creature.name = "Wilderness_%s_%d" % [kind, wilderness_creature_nodes.size() + 1]
+        creature.creature_kind = kind
+        creature.behaviour = "predator" if kind == "wolf" else "passive_wildlife"
+        creature.model_scale = 0.72 if kind == "fox" else 0.78
+        creature.model_path = "res://art/creatures/quaternius/%s.gltf" % kind.capitalize()
+        creature.position = _hex_world_position(candidate)
+        add_child(creature)
+        wilderness_creature_nodes.append(creature)
+        return
 
 func _hex_world_position(hex: Vector2i) -> Vector3:
     var centre := HexGrid.axial_to_world(hex, HEX_RADIUS)
