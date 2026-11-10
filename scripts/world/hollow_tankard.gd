@@ -6,6 +6,7 @@ const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_body.g
 const PLAYER_CUSTOM_FEMALE_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
 const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
+const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_timeline.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const CHARACTER_CREATION_RULES = preload("res://scripts/simulation/character_creation_rules.gd")
@@ -25,6 +26,7 @@ const ROOF_RIDGE_HEIGHT: float = 5.8
 
 var simulation: WorldSimulation
 var reaction_prompt: CanvasLayer
+var initiative_timeline: CombatInitiativeTimeline
 var character_panel: CharacterPanel
 var world_map_panel: CanvasLayer
 var camera_rig: OrbitCameraRig
@@ -730,6 +732,11 @@ func _create_hud() -> void:
 
     add_child(layer)
 
+    initiative_timeline = INITIATIVE_TIMELINE_SCRIPT.new() as CombatInitiativeTimeline
+    initiative_timeline.configure(simulation)
+    initiative_timeline.character_selected.connect(_on_initiative_character_selected)
+    layer.add_child(initiative_timeline)
+
     character_panel = CHARACTER_PANEL_SCRIPT.new() as CharacterPanel
     character_panel.name = "CharacterPanel"
     layer.add_child(character_panel)
@@ -1271,6 +1278,13 @@ func _check_encounter_resolution() -> void:
         HollowmereCampaignContent.complete_shakedown(simulation.campaign_journal)
         _show_speech_bubble("garrick_holt", HollowmereCampaignContent.shakedown_victory_text())
         _show_dialogue("Garrick Holt", HollowmereCampaignContent.shakedown_victory_text(), [{"id": "continue", "label": "Continue", "text": ""}])
+
+func _on_initiative_character_selected(character_id: String) -> void:
+    if character_panel == null or simulation == null or simulation.get_character(character_id) == null:
+        return
+    character_panel.set_character(character_id)
+    character_panel.visible = true
+
 
 func _on_character_equipment_changed(changed_character_id: String) -> void:
     var state := simulation.get_character(changed_character_id) if simulation != null else null
