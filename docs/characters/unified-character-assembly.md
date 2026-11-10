@@ -110,6 +110,19 @@ Do not mark the character-assembly milestone complete until all of these have be
 6. **Clothing/anatomy matrix:** for both body variants, inspect bare, underwear, trousers and fully clothed states from front, side and rear. No genital geometry may protrude through clothing; no body mesh may disappear when garments are equipped or removed.
 7. **NPC fallback:** every NPC must either use a validated profile-generated Ara body with its appearance/equipment assembled, or an explicitly documented legacy complete outfit. Never substitute a naked generic base when profile assets are missing.
 
+### November 2026 follow-up: first in-game assembly test
+
+The first local in-game pass now equips Wren's shirt, trousers and bra, and those garments correctly unequip. The next inventory update adds Ara's native `bikini_bottom` as a separate `underBottom` item and maps its exported material to its own garment visual.
+
+The same test still reports unresolved body and appearance failures:
+- Wren's blue braid is not visible despite the female braid GLB being present in the runtime asset tree. Hair attachment must be verified against the actual Godot output; the runtime attachment now preserves the mesh transform relative to its exported root and logs the number of tinted materials/attached meshes.
+- Wren's female anatomy is not visually confirmed in-game.
+- The player male selection appears to use a female-shaped base with male anatomy added; the female anatomy is also not visibly confirmed.
+- The creator's body-build and height choices previously only populated metadata. They now apply a conservative whole-body scale, not a true Ara body morph. True body proportions still require profile-specific baked exports.
+- Skin, eye and embedded-hair tint operations now log how many surfaces they actually changed, so material-name mismatches can be diagnosed rather than silently ignored.
+
+These are not accepted as resolved by code inspection. Inspect the local `art/characters/ara/review/female-body`, `male-body` and `wren-body` renders, then compare them with the runtime models. Do not merge PR #87 until the female and male body silhouettes/anatomy and Wren's hair are visually verified in Godot.
+
 ### Current disposition
 
 PR #87 remains a draft. The Wren garment extraction and footwear deferral are pipeline progress only. The body/anatomy/appearance/runtime milestone is **blocked pending asset inspection and Godot visual validation**. Do not merge this PR on the strength of the garment-builder passing alone.
