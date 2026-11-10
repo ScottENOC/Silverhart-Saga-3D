@@ -1875,7 +1875,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "quest_granted_only": true
     },
     {
       "id": "lich_command_the_dead",
@@ -1887,7 +1888,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "quest_granted_only": true
     },
     {
       "id": "lich_deathless_flesh",
@@ -1899,7 +1901,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "quest_granted_only": true
     },
     {
       "id": "lich_grave_chill",
@@ -1911,7 +1914,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "quest_granted_only": true
     },
     {
       "id": "lich_soul_anchor",
@@ -1923,7 +1927,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "quest_granted_only": true
     },
     {
       "id": "lich_withering_touch",
@@ -1935,7 +1940,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "quest_granted_only": true
     },
     {
       "id": "life_drain",
@@ -2503,7 +2509,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "quest_granted_only": true
     },
     {
       "id": "second_wind",
