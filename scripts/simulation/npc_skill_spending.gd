@@ -260,6 +260,30 @@ static func recruit_companion(character: CharacterState, preferred_skills: Dicti
     character.npc_unspent_skill_points = SkillProgression.available_points(character)
     return {"ok": true, "reason": "companion_recruited", "spent_at_recruitment": spending.get("spent", 0), "remaining": character.npc_unspent_skill_points, "budget_snapshot": snapshot}
 
+
+## Non-party humanoids remain automatically managed on level-up. Once recruited,
+## WorldSimulation routes companions through SkillProgression.grant_level instead.
+static func grant_npc_level(character: CharacterState, class_id: String, grant_id: String) -> Dictionary:
+    if character == null:
+        return {"ok": false, "reason": "missing_character"}
+    if character.companion_recruitment_initialized or character.progression_mode == "companion":
+        return {"ok": false, "reason": "companion_points_are_player_controlled"}
+    var level_result := SkillProgression.grant_level(character, class_id, grant_id)
+    if not bool(level_result.get("ok", false)):
+        return level_result
+    var seed := "%s:level:%s" % [character.npc_progression_seed, grant_id]
+    var spending := _spend_all(character, character.npc_preferred_skills, [], seed)
+    _check_equipment_legality(character)
+    character.npc_unspent_skill_points = SkillProgression.available_points(character)
+    return {
+        "ok": true,
+        "reason": "npc_level_granted_and_allocated",
+        "level": character.level,
+        "class_id": class_id,
+        "spending": spending,
+        "remaining": character.npc_unspent_skill_points
+    }
+
 static func _build_empty_attributes() -> Dictionary:
     var result := {}
     for pool in ["strength", "endurance", "agility", "weapons", "divine", "nature", "arcane", "wildcard", "fighter", "rogue", "cleric", "wizard", "druid", "monk", "Way of the open palm", "dwarf", "elf", "goblin", "orc"]:
