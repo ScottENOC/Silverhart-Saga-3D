@@ -497,14 +497,20 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     # Every adult is generated from Ara's female or male base. Profile-specific
     # body geometry is used when available; otherwise the shared gender base is a fallback.
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+    var using_legacy_fallback := false
     if not is_player:
         # Use a bare, profile-generated Ara body when one has been built.
-        # Wren is the first validated profile; other NPCs temporarily fall
-        # back to the shared gender base until their own profile exports exist.
+        # Wren is the first validated profile. Until the other profiles are
+        # migrated, preserve their existing visuals rather than showing them
+        # as undressed generic Ara bodies.
         var profile_id := str(npc_profile.get("id", ""))
         var profile_body_path := "res://art/characters/ara_runtime/bodies/%s.glb" % profile_id
+        var legacy_model_path := "res://art/characters/hollowmere/%s.glb" % profile_id
         if not profile_id.is_empty() and ResourceLoader.exists(profile_body_path):
             model_path = profile_body_path
+        elif not profile_id.is_empty() and ResourceLoader.exists(legacy_model_path):
+            model_path = legacy_model_path
+            using_legacy_fallback = true
     # Keep the actor metadata explicit as well as deriving it from the loaded GLB.
     # This is consumed by garment variant selection and is useful in runtime reports.
     ara_model.set_meta("body_variant", body_variant)
@@ -513,17 +519,20 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     if model_loaded:
         if is_player:
             ara_model.apply_player_profile(player_profile)
-        else:
+        elif not using_legacy_fallback:
             var params: Dictionary = npc_profile.get("params", {})
             ara_model.apply_npc_parameters(params)
-        # Hair and equipment are separate skinned objects attached to the shared rig.
-        var hair_id := str(player_profile.get("hair_style_id", "short02")) if is_player else str(npc_profile.get("params", {}).get("hair", "short02"))
-        _attach_ara_hair(ara_model, body_variant, hair_id)
-        if not ara_model.configure_modular_garments():
-            push_warning("Character '%s' has no usable modular garment library." % display_name)
-        if not is_player:
-            var appearance_params: Dictionary = npc_profile.get("params", {})
-            ara_model.apply_garment_styles(appearance_params.get("garmentStyles", {}))
+        if not using_legacy_fallback:
+            # Hair and equipment are separate skinned objects on the Ara rig.
+            var hair_id := str(player_profile.get("hair_style_id", "short02")) if is_player else str(npc_profile.get("params", {}).get("hair", "short02"))
+            _attach_ara_hair(ara_model, body_variant, hair_id)
+            if not ara_model.configure_modular_garments():
+                push_warning("Character '%s' has no profile-matched garment library yet." % display_name)
+            if not is_player:
+                var appearance_params: Dictionary = npc_profile.get("params", {})
+                ara_model.apply_garment_styles(appearance_params.get("garmentStyles", {}))
+        else:
+            print("[Character assembly] actor=%s using transitional legacy visual fallback=%s" % [id, model_path])
         ara_model.apply_equipment_visuals(state.equipped_item_data)
     else:
         push_error("Character '%s' could not load Ara model '%s'. No primitive substitute will be shown." % [display_name, model_path])
