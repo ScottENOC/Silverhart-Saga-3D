@@ -124,6 +124,19 @@ def main():
       "animations":True,"faceBones":True,"faceShapes":True,"speechShapes":False,
       "expression":"neutral"
     })
+    # A second export uses exactly the same body parameters and rig settings,
+    # but includes Wren's current inventory garments. Its clothes are extracted
+    # only after the anatomy pass, so their fit and skeleton match her bare body.
+    wren_dressed=dict(wren_body)
+    wren_dressed.update({
+      "name":"Ara Base Person - Wren Talbot garment source",
+      "top":wren_profile.get("params",{}).get("top","none"),
+      "underTop":wren_profile.get("params",{}).get("underTop","none"),
+      "underBottom":wren_profile.get("params",{}).get("underBottom","none"),
+      "bottom":wren_profile.get("params",{}).get("bottom","none"),
+      "shoes":wren_profile.get("params",{}).get("shoes","none"),
+      "garmentStyles":wren_profile.get("params",{}).get("garmentStyles",{})
+    })
     male=dict(body); male.update({"name":"Ara Base Person - male body","seed":417,"gender":1,"breastSize":0,"breastFirmness":0})
     mobile=dict(base); mobile.update({"name":"Ara Base Person - mobile preview","detail":"low","animations":False,"faceBones":False,"faceShapes":False,"speechShapes":False})
     variants={
@@ -141,7 +154,7 @@ def main():
       "fishnet_pants":{"top":"none","underTop":"none","underBottom":"none","bottom":"fatigue_pants","garmentStyles":{"fatigue_pants":{"pattern":"fishnet","color":"#29242d","color2":"#987b91"}}},
       "backless_slit_dress":{"top":"backless_slit_dress","underTop":"none","underBottom":"none","bottom":"none"},
       "leather_armor":{"top":"none","underTop":"none","underBottom":"none","bottom":"none","accessories":["leather_armor"]}}
-    params={"ara_person_benchmark":base,"ara_person_body":body,"ara_person_male_raw":male,"ara_person_mobile":mobile,"ara_person_wrapper_knee":dict(body, name="Ara Wrapper Knee Source", bottom="wrapper_knee"),"ara_person_wren_body":wren_body}
+    params={"ara_person_benchmark":base,"ara_person_body":body,"ara_person_male_raw":male,"ara_person_mobile":mobile,"ara_person_wrapper_knee":dict(body, name="Ara Wrapper Knee Source", bottom="wrapper_knee"),"ara_person_wren_body":wren_body,"ara_person_wren_dressed":wren_dressed}
     for k,v in variants.items():
         p=dict(base); p.update({"name":"Ara Base Person - "+k,"jacket":"none","underwear":False,"shoes":"none","hat":"none","weapon":"none","carry":"none"}); p.update(v); params["ara_person_"+k]=p
     def export(key,p):
@@ -173,6 +186,13 @@ def main():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_adult_anatomy.py"],env=env)
         shutil.copy2(RAW/"ara_person_wren_body_anatomy.glb",wren_out)
     cached("wren-female-anatomy",[wren_out],[wren_raw,ROOT/"tools/blender/add_adult_anatomy.py"],"wren-female-anatomy-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],build_wren_body)
+    wren_dressed_raw=RAW/"ara_person_wren_dressed.glb"
+    wren_dressed_out=ARA/"ara_person_wren_dressed.glb"
+    def build_wren_dressed():
+        env=os.environ.copy(); env.update({"ARA_INPUT":str(wren_dressed_raw),"ARA_OUTPUT":str(RAW/"ara_person_wren_dressed_anatomy.glb"),"ARA_PROFILE":"female","ARA_ADULT":"1"})
+        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_adult_anatomy.py"],env=env)
+        shutil.copy2(RAW/"ara_person_wren_dressed_anatomy.glb",wren_dressed_out)
+    cached("wren-dressed-anatomy",[wren_dressed_out],[wren_dressed_raw,ROOT/"tools/blender/add_adult_anatomy.py"],"wren-dressed-anatomy-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],build_wren_dressed)
     wren_validation=ARA/"ara_person_wren_body.validation.json"
     def validate_wren_body():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/validate_ara_body_variant.py","--","--reference",female_out,"--candidate",wren_out,"--output",wren_validation])
@@ -254,7 +274,7 @@ def main():
         if not garment_report.is_file():
             fail("Garment builder completed without its skinning validation report.")
     cached("garment-library",[garments,garment_report],
-      [female_out,modular,underwear,ARA/"ara_person_leather_armor.glb",ARA/"ara_person_wrapper_knee.glb",npc_manifest,garment_builder],
+      [wren_out,wren_dressed_out,npc_manifest,garment_builder],
       "garment-library-v2-game-id-skin-validation:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
       build_garment_library)
 
@@ -271,6 +291,7 @@ def main():
         cached("review-"+label,outputs,[model,ROOT/"tools/blender/inspect_character.py"],"blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],action)
     review_character("female-body",female_out,"body")
     review_character("wren-body",wren_out,"wren_body")
+    review_character("wren-dressed",wren_dressed_out,"wren_dressed")
     review_character("male-body",male_out,"male")
     outfit_script=ROOT/"tools/review/render_modular_outfits.py"
     for outfit in ["dress","lace_bra","fishnet_bra","lace_briefs","fishnet_briefs","lace_shirt","fishnet_shirt","lace_pants","fishnet_pants"]:
