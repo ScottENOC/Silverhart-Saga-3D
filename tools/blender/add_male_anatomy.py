@@ -452,7 +452,7 @@ def masculinise_body_mesh(skin):
                 squared_displacement += displacement * displacement
             vertex.co = new_local
 
-    total = sum(len(block.data) for block in blocks)
+    total = sum(len(block.data) if block is not None else len(skin.data.vertices) for block in blocks)
     rms = math.sqrt(squared_displacement / max(moved, 1))
     skin["male_body_shape"] = "masculinised_torso_shoulders_waist_pelvis"
     skin["male_body_shape_vertices_moved"] = moved
