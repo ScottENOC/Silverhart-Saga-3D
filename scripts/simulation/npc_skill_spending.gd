@@ -253,8 +253,13 @@ static func recruit_companion(character: CharacterState, preferred_skills: Dicti
     var merged_preferences := character.npc_preferred_skills.duplicate(true)
     for skill_id in preferred_skills:
         merged_preferences[skill_id] = maxi(int(merged_preferences.get(skill_id, 0)), int(preferred_skills[skill_id]))
+    character.npc_preferred_skills = merged_preferences.duplicate(true)
+    if character.npc_skill_point_budget <= 0:
+        for value in character.skill_budget_by_pool.values():
+            character.npc_skill_point_budget += int(value)
     var chosen_seed := seed if not seed.is_empty() else character.id + ":first-recruitment"
     var spending := _spend_all(character, merged_preferences, [], chosen_seed)
+    _check_equipment_legality(character)
     character.companion_recruitment_initialized = true
     character.progression_mode = "companion"
     character.npc_unspent_skill_points = SkillProgression.available_points(character)
@@ -506,6 +511,9 @@ static func _spend_all(character: CharacterState, preferred: Dictionary, archety
         spent_after += int(value)
     var remaining := SkillProgression.available_points(character)
     character.npc_unspent_skill_points = remaining
+    for warning_index in range(character.npc_progression_warnings.size() - 1, -1, -1):
+        if String(character.npc_progression_warnings[warning_index].get("type", "")) == "unspent_skill_points":
+            character.npc_progression_warnings.remove_at(warning_index)
     if remaining > 0:
         character.npc_progression_warnings.append({
             "type": "unspent_skill_points",
@@ -522,6 +530,7 @@ static func _remaining_pools(character: CharacterState) -> Dictionary:
     return result
 
 static func _check_equipment_legality(character: CharacterState) -> void:
+    character.npc_equipment_legality_warnings.clear()
     var armor_id := String(character.equipment.get("armor", ""))
     var missing := []
     for skill_id in _armor_training_for_item(armor_id):
