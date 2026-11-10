@@ -13,14 +13,17 @@ static func build_entries(characters: Dictionary, current_character_id: String =
         if state.side != "player" and state.side != "enemy":
             continue
 
-        var maximum := maxf(1.0, state.max_time_points)
         entries.append({
             "id": state.id,
             "display_name": state.display_name,
             "side": state.side,
             "time_points": state.time_points,
-            "max_time_points": maximum,
-            "time_points_ratio": clampf(state.time_points / maximum, 0.0, 1.0),
+            "time_points_ratio": clampf(state.time_points / 150.0, 0.0, 1.0),
+            "health": state.health,
+            "max_health": maxi(1, state.max_health),
+            "mana": state.current_mana,
+            "max_mana": maxi(0, state.max_mana),
+            "portrait_texture": state.portrait_texture,
             "is_active": state.id == current_character_id,
             "is_unconscious": state.unconscious,
             "can_start_turn": state.can_start_combat_turn()
