@@ -12,6 +12,7 @@ var equipment_attachments: Dictionary = {}
 const MODULAR_GARMENT_ASSET := "res://art/characters/ara_runtime/ara_person_garments.glb"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
 var current_hair_colour: Color = Color("#49372a")
+const ITEM_CATALOG = preload("res://scripts/simulation/item_catalog.gd")
 
 func configure(glb_path: String) -> bool:
     _clear_modular_garments()
@@ -44,9 +45,15 @@ func configure(glb_path: String) -> bool:
     model_root.name = "AraModel"
     add_child(model_root)
     loaded_asset_path = glb_path
-    var normalized_asset_path := glb_path.replace("\\", "/")
-    var profile_body := normalized_asset_path.contains("/bodies/")
-    set_meta("body_profile_id", glb_path.get_file().get_basename() if profile_body else "")
+    var normalized_asset_path := glb_path.replace("\\", "/").to_lower()
+    var asset_basename := glb_path.get_file().get_basename().to_lower()
+    # Wren's profile-baked export currently lives beside the shared runtime
+    # assets rather than in /bodies/. Identify it explicitly so the matching
+    # garment library is not rejected as a generic body.
+    var is_wren_profile_body := asset_basename == "ara_person_wren_body"
+    var profile_body := normalized_asset_path.contains("/bodies/") or is_wren_profile_body
+    var profile_id := "wren_talbot" if is_wren_profile_body else (asset_basename if normalized_asset_path.contains("/bodies/") else "")
+    set_meta("body_profile_id", profile_id)
     set_meta("body_profile_baked", profile_body)
     animation_player = _find_animation_player(model_root)
     call_deferred("_play_idle_if_available")
@@ -181,8 +188,20 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
     var helmet_id := ""
     for slot_variant in equipped_item_data:
         var slot := String(slot_variant)
-        var item: Variant = equipped_item_data[slot_variant]
-        if not item is Dictionary:
+        var supplied_item: Variant = equipped_item_data[slot_variant]
+        var item: Dictionary = {}
+        if supplied_item is Dictionary:
+            item = supplied_item.duplicate(true)
+            var supplied_id := String(item.get("id", ""))
+            if not supplied_id.is_empty():
+                var catalog_definition := ITEM_CATALOG.get_definition(supplied_id)
+                for definition_key in catalog_definition:
+                    if not item.has(definition_key):
+                        item[definition_key] = catalog_definition[definition_key]
+        elif supplied_item is String:
+            item = ITEM_CATALOG.get_definition(String(supplied_item))
+        if item.is_empty():
+            push_warning("Equipped item in slot '%s' could not be resolved: %s" % [slot, str(supplied_item)])
             continue
         var item_id := String(item.get("id", ""))
         var garment_visual := String(item.get("garment_visual", ""))
