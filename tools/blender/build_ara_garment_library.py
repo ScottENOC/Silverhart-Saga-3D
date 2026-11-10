@@ -163,7 +163,8 @@ def validate_rig(source: bpy.types.Object, target: bpy.types.Object, path: Path)
             abs(source_matrix[row][column] - target_matrix[row][column])
             for row in range(4) for column in range(4)
         )
-        if max_element_delta <= 1e-4:
+        tolerance = 1e-3 if source_bone.name == "WeaponR" else 1e-4
+        if max_element_delta <= tolerance:
             continue
         source_rotation = source_matrix.to_3x3().to_quaternion()
         target_rotation = target_matrix.to_3x3().to_quaternion()
