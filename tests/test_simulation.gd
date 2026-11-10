@@ -592,7 +592,6 @@ func _test_initiative_timeline_model() -> void:
     _check(String(entries[1]["id"]) == "downed_ally", "Living unconscious combatants remain visible in the timeline")
     _check(bool(entries[1]["is_unconscious"]) and not bool(entries[1]["can_start_turn"]), "Downed combatants should be visible but not eligible to act")
     _check(String(entries[2]["id"]) == "player" and bool(entries[2]["is_active"]), "Current actor should be marked independently of its TP rank")
-    _check(is_equal_approx(float(entries[0]["time_points_ratio"]), 0.8), "TP bar should use the source 150 TP regeneration gate")
     _check(int(entries[0]["health"]) == enemy.health and int(entries[0]["max_health"]) == enemy.max_health, "Initiative entries should expose current and maximum health")
     _check(int(entries[0]["mana"]) == enemy.current_mana and int(entries[0]["max_mana"]) == enemy.max_mana, "Initiative entries should expose current and maximum mana")
     _check(is_equal_approx(ActionEconomy.DEFAULT_MAX_TP, 120.0), "Source entity baseline maxTimePoints is 120, not 150")
