@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Validate that a bare Ara body and its same-profile dressed export share one rig.
+"""Compare same-profile Ara exports and retain full diagnostics on failure.
 
-Ara places bones from the generated body's joints. Different body profiles can
-therefore have different rest transforms without anyone editing the rig. The
-important garment contract is that the bare body and its matching dressed
-export were generated from the same parameters, rig and rest pose.
+Reports both armature-space bone matrices and parent-relative bone transforms.
+This distinguishes a genuine change in a bone's local rig definition from a
+character-origin offset (for example, a different footwear ground reference).
 """
 from __future__ import annotations
 
@@ -19,8 +18,8 @@ import bpy
 def arguments():
     raw = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
-    parser.add_argument("--reference", type=Path, required=True, help="Bare Ara body GLB")
-    parser.add_argument("--candidate", type=Path, required=True, help="Same-profile dressed Ara GLB")
+    parser.add_argument("--reference", type=Path, required=True)
+    parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     return parser.parse_args(raw)
 
@@ -37,16 +36,23 @@ def import_asset(path: Path):
         raise RuntimeError(f"{path.name}: expected exactly one armature, found {len(armatures)}")
     if not meshes:
         raise RuntimeError(f"{path.name}: no mesh objects imported")
-    return imported, armatures[0], meshes
+    return armatures[0], meshes
+
+
+def matrix_delta(a, b):
+    return max(abs(a[r][c] - b[r][c]) for r in range(4) for c in range(4))
+
+
+def relative_matrix(bone):
+    return bone.parent.matrix_local.inverted_safe() @ bone.matrix_local if bone.parent else bone.matrix_local.copy()
 
 
 def shape_names(meshes):
-    names = []
-    for obj in meshes:
-        keys = obj.data.shape_keys
-        if keys:
-            names.extend(key.name for key in list(keys.key_blocks)[1:])
-    return sorted(set(names))
+    return sorted({
+        key.name
+        for obj in meshes if obj.data.shape_keys
+        for key in list(obj.data.shape_keys.key_blocks)[1:]
+    })
 
 
 def material_names(meshes):
@@ -63,16 +69,10 @@ def main():
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
 
-    _ref_objects, ref_armature, ref_meshes = import_asset(args.reference)
-    _candidate_objects, candidate_armature, candidate_meshes = import_asset(args.candidate)
+    ref_armature, ref_meshes = import_asset(args.reference)
+    candidate_armature, candidate_meshes = import_asset(args.candidate)
 
-    armature_delta = max(
-        abs(ref_armature.matrix_world[row][column] - candidate_armature.matrix_world[row][column])
-        for row in range(4) for column in range(4)
-    )
-    if armature_delta > 1e-5:
-        raise RuntimeError(f"Armature object transforms differ by {armature_delta:.8g}")
-
+    armature_delta = matrix_delta(ref_armature.matrix_world, candidate_armature.matrix_world)
     ref_bones = list(ref_armature.data.bones)
     candidate_bones = list(candidate_armature.data.bones)
     ref_names = [bone.name for bone in ref_bones]
@@ -87,64 +87,82 @@ def main():
         )
 
     differences = []
-    max_delta = 0.0
+    max_absolute_delta = 0.0
+    max_relative_delta = 0.0
     for ref_bone, candidate_bone in zip(ref_bones, candidate_bones):
-        delta = max(
-            abs(ref_bone.matrix_local[row][column] - candidate_bone.matrix_local[row][column])
-            for row in range(4) for column in range(4)
-        )
-        max_delta = max(max_delta, delta)
-        if delta > 1e-5:
-            differences.append({"bone": ref_bone.name, "max_matrix_element_delta": delta})
-    if differences:
-        differences.sort(key=lambda item: item["max_matrix_element_delta"], reverse=True)
-        raise RuntimeError(
-            "Bare and dressed Wren exports do not share the same rest transforms: "
-            + json.dumps(differences[:12])
-        )
+        absolute_delta = matrix_delta(ref_bone.matrix_local, candidate_bone.matrix_local)
+        relative_delta = matrix_delta(relative_matrix(ref_bone), relative_matrix(candidate_bone))
+        max_absolute_delta = max(max_absolute_delta, absolute_delta)
+        max_relative_delta = max(max_relative_delta, relative_delta)
+        if absolute_delta > 1e-5 or relative_delta > 1e-5:
+            differences.append({
+                "bone": ref_bone.name,
+                "parent": ref_bone.parent.name if ref_bone.parent else None,
+                "armature_space_matrix_delta": absolute_delta,
+                "parent_relative_matrix_delta": relative_delta,
+                "reference_head": [round(v, 7) for v in ref_bone.head_local],
+                "candidate_head": [round(v, 7) for v in candidate_bone.head_local],
+            })
 
     ref_shapes = shape_names(ref_meshes)
     candidate_shapes = shape_names(candidate_meshes)
-    if len(ref_shapes) < 20 or len(candidate_shapes) < 20:
-        raise RuntimeError(
-            "Expected Ara facial morph targets in both exports; "
-            f"bare={len(ref_shapes)}, dressed={len(candidate_shapes)}"
-        )
-    if ref_shapes != candidate_shapes:
-        raise RuntimeError(
-            "Bare and dressed exports have different facial morph target names: "
-            f"bare_only={sorted(set(ref_shapes)-set(candidate_shapes))}, "
-            f"dressed_only={sorted(set(candidate_shapes)-set(ref_shapes))}"
-        )
+    shape_match = ref_shapes == candidate_shapes and len(ref_shapes) >= 20
 
     report = {
-        "schema_version": 1,
+        "schema_version": 2,
         "reference": str(args.reference),
         "candidate": str(args.candidate),
-        "validation": "passed",
         "bone_count": len(ref_bones),
-        "bone_names_and_order": "identical",
-        "rest_transforms": "identical",
-        "armature_object_transform": "identical",
+        "bone_names_and_order_match": ref_names == candidate_names,
         "armature_object_matrix_delta": armature_delta,
-        "maximum_rest_matrix_delta": max_delta,
-        "bare_mesh_objects": [obj.name for obj in ref_meshes],
-        "dressed_mesh_objects": [obj.name for obj in candidate_meshes],
+        "maximum_armature_space_bone_matrix_delta": max_absolute_delta,
+        "maximum_parent_relative_bone_matrix_delta": max_relative_delta,
+        "armature_space_differing_bone_count": sum(
+            item["armature_space_matrix_delta"] > 1e-5 for item in differences
+        ),
+        "parent_relative_differing_bone_count": sum(
+            item["parent_relative_matrix_delta"] > 1e-5 for item in differences
+        ),
+        "bone_differences": sorted(
+            differences,
+            key=lambda item: max(item["armature_space_matrix_delta"], item["parent_relative_matrix_delta"]),
+            reverse=True,
+        ),
+        "facial_morphs_match": shape_match,
         "bare_facial_morph_target_count": len(ref_shapes),
         "dressed_facial_morph_target_count": len(candidate_shapes),
-        "facial_morph_target_names": ref_shapes,
+        "bare_facial_morph_target_names": ref_shapes,
+        "dressed_facial_morph_target_names": candidate_shapes,
         "dressed_material_names": material_names(candidate_meshes),
-        "note": "Ara body macro controls are baked into exported geometry; facial blend shapes remain available in GLB."
+        "validation": "passed" if (
+            armature_delta <= 1e-5 and max_absolute_delta <= 1e-5 and shape_match
+        ) else "failed",
+        "note": (
+            "Armature-space differences with matching parent-relative transforms indicate "
+            "a root/origin offset, not changed finger or limb articulation. Ara places bones "
+            "from morphed body joints; footwear can affect the character ground origin."
+        ),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+
     print(
-        f"[Ara body validation] PASSED bones={len(ref_bones)} "
-        f"rest_transform_delta={max_delta:.8g} "
-        f"facial_morphs={len(ref_shapes)} "
-        f"dressed_materials={', '.join(report['dressed_material_names'])}"
+        "[Ara body validation] "
+        f"bones={len(ref_bones)} "
+        f"armature_delta={armature_delta:.8g} "
+        f"max_armature_space_delta={max_absolute_delta:.8g} "
+        f"max_parent_relative_delta={max_relative_delta:.8g} "
+        f"armature_space_differences={report['armature_space_differing_bone_count']} "
+        f"parent_relative_differences={report['parent_relative_differing_bone_count']} "
+        f"facial_morphs={len(ref_shapes)} match={shape_match}"
     )
-    print(f"[Ara body validation] Report: {args.output}")
+    print(f"[Ara body validation] Full report: {args.output}")
+
+    if report["validation"] != "passed":
+        raise RuntimeError(
+            "Ara export validation failed. See the full JSON report for every bone's "
+            "armature-space and parent-relative differences."
+        )
 
 
 if __name__ == "__main__":
