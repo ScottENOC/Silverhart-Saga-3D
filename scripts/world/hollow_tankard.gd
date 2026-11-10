@@ -505,10 +505,18 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         # as undressed generic Ara bodies.
         var profile_id := str(npc_profile.get("id", ""))
         var profile_body_path := "res://art/characters/ara_runtime/bodies/%s.glb" % profile_id
-        var legacy_model_path := "res://art/characters/hollowmere/%s.glb" % profile_id
+        var legacy_ids := [profile_id, str(npc_profile.get("game_id", ""))]
+        var legacy_model_path := ""
+        for legacy_id in legacy_ids:
+            if legacy_id.is_empty():
+                continue
+            var candidate_path := "res://art/characters/hollowmere/%s.glb" % legacy_id
+            if ResourceLoader.exists(candidate_path):
+                legacy_model_path = candidate_path
+                break
         if not profile_id.is_empty() and ResourceLoader.exists(profile_body_path):
             model_path = profile_body_path
-        elif not profile_id.is_empty() and ResourceLoader.exists(legacy_model_path):
+        elif not legacy_model_path.is_empty():
             model_path = legacy_model_path
             using_legacy_fallback = true
     # Keep the actor metadata explicit as well as deriving it from the loaded GLB.
