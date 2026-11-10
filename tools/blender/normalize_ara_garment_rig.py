@@ -162,6 +162,12 @@ def main():
     bpy.ops.object.mode_set(mode="OBJECT")
     bpy.context.view_layer.update()
 
+    # Blender rebuilds the armature's Bone collection when leaving Edit Mode.
+    # Do not inspect pre-edit Bone wrappers: reacquire the data-bone objects
+    # before comparing matrices or producing diagnostics.
+    ref_bones = {bone.name: bone for bone in ref_armature.data.bones}
+    candidate_bones = {bone.name: bone for bone in candidate_armature.data.bones}
+
     post_deltas = {
         name: matrix_delta(ref_bones[name].matrix_local, candidate_bones[name].matrix_local)
         for name in ref_bones
