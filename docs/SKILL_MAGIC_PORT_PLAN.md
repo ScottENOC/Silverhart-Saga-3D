@@ -99,3 +99,11 @@ Do not create a second parallel skills dictionary. Existing reads in `world_simu
 4. Port spell builder/casting; verify combat integration.
 5. Port NPC spellbook generation and tactical casting, respecting player control of party companions.
 6. Port remaining effects by family with regression tests.
+
+
+## Canonical campaign companions staged in Hollowmere
+- The original `companionProgression.js` defines eight canonical recruitable builds: Ser Aldric Thorne, Nix Sharpear, Warlord Grukk Ironhide, Reyna Fletcher, Mirabel Quill, Fenn Oakheart, Brother Alden and Snik Fangtooth.
+- Their race, gender, ordered class history, preferred skill picks, equipment, extra inventory and source dialogue IDs are now represented in the Hollowmere character manifest/loadouts. The Hollowmere spawn path builds their authored skill progression through `NPCSkillSpending.build_authored` before registration.
+- They are staged as neutral village NPCs, not automatically recruited. Campaign quest gates, dialogue-driven recruitment, faction behaviour and world-map placements remain to be ported.
+- Temporary presentation: they use the shared Ara runtime male/female base bodies with distinct appearance parameters and hair, rather than bespoke companion GLBs. Goblin/orc racial appearance is not yet represented; individual models and proper racial bodies remain art work.
+- The strategic campaign map already has a Hollowmere POI and map-data foundation, but the full explorable campaign world and companion quest locations are not yet built. Hollowmere placement is a temporary staging arrangement.
