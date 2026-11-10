@@ -128,12 +128,49 @@ static func grant_points(character: CharacterState, pool: String, amount: int, g
     if character == null or pool.is_empty() or amount <= 0 or grant_id.is_empty():
         return {"ok": false, "reason": "invalid_grant"}
     initialise(character)
-    if character.skill_point_grants.has(grant_id):
+    var grant_key := "pool:%s:%s" % [pool, grant_id]
+    if character.skill_point_grants.has(grant_key):
         return {"ok": false, "reason": "grant_already_applied"}
     character.attributes[pool] = int(character.attributes.get(pool, 0)) + amount
     character.skill_budget_by_pool[pool] = int(character.skill_budget_by_pool.get(pool, 0)) + amount
-    character.skill_point_grants[grant_id] = {"pool": pool, "amount": amount}
+    character.skill_point_grants[grant_key] = {"pool": pool, "amount": amount}
     return {"ok": true, "reason": "granted", "pool": pool, "amount": amount}
+
+
+static func grant_level(character: CharacterState, class_id: String, grant_id: String) -> Dictionary:
+    if character == null or class_id.is_empty() or grant_id.is_empty():
+        return {"ok": false, "reason": "invalid_level_grant"}
+    initialise(character)
+    var grant_key := "level:" + grant_id
+    if character.skill_point_grants.has(grant_key):
+        return {"ok": false, "reason": "grant_already_applied"}
+    var race := CharacterCreationRules.race_definition(character.race)
+    var profession := CharacterCreationRules.class_definition(class_id)
+    if race.is_empty() or profession.is_empty():
+        return {"ok": false, "reason": "unknown_race_or_class"}
+    var race_bonus: Dictionary = race.get("bonus", {})
+    var class_bonus: Dictionary = profession.get("bonus", {})
+    var pools: Dictionary = {}
+    var pool_keys := {}
+    for pool in race_bonus:
+        pool_keys[String(pool)] = true
+    for pool in class_bonus:
+        pool_keys[String(pool)] = true
+    for pool in pool_keys:
+        var amount := int(race_bonus.get(pool, 0)) + int(class_bonus.get(pool, 0))
+        if amount == 0:
+            continue
+        character.attributes[pool] = int(character.attributes.get(pool, 0)) + amount
+        character.skill_budget_by_pool[pool] = int(character.skill_budget_by_pool.get(pool, 0)) + amount
+        pools[pool] = amount
+    character.class_levels[class_id] = int(character.class_levels.get(class_id, 0)) + 1
+    character.level += 1
+    character.skill_point_grants[grant_key] = {
+        "type": "class_level",
+        "class_id": class_id,
+        "pools": pools.duplicate(true)
+    }
+    return {"ok": true, "reason": "level_granted", "level": character.level, "class_id": class_id, "pools": pools}
 
 static func accounting_report(character: CharacterState) -> Dictionary:
     if character == null:
