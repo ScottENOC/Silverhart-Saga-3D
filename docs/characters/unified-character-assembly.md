@@ -29,10 +29,10 @@ Wren is the first profile being validated end to end:
 
 - Generate a bare female Ara body using Wren's exact profile settings.
 - Apply the adult female anatomy sculpt to that bare body.
-- Generate a second Ara export with the same Wren body settings, game rig, A-pose and facial-shape settings, but with Wren's current inventory garments (including combat boots).
-- Apply the same anatomy and garment-clearance pass to the dressed export.
-- Ara's footwear option shifts the generated skeleton's common rest-bone origin by about 3 cm in this Wren profile. The local pipeline therefore runs tools/blender/normalize_ara_garment_rig.py before extraction. It accepts only a common Hips-origin translation plus the measured sub-millimetre WeaponR socket residual, rebases the candidate rest bones onto the bare-body skeleton, and checks that evaluated mesh vertices do not move.
-- Validate the normalized export's bone names, order, rest transforms and facial morphs against the bare Wren body, then extract garments from that normalized source.
+- Generate two additional Ara exports with identical Wren body settings and garments: one with footwear disabled, and one with Wren's configured combat boots.
+- Apply the same adult anatomy pass to all three body/dressed exports.
+- Run the read-only three-way rig comparison in tools/blender/compare_ara_footwear_rigs.py. It compares the bare body, dressed/no-shoes export and dressed/booted export, including armature transforms, every rest-bone matrix and parent-relative bone transforms.
+- This diagnostic run intentionally stops before rig normalisation or garment extraction. We will only choose the next pipeline approach after the report establishes whether footwear causes the Hips/root shift.
 - Package the bare body and matching garment library for Godot.
 
 The old art/characters/hollowmere/*.glb models are not used as the source of Wren's new body or garments; an older export may have been made with different Ara parameters or generator versions. They remain a temporary runtime visual fallback for NPCs whose profile-generated bodies are not built yet, so the migration does not leave those characters undressed. This fallback is transitional and is not the target architecture.
