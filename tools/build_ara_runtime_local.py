@@ -47,32 +47,136 @@ def run_pnpm(args, cwd):
     command_line = "corepack pnpm@10.19.0 " + subprocess.list2cmdline(list(map(str, args)))
     log("$ " + command_line)
     subprocess.run(command_line, cwd=cwd, check=True, shell=True)
-def digest(paths, extra=""):
-    h=hashlib.sha256(extra.encode())
-    for p in paths:
-        p=Path(p)
-        h.update(str(p).encode())
-        if p.is_file():
-            h.update(p.read_bytes())
-        elif p.is_dir():
-            for f in sorted(x for x in p.rglob("*") if x.is_file() and ".git" not in x.parts and "node_modules" not in x.parts):
-                h.update(str(f.relative_to(p)).encode()); h.update(f.read_bytes())
+FORCE_REBUILD = False
+MAX_CACHE_AGE_HOURS = None
+
+def file_sha256(path):
+    h = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            h.update(chunk)
     return h.hexdigest()
+
+def digest(paths, extra=""):
+    """Fingerprint every declared input by content; missing inputs are errors."""
+    h = hashlib.sha256(extra.encode("utf-8"))
+    for item in paths:
+        path = Path(item)
+        if not path.exists():
+            fail(f"Cache input does not exist: {path}")
+        h.update(str(path.resolve()).encode("utf-8"))
+        if path.is_file():
+            h.update(file_sha256(path).encode("ascii"))
+        elif path.is_dir():
+            files = sorted(
+                f for f in path.rglob("*")
+                if f.is_file()
+                and ".git" not in f.parts
+                and "node_modules" not in f.parts
+            )
+            for file in files:
+                h.update(str(file.relative_to(path)).encode("utf-8"))
+                h.update(file_sha256(file).encode("ascii"))
+    return h.hexdigest()
+
 def cached(stage, outputs, inputs, extra, action):
-    stamp=CACHE / "stamps" / f"{stage}.sha256"
-    expected=digest(inputs, extra)
-    if stamp.is_file() and stamp.read_text().strip()==expected and all(Path(x).is_file() and Path(x).stat().st_size for x in outputs):
-        log(f"Cache hit: {stage}")
+    """Run a stage unless its inputs, outputs and optional age prove it reusable."""
+    stamp = CACHE / "stamps" / f"{stage}.json"
+    expected = digest(inputs, extra)
+    output_paths = [Path(x) for x in outputs]
+    valid = False
+    reason = "no valid stage manifest"
+
+    if not FORCE_REBUILD and stamp.is_file():
+        try:
+            record = json.loads(stamp.read_text(encoding="utf-8"))
+            if record.get("schema_version") != 2:
+                reason = "old cache-manifest schema"
+            elif record.get("fingerprint") != expected:
+                reason = "input fingerprint changed"
+            else:
+                recorded_outputs = record.get("outputs", {})
+                output_ok = all(
+                    path.is_file()
+                    and path.stat().st_size > 0
+                    and recorded_outputs.get(str(path)) == {
+                        "size_bytes": path.stat().st_size,
+                        "sha256": file_sha256(path),
+                    }
+                    for path in output_paths
+                )
+                if not output_ok:
+                    reason = "one or more cached outputs are missing or modified"
+                else:
+                    age_ok = True
+                    if MAX_CACHE_AGE_HOURS is not None:
+                        from datetime import datetime, timezone
+                        built_at = record.get("built_at_utc")
+                        built = datetime.fromisoformat(built_at.replace("Z", "+00:00"))
+                        age_hours = (datetime.now(timezone.utc) - built).total_seconds() / 3600
+                        age_ok = 0 <= age_hours <= MAX_CACHE_AGE_HOURS
+                        if not age_ok:
+                            reason = f"cache is older than {MAX_CACHE_AGE_HOURS:g} hours"
+                    valid = age_ok
+        except (OSError, ValueError, TypeError, AttributeError):
+            reason = "unreadable or incomplete cache manifest"
+
+    if valid:
+        log(f"Cache hit: {stage} (inputs and output checksums match)")
         return
-    log(f"Building: {stage}")
-    for out in outputs:
-        Path(out).parent.mkdir(parents=True,exist_ok=True)
+
+    if FORCE_REBUILD:
+        reason = "--force requested"
+    log(f"Building: {stage} ({reason})")
+    for output in output_paths:
+        output.parent.mkdir(parents=True, exist_ok=True)
     action()
-    missing=[str(x) for x in outputs if not Path(x).is_file() or not Path(x).stat().st_size]
-    if missing: fail(f"{stage} did not produce: {', '.join(missing)}")
-    stamp.parent.mkdir(parents=True,exist_ok=True); stamp.write_text(expected+"\n")
+
+    missing = [str(path) for path in output_paths if not path.is_file() or path.stat().st_size == 0]
+    if missing:
+        fail(f"{stage} did not produce: {', '.join(missing)}")
+
+    from datetime import datetime, timezone
+    record = {
+        "schema_version": 2,
+        "stage": stage,
+        "fingerprint": expected,
+        "built_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        "outputs": {
+            str(path): {
+                "size_bytes": path.stat().st_size,
+                "sha256": file_sha256(path),
+            }
+            for path in output_paths
+        },
+    }
+    stamp.parent.mkdir(parents=True, exist_ok=True)
+    temporary_stamp = stamp.with_suffix(".json.tmp")
+    temporary_stamp.write_text(json.dumps(record, indent=2) + "\\n", encoding="utf-8")
+    temporary_stamp.replace(stamp)
+
+def parse_build_options():
+    import argparse
+    parser = argparse.ArgumentParser(description="Build Ara character assets for Silverhart locally.")
+    parser.add_argument("--force", action="store_true",
+                        help="Ignore all stage caches and rebuild every generated stage.")
+    parser.add_argument("--max-cache-age-hours", type=float, default=None,
+                        help="Rebuild a stage if its successful cache manifest is older than this many hours.")
+    options = parser.parse_args()
+    if options.max_cache_age_hours is not None and options.max_cache_age_hours < 0:
+        parser.error("--max-cache-age-hours must be zero or greater")
+    return options
+
 def main():
+    global FORCE_REBUILD, MAX_CACHE_AGE_HOURS
+    options = parse_build_options()
+    FORCE_REBUILD = options.force
+    MAX_CACHE_AGE_HOURS = options.max_cache_age_hours
     CACHE.mkdir(parents=True,exist_ok=True); RAW.mkdir(parents=True,exist_ok=True); ARA.mkdir(parents=True,exist_ok=True)
+    if FORCE_REBUILD:
+        log("Forced rebuild: all cached stages will be regenerated.")
+    if MAX_CACHE_AGE_HOURS is not None:
+        log(f"Cache age limit: {MAX_CACHE_AGE_HOURS:g} hours.")
     git=command("git"); node=command("node"); npm=command("npm"); blender=command("blender",os.environ.get("BLENDER_BIN"))
     py=sys.executable
     if not (GEN/".git").exists():
@@ -287,14 +391,15 @@ def main():
     env=os.environ.copy()
     env.update({"EGL_PLATFORM":"surfaceless","LIBGL_ALWAYS_SOFTWARE":"1"})
     fitted=RAW/"ara_person_modular_fitted.glb"
+    fitted_under=RAW/"ara_person_modular_underwear_fitted.glb"
     def fit():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_dress_slit.py","--","--input",modular,"--output",RAW/"slit.glb"],env=env)
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_adult_anatomy.py","--","--input",RAW/"slit.glb","--output",fitted,"--profile","none","--adult","--fit-existing"],env=env)
-        shutil.copy2(fitted,modular)
-        fitted_under=RAW/"underwear_fitted.glb"
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_adult_anatomy.py","--","--input",underwear,"--output",fitted_under,"--profile","none","--adult","--fit-existing"],env=env)
-        shutil.copy2(fitted_under,underwear)
-    cached("garment-fit",[modular,underwear],inputs+[ROOT/"tools/blender/add_dress_slit.py",ROOT/"tools/blender/add_adult_anatomy.py"],"blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],fit)
+    cached("garment-fit",[fitted,fitted_under],
+      [modular,underwear,ROOT/"tools/blender/add_dress_slit.py",ROOT/"tools/blender/add_adult_anatomy.py"],
+      "separate-fitted-outputs-v2:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+      fit)
     # Convert combined Ara/NPC clothing surfaces into independently skinned
     # garment objects. This is local Blender work, never a GitHub Actions job.
     garments=RAW/"ara_person_garments.glb"
@@ -339,8 +444,8 @@ def main():
     sources={
         "ara_person_benchmark.glb": ARA/"ara_person_benchmark.glb",
         "ara_person_body.glb": ARA/"ara_person_body.glb",
-        "ara_person_modular.glb": modular,
-        "ara_person_modular_underwear.glb": underwear,
+        "ara_person_modular.glb": fitted,
+        "ara_person_modular_underwear.glb": fitted_under,
         "ara_person_male_body.glb": ARA/"ara_person_male_body.glb",
         "ara_person_garments.glb": garments,
         "bodies/wren_talbot.glb": wren_out,
@@ -359,7 +464,9 @@ def main():
             b=(package/name).read_bytes(); assets[name]={"size_bytes":len(b),"sha256":hashlib.sha256(b).hexdigest()}
         manifest={"schema_version":1,"package_version":"local-"+digest(list(sources.values()))[:16],"source_commit":current,"generator":{"repository":"https://github.com/olatunde85/3d-gen","commit":PIN},"assets":assets}
         (package/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
-    cached("runtime-package",[package/"manifest.json"]+[package/n for n in names],list(sources.values()),"runtime-package-v2",pack)
+    cached("runtime-package",[package/"manifest.json"]+[package/n for n in names],
+      list(sources.values())+[ROOT/"tools/build_ara_runtime_local.py"],
+      "runtime-package-v3-with-builder-provenance",pack)
     log("Ara + Blender runtime assets ready. Cached stages will be skipped on the next run.")
 
 if __name__=="__main__":
