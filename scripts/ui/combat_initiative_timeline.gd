@@ -42,9 +42,9 @@ func refresh() -> void:
     var current := simulation.get_current_turn_character()
     var current_id := current.id if current != null else ""
     var entries := MODEL_SCRIPT.build_entries(simulation.characters, current_id)
-    var signature_parts: Array[String] = [current_id]
+    var signature := current_id
     for entry in entries:
-        signature_parts.append("%s:%.2f:%s:%s" % [
+        signature += "|%s:%.2f:%.2f:%s:%s:%s:%s:%s" % [
             String(entry["id"]),
             float(entry["time_points"]),
             float(entry["max_time_points"]),
@@ -53,8 +53,7 @@ func refresh() -> void:
             str(bool(entry["is_unconscious"])),
             str(bool(entry["can_start_turn"])),
             str(bool(entry["is_active"]))
-        ])
-    var signature := "|".join(signature_parts)
+        ]
     visible = true
     if signature == _last_signature:
         return
