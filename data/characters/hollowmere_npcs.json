@@ -33,7 +33,7 @@
         "outfit": "none",
         "top": "fatigue_shirt",
         "underTop": "bra",
-        "underBottom": "none",
+        "underBottom": "bikini_bottom",
         "jacket": "none",
         "bottom": "fatigue_pants",
         "underwear": false,
@@ -62,6 +62,11 @@
             "pattern": "solid",
             "color": "#29292d",
             "color2": "#29292d"
+          },
+          "bikini_bottom": {
+            "pattern": "solid",
+            "color": "#55452d",
+            "color2": "#d0c3a2"
           }
         },
         "detail": "high",
