@@ -971,7 +971,8 @@
         "accessories": [],
         "hairColor": "#594a3c"
       },
-      "dialogue_id": "companion_ser_aldric"
+      "dialogue_id": "ser_aldric_captive",
+      "companion_dialogue_id": "companion_ser_aldric_thorne"
     },
     {
       "id": "nix_sharpear",
@@ -1034,7 +1035,8 @@
         "accessories": [],
         "hairColor": "#30251b"
       },
-      "dialogue_id": "companion_nix_sharpear"
+      "dialogue_id": "nix_sharpear",
+      "companion_dialogue_id": "companion_nix_sharpear"
     },
     {
       "id": "warlord_grukk_ironhide",
@@ -1097,7 +1099,8 @@
         "accessories": [],
         "hairColor": "#30231c"
       },
-      "dialogue_id": "companion_orc_warlord"
+      "dialogue_id": "orc_warlord",
+      "companion_dialogue_id": "companion_warlord_grukk_ironhide"
     },
     {
       "id": "reyna_fletcher",
@@ -1155,7 +1158,8 @@
         "accessories": [],
         "hairColor": "#704b32"
       },
-      "dialogue_id": ""
+      "dialogue_id": "reyna_fletcher",
+      "companion_dialogue_id": "companion_reyna_fletcher"
     },
     {
       "id": "mirabel_quill",
@@ -1212,7 +1216,8 @@
         "accessories": [],
         "hairColor": "#8b765e"
       },
-      "dialogue_id": ""
+      "dialogue_id": "mirabel_quill",
+      "companion_dialogue_id": "companion_mirabel_quill"
     },
     {
       "id": "fenn_oakheart",
@@ -1268,7 +1273,8 @@
         "accessories": [],
         "hairColor": "#57422d"
       },
-      "dialogue_id": ""
+      "dialogue_id": "fenn_oakheart",
+      "companion_dialogue_id": "companion_fenn_oakheart"
     },
     {
       "id": "brother_alden",
@@ -1324,7 +1330,8 @@
         "accessories": [],
         "hairColor": "#82715e"
       },
-      "dialogue_id": "brother_alden"
+      "dialogue_id": "brother_alden",
+      "companion_dialogue_id": "companion_brother_alden"
     },
     {
       "id": "snik_fangtooth",
@@ -1384,7 +1391,8 @@
         "accessories": [],
         "hairColor": "#251d17"
       },
-      "dialogue_id": ""
+      "dialogue_id": "snik_fangtooth",
+      "companion_dialogue_id": "companion_snik_fangtooth"
     }
   ]
 }
