@@ -1,7 +1,7 @@
 # Skill, progression and magic port plan
 
 ## Source of truth
-The original `ScottENOC/Hex-crpg` `main` branch is authoritative. Adjacent JSON files are source-derived static catalogues, not proof that effects are implemented. Source currently defines 186 skill entries and 15 base spells.
+The original `ScottENOC/Hex-crpg` `main` branch is authoritative. Adjacent JSON files are source-derived static catalogues, not proof that effects are implemented. Source has 186 directly declared skill definitions plus 71 unique entries expanded by generateWeaponSkills() and generateMagicSkills(), for 257 runtime skill IDs, plus 15 base spells.
 
 ## One progression model for every character
 The main character, companions, named NPCs, generated humanoid NPCs and combatant enemies use the same rules for attribute pools, skill budgets, prerequisites, rank caps and effects. They differ in who chooses the spend and when.
@@ -76,10 +76,10 @@ Do not create a second parallel skills dictionary. Existing reads in `world_simu
 - `CombatRules` reads selected ranks for weapon damage, racial damage bonuses and shield reduction.
 - `WorldSimulation` contains Parry/Protector, Spear Intercept, Spear Halt and Sidestep reaction paths.
 - Character creation currently seeds a basic Health rank.
-- No complete skill catalogue, point-purchase service, spell builder/caster or NPC skill-spending service was found in dev.
+- No complete skill catalogue, point-purchase service, spell builder/caster or NPC skill-spending service was found in dev. The feature branch now adds a validated catalogue loader, a shared purchase/accounting service, persistent pool ledgers and one-time grant IDs. Runtime skill effects, NPC policies, companion recruitment integration, and UI are still outstanding.
 
 ## Acceptance tests
-- Every original skill and base-spell ID represented exactly once.
+- Every original runtime skill ID—including programmatically generated weapon and magic skills—and base-spell ID represented exactly once.
 - Race + class budgets match source calculations for every playable race/class.
 - Purchases validate pool, wildcard, prerequisite, rank cap, mutually exclusive choices and point availability.
 - Player, companion, authored NPC, generated NPC and civilian fixtures reconcile budget = spent + remaining (free ranks separately tracked).
@@ -93,7 +93,7 @@ Do not create a second parallel skills dictionary. Existing reads in `world_simu
 - Regression fixtures cover player, newly recruited companions, established companions levelling up, rejoining companions, named NPCs, generic humanoids, civilians and monsters.
 
 ## Implementation order
-1. Add source-derived catalogues (this PR).
+1. Add source-derived catalogues, including generated weapon and magic skill definitions (this PR).
 2. Implement point budget and purchase validator; wire player UI and save/load.
 3. Port deterministic NPC spending for non-party NPCs and one-time companion recruitment; ensure party companion level-ups remain player-controlled.
 4. Port spell builder/casting; verify combat integration.
