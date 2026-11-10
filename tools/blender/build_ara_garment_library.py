@@ -144,6 +144,16 @@ def validate_rig(source: bpy.types.Object, target: bpy.types.Object, path: Path)
             f"source_count={len(source_names)}, target_count={len(target_names)}"
         )
 
+    armature_delta = max(
+        abs(source.matrix_world[row][column] - target.matrix_world[row][column])
+        for row in range(4) for column in range(4)
+    )
+    if armature_delta > 1e-4:
+        raise RuntimeError(
+            f"{path.name}: armature object transform differs from the target body "
+            f"(maximum matrix delta {armature_delta:.7g})"
+        )
+
     differences = []
     for source_bone, target_bone in zip(source_bones, target_bones):
         source_matrix = source_bone.matrix_local
@@ -170,7 +180,7 @@ def validate_rig(source: bpy.types.Object, target: bpy.types.Object, path: Path)
 
     if differences:
         differences.sort(key=lambda item: item["max_matrix_element_delta"], reverse=True)
-        log(f"{path.name}: {len(differences)} bone rest transforms differ from canonical Ara rig")
+        log(f"{path.name}: {len(differences)} bone rest transforms differ from the target Ara body rig")
         log(
             f"{path.name}: armature object transform delta="
             f"{max(abs(source.matrix_world[r][c] - target.matrix_world[r][c]) for r in range(4) for c in range(4)):.7g}"
