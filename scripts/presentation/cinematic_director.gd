@@ -218,18 +218,24 @@ func stage_confrontation() -> void:
     var player := _actors.get("player") as Node3D
     var wren := _actors.get("companion_wren_talbot") as Node3D
     if player != null and is_instance_valid(player):
+        player.rotation.y = -PI / 2.0
         play_actor_animation("player", ["Walk"], ["Idle"])
         var player_tween := create_tween()
-        player_tween.tween_property(player, "global_position", Vector3(1.38, 0.0, 1.55), 0.65)
+        player_tween.set_parallel(true)
+        player_tween.tween_property(player, "global_position", Vector3(1.38, 0.0, 1.55), 0.9)
+        player_tween.tween_property(player, "rotation:y", -PI / 2.0, 0.15)
         await player_tween.finished
-        player.rotation.y = PI
+        player.rotation.y = 0.0 # The entrance is in the south (+Z) wall.
         play_actor_animation("player", ["Idle"], [])
     if wren != null and is_instance_valid(wren) and not _skipped:
+        wren.rotation.y = PI / 2.0
         play_actor_animation("companion_wren_talbot", ["Walk"], ["Idle"])
         var wren_tween := create_tween()
-        wren_tween.tween_property(wren, "global_position", Vector3(3.92, 0.0, -1.55), 0.65)
+        wren_tween.set_parallel(true)
+        wren_tween.tween_property(wren, "global_position", Vector3(3.92, 0.0, -1.55), 0.9)
+        wren_tween.tween_property(wren, "rotation:y", PI / 2.0, 0.15)
         await wren_tween.finished
-        wren.rotation.y = 0.0
+        wren.rotation.y = 0.0 # Both characters turn toward the south entrance.
         play_actor_animation("companion_wren_talbot", ["Idle"], [])
 
 
