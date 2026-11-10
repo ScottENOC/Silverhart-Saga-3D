@@ -66,6 +66,13 @@ def main():
     _ref_objects, ref_armature, ref_meshes = import_asset(args.reference)
     _candidate_objects, candidate_armature, candidate_meshes = import_asset(args.candidate)
 
+    armature_delta = max(
+        abs(ref_armature.matrix_world[row][column] - candidate_armature.matrix_world[row][column])
+        for row in range(4) for column in range(4)
+    )
+    if armature_delta > 1e-5:
+        raise RuntimeError(f"Armature object transforms differ by {armature_delta:.8g}")
+
     ref_bones = list(ref_armature.data.bones)
     candidate_bones = list(candidate_armature.data.bones)
     ref_names = [bone.name for bone in ref_bones]
@@ -118,6 +125,8 @@ def main():
         "bone_count": len(ref_bones),
         "bone_names_and_order": "identical",
         "rest_transforms": "identical",
+        "armature_object_transform": "identical",
+        "armature_object_matrix_delta": armature_delta,
         "maximum_rest_matrix_delta": max_delta,
         "bare_mesh_objects": [obj.name for obj in ref_meshes],
         "dressed_mesh_objects": [obj.name for obj in candidate_meshes],
