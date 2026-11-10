@@ -64,3 +64,25 @@ Sitting, drinking and standing are not assumed to exist: the runtime matcher
 uses them only when the imported GLB actually contains a matching clip. A
 visual playtest is still required to verify clip names, retargeting, seating
 alignment, hand/prop interaction and timing on the shipped exports.
+
+## Ara animation catalogue usage in the Hollowmere opening
+
+The opening uses clip labels from the Ara 3D Gen animation catalogue rather than
+invented semantic guesses:
+
+- `Sit idle` keeps the player and Wren seated at the east dining table.
+- `Talk with gestures` is requested for dialogue speakers.
+- `Stand up (on a chair)` plays when the Ironbond entrance is announced.
+- `Walk` carries each character a short distance to a position beside their
+  own bench; they then return to `Idle`.
+
+The documented chain is `Idle → Sit down → Sit idle → Stand up (on a chair) → Idle`.
+The catalogue does not document a drinking/sipping clip, so the opening no
+longer requests one. Tankards remain tabletop props.
+
+At cinematic start, the runtime logs the exact imported AnimationPlayer clip
+names and the GLB path for the player and Wren under
+`[Ara animation catalogue]`. This is intentional: the catalogue documents
+available generator clips, but a particular GLB export may contain a subset.
+A visual playtest is still required to confirm the standing transition and
+bench-side positions look correct in the assembled tavern.
