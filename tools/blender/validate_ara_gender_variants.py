@@ -12,7 +12,6 @@ import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Vector
 
 
 def parse_args():
@@ -118,7 +117,6 @@ def inspect(label, path):
             for obj in meshes
         ],
         "anatomy_tagged_objects": anatomy_objects,
-        "_skin_object": skin,
     }
 
 
