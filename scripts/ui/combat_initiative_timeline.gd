@@ -124,7 +124,7 @@ func _render_entries(entries: Array[Dictionary], current: CharacterState) -> voi
         var card := Button.new()
         card.custom_minimum_size = Vector2(224.0, 132.0)
         card.size_flags_vertical = Control.SIZE_EXPAND_FILL
-        card.tooltip_text = "%s — %.1f TP (100 to act; regeneration pauses at 150)" % [
+        card.tooltip_text = "%s — %.1f TP (100 to act)" % [
             String(entry["display_name"]), float(entry["time_points"])
         ]
         var style := StyleBoxFlat.new()
