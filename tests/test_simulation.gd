@@ -8,6 +8,7 @@ func _initialize() -> void:
     _test_npc_skill_spending_and_companion_boundary()
     _test_campaign_journal()
     _test_hollowmere_campaign_content()
+    _test_companion_campaign_dialogue_and_recruitment()
     _test_hollowmere_encounter()
     _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
@@ -346,6 +347,69 @@ func _test_hollowmere_campaign_content() -> void:
     var night_exchange := {"id": "night", "topic": "time", "roles": ["any"], "hour_start": 21, "hour_end": 5}
     _check(chatter._is_eligible(night_exchange, "civilian", "civilian", 23, 50, false), "Night chatter should wrap across midnight")
     _check(not chatter._is_eligible(night_exchange, "civilian", "civilian", 12, 50, false), "Night chatter should not run at midday")
+
+func _test_companion_campaign_dialogue_and_recruitment() -> void:
+    var journal := CampaignJournal.new()
+    CompanionCampaignContent.register_quest_definitions(journal)
+    _check(journal.quest_definitions.size() >= 8, "All companion recruitment quests should be registered")
+    var empty_inventory: Array[Dictionary] = []
+    var no_party: Array[String] = []
+
+    var aldric_before := CompanionCampaignContent.conversation("ser_aldric_thorne", journal, empty_inventory, no_party)
+    _check(not _has_companion_recruit_choice(aldric_before), "Aldric must not recruit before being freed")
+    _check(bool(journal.start_quest("aldric_rescue").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "aldric_rescue", "freed").get("ok", false)))
+    var aldric_after := CompanionCampaignContent.conversation("ser_aldric_thorne", journal, empty_inventory, no_party)
+    _check(_has_companion_recruit_choice(aldric_after), "Aldric should offer to join after rescue")
+
+    _check(bool(journal.start_quest("goblin_threat").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_with_decision(journal, "goblin_threat", "resolved", "resolution", "goblin_alliance").get("ok", false)))
+    var nix_after := CompanionCampaignContent.conversation("nix_sharpear", journal, empty_inventory, no_party)
+    _check(_has_companion_recruit_choice(nix_after), "Nix should join only after the peaceful goblin alliance")
+
+    _check(bool(journal.start_quest("orc_stronghold_trust").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "orc_stronghold_trust", "troll_slain").get("ok", false)))
+    var grukk_without_trust := CompanionCampaignContent.conversation("warlord_grukk_ironhide", journal, empty_inventory, no_party)
+    _check(not _has_companion_recruit_choice(grukk_without_trust), "Grukk must require deeper orc faction trust after the troll quest")
+    journal.adjust_faction_standing("orc_raiders", 40, "companion recruitment test")
+    var grukk_with_trust := CompanionCampaignContent.conversation("warlord_grukk_ironhide", journal, empty_inventory, no_party)
+    _check(_has_companion_recruit_choice(grukk_with_trust), "Grukk should offer to join at 40 orc standing")
+
+    _check(bool(journal.start_quest("reyna_bear_hunt").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "reyna_bear_hunt", "bear_slain").get("ok", false)))
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Reyna should join after the bear is defeated")
+
+    _check(bool(journal.start_quest("mirabel_spider_ruin").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "mirabel_spider_ruin", "nest_cleared").get("ok", false)))
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("mirabel_quill", journal, empty_inventory, no_party)), "Mirabel should join after the ruin is cleared")
+
+    _check(bool(journal.start_quest("fenn_herb_gathering").get("ok", false)))
+    var two_herbs: Array[Dictionary] = [{"id":"herbs","quantity":2,"instance_id":"herbs_a"}]
+    _check(not _has_companion_recruit_choice(CompanionCampaignContent.conversation("fenn_oakheart", journal, two_herbs, no_party)), "Fenn should require all three herb bundles")
+    var three_herbs: Array[Dictionary] = [{"id":"herbs","quantity":3,"instance_id":"herbs_a"}]
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("fenn_oakheart", journal, three_herbs, no_party)), "Fenn should offer to join when three herbs are available")
+
+    _check(bool(journal.start_quest("northwatch_siege").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "northwatch_siege", "defended").get("ok", false)))
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("brother_alden", journal, empty_inventory, no_party)), "Alden should offer to join after Northwatch is defended")
+
+    _check(bool(journal.start_quest("star_fort_companion").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_with_decision(journal, "star_fort_companion", "greenskin_resolution", "side", "greenskin").get("ok", false)))
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("snik_fangtooth", journal, empty_inventory, no_party)), "Snik should offer to join only after the greenskin Star Fort outcome")
+
+    var restored := CampaignJournal.new()
+    CompanionCampaignContent.register_quest_definitions(restored)
+    restored.load_dict(journal.to_dict())
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("nix_sharpear", restored, empty_inventory, no_party)), "Companion quest outcomes should persist through journal save/load")
+
+
+func _has_companion_recruit_choice(conversation: Dictionary) -> bool:
+    for choice_value in conversation.get("choices", []):
+        var choice: Dictionary = choice_value
+        if String(choice.get("id", "")).begins_with("recruit:"):
+            return true
+    return false
+
 
 func _test_character_round_trip() -> void:
     var original := CharacterState.new("npc_garrick_holt", "Garrick Holt", Vector2i(2, -1))
