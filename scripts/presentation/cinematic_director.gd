@@ -207,7 +207,7 @@ func play_actor_animation(actor_id: String, preferred_terms: Array[String], fall
     var clip := character_model.play_animation_matching(preferred_terms, fallback_terms)
     if clip.is_empty() and not preferred_terms.is_empty():
         print("[Cinematic] No Ara clip matched %s for %s. Available: %s" % [
-            ", ".join(preferred_terms), actor_id, ", ".join(character_model.available_animation_names())
+            ", ".join(PackedStringArray(preferred_terms)), actor_id, ", ".join(character_model.available_animation_names())
         ])
     return clip
 
