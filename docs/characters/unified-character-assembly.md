@@ -85,6 +85,22 @@ After the local build and Godot import, run:
 
 The automated test does not replace visual inspection in the running game. Review Wren from the front, side and rear, then equip/unequip one garment and confirm the underlying body remains visible and correctly shaped.
 
+## Gender and anatomy source diagnostics
+
+The local pipeline now keeps raw Ara body review renders separate from the anatomy-processed outputs:
+
+- `art/characters/ara/review/body_raw/` — raw female Ara export before the female anatomy pass.
+- `art/characters/ara/review/male_raw/` — raw male Ara export before the male anatomy pass.
+- `art/characters/ara/ara_person_gender_anatomy_validation.json` — geometry and bounds comparison for raw female, raw male, and both final anatomy-processed bodies.
+
+The diagnostic compares the skin meshes' vertex counts, polygon counts, world-space bounds and (when topology counts match) per-vertex displacement. This isolates three possibilities:
+
+1. Raw female and male exports are already effectively the same: investigate Ara's gender morph targets, source data and export/cache inputs.
+2. Raw exports differ, but the final male body looks female: investigate the male anatomy/export/package path.
+3. Female raw and final meshes barely differ: investigate the female sculpt's pelvic landmark, front-surface selection and deformation strength/topology.
+
+The diagnostic does not automatically declare a body anatomically correct. It provides evidence about which stage changed the geometry; front/side/rear visual review remains mandatory.
+
 ## Visual validation status — blocked, not complete
 
 The first in-game review exposed failures that the initial Wren pilot validation did not cover. The presence of a generated GLB and a successful garment extraction are not proof that the correct body, anatomy, hair, or inventory state is visible in Godot.
