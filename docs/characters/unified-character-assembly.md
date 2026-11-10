@@ -34,9 +34,9 @@ Wren is the first profile being validated end to end:
 - Extract Wren's garments from that matching dressed export and validate its bone names, order and rest transforms against the bare Wren body.
 - Package the bare body and matching garment library for Godot.
 
-The old art/characters/hollowmere/*.glb models are visual/legacy references only. They are not used as the source of the new Wren body or garments; an older export may have been made with different Ara parameters or generator versions.
+The old art/characters/hollowmere/*.glb models are not used as the source of Wren's new body or garments; an older export may have been made with different Ara parameters or generator versions. They remain a temporary runtime visual fallback for NPCs whose profile-generated bodies are not built yet, so the migration does not leave those characters undressed. This fallback is transitional and is not the target architecture.
 
-This is deliberately a Wren-only pilot. Other NPCs still fall back to the shared gender base until their own profile-generated bare bodies and matching garment sources have been built. Do not attach Wren's garment library to another character.
+This is deliberately a Wren-only pilot. Wren uses her new bare Ara body and matching garment library. Other NPCs temporarily retain their existing visual assets until their own profile-generated bare bodies and matching garment sources have been built. Do not attach Wren's garment library to another character.
 
 ## Build locally
 
