@@ -402,6 +402,71 @@ def merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone):
     skin["male_anatomy_parts"] = "integrated_root,shaft,glans,corona,scrotal_sac"
     return skin
 
+def masculinise_body_mesh(skin):
+    """Apply a restrained male torso/pelvis silhouette to the shared Ara rig.
+
+    Ara's gender=1 export currently produces the exact same skin vertices as
+    gender=0. This pass therefore changes the actual skinned body surface before
+    adding male anatomy. It preserves topology, UVs, vertex groups, modifiers
+    and applies the same spatial transform to every existing shape-key block.
+    """
+    lo, hi = bounds(skin)
+    height = hi.z - lo.z
+    width = hi.x - lo.x
+    if height <= 0.0 or width <= 0.0:
+        raise RuntimeError("Cannot masculinise Ara body with invalid bounds")
+
+    inverse_world = skin.matrix_world.inverted()
+    shape_keys = skin.data.shape_keys
+    blocks = list(shape_keys.key_blocks) if shape_keys else [None]
+    moved = 0
+    max_displacement = 0.0
+    squared_displacement = 0.0
+    for block in blocks:
+        coordinates = block.data if block is not None else skin.data.vertices
+        for vertex in coordinates:
+            original_local = vertex.co.copy()
+            point = skin.matrix_world @ original_local
+            ratio = (point.z - lo.z) / height
+            shoulder = math.exp(-0.5 * ((ratio - 0.795) / 0.095) ** 2)
+            ribcage = math.exp(-0.5 * ((ratio - 0.685) / 0.085) ** 2)
+            waist = math.exp(-0.5 * ((ratio - 0.595) / 0.075) ** 2)
+            pelvis = math.exp(-0.5 * ((ratio - 0.485) / 0.085) ** 2)
+
+            # Broader shoulder/ribcage line and a narrower waist/hip silhouette.
+            lateral_scale = 1.0 + 0.115 * shoulder + 0.035 * ribcage - 0.105 * waist - 0.085 * pelvis
+            point.x *= lateral_scale
+
+            # Reduce the Ara female breast projection into a flatter male chest.
+            # Ara faces -Y; only the front-facing chest surface is moved.
+            chest_band = math.exp(-0.5 * ((ratio - 0.705) / 0.075) ** 2)
+            chest_side = math.exp(-0.5 * ((abs(point.x) - width * 0.105) / (width * 0.075)) ** 2)
+            front_surface = max(0.0, min(1.0, (-point.y - width * 0.015) / (width * 0.16)))
+            point.y += height * 0.018 * chest_band * chest_side * front_surface
+
+            new_local = inverse_world @ point
+            displacement = (new_local - original_local).length
+            if displacement > 1e-8:
+                moved += 1
+                max_displacement = max(max_displacement, displacement)
+                squared_displacement += displacement * displacement
+            vertex.co = new_local
+
+    total = sum(len(block.data) for block in blocks)
+    rms = math.sqrt(squared_displacement / max(moved, 1))
+    skin["male_body_shape"] = "masculinised_torso_shoulders_waist_pelvis"
+    skin["male_body_shape_vertices_moved"] = moved
+    skin["male_body_shape_max_displacement_m"] = max_displacement
+    skin["male_body_shape_rms_displacement_m"] = rms
+    print(
+        "Ara male body silhouette: "
+        f"moved={moved}/{total} shape-key vertices, "
+        f"RMS={rms:.6f} m, max={max_displacement:.6f} m"
+    )
+    if moved < 100:
+        raise RuntimeError("Male silhouette pass changed too few vertices; refusing a female-shaped male base")
+
+
 def main():
     args = arguments()
     if not args.adult:
@@ -415,6 +480,7 @@ def main():
         raise RuntimeError("Expected Ara male meshes and game armature")
     skin, skin_material = find_skin(meshes)
     pelvis_bone = find_pelvis_bone(armature)
+    masculinise_body_mesh(skin)
     lo, hi = bounds(skin)
     height = hi.z - lo.z
     width = hi.x - lo.x
