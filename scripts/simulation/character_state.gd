@@ -22,6 +22,16 @@ var skill_progression_initialized: bool = false
 ## Companion recruitment is a one-time automatic allocation boundary.
 var companion_recruitment_initialized: bool = false
 var progression_mode: String = "player"
+var class_level_sequence: Array[String] = []
+var npc_preferred_skills: Dictionary = {}
+var npc_progression_warnings: Array[Dictionary] = []
+var npc_equipment_legality_warnings: Array[Dictionary] = []
+var npc_innate_skills: Dictionary = {}
+var npc_progression_seed: String = ""
+var npc_authored_progression: bool = false
+var npc_skill_point_budget: int = 0
+var npc_unspent_skill_points: int = 0
+var companion_recruitment_budget_by_pool: Dictionary = {}
 var current_mana: int = 0
 var max_mana: int = 0
 var mana_caps: Dictionary = {"arcane": 10, "divine": 10, "nature": 10}
@@ -213,6 +223,16 @@ func to_dict() -> Dictionary:
         "skill_progression_initialized": skill_progression_initialized,
         "companion_recruitment_initialized": companion_recruitment_initialized,
         "progression_mode": progression_mode,
+        "class_level_sequence": class_level_sequence.duplicate(),
+        "npc_preferred_skills": npc_preferred_skills.duplicate(true),
+        "npc_progression_warnings": npc_progression_warnings.duplicate(true),
+        "npc_equipment_legality_warnings": npc_equipment_legality_warnings.duplicate(true),
+        "npc_innate_skills": npc_innate_skills.duplicate(true),
+        "npc_progression_seed": npc_progression_seed,
+        "npc_authored_progression": npc_authored_progression,
+        "npc_skill_point_budget": npc_skill_point_budget,
+        "npc_unspent_skill_points": npc_unspent_skill_points,
+        "companion_recruitment_budget_by_pool": companion_recruitment_budget_by_pool.duplicate(true),
         "current_mana": current_mana,
         "max_mana": max_mana,
         "mana_caps": mana_caps.duplicate(true),
@@ -283,6 +303,21 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.skill_progression_initialized = bool(data.get("skill_progression_initialized", false))
     state.companion_recruitment_initialized = bool(data.get("companion_recruitment_initialized", false))
     state.progression_mode = String(data.get("progression_mode", "player"))
+    for class_id in data.get("class_level_sequence", []):
+        state.class_level_sequence.append(String(class_id))
+    state.npc_preferred_skills = data.get("npc_preferred_skills", {}).duplicate(true)
+    for warning in data.get("npc_progression_warnings", []):
+        if warning is Dictionary:
+            state.npc_progression_warnings.append(warning.duplicate(true))
+    for warning in data.get("npc_equipment_legality_warnings", []):
+        if warning is Dictionary:
+            state.npc_equipment_legality_warnings.append(warning.duplicate(true))
+    state.npc_innate_skills = data.get("npc_innate_skills", {}).duplicate(true)
+    state.npc_progression_seed = String(data.get("npc_progression_seed", ""))
+    state.npc_authored_progression = bool(data.get("npc_authored_progression", false))
+    state.npc_skill_point_budget = int(data.get("npc_skill_point_budget", 0))
+    state.npc_unspent_skill_points = int(data.get("npc_unspent_skill_points", 0))
+    state.companion_recruitment_budget_by_pool = data.get("companion_recruitment_budget_by_pool", {}).duplicate(true)
     state.current_mana = int(data.get("current_mana", 0))
     state.max_mana = int(data.get("max_mana", 0))
     state.mana_caps = data.get("mana_caps", {"arcane": 10, "divine": 10, "nature": 10}).duplicate(true)
