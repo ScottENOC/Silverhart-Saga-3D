@@ -180,6 +180,8 @@ def validate_rig(source: bpy.types.Object, target: bpy.types.Object, path: Path)
                 f"translation_distance={item['translation_distance']:.7g} "
                 f"rotation_delta={item['rotation_delta_degrees']:.5f}deg"
             )
+            log(f"{path.name}:   source_matrix={item['source_matrix']}")
+            log(f"{path.name}:   target_matrix={item['target_matrix']}")
         raise RuntimeError(
             f"{path.name}: rest transforms differ for {len(differences)} bone(s); "
             "refusing unsafe garment retarget. Full per-bone matrices are logged above "
