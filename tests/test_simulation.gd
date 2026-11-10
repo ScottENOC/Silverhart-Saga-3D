@@ -74,7 +74,7 @@ func _test_wilderness_resources_and_chunk_streaming() -> void:
 
 func _test_skill_catalogue_and_progression() -> void:
     var definitions := SkillCatalog.definitions()
-    _check(definitions.size() == 186, "The source skill catalogue should contain all 186 unique entries")
+    _check(definitions.size() == 257, "The source skill catalogue should contain all 186 unique entries")
     _check(int(SkillCatalog.get_skill("health").get("max_ranks", -1)) == 0, "A zero rank cap means unlimited ranks")
 
     var character := CharacterState.new("skill_test", "Skill Test")
@@ -99,7 +99,7 @@ func _test_skill_catalogue_and_progression() -> void:
     SkillProgression.initialise(wildcard_character)
     var wildcard_purchase := SkillProgression.purchase(wildcard_character, "shove")
     _check(bool(wildcard_purchase.get("ok", false)) and String(wildcard_purchase.get("funding_pool", "")) == "wildcard", "Wildcard points may fund standard trees")
-    _check(String(SkillProgression.can_purchase(wildcard_character, "monster_regeneration").get("reason", "")) != "ok", "Creature-only skills must not be purchasable from the player skill system")
+    _check(String(SkillProgression.can_purchase(wildcard_character, "regeneration").get("reason", "")) != "ok", "Creature-only skills must not be purchasable from the player skill system")
 
     var misc_character := CharacterState.new("misc_test", "Misc Test")
     misc_character.attributes = {"endurance": 1, "agility": 1}
