@@ -28,6 +28,8 @@ var pronouns: String = "they/them"
 var facing_direction: int = 2 # HexGrid direction index; 2 initially faces the W key direction.
 var health: int = 100
 var max_health: int = 100
+## Runtime-only portrait supplied by the 3D presentation layer when available.
+var portrait_texture: Texture2D
 var side: String = "neutral"
 var base_damage: int = 1
 var to_hit_melee: float = 0.0
@@ -183,7 +185,7 @@ func spend_time_points(cost: float) -> bool:
 
 func regenerate_time_points(tick_multiplier: float = 1.0) -> void:
     time_points = ActionEconomy.regenerate(
-        time_points, time_points_per_tick, tick_multiplier, max_time_points
+        time_points, time_points_per_tick, tick_multiplier, 150.0
     )
 
 func to_dict() -> Dictionary:
