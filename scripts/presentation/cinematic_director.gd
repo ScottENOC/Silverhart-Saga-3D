@@ -169,10 +169,10 @@ func _stage_table_conversation() -> void:
         return
     # The east table is centred at x=2.65; its benches are already part of
     # HollowTankard's furniture layout.
-    player.global_position = Vector3(2.65, 0.0, 1.25)
-    player.rotation.y = 0.0
-    wren.global_position = Vector3(2.65, 0.0, -1.25)
-    wren.rotation.y = PI
+    player.global_position = Vector3(2.65, 0.0, 1.45)
+    player.rotation.y = PI
+    wren.global_position = Vector3(2.65, 0.0, -1.45)
+    wren.rotation.y = 0.0
     play_actor_animation("player", ["Sit idle", "sit_idle"], ["Idle"])
     play_actor_animation("companion_wren_talbot", ["Sit idle", "sit_idle"], ["Idle"])
 
