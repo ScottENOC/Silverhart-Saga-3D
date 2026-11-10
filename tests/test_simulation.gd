@@ -1186,6 +1186,14 @@ func _test_npc_skill_spending_and_companion_boundary() -> void:
         var row: Dictionary = population_report.pools[pool]
         _check(bool(row.get("balanced", false)), "Generated NPC point budgets must reconcile by pool")
 
+
+    var troll := CharacterState.new("troll_npc", "Troll NPC")
+    var troll_build := NPCSkillSpending.build_population(troll, "troll", 1, "troll:population")
+    _check(bool(troll_build.get("ok", false)), "Non-player humanoid races should use the shared NPC progression rules")
+    _check(int(troll.skills.get("regeneration", 0)) == 1 and int(troll.free_skill_ranks.get("regeneration", 0)) == 1, "Racial innate abilities are tracked separately from paid ranks")
+    var troll_level := NPCSkillSpending.grant_npc_level(troll, "fighter", "troll:level2")
+    _check(bool(troll_level.get("ok", false)), "Non-player humanoid races can progress through class levels")
+
     var authored := CharacterState.new("authored_guard", "Authored Guard")
     authored.equipment["weapon"] = "sword"
     var authored_build := NPCSkillSpending.build_authored(
