@@ -212,3 +212,15 @@ The current Godot strategic map's six entries (Silverhart, Millbrook, Emberlode,
 3. Audit and complete combat parity: facing/LOS/ranged, action validation, AI and encounter lifecycle.
 4. Expand the campaign strategic map from the verified Campaign 2 geography above; add data-driven links and hidden-site discovery.
 5. Continue inventory/progression/quests/social systems against the original source.
+
+
+## Equipment gameplay/stat integration — feature branch update (2026-11-10)
+
+Work on `feature/equipment-gameplay-stat-integration` closes two code-level gaps identified in the equipment audit:
+
+- **Helmet mitigation:** `CombatRules.damage_reduction()` now includes the equipped helmet instance's `reduction`, alongside the existing base, body-armour, shield and temporary reduction sources. Helmet data is persisted through the existing `CharacterState` equipment serialization.
+- **Slot validation:** `CharacterState.equip_inventory_item()` now rejects item/type mismatches (for example, a helmet in the body-armour slot) and unsupported slots. Rejected items remain in inventory.
+- **Hand conflicts:** a two-handed weapon cannot be equipped while an offhand item is equipped; an offhand item cannot be equipped while a two-handed weapon is active. The operation rejects the conflict rather than silently discarding gear.
+- **Regression coverage:** the simulation test suite now covers helmet reduction and save/load, invalid slot rejection, two-handed weapon/shield conflicts, and the valid two-handed equip case.
+
+**Validation status:** code and tests have been added, but Godot 4.7.2 has not been run in this environment and no live combat/UI test has been performed. Treat this as implementation pending headless test/CI confirmation and local in-game validation. This work does not add or claim any new 3D equipment models.
