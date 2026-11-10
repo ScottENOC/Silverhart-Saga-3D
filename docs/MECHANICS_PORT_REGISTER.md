@@ -24,13 +24,23 @@ The old project is a substantial game, not just a hex movement prototype: its so
 | Character state | Foundation | Attributes, full derived stats, XP/levels, mana, stamina/resources, status effects, identity/relationships |
 | Time Points | Initial rules implemented | All action costs, regeneration modifiers, combat/exploration differences and reactions |
 | World clock/calendar | Fixed-step clock and 12-month calendar implemented | Source event hooks, sleep/rest, time speed and world scheduling |
-| Combat | Highest-TP initiative and initial deterministic attack resolver implemented (hit chance, damage, reductions, TP cost, seeded outcomes) | Unified action contract, range/weapon readiness/critical/facing/cover/LOS, reactions, downed/death lifecycle, AI, encounter start/end and cleanup |
+| Combat | Highest-TP initiative and deterministic attack resolver implemented (hit chance, damage, reductions, TP cost, seeded outcomes); equipped helmet reduction now contributes to mitigation | Range/weapon readiness/critical/facing/cover/LOS, AI, encounter lifecycle and cleanup; confirm equipment changes in a live Godot combat test |
 | Movement | Paid adjacent movement and weighted A* implemented | Roads, cover, encumbrance, hamstring, friendly squeezing, mounts, occupancy exceptions, reactions, visibility-aware path costs and NPC pathing |
 | Elevation | 3D height samples and slope/climbing costs in progress | Ledges, falls, ladders/stairs, climbing actions, fall damage and height-aware LOS |
 | Presentation | 3D hex terrain, camera, actor and Ara modular-character integration | Combat/interaction animation hooks and state-driven UI |
 | Hollowmere | Village/tavern blockout and authored NPC data | Event-driven opening, dialogue, branching consequences, interiors and full playable loop |
 | Save/load | Character/world-clock dictionary serialisation only | Versioned whole-world persistence and round-trip tests |
 | Other gameplay systems | Not yet represented in the simulation layer | See backlog below |
+
+## Equipment/inventory gameplay integration update (2026-11-10)
+
+On `feature/equipment-gameplay-stat-integration`:
+- Equipped helmet instance reduction is included by the shared combat damage-reduction rule.
+- Equip actions validate item type against the destination slot and preserve rejected items in inventory.
+- Two-handed weapons and offhand items are mutually exclusive; conflicts are rejected without silently unequipping the other item.
+- Regression assertions cover helmet mitigation and save/load, slot mismatch, and both directions of the two-handed/offhand conflict.
+
+Headless Godot validation and live combat/UI verification remain pending. Do not mark the equipment system fully complete: item visuals, actor attachment, armour tier distinctions, accessory effects, and full source parity remain separate work.
 
 ## Current next porting slice
 
