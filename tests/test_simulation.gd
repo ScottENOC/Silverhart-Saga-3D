@@ -1250,6 +1250,30 @@ func _test_npc_skill_spending_and_companion_boundary() -> void:
     _check(bool(simulation.dismiss_companion("party_candidate").get("ok", false)), "A companion can leave the active party without being deleted")
     var rejoin_result := simulation.recruit_companion("party_candidate", {}, "party_candidate:rejoin")
     _check(bool(rejoin_result.get("ok", false)) and String(rejoin_result.get("reason", "")) == "rejoined_existing_companion", "WorldSimulation should rejoin an existing companion without rebuilding")
+    var party_ranks_before_level := party_candidate.skills.duplicate(true)
+    var party_points_before_level := SkillProgression.available_points(party_candidate)
+    var party_level := simulation.grant_character_level("party_candidate", "rogue", "party_candidate:level2")
+    _check(bool(party_level.get("ok", false)), "WorldSimulation should grant a companion's class level")
+    _check(party_candidate.skills == party_ranks_before_level, "WorldSimulation must not auto-spend post-recruitment companion points")
+    _check(SkillProgression.available_points(party_candidate) == party_points_before_level + 7, "Companion level-up pools remain available for player allocation")
+
+    var ordinary_npc := CharacterState.new("ordinary_npc", "Ordinary NPC", Vector2i(2, 0))
+    var ordinary_build := NPCSkillSpending.build_population(ordinary_npc, "goblin", 1, "ordinary_npc:population")
+    _check(bool(ordinary_build.get("ok", false)))
+    simulation.register_character(ordinary_npc)
+    var npc_spent_before := 0
+    for value in ordinary_npc.skill_spent_by_pool.values():
+        npc_spent_before += int(value)
+    var npc_level := simulation.grant_character_level("ordinary_npc", "fighter", "ordinary_npc:level2")
+    var npc_spent_after := 0
+    for value in ordinary_npc.skill_spent_by_pool.values():
+        npc_spent_after += int(value)
+    _check(bool(npc_level.get("ok", false)) and String(npc_level.get("reason", "")) == "npc_level_granted_and_allocated", "Non-party NPC level-ups should automatically allocate their new points")
+    _check(npc_spent_after > npc_spent_before, "Non-party NPCs should spend new level points automatically")
+    var npc_report := SkillProgression.accounting_report(ordinary_npc)
+    for pool in npc_report.get("pools", {}):
+        _check(bool(npc_report.pools[pool].get("balanced", false)), "NPC level-up budgets must remain reconciled")
+
     var world_saved := simulation.to_dict()
     var world_restored := WorldSimulation.new()
     world_restored.load_dict(world_saved)
