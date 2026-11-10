@@ -80,6 +80,7 @@ var active_combat_kind: String = "ironbond"
 var active_enemy_ids: Array[String] = []
 var active_party_ids: Array[String] = []
 var farm_wolves_spawned: bool = false
+var farm_wolves_retry_armed: bool = false
 var wilderness_steps_since_spawn: int = 0
 var wilderness_creature_nodes: Array[Node3D] = []
 var enemy_turn_processed: bool = false
@@ -1304,7 +1305,7 @@ func _farm_wolves_remaining() -> int:
 
 
 func _check_farm_wolf_proximity() -> void:
-	if simulation == null or encounter_active or farm_wolves_spawned:
+	if simulation == null or encounter_active:
 		return
 	var quest := simulation.campaign_journal.quest_state(FARM_WOLVES_QUEST_SCRIPT.QUEST_ID)
 	if String(quest.get("status", "")) != "active":
@@ -1314,41 +1315,45 @@ func _check_farm_wolf_proximity() -> void:
 		return
 	# The den is deliberately well beyond the farm and the village sightline.
 	var den := Vector2i(-42, 72)
-	if HexGrid.distance(player.axial, den) <= 8:
+	if HexGrid.distance(player.axial, den) > 8:
+		return
+	if not farm_wolves_spawned or farm_wolves_retry_armed and _farm_wolves_remaining() > 0:
 		_start_farm_wolf_encounter()
 
 
 func _start_farm_wolf_encounter() -> void:
-	if farm_wolves_spawned or simulation.is_in_combat:
+	if simulation.is_in_combat or farm_wolves_spawned and _farm_wolves_remaining() == 0:
 		return
-	farm_wolves_spawned = true
-	var den := Vector2i(-42, 72)
-	var offsets: Array[Vector2i] = [Vector2i(-1, -1), Vector2i(1, 0), Vector2i(0, 1)]
-	for index in range(FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size()):
-		var wolf_id := FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS[index]
-		var preferred := den + offsets[index]
-		var spawn_hex := _find_valid_spawn_hex(preferred)
-		var wolf := CharacterState.new(wolf_id, "Wolf", spawn_hex)
-		wolf.side = "enemy"
-		wolf.max_health = 75
-		wolf.health = 75
-		wolf.base_damage = 4
-		wolf.to_hit_melee = 4.0
-		wolf.skills = {"bite_hit": 1, "bite_dmg": 1}
-		wolf.tags.append("animal")
-		wolf.tags.append("farm_quest_wolf")
-		wolf.time_points = wolf.max_time_points
-		simulation.register_character(wolf)
+	if not farm_wolves_spawned:
+		farm_wolves_spawned = true
+		var den := Vector2i(-42, 72)
+		var offsets: Array[Vector2i] = [Vector2i(-1, -1), Vector2i(1, 0), Vector2i(0, 1)]
+		for index in range(FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size()):
+			var wolf_id := FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS[index]
+			var preferred := den + offsets[index]
+			var spawn_hex := _find_valid_spawn_hex(preferred)
+			var wolf := CharacterState.new(wolf_id, "Wolf", spawn_hex)
+			wolf.side = "enemy"
+			wolf.max_health = 75
+			wolf.health = 75
+			wolf.base_damage = 4
+			wolf.to_hit_melee = 4.0
+			wolf.skills = {"bite_hit": 1, "bite_dmg": 1}
+			wolf.tags.append("animal")
+			wolf.tags.append("farm_quest_wolf")
+			wolf.time_points = wolf.max_time_points
+			simulation.register_character(wolf)
 
-		var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
-		actor.name = wolf_id
-		actor.creature_kind = "wolf"
-		actor.behaviour = "predator"
-		actor.model_scale = 0.76
-		actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
-		actor.position = _hex_world_position(spawn_hex)
-		add_child(actor)
-		actor_by_id[wolf_id] = actor
+			var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+			actor.name = wolf_id
+			actor.creature_kind = "wolf"
+			actor.behaviour = "predator"
+			actor.model_scale = 0.76
+			actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
+			actor.position = _hex_world_position(spawn_hex)
+			add_child(actor)
+			actor_by_id[wolf_id] = actor
+	farm_wolves_retry_armed = false
 
 	active_combat_kind = "farm_wolves"
 	active_enemy_ids = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
@@ -1392,7 +1397,8 @@ func _check_farm_wolf_resolution() -> void:
 			if member != null:
 				member.side = "player"
 				member.combat_dormant = false
-		_show_dialogue("Wilderness", "The wolves drive you back. They remain at their den, and Old Mac's cattle are still in danger.", [{"id": "continue", "label": "Retreat.", "text": ""}])
+		farm_wolves_retry_armed = true
+		_show_dialogue("Wilderness", "The wolves drive you back. They remain at their den, and Old Mac's cattle are still in danger. You can return when ready.", [{"id": "continue", "label": "Retreat.", "text": ""}])
 		return
 
 	var all_defeated := true
