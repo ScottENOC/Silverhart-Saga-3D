@@ -213,7 +213,7 @@ func _create_farm_animals() -> void:
 	_spawn_creature("FarmCowB", "cow", "farm", Vector2i(10, 69), 0.82)
 	_spawn_creature("FarmCowC", "cow", "farm", Vector2i(13, 64), 0.82)
 	# A farm horse is present as a visible future mount candidate.
-	_spawn_creature("FarmHorse", "horse", "mount", Vector2i(20, 54), 0.82)
+	_spawn_creature("FarmHorse", "horse", "mount", Vector2i(24, 57), 0.82)
 
 func _add_broken_fence_and_blood_trail() -> void:
 	var gap_hex := Vector2i(1, 67)
