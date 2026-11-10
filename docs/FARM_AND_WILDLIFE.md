@@ -6,7 +6,8 @@ The runtime uses the original imported glTF scenes and keeps their native skelet
 
 Current placements:
 - Three cows in Old Mac's fenced southern pasture.
-- A horse beside the farm barn as a future riding-mount candidate.
+- A brown horse and a white horse beside the farm barn as future riding-mount candidates.
+- A Shiba Inu farm dog near the farmhouse.
 - Deer, stag, fox and wolf as ambient woodland dressing.
 - Additional deer, stag, fox and wolf actors can spawn during travel once the player is beyond Hollowmere's 35-hex safety radius. The spawn roll is movement-based, capped, and old sightings are culled as the party moves on.
 
