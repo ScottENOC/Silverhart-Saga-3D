@@ -114,7 +114,6 @@ static func purchase(character: CharacterState, skill_id: String, funding_pool: 
     if not bool(result.get("ok", false)):
         return result
     var pool := String(result.get("funding_pool", ""))
-    var skill: Dictionary = result.get("skill", {})
     character.attributes[pool] = int(character.attributes.get(pool, 0)) - 1
     character.skills[skill_id] = int(character.skills.get(skill_id, 0)) + 1
     character.skill_spent_by_pool[pool] = int(character.skill_spent_by_pool.get(pool, 0)) + 1
