@@ -6,6 +6,7 @@ extends Node3D
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
 const GROUND_SIZE: float = 420.0
 const ORGANIC_FEATURES = preload("res://scripts/world/organic_world_features.gd")
+const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 
 var grass_material: StandardMaterial3D
 var path_material: StandardMaterial3D
@@ -28,6 +29,8 @@ func _ready() -> void:
 	_create_paths_and_stream()
 	_create_buildings()
 	_create_farmstead()
+	_create_farm_animals()
+	_create_wilderness_animals()
 	_create_bridge()
 	_create_signpost()
 	_create_forest()
@@ -202,6 +205,32 @@ func _create_farmstead() -> void:
 	for hex in HollowmereVillageData.FARMYARD_CENTRELINE:
 		yard_lane.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.035))
 	add_child(ORGANIC_FEATURES.make_ribbon("FarmyardLane", yard_lane, PackedFloat32Array([2.2, 2.0, 2.0, 2.0]), path_material, 0.0, 8))
+
+func _create_farm_animals() -> void:
+	# Old Mac's surviving herd occupies the fenced southern pasture.
+	_spawn_creature("FarmCowA", "cow", "farm", Vector2i(5, 66), 0.82)
+	_spawn_creature("FarmCowB", "cow", "farm", Vector2i(10, 69), 0.82)
+	_spawn_creature("FarmCowC", "cow", "farm", Vector2i(13, 64), 0.82)
+
+func _create_wilderness_animals() -> void:
+	# Ambient wildlife is placed in the outer forest belt, away from the
+	# settlement, farm and roads. These are presentation actors; encounter
+	# spawning and combat ownership remain with the world simulation.
+	_spawn_creature("WildernessDeer", "deer", "passive_wildlife", Vector2i(-34, 18), 0.78)
+	_spawn_creature("WildernessStag", "stag", "passive_wildlife", Vector2i(37, -12), 0.82)
+	_spawn_creature("WildernessFox", "fox", "passive_wildlife", Vector2i(-29, -30), 0.72)
+	_spawn_creature("WildernessWolf", "wolf", "predator", Vector2i(39, 39), 0.76)
+
+func _spawn_creature(actor_name: String, kind: String, behaviour_name: String, hex: Vector2i, scale_factor: float) -> void:
+	var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+	actor.name = actor_name
+	actor.creature_kind = kind
+	actor.behaviour = behaviour_name
+	actor.model_scale = scale_factor
+	actor.model_path = "res://art/creatures/quaternius/%s.gltf" % kind.capitalize()
+	actor.position = HexGrid.axial_to_world(hex, HEX_RADIUS, 0.0)
+	actor.rotation.y = deg_to_rad(float(posmod(hex.x * 37 + hex.y * 19, 360)))
+	add_child(actor)
 
 func _add_farm_field(node_name: String, corners: Array[Vector2i], material: Material) -> void:
 	var points: Array[Vector3] = []
