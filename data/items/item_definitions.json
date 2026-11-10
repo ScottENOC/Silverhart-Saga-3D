@@ -892,6 +892,14 @@
       "equipment_slot": "shoes",
       "garment_visual": "combat_boots",
       "weight": 1.5
+    },
+    "bikini_bottom": {
+      "id": "bikini_bottom",
+      "name": "Ara Bikini Bottom",
+      "type": "clothing",
+      "equipment_slot": "underBottom",
+      "garment_visual": "bikini_bottom",
+      "weight": 0.3
     }
   }
 }
