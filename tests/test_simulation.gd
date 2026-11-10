@@ -127,6 +127,25 @@ func _test_skill_catalogue_and_progression() -> void:
     SkillProgression.initialise(quest_character)
     _check(String(SkillProgression.can_purchase(quest_character, "learn_unicorn_summon").get("reason", "")) == "quest_granted_only", "Quest-only skills cannot be purchased")
 
+    var level_character := CharacterCreationRules.create_player_state({
+        "name": "Level Test", "race": "human", "character_class": "fighter",
+        "game_mode": "campaign", "campaign_id": "2", "difficulty_mode": "normal"
+    }, "level_test", Vector2i.ZERO)
+    var before_level_attributes := level_character.attributes.duplicate(true)
+    var rogue_bonus := CharacterCreationRules.class_definition("rogue").get("bonus", {})
+    var human_bonus := CharacterCreationRules.race_definition("human").get("bonus", {})
+    var level_grant := SkillProgression.grant_level(level_character, "rogue", "level_2")
+    _check(bool(level_grant.get("ok", false)) and level_character.level == 2, "A new class level should be granted")
+    for pool in human_bonus:
+        var expected := int(before_level_attributes.get(pool, 0)) + int(human_bonus.get(pool, 0)) + int(rogue_bonus.get(pool, 0))
+        _check(int(level_character.attributes.get(pool, 0)) == expected, "Each level grants the source race and selected class pools")
+    for pool in rogue_bonus:
+        if not human_bonus.has(pool):
+            _check(int(level_character.attributes.get(pool, 0)) == int(before_level_attributes.get(pool, 0)) + int(rogue_bonus.get(pool, 0)))
+    _check(int(level_character.class_levels.get("rogue", 0)) == 1, "Class-level history should retain multiclass progression")
+    _check(String(SkillProgression.grant_level(level_character, "rogue", "level_2").get("reason", "")) == "grant_already_applied", "A level-up cannot award the same points twice")
+    _check(int(level_character.skills.size()) == 0, "A level grant must leave new skill points unspent for the player")
+
     var grant := SkillProgression.grant_points(quest_character, "druid", 2, "level_2_druid")
     _check(bool(grant.get("ok", false)))
     _check(String(SkillProgression.grant_points(quest_character, "druid", 2, "level_2_druid").get("reason", "")) == "grant_already_applied", "A level grant identifier can only be applied once")
