@@ -60,7 +60,12 @@ static func complete_with_decision(journal: CampaignJournal, quest_id: String, o
 static func complete_objective(journal: CampaignJournal, quest_id: String, objective_id: String) -> Dictionary:
     if journal == null:
         return {"ok":false,"reason":"missing_journal"}
-    var progress := journal.set_objective_progress(quest_id, objective_id, 1.0)
+    var quest_state := journal.quest_state(quest_id)
+    var objectives: Dictionary = quest_state.get("objectives", {})
+    if not objectives.has(objective_id):
+        return {"ok":false,"reason":"unknown_objective"}
+    var target := float(objectives[objective_id].get("target", 1.0))
+    var progress := journal.set_objective_progress(quest_id, objective_id, target)
     if not bool(progress.get("ok", false)):
         return progress
     var completion := journal.complete_quest(quest_id)
