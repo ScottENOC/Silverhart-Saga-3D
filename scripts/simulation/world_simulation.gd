@@ -142,8 +142,11 @@ func mount_animal(rider_id: String, animal_id: String, time_point_cost: float = 
         return eligibility
     var rider := get_character(rider_id)
     var mount := get_character(animal_id)
-    if is_in_combat and (not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != rider.id):
-        return {"ok": false, "reason": "not_actor_turn"}
+    if is_in_combat:
+        if not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != rider.id:
+            return {"ok": false, "reason": "not_actor_turn"}
+        if rider.time_points <= float(ActionEconomy.turn_end_threshold(rider.quick_recovery_rank)):
+            return {"ok": false, "reason": "turn_movement_exhausted"}
     if not rider.can_spend_time_points(time_point_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
     if occupied_hexes.has(rider.axial) and String(occupied_hexes[rider.axial]) == rider.id:
@@ -163,6 +166,8 @@ func mount_animal(rider_id: String, animal_id: String, time_point_cost: float = 
         "rider_id": rider.id, "mount_id": mount.id, "hex": mount.axial,
         "time_point_cost": time_point_cost
     }))
+    if is_in_combat and rider.should_end_turn():
+        try_end_current_turn()
     return {"ok": true, "rider_id": rider.id, "mount_id": mount.id, "hex": mount.axial}
 
 
@@ -203,6 +208,8 @@ func dismount_animal(rider_id: String, time_point_cost: float = 5.0) -> Dictiona
         "rider_id": rider.id, "mount_id": mount.id, "from_hex": origin,
         "to_hex": destination, "time_point_cost": time_point_cost
     }))
+    if is_in_combat and rider.should_end_turn():
+        try_end_current_turn()
     return {"ok": true, "rider_id": rider.id, "mount_id": mount.id, "hex": destination}
 
 
