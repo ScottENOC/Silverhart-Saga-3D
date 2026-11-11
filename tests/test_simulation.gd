@@ -560,6 +560,7 @@ func _test_animal_riding() -> void:
     _check(bool(mounted.get("ok", false)), "Nature Riding should allow mounting an appropriately sized horse")
     _check(rider.mounted_animal_id == horse.id and horse.mounted_by_id == rider.id, "Rider and mount should retain reciprocal stable links")
     _check(horse.is_rider and horse.side == "player" and not horse.combat_dormant, "A mounted animal joins its rider's side and leaves the dormant roster")
+    _check(not horse.can_start_combat_turn() and rider.can_start_combat_turn(), "The mount is removed from initiative while its rider remains the active combatant")
     _check(rider.axial == horse.axial, "Mounted rider should share the mount's axial position")
     _check(not simulation.occupied_hexes.has(rider.axial) or String(simulation.occupied_hexes[rider.axial]) == horse.id, "Mounted rider must not reserve a second occupancy slot")
     _check(is_equal_approx(rider.time_points, 95.0), "Mounting should cost the rider 5 TP")
