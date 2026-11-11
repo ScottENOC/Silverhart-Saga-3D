@@ -547,6 +547,14 @@ func _test_animal_riding() -> void:
     _check(String(simulation.can_ride(untrained.id, horse.id).get("reason", "")) == "unknown_character", "Riding eligibility should require registered participants")
     simulation.register_character(untrained)
     _check(String(simulation.can_ride(untrained.id, horse.id).get("reason", "")) == "riding_skill_required", "Riding must require one of the three alternative riding skills")
+    rider.skills.erase("riding_druid")
+    rider.skills["riding"] = 1
+    _check(bool(simulation.can_ride(rider.id, horse.id).get("ok", false)), "Agility Riding should independently grant mount permission")
+    rider.skills.erase("riding")
+    rider.skills["riding_paladin"] = 1
+    _check(bool(simulation.can_ride(rider.id, horse.id).get("ok", false)), "Divine Riding should independently grant mount permission")
+    rider.skills.erase("riding_paladin")
+    rider.skills["riding_druid"] = 1
 
     var mounted := simulation.mount_animal(rider.id, horse.id)
     _check(bool(mounted.get("ok", false)), "Nature Riding should allow mounting an appropriately sized horse")
