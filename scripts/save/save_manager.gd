@@ -70,8 +70,17 @@ func save_quick(snapshot: Dictionary) -> Dictionary:
     return save_snapshot(QUICK_SLOT, snapshot, "Quick Save")
 
 func save_autosave(snapshot: Dictionary) -> Dictionary:
-    var slot_id: String = AUTOSAVE_SLOTS[_autosave_cursor]
-    _autosave_cursor = (_autosave_cursor + 1) % AUTOSAVE_SLOTS.size()
+    var slot_id := AUTOSAVE_SLOTS[0]
+    var oldest_timestamp := 9223372036854775807
+    for candidate in AUTOSAVE_SLOTS:
+        var metadata := get_slot_metadata(candidate)
+        if metadata.is_empty():
+            slot_id = candidate
+            break
+        var timestamp := int(metadata.get("saved_at_unix", 0))
+        if timestamp < oldest_timestamp:
+            oldest_timestamp = timestamp
+            slot_id = candidate
     return save_snapshot(slot_id, snapshot, "Autosave")
 
 func load_snapshot(slot_id: String) -> Dictionary:
