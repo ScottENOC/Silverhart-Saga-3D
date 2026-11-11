@@ -10,8 +10,13 @@ var loading_layer: CanvasLayer
 var loading_label: Label
 var loading_bar: ProgressBar
 var loading_detail: Label
+var pending_save_data: Dictionary = {}
 
 func _ready() -> void:
+    if SaveManager.has_pending_load():
+        pending_save_data = SaveManager.consume_pending_load()
+        _on_character_created(pending_save_data.get("player_profile", {}).duplicate(true))
+        return
     _create_loading_overlay()
     loading_layer.visible = true
     _set_loading_stage(
@@ -117,6 +122,7 @@ func _on_character_created(profile: Dictionary) -> void:
     tavern = HOLLOW_TANKARD_SCRIPT.new()
     tavern.name = "HollowTankard"
     tavern.set("player_profile", profile.duplicate(true))
+    tavern.set("pending_save_data", pending_save_data.duplicate(true))
     add_child(tavern)
 
     _set_loading_stage(
