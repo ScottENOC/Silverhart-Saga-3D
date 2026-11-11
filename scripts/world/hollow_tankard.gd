@@ -15,6 +15,7 @@ const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_re
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const FARMSTEAD_BEAR_SCRIPT = preload("res://scripts/simulation/farmstead_bear_encounter.gd")
+const FARMSTEAD_BEAR_ACTOR_SCRIPT = preload("res://scripts/presentation/farmstead_bear_actor.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 
@@ -440,55 +441,14 @@ func _create_characters() -> void:
 
 
 func _spawn_farmstead_bear() -> void:
-    var actor := HexActorPresentation.new()
+    var actor := FARMSTEAD_BEAR_ACTOR_SCRIPT.new() as Node3D
     actor.name = FARMSTEAD_BEAR_SCRIPT.BEAR_ID
     actor.position = _hex_world_position(Vector2i(30, 58))
     actor.set_meta("character_id", FARMSTEAD_BEAR_SCRIPT.BEAR_ID)
     actor.set_meta("ambient_enabled", false)
-    var bear_material := _material(Color(0.22, 0.12, 0.07))
-    var body := MeshInstance3D.new()
-    var body_mesh := SphereMesh.new()
-    body_mesh.radius = 0.82
-    body_mesh.height = 1.35
-    body.mesh = body_mesh
-    body.position = Vector3(0.0, 0.88, 0.0)
-    body.scale = Vector3(1.0, 0.82, 1.35)
-    body.material_override = bear_material
-    actor.add_child(body)
-    var head := MeshInstance3D.new()
-    var head_mesh := SphereMesh.new()
-    head_mesh.radius = 0.48
-    head.mesh = head_mesh
-    head.position = Vector3(0.0, 1.25, -0.82)
-    head.material_override = bear_material
-    actor.add_child(head)
-    var muzzle := MeshInstance3D.new()
-    var muzzle_mesh := SphereMesh.new()
-    muzzle_mesh.radius = 0.23
-    muzzle.mesh = muzzle_mesh
-    muzzle.position = Vector3(0.0, 1.08, -1.2)
-    muzzle.material_override = _material(Color(0.38, 0.25, 0.16))
-    actor.add_child(muzzle)
-    for x in [-0.48, 0.48]:
-        for z in [-0.42, 0.48]:
-            var leg := MeshInstance3D.new()
-            var leg_mesh := CylinderMesh.new()
-            leg_mesh.top_radius = 0.17
-            leg_mesh.bottom_radius = 0.21
-            leg_mesh.height = 0.8
-            leg.mesh = leg_mesh
-            leg.position = Vector3(x, 0.4, z)
-            leg.material_override = bear_material
-            actor.add_child(leg)
-    var label := Label3D.new()
-    label.text = "Grain-raiding bear"
-    label.position.y = 2.0
-    label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-    label.font_size = 28
-    actor.add_child(label)
+    actor.set_meta("bear_actor", true)
     add_child(actor)
     actor_by_id[FARMSTEAD_BEAR_SCRIPT.BEAR_ID] = actor
-
 
 func _begin_bear_hunt_combat() -> void:
     _close_dialogue()
