@@ -1,0 +1,53 @@
+name: Average-body anatomy review
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: anatomy-review-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-review:
+    name: Build female and male average anatomy previews
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Blender and headless rendering libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y blender libgl1
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Build only the average-body anatomy review
+        env:
+          EGL_PLATFORM: surfaceless
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: python tools/build_ara_runtime_local.py --anatomy-review-only --force
+
+      - name: Upload anatomy review package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: silverhart-average-body-anatomy-review
+          path: build/anatomy-review/
+          if-no-files-found: warn
+          retention-days: 14
