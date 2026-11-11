@@ -83,7 +83,9 @@ func _test_canonical_weapon_skill_runtime() -> void:
     unarmed.skills["unarmed_hit"] = 1
     unarmed.skills["unarmed_dmg"] = 1
     var unarmed_target := CharacterState.new("unarmed_skill_target", "Unarmed Target")
-    rng.seed = 13
+    # Use a deterministic seed that rolls a hit at the 55% test chance; a miss
+    # correctly reports zero raw damage and would not exercise unarmed mastery.
+    rng.seed = 11
     var unarmed_result := CombatRules.resolve_attack(unarmed, unarmed_target, {"time_point_cost": 1.0}, rng)
     _check(is_equal_approx(float(unarmed_result.get("hit_chance", 0.0)), 55.0), "Unarmed proficiency applies when no weapon is equipped")
     _check(int(unarmed_result.get("raw_damage", 0)) == 3, "Unarmed mastery adds two damage")
