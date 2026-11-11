@@ -955,35 +955,53 @@ func _test_item_catalog_and_hollowmere_loadouts() -> void:
     _check(String(shield.get("type", "")) == "shield", "Offhand shield must retain shield type for Shield Other")
     _check(String(shield.get("equipment_slot", "")) == "offhand", "Shield should map to the offhand slot")
 
-    var loadout_file := FileAccess.open("res://data/characters/hollowmere_loadouts.json", FileAccess.READ)
-    _check(loadout_file != null, "Hollowmere loadout data should exist")
-    if loadout_file == null:
+    # Starting equipment now lives in each canonical character definition.
+    var definitions_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
+    _check(definitions_file != null, "Canonical Hollowmere character definitions should exist")
+    if definitions_file == null:
         return
-    var parsed: Variant = JSON.parse_string(loadout_file.get_as_text())
-    _check(parsed is Dictionary, "Hollowmere loadout data should parse")
+    var parsed: Variant = JSON.parse_string(definitions_file.get_as_text())
+    _check(parsed is Dictionary, "Canonical Hollowmere character definitions should parse")
     if not parsed is Dictionary:
         return
-    var loadouts: Dictionary = parsed.get("characters", {})
-    _check(loadouts.get("dray_coltayne", []) == ["sword", "medium_armor", "wooden_shield"], "Dray's loadout should match the original campaign")
-    _check(loadouts.get("tomlin_brask", []) == ["spear", "light_armor"], "Tomlin's loadout should match the original campaign")
-    _check(loadouts.get("hask_greel", []) == ["axe", "light_armor"], "Hask's loadout should match the original campaign")
-    _check(loadouts.get("companion_wren_talbot", []) == ["sword", "reinforced_leather_armor", "wooden_shield"], "Wren should retain the sword shown in the Ara profile")
-    _check(not loadouts.has("player"), "Do not invent a player class kit before class selection exists")
+    var definitions: Dictionary = {}
+    for definition_value in parsed.get("characters", []):
+        if definition_value is Dictionary:
+            var definition: Dictionary = definition_value
+            definitions[String(definition.get("id", ""))] = definition
+
+    var dray_definition: Dictionary = definitions.get("dray_coltayne", {})
+    var tomlin_definition: Dictionary = definitions.get("tomlin_brask", {})
+    var hask_definition: Dictionary = definitions.get("hask_greel", {})
+    var wren_definition: Dictionary = definitions.get("wren_talbot", {})
+    _check(not dray_definition.is_empty(), "Dray's canonical character definition should exist")
+    _check(dray_definition.get("inventory", []) == ["uniform_shirt", "fatigue_pants", "combat_boots", "sword", "medium_armor", "wooden_shield"], "Dray's inventory should match the original campaign")
+    _check(tomlin_definition.get("inventory", []) == ["uniform_shirt", "fatigue_pants", "combat_boots", "spear", "light_armor"], "Tomlin's inventory should match the original campaign")
+    _check(hask_definition.get("inventory", []) == ["uniform_shirt", "fatigue_pants", "combat_boots", "axe", "light_armor"], "Hask's inventory should match the original campaign")
+    _check(wren_definition.get("equipped", {}).get("weapon", "") == "sword", "Wren should retain the sword shown in the Ara profile")
+    _check(not definitions.has("player"), "Do not invent a player class kit before class selection exists")
 
     var dray := CharacterState.new("dray_coltayne", "Dray Coltayne", Vector2i.ZERO)
-    var dray_items: Array = loadouts.get("dray_coltayne", [])
-    for index in range(dray_items.size()):
-        var item_id := String(dray_items[index])
+    var dray_equipped: Dictionary = dray_definition.get("equipped", {})
+    var inventory_ids: Array = dray_definition.get("inventory", [])
+    for index in range(inventory_ids.size()):
+        var item_id := String(inventory_ids[index])
         var instance_id := "test_dray_%s_%02d" % [item_id, index]
         var item := ItemCatalog.create_instance(item_id, instance_id)
         _check(dray.add_inventory_item(item), "Dray should accept source item %s" % item_id)
-        _check(dray.equip_inventory_item(instance_id), "Dray should equip source item %s" % item_id)
+        var matching_slot := ""
+        for slot_value in dray_equipped.keys():
+            if String(dray_equipped[slot_value]) == item_id:
+                matching_slot = String(slot_value)
+                break
+        if not matching_slot.is_empty():
+            _check(dray.equip_inventory_item(instance_id), "Dray should equip source item %s" % item_id)
+            _check(String(dray.equipment.get(matching_slot, "")) == item_id, "Dray should equip %s in the canonical %s slot" % [item_id, matching_slot])
     _check(String(dray.equipment.get("weapon", "")) == "sword", "Dray's sword should be equipped")
     _check(String(dray.equipment.get("armour", "")) == "medium_armor", "Dray's medium armour should be equipped")
     _check(String(dray.equipment.get("offhand", "")) == "wooden_shield", "Dray's shield should be equipped")
     _check(CombatRules.damage_reduction(dray) == 3, "Dray's armour and shield should affect damage reduction")
-    _check(dray.inventory.is_empty(), "Starting equipment should be equipped, not duplicated in carried items")
-
+    _check(dray.inventory.size() == 3, "Dray's unequipped clothing and boots should remain in carried inventory")
 
 
 
