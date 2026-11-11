@@ -1967,6 +1967,10 @@ func _unhandled_input(event: InputEvent) -> void:
             _gather_at_player()
             get_viewport().set_input_as_handled()
             return
+        if key_event.keycode == KEY_R:
+            _toggle_mount()
+            get_viewport().set_input_as_handled()
+            return
         if key_event.keycode == KEY_F:
             _interact_with_nearest_npc()
             get_viewport().set_input_as_handled()
@@ -2053,8 +2057,9 @@ func _advance_path_step() -> void:
         active_path.clear()
         _clear_path_markers()
         return
-    if not simulation.is_in_combat and active_state.time_points < simulation.movement_cost(active_character_id, next_hex):
-        return # Keep the route queued until exploration TP regenerates.
+    var movement_owner := simulation.get_character(active_state.mounted_animal_id) if not active_state.mounted_animal_id.is_empty() else active_state
+    if not simulation.is_in_combat and movement_owner != null and movement_owner.time_points < simulation.movement_cost(active_character_id, next_hex):
+        return # Keep the route queued until the actual movement owner regenerates TP.
     if not simulation.try_move_character_step(active_character_id, next_hex):
         # A changed occupancy or depleted movement budget can invalidate the
         # remaining route. Re-plan from the character's actual current hex.
@@ -2096,7 +2101,90 @@ func _rotate_active_character(steps: int) -> void:
     if state == null or actor == null:
         return
     state.facing_direction = posmod(state.facing_direction + steps, 6)
-    actor.rotation.y = deg_to_rad(float(2 - state.facing_direction) * 60.0)
+    if not state.mounted_animal_id.is_empty():
+        var mount := simulation.get_character(state.mounted_animal_id)
+        var mount_actor := actor_by_id.get(state.mounted_animal_id) as Node3D
+        if mount != null:
+            mount.facing_direction = state.facing_direction
+        if mount_actor != null:
+            mount_actor.rotation.y = deg_to_rad(float(2 - state.facing_direction) * 60.0)
+    else:
+        actor.rotation.y = deg_to_rad(float(2 - state.facing_direction) * 60.0)
+
+func _toggle_mount() -> void:
+    var rider := simulation.get_character(active_character_id)
+    if rider == null:
+        return
+    if not rider.mounted_animal_id.is_empty():
+        var mount_id := rider.mounted_animal_id
+        var result := simulation.dismount_animal(rider.id)
+        if not bool(result.get("ok", false)):
+            resource_status_label.text = "Cannot dismount: " + String(result.get("reason", "unknown"))
+            return
+        _detach_rider_from_mount(rider.id)
+        resource_status_label.text = "Dismounted."
+        return
+
+    var nearest_mount: CharacterState
+    var nearest_distance := 2
+    for value in simulation.characters.values():
+        var candidate := value as CharacterState
+        if candidate == null or candidate.race != "animal" or not candidate.mountable or not candidate.mounted_by_id.is_empty():
+            continue
+        var distance := HexGrid.distance(rider.axial, candidate.axial)
+        if distance <= 1 and distance < nearest_distance:
+            nearest_mount = candidate
+            nearest_distance = distance
+    if nearest_mount == null:
+        resource_status_label.text = "Move next to a horse or other suitable mount first."
+        return
+    var mount_result := simulation.mount_animal(rider.id, nearest_mount.id)
+    if not bool(mount_result.get("ok", false)):
+        var reasons := {
+            "riding_skill_required": "You need Riding, Nature Riding or Divine Riding.",
+            "insufficient_time_points": "Not enough Time Points to mount.",
+            "mount_not_adjacent": "Move closer to the animal first.",
+            "already_mounted": "You or that animal is already mounted."
+        }
+        resource_status_label.text = String(reasons.get(String(mount_result.get("reason", "")), "Cannot mount: " + String(mount_result.get("reason", "unknown"))))
+        return
+    _attach_rider_to_mount(rider.id, nearest_mount.id)
+    resource_status_label.text = "Mounted " + nearest_mount.display_name + ". Mounted travel spends the animal's Time Points."
+
+
+func _attach_rider_to_mount(rider_id: String, mount_id: String) -> void:
+    var rider_actor := actor_by_id.get(rider_id) as Node3D
+    var mount_actor := actor_by_id.get(mount_id) as CreatureActor
+    if rider_actor == null or mount_actor == null:
+        return
+    rider_actor.reparent(mount_actor, true)
+    rider_actor.position = Vector3(0.0, 1.35, 0.0)
+    rider_actor.rotation = Vector3.ZERO
+    var name_label := rider_actor.get_node_or_null("PlayerNameLabel") as Label3D
+    if name_label == null:
+        name_label = rider_actor.get_node_or_null("CharacterNameLabel") as Label3D
+    if name_label != null:
+        name_label.visible = false
+    if active_character_id == rider_id:
+        camera_rig.follow_target = mount_actor
+
+
+func _detach_rider_from_mount(rider_id: String) -> void:
+    var rider_actor := actor_by_id.get(rider_id) as Node3D
+    var rider := simulation.get_character(rider_id)
+    if rider_actor == null or rider == null:
+        return
+    rider_actor.reparent(self, true)
+    rider_actor.position = _hex_world_position(rider.axial)
+    rider_actor.rotation.y = deg_to_rad(float(2 - rider.facing_direction) * 60.0)
+    var name_label := rider_actor.get_node_or_null("PlayerNameLabel") as Label3D
+    if name_label == null:
+        name_label = rider_actor.get_node_or_null("CharacterNameLabel") as Label3D
+    if name_label != null:
+        name_label.visible = true
+    if active_character_id == rider_id:
+        camera_rig.follow_target = rider_actor
+
 
 func _attempt_move(relative_step: int) -> void:
     if simulation.clock.paused:
@@ -2144,6 +2232,12 @@ func _on_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vect
             (actor as HexActorPresentation).present_move_to(destination)
     if character_id == "player":
         _maybe_spawn_wilderness_creature(to_hex)
+    else:
+        var moved_state := simulation.get_character(character_id)
+        if moved_state != null and not moved_state.mounted_by_id.is_empty():
+            var mounted_rider := simulation.get_character(moved_state.mounted_by_id)
+            if mounted_rider != null and mounted_rider.id == "player":
+                _maybe_spawn_wilderness_creature(to_hex)
 
 
 func _maybe_spawn_wilderness_creature(player_hex: Vector2i) -> void:
