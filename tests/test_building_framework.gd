@@ -16,7 +16,7 @@ func _test_door_lifecycle() -> void:
     door.configure("front", "test_house", Vector2i(2, 3), false, true, 20)
     assert(not door.is_passable(), "A closed door must block movement.")
     assert(not door.open(), "A locked door must not open.")
-    assert(not door.lock(), "An already locked door remains locked.")
+    assert(door.lock(), "Locking a closed door should succeed.")
     assert(door.unlock(), "A closed door can be unlocked.")
     assert(door.open() and door.is_passable(), "An unlocked door can open.")
     assert(not door.lock(), "An open door cannot be locked.")
