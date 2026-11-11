@@ -14,6 +14,7 @@ var observer: CharacterState
 var actor_nodes: Dictionary = {}
 var resource_nodes: Dictionary = {}
 var village_root: Node3D
+var village_geometry_by_hex: Dictionary = {}
 var visible_hexes: Dictionary = {}
 var explored_hexes: Dictionary = {}
 var hex_to_instance: Dictionary = {}
@@ -53,6 +54,7 @@ func initialize(
 	_build_vision_map()
 	_build_fog_mesh()
 	_build_vision_offsets()
+	_cache_village_geometry()
 	_build_debug_panel()
 	update_visibility(observer)
 	initialization_usec = Time.get_ticks_usec() - initialization_started
@@ -161,6 +163,10 @@ func update_visibility(player_state: CharacterState) -> void:
 	var started := Time.get_ticks_usec()
 	var visible_range := VisionRules.vision_range(observer)
 	var next_visible: Dictionary = {}
+	var cells_to_refresh: Dictionary = {}
+	for old_hex_value in _previous_visible.keys():
+		var previous_hex: Vector2i = old_hex_value
+		cells_to_refresh[previous_hex] = true
 	var candidate_count := 0
 	var los_count := 0
 	var changed_count := 0
@@ -181,6 +187,7 @@ func update_visibility(player_state: CharacterState) -> void:
 			continue
 		if HexGrid.distance(observer.axial, hex) <= visible_range:
 			next_visible[hex] = true
+			cells_to_refresh[hex] = true
 			explored_hexes[hex] = true
 			if _set_fog_state(hex, 2):
 				changed_count += 1
@@ -192,7 +199,7 @@ func update_visibility(player_state: CharacterState) -> void:
 	visible_hexes = next_visible
 	_previous_visible = next_visible.duplicate()
 	_apply_actor_visibility()
-	_apply_village_visibility()
+	_apply_village_visibility(cells_to_refresh)
 
 	last_update_usec = Time.get_ticks_usec() - started
 	total_update_usec += last_update_usec
@@ -234,22 +241,34 @@ func _character_state_for_actor(character_id: String) -> CharacterState:
 		return null
 	return simulation.get_character(character_id)
 
-func _apply_village_visibility() -> void:
+func _cache_village_geometry() -> void:
 	if village_root == null or not is_instance_valid(village_root):
 		return
-	_apply_visibility_to_node(village_root)
+	_collect_village_geometry(village_root)
 
-func _apply_visibility_to_node(node: Node) -> void:
+func _collect_village_geometry(node: Node) -> void:
 	for child in node.get_children():
 		if child is GeometryInstance3D:
 			var geometry := child as GeometryInstance3D
 			if geometry.name != "HollowmereGrassland":
-				if not geometry.has_meta("fog_original_visible"):
-					geometry.set_meta("fog_original_visible", geometry.visible)
-				var original_visible := bool(geometry.get_meta("fog_original_visible", true))
 				var hex := HexGrid.world_to_axial(geometry.global_position, HEX_RADIUS)
+				if not village_geometry_by_hex.has(hex):
+					village_geometry_by_hex[hex] = []
+				village_geometry_by_hex[hex].append(geometry)
+				geometry.set_meta("fog_original_visible", geometry.visible)
+				geometry.visible = false
+		_collect_village_geometry(child)
+
+func _apply_village_visibility(cells_to_refresh: Dictionary) -> void:
+	for hex_value in cells_to_refresh.keys():
+		var hex: Vector2i = hex_value
+		if not village_geometry_by_hex.has(hex):
+			continue
+		for geometry_value in village_geometry_by_hex[hex]:
+			var geometry := geometry_value as GeometryInstance3D
+			if is_instance_valid(geometry):
+				var original_visible := bool(geometry.get_meta("fog_original_visible", true))
 				geometry.visible = original_visible and visible_hexes.has(hex)
-		_apply_visibility_to_node(child)
 
 func _build_debug_panel() -> void:
 	var layer := CanvasLayer.new()
