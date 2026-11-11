@@ -1621,17 +1621,20 @@ func _start_farm_wolf_encounter() -> void:
 			var wolf_id := FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS[index]
 			var preferred := den + offsets[index]
 			var spawn_hex := _find_valid_spawn_hex(preferred)
-			var wolf := CharacterState.new(wolf_id, "Wolf", spawn_hex)
+			var wolf := AnimalCatalog.create_state("wolf", wolf_id, "Wolf", spawn_hex)
+			if wolf == null:
+				push_error("Farm wolf could not be created from the shared wolf profile.")
+				continue
 			wolf.side = "enemy"
-			wolf.max_health = 75
-			wolf.health = 75
-			wolf.base_damage = 4
-			wolf.to_hit_melee = 4.0
-			wolf.skills = {"bite_hit": 1, "bite_dmg": 1}
-			wolf.tags.append("animal")
+			wolf.combat_dormant = true
+			wolf.skills["bite_hit"] = 1
+			wolf.skills["bite_dmg"] = 1
 			wolf.tags.append("farm_quest_wolf")
 			wolf.time_points = wolf.max_time_points
-			simulation.register_character(wolf)
+			var registration := simulation.register_animal(wolf)
+			if not bool(registration.get("ok", false)):
+				push_error("Farm wolf registration failed: %s" % registration.get("reason", "unknown"))
+				continue
 
 			var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
 			actor.name = wolf_id
@@ -1639,6 +1642,8 @@ func _start_farm_wolf_encounter() -> void:
 			actor.behaviour = "predator"
 			actor.model_scale = 0.76
 			actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
+			actor.axial_hex = spawn_hex
+			actor.simulation_state = wolf
 			actor.position = _hex_world_position(spawn_hex)
 			add_child(actor)
 			actor_by_id[wolf_id] = actor
