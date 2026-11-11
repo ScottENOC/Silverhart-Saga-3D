@@ -20,7 +20,7 @@ const TAVERN_DOOR_HEX := Vector2i(0, 3)
 const UPPER_FLOOR_ORIGIN := Vector2i(100, 100)
 const UPPER_FLOOR_Y := 3.38
 const TAVERN_STAIR_GROUND_HEX := Vector2i(3, 0)
-const TAVERN_STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + Vector2i(3, -1)
+const TAVERN_STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + TAVERN_STAIR_GROUND_HEX
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -171,7 +171,7 @@ func _create_simulation() -> void:
         "name": "The Hollow Tankard",
         "entrance_hex": TAVERN_DOOR_HEX,
         "floor_count": 2,
-        "virtual_floor_bounds": [95, 105, 97, 103],
+        "virtual_floor_bounds": [96, 104, 96, 104],
         "source_location": "campaign2World.js: Hollow Tankard",
     })
     simulation.building_registry.register_door(TAVERN_FRONT_DOOR_ID, TAVERN_BUILDING_ID, TAVERN_DOOR_HEX, true, false, 20)
@@ -180,9 +180,10 @@ func _create_simulation() -> void:
     # The upper floor uses its own axial coordinate range. Mapping those cells
     # back onto the tavern footprint avoids collisions with ground-floor NPCs
     # without splitting the building into a second scene or map.
-    for q in range(-5, 6):
-        for r in range(-3, 4):
-            var local_hex := Vector2i(q, r)
+    for q in range(-4, 5):
+        var row_shift := -floori(float(q) / 2.0)
+        for row in range(-2, 3):
+            var local_hex := Vector2i(q, row + row_shift)
             var local_world := HexGrid.axial_to_world(local_hex, HEX_RADIUS)
             var partition_wall := (q == 0 and absf(local_world.z) > 1.1) or (q >= 1 and q <= 4 and absf(local_world.z) < 0.55 and q != 3)
             simulation.map_data.add_cell(UPPER_FLOOR_ORIGIN + local_hex, UPPER_FLOOR_Y, not partition_wall, "timber_floor")
@@ -392,9 +393,10 @@ func _create_building() -> void:
     upper_floor_tiles = Node3D.new()
     upper_floor_tiles.name = "UpperHexFloor"
     upper_floor_group.add_child(upper_floor_tiles)
-    for q in range(-5, 6):
-        for r in range(-3, 4):
-            var local_hex := Vector2i(q, r)
+    for q in range(-4, 5):
+        var row_shift := -floori(float(q) / 2.0)
+        for row in range(-2, 3):
+            var local_hex := Vector2i(q, row + row_shift)
             var local_world := HexGrid.axial_to_world(local_hex, HEX_RADIUS)
             var tile := MeshInstance3D.new()
             tile.mesh = tile_mesh
@@ -444,17 +446,21 @@ func _create_upper_floor_rooms(parent: Node3D) -> void:
     _add_room_label(parent, "GUEST ROOM", Vector3(3.8, 6.35, -4.0))
     _add_room_label(parent, "GUEST ROOM", Vector3(3.8, 6.35, 3.8))
 
-    _create_bed(parent, "GarrickBed", Vector3(-5.2, 3.55, -2.0), Color(0.38, 0.16, 0.12))
-    _create_bed(parent, "GarrickSpareBed", Vector3(-5.2, 3.55, 1.5), Color(0.34, 0.24, 0.16))
-    _create_bed(parent, "NorthGuestBedA", Vector3(2.1, 3.55, -3.8), Color(0.24, 0.28, 0.38))
-    _create_bed(parent, "NorthGuestBedB", Vector3(5.4, 3.55, -3.8), Color(0.24, 0.28, 0.38))
-    _create_bed(parent, "SouthGuestBedA", Vector3(2.1, 3.55, 2.2), Color(0.24, 0.28, 0.38))
-    _create_bed(parent, "SouthGuestBedB", Vector3(5.4, 3.55, 2.2), Color(0.24, 0.28, 0.38))
+    _create_bed_at_hex(parent, "GarrickBed", Vector2i(-3, 0), Color(0.38, 0.16, 0.12))
+    _create_bed_at_hex(parent, "GarrickSpareBed", Vector2i(-3, 2), Color(0.34, 0.24, 0.16))
+    _create_bed_at_hex(parent, "NorthGuestBedA", Vector2i(2, -2), Color(0.24, 0.28, 0.38))
+    _create_bed_at_hex(parent, "NorthGuestBedB", Vector2i(3, -2), Color(0.24, 0.28, 0.38))
+    _create_bed_at_hex(parent, "SouthGuestBedA", Vector2i(2, 0), Color(0.24, 0.28, 0.38))
+    _create_bed_at_hex(parent, "SouthGuestBedB", Vector2i(3, 0), Color(0.24, 0.28, 0.38))
 
     for x in [-6.5, -2.8, 1.0, 6.8]:
         _add_box(parent, "BedroomChest", Vector3(x, 3.78, -4.7 if x > 0.0 else 4.6), Vector3(0.9, 0.55, 0.55), dark_wood_material)
     _add_box(parent, "LandingTable", Vector3(0.8, 3.78, 1.7), Vector3(1.2, 0.12, 0.65), timber_material)
     _add_box(parent, "LandingTableLeg", Vector3(0.8, 3.48, 1.7), Vector3(0.12, 0.6, 0.12), dark_wood_material)
+
+func _create_bed_at_hex(parent: Node3D, bed_name: String, local_hex: Vector2i, blanket_colour: Color) -> void:
+    var position := HexGrid.axial_to_world(local_hex, HEX_RADIUS, UPPER_FLOOR_Y + 0.17)
+    _create_bed(parent, bed_name, position, blanket_colour)
 
 func _create_bed(parent: Node3D, bed_name: String, position: Vector3, blanket_colour: Color) -> void:
     var bed := Node3D.new()
@@ -1766,7 +1772,7 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
         _refresh_tavern_floor_presentation()
 
 func _is_upper_floor_hex(hex: Vector2i) -> bool:
-    return hex.x >= UPPER_FLOOR_ORIGIN.x - 5 and hex.x <= UPPER_FLOOR_ORIGIN.x + 5 and hex.y >= UPPER_FLOOR_ORIGIN.y - 3 and hex.y <= UPPER_FLOOR_ORIGIN.y + 3 and simulation.map_data.has_cell(hex)
+    return hex.x >= UPPER_FLOOR_ORIGIN.x - 4 and hex.x <= UPPER_FLOOR_ORIGIN.x + 4 and hex.y >= UPPER_FLOOR_ORIGIN.y - 4 and hex.y <= UPPER_FLOOR_ORIGIN.y + 4 and simulation.map_data.has_cell(hex)
 
 func _refresh_tavern_floor_presentation() -> void:
     if upper_shell_group == null or upper_floor_group == null:
