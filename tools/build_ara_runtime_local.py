@@ -554,7 +554,8 @@ def main():
     review_character("female-body",female_out,"body")
     review_character("wren-body",wren_out,"wren_body")
     review_character("wren-dressed",wren_dressed_out,"wren_dressed")
-    review_character("male-body",male_out,"male")
+    review_character("male-body-flaccid",male_out,"male_flaccid")
+    review_character("male-body-erect-reference",male_erect_reference,"male_erect_reference")
     review_character("gender-test-female",female_test_out,"gender_test_female")
     review_character("gender-test-male",male_test_out,"gender_test_male")
     # Dedicated pelvis close-ups use temporary blue material highlighting.
@@ -587,6 +588,7 @@ def main():
         "ara_person_modular.glb": fitted,
         "ara_person_modular_underwear.glb": fitted_under,
         "ara_person_male_body.glb": ARA/"ara_person_male_body.glb",
+        "reference/male_erect_reference.glb": male_erect_reference,
         "ara_person_garments.glb": garments,
         "bodies/wren_talbot.glb": wren_out,
     }
