@@ -422,6 +422,7 @@ func _test_farmstead_bear_encounter() -> void:
     _check(bool(start.get("ok", false)), "The farmstead bear encounter should start through WorldSimulation")
     _check(simulation.is_in_combat, "The bear hunt should use the shared combat scheduler")
     _check(player.side == "player" and wren.side == "player", "The active party should fight on the player side")
+    _check(is_equal_approx(player.time_points, 100.0) and is_equal_approx(wren.time_points, 100.0), "The bear encounter should begin with party members at 100 TP")
     var bear := simulation.get_character(FarmsteadBearEncounter.BEAR_ID)
     _check(bear != null and bear.side == "enemy" and not bear.combat_dormant, "The bear should be an active enemy combatant")
     bear.apply_damage(1000)
