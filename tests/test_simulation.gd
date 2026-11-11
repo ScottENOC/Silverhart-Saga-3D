@@ -8,6 +8,7 @@ func _initialize() -> void:
     _test_character_round_trip()
     _test_animal_catalog_and_state()
     _test_animal_world_registration()
+    _test_animal_riding()
     _test_skill_catalogue_and_progression()
     _test_npc_skill_spending_and_companion_boundary()
     _test_campaign_journal()
@@ -527,6 +528,69 @@ func _test_animal_world_registration() -> void:
     _check(saved_horse.animal_attributes == horse.animal_attributes, "Registered animal individual attributes should survive world save/load")
     simulation.free()
     restored.free()
+
+func _test_animal_riding() -> void:
+    var simulation := WorldSimulation.new()
+    var rider := CharacterState.new("rider", "Rider", Vector2i(0, 0))
+    rider.side = "player"
+    rider.skills["riding_druid"] = 1
+    rider.time_points = 100.0
+    simulation.register_character(rider)
+    var horse := AnimalCatalog.create_state("horse", "riding_horse", "Farm Horse", Vector2i(1, 0), 5150)
+    horse.side = "neutral"
+    horse.combat_dormant = true
+    simulation.register_animal(horse)
+    for hex in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(2, 1), Vector2i(1, 1), Vector2i(0, 1)]:
+        simulation.map_data.add_cell(hex, 0.0, true, "grass")
+
+    var untrained := CharacterState.new("untrained", "Untrained", Vector2i(0, 1))
+    _check(String(simulation.can_ride(untrained.id, horse.id).get("reason", "")) == "unknown_character", "Riding eligibility should require registered participants")
+    simulation.register_character(untrained)
+    _check(String(simulation.can_ride(untrained.id, horse.id).get("reason", "")) == "riding_skill_required", "Riding must require one of the three alternative riding skills")
+
+    var mounted := simulation.mount_animal(rider.id, horse.id)
+    _check(bool(mounted.get("ok", false)), "Nature Riding should allow mounting an appropriately sized horse")
+    _check(rider.mounted_animal_id == horse.id and horse.mounted_by_id == rider.id, "Rider and mount should retain reciprocal stable links")
+    _check(horse.is_rider and horse.side == "player" and not horse.combat_dormant, "A mounted animal joins its rider's side and leaves the dormant roster")
+    _check(rider.axial == horse.axial, "Mounted rider should share the mount's axial position")
+    _check(not simulation.occupied_hexes.has(rider.axial) or String(simulation.occupied_hexes[rider.axial]) == horse.id, "Mounted rider must not reserve a second occupancy slot")
+    _check(is_equal_approx(rider.time_points, 95.0), "Mounting should cost the rider 5 TP")
+    _check(simulation.movement_cost(rider.id, Vector2i(2, 0)) < MovementRules.BASE_STEP_COST, "Mounted movement cost should use the horse's movement profile")
+
+    horse.time_points = 110.0
+    rider.time_points = 60.0
+    simulation.is_in_combat = true
+    simulation.turn_scheduler.current_character_id = rider.id
+    _check(simulation.try_end_current_turn(), "Mounted rider should be able to end their own combat turn")
+    _check(is_equal_approx(horse.time_points, float(ActionEconomy.TURN_END_TP)), "Mount TP should be capped at 80 when its rider ends their turn")
+    simulation.is_in_combat = false
+
+    var restored := WorldSimulation.new()
+    restored.load_dict(simulation.to_dict())
+    var restored_rider := restored.get_character(rider.id)
+    var restored_horse := restored.get_character(horse.id)
+    _check(restored_rider.mounted_animal_id == horse.id and restored_horse.mounted_by_id == rider.id, "Mounted relationship should survive save/load")
+    _check(String(restored.occupied_hexes.get(horse.axial, "")) == horse.id, "Save/load should reserve only the mount's shared hex")
+
+    # Restore a ready rider and verify mounted movement spends the mount's TP,
+    # moves both axial states, and leaves the rider's TP untouched.
+    rider.time_points = 100.0
+    horse.time_points = 100.0
+    var horse_tp_before := horse.time_points
+    var rider_tp_before := rider.time_points
+    _check(simulation.try_move_character_step(rider.id, Vector2i(2, 0)), "Rider movement input should move the horse")
+    _check(horse.axial == Vector2i(2, 0) and rider.axial == horse.axial, "Mounted movement should move rider and horse together")
+    _check(is_equal_approx(horse.time_points, horse_tp_before - MovementRules.step_cost(simulation.map_data, Vector2i(1, 0), Vector2i(2, 0), horse)), "Mounted movement should spend the mount's terrain-adjusted TP")
+    _check(is_equal_approx(rider.time_points, rider_tp_before), "Mounted travel should not spend the rider's TP")
+
+    var dismounted := simulation.dismount_animal(rider.id)
+    _check(bool(dismounted.get("ok", false)), "Rider should be able to dismount into an adjacent free hex")
+    _check(rider.mounted_animal_id.is_empty() and horse.mounted_by_id.is_empty() and not horse.is_rider, "Dismounting should clear both riding links")
+    _check(rider.axial != horse.axial and String(simulation.occupied_hexes.get(rider.axial, "")) == rider.id, "Dismounted rider should reserve their own adjacent hex")
+    _check(horse.side == "neutral" and horse.combat_dormant, "Dismounted ambient mount should restore its original world status")
+    simulation.free()
+    restored.free()
+
 
 func _test_character_round_trip() -> void:
     var original := CharacterState.new("npc_garrick_holt", "Garrick Holt", Vector2i(2, -1))
