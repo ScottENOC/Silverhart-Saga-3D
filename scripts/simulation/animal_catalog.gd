@@ -140,9 +140,18 @@ static func create_state(
 
     var rng := RandomNumberGenerator.new()
     rng.seed = state.individual_seed
-    for attribute in ["strength", "endurance", "agility"]:
-        var base_value := int(state.animal_attributes[attribute])
-        state.animal_attributes[attribute] = maxi(1, base_value + rng.randi_range(-1, 1))
+    # Use separate base-three digits from the stable individual seed for the
+    # physical offsets. This makes variation repeatable and ensures distinct
+    # seeds can yield visibly different individuals without random rerolls.
+    var seed_value := absi(state.individual_seed)
+    var strength_offset := posmod(seed_value, 3) - 1
+    var endurance_offset := posmod(floori(float(seed_value) / 3.0), 3) - 1
+    var agility_offset := posmod(floori(float(seed_value) / 9.0), 3) - 1
+    if strength_offset == 0 and endurance_offset == 0 and agility_offset == 0:
+        agility_offset = 1
+    state.animal_attributes["strength"] = maxi(1, int(state.animal_attributes["strength"]) + strength_offset)
+    state.animal_attributes["endurance"] = maxi(1, int(state.animal_attributes["endurance"]) + endurance_offset)
+    state.animal_attributes["agility"] = maxi(1, int(state.animal_attributes["agility"]) + agility_offset)
 
     var base_health := int(profile["health"])
     var health_variance := roundi(base_health * 0.05)
