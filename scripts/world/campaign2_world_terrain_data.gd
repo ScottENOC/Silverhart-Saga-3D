@@ -80,7 +80,7 @@ func terrain_for_hex(hex: Vector2i) -> String:
 		"mountain":
 			return "mountain"
 		"forest":
-			return "forest" if roll < 0.88 else "grass"
+			return "forest"
 		"hills":
 			return "hills"
 		_:
