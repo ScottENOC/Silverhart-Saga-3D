@@ -28,6 +28,7 @@ on:
       - "tools/character_definitions.py"
       - "tools/ci/validate_character_definitions.py"
       - "data/characters/hollowmere_npcs.json"
+      - "data/characters/body_profiles.json"
       - "data/items/item_definitions.json"
       - "tests/test_character_definitions.py"
       - "tests/test_assemble_modular_glb.py"
