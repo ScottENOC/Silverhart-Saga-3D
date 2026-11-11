@@ -70,8 +70,6 @@ func _refresh_slots() -> void:
         var slot_id := String(entry.get("slot_id", ""))
         var metadata: Dictionary = entry.get("metadata", {})
         var occupied := bool(entry.get("occupied", false))
-        if slot_id.begins_with("autosave_"):
-            continue
         var button := Button.new()
         button.custom_minimum_size = Vector2(0, 54)
         button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
