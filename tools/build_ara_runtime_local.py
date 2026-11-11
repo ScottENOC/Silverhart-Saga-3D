@@ -348,7 +348,8 @@ def main():
         female_raw = RAW / "ara_person_body.glb"
         male_raw = RAW / "ara_person_male_raw.glb"
         female_final = review_root / "female_average_vulva.glb"
-        male_final = review_root / "male_average_flaccid.glb"
+        male_erect = review_root / "male_average_erect.glb"
+        male_flaccid = review_root / "male_average_flaccid.glb"
         export("ara_person_body", body)
         export("ara_person_male_raw", male)
 
@@ -358,26 +359,33 @@ def main():
              ROOT / "tools/blender/add_adult_anatomy.py", "--",
              "--input", female_raw, "--output", female_final, "--profile", "female",
              "--adult", "--deformation-scale", "1.0"], env=review_env)
-        run([blender, "--background", "--python-exit-code", "1", "--python",
-             ROOT / "tools/blender/add_male_anatomy.py", "--",
-             "--input", male_raw, "--output", male_final, "--adult",
-             "--profile-name", "male_average", "--anatomy-state", "flaccid"], env=review_env)
+        for pose_name, pose_output in (("erect", male_erect), ("flaccid", male_flaccid)):
+            run([blender, "--background", "--python-exit-code", "1", "--python",
+                 ROOT / "tools/blender/add_male_anatomy.py", "--",
+                 "--input", male_raw, "--output", pose_output, "--adult",
+                 "--profile-name", "male_average", "--anatomy-state", pose_name], env=review_env)
 
         shutil.copy2(female_raw, review_root / "female_average_raw.glb")
         shutil.copy2(male_raw, review_root / "male_average_raw.glb")
-        for label, model in (("female_average", female_final), ("male_average", male_final)):
+        review_models = (
+            ("female_average", female_final, "female", 1),
+            ("male_average_erect", male_erect, "male", 1),
+            ("male_average_flaccid", male_flaccid, "male", 24),
+        )
+        for label, model, _kind, frame in review_models:
             for focus_name, focus_args in (("full", []), ("pelvis", ["--focus-pelvis"])):
                 output_dir = review_root / "renders" / label / focus_name
                 output_dir.mkdir(parents=True, exist_ok=True)
                 run([blender, "--background", "--python-exit-code", "1", "--python",
                      ROOT / "tools/blender/inspect_character.py", "--",
-                     "--input", model, "--output-dir", output_dir, *focus_args], env=review_env)
+                     "--input", model, "--output-dir", output_dir, "--frame", str(frame),
+                     *focus_args], env=review_env)
 
         report = {
             "schema_version": 1,
             "purpose": "visual anatomy prototype only; not production-approved",
             "ara_generator_commit": PIN,
-            "profiles": ["female_average", "male_average"],
+            "profiles": ["female_average", "male_average_erect", "male_average_flaccid"],
             "female": {
                 "asset": female_final.name,
                 "deformation_scale": 1.0,
@@ -392,10 +400,13 @@ def main():
             },
             "male": {
                 "asset": male_final.name,
-                "anatomy_state": "flaccid",
-                "source_script_default": "flaccid"
+                "anatomy_states": ["erect", "flaccid"],
+                "shared_mesh": True,
+                "dedicated_bones": ["AnatomyRoot", "AnatomyMid", "AnatomyTip"],
+                "animation": "MaleAnatomy_ErectToFlaccid"
             },
             "views": ["front", "side", "rear", "three_quarter"],
+            "male_pose_frames": {"erect": 1, "flaccid": 24},
             "review_note": "Inspect raw and processed GLBs and all full/pelvis renders under the same lighting."
         }
         (review_root / "anatomy_review_report.json").write_text(
@@ -484,8 +495,8 @@ def main():
     # it is never used by the default male body or garment-fitting pipeline.
     male_erect_reference=ARA/"ara_person_male_erect_reference.glb"
     def male_erect_reference_action():
-        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_erect_reference,"--adult","--profile-name","standard","--anatomy-state","erect-reference"])
-    cached("male-anatomy-erect-reference",[male_erect_reference],[male_raw,ROOT/"tools/blender/add_male_anatomy.py"],"male-anatomy-erect-reference-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_erect_reference_action)
+        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_erect_reference,"--adult","--profile-name","standard","--anatomy-state","erect"])
+    cached("male-anatomy-erect",[male_erect_reference],[male_raw,ROOT/"tools/blender/add_male_anatomy.py"],"male-anatomy-erect-v2-rigged:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_erect_reference_action)
     # Read-only audit: run the exact production deformation functions on raw exports,
     # measure vertex movement in memory, then verify the meshes survive GLB round-trip.
     anatomy_pipeline_audit=ARA/"ara_person_anatomy_pipeline_audit.json"
