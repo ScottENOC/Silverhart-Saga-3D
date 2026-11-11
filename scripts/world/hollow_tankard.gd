@@ -166,6 +166,7 @@ func _create_simulation() -> void:
         "source_location": "campaign2World.js: Hollow Tankard",
     })
     simulation.building_registry.register_door(TAVERN_FRONT_DOOR_ID, TAVERN_BUILDING_ID, TAVERN_DOOR_HEX, true, false, 20)
+    simulation.building_registry.door_state_changed.connect(_on_building_door_state_changed)
 
     simulation.character_moved.connect(_on_character_moved)
     simulation.reaction_requested.connect(_on_reaction_requested)
@@ -1651,8 +1652,12 @@ func _interact_with_nearest_door() -> bool:
     if not changed:
         print("The Hollow Tankard door is locked or cannot be moved.")
         return true
-    _apply_tavern_door_state()
     return true
+
+func _on_building_door_state_changed(door_id: String) -> void:
+    if door_id != TAVERN_FRONT_DOOR_ID:
+        return
+    _apply_tavern_door_state()
 
 func _apply_tavern_door_state() -> void:
     var door := simulation.building_registry.get_door(TAVERN_FRONT_DOOR_ID)
