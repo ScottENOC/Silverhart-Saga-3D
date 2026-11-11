@@ -1123,6 +1123,7 @@ func _apply_save_data(data: Dictionary) -> void:
         if state == null or actor == null:
             continue
         actor.position = _hex_world_position(state.axial)
+        actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
         if actor is AraCharacterActor:
             (actor as AraCharacterActor).apply_equipment_visuals(state.equipped_item_data)
     if camera_rig != null:
