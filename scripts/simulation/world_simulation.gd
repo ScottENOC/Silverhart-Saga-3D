@@ -489,10 +489,28 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
                 var attack_cost := float(options.get("time_point_cost", 0.0))
                 if attacker.can_spend_time_points(attack_cost):
                     attacker.spend_time_points(attack_cost)
+                var riposte_payload: Dictionary = {}
+                var riposte_skill := "%s_riposte" % skill_base
+                if int(reactor.skills.get(riposte_skill, 0)) > 0 and reactor.can_spend_time_points(5.0):
+                    reactor.spend_time_points(5.0)
+                    var riposte_chance := clampf(50.0 + reactor.to_hit_melee - attacker.passive_dodge, 0.0, 100.0)
+                    var riposte_roll := float(rng_parry.randi_range(0, 99))
+                    var riposte_damage := 0
+                    var riposte_lifecycle := "missed"
+                    if riposte_roll < riposte_chance:
+                        riposte_damage = maxi(1, reactor.base_damage)
+                        riposte_lifecycle = attacker.apply_damage(riposte_damage)
+                    riposte_payload = {
+                        "attempted": true, "hit": riposte_damage > 0,
+                        "roll": riposte_roll, "hit_chance": riposte_chance,
+                        "damage": riposte_damage, "attacker_lifecycle": riposte_lifecycle,
+                        "attacker_health": attacker.health
+                    }
                 var parry_payload := {
                     "hit": false, "parried": true, "parry_type": effect,
                     "reactor_id": reactor.id, "parry_roll": parry_roll,
-                    "parry_chance": parry_chance, "damage": 0
+                    "parry_chance": parry_chance, "damage": 0,
+                    "riposte": riposte_payload
                 }
                 var parry_result := SimulationActionResult.new("attack", true, "", attacker_id, target_id, parry_payload).to_dict()
                 action_committed.emit(SimulationEvent.new("attack_resolved", attacker_id, target_id, parry_result))
