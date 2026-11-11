@@ -103,6 +103,7 @@ func _ready() -> void:
     _create_building()
     _create_furniture()
     _create_characters()
+    _create_reyna_shelter()
     HollowmereCampaignContent.initialize_social_standings(simulation.campaign_journal, String(player_profile.get("race", "human")))
     _create_camera()
     _create_hud()
@@ -441,6 +442,26 @@ func _create_characters() -> void:
         _spawn_farmstead_dire_wolf()
     if _reyna_objective_done("trail_found") and not _reyna_objective_done("child_rescued"):
         _spawn_missing_child()
+
+
+func _create_reyna_shelter() -> void:
+    # A deliberately rough, partly collapsed shepherd's shelter. It is a
+    # landmark for Reyna's rescue sequence, not a new enterable building.
+    var shelter := Node3D.new()
+    shelter.name = "AbandonedShepherdShelter"
+    shelter.position = _hex_world_position(Vector2i(27, 62))
+    _add_box(shelter, "ShelterStoneFooting", Vector3(0.0, 0.12, 0.0), Vector3(2.8, 0.24, 2.2), stone_material)
+    _add_box(shelter, "ShelterRearWall", Vector3(0.0, 0.92, -0.92), Vector3(2.65, 1.55, 0.22), stone_material)
+    _add_box(shelter, "ShelterLeftWall", Vector3(-1.22, 0.68, 0.0), Vector3(0.22, 1.1, 1.95), stone_material)
+    var roof_beam := _add_box(shelter, "ShelterRoofBeam", Vector3(0.0, 1.82, -0.25), Vector3(2.9, 0.18, 0.22), dark_wood_material)
+    roof_beam.rotation.z = deg_to_rad(-7.0)
+    var roof_panel := _add_box(shelter, "ShelterBrokenRoof", Vector3(0.0, 1.72, -0.55), Vector3(2.75, 0.14, 1.3), timber_material)
+    roof_panel.rotation.x = deg_to_rad(-12.0)
+    roof_panel.rotation.z = deg_to_rad(-7.0)
+    var fallen_beam := _add_box(shelter, "ShelterFallenBeam", Vector3(0.88, 0.22, 0.72), Vector3(1.45, 0.16, 0.16), dark_wood_material)
+    fallen_beam.rotation.y = deg_to_rad(32.0)
+    fallen_beam.rotation.z = deg_to_rad(18.0)
+    add_child(shelter)
 
 
 func _spawn_farmstead_dire_wolf() -> void:
