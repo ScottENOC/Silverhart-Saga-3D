@@ -21,6 +21,10 @@ def parse_args():
     parser.add_argument("--male-raw", required=True)
     parser.add_argument("--female-final", required=True)
     parser.add_argument("--male-final", required=True)
+    parser.add_argument("--female-test-raw")
+    parser.add_argument("--male-test-raw")
+    parser.add_argument("--female-test-final")
+    parser.add_argument("--male-test-final")
     parser.add_argument("--output", required=True)
     return parser.parse_args(raw)
 
@@ -95,6 +99,42 @@ def compare_vertices(pa, pb, polygon_count_a, polygon_count_b):
     return result
 
 
+def cross_section_profile(points):
+    if not points:
+        return {}
+    minimum = [min(point[i] for point in points) for i in range(3)]
+    maximum = [max(point[i] for point in points) for i in range(3)]
+    height = maximum[2] - minimum[2]
+    width = maximum[0] - minimum[0]
+    bands = {
+        "shoulders": 0.795,
+        "chest": 0.685,
+        "waist": 0.595,
+        "pelvis": 0.485,
+    }
+    result = {}
+    for label, ratio in bands.items():
+        z = minimum[2] + height * ratio
+        band = [point for point in points if abs(point[2] - z) <= height * 0.012]
+        if len(band) < 8:
+            band = sorted(points, key=lambda point: abs(point[2] - z))[:max(8, len(points) // 100)]
+        result[label] = {
+            "z_ratio": ratio,
+            "sample_vertices": len(band),
+            "width_metres": round(max(point[0] for point in band) - min(point[0] for point in band), 6),
+        }
+    chest_z = minimum[2] + height * bands["chest"]
+    chest = [point for point in points
+             if abs(point[2] - chest_z) <= height * 0.055
+             and abs(point[0]) <= width * 0.22]
+    result["chest_depth"] = {
+        "sample_vertices": len(chest),
+        "front_to_back_metres": round(max(point[1] for point in chest) - min(point[1] for point in chest), 6) if chest else None,
+        "frontmost_y": round(min(point[1] for point in chest), 6) if chest else None,
+    }
+    return result
+
+
 def inspect(label, path):
     meshes = import_glb(path)
     skin = choose_skin(meshes)
@@ -110,6 +150,7 @@ def inspect(label, path):
         "path": str(path),
         "skin": mesh_summary(skin),
         "_world_vertices": world_vertices,
+        "cross_section_profile": cross_section_profile(world_vertices),
         "mesh_count": len(meshes),
         "all_meshes": [
             {"object": obj.name, "vertices": len(obj.data.vertices),
@@ -128,6 +169,13 @@ def main():
         "female_final": args.female_final,
         "male_final": args.male_final,
     }
+    optional_paths = {
+        "female_test_raw": args.female_test_raw,
+        "male_test_raw": args.male_test_raw,
+        "female_test_final": args.female_test_final,
+        "male_test_final": args.male_test_final,
+    }
+    paths.update({key: value for key, value in optional_paths.items() if value})
     records = {}
     vertex_sets = {}
     for label, path in paths.items():
@@ -148,6 +196,14 @@ def main():
             "male_raw_vs_male_final": compare_vertices(
                 vertex_sets["male_raw"], vertex_sets["male_final"],
                 records["male_raw"]["skin"]["polygons"], records["male_final"]["skin"]["polygons"]),
+            "female_final_vs_male_final_cross_sections": {
+                "female": records["female_final"]["cross_section_profile"],
+                "male": records["male_final"]["cross_section_profile"],
+            },
+            "diagnostic_pair_cross_sections": {
+                "female_max_breast": records.get("female_test_final", {}).get("cross_section_profile"),
+                "male_min_breast_broad_upper_body": records.get("male_test_final", {}).get("cross_section_profile"),
+            },
         },
         "interpretation_notes": [
             "Raw female/male geometry is the decisive test of Ara gender morphing.",
