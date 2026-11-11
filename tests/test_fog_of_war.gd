@@ -16,6 +16,19 @@ func _initialize() -> void:
 		"The fog MultiMesh should contain one instance per authored map hex"
 	)
 
+	var fog_mesh: MultiMesh = fog.get("fog_multimesh")
+	var far_hex := Vector2i(0, HollowmereVillageData.MAP_RADIUS)
+	var far_index: int = fog.get("hex_to_instance")[far_hex]
+	var far_transform := fog_mesh.get_instance_transform(far_index)
+	_check(
+		fog_mesh.custom_aabb.has_point(far_transform.origin),
+		"The fog MultiMesh culling bounds should include the far edge of the whole village"
+	)
+	_check(
+		far_transform.origin.y >= 0.08,
+		"Outdoor fog should sit above the village ground and road ribbons"
+	)
+
 	observer.axial = Vector2i(26, 0)
 	fog.call("update_visibility", observer)
 
