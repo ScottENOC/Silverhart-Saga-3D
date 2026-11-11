@@ -194,8 +194,8 @@ def create_flaccid_phallus(material, armature, pelvis_bone, body_height, anatomy
     # to body height and deliberately much smaller than the preserved reference.
     profile = [
         (0.00, 0.28), (0.08, 0.58), (0.20, 0.78), (0.38, 0.88),
-        (0.58, 0.91), (0.73, 0.98), (0.84, 1.02), (0.91, 0.91),
-        (0.97, 0.68), (1.00, 0.20),
+        (0.58, 0.91), (0.70, 0.94), (0.76, 0.86), (0.82, 1.00),
+        (0.89, 1.08), (0.95, 0.90), (0.985, 0.58), (1.00, 0.18),
     ]
     segments = 48
     vertices = []
@@ -398,8 +398,13 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
         relative = point - source_base
         along = relative.dot(source_axis)
         radial = relative - source_axis * along
+        t = max(0.0, min(1.0, along / source_length))
+        glans = math.exp(-0.5 * ((t - 0.875) / 0.075) ** 2)
+        corona_groove = math.exp(-0.5 * ((t - 0.785) / 0.026) ** 2)
+        root_taper = 0.82 + 0.18 * min(1.0, t / 0.18)
+        profile_scale = root_taper + 0.20 * glans - 0.105 * corona_groove
         transformed = (
-            source_axis * (along * length_scale) + radial * radial_scale
+            source_axis * (along * length_scale) + radial * radial_scale * profile_scale
         )
         vertices.append(tuple(target_base + rotation @ transformed))
 
@@ -487,6 +492,41 @@ def add_meatus_detail(tree, skin_material, armature, pelvis_bone, height, tip_z,
     obj["anatomy_parts"] = "external_meatus_detail"
     return obj
 
+
+
+def paint_male_anatomy_detail(obj, centre_x, anatomy_z, height, anchor_y, state, part):
+    mesh = obj.data
+    old = mesh.color_attributes.get('Color')
+    if old: mesh.color_attributes.remove(old)
+    colour = mesh.color_attributes.new(name='Color', type='FLOAT_COLOR', domain='POINT')
+    if part == 'phallus':
+        axis = Vector((0.0, -0.43, -0.90)).normalized() if state == 'flaccid' else Vector((0.0, -0.985, -0.17)).normalized()
+        length = height * (0.038 if state == 'flaccid' else 0.074)
+        base = Vector((centre_x, anchor_y + height * (0.003 if state == 'flaccid' else 0.016), anatomy_z + height * 0.004))
+        for vertex in mesh.vertices:
+            point = obj.matrix_world @ vertex.co
+            relative = point - base
+            along = relative.dot(axis)
+            t = max(0.0, min(1.0, along / length))
+            radial = (relative - axis * along).length
+            radius = height * (0.0060 if state == 'flaccid' else 0.010)
+            glans = math.exp(-0.5 * ((t - 0.88) / 0.085) ** 2) * max(0.0, 1.0 - radial / (radius * 1.8))
+            groove = math.exp(-0.5 * ((t - 0.785) / 0.028) ** 2) * max(0.0, 1.0 - radial / (radius * 1.5))
+            strength = min(1.0, 0.58 * glans + 0.20 * groove)
+            colour.data[vertex.index].color = (1.0 + 0.035*strength, 1.0 - 0.16*strength, 1.0 - 0.13*strength, 1.0)
+    else:
+        centre = Vector((centre_x, anchor_y + height * 0.0036, anatomy_z - height * 0.024))
+        for vertex in mesh.vertices:
+            point = obj.matrix_world @ vertex.co
+            x = (point.x-centre.x) / max(height*0.017, 1e-5)
+            z = (point.z-centre.z) / max(height*0.018, 1e-5)
+            front = max(0.0, min(1.0, (centre.y-point.y) / max(height*0.008, 1e-5)))
+            median = math.exp(-0.5*(x/0.14)**2 - 0.5*(z/0.68)**2) * front
+            lobes = max(math.exp(-0.5*((x-0.36)/0.24)**2), math.exp(-0.5*((x+0.36)/0.24)**2)) * math.exp(-0.5*(z/0.85)**2) * front
+            strength = min(1.0, 0.65*median + 0.18*lobes)
+            colour.data[vertex.index].color = (1.0 + 0.025*strength, 1.0 - 0.11*strength, 1.0 - 0.09*strength, 1.0)
+    mesh.color_attributes.active_color = colour
+    obj['anatomy_colour_detail'] = 'skin_relative_gradient_glans_corona_and_median_raphe'
 
 
 def join_male_anatomy_parts(parts, armature, pelvis_bone):
@@ -651,6 +691,8 @@ def main():
         pelvic_surface_y, args.anatomy_state, centre_x
     )
 
+    paint_male_anatomy_detail(phallus, centre_x, anatomy_z, height, pelvic_surface_y, args.anatomy_state, "phallus")
+    paint_male_anatomy_detail(scrotum, centre_x, anatomy_z, height, pelvic_surface_y, args.anatomy_state, "scrotum")
     anatomy = join_male_anatomy_parts(
         [phallus, scrotum], armature, pelvis_bone
     )
