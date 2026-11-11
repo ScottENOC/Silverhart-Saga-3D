@@ -1375,6 +1375,7 @@ func _begin_shakedown_combat() -> void:
     active_combat_kind = "ironbond"
     active_enemy_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.duplicate()
     active_party_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.COMBAT_ALLY_IDS.duplicate()
+    active_combat_controlled_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.duplicate()
     enemy_turn_processed = false
     enemy_turn_waiting_for_reaction = false
     if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(active_character_id):
@@ -1401,7 +1402,7 @@ func _update_combat(_delta: float) -> void:
     var current := simulation.get_current_turn_character()
     if current == null or enemy_turn_processed:
         return
-    var is_ai_turn := current.side == "enemy" or (current.side == "player" and not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(current.id))
+    var is_ai_turn := current.side == "enemy" or (current.side == "player" and not active_combat_controlled_ids.has(current.id))
     if not is_ai_turn:
         return
     enemy_turn_processed = true
@@ -1416,11 +1417,15 @@ func _run_ai_combat_turn(combatant: CharacterState) -> void:
     if HexGrid.distance(combatant.axial, target.axial) <= _attack_range_for(combatant):
         var weapon_id := String(combatant.equipment.get("weapon", ""))
         var weapon: Dictionary = combatant.equipped_item_data.get("weapon", {})
-        var result := simulation.try_attack_character(combatant.id, target.id, {
+        var attack_options := {
             "time_point_cost": 10.0,
             "weapon_id": weapon_id,
             "is_ranged": String(weapon.get("subType", "")) == "ranged"
-        }, int(combatant.id.hash()))
+        }
+        if combatant.race == "bear":
+            attack_options["unarmed_skill_hit"] = int(combatant.skills.get("claw_hit", 0)) > 0
+            attack_options["unarmed_skill_damage"] = int(combatant.skills.get("claw_dmg", 0))
+        var result := simulation.try_attack_character(combatant.id, target.id, attack_options, int(combatant.id.hash()))
         if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
             enemy_turn_waiting_for_reaction = true
         else:
@@ -1540,7 +1545,7 @@ func _update_combat_ui() -> void:
         combat_status_label.text = "Waiting for the next combat turn..."
     elif current.side == "enemy":
         combat_status_label.text = "%s is acting..." % current.display_name
-    elif current.id != active_character_id and HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(current.id):
+    elif current.id != active_character_id and active_combat_controlled_ids.has(current.id):
         combat_status_label.text = "Switch to %s with Tab." % current.display_name
     elif current.id != active_character_id:
         combat_status_label.text = "%s is acting..." % current.display_name
@@ -1616,6 +1621,7 @@ func _start_farm_wolf_encounter() -> void:
 	active_combat_kind = "farm_wolves"
 	active_enemy_ids = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
 	active_party_ids = FARM_WOLVES_QUEST_SCRIPT.PARTY_IDS.duplicate()
+	active_combat_controlled_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.duplicate()
 	for value in simulation.characters.values():
 		var state: CharacterState = value
 		state.combat_dormant = true
@@ -1685,6 +1691,24 @@ func _check_farm_wolf_resolution() -> void:
 func _check_encounter_resolution() -> void:
     if not encounter_active:
         return
+    if active_combat_kind == "bear_hunt":
+        if FARMSTEAD_BEAR_SCRIPT.party_defeated(simulation, active_party_ids):
+            simulation.end_combat()
+            FARMSTEAD_BEAR_SCRIPT.finish(simulation, active_party_ids)
+            encounter_active = false
+            _show_dialogue("Reyna Fletcher", "The bear drives you back. It is still raiding the grain store. We can try again when we're ready.", [{"id":"continue","label":"Continue","text":""}])
+        elif FARMSTEAD_BEAR_SCRIPT.bear_defeated(simulation):
+            simulation.end_combat()
+            FARMSTEAD_BEAR_SCRIPT.finish(simulation, active_party_ids)
+            encounter_active = false
+            COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "reyna_bear_hunt", "bear_slain")
+            var bear_actor := actor_by_id.get(FARMSTEAD_BEAR_SCRIPT.BEAR_ID) as Node3D
+            if is_instance_valid(bear_actor):
+                bear_actor.queue_free()
+            actor_by_id.erase(FARMSTEAD_BEAR_SCRIPT.BEAR_ID)
+            _show_speech_bubble("companion_reyna_fletcher", "That's the last of it. Old Mac can sleep easier now.")
+            _show_companion_dialogue("companion_reyna_fletcher")
+        return
     if active_combat_kind == "farm_wolves":
         _check_farm_wolf_resolution()
         return
@@ -1734,7 +1758,7 @@ func _toggle_world_map() -> void:
 
 
 func _on_reaction_requested(reactor_id: String, options: Array[Dictionary], request_id: int, _source_event_id: String) -> void:
-    if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(reactor_id):
+    if not active_combat_controlled_ids.has(reactor_id):
         _resolve_ai_reaction(reactor_id, options)
         return
     if reaction_prompt != null:
@@ -1790,7 +1814,8 @@ func _switch_party_member() -> void:
     var target: Node3D = actor_by_id.get(active_character_id) as Node3D
     if target != null:
         camera_rig.follow_target = target
-        var display_name := "You" if active_character_id == "player" else "Wren"
+        var active_state := simulation.get_character(active_character_id)
+        var display_name := "You" if active_character_id == "player" else (active_state.display_name if active_state != null else active_character_id)
         party_switch_button.text = "Active: " + display_name + "  [Tab] Switch"
     if character_panel != null:
         character_panel.set_character(active_character_id)
@@ -1800,6 +1825,10 @@ func _process(delta: float) -> void:
     _check_farm_wolf_proximity()
     _update_combat(delta)
     _update_combat_ui()
+    nearby_interaction_refresh += delta
+    if nearby_interaction_refresh >= 0.25:
+        nearby_interaction_refresh = 0.0
+        _refresh_nearby_interactions()
     if active_path.size() < 2:
         return
     path_step_accumulator += delta
