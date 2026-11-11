@@ -28,6 +28,7 @@ func _initialize() -> void:
     _test_combat_turn_scheduler()
     _test_initiative_timeline_model()
     _test_combat_resolution()
+    _test_status_effects_and_combat_debuffs()
     _test_downed_and_death_lifecycle()
     _test_unified_action_contract()
     _test_attack_waits_for_parry_resolution()
@@ -352,6 +353,84 @@ func _test_additional_skill_effects() -> void:
     _check(bool(destination_result.get("ok", false)), "A mastered Sidestep should resolve")
     _check(is_equal_approx(sidestepper.time_points, 15.0), "Sidestep Mastery should reduce Sidestep cost from 6 TP to 5 TP")
     sidestep_sim.free()
+
+
+func _test_status_effects_and_combat_debuffs() -> void:
+    var attacker := CharacterState.new("status_attacker", "Status Attacker")
+    attacker.health = 50
+    attacker.max_health = 100
+    attacker.skills["life_drain"] = 1
+    attacker.skills["lich_grave_chill"] = 2
+    attacker.skills["lich_withering_touch"] = 2
+    attacker.skills["sunder_armor"] = 2
+    attacker.skills["hamstring"] = 2
+    attacker.skills["unarmed_reaction_block"] = 1
+    var target := CharacterState.new("status_target", "Status Target")
+    target.base_reduction = 3
+    var rng := RandomNumberGenerator.new()
+    rng.seed = 17
+
+    StatusEffectRules.apply_on_hit(attacker, target, {"has_weapon": false, "is_ranged": false}, 4, rng)
+    _check(attacker.health == 56, "Life Drain heals up to two HP and Grave Chill heals two HP per rank on melee hits")
+    _check(target.reaction_blocked, "Unarmed Reaction Block prevents reactions after a successful unarmed hit")
+    _check(target.wither_remaining_tp == 5.0 and target.wither_damage_per_tp == 2.0, "Withering Touch adds five TP of damage-over-time at its rank damage")
+    _check(target.sunder_stacks == 1 and target.base_reduction == 2, "Sunder Armour removes one point of base reduction per stack")
+    _check(target.hobbled_stacks == 1, "Hamstring applies a movement-cost stack on a melee hit")
+
+    StatusEffectRules.apply_on_hit(attacker, target, {"has_weapon": false, "is_ranged": false}, 4, rng)
+    StatusEffectRules.apply_on_hit(attacker, target, {"has_weapon": false, "is_ranged": false}, 4, rng)
+    _check(target.wither_remaining_tp == 15.0, "Withering Touch adds five duration TP on each successful hit")
+    _check(target.sunder_stacks == 2 and target.base_reduction == 1, "Sunder Armour is capped at the attacker's skill rank")
+    _check(target.hobbled_stacks == 2, "Hamstring is capped at the attacker's skill rank")
+
+    var poisoner := CharacterState.new("poisoner", "Poisoner")
+    poisoner.skills["poison_bite"] = 1
+    var poison_proc := false
+    for seed in range(1, 100):
+        var poison_target := CharacterState.new("poison_target_%d" % seed, "Poison Target")
+        rng.seed = seed
+        StatusEffectRules.apply_on_hit(poisoner, poison_target, {"has_weapon": true}, 1, rng)
+        if poison_target.poison_remaining_tp > 0.0:
+            poison_proc = true
+            _check(poison_target.poison_remaining_tp == 10.0 and poison_target.poison_damage_per_tp == 2.0, "Poison Bite applies ten TP at two damage per TP")
+            break
+    _check(poison_proc, "Poison Bite should successfully proc on a deterministic 50% roll")
+
+    var ticking := CharacterState.new("status_ticking", "Status Ticking")
+    ticking.health = 100
+    ticking.max_health = 100
+    ticking.poison_remaining_tp = 10.0
+    ticking.poison_damage_per_tp = 2.0
+    ticking.poison_source_id = poisoner.id
+    ticking.wither_remaining_tp = 5.0
+    ticking.wither_damage_per_tp = 2.0
+    ticking.wither_source_id = attacker.id
+    var tick_events := StatusEffectRules.advance(ticking, 2.5)
+    _check(ticking.health == 95, "Poison and withering deal damage proportional to gained TP")
+    _check(is_equal_approx(ticking.poison_remaining_tp, 7.5) and is_equal_approx(ticking.wither_remaining_tp, 2.5), "Damage-over-time durations decrease by gained TP")
+    _check(tick_events.size() == 2, "Each active damage-over-time effect emits a tick event")
+
+    var saved := ticking.to_dict()
+    var restored := CharacterState.from_dict(saved)
+    _check(is_equal_approx(restored.poison_remaining_tp, ticking.poison_remaining_tp), "Poison duration survives save/load")
+    _check(is_equal_approx(restored.wither_remaining_tp, ticking.wither_remaining_tp), "Withering duration survives save/load")
+    _check(restored.poison_source_id == poisoner.id and restored.wither_source_id == attacker.id, "Damage-over-time source attribution survives save/load")
+
+    var poison_lethal := CharacterState.new("poison_lethal", "Poison Lethal")
+    poison_lethal.health = 2
+    poison_lethal.poison_remaining_tp = 1.0
+    poison_lethal.poison_damage_per_tp = 2.0
+    StatusEffectRules.advance(poison_lethal, 1.0)
+    _check(not poison_lethal.alive and not poison_lethal.unconscious, "Poison kills at zero HP, matching the original engine")
+
+    var movement_map := HexMapData.new()
+    movement_map.add_cell(Vector2i.ZERO)
+    movement_map.add_cell(Vector2i(1, 0))
+    var unhampered := CharacterState.new("unhampered", "Unhampered", Vector2i.ZERO)
+    var hobbled := CharacterState.new("hobbled", "Hobbled", Vector2i.ZERO)
+    hobbled.hobbled_stacks = 2
+    _check(is_equal_approx(MovementRules.step_cost(movement_map, Vector2i.ZERO, Vector2i(1, 0), unhampered), 5.0), "Normal movement cost remains unchanged")
+    _check(is_equal_approx(MovementRules.step_cost(movement_map, Vector2i.ZERO, Vector2i(1, 0), hobbled), 7.0), "Each Hamstring stack increases movement cost by twenty percent")
 
 
 func _check(condition: bool, message: String = "Assertion failed") -> void:
