@@ -2231,6 +2231,8 @@ func _find_valid_spawn_hex(preferred: Vector2i) -> Vector2i:
 
 func _on_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
     var actor := actor_by_id.get(character_id) as Node3D
+    if actor == null:
+        actor = _find_creature_actor(character_id)
     if actor != null:
         var destination := _hex_world_position(to_hex)
         if actor is CreatureActor:
