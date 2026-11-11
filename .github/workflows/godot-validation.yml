@@ -17,16 +17,19 @@ on:
       - "tools/ci/**"
       - ".github/workflows/godot-validation.yml"
   push:
-    branches: [dev]
+    branches: [dev, "feature/**"]
     paths:
       - "project.godot"
       - "export_presets.cfg"
       - "art/characters/**"
       - "art/ui/**"
+      - "art/environment/**"
+      - "art/creatures/**"
       - "scenes/**"
       - "scripts/**"
       - "data/**"
       - "tests/**"
+      - "tools/ci/**"
       - ".github/workflows/godot-validation.yml"
   workflow_dispatch:
 
