@@ -155,6 +155,7 @@ static func path_cells() -> Array[Vector2i]:
 		_append_unique(cells, seen, Vector2i(8, r))
 	for r in range(-9, -6):
 		_append_unique(cells, seen, Vector2i(0, r))
+	_append_unique(cells, seen, Vector2i(0, -10))
 	for r in range(7, 14):
 		_append_unique(cells, seen, Vector2i(0, r))
 	_append_unique(cells, seen, Vector2i(0, 5))
