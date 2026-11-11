@@ -1,6 +1,5 @@
 extends SceneTree
 
-const FARMSTEAD_BEAR_ACTOR_SCRIPT = preload("res://scripts/presentation/farmstead_bear_actor.gd")
 
 var _failures: int = 0
 
@@ -11,9 +10,8 @@ func _initialize() -> void:
     _test_campaign_journal()
     _test_hollowmere_campaign_content()
     _test_companion_campaign_dialogue_and_recruitment()
-    _test_farmstead_bear_encounter()
-    _test_farmstead_bear_presentation()
-    _test_hollowmere_encounter()
+    _test_farmstead_dire_wolf_encounter()
+        _test_hollowmere_encounter()
     _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
     _test_equipped_item_combat_effects()
@@ -381,9 +379,9 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
     var grukk_with_trust := CompanionCampaignContent.conversation("warlord_grukk_ironhide", journal, empty_inventory, no_party)
     _check(_has_companion_recruit_choice(grukk_with_trust), "Grukk should offer to join at 40 orc standing")
 
-    _check(bool(journal.start_quest("reyna_bear_hunt").get("ok", false)))
-    _check(bool(CompanionCampaignContent.complete_objective(journal, "reyna_bear_hunt", "bear_slain").get("ok", false)))
-    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Reyna should join after the bear is defeated")
+    _check(bool(journal.start_quest("reyna_dire_wolf_hunt").get("ok", false)))
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "reyna_dire_wolf_hunt", "dire_wolf_slain").get("ok", false)))
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Reyna should join after the dire wolf is defeated")
     _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("companion_reyna_fletcher", journal, empty_inventory, no_party)), "Reyna's manifest game ID must resolve to her recruitment dialogue")
 
     _check(bool(journal.start_quest("mirabel_spider_ruin").get("ok", false)))
@@ -410,22 +408,7 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
     _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("nix_sharpear", restored, empty_inventory, no_party)), "Companion quest outcomes should persist through journal save/load")
 
 
-func _test_farmstead_bear_presentation() -> void:
-    var bear := FARMSTEAD_BEAR_ACTOR_SCRIPT.new() as Node3D
-    bear.call("_ready")
-    _check(bear.get_node_or_null("BearBodyRig/DeepBarrelBody") != null, "Bear has a broad barrel-shaped torso")
-    _check(bear.get_node_or_null("BearBodyRig/ShoulderHump") != null, "Bear has a defined shoulder hump")
-    _check(bear.get_node_or_null("BearHeadPivot/BroadBearSkull") != null, "Bear has a distinct skull and head assembly")
-    _check(bear.get_node_or_null("BearHeadPivot/Nose") != null, "Bear has a shaped muzzle and nose")
-    _check(bear.get_node_or_null("BearHeadPivot/AmberEye_L") != null and bear.get_node_or_null("BearHeadPivot/AmberEye_R") != null, "Bear has visible eyes on both sides")
-    for leg_name in ["FrontLeft", "FrontRight", "RearLeft", "RearRight"]:
-        _check(bear.get_node_or_null(leg_name + "Rig/" + leg_name + "Paw") != null, "Bear has a paw on " + leg_name)
-        _check(bear.get_node_or_null(leg_name + "Rig/" + leg_name + "Claw_0") != null, "Bear has claws on " + leg_name)
-    _check(bear.get_node_or_null("BearName") != null, "Bear keeps its in-world name label")
-    bear.free()
-
-
-func _test_farmstead_bear_encounter() -> void:
+func _test_farmstead_dire_wolf_encounter() -> void:
     var simulation := WorldSimulation.new()
     var player := CharacterState.new("player", "Adventurer", Vector2i(0, 0))
     player.side = "player"
@@ -433,22 +416,22 @@ func _test_farmstead_bear_encounter() -> void:
     wren.side = "player"
     simulation.register_character(player)
     simulation.register_character(wren)
-    var bear_result := FarmsteadBearEncounter.create_bear(simulation, Vector2i(5, 5))
-    _check(bool(bear_result.get("ok", false)), "Old Mac's bear should be registered as a persistent world character")
+    var dire wolf_result := FarmsteadDireWolfEncounter.create_dire_wolf(simulation, Vector2i(5, 5))
+    _check(bool(dire wolf_result.get("ok", false)), "Old Mac's dire wolf should be registered as a persistent world character")
     var party_ids: Array[String] = ["player", "companion_wren_talbot"]
-    var start := FarmsteadBearEncounter.start(simulation, party_ids)
-    _check(bool(start.get("ok", false)), "The farmstead bear encounter should start through WorldSimulation")
-    _check(simulation.is_in_combat, "The bear hunt should use the shared combat scheduler")
+    var start := FarmsteadDireWolfEncounter.start(simulation, party_ids)
+    _check(bool(start.get("ok", false)), "The farmstead dire wolf encounter should start through WorldSimulation")
+    _check(simulation.is_in_combat, "The dire wolf hunt should use the shared combat scheduler")
     _check(player.side == "player" and wren.side == "player", "The active party should fight on the player side")
-    _check(is_equal_approx(player.time_points, 100.0) and is_equal_approx(wren.time_points, 100.0), "The bear encounter should begin with party members at 100 TP")
-    var bear := simulation.get_character(FarmsteadBearEncounter.BEAR_ID)
-    _check(bear != null and bear.side == "enemy" and not bear.combat_dormant, "The bear should be an active enemy combatant")
-    _check(is_equal_approx(bear.time_points, 100.0), "The bear should also start at 100 TP")
-    bear.apply_damage(1000)
-    _check(FarmsteadBearEncounter.bear_defeated(simulation), "Defeating the bear should resolve the encounter target")
+    _check(is_equal_approx(player.time_points, 100.0) and is_equal_approx(wren.time_points, 100.0), "The dire wolf encounter should begin with party members at 100 TP")
+    var dire wolf := simulation.get_character(FarmsteadDireWolfEncounter.DIRE_WOLF_ID)
+    _check(dire wolf != null and dire wolf.side == "enemy" and not dire wolf.combat_dormant, "The dire wolf should be an active enemy combatant")
+    _check(is_equal_approx(dire wolf.time_points, 100.0), "The dire wolf should also start at 100 TP")
+    dire wolf.apply_damage(1000)
+    _check(FarmsteadDireWolfEncounter.dire_wolf_defeated(simulation), "Defeating the dire wolf should resolve the encounter target")
     simulation.end_combat()
-    FarmsteadBearEncounter.finish(simulation, party_ids)
-    _check(bear.combat_dormant, "The bear should leave the active combat roster after resolution")
+    FarmsteadDireWolfEncounter.finish(simulation, party_ids)
+    _check(dire wolf.combat_dormant, "The dire wolf should leave the active combat roster after resolution")
     _check(player.side == "player" and wren.side == "player", "The party should remain on the player side after the encounter")
     simulation.free()
 
