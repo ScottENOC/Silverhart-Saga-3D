@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "Canonical shared Ara body profiles for players, companions and NPCs. No character-specific body or garment libraries.",
+  "description": "Ten canonical adult human base meshes (five builds for each Ara body model). Every character selects one base; individual appearance variation is applied as character-level morphs/modifiers and does not create a bespoke base mesh or garment library.",
   "builds": [
     {
       "id": "lean",
@@ -34,70 +34,256 @@
       "body_model": "female",
       "build": "lean",
       "body_asset": "res://art/characters/ara_runtime/bodies/female_lean.glb",
-      "garment_library": "res://art/characters/ara_runtime/garments/female_lean.glb"
+      "garment_library": "res://art/characters/ara_runtime/garments/female_lean.glb",
+      "base_parameters": {
+        "seed": 1201,
+        "gender": 0,
+        "age": 0.5,
+        "muscle": 0.35,
+        "weight": 0.25,
+        "height": 0.5,
+        "proportions": 0.38,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "breastSize": 0.5,
+        "breastFirmness": 0.55
+      }
     },
     {
       "id": "female_average",
       "body_model": "female",
       "build": "average",
       "body_asset": "res://art/characters/ara_runtime/bodies/female_average.glb",
-      "garment_library": "res://art/characters/ara_runtime/garments/female_average.glb"
+      "garment_library": "res://art/characters/ara_runtime/garments/female_average.glb",
+      "base_parameters": {
+        "seed": 1202,
+        "gender": 0,
+        "age": 0.5,
+        "muscle": 0.5,
+        "weight": 0.5,
+        "height": 0.5,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "breastSize": 0.5,
+        "breastFirmness": 0.55
+      }
     },
     {
       "id": "female_broad",
       "body_model": "female",
       "build": "broad",
       "body_asset": "res://art/characters/ara_runtime/bodies/female_broad.glb",
-      "garment_library": "res://art/characters/ara_runtime/garments/female_broad.glb"
+      "garment_library": "res://art/characters/ara_runtime/garments/female_broad.glb",
+      "base_parameters": {
+        "seed": 1203,
+        "gender": 0,
+        "age": 0.5,
+        "muscle": 0.55,
+        "weight": 0.55,
+        "height": 0.5,
+        "proportions": 0.72,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "breastSize": 0.5,
+        "breastFirmness": 0.55
+      }
     },
     {
       "id": "female_muscular",
       "body_model": "female",
       "build": "muscular",
       "body_asset": "res://art/characters/ara_runtime/bodies/female_muscular.glb",
-      "garment_library": "res://art/characters/ara_runtime/garments/female_muscular.glb"
+      "garment_library": "res://art/characters/ara_runtime/garments/female_muscular.glb",
+      "base_parameters": {
+        "seed": 1204,
+        "gender": 0,
+        "age": 0.5,
+        "muscle": 0.85,
+        "weight": 0.35,
+        "height": 0.55,
+        "proportions": 0.68,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "breastSize": 0.5,
+        "breastFirmness": 0.55
+      }
     },
     {
       "id": "female_soft",
       "body_model": "female",
       "build": "soft",
       "body_asset": "res://art/characters/ara_runtime/bodies/female_soft.glb",
-      "garment_library": "res://art/characters/ara_runtime/garments/female_soft.glb"
+      "garment_library": "res://art/characters/ara_runtime/garments/female_soft.glb",
+      "base_parameters": {
+        "seed": 1205,
+        "gender": 0,
+        "age": 0.5,
+        "muscle": 0.3,
+        "weight": 0.82,
+        "height": 0.5,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "breastSize": 0.5,
+        "breastFirmness": 0.55
+      }
     },
     {
       "id": "male_lean",
       "body_model": "male",
       "build": "lean",
       "body_asset": "res://art/characters/ara_runtime/bodies/male_lean.glb",
-      "garment_library": "res://art/characters/ara_runtime/garments/male_lean.glb"
+      "garment_library": "res://art/characters/ara_runtime/garments/male_lean.glb",
+      "base_parameters": {
+        "seed": 1301,
+        "gender": 1,
+        "age": 0.5,
+        "muscle": 0.35,
+        "weight": 0.25,
+        "height": 0.5,
+        "proportions": 0.38,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "breastSize": 0,
+        "breastFirmness": 0,
+        "modifiers": {
+          "torso/torso-vshape": 0.15,
+          "torso/torso-muscle-dorsi": 0.12,
+          "armslegs/upperarm-muscle": 0.12,
+          "armslegs/upperarm-scale-horiz": 0.12,
+          "armslegs/upperarm-scale-depth": 0.1,
+          "armslegs/lowerarm-muscle": 0.08
+        }
+      }
     },
     {
       "id": "male_average",
       "body_model": "male",
       "build": "average",
       "body_asset": "res://art/characters/ara_runtime/bodies/male_average.glb",
-      "garment_library": "res://art/characters/ara_runtime/garments/male_average.glb"
+      "garment_library": "res://art/characters/ara_runtime/garments/male_average.glb",
+      "base_parameters": {
+        "seed": 1302,
+        "gender": 1,
+        "age": 0.5,
+        "muscle": 0.5,
+        "weight": 0.5,
+        "height": 0.5,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "breastSize": 0,
+        "breastFirmness": 0,
+        "modifiers": {
+          "torso/torso-vshape": 0.2,
+          "torso/torso-muscle-dorsi": 0.12,
+          "armslegs/upperarm-muscle": 0.12,
+          "armslegs/upperarm-scale-horiz": 0.12,
+          "armslegs/upperarm-scale-depth": 0.1,
+          "armslegs/lowerarm-muscle": 0.08
+        }
+      }
     },
     {
       "id": "male_broad",
       "body_model": "male",
       "build": "broad",
       "body_asset": "res://art/characters/ara_runtime/bodies/male_broad.glb",
-      "garment_library": "res://art/characters/ara_runtime/garments/male_broad.glb"
+      "garment_library": "res://art/characters/ara_runtime/garments/male_broad.glb",
+      "base_parameters": {
+        "seed": 1303,
+        "gender": 1,
+        "age": 0.5,
+        "muscle": 0.55,
+        "weight": 0.55,
+        "height": 0.5,
+        "proportions": 0.72,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "breastSize": 0,
+        "breastFirmness": 0,
+        "modifiers": {
+          "torso/torso-vshape": 0.45,
+          "torso/torso-muscle-dorsi": 0.12,
+          "armslegs/upperarm-muscle": 0.12,
+          "armslegs/upperarm-scale-horiz": 0.3,
+          "armslegs/upperarm-scale-depth": 0.1,
+          "armslegs/lowerarm-muscle": 0.08
+        }
+      }
     },
     {
       "id": "male_muscular",
       "body_model": "male",
       "build": "muscular",
       "body_asset": "res://art/characters/ara_runtime/bodies/male_muscular.glb",
-      "garment_library": "res://art/characters/ara_runtime/garments/male_muscular.glb"
+      "garment_library": "res://art/characters/ara_runtime/garments/male_muscular.glb",
+      "base_parameters": {
+        "seed": 1304,
+        "gender": 1,
+        "age": 0.5,
+        "muscle": 0.85,
+        "weight": 0.35,
+        "height": 0.55,
+        "proportions": 0.68,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "breastSize": 0,
+        "breastFirmness": 0,
+        "modifiers": {
+          "torso/torso-vshape": 0.65,
+          "torso/torso-muscle-dorsi": 0.4,
+          "armslegs/upperarm-muscle": 0.5,
+          "armslegs/upperarm-scale-horiz": 0.3,
+          "armslegs/upperarm-scale-depth": 0.25,
+          "armslegs/lowerarm-muscle": 0.3
+        }
+      }
     },
     {
       "id": "male_soft",
       "body_model": "male",
       "build": "soft",
       "body_asset": "res://art/characters/ara_runtime/bodies/male_soft.glb",
-      "garment_library": "res://art/characters/ara_runtime/garments/male_soft.glb"
+      "garment_library": "res://art/characters/ara_runtime/garments/male_soft.glb",
+      "base_parameters": {
+        "seed": 1305,
+        "gender": 1,
+        "age": 0.5,
+        "muscle": 0.3,
+        "weight": 0.82,
+        "height": 0.5,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "breastSize": 0,
+        "breastFirmness": 0,
+        "modifiers": {
+          "torso/torso-vshape": 0.2,
+          "torso/torso-muscle-dorsi": 0.12,
+          "armslegs/upperarm-muscle": 0.12,
+          "armslegs/upperarm-scale-horiz": 0.12,
+          "armslegs/upperarm-scale-depth": 0.1,
+          "armslegs/lowerarm-muscle": 0.08
+        }
+      }
     }
-  ]
+  ],
+  "character_generation": {
+    "base_selection": "Select exactly one of the ten body_profiles by body_model and build.",
+    "variation": "Apply character-specific body morphs, proportions, skin, face, hair and other appearance settings to the selected base. Do not generate a unique canonical body/garment library per NPC.",
+    "garment_rule": "Each of the ten canonical bases owns a garment library generated and validated against that exact base rig. Garments are not sourced from Wren or retargeted across body profiles.",
+    "anatomy_rule": "Gendered adult anatomy is generated per canonical base before the corresponding garment library is fitted and reviewed."
+  }
 }
