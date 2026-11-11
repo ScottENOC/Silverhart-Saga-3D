@@ -291,7 +291,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         outer_r = g(p.x,p.z, width*0.060,anatomy_z-height*0.002,width*0.030,height*0.030)
         inner_l = g(p.x,p.z,-width*0.026,anatomy_z-height*0.004,width*0.013,height*0.022)
         inner_r = g(p.x,p.z, width*0.026,anatomy_z-height*0.004,width*0.013,height*0.022)
-        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.012,width*0.006,height*0.027)
+        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.012,width*0.0048,height*0.030)
         vestibule = g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.018,height*0.009)
         urethra = g(p.x,p.z,0.0,anatomy_z-height*0.016,width*0.0045,height*0.0025)
         vaginal = g(p.x,p.z,0.0,anatomy_z-height*0.035,width*0.012,height*0.006)
@@ -306,7 +306,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
             + 0.00075*glans + 0.00050*frenulum + 0.00050*fourchette
         )
         inward = deformation_scale * height * (
-            0.00275*vestibule + 0.00425*cleft
+            0.00275*vestibule + 0.00850*cleft
             + 0.0010*urethra + 0.0015*vaginal + 0.00025*perineum
         )
         p.y -= outward
