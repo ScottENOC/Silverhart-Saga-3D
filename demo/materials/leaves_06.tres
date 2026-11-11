@@ -1,0 +1,17 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://bhtq0iyc1n5ch"]
+
+[ext_resource type="Shader" uid="uid://bfq8ep8l8jqps" path="res://addons/cosmo_tree_gen/shaders/leaves.gdshader" id="1_leaves"]
+[ext_resource type="Texture2D" uid="uid://bjygtvpu04yly" path="res://demo/textures/branchlet_06.png" id="1_pj0uu"]
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_leaves")
+shader_parameter/albedo = Color(1, 1, 1, 1)
+shader_parameter/albedo_texture = ExtResource("1_pj0uu")
+shader_parameter/alpha_scissor_threshold = 0.5
+shader_parameter/backlight = Color(0.45, 0.5, 0.25, 1)
+shader_parameter/ao_light_affect = 0.5
+shader_parameter/wind_direction = Vector3(1, 0, 0.3)
+shader_parameter/wind_strength = 0.1
+shader_parameter/wind_speed = 1.0
+shader_parameter/wind_phase_scale = 2.0
