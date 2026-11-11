@@ -358,7 +358,7 @@ def main():
         run([blender, "--background", "--python-exit-code", "1", "--python",
              ROOT / "tools/blender/add_adult_anatomy.py", "--",
              "--input", female_raw, "--output", female_final, "--profile", "female",
-             "--adult", "--deformation-scale", "1.0"], env=review_env)
+             "--adult", "--deformation-scale", "1.65"], env=review_env)
         for pose_name, pose_output in (("erect", male_erect), ("flaccid", male_flaccid)):
             run([blender, "--background", "--python-exit-code", "1", "--python",
                  ROOT / "tools/blender/add_male_anatomy.py", "--",
@@ -381,6 +381,24 @@ def main():
                      "--input", model, "--output-dir", output_dir, "--frame", str(frame),
                      *focus_args], env=review_env)
 
+        # Render blue diagnostic and natural-colour close-ups from the exact
+        # average-body GLBs above. Keep them inside build/anatomy-review so the
+        # workflow artifact always contains the images used for approval.
+        anatomy_review = ROOT / "tools" / "blender" / "review_anatomy_closeup.py"
+        closeup_reports = {}
+        for label, model in (("female_average", female_final),
+                             ("male_average_erect", male_erect),
+                             ("male_average_flaccid", male_flaccid)):
+            closeup_dir = review_root / "renders" / label / "pelvis_detail"
+            closeup_dir.mkdir(parents=True, exist_ok=True)
+            run([blender, "--background", "--python-exit-code", "1", "--python",
+                 anatomy_review, "--", "--input", model, "--output-dir", closeup_dir,
+                 "--label", label], env=review_env)
+            run([blender, "--background", "--python-exit-code", "1", "--python",
+                 anatomy_review, "--", "--input", model, "--output-dir", closeup_dir,
+                 "--label", label, "--natural-colour"], env=review_env)
+            closeup_reports[label] = str((closeup_dir / (label + "_anatomy_review.json")).relative_to(review_root))
+
         report = {
             "schema_version": 1,
             "purpose": "visual anatomy prototype only; not production-approved",
@@ -388,7 +406,7 @@ def main():
             "profiles": ["female_average", "male_average_erect", "male_average_flaccid"],
             "female": {
                 "asset": female_final.name,
-                "deformation_scale": 1.0,
+                "deformation_scale": 1.65,
                 "targets_percent_of_body_height": {
                     "mons_pubis_fullness": 0.50,
                     "labia_majora_relief": 0.375,
@@ -407,7 +425,12 @@ def main():
             },
             "views": ["front", "side", "rear", "three_quarter"],
             "male_pose_frames": {"erect": 1, "flaccid": 24},
-            "review_note": "Inspect raw and processed GLBs and all full/pelvis renders under the same lighting."
+            "detail_review": {
+                "source_models": "same average-body GLBs listed in profiles",
+                "render_modes": ["blue diagnostic", "natural colour"],
+                "reports": closeup_reports
+            },
+            "review_note": "Inspect raw and processed GLBs, standard full/pelvis renders, and blue/natural-colour pelvis detail renders under the same lighting."
         }
         (review_root / "anatomy_review_report.json").write_text(
             json.dumps(report, indent=2) + "\\n", encoding="utf-8"
