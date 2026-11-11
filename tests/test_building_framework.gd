@@ -19,7 +19,7 @@ func _test_door_lifecycle() -> void:
     assert(not door.lock(), "An already locked door remains locked.")
     assert(door.unlock(), "A closed door can be unlocked.")
     assert(door.open() and door.is_passable(), "An unlocked door can open.")
-    assert(not door.close() if door.locked else true, "Door state remains consistent.")
+    assert(not door.lock(), "An open door cannot be locked.")
     assert(door.close() and not door.is_passable(), "An open door can close.")
     assert(door.lock(), "A closed door can be locked.")
     assert(door.damage(20), "Lethal damage should break the door.")
