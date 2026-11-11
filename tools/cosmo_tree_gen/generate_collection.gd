@@ -1,18 +1,14 @@
 extends SceneTree
 
-# Generate a small follow-up batch. The original 16 GLBs remain untouched.
-# Six species x two additional variants = 12 new trees (variants 03 and 04).
+# Second small batch: add three new vegetation forms with four variants each.
+# Existing 28 tree assets are left untouched.
 const PRESET_PATHS: Array[String] = [
-	"res://addons/cosmo_tree_gen/presets/ash.tres",
-	"res://addons/cosmo_tree_gen/presets/cherry.tres",
-	"res://addons/cosmo_tree_gen/presets/laurel.tres",
-	"res://addons/cosmo_tree_gen/presets/pine.tres",
-	"res://addons/cosmo_tree_gen/presets/spruce.tres",
-	"res://addons/cosmo_tree_gen/presets/willow.tres",
+	"res://addons/cosmo_tree_gen/presets/bush.tres",
+	"res://addons/cosmo_tree_gen/presets/low_poly_bush.tres",
+	"res://addons/cosmo_tree_gen/presets/tree_fern.tres",
 ]
 
-const FIRST_VARIANT := 3
-const VARIANTS_PER_PRESET := 2
+const VARIANTS_PER_PRESET := 4
 const OUTPUT_DIR := "res://art/environment/trees/cosmo_generated"
 
 
@@ -30,18 +26,18 @@ func _run_collection() -> void:
 			quit(1)
 			return
 		var preset_name := preset_path.get_file().get_basename()
-		for variant_offset in range(VARIANTS_PER_PRESET):
-			var variant := FIRST_VARIANT + variant_offset
+		for variant in range(VARIANTS_PER_PRESET):
 			var tree := CosmoTreeGen.new()
 			tree.auto_generate = false
-			tree.noise_seed = 52000 + total * 137
+			tree.noise_seed = 63000 + total * 137
 			tree.apply_preset(preset)
 			tree.generate_lod = true
 			tree.collision_type = CosmoTreeGen.CollisionType.TRIMESH
 			tree.collision_max_height = tree.trunk_params.height * 0.3
 			tree.generate()
-			tree.name = "%s_%02d" % [preset_name, variant]
-			var output_path := "%s/%s_%02d.glb" % [OUTPUT_DIR, preset_name, variant]
+			var variant_number := variant + 1
+			tree.name = "%s_%02d" % [preset_name, variant_number]
+			var output_path := "%s/%s_%02d.glb" % [OUTPUT_DIR, preset_name, variant_number]
 			var error_code: Error = await tree.export_gltf(output_path, {
 				"Use External Material": true,
 				"Include Collisions": true,
@@ -53,9 +49,9 @@ func _run_collection() -> void:
 				return
 			print("COSMO_TREE_EXPORTED: " + output_path)
 			total += 1
-	print("COSMO_TREE_BATCH_COMPLETE: %d additional trees exported" % total)
+	print("COSMO_TREE_BATCH_COMPLETE: %d additional assets exported" % total)
 	if total != 12:
-		push_error("Expected exactly 12 additional trees; exported %d" % total)
+		push_error("Expected exactly 12 additional assets; exported %d" % total)
 		quit(1)
 		return
 	quit(0)
