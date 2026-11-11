@@ -179,6 +179,64 @@ def create_uv_surface(name, centre, scale, material, armature, pelvis_bone,
     return create_mesh_object(name, vertices, faces, material, armature, pelvis_bone)
 
 
+def create_flaccid_phallus(material, armature, pelvis_bone, body_height, anatomy_z, anchor_y):
+    """Create a new compact, downward-resting flaccid form (not the old finger mesh)."""
+    axis = Vector((0.0, -0.43, -0.90)).normalized()
+    right = Vector((1.0, 0.0, 0.0))
+    side = axis.cross(right).normalized()
+    length = body_height * 0.038
+    radius = body_height * 0.0060
+    base = Vector((0.0, anchor_y + body_height * 0.003, anatomy_z + body_height * 0.003))
+
+    # Longitudinal silhouette: narrow attachment, fuller shaft, a restrained
+    # distal glans transition, then a softly rounded tip. Values are relative
+    # to body height and deliberately much smaller than the preserved reference.
+    profile = [
+        (0.00, 0.28), (0.08, 0.58), (0.20, 0.78), (0.38, 0.88),
+        (0.58, 0.91), (0.73, 0.98), (0.84, 1.02), (0.91, 0.91),
+        (0.97, 0.68), (1.00, 0.20),
+    ]
+    segments = 48
+    vertices = []
+    faces = []
+    for t, width_factor in profile:
+        # A slight natural curve back toward the body as the form descends.
+        centre = base + axis * (length * t) + Vector((0.0, body_height * 0.0015 * math.sin(math.pi * t), 0.0))
+        ring_radius = radius * width_factor
+        for segment in range(segments):
+            angle = 2.0 * math.pi * segment / segments
+            radial = right * math.cos(angle) + side * math.sin(angle)
+            point = centre + radial * ring_radius
+            vertices.append(tuple(point))
+    for ring in range(len(profile) - 1):
+        for segment in range(segments):
+            a = ring * segments + segment
+            b = ring * segments + (segment + 1) % segments
+            c = (ring + 1) * segments + (segment + 1) % segments
+            d = (ring + 1) * segments + segment
+            faces.append((a, b, c, d))
+    # Close both ends with small caps to avoid an open surface.
+    start_index = len(vertices)
+    vertices.append(tuple(base))
+    end_index = len(vertices)
+    vertices.append(tuple(base + axis * length))
+    last_ring = (len(profile) - 1) * segments
+    for segment in range(segments):
+        nxt = (segment + 1) % segments
+        faces.append((start_index, nxt, segment))
+        faces.append((end_index, last_ring + segment, last_ring + nxt))
+
+    obj = create_mesh_object(
+        "Male anatomy · new flaccid resting form", vertices, faces,
+        material, armature, pelvis_bone
+    )
+    obj["anatomy_state"] = "flaccid"
+    obj["anatomy_method"] = "new_parametric_resting_form_not_finger_template"
+    obj["target_length_m"] = length
+    obj["maximum_radius_m"] = radius * max(value for _t, value in profile)
+    return obj
+
+
 def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
                                   body_height, anatomy_z, anchor_y, anatomy_state):
     """Reuse Ara's own middle-finger surface as the phallus modelling template.
@@ -262,19 +320,17 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
         tuple(remap[index] for index in polygon.vertices) for polygon in selected_faces
     ]
 
-    # Keep the previous projection as a separately generated reference. The
-    # default flaccid form is shorter, narrower, angled down and tucked closer
-    # to the pubic surface so it does not read as an erect presentation.
-    if anatomy_state == "erect-reference":
-        target_axis = Vector((0.0, -0.94, -0.34)).normalized()
-        target_length = body_height * 0.074
-        radial_factor = 1.16
-        base_depth_offset = body_height * 0.006
-    else:
-        target_axis = Vector((0.0, -0.56, -0.83)).normalized()
-        target_length = body_height * 0.040
-        radial_factor = 0.88
-        base_depth_offset = body_height * 0.002
+    if anatomy_state == "flaccid":
+        return create_flaccid_phallus(
+            material, armature, pelvis_bone, body_height, anatomy_z, anchor_y
+        )
+
+    # The previous protruding finger-derived geometry is retained only as an
+    # optional erect reference asset. It is never used for ordinary characters.
+    target_axis = Vector((0.0, -0.94, -0.34)).normalized()
+    target_length = body_height * 0.074
+    radial_factor = 1.16
+    base_depth_offset = body_height * 0.006
     rotation = source_axis.rotation_difference(target_axis)
     length_scale = target_length / source_length
     radial_scale = length_scale * radial_factor
