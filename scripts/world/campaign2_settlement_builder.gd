@@ -27,6 +27,7 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 			if _contains_chunk(position, chunk_min, chunk_size):
 				_add_npc(parent, npc)
 
+## Millbrook's local +X face is aligned to the source q+ door/road approach.
 func _build_building(parent: Node3D, settlement: Dictionary, building: Dictionary) -> void:
 	var kind := String(building.get("kind", "house"))
 	if kind != "house":
