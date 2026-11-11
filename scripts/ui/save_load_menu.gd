@@ -109,9 +109,11 @@ func _on_slot_pressed(slot_id: String, occupied: bool) -> void:
 
 func _write_slot(slot_id: String) -> void:
     var result := SaveManager.save_snapshot(slot_id, snapshot)
-    status_label.text = "Saved successfully." if bool(result.get("ok", false)) else "Save failed: %s" % String(result.get("reason", "unknown error"))
     if bool(result.get("ok", false)):
         _refresh_slots()
+        status_label.text = "Saved successfully."
+    else:
+        status_label.text = "Save failed: %s" % String(result.get("reason", "unknown error"))
 
 func _close() -> void:
     visible = false
