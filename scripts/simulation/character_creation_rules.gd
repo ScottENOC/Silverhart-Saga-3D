@@ -81,8 +81,6 @@ static func create_player_state(profile: Dictionary, character_id: String, start
         state.gold = roundi(float(state.gold) * 1.5)
         state.skills["health"] = 1
         state.free_skill_ranks["health"] = 1
-        state.max_health += 10
-        state.health += 10
     # Clothing is ordinary inventory equipment, not baked into the body model.
     # All players start dressed; feminine presentations also receive a bra.
     var starting_clothing: Array[String] = ["briefs", "long_tunic", "trousers"]
@@ -111,6 +109,7 @@ static func create_player_state(profile: Dictionary, character_id: String, start
             if not state.equip_inventory_item(String(item.instance_id)):
                 push_error("Could not equip starting item: %s" % item_id)
     SkillProgression.initialise(state)
+    state.sync_skill_effects()
     return state
 
 static func preview_text(race_id: String, class_id: String, difficulty_id: String) -> String:

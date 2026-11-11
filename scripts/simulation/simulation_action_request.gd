@@ -1,7 +1,7 @@
 class_name SimulationActionRequest
 extends RefCounted
 
-enum ActionType { MOVE, ATTACK }
+enum ActionType { MOVE, ATTACK, FEINT }
 
 var action_type: int
 var actor_id: String
@@ -23,3 +23,6 @@ static func move(actor_id: String, destination: Vector2i, time_point_cost: float
 
 static func attack(actor_id: String, target_id: String, options: Dictionary = {}) -> SimulationActionRequest:
     return SimulationActionRequest.new(ActionType.ATTACK, actor_id, target_id, Vector2i.ZERO, 0.0, options)
+
+static func feint(actor_id: String, target_id: String) -> SimulationActionRequest:
+    return SimulationActionRequest.new(ActionType.FEINT, actor_id, target_id, Vector2i.ZERO, 1.0, {"is_feint": true})

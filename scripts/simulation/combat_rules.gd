@@ -4,6 +4,59 @@ extends RefCounted
 ## Deterministic core of Hex-crpg's resolveAttack rule. Visual effects,
 ## messages, reactions and campaign callbacks remain outside this resolver.
 
+static func weapon_skill_family(weapon_id: String, definition: Dictionary = {}) -> String:
+    var subtype := String(definition.get("subType", definition.get("sub_type", ""))).to_lower()
+    if subtype != "melee" and subtype != "ranged":
+        return ""
+    if weapon_id in ["sword", "sword_arrow_deflection", "starforged_blade"]:
+        return "sword"
+    if weapon_id == "axe":
+        return "axe"
+    if weapon_id in ["bow", "nightowl_bow", "hunting_bow"]:
+        return "bow"
+    if weapon_id in ["spear", "stormcaller_spear"]:
+        return "spear"
+    if weapon_id in ["dagger", "featherweight_dagger"]:
+        return "dagger"
+    if weapon_id in ["club", "ashenwood_club"]:
+        return "club"
+    return ""
+
+
+static func options_with_skill_ranks(attacker: CharacterState, target: CharacterState, options: Dictionary) -> Dictionary:
+    var resolved := options.duplicate(true)
+    if attacker == null:
+        return resolved
+    var slot := "offhand" if bool(resolved.get("is_offhand", false)) else "weapon"
+    var equipped: Dictionary = attacker.equipped_item_data.get(slot, {})
+    var weapon_id := String(resolved.get("weapon_id", ""))
+    if weapon_id.is_empty():
+        weapon_id = String(attacker.equipment.get(slot, equipped.get("id", "")))
+    if weapon_id.is_empty():
+        weapon_id = String(equipped.get("id", ""))
+    var definition := ItemCatalog.get_definition(weapon_id)
+    if definition.is_empty():
+        definition = equipped
+    var subtype := String(definition.get("subType", definition.get("sub_type", ""))).to_lower()
+    var has_weapon := not weapon_id.is_empty()
+    var family := weapon_skill_family(weapon_id, definition)
+    resolved["weapon_id"] = family if not family.is_empty() else weapon_id
+    resolved["has_weapon"] = has_weapon
+    if not resolved.has("is_ranged"):
+        resolved["is_ranged"] = subtype == "ranged"
+    if not family.is_empty():
+        resolved["weapon_skill_hit_rank"] = maxi(0, int(attacker.skills.get("%s_hit" % family, 0)))
+        resolved["weapon_skill_damage"] = maxi(0, int(attacker.skills.get("%s_dmg" % family, 0)))
+    elif not has_weapon:
+        resolved["unarmed_skill_hit_rank"] = maxi(0, int(attacker.skills.get("unarmed_hit", 0)))
+        resolved["unarmed_skill_damage"] = maxi(0, int(attacker.skills.get("unarmed_dmg", 0)))
+    if target != null:
+        resolved["target_caught_off_guard"] = bool(resolved.get("target_caught_off_guard", false)) or target.caught_off_guard
+        resolved["elf_foliage_expertise"] = bool(resolved.get("elf_foliage_expertise", false)) or int(target.skills.get("elf_foliage_expertise", 0)) > 0
+        resolved["druid_foliage_expertise"] = bool(resolved.get("druid_foliage_expertise", false)) or int(target.skills.get("druid_foliage_expertise", 0)) > 0
+    return resolved
+
+
 static func hit_chance(attacker: CharacterState, target: CharacterState, options: Dictionary = {}) -> float:
     if attacker == null or target == null:
         return 0.0
@@ -21,10 +74,15 @@ static func hit_chance(attacker: CharacterState, target: CharacterState, options
         chance -= 5.0
     if bool(options.get("is_offhand", false)):
         chance -= 5.0
-    if bool(options.get("weapon_skill_hit", false)):
+    var weapon_hit_rank := int(options.get("weapon_skill_hit_rank", 0))
+    var unarmed_hit_rank := int(options.get("unarmed_skill_hit_rank", 0))
+    chance += float(weapon_hit_rank) * 5.0
+    if weapon_hit_rank == 0 and bool(options.get("weapon_skill_hit", false)):
         chance += 5.0
-    if bool(options.get("unarmed_skill_hit", false)) and not bool(options.get("has_weapon", false)):
-        chance += 5.0
+    if not bool(options.get("has_weapon", false)):
+        chance += float(unarmed_hit_rank) * 5.0
+        if unarmed_hit_rank == 0 and bool(options.get("unarmed_skill_hit", false)):
+            chance += 5.0
     var animal_bonus := float(options.get("to_hit_vs_animal", 0.0))
     if animal_bonus != 0.0 and target.tags.has("animal"):
         chance += animal_bonus
@@ -67,8 +125,12 @@ static func damage_reduction(target: CharacterState) -> int:
     if not target.climbing:
         reduction += target.shield_reduction
         var equipped_shield: Dictionary = target.equipped_item_data.get("offhand", {})
+        var shield_id := String(target.equipment.get("offhand", equipped_shield.get("id", "")))
+        if equipped_shield.is_empty() and not shield_id.is_empty():
+            equipped_shield = ItemCatalog.get_definition(shield_id)
         if String(equipped_shield.get("type", "")) == "shield":
             reduction += int(equipped_shield.get("reduction", 0))
+            reduction += int(target.skills.get("shield_proficiency", 0))
     reduction += target.helmet_reduction + target.temp_reduction
     reduction += 2 * int(target.skills.get("spectral_form", 0) > 0)
     return maxi(0, reduction)
@@ -90,7 +152,8 @@ static func resolve_attack(
     if cost < 0.0 or not attacker.can_spend_time_points(cost):
         return {"ok": false, "reason": "insufficient_time_points"}
 
-    var chance := hit_chance(attacker, target, options)
+    var resolved_options := options_with_skill_ranks(attacker, target, options)
+    var chance := hit_chance(attacker, target, resolved_options)
     var roll := rng.randi_range(0, 99)
     if not attacker.spend_time_points(cost):
         return {"ok": false, "reason": "insufficient_time_points"}
@@ -102,7 +165,7 @@ static func resolve_attack(
             "reduction": 0, "damage": 0, "target_defeated": false
         }
 
-    var raw := raw_damage(attacker, options)
+    var raw := raw_damage(attacker, resolved_options)
     var reduction := damage_reduction(target)
     var final_damage := maxi(1, raw - reduction)
     if bool(options.get("hard_difficulty", false)) or attacker.difficulty_mode == "hard" or target.difficulty_mode == "hard":

@@ -82,6 +82,7 @@ func register_character(state: CharacterState) -> void:
     if occupied_hexes.has(state.axial):
         push_error("Cannot register %s: hex %s is already occupied." % [state.id, state.axial])
         return
+    state.sync_skill_effects()
     # A combatant who enters an encounter after it has started joins with a
     # full turn available, matching the campaign's intended encounter rule.
     if is_in_combat and state.side != "neutral" and not state.combat_dormant:
@@ -161,6 +162,10 @@ func start_combat() -> void:
     if is_in_combat:
         return
     is_in_combat = true
+    for value in characters.values():
+        var state := value as CharacterState
+        if state != null and state.alive:
+            state.time_points += 5.0 * float(maxi(0, int(state.skills.get("initiativeBonus", 0))))
     combat_started.emit()
 
 func end_combat() -> void:
@@ -342,10 +347,55 @@ func submit_action(request: SimulationActionRequest, random_seed: int = 0) -> Di
     match request.action_type:
         SimulationActionRequest.ActionType.ATTACK:
             return _submit_attack(request, random_seed)
+        SimulationActionRequest.ActionType.FEINT:
+            return _submit_feint(request, random_seed)
         SimulationActionRequest.ActionType.MOVE:
             return _submit_move(request)
         _:
             return {"ok": false, "reason": "unsupported_action_type"}
+
+func _submit_feint(request: SimulationActionRequest, random_seed: int) -> Dictionary:
+    if not pending_reaction.is_empty():
+        return {"ok": false, "reason": "reaction_pending"}
+    if not is_in_combat or not turn_scheduler.has_active_turn():
+        return {"ok": false, "reason": "no_active_combat_turn"}
+    if turn_scheduler.current_character_id != request.actor_id:
+        return {"ok": false, "reason": "not_attacker_turn"}
+    var attacker := get_character(request.actor_id)
+    var target := get_character(request.target_id)
+    if attacker == null or target == null or not attacker.can_act() or not target.can_be_targeted():
+        return {"ok": false, "reason": "combatant_unavailable"}
+    if attacker.side == target.side or target.side == "neutral":
+        return {"ok": false, "reason": "invalid_feint_target"}
+    if HexGrid.distance(attacker.axial, target.axial) != 1:
+        return {"ok": false, "reason": "target_out_of_feint_range"}
+    var equipped_weapon_data: Dictionary = attacker.equipped_item_data.get("weapon", {})
+    var weapon_id := String(attacker.equipment.get("weapon", equipped_weapon_data.get("id", "")))
+    var family := CombatRules.weapon_skill_family(weapon_id, ItemCatalog.get_definition(weapon_id))
+    if family not in ["sword", "dagger"] or int(attacker.skills.get("%s_feint" % family, 0)) <= 0:
+        return {"ok": false, "reason": "feint_skill_or_weapon_required"}
+    if not attacker.spend_time_points(1.0):
+        return {"ok": false, "reason": "insufficient_time_points"}
+
+    var reactions := _attack_reaction_options(attacker, target, {"is_feint": true})
+    if reactions.is_empty():
+        if attacker.should_end_turn():
+            try_end_current_turn()
+        return {"ok": true, "action_type": "feint", "feinted": true, "reaction_offered": false, "time_point_cost": 1.0}
+    pending_attack_context = {
+        "attacker_id": attacker.id,
+        "target_id": target.id,
+        "options": {"time_point_cost": 0.0, "is_feint": true},
+        "reactions": reactions.duplicate(true),
+        "random_seed": random_seed,
+        "is_feint": true
+    }
+    var reaction_result := request_reaction(target.id, reactions, "feint:%s:%s" % [attacker.id, target.id])
+    if bool(reaction_result.get("pending", false)):
+        return {"ok": true, "pending": true, "action_type": "feint", "request_id": reaction_result.get("request_id", 0)}
+    pending_attack_context.clear()
+    return {"ok": true, "action_type": "feint", "feinted": true, "reaction_offered": false, "time_point_cost": 1.0}
+
 
 func _submit_attack(request: SimulationActionRequest, random_seed: int) -> Dictionary:
     if not pending_reaction.is_empty():
@@ -449,6 +499,7 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
     var target := get_character(target_id)
     var options: Dictionary = context.get("options", {})
     var seed := int(context.get("random_seed", 0))
+    var is_feint := bool(context.get("is_feint", false))
     if attacker == null or target == null:
         return
 
@@ -462,7 +513,8 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
         var effect := String(selected.get("effect", ""))
         var reactor := get_character(String(selected.get("reactor_id", target_id)))
         if reactor == null or not reactor.can_act():
-            _resolve_attack_action(attacker_id, target_id, options, seed + 1 if seed != 0 else 0)
+            if not is_feint:
+                _resolve_attack_action(attacker_id, target_id, options, seed + 1 if seed != 0 else 0)
             return
 
         if effect == "parry" or effect == "protector_parry":
@@ -484,10 +536,28 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
                 var attack_cost := float(options.get("time_point_cost", 0.0))
                 if attacker.can_spend_time_points(attack_cost):
                     attacker.spend_time_points(attack_cost)
+                var riposte_payload: Dictionary = {}
+                var riposte_skill := "%s_riposte" % skill_base
+                if effect == "parry" and int(reactor.skills.get(riposte_skill, 0)) > 0 and reactor.can_spend_time_points(5.0):
+                    reactor.spend_time_points(5.0)
+                    var riposte_chance := clampf(50.0 + reactor.to_hit_melee - attacker.passive_dodge, 0.0, 100.0)
+                    var riposte_roll := float(rng_parry.randi_range(0, 99))
+                    var riposte_damage := 0
+                    var riposte_lifecycle := "missed"
+                    if riposte_roll < riposte_chance:
+                        riposte_damage = maxi(1, reactor.base_damage)
+                        riposte_lifecycle = attacker.apply_damage(riposte_damage)
+                    riposte_payload = {
+                        "attempted": true, "hit": riposte_damage > 0,
+                        "roll": riposte_roll, "hit_chance": riposte_chance,
+                        "damage": riposte_damage, "attacker_lifecycle": riposte_lifecycle,
+                        "attacker_health": attacker.health
+                    }
                 var parry_payload := {
                     "hit": false, "parried": true, "parry_type": effect,
                     "reactor_id": reactor.id, "parry_roll": parry_roll,
-                    "parry_chance": parry_chance, "damage": 0
+                    "parry_chance": parry_chance, "damage": 0,
+                    "riposte": riposte_payload
                 }
                 var parry_result := SimulationActionResult.new("attack", true, "", attacker_id, target_id, parry_payload).to_dict()
                 action_committed.emit(SimulationEvent.new("attack_resolved", attacker_id, target_id, parry_result))
@@ -497,6 +567,8 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
                 return
 
         elif effect == "shield_other":
+            if is_feint:
+                return
             var bonus_reduction := int(selected.get("shield_reduction", 0))
             target.temp_reduction += bonus_reduction
             var shield_seed := seed + 1 if seed != 0 else 0
@@ -504,6 +576,8 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
             target.temp_reduction -= bonus_reduction
             return
 
+    if is_feint:
+        return
     var followup_seed := seed + 1 if seed != 0 else 0
     _resolve_attack_action(attacker_id, target_id, options, followup_seed)
 
@@ -720,7 +794,17 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
     for value in characters.values():
         var state := value as CharacterState
         if state != null and state.alive:
+            var previous_tp := state.time_points
             state.regenerate_time_points()
+            var gained_tp := maxf(0.0, state.time_points - previous_tp)
+            if gained_tp > 0.0 and state.health < state.max_health:
+                state.health_regen_remainder += state.health_regeneration_per_time_point() * gained_tp
+                var whole_healing := floori(state.health_regen_remainder)
+                if whole_healing > 0:
+                    state.apply_healing(whole_healing)
+                    state.health_regen_remainder -= float(whole_healing)
+            elif state.health >= state.max_health:
+                state.health_regen_remainder = 0.0
 
     wilderness_resources.advance_time(world_seconds)
     world_tick.emit(tick_index, world_seconds)

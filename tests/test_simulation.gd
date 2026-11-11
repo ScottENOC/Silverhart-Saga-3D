@@ -16,6 +16,8 @@ func _initialize() -> void:
     _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
     _test_equipped_item_combat_effects()
+    _test_canonical_weapon_skill_runtime()
+    _test_core_character_skill_runtime()
     _test_movement_validation()
     _test_time_point_rules()
     _test_action_movement_cost()
@@ -29,6 +31,7 @@ func _initialize() -> void:
     _test_downed_and_death_lifecycle()
     _test_unified_action_contract()
     _test_attack_waits_for_parry_resolution()
+    _test_feint_uses_parry_reaction_without_attacking()
     _test_protector_ally_parry()
     _test_shield_other_reduces_one_attack()
     _test_spear_halt_commits_one_step_then_stops()
@@ -44,6 +47,92 @@ func _initialize() -> void:
     print("WorldSimulation tests passed.")
     quit(0)
 
+
+
+func _test_canonical_weapon_skill_runtime() -> void:
+    var attacker := CharacterState.new("weapon_skill_attacker", "Weapon Skill Attacker")
+    attacker.base_damage = 1
+    attacker.time_points = 20.0
+    attacker.skills["sword_hit"] = 1
+    attacker.skills["sword_dmg"] = 1
+    var sword := ItemCatalog.create_instance("starforged_blade", "skill_sword")
+    _check(attacker.add_inventory_item(sword) and attacker.equip_inventory_item("skill_sword"))
+    var target := CharacterState.new("weapon_skill_target", "Target")
+    var rng := RandomNumberGenerator.new()
+    rng.seed = 11
+    var result := CombatRules.resolve_attack(attacker, target, {"time_point_cost": 1.0}, rng)
+    _check(is_equal_approx(float(result.get("hit_chance", 0.0)), 55.0), "Sword variants derive canonical sword_hit rank")
+    _check(int(result.get("raw_damage", 0)) == 6, "Sword variants derive sword_dmg in the normal resolver")
+
+    var axe_attacker := CharacterState.new("axe_skill_attacker", "Axe Skill Attacker")
+    axe_attacker.time_points = 20.0
+    axe_attacker.base_damage = 1
+    axe_attacker.skills["axe_hit"] = 1
+    axe_attacker.skills["axe_dmg"] = 3
+    var axe := ItemCatalog.create_instance("axe", "skill_axe")
+    _check(axe_attacker.add_inventory_item(axe) and axe_attacker.equip_inventory_item("skill_axe"))
+    var axe_target := CharacterState.new("axe_skill_target", "Axe Target")
+    rng.seed = 12
+    var axe_result := CombatRules.resolve_attack(axe_attacker, axe_target, {"time_point_cost": 1.0}, rng)
+    _check(is_equal_approx(float(axe_result.get("hit_chance", 0.0)), 55.0), "Axe proficiency adds five percentage points")
+    _check(int(axe_result.get("raw_damage", 0)) == 10, "Axe damage mastery adds two damage per rank")
+
+    var unarmed := CharacterState.new("unarmed_skill_attacker", "Unarmed Attacker")
+    unarmed.base_damage = 1
+    unarmed.time_points = 20.0
+    unarmed.skills["unarmed_hit"] = 1
+    unarmed.skills["unarmed_dmg"] = 1
+    var unarmed_target := CharacterState.new("unarmed_skill_target", "Unarmed Target")
+    # Use a deterministic seed that rolls a hit at the 55% test chance; a miss
+    # correctly reports zero raw damage and would not exercise unarmed mastery.
+    rng.seed = 11
+    var unarmed_result := CombatRules.resolve_attack(unarmed, unarmed_target, {"time_point_cost": 1.0}, rng)
+    _check(is_equal_approx(float(unarmed_result.get("hit_chance", 0.0)), 55.0), "Unarmed proficiency applies when no weapon is equipped")
+    _check(int(unarmed_result.get("raw_damage", 0)) == 3, "Unarmed mastery adds two damage")
+
+    var caught := CharacterState.new("caught_target", "Caught Target")
+    caught.caught_off_guard = true
+    var opportunist := CharacterState.new("opportunist", "Opportunist")
+    opportunist.skills["goblin_opportunist"] = 1
+    _check(CombatRules.raw_damage(opportunist, CombatRules.options_with_skill_ranks(opportunist, caught, {})) == 4, "Goblin Opportunist derives target caught-off-guard state")
+
+    var shielded := CharacterState.new("shielded", "Shielded")
+    shielded.skills["shield_proficiency"] = 1
+    var shield := ItemCatalog.create_instance("wooden_shield", "skill_shield")
+    _check(shielded.add_inventory_item(shield) and shielded.equip_inventory_item("skill_shield"))
+    _check(CombatRules.damage_reduction(shielded) == 2, "Shield Proficiency adds one passive point with a shield equipped")
+
+
+func _test_core_character_skill_runtime() -> void:
+    var character := CharacterState.new("core_skill_character", "Core Skill Character")
+    character.health = 60
+    character.max_health = 100
+    character.attributes = {"endurance": 3, "agility": 2, "rogue": 2}
+    SkillProgression.initialise(character)
+    _check(bool(SkillProgression.purchase(character, "health").get("ok", false)))
+    _check(character.max_health == 110 and character.health == 70, "Health adds ten current and maximum HP per rank")
+    _check(bool(SkillProgression.purchase(character, "health_regen").get("ok", false)))
+    _check(is_equal_approx(character.health_regeneration_per_time_point(), 0.2), "Constitution adds 0.1 HP regeneration per TP")
+    _check(bool(SkillProgression.purchase(character, "timePointRate").get("ok", false)))
+    _check(is_equal_approx(character.time_points_per_tick, 1.05), "Time Point Rate adds 0.05 TP per tick per rank")
+    _check(bool(SkillProgression.purchase(character, "quickRecovery").get("ok", false)))
+    _check(character.quick_recovery_rank == 1, "Quick Recovery feeds the existing turn-end threshold")
+    _check(bool(SkillProgression.purchase(character, "initiativeBonus").get("ok", false)))
+
+    var simulation := WorldSimulation.new()
+    character.time_points = 100.0
+    simulation.register_character(character)
+    simulation.start_combat()
+    _check(is_equal_approx(character.time_points, 105.0), "Initiative Bonus grants five TP per rank at combat start")
+    simulation.end_combat()
+    character.health = 50
+    character.time_points = 0.0
+    simulation.advance_world_seconds(2.0)
+    _check(character.health == 51, "Constitution accumulates fractional healing against TP gained")
+    var restored := CharacterState.from_dict(character.to_dict())
+    _check(restored.max_health == character.max_health and restored.health == character.health, "Derived HP and regeneration state survives save/load")
+    _check(restored.quick_recovery_rank == 1 and is_equal_approx(restored.time_points_per_tick, 1.05), "Action-economy skill ranks survive save/load")
+    simulation.free()
 
 func _test_wilderness_resources_and_chunk_streaming() -> void:
     var simulation := WorldSimulation.new()
@@ -1052,8 +1141,10 @@ func _test_attack_waits_for_parry_resolution() -> void:
     defender.health = 100
     defender.max_health = 100
     defender.to_hit_melee = 100.0
+    defender.base_damage = 2
     defender.equipment["weapon"] = "sword"
     defender.skills["sword_parry"] = 1
+    defender.skills["sword_riposte"] = 1
     sim.register_character(attacker)
     sim.register_character(defender)
     sim.start_combat()
@@ -1066,10 +1157,43 @@ func _test_attack_waits_for_parry_resolution() -> void:
     var resolved := sim.resolve_reaction("parry")
     _check(bool(resolved.get("ok", false)))
     _check(defender.health == 100, "A successful parry cancels the incoming attack")
+    _check(attacker.health == 98, "Sword Riposte immediately makes a basic counterattack after a successful parry")
     _check(defender.parries_remaining == 2, "A parry consumes one per-turn parry use")
-    _check(is_equal_approx(defender.time_points, 17.0), "The defender pays the source-defined 3 TP parry cost")
+    _check(is_equal_approx(defender.time_points, 12.0), "The defender pays 3 TP to parry and 5 TP to riposte")
     _check(is_equal_approx(attacker.time_points, 25.0), "A successful parry still consumes the attack action's TP cost")
     sim.free()
+
+func _test_feint_uses_parry_reaction_without_attacking() -> void:
+    var sim := WorldSimulation.new()
+    sim.map_data.add_cell(Vector2i.ZERO)
+    sim.map_data.add_cell(Vector2i(1, 0))
+    var attacker := CharacterState.new("feinter", "Feinter", Vector2i.ZERO)
+    var defender := CharacterState.new("feint_defender", "Feint Defender", Vector2i(1, 0))
+    attacker.side = "player"
+    attacker.time_points = 10.0
+    attacker.equipment["weapon"] = "sword"
+    attacker.skills["sword_feint"] = 1
+    defender.side = "enemy"
+    defender.time_points = 20.0
+    defender.to_hit_melee = 100.0
+    defender.equipment["weapon"] = "sword"
+    defender.skills["sword_parry"] = 1
+    sim.register_character(attacker)
+    sim.register_character(defender)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = "feinter"
+
+    var pending := sim.submit_action(SimulationActionRequest.feint("feinter", "feint_defender"), 123)
+    _check(bool(pending.get("pending", false)), "A valid sword feint should request the defender's parry reaction")
+    _check(is_equal_approx(attacker.time_points, 9.0), "Feint should cost one TP before the reaction")
+    var resolved := sim.resolve_reaction("parry")
+    _check(bool(resolved.get("ok", false)))
+    _check(defender.parries_remaining == 2, "A feint should consume a parry when the defender takes the bait")
+    _check(is_equal_approx(defender.time_points, 17.0), "Defender pays the normal parry cost against a feint")
+    _check(attacker.health == 100 and defender.health == 100, "Feint itself should not deal attack damage")
+    _check(is_equal_approx(attacker.time_points, 9.0), "Feint should not also charge a normal attack")
+    sim.free()
+
 
 func _test_protector_ally_parry() -> void:
     var sim := WorldSimulation.new()
@@ -1400,6 +1524,8 @@ func _test_race_class_character_creation() -> void:
         "goblin":{"goblin":1,"agility":2,"weapons":1},
         "orc":{"orc":1,"strength":2,"endurance":1}
     }
+    _check(CharacterCreationRules.race_ids().size() == 5, "Character creator matches the five races in the original 2D game")
+
     var fighter_bonuses: Dictionary = CharacterCreationRules.class_definition("fighter").get("bonus", {})
     for race_id in expected_races:
         var race_profile := profile.duplicate(true)

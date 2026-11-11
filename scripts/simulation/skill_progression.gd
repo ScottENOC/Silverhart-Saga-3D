@@ -116,6 +116,7 @@ static func purchase(character: CharacterState, skill_id: String, funding_pool: 
     var pool := String(result.get("funding_pool", ""))
     character.attributes[pool] = int(character.attributes.get(pool, 0)) - 1
     character.skills[skill_id] = int(character.skills.get(skill_id, 0)) + 1
+    character.sync_skill_effects()
     character.skill_spent_by_pool[pool] = int(character.skill_spent_by_pool.get(pool, 0)) + 1
     character.skill_spent_by_id[skill_id] = int(character.skill_spent_by_id.get(skill_id, 0)) + 1
     return {
