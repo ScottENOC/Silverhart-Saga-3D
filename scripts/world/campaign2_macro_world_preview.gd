@@ -144,7 +144,7 @@ func _terrain_height(terrain: String) -> float:
 func _add_mountain_cluster(centre: Vector3, base_height: float, seed: int) -> void:
 	for index in range(2):
 		var peak := MeshInstance3D.new()
-		var cone := ConeMesh.new()
+		var cone := CylinderMesh.new()
 		cone.bottom_radius = 0.42 if index == 0 else 0.29
 		cone.top_radius = 0.015
 		cone.height = 1.15 if index == 0 else 0.78
@@ -158,7 +158,7 @@ func _add_mountain_cluster(centre: Vector3, base_height: float, seed: int) -> vo
 
 func _add_hill(centre: Vector3, base_height: float, seed: int) -> void:
 	var hill := MeshInstance3D.new()
-	var cone := ConeMesh.new()
+	var cone := CylinderMesh.new()
 	cone.bottom_radius = 0.48
 	cone.top_radius = 0.04
 	cone.height = 0.72
@@ -183,7 +183,7 @@ func _add_forest_cluster(centre: Vector3, base_height: float, seed: int) -> void
 		add_child(trunk)
 
 		var crown := MeshInstance3D.new()
-		var crown_mesh := ConeMesh.new()
+		var crown_mesh := CylinderMesh.new()
 		crown_mesh.bottom_radius = 0.31
 		crown_mesh.top_radius = 0.0
 		crown_mesh.height = 0.86
