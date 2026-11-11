@@ -73,7 +73,7 @@ Keep a lightweight world index so the game can locate a settlement, entrance, NP
 ### A. Source-of-truth inventory (first)
 Audit the original Hex-crpg repository and enumerate its actual data and systems before generating the full map. Capture:
 - world dimensions, coordinate conventions, map layers and region boundaries;
-- every named location and its exact position/footprint;
+- every named location, source anchor, approximate relative position and functional footprint reference;
 - terrain, elevation, water, roads, paths, vegetation and resource placement;
 - every building, entrance, floor, room, interior, service and interaction;
 - NPCs, factions, creatures, wildlife and rideable animals;
@@ -87,7 +87,7 @@ Produce a traceable parity register: source file/data ID/coordinate -> Godot dat
 Create versioned, stable-ID Godot resources/data files for the original map and content. Preserve source coordinates and IDs where practical, and record coordinate transforms explicitly. Prefer offline extraction of named features, their positions/relationships and gameplay data into portable resources. Do not spend effort snapshotting every incidental generated terrain hex or exact road wiggle; generate equivalent 3D terrain and routes around the source-backed feature anchors. Add validation for missing references, duplicate IDs, invalid entrances, disconnected roads/rivers, out-of-bounds placements, and orphaned quest targets.
 
 ### C. Terrain and chunk renderer
-Use the existing elevation representation (cell-centre heights plus shared vertex samples) as the starting point. Build a chunk renderer that can generate continuous terrain surfaces and apply terrain/biome materials, water, cliffs/slopes, and vegetation. Chunk-edge tests must prove there are no cracks or discontinuities. Keep the logical hex grid invisible in normal play. Exact source-authored terrain types and geography take precedence over procedural terrain noise.
+Use the existing elevation representation (cell-centre heights plus shared vertex samples) as the starting point. Build a chunk renderer that can generate continuous terrain surfaces and apply terrain/biome materials, water, cliffs/slopes, and vegetation. Chunk-edge tests must prove there are no cracks or discontinuities. Keep the logical hex grid invisible in normal play. Major source-authored biome bands, rivers, mountains, coastlines, faction regions and landmark relationships take precedence over procedural terrain noise; incidental per-cell terrain may be regenerated.
 
 ### D. Settlement and building placement
 Place original settlements, districts, and buildings in the correct relative locations and regional context. Exact 2D footprints are not mandatory; design suitable 3D footprints, collision/navigation, doors, roof visibility, enter/exit transitions, floors, and interior assignment. Preserve the Hollow Tankard as the first reference implementation, then generalise its working pattern to every original settlement and building. A building may use a 3D-native floor/stair solution, but not disappear or lose its original gameplay function.
@@ -102,7 +102,7 @@ Save world changes by stable IDs, not by serialising transient scene trees. Add 
 
 1. **M0 — source audit:** complete inventory, world bounds, source coordinate transforms, and parity/deviation registers exist. No full-map generation from guessed data.
 2. **M1 — chunk proof:** a small multi-chunk source-backed terrain test loads/unloads, has seamless edges, preserves axial movement/pathfinding, and survives save/reload.
-3. **M2 — starting region:** Hollowmere is reproduced at correct scale and layout, including stream, bridge, roads, crossroads, every source building, entrances, NPCs and the working tavern interior; the opening event and branches work.
+3. **M2 — starting region:** Hollowmere retains the source's meaningful building/road/stream arrangement and every required opening feature, NPC and interaction; 3D footprints and vertical layouts may be redesigned. The working tavern interior and opening event/branches must function.
 4. **M3 — complete geography:** all original Campaign 2 regions, settlements, districts, wilderness landmarks, roads, rivers, dungeons, forts and named locations are represented and reachable.
 5. **M4 — content parity:** all original NPCs, creatures, rideable animals, quests, dialogue, items, services, resources, encounters, faction/regional systems and interactions are migrated and validated.
 6. **M5 — production streaming:** the complete world streams and persists reliably at target PC performance, with no visible chunk seams or gameplay changes at chunk boundaries.
