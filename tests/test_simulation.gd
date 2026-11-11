@@ -257,7 +257,7 @@ func _test_additional_skill_effects() -> void:
     sidestep_sim.turn_scheduler.current_character_id = mover.id
     var movement_pending := sidestep_sim.try_move_character_step(mover.id, Vector2i(1, 0))
     _check(movement_pending and not sidestep_sim.pending_reaction.is_empty(), "Sidestep Mastery should retain the Sidestep reaction")
-    var destination_stage := sidestep_sim.resolve_reaction("sidestep_sidestepper")
+    var destination_stage := sidestep_sim.resolve_reaction("sidestep_mastery_sidestepper")
     _check(bool(destination_stage.get("pending", false)), "Sidestep Mastery should open the destination-selection stage")
     var destination_result := sidestep_sim.resolve_reaction("sidestep_to_1_1")
     _check(bool(destination_result.get("ok", false)), "A mastered Sidestep should resolve")
