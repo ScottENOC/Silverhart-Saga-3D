@@ -350,7 +350,7 @@ func toggle_debug() -> void:
 	if debug_panel != null:
 		debug_panel.visible = debug_visible
 
-func is_visible(hex: Vector2i) -> bool:
+func is_hex_visible(hex: Vector2i) -> bool:
 	return visible_hexes.has(hex)
 
 func is_explored(hex: Vector2i) -> bool:
