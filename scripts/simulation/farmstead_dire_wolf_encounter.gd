@@ -1,6 +1,6 @@
 class_name FarmsteadDireWolfEncounter
 extends RefCounted
-## Combat setup for the dire wolf raiding Old Mac's grain stores.
+## Combat setup for the dire wolf stalking Old Mac's farmstead.
 
 const DIRE_WOLF_ID := "old_mac_grain_dire_wolf"
 
@@ -9,7 +9,7 @@ static func create_dire_wolf(simulation: WorldSimulation, hex: Vector2i) -> Dict
         return {"ok": false, "reason": "missing_simulation"}
     if simulation.get_character(DIRE_WOLF_ID) != null:
         return {"ok": false, "reason": "dire_wolf_already_exists"}
-    var wolf := CharacterState.new(DIRE_WOLF_ID, "Grain-raiding dire wolf", hex)
+    var wolf := CharacterState.new(DIRE_WOLF_ID, "Dire wolf", hex)
     wolf.race = "wolf"
     wolf.character_class = "beast"
     wolf.health = 150
