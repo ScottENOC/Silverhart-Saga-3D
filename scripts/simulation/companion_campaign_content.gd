@@ -9,7 +9,7 @@ const DEFINITIONS := [
     {"id":"star_fort_companion","title":"A Choice at Star Fort","description":"Resolve the Star Fort encounter and choose the greenskin alliance; Snik Fangtooth will then offer to join.","objectives":[{"id":"greenskin_resolution","description":"Choose the greenskin side at Star Fort.","target":1.0,"required":true}]},
     {"id":"aldric_rescue","title":"A Debt at the Goblin Camp","description":"Find Ser Aldric Thorne captive at the goblin camp and free him.","objectives":[{"id":"freed","description":"Free Ser Aldric from captivity.","target":1.0,"required":true}]},
     {"id":"orc_stronghold_trust","title":"Prove Your Strength","description":"Deal with the troll denning east of Skarnak's Hold and earn the orc stronghold's trust.","objectives":[{"id":"troll_slain","description":"Defeat the troll threatening the orc scouts and cattle.","target":1.0,"required":true}]},
-    {"id":"reyna_dire_wolf_hunt","title":"The Farmstead Dire Wolf","description":"Help Reyna Fletcher stop the dire wolf preying on Old Mac's outlying livestock.","objectives":[{"id":"dire_wolf_slain","description":"Defeat the dire wolf threatening Old Mac's livestock.","target":1.0,"required":true}]},
+    {"id":"reyna_dire_wolf_hunt","title":"The Child in the Wolf's Den","description":"Help Reyna find a missing farm child, bring her home safely and put an end to the dire wolf stalking Old Mac's farmstead.","objectives":[{"id":"trail_found","description":"Follow the signs of the missing child beyond Old Mac's pasture.","target":1.0,"required":true},{"id":"child_rescued","description":"Find Tessa in the abandoned shepherd's shelter and get her safely home.","target":1.0,"required":true},{"id":"dire_wolf_slain","description":"Defeat the dire wolf that hunted the child and threatened the farmstead.","target":1.0,"required":true}]},
     {"id":"mirabel_spider_ruin","title":"The Ruin's Quiet","description":"Clear the spider nest at the nearby ruin so Mirabel can recover what is inside.","objectives":[{"id":"nest_cleared","description":"Defeat the spiders guarding the ruin.","target":1.0,"required":true}]},
     {"id":"fenn_herb_gathering","title":"Three Bundles for the Grove","description":"Gather three bundles of herbs for Fenn Oakheart.","objectives":[{"id":"herbs_delivered","description":"Deliver three bundles of herbs to Fenn.","target":3.0,"required":true}]},
     {"id":"northwatch_siege","title":"Hold Northwatch","description":"Help defend Northwatch. Brother Alden will consider joining after the battle.","objectives":[{"id":"defended","description":"Resolve the Northwatch siege in the defenders' favour.","target":1.0,"required":true}]},
@@ -140,12 +140,20 @@ static func conversation(character_id: String, journal: CampaignJournal, invento
         "reyna_fletcher":
             recruit_ready = _completed(journal, quest_id)
             if recruit_ready:
-                body = "That's the last of it dead, then. Old Mac's young stock should be safe now. I owe you for the help. I've been meaning to travel further than these woods for a while now — mind the company?"
+                body = "Tessa is safe, and that thing will never trouble Old Mac again. I owe you more than I can say. I've spent years watching these woods swallow people who wander too far. I think it's time I saw what lies beyond them. If you'll have me, I'll travel with you."
             elif _started(journal, quest_id):
-                body = "That dire wolf is still taking livestock from Old Mac's outlying pens. Help me finish it and I might just travel on with you afterward."
+                var objectives: Dictionary = state.get("objectives", {})
+                var trail_found := bool(objectives.get("trail_found", {}).get("completed", false))
+                var child_rescued := bool(objectives.get("child_rescued", {}).get("completed", false))
+                if child_rescued:
+                    body = "Tessa is back with Old Mac. Now we finish this. The dire wolf is still out there, and it will come back if we leave it alive."
+                elif trail_found:
+                    body = "The tracks lead to an abandoned shepherd's shelter beyond the pasture. I heard a child inside. Tessa may still be alive, but the dire wolf is circling the place. We need to get her out."
+                else:
+                    body = "Tessa, Old Mac's young niece, went missing after dusk. I found a scrap of her blue cloak caught on the broken pasture fence. The dire wolf has been taking livestock from these fields. I fear it has her. Help me follow the trail."
             else:
-                body = "Careful — there's a dire wolf gone bold, taking livestock from Old Mac's outlying pens at night. I've been tracking it for a few days now. It's far larger than an ordinary wolf, and clever enough to avoid the usual traps. Help me bring it down and I might just travel on with you afterward."
-                choices.append(_choice("start:"+quest_id,"I'll help hunt the dire wolf."))
+                body = "A child is missing. Tessa — Old Mac's young niece — went out near the pasture before dusk and never came home. I found a scrap of her blue cloak on the broken fence. There's a dire wolf taking livestock from these fields, and I fear it has her. I'm going after her, but I won't lie: I could use help. Find Tessa with me, and then we end this."
+                choices.append(_choice("start:"+quest_id,"I'll help you find Tessa."))
         "mirabel_quill":
             recruit_ready = _completed(journal, quest_id)
             if recruit_ready:
