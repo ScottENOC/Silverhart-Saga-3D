@@ -788,6 +788,9 @@ func load_dict(data: Dictionary) -> void:
     clock.load_dict(data.get("world_clock", {}))
     wilderness_resources.load_dict(data.get("wilderness_resources", {}))
     building_registry.load_dict(data.get("buildings", {}))
+    for door_value in building_registry.doors.values():
+        var building_door := door_value as BuildingDoorState
+        map_data.set_walkable(building_door.hex, building_door.is_passable())
     is_in_combat = bool(data.get("is_in_combat", false))
     var saved_characters: Dictionary = data.get("characters", {})
     for character_id in saved_characters:
