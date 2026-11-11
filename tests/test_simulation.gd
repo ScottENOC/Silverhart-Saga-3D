@@ -9,6 +9,7 @@ func _initialize() -> void:
     _test_campaign_journal()
     _test_hollowmere_campaign_content()
     _test_companion_campaign_dialogue_and_recruitment()
+    _test_farmstead_bear_encounter()
     _test_hollowmere_encounter()
     _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
@@ -361,6 +362,8 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
     _check(bool(CompanionCampaignContent.complete_objective(journal, "aldric_rescue", "freed").get("ok", false)))
     var aldric_after := CompanionCampaignContent.conversation("ser_aldric_thorne", journal, empty_inventory, no_party)
     _check(_has_companion_recruit_choice(aldric_after), "Aldric should offer to join after rescue")
+    _check(CompanionCampaignContent.is_companion_id("companion_ser_aldric_thorne"), "Manifest game IDs must resolve to companion dialogue")
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("companion_ser_aldric_thorne", journal, empty_inventory, no_party)), "Manifest game IDs must resolve to the correct recruitment state")
 
     _check(bool(journal.start_quest("goblin_threat").get("ok", false)))
     _check(bool(CompanionCampaignContent.complete_with_decision(journal, "goblin_threat", "resolved", "resolution", "goblin_alliance").get("ok", false)))
@@ -378,6 +381,7 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
     _check(bool(journal.start_quest("reyna_bear_hunt").get("ok", false)))
     _check(bool(CompanionCampaignContent.complete_objective(journal, "reyna_bear_hunt", "bear_slain").get("ok", false)))
     _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Reyna should join after the bear is defeated")
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("companion_reyna_fletcher", journal, empty_inventory, no_party)), "Reyna's manifest game ID must resolve to her recruitment dialogue")
 
     _check(bool(journal.start_quest("mirabel_spider_ruin").get("ok", false)))
     _check(bool(CompanionCampaignContent.complete_objective(journal, "mirabel_spider_ruin", "nest_cleared").get("ok", false)))
@@ -401,6 +405,32 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
     CompanionCampaignContent.register_quest_definitions(restored)
     restored.load_dict(journal.to_dict())
     _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("nix_sharpear", restored, empty_inventory, no_party)), "Companion quest outcomes should persist through journal save/load")
+
+
+func _test_farmstead_bear_encounter() -> void:
+    var simulation := WorldSimulation.new()
+    var player := CharacterState.new("player", "Adventurer", Vector2i(0, 0))
+    player.side = "player"
+    var wren := CharacterState.new("companion_wren_talbot", "Wren Talbot", Vector2i(1, 0))
+    wren.side = "player"
+    simulation.register_character(player)
+    simulation.register_character(wren)
+    var bear_result := FarmsteadBearEncounter.create_bear(simulation, Vector2i(5, 5))
+    _check(bool(bear_result.get("ok", false)), "Old Mac's bear should be registered as a persistent world character")
+    var party_ids: Array[String] = ["player", "companion_wren_talbot"]
+    var start := FarmsteadBearEncounter.start(simulation, party_ids)
+    _check(bool(start.get("ok", false)), "The farmstead bear encounter should start through WorldSimulation")
+    _check(simulation.is_in_combat, "The bear hunt should use the shared combat scheduler")
+    _check(player.side == "player" and wren.side == "player", "The active party should fight on the player side")
+    var bear := simulation.get_character(FarmsteadBearEncounter.BEAR_ID)
+    _check(bear != null and bear.side == "enemy" and not bear.combat_dormant, "The bear should be an active enemy combatant")
+    bear.apply_damage(1000)
+    _check(FarmsteadBearEncounter.bear_defeated(simulation), "Defeating the bear should resolve the encounter target")
+    simulation.end_combat()
+    FarmsteadBearEncounter.finish(simulation, party_ids)
+    _check(bear.combat_dormant, "The bear should leave the active combat roster after resolution")
+    _check(player.side == "player" and wren.side == "player", "The party should remain on the player side after the encounter")
+    simulation.free()
 
 
 func _has_companion_recruit_choice(conversation: Dictionary) -> bool:
