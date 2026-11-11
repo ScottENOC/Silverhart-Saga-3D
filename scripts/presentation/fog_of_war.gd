@@ -104,7 +104,6 @@ func _build_fog_mesh() -> void:
 			var hex := Vector2i(q, r)
 			if not vision_map.has_cell(hex):
 				continue
-			var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, 0.035)
 			for i in range(HexGrid.SIDE_COUNT):
 				var next_i := (i + 1) % HexGrid.SIDE_COUNT
 				surface.set_normal(Vector3.UP)
@@ -161,7 +160,6 @@ func update_visibility(player_state: CharacterState) -> void:
 	observer = player_state
 	var started := Time.get_ticks_usec()
 	var visible_range := VisionRules.vision_range(observer)
-	var exploration_range := VisionRules.exploration_range()
 	var next_visible: Dictionary = {}
 	var candidate_count := 0
 	var los_count := 0
