@@ -20,7 +20,7 @@ const TAVERN_DOOR_HEX := Vector2i(0, 3)
 const UPPER_FLOOR_ORIGIN := Vector2i(100, 100)
 const UPPER_FLOOR_Y := 3.38
 const TAVERN_STAIR_GROUND_HEX := Vector2i(3, 0)
-const TAVERN_STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + TAVERN_STAIR_GROUND_HEX
+const TAVERN_STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + Vector2i(3, -1)
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -171,8 +171,12 @@ func _create_simulation() -> void:
         "name": "The Hollow Tankard",
         "entrance_hex": TAVERN_DOOR_HEX,
         "floor_count": 2,
+        "lodging_capacity": 8,
+        "sleeping_beds": 6,
         "virtual_floor_bounds": [96, 104, 96, 104],
-        "source_location": "campaign2World.js: Hollow Tankard",
+        "source_location": "campaign2World.js: Hollow Tankard; hollowmereSocialFabric.js: buildTankardUpperFloor",
+        "source_stair_hex": TAVERN_STAIR_GROUND_HEX,
+        "upper_landing_hex": TAVERN_STAIR_UPPER_HEX,
     })
     simulation.building_registry.register_door(TAVERN_FRONT_DOOR_ID, TAVERN_BUILDING_ID, TAVERN_DOOR_HEX, true, false, 20)
     simulation.building_registry.door_state_changed.connect(_on_building_door_state_changed)
