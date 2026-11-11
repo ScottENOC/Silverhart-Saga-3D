@@ -257,7 +257,7 @@ func _add_region_label(label_text: String, at: Vector3, colour: Color) -> void:
 	var label := Label3D.new()
 	label.text = label_text
 	label.font_size = 56
-	label.pixel_size = 0.005
+	label.pixel_size = 0.008
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
 	label.modulate = colour
@@ -322,7 +322,7 @@ func _add_location_marker(location: Dictionary, map_position: Vector3, index: in
 	label.name = "Label_" + id
 	label.text = String(location.get("name", id))
 	label.font_size = 46 if kind in ["capital", "dwarven_capital", "elven_capital"] else 38
-	label.pixel_size = 0.005
+	label.pixel_size = 0.008
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
 	label.modulate = Color("#fff1cf") if String(location.get("visibility", "")) != "exploration_site" else Color("#c6d0bb")

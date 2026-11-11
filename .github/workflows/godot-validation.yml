@@ -9,6 +9,7 @@ on:
       - "art/characters/**"
       - "art/ui/**"
       - "art/environment/**"
+      - "art/creatures/**"
       - "scenes/**"
       - "scripts/**"
       - "data/**"
@@ -33,7 +34,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: godot-validation-\${{ github.ref }}
+  group: godot-validation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -66,13 +67,15 @@ jobs:
         run: godot --headless --path . --script res://tests/test_seasonal_trees.gd
       - name: Run wilderness resource visual tests
         run: godot --headless --path . --script res://tests/test_wilderness_resource_visuals.gd
+      - name: Run farm wolf quest and creature asset tests
+        run: godot --headless --path . --script res://tests/test_farm_wolves_quest.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
       - name: Run Campaign 2 road manifest tests
         run: godot --headless --path . --script res://tests/test_campaign2_road_paths.gd
       - name: Run Campaign 2 geography manifest tests
         run: godot --headless --path . --script res://tests/test_campaign2_geography_manifest.gd
-      - name: Validate Hollowmere and world data JSON
+      - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null
           python -m json.tool data/characters/hollowmere_loadouts.json > /dev/null
