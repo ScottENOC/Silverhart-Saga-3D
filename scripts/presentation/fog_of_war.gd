@@ -18,6 +18,7 @@ var visible_hexes: Dictionary = {}
 var explored_hexes: Dictionary = {}
 var hex_to_instance: Dictionary = {}
 var hexes: Array[Vector2i] = []
+var vision_offsets: Array[Vector2i] = []
 var fog_multimesh_instance: MultiMeshInstance3D
 var fog_multimesh: MultiMesh
 var debug_panel: PanelContainer
@@ -27,6 +28,7 @@ var debug_visible: bool = true
 var update_count: int = 0
 var total_update_usec: int = 0
 var last_update_usec: int = 0
+var initialization_usec: int = 0
 var max_update_usec: int = 0
 var last_candidate_count: int = 0
 var last_los_checks: int = 0
@@ -43,14 +45,26 @@ func initialize(
 	resources: Dictionary,
 	outdoor_village: Node3D
 ) -> void:
+	var initialization_started := Time.get_ticks_usec()
 	observer = player_state
 	actor_nodes = actors
 	resource_nodes = resources
 	village_root = outdoor_village
 	_build_vision_map()
 	_build_fog_mesh()
+	_build_vision_offsets()
 	_build_debug_panel()
 	update_visibility(observer)
+	initialization_usec = Time.get_ticks_usec() - initialization_started
+	_refresh_debug_label()
+
+func _build_vision_offsets() -> void:
+	var exploration_range := VisionRules.exploration_range()
+	for q in range(-exploration_range, exploration_range + 1):
+		for r in range(-exploration_range, exploration_range + 1):
+			var offset := Vector2i(q, r)
+			if HexGrid.distance(Vector2i.ZERO, offset) <= exploration_range:
+				vision_offsets.append(offset)
 
 func _build_vision_map() -> void:
 	vision_map = HexMapData.new()
@@ -148,13 +162,6 @@ func update_visibility(player_state: CharacterState) -> void:
 	var started := Time.get_ticks_usec()
 	var visible_range := VisionRules.vision_range(observer)
 	var exploration_range := VisionRules.exploration_range()
-	var offsets: Array[Vector2i] = []
-	for q in range(-exploration_range, exploration_range + 1):
-		for r in range(-exploration_range, exploration_range + 1):
-			var offset := Vector2i(q, r)
-			if HexGrid.distance(Vector2i.ZERO, offset) <= exploration_range:
-				offsets.append(offset)
-
 	var next_visible: Dictionary = {}
 	var candidate_count := 0
 	var los_count := 0
@@ -166,7 +173,7 @@ func update_visibility(player_state: CharacterState) -> void:
 		if _set_fog_state(old_hex, 1):
 			changed_count += 1
 
-	for offset in offsets:
+	for offset in vision_offsets:
 		var hex := observer.axial + offset
 		if not vision_map.has_cell(hex):
 			continue
@@ -267,7 +274,8 @@ func _refresh_debug_label() -> void:
 	var average_ms := float(total_update_usec) / float(maxi(1, update_count)) / 1000.0
 	debug_label.text = (
 		"FOG / PERFORMANCE  [F3]\n"
-		+ "Visibility update: %.3f ms  | avg %.3f  | max %.3f\n" % [
+		+ "Setup: %.1f ms  | update: %.3f ms  | avg %.3f  | max %.3f\n" % [
+			float(initialization_usec) / 1000.0,
 			float(last_update_usec) / 1000.0,
 			average_ms,
 			float(max_update_usec) / 1000.0
