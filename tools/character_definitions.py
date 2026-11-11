@@ -68,6 +68,12 @@ def validate_character_definitions(manifest: dict, items: dict) -> None:
         equipped = character.get("equipped")
         if not isinstance(appearance, dict):
             raise ValueError(f"{character_id}: appearance must be an object")
+        body_profile_id = str(character.get("body_profile", ""))
+        if body_profile_id not in body_profiles:
+            raise ValueError(f"{character_id}: body_profile must reference one of the ten canonical bases, got {body_profile_id!r}")
+        expected_gender = 1 if body_profiles[body_profile_id].get("body_model") == "male" else 0
+        if int(appearance.get("gender", expected_gender)) != expected_gender:
+            raise ValueError(f"{character_id}: gender does not match selected canonical body base {body_profile_id}")
         if not isinstance(inventory, list) or not isinstance(equipped, dict):
             raise ValueError(f"{character_id}: inventory must be a list and equipped must be an object")
         duplicated_gear = APPEARANCE_GEAR_FIELDS.intersection(appearance)
