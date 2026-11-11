@@ -1008,7 +1008,8 @@ func _build_save_snapshot() -> Dictionary:
         "player_profile": player_profile.duplicate(true),
         "character_diffs": _build_character_diffs(),
         "appearance_diffs": _build_appearance_diffs(),
-        "party_member_ids": simulation.party_member_ids.duplicate(),
+        "party_member_ids": party_member_ids.duplicate(),
+        "simulation_party_member_ids": simulation.party_member_ids.duplicate(),
         "active_character_id": active_character_id,
         "active_party_index": active_party_index,
         "clock": simulation.clock.to_dict(),
@@ -1074,8 +1075,15 @@ func _apply_save_data(data: Dictionary) -> void:
             var model := actor.get_node_or_null("CharacterModel") as AraCharacterActor
             if model != null:
                 model.apply_npc_parameters(merged_appearance)
+    party_member_ids.clear()
+    for member_id in data.get("party_member_ids", ["player", "companion_wren_talbot"]):
+        var id := String(member_id)
+        if simulation.characters.has(id):
+            party_member_ids.append(id)
+    if party_member_ids.is_empty():
+        party_member_ids.append("player")
     simulation.party_member_ids.clear()
-    for member_id in data.get("party_member_ids", []):
+    for member_id in data.get("simulation_party_member_ids", data.get("party_member_ids", ["player"])):
         var id := String(member_id)
         if simulation.characters.has(id):
             simulation.party_member_ids.append(id)
@@ -1097,7 +1105,11 @@ func _apply_save_data(data: Dictionary) -> void:
     active_character_id = String(data.get("active_character_id", "player"))
     if simulation.get_character(active_character_id) == null:
         active_character_id = "player"
-    active_party_index = clampi(int(data.get("active_party_index", 0)), 0, maxi(0, simulation.party_member_ids.size() - 1))
+    active_party_index = clampi(int(data.get("active_party_index", 0)), 0, maxi(0, party_member_ids.size() - 1))
+    if party_switch_button != null:
+        var active_state := simulation.get_character(active_character_id)
+        var active_name := "You" if active_character_id == "player" else (active_state.display_name if active_state != null else active_character_id)
+        party_switch_button.text = "Active: " + active_name + "  [Tab] Switch
     for character_id_variant in actor_by_id.keys():
         var character_id := String(character_id_variant)
         var state := simulation.get_character(character_id)
