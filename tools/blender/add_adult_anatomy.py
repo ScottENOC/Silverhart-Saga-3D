@@ -26,6 +26,7 @@ def arguments():
     parser.add_argument("--profile", choices=("female", "none"), default=os.environ.get("ARA_PROFILE"), required=not bool(os.environ.get("ARA_PROFILE")))
     parser.add_argument("--adult", action="store_true", default=os.environ.get("ARA_ADULT") == "1")
     parser.add_argument("--fit-existing", action="store_true", help="Only expand lower garments around anatomy already present in the input GLB")
+    parser.add_argument("--deformation-scale", type=float, default=1.0, help="Scale the explicitly calibrated female anatomy relief targets")
     return parser.parse_args(raw)
 
 
@@ -222,75 +223,152 @@ def uv_ellipsoid(name, location, scale, collection):
     return obj
 
 
-def integrate_anatomy_into_skin(skin, anatomy_z, width, height):
-    """Sculpt the existing skin mesh in-place, preserving its UVs/material/weights."""
+def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
+    """Add skin-tone-relative pigmentation as glTF vertex colour (COLOR_0)."""
+    mesh = skin.data
+    existing = mesh.color_attributes.get("Color")
+    if existing:
+        mesh.color_attributes.remove(existing)
+    colour = mesh.color_attributes.new(name="Color", type="FLOAT_COLOR", domain="POINT")
+
+    def g(x, z, cx, cz, sx, sz):
+        return math.exp(-0.5 * (((x-cx)/sx)**2 + ((z-cz)/sz)**2))
+
+    painted_vertices = 0
+    for vertex in mesh.vertices:
+        p = skin.matrix_world @ vertex.co
+        if abs(p.x) > width * 0.16 or abs(p.z-anatomy_z) > height * 0.065:
+            colour.data[vertex.index].color = (1.0, 1.0, 1.0, 1.0)
+            continue
+        inner = max(
+            g(p.x,p.z,-width*0.024,anatomy_z-height*0.003,width*0.040,height*0.035),
+            g(p.x,p.z, width*0.024,anatomy_z-height*0.003,width*0.040,height*0.035),
+        )
+        central = max(
+            g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.025,height*0.018),
+            g(p.x,p.z,0.0,anatomy_z-height*0.035,width*0.020,height*0.012),
+        )
+        # Multiplicative tints preserve the underlying skin palette. The inner
+        # folds receive a restrained rose-brown tint; the central region is
+        # warmer and more differentiated, not a universal bright-pink paint.
+        strength = min(1.0, inner * 0.88 + central * 0.12)
+        central_strength = min(1.0, central)
+        red = 1.0 + 0.12 * strength + 0.06 * central_strength
+        green = 1.0 - 0.24 * strength - 0.18 * central_strength
+        blue = 1.0 - 0.18 * strength - 0.16 * central_strength
+        colour.data[vertex.index].color = (red, green, blue, 1.0)
+        if strength > 0.15:
+            painted_vertices += 1
+    mesh.color_attributes.active_color = colour
+    skin["anatomy_pigmented_vertex_count"] = painted_vertices
+    print(f"Anatomy pigmentation assigned to {painted_vertices} skin vertices")
+    skin["anatomy_pigmentation"] = "skin-relative_vertex_colour_inner_and_central_regions"
+    return colour
+
+
+def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scale=1.0):
+    """Sculpt Ara skin while preserving its UVs, weights and any facial shape keys."""
     import bmesh
-    bm = bmesh.new()
-    bm.from_mesh(skin.data)
-    bm.normal_update()
     inv = skin.matrix_world.inverted()
-    edges = []
-    for edge in bm.edges:
-        mid = (edge.verts[0].co + edge.verts[1].co) * 0.5
-        world = skin.matrix_world @ mid
-        normal = skin.matrix_world.to_3x3() @ (edge.verts[0].normal + edge.verts[1].normal)
-        if normal.length:
-            normal.normalize()
-        if abs(world.x) < width*0.25 and abs(world.z-anatomy_z) < 0.15 and normal.y < -0.12:
-            edges.append(edge)
-    if edges:
-        # Higher local tessellation gives the labial folds and vestibular
-        # recess enough vertices to read at ordinary camera distance.
-        bmesh.ops.subdivide_edges(bm, edges=edges, cuts=4, use_grid_fill=True)
-        bm.normal_update()
+    normal_matrix = skin.matrix_world.to_3x3()
+    shape_keys = skin.data.shape_keys
+    key_blocks = list(shape_keys.key_blocks) if shape_keys else []
+    preserve_morphs = len(key_blocks) > 1
 
     def g(x,z,cx,cz,sx,sz):
         return math.exp(-0.5*(((x-cx)/sx)**2+((z-cz)/sz)**2))
 
-    # Ara faces -Y. All forms below are continuous deformations of the
-    # existing skin mesh: no attached genital mesh, decal or material overlay.
-    centre_z = anatomy_z
-    for v in bm.verts:
-        p = skin.matrix_world @ v.co
-        n = skin.matrix_world.to_3x3() @ v.normal
-        if n.length:
-            n.normalize()
-        if n.y > -0.10 or abs(p.x) > width*0.27 or abs(p.z-centre_z) > 0.15:
-            continue
-        mons = g(p.x,p.z,0.0,centre_z+0.060,width*0.105,0.034)
-        outer_l = g(p.x,p.z,-width*0.060,centre_z-0.004,width*0.034,0.050)
-        outer_r = g(p.x,p.z, width*0.060,centre_z-0.004,width*0.034,0.050)
-        inner_l = g(p.x,p.z,-width*0.024,centre_z-0.006,width*0.016,0.038)
-        inner_r = g(p.x,p.z, width*0.024,centre_z-0.006,width*0.016,0.038)
-        # The cleft is a genuine central groove, with paired raised labial
-        # ridges. The vestibule and openings are recessed into the same skin.
-        cleft = g(p.x,p.z,0.0,centre_z-0.010,width*0.009,0.043)
-        vestibule = g(p.x,p.z,0.0,centre_z-0.040,width*0.018,0.016)
-        urethra = g(p.x,p.z,0.0,centre_z-0.027,width*0.0045,0.004)
-        vaginal = g(p.x,p.z,0.0,centre_z-0.060,width*0.012,0.010)
-        hood = g(p.x,p.z,0.0,centre_z+0.034,width*0.023,0.012)
-        glans = g(p.x,p.z,0.0,centre_z+0.024,width*0.006,0.005)
-        frenulum = g(p.x,p.z,0.0,centre_z+0.012,width*0.004,0.006)
-        fourchette = g(p.x,p.z,0.0,centre_z-0.087,width*0.018,0.006)
-        perineum = g(p.x,p.z,0.0,centre_z-0.115,width*0.045,0.022)
-        # Displacements are intentionally visible but restrained: 8–16 mm
-        # folds and 3–5 mm recesses, scaled to this character's proportions.
-        outward = (0.010*mons + 0.014*(outer_l+outer_r)
-                   + 0.009*(inner_l+inner_r) + 0.008*hood
-                   + 0.003*glans + 0.002*frenulum + 0.002*fourchette)
-        inward = 0.006*cleft + 0.005*vestibule + 0.004*urethra + 0.007*vaginal + 0.001*perineum
+    def deform_world_point(p, normal):
+        n = normal.normalized() if normal.length else normal
+        if n.y > -0.10 or abs(p.x) > width*0.27 or abs(p.z-anatomy_z) > 0.15:
+            return p
+        # Relief targets are 25% above the upper ends of the initial ranges:
+        # mons 0.50%, outer folds 0.375%, inner folds 0.25%, hood 0.225%,
+        # and vestibular recess 0.1875% of measured character height.
+        mons = g(p.x,p.z,0.0,anatomy_z+height*0.035,width*0.105,height*0.020)
+        outer_l = g(p.x,p.z,-width*0.060,anatomy_z-height*0.002,width*0.034,height*0.030)
+        outer_r = g(p.x,p.z, width*0.060,anatomy_z-height*0.002,width*0.034,height*0.030)
+        inner_l = g(p.x,p.z,-width*0.024,anatomy_z-height*0.003,width*0.016,height*0.022)
+        inner_r = g(p.x,p.z, width*0.024,anatomy_z-height*0.003,width*0.016,height*0.022)
+        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.006,width*0.009,height*0.025)
+        vestibule = g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.018,height*0.009)
+        urethra = g(p.x,p.z,0.0,anatomy_z-height*0.016,width*0.0045,height*0.0025)
+        vaginal = g(p.x,p.z,0.0,anatomy_z-height*0.035,width*0.012,height*0.006)
+        hood = g(p.x,p.z,0.0,anatomy_z+height*0.020,width*0.023,height*0.007)
+        glans = g(p.x,p.z,0.0,anatomy_z+height*0.014,width*0.006,height*0.003)
+        frenulum = g(p.x,p.z,0.0,anatomy_z+height*0.007,width*0.004,height*0.0035)
+        fourchette = g(p.x,p.z,0.0,anatomy_z-height*0.051,width*0.018,height*0.0035)
+        perineum = g(p.x,p.z,0.0,anatomy_z-height*0.068,width*0.045,height*0.013)
+        outward = deformation_scale * height * (
+            0.0050*mons + 0.00375*(outer_l+outer_r)
+            + 0.00250*(inner_l+inner_r) + 0.00225*hood
+            + 0.00075*glans + 0.00050*frenulum + 0.00050*fourchette
+        )
+        inward = deformation_scale * height * (
+            0.001875*vestibule + 0.00125*cleft
+            + 0.0010*urethra + 0.0015*vaginal + 0.00025*perineum
+        )
         p.y -= outward
         p.y += inward
-        v.co = inv @ p
-    bm.normal_update()
-    bm.to_mesh(skin.data)
-    bm.free()
-    skin.data.update()
+        return p
+
+    if preserve_morphs:
+        # Ara's facial shape keys store absolute vertex positions. Apply the
+        # exact same local displacement to every key block so facial morphs
+        # retain their deltas and the mesh topology stays unchanged.
+        print(f"Preserving {len(key_blocks)-1} Ara shape keys; anatomy sculpt will not subdivide the skin topology.")
+        for vertex in skin.data.vertices:
+            original = vertex.co.copy()
+            world = skin.matrix_world @ original
+            normal = normal_matrix @ vertex.normal
+            deformed = inv @ deform_world_point(world, normal)
+            delta = deformed - original
+            if delta.length_squared <= 1e-18:
+                continue
+            vertex.co = deformed
+            for key_block in key_blocks[1:]:
+                key_point = key_block.data[vertex.index]
+                key_point.co = key_point.co + delta
+        skin.data.update()
+        after_keys = skin.data.shape_keys
+        if after_keys is None or len(after_keys.key_blocks) != len(key_blocks):
+            raise RuntimeError("Anatomy sculpt failed to preserve Ara facial shape keys")
+        for key_block in after_keys.key_blocks:
+            if len(key_block.data) != len(skin.data.vertices):
+                raise RuntimeError(f"Anatomy sculpt left invalid shape key vertex count: {key_block.name}")
+    else:
+        # Without shape keys, add local tessellation to improve the anatomical
+        # folds and recesses before deforming the existing skin surface.
+        bm = bmesh.new()
+        bm.from_mesh(skin.data)
+        bm.normal_update()
+        edges = []
+        for edge in bm.edges:
+            mid = (edge.verts[0].co + edge.verts[1].co) * 0.5
+            world = skin.matrix_world @ mid
+            normal = normal_matrix @ (edge.verts[0].normal + edge.verts[1].normal)
+            if normal.length:
+                normal.normalize()
+            if abs(world.x) < width*0.25 and abs(world.z-anatomy_z) < 0.15 and normal.y < -0.12:
+                edges.append(edge)
+        if edges:
+            bmesh.ops.subdivide_edges(bm, edges=edges, cuts=4, use_grid_fill=True)
+            bm.normal_update()
+        for vertex in bm.verts:
+            world = skin.matrix_world @ vertex.co
+            normal = normal_matrix @ vertex.normal
+            vertex.co = inv @ deform_world_point(world, normal)
+        bm.normal_update()
+        bm.to_mesh(skin.data)
+        bm.free()
+        skin.data.update()
+
     for poly in skin.data.polygons:
         poly.use_smooth = True
     skin["anatomy_profile"] = "adult_female_integrated_skin"
     skin["review_status"] = "integrated_mesh_blockout_for_art_review"
-    skin["anatomy_method"] = "local_subdivision_and_surface_displacement"
+    skin["anatomy_deformation_scale"] = float(deformation_scale)
+    skin["anatomy_method"] = "surface_displacement_preserve_morphs" if preserve_morphs else "local_subdivision_and_surface_displacement"
     skin["anatomy_parts"] = "mons,labia_majora,labia_minora,clitoral_hood,clitoral_glans,frenulum,vestibule,urethral_meatus,vaginal_opening,posterior_fourchette,perineal_transition"
     return skin
 
@@ -495,7 +573,8 @@ def main():
 
     anatomy = None
     if args.profile == "female":
-        anatomy = integrate_anatomy_into_skin(skin, anatomy_z, width, height)
+        anatomy = integrate_anatomy_into_skin(skin, anatomy_z, width, height, args.deformation_scale)
+        apply_anatomy_pigmentation(skin, anatomy_z, width, height)
         surface_tree = build_bvh(skin)
         pelvis_surface_tree = surface_tree
     create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, anatomy_z, body_front_y)

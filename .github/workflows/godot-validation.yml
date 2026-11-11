@@ -63,6 +63,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_npc_pass_through.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
+      - name: Run canonical character assembly resolver tests
+        run: godot --headless --path . --script res://tests/test_character_assembly_resolver.gd
       - name: Run seasonal tree tests
         run: godot --headless --path . --script res://tests/test_seasonal_trees.gd
       - name: Run wilderness resource visual tests
@@ -74,7 +76,6 @@ jobs:
       - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null
-          python -m json.tool data/characters/hollowmere_loadouts.json > /dev/null
           python -m json.tool data/characters/character_creation_rules.json > /dev/null
           python -m json.tool data/items/item_definitions.json > /dev/null
       - name: Smoke-test terrain prototype

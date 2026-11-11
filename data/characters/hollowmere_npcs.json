@@ -1,8 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "generator": "Ara 3D Gen",
   "generator_commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395",
-  "description": "First-pass Hollowmere adult cast. All appearance values are explicit Ara parameters or IDs from the pinned Ara catalogue. Body sliders are normalized 0..1. NPC appearance is build-time data; Godot does not pretend to regenerate Ara geometry at runtime.",
+  "description": "Canonical adult character definitions. Each record owns appearance, inventory and equipped item IDs. Ara export parameters and generated manifests are derived from these records; generated files are never authoritative. Body sliders are normalized 0..1.",
   "characters": [
     {
       "id": "wren_talbot",
@@ -14,7 +14,7 @@
         1
       ],
       "detail": "high",
-      "params": {
+      "appearance": {
         "seed": 218,
         "gender": 0,
         "age": 0.5,
@@ -30,17 +30,6 @@
         "hairTint": "#252b62",
         "facialHair": "none",
         "tattoos": [],
-        "outfit": "none",
-        "top": "fatigue_shirt",
-        "underTop": "bra",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "fatigue_pants",
-        "underwear": false,
-        "shoes": "combat_boots",
-        "hat": "none",
-        "weapon": "sword",
-        "carry": "none",
         "accessories": [],
         "garmentStyles": {
           "fatigue_shirt": {
@@ -62,6 +51,11 @@
             "pattern": "solid",
             "color": "#29292d",
             "color2": "#29292d"
+          },
+          "bikini_bottom": {
+            "pattern": "solid",
+            "color": "#55452d",
+            "color2": "#d0c3a2"
           }
         },
         "detail": "high",
@@ -73,7 +67,28 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#252b62"
-      }
+      },
+      "inventory": [
+        "fatigue_shirt",
+        "bra",
+        "bikini_bottom",
+        "fatigue_pants",
+        "combat_boots",
+        "sword",
+        "reinforced_leather_armor",
+        "wooden_shield"
+      ],
+      "equipped": {
+        "shirt": "fatigue_shirt",
+        "underTop": "bra",
+        "underBottom": "bikini_bottom",
+        "pants": "fatigue_pants",
+        "shoes": "combat_boots",
+        "weapon": "sword",
+        "armour": "reinforced_leather_armor",
+        "offhand": "wooden_shield"
+      },
+      "body_profile": "female_broad"
     },
     {
       "id": "garrick_holt",
@@ -85,7 +100,8 @@
         -2
       ],
       "detail": "medium",
-      "params": {
+      "dialogue_id": "garrick_holt",
+      "appearance": {
         "seed": 731,
         "gender": 1,
         "age": 0.7,
@@ -102,17 +118,6 @@
         "facialHair": "short_beard",
         "beardColor": "#665b50",
         "tattoos": [],
-        "outfit": "none",
-        "top": "long_tunic",
-        "underTop": "none",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "trousers",
-        "underwear": false,
-        "shoes": "sandals",
-        "hat": "none",
-        "weapon": "none",
-        "carry": "none",
         "accessories": [
           "belt"
         ],
@@ -138,7 +143,17 @@
         "expression": "neutral",
         "hairColor": "#776e61"
       },
-      "dialogue_id": "garrick_holt"
+      "inventory": [
+        "long_tunic",
+        "trousers",
+        "sandals"
+      ],
+      "equipped": {
+        "shirt": "long_tunic",
+        "pants": "trousers",
+        "shoes": "sandals"
+      },
+      "body_profile": "male_broad"
     },
     {
       "id": "mira_ashbrook",
@@ -150,7 +165,8 @@
         -2
       ],
       "detail": "medium",
-      "params": {
+      "dialogue_id": "mira_ashbrook",
+      "appearance": {
         "seed": 842,
         "gender": 0,
         "age": 0.46,
@@ -166,17 +182,6 @@
         "hairTint": "#704b32",
         "facialHair": "none",
         "tattoos": [],
-        "outfit": "none",
-        "top": "tunic",
-        "underTop": "bra",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "wrapper_long",
-        "underwear": false,
-        "shoes": "sandals",
-        "hat": "none",
-        "weapon": "knife",
-        "carry": "none",
         "accessories": [
           "bead_necklace"
         ],
@@ -202,7 +207,21 @@
         "expression": "neutral",
         "hairColor": "#704b32"
       },
-      "dialogue_id": "mira_ashbrook"
+      "inventory": [
+        "tunic",
+        "bra",
+        "wrapper_long",
+        "sandals",
+        "dagger"
+      ],
+      "equipped": {
+        "shirt": "tunic",
+        "underTop": "bra",
+        "pants": "wrapper_long",
+        "shoes": "sandals",
+        "weapon": "dagger"
+      },
+      "body_profile": "female_lean"
     },
     {
       "id": "oskar_vinn",
@@ -214,7 +233,8 @@
         -2
       ],
       "detail": "medium",
-      "params": {
+      "dialogue_id": "oskar_vinn",
+      "appearance": {
         "seed": 953,
         "gender": 1,
         "age": 0.6,
@@ -231,17 +251,6 @@
         "facialHair": "stubble",
         "beardColor": "#49372a",
         "tattoos": [],
-        "outfit": "none",
-        "top": "long_tunic",
-        "underTop": "none",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "trousers",
-        "underwear": false,
-        "shoes": "sandals",
-        "hat": "none",
-        "weapon": "sword",
-        "carry": "none",
         "accessories": [
           "belt"
         ],
@@ -267,7 +276,19 @@
         "expression": "neutral",
         "hairColor": "#49372a"
       },
-      "dialogue_id": "oskar_vinn"
+      "inventory": [
+        "long_tunic",
+        "trousers",
+        "sandals",
+        "sword"
+      ],
+      "equipped": {
+        "shirt": "long_tunic",
+        "pants": "trousers",
+        "shoes": "sandals",
+        "weapon": "sword"
+      },
+      "body_profile": "male_broad"
     },
     {
       "id": "wick_hallow",
@@ -279,7 +300,8 @@
         15
       ],
       "detail": "medium",
-      "params": {
+      "dialogue_id": "wick_hallow",
+      "appearance": {
         "seed": 1064,
         "gender": 1,
         "age": 0.88,
@@ -296,17 +318,6 @@
         "facialHair": "full_beard",
         "beardColor": "#898176",
         "tattoos": [],
-        "outfit": "none",
-        "top": "long_tunic",
-        "underTop": "none",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "trousers",
-        "underwear": false,
-        "shoes": "sandals",
-        "hat": "none",
-        "weapon": "none",
-        "carry": "none",
         "accessories": [],
         "garmentStyles": {
           "long_tunic": {
@@ -330,7 +341,19 @@
         "expression": "neutral",
         "hairColor": "#aaa49a"
       },
-      "dialogue_id": "wick_hallow"
+      "inventory": [
+        "long_tunic",
+        "trousers",
+        "sandals",
+        "dagger"
+      ],
+      "equipped": {
+        "shirt": "long_tunic",
+        "pants": "trousers",
+        "shoes": "sandals",
+        "weapon": "dagger"
+      },
+      "body_profile": "male_average"
     },
     {
       "id": "dray",
@@ -342,7 +365,8 @@
         6
       ],
       "detail": "medium",
-      "params": {
+      "dialogue_id": "dray_coltayne",
+      "appearance": {
         "seed": 1175,
         "gender": 1,
         "age": 0.63,
@@ -362,17 +386,6 @@
           "forearm_l"
         ],
         "tattooInk": "#202020",
-        "outfit": "none",
-        "top": "uniform_shirt",
-        "underTop": "none",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "fatigue_pants",
-        "underwear": false,
-        "shoes": "combat_boots",
-        "hat": "none",
-        "weapon": "sword",
-        "carry": "none",
         "accessories": [
           "arm_guards"
         ],
@@ -398,7 +411,23 @@
         "expression": "determined",
         "hairColor": "#211a16"
       },
-      "dialogue_id": "dray_coltayne"
+      "inventory": [
+        "uniform_shirt",
+        "fatigue_pants",
+        "combat_boots",
+        "sword",
+        "medium_armor",
+        "wooden_shield"
+      ],
+      "equipped": {
+        "shirt": "uniform_shirt",
+        "pants": "fatigue_pants",
+        "shoes": "combat_boots",
+        "weapon": "sword",
+        "armour": "medium_armor",
+        "offhand": "wooden_shield"
+      },
+      "body_profile": "male_muscular"
     },
     {
       "id": "tomlin",
@@ -410,7 +439,8 @@
         6
       ],
       "detail": "medium",
-      "params": {
+      "dialogue_id": "tomlin_brask",
+      "appearance": {
         "seed": 1286,
         "gender": 1,
         "age": 0.52,
@@ -426,17 +456,6 @@
         "hairTint": "#171313",
         "facialHair": "none",
         "tattoos": [],
-        "outfit": "none",
-        "top": "uniform_shirt",
-        "underTop": "none",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "fatigue_pants",
-        "underwear": false,
-        "shoes": "combat_boots",
-        "hat": "none",
-        "weapon": "none",
-        "carry": "none",
         "accessories": [
           "utility_belt"
         ],
@@ -462,7 +481,21 @@
         "expression": "neutral",
         "hairColor": "#171313"
       },
-      "dialogue_id": "tomlin_brask"
+      "inventory": [
+        "uniform_shirt",
+        "fatigue_pants",
+        "combat_boots",
+        "spear",
+        "light_armor"
+      ],
+      "equipped": {
+        "shirt": "uniform_shirt",
+        "pants": "fatigue_pants",
+        "shoes": "combat_boots",
+        "weapon": "spear",
+        "armour": "light_armor"
+      },
+      "body_profile": "male_average"
     },
     {
       "id": "hask",
@@ -474,7 +507,8 @@
         6
       ],
       "detail": "medium",
-      "params": {
+      "dialogue_id": "hask_greel",
+      "appearance": {
         "seed": 1397,
         "gender": 1,
         "age": 0.66,
@@ -494,17 +528,6 @@
           "armband_l"
         ],
         "tattooInk": "#34251c",
-        "outfit": "none",
-        "top": "uniform_shirt",
-        "underTop": "none",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "fatigue_pants",
-        "underwear": false,
-        "shoes": "combat_boots",
-        "hat": "none",
-        "weapon": "none",
-        "carry": "none",
         "accessories": [],
         "garmentStyles": {
           "uniform_shirt": {
@@ -528,7 +551,21 @@
         "expression": "neutral",
         "hairColor": "#6e4d35"
       },
-      "dialogue_id": "hask_greel"
+      "inventory": [
+        "uniform_shirt",
+        "fatigue_pants",
+        "combat_boots",
+        "axe",
+        "light_armor"
+      ],
+      "equipped": {
+        "shirt": "uniform_shirt",
+        "pants": "fatigue_pants",
+        "shoes": "combat_boots",
+        "weapon": "axe",
+        "armour": "light_armor"
+      },
+      "body_profile": "male_broad"
     },
     {
       "id": "yvette",
@@ -540,7 +577,8 @@
         2
       ],
       "detail": "medium",
-      "params": {
+      "dialogue_id": "yvette_marlow",
+      "appearance": {
         "seed": 1508,
         "gender": 0,
         "age": 0.56,
@@ -559,17 +597,6 @@
           "armband_l"
         ],
         "tattooInk": "#6b5140",
-        "outfit": "none",
-        "top": "tunic",
-        "underTop": "bra",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "wrapper_knee",
-        "underwear": false,
-        "shoes": "sandals",
-        "hat": "none",
-        "weapon": "none",
-        "carry": "none",
         "accessories": [
           "bead_necklace"
         ],
@@ -595,7 +622,21 @@
         "expression": "neutral",
         "hairColor": "#4d3425"
       },
-      "dialogue_id": "yvette_marlow"
+      "inventory": [
+        "tunic",
+        "bra",
+        "wrapper_knee",
+        "sandals",
+        "dagger"
+      ],
+      "equipped": {
+        "shirt": "tunic",
+        "underTop": "bra",
+        "pants": "wrapper_knee",
+        "shoes": "sandals",
+        "weapon": "dagger"
+      },
+      "body_profile": "female_lean"
     },
     {
       "id": "hendra",
@@ -607,7 +648,8 @@
         2
       ],
       "detail": "medium",
-      "params": {
+      "dialogue_id": "hendra_wells",
+      "appearance": {
         "seed": 1619,
         "gender": 0,
         "age": 0.72,
@@ -623,17 +665,6 @@
         "hairTint": "#554031",
         "facialHair": "none",
         "tattoos": [],
-        "outfit": "none",
-        "top": "long_tunic",
-        "underTop": "bra",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "wrapper_long",
-        "underwear": false,
-        "shoes": "sandals",
-        "hat": "none",
-        "weapon": "none",
-        "carry": "none",
         "accessories": [
           "amulets"
         ],
@@ -659,7 +690,23 @@
         "expression": "neutral",
         "hairColor": "#554031"
       },
-      "dialogue_id": "hendra_wells"
+      "inventory": [
+        "long_tunic",
+        "bra",
+        "wrapper_long",
+        "sandals",
+        "bow",
+        "light_armor"
+      ],
+      "equipped": {
+        "shirt": "long_tunic",
+        "underTop": "bra",
+        "pants": "wrapper_long",
+        "shoes": "sandals",
+        "weapon": "bow",
+        "armour": "light_armor"
+      },
+      "body_profile": "female_average"
     },
     {
       "id": "tavern_patron",
@@ -671,7 +718,7 @@
         -2
       ],
       "detail": "low",
-      "params": {
+      "appearance": {
         "seed": 1730,
         "gender": 1,
         "age": 0.58,
@@ -687,17 +734,6 @@
         "hairTint": "#29201b",
         "facialHair": "none",
         "tattoos": [],
-        "outfit": "none",
-        "top": "tunic",
-        "underTop": "none",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "trousers",
-        "underwear": false,
-        "shoes": "sandals",
-        "hat": "none",
-        "weapon": "none",
-        "carry": "none",
         "accessories": [],
         "garmentStyles": {
           "tunic": {
@@ -720,7 +756,20 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#29201b"
-      }
+      },
+      "inventory": [
+        "tunic",
+        "trousers",
+        "sandals",
+        "club"
+      ],
+      "equipped": {
+        "shirt": "tunic",
+        "pants": "trousers",
+        "shoes": "sandals",
+        "weapon": "club"
+      },
+      "body_profile": "male_average"
     },
     {
       "id": "elder_marta",
@@ -732,7 +781,8 @@
         -9
       ],
       "detail": "medium",
-      "params": {
+      "dialogue_id": "marta_wynfield",
+      "appearance": {
         "seed": 1841,
         "gender": 0,
         "age": 0.9,
@@ -748,17 +798,6 @@
         "hairTint": "#c1b9a8",
         "facialHair": "none",
         "tattoos": [],
-        "outfit": "none",
-        "top": "long_tunic",
-        "underTop": "bra",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "wrapper_long",
-        "underwear": false,
-        "shoes": "sandals",
-        "hat": "none",
-        "weapon": "none",
-        "carry": "none",
         "accessories": [
           "bead_necklace"
         ],
@@ -784,7 +823,21 @@
         "expression": "neutral",
         "hairColor": "#c1b9a8"
       },
-      "dialogue_id": "marta_wynfield"
+      "inventory": [
+        "long_tunic",
+        "bra",
+        "wrapper_long",
+        "sandals",
+        "club"
+      ],
+      "equipped": {
+        "shirt": "long_tunic",
+        "underTop": "bra",
+        "pants": "wrapper_long",
+        "shoes": "sandals",
+        "weapon": "club"
+      },
+      "body_profile": "female_average"
     },
     {
       "id": "rowan_fletcher",
@@ -796,7 +849,8 @@
         26
       ],
       "detail": "medium",
-      "params": {
+      "dialogue_id": "hollowmere_hunter",
+      "appearance": {
         "seed": 1952,
         "gender": 1,
         "age": 0.58,
@@ -816,17 +870,6 @@
           "forearm_l"
         ],
         "tattooInk": "#4b3a2c",
-        "outfit": "none",
-        "top": "tattered_shirt",
-        "underTop": "none",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "trousers",
-        "underwear": false,
-        "shoes": "combat_boots",
-        "hat": "none",
-        "weapon": "none",
-        "carry": "none",
         "accessories": [
           "crossed_straps"
         ],
@@ -852,7 +895,21 @@
         "expression": "neutral",
         "hairColor": "#3c2d22"
       },
-      "dialogue_id": "hollowmere_hunter"
+      "inventory": [
+        "tattered_shirt",
+        "trousers",
+        "combat_boots",
+        "bow",
+        "light_armor"
+      ],
+      "equipped": {
+        "shirt": "tattered_shirt",
+        "pants": "trousers",
+        "shoes": "combat_boots",
+        "weapon": "bow",
+        "armour": "light_armor"
+      },
+      "body_profile": "male_broad"
     },
     {
       "id": "player_avatar",
@@ -864,7 +921,7 @@
         2
       ],
       "detail": "high",
-      "params": {
+      "appearance": {
         "seed": 2468,
         "gender": 0,
         "age": 0.5,
@@ -880,17 +937,6 @@
         "hairTint": "#49372a",
         "facialHair": "none",
         "tattoos": [],
-        "outfit": "none",
-        "top": "long_tunic",
-        "underTop": "none",
-        "underBottom": "none",
-        "jacket": "none",
-        "bottom": "trousers",
-        "underwear": false,
-        "shoes": "sandals",
-        "hat": "none",
-        "weapon": "none",
-        "carry": "none",
         "accessories": [],
         "garmentStyles": {
           "long_tunic": {
@@ -913,7 +959,18 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#49372a"
-      }
+      },
+      "inventory": [
+        "long_tunic",
+        "trousers",
+        "sandals"
+      ],
+      "equipped": {
+        "shirt": "long_tunic",
+        "pants": "trousers",
+        "shoes": "sandals"
+      },
+      "body_profile": "female_average"
     }
   ]
 }

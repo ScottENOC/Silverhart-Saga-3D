@@ -25,6 +25,10 @@ def arguments():
     parser.add_argument("--output", required=True)
     parser.add_argument("--adult", action="store_true")
     parser.add_argument("--profile-name", default="adult_male")
+    parser.add_argument(
+        "--anatomy-state", choices=("flaccid", "erect-reference"), default="flaccid",
+        help="Compact resting form by default; preserve the previous projection as an optional reference asset.",
+    )
     return parser.parse_args(raw)
 
 
@@ -175,8 +179,66 @@ def create_uv_surface(name, centre, scale, material, armature, pelvis_bone,
     return create_mesh_object(name, vertices, faces, material, armature, pelvis_bone)
 
 
+def create_flaccid_phallus(material, armature, pelvis_bone, body_height, anatomy_z, anchor_y):
+    """Create a new compact, downward-resting flaccid form (not the old finger mesh)."""
+    axis = Vector((0.0, -0.43, -0.90)).normalized()
+    right = Vector((1.0, 0.0, 0.0))
+    side = axis.cross(right).normalized()
+    length = body_height * 0.038
+    radius = body_height * 0.0060
+    base = Vector((0.0, anchor_y + body_height * 0.003, anatomy_z + body_height * 0.003))
+
+    # Longitudinal silhouette: narrow attachment, fuller shaft, a restrained
+    # distal glans transition, then a softly rounded tip. Values are relative
+    # to body height and deliberately much smaller than the preserved reference.
+    profile = [
+        (0.00, 0.28), (0.08, 0.58), (0.20, 0.78), (0.38, 0.88),
+        (0.58, 0.91), (0.73, 0.98), (0.84, 1.02), (0.91, 0.91),
+        (0.97, 0.68), (1.00, 0.20),
+    ]
+    segments = 48
+    vertices = []
+    faces = []
+    for t, width_factor in profile:
+        # A slight natural curve back toward the body as the form descends.
+        centre = base + axis * (length * t) + Vector((0.0, body_height * 0.0015 * math.sin(math.pi * t), 0.0))
+        ring_radius = radius * width_factor
+        for segment in range(segments):
+            angle = 2.0 * math.pi * segment / segments
+            radial = right * math.cos(angle) + side * math.sin(angle)
+            point = centre + radial * ring_radius
+            vertices.append(tuple(point))
+    for ring in range(len(profile) - 1):
+        for segment in range(segments):
+            a = ring * segments + segment
+            b = ring * segments + (segment + 1) % segments
+            c = (ring + 1) * segments + (segment + 1) % segments
+            d = (ring + 1) * segments + segment
+            faces.append((a, b, c, d))
+    # Close both ends with small caps to avoid an open surface.
+    start_index = len(vertices)
+    vertices.append(tuple(base))
+    end_index = len(vertices)
+    vertices.append(tuple(base + axis * length))
+    last_ring = (len(profile) - 1) * segments
+    for segment in range(segments):
+        nxt = (segment + 1) % segments
+        faces.append((start_index, nxt, segment))
+        faces.append((end_index, last_ring + segment, last_ring + nxt))
+
+    obj = create_mesh_object(
+        "Male anatomy · new flaccid resting form", vertices, faces,
+        material, armature, pelvis_bone
+    )
+    obj["anatomy_state"] = "flaccid"
+    obj["anatomy_method"] = "new_parametric_resting_form_not_finger_template"
+    obj["target_length_m"] = length
+    obj["maximum_radius_m"] = radius * max(value for _t, value in profile)
+    return obj
+
+
 def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
-                                  body_height, anatomy_z, anchor_y):
+                                  body_height, anatomy_z, anchor_y, anatomy_state):
     """Reuse Ara's own middle-finger surface as the phallus modelling template.
 
     Extracts only the skin-material faces weighted to the right middle finger,
@@ -258,16 +320,24 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
         tuple(remap[index] for index in polygon.vertices) for polygon in selected_faces
     ]
 
-    # A resting organ projects forward and slightly downward from the pubic root.
+    if anatomy_state == "flaccid":
+        return create_flaccid_phallus(
+            material, armature, pelvis_bone, body_height, anatomy_z, anchor_y
+        )
+
+    # The previous protruding finger-derived geometry is retained only as an
+    # optional erect reference asset. It is never used for ordinary characters.
     target_axis = Vector((0.0, -0.94, -0.34)).normalized()
-    rotation = source_axis.rotation_difference(target_axis)
     target_length = body_height * 0.074
+    radial_factor = 1.16
+    base_depth_offset = body_height * 0.006
+    rotation = source_axis.rotation_difference(target_axis)
     length_scale = target_length / source_length
-    radial_scale = length_scale * 1.16
+    radial_scale = length_scale * radial_factor
     target_base = Vector((
         0.0,
-        anchor_y + body_height * 0.006,
-        anatomy_z + body_height * 0.009,
+        anchor_y + base_depth_offset,
+        anatomy_z + body_height * 0.004,
     ))
 
     vertices = []
@@ -294,6 +364,7 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
     phallus.matrix_parent_inverse = armature.matrix_world.inverted()
     modifier = phallus.modifiers.new("Ara pelvis skinning", "ARMATURE")
     modifier.object = armature
+    phallus["anatomy_state"] = anatomy_state
     phallus["anatomy_parts"] = "finger_derived_root,shaft,rounded_distal_tip"
     phallus["source_template"] = "Ara_RightHandMiddleFinger_skin_surface"
     phallus["source_face_count"] = len(selected_faces)
@@ -308,16 +379,22 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
     return phallus
 
 
-def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy_z, anchor_y):
+def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy_z, anchor_y, anatomy_state):
     centre_z = anatomy_z - height * 0.046
     surface_y = anchor_y
-    depth = height * 0.020
-    centre = Vector((0.0, surface_y - depth * 0.48, centre_z))
+    if anatomy_state == "erect-reference":
+        width_factor, depth_factor, height_factor = 0.067, 0.020, 0.044
+    else:
+        # Reduce the current oversized scrotal silhouette by roughly one third.
+        width_factor, depth_factor, height_factor = 0.045, 0.014, 0.030
+    depth = height * depth_factor
+    centre = Vector((0.0, surface_y - depth * 0.40, centre_z))
     sac = create_uv_surface(
         "Male anatomy · scrotum with paired contours", centre,
-        Vector((width * 0.067, depth, height * 0.044)),
+        Vector((width * width_factor, depth, height * height_factor)),
         material, armature, pelvis_bone, segments=72, rings=48, front_lobes=True
     )
+    sac["anatomy_state"] = anatomy_state
     sac["anatomy_parts"] = "scrotal_sac,left_testis_contour,right_testis_contour,median_raphe"
     return sac
 
@@ -402,6 +479,71 @@ def merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone):
     skin["male_anatomy_parts"] = "integrated_root,shaft,glans,corona,scrotal_sac"
     return skin
 
+def masculinise_body_mesh(skin):
+    """Apply a restrained male torso/pelvis silhouette to the shared Ara rig.
+
+    Ara's gender=1 export currently produces the exact same skin vertices as
+    gender=0. This pass therefore changes the actual skinned body surface before
+    adding male anatomy. It preserves topology, UVs, vertex groups, modifiers
+    and applies the same spatial transform to every existing shape-key block.
+    """
+    lo, hi = bounds(skin)
+    height = hi.z - lo.z
+    width = hi.x - lo.x
+    if height <= 0.0 or width <= 0.0:
+        raise RuntimeError("Cannot masculinise Ara body with invalid bounds")
+
+    inverse_world = skin.matrix_world.inverted()
+    shape_keys = skin.data.shape_keys
+    blocks = list(shape_keys.key_blocks) if shape_keys else [None]
+    moved = 0
+    max_displacement = 0.0
+    squared_displacement = 0.0
+    for block in blocks:
+        coordinates = block.data if block is not None else skin.data.vertices
+        for vertex in coordinates:
+            original_local = vertex.co.copy()
+            point = skin.matrix_world @ original_local
+            ratio = (point.z - lo.z) / height
+            shoulder = math.exp(-0.5 * ((ratio - 0.795) / 0.095) ** 2)
+            ribcage = math.exp(-0.5 * ((ratio - 0.685) / 0.085) ** 2)
+            waist = math.exp(-0.5 * ((ratio - 0.595) / 0.075) ** 2)
+            pelvis = math.exp(-0.5 * ((ratio - 0.485) / 0.085) ** 2)
+
+            # Broader shoulder/ribcage line and a narrower waist/hip silhouette.
+            lateral_scale = 1.0 + 0.115 * shoulder + 0.035 * ribcage - 0.105 * waist - 0.085 * pelvis
+            point.x *= lateral_scale
+
+            # Reduce the Ara female breast projection into a flatter male chest.
+            # Ara faces -Y; only the front-facing chest surface is moved.
+            chest_band = math.exp(-0.5 * ((ratio - 0.705) / 0.075) ** 2)
+            chest_side = math.exp(-0.5 * ((abs(point.x) - width * 0.105) / (width * 0.075)) ** 2)
+            front_surface = max(0.0, min(1.0, (-point.y - width * 0.015) / (width * 0.16)))
+            point.y += height * 0.018 * chest_band * chest_side * front_surface
+
+            new_local = inverse_world @ point
+            displacement = (new_local - original_local).length
+            if displacement > 1e-8:
+                moved += 1
+                max_displacement = max(max_displacement, displacement)
+                squared_displacement += displacement * displacement
+            vertex.co = new_local
+
+    total = sum(len(block.data) if block is not None else len(skin.data.vertices) for block in blocks)
+    rms = math.sqrt(squared_displacement / max(moved, 1))
+    skin["male_body_shape"] = "masculinised_torso_shoulders_waist_pelvis"
+    skin["male_body_shape_vertices_moved"] = moved
+    skin["male_body_shape_max_displacement_m"] = max_displacement
+    skin["male_body_shape_rms_displacement_m"] = rms
+    print(
+        "Ara male body silhouette: "
+        f"moved={moved}/{total} shape-key vertices, "
+        f"RMS={rms:.6f} m, max={max_displacement:.6f} m"
+    )
+    if moved < 100:
+        raise RuntimeError("Male silhouette pass changed too few vertices; refusing a female-shaped male base")
+
+
 def main():
     args = arguments()
     if not args.adult:
@@ -415,6 +557,7 @@ def main():
         raise RuntimeError("Expected Ara male meshes and game armature")
     skin, skin_material = find_skin(meshes)
     pelvis_bone = find_pelvis_bone(armature)
+    masculinise_body_mesh(skin)
     lo, hi = bounds(skin)
     height = hi.z - lo.z
     width = hi.x - lo.x
@@ -427,16 +570,19 @@ def main():
     # Fail early if the front pelvis surface cannot be sampled.
     pelvic_surface_y = front_surface_y(surface_tree, 0.0, anatomy_z)
     phallus = create_finger_derived_phallus(
-        skin, skin_material, armature, pelvis_bone, height, anatomy_z, pelvic_surface_y
+        skin, skin_material, armature, pelvis_bone, height, anatomy_z, pelvic_surface_y,
+        args.anatomy_state
     )
     scrotum = create_scrotum(
-        surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z, pelvic_surface_y
+        surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z,
+        pelvic_surface_y, args.anatomy_state
     )
 
     anatomy = join_male_anatomy_parts(
         [phallus, scrotum], armature, pelvis_bone
     )
     anatomy["profile_name"] = args.profile_name
+    anatomy["anatomy_state"] = args.anatomy_state
     # Join into the original Ara body mesh so the exported GLB retains one
     # full-rig skin rather than a separate pelvis-only skeleton palette.
     skin = merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone)
@@ -452,9 +598,8 @@ def main():
         use_selection=True, export_apply=False, export_animations=True
     )
     print(
-        "Exported Ara middle-finger-derived adult male anatomy surface with "
-        "a native rounded fingertip profile, plus paired scrotal contours; "
-        "integrated into the original full-rig skin mesh."
+        f"Exported Ara-derived adult male anatomy ({args.anatomy_state}) "
+        "with paired scrotal contours, integrated into the original full-rig skin mesh."
     )
 
 

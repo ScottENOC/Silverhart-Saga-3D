@@ -1,6 +1,6 @@
 {
   "source": "ScottENOC/Hex-crpg equipment.js, with partyInventory.js runtime weight/container rules",
-  "item_count": 76,
+  "item_count": 77,
   "icon_atlas": {
     "path": "res://art/ui/item_icon_atlas.svg",
     "columns": 8,
@@ -892,6 +892,14 @@
       "equipment_slot": "shoes",
       "garment_visual": "combat_boots",
       "weight": 1.5
+    },
+    "bikini_bottom": {
+      "id": "bikini_bottom",
+      "name": "Ara Bikini Bottom",
+      "type": "clothing",
+      "equipment_slot": "underBottom",
+      "garment_visual": "bikini_bottom",
+      "weight": 0.3
     }
   }
 }

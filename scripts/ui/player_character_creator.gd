@@ -20,12 +20,11 @@ const HAIR_STYLE_IDS := {
     "Long": "long01", "Ponytail": "ponytail01", "Buzz cut": "buzz",
     "Mohawk": "mohawk", "Cornrows": "cornrows", "Box braids": "box_braids", "None": "none"
 }
-const BODY_BUILDS := ["Lean", "Average", "Broad", "Muscular", "Soft", "Androgynous"]
+const BODY_BUILDS := ["Lean", "Average", "Broad", "Muscular", "Soft"]
 const PRESENTATIONS := ["Masculine", "Feminine", "Androgynous", "Mixed", "Custom"]
 const PRONOUN_SETS := ["He / him", "She / her", "They / them", "Use my name", "Custom"]
-const FEMALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/ara_person_body.glb"
-const MALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const ARA_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
+const CHARACTER_ASSEMBLY_RESOLVER = preload("res://scripts/presentation/character_assembly_resolver.gd")
 
 var name_edit: LineEdit
 var game_mode_select: OptionButton
@@ -327,7 +326,12 @@ func _refresh_appearance_preview(_index: int) -> void:
     if preview_actor == null or not is_instance_valid(preview_actor):
         return
     var variant := "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female"
-    var asset_path := MALE_PREVIEW_ASSET if variant == "male" else FEMALE_PREVIEW_ASSET
+    var selected_build := body_select.get_item_text(body_select.selected).to_lower()
+    var body_resolution := CHARACTER_ASSEMBLY_RESOLVER.resolve_player({
+        "body_variant": variant,
+        "body_build": selected_build
+    })
+    var asset_path := String(body_resolution.get("body_asset_path", ""))
     if not ResourceLoader.exists(asset_path):
         preview_status.text = "Preview asset not found: %s. Your appearance choices can still be saved." % asset_path
         return
@@ -337,8 +341,11 @@ func _refresh_appearance_preview(_index: int) -> void:
             preview_status.text = "Preview asset unavailable or failed to instantiate: %s. Your appearance choices can still be saved." % asset_path
             preview_variant_loaded = ""
             return
+        preview_actor.set_meta("body_variant", variant)
+        if not preview_actor.configure_modular_garments():
+            preview_status.text = "Base body loaded, but the local garment library has not been built yet."
         preview_variant_loaded = variant
-    var build_factors := {"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04, "Androgynous": 1.0}
+    var build_factors := {"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04}
     var profile := {
         "skin_colour": SKIN_COLOURS[skin_select.selected],
         "eye_colour": eye_select.get_item_text(eye_select.selected),
@@ -346,14 +353,16 @@ func _refresh_appearance_preview(_index: int) -> void:
         "height_scale": height_slider.value,
         "build_scale": float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)),
         "body_variant": variant,
+        "body_build": selected_build,
         "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
         "pronouns": "they/them"
     }
     profile["height"] = inverse_lerp(0.90, 1.10, height_slider.value)
     profile["muscle"] = inverse_lerp(0.96, 1.055, float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)))
-    preview_actor.apply_player_profile(profile)
+    var resolved := CHARACTER_ASSEMBLY_RESOLVER.resolve_player(profile)
+    preview_actor.apply_resolved_appearance(resolved)
     preview_actor.apply_equipment_visuals(_preview_equipment_for_class())
-    var hair_id := String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02"))
+    var hair_id := String(resolved.get("hair_style_id", "short02"))
     var hair_path := "res://art/characters/ara_runtime/hair/%s_%s.glb" % [variant, hair_id]
     var using_ara_base := preview_actor.loaded_asset_path.contains("/ara_runtime/")
     var hair_loaded := false

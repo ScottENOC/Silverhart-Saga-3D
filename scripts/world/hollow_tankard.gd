@@ -2,9 +2,7 @@ class_name HollowTankard
 extends Node3D
 
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
-const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_body.glb"
-const PLAYER_CUSTOM_FEMALE_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
-const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
+const CHARACTER_ASSEMBLY_RESOLVER = preload("res://scripts/presentation/character_assembly_resolver.gd")
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
@@ -32,7 +30,6 @@ var world_map_panel: CanvasLayer
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
 var actor_by_id: Dictionary = {}
-var starting_loadouts: Dictionary = {}
 var player_profile: Dictionary = {}
 var party_member_ids: Array[String] = ["player", "companion_wren_talbot"]
 var active_party_index: int = 0
@@ -394,9 +391,8 @@ func _create_furniture() -> void:
     _add_box(furniture, "StoolSeat", Vector3(5.9, 0.85, -2.2), Vector3(0.7, 0.12, 0.7), dark_wood_material)
 
 func _create_characters() -> void:
-    starting_loadouts = _load_starting_loadouts()
-    # Player and NPCs use the shared gendered Ara base mesh.
-    _spawn_character("player", String(player_profile.get("name", "Adventurer")), Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true)
+    var player_resolved := CHARACTER_ASSEMBLY_RESOLVER.resolve_player(player_profile)
+    _spawn_character("player", String(player_profile.get("name", "Adventurer")), Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true, player_resolved)
 
     var profile_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
     if profile_file == null:
@@ -412,88 +408,31 @@ func _create_characters() -> void:
         var profile: Dictionary = profile_variant
         if str(profile.get("role", "")) == "player avatar":
             continue
+        var resolved := CHARACTER_ASSEMBLY_RESOLVER.resolve_npc(profile)
+        if resolved.is_empty():
+            continue
         var coordinates: Array = profile.get("hex", [0, 0])
         if coordinates.size() < 2:
             continue
         var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
-        var actor_id := str(profile.get("game_id", profile.get("id", "")))
-        var model_id := str(profile.get("id", ""))
-        var display_name := str(profile.get("name", actor_id))
-        if actor_id.is_empty() or model_id.is_empty():
+        var actor_id := String(resolved.get("game_id", ""))
+        if actor_id.is_empty():
             continue
-        _spawn_character(actor_id, display_name, spawn, Color(0.42, 0.34, 0.25), false, model_id, profile)
+        _spawn_character(actor_id, String(resolved.get("display_name", actor_id)), spawn, Color(0.42, 0.34, 0.25), false, resolved)
 
     # Old Mac lives at his farmstead on the same continuous axial world grid.
     _spawn_character("old_mac", "Old Mac", Vector2i(12, 58), Color(0.42, 0.34, 0.25), false, "", {"params": {"gender": 1}})
 
 
-func _load_starting_loadouts() -> Dictionary:
-    var file := FileAccess.open("res://data/characters/hollowmere_loadouts.json", FileAccess.READ)
-    if file == null:
-        push_error("Hollowmere starting loadouts are missing.")
-        return {}
-    var parsed: Variant = JSON.parse_string(file.get_as_text())
-    if not parsed is Dictionary:
-        push_error("Hollowmere starting loadouts are not valid JSON.")
-        return {}
-    var characters: Variant = parsed.get("characters", {})
-    if characters is Dictionary:
-        return characters
-    return {}
-
-
-func _apply_starting_loadout(state: CharacterState) -> void:
-    var item_ids: Variant = starting_loadouts.get(state.id, [])
-    if not item_ids is Array:
-        push_error("Starting loadout for %s is not an array." % state.id)
-        return
-    for index in range(item_ids.size()):
-        var item_id := String(item_ids[index])
-        var instance_id := "start_%s_%s_%02d" % [state.id, item_id, index]
-        var item := ItemCatalog.create_instance(item_id, instance_id)
-        if item.is_empty():
-            push_error("Unknown starting item '%s' for %s." % [item_id, state.id])
-            continue
-        if not state.add_inventory_item(item):
-            push_error("Could not add starting item '%s' to %s." % [item_id, state.id])
-            continue
-        if not state.equip_inventory_item(instance_id):
-            push_error("Could not equip starting item '%s' on %s." % [item_id, state.id])
-
-
-func _apply_npc_clothing_loadout(state: CharacterState, npc_profile: Dictionary) -> void:
-    var params: Dictionary = npc_profile.get("params", {})
-    var clothing_parameters := [
-        {"parameter": "underTop", "slot": "underTop"},
-        {"parameter": "underBottom", "slot": "underBottom"},
-        {"parameter": "top", "slot": "shirt"},
-        {"parameter": "bottom", "slot": "pants"},
-        {"parameter": "shoes", "slot": "shoes"}
-    ]
-    for entry in clothing_parameters:
-        var garment_id := String(params.get(entry.parameter, "none"))
-        if garment_id.is_empty() or garment_id == "none":
-            continue
-        var item := ItemCatalog.create_instance(garment_id, "start_%s_clothing_%s" % [state.id, entry.slot])
-        if item.is_empty():
-            push_warning("NPC %s has Ara garment '%s' without an inventory definition." % [state.id, garment_id])
-            continue
-        if not state.add_inventory_item(item):
-            push_error("Could not add NPC clothing '%s' to %s." % [garment_id, state.id])
-            continue
-        if not state.equip_inventory_item(String(item.instance_id)):
-            push_error("Could not equip NPC clothing '%s' on %s." % [garment_id, state.id])
-
-
-func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, ara_model_id: String = "", npc_profile: Dictionary = {}) -> void:
+func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, resolved: Dictionary = {}) -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
     var state: CharacterState
     if is_player:
         state = CHARACTER_CREATION_RULES.create_player_state(player_profile, id, spawn_hex)
     else:
         state = CharacterState.new(id, display_name, spawn_hex)
-        _apply_starting_loadout(state)
-        _apply_npc_clothing_loadout(state, npc_profile)
+        if not CHARACTER_ASSEMBLY_RESOLVER.populate_npc_inventory(state, resolved):
+            push_error("Canonical inventory/equipment resolution failed for '%s'." % id)
     state.time_points = state.max_time_points
     simulation.register_character(state)
 
@@ -508,27 +447,26 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     var ara_model := ARA_CHARACTER_ACTOR.new() as AraCharacterActor
     ara_model.name = "CharacterModel"
     actor.add_child(ara_model)
-    var body_variant := str(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
-    var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
-    if is_player and body_variant == "female" and ResourceLoader.exists(PLAYER_CUSTOM_FEMALE_ASSET):
-        model_path = PLAYER_CUSTOM_FEMALE_ASSET
-    if not is_player and not ara_model_id.is_empty():
-        var authored_npc_path := "res://art/characters/hollowmere/%s.glb" % ara_model_id
-        if ResourceLoader.exists(authored_npc_path):
-            model_path = authored_npc_path
+    var body_variant := String(resolved.get("body_variant", "female"))
+    var model_path := String(resolved.get("body_asset_path", ""))
+    var using_legacy_fallback := bool(resolved.get("legacy_visual_fallback", false))
+    if model_path.is_empty():
+        push_error("Character '%s' has no resolved body asset." % id)
+        ara_model.queue_free()
+        return
+
+    ara_model.set_meta("body_variant", body_variant)
     var model_loaded := ara_model.configure(model_path)
+    print("[Character assembly] actor=%s variant=%s base_asset=%s loaded=%s" % [id, body_variant, model_path, model_loaded])
     if model_loaded:
-        if is_player:
-            ara_model.apply_player_profile(player_profile)
+        ara_model.apply_resolved_appearance(resolved)
+        if not using_legacy_fallback:
+            _attach_ara_hair(ara_model, body_variant, String(resolved.get("hair_style_id", "none")))
+            if not ara_model.configure_modular_garments():
+                push_warning("Character '%s' has no profile-matched garment library yet." % display_name)
+            ara_model.apply_garment_styles(resolved.get("garment_styles", {}))
         else:
-            var params: Dictionary = npc_profile.get("params", {})
-            ara_model.apply_npc_parameters(params)
-        if model_path.contains("/ara_runtime/"):
-            _attach_ara_hair(ara_model, body_variant, str(player_profile.get("hair_style_id", "short02")) if is_player else str(npc_profile.get("params", {}).get("hair", "short02")))
-        # Authored Hollowmere NPC GLBs already contain their selected Ara garments.
-        # Runtime base bodies and the player avatar need the separate modular layer.
-        if is_player or model_path.contains("/ara_runtime/"):
-            ara_model.configure_modular_garments()
+            print("[Character assembly] actor=%s using transitional legacy visual fallback=%s" % [id, model_path])
         ara_model.apply_equipment_visuals(state.equipped_item_data)
     else:
         push_error("Character '%s' could not load Ara model '%s'. No primitive substitute will be shown." % [display_name, model_path])

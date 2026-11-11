@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "description": "Canonical shared Ara body profiles for players, companions and NPCs. No character-specific body or garment libraries.",
+  "builds": [
+    {
+      "id": "lean",
+      "label": "Lean",
+      "description": "Narrower frame and lighter build."
+    },
+    {
+      "id": "average",
+      "label": "Average",
+      "description": "Balanced everyday physique."
+    },
+    {
+      "id": "broad",
+      "label": "Broad",
+      "description": "Wider frame and shoulders/hips appropriate to body model."
+    },
+    {
+      "id": "muscular",
+      "label": "Muscular",
+      "description": "More developed musculature."
+    },
+    {
+      "id": "soft",
+      "label": "Soft",
+      "description": "Softer, fuller physique."
+    }
+  ],
+  "body_profiles": [
+    {
+      "id": "female_lean",
+      "body_model": "female",
+      "build": "lean",
+      "body_asset": "res://art/characters/ara_runtime/bodies/female_lean.glb",
+      "garment_library": "res://art/characters/ara_runtime/garments/female_lean.glb"
+    },
+    {
+      "id": "female_average",
+      "body_model": "female",
+      "build": "average",
+      "body_asset": "res://art/characters/ara_runtime/bodies/female_average.glb",
+      "garment_library": "res://art/characters/ara_runtime/garments/female_average.glb"
+    },
+    {
+      "id": "female_broad",
+      "body_model": "female",
+      "build": "broad",
+      "body_asset": "res://art/characters/ara_runtime/bodies/female_broad.glb",
+      "garment_library": "res://art/characters/ara_runtime/garments/female_broad.glb"
+    },
+    {
+      "id": "female_muscular",
+      "body_model": "female",
+      "build": "muscular",
+      "body_asset": "res://art/characters/ara_runtime/bodies/female_muscular.glb",
+      "garment_library": "res://art/characters/ara_runtime/garments/female_muscular.glb"
+    },
+    {
+      "id": "female_soft",
+      "body_model": "female",
+      "build": "soft",
+      "body_asset": "res://art/characters/ara_runtime/bodies/female_soft.glb",
+      "garment_library": "res://art/characters/ara_runtime/garments/female_soft.glb"
+    },
+    {
+      "id": "male_lean",
+      "body_model": "male",
+      "build": "lean",
+      "body_asset": "res://art/characters/ara_runtime/bodies/male_lean.glb",
+      "garment_library": "res://art/characters/ara_runtime/garments/male_lean.glb"
+    },
+    {
+      "id": "male_average",
+      "body_model": "male",
+      "build": "average",
+      "body_asset": "res://art/characters/ara_runtime/bodies/male_average.glb",
+      "garment_library": "res://art/characters/ara_runtime/garments/male_average.glb"
+    },
+    {
+      "id": "male_broad",
+      "body_model": "male",
+      "build": "broad",
+      "body_asset": "res://art/characters/ara_runtime/bodies/male_broad.glb",
+      "garment_library": "res://art/characters/ara_runtime/garments/male_broad.glb"
+    },
+    {
+      "id": "male_muscular",
+      "body_model": "male",
+      "build": "muscular",
+      "body_asset": "res://art/characters/ara_runtime/bodies/male_muscular.glb",
+      "garment_library": "res://art/characters/ara_runtime/garments/male_muscular.glb"
+    },
+    {
+      "id": "male_soft",
+      "body_model": "male",
+      "build": "soft",
+      "body_asset": "res://art/characters/ara_runtime/bodies/male_soft.glb",
+      "garment_library": "res://art/characters/ara_runtime/garments/male_soft.glb"
+    }
+  ]
+}

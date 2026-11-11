@@ -9,12 +9,14 @@ var loaded_asset_path: String = ""
 var hair_instances: Array[MeshInstance3D] = []
 var modular_garment_meshes: Array[MeshInstance3D] = []
 var equipment_attachments: Dictionary = {}
-const MODULAR_GARMENT_ASSET := "res://art/characters/ara_runtime/ara_person_modular.glb"
+const MODULAR_GARMENT_ASSET := "res://art/characters/ara_runtime/ara_person_garments.glb"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
-const GARMENT_VISUALS := ["bra", "briefs", "long_tunic", "trousers", "tunic", "wrapper_long", "uniform_shirt", "fatigue_pants", "wrapper_knee", "tattered_shirt", "fatigue_shirt", "sandals", "combat_boots", "leather armor"]
 var current_hair_colour: Color = Color("#49372a")
+const ITEM_CATALOG = preload("res://scripts/simulation/item_catalog.gd")
 
 func configure(glb_path: String) -> bool:
+    _clear_modular_garments()
+    equipment_attachments.clear()
     if model_root != null and is_instance_valid(model_root):
         remove_child(model_root)
         model_root.queue_free()
@@ -22,6 +24,13 @@ func configure(glb_path: String) -> bool:
     animation_player = null
     hair_instances.clear()
     loaded_asset_path = ""
+    # The base GLB is authoritative. Set this before any garment library is attached,
+    # rather than relying on a caller to remember the metadata.
+    var configured_variant := String(get_meta("body_variant", ""))
+    if configured_variant not in ["male", "female"]:
+        configured_variant = "male" if glb_path.get_file().to_lower().contains("male") else "female"
+    set_meta("body_variant", configured_variant)
+    set_meta("modular_garments_loaded", false)
     if not ResourceLoader.exists(glb_path):
         push_warning("Ara character asset is not installed: " + glb_path)
         return false
@@ -36,6 +45,16 @@ func configure(glb_path: String) -> bool:
     model_root.name = "AraModel"
     add_child(model_root)
     loaded_asset_path = glb_path
+    var normalized_asset_path := glb_path.replace("\\", "/").to_lower()
+    var asset_basename := glb_path.get_file().get_basename().to_lower()
+    # Wren's profile-baked export currently lives beside the shared runtime
+    # assets rather than in /bodies/. Identify it explicitly so the matching
+    # garment library is not rejected as a generic body.
+    var is_wren_profile_body := asset_basename == "ara_person_wren_body"
+    var profile_body := normalized_asset_path.contains("/bodies/") or is_wren_profile_body
+    var profile_id := "wren_talbot" if is_wren_profile_body else (asset_basename if normalized_asset_path.contains("/bodies/") else "")
+    set_meta("body_profile_id", profile_id)
+    set_meta("body_profile_baked", profile_body)
     animation_player = _find_animation_player(model_root)
     call_deferred("_play_idle_if_available")
     # Report the loaded character model regardless of whether the separate
@@ -43,51 +62,78 @@ func configure(glb_path: String) -> bool:
     call_deferred("_dump_garment_surface_report")
     return true
 
-## Attach modular garment surfaces to this actor's own Ara skeleton.
-## The original body mesh remains visible, preventing transparent clothing from
-## cutting holes in the skin beneath it.
+## The original body remains untouched; inventory controls separate garment nodes.
+## Attach independently skinned garment objects to this character's Ara skeleton.
+## Each garment is a separate mesh node, so equipment visibility never edits body surfaces.
 func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> bool:
     _clear_modular_garments()
+    # The current pilot garment library was extracted from Wren's matching Ara
+    # profile export. Do not attach it to another person's differently fitted rig.
+    if String(get_meta("body_profile_id", "")) != "wren_talbot":
+        push_warning("No profile-matched Ara garment library is built for body profile '%s' yet." % String(get_meta("body_profile_id", "generic")))
+        return false
     if model_root == null or not ResourceLoader.exists(glb_path):
+        push_warning("Character garment library is unavailable: " + glb_path)
         return false
     var target_skeleton := _find_skeleton(model_root)
     if target_skeleton == null:
-        push_warning("Cannot attach modular garments: target Ara body has no Skeleton3D")
+        push_warning("Cannot attach garments: target Ara body has no Skeleton3D")
         return false
     var packed := load(glb_path) as PackedScene
     if packed == null:
+        push_warning("Cannot load character garment library: " + glb_path)
         return false
     var source_root := packed.instantiate()
     var source_skeleton := _find_skeleton(source_root)
     if source_skeleton == null or not _same_skeleton(source_skeleton, target_skeleton):
         source_root.free()
-        push_warning("Cannot attach modular garments: Workshop skeleton does not match actor skeleton")
+        push_warning("Cannot attach garments: garment library skeleton does not match actor skeleton")
         return false
     var source_meshes: Array[MeshInstance3D] = []
     _collect_skinned_meshes(source_root, source_meshes)
-    if source_meshes.is_empty():
-        source_root.free()
-        push_warning("Modular garment export contains no skinned meshes")
-        return false
+    var target_variant := String(get_meta("body_variant", "female"))
+    var available_variants: Dictionary = {}
     for source_mesh in source_meshes:
-        var instance := MeshInstance3D.new()
-        instance.name = "AraModularGarments_" + source_mesh.name
-        instance.mesh = source_mesh.mesh
-        instance.skin = source_mesh.skin
-        instance.transform = source_mesh.transform
+        var source_parts := source_mesh.name.split("__", false, 3)
+        if source_parts.size() < 4 or source_parts[0] != "Garment":
+            continue
+        var source_visual := String(source_parts[1])
+        var source_variant := String(source_parts[2])
+        if not available_variants.has(source_visual):
+            available_variants[source_visual] = []
+        if not available_variants[source_visual].has(source_variant):
+            available_variants[source_visual].append(source_variant)
+    for source_mesh in source_meshes:
+        var parts := source_mesh.name.split("__", false, 3)
+        if parts.size() < 4 or parts[0] != "Garment":
+            continue
+        var garment_visual := String(parts[1])
+        var garment_variant := String(parts[2])
+        if garment_visual.is_empty():
+            continue
+        if garment_variant != target_variant:
+            var matching_variants: Array = available_variants.get(garment_visual, [])
+            if garment_variant != "any" or matching_variants.has(target_variant):
+                continue
+        var instance := source_mesh.duplicate() as MeshInstance3D
+        if instance == null:
+            continue
+        instance.name = "Equippable_" + garment_visual + "_" + str(modular_garment_meshes.size())
         model_root.add_child(instance)
         instance.skeleton = instance.get_path_to(target_skeleton)
+        instance.visible = false
+        instance.set_meta("garment_visual", garment_visual)
+        instance.set_meta("garment_body_variant", garment_variant)
         modular_garment_meshes.append(instance)
-        for surface in range(instance.mesh.get_surface_count()):
-            # The modular export may contain body/skin surfaces as well as
-            # garments. Only hide surfaces positively identified as garments;
-            # unknown surfaces stay visible rather than risking holes in skin.
-            var label := _surface_label(instance, surface) + " " + instance.name
-            if _is_known_garment_surface(label):
-                _set_modular_surface_visible(instance, surface, false)
     source_root.free()
     set_meta("modular_garments_loaded", not modular_garment_meshes.is_empty())
-    return not modular_garment_meshes.is_empty()
+    if modular_garment_meshes.is_empty():
+        push_warning("Garment library contains no nodes named Garment__<visual>__<variant>__<piece>")
+        return false
+    print("[Character assembly] garment_library=%s variant=%s independent_meshes=%d" % [
+        glb_path, target_variant, modular_garment_meshes.size()
+    ])
+    return true
 
 
 func _dump_garment_surface_report() -> void:
@@ -133,22 +179,8 @@ func _surface_label(mesh_instance: MeshInstance3D, surface: int) -> String:
     return material_name + " " + mesh_instance.mesh.surface_get_name(surface).to_lower()
 
 
-func _set_modular_surface_visible(mesh_instance: MeshInstance3D, surface: int, visible: bool) -> void:
-    var key := "ara_modular_original_%d_%d" % [mesh_instance.get_instance_id(), surface]
-    if not mesh_instance.has_meta(key):
-        mesh_instance.set_meta(key, mesh_instance.mesh.surface_get_material(surface))
-    var original := mesh_instance.get_meta(key) as Material
-    if visible:
-        mesh_instance.set_surface_override_material(surface, original)
-        return
-    var hidden := original.duplicate() as StandardMaterial3D if original is StandardMaterial3D else StandardMaterial3D.new()
-    hidden.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-    hidden.albedo_color.a = 0.0
-    hidden.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-    mesh_instance.set_surface_override_material(surface, hidden)
-
-
-## Render the actual equipped item instances from CharacterState.
+## Equipment state selects independent garment objects and hand/head props.
+## No body mesh or body material is hidden when an item is unequipped.
 func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
     var visible_garments: Array[String] = []
     var weapon_id := ""
@@ -156,8 +188,20 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
     var helmet_id := ""
     for slot_variant in equipped_item_data:
         var slot := String(slot_variant)
-        var item: Variant = equipped_item_data[slot_variant]
-        if not item is Dictionary:
+        var supplied_item: Variant = equipped_item_data[slot_variant]
+        var item: Dictionary = {}
+        if supplied_item is Dictionary:
+            item = supplied_item.duplicate(true)
+            var supplied_id := String(item.get("id", ""))
+            if not supplied_id.is_empty():
+                var catalog_definition := ITEM_CATALOG.get_definition(supplied_id)
+                for definition_key in catalog_definition:
+                    if not item.has(definition_key):
+                        item[definition_key] = catalog_definition[definition_key]
+        elif supplied_item is String:
+            item = ITEM_CATALOG.get_definition(String(supplied_item))
+        if item.is_empty():
+            push_warning("Equipped item in slot '%s' could not be resolved: %s" % [slot, str(supplied_item)])
             continue
         var item_id := String(item.get("id", ""))
         var garment_visual := String(item.get("garment_visual", ""))
@@ -166,7 +210,8 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
         match slot:
             "armour":
                 if item_id in ["reinforced_leather_armor", "light_armor", "medium_armor", "heavy_armor"]:
-                    visible_garments.append("leather armor")
+                    if not visible_garments.has("leather_armor"):
+                        visible_garments.append("leather_armor")
             "weapon":
                 weapon_id = item_id
             "offhand":
@@ -174,76 +219,48 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
             "helmet":
                 helmet_id = item_id
 
-    # Clothing can be exported either as surfaces in the authored character
-    # GLB or in the separate modular clothing GLB. Drive both through the same
-    # item metadata. Only surfaces with an explicit garment token are touched;
-    # body, skin, hair and other appearance surfaces remain untouched.
-    if model_root != null:
-        var character_meshes: Array[MeshInstance3D] = []
-        _collect_meshes(model_root, character_meshes)
-        for mesh_instance in character_meshes:
-            if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
-                continue
-            if hair_instances.has(mesh_instance):
-                continue
-            for surface in range(mesh_instance.mesh.get_surface_count()):
-                var label := _surface_label(mesh_instance, surface) + " " + mesh_instance.name
-                if not _is_known_garment_surface(label):
-                    continue
-                var show_surface := false
-                for fragment in visible_garments:
-                    if _garment_label_matches(label, fragment):
-                        show_surface = true
-                        break
-                _set_modular_surface_visible(mesh_instance, surface, show_surface)
+    var available_visuals: Dictionary = {}
+    for garment_mesh in modular_garment_meshes:
+        if not is_instance_valid(garment_mesh):
+            continue
+        var garment_visual := String(garment_mesh.get_meta("garment_visual", ""))
+        available_visuals[garment_visual] = true
+        garment_mesh.visible = visible_garments.has(garment_visual)
+
+    for garment_visual in visible_garments:
+        if not available_visuals.has(garment_visual):
+            push_warning(
+                "Equipped garment visual '%s' has no matching independent mesh for %s body. "
+                % [garment_visual, String(get_meta("body_variant", "unknown"))]
+                + "Check item_definitions.json and the local Ara garment-library build."
+            )
 
     _set_equipment_prop("weapon", _weapon_prop_id(weapon_id), "WeaponR")
-    var shield_prop := "round_shield" if offhand_id == "wooden_shield" else ( "kite_shield" if offhand_id == "bulwark_shield" else "")
+    var shield_prop := "round_shield" if offhand_id == "wooden_shield" else ("kite_shield" if offhand_id == "bulwark_shield" else "")
     _set_equipment_prop("offhand", shield_prop, "WeaponL")
     _set_equipment_prop("helmet", _helmet_prop_id(helmet_id), "Head")
 
 
-func _normalise_garment_label(value: String) -> String:
-    return value.to_lower().replace("_", "").replace("-", "").replace(" ", "")
-
-func _is_known_garment_surface(label: String) -> bool:
-    for garment_id in GARMENT_VISUALS:
-        if _garment_label_matches(label, garment_id):
-            return true
-    return false
-
-
-func _garment_label_matches(label: String, garment_id: String) -> bool:
-    # Match complete name tokens, not arbitrary substrings. The old substring
-    # test could classify body/skin surfaces as clothing (for example "braid"
-    # as "bra") and could confuse "tunic" with "long_tunic".
-    var separator_pattern := RegEx.new()
-    separator_pattern.compile("[^a-z0-9]+")
-    var label_tokens := separator_pattern.sub(label.to_lower(), " ", true).strip_edges().split(" ", false)
-    var garment_tokens := separator_pattern.sub(garment_id.to_lower(), " ", true).strip_edges().split(" ", false)
-    if garment_tokens.is_empty() or label_tokens.size() < garment_tokens.size():
-        return false
-    for start in range(label_tokens.size() - garment_tokens.size() + 1):
-        # A short tunic must not match the "tunic" component of "long_tunic".
-        if garment_tokens.size() == 1 and garment_tokens[0] == "tunic" and start > 0 and label_tokens[start - 1] == "long":
+## Apply the per-person colour choices stored beside the NPC's appearance profile.
+## The geometry remains a shared garment asset; only its material tint is individual.
+func apply_garment_styles(styles: Dictionary) -> void:
+    for garment_mesh in modular_garment_meshes:
+        if not is_instance_valid(garment_mesh) or garment_mesh.mesh == null:
             continue
-        var matches := true
-        for offset in range(garment_tokens.size()):
-            var label_token: String = label_tokens[start + offset]
-            var garment_token: String = garment_tokens[offset]
-            # Permit numbered exports such as "trousers01", but not unrelated
-            # words that merely begin with the garment name.
-            if label_token != garment_token:
-                if not label_token.begins_with(garment_token):
-                    matches = false
-                    break
-                var suffix := label_token.trim_prefix(garment_token)
-                if not suffix.is_valid_int():
-                    matches = false
-                    break
-        if matches:
-            return true
-    return false
+        var garment_visual := String(garment_mesh.get_meta("garment_visual", ""))
+        var style: Variant = styles.get(garment_visual, {})
+        if not style is Dictionary:
+            continue
+        var colour_text := String(style.get("color", ""))
+        if colour_text.is_empty():
+            continue
+        var tint := Color.from_string(colour_text, Color.WHITE)
+        for surface in range(garment_mesh.mesh.get_surface_count()):
+            var source := garment_mesh.get_active_material(surface)
+            if source is StandardMaterial3D:
+                var material := source.duplicate() as StandardMaterial3D
+                material.albedo_color = tint
+                garment_mesh.set_surface_override_material(surface, material)
 
 
 func _weapon_prop_id(item_id: String) -> String:
@@ -308,6 +325,19 @@ func _set_equipment_prop(slot: String, prop_id: String, socket_name: String) -> 
     equipment_attachments[slot] = attachment
 
 
+## Apply the resolved appearance contract produced by CharacterAssemblyResolver.
+## Both player and NPC instances enter the actor through this method.
+func apply_resolved_appearance(resolved: Dictionary) -> void:
+    if bool(resolved.get("is_player", false)):
+        var player_profile: Variant = resolved.get("player_profile", {})
+        if player_profile is Dictionary:
+            apply_player_profile(player_profile)
+        return
+    var appearance: Variant = resolved.get("appearance", {})
+    if appearance is Dictionary:
+        apply_npc_parameters(appearance)
+
+
 func apply_player_profile(profile: Dictionary) -> void:
     if model_root == null:
         return
@@ -325,11 +355,22 @@ func apply_player_profile(profile: Dictionary) -> void:
         "White": Color("#e4dfd2"), "Blue": Color("#354d91"),
         "Green": Color("#426b49")
     }
-    tint_materials("skin", skin)
-    tint_materials("eye", eye_colours.get(str(profile.get("eye_colour", "Brown")), Color("#49301f")))
     current_hair_colour = hair_colours.get(str(profile.get("hair_colour", "Dark brown")), Color("#49372a"))
-    tint_materials("hair", current_hair_colour)
+    var skin_surfaces := tint_materials("skin", skin)
+    var eye_surfaces := tint_materials("eye", eye_colours.get(str(profile.get("eye_colour", "Brown")), Color("#49301f")))
+    var hair_surfaces := tint_materials("hair", current_hair_colour)
     _tint_attached_hair(current_hair_colour)
+    print("[Ara appearance] skin_surfaces=%d eye_surfaces=%d embedded_hair_surfaces=%d attached_hair_meshes=%d" % [
+        skin_surfaces, eye_surfaces, hair_surfaces, hair_instances.size()
+    ])
+
+    # Ara's macro body controls are baked into GLB geometry, so the current
+    # creator's height/build choices use a conservative whole-body scale until
+    # profile-specific body exports are generated. This is intentionally
+    # separate from gender: male/female selection chooses a different base GLB.
+    var height_scale := clampf(float(profile.get("height_scale", 1.0)), 0.90, 1.10)
+    var build_scale := clampf(float(profile.get("build_scale", 1.0)), 0.90, 1.10)
+    model_root.scale = Vector3(build_scale, height_scale, build_scale)
 
     apply_body_parameters(profile)
     set_meta("body_variant", str(profile.get("body_variant", "female")))
@@ -371,7 +412,12 @@ func set_hairstyle(glb_path: String) -> bool:
         if instance == null:
             continue
         instance.name = "Swappable_" + source_mesh.name
+        # Hair GLBs may nest their skinned mesh below transformed nodes. Preserve
+        # the mesh transform relative to the exported scene root when flattening
+        # it onto the character root, otherwise the hairstyle can load off-head.
+        var root_relative_transform: Transform3D = source_root.global_transform.affine_inverse() * source_mesh.global_transform
         model_root.add_child(instance)
+        instance.transform = root_relative_transform
         instance.skeleton = instance.get_path_to(target_skeleton)
         hair_instances.append(instance)
     source_root.free()
@@ -511,17 +557,24 @@ func tint_materials(name_fragment: String, colour: Color) -> int:
 func apply_body_parameters(profile: Dictionary) -> void:
     if model_root == null:
         return
-    var aliases := {
-        "muscle": ["muscle", "muscularity", "musclemass", "bodymuscle"],
-        "weight": ["weight", "bodyweight", "fat", "bodyfat", "adiposity"],
-        "height": ["height", "bodyheight", "stature"],
-        "proportions": ["proportion", "proportions", "bodyproportion"]
-    }
     var values := {
         "muscle": clampf(float(profile.get("muscle", 0.5)), 0.0, 1.0),
         "weight": clampf(float(profile.get("weight", 0.5)), 0.0, 1.0),
         "height": clampf(float(profile.get("height", 0.5)), 0.0, 1.0),
         "proportions": clampf(float(profile.get("proportions", 0.5)), 0.0, 1.0)
+    }
+    set_meta("body_parameters", values)
+    if bool(get_meta("body_profile_baked", false)):
+        # Ara's GLB export bakes body macro controls into the generated mesh;
+        # this profile-specific bare body already contains these values.
+        set_meta("body_morph_targets_applied", 0)
+        return
+
+    var aliases := {
+        "muscle": ["muscle", "muscularity", "musclemass", "bodymuscle"],
+        "weight": ["weight", "bodyweight", "fat", "bodyfat", "adiposity"],
+        "height": ["height", "bodyheight", "stature"],
+        "proportions": ["proportion", "proportions", "bodyproportion"]
     }
     var applied := 0
     var meshes: Array[MeshInstance3D] = []
@@ -537,8 +590,9 @@ func apply_body_parameters(profile: Dictionary) -> void:
                         mesh_instance.set_blend_shape_value(shape_index, values[parameter])
                         applied += 1
                         break
-    set_meta("body_parameters", values)
     set_meta("body_morph_targets_applied", applied)
+    if applied == 0:
+        push_warning("Ara GLB exports bake body macro settings into geometry; this generic body has no runtime muscle/weight/height/proportion morphs. A profile-specific Ara body export is required.")
 
 func apply_npc_parameters(params: Dictionary) -> void:
     if model_root == null:
