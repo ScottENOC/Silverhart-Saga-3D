@@ -380,8 +380,12 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
     _check(_has_companion_recruit_choice(grukk_with_trust), "Grukk should offer to join at 40 orc standing")
 
     _check(bool(journal.start_quest("reyna_dire_wolf_hunt").get("ok", false)))
+    _check(not _has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Reyna should not recruit before the child is found and the dire wolf is defeated")
+    _check(bool(journal.set_objective_progress("reyna_dire_wolf_hunt", "trail_found", 1.0).get("ok", false)))
+    _check(bool(journal.set_objective_progress("reyna_dire_wolf_hunt", "child_rescued", 1.0).get("ok", false)))
+    _check(not _has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Rescuing Tessa should not complete Reyna's recruitment before the dire wolf is defeated")
     _check(bool(CompanionCampaignContent.complete_objective(journal, "reyna_dire_wolf_hunt", "dire_wolf_slain").get("ok", false)))
-    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Reyna should join after the dire wolf is defeated")
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Reyna should join after Tessa is rescued and the dire wolf is defeated")
     _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("companion_reyna_fletcher", journal, empty_inventory, no_party)), "Reyna's manifest game ID must resolve to her recruitment dialogue")
 
     _check(bool(journal.start_quest("mirabel_spider_ruin").get("ok", false)))
