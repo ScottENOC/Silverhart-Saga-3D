@@ -1,16 +1,16 @@
 # Skill and Spell Implementation Audit
 
 **Baseline branch:** `dev`  
-**Baseline commit:** `899931e6c37f70193c197870821bb1e0933f7589`  
-**Audit branch:** `audit/skill-spell-implementation-baseline`  
-**Scope:** source inspection of the skill catalogue, progression, movement, combat and current simulation tests. This is an initial evidence-based baseline, not a claim that every possible call site has been exhaustively searched.
+**Baseline commit:** `76f25f01332f60ec3a58738bf58553afa12437ae`  
+**Audit branch:** `audit/skill-effect-parity-update`  
+**Scope:** source inspection of the 257-skill catalogue, original 2D skill definitions and gameplay references, current 3D simulation/movement/combat runtime, effect tests, and relevant feature branches. This remains an evidence-based audit; absence of a hook in the inspected runtime is not proof that no implementation exists elsewhere.
 
 ## Summary
 
 - Catalogue contains **257 skills** and **15 base spells**.
 - Skill catalogue loading, purchase eligibility, prerequisites, point accounting, NPC skill allocation and save/load have automated coverage in `tests/test_simulation.gd`. These tests verify progression plumbing, not the gameplay effect of every purchased skill.
-- **7 skill effects have direct automated test coverage** in the current simulation test suite: Sword Parry, Protector, Shield Other, Spear Halt, Spear Intercept, Sidestep and Orc Brute Strength.
-- Additional runtime hooks were found for movement discounts, foliage movement, dagger/sword parry modifiers, shield proficiency, Sidestep Mastery, dwarf axe mastery, orc ferocity, goblin opportunism and spectral form. These need focused tests before being called verified.
+- **22 skill IDs now have direct automated effect-test coverage** on `dev` after PR #102: movement discounts, foliage movement, several racial combat passives, spectral damage reduction, parry variants/modifiers, Shield Other/Proficiency, Protector, spear reactions and Sidestep/Mastery. Foliage is only partially covered against the original 2D behaviour; see the follow-up comparison below.
+- PR #102 added deterministic tests for those additional effects. PR #105 has now corrected those fixtures to keep Fast Movement and Goblin Opportunist within their catalogue max-rank limits.
 - The spell file is currently a **15-entry data catalogue**. The reviewed simulation scripts contain character spell-slot/unlock storage, but this audit did not identify a spell-casting/effect resolver or spell-effect tests. All spells therefore remain unverified.
 - All remaining skills are deliberately marked **UNVERIFIED**, not “broken” or “not implemented”: absence of a hook in the reviewed core files is not proof that no implementation exists elsewhere.
 
@@ -93,11 +93,11 @@ effects on dev, despite the candidate work above.
 | Skill ID | Skill | Current evidence status |
 |---|---|---|
 | `acrobatics` | Acrobatics | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `fastMovement` | Fast Movement | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `fastMovement` | Fast Movement | VERIFIED — automated movement-cost effect test |
 | `keen_perception` | Keen Perception | FEATURE BRANCH CANDIDATE — detection helper exists off `dev`; no integration/effect test |
 | `riding` | Riding | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `sidestep` | Sidestep | VERIFIED — automated effect test |
-| `sidestep_mastery` | Sidestep Mastery | IMPLEMENTATION FOUND — effect test still required |
+| `sidestep_mastery` | Sidestep Mastery | VERIFIED — automated effect test |
 | `slip_away` | Slip Away | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `stealth_agility` | Inconspicuous | FEATURE BRANCH CANDIDATE — branch helper uses the wrong skill ID (`inconspicuous`) |
 | `sure_footed` | Sure-Footed | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -110,7 +110,7 @@ effects on dev, despite the candidate work above.
 | `ageless_patience` | Ageless Patience | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `elf_bow_range` | Elf Bow Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `elf_darkvision` | Elf Darkvision | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
-| `elf_foliage_expertise` | Woodland Stride | IMPLEMENTATION FOUND — effect test still required |
+| `elf_foliage_expertise` | Woodland Stride | PARTIAL — movement effect tested; original stealth/defence effects not fully integrated |
 | `elf_knowledge_nature` | Knowledge: Nature | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `elf_vision` | Keen Elf Sight | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
 | `elven_grace` | Elven Grace | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -126,7 +126,7 @@ effects on dev, despite the candidate work above.
 | `focused_strike` | Focused Strike | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `iron_shirt` | Iron Shirt | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `joint_lock` | Joint Lock | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `swift_step` | Swift Step | IMPLEMENTATION FOUND — effect test still required |
+| `swift_step` | Swift Step | VERIFIED — automated movement-cost effect test |
 | `trip_reaction` | Counter Trip | UNVERIFIED — no effect test or confirmed runtime hook yet |
 
 ### nature (33)
@@ -268,9 +268,9 @@ effects on dev, despite the candidate work above.
 | `dagger_dmg` | Dagger Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `dagger_feint` | Dagger Feint | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `dagger_hit` | Dagger Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `dagger_parry` | Dagger Parry | IMPLEMENTATION FOUND — effect test still required |
-| `dagger_parry_chance` | Dagger Parry Mastery | IMPLEMENTATION FOUND — effect test still required |
-| `dagger_parry_cost` | Dagger Parry Efficiency | IMPLEMENTATION FOUND — effect test still required |
+| `dagger_parry` | Dagger Parry | VERIFIED — automated effect test |
+| `dagger_parry_chance` | Dagger Parry Mastery | VERIFIED — automated chance-modifier test |
+| `dagger_parry_cost` | Dagger Parry Efficiency | VERIFIED — automated TP-cost test |
 | `dagger_throw` | Throw Dagger | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `hack_and_slash` | Hack and Slash | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `hamstring` | Hamstring | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -278,7 +278,7 @@ effects on dev, despite the candidate work above.
 | `in_the_way` | In the Way | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `shield_bash` | Shield Bash | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `shield_other` | Shield Other | VERIFIED — automated effect test |
-| `shield_proficiency` | Shield Proficiency | IMPLEMENTATION FOUND — effect test still required |
+| `shield_proficiency` | Shield Proficiency | PARTIAL — Shield Other bonus tested; passive shield damage reduction is not applied in `CombatRules.damage_reduction()` |
 | `spear_dmg` | Spear Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `spear_halt` | Spear Halt | VERIFIED — automated effect test |
 | `spear_hit` | Spear Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -289,7 +289,7 @@ effects on dev, despite the candidate work above.
 | `sword_footwork` | Duelist's Footwork | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `sword_hit` | Sword Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `sword_parry` | Sword Parry | VERIFIED — automated effect test |
-| `sword_parry_chance` | Sword Parry Mastery | IMPLEMENTATION FOUND — effect test still required |
+| `sword_parry_chance` | Sword Parry Mastery | VERIFIED — automated chance-modifier test |
 | `sword_parry_cost` | Sword Parry Efficiency | IMPLEMENTATION FOUND — effect test still required |
 | `sword_riposte` | Riposte | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `threatening_presence` | Threatening Presence | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -299,7 +299,7 @@ effects on dev, despite the candidate work above.
 | Skill ID | Skill | Current evidence status |
 |---|---|---|
 | `barkskin_active` | Barkskin | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `druid_foliage_expertise` | Foliage Mastery | IMPLEMENTATION FOUND — effect test still required |
+| `druid_foliage_expertise` | Foliage Mastery | PARTIAL — movement effect tested; original stealth/defence effects not fully integrated |
 | `druid_knowledge_nature` | Knowledge: Nature | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `learn_unicorn_summon` | Unicorn Bond | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `natural_senses` | Natural Senses | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -314,7 +314,7 @@ effects on dev, despite the candidate work above.
 |---|---|---|
 | `battle_endurance` | Battle Endurance | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `deep_sense` | Deep Sense | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
-| `dwarf_axe_mastery` | Dwarven Axe Mastery | IMPLEMENTATION FOUND — effect test still required |
+| `dwarf_axe_mastery` | Dwarven Axe Mastery | PARTIAL — raw-damage helper tested, but normal attack submission does not derive `weapon_id` from equipped weapon |
 | `dwarf_solid` | Solid as a Rock | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `grudge` | Grudge | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `stonewall` | Stonewall | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -341,7 +341,7 @@ effects on dev, despite the candidate work above.
 | `iron_grip` | Iron Grip | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `light_armor_training` | Light Armor Training | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `medium_armor_training` | Medium Armor Training | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `meleeDamage` | Weapon Damage | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `meleeDamage` | Weapon Damage | IMPLEMENTATION FOUND — CombatRules reads the rank as flat attack damage; focused effect test still required |
 | `powerful_shove` | Powerful Shove | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `shove` | Shove | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `strong_back` | Strong Back | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -403,7 +403,7 @@ effects on dev, despite the candidate work above.
 | `regeneration` | Regeneration | NPC/CREATURE — runtime behaviour not yet audited |
 | `revenant_revive` | Revenant Undying | NPC/CREATURE — runtime behaviour not yet audited |
 | `siren_song` | Siren Song | NPC/CREATURE — runtime behaviour not yet audited |
-| `spectral_form` | Spectral Form | IMPLEMENTATION FOUND — effect test still required |
+| `spectral_form` | Spectral Form | VERIFIED — automated damage-reduction test |
 
 ### goblin (5)
 
@@ -411,7 +411,7 @@ effects on dev, despite the candidate work above.
 |---|---|---|
 | `goblin_keen_senses` | Keen Senses | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
 | `goblin_low_light_eyes` | Low-Light Eyes | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
-| `goblin_opportunist` | Opportunist | IMPLEMENTATION FOUND — effect test still required |
+| `goblin_opportunist` | Opportunist | PARTIAL — raw-damage option tested; normal attack submission does not derive `target_caught_off_guard` from target state |
 | `goblin_pack_hunter` | Pack Hunter | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `goblin_quick_reflexes` | Quick Reflexes | UNVERIFIED — no effect test or confirmed runtime hook yet |
 
@@ -448,7 +448,7 @@ effects on dev, despite the candidate work above.
 | Skill ID | Skill | Current evidence status |
 |---|---|---|
 | `orc_brute_strength` | Brute Strength | VERIFIED — automated effect test |
-| `orc_ferocity` | Ferocity | IMPLEMENTATION FOUND — effect test still required |
+| `orc_ferocity` | Ferocity | VERIFIED — automated half-health damage-threshold test |
 | `orc_momentum` | Momentum | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `orc_relentless` | Relentless | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `orc_thick_hide` | Thick Hide | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -501,3 +501,141 @@ effects on dev, despite the candidate work above.
 - Search all remaining gameplay/UI scripts for skill-ID reads and compare them against canonical catalogue IDs; flag aliases and dead keys.
 - Trace spell unlock → preparation/slot selection → cast request → mana/TP payment → target validation → effect resolution → duration/expiry/save-load. Until that chain exists and is tested, spells remain unverified.
 - Run the Godot 4.7.2 headless suite and record the exact commit and Actions run against this audit.
+
+
+## Current-dev effect parity follow-up (2026-11-11)
+
+This section supersedes the earlier seven-effect test count. The current `dev`
+baseline is `d08bb529c32b44c1b3a00f1bae18b94c73a8b80f`, after PR #102 was
+merged. The current test suite exercises **22 canonical skill IDs** through
+actual movement, combat or reaction outcomes:
+
+- Movement: `fastMovement`, `swift_step`, `sidestep`, `sidestep_mastery`.
+- Foliage: `elf_foliage_expertise`, `druid_foliage_expertise` (movement only;
+  not full source parity).
+- Combat passives: `meleeDamage` is implemented but not yet effect-tested;
+  tested: `dwarf_axe_mastery`, `orc_brute_strength`, `orc_ferocity`,
+  `goblin_opportunist`, `spectral_form`.
+- Defensive reactions: `sword_parry`, `dagger_parry`,
+  `sword_parry_cost`, `dagger_parry_cost`, `sword_parry_chance`,
+  `dagger_parry_chance`, `protector`, `shield_other`,
+  `shield_proficiency`.
+- Movement reactions: `spear_halt`, `spear_intercept`.
+
+The foliage, Dwarven Axe Mastery, Shield Proficiency and Goblin Opportunist tests are **partial**, not complete. 2D Woodland Stride /
+Foliage Mastery remove the foliage movement penalty, add +20 to stealth score
+in foliage, and impose an additional 10-point hit-chance penalty on attacks
+against a character in foliage with either skill. 3D currently tests the
+movement multiplier only. `CombatRules.hit_chance()` can apply a foliage
+defence penalty only when caller-supplied options explicitly set
+`elf_foliage_expertise` or `druid_foliage_expertise`; it does not derive
+those flags from the target's purchased skill ranks. No 3D stealth score or
+stealth integration for these skills was found in the inspected runtime.
+
+### Important original-2D / current-3D mismatches
+
+1. **Climbing skill IDs and effects do not match.** The 2D catalogue has
+   `agile_climber`, `sure_footed` and `iron_grip`. The original 2D movement
+   rules stack these three skills: each reduces the TP surcharge for
+   `climbRisk` terrain by 20% (minimum 40% remaining with all three), and
+   each reduces combat fall chance by 10 percentage points. 3D
+   `TerrainElevationRules` instead reads `skills["climbing"]` or
+   `skills["climb"]` as a single rank threshold to permit steeper terrain;
+   neither is a canonical catalogue ID. The existing 3D elevation test
+   manually assigns `climbing` ranks 1 and 3, so it tests the placeholder
+   rather than a purchasable skill. This is a **confirmed integration gap and
+   semantic mismatch**, not just missing test coverage.
+
+2. **Quick Recovery and Time Point Rate are not connected to their catalogue
+   ranks.** 3D has `CharacterState.quick_recovery_rank` and
+   `time_points_per_tick` fields and `ActionEconomy` consumes those fields,
+   but the inspected runtime does not map canonical skill ranks
+   `quickRecovery` and `timePointRate` into them. The fields currently
+   behave as separate state values, not demonstrated skill effects.
+
+3. **Initiative Bonus is not applied at combat start.** The original 2D
+   initialises combat with +5 TP per `initiativeBonus` rank. 3D
+   `WorldSimulation.start_combat()` only changes combat state and emits a
+   signal; no skill-rank bonus is applied in the inspected start path.
+
+4. **Health and regeneration ranks need an explicit integration pass.** The
+   original 2D `health` skill increases current and maximum HP by 10 per
+   rank; `health_regen` increases regeneration by 0.1 per rank. 3D
+   `CharacterState` stores health and maximum health but the inspected
+   progression/runtime path does not apply those canonical ranks. Do not
+   confuse innate creature regeneration or the generic HP fields with
+   implementation of these purchased skills.
+
+5. **Weapon proficiency/damage skills are not automatically resolved from
+   ranks.** 3D `CombatRules` accepts `weapon_skill_hit`,
+   `weapon_skill_damage`, `unarmed_skill_hit` and
+   `unarmed_skill_damage` as action options, but the inspected combat
+   resolver does not map canonical `<weapon>_hit` / `<weapon>_dmg` skill
+   ranks into those options. The catalogue/progression system can store and
+   purchase them; that alone does not implement their hit/damage effects.
+
+6. **Foliage and mounted movement remain incomplete.** 3D's tested movement
+   discounts operate on the `CharacterState` passed to `MovementRules`.
+   The original 2D movement code applies Fast Movement / Swift Step to the
+   actual move entity (the mount when the player is riding). A full 3D riding
+   implementation and explicit rider/mount skill ownership rules are still
+   needed before claiming parity for mounted movement.
+
+7. **The 3D test fixtures needed a rank correction.** Original catalogue
+   max-rank values are one for Fast Movement and Goblin Opportunist. PR #102
+   initially tested those effects with rank two. PR #105 corrected the
+   fixtures to legal rank-one values and adjusted expected movement cost and
+   damage; its Godot validation and initiative preview both passed before it
+   was merged.
+
+### Runtime coverage that is present but not yet complete
+
+- `MovementRules` reads `fastMovement` / `fast_movement`,
+  `swift_step`, `elf_foliage_expertise` and
+  `druid_foliage_expertise`.
+- `CombatRules` reads `meleeDamage`, `dwarf_axe_mastery`,
+  `orc_brute_strength`, `orc_ferocity`, `goblin_opportunist` and
+  `spectral_form`. The goblin bonus is rank-scaled in 3D, while the source
+  skill is max rank one and describes a fixed +3 bonus; legal ranks therefore
+  produce the same result.
+- `WorldSimulation` contains the sword/dagger parry, Protector, Shield Other,
+  Spear Halt, Spear Intercept and Sidestep reaction paths. Parry efficiency,
+  parry chance and Sidestep Mastery are read by those paths.
+- `TerrainElevationRules` reads the non-canonical `climbing` / `climb`
+  aliases; this should be reconciled with the three canonical climbing skills
+  rather than treated as a successful skill implementation.
+
+### Test coverage is not parity coverage
+
+The 22 effect-tested IDs are not 22 complete source-parity skills. The two
+foliage skills currently cover only movement, and Protector's special
++10-per-rank parry chance branch is not separately asserted. The remaining
+catalogue skills still require per-skill source tracing. The old 257-skill
+inventory deliberately retains conservative `UNVERIFIED` labels where a
+runtime hook or focused test has not been established.
+
+
+8. **Several passing helper tests do not prove end-to-end combat integration.**
+   `WorldSimulation._submit_attack()` passes the caller's action options
+   through to `CombatRules.resolve_attack()` without deriving the equipped
+   weapon ID or target's `caught_off_guard` state. Therefore the current
+   Dwarven Axe Mastery test proves the raw-damage helper when supplied
+   `weapon_id: "axe"`, not that a normal attack automatically supplies it.
+   Similarly, Goblin Opportunist's test supplies
+   `target_caught_off_guard: true` directly; the normal attack path does not
+   populate that option from the target's state. Both remain partial pending
+   an end-to-end action test and integration fix.
+
+9. **Shield Proficiency is only partly applied.** The 3D Shield Other reaction
+   adds the ally's `shield_proficiency` rank to the temporary shield
+   reduction, and the test confirms that interaction. But ordinary passive
+   damage reduction in `CombatRules.damage_reduction()` adds the equipped
+   shield's reduction without adding `target.skills["shield_proficiency"]`.
+   The original 2D rule applies Shield Proficiency to ordinary shield defence
+   as well as the Shield Other calculation.
+
+10. **Protector's enhanced parry chance needs its own test.** The runtime
+    applies a 10-percentage-point bonus per rank for Protector parries, versus
+    5 points for a self-parry. The tests cover Protector reaction resolution
+    and self-parry modifiers, but do not assert that distinct Protector bonus.
+
