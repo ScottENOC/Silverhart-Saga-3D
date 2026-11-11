@@ -128,7 +128,7 @@ func _build_tiles() -> void:
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(34.0, 38.0)
 	ground.mesh = plane
-	ground.position = Vector3(0.0, -0.32, 0.0)
+	ground.position = Vector3(0.0, -0.12, 0.0)
 	ground.material_override = _material(Color("#253b35"))
 	add_child(ground)
 
@@ -224,8 +224,8 @@ func _build_routes() -> void:
 			"local_path":
 				colour = Color("#e0c38b")
 				radius = 0.03
-		var a: Vector3 = location_positions[from_id] + Vector3(0.0, 0.34, 0.0)
-		var b: Vector3 = location_positions[to_id] + Vector3(0.0, 0.34, 0.0)
+		var a: Vector3 = location_positions[from_id] + Vector3(0.0, 1.05, 0.0)
+		var b: Vector3 = location_positions[to_id] + Vector3(0.0, 1.05, 0.0)
 		_add_segment("Route_%02d_%s_%s" % [index, from_id, to_id], a, b, radius, _material(colour, 0.9))
 
 func _add_segment(node_name: String, start: Vector3, finish: Vector3, radius: float, material: Material) -> void:
@@ -315,7 +315,7 @@ func _add_location_marker(location: Dictionary, map_position: Vector3, index: in
 	mesh.radial_segments = 8
 	marker.mesh = mesh
 	marker.material_override = _material(colour, 0.45)
-	marker.position = map_position + Vector3(0.0, 0.46, 0.0)
+	marker.position = map_position + Vector3(0.0, 1.0, 0.0)
 	add_child(marker)
 
 	var label := Label3D.new()
@@ -329,7 +329,7 @@ func _add_location_marker(location: Dictionary, map_position: Vector3, index: in
 	label.outline_size = 8
 	label.outline_modulate = Color("#17212a")
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.position = map_position + Vector3(0.0, 1.15 + float(stack) * 0.34, 0.0)
+	label.position = map_position + Vector3(0.0, 1.8 + float(stack) * 0.34, 0.0)
 	add_child(label)
 
 func _location_colour(kind: String) -> Color:
