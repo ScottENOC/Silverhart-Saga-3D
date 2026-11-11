@@ -95,13 +95,14 @@ def pelvis_landmark_from_leg_roots(armature, height):
             "Cannot locate paired upper-leg roots for male anatomy placement. "
             f"Found {sorted(found)}; relevant rig bones: {relevant or 'none'}"
         )
+    x = (found["left"].x + found["right"].x) * 0.5
     z = (found["left"].z + found["right"].z) * 0.5
     print(
         "Male pelvic landmark: "
         f"left={found['left'].z:.4f}, right={found['right'].z:.4f}, "
         f"centre={z:.4f}, character height={height:.4f}"
     )
-    return z
+    return x, z
 
 
 def build_surface_tree(skin):
@@ -179,14 +180,14 @@ def create_uv_surface(name, centre, scale, material, armature, pelvis_bone,
     return create_mesh_object(name, vertices, faces, material, armature, pelvis_bone)
 
 
-def create_flaccid_phallus(material, armature, pelvis_bone, body_height, anatomy_z, anchor_y):
+def create_flaccid_phallus(material, armature, pelvis_bone, body_height, anatomy_z, anchor_y, centre_x=0.0):
     """Create a new compact, downward-resting flaccid form (not the old finger mesh)."""
     axis = Vector((0.0, -0.43, -0.90)).normalized()
     right = Vector((1.0, 0.0, 0.0))
     side = axis.cross(right).normalized()
     length = body_height * 0.038
     radius = body_height * 0.0060
-    base = Vector((0.0, anchor_y + body_height * 0.003, anatomy_z + body_height * 0.003))
+    base = Vector((centre_x, anchor_y + body_height * 0.003, anatomy_z + body_height * 0.003))
 
     # Longitudinal silhouette: narrow attachment, fuller shaft, a restrained
     # distal glans transition, then a softly rounded tip. Values are relative
@@ -294,7 +295,7 @@ def key_anatomy_pose_transition(armature, state):
 
 
 def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
-                                  body_height, anatomy_z, anchor_y, anatomy_state):
+                                  body_height, anatomy_z, anchor_y, anatomy_state, centre_x=0.0):
     """Reuse Ara's own middle-finger surface as the phallus modelling template.
 
     Extracts only the skin-material faces weighted to the right middle finger,
@@ -386,7 +387,7 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
     length_scale = target_length / source_length
     radial_scale = length_scale * radial_factor
     target_base = Vector((
-        0.0,
+        centre_x,
         anchor_y + base_depth_offset,
         anatomy_z + body_height * 0.004,
     ))
@@ -442,7 +443,7 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
     return phallus
 
 
-def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy_z, anchor_y, anatomy_state):
+def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy_z, anchor_y, anatomy_state, centre_x=0.0):
     # Scale from clinical adult dimensions rather than body-width heuristics.
     # A typical adult testis is roughly 4.5 x 2.6 x 2.5 cm; the external
     # scrotal envelope should accommodate the pair without reading as a
@@ -454,7 +455,7 @@ def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy
     depth_radius = height * 0.012
     height_radius = height * 0.018
     depth = depth_radius
-    centre = Vector((0.0, surface_y + depth * 0.30, centre_z))
+    centre = Vector((centre_x, surface_y + depth * 0.30, centre_z))
     sac = create_uv_surface(
         "Male anatomy · scrotum with paired contours", centre,
         Vector((width_radius, depth_radius, height_radius)),
@@ -627,19 +628,27 @@ def main():
     width = hi.x - lo.x
     if height <= 0 or width <= 0:
         raise RuntimeError("Ara skin mesh has invalid dimensions")
-    hipline_z = pelvis_landmark_from_leg_roots(armature, height)
+    centre_x, hipline_z = pelvis_landmark_from_leg_roots(armature, height)
     anatomy_z = hipline_z - height * 0.035
     surface_tree = build_surface_tree(skin)
 
     # Fail early if the front pelvis surface cannot be sampled.
     pelvic_surface_y = front_surface_y(surface_tree, 0.0, anatomy_z)
-    phallus = create_finger_derived_phallus(
-        skin, skin_material, armature, pelvis_bone, height, anatomy_z, pelvic_surface_y,
-        args.anatomy_state
-    )
+    if args.anatomy_state == "flaccid":
+        # The flaccid review export gets its own compact, downward-resting mesh.
+        # Do not rely on an animation pose that static preview renders may not play.
+        phallus = create_flaccid_phallus(
+            skin_material, armature, pelvis_bone, height, anatomy_z,
+            pelvic_surface_y, centre_x
+        )
+    else:
+        phallus = create_finger_derived_phallus(
+            skin, skin_material, armature, pelvis_bone, height, anatomy_z,
+            pelvic_surface_y, args.anatomy_state, centre_x
+        )
     scrotum = create_scrotum(
         surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z,
-        pelvic_surface_y, args.anatomy_state
+        pelvic_surface_y, args.anatomy_state, centre_x
     )
 
     anatomy = join_male_anatomy_parts(
@@ -647,7 +656,8 @@ def main():
     )
     anatomy["profile_name"] = args.profile_name
     anatomy["anatomy_state"] = args.anatomy_state
-    key_anatomy_pose_transition(armature, args.anatomy_state)
+    if args.anatomy_state == "erect":
+        key_anatomy_pose_transition(armature, args.anatomy_state)
     # Join into the original Ara body mesh so the exported GLB retains one
     # full-rig skin rather than a separate pelvis-only skeleton palette.
     skin = merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone)
