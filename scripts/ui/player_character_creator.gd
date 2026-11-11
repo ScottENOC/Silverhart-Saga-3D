@@ -23,8 +23,6 @@ const HAIR_STYLE_IDS := {
 const BODY_BUILDS := ["Lean", "Average", "Broad", "Muscular", "Soft", "Androgynous"]
 const PRESENTATIONS := ["Masculine", "Feminine", "Androgynous", "Mixed", "Custom"]
 const PRONOUN_SETS := ["He / him", "She / her", "They / them", "Use my name", "Custom"]
-const FEMALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/ara_person_body.glb"
-const MALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const ARA_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 const CHARACTER_ASSEMBLY_RESOLVER = preload("res://scripts/presentation/character_assembly_resolver.gd")
 
@@ -328,7 +326,8 @@ func _refresh_appearance_preview(_index: int) -> void:
     if preview_actor == null or not is_instance_valid(preview_actor):
         return
     var variant := "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female"
-    var asset_path := MALE_PREVIEW_ASSET if variant == "male" else FEMALE_PREVIEW_ASSET
+    var body_resolution := CHARACTER_ASSEMBLY_RESOLVER.resolve_player({"body_variant": variant})
+    var asset_path := String(body_resolution.get("body_asset_path", ""))
     if not ResourceLoader.exists(asset_path):
         preview_status.text = "Preview asset not found: %s. Your appearance choices can still be saved." % asset_path
         return
