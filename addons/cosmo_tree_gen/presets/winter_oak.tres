@@ -1,0 +1,88 @@
+[gd_resource type="Resource" script_class="CosmoTreePreset" format=3 uid="uid://dc1t8ig2eag50"]
+
+[ext_resource type="Script" uid="uid://ceh6ii6tlpph4" path="res://addons/cosmo_tree_gen/resources/branch_level.gd" id="1_731v0"]
+[ext_resource type="Material" uid="uid://cmuj42a78mdm" path="res://demo/materials/leaves_02.tres" id="2_ehocu"]
+[ext_resource type="Script" uid="uid://1tt4by0vsl04" path="res://addons/cosmo_tree_gen/resources/foliage_params.gd" id="3_tc2gi"]
+[ext_resource type="Script" uid="uid://dlp11kr4f76j3" path="res://addons/cosmo_tree_gen/resources/preset.gd" id="4_u882a"]
+[ext_resource type="Material" uid="uid://b7l8vw0qq0s25" path="res://addons/cosmo_tree_gen/materials/bark.tres" id="5_opp8c"]
+[ext_resource type="Script" uid="uid://c0ggn4wsaa746" path="res://addons/cosmo_tree_gen/resources/trunk_params.gd" id="6_6do0e"]
+
+[sub_resource type="Resource" id="Resource_7eb7w"]
+script = ExtResource("1_731v0")
+count = 5
+terminal = true
+start = 0.45
+end = 1.0
+angle = 60.0
+length = 0.9
+radius = 0.75
+segments = 5
+gnarl = 0.8
+up_force = 0.2
+metadata/_custom_type_script = "uid://ceh6ii6tlpph4"
+
+[sub_resource type="Resource" id="Resource_ntps4"]
+script = ExtResource("1_731v0")
+count = 4
+terminal = true
+start = 0.2
+end = 1.0
+length = 0.5
+gnarl = 0.8
+up_force = 0.15
+metadata/_custom_type_script = "uid://ceh6ii6tlpph4"
+
+[sub_resource type="Resource" id="Resource_urb6m"]
+script = ExtResource("1_731v0")
+count = 3
+terminal = true
+start = 0.3
+end = 1.0
+length = 0.45
+segments = 2
+gnarl = 0.6
+up_force = 0.3
+metadata/_custom_type_script = "uid://ceh6ii6tlpph4"
+
+[sub_resource type="Resource" id="Resource_ha3dm"]
+script = ExtResource("3_tc2gi")
+type = 2
+leaf_count = 4
+leaf_tip = true
+leaf_size = 0.75
+leaf_angle = 35.0
+leaf_canopy_normals = 0.4
+leaf_inner_ao = 0.6
+metadata/_custom_type_script = "uid://1tt4by0vsl04"
+
+[sub_resource type="Resource" id="Resource_nk31j"]
+script = ExtResource("1_731v0")
+count = 7
+start = 0.0
+end = 0.02
+angle = 90.0
+length = 0.8
+segments = 5
+gnarl = 0.8
+up_force = -0.796
+metadata/_custom_type_script = "uid://ceh6ii6tlpph4"
+
+[sub_resource type="Resource" id="Resource_norpd"]
+script = ExtResource("6_6do0e")
+quality = 2
+height = 3.5
+radius_bottom = 0.45
+lean = 0.4
+wobble = 0.3
+flare = 0.7
+sink_depth = 0.1
+roots = SubResource("Resource_nk31j")
+metadata/_custom_type_script = "uid://c0ggn4wsaa746"
+
+[resource]
+script = ExtResource("4_u882a")
+trunk_params = SubResource("Resource_norpd")
+branch_levels = Array[ExtResource("1_731v0")]([SubResource("Resource_7eb7w"), SubResource("Resource_ntps4"), SubResource("Resource_urb6m")])
+foliage_params = SubResource("Resource_ha3dm")
+trunk_material = ExtResource("5_opp8c")
+foliage_material = ExtResource("2_ehocu")
