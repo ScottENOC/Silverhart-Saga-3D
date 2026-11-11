@@ -31,6 +31,10 @@ func _initialize() -> void:
 	]:
 		assert(ids.has(required_id), "Missing required campaign destination: " + required_id)
 
+	assert(int(ids.has("millbrook")) and int(parsed.get("locations", []).filter(func(item): return item.get("id") == "millbrook")[0].get("q", 0)) == 1, "Millbrook anchor must use the offset village centre")
+	assert(int(parsed.get("locations", []).filter(func(item): return item.get("id") == "ashveil_lair")[0].get("q", 0)) == 101, "Dragon lair must be placed 100 q east of Millbrook centre")
+	assert(int(parsed.get("locations", []).filter(func(item): return item.get("id") == "lich_chapterhouse")[0].get("q", 0)) == -39, "Chapterhouse must be offset west of Millbrook centre")
+
 	var connections: Array = parsed.get("connections", [])
 	assert(not connections.is_empty(), "World travel connections must be present")
 	for connection in connections:

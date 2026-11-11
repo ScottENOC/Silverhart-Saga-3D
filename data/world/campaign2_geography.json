@@ -143,7 +143,7 @@
       "name": "Millbrook",
       "kind": "village",
       "region": "human",
-      "q": 7,
+      "q": 1,
       "r": -366,
       "visibility": "settlement",
       "source": "north road step 390; buildMillbrook"
@@ -293,7 +293,7 @@
       "name": "Ashveil's Dragon Lair",
       "kind": "dragon_lair",
       "region": "human_north",
-      "q": 107,
+      "q": 101,
       "r": -366,
       "visibility": "quest_site",
       "source": "Millbrook centre plus 100 q"
@@ -303,7 +303,7 @@
       "name": "Lich Chapterhouse",
       "kind": "chapterhouse",
       "region": "human_north",
-      "q": -33,
+      "q": -39,
       "r": -346,
       "visibility": "quest_site",
       "source": "Millbrook centre plus (-40,20)"
