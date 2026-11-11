@@ -34,6 +34,7 @@ var last_changed_count: int = 0
 var last_move_callback_usec: int = 0
 var last_pathfind_usec: int = 0
 var last_simulation_move_usec: int = 0
+var last_path_step_usec: int = 0
 var _previous_visible: Dictionary = {}
 
 func initialize(
@@ -160,9 +161,10 @@ func update_visibility(player_state: CharacterState) -> void:
 	var changed_count := 0
 
 	# Previously visible cells become explored/dim before the new view is applied.
-	for old_hex in _previous_visible.keys():
-		_set_fog_state(old_hex, 1, changed_count)
-		changed_count += 1
+	for old_hex_value in _previous_visible.keys():
+		var old_hex: Vector2i = old_hex_value
+		if _set_fog_state(old_hex, 1):
+			changed_count += 1
 
 	for offset in offsets:
 		var hex := observer.axial + offset
@@ -175,12 +177,12 @@ func update_visibility(player_state: CharacterState) -> void:
 		if HexGrid.distance(observer.axial, hex) <= visible_range:
 			next_visible[hex] = true
 			explored_hexes[hex] = true
-			_set_fog_state(hex, 2, changed_count)
-			changed_count += 1
+			if _set_fog_state(hex, 2):
+				changed_count += 1
 		else:
 			explored_hexes[hex] = true
-			_set_fog_state(hex, 1, changed_count)
-			changed_count += 1
+			if _set_fog_state(hex, 1):
+				changed_count += 1
 
 	visible_hexes = next_visible
 	_previous_visible = next_visible.duplicate()
@@ -196,14 +198,15 @@ func update_visibility(player_state: CharacterState) -> void:
 	last_changed_count = changed_count
 	_refresh_debug_label()
 
-func _set_fog_state(hex: Vector2i, state: int, _changed_count: int) -> void:
+func _set_fog_state(hex: Vector2i, state: int) -> bool:
 	if not hex_to_instance.has(hex):
-		return
+		return false
 	var index := int(hex_to_instance[hex])
 	var current := int(round(fog_multimesh.get_instance_custom_data(index).r))
 	if current == state:
-		return
+		return false
 	fog_multimesh.set_instance_custom_data(index, Color(float(state), 0.0, 0.0, 1.0))
+	return true
 
 func _apply_actor_visibility() -> void:
 	for actor_id in actor_nodes.keys():
@@ -278,7 +281,10 @@ func _refresh_debug_label() -> void:
 			float(last_pathfind_usec) / 1000.0,
 			float(last_simulation_move_usec) / 1000.0
 		]
-		+ "Movement callback: %.3f ms" % (float(last_move_callback_usec) / 1000.0)
+		+ "Path step: %.3f ms  | movement callback: %.3f ms" % [
+			float(last_path_step_usec) / 1000.0,
+			float(last_move_callback_usec) / 1000.0
+		]
 	)
 	debug_panel.visible = debug_visible
 
@@ -290,6 +296,8 @@ func record_timing(category: String, elapsed_usec: int) -> void:
 			last_simulation_move_usec = elapsed_usec
 		"movement_callback":
 			last_move_callback_usec = elapsed_usec
+		"path_step":
+			last_path_step_usec = elapsed_usec
 	_refresh_debug_label()
 
 func toggle_debug() -> void:
