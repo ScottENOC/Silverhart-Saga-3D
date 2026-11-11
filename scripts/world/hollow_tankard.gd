@@ -1173,6 +1173,8 @@ func _recruit_staged_companion(character_id: String) -> void:
     if not party_member_ids.has(character_id):
         party_member_ids.append(character_id)
     var actor := actor_by_id.get(character_id) as Node3D
+    if actor == null:
+        actor = _find_creature_actor(character_id)
     if actor != null:
         actor.set_meta("ambient_enabled", false)
     if party_switch_button != null and active_character_id == character_id:
@@ -1644,6 +1646,7 @@ func _start_farm_wolf_encounter() -> void:
 			actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
 			actor.axial_hex = spawn_hex
 			actor.simulation_state = wolf
+			actor.add_to_group("creature_actors")
 			actor.position = _hex_world_position(spawn_hex)
 			add_child(actor)
 			actor_by_id[wolf_id] = actor
@@ -2103,7 +2106,7 @@ func _rotate_active_character(steps: int) -> void:
     state.facing_direction = posmod(state.facing_direction + steps, 6)
     if not state.mounted_animal_id.is_empty():
         var mount := simulation.get_character(state.mounted_animal_id)
-        var mount_actor := actor_by_id.get(state.mounted_animal_id) as Node3D
+        var mount_actor := _find_creature_actor(state.mounted_animal_id) as Node3D
         if mount != null:
             mount.facing_direction = state.facing_direction
         if mount_actor != null:
@@ -2154,7 +2157,7 @@ func _toggle_mount() -> void:
 
 func _attach_rider_to_mount(rider_id: String, mount_id: String) -> void:
     var rider_actor := actor_by_id.get(rider_id) as Node3D
-    var mount_actor := actor_by_id.get(mount_id) as CreatureActor
+    var mount_actor := _find_creature_actor(mount_id)
     if rider_actor == null or mount_actor == null:
         return
     rider_actor.reparent(mount_actor, true)
@@ -2167,6 +2170,14 @@ func _attach_rider_to_mount(rider_id: String, mount_id: String) -> void:
         name_label.visible = false
     if active_character_id == rider_id:
         camera_rig.follow_target = mount_actor
+
+
+func _find_creature_actor(animal_id: String) -> CreatureActor:
+    for node in get_tree().get_nodes_in_group("creature_actors"):
+        var creature := node as CreatureActor
+        if creature != null and creature.simulation_state != null and creature.simulation_state.id == animal_id:
+            return creature
+    return null
 
 
 func _detach_rider_from_mount(rider_id: String) -> void:
