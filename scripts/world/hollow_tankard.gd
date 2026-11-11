@@ -1434,11 +1434,15 @@ func _run_ai_combat_turn(combatant: CharacterState) -> void:
     if HexGrid.distance(combatant.axial, target.axial) <= _attack_range_for(combatant):
         var weapon_id := String(combatant.equipment.get("weapon", ""))
         var weapon: Dictionary = combatant.equipped_item_data.get("weapon", {})
-        var result := simulation.try_attack_character(combatant.id, target.id, {
+        var attack_options := {
             "time_point_cost": 10.0,
             "weapon_id": weapon_id,
             "is_ranged": String(weapon.get("subType", "")) == "ranged"
-        }, int(combatant.id.hash()))
+        }
+        if combatant.race == "bear":
+            attack_options["unarmed_skill_hit"] = int(combatant.skills.get("claw_hit", 0)) > 0
+            attack_options["unarmed_skill_damage"] = int(combatant.skills.get("claw_dmg", 0))
+        var result := simulation.try_attack_character(combatant.id, target.id, attack_options, int(combatant.id.hash()))
         if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
             enemy_turn_waiting_for_reaction = true
         else:
