@@ -811,3 +811,133 @@ weapon proficiency, parry extensions, forced movement, status effects and
 racial creature passives) across all 2D modules, then compare each confirmed
 effect with the current 3D resolver and tests. No gameplay mechanics were
 implemented in this audit pass.
+
+
+## Detailed combat parity audit: weapon proficiency, parry extensions, statuses and racial passives (2026-11-11)
+
+This pass traces the original 2D `generateWeaponSkills()` and `resolveAttack()`
+paths against current 3D `CombatRules` and `WorldSimulation`. It distinguishes
+a 2D skill that has a real runtime read from a 3D resolver that merely accepts
+a caller-supplied option.
+
+### Weapon proficiency and weapon mastery
+
+The 2D `generateWeaponSkills()` generator creates `<weapon>_hit` and
+`<weapon>_dmg` skills for sword, axe, bow, spear, dagger and club. A hit rank
+adds +5 percentage points to hit chance when that weapon is used; each damage
+rank adds +2 damage. Axe damage mastery allows three ranks; other generated
+weapon damage skills allow one. The 2D resolver dynamically reads the equipped
+weapon ID and the corresponding skill rank during the ordinary attack.
+
+The same pattern is implemented separately for unarmed combat:
+`unarmed_hit` adds +5 hit chance and `unarmed_dmg` adds +2 damage. The 2D
+source comments explicitly note that unarmed support needed its own branch
+because a weapon-ID lookup cannot match a fist attack.
+
+Current 3D `CombatRules` has options for `weapon_skill_hit`,
+`weapon_skill_damage`, `unarmed_skill_hit` and
+`unarmed_skill_damage`, but the normal `WorldSimulation._submit_attack()`
+path passes request options through without deriving these values from the
+attacker's equipped weapon and canonical skill ranks. Therefore:
+- The formulas exist in a helper, but normal attacks do not demonstrate
+  weapon/unarmed proficiency parity.
+- The same missing action-path mapping affects the normal weapon-damage
+  mastery bonus.
+- `meleeDamage` is different: it is read directly from the character's skill
+  dictionary by `CombatRules.raw_damage()`, so that one is integrated.
+
+### Parry extensions and reaction families
+
+The 2D generated sword/dagger skill chain includes:
+- `<weapon>_parry`: unlocks a 3 TP parry reaction.
+- `<weapon>_parry_chance`: +5 percentage points per rank to parry success.
+- `<weapon>_parry_cost`: reduces the parry cost by 1 TP.
+- `<weapon>_feint`: a 1 TP active feint intended to induce an enemy to waste
+  a parry.
+- `<weapon>_riposte`: after a successful matching parry, permits a 5 TP
+  basic counterattack.
+
+The 2D normal parry applies the chance skill at x5; Protector applies it at
+x10. The current 3D `WorldSimulation` has integrated sword/dagger parry
+eligibility, parry-cost reduction, chance rank at x5 and Protector at x10.
+This is a genuine integrated subset, not merely a helper. However:
+- The normal 3D attack reaction path does not execute a riposte after a
+  successful parry.
+- There is no feint action in the 3D action contract/resolver to trigger the
+  2D parry-wasting interaction.
+- The prior audit's Protector reaction coverage remains valid, but its
+  additional special chance branch should have a focused assertion.
+- 3D has Shield Other with shield proficiency added to the ally's temporary
+  reduction; ordinary passive shield damage reduction still does not add the
+  proficiency rank in `CombatRules.damage_reduction()`.
+
+### Status effects and damage-triggered passives
+
+The following original 2D effects have live attack/tick behaviour:
+
+| Skill/effect | Original 2D runtime | Current 3D `dev` |
+|---|---|---|
+| `poison_bite` | A melee hit has a 50% chance to apply 10 TP ticks of poison at 2 damage per tick. | No poison state, application or tick processing found in `CharacterState` / `WorldSimulation`. |
+| `life_drain` | Each successful hit heals the attacker by up to 2 HP, bounded by damage dealt and max HP. | No corresponding attack-resolution healing hook found. |
+| `regeneration` | 20% chance to heal 1 HP per tick. | No regeneration-skill tick hook found. |
+| Lich `witheringTouchStacks` | A landed attack adds 5 ticks of withering damage; tick processing applies the stored damage. | No withering status fields or tick processing found. |
+| `sunder_armor` | Melee hits reduce the target's base reduction by 1 per stack, capped by the attacker's rank, for the fight. | No sunder stacks or persistent reduction-debuff application found. |
+| `hamstring` | Melee hits apply hobbled stacks, capped by skill rank; movement-cost calculation consumes the stacks. | No hobbled state or movement-cost integration found. |
+| `unarmed_reaction_block` | A successful unarmed hit blocks target reactions until their next action. | A generic `reaction_blocked` state exists and is respected by reaction eligibility, but the normal attack resolver does not set it from this skill. |
+| `siphoning_palm` | Unarmed hit transfers up to 1 mana per rank (max 3) from target to attacker. | No mana-siphon attack hook found. |
+| `spectral_form` | Reduces incoming damage by 2. | Integrated directly in `CombatRules.damage_reduction()`. |
+
+This confirms that the 3D lifecycle/damage foundation is not yet a general
+status-effect system. In particular, the existence of `reaction_blocked`
+does not make Pressure Point Strike implemented until the attack resolver
+sets it from the canonical skill.
+
+### Racial and creature combat passives
+
+| 2D skill | Confirmed original 2D behaviour | Current 3D `dev` |
+|---|---|---|
+| `dwarf_axe_mastery` | +2 damage with an equipped axe. | Damage helper checks the skill, but only when caller supplies `weapon_id: "axe"`; normal attack submission does not derive that from equipment. |
+| `dwarf_solid` | Adds +5 percentage points forced-movement resistance. | No forced-movement resolver or resistance application found. |
+| `goblin_opportunist` | +3 damage against a target already caught off guard. | Helper checks a caller-supplied `target_caught_off_guard`; normal attack submission does not derive it from target state. |
+| `goblin_pack_hunter` | +2 damage per rank if an ally is adjacent to the target. | No flank/adjacent-ally derivation found in normal 3D attack resolution. |
+| `goblin_quick_reflexes` | +2 passive dodge per rank, applied to the character's dodge stat. | No canonical skill-to-`passive_dodge` application found in the reviewed current-dev progression/combat path. |
+| `orc_brute_strength` | +2 melee damage per rank. | Integrated in `CombatRules.raw_damage()`. |
+| `orc_thick_hide` | +1 base damage reduction per rank, applied to the character's base reduction. | No canonical skill-to-`base_reduction` application found in the reviewed path. |
+| `orc_ferocity` | +4 damage at or below half HP. | Integrated in `CombatRules.raw_damage()`. |
+| `orc_momentum` | +3 damage per rank after moving at least 2 hexes from the turn-start hex. | No turn-start position snapshot or momentum damage calculation found in current dev. |
+| `orc_relentless` | +8 current and max HP per rank. | No canonical skill-to-health/max-health application found. |
+| `poison_bite`, `life_drain`, `regeneration` | Creature passives used by monster templates and runtime. | No matching attack/tick effects found in current 3D simulation. |
+| `spectral_form` | +2 incoming damage reduction. | Integrated and previously covered by an effect test. |
+
+The original 2D monster templates also assign these skills to creatures
+(e.g. spider poison bite, wraith life drain/spectral form and troll shove).
+That is evidence they are intended as live creature abilities, not merely
+player-facing catalogue ideas.
+
+### Forced movement and control: scope clarification
+
+The earlier audit confirmed 2D Shove, Disarm and Counter Trip. This pass
+confirms a broader 2D combat control layer: forced movement resistance
+(`dwarf_solid`), Hobbled movement penalties, Counter Trip's TP reduction,
+and movement-reaction triggers. Current 3D includes spear intercept/halt and
+sidestep movement reactions, but does not yet provide a general shove/trip/
+disarm resolver, forced-movement resistance, or attack-applied movement
+debuffs.
+
+### Implementation implications
+
+The next implementation work should be organised around normal action
+integration rather than adding isolated skill branches:
+1. Resolve equipped weapon identity and skill ranks into hit/damage inputs in
+   the normal attack path.
+2. Complete the parry chain (feint and riposte) and add direct tests for
+   ordinary parry, Protector chance scaling and Shield Proficiency's passive
+   shield contribution.
+3. Introduce a small, serialisable status-effect model for poison, wither,
+   hobbled, sunder and reaction block, with explicit duration/stack rules.
+4. Add source-backed racial passive derivation and turn-start movement state.
+5. Add general forced movement and resistance before porting shove/trip/
+   disarm as isolated UI actions.
+
+No gameplay mechanics were implemented in this audit pass. This section is
+source comparison and implementation planning only.
