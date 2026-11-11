@@ -380,18 +380,21 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
 
 
 def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy_z, anchor_y, anatomy_state):
-    centre_z = anatomy_z - height * 0.046
+    # Scale from clinical adult dimensions rather than body-width heuristics.
+    # A typical adult testis is roughly 4.5 x 2.6 x 2.5 cm; the external
+    # scrotal envelope should accommodate the pair without reading as a
+    # single oversized hanging sphere. For a 179 cm body these radii produce
+    # an envelope about 6.1 cm wide x 4.3 cm deep x 6.4 cm tall.
+    centre_z = anatomy_z - height * 0.024
     surface_y = anchor_y
-    if anatomy_state == "erect-reference":
-        width_factor, depth_factor, height_factor = 0.067, 0.020, 0.044
-    else:
-        # Reduce the current oversized scrotal silhouette by roughly one third.
-        width_factor, depth_factor, height_factor = 0.045, 0.014, 0.030
-    depth = height * depth_factor
+    width_radius = height * 0.017
+    depth_radius = height * 0.012
+    height_radius = height * 0.018
+    depth = depth_radius
     centre = Vector((0.0, surface_y - depth * 0.40, centre_z))
     sac = create_uv_surface(
         "Male anatomy · scrotum with paired contours", centre,
-        Vector((width * width_factor, depth, height * height_factor)),
+        Vector((width_radius, depth_radius, height_radius)),
         material, armature, pelvis_bone, segments=72, rings=48, front_lobes=True
     )
     sac["anatomy_state"] = anatomy_state
