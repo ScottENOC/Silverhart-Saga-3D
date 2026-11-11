@@ -3,11 +3,13 @@ extends SceneTree
 const DOOR_SCRIPT = preload("res://scripts/world/building_door_state.gd")
 const REGISTRY_SCRIPT = preload("res://scripts/world/building_registry.gd")
 const MAP_SCRIPT = preload("res://scripts/core/hex_map_data.gd")
+const WORLD_SIM_SCRIPT = preload("res://scripts/simulation/world_simulation.gd")
 
 func _initialize() -> void:
     _test_door_lifecycle()
     _test_registry_and_save_round_trip()
     _test_door_map_blocking()
+    _test_world_simulation_save_round_trip()
     print("Building framework tests passed.")
     quit()
 
@@ -49,3 +51,20 @@ func _test_door_map_blocking() -> void:
     assert(not map_data.is_walkable(Vector2i.ZERO), "Closed doors must block hex movement.")
     map_data.set_walkable(Vector2i.ZERO, true)
     assert(map_data.is_walkable(Vector2i.ZERO), "Open doors must restore hex movement.")
+
+func _test_world_simulation_save_round_trip() -> void:
+    var source = WORLD_SIM_SCRIPT.new()
+    source.building_registry.register_building({"id": "test_house", "name": "Test House", "entrance_hex": Vector2i.ZERO})
+    source.building_registry.register_door("front", "test_house", Vector2i(0, 1), false)
+    assert(source.building_registry.set_door_open("front", true))
+    var saved: Dictionary = source.to_dict()
+
+    var restored = WORLD_SIM_SCRIPT.new()
+    restored.building_registry.register_building({"id": "test_house", "name": "Test House", "entrance_hex": Vector2i.ZERO})
+    restored.building_registry.register_door("front", "test_house", Vector2i(0, 1), false)
+    restored.map_data.add_cell(Vector2i(0, 1), 0.0, false, "timber_floor")
+    restored.load_dict(saved)
+    assert(restored.building_registry.get_door("front").is_passable(), "World saves must retain door state.")
+    assert(restored.map_data.is_walkable(Vector2i(0, 1)), "Loaded door state must restore map walkability.")
+    source.free()
+    restored.free()
