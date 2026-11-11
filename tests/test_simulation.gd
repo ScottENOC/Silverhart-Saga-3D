@@ -1520,20 +1520,9 @@ func _test_race_class_character_creation() -> void:
         "dwarf":{"dwarf":1,"endurance":2,"strength":1},
         "elf":{"elf":1,"agility":2,"arcane":1},
         "goblin":{"goblin":1,"agility":2,"weapons":1},
-        "orc":{"orc":1,"strength":2,"endurance":1},
-        "half_elf":{"elf":1,"agility":1,"arcane":1,"wildcard":1},
-        "half_orc":{"orc":1,"strength":2,"endurance":1,"agility":1},
-        "halfling":{"agility":2,"endurance":1,"wildcard":1},
-        "gnome":{"arcane":2,"nature":1,"agility":1,"wildcard":1}
+        "orc":{"orc":1,"strength":2,"endurance":1}
     }
-    _check(CharacterCreationRules.race_ids().size() == 9, "Character creator exposes all nine playable races")
-    for race_id in ["half_elf", "half_orc", "halfling", "gnome"]:
-        var new_race_profile := profile.duplicate(true)
-        new_race_profile["race"] = race_id
-        var new_race_state := CharacterCreationRules.create_player_state(new_race_profile, "new_race_" + race_id, Vector2i.ZERO)
-        var restored_race := CharacterState.from_dict(new_race_state.to_dict())
-        _check(restored_race.race == race_id, "New race identity survives save/load: %s" % race_id)
-        _check(restored_race.tags.has("race_%s" % race_id), "New race receives a race tag: %s" % race_id)
+    _check(CharacterCreationRules.race_ids().size() == 5, "Character creator matches the five races in the original 2D game")
 
     var fighter_bonuses: Dictionary = CharacterCreationRules.class_definition("fighter").get("bonus", {})
     for race_id in expected_races:
