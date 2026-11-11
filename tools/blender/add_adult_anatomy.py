@@ -237,26 +237,31 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
     painted_vertices = 0
     for vertex in mesh.vertices:
         p = skin.matrix_world @ vertex.co
-        if abs(p.x) > width * 0.16 or abs(p.z-anatomy_z) > height * 0.065:
+        if abs(p.x) > width * 0.18 or abs(p.z-anatomy_z) > height * 0.070:
             colour.data[vertex.index].color = (1.0, 1.0, 1.0, 1.0)
             continue
+        outer = max(
+            g(p.x,p.z,-width*0.060,anatomy_z-height*0.002,width*0.030,height*0.030),
+            g(p.x,p.z, width*0.060,anatomy_z-height*0.002,width*0.030,height*0.030),
+        )
         inner = max(
             g(p.x,p.z,-width*0.025,anatomy_z-height*0.004,width*0.014,height*0.026),
             g(p.x,p.z, width*0.025,anatomy_z-height*0.004,width*0.014,height*0.026),
         )
-        # A narrow, high-contrast pigment transition follows the central
-        # vestibular valley; it should not wash across the outer labial ridges.
+        # The outer folds receive a soft, skin-relative rose tint. It is
+        # deliberately broader and less saturated than the inner-fold tint.
         central = max(
             g(p.x,p.z,0.0,anatomy_z-height*0.020,width*0.008,height*0.023),
             g(p.x,p.z,0.0,anatomy_z-height*0.036,width*0.010,height*0.010),
         )
-        strength = min(1.0, inner * 0.42 + central * 0.78)
+        outer_strength = min(1.0, outer * 0.72)
+        inner_strength = min(1.0, inner * 0.42 + central * 0.78)
         central_strength = min(1.0, central)
-        red = 1.0 + 0.16 * strength + 0.16 * central_strength
-        green = 1.0 - 0.20 * strength - 0.42 * central_strength
-        blue = 1.0 - 0.16 * strength - 0.34 * central_strength
+        red = 1.0 + 0.10 * outer_strength + 0.16 * inner_strength + 0.16 * central_strength
+        green = 1.0 - 0.055 * outer_strength - 0.20 * inner_strength - 0.42 * central_strength
+        blue = 1.0 - 0.035 * outer_strength - 0.16 * inner_strength - 0.34 * central_strength
         colour.data[vertex.index].color = (red, green, blue, 1.0)
-        if strength > 0.15:
+        if max(outer_strength, inner_strength) > 0.15:
             painted_vertices += 1
     mesh.color_attributes.active_color = colour
     skin["anatomy_pigmented_vertex_count"] = painted_vertices
@@ -302,8 +307,8 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         perineum = g(p.x,p.z,0.0,anatomy_z-height*0.068,width*0.045,height*0.013)
         outward = deformation_scale * height * (
             0.0040*mons + 0.00525*(outer_l+outer_r)
-            + 0.00300*(inner_l+inner_r) + 0.00225*hood
-            + 0.00075*glans + 0.00050*frenulum + 0.00050*fourchette
+            + 0.00400*(inner_l+inner_r) + 0.00275*hood
+            + 0.00150*glans + 0.00075*frenulum + 0.00050*fourchette
         )
         inward = deformation_scale * height * (
             0.00275*vestibule + 0.00850*cleft
