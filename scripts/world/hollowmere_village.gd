@@ -302,6 +302,7 @@ func _spawn_creature(actor_name: String, kind: String, behaviour_name: String, h
 	actor.creature_kind = kind
 	actor.behaviour = behaviour_name
 	actor.axial_hex = hex
+	actor.add_to_group("creature_actors")
 	actor.model_scale = scale_factor
 	var filename := asset_filename if not asset_filename.is_empty() else "%s.gltf" % kind.capitalize()
 	actor.model_path = "res://art/creatures/quaternius/%s" % filename
