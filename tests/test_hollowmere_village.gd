@@ -78,10 +78,15 @@ func _test_hollowmere_character_manifest() -> void:
     var manifest: Variant = JSON.parse_string(file.get_as_text())
     assert(manifest is Dictionary, "Hollowmere character manifest must be valid JSON")
     var characters: Array = manifest.get("characters", [])
-    assert(characters.size() == 13, "Expected 13 authored village character profiles")
+    assert(characters.size() == 14, "Expected 13 village NPC profiles plus the canonical player-avatar definition")
     var ids: Dictionary = {}
     assert(int(manifest.get("schema_version", 0)) == 2, "Character manifest must use canonical schema version 2")
+    var npc_count := 0
     for profile in characters:
+        if String(profile.get("role", "")) == "player avatar":
+            assert(String(profile.get("id", "")) == "player_avatar", "The player-avatar definition must have a stable ID")
+            continue
+        npc_count += 1
         assert(profile.has("id") and profile.has("game_id") and profile.has("appearance") and profile.has("inventory") and profile.has("equipped"))
         assert(not ids.has(profile["id"]), "Character profile IDs must be unique")
         ids[profile["id"]] = true
@@ -97,6 +102,7 @@ func _test_hollowmere_character_manifest() -> void:
         var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
         assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
         assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % profile["id"])
+    assert(npc_count == 13, "Expected 13 authored Hollowmere NPCs")
 
 func _test_main_campaign_world_map() -> void:
     var grid := MAIN_CAMPAIGN_MAP.generate_grid()
