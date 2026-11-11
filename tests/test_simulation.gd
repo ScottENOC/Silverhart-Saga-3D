@@ -117,7 +117,7 @@ func _test_vision_rules() -> void:
 
     observer.skills["elf_vision"] = 2
     target.axial = Vector2i(30, 0)
-    for q in range(5, 31):
+    for q in range(5, 35):
         map.add_cell(Vector2i(q, 0), 0.0, true, "grass")
     _check(VisionRules.can_see(map, observer, target), "Elf vision should extend the visibility boundary to 33 hexes")
     target.axial = Vector2i(34, 0)
