@@ -139,18 +139,18 @@ func _build_legs() -> void:
     ]
     for spec in leg_specs:
         var pivot := Node3D.new()
-        pivot.name = String(spec.name) + "Rig"
-        pivot.position = Vector3(float(spec.x), 0.77, float(spec.z))
+        pivot.name = String(spec["name"]) + "Rig"
+        pivot.position = Vector3(float(spec["x"]), 0.77, float(spec["z"]))
         add_child(pivot)
         _leg_pivots.append(pivot)
 
-        var radius := float(spec.radius)
-        var height := float(spec.height)
-        _add_capsule(pivot, String(spec.name) + "UpperLeg", Vector3(0.0, -0.29, 0.0), radius, height, _coat)
-        _add_ellipsoid(pivot, String(spec.name) + "Paw", Vector3(0.0, -0.65, -0.12), Vector3(radius * 2.55, 0.34, 0.58), _coat_light)
+        var radius := float(spec["radius"])
+        var height := float(spec["height"])
+        _add_capsule(pivot, String(spec["name"]) + "UpperLeg", Vector3(0.0, -0.29, 0.0), radius, height, _coat)
+        _add_ellipsoid(pivot, String(spec["name"]) + "Paw", Vector3(0.0, -0.65, -0.12), Vector3(radius * 2.55, 0.34, 0.58), _coat_light)
         for claw_index in range(3):
             var claw := MeshInstance3D.new()
-            claw.name = String(spec.name) + "Claw_%d" % claw_index
+            claw.name = String(spec["name"]) + "Claw_%d" % claw_index
             var claw_mesh := ConeMesh.new()
             claw_mesh.top_radius = 0.006
             claw_mesh.bottom_radius = 0.047
