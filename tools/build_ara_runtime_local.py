@@ -638,13 +638,15 @@ def main():
     anatomy_review=ROOT/"tools/blender/review_anatomy_closeup.py"
     for label,model in [("female_max_breast",female_test_out),("male_min_breast_broad",male_test_out)]:
         review_dir=review_root/"anatomy"/label
-        review_outputs=[review_dir/f"{label}_{view}_blue.png" for view in ["front","three_quarter"]]+[review_dir/f"{label}_anatomy_review.json"]
+        review_outputs=[review_dir/f"{label}_{view}_blue.png" for view in ["front","three_quarter"]]+[review_dir/f"{label}_{view}_natural.png" for view in ["front","three_quarter"]]+[review_dir/f"{label}_anatomy_review.json"]
         def anatomy_review_action(label=label,model=model,review_dir=review_dir):
             review_dir.mkdir(parents=True,exist_ok=True)
             run([blender,"--background","--python-exit-code","1","--python",anatomy_review,
               "--","--input",model,"--output-dir",review_dir,"--label",label],env=review_env)
+            run([blender,"--background","--python-exit-code","1","--python",anatomy_review,
+              "--","--input",model,"--output-dir",review_dir,"--label",label,"--natural-colour"],env=review_env)
         cached("review-anatomy-"+label,review_outputs,[model,anatomy_review],
-          "blue-pelvis-closeup-review-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+          "blue-and-natural-pelvis-closeup-review-v2:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
           anatomy_review_action)
 
     outfit_script=ROOT/"tools/review/render_modular_outfits.py"
