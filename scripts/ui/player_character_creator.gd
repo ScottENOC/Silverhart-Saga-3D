@@ -326,7 +326,11 @@ func _refresh_appearance_preview(_index: int) -> void:
     if preview_actor == null or not is_instance_valid(preview_actor):
         return
     var variant := "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female"
-    var body_resolution := CHARACTER_ASSEMBLY_RESOLVER.resolve_player({"body_variant": variant})
+    var selected_build := body_select.get_item_text(body_select.selected).to_lower()
+    var body_resolution := CHARACTER_ASSEMBLY_RESOLVER.resolve_player({
+        "body_variant": variant,
+        "body_build": selected_build
+    })
     var asset_path := String(body_resolution.get("body_asset_path", ""))
     if not ResourceLoader.exists(asset_path):
         preview_status.text = "Preview asset not found: %s. Your appearance choices can still be saved." % asset_path
@@ -349,6 +353,7 @@ func _refresh_appearance_preview(_index: int) -> void:
         "height_scale": height_slider.value,
         "build_scale": float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)),
         "body_variant": variant,
+        "body_build": selected_build,
         "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
         "pronouns": "they/them"
     }
