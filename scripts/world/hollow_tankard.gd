@@ -1378,6 +1378,17 @@ func _begin_shakedown_combat() -> void:
     active_enemy_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.duplicate()
     active_party_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.COMBAT_ALLY_IDS.duplicate()
     active_combat_controlled_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.duplicate()
+    for party_id_value in simulation.party_member_ids:
+        var party_id := String(party_id_value)
+        if not active_party_ids.has(party_id):
+            active_party_ids.append(party_id)
+        if not active_combat_controlled_ids.has(party_id):
+            active_combat_controlled_ids.append(party_id)
+        var party_state := simulation.get_character(party_id)
+        if party_state != null:
+            party_state.side = "player"
+            party_state.combat_dormant = false
+            party_state.time_points = 100.0
     enemy_turn_processed = false
     enemy_turn_waiting_for_reaction = false
     if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(active_character_id):
@@ -1635,6 +1646,7 @@ func _start_farm_wolf_encounter() -> void:
 		if active_party_ids.has(state.id):
 			state.side = "player"
 			state.combat_dormant = false
+			state.time_points = 100.0
 		elif active_enemy_ids.has(state.id):
 			state.side = "enemy"
 			state.combat_dormant = false
@@ -1695,6 +1707,22 @@ func _check_farm_wolf_resolution() -> void:
 		_show_dialogue("Wilderness", "The last wolf falls. The den is quiet. Old Mac will want to know the cattle are safe.", [{"id": "continue", "label": "Return to the farm.", "text": ""}])
 
 
+func _active_party_defeated() -> bool:
+    for character_id in active_party_ids:
+        var member := simulation.get_character(character_id)
+        if member != null and member.can_act():
+            return false
+    return true
+
+
+func _restore_active_party_after_combat() -> void:
+    for character_id in simulation.party_member_ids:
+        var member := simulation.get_character(character_id)
+        if member != null:
+            member.side = "player"
+            member.combat_dormant = false
+
+
 func _check_encounter_resolution() -> void:
     if not encounter_active:
         return
@@ -1719,9 +1747,10 @@ func _check_encounter_resolution() -> void:
     if active_combat_kind == "farm_wolves":
         _check_farm_wolf_resolution()
         return
-    if HOLLOWMERE_ENCOUNTER_SCRIPT.party_defeated(simulation):
+    if _active_party_defeated():
         simulation.end_combat()
         HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation)
+        _restore_active_party_after_combat()
         encounter_active = false
         shakedown_resolved = true
         simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The party was defeated during the Ironbond shakedown.")
@@ -1729,6 +1758,7 @@ func _check_encounter_resolution() -> void:
     elif HOLLOWMERE_ENCOUNTER_SCRIPT.enemies_defeated(simulation):
         simulation.end_combat()
         HOLLOWMERE_ENCOUNTER_SCRIPT.finish(simulation)
+        _restore_active_party_after_combat()
         encounter_active = false
         HollowmereCampaignContent.complete_shakedown(simulation.campaign_journal)
         _show_speech_bubble("garrick_holt", HollowmereCampaignContent.shakedown_victory_text())
