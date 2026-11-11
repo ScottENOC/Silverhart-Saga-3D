@@ -21,6 +21,11 @@ const UPPER_FLOOR_ORIGIN := Vector2i(100, 100)
 const UPPER_FLOOR_Y := 3.38
 const TAVERN_STAIR_GROUND_HEX := Vector2i(3, 0)
 const TAVERN_STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + Vector2i(3, -1)
+const UPPER_BED_HEXES: Array[Vector2i] = [
+    Vector2i(-3, 0), Vector2i(-3, 2),
+    Vector2i(2, -2), Vector2i(3, -2),
+    Vector2i(2, 0), Vector2i(3, 0),
+]
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -191,7 +196,8 @@ func _create_simulation() -> void:
             var local_hex := Vector2i(q, row + row_shift)
             var local_world := HexGrid.axial_to_world(local_hex, HEX_RADIUS)
             var partition_wall := (q == 0 and absf(local_world.z) > 1.1) or (q >= 1 and q <= 4 and absf(local_world.z) < 0.55 and q != 3)
-            simulation.map_data.add_cell(UPPER_FLOOR_ORIGIN + local_hex, UPPER_FLOOR_Y, not partition_wall, "timber_floor")
+            var furniture_blocked := UPPER_BED_HEXES.has(local_hex)
+            simulation.map_data.add_cell(UPPER_FLOOR_ORIGIN + local_hex, UPPER_FLOOR_Y, not (partition_wall or furniture_blocked), "timber_floor")
 
     simulation.character_moved.connect(_on_character_moved)
     simulation.reaction_requested.connect(_on_reaction_requested)
