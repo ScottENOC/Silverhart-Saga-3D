@@ -54,6 +54,10 @@ func save_snapshot(slot_id: String, snapshot: Dictionary, label: String = "Manua
     var absolute_temporary := ProjectSettings.globalize_path(temporary)
     if FileAccess.file_exists(target):
         var backup := absolute_target + ".bak"
+        if FileAccess.file_exists(backup):
+            var old_backup_error := DirAccess.remove_absolute(backup)
+            if old_backup_error != OK:
+                return {"ok": false, "reason": "backup_cleanup_failed", "error": old_backup_error}
         var backup_error := DirAccess.copy_absolute(absolute_target, backup)
         if backup_error != OK:
             return {"ok": false, "reason": "backup_failed", "error": backup_error}
