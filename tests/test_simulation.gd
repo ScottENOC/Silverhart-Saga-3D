@@ -968,7 +968,7 @@ func _test_item_catalog_and_hollowmere_loadouts() -> void:
     for definition_value in parsed.get("characters", []):
         if definition_value is Dictionary:
             var definition: Dictionary = definition_value
-            definitions[String(definition.get("id", ""))] = definition
+            definitions[String(definition.get("game_id", definition.get("id", "")))] = definition
 
     var dray_definition: Dictionary = definitions.get("dray_coltayne", {})
     var tomlin_definition: Dictionary = definitions.get("tomlin_brask", {})
@@ -1001,7 +1001,7 @@ func _test_item_catalog_and_hollowmere_loadouts() -> void:
     _check(String(dray.equipment.get("armour", "")) == "medium_armor", "Dray's medium armour should be equipped")
     _check(String(dray.equipment.get("offhand", "")) == "wooden_shield", "Dray's shield should be equipped")
     _check(CombatRules.damage_reduction(dray) == 3, "Dray's armour and shield should affect damage reduction")
-    _check(dray.inventory.size() == 3, "Dray's unequipped clothing and boots should remain in carried inventory")
+    _check(dray.inventory.is_empty(), "Dray's starting inventory items should all be equipped")
 
 
 
