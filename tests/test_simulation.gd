@@ -11,7 +11,7 @@ func _initialize() -> void:
     _test_hollowmere_campaign_content()
     _test_companion_campaign_dialogue_and_recruitment()
     _test_farmstead_dire_wolf_encounter()
-        _test_hollowmere_encounter()
+    _test_hollowmere_encounter()
     _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
     _test_equipped_item_combat_effects()
