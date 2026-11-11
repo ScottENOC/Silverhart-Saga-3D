@@ -413,8 +413,15 @@ def main():
 
     male_out=ARA/"ara_person_male_body.glb"; male_raw=RAW/"ara_person_male_raw.glb"
     def male_action():
-        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_out,"--adult","--profile-name","standard"])
-    cached("male-anatomy",[male_out],[male_raw,ROOT/"tools/blender/add_male_anatomy.py"],"male-anatomy-v2:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_action)
+        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_out,"--adult","--profile-name","standard","--anatomy-state","flaccid"])
+    cached("male-anatomy-flaccid",[male_out],[male_raw,ROOT/"tools/blender/add_male_anatomy.py"],"male-anatomy-flaccid-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_action)
+
+    # Preserve the previous protruding design as a separate optional reference;
+    # it is never used by the default male body or garment-fitting pipeline.
+    male_erect_reference=ARA/"ara_person_male_erect_reference.glb"
+    def male_erect_reference_action():
+        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_erect_reference,"--adult","--profile-name","standard","--anatomy-state","erect-reference"])
+    cached("male-anatomy-erect-reference",[male_erect_reference],[male_raw,ROOT/"tools/blender/add_male_anatomy.py"],"male-anatomy-erect-reference-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_erect_reference_action)
     # Read-only audit: run the exact production deformation functions on raw exports,
     # measure vertex movement in memory, then verify the meshes survive GLB round-trip.
     anatomy_pipeline_audit=ARA/"ara_person_anatomy_pipeline_audit.json"
