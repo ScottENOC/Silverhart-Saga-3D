@@ -145,7 +145,8 @@ static func create_state(
         state.animal_attributes[attribute] = maxi(1, base_value + rng.randi_range(-1, 1))
 
     var base_health := int(profile["health"])
-    var health_delta := rng.randi_range(-maxi(1, roundi(base_health * 0.05)), maxi(1, roundi(base_health * 0.05)))
+    var health_variance := roundi(base_health * 0.05)
+    var health_delta := rng.randi_range(-health_variance, health_variance)
     state.max_health = maxi(1, base_health + health_delta)
     state.health = state.max_health
     state.base_damage = int(profile["damage"])
