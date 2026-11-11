@@ -161,7 +161,8 @@ func sync_skill_effects() -> void:
         max_health = maxi(1, max_health + health_delta * 10)
         health = clampi(health + health_delta * 10, -max_health, max_health)
     skill_effect_ranks_applied["health"] = health_rank
-    quick_recovery_rank = clampi(int(skills.get("quickRecovery", 0)), 0, ActionEconomy.MAX_QUICK_RECOVERY_RANK)
+    if skills.has("quickRecovery"):
+        quick_recovery_rank = clampi(int(skills.get("quickRecovery", 0)), 0, ActionEconomy.MAX_QUICK_RECOVERY_RANK)
     var rate_rank := maxi(0, int(skills.get("timePointRate", 0)))
     if rate_rank > 0:
         time_points_per_tick = 1.0 + 0.05 * float(rate_rank)
