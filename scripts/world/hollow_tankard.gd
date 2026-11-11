@@ -437,25 +437,12 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     ara_model.name = "CharacterModel"
     actor.add_child(ara_model)
     var body_variant := String(resolved.get("body_variant", "female"))
-    var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
-    var using_legacy_fallback := false
-    if not is_player:
-        var profile_id := String(resolved.get("profile_id", ""))
-        var profile_body_path := "res://art/characters/ara_runtime/bodies/%s.glb" % profile_id
-        var legacy_ids := [profile_id, String(resolved.get("game_id", ""))]
-        var legacy_model_path := ""
-        for legacy_id in legacy_ids:
-            if legacy_id.is_empty():
-                continue
-            var candidate_path := "res://art/characters/hollowmere/%s.glb" % legacy_id
-            if ResourceLoader.exists(candidate_path):
-                legacy_model_path = candidate_path
-                break
-        if not profile_id.is_empty() and ResourceLoader.exists(profile_body_path):
-            model_path = profile_body_path
-        elif not legacy_model_path.is_empty():
-            model_path = legacy_model_path
-            using_legacy_fallback = true
+    var model_path := String(resolved.get("body_asset_path", ""))
+    var using_legacy_fallback := bool(resolved.get("legacy_visual_fallback", false))
+    if model_path.is_empty():
+        push_error("Character '%s' has no resolved body asset." % id)
+        ara_model.queue_free()
+        return
 
     ara_model.set_meta("body_variant", body_variant)
     var model_loaded := ara_model.configure(model_path)
