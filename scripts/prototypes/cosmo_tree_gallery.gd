@@ -1,6 +1,6 @@
 extends Node3D
 
-## 64-tree seasonal comparison gallery: 16 generated models shown in all four seasons.
+## 64-tree gallery: a 4x4 grid of all 16 models in each seasonal quadrant.
 ## Run scenes/prototypes/cosmo_tree_gallery.tscn with F6.
 ##
 ## Controls:
@@ -27,24 +27,22 @@ const TREE_PATHS: Array[String] = [
 	"res://art/environment/trees/cosmo_generated/winter_oak_01.glb",
 	"res://art/environment/trees/cosmo_generated/winter_oak_02.glb",
 ]
-
 const SEASONS := ["SPRING", "SUMMER", "AUTUMN", "WINTER"]
 const EVERGREEN_MODELS := ["laurel", "pine", "spruce"]
-const COLUMN_SPACING := 12.0
-const ROW_SPACING := 22.0
-const GROUND_WIDTH := 194.0
-const GROUND_DEPTH := 104.0
-const CAMERA_START_DISTANCE := 154.0
-const CAMERA_MIN_DISTANCE := 24.0
-const CAMERA_MAX_DISTANCE := 260.0
+const GRID_COLUMNS := 4
+const TREE_SPACING := 12.0
+const QUADRANT_GAP := 12.0
+const CAMERA_START_DISTANCE := 190.0
+const CAMERA_MIN_DISTANCE := 35.0
+const CAMERA_MAX_DISTANCE := 360.0
 const CAMERA_PAN_SPEED := 38.0
 const MOUSE_SENSITIVITY := 0.006
 
 const SEASON_LEAF_TINTS := [
-	Color(0.78, 1.0, 0.66), # Spring: fresh light green
-	Color(0.70, 0.91, 0.55), # Summer: full green
-	Color(1.0, 0.57, 0.20), # Autumn: amber/orange
-	Color(0.64, 0.76, 0.82), # Winter evergreen: cool green-blue
+	Color(0.78, 1.0, 0.66),
+	Color(0.70, 0.91, 0.55),
+	Color(1.0, 0.57, 0.20),
+	Color(0.64, 0.76, 0.82),
 ]
 const SEASON_GROUND_TINTS := [
 	Color(0.38, 0.48, 0.31),
@@ -54,7 +52,7 @@ const SEASON_GROUND_TINTS := [
 ]
 
 var _camera: Camera3D
-var _camera_target := Vector3(0.0, 3.0, 0.0)
+var _camera_target := Vector3.ZERO
 var _camera_yaw := 0.0
 var _camera_pitch := 0.48
 var _camera_distance := CAMERA_START_DISTANCE
@@ -63,7 +61,7 @@ var _dragging := false
 
 func _ready() -> void:
 	_build_environment()
-	_build_season_bands()
+	_build_season_quadrants()
 	_build_trees()
 	_create_camera()
 	_update_camera()
@@ -87,13 +85,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_camera_pitch = clampf(_camera_pitch + event.relative.y * MOUSE_SENSITIVITY, 0.12, 1.25)
 		_update_camera()
 		get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_F:
-			_camera_target = Vector3(0.0, 3.0, 0.0)
-			_camera_yaw = 0.0
-			_camera_pitch = 0.48
-			_camera_distance = CAMERA_START_DISTANCE
-			_update_camera()
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F:
+		_camera_target = Vector3.ZERO
+		_camera_yaw = 0.0
+		_camera_pitch = 0.48
+		_camera_distance = CAMERA_START_DISTANCE
+		_update_camera()
 
 
 func _process(delta: float) -> void:
@@ -139,65 +136,76 @@ func _build_environment() -> void:
 	add_child(sunlight)
 
 
-func _build_season_bands() -> void:
+func _season_center(season_index: int) -> Vector3:
+	var half_offset := (TREE_SPACING * (GRID_COLUMNS - 1) + QUADRANT_GAP) * 0.5
+	var x_sign := 1.0 if season_index % 2 == 1 else -1.0
+	var z_sign := 1.0 if season_index >= 2 else -1.0
+	return Vector3(x_sign * half_offset, 0.0, z_sign * half_offset)
+
+
+func _build_season_quadrants() -> void:
 	for season_index in range(SEASONS.size()):
-		var center_z := (float(season_index) - 1.5) * ROW_SPACING
-		var band := MeshInstance3D.new()
-		band.name = SEASONS[season_index] + " Ground"
+		var center := _season_center(season_index)
+		var ground := MeshInstance3D.new()
+		ground.name = SEASONS[season_index] + " Ground"
 		var plane := PlaneMesh.new()
-		plane.size = Vector2(GROUND_WIDTH, ROW_SPACING - 1.0)
-		band.mesh = plane
+		plane.size = Vector2(55.0, 55.0)
+		ground.mesh = plane
 		var material := StandardMaterial3D.new()
 		material.albedo_color = SEASON_GROUND_TINTS[season_index]
 		material.roughness = 1.0
-		band.material_override = material
-		band.position = Vector3(0.0, -0.10, center_z)
-		add_child(band)
+		ground.material_override = material
+		ground.position = Vector3(center.x, -0.10, center.z)
+		add_child(ground)
 
-		var season_label := Label3D.new()
-		season_label.name = SEASONS[season_index] + " Heading"
-		season_label.text = SEASONS[season_index]
-		season_label.font_size = 112
-		season_label.outline_size = 16
-		season_label.modulate = Color(1.0, 1.0, 1.0)
-		season_label.outline_modulate = Color(0.08, 0.10, 0.08, 1.0)
-		season_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		season_label.position = Vector3(-GROUND_WIDTH * 0.5 + 2.0, 0.2, center_z - 7.0)
-		add_child(season_label)
+		var heading := Label3D.new()
+		heading.name = SEASONS[season_index] + " Heading"
+		heading.text = SEASONS[season_index]
+		heading.font_size = 112
+		heading.outline_size = 16
+		heading.modulate = Color.WHITE
+		heading.outline_modulate = Color(0.08, 0.10, 0.08, 1.0)
+		heading.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		heading.position = Vector3(center.x - 23.0, 0.3, center.z - 24.0)
+		add_child(heading)
 
 
 func _build_trees() -> void:
-	for model_index in range(TREE_PATHS.size()):
-		var path := TREE_PATHS[model_index]
-		var packed_scene := load(path) as PackedScene
-		if packed_scene == null:
-			push_error("Could not load tree scene: " + path)
-			continue
+	var instance_count := 0
+	for season_index in range(SEASONS.size()):
+		var center := _season_center(season_index)
+		for model_index in range(TREE_PATHS.size()):
+			var path := TREE_PATHS[model_index]
+			var packed_scene := load(path) as PackedScene
+			if packed_scene == null:
+				push_error("Could not load tree scene: " + path)
+				continue
 
-		var model_name := path.get_file().get_basename()
-		var column := model_index
-		var x := (float(column) - 7.5) * COLUMN_SPACING
+			var column := model_index % GRID_COLUMNS
+			var row := model_index / GRID_COLUMNS
+			var x := (float(column) - 1.5) * TREE_SPACING
+			var z := (float(row) - 1.5) * TREE_SPACING
+			var model_name := path.get_file().get_basename()
 
-		for season_index in range(SEASONS.size()):
-			var center_z := (float(season_index) - 1.5) * ROW_SPACING
 			var tree_instance := packed_scene.instantiate()
 			tree_instance.name = model_name + "_" + SEASONS[season_index].to_lower()
 			add_child(tree_instance)
-			tree_instance.position = Vector3(x, 0.0, center_z + 1.0)
+			tree_instance.position = center + Vector3(x, 0.0, z)
 			_apply_season(tree_instance, model_name, season_index)
+			instance_count += 1
 
 			var label := Label3D.new()
 			label.name = "Tree Label"
 			label.text = model_name.replace("_", " ").capitalize()
-			label.font_size = 34
-			label.outline_size = 7
+			label.font_size = 27
+			label.outline_size = 6
 			label.modulate = Color(0.98, 0.98, 0.92)
 			label.outline_modulate = Color(0.08, 0.10, 0.08, 1.0)
 			label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-			label.position = Vector3(x, 0.25, center_z + 7.0)
+			label.position = center + Vector3(x, 0.25, z + 4.8)
 			add_child(label)
 
-		print("COSMO_SEASONAL_MODEL: ", model_name, " across four seasons")
+	print("COSMO GALLERY: instantiated %d of 64 trees." % instance_count)
 
 
 func _apply_season(tree_root: Node, model_name: String, season_index: int) -> void:
@@ -206,14 +214,9 @@ func _apply_season(tree_root: Node, model_name: String, season_index: int) -> vo
 		if model_name.begins_with(evergreen_name):
 			evergreen = true
 			break
-
 	var leaf_tint: Color = SEASON_LEAF_TINTS[season_index]
 	if season_index == 3 and not evergreen:
-		# The generator has no separate leafless winter mesh. Hide the leaf cards
-		# so the underlying fine branches remain visible, rather than pretending
-		# a full canopy is a convincing winter deciduous tree.
 		leaf_tint.a = 0.0
-
 	_apply_leaf_materials_recursive(tree_root, leaf_tint)
 
 
