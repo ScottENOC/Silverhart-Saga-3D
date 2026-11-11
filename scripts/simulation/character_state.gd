@@ -80,6 +80,8 @@ var max_time_points: float = ActionEconomy.DEFAULT_MAX_TP
 var total_time_points_spent: float = 0.0
 var quick_recovery_rank: int = 0
 var skills: Dictionary = {}
+var skill_effect_ranks_applied: Dictionary = {}
+var health_regen_remainder: float = 0.0
 # equipment remains a compact slot -> gameplay item ID map for existing rules.
 # equipped_item_data stores the corresponding item instance metadata, while
 # inventory stores carried item instances with stable instance IDs.
@@ -149,6 +151,24 @@ func unequip_equipment_slot(slot: String) -> bool:
     equipped_item_data.erase(slot)
     equipment.erase(slot)
     return true
+
+
+func sync_skill_effects() -> void:
+    var health_rank := maxi(0, int(skills.get("health", 0)))
+    var previous_health_rank := maxi(0, int(skill_effect_ranks_applied.get("health", 0)))
+    var health_delta := health_rank - previous_health_rank
+    if health_delta != 0:
+        max_health = maxi(1, max_health + health_delta * 10)
+        health = clampi(health + health_delta * 10, -max_health, max_health)
+    skill_effect_ranks_applied["health"] = health_rank
+    quick_recovery_rank = clampi(int(skills.get("quickRecovery", 0)), 0, ActionEconomy.MAX_QUICK_RECOVERY_RANK)
+    var rate_rank := maxi(0, int(skills.get("timePointRate", 0)))
+    if rate_rank > 0:
+        time_points_per_tick = 1.0 + 0.05 * float(rate_rank)
+
+
+func health_regeneration_per_time_point() -> float:
+    return 0.1 + 0.1 * float(maxi(0, int(skills.get("health_regen", 0))))
 
 
 func can_be_targeted() -> bool:
@@ -279,6 +299,8 @@ func to_dict() -> Dictionary:
         "total_time_points_spent": total_time_points_spent,
         "quick_recovery_rank": quick_recovery_rank,
         "skills": skills.duplicate(true),
+        "skill_effect_ranks_applied": skill_effect_ranks_applied.duplicate(true),
+        "health_regen_remainder": health_regen_remainder,
         "equipment": equipment.duplicate(true),
         "inventory": inventory.duplicate(true),
         "equipped_item_data": equipped_item_data.duplicate(true),
@@ -364,6 +386,11 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.total_time_points_spent = float(data.get("total_time_points_spent", 0.0))
     state.quick_recovery_rank = clampi(int(data.get("quick_recovery_rank", 0)), 0, ActionEconomy.MAX_QUICK_RECOVERY_RANK)
     state.skills = data.get("skills", {}).duplicate(true)
+    state.skill_effect_ranks_applied = data.get("skill_effect_ranks_applied", {}).duplicate(true)
+    state.health_regen_remainder = maxf(0.0, float(data.get("health_regen_remainder", 0.0)))
+    if not data.has("skill_effect_ranks_applied"):
+        state.skill_effect_ranks_applied["health"] = maxi(0, int(state.skills.get("health", 0)))
+    state.sync_skill_effects()
     state.equipment = data.get("equipment", {}).duplicate(true)
     var saved_inventory: Array = data.get("inventory", [])
     for item in saved_inventory:
