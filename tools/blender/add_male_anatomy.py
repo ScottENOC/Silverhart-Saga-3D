@@ -26,7 +26,7 @@ def arguments():
     parser.add_argument("--adult", action="store_true")
     parser.add_argument("--profile-name", default="adult_male")
     parser.add_argument(
-        "--anatomy-state", choices=("flaccid", "erect-reference"), default="flaccid",
+        "--anatomy-state", choices=("erect", "flaccid"), default="erect",
         help="Compact resting form by default; preserve the previous projection as an optional reference asset.",
     )
     return parser.parse_args(raw)
@@ -320,14 +320,9 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
         tuple(remap[index] for index in polygon.vertices) for polygon in selected_faces
     ]
 
-    if anatomy_state == "flaccid":
-        return create_flaccid_phallus(
-            material, armature, pelvis_bone, body_height, anatomy_z, anchor_y
-        )
-
-    # The previous protruding finger-derived geometry is retained only as an
-    # optional erect reference asset. It is never used for ordinary characters.
-    target_axis = Vector((0.0, -0.94, -0.34)).normalized()
+    # Use the former erect surface as the shared starting geometry.
+    # A dedicated deform rig will control the resting/erect transition.
+    target_axis = Vector((0.0, -0.985, -0.17)).normalized()
     target_length = body_height * 0.074
     radial_factor = 1.16
     base_depth_offset = body_height * 0.006
