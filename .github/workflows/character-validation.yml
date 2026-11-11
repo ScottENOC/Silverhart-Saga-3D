@@ -10,6 +10,7 @@ on:
       - "tools/build_ara_runtime_local.py"
       - "tools/ci/validate_character_definitions.py"
       - "data/characters/hollowmere_npcs.json"
+      - "data/characters/body_profiles.json"
       - "data/items/item_definitions.json"
       - "tests/test_character_definitions.py"
       - "tests/test_assemble_modular_glb.py"
@@ -51,6 +52,8 @@ jobs:
         uses: reviewdog/action-actionlint@v1
       - name: Compile Ara and Blender Python tools
         run: python -m compileall -q tools/character_definitions.py tools/build_ara_runtime_local.py tools/blender tools/ara
+      - name: Validate ten canonical reusable body bases
+        run: python tools/ara/validate_body_profiles.py
       - name: Validate canonical character inventory and equipment
         run: python tools/ci/validate_character_definitions.py
       - name: Test canonical character definitions
