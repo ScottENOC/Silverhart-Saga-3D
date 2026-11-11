@@ -1528,10 +1528,10 @@ func _test_race_class_character_creation() -> void:
     }
     _check(CharacterCreationRules.race_ids().size() == 9, "Character creator exposes all nine playable races")
     for race_id in ["half_elf", "half_orc", "halfling", "gnome"]:
-        var race_profile := profile.duplicate(true)
-        race_profile["race"] = race_id
-        var race_state := CharacterCreationRules.create_player_state(race_profile, "new_race_" + race_id, Vector2i.ZERO)
-        var restored_race := CharacterState.from_dict(race_state.to_dict())
+        var new_race_profile := profile.duplicate(true)
+        new_race_profile["race"] = race_id
+        var new_race_state := CharacterCreationRules.create_player_state(new_race_profile, "new_race_" + race_id, Vector2i.ZERO)
+        var restored_race := CharacterState.from_dict(new_race_state.to_dict())
         _check(restored_race.race == race_id, "New race identity survives save/load: %s" % race_id)
         _check(restored_race.tags.has("race_%s" % race_id), "New race receives a race tag: %s" % race_id)
 
