@@ -95,11 +95,24 @@ def mesh_report():
     materials = {m.name for o in meshes for m in o.data.materials if m}
     vertices = sum(len(o.data.vertices) for o in meshes)
     polygons = sum(len(o.data.polygons) for o in meshes)
+    anatomy = []
+    for obj in meshes:
+        properties = {}
+        for key in ("anatomy_profile", "anatomy_state", "anatomy_parts",
+                    "anatomy_method", "anatomy_pigmented_vertex_count",
+                    "anatomy_deformation_scale", "target_length_m",
+                    "maximum_radius_m", "male_anatomy_geometry",
+                    "male_anatomy_parts"):
+            if key in obj:
+                properties[key] = obj[key]
+        if properties:
+            anatomy.append({"object": obj.name, **properties})
     return {
         "mesh_objects": len(meshes),
         "vertices": vertices,
         "polygons": polygons,
         "materials": sorted(materials),
+        "anatomy_metadata": anatomy,
         "armatures": [{"name": a.name, "bones": len(a.data.bones)} for a in armatures]
     }
 
