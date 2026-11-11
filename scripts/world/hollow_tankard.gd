@@ -441,7 +441,7 @@ func _create_characters() -> void:
 
 
 func _spawn_farmstead_dire_wolf() -> void:
-    var actor := CREATURE_ACTOR_SCRIPT.new() as Node3D
+    var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
     actor.creature_kind = "wolf"
     actor.behaviour = "predator"
     actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
