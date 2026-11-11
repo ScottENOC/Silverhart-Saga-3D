@@ -237,6 +237,36 @@ def create_flaccid_phallus(material, armature, pelvis_bone, body_height, anatomy
     return obj
 
 
+def add_anatomy_bones(armature, pelvis_bone, base_world, axis_world, length):
+    """Create a pelvis-parented root/mid/tip chain for the shared shaft mesh."""
+    inverse = armature.matrix_world.inverted()
+    base = inverse @ base_world
+    axis = (inverse.to_3x3() @ axis_world).normalized()
+    bpy.context.view_layer.objects.active = armature
+    bpy.ops.object.mode_set(mode="EDIT")
+    edit = armature.data.edit_bones
+    pelvis = edit.get(pelvis_bone)
+    if pelvis is None:
+        bpy.ops.object.mode_set(mode="OBJECT")
+        raise RuntimeError("Pelvis bone missing while creating male anatomy rig")
+    for name in ("AnatomyRoot", "AnatomyMid", "AnatomyTip"):
+        old = edit.get(name)
+        if old:
+            edit.remove(old)
+    previous = None
+    cursor = base.copy()
+    for name, fraction in (("AnatomyRoot", 0.42), ("AnatomyMid", 0.34), ("AnatomyTip", 0.24)):
+        bone = edit.new(name)
+        bone.head = cursor
+        cursor = cursor + axis * (length * fraction)
+        bone.tail = cursor
+        bone.parent = previous if previous else pelvis
+        bone.use_connect = False
+        previous = bone
+    bpy.ops.object.mode_set(mode="OBJECT")
+    armature["male_anatomy_rig"] = "AnatomyRoot>AnatomyMid>AnatomyTip"
+
+
 def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
                                   body_height, anatomy_z, anchor_y, anatomy_state):
     """Reuse Ara's own middle-finger surface as the phallus modelling template.
