@@ -123,15 +123,21 @@ func _build_fog_mesh() -> void:
 	fog_multimesh.use_custom_data = true
 	fog_multimesh.mesh = fog_mesh
 	fog_multimesh.instance_count = hexes.size()
+	# Explicit world-sized bounds prevent MultiMesh frustum culling from
+	# reducing a 190 m-wide fog field to the default small local bounds.
+	fog_multimesh.custom_aabb = AABB(Vector3(-190.0, -0.5, -220.0), Vector3(380.0, 1.0, 440.0))
 	for index in range(hexes.size()):
 		var hex: Vector2i = hexes[index]
 		var world := HexGrid.axial_to_world(hex, HEX_RADIUS)
 		var inside_tavern := absf(world.x) < ROOM_HALF_WIDTH - 0.2 and absf(world.z) < ROOM_HALF_DEPTH - 0.2
 		# The tavern's local hex tiles sit above the village ground plane.
 		# Match each surface rather than floating the entire village overlay.
-		var fog_height := -0.18
-		if absi(hex.x) <= 7 and absi(hex.y) <= 7:
-			fog_height = 0.14 if inside_tavern else 0.01
+		# Cover the complete outdoor ground, roads, stream and fields. The
+		# village ground is at -0.22 m and its ribbons reach 0.03 m, so the
+		# fog must sit above them. Tavern floor tiles are higher.
+		var fog_height := 0.08
+		if absi(hex.x) <= 7 and absi(hex.y) <= 7 and inside_tavern:
+			fog_height = 0.14
 		var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, fog_height)
 		fog_multimesh.set_instance_transform(index, Transform3D(Basis.IDENTITY, centre))
 		fog_multimesh.set_instance_custom_data(index, Color(0.0, 0.0, 0.0, 1.0))
