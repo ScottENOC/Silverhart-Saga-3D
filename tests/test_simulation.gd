@@ -412,7 +412,7 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
 
 func _test_farmstead_bear_presentation() -> void:
     var bear := FARMSTEAD_BEAR_ACTOR_SCRIPT.new() as Node3D
-    bear._ready()
+    bear.call("_ready")
     _check(bear.get_node_or_null("BearBodyRig/DeepBarrelBody") != null, "Bear has a broad barrel-shaped torso")
     _check(bear.get_node_or_null("BearBodyRig/ShoulderHump") != null, "Bear has a defined shoulder hump")
     _check(bear.get_node_or_null("BearHeadPivot/BroadBearSkull") != null, "Bear has a distinct skull and head assembly")
