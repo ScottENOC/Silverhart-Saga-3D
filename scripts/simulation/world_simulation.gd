@@ -119,6 +119,8 @@ func can_ride(character_id: String, animal_id: String) -> Dictionary:
         return {"ok": false, "reason": "unknown_character"}
     if rider.race == "animal" or mount.race != "animal" or not mount.mountable:
         return {"ok": false, "reason": "not_a_mount"}
+    if mount.side == "enemy":
+        return {"ok": false, "reason": "hostile_mount"}
     if not rider.mounted_animal_id.is_empty() or not mount.mounted_by_id.is_empty():
         return {"ok": false, "reason": "already_mounted"}
     if not rider.can_act() or not mount.can_act():
@@ -182,8 +184,11 @@ func dismount_animal(rider_id: String, time_point_cost: float = 5.0) -> Dictiona
         return {"ok": false, "reason": "mount_link_invalid"}
     if not rider.can_act() or not mount.can_act():
         return {"ok": false, "reason": "character_unavailable"}
-    if is_in_combat and (not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != rider.id):
-        return {"ok": false, "reason": "not_actor_turn"}
+    if is_in_combat:
+        if not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != rider.id:
+            return {"ok": false, "reason": "not_actor_turn"}
+        if rider.time_points <= float(ActionEconomy.turn_end_threshold(rider.quick_recovery_rank)):
+            return {"ok": false, "reason": "turn_movement_exhausted"}
     if not rider.can_spend_time_points(time_point_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
     var destination := Vector2i(2147483647, 2147483647)
