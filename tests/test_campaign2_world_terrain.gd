@@ -1,4 +1,5 @@
 extends SceneTree
+## Millbrook's POI anchor is its house centre; the road endpoint is a separate waypoint.
 
 const TERRAIN_DATA = preload("res://scripts/world/campaign2_world_terrain_data.gd")
 var failures: int = 0
