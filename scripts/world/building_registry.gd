@@ -3,6 +3,8 @@ extends RefCounted
 ## Runtime building catalogue and persistent door-state registry.
 ## Definitions are authored data; mutable door state is included in saves.
 
+signal door_state_changed(door_id: String)
+
 var definitions: Dictionary = {}
 var doors: Dictionary = {}
 
@@ -40,7 +42,33 @@ func set_door_open(door_id: String, should_open: bool) -> bool:
     var door := get_door(door_id)
     if door == null:
         return false
-    return door.open() if should_open else door.close()
+    var changed := door.open() if should_open else door.close()
+    if changed:
+        door_state_changed.emit(door_id)
+    return changed
+
+func lock_door(door_id: String) -> bool:
+    var door := get_door(door_id)
+    if door == null or not door.lock():
+        return false
+    door_state_changed.emit(door_id)
+    return true
+
+func unlock_door(door_id: String) -> bool:
+    var door := get_door(door_id)
+    if door == null or not door.unlock():
+        return false
+    door_state_changed.emit(door_id)
+    return true
+
+func damage_door(door_id: String, amount: int) -> bool:
+    var door := get_door(door_id)
+    if door == null:
+        return false
+    var broken := door.damage(amount)
+    if amount > 0:
+        door_state_changed.emit(door_id)
+    return broken
 
 func to_dict() -> Dictionary:
     var saved_doors: Dictionary = {}
@@ -55,3 +83,4 @@ func load_dict(data: Dictionary) -> void:
         var saved_state: Variant = saved_doors[door_id]
         if door != null and saved_state is Dictionary:
             door.load_dict(saved_state)
+            door_state_changed.emit(String(door_id))
