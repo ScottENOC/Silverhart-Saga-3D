@@ -144,7 +144,7 @@ static func conversation(character_id: String, journal: CampaignJournal, invento
             elif _started(journal, quest_id):
                 body = "That dire wolf is still taking livestock from Old Mac's outlying pens. Help me finish it and I might just travel on with you afterward."
             else:
-                body = "Careful — there's a dire wolf gone bold, taking young cattle from Old Mac's outlying pens at night. I've been tracking it for a few days now. It's far larger than an ordinary wolf, and clever enough to avoid the usual traps. Help me bring it down and I might just travel on with you afterward."
+                body = "Careful — there's a dire wolf gone bold, taking livestock from Old Mac's outlying pens at night. I've been tracking it for a few days now. It's far larger than an ordinary wolf, and clever enough to avoid the usual traps. Help me bring it down and I might just travel on with you afterward."
                 choices.append(_choice("start:"+quest_id,"I'll help hunt the dire wolf."))
         "mirabel_quill":
             recruit_ready = _completed(journal, quest_id)
