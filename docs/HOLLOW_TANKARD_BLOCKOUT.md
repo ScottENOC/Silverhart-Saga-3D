@@ -45,3 +45,14 @@ This is the first authored location in Silverhart Saga 3D. It replaces the tempo
 6. Does the camera remain useful inside the room and just outside the entrance?
 
 Treat measurements as a first blockout. Adjust the room and grid together based on the running scene rather than preserving a dimension that feels wrong in play.
+
+
+## Two-storey lodging update
+
+The Hollow Tankard now has a second storey above the taproom. The upper floor uses a reserved axial-coordinate range that is projected onto the same physical building footprint; this keeps upstairs movement and occupancy separate from ground-floor characters while retaining the shared campaign simulation and save format.
+
+- A physical staircase on the east side connects the taproom and upper landing. Stand within one hex and press **F** to climb or descend.
+- The upper floor has a west-side private suite labelled for Garrick Holt and two guest rooms in the east wing, with six furnished beds in total.
+- The upper floor is navigable by keyboard and click-to-move. The camera follows the character vertically, and click picking uses the current floor's elevation.
+- The roof remains a separate **V** cutaway. While downstairs, the upper exterior shell is shown; while upstairs, the shell is hidden and the furnished upper floor is shown.
+- Garrick remains in his existing ground-floor opening-scene role. His upstairs room is reserved for later day/night schedule integration; no unsupported schedule has been invented.
