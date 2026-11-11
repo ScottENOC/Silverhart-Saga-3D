@@ -44,7 +44,7 @@ jobs:
       - name: Install Blender, NumPy and headless rendering libraries
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y blender python3-numpy libgl1
+          sudo apt-get install --no-install-recommends -y blender python3-numpy libgl1 libegl1 libgl1-mesa-dri libgles2
 
       - name: Verify Blender can import NumPy
         env:
