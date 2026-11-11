@@ -6,7 +6,6 @@ const SAVE_ROOT := "user://saves"
 const MANUAL_SLOT_COUNT := 8
 const QUICK_SLOT := "quicksave"
 const AUTOSAVE_SLOTS := ["autosave_01", "autosave_02", "autosave_03"]
-var _autosave_cursor := 0
 var pending_load_data: Dictionary = {}
 
 func _slot_path(slot_id: String) -> String:
@@ -55,7 +54,9 @@ func save_snapshot(slot_id: String, snapshot: Dictionary, label: String = "Manua
     var absolute_temporary := ProjectSettings.globalize_path(temporary)
     if FileAccess.file_exists(target):
         var backup := absolute_target + ".bak"
-        DirAccess.copy_absolute(absolute_target, backup)
+        var backup_error := DirAccess.copy_absolute(absolute_target, backup)
+        if backup_error != OK:
+            return {"ok": false, "reason": "backup_failed", "error": backup_error}
         var remove_error := DirAccess.remove_absolute(absolute_target)
         if remove_error != OK:
             return {"ok": false, "reason": "replace_failed", "error": remove_error}
@@ -83,18 +84,33 @@ func save_autosave(snapshot: Dictionary) -> Dictionary:
             slot_id = candidate
     return save_snapshot(slot_id, snapshot, "Autosave")
 
+func _read_envelope(path: String) -> Variant:
+    if not FileAccess.file_exists(path):
+        return null
+    var file := FileAccess.open(path, FileAccess.READ)
+    if file == null:
+        return null
+    var value: Variant = file.get_var(false)
+    file.close()
+    return value
+
+func _valid_envelope(value: Variant) -> bool:
+    if not value is Dictionary:
+        return false
+    var metadata: Variant = value.get("metadata", {})
+    var snapshot: Variant = value.get("snapshot", {})
+    return metadata is Dictionary and snapshot is Dictionary
+
 func load_snapshot(slot_id: String) -> Dictionary:
     if not _valid_slot_id(slot_id):
         return {"ok": false, "reason": "invalid_slot"}
     var path := _slot_path(slot_id)
-    if not FileAccess.file_exists(path):
+    if not FileAccess.file_exists(path) and not FileAccess.file_exists(path + ".bak"):
         return {"ok": false, "reason": "empty_slot"}
-    var file := FileAccess.open(path, FileAccess.READ)
-    if file == null:
-        return {"ok": false, "reason": "open_failed", "error": FileAccess.get_open_error()}
-    var envelope: Variant = file.get_var(false)
-    file.close()
-    if not envelope is Dictionary or not envelope.get("metadata", {}) is Dictionary or not envelope.get("snapshot", {}) is Dictionary:
+    var envelope: Variant = _read_envelope(path)
+    if not _valid_envelope(envelope) and FileAccess.file_exists(path + ".bak"):
+        envelope = _read_envelope(path + ".bak")
+    if not _valid_envelope(envelope):
         return {"ok": false, "reason": "corrupt_save"}
     var metadata: Dictionary = envelope["metadata"]
     var version := int(metadata.get("format_version", 0))
