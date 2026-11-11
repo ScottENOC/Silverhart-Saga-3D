@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-"""Build a profile-matched library of independently skinned Ara garment objects.
+"""Build one canonical profile-matched library of independently skinned garments.
 
-The target is the bare body generated from one character's Ara profile. Garment
-geometry comes from a second Ara export made with the same body parameters, rig
-and rest pose, so its skin weights and rest transforms match the target body.
-Legacy NPC exports and unrelated profile exports are not used as garment sources.
-Every output mesh is named Garment__<garment_visual>__<body_variant>__<piece>,
-which Godot uses as the inventory binding.
-Run locally through build_ara_runtime_local.py; this requires Blender.
+The target is a canonical bare body. Its source export must use the exact same
+Ara base parameters, rig and rest pose. The profile manifest identifies the
+character/base whose expected equipment visuals are being extracted; it is not
+assumed to be Wren. Never retarget a garment from another body profile.
 """
 from __future__ import annotations
 
@@ -282,8 +279,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-body", type=Path, required=True)
     parser.add_argument("--profile-source", type=Path, required=True, help="Ara export generated from the same profile and rig settings as the bare body")
-    parser.add_argument("--npc-manifest", type=Path, required=True)
-    parser.add_argument("--profile-id", default="wren_talbot", help="NPC profile whose required inventory visuals this pilot build must satisfy")
+    parser.add_argument("--character-manifest", "--npc-manifest", dest="character_manifest", type=Path, required=True)
+    parser.add_argument("--profile-id", required=True, help="Canonical body/character profile whose expected garment visuals this library must satisfy")
     parser.add_argument("--output", type=Path, required=True)
     # Blender processes its own CLI options; pass only arguments after `--`
     # to argparse. Calling parse_args() directly sees Blender's argv instead.
@@ -298,12 +295,12 @@ def main() -> None:
     target_armature.name = "Ara_Garment_Skeleton"
     target_armature.parent = None
 
-    manifest = json.loads(args.npc_manifest.read_text(encoding="utf-8"))
+    manifest = json.loads(args.character_manifest.read_text(encoding="utf-8"))
     profiles = manifest.get("characters", [])
     if args.profile_id:
         profiles = [profile for profile in profiles if str(profile.get("id", "")) == args.profile_id]
     if not profiles:
-        raise RuntimeError(f"No NPC appearance profile found for pilot id {args.profile_id!r}")
+        raise RuntimeError(f"No character appearance profile found for profile id {args.profile_id!r}")
     expected_by_variant: dict[str, set[str]] = {"female": set(), "male": set()}
     deferred_equipment_by_variant: dict[str, set[str]] = {"female": set(), "male": set()}
     for profile in profiles:
@@ -396,12 +393,13 @@ def main() -> None:
         "available_visual_variants": sorted(seen),
         "extractions": extraction_report,
         "profile_scope": args.profile_id,
+        "body_asset_scope": "single canonical body profile; never Wren-specific",
         "deferred_equipment": sorted(
             f"{variant}:{item_id}"
             for variant, item_ids in deferred_equipment_by_variant.items()
             for item_id in item_ids
         ),
-        "source_policy": "Same-profile no-shoes Ara export only; footwear is deferred to separate equipment assets; legacy NPC GLBs are not imported",
+        "source_policy": "Same-profile no-shoes Ara export only; footwear is deferred to separate equipment assets; no character or NPC is privileged as the canonical body",
         "validation": {
             "skeleton_bone_names_and_order": "passed",
             "skeleton_rest_transforms": "passed",
