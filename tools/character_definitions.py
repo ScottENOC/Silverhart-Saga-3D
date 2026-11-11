@@ -6,6 +6,19 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ITEM_CATALOG_PATH = ROOT / "data" / "items" / "item_definitions.json"
+# Modest average male body-shape defaults. These are ordinary Ara detail
+# sliders, not hard-coded mesh deformation. A character's own modifiers override
+# individual values, so male NPCs still retain distinct physiques.
+DEFAULT_MALE_BODY_MODIFIERS = {
+    "torso/torso-vshape": 0.20,
+    "torso/torso-muscle-dorsi": 0.12,
+    "armslegs/upperarm-muscle": 0.12,
+    "armslegs/upperarm-scale-horiz": 0.12,
+    "armslegs/upperarm-scale-depth": 0.10,
+    "armslegs/lowerarm-muscle": 0.08,
+}
+
+
 ARA_SLOT_TO_FIELD = {
     "shirt": "top", "underTop": "underTop", "underBottom": "underBottom",
     "jacket": "jacket", "pants": "bottom", "shoes": "shoes", "helmet": "hat",
@@ -79,6 +92,10 @@ def ara_export_params(character: dict, items: dict, *, include_equipped: bool = 
                       name: str | None = None, detail: str | None = None) -> dict:
     """Derive the Ara export payload from one canonical character definition."""
     params = dict(character.get("appearance", {}))
+    if float(params.get("gender", 0.0)) >= 0.5:
+        modifiers = dict(DEFAULT_MALE_BODY_MODIFIERS)
+        modifiers.update(params.get("modifiers", {}))
+        params["modifiers"] = modifiers
     equipped = character.get("equipped", {}) if include_equipped else {}
     for slot, field in ARA_SLOT_TO_FIELD.items():
         item_id = equipped.get(slot, "none")
