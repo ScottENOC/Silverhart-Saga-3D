@@ -9,7 +9,7 @@ const DEFINITIONS := [
     {"id":"star_fort_companion","title":"A Choice at Star Fort","description":"Resolve the Star Fort encounter and choose the greenskin alliance; Snik Fangtooth will then offer to join.","objectives":[{"id":"greenskin_resolution","description":"Choose the greenskin side at Star Fort.","target":1.0,"required":true}]},
     {"id":"aldric_rescue","title":"A Debt at the Goblin Camp","description":"Find Ser Aldric Thorne captive at the goblin camp and free him.","objectives":[{"id":"freed","description":"Free Ser Aldric from captivity.","target":1.0,"required":true}]},
     {"id":"orc_stronghold_trust","title":"Prove Your Strength","description":"Deal with the troll denning east of Skarnak's Hold and earn the orc stronghold's trust.","objectives":[{"id":"troll_slain","description":"Defeat the troll threatening the orc scouts and cattle.","target":1.0,"required":true}]},
-    {"id":"reyna_dire_wolf_hunt","title":"The Grain-Raiding Dire Wolf","description":"Help Reyna Fletcher stop the dire wolf raiding Old Mac's grain stores.","objectives":[{"id":"dire_wolf_slain","description":"Defeat the dire wolf at Old Mac's Farmstead.","target":1.0,"required":true}]},
+    {"id":"reyna_dire_wolf_hunt","title":"The Farmstead Dire Wolf","description":"Help Reyna Fletcher stop the dire wolf preying on Old Mac's outlying livestock.","objectives":[{"id":"dire_wolf_slain","description":"Defeat the dire wolf threatening Old Mac's livestock.","target":1.0,"required":true}]},
     {"id":"mirabel_spider_ruin","title":"The Ruin's Quiet","description":"Clear the spider nest at the nearby ruin so Mirabel can recover what is inside.","objectives":[{"id":"nest_cleared","description":"Defeat the spiders guarding the ruin.","target":1.0,"required":true}]},
     {"id":"fenn_herb_gathering","title":"Three Bundles for the Grove","description":"Gather three bundles of herbs for Fenn Oakheart.","objectives":[{"id":"herbs_delivered","description":"Deliver three bundles of herbs to Fenn.","target":3.0,"required":true}]},
     {"id":"northwatch_siege","title":"Hold Northwatch","description":"Help defend Northwatch. Brother Alden will consider joining after the battle.","objectives":[{"id":"defended","description":"Resolve the Northwatch siege in the defenders' favour.","target":1.0,"required":true}]},
@@ -140,11 +140,11 @@ static func conversation(character_id: String, journal: CampaignJournal, invento
         "reyna_fletcher":
             recruit_ready = _completed(journal, quest_id)
             if recruit_ready:
-                body = "That's the last of it dead, then. Good riddance — it's cost Old Mac more grain than he can spare. I owe you for the help. I've been meaning to travel further than these woods for a while now — mind the company?"
+                body = "That's the last of it dead, then. Old Mac's young stock should be safe now. I owe you for the help. I've been meaning to travel further than these woods for a while now — mind the company?"
             elif _started(journal, quest_id):
-                body = "That dire wolf is still raiding Old Mac's grain stores. Help me finish it and I might just travel on with you afterward."
+                body = "That dire wolf is still taking livestock from Old Mac's outlying pens. Help me finish it and I might just travel on with you afterward."
             else:
-                body = "Careful — there's a dire wolf gone bold, raiding the grain stores at night. I've been tracking it for a few days now. It has been taking livestock and tearing into the grain stores. Help me bring it down and I might just travel on with you afterward."
+                body = "Careful — there's a dire wolf gone bold, taking young cattle from Old Mac's outlying pens at night. I've been tracking it for a few days now. It's far larger than an ordinary wolf, and clever enough to avoid the usual traps. Help me bring it down and I might just travel on with you afterward."
                 choices.append(_choice("start:"+quest_id,"I'll help hunt the dire wolf."))
         "mirabel_quill":
             recruit_ready = _completed(journal, quest_id)
