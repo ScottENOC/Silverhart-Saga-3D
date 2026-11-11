@@ -80,14 +80,19 @@ func _test_hollowmere_character_manifest() -> void:
     var characters: Array = manifest.get("characters", [])
     assert(characters.size() == 13, "Expected 13 authored village character profiles")
     var ids: Dictionary = {}
+    assert(int(manifest.get("schema_version", 0)) == 2, "Character manifest must use canonical schema version 2")
     for profile in characters:
-        assert(profile.has("id") and profile.has("game_id") and profile.has("params"))
+        assert(profile.has("id") and profile.has("game_id") and profile.has("appearance") and profile.has("inventory") and profile.has("equipped"))
         assert(not ids.has(profile["id"]), "Character profile IDs must be unique")
         ids[profile["id"]] = true
-        var params: Dictionary = profile["params"]
+        var appearance: Dictionary = profile["appearance"]
         for slider in ["gender", "age", "muscle", "weight", "height", "proportions"]:
-            assert(params.has(slider), "%s is missing Ara slider %s" % [profile["id"], slider])
-            assert(float(params[slider]) >= 0.0 and float(params[slider]) <= 1.0)
+            assert(appearance.has(slider), "%s is missing Ara appearance slider %s" % [profile["id"], slider])
+            assert(float(appearance[slider]) >= 0.0 and float(appearance[slider]) <= 1.0)
+        assert(profile["inventory"] is Array, "%s inventory must be an array of item IDs" % profile["id"])
+        assert(profile["equipped"] is Dictionary, "%s equipped items must be a slot-to-item map" % profile["id"])
+        for slot in profile["equipped"]:
+            assert(profile["inventory"].has(profile["equipped"][slot]), "%s equips an item it does not own" % profile["id"])
         var coordinates: Array = profile["hex"]
         var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
         assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
