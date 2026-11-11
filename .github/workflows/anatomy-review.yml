@@ -41,10 +41,16 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install Blender and headless rendering libraries
+      - name: Install Blender, NumPy and headless rendering libraries
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y blender libgl1
+          sudo apt-get install --no-install-recommends -y blender python3-numpy libgl1
+
+      - name: Verify Blender can import NumPy
+        env:
+          PYTHONPATH: /usr/lib/python3/dist-packages
+        run: |
+          blender --background --python-expr "import sys; import numpy; print('Blender Python:', sys.version); print('NumPy:', numpy.__version__)"
 
       - name: Enable Corepack
         run: corepack enable
@@ -53,6 +59,7 @@ jobs:
         env:
           EGL_PLATFORM: surfaceless
           LIBGL_ALWAYS_SOFTWARE: "1"
+          PYTHONPATH: /usr/lib/python3/dist-packages
         run: python tools/build_ara_runtime_local.py --anatomy-review-only --force
 
       - name: Upload anatomy review package
