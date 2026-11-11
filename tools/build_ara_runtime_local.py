@@ -195,6 +195,8 @@ def parse_build_options():
                         help="Ignore all stage caches and rebuild every generated stage.")
     parser.add_argument("--max-cache-age-hours", type=float, default=None,
                         help="Rebuild a stage if its successful cache manifest is older than this many hours.")
+    parser.add_argument("--anatomy-review-only", action="store_true",
+                        help="Build only female_average and male_average anatomy review assets; skip clothing/NPC pipeline.")
     options = parser.parse_args()
     if options.max_cache_age_hours is not None and options.max_cache_age_hours < 0:
         parser.error("--max-cache-age-hours must be zero or greater")
@@ -340,6 +342,68 @@ def main():
             shutil.copy2(found,glb)
         cached("ara-"+key,[glb],[param,patch,ROOT/"tools/character_definitions.py",ROOT/"data/items/item_definitions.json",GEN/"public/assets/targets.pack",GEN/"public/assets/catalog.json"],PIN+":"+str(current),action)
         shutil.copy2(glb,ARA/(key+".glb")); shutil.copy2(param,ARA/(key+".params.json"))
+    if options.anatomy_review_only:
+        review_root = ROOT / "build" / "anatomy-review"
+        review_root.mkdir(parents=True, exist_ok=True)
+        female_raw = RAW / "ara_person_body.glb"
+        male_raw = RAW / "ara_person_male_raw.glb"
+        female_final = review_root / "female_average_vulva.glb"
+        male_final = review_root / "male_average_flaccid.glb"
+        export("ara_person_body", body)
+        export("ara_person_male_raw", male)
+
+        review_env = os.environ.copy()
+        review_env.update({"EGL_PLATFORM": "surfaceless", "LIBGL_ALWAYS_SOFTWARE": "1"})
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/add_adult_anatomy.py", "--",
+             "--input", female_raw, "--output", female_final, "--profile", "female",
+             "--adult", "--deformation-scale", "1.0"], env=review_env)
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/add_male_anatomy.py", "--",
+             "--input", male_raw, "--output", male_final, "--adult",
+             "--profile-name", "male_average", "--anatomy-state", "flaccid"], env=review_env)
+
+        shutil.copy2(female_raw, review_root / "female_average_raw.glb")
+        shutil.copy2(male_raw, review_root / "male_average_raw.glb")
+        for label, model in (("female_average", female_final), ("male_average", male_final)):
+            for focus_name, focus_args in (("full", []), ("pelvis", ["--focus-pelvis"])):
+                output_dir = review_root / "renders" / label / focus_name
+                output_dir.mkdir(parents=True, exist_ok=True)
+                run([blender, "--background", "--python-exit-code", "1", "--python",
+                     ROOT / "tools/blender/inspect_character.py", "--",
+                     "--input", model, "--output-dir", output_dir, *focus_args], env=review_env)
+
+        report = {
+            "schema_version": 1,
+            "purpose": "visual anatomy prototype only; not production-approved",
+            "ara_generator_commit": PIN,
+            "profiles": ["female_average", "male_average"],
+            "female": {
+                "asset": female_final.name,
+                "deformation_scale": 1.0,
+                "targets_percent_of_body_height": {
+                    "mons_pubis_fullness": 0.50,
+                    "labia_majora_relief": 0.375,
+                    "labia_minora_relief": 0.25,
+                    "clitoral_hood_relief": 0.225,
+                    "vestibular_recess": 0.1875
+                },
+                "pigmentation": "skin-relative vertex colour; stronger inner/central contrast"
+            },
+            "male": {
+                "asset": male_final.name,
+                "anatomy_state": "flaccid",
+                "source_script_default": "flaccid"
+            },
+            "views": ["front", "side", "rear", "three_quarter"],
+            "review_note": "Inspect raw and processed GLBs and all full/pelvis renders under the same lighting."
+        }
+        (review_root / "anatomy_review_report.json").write_text(
+            json.dumps(report, indent=2) + "\\n", encoding="utf-8"
+        )
+        log(f"Anatomy-only review build complete: {review_root}")
+        return
+
     for key,p in params.items(): export(key,p)
     # Anatomy integration: female base and male base, cached separately.
     female_out=ARA/"ara_person_body.glb"; female_raw=RAW/"ara_person_body.glb"
