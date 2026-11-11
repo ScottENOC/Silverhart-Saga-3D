@@ -244,7 +244,38 @@ def main():
       "name":"Ara Base Person - Wren Talbot garment source no shoes",
       "shoes":"none"
     })
-    male=dict(body); male.update({"name":"Ara Base Person - male body","seed":417,"gender":1,"breastSize":0,"breastFirmness":0})
+    # Production generic male: use the same Ara macro system as every other adult,
+    # with a modest masculine torso/arm profile expressed as ordinary detail sliders.
+    # These are defaults, not hard gender locks; individual character profiles may vary.
+    male=dict(body); male.update({
+      "name":"Ara Base Person - male body","seed":417,"gender":1,
+      "breastSize":0,"breastFirmness":0,
+      "modifiers":{
+        "torso/torso-vshape":0.20,
+        "torso/torso-muscle-dorsi":0.12,
+        "armslegs/upperarm-muscle":0.12,
+        "armslegs/upperarm-scale-horiz":0.12,
+        "armslegs/upperarm-scale-depth":0.10,
+        "armslegs/lowerarm-muscle":0.08
+      }})
+    # Deliberately exaggerated comparison pair. These are diagnostic exports only;
+    # they are never packaged or used as production character defaults.
+    female_test=dict(body); female_test.update({
+      "name":"Ara diagnostic - female maximum breast morph","seed":731,
+      "gender":0,"breastSize":1.0,"breastFirmness":1.0})
+    male_test=dict(body); male_test.update({
+      "name":"Ara diagnostic - male minimum breast and broad upper body","seed":947,
+      "gender":1,"breastSize":0.0,"breastFirmness":0.0,
+      "modifiers":{
+        "torso/torso-vshape":0.85,
+        "torso/torso-muscle-dorsi":0.75,
+        "torso/torso-muscle-pectoral":0.45,
+        "armslegs/upperarm-muscle":0.85,
+        "armslegs/upperarm-scale-horiz":0.70,
+        "armslegs/upperarm-scale-depth":0.65,
+        "armslegs/lowerarm-muscle":0.65,
+        "armslegs/lowerarm-scale-horiz":0.35
+      }})
     mobile=dict(base); mobile.update({"name":"Ara Base Person - mobile preview","detail":"low","animations":False,"faceBones":False,"faceShapes":False,"speechShapes":False})
     variants={
       "tank_top":{"top":"tank_top","underTop":"none","underBottom":"none","bottom":"none"},
@@ -261,7 +292,7 @@ def main():
       "fishnet_pants":{"top":"none","underTop":"none","underBottom":"none","bottom":"fatigue_pants","garmentStyles":{"fatigue_pants":{"pattern":"fishnet","color":"#29242d","color2":"#987b91"}}},
       "backless_slit_dress":{"top":"backless_slit_dress","underTop":"none","underBottom":"none","bottom":"none"},
       "leather_armor":{"top":"none","underTop":"none","underBottom":"none","bottom":"none","accessories":["leather_armor"]}}
-    params={"ara_person_benchmark":base,"ara_person_body":body,"ara_person_male_raw":male,"ara_person_mobile":mobile,"ara_person_wrapper_knee":dict(body, name="Ara Wrapper Knee Source", bottom="wrapper_knee"),"ara_person_wren_body":wren_body,"ara_person_wren_dressed":wren_dressed,"ara_person_wren_dressed_no_shoes":wren_dressed_no_shoes}
+    params={"ara_person_benchmark":base,"ara_person_body":body,"ara_person_male_raw":male,"ara_person_gender_test_female":female_test,"ara_person_gender_test_male":male_test,"ara_person_mobile":mobile,"ara_person_wrapper_knee":dict(body, name="Ara Wrapper Knee Source", bottom="wrapper_knee"),"ara_person_wren_body":wren_body,"ara_person_wren_dressed":wren_dressed,"ara_person_wren_dressed_no_shoes":wren_dressed_no_shoes}
     for k,v in variants.items():
         p=dict(base); p.update({"name":"Ara Base Person - "+k,"jacket":"none","underwear":False,"shoes":"none","hat":"none","weapon":"none","carry":"none"}); p.update(v); params["ara_person_"+k]=p
     def export(key,p):
@@ -331,6 +362,21 @@ def main():
     def validate_wren_body():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/validate_ara_body_variant.py","--","--reference",wren_out,"--candidate",wren_garment_source,"--output",wren_validation])
     cached("validate-wren-body",[wren_validation],[wren_out,wren_garment_source,ROOT/"tools/blender/validate_ara_body_variant.py"],"no-shoes-canonical-rest-rig-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],validate_wren_body)
+    # Anatomy-processed diagnostic pair, kept outside the runtime package.
+    female_test_raw=RAW/"ara_person_gender_test_female.glb"
+    female_test_out=ARA/"ara_person_gender_test_female.glb"
+    def female_test_action():
+        env=os.environ.copy(); env.update({"ARA_INPUT":str(female_test_raw),"ARA_OUTPUT":str(RAW/"ara_person_gender_test_female_anatomy.glb"),"ARA_PROFILE":"female","ARA_ADULT":"1"})
+        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_adult_anatomy.py"],env=env)
+        shutil.copy2(RAW/"ara_person_gender_test_female_anatomy.glb",female_test_out)
+    cached("gender-test-female-anatomy",[female_test_out],[female_test_raw,ROOT/"tools/blender/add_adult_anatomy.py"],"max-breast-diagnostic-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],female_test_action)
+
+    male_test_raw=RAW/"ara_person_gender_test_male.glb"
+    male_test_out=ARA/"ara_person_gender_test_male.glb"
+    def male_test_action():
+        run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_test_raw,"--output",male_test_out,"--adult","--profile-name","diagnostic_broad_male"])
+    cached("gender-test-male-anatomy",[male_test_out],[male_test_raw,ROOT/"tools/blender/add_male_anatomy.py"],"minimum-breast-broad-shoulder-diagnostic-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_test_action)
+
     male_out=ARA/"ara_person_male_body.glb"; male_raw=RAW/"ara_person_male_raw.glb"
     def male_action():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_out,"--adult","--profile-name","standard"])
@@ -447,6 +493,8 @@ def main():
     review_character("wren-body",wren_out,"wren_body")
     review_character("wren-dressed",wren_dressed_out,"wren_dressed")
     review_character("male-body",male_out,"male")
+    review_character("gender-test-female",female_test_out,"gender_test_female")
+    review_character("gender-test-male",male_test_out,"gender_test_male")
     outfit_script=ROOT/"tools/review/render_modular_outfits.py"
     for outfit in ["dress","lace_bra","fishnet_bra","lace_briefs","fishnet_briefs","lace_shirt","fishnet_shirt","lace_pants","fishnet_pants"]:
         outputs=[review_root/"outfits"/outfit/f"{view}.png" for view in ["front","side","rear"]]+[review_root/"outfits"/outfit/"report.json"]
