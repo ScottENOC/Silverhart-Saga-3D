@@ -973,13 +973,20 @@ func _test_item_catalog_and_hollowmere_loadouts() -> void:
     var dray_definition: Dictionary = definitions.get("dray_coltayne", {})
     var tomlin_definition: Dictionary = definitions.get("tomlin_brask", {})
     var hask_definition: Dictionary = definitions.get("hask_greel", {})
-    var wren_definition: Dictionary = definitions.get("wren_talbot", {})
+    var wren_definition: Dictionary = {}
+    for definition_value in parsed.get("characters", []):
+        if definition_value is Dictionary and String(definition_value.get("id", "")) == "wren_talbot":
+            wren_definition = definition_value
+            break
     _check(not dray_definition.is_empty(), "Dray's canonical character definition should exist")
     _check(dray_definition.get("inventory", []) == ["uniform_shirt", "fatigue_pants", "combat_boots", "sword", "medium_armor", "wooden_shield"], "Dray's inventory should match the original campaign")
     _check(tomlin_definition.get("inventory", []) == ["uniform_shirt", "fatigue_pants", "combat_boots", "spear", "light_armor"], "Tomlin's inventory should match the original campaign")
     _check(hask_definition.get("inventory", []) == ["uniform_shirt", "fatigue_pants", "combat_boots", "axe", "light_armor"], "Hask's inventory should match the original campaign")
     _check(wren_definition.get("equipped", {}).get("weapon", "") == "sword", "Wren should retain the sword shown in the Ara profile")
-    _check(not definitions.has("player"), "Do not invent a player class kit before class selection exists")
+    var player_definition: Dictionary = definitions.get("player", {})
+    _check(not player_definition.is_empty(), "The canonical player avatar should exist")
+    _check(player_definition.get("inventory", []) == ["long_tunic", "trousers", "sandals"], "Player should start with only the basic clothing kit before class selection")
+    _check(not player_definition.get("equipped", {}).has("weapon") and not player_definition.get("equipped", {}).has("armour"), "Do not invent a player weapon or armour kit before class selection exists")
 
     var dray := CharacterState.new("dray_coltayne", "Dray Coltayne", Vector2i.ZERO)
     var dray_equipped: Dictionary = dray_definition.get("equipped", {})
