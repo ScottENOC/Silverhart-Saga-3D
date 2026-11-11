@@ -14,6 +14,7 @@ const SEASONAL_TREE_SCRIPT = preload("res://scripts/presentation/seasonal_tree_v
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
+const FARMSTEAD_BEAR_SCRIPT = preload("res://scripts/simulation/farmstead_bear_encounter.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -75,6 +76,12 @@ var combat_status_label: Label
 var resource_status_label: Label
 var resource_visuals_by_hex: Dictionary = {}
 var encounter_active: bool = false
+var active_combat_kind: String = "ironbond"
+var active_combat_enemy_ids: Array[String] = []
+var active_combat_party_ids: Array[String] = []
+var nearby_interaction_panel: PanelContainer
+var nearby_interaction_box: VBoxContainer
+var nearby_interaction_refresh: float = 0.0
 var enemy_turn_processed: bool = false
 var enemy_turn_waiting_for_reaction: bool = false
 
@@ -83,6 +90,7 @@ func _ready() -> void:
     _create_lighting()
     _create_simulation()
     _create_ground_and_hexes()
+    _create_farmstead_visuals()
     _create_wilderness_gatherable_grove()
     _create_building()
     _create_furniture()
@@ -227,6 +235,127 @@ func _is_furniture_cell_blocked(world: Vector3) -> bool:
     if absf(world.z) > 1.0 and absf(world.z) < 2.0 and ((world.x > -4.0 and world.x < -1.2) or (world.x > 1.2 and world.x < 4.0)):
         return true # benches
     return false
+
+func _create_farmstead_visuals() -> void:
+    var farm_centre := HexGrid.axial_to_world(HollowmereVillageData.FARMHOUSE, HEX_RADIUS)
+    var extended_ground := MeshInstance3D.new()
+    var ground_mesh := PlaneMesh.new()
+    ground_mesh.size = Vector2(190.0, 175.0)
+    extended_ground.mesh = ground_mesh
+    extended_ground.position = Vector3(farm_centre.x * 0.5, -0.18, farm_centre.z * 0.5)
+    extended_ground.material_override = grass_material
+    add_child(extended_ground)
+
+    var render_cells: Dictionary = {}
+    for hex in HollowmereVillageData.path_cells():
+        render_cells[hex] = true
+    for q in range(4, 32):
+        for r in range(42, 67):
+            render_cells[Vector2i(q, r)] = true
+    for hex_value in render_cells.keys():
+        var hex: Vector2i = hex_value
+        if HexGrid.distance(hex, Vector2i.ZERO) <= 7 or not simulation.map_data.has_cell(hex):
+            continue
+        var tile := MeshInstance3D.new()
+        tile.mesh = tile_mesh
+        tile.position = HexGrid.axial_to_world(hex, HEX_RADIUS, -0.07)
+        tile.material_override = floor_material if HollowmereVillageData.is_path(hex) else grass_material
+        add_child(tile)
+
+    var farmhouse := Node3D.new()
+    farmhouse.name = "OldMacFarmhouse"
+    farmhouse.position = farm_centre
+    add_child(farmhouse)
+    _add_box(farmhouse, "FarmhouseWalls", Vector3(0.0, 1.45, 0.0), Vector3(8.0, 2.9, 6.0), plaster_material)
+    _add_box(farmhouse, "FarmhouseRoof", Vector3(0.0, 3.15, 0.0), Vector3(9.0, 0.45, 7.0), roof_material)
+    _add_box(farmhouse, "FarmhouseDoor", Vector3(0.0, 1.0, 3.05), Vector3(1.2, 2.0, 0.16), dark_wood_material)
+    for x in [-2.7, 2.7]:
+        _add_box(farmhouse, "FarmhouseWindow", Vector3(x, 1.8, 3.06), Vector3(1.1, 0.9, 0.08), glass_material)
+
+    var barn := Node3D.new()
+    barn.name = "OldMacGrainBarn"
+    barn.position = HexGrid.axial_to_world(HollowmereVillageData.FARM_BARN, HEX_RADIUS)
+    add_child(barn)
+    _add_box(barn, "BarnWalls", Vector3(0.0, 1.7, 0.0), Vector3(10.0, 3.4, 8.0), timber_material)
+    _add_box(barn, "BarnRoof", Vector3(0.0, 3.55, 0.0), Vector3(11.0, 0.5, 9.0), roof_material)
+    _add_box(barn, "BarnDoor", Vector3(0.0, 1.25, 4.05), Vector3(3.2, 2.5, 0.18), dark_wood_material)
+    for index in range(4):
+        var bale := _add_box(barn, "GrainBale", Vector3(-3.0 + float(index) * 1.9, 0.45, 5.3), Vector3(1.4, 0.9, 1.0), _material(Color(0.66, 0.52, 0.25)))
+        bale.rotation_degrees.y = -8.0 + float(index) * 4.0
+
+
+func _spawn_farmstead_bear() -> void:
+    var actor := HexActorPresentation.new()
+    actor.name = FARMSTEAD_BEAR_SCRIPT.BEAR_ID
+    actor.position = _hex_world_position(Vector2i(27, 55))
+    actor.set_meta("character_id", FARMSTEAD_BEAR_SCRIPT.BEAR_ID)
+    actor.set_meta("ambient_enabled", false)
+    var bear_material := _material(Color(0.22, 0.12, 0.07))
+    var body := MeshInstance3D.new()
+    var body_mesh := SphereMesh.new()
+    body_mesh.radius = 0.82
+    body_mesh.height = 1.35
+    body.mesh = body_mesh
+    body.position = Vector3(0.0, 0.88, 0.0)
+    body.scale = Vector3(1.0, 0.82, 1.35)
+    body.material_override = bear_material
+    actor.add_child(body)
+    var head := MeshInstance3D.new()
+    var head_mesh := SphereMesh.new()
+    head_mesh.radius = 0.48
+    head.mesh = head_mesh
+    head.position = Vector3(0.0, 1.25, -0.82)
+    head.material_override = bear_material
+    actor.add_child(head)
+    var muzzle := MeshInstance3D.new()
+    var muzzle_mesh := SphereMesh.new()
+    muzzle_mesh.radius = 0.23
+    muzzle.mesh = muzzle_mesh
+    muzzle.position = Vector3(0.0, 1.08, -1.2)
+    muzzle.material_override = _material(Color(0.38, 0.25, 0.16))
+    actor.add_child(muzzle)
+    for x in [-0.48, 0.48]:
+        for z in [-0.42, 0.48]:
+            var leg := MeshInstance3D.new()
+            var leg_mesh := CylinderMesh.new()
+            leg_mesh.top_radius = 0.17
+            leg_mesh.bottom_radius = 0.21
+            leg_mesh.height = 0.8
+            leg.mesh = leg_mesh
+            leg.position = Vector3(x, 0.4, z)
+            leg.material_override = bear_material
+            actor.add_child(leg)
+    var label := Label3D.new()
+    label.text = "Grain-raiding bear"
+    label.position.y = 2.0
+    label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    label.font_size = 28
+    actor.add_child(label)
+    add_child(actor)
+    actor_by_id[FARMSTEAD_BEAR_SCRIPT.BEAR_ID] = actor
+
+
+func _begin_bear_hunt_combat() -> void:
+    _close_dialogue()
+    var party_ids: Array[String] = []
+    for value in simulation.party_member_ids:
+        party_ids.append(String(value))
+    var result := FARMSTEAD_BEAR_SCRIPT.start(simulation, party_ids)
+    if not bool(result.get("ok", false)):
+        _show_dialogue("Reyna Fletcher", "We cannot face it just now: %s." % String(result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
+        return
+    active_combat_kind = "bear_hunt"
+    active_combat_enemy_ids = [FARMSTEAD_BEAR_SCRIPT.BEAR_ID]
+    active_combat_party_ids.clear()
+    for value in result.get("party_ids", []):
+        active_combat_party_ids.append(String(value))
+    encounter_active = true
+    enemy_turn_processed = false
+    enemy_turn_waiting_for_reaction = false
+    if not active_combat_party_ids.has(active_character_id):
+        active_character_id = "player"
+    _update_combat_ui()
+
 
 func _create_ground_and_hexes() -> void:
     var ground := MeshInstance3D.new()
@@ -409,11 +538,16 @@ func _create_characters() -> void:
             continue
         var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
         var actor_id := str(profile.get("game_id", profile.get("id", "")))
+        if actor_id == "companion_reyna_fletcher":
+            spawn = Vector2i(17, 57) # Reyna is stationed beside Old Mac's grain store.
         var model_id := str(profile.get("id", ""))
         var display_name := str(profile.get("name", actor_id))
         if actor_id.is_empty() or model_id.is_empty():
             continue
         _spawn_character(actor_id, display_name, spawn, Color(0.42, 0.34, 0.25), false, model_id, profile)
+    var bear_result := FARMSTEAD_BEAR_SCRIPT.create_bear(simulation, Vector2i(27, 55))
+    if bool(bear_result.get("ok", false)):
+        _spawn_farmstead_bear()
 
 
 func _load_starting_loadouts() -> Dictionary:
@@ -760,6 +894,15 @@ func _create_hud() -> void:
     character_panel.configure(simulation, active_character_id)
     character_panel.equipment_changed.connect(_on_character_equipment_changed)
     _create_dialogue_panel(layer)
+    nearby_interaction_panel = PanelContainer.new()
+    nearby_interaction_panel.name = "NearbyNPCInteractions"
+    nearby_interaction_panel.position = Vector2(22.0, 244.0)
+    nearby_interaction_panel.custom_minimum_size = Vector2(250.0, 0.0)
+    nearby_interaction_panel.visible = false
+    nearby_interaction_box = VBoxContainer.new()
+    nearby_interaction_box.add_theme_constant_override("separation", 4)
+    nearby_interaction_panel.add_child(nearby_interaction_box)
+    layer.add_child(nearby_interaction_panel)
 
     world_map_panel = WORLD_MAP_PANEL_SCRIPT.new() as CanvasLayer
     world_map_panel.name = "MainCampaignWorldMap"
@@ -890,10 +1033,12 @@ func _interact_with_nearest_npc() -> void:
     var nearest_distance := 999
     for actor_id_value in actor_by_id.keys():
         var actor_id := String(actor_id_value)
-        if actor_id == active_character_id or party_member_ids.has(actor_id):
+        if actor_id == active_character_id or simulation.is_party_member(actor_id):
             continue
         var state := simulation.get_character(actor_id)
-        if state == null or not state.can_act() or state.side == "enemy":
+        if state == null or not state.can_act():
+            continue
+        if state.side == "enemy" and actor_id != FARMSTEAD_BEAR_SCRIPT.BEAR_ID:
             continue
         var distance := HexGrid.distance(player_state.axial, state.axial)
         if distance <= 2 and distance < nearest_distance:
@@ -902,19 +1047,85 @@ func _interact_with_nearest_npc() -> void:
     if nearest_id.is_empty():
         _show_dialogue("No one nearby", "Move closer to someone if you want to speak with them.", [{"id": "continue", "label": "Close", "text": ""}])
         return
-    if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(nearest_id):
-        _show_companion_dialogue(nearest_id)
+    _interact_with_character(nearest_id)
+
+
+func _interact_with_character(character_id: String) -> void:
+    if dialogue_open or ambient_exchange_running or encounter_active:
+        return
+    var player_state := simulation.get_character(active_character_id)
+    var target_state := simulation.get_character(character_id)
+    if player_state == null or target_state == null or HexGrid.distance(player_state.axial, target_state.axial) > 2:
+        return
+    if character_id == FARMSTEAD_BEAR_SCRIPT.BEAR_ID:
+        var bear_quest := simulation.campaign_journal.quest_state("reyna_bear_hunt")
+        if String(bear_quest.get("status", "")) != "active":
+            _show_dialogue("Grain-raiding bear", "The bear is tearing at the grain store. Speak to Reyna before engaging it.", [{"id":"continue","label":"Understood","text":""}])
+            return
+        _begin_bear_hunt_combat()
+        return
+    if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(character_id):
+        _show_companion_dialogue(character_id)
         return
     var quest_state := simulation.campaign_journal.quest_state(HollowmereCampaignContent.QUEST_ID)
     var decisions: Dictionary = quest_state.get("decisions", {})
     var response_choice := String(decisions.get("response", ""))
-    var standing := simulation.campaign_journal.npc_standing(nearest_id)
-    var conversation := HollowmereCampaignContent.npc_greeting(nearest_id, shakedown_resolved, standing, response_choice)
+    var standing := simulation.campaign_journal.npc_standing(character_id)
+    var conversation := HollowmereCampaignContent.npc_greeting(character_id, shakedown_resolved, standing, response_choice)
     var choices: Array[Dictionary] = []
     for choice_value in conversation.get("choices", []):
         var choice: Dictionary = choice_value
         choices.append(choice.duplicate(true))
-    _show_dialogue(String(conversation.get("speaker", nearest_id)), String(conversation.get("text", "")), choices)
+    _show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), choices)
+
+
+func _refresh_nearby_interactions() -> void:
+    if nearby_interaction_panel == null or nearby_interaction_box == null or simulation == null:
+        return
+    if dialogue_open or encounter_active or simulation.is_in_combat:
+        nearby_interaction_panel.visible = false
+        return
+    var active_state := simulation.get_character(active_character_id)
+    if active_state == null:
+        nearby_interaction_panel.visible = false
+        return
+    var nearby: Array[Dictionary] = []
+    for actor_id_value in actor_by_id.keys():
+        var actor_id := String(actor_id_value)
+        if actor_id == active_character_id or simulation.is_party_member(actor_id):
+            continue
+        var state := simulation.get_character(actor_id)
+        if state == null or not state.can_act():
+            continue
+        var hostile := state.side == "enemy"
+        if hostile and actor_id != FARMSTEAD_BEAR_SCRIPT.BEAR_ID:
+            continue
+        var distance := HexGrid.distance(active_state.axial, state.axial)
+        if distance <= 2:
+            nearby.append({"id":actor_id,"name":state.display_name,"distance":distance,"hostile":hostile})
+    nearby.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+        if int(a.distance) == int(b.distance):
+            return String(a.name) < String(b.name)
+        return int(a.distance) < int(b.distance)
+    )
+    for child in nearby_interaction_box.get_children():
+        child.free()
+    if nearby.is_empty():
+        nearby_interaction_panel.visible = false
+        return
+    var heading := Label.new()
+    heading.text = "NEARBY PEOPLE"
+    heading.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
+    nearby_interaction_box.add_child(heading)
+    for index in range(mini(nearby.size(), 6)):
+        var entry: Dictionary = nearby[index]
+        var target_id := String(entry.id)
+        var talk_button := Button.new()
+        talk_button.text = ("Engage · " if bool(entry.hostile) else "Talk · ") + String(entry.name)
+        talk_button.custom_minimum_size = Vector2(225.0, 34.0)
+        talk_button.pressed.connect(func(): _interact_with_character(target_id))
+        nearby_interaction_box.add_child(talk_button)
+    nearby_interaction_panel.visible = true
 
 
 func _show_companion_dialogue(character_id: String) -> void:
@@ -1175,6 +1386,9 @@ func _begin_shakedown_combat() -> void:
         _show_dialogue("Hollowmere", "The confrontation cannot begin: " + String(result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
         return
     encounter_active = true
+    active_combat_kind = "ironbond"
+    active_combat_enemy_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.duplicate()
+    active_combat_party_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.COMBAT_ALLY_IDS.duplicate()
     enemy_turn_processed = false
     enemy_turn_waiting_for_reaction = false
     if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(active_character_id):
@@ -1240,9 +1454,9 @@ func _run_ai_combat_turn(combatant: CharacterState) -> void:
 func _nearest_opponent_target(combatant: CharacterState) -> CharacterState:
     var best: CharacterState
     var best_distance := 999
-    var opponent_ids: Array[String] = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS
+    var opponent_ids: Array[String] = active_combat_enemy_ids
     if combatant.side == "enemy":
-        opponent_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.COMBAT_ALLY_IDS
+        opponent_ids = active_combat_party_ids
     for opponent_id in opponent_ids:
         var opponent := simulation.get_character(opponent_id)
         if opponent == null or not opponent.can_act():
@@ -1301,7 +1515,7 @@ func _attack_range_for(attacker: CharacterState) -> int:
 func _nearest_enemy_in_attack_range(attacker: CharacterState) -> CharacterState:
     var best: CharacterState
     var best_distance := 999
-    for enemy_id in HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS:
+    for enemy_id in active_combat_enemy_ids:
         var enemy := simulation.get_character(enemy_id)
         if enemy == null or not enemy.can_act():
             continue
@@ -1340,7 +1554,7 @@ func _update_combat_ui() -> void:
         combat_status_label.text = "Waiting for the next combat turn..."
     elif current.side == "enemy":
         combat_status_label.text = "%s is acting..." % current.display_name
-    elif current.id != active_character_id and HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(current.id):
+    elif current.id != active_character_id and active_combat_party_ids.has(current.id):
         combat_status_label.text = "Switch to %s with Tab." % current.display_name
     elif current.id != active_character_id:
         combat_status_label.text = "%s is acting..." % current.display_name
@@ -1350,6 +1564,20 @@ func _update_combat_ui() -> void:
 
 func _check_encounter_resolution() -> void:
     if not encounter_active:
+        return
+    if active_combat_kind == "bear_hunt":
+        if FARMSTEAD_BEAR_SCRIPT.party_defeated(simulation, active_combat_party_ids):
+            simulation.end_combat()
+            FARMSTEAD_BEAR_SCRIPT.finish(simulation, active_combat_party_ids)
+            encounter_active = false
+            _show_dialogue("Reyna Fletcher", "The bear drives you back. It is still raiding the grain store. We can try again when we're ready.", [{"id":"continue","label":"Continue","text":""}])
+        elif FARMSTEAD_BEAR_SCRIPT.bear_defeated(simulation):
+            simulation.end_combat()
+            FARMSTEAD_BEAR_SCRIPT.finish(simulation, active_combat_party_ids)
+            encounter_active = false
+            COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "reyna_bear_hunt", "bear_slain")
+            _show_speech_bubble("companion_reyna_fletcher", "That's the last of it. Old Mac can sleep easier now.")
+            _show_companion_dialogue("companion_reyna_fletcher")
         return
     if HOLLOWMERE_ENCOUNTER_SCRIPT.party_defeated(simulation):
         simulation.end_combat()
@@ -1463,6 +1691,10 @@ func _process(delta: float) -> void:
     _update_ambient_chatter(delta)
     _update_combat(delta)
     _update_combat_ui()
+    nearby_interaction_refresh += delta
+    if nearby_interaction_refresh >= 0.25:
+        nearby_interaction_refresh = 0.0
+        _refresh_nearby_interactions()
     if active_path.size() < 2:
         return
     path_step_accumulator += delta
