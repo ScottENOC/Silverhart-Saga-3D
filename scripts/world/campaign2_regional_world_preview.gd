@@ -4,6 +4,7 @@ extends Node3D
 
 const TERRAIN_DATA_SCRIPT = preload("res://scripts/world/campaign2_world_terrain_data.gd")
 const VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
+const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
 const HEX_RADIUS := HexGrid.DEFAULT_RADIUS_M
@@ -11,6 +12,7 @@ const CHUNK_SIZE := 24
 const LOAD_RADIUS_CHUNKS := 1
 
 var terrain_data: Campaign2WorldTerrainData
+var settlement_builder: Campaign2SettlementBuilder
 var chunk_nodes: Dictionary = {}
 var camera: Camera3D
 var target := Vector3.ZERO
@@ -28,6 +30,7 @@ var marker_locations: Dictionary = {}
 
 func _ready() -> void:
 	terrain_data = TERRAIN_DATA_SCRIPT.new() as Campaign2WorldTerrainData
+	settlement_builder = SETTLEMENT_BUILDER_SCRIPT.new(terrain_data.settlement_layouts) as Campaign2SettlementBuilder
 	_create_environment()
 	_create_materials()
 	_create_camera()
@@ -269,6 +272,7 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 	_add_multimesh(root, "ForestCrowns", tree_crown_mesh, tree_transforms)
 	_add_multimesh(root, "ForestTrunks", tree_trunk_mesh, trunk_transforms)
 	_add_chunk_locations(root, chunk)
+	settlement_builder.add_settlements_in_chunk(root, chunk_min, CHUNK_SIZE)
 	return root
 
 func _add_hex_to_surface(surface: SurfaceTool, hex: Vector2i, elevation: float) -> void:

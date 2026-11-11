@@ -79,6 +79,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_campaign2_geography_manifest.gd
       - name: Run Campaign 2 world terrain tests
         run: godot --headless --path . --script res://tests/test_campaign2_world_terrain.gd
+      - name: Run Campaign 2 settlement layout tests
+        run: godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
       - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null

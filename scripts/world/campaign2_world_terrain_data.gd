@@ -6,6 +6,7 @@ extends RefCounted
 
 const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
 const ROAD_PATHS_PATH := "res://data/world/campaign2_road_paths.json"
+const SETTLEMENT_LAYOUTS_PATH := "res://data/world/campaign2_settlement_layouts.json"
 const SEED := 2047
 const LOCAL_STREAM_BRIDGE := Vector2i(8, -25)
 const LOCAL_STREAM_Q_MIN := -90
@@ -16,12 +17,16 @@ var strategic_grid: Array = []
 var road_cells: Dictionary = {}
 var locations_by_hex: Dictionary = {}
 var locations: Array = []
+var settlement_layouts: Array = []
+var settlement_building_cells: Dictionary = {}
+var settlement_path_cells: Dictionary = {}
 var river_points: Array[Vector3] = []
 
 func _init() -> void:
 	strategic_grid = MainCampaignWorldMapData.generate_grid()
 	_load_roads()
 	_load_locations()
+	_load_settlement_layouts()
 	_build_strategic_river()
 
 func _load_roads() -> void:
@@ -52,6 +57,32 @@ func _load_locations() -> void:
 		var hex := Vector2i(int(location.get("q", 8)), int(location.get("r", 24)))
 		locations_by_hex[_hex_key(hex)] = location
 
+func _load_settlement_layouts() -> void:
+	if not FileAccess.file_exists(SETTLEMENT_LAYOUTS_PATH):
+		push_warning("Campaign 2 settlement layouts are missing.")
+		return
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(SETTLEMENT_LAYOUTS_PATH))
+	if not parsed is Dictionary:
+		push_warning("Campaign 2 settlement layouts could not be parsed.")
+		return
+	settlement_layouts = parsed.get("settlements", [])
+	for settlement in settlement_layouts:
+		for building in settlement.get("buildings", []):
+			var centre := Vector2i(int(building.get("center", {}).get("q", 0)), int(building.get("center", {}).get("r", 0)))
+			var half_q := int(building.get("half_q", 0))
+			var half_r := int(building.get("half_r", 0))
+			for q in range(centre.x - half_q, centre.x + half_q + 1):
+				for r in range(centre.y - half_r, centre.y + half_r + 1):
+					settlement_building_cells[_hex_key(Vector2i(q, r))] = true
+		for path in settlement.get("paths", []):
+			var start := Vector2i(int(path.get("from", {}).get("q", 0)), int(path.get("from", {}).get("r", 0)))
+			var finish := Vector2i(int(path.get("to", {}).get("q", 0)), int(path.get("to", {}).get("r", 0)))
+			var steps := maxi(1, HexGrid.distance(start, finish))
+			for step in range(steps + 1):
+				var t := float(step) / float(steps)
+				var cell := Vector2i(roundi(lerpf(float(start.x), float(finish.x), t)), roundi(lerpf(float(start.y), float(finish.y), t)))
+				settlement_path_cells[_hex_key(cell)] = true
+
 func _build_strategic_river() -> void:
 	for cell in MainCampaignWorldMapData.RIVER_PATH:
 		var local_q := 8 + (cell.x - 6) * MainCampaignWorldMapData.WORLD_HEX_SIZE
@@ -61,6 +92,10 @@ func _build_strategic_river() -> void:
 func terrain_for_hex(hex: Vector2i) -> String:
 	if HexGrid.distance(Vector2i.ZERO, hex) <= AUTHORED_VILLAGE_RADIUS:
 		return "authored"
+	if settlement_building_cells.has(_hex_key(hex)):
+		return "authored"
+	if settlement_path_cells.has(_hex_key(hex)):
+		return "path"
 	if hex == LOCAL_STREAM_BRIDGE:
 		return "path"
 	if _is_local_stream(hex) or _is_strategic_river(hex):
