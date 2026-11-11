@@ -49,7 +49,7 @@ Treat measurements as a first blockout. Adjust the room and grid together based 
 
 ## Two-storey lodging update
 
-The Hollow Tankard now has a second storey above the taproom. The upper floor uses a reserved axial-coordinate range that is projected onto the same physical building footprint; this keeps upstairs movement and occupancy separate from ground-floor characters while retaining the shared campaign simulation and save format.
+The Hollow Tankard now has a second storey above the taproom. The upper floor uses a reserved axial-coordinate range projected onto the same physical building footprint. Its grid is scaled to the existing 16m × 11m tavern envelope, while upstairs movement and occupancy remain separate from ground-floor characters within the shared campaign simulation and save format.
 
 - A physical staircase on the east side connects the taproom and upper landing. Stand within one hex and press **F** to climb or descend.
 - The upper floor has a west-side private suite labelled for Garrick Holt and two guest rooms in the east wing, with six furnished beds in total.
