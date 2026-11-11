@@ -1137,8 +1137,10 @@ func _test_attack_waits_for_parry_resolution() -> void:
     defender.health = 100
     defender.max_health = 100
     defender.to_hit_melee = 100.0
+    defender.base_damage = 2
     defender.equipment["weapon"] = "sword"
     defender.skills["sword_parry"] = 1
+    defender.skills["sword_riposte"] = 1
     sim.register_character(attacker)
     sim.register_character(defender)
     sim.start_combat()
@@ -1151,8 +1153,9 @@ func _test_attack_waits_for_parry_resolution() -> void:
     var resolved := sim.resolve_reaction("parry")
     _check(bool(resolved.get("ok", false)))
     _check(defender.health == 100, "A successful parry cancels the incoming attack")
+    _check(attacker.health == 98, "Sword Riposte immediately makes a basic counterattack after a successful parry")
     _check(defender.parries_remaining == 2, "A parry consumes one per-turn parry use")
-    _check(is_equal_approx(defender.time_points, 17.0), "The defender pays the source-defined 3 TP parry cost")
+    _check(is_equal_approx(defender.time_points, 12.0), "The defender pays 3 TP to parry and 5 TP to riposte")
     _check(is_equal_approx(attacker.time_points, 25.0), "A successful parry still consumes the attack action's TP cost")
     sim.free()
 
