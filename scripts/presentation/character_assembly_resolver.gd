@@ -42,6 +42,10 @@ static func resolve_player(profile: Dictionary) -> Dictionary:
     if body_variant not in ["male", "female"]:
         body_variant = "female"
     var hair_id := String(profile.get("hair_style_id", "short02"))
+    var build_id := String(profile.get("body_build", "Average")).to_lower()
+    if build_id not in ["lean", "average", "broad", "muscular", "soft"]:
+        build_id = "average"
+    var body_profile_id := String(profile.get("body_profile", body_variant + "_" + build_id))
     var player_visual_profile := profile.duplicate(true)
     player_visual_profile["body_variant"] = body_variant
     var ara_appearance := {
@@ -63,6 +67,7 @@ static func resolve_player(profile: Dictionary) -> Dictionary:
         "game_id": "player",
         "display_name": String(profile.get("name", "Adventurer")),
         "body_variant": body_variant,
+        "body_profile": body_profile_id,
         "appearance": ara_appearance,
         "player_profile": player_visual_profile,
         "hair_style_id": hair_id,
@@ -78,21 +83,60 @@ static func resolve_player(profile: Dictionary) -> Dictionary:
 
 static func _resolve_body_asset(resolved: Dictionary) -> Dictionary:
     var body_variant := String(resolved.get("body_variant", "female"))
+    var body_profile_id := String(resolved.get("body_profile", ""))
+    var profile_definition := _body_profile_definition(body_profile_id)
+    if not profile_definition.is_empty():
+        var profile_body_path := String(profile_definition.get("body_asset", ""))
+        var garment_library_path := String(profile_definition.get("garment_library", ""))
+        if not profile_body_path.is_empty() and ResourceLoader.exists(profile_body_path):
+            return {
+                "body_asset_path": profile_body_path,
+                "garment_library_path": garment_library_path if ResourceLoader.exists(garment_library_path) else "",
+                "body_profile_asset_pending": false,
+                "legacy_visual_fallback": false
+            }
+
+    # Preserve existing character-specific exports while the shared ten-profile
+    # asset set is being generated. This keeps Wren's current visual intact.
     if not bool(resolved.get("is_player", false)):
-        var profile_id := String(resolved.get("profile_id", ""))
-        var profile_body_path := "res://art/characters/ara_runtime/bodies/%s.glb" % profile_id
-        if not profile_id.is_empty() and ResourceLoader.exists(profile_body_path):
-            return {"body_asset_path": profile_body_path, "legacy_visual_fallback": false}
-        for legacy_id in [profile_id, String(resolved.get("game_id", ""))]:
-            if legacy_id.is_empty():
-                continue
-            var legacy_path := "res://art/characters/hollowmere/%s.glb" % legacy_id
-            if ResourceLoader.exists(legacy_path):
-                return {"body_asset_path": legacy_path, "legacy_visual_fallback": true}
+        var character_id := String(resolved.get("profile_id", ""))
+        for legacy_path in [
+            "res://art/characters/ara_runtime/bodies/%s.glb" % character_id,
+            "res://art/characters/hollowmere/%s.glb" % character_id,
+            "res://art/characters/hollowmere/%s.glb" % String(resolved.get("game_id", ""))
+        ]:
+            if not character_id.is_empty() and ResourceLoader.exists(legacy_path):
+                return {
+                    "body_asset_path": legacy_path,
+                    "garment_library_path": "res://art/characters/ara_runtime/ara_person_garments.glb" if character_id == "wren_talbot" else "",
+                    "body_profile_asset_pending": not profile_definition.is_empty(),
+                    "legacy_visual_fallback": true
+                }
+
     return {
         "body_asset_path": PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET,
+        "garment_library_path": "",
+        "body_profile_asset_pending": not profile_definition.is_empty(),
         "legacy_visual_fallback": false
     }
+
+
+static func _body_profile_definition(profile_id: String) -> Dictionary:
+    if profile_id.is_empty():
+        return {}
+    var file := FileAccess.open("res://data/characters/body_profiles.json", FileAccess.READ)
+    if file == null:
+        push_warning("Canonical body-profile catalogue could not be opened.")
+        return {}
+    var parsed: Variant = JSON.parse_string(file.get_as_text())
+    if not parsed is Dictionary:
+        push_warning("Canonical body-profile catalogue is invalid JSON.")
+        return {}
+    for profile_variant in parsed.get("body_profiles", []):
+        if profile_variant is Dictionary and String(profile_variant.get("id", "")) == profile_id:
+            return profile_variant.duplicate(true)
+    push_warning("Unknown canonical body profile: " + profile_id)
+    return {}
 
 
 static func populate_npc_inventory(state: CharacterState, resolved: Dictionary) -> bool:
