@@ -10,6 +10,7 @@ func _initialize() -> void:
     _test_registry_and_save_round_trip()
     _test_door_map_blocking()
     _test_world_simulation_save_round_trip()
+    _test_character_floor_relocation()
     print("Building framework tests passed.")
     quit()
 
@@ -68,3 +69,17 @@ func _test_world_simulation_save_round_trip() -> void:
     assert(restored.map_data.is_walkable(Vector2i(0, 1)), "Loaded door state must restore map walkability.")
     source.free()
     restored.free()
+
+func _test_character_floor_relocation() -> void:
+    var simulation = WORLD_SIM_SCRIPT.new()
+    simulation.map_data.add_cell(Vector2i(0, 0), 0.0, true, "timber_floor")
+    simulation.map_data.add_cell(Vector2i(100, 100), 3.38, true, "timber_floor")
+    var character = CharacterState.new("player", "Test Player", Vector2i.ZERO)
+    simulation.register_character(character)
+    assert(simulation.relocate_character("player", Vector2i(100, 100)), "A character should be able to use a connected stair.")
+    assert(character.axial == Vector2i(100, 100), "The character should occupy the upper-floor coordinate.")
+    assert(simulation.occupied_hexes.get(Vector2i(100, 100), "") == "player", "Upper-floor occupancy must be registered.")
+    assert(not simulation.relocate_character("player", Vector2i(200, 200)), "A transition to a missing floor cell must fail.")
+    assert(simulation.relocate_character("player", Vector2i.ZERO), "The character should be able to descend.")
+    assert(character.axial == Vector2i.ZERO and simulation.occupied_hexes.get(Vector2i.ZERO, "") == "player")
+    simulation.free()
