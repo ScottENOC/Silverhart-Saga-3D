@@ -13,11 +13,14 @@ var loading_detail: Label
 var pending_save_data: Dictionary = {}
 
 func _ready() -> void:
+    _create_loading_overlay()
     if SaveManager.has_pending_load():
         pending_save_data = SaveManager.consume_pending_load()
+        loading_layer.visible = true
+        _set_loading_stage("Restoring campaign…", "Rebuilding the base world before applying your saved changes.", 5.0)
+        await get_tree().process_frame
         _on_character_created(pending_save_data.get("player_profile", {}).duplicate(true))
         return
-    _create_loading_overlay()
     loading_layer.visible = true
     _set_loading_stage(
         "Preparing the campaign…",
