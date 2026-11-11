@@ -11,11 +11,28 @@ func _run() -> void:
     assert(file != null, "Canonical Hollowmere character manifest must exist")
     var parsed: Variant = JSON.parse_string(file.get_as_text())
     assert(parsed is Dictionary, "Canonical character manifest must parse")
+    var profile_file := FileAccess.open("res://data/characters/body_profiles.json", FileAccess.READ)
+    assert(profile_file != null, "Canonical ten-profile body catalogue must exist")
+    var profile_data: Variant = JSON.parse_string(profile_file.get_as_text())
+    assert(profile_data is Dictionary, "Body profile catalogue must parse")
+    var profile_ids := {}
+    for profile_variant in profile_data.get("body_profiles", []):
+        var profile: Dictionary = profile_variant
+        profile_ids[String(profile.get("id", ""))] = true
+    assert(profile_ids.size() == 10, "Exactly ten canonical body profiles must be defined")
+    for build in ["lean", "average", "broad", "muscular", "soft"]:
+        assert(profile_ids.has("female_" + build), "Missing female body profile: " + build)
+        assert(profile_ids.has("male_" + build), "Missing male body profile: " + build)
+
     var characters: Array = parsed.get("characters", [])
     var wren: Dictionary = {}
     var male: Dictionary = {}
     for character_variant in characters:
         var character: Dictionary = character_variant
+        var gender_prefix := "male_" if float(character.get("appearance", {}).get("gender", 0.0)) >= 0.5 else "female_"
+        var body_profile := String(character.get("body_profile", ""))
+        assert(profile_ids.has(body_profile), "Character %s has an unknown body profile: %s" % [String(character.get("id", "")), body_profile])
+        assert(body_profile.begins_with(gender_prefix), "Character %s body profile does not match its selected body model" % String(character.get("id", "")))
         if String(character.get("id", "")) == "wren_talbot":
             wren = character
         if float(character.get("appearance", {}).get("gender", 0.0)) >= 0.5 and male.is_empty():
