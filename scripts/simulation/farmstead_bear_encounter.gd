@@ -34,20 +34,21 @@ static func start(simulation: WorldSimulation, party_ids: Array[String]) -> Dict
         return {"ok": false, "reason": "missing_bear"}
     if party_ids.is_empty():
         return {"ok": false, "reason": "empty_party"}
-    for character_value in simulation.characters.values():
-        var state: CharacterState = character_value
-        state.combat_dormant = true
     var valid_party: Array[String] = []
     for character_id in party_ids:
         var member := simulation.get_character(character_id)
-        if member == null or not member.can_act():
-            continue
+        if member != null and member.can_act() and not valid_party.has(character_id):
+            valid_party.append(character_id)
+    if valid_party.is_empty():
+        return {"ok": false, "reason": "no_able_party_members"}
+    for character_value in simulation.characters.values():
+        var state: CharacterState = character_value
+        state.combat_dormant = true
+    for character_id in valid_party:
+        var member := simulation.get_character(character_id)
         member.side = "player"
         member.combat_dormant = false
         member.time_points = 100.0
-        valid_party.append(character_id)
-    if valid_party.is_empty():
-        return {"ok": false, "reason": "no_able_party_members"}
     bear.health = bear.max_health
     bear.alive = true
     bear.unconscious = false
