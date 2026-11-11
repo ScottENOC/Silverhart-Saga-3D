@@ -286,11 +286,13 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         # mons 0.50%, outer folds 0.375%, inner folds 0.25%, hood 0.225%,
         # and vestibular recess 0.1875% of measured character height.
         mons = g(p.x,p.z,0.0,anatomy_z+height*0.035,width*0.105,height*0.020)
-        outer_l = g(p.x,p.z,-width*0.060,anatomy_z-height*0.002,width*0.034,height*0.030)
-        outer_r = g(p.x,p.z, width*0.060,anatomy_z-height*0.002,width*0.034,height*0.030)
-        inner_l = g(p.x,p.z,-width*0.024,anatomy_z-height*0.003,width*0.016,height*0.022)
-        inner_r = g(p.x,p.z, width*0.024,anatomy_z-height*0.003,width*0.016,height*0.022)
-        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.006,width*0.009,height*0.025)
+        # Paired outer labial folds: two distinct lateral ridges with a
+        # deliberate central valley, rather than one continuous central mound.
+        outer_l = g(p.x,p.z,-width*0.060,anatomy_z-height*0.002,width*0.030,height*0.030)
+        outer_r = g(p.x,p.z, width*0.060,anatomy_z-height*0.002,width*0.030,height*0.030)
+        inner_l = g(p.x,p.z,-width*0.026,anatomy_z-height*0.004,width*0.013,height*0.022)
+        inner_r = g(p.x,p.z, width*0.026,anatomy_z-height*0.004,width*0.013,height*0.022)
+        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.012,width*0.006,height*0.027)
         vestibule = g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.018,height*0.009)
         urethra = g(p.x,p.z,0.0,anatomy_z-height*0.016,width*0.0045,height*0.0025)
         vaginal = g(p.x,p.z,0.0,anatomy_z-height*0.035,width*0.012,height*0.006)
@@ -300,12 +302,12 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         fourchette = g(p.x,p.z,0.0,anatomy_z-height*0.051,width*0.018,height*0.0035)
         perineum = g(p.x,p.z,0.0,anatomy_z-height*0.068,width*0.045,height*0.013)
         outward = deformation_scale * height * (
-            0.0050*mons + 0.00375*(outer_l+outer_r)
-            + 0.00250*(inner_l+inner_r) + 0.00225*hood
+            0.0040*mons + 0.00525*(outer_l+outer_r)
+            + 0.00300*(inner_l+inner_r) + 0.00225*hood
             + 0.00075*glans + 0.00050*frenulum + 0.00050*fourchette
         )
         inward = deformation_scale * height * (
-            0.001875*vestibule + 0.00125*cleft
+            0.00275*vestibule + 0.00425*cleft
             + 0.0010*urethra + 0.0015*vaginal + 0.00025*perineum
         )
         p.y -= outward
