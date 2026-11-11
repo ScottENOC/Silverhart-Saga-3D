@@ -234,18 +234,19 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
     def g(x, z, cx, cz, sx, sz):
         return math.exp(-0.5 * (((x-cx)/sx)**2 + ((z-cz)/sz)**2))
 
+    painted_vertices = 0
     for vertex in mesh.vertices:
         p = skin.matrix_world @ vertex.co
         if abs(p.x) > width * 0.16 or abs(p.z-anatomy_z) > height * 0.065:
             colour.data[vertex.index].color = (1.0, 1.0, 1.0, 1.0)
             continue
         inner = max(
-            g(p.x,p.z,-width*0.024,anatomy_z-height*0.003,width*0.020,height*0.025),
-            g(p.x,p.z, width*0.024,anatomy_z-height*0.003,width*0.020,height*0.025),
+            g(p.x,p.z,-width*0.024,anatomy_z-height*0.003,width*0.040,height*0.035),
+            g(p.x,p.z, width*0.024,anatomy_z-height*0.003,width*0.040,height*0.035),
         )
         central = max(
-            g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.018,height*0.010),
-            g(p.x,p.z,0.0,anatomy_z-height*0.035,width*0.012,height*0.007),
+            g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.025,height*0.018),
+            g(p.x,p.z,0.0,anatomy_z-height*0.035,width*0.020,height*0.012),
         )
         # Multiplicative tints preserve the underlying skin palette. The inner
         # folds receive a restrained rose-brown tint; the central region is
@@ -256,7 +257,11 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
         green = 1.0 - 0.24 * strength - 0.18 * central_strength
         blue = 1.0 - 0.18 * strength - 0.16 * central_strength
         colour.data[vertex.index].color = (red, green, blue, 1.0)
+        if strength > 0.15:
+            painted_vertices += 1
     mesh.color_attributes.active_color = colour
+    skin["anatomy_pigmented_vertex_count"] = painted_vertices
+    print(f"Anatomy pigmentation assigned to {painted_vertices} skin vertices")
     skin["anatomy_pigmentation"] = "skin-relative_vertex_colour_inner_and_central_regions"
     return colour
 
