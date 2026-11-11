@@ -107,7 +107,8 @@ func _test_hollowmere_encounter() -> void:
     _check(simulation.get_character("dray_coltayne").side == "enemy")
     _check(not simulation.get_character("dray_coltayne").combat_dormant)
     _check(simulation.get_character("dray_coltayne").health == 130)
-    _check(simulation.get_character("dray_coltayne").time_points == simulation.get_character("dray_coltayne").max_time_points)
+    _check(is_equal_approx(simulation.get_character("dray_coltayne").time_points, 100.0), "Encounter combatants should begin at 100 TP")
+    _check(is_equal_approx(garrick.time_points, 100.0), "Authored allies should begin at 100 TP")
     _check(garrick.side == "player" and mira.side == "player" and oskar.side == "player", "Garrick, Mira and Oskar should join the player side")
     _check(not garrick.combat_dormant and not mira.combat_dormant and not oskar.combat_dormant, "Tavern allies should receive AI combat turns")
     _check(bystander.combat_dormant and bystander.side == "neutral", "Other tavern bystanders must not enter combat initiative")
@@ -507,11 +508,6 @@ func _test_combat_turn_scheduler() -> void:
     sim.register_character(player)
     sim.register_character(guard)
     sim.start_combat()
-    var late_joiner := CharacterState.new("late_joiner", "Late Joiner", Vector2i(2, 0))
-    late_joiner.side = "player"
-    late_joiner.time_points = 12.0
-    sim.register_character(late_joiner)
-    _check(is_equal_approx(late_joiner.time_points, 100.0), "A character joining an active combat should receive 100 TP")
     _check(sim.advance_world_seconds(0.4) == 1)
     _check(not sim.turn_scheduler.has_active_turn())
     _check(is_equal_approx(player.time_points, 100.5))
@@ -547,6 +543,23 @@ func _test_combat_turn_scheduler() -> void:
     _check(forced_actor.time_points == 80.0, "Voluntary turn end should forfeit unused TP to avoid immediate reselection")
     loaded.free()
     sim.free()
+
+    # Test late entry independently so the new combatant cannot perturb the
+    # scheduler's existing initiative-order assertions above.
+    var join_sim := WorldSimulation.new()
+    var existing := CharacterState.new("existing", "Existing", Vector2i.ZERO)
+    existing.side = "player"
+    existing.time_points = 50.0
+    join_sim.register_character(existing)
+    join_sim.start_combat()
+    var late_joiner := CharacterState.new("late_joiner", "Late Joiner", Vector2i(1, 0))
+    late_joiner.side = "player"
+    late_joiner.time_points = 12.0
+    join_sim.register_character(late_joiner)
+    _check(is_equal_approx(late_joiner.time_points, 100.0), "A character joining an active combat should receive 100 TP")
+    _check(join_sim.advance_world_seconds(0.1) == 0)
+    _check(join_sim.get_current_turn_character() == late_joiner, "A late entrant at 100 TP should be immediately eligible to act")
+    join_sim.free()
 
 func _test_initiative_timeline_model() -> void:
     var fresh := CharacterState.new("fresh", "Fresh Adventurer", Vector2i(-5, 0))
