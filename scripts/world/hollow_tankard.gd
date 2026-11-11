@@ -17,6 +17,10 @@ const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere
 const TAVERN_BUILDING_ID := "hollow_tankard"
 const TAVERN_FRONT_DOOR_ID := "hollow_tankard_front_door"
 const TAVERN_DOOR_HEX := Vector2i(0, 3)
+const UPPER_FLOOR_ORIGIN := Vector2i(100, 100)
+const UPPER_FLOOR_Y := 3.38
+const TAVERN_STAIR_GROUND_HEX := Vector2i(3, 0)
+const TAVERN_STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + TAVERN_STAIR_GROUND_HEX
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -33,6 +37,10 @@ var character_panel: CharacterPanel
 var world_map_panel: CanvasLayer
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
+var upper_shell_group: Node3D
+var upper_floor_group: Node3D
+var upper_interior_group: Node3D
+var upper_floor_tiles: Node3D
 var tavern_door_pivot: Node3D
 var tavern_door_leaf: MeshInstance3D
 var actor_by_id: Dictionary = {}
@@ -167,6 +175,16 @@ func _create_simulation() -> void:
     })
     simulation.building_registry.register_door(TAVERN_FRONT_DOOR_ID, TAVERN_BUILDING_ID, TAVERN_DOOR_HEX, true, false, 20)
     simulation.building_registry.door_state_changed.connect(_on_building_door_state_changed)
+
+    # The upper floor uses its own axial coordinate range. Mapping those cells
+    # back onto the tavern footprint avoids collisions with ground-floor NPCs
+    # without splitting the building into a second scene or map.
+    for q in range(-5, 6):
+        for r in range(-3, 4):
+            var local_hex := Vector2i(q, r)
+            var local_world := HexGrid.axial_to_world(local_hex, HEX_RADIUS)
+            var partition_wall := (q == 0 and absf(local_world.z) > 1.1) or (q >= 1 and q <= 4 and absf(local_world.z) < 0.55 and q != 3)
+            simulation.map_data.add_cell(UPPER_FLOOR_ORIGIN + local_hex, UPPER_FLOOR_Y, not partition_wall, "timber_floor")
 
     simulation.character_moved.connect(_on_character_moved)
     simulation.reaction_requested.connect(_on_reaction_requested)
@@ -345,20 +363,117 @@ func _create_building() -> void:
     _add_box(building, "NorthTieBeam", Vector3(0.0, 3.0, -5.05), Vector3(16.0, 0.22, 0.22), dark_wood_material)
     _add_box(building, "SouthTieBeam", Vector3(0.0, 3.0, 5.05), Vector3(16.0, 0.22, 0.22), dark_wood_material)
 
-    # Roof is a separate cutaway layer. V toggles it so the interior can be
-    # inspected without permanently sacrificing the building silhouette.
+    # Second storey: the upper shell reads as a real two-storey inn from
+    # outside. Its floor and interior furnishings are shown when the player
+    # climbs up; the shell is cut away while upstairs so the rooms stay legible.
+    upper_shell_group = Node3D.new()
+    upper_shell_group.name = "UpperStoreyExterior"
+    add_child(upper_shell_group)
+    _add_box(upper_shell_group, "UpperNorthWall", Vector3(0.0, 5.0, -5.5), Vector3(16.0, 3.2, 0.35), plaster_material)
+    _add_box(upper_shell_group, "UpperSouthWallLeft", Vector3(-4.4, 5.0, 5.5), Vector3(7.2, 3.2, 0.35), plaster_material)
+    _add_box(upper_shell_group, "UpperSouthWallRight", Vector3(4.4, 5.0, 5.5), Vector3(7.2, 3.2, 0.35), plaster_material)
+    _add_box(upper_shell_group, "UpperEastWall", Vector3(8.0, 5.0, 0.0), Vector3(0.35, 3.2, 11.0), plaster_material)
+    _add_box(upper_shell_group, "UpperWestWall", Vector3(-8.0, 5.0, 0.0), Vector3(0.35, 3.2, 11.0), plaster_material)
+    for x in [-7.7, -4.0, 0.0, 4.0, 7.7]:
+        for z in [-5.2, 5.2]:
+            _add_box(upper_shell_group, "UpperTimberPost", Vector3(x, 4.95, z), Vector3(0.22, 3.3, 0.22), timber_material)
+    _add_box(upper_shell_group, "UpperNorthTieBeam", Vector3(0.0, 6.55, -5.05), Vector3(16.0, 0.22, 0.22), dark_wood_material)
+    _add_box(upper_shell_group, "UpperSouthTieBeam", Vector3(0.0, 6.55, 5.05), Vector3(16.0, 0.22, 0.22), dark_wood_material)
+    _add_window(upper_shell_group, Vector3(-4.0, 5.1, -5.5), Vector2(1.2, 1.0))
+    _add_window(upper_shell_group, Vector3(3.0, 5.1, -5.5), Vector2(1.2, 1.0))
+    _add_window(upper_shell_group, Vector3(8.0, 5.1, 0.0), Vector2(1.2, 1.0), true)
+    _add_window(upper_shell_group, Vector3(-8.0, 5.1, 0.0), Vector2(1.2, 1.0), true)
+
+    upper_floor_group = Node3D.new()
+    upper_floor_group.name = "UpperFloorPresentation"
+    add_child(upper_floor_group)
+    _add_box(upper_floor_group, "UpperFloorDeck", Vector3(0.0, 3.22, 0.0), Vector3(16.2, 0.24, 11.2), timber_material)
+    upper_floor_tiles = Node3D.new()
+    upper_floor_tiles.name = "UpperHexFloor"
+    upper_floor_group.add_child(upper_floor_tiles)
+    for q in range(-5, 6):
+        for r in range(-3, 4):
+            var local_hex := Vector2i(q, r)
+            var local_world := HexGrid.axial_to_world(local_hex, HEX_RADIUS)
+            var tile := MeshInstance3D.new()
+            tile.mesh = tile_mesh
+            tile.position = Vector3(local_world.x, UPPER_FLOOR_Y, local_world.z)
+            tile.material_override = floor_material
+            upper_floor_tiles.add_child(tile)
+
+    upper_interior_group = Node3D.new()
+    upper_interior_group.name = "UpperBedrooms"
+    upper_floor_group.add_child(upper_interior_group)
+    _create_upper_floor_rooms(upper_interior_group)
+
+    # Staircase rises along the east side from the taproom to the landing.
+    for step in range(10):
+        var progress := float(step) / 9.0
+        var stair := _add_box(building, "StairStep_%02d" % step,
+            Vector3(6.05, 0.18 + progress * 3.0, 4.15 - progress * 3.7),
+            Vector3(1.35, 0.22, 0.58), timber_material)
+        stair.rotation_degrees.x = -38.0
+    _add_box(building, "StairStringerLeft", Vector3(5.38, 1.7, 2.3), Vector3(0.16, 3.6, 4.0), dark_wood_material)
+    _add_box(building, "StairStringerRight", Vector3(6.72, 1.7, 2.3), Vector3(0.16, 3.6, 4.0), dark_wood_material)
+    _refresh_tavern_floor_presentation()
+
+    # The pitched roof now sits above the bedrooms. V toggles this cutaway.
     roof_group = Node3D.new()
     roof_group.name = "RoofCutaway"
     add_child(roof_group)
     var roof_width: float = sqrt(5.5 * 5.5 + 2.6 * 2.6)
     var roof_angle: float = rad_to_deg(atan2(2.6, 5.5))
-    var north_roof := _add_box(roof_group, "NorthRoofSlope", Vector3(0.0, 4.5, -2.75), Vector3(16.9, 0.22, roof_width), roof_material)
+    var north_roof := _add_box(roof_group, "NorthRoofSlope", Vector3(0.0, 7.75, -2.75), Vector3(16.9, 0.22, roof_width), roof_material)
     north_roof.rotation_degrees.x = -roof_angle
-    var south_roof := _add_box(roof_group, "SouthRoofSlope", Vector3(0.0, 4.5, 2.75), Vector3(16.9, 0.22, roof_width), roof_material)
+    var south_roof := _add_box(roof_group, "SouthRoofSlope", Vector3(0.0, 7.75, 2.75), Vector3(16.9, 0.22, roof_width), roof_material)
     south_roof.rotation_degrees.x = roof_angle
-    _add_box(roof_group, "RidgeBeam", Vector3(0.0, 5.78, 0.0), Vector3(17.0, 0.25, 0.3), dark_wood_material)
-    _add_box(roof_group, "Chimney", Vector3(-6.0, 5.0, -1.0), Vector3(0.9, 2.4, 0.9), stone_material)
+    _add_box(roof_group, "RidgeBeam", Vector3(0.0, 9.03, 0.0), Vector3(17.0, 0.25, 0.3), dark_wood_material)
+    _add_box(roof_group, "Chimney", Vector3(-6.0, 8.0, -1.0), Vector3(0.9, 3.8, 0.9), stone_material)
     roof_group.visible = false
+
+func _create_upper_floor_rooms(parent: Node3D) -> void:
+    # The west suite is reserved for Garrick; the east wing contains guest
+    # rooms reached from the central landing. Six beds provide modest lodging.
+    _add_box(parent, "WestPartitionNorth", Vector3(0.0, 4.85, -3.15), Vector3(0.22, 2.9, 4.7), timber_material)
+    _add_box(parent, "WestPartitionSouth", Vector3(0.0, 4.85, 3.15), Vector3(0.22, 2.9, 4.7), timber_material)
+    _add_box(parent, "EastPartitionNorth", Vector3(3.8, 4.85, 0.0), Vector3(7.6, 2.9, 0.22), timber_material)
+    _add_box(parent, "EastPartitionSouth", Vector3(7.0, 4.85, 0.0), Vector3(2.0, 2.9, 0.22), timber_material)
+
+    _add_room_label(parent, "GARRICK'S ROOM", Vector3(-4.0, 6.35, -4.0))
+    _add_room_label(parent, "GUEST ROOM", Vector3(3.8, 6.35, -4.0))
+    _add_room_label(parent, "GUEST ROOM", Vector3(3.8, 6.35, 3.8))
+
+    _create_bed(parent, "GarrickBed", Vector3(-5.2, 3.55, -2.0), Color(0.38, 0.16, 0.12))
+    _create_bed(parent, "GarrickSpareBed", Vector3(-5.2, 3.55, 1.5), Color(0.34, 0.24, 0.16))
+    _create_bed(parent, "NorthGuestBedA", Vector3(2.1, 3.55, -3.8), Color(0.24, 0.28, 0.38))
+    _create_bed(parent, "NorthGuestBedB", Vector3(5.4, 3.55, -3.8), Color(0.24, 0.28, 0.38))
+    _create_bed(parent, "SouthGuestBedA", Vector3(2.1, 3.55, 2.2), Color(0.24, 0.28, 0.38))
+    _create_bed(parent, "SouthGuestBedB", Vector3(5.4, 3.55, 2.2), Color(0.24, 0.28, 0.38))
+
+    for x in [-6.5, -2.8, 1.0, 6.8]:
+        _add_box(parent, "BedroomChest", Vector3(x, 3.78, -4.7 if x > 0.0 else 4.6), Vector3(0.9, 0.55, 0.55), dark_wood_material)
+    _add_box(parent, "LandingTable", Vector3(0.8, 3.78, 1.7), Vector3(1.2, 0.12, 0.65), timber_material)
+    _add_box(parent, "LandingTableLeg", Vector3(0.8, 3.48, 1.7), Vector3(0.12, 0.6, 0.12), dark_wood_material)
+
+func _create_bed(parent: Node3D, bed_name: String, position: Vector3, blanket_colour: Color) -> void:
+    var bed := Node3D.new()
+    bed.name = bed_name
+    bed.position = position
+    parent.add_child(bed)
+    _add_box(bed, "BedFrame", Vector3.ZERO, Vector3(1.25, 0.38, 2.15), dark_wood_material)
+    _add_box(bed, "Mattress", Vector3(0.0, 0.22, 0.0), Vector3(1.15, 0.18, 2.0), _material(Color(0.78, 0.72, 0.58)))
+    _add_box(bed, "Blanket", Vector3(0.0, 0.34, 0.28), Vector3(1.12, 0.12, 1.35), _material(blanket_colour))
+    _add_box(bed, "Pillow", Vector3(0.0, 0.36, -0.78), Vector3(0.82, 0.12, 0.38), _material(Color(0.82, 0.79, 0.68)))
+    _add_box(bed, "Headboard", Vector3(0.0, 0.55, -1.0), Vector3(1.3, 0.95, 0.12), timber_material)
+
+func _add_room_label(parent: Node3D, text_value: String, position: Vector3) -> void:
+    var label := Label3D.new()
+    label.text = text_value
+    label.position = position
+    label.font_size = 30
+    label.outline_size = 6
+    label.modulate = Color(0.9, 0.82, 0.62)
+    parent.add_child(label)
 
 func _add_wall_segment(parent: Node3D, position: Vector3, size: Vector3) -> void:
     _add_box(parent, "PlasterWall", position, size, plaster_material)
@@ -1469,7 +1584,7 @@ func _unhandled_input(event: InputEvent) -> void:
             get_viewport().set_input_as_handled()
             return
         if key_event.keycode == KEY_F:
-            if not _interact_with_nearest_door():
+            if not _interact_with_tavern_stairs() and not _interact_with_nearest_door():
                 _interact_with_nearest_npc()
             get_viewport().set_input_as_handled()
             return
@@ -1515,15 +1630,20 @@ func _screen_position_to_hex(screen_position: Vector2) -> Vector2i:
     var camera := get_viewport().get_camera_3d()
     if camera == null:
         return INVALID_HEX
+    var active_state := simulation.get_character(active_character_id)
+    var upstairs := active_state != null and _is_upper_floor_hex(active_state.axial)
+    var plane_y := UPPER_FLOOR_Y if upstairs else 0.0
     var ray_origin := camera.project_ray_origin(screen_position)
     var ray_direction := camera.project_ray_normal(screen_position)
     if absf(ray_direction.y) < 0.0001:
         return INVALID_HEX
-    var distance := -ray_origin.y / ray_direction.y
+    var distance := (plane_y - ray_origin.y) / ray_direction.y
     if distance < 0.0:
         return INVALID_HEX
     var hit := ray_origin + ray_direction * distance
     var hex := HexGrid.world_to_axial(hit, HEX_RADIUS)
+    if upstairs:
+        hex += UPPER_FLOOR_ORIGIN
     if not simulation.map_data.has_cell(hex):
         return INVALID_HEX
     return hex
@@ -1632,10 +1752,42 @@ func _find_valid_spawn_hex(preferred: Vector2i) -> Vector2i:
         return preferred
     return candidates[0]
 
-func _on_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
+func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vector2i) -> void:
     var actor: HexActorPresentation = actor_by_id.get(character_id) as HexActorPresentation
     if actor != null:
-        actor.present_move_to(_hex_world_position(to_hex))
+        if _is_upper_floor_hex(from_hex) != _is_upper_floor_hex(to_hex):
+            actor.position = _hex_world_position(to_hex)
+        else:
+            actor.present_move_to(_hex_world_position(to_hex))
+    if character_id == active_character_id:
+        _refresh_tavern_floor_presentation()
+
+func _is_upper_floor_hex(hex: Vector2i) -> bool:
+    var local_hex := hex - UPPER_FLOOR_ORIGIN
+    return hex.x >= UPPER_FLOOR_ORIGIN.x - 5 and hex.x <= UPPER_FLOOR_ORIGIN.x + 5 and hex.y >= UPPER_FLOOR_ORIGIN.y - 3 and hex.y <= UPPER_FLOOR_ORIGIN.y + 3 and simulation.map_data.has_cell(hex)
+
+func _refresh_tavern_floor_presentation() -> void:
+    if upper_shell_group == null or upper_floor_group == null:
+        return
+    var active_state := simulation.get_character(active_character_id)
+    var upstairs := active_state != null and _is_upper_floor_hex(active_state.axial)
+    upper_shell_group.visible = not upstairs
+    upper_floor_group.visible = upstairs
+
+func _interact_with_tavern_stairs() -> bool:
+    var state := simulation.get_character(active_character_id)
+    if state == null:
+        return false
+    var upstairs := _is_upper_floor_hex(state.axial)
+    var stair_hex := TAVERN_STAIR_UPPER_HEX if upstairs else TAVERN_STAIR_GROUND_HEX
+    if HexGrid.distance(state.axial, stair_hex) > 1:
+        return false
+    var destination := TAVERN_STAIR_GROUND_HEX if upstairs else TAVERN_STAIR_UPPER_HEX
+    active_path.clear()
+    _clear_path_markers()
+    if not simulation.relocate_character(active_character_id, destination):
+        print("The staircase is blocked.")
+    return true
 
 func _interact_with_nearest_door() -> bool:
     var state := simulation.get_character(active_character_id)
@@ -1677,6 +1829,9 @@ func _refresh_tavern_door_presentation() -> void:
     tavern_door_pivot.rotation.y = deg_to_rad(82.0) if door.is_passable() else 0.0
 
 func _hex_world_position(hex: Vector2i) -> Vector3:
+    if _is_upper_floor_hex(hex):
+        var local_hex := hex - UPPER_FLOOR_ORIGIN
+        return HexGrid.axial_to_world(local_hex, HEX_RADIUS, UPPER_FLOOR_Y + 0.12)
     var centre := HexGrid.axial_to_world(hex, HEX_RADIUS)
     var inside_room: bool = absf(centre.x) < ROOM_HALF_WIDTH - 0.2 and absf(centre.z) < ROOM_HALF_DEPTH - 0.2
     return HexGrid.axial_to_world(hex, HEX_RADIUS, 0.12 if inside_room else 0.0)
