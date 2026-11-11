@@ -381,7 +381,7 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
     target_axis = Vector((0.0, -0.985, -0.17)).normalized()
     target_length = body_height * 0.074
     radial_factor = 1.16
-    base_depth_offset = body_height * 0.006
+    base_depth_offset = body_height * 0.016
     rotation = source_axis.rotation_difference(target_axis)
     length_scale = target_length / source_length
     radial_scale = length_scale * radial_factor
@@ -454,7 +454,7 @@ def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy
     depth_radius = height * 0.012
     height_radius = height * 0.018
     depth = depth_radius
-    centre = Vector((0.0, surface_y - depth * 0.40, centre_z))
+    centre = Vector((0.0, surface_y + depth * 0.30, centre_z))
     sac = create_uv_surface(
         "Male anatomy · scrotum with paired contours", centre,
         Vector((width_radius, depth_radius, height_radius)),
