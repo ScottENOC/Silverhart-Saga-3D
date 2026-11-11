@@ -60,6 +60,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_simulation.gd
       - name: Run NPC pass-through tests
         run: godot --headless --path . --script res://tests/test_npc_pass_through.gd
+      - name: Run reusable building and door tests
+        run: godot --headless --path . --script res://tests/test_building_framework.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
       - name: Run seasonal tree tests
