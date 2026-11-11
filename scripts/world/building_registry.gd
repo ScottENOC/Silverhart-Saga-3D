@@ -9,7 +9,7 @@ var doors: Dictionary = {}
 func register_building(definition: Dictionary) -> bool:
     var building_id := String(definition.get("id", "")).strip_edges()
     var entrance: Variant = definition.get("entrance_hex")
-    if building_id.is_empty() or not entrance is Vector2i or definitions.has(building_id):
+    if building_id.is_empty() or not (entrance is Vector2i) or definitions.has(building_id):
         return false
     definitions[building_id] = definition.duplicate(true)
     return true
@@ -23,7 +23,8 @@ func register_door(door_id: String, building_id: String, door_hex: Vector2i, sta
     return true
 
 func get_building(building_id: String) -> Dictionary:
-    return (definitions.get(building_id, {}) as Dictionary).duplicate(true)
+    var definition: Variant = definitions.get(building_id, {})
+    return definition.duplicate(true) if definition is Dictionary else {}
 
 func get_door(door_id: String) -> BuildingDoorState:
     return doors.get(door_id) as BuildingDoorState
