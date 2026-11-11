@@ -79,6 +79,7 @@ var encounter_active: bool = false
 var active_combat_kind: String = "ironbond"
 var active_combat_enemy_ids: Array[String] = []
 var active_combat_party_ids: Array[String] = []
+var active_combat_controlled_ids: Array[String] = []
 var nearby_interaction_panel: PanelContainer
 var nearby_interaction_box: VBoxContainer
 var nearby_interaction_refresh: float = 0.0
@@ -347,8 +348,10 @@ func _begin_bear_hunt_combat() -> void:
     active_combat_kind = "bear_hunt"
     active_combat_enemy_ids = [FARMSTEAD_BEAR_SCRIPT.BEAR_ID]
     active_combat_party_ids.clear()
+    active_combat_controlled_ids.clear()
     for value in result.get("party_ids", []):
         active_combat_party_ids.append(String(value))
+        active_combat_controlled_ids.append(String(value))
     encounter_active = true
     enemy_turn_processed = false
     enemy_turn_waiting_for_reaction = false
@@ -1389,6 +1392,7 @@ func _begin_shakedown_combat() -> void:
     active_combat_kind = "ironbond"
     active_combat_enemy_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.duplicate()
     active_combat_party_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.COMBAT_ALLY_IDS.duplicate()
+    active_combat_controlled_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.duplicate()
     enemy_turn_processed = false
     enemy_turn_waiting_for_reaction = false
     if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(active_character_id):
@@ -1415,7 +1419,7 @@ func _update_combat(_delta: float) -> void:
     var current := simulation.get_current_turn_character()
     if current == null or enemy_turn_processed:
         return
-    var is_ai_turn := current.side == "enemy" or (current.side == "player" and not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(current.id))
+    var is_ai_turn := current.side == "enemy" or (current.side == "player" and not active_combat_controlled_ids.has(current.id))
     if not is_ai_turn:
         return
     enemy_turn_processed = true
@@ -1490,7 +1494,7 @@ func _attack_active_character() -> void:
         return
     var target := _nearest_enemy_in_attack_range(current)
     if target == null:
-        combat_status_label.text = "No enemy in reach. Move adjacent to an Ironbond soldier first."
+        combat_status_label.text = "No enemy in reach. Move within range of an enemy first."
         return
     var weapon_id := String(current.equipment.get("weapon", ""))
     var result := simulation.try_attack_character(current.id, target.id, {
@@ -1554,7 +1558,7 @@ func _update_combat_ui() -> void:
         combat_status_label.text = "Waiting for the next combat turn..."
     elif current.side == "enemy":
         combat_status_label.text = "%s is acting..." % current.display_name
-    elif current.id != active_character_id and active_combat_party_ids.has(current.id):
+    elif current.id != active_character_id and active_combat_controlled_ids.has(current.id):
         combat_status_label.text = "Switch to %s with Tab." % current.display_name
     elif current.id != active_character_id:
         combat_status_label.text = "%s is acting..." % current.display_name
@@ -1625,7 +1629,7 @@ func _toggle_world_map() -> void:
 
 
 func _on_reaction_requested(reactor_id: String, options: Array[Dictionary], request_id: int, _source_event_id: String) -> void:
-    if not HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.has(reactor_id):
+    if not active_combat_controlled_ids.has(reactor_id):
         _resolve_ai_reaction(reactor_id, options)
         return
     if reaction_prompt != null:
