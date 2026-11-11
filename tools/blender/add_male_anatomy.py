@@ -270,6 +270,8 @@ def add_anatomy_bones(armature, pelvis_bone, base_world, axis_world, length):
 def key_anatomy_pose_transition(armature, state):
     """Author an erect-to-resting transition on the dedicated anatomy chain."""
     import math
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = 24
     armature.animation_data_create()
     action = bpy.data.actions.new("MaleAnatomy_ErectToFlaccid")
     armature.animation_data.action = action
