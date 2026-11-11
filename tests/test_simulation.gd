@@ -426,6 +426,8 @@ func _test_farmstead_dire_wolf_encounter() -> void:
     _check(is_equal_approx(player.time_points, 100.0) and is_equal_approx(wren.time_points, 100.0), "The dire wolf encounter should begin with party members at 100 TP")
     var dire_wolf := simulation.get_character(FarmsteadDireWolfEncounter.DIRE_WOLF_ID)
     _check(dire_wolf != null and dire_wolf.side == "enemy" and not dire_wolf.combat_dormant, "The dire wolf should be an active enemy combatant")
+    _check(dire_wolf.race == "wolf" and dire_wolf.tags.has("dire_wolf"), "The dire wolf should reuse wolf identity with a distinct encounter tag")
+    _check(dire_wolf.max_health == 150 and dire_wolf.base_damage == 7 and int(dire_wolf.skills.get("bite_hit", 0)) == 2, "The dire wolf should be tougher than the ordinary farm wolves")
     _check(is_equal_approx(dire_wolf.time_points, 100.0), "The dire wolf should also start at 100 TP")
     dire_wolf.apply_damage(1000)
     _check(FarmsteadDireWolfEncounter.dire_wolf_defeated(simulation), "Defeating the dire wolf should resolve the encounter target")
