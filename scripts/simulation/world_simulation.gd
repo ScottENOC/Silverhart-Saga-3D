@@ -704,11 +704,22 @@ func harvest_resource_at(character_id: String, hex: Vector2i) -> Dictionary:
     return wilderness_resources.harvest(hex, map_data.terrain_id_at(hex), character, clock.world_seconds)
 
 func find_path(character_id: String, destination: Vector2i) -> Array[Vector2i]:
-    ensure_exploration_region(destination)
+    if not _is_virtual_building_floor_hex(destination):
+        ensure_exploration_region(destination)
     var state := get_character(character_id)
     if state == null:
         return []
     return HexPathfinder.find_path(map_data, occupied_hexes, state.axial, destination, state, characters, is_in_combat)
+
+func _is_virtual_building_floor_hex(hex: Vector2i) -> bool:
+    for definition_value in building_registry.definitions.values():
+        if not definition_value is Dictionary:
+            continue
+        var bounds: Variant = definition_value.get("virtual_floor_bounds", [])
+        if bounds is Array and bounds.size() == 4:
+            if hex.x >= int(bounds[0]) and hex.x <= int(bounds[1]) and hex.y >= int(bounds[2]) and hex.y <= int(bounds[3]):
+                return true
+    return false
 
 func movement_cost(character_id: String, destination: Vector2i) -> float:
     var state := get_character(character_id)
@@ -768,7 +779,8 @@ func _find_npc_sidestep_hex(occupant: CharacterState, mover_origin: Vector2i) ->
     return Vector2i(999999, 999999)
 
 func _commit_move(state: CharacterState, destination: Vector2i) -> void:
-    ensure_exploration_region(destination)
+    if not _is_virtual_building_floor_hex(destination):
+        ensure_exploration_region(destination)
     var origin: Vector2i = state.axial
     var occupant_id := String(occupied_hexes.get(destination, ""))
     if not occupant_id.is_empty():
