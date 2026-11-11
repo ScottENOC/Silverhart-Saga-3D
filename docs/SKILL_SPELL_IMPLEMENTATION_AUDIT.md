@@ -1,7 +1,7 @@
 # Skill and Spell Implementation Audit
 
 **Baseline branch:** `dev`  
-**Baseline commit:** `d08bb529c32b44c1b3a00f1bae18b94c73a8b80f`  
+**Baseline commit:** `76f25f01332f60ec3a58738bf58553afa12437ae`  
 **Audit branch:** `audit/skill-effect-parity-update`  
 **Scope:** source inspection of the 257-skill catalogue, original 2D skill definitions and gameplay references, current 3D simulation/movement/combat runtime, effect tests, and relevant feature branches. This remains an evidence-based audit; absence of a hook in the inspected runtime is not proof that no implementation exists elsewhere.
 
@@ -10,7 +10,7 @@
 - Catalogue contains **257 skills** and **15 base spells**.
 - Skill catalogue loading, purchase eligibility, prerequisites, point accounting, NPC skill allocation and save/load have automated coverage in `tests/test_simulation.gd`. These tests verify progression plumbing, not the gameplay effect of every purchased skill.
 - **22 skill IDs now have direct automated effect-test coverage** on `dev` after PR #102: movement discounts, foliage movement, several racial combat passives, spectral damage reduction, parry variants/modifiers, Shield Other/Proficiency, Protector, spear reactions and Sidestep/Mastery. Foliage is only partially covered against the original 2D behaviour; see the follow-up comparison below.
-- PR #102 added deterministic tests for those additional effects. A follow-up correction (PR #105) is pending to keep Fast Movement and Goblin Opportunist test fixtures within their catalogue max-rank limits.
+- PR #102 added deterministic tests for those additional effects. PR #105 has now corrected those fixtures to keep Fast Movement and Goblin Opportunist within their catalogue max-rank limits.
 - The spell file is currently a **15-entry data catalogue**. The reviewed simulation scripts contain character spell-slot/unlock storage, but this audit did not identify a spell-casting/effect resolver or spell-effect tests. All spells therefore remain unverified.
 - All remaining skills are deliberately marked **UNVERIFIED**, not “broken” or “not implemented”: absence of a hook in the reviewed core files is not proof that no implementation exists elsewhere.
 
@@ -93,7 +93,7 @@ effects on dev, despite the candidate work above.
 | Skill ID | Skill | Current evidence status |
 |---|---|---|
 | `acrobatics` | Acrobatics | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `fastMovement` | Fast Movement | VERIFIED — automated movement-cost effect test (rank-cap fixture correction pending PR #105) |
+| `fastMovement` | Fast Movement | VERIFIED — automated movement-cost effect test |
 | `keen_perception` | Keen Perception | FEATURE BRANCH CANDIDATE — detection helper exists off `dev`; no integration/effect test |
 | `riding` | Riding | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `sidestep` | Sidestep | VERIFIED — automated effect test |
@@ -411,7 +411,7 @@ effects on dev, despite the candidate work above.
 |---|---|---|
 | `goblin_keen_senses` | Keen Senses | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
 | `goblin_low_light_eyes` | Low-Light Eyes | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
-| `goblin_opportunist` | Opportunist | PARTIAL — raw-damage option tested; normal attack submission does not derive `target_caught_off_guard` from target state (rank-cap fixture correction pending PR #105) |
+| `goblin_opportunist` | Opportunist | PARTIAL — raw-damage option tested; normal attack submission does not derive `target_caught_off_guard` from target state |
 | `goblin_pack_hunter` | Pack Hunter | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `goblin_quick_reflexes` | Quick Reflexes | UNVERIFIED — no effect test or confirmed runtime hook yet |
 
@@ -583,10 +583,10 @@ stealth integration for these skills was found in the inspected runtime.
 
 7. **The 3D test fixtures needed a rank correction.** Original catalogue
    max-rank values are one for Fast Movement and Goblin Opportunist. PR #102
-   initially tested those effects with rank two. PR #105 changes those
-   fixtures to legal rank-one values and adjusts expected movement cost and
-   damage. Keep that correction pending validation separate from the runtime
-   implementation status.
+   initially tested those effects with rank two. PR #105 corrected the
+   fixtures to legal rank-one values and adjusted expected movement cost and
+   damage; its Godot validation and initiative preview both passed before it
+   was merged.
 
 ### Runtime coverage that is present but not yet complete
 
