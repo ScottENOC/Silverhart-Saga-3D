@@ -33,6 +33,7 @@ var simulation: WorldSimulation
 var save_load_menu: CanvasLayer
 var pending_save_data: Dictionary = {}
 var initial_character_baselines: Dictionary = {}
+var autosave_accumulator: float = 0.0
 var reaction_prompt: CanvasLayer
 var initiative_timeline: CombatInitiativeTimeline
 var character_panel: CharacterPanel
@@ -117,6 +118,7 @@ func _ready() -> void:
         _apply_save_data(pending_save_data)
         pending_save_data.clear()
     else:
+        SaveManager.save_autosave(_build_save_snapshot())
         _run_opening_sequence()
 
 func _create_materials() -> void:
@@ -623,6 +625,9 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
     actor.set_meta("character_id", id)
     actor.set_meta("ambient_enabled", not is_player and id != "companion_wren_talbot")
     actor.set_meta("ambient_role", _ambient_role_for_id(id))
+    var base_appearance: Dictionary = npc_profile.get("params", {}).duplicate(true) if not is_player else {}
+    actor.set_meta("base_appearance_profile", base_appearance.duplicate(true))
+    actor.set_meta("appearance_profile", base_appearance.duplicate(true))
     actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
 
     var ara_model := ARA_CHARACTER_ACTOR.new() as AraCharacterActor
@@ -979,12 +984,30 @@ func _build_character_diffs() -> Dictionary:
             diffs[character_id] = changed
     return diffs
 
+func _build_appearance_diffs() -> Dictionary:
+    var diffs: Dictionary = {}
+    for actor_id_variant in actor_by_id.keys():
+        var actor_id := String(actor_id_variant)
+        var actor := actor_by_id[actor_id] as Node3D
+        if actor == null or actor_id == "player":
+            continue
+        var base: Dictionary = actor.get_meta("base_appearance_profile", {})
+        var current: Dictionary = actor.get_meta("appearance_profile", base)
+        var changed: Dictionary = {}
+        for field in current.keys():
+            if not base.has(field) or current[field] != base[field]:
+                changed[field] = current[field]
+        if not changed.is_empty():
+            diffs[actor_id] = changed
+    return diffs
+
 func _build_save_snapshot() -> Dictionary:
     return {
         "schema_version": 1,
         "location": "Hollowmere — Hollow Tankard",
         "player_profile": player_profile.duplicate(true),
         "character_diffs": _build_character_diffs(),
+        "appearance_diffs": _build_appearance_diffs(),
         "party_member_ids": simulation.party_member_ids.duplicate(),
         "active_character_id": active_character_id,
         "active_party_index": active_party_index,
@@ -1029,11 +1052,28 @@ func _apply_save_data(data: Dictionary) -> void:
                 merged.merge(diff, true)
                 restored = CharacterState.from_dict(merged)
             var previous := simulation.get_character(character_id)
-            if previous != null:
-                simulation.occupied_hexes.erase(previous.axial)
             simulation.characters[character_id] = restored
-            simulation.occupied_hexes[restored.axial] = character_id
             simulation._attach_character_lifecycle(restored)
+    simulation.occupied_hexes.clear()
+    for character_id_variant in simulation.characters.keys():
+        var character_id := String(character_id_variant)
+        var restored_state := simulation.get_character(character_id)
+        if restored_state != null:
+            simulation.occupied_hexes[restored_state.axial] = character_id
+    var appearance_diffs: Variant = data.get("appearance_diffs", {})
+    if appearance_diffs is Dictionary:
+        for actor_id_variant in appearance_diffs.keys():
+            var actor_id := String(actor_id_variant)
+            var actor := actor_by_id.get(actor_id) as Node3D
+            if actor == null:
+                continue
+            var base: Dictionary = actor.get_meta("base_appearance_profile", {})
+            var merged_appearance := base.duplicate(true)
+            merged_appearance.merge(appearance_diffs[actor_id], true)
+            actor.set_meta("appearance_profile", merged_appearance)
+            var model := actor.get_node_or_null("CharacterModel") as AraCharacterActor
+            if model != null:
+                model.apply_npc_parameters(merged_appearance)
     simulation.party_member_ids.clear()
     for member_id in data.get("party_member_ids", []):
         var id := String(member_id)
@@ -2058,6 +2098,11 @@ func _switch_party_member() -> void:
         character_panel.set_character(active_character_id)
 
 func _process(delta: float) -> void:
+    if not simulation.is_in_combat and simulation.pending_reaction.is_empty() and not dialogue_open:
+        autosave_accumulator += delta
+        if autosave_accumulator >= 300.0:
+            autosave_accumulator = 0.0
+            SaveManager.save_autosave(_build_save_snapshot())
     _update_ambient_chatter(delta)
     _check_farm_wolf_proximity()
     _update_combat(delta)
