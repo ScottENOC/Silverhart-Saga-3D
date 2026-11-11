@@ -87,7 +87,8 @@
         "weapon": "sword",
         "armour": "reinforced_leather_armor",
         "offhand": "wooden_shield"
-      }
+      },
+      "body_profile": "female_broad"
     },
     {
       "id": "garrick_holt",
@@ -151,7 +152,8 @@
         "shirt": "long_tunic",
         "pants": "trousers",
         "shoes": "sandals"
-      }
+      },
+      "body_profile": "male_broad"
     },
     {
       "id": "mira_ashbrook",
@@ -218,7 +220,8 @@
         "pants": "wrapper_long",
         "shoes": "sandals",
         "weapon": "dagger"
-      }
+      },
+      "body_profile": "female_lean"
     },
     {
       "id": "oskar_vinn",
@@ -284,7 +287,8 @@
         "pants": "trousers",
         "shoes": "sandals",
         "weapon": "sword"
-      }
+      },
+      "body_profile": "male_broad"
     },
     {
       "id": "wick_hallow",
@@ -348,7 +352,8 @@
         "pants": "trousers",
         "shoes": "sandals",
         "weapon": "dagger"
-      }
+      },
+      "body_profile": "male_average"
     },
     {
       "id": "dray",
@@ -421,7 +426,8 @@
         "weapon": "sword",
         "armour": "medium_armor",
         "offhand": "wooden_shield"
-      }
+      },
+      "body_profile": "male_muscular"
     },
     {
       "id": "tomlin",
@@ -488,7 +494,8 @@
         "shoes": "combat_boots",
         "weapon": "spear",
         "armour": "light_armor"
-      }
+      },
+      "body_profile": "male_average"
     },
     {
       "id": "hask",
@@ -557,7 +564,8 @@
         "shoes": "combat_boots",
         "weapon": "axe",
         "armour": "light_armor"
-      }
+      },
+      "body_profile": "male_broad"
     },
     {
       "id": "yvette",
@@ -627,7 +635,8 @@
         "pants": "wrapper_knee",
         "shoes": "sandals",
         "weapon": "dagger"
-      }
+      },
+      "body_profile": "female_lean"
     },
     {
       "id": "hendra",
@@ -696,7 +705,8 @@
         "shoes": "sandals",
         "weapon": "bow",
         "armour": "light_armor"
-      }
+      },
+      "body_profile": "female_average"
     },
     {
       "id": "tavern_patron",
@@ -758,7 +768,8 @@
         "pants": "trousers",
         "shoes": "sandals",
         "weapon": "club"
-      }
+      },
+      "body_profile": "male_average"
     },
     {
       "id": "elder_marta",
@@ -825,7 +836,8 @@
         "pants": "wrapper_long",
         "shoes": "sandals",
         "weapon": "club"
-      }
+      },
+      "body_profile": "female_average"
     },
     {
       "id": "rowan_fletcher",
@@ -896,7 +908,8 @@
         "shoes": "combat_boots",
         "weapon": "bow",
         "armour": "light_armor"
-      }
+      },
+      "body_profile": "male_broad"
     },
     {
       "id": "player_avatar",
@@ -956,7 +969,8 @@
         "shirt": "long_tunic",
         "pants": "trousers",
         "shoes": "sandals"
-      }
+      },
+      "body_profile": "female_average"
     }
   ]
 }
