@@ -7,7 +7,7 @@ tool versions and relevant source scripts. Safe to rerun after interruption.
 from __future__ import annotations
 import hashlib, json, os, shutil, subprocess, sys
 from pathlib import Path
-from character_definitions import ara_export_params, load_item_catalog, validate_character_definitions
+from character_definitions import DEFAULT_MALE_BODY_MODIFIERS, ara_export_params, load_item_catalog, validate_character_definitions
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / "build" / "local-cache" / "ara"
@@ -250,14 +250,7 @@ def main():
     male=dict(body); male.update({
       "name":"Ara Base Person - male body","seed":417,"gender":1,
       "breastSize":0,"breastFirmness":0,
-      "modifiers":{
-        "torso/torso-vshape":0.20,
-        "torso/torso-muscle-dorsi":0.12,
-        "armslegs/upperarm-muscle":0.12,
-        "armslegs/upperarm-scale-horiz":0.12,
-        "armslegs/upperarm-scale-depth":0.10,
-        "armslegs/lowerarm-muscle":0.08
-      }})
+      "modifiers":dict(DEFAULT_MALE_BODY_MODIFIERS)})
     # Deliberately exaggerated comparison pair. These are diagnostic exports only;
     # they are never packaged or used as production character defaults.
     female_test=dict(body); female_test.update({
