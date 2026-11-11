@@ -6,6 +6,7 @@ var _failures: int = 0
 
 func _initialize() -> void:
     _test_character_round_trip()
+    _test_animal_catalog_and_state()
     _test_skill_catalogue_and_progression()
     _test_npc_skill_spending_and_companion_boundary()
     _test_campaign_journal()
@@ -446,6 +447,59 @@ func _has_companion_recruit_choice(conversation: Dictionary) -> bool:
             return true
     return false
 
+
+func _test_animal_catalog_and_state() -> void:
+    var expected_kinds := PackedStringArray([
+        "cow", "bull", "horse", "donkey", "alpaca", "wolf",
+        "fox", "deer", "stag", "husky", "shiba_inu"
+    ])
+    var supported := AnimalCatalog.supported_kinds()
+    _check(supported.size() == expected_kinds.size(), "Every currently modelled animal must have a gameplay profile")
+    for kind in expected_kinds:
+        _check(AnimalCatalog.has_profile(kind), "Missing animal profile for art kind: %s" % kind)
+        var animal := AnimalCatalog.create_state(kind, "animal_" + kind)
+        _check(animal != null, "Animal profile should create a CharacterState: %s" % kind)
+        if animal == null:
+            continue
+        _check(animal.creature_kind == kind and animal.race == "animal", "Animal identity should be explicit")
+        _check(animal.tags.has("animal"), "Animal combat tag should be present")
+        _check(animal.max_health > 0 and animal.health == animal.max_health, "Animal should start at full positive health")
+        _check(animal.animal_attributes.has("strength") and animal.animal_attributes.has("endurance") and animal.animal_attributes.has("agility"), "Animal physical attributes should be complete")
+        _check(animal.time_points >= ActionEconomy.COMBAT_TURN_READY_TP, "Unridden animals should own an independent ready TP pool")
+        var restored := CharacterState.from_dict(animal.to_dict())
+        _check(restored.creature_kind == animal.creature_kind, "Animal species survives save/load")
+        _check(restored.animal_attributes == animal.animal_attributes, "Individual animal attributes survive save/load")
+        _check(restored.mountable == animal.mountable and restored.mount_size == animal.mount_size, "Mount metadata survives save/load")
+        _check(restored.individual_seed == animal.individual_seed, "Individual seed survives save/load")
+        _check(restored.skills == animal.skills, "Species skills survive save/load")
+
+    var horse := AnimalCatalog.create_state("horse", "horse_source_check", "", Vector2i.ZERO, 101)
+    _check(horse.max_health >= 48 and horse.max_health <= 52, "Horse should retain the original 10 HP plus four Health ranks")
+    _check(int(horse.skills.get("health", 0)) == 4 and int(horse.skills.get("fastMovement", 0)) == 2, "Horse should retain original 2D skills")
+    _check(horse.mountable and horse.mount_size == 3, "Horse should retain original mount size")
+
+    var wolf := AnimalCatalog.create_state("wolf", "wolf_source_check", "", Vector2i.ZERO, 202)
+    _check(wolf.max_health >= 19 and wolf.max_health <= 21, "Wolf should retain the original 10 HP plus one Health rank")
+    _check(int(wolf.skills.get("timePointRate", 0)) == 6, "Wolf should retain its original time-point-rate skill")
+    _check(is_equal_approx(wolf.time_points_per_tick, 1.3), "Wolf TP regeneration should reflect six 0.05 ranks")
+    _check(wolf.mountable and wolf.mount_size == 2, "Wolf should retain original mount size")
+
+    var deer := AnimalCatalog.create_state("deer", "deer_source_check", "", Vector2i.ZERO, 303)
+    _check(deer.max_health >= 3 and deer.max_health <= 5, "Deer should retain its original 4 HP baseline")
+    _check(int(deer.skills.get("fastMovement", 0)) == 1, "Deer should retain its original fast movement")
+
+    var individual_a := AnimalCatalog.create_state("horse", "horse_a", "", Vector2i.ZERO, 111)
+    var individual_b := AnimalCatalog.create_state("horse", "horse_b", "", Vector2i.ZERO, 222)
+    _check(individual_a.individual_seed != individual_b.individual_seed, "Separate animals should carry separate individual seeds")
+    _check(individual_a.animal_attributes != individual_b.animal_attributes or individual_a.max_health != individual_b.max_health, "Individuals of one species should be capable of differing physical stats")
+
+    var profile_validation := AnimalCatalog.validate_profiles()
+    _check(bool(profile_validation.get("ok", false)), "All animal profiles should pass completeness validation")
+
+    var movement_horse := MovementRules.base_cost_for(horse)
+    _check(is_equal_approx(movement_horse, 3.0), "Horse movement should use its source fastMovement ranks")
+    var movement_wolf := MovementRules.base_cost_for(wolf)
+    _check(is_equal_approx(movement_wolf, 4.0), "Wolf movement should use its source fastMovement rank")
 
 func _test_character_round_trip() -> void:
     var original := CharacterState.new("npc_garrick_holt", "Garrick Holt", Vector2i(2, -1))
