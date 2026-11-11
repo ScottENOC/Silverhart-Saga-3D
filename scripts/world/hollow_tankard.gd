@@ -1424,9 +1424,11 @@ func _run_ai_combat_turn(combatant: CharacterState) -> void:
             "weapon_id": weapon_id,
             "is_ranged": String(weapon.get("subType", "")) == "ranged"
         }
-        if combatant.race == "bear":
-            attack_options["unarmed_skill_hit"] = int(combatant.skills.get("claw_hit", 0)) > 0
-            attack_options["unarmed_skill_damage"] = int(combatant.skills.get("claw_dmg", 0))
+        if combatant.race == "bear" or combatant.tags.has("farm_quest_wolf"):
+            var natural_hit_rank := int(combatant.skills.get("claw_hit", combatant.skills.get("bite_hit", 0)))
+            var natural_damage_rank := int(combatant.skills.get("claw_dmg", combatant.skills.get("bite_dmg", 0)))
+            attack_options["unarmed_skill_hit"] = natural_hit_rank > 0
+            attack_options["unarmed_skill_damage"] = natural_damage_rank
         var result := simulation.try_attack_character(combatant.id, target.id, attack_options, int(combatant.id.hash()))
         if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
             enemy_turn_waiting_for_reaction = true
