@@ -1,5 +1,7 @@
 extends SceneTree
 
+const FARMSTEAD_BEAR_ACTOR_SCRIPT = preload("res://scripts/presentation/farmstead_bear_actor.gd")
+
 var _failures: int = 0
 
 func _initialize() -> void:
@@ -10,6 +12,7 @@ func _initialize() -> void:
     _test_hollowmere_campaign_content()
     _test_companion_campaign_dialogue_and_recruitment()
     _test_farmstead_bear_encounter()
+    _test_farmstead_bear_presentation()
     _test_hollowmere_encounter()
     _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
@@ -405,6 +408,21 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
     CompanionCampaignContent.register_quest_definitions(restored)
     restored.load_dict(journal.to_dict())
     _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("nix_sharpear", restored, empty_inventory, no_party)), "Companion quest outcomes should persist through journal save/load")
+
+
+func _test_farmstead_bear_presentation() -> void:
+    var bear := FARMSTEAD_BEAR_ACTOR_SCRIPT.new() as Node3D
+    bear._ready()
+    _check(bear.get_node_or_null("BearBodyRig/DeepBarrelBody") != null, "Bear has a broad barrel-shaped torso")
+    _check(bear.get_node_or_null("BearBodyRig/ShoulderHump") != null, "Bear has a defined shoulder hump")
+    _check(bear.get_node_or_null("BearHeadPivot/BroadBearSkull") != null, "Bear has a distinct skull and head assembly")
+    _check(bear.get_node_or_null("BearHeadPivot/Nose") != null, "Bear has a shaped muzzle and nose")
+    _check(bear.get_node_or_null("BearHeadPivot/AmberEye_L") != null and bear.get_node_or_null("BearHeadPivot/AmberEye_R") != null, "Bear has visible eyes on both sides")
+    for leg_name in ["FrontLeft", "FrontRight", "RearLeft", "RearRight"]:
+        _check(bear.get_node_or_null(leg_name + "Rig/" + leg_name + "Paw") != null, "Bear has a paw on " + leg_name)
+        _check(bear.get_node_or_null(leg_name + "Rig/" + leg_name + "Claw_0") != null, "Bear has claws on " + leg_name)
+    _check(bear.get_node_or_null("BearName") != null, "Bear keeps its in-world name label")
+    bear.free()
 
 
 func _test_farmstead_bear_encounter() -> void:
