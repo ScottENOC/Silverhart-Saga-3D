@@ -64,7 +64,7 @@ func _create_materials() -> void:
 		"water": _material(Color("#3d9fc2"), 0.28),
 		"path": _material(Color("#b79b70"))
 	}
-	var crown := ConeMesh.new()
+	var crown := CylinderMesh.new()
 	crown.bottom_radius = 0.82
 	crown.top_radius = 0.02
 	crown.height = 2.8
