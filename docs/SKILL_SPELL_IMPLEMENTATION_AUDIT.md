@@ -680,3 +680,23 @@ The 257 canonical skill rows currently resolve to:
 These are evidence labels, not a claim that 211 skills are necessarily broken.
 The 22 skills with some effect-test coverage comprise 17 verified and 5
 partial; the partial group is not counted as complete parity.
+
+
+## Additional source-backed 2D systems with no current-dev equivalent found
+
+The original 2D project has supporting systems outside `gameEngine.js`.
+Reviewing those files confirms that some skills depend on whole gameplay
+subsystems, not a simple numeric modifier:
+
+| 2D source | Original behaviour | Current 3D status |
+|---|---|---|
+| `npcBuilder.js` / `skills.js` | NPC construction invokes each purchased skill's `apply(this)` hook, then tops HP to the resulting max HP and builds the NPC's prepared spellbook. | 3D progression stores ranks and NPC allocation; no equivalent general skill-application hook was found. This is why state fields such as max HP, TP regeneration and spell unlocks are not automatically derived from purchased ranks. |
+| `trapSystem.js` | Material-driven traps (snare, deadfall, pressure-plate spikes), build times/material costs, concealment, detection, disarming, and a tamper rune. The legacy `trap_setting` key is retained as the broader Traps skill rank. | No trap gameplay system or trap-skill runtime integration found in current 3D GDScript. |
+| `monsters.js` / `entities.js` | Rider/mount entity relationships, mount types, rider sizes, mounted movement and NPC mount training. `riding`, `riding_druid` and `riding_paladin` are eligibility skills. | Current dev has no equivalent mount relationship/action system. The off-dev `feature/animal-attributes` branch adds animal attributes/catalogue state, not rider/mount integration or the Riding skills. |
+| `disguiseSelfSystem.js` plus spell pipeline | Disguise Self applies a configurable appearance and optional target identity/faction/dialogue profile; `disguise_equipment` permits visual equipment/clothing-colour overlays. | No 3D spell cast, disguise profile state or skill-driven disguise equipment integration found. |
+| `npcProgression.js` / `monsters.js` | NPC archetypes and creature templates deliberately choose skills such as Riding, Quick Recovery, Initiative Bonus, spell learning, racial passives and weapon skills. | 3D NPC skill allocation can store/purchase catalogue ranks, but a rank in a skill is not evidence that the corresponding 2D gameplay subsystem exists in 3D. |
+
+These are confirmed 2D systems and current 3D gaps from the inspected source
+files. They should be treated as separate feature families when planning the
+port, rather than attempting to implement every remaining skill as an
+independent one-off effect.
