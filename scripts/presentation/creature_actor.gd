@@ -17,6 +17,9 @@ var model_root: Node3D
 var animation_player: AnimationPlayer
 var animation_names: PackedStringArray = PackedStringArray()
 var active_animation: StringName = &""
+## Hex-grid position and simulation state are assigned by the world owner.
+var axial_hex: Vector2i = Vector2i.ZERO
+var simulation_state: CharacterState
 
 func _ready() -> void:
     _load_model()
