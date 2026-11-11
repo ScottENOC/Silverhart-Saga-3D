@@ -406,7 +406,7 @@ func _test_status_effects_and_combat_debuffs() -> void:
     ticking.wither_damage_per_tp = 2.0
     ticking.wither_source_id = attacker.id
     var tick_events := StatusEffectRules.advance(ticking, 2.5)
-    _check(ticking.health == 95, "Poison and withering deal damage proportional to gained TP")
+    _check(ticking.health == 90, "Poison and withering each deal damage proportional to gained TP")
     _check(is_equal_approx(ticking.poison_remaining_tp, 7.5) and is_equal_approx(ticking.wither_remaining_tp, 2.5), "Damage-over-time durations decrease by gained TP")
     _check(tick_events.size() == 2, "Each active damage-over-time effect emits a tick event")
 
