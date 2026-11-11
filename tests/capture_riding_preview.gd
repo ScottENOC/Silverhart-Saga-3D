@@ -101,6 +101,8 @@ func _capture_variant(rider_path: String, filename: String, camera_position: Vec
         await process_frame
         return false
 
+    if rider.animation_player != null:
+        print("Rider animation clips (%s): %s" % [filename, ", ".join(rider.animation_player.get_animation_list())])
     var skeleton := _find_skeleton(rider)
     if skeleton != null:
         var bone_names: Array[String] = []
