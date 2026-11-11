@@ -93,3 +93,22 @@ Recommended order, following the existing port plan:
 8. Deterministic tests for each spell and cross-cutting interaction, with source-derived fixtures.
 
 No spell implementation is included in this audit. Do not mark a spell complete until the relevant cast path and effect are exercised by tests.
+
+
+## Additional source inconsistency: 19 orphan spell-unlock skills
+
+The original `skills.js` contains **19 additional `learn_*` definitions** that push spell IDs into `unlockedBaseSpells`, but those IDs are not among the 15 entries in the original `spells.js` `baseSpells` registry:
+
+| School | Skill IDs | Unlocked IDs |
+|---|---|---|
+| Arcane | `learn_blink`, `learn_slow`, `learn_force_push`, `learn_haste`, `learn_chain_lightning`, `learn_energy_shield`, `learn_gravity_well` | `blink`, `slow`, `force_push`, `haste`, `chain_lightning`, `energy_shield`, `gravity_well` |
+| Divine | `learn_curse`, `learn_command`, `learn_mark_of_guilt`, `learn_divine_wrath`, `learn_excommunicate`, `learn_condemn` | `curse`, `command`, `mark_of_guilt`, `divine_wrath`, `excommunicate`, `condemn` |
+| Nature | `learn_root`, `learn_barkskin_spell`, `learn_natures_vigor`, `learn_spore_cloud`, `learn_call_of_the_wild`, `learn_camouflage` | `root`, `barkskin_spell`, `natures_vigor`, `spore_cloud`, `call_of_the_wild`, `camouflage` |
+
+The descriptions in `skills.js` specify intended costs and effects (for example Blink teleports within 4 hexes; Chain Lightning deals 3/2/1 damage across successive enemies; Energy Shield absorbs 6 damage for 20 ticks; Root prevents movement for 5 TP ticks). However, these IDs are not defined in the original `baseSpells` object, and a targeted scan of the original `gameEngine.js` found no corresponding spell-effect handlers for them. The original player spell builder also obtains its spell name/configuration from `baseSpells[id]`.
+
+**Treatment:** mark these 19 as **ORPHAN SOURCE UNLOCKS — described by a skill, but no corresponding base spell definition/effect path established**. Do not silently add them to the 3D spell catalogue or claim they were fully working in the 2D game. They are a source-project inconsistency / unfinished feature set that needs a deliberate product decision before any port. `learn_temporal_rift` is not part of this orphan group because `temporal_rift` is one of the 15 registered base spells.
+
+This also means the 3D port should keep two counts distinct:
+- **15 registered base spells** — real original definitions, all currently data-only in 3D.
+- **19 orphan unlock definitions** — descriptions in the original skill tree, but no registered base spell/effect implementation confirmed in the original source.
