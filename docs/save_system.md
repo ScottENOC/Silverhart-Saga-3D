@@ -44,7 +44,7 @@ This is the first playable persistence pass, not yet a complete campaign persist
 contract. In particular:
 - Mutable map cells, doors, containers, ground loot and building/object damage are not
   yet captured.
-- Gatherable resource depletion/regrowth state is not yet captured.
+- Gatherable resource depletion/regrowth state is captured through the resource system's changed-node dictionary.
 - Dynamic actors created after world startup are recorded as character data, but their
   presentation actors are not yet generically respawned on load.
 - NPC appearance override storage is wired, but there is not yet a general gameplay
