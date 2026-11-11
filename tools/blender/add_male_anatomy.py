@@ -379,10 +379,17 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
 
     # Use the former erect surface as the shared starting geometry.
     # A dedicated deform rig will control the resting/erect transition.
-    target_axis = Vector((0.0, -0.985, -0.17)).normalized()
-    target_length = body_height * 0.074
+    if anatomy_state == "flaccid":
+        # Resting pose hangs down with a slight forward cant; use the same
+        # transformed Ara surface and cross-section profile as the erect form.
+        target_axis = Vector((0.0, -0.43, -0.90)).normalized()
+        target_length = body_height * 0.038
+        base_depth_offset = body_height * 0.003
+    else:
+        target_axis = Vector((0.0, -0.985, -0.17)).normalized()
+        target_length = body_height * 0.074
+        base_depth_offset = body_height * 0.016
     radial_factor = 1.16
-    base_depth_offset = body_height * 0.016
     rotation = source_axis.rotation_difference(target_axis)
     length_scale = target_length / source_length
     radial_scale = length_scale * radial_factor
@@ -674,18 +681,13 @@ def main():
 
     # Fail early if the front pelvis surface cannot be sampled.
     pelvic_surface_y = front_surface_y(surface_tree, centre_x, anatomy_z)
-    if args.anatomy_state == "flaccid":
-        # The flaccid review export gets its own compact, downward-resting mesh.
-        # Do not rely on an animation pose that static preview renders may not play.
-        phallus = create_flaccid_phallus(
-            skin_material, armature, pelvis_bone, height, anatomy_z,
-            pelvic_surface_y, centre_x
-        )
-    else:
-        phallus = create_finger_derived_phallus(
-            skin, skin_material, armature, pelvis_bone, height, anatomy_z,
-            pelvic_surface_y, args.anatomy_state, centre_x
-        )
+    # Both states use Ara's same native finger-derived surface, so the
+    # flaccid form retains the erect form's shaft/glans character rather than
+    # switching to an unrelated parametric capsule. Only scale and pose differ.
+    phallus = create_finger_derived_phallus(
+        skin, skin_material, armature, pelvis_bone, height, anatomy_z,
+        pelvic_surface_y, args.anatomy_state, centre_x
+    )
     scrotum = create_scrotum(
         surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z,
         pelvic_surface_y, args.anatomy_state, centre_x
