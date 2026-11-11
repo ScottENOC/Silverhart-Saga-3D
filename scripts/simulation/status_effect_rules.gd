@@ -36,9 +36,9 @@ static func apply_on_hit(
 
     if int(attacker.skills.get("life_drain", 0)) > 0:
         var drained := mini(damage_dealt, 2)
-        var before := attacker.health
+        var health_before := attacker.health
         attacker.apply_healing(drained)
-        var healed := attacker.health - before
+        var healed := attacker.health - health_before
         if healed > 0:
             events.append({"effect": "life_drain", "target_id": target.id, "healing": healed})
 
