@@ -28,7 +28,7 @@ func _test_appearance_save_reload_and_material_application() -> void:
 
 	appearance.apply_to(body)
 	appearance.apply_to(body) # Applying twice must not multiply the tint twice.
-	var dyed := shirt.get_active_material(0) as StandardMaterial3D
+	var dyed := shirt.get_surface_override_material(0) as StandardMaterial3D
 	assert(dyed != null)
 	assert(dyed.albedo_color.is_equal_approx(Color("#9b263d")))
 	assert(is_equal_approx(dyed.roughness, 0.96))
@@ -36,12 +36,12 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	assert(is_equal_approx(source_material.roughness, 0.5))
 	appearance.shirt_tint = Color("#315f9b")
 	appearance.apply_to(body)
-	var redyed := shirt.get_active_material(0) as StandardMaterial3D
+	var redyed := shirt.get_surface_override_material(0) as StandardMaterial3D
 	assert(redyed.albedo_color.is_equal_approx(Color("#315f9b")))
 	appearance.shirt_opacity = 0.35
 	appearance.shirt_visible = false
 	appearance.apply_to(body)
-	var translucent := shirt.get_active_material(0) as StandardMaterial3D
+	var translucent := shirt.get_surface_override_material(0) as StandardMaterial3D
 	assert(is_equal_approx(translucent.albedo_color.a, 0.35))
 	assert(translucent.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA)
 	assert(not shirt.visible)
@@ -68,8 +68,8 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	briefs.mesh = briefs_mesh
 	body.add_child(briefs)
 	appearance.apply_to(body)
-	var dyed_bra := bra.get_active_material(0) as StandardMaterial3D
-	var dyed_briefs := briefs.get_active_material(0) as StandardMaterial3D
+	var dyed_bra := bra.get_surface_override_material(0) as StandardMaterial3D
+	var dyed_briefs := briefs.get_surface_override_material(0) as StandardMaterial3D
 	assert(dyed_bra.albedo_color.is_equal_approx(appearance.bra_tint))
 	assert(is_equal_approx(dyed_bra.albedo_color.a, 0.6))
 	assert(not bra.visible)
@@ -92,9 +92,9 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	assert(restored.tattoo_ids == appearance.tattoo_ids)
 	restored.apply_to(body)
 	assert(not bra.visible)
-	assert((bra.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(appearance.bra_tint))
-	assert((briefs.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(appearance.briefs_tint))
-	var after_reload := shirt.get_active_material(0) as StandardMaterial3D
+	assert((bra.get_surface_override_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(appearance.bra_tint))
+	assert((briefs.get_surface_override_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(appearance.briefs_tint))
+	var after_reload := shirt.get_surface_override_material(0) as StandardMaterial3D
 	assert(after_reload.albedo_color.r == appearance.shirt_tint.r)
 	assert(is_equal_approx(after_reload.albedo_color.a, 0.35))
 	assert(not shirt.visible)
@@ -122,8 +122,8 @@ func _test_materials_are_not_shared_between_characters() -> void:
 	var blue := CharacterAppearance.new()
 	blue.shirt_tint = Color.BLUE
 	blue.apply_to(root_b)
-	assert((a.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(Color.RED))
-	assert((b.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(Color.BLUE))
+	assert((a.get_surface_override_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(Color.RED))
+	assert((b.get_surface_override_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(Color.BLUE))
 	assert(shared_material.albedo_color.is_equal_approx(Color.WHITE))
 	root_a.free()
 	root_b.free()
