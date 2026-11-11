@@ -941,3 +941,51 @@ integration rather than adding isolated skill branches:
 
 No gameplay mechanics were implemented in this audit pass. This section is
 source comparison and implementation planning only.
+
+
+## Detailed creature abilities, control effects and Lich skills (2026-11-11)
+
+This pass separates abilities that are deliberately attached to particular creature templates from skills that are player-facing or general-purpose. A creature-specific effect is a real porting requirement for that creature if we retain it, but it is not automatically a requirement for every NPC or the player. Conversely, some abilities stored in the `monster_skills` catalogue are exposed through player action handling or assigned to ordinary animals, so the catalogue tree name alone is not a reliable scope indicator.
+
+### Creature-specific abilities confirmed in original 2D
+
+| Ability | Original 2D evidence and intended scope | Current 3D `dev` evidence |
+|---|---|---|
+| `petrify_gaze` — Basilisk | Basilisk template owns the skill. AI uses it once per combat for 10 TP, selecting the nearest opposing living entity within 8 hexes and line of sight; applies 30 TP ticks of petrification, which prevents the target acting. | No gaze, petrified state or corresponding action/tick handling found in the reviewed `WorldSimulation` or the previously reviewed 3D combat core. Treat as a Basilisk-specific gap, not a universal character skill. |
+| `siren_song` — Harpy | Harpy template owns the skill. Once per combat, costs 8 TP and charms every opposing living entity within 8 hexes. Each charmed entity spends its next turn moving one available hex towards the Harpy, then the charm clears. | No charm state or forced-next-turn movement hook found in reviewed 3D simulation. Harpy-specific gap. |
+| `gore_charge` — Minotaur | Minotaur template owns the skill. AI charges a target 2–5 hexes away, moves to a free adjacent hex, makes an attack with +6 damage, then attempts a shove; costs 10 TP. | No gore-charge action or linked charge/attack/shove sequence found in reviewed 3D simulation. Minotaur-specific gap; depends on general forced-movement support. |
+| Spider web fling (not a catalogue skill ID) | Spider AI has a hard-coded special action: once per combat, selects a visible opposing target within 10 hexes, applies 40 TP ticks of webbing, and spends 5 TP. Webbing prevents movement. This is keyed to the entity name `Spider`, not a skill rank. | No webbed condition or movement-blocking status found in reviewed 3D simulation. This should be tracked as a creature ability/status, not falsely counted as a missing canonical skill ID. |
+| `revenant_revive` — Revenant | Revenant template owns the skill. On its first lethal hit, it remains alive and returns at half maximum HP; subsequent lethal damage follows normal death handling. | No one-time revival-on-lethal-damage hook found in reviewed 3D combat/lifecycle path. Revenant-specific gap. |
+| `life_drain` / `spectral_form` — Wraith | Wraith template owns both. Successful attacks heal the Wraith by up to 2 HP, bounded by damage dealt and max HP; Spectral Form reduces incoming damage by 2. These two effects were already assessed in the preceding combat audit. | Spectral Form is integrated and effect-tested. Life Drain has no corresponding 3D attack-resolution healing hook in the reviewed combat path. |
+| `regeneration` — Troll and other creatures | Troll template owns the skill. Runtime has a 20% per-tick chance to heal 1 HP (scaled by tick multiplier). This is an innate creature passive in these templates, distinct from the player-facing `health_regen` skill. | No equivalent regeneration-skill tick hook found in reviewed 3D simulation. This is a creature passive as well as a broader reusable status/tick capability. |
+
+### Creature-assigned skills whose implementation is not purely creature-specific
+
+| Skill | Original 2D evidence and scope | Audit interpretation |
+|---|---|---|
+| `furious_charge` | Active action costs 10 TP, requires a hostile target 3–5 hexes away, moves adjacent and attacks for +4 damage. It is assigned to creature templates including Wild Boar, Boar and Tiger (and the Unicorn companion). The inspected `gameEngine.js` contains the player action handler but no separate AI use keyed to `furious_charge`. | The active action exists, but creature-template assignment does not prove creature AI actually invokes it. Record player action as implemented in 2D; record NPC/animal AI activation as unverified, not as confirmed parity. |
+| `fly` / `land` | Active actions toggle `isFlying`, each costing 1 TP. The 2D engine also has innate flying creatures whose templates set `isFlying: true`; those templates do not need to purchase these action IDs. | Separate player-toggle actions from innate creature flight. Do not require every flying creature to have `fly`/ `land` ranks. Current 3D reviewed simulation has no corresponding action hooks established in this pass. |
+| `zone_of_control` | General fighter passive, not monster-only. When a player leaves an enemy's melee reach (including weapon reach), the departing movement step costs 2x at rank 1 or 3x at rank 2. The check reads the threatening enemy's rank. | A general combat/movement rule. No corresponding zone-of-control movement-cost integration found in reviewed 3D simulation. This should not be grouped with monster-only powers. |
+| `suppression` | Catalogue description says enemies leaving Zone of Control also lose 3 TP. The inspected original `gameEngine.js` contains the Zone of Control movement multiplier but no `suppression` runtime read or TP-loss branch. | Catalogue description only / unverified 2D implementation. Do not label it a confirmed 2D mechanic until a runtime path is found. |
+
+### Lich tree: player-facing, quest-granted abilities
+
+These skills are not simply monster-template abilities. The original 2D `skills.js` defines them in the Lich tree, and their `apply()` hooks set persistent character fields. The original game also includes corresponding attack, AI and lethal-damage hooks:
+
+| Skill | Confirmed 2D effect | Current 3D `dev` evidence |
+|---|---|---|
+| `lich_deathless_flesh` | Adds +1 to base damage reduction per rank. | No canonical rank-to-base-reduction application found in reviewed 3D progression/combat path. |
+| `lich_grave_chill` | Successful melee hit heals 2 HP per rank, bounded by max HP. | No equivalent skill-derived melee healing hook found. |
+| `lich_withering_touch` | Each successful hit applies 5 ticks of damage-over-time per stored rank; periodic tick processing damages the target. | No matching withering status state/application/tick path found. |
+| `lich_command_the_dead` | Sets `commandsUndead`; hostile AI excludes player-side entities with that flag when the AI entity is tagged undead. This is a faction/target-selection interaction, not a direct damage effect. | No equivalent undead allegiance/AI target-exclusion hook found in reviewed 3D simulation. |
+| `lich_soul_anchor` | Once per rest, lethal damage to the player leaves them at 1 HP; the effect is consumed until rest recovery. | No equivalent once-per-rest lethal-damage save found in reviewed 3D lifecycle path. |
+
+### Source boundaries and porting implications
+
+- Original 2D sources traced for this pass: `skills.js` (definitions and Lich `apply()` hooks), `monsters.js` (which templates receive creature skills), and `gameEngine.js` (AI priorities, player action handlers, movement/turn conditions, attack hooks and tick processing).
+- Current 3D comparison includes `scripts/simulation/world_simulation.gd` plus the combat and lifecycle paths already reviewed in the preceding audit sections. A missing keyword in one file is not proof of absence from every project module; findings above are deliberately phrased as absence from the reviewed runtime paths.
+- Creature-only abilities should be ported with their owning creature and required status/action support, rather than exposed indiscriminately as player skills.
+- Reusable foundations should come first where several abilities depend on them: timed status effects (petrification, webbing, poison and withering), forced movement/shove, one-time combat-use state, turn-control effects, and AI allegiance/target filtering.
+- Keep the distinction between a skill assigned in a creature template and an AI that actually invokes it. `furious_charge` demonstrates why template assignment alone is insufficient evidence of creature behaviour.
+- `zone_of_control` belongs in the general movement/combat audit; `suppression` remains unverified despite its catalogue description.
+- No gameplay code was changed in this audit pass.
