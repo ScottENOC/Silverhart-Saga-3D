@@ -19,6 +19,7 @@ def parse_args():
     parser.add_argument("--input", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--label", default="anatomy")
+    parser.add_argument("--natural-colour", action="store_true", help="Render actual anatomy colours without the blue diagnostic overlay")
     return parser.parse_args(raw)
 
 
@@ -115,7 +116,7 @@ def main():
     height = maximum.z - minimum.z
     width = maximum.x - minimum.x
     pelvis_z = pelvic_landmark(armature, height)
-    highlighted = highlight_pelvis(skin, pelvis_z, height, width)
+    highlighted = 0 if args.natural_colour else highlight_pelvis(skin, pelvis_z, height, width)
 
     scene = bpy.context.scene
     available = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
@@ -145,7 +146,8 @@ def main():
     for view in ("front", "three_quarter"):
         camera = camera_for_view(view, target, width, height)
         scene.camera = camera
-        scene.render.filepath = os.path.join(args.output_dir, f"{args.label}_{view}_blue.png")
+        suffix = "natural" if args.natural_colour else "blue"
+        scene.render.filepath = os.path.join(args.output_dir, f"{args.label}_{view}_{suffix}.png")
         bpy.ops.render.render(write_still=True)
         bpy.data.objects.remove(camera, do_unlink=True)
 
@@ -157,7 +159,8 @@ def main():
         "body_height": height,
         "body_width": width,
         "blue_highlighted_front_polygons": highlighted,
-        "blue_material_is_review_only": True,
+        "blue_material_is_review_only": not args.natural_colour,
+        "natural_colour_render": args.natural_colour,
     }
     import json
     with open(os.path.join(args.output_dir, f"{args.label}_anatomy_review.json"), "w") as stream:
