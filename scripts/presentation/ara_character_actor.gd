@@ -325,6 +325,19 @@ func _set_equipment_prop(slot: String, prop_id: String, socket_name: String) -> 
     equipment_attachments[slot] = attachment
 
 
+## Apply the resolved appearance contract produced by CharacterAssemblyResolver.
+## Both player and NPC instances enter the actor through this method.
+func apply_resolved_appearance(resolved: Dictionary) -> void:
+    if bool(resolved.get("is_player", false)):
+        var player_profile: Variant = resolved.get("player_profile", {})
+        if player_profile is Dictionary:
+            apply_player_profile(player_profile)
+        return
+    var appearance: Variant = resolved.get("appearance", {})
+    if appearance is Dictionary:
+        apply_npc_parameters(appearance)
+
+
 func apply_player_profile(profile: Dictionary) -> void:
     if model_root == null:
         return
