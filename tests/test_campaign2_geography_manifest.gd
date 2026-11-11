@@ -10,12 +10,14 @@ func _initialize() -> void:
 
 	var locations: Array = parsed.get("locations", [])
 	var ids: Dictionary = {}
+	var location_by_id: Dictionary = {}
 	for location in locations:
 		assert(location is Dictionary, "Every location must be an object")
 		var id := String(location.get("id", ""))
 		assert(not id.is_empty(), "Every location needs a stable id")
 		assert(not ids.has(id), "Location ids must be unique: " + id)
 		ids[id] = true
+		location_by_id[id] = location
 		assert(location.has("q") and location.has("r"), "Every location needs source local axial coordinates: " + id)
 		var column := 6.0 + float(location["q"] - 8) / 130.0
 		var row := 6.0 + float(location["r"] - 24) / 130.0
@@ -31,9 +33,9 @@ func _initialize() -> void:
 	]:
 		assert(ids.has(required_id), "Missing required campaign destination: " + required_id)
 
-	assert(int(ids.has("millbrook")) and int(parsed.get("locations", []).filter(func(item): return item.get("id") == "millbrook")[0].get("q", 0)) == 1, "Millbrook anchor must use the offset village centre")
-	assert(int(parsed.get("locations", []).filter(func(item): return item.get("id") == "ashveil_lair")[0].get("q", 0)) == 101, "Dragon lair must be placed 100 q east of Millbrook centre")
-	assert(int(parsed.get("locations", []).filter(func(item): return item.get("id") == "lich_chapterhouse")[0].get("q", 0)) == -39, "Chapterhouse must be offset west of Millbrook centre")
+	assert(int(location_by_id["millbrook"]["q"]) == 1, "Millbrook anchor must use the offset village centre")
+	assert(int(location_by_id["ashveil_lair"]["q"]) == 101, "Dragon lair must be placed 100 q east of Millbrook centre")
+	assert(int(location_by_id["lich_chapterhouse"]["q"]) == -39, "Chapterhouse must be offset west of Millbrook centre")
 
 	var connections: Array = parsed.get("connections", [])
 	assert(not connections.is_empty(), "World travel connections must be present")
