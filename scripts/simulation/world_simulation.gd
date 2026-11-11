@@ -89,6 +89,23 @@ func register_character(state: CharacterState) -> void:
 func get_character(character_id: String) -> CharacterState:
     return characters.get(character_id) as CharacterState
 
+## Move a character between connected building floors. This is a location
+## transition, not a movement step: it does not spend TP or trigger combat.
+func relocate_character(character_id: String, destination: Vector2i) -> bool:
+    var state := get_character(character_id)
+    if state == null or not map_data.is_walkable(destination):
+        return false
+    if occupied_hexes.has(destination):
+        return false
+    var origin := state.axial
+    if origin == destination:
+        return true
+    occupied_hexes.erase(origin)
+    state.axial = destination
+    occupied_hexes[destination] = character_id
+    character_moved.emit(character_id, origin, destination)
+    return true
+
 func start_combat() -> void:
     if is_in_combat:
         return
