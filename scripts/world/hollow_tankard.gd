@@ -984,7 +984,7 @@ func _interact_with_nearest_npc() -> void:
         var state := simulation.get_character(actor_id)
         if state == null or not state.can_act():
             continue
-        if state.side == "enemy" and actor_id != FARMSTEAD_DIRE_WOLF_SCRIPT.BEAR_ID:
+        if state.side == "enemy" and actor_id != FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
             continue
         var distance := HexGrid.distance(player_state.axial, state.axial)
         if distance <= 2 and distance < nearest_distance:
@@ -1003,7 +1003,7 @@ func _interact_with_character(character_id: String) -> void:
     var target_state := simulation.get_character(character_id)
     if player_state == null or target_state == null or HexGrid.distance(player_state.axial, target_state.axial) > 2:
         return
-    if character_id == FARMSTEAD_DIRE_WOLF_SCRIPT.BEAR_ID:
+    if character_id == FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
         var dire_wolf_quest := simulation.campaign_journal.quest_state("reyna_dire_wolf_hunt")
         if String(dire_wolf_quest.get("status", "")) != "active":
             _show_dialogue("Grain-raiding dire wolf", "The dire wolf is tearing at the grain store. Speak to Reyna before engaging it.", [{"id":"continue","label":"Understood","text":""}])
@@ -1048,7 +1048,7 @@ func _refresh_nearby_interactions() -> void:
         if state == null or not state.can_act():
             continue
         var hostile := state.side == "enemy"
-        if hostile and actor_id != FARMSTEAD_DIRE_WOLF_SCRIPT.BEAR_ID:
+        if hostile and actor_id != FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
             continue
         var distance := HexGrid.distance(active_state.axial, state.axial)
         if distance <= 2:
@@ -1403,7 +1403,7 @@ func _run_ai_combat_turn(combatant: CharacterState) -> void:
             "weapon_id": weapon_id,
             "is_ranged": String(weapon.get("subType", "")) == "ranged"
         }
-        if combatant.race == "bear" or combatant.tags.has("farm_quest_wolf") or combatant.tags.has("dire_wolf"):
+        if combatant.tags.has("dire_wolf") or combatant.tags.has("farm_quest_wolf"):
             var natural_hit_rank := int(combatant.skills.get("bite_hit", combatant.skills.get("claw_hit", 0)))
             var natural_damage_rank := int(combatant.skills.get("bite_dmg", combatant.skills.get("claw_dmg", 0)))
             attack_options["unarmed_skill_hit"] = natural_hit_rank > 0
@@ -1704,11 +1704,11 @@ func _check_encounter_resolution() -> void:
             simulation.end_combat()
             FARMSTEAD_DIRE_WOLF_SCRIPT.finish(simulation, active_party_ids)
             encounter_active = false
-            COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "reyna_dire_wolf_hunt", "bear_slain")
-            var dire_wolf_actor := actor_by_id.get(FARMSTEAD_DIRE_WOLF_SCRIPT.BEAR_ID) as Node3D
+            COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "reyna_dire_wolf_hunt", "dire_wolf_slain")
+            var dire_wolf_actor := actor_by_id.get(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID) as Node3D
             if is_instance_valid(dire_wolf_actor):
                 dire_wolf_actor.queue_free()
-            actor_by_id.erase(FARMSTEAD_DIRE_WOLF_SCRIPT.BEAR_ID)
+            actor_by_id.erase(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
             _show_speech_bubble("companion_reyna_fletcher", "That's the last of it. Old Mac can sleep easier now.")
             _show_companion_dialogue("companion_reyna_fletcher")
         return
