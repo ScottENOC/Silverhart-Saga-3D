@@ -13,14 +13,16 @@ var _header_status: Label
 
 func _ready() -> void:
     name = "CombatInitiativeTimeline"
-    anchor_left = 0.5
-    anchor_right = 0.5
+    # Span almost the full viewport width and sit clearly above the bottom edge.
+    # Differing horizontal anchors keep the strip responsive across resolutions.
+    anchor_left = 0.03
+    anchor_right = 0.97
     anchor_top = 1.0
     anchor_bottom = 1.0
-    offset_left = -600.0
-    offset_right = 600.0
-    offset_top = -176.0
-    offset_bottom = -14.0
+    offset_left = 0.0
+    offset_right = 0.0
+    offset_top = -224.0
+    offset_bottom = -18.0
     mouse_filter = Control.MOUSE_FILTER_STOP
     _build_layout()
     visible = false
@@ -85,7 +87,7 @@ func _build_layout() -> void:
     column.add_child(header)
     var title := Label.new()
     title.text = "COMBAT ORDER"
-    title.add_theme_font_size_override("font_size", 12)
+    title.add_theme_font_size_override("font_size", 14)
     title.add_theme_color_override("font_color", Color("#d9c18d"))
     header.add_child(title)
 
@@ -122,7 +124,7 @@ func _render_entries(entries: Array[Dictionary], current: CharacterState) -> voi
         var is_active := bool(entry["is_active"])
         var side := String(entry["side"])
         var card := Button.new()
-        card.custom_minimum_size = Vector2(224.0, 132.0)
+        card.custom_minimum_size = Vector2(276.0, 174.0)
         card.size_flags_vertical = Control.SIZE_EXPAND_FILL
         card.tooltip_text = "%s — %.1f TP (100 to act)" % [
             String(entry["display_name"]), float(entry["time_points"])
@@ -149,7 +151,7 @@ func _render_entries(entries: Array[Dictionary], current: CharacterState) -> voi
         row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
         var portrait_frame := PanelContainer.new()
-        portrait_frame.custom_minimum_size = Vector2(70.0, 100.0)
+        portrait_frame.custom_minimum_size = Vector2(88.0, 142.0)
         portrait_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
         var portrait_style := StyleBoxFlat.new()
         portrait_style.bg_color = Color(0.09, 0.11, 0.13, 1.0)
@@ -194,7 +196,7 @@ func _render_entries(entries: Array[Dictionary], current: CharacterState) -> voi
         name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
         name_label.text = String(entry["display_name"])
         name_label.clip_text = true
-        name_label.add_theme_font_size_override("font_size", 12)
+        name_label.add_theme_font_size_override("font_size", 14)
         name_label.add_theme_color_override("font_color", Color("#f1e8d5"))
         content.add_child(name_label)
 
@@ -208,7 +210,7 @@ func _render_entries(entries: Array[Dictionary], current: CharacterState) -> voi
             status_label.text = "READY"
         else:
             status_label.text = "RECOVERING"
-        status_label.add_theme_font_size_override("font_size", 9)
+        status_label.add_theme_font_size_override("font_size", 11)
         status_label.add_theme_color_override("font_color", Color("#d9c18d") if is_active else Color("#c0c7cc"))
         content.add_child(status_label)
 
@@ -228,8 +230,8 @@ func _add_stat_bar(parent: VBoxContainer, prefix: String, value: int, maximum: i
 
     var label := Label.new()
     label.text = "%s %d/%d" % [prefix, value, safe_maximum]
-    label.custom_minimum_size = Vector2(67.0, 0.0)
-    label.add_theme_font_size_override("font_size", 9)
+    label.custom_minimum_size = Vector2(76.0, 0.0)
+    label.add_theme_font_size_override("font_size", 11)
     label.add_theme_color_override("font_color", Color("#d7dce0"))
     label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     line.add_child(label)
@@ -240,14 +242,14 @@ func _add_stat_bar(parent: VBoxContainer, prefix: String, value: int, maximum: i
     bar.max_value = safe_maximum
     bar.value = clampi(value, 0, safe_maximum)
     bar.show_percentage = false
-    bar.custom_minimum_size = Vector2(0.0, 6.0)
+    bar.custom_minimum_size = Vector2(0.0, 8.0)
     bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
     line.add_child(bar)
 
 func _add_tp_value(parent: VBoxContainer, value: float) -> void:
     var label := Label.new()
     label.text = "TP %.0f" % value
-    label.add_theme_font_size_override("font_size", 10)
+    label.add_theme_font_size_override("font_size", 12)
     label.add_theme_color_override("font_color", Color("#d9c18d"))
     label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     parent.add_child(label)
