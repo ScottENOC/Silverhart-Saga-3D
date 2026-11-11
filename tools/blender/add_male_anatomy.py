@@ -633,7 +633,7 @@ def main():
     surface_tree = build_surface_tree(skin)
 
     # Fail early if the front pelvis surface cannot be sampled.
-    pelvic_surface_y = front_surface_y(surface_tree, 0.0, anatomy_z)
+    pelvic_surface_y = front_surface_y(surface_tree, centre_x, anatomy_z)
     if args.anatomy_state == "flaccid":
         # The flaccid review export gets its own compact, downward-resting mesh.
         # Do not rely on an animation pose that static preview renders may not play.
