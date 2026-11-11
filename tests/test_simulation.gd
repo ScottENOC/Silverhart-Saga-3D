@@ -34,6 +34,7 @@ func _initialize() -> void:
     _test_spear_halt_commits_one_step_then_stops()
     _test_spear_intercept_resolves_before_movement()
     _test_sidestep_uses_a_second_stage_destination()
+    _test_additional_skill_effects()
     _test_reaction_resolution_safety()
     _test_incapacitated_turn_cleanup()
     if _failures > 0:
@@ -160,6 +161,109 @@ func _test_skill_catalogue_and_progression() -> void:
     _check(restored.skill_spent_by_pool == quest_character.skill_spent_by_pool)
     _check(restored.skill_point_grants == quest_character.skill_point_grants)
     _check(restored.skill_progression_initialized, "Skill point accounting survives save/load")
+
+
+func _test_additional_skill_effects() -> void:
+    var foliage_map := HexMapData.new()
+    foliage_map.add_cell(Vector2i.ZERO, 0.0, true, "foliage")
+    var untrained := CharacterState.new("untrained", "Untrained")
+    _check(is_equal_approx(MovementRules.terrain_multiplier(foliage_map, Vector2i.ZERO, untrained), 1.5), "Foliage should retain its normal movement penalty without a relevant skill")
+
+    var elf := CharacterState.new("woodland_elf", "Woodland Elf")
+    elf.skills["elf_foliage_expertise"] = 1
+    _check(is_equal_approx(MovementRules.terrain_multiplier(foliage_map, Vector2i.ZERO, elf), 1.0), "Woodland Stride should remove the foliage movement penalty")
+    var druid := CharacterState.new("woodland_druid", "Woodland Druid")
+    druid.skills["druid_foliage_expertise"] = 1
+    _check(is_equal_approx(MovementRules.terrain_multiplier(foliage_map, Vector2i.ZERO, druid), 1.0), "Foliage Mastery should remove the foliage movement penalty")
+
+    var fast := CharacterState.new("fast_mover", "Fast Mover")
+    fast.skills["fastMovement"] = 2
+    fast.equipment["armour"] = "light_armor"
+    _check(is_equal_approx(MovementRules.base_cost_for(fast), 3.0), "Fast Movement should reduce movement cost by its rank in light armour")
+    var swift := CharacterState.new("swift_mover", "Swift Mover")
+    swift.skills["swift_step"] = 1
+    _check(is_equal_approx(MovementRules.base_cost_for(swift), 4.0), "Swift Step should reduce unarmoured, unshielded movement cost by one")
+    swift.equipment["offhand"] = "shield"
+    _check(is_equal_approx(MovementRules.base_cost_for(swift), 5.0), "Swift Step should not apply while carrying a shield")
+
+    var attacker := CharacterState.new("skill_attacker", "Skill Attacker")
+    attacker.base_damage = 10
+    attacker.max_health = 100
+    attacker.health = 50
+    attacker.skills["dwarf_axe_mastery"] = 1
+    attacker.skills["orc_ferocity"] = 1
+    attacker.skills["goblin_opportunist"] = 2
+    var combined_damage := CombatRules.raw_damage(attacker, {
+        "weapon_id": "axe",
+        "target_caught_off_guard": true
+    })
+    _check(combined_damage == 22, "Axe Mastery, Orc Ferocity and Goblin Opportunist should contribute their documented damage bonuses")
+    attacker.health = 51
+    var above_ferocity_threshold := CombatRules.raw_damage(attacker, {
+        "weapon_id": "axe",
+        "target_caught_off_guard": false
+    })
+    _check(above_ferocity_threshold == 12, "Orc Ferocity should stop applying above half health")
+
+    var spectral_target := CharacterState.new("spectral_target", "Spectral Target")
+    spectral_target.skills["spectral_form"] = 1
+    _check(CombatRules.damage_reduction(spectral_target) == 2, "Spectral Form should add two points of damage reduction")
+
+    for weapon_id in ["sword", "dagger"]:
+        var sim := WorldSimulation.new()
+        sim.map_data.add_cell(Vector2i.ZERO)
+        sim.map_data.add_cell(Vector2i(1, 0))
+        var striker := CharacterState.new("striker_%s" % weapon_id, "Striker", Vector2i.ZERO)
+        var parrier := CharacterState.new("parrier_%s" % weapon_id, "Parrier", Vector2i(1, 0))
+        striker.to_hit_melee = 100.0
+        striker.time_points = 30.0
+        parrier.to_hit_melee = 100.0
+        parrier.time_points = 20.0
+        parrier.equipment["weapon"] = weapon_id
+        parrier.skills[weapon_id + "_parry"] = 1
+        parrier.skills[weapon_id + "_parry_cost"] = 1
+        parrier.skills[weapon_id + "_parry_chance"] = 1
+        var action_events: Array[Dictionary] = []
+        sim.combat_action_resolved.connect(func(event: Dictionary) -> void:
+            action_events.append(event)
+        )
+        sim.register_character(striker)
+        sim.register_character(parrier)
+        sim.start_combat()
+        sim.turn_scheduler.current_character_id = striker.id
+        var pending := sim.try_attack_character(striker.id, parrier.id, {"time_point_cost": 5.0}, 123)
+        _check(bool(pending.get("pending", false)), "%s Parry should be offered when its weapon skill is present" % weapon_id.capitalize())
+        var resolved := sim.resolve_reaction("parry")
+        _check(bool(resolved.get("ok", false)), "%s Parry should resolve" % weapon_id.capitalize())
+        _check(is_equal_approx(parrier.time_points, 18.0), "%s Parry Efficiency should reduce the reaction cost from 3 TP to 2 TP" % weapon_id.capitalize())
+        _check(not action_events.is_empty(), "%s Parry should emit a resolved combat event" % weapon_id.capitalize())
+        if not action_events.is_empty():
+            _check(int(action_events[0].get("parry_chance", 0)) == 155, "%s Parry Mastery should add five percentage points per rank" % weapon_id.capitalize())
+        sim.free()
+
+    var sidestep_sim := WorldSimulation.new()
+    for q in range(-1, 3):
+        for r in range(-1, 3):
+            sidestep_sim.map_data.add_cell(Vector2i(q, r))
+    var mover := CharacterState.new("mastery_mover", "Mover", Vector2i.ZERO)
+    var sidestepper := CharacterState.new("mastery_sidestepper", "Sidestepper", Vector2i(0, 1))
+    mover.time_points = 100.0
+    sidestepper.time_points = 20.0
+    sidestepper.skills["sidestep"] = 1
+    sidestepper.skills["sidestep_mastery"] = 1
+    sidestep_sim.register_character(mover)
+    sidestep_sim.register_character(sidestepper)
+    sidestep_sim.start_combat()
+    sidestep_sim.turn_scheduler.current_character_id = mover.id
+    var movement_pending := sidestep_sim.try_move_character_step(mover.id, Vector2i(1, 0))
+    _check(movement_pending and not sidestep_sim.pending_reaction.is_empty(), "Sidestep Mastery should retain the Sidestep reaction")
+    var destination_stage := sidestep_sim.resolve_reaction("sidestep_mastery_sidestepper")
+    _check(bool(destination_stage.get("pending", false)), "Sidestep Mastery should open the destination-selection stage")
+    var destination_result := sidestep_sim.resolve_reaction("sidestep_to_1_1")
+    _check(bool(destination_result.get("ok", false)), "A mastered Sidestep should resolve")
+    _check(is_equal_approx(sidestepper.time_points, 15.0), "Sidestep Mastery should reduce Sidestep cost from 6 TP to 5 TP")
+    sidestep_sim.free()
+
 
 func _check(condition: bool, message: String = "Assertion failed") -> void:
     if not condition:
