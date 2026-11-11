@@ -278,7 +278,7 @@ effects on dev, despite the candidate work above.
 | `in_the_way` | In the Way | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `shield_bash` | Shield Bash | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `shield_other` | Shield Other | VERIFIED — automated effect test |
-| `shield_proficiency` | Shield Proficiency | VERIFIED — automated damage-reduction test with Shield Other |
+| `shield_proficiency` | Shield Proficiency | PARTIAL — Shield Other bonus tested; passive shield damage reduction is not applied in `CombatRules.damage_reduction()` |
 | `spear_dmg` | Spear Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `spear_halt` | Spear Halt | VERIFIED — automated effect test |
 | `spear_hit` | Spear Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -314,7 +314,7 @@ effects on dev, despite the candidate work above.
 |---|---|---|
 | `battle_endurance` | Battle Endurance | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `deep_sense` | Deep Sense | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
-| `dwarf_axe_mastery` | Dwarven Axe Mastery | VERIFIED — automated damage test |
+| `dwarf_axe_mastery` | Dwarven Axe Mastery | PARTIAL — raw-damage helper tested, but normal attack submission does not derive `weapon_id` from equipped weapon |
 | `dwarf_solid` | Solid as a Rock | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `grudge` | Grudge | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `stonewall` | Stonewall | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -411,7 +411,7 @@ effects on dev, despite the candidate work above.
 |---|---|---|
 | `goblin_keen_senses` | Keen Senses | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
 | `goblin_low_light_eyes` | Low-Light Eyes | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
-| `goblin_opportunist` | Opportunist | VERIFIED — automated off-guard damage test (rank-cap fixture correction pending PR #105) |
+| `goblin_opportunist` | Opportunist | PARTIAL — raw-damage option tested; normal attack submission does not derive `target_caught_off_guard` from target state (rank-cap fixture correction pending PR #105) |
 | `goblin_pack_hunter` | Pack Hunter | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `goblin_quick_reflexes` | Quick Reflexes | UNVERIFIED — no effect test or confirmed runtime hook yet |
 
@@ -522,7 +522,7 @@ actual movement, combat or reaction outcomes:
   `shield_proficiency`.
 - Movement reactions: `spear_halt`, `spear_intercept`.
 
-The two foliage skills are **partial**, not complete: 2D Woodland Stride /
+The foliage, Dwarven Axe Mastery, Shield Proficiency and Goblin Opportunist tests are **partial**, not complete. 2D Woodland Stride /
 Foliage Mastery remove the foliage movement penalty, add +20 to stealth score
 in foliage, and impose an additional 10-point hit-chance penalty on attacks
 against a character in foliage with either skill. 3D currently tests the
@@ -613,3 +613,29 @@ foliage skills currently cover only movement, and Protector's special
 catalogue skills still require per-skill source tracing. The old 257-skill
 inventory deliberately retains conservative `UNVERIFIED` labels where a
 runtime hook or focused test has not been established.
+
+
+8. **Several passing helper tests do not prove end-to-end combat integration.**
+   `WorldSimulation._submit_attack()` passes the caller's action options
+   through to `CombatRules.resolve_attack()` without deriving the equipped
+   weapon ID or target's `caught_off_guard` state. Therefore the current
+   Dwarven Axe Mastery test proves the raw-damage helper when supplied
+   `weapon_id: "axe"`, not that a normal attack automatically supplies it.
+   Similarly, Goblin Opportunist's test supplies
+   `target_caught_off_guard: true` directly; the normal attack path does not
+   populate that option from the target's state. Both remain partial pending
+   an end-to-end action test and integration fix.
+
+9. **Shield Proficiency is only partly applied.** The 3D Shield Other reaction
+   adds the ally's `shield_proficiency` rank to the temporary shield
+   reduction, and the test confirms that interaction. But ordinary passive
+   damage reduction in `CombatRules.damage_reduction()` adds the equipped
+   shield's reduction without adding `target.skills["shield_proficiency"]`.
+   The original 2D rule applies Shield Proficiency to ordinary shield defence
+   as well as the Shield Other calculation.
+
+10. **Protector's enhanced parry chance needs its own test.** The runtime
+    applies a 10-percentage-point bonus per rank for Protector parries, versus
+    5 points for a self-parry. The tests cover Protector reaction resolution
+    and self-parry modifiers, but do not assert that distinct Protector bonus.
+
