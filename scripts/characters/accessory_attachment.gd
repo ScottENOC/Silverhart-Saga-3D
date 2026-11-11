@@ -110,10 +110,27 @@ static func _curved_barbell_mesh(tube_radius: float, half_span: float) -> ArrayM
 	return mesh
 
 static func remove_by_id(character_root: Node, accessory_id: String) -> bool:
-	if character_root == null:
+	if character_root == null or accessory_id.is_empty():
 		return false
-	for node in character_root.find_children("*", "Node3D", true, false):
-		if str(node.get_meta("accessory_id", "")) == accessory_id:
-			node.queue_free()
+	var named_accessory := character_root.find_child("Accessory_" + accessory_id, true, false)
+	if named_accessory != null and str(named_accessory.get_meta("accessory_id", "")) == accessory_id:
+		_clear_accessory_meta(named_accessory, accessory_id)
+		named_accessory.queue_free()
+		return true
+	return _remove_accessory_recursive(character_root, accessory_id)
+
+static func _remove_accessory_recursive(parent: Node, accessory_id: String) -> bool:
+	for child in parent.get_children():
+		if str(child.get_meta("accessory_id", "")) == accessory_id:
+			_clear_accessory_meta(child, accessory_id)
+			child.queue_free()
+			return true
+		if _remove_accessory_recursive(child, accessory_id):
 			return true
 	return false
+
+static func _clear_accessory_meta(node: Node, accessory_id: String) -> void:
+	if str(node.get_meta("accessory_id", "")) == accessory_id:
+		node.set_meta("accessory_id", "")
+	for child in node.get_children():
+		_clear_accessory_meta(child, accessory_id)
