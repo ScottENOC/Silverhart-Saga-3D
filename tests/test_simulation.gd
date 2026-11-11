@@ -7,6 +7,7 @@ var _failures: int = 0
 func _initialize() -> void:
     _test_character_round_trip()
     _test_animal_catalog_and_state()
+    _test_animal_world_registration()
     _test_skill_catalogue_and_progression()
     _test_npc_skill_spending_and_companion_boundary()
     _test_campaign_journal()
@@ -500,6 +501,32 @@ func _test_animal_catalog_and_state() -> void:
     _check(is_equal_approx(movement_horse, 3.0), "Horse movement should use its source fastMovement ranks")
     var movement_wolf := MovementRules.base_cost_for(wolf)
     _check(is_equal_approx(movement_wolf, 4.0), "Wolf movement should use its source fastMovement rank")
+
+func _test_animal_world_registration() -> void:
+    var simulation := WorldSimulation.new()
+    var horse := AnimalCatalog.create_state("horse", "registered_horse", "Farm Horse", Vector2i(5, 66), 4242)
+    horse.combat_dormant = true
+    horse.side = "neutral"
+    var result := simulation.register_animal(horse)
+    _check(bool(result.get("ok", false)), "An art-backed animal should register in the campaign simulation")
+    _check(simulation.get_character("registered_horse") == horse, "Registered animal should use the shared CharacterState registry")
+    _check(simulation.occupied_hexes.get(Vector2i(5, 66), "") == "registered_horse", "Registered animal should reserve its world hex")
+    _check(horse.combat_dormant and horse.side == "neutral", "Ambient animal should remain dormant and neutral")
+    _check(not simulation.is_party_member(horse.id), "Animals must not be added to the player party")
+    _check(horse.time_points >= ActionEconomy.COMBAT_TURN_READY_TP, "Unridden animal should retain its own TP pool")
+    var duplicate := simulation.register_animal(AnimalCatalog.create_state("horse", "registered_horse", "Duplicate", Vector2i(6, 66)))
+    _check(String(duplicate.get("reason", "")) == "duplicate_character_id", "Duplicate animal IDs should be rejected")
+    var occupied := simulation.register_animal(AnimalCatalog.create_state("wolf", "occupied_wolf", "Wolf", Vector2i(5, 66)))
+    _check(String(occupied.get("reason", "")) == "occupied_hex", "Animals cannot register on an occupied hex")
+    var invalid := CharacterState.new("not_an_animal", "Not an animal", Vector2i(8, 66))
+    _check(String(simulation.register_animal(invalid).get("reason", "")) == "invalid_animal_profile", "The animal registration path must reject human character states")
+    var restored := WorldSimulation.new()
+    restored.load_dict(simulation.to_dict())
+    var saved_horse := restored.get_character("registered_horse")
+    _check(saved_horse != null and saved_horse.creature_kind == "horse", "Registered animal should survive world save/load")
+    _check(saved_horse.animal_attributes == horse.animal_attributes, "Registered animal individual attributes should survive world save/load")
+    simulation.free()
+    restored.free()
 
 func _test_character_round_trip() -> void:
     var original := CharacterState.new("npc_garrick_holt", "Garrick Holt", Vector2i(2, -1))
