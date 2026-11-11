@@ -36,6 +36,38 @@ def run(args, cwd=ROOT, env=None):
     log("$ " + " ".join(map(str,args)))
     subprocess.run(list(map(str,args)), cwd=cwd, env=env, check=True)
 
+def patch_ara_windows_target_paths():
+    """Make MakeHuman target keys use portable forward slashes on Windows."""
+    builder = GEN / "scripts" / "build-assets.ts"
+    source = builder.read_text(encoding="utf-8")
+    old = "relative(join(MH, 'targets'), p).replace(/\\.target$/, '')"
+    new = "relative(join(MH, 'targets'), p).replace(/\\\\/g, '/').replace(/\\.target$/, '')"
+    old_count = source.count(old)
+    new_count = source.count(new)
+    if old_count == 2:
+        builder.write_text(source.replace(old, new), encoding="utf-8")
+        log("Patched Ara target-key path separators for Windows.")
+    elif new_count == 2:
+        log("Ara target-key path separators are already portable.")
+    else:
+        fail(
+            "Unexpected Ara build-assets.ts target-key code: "
+            f"expected two original or two patched expressions, found {old_count} and {new_count}."
+        )
+
+def ara_target_assets_need_rebuild():
+    """Detect the empty target pack/catalog produced by the Windows path bug."""
+    assets = GEN / "public" / "assets"
+    targets = assets / "targets.pack"
+    catalog = assets / "catalog.json"
+    if not targets.is_file() or not catalog.is_file() or targets.stat().st_size <= 153:
+        return True
+    try:
+        sliders = json.loads(catalog.read_text(encoding="utf-8")).get("sliders")
+        return not isinstance(sliders, list) or not sliders
+    except (OSError, ValueError, TypeError):
+        return True
+
 def run_pnpm(args, cwd):
     """Run the pinned pnpm via Corepack on Windows when no global shim exists."""
     pnpm = shutil.which("pnpm")
@@ -186,10 +218,14 @@ def main():
     current=subprocess.check_output([git,"rev-parse","HEAD"],cwd=GEN,text=True).strip()
     if current != PIN:
         run([git,"fetch","origin"],cwd=GEN); run([git,"checkout",PIN],cwd=GEN)
+    patch_ara_windows_target_paths()
     if not (GEN/"node_modules").exists() or not (GEN/"node_modules/.modules.yaml").exists():
         run_pnpm(["install","--no-frozen-lockfile"],cwd=GEN)
     if not (GEN/"public"/"assets").exists() or not any((GEN/"public"/"assets").iterdir()):
         run([npm,"run","setup-assets"],cwd=GEN)
+    elif ara_target_assets_need_rebuild():
+        log("Ara target pack or slider catalog is empty; rebuilding public/assets with the Windows path fix.")
+        run([npm,"run","build-assets"],cwd=GEN)
     patch=ROOT/"tools/ara/patch_layering.py"
     patch_stamp=CACHE/"stamps"/"layering-patch.sha256"
     patch_hash=digest([patch],PIN)
@@ -297,7 +333,7 @@ def main():
             found=next(out.glob("*.glb"),None)
             if not found: fail(f"Ara export {key} produced no GLB")
             shutil.copy2(found,glb)
-        cached("ara-"+key,[glb],[param,patch,ROOT/"tools/character_definitions.py",ROOT/"data/items/item_definitions.json"],PIN+":"+str(current),action)
+        cached("ara-"+key,[glb],[param,patch,ROOT/"tools/character_definitions.py",ROOT/"data/items/item_definitions.json",GEN/"public/assets/targets.pack",GEN/"public/assets/catalog.json"],PIN+":"+str(current),action)
         shutil.copy2(glb,ARA/(key+".glb")); shutil.copy2(param,ARA/(key+".params.json"))
     for key,p in params.items(): export(key,p)
     # Anatomy integration: female base and male base, cached separately.
