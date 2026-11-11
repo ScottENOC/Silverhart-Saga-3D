@@ -16,6 +16,8 @@ func _initialize() -> void:
     _test_race_class_character_creation()
     _test_item_catalog_and_hollowmere_loadouts()
     _test_equipped_item_combat_effects()
+    _test_canonical_weapon_skill_runtime()
+    _test_core_character_skill_runtime()
     _test_movement_validation()
     _test_time_point_rules()
     _test_action_movement_cost()
@@ -44,6 +46,89 @@ func _initialize() -> void:
     print("WorldSimulation tests passed.")
     quit(0)
 
+
+
+func _test_canonical_weapon_skill_runtime() -> void:
+    var attacker := CharacterState.new("weapon_skill_attacker", "Weapon Skill Attacker")
+    attacker.base_damage = 1
+    attacker.time_points = 20.0
+    attacker.skills["sword_hit"] = 1
+    attacker.skills["sword_dmg"] = 1
+    var sword := ItemCatalog.create_instance("starforged_blade", "skill_sword")
+    _check(attacker.add_inventory_item(sword) and attacker.equip_inventory_item("skill_sword"))
+    var target := CharacterState.new("weapon_skill_target", "Target")
+    var rng := RandomNumberGenerator.new()
+    rng.seed = 11
+    var result := CombatRules.resolve_attack(attacker, target, {"time_point_cost": 1.0}, rng)
+    _check(is_equal_approx(float(result.get("hit_chance", 0.0)), 55.0), "Sword variants derive canonical sword_hit rank")
+    _check(int(result.get("raw_damage", 0)) == 6, "Sword variants derive sword_dmg in the normal resolver")
+
+    var axe_attacker := CharacterState.new("axe_skill_attacker", "Axe Skill Attacker")
+    axe_attacker.time_points = 20.0
+    axe_attacker.base_damage = 1
+    axe_attacker.skills["axe_hit"] = 1
+    axe_attacker.skills["axe_dmg"] = 3
+    var axe := ItemCatalog.create_instance("axe", "skill_axe")
+    _check(axe_attacker.add_inventory_item(axe) and axe_attacker.equip_inventory_item("skill_axe"))
+    var axe_target := CharacterState.new("axe_skill_target", "Axe Target")
+    rng.seed = 12
+    var axe_result := CombatRules.resolve_attack(axe_attacker, axe_target, {"time_point_cost": 1.0}, rng)
+    _check(is_equal_approx(float(axe_result.get("hit_chance", 0.0)), 55.0), "Axe proficiency adds five percentage points")
+    _check(int(axe_result.get("raw_damage", 0)) == 10, "Axe damage mastery adds two damage per rank")
+
+    var unarmed := CharacterState.new("unarmed_skill_attacker", "Unarmed Attacker")
+    unarmed.time_points = 20.0
+    unarmed.skills["unarmed_hit"] = 1
+    unarmed.skills["unarmed_dmg"] = 1
+    var unarmed_target := CharacterState.new("unarmed_skill_target", "Unarmed Target")
+    rng.seed = 13
+    var unarmed_result := CombatRules.resolve_attack(unarmed, unarmed_target, {"time_point_cost": 1.0}, rng)
+    _check(is_equal_approx(float(unarmed_result.get("hit_chance", 0.0)), 55.0), "Unarmed proficiency applies when no weapon is equipped")
+    _check(int(unarmed_result.get("raw_damage", 0)) == 3, "Unarmed mastery adds two damage")
+
+    var caught := CharacterState.new("caught_target", "Caught Target")
+    caught.caught_off_guard = true
+    var opportunist := CharacterState.new("opportunist", "Opportunist")
+    opportunist.skills["goblin_opportunist"] = 1
+    _check(CombatRules.raw_damage(opportunist, CombatRules.options_with_skill_ranks(opportunist, caught, {})) == 4, "Goblin Opportunist derives target caught-off-guard state")
+
+    var shielded := CharacterState.new("shielded", "Shielded")
+    shielded.skills["shield_proficiency"] = 1
+    var shield := ItemCatalog.create_instance("wooden_shield", "skill_shield")
+    _check(shielded.add_inventory_item(shield) and shielded.equip_inventory_item("skill_shield"))
+    _check(CombatRules.damage_reduction(shielded) == 2, "Shield Proficiency adds one passive point with a shield equipped")
+
+
+func _test_core_character_skill_runtime() -> void:
+    var character := CharacterState.new("core_skill_character", "Core Skill Character")
+    character.health = 60
+    character.max_health = 100
+    character.attributes = {"endurance": 3, "agility": 2, "rogue": 2}
+    SkillProgression.initialise(character)
+    _check(bool(SkillProgression.purchase(character, "health").get("ok", false)))
+    _check(character.max_health == 110 and character.health == 70, "Health adds ten current and maximum HP per rank")
+    _check(bool(SkillProgression.purchase(character, "health_regen").get("ok", false)))
+    _check(is_equal_approx(character.health_regeneration_per_time_point(), 0.2), "Constitution adds 0.1 HP regeneration per TP")
+    _check(bool(SkillProgression.purchase(character, "timePointRate").get("ok", false)))
+    _check(is_equal_approx(character.time_points_per_tick, 1.05), "Time Point Rate adds 0.05 TP per tick per rank")
+    _check(bool(SkillProgression.purchase(character, "quickRecovery").get("ok", false)))
+    _check(character.quick_recovery_rank == 1, "Quick Recovery feeds the existing turn-end threshold")
+    _check(bool(SkillProgression.purchase(character, "initiativeBonus").get("ok", false)))
+
+    var simulation := WorldSimulation.new()
+    character.time_points = 100.0
+    simulation.register_character(character)
+    simulation.start_combat()
+    _check(is_equal_approx(character.time_points, 105.0), "Initiative Bonus grants five TP per rank at combat start")
+    simulation.end_combat()
+    character.health = 50
+    character.time_points = 0.0
+    simulation.advance_world_seconds(2.0)
+    _check(character.health == 51, "Constitution accumulates fractional healing against TP gained")
+    var restored := CharacterState.from_dict(character.to_dict())
+    _check(restored.max_health == character.max_health and restored.health == character.health, "Derived HP and regeneration state survives save/load")
+    _check(restored.quick_recovery_rank == 1 and is_equal_approx(restored.time_points_per_tick, 1.05), "Action-economy skill ranks survive save/load")
+    simulation.free()
 
 func _test_wilderness_resources_and_chunk_streaming() -> void:
     var simulation := WorldSimulation.new()
