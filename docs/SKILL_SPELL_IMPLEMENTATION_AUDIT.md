@@ -989,3 +989,64 @@ These skills are not simply monster-template abilities. The original 2D `skills.
 - Keep the distinction between a skill assigned in a creature template and an AI that actually invokes it. `furious_charge` demonstrates why template assignment alone is insufficient evidence of creature behaviour.
 - `zone_of_control` belongs in the general movement/combat audit; `suppression` remains unverified despite its catalogue description.
 - No gameplay code was changed in this audit pass.
+
+
+## Original creature roster versus current 3D assets and gameplay (2026-11-12)
+
+This section answers a different question from skill parity: which original 2D creature templates are actually represented in the current 3D project, and which are not yet part of the 3D roster? It distinguishes visual assets, presentation actors, simulation entities and combat encounters. A model file alone is not an implemented creature.
+
+### Original 2D roster inventory
+
+The original `monsters.js` defines 35 template IDs. Grouped by role:
+
+| Group | Original 2D template IDs |
+|---|---|
+| Humanoid/faction and named combatants (11) | `goblin`, `elite_goblin`, `orc`, `bandit`, `wolf_rider_goblin`, `horse_archer`, `Grishnak`, `Sir Alistair`, `Viper`, `Krog the Unstoppable`, `Sylvara the Huntress` |
+| Animals and beasts (10) | `wolf`, `deer`, `wild_boar`, `horse`, `spider`, `bear`, `boar`, `tiger`, `eagle`, `unicorn` |
+| Fantasy monsters and undead (13) | `troll`, `dragon_young`, `dragon_adult`, `dragon_ancient`, `skeleton`, `zombie`, `imp`, `ogre`, `wraith`, `basilisk`, `harpy`, `minotaur`, `revenant` |
+| Construct (1) | `siege_engine` |
+| **Total** | **35 templates** |
+
+The named combatants are templates in the original roster, but are not additional creature species. The three dragon tiers are separate gameplay templates sharing the dragon visual family.
+
+### Current 3D creature assets and placement
+
+The current `dev` tree contains 12 Quaternius animal model files representing 11 kinds (Horse and Horse_White are two horse variants):
+
+- Cow, Bull, Horse, Donkey, Alpaca, Deer, Fox, Stag, Husky, Shiba Inu and Wolf.
+- The `CreatureActor` presentation wrapper supports those 11 kinds and discovers each imported model's animation clips at runtime.
+- `hollowmere_village.gd` currently places nine presentation actors: three cows, two horses (standard and white), one Shiba Inu, one deer, one stag, one fox and one wolf.
+- Bull, Donkey, Alpaca and Husky have model assets but are not currently placed by the village scene.
+- The scene labels these actors as farm, passive wildlife, predator or mount. In the current `CreatureActor` script those are presentation labels; the wrapper loads and animates a model but does not implement autonomous animal AI, combat, mounting or simulation state.
+
+Only three current 3D model kinds directly match original 2D creature templates: Horse, Deer and Wolf. Cow, Bull, Donkey, Alpaca, Fox, Stag, Husky and Shiba Inu are additional 3D animal kinds without a corresponding template in the inspected original `monsters.js`. They are useful world-life additions, not evidence of original creature parity.
+
+### 3D gameplay status for original templates
+
+| Original template(s) | Current 3D status on `dev` | Classification |
+|---|---|---|
+| `wolf` | A visible wilderness wolf is spawned as a presentation actor. The farm-wolves quest tracks three defeat counts, but `FarmWolvesQuest` itself defines quest progress/rewards and does not create combat wolves. The visible wilderness wolf is explicitly described as ambient presentation; no link from it to the quest or a combat CharacterState was found in the inspected village/quest/simulation paths. | **Visual only / quest tracking only**, not a complete combat creature. |
+| `deer` | Visible wilderness presentation actor; no corresponding animal CharacterState creation or behaviour found on `dev`. | **Visual only.** |
+| `horse` | Visible farm presentation actors, described in the scene as future mount candidates. Current `CharacterState` / `WorldSimulation` on `dev` do not contain the general animal profile and rider/mount relationship implementation. | **Visual only; mounting not implemented.** |
+| `bear` | `FarmsteadBearEncounter` can create an enemy `CharacterState` with 180 HP, claw hit/damage ranks and animal/bear tags. This is a bespoke grain-raiding bear encounter, not a direct conversion of the original 2D Bear template (30 base HP with health/unarmed/melee skills). No dedicated bear model exists in the current creature asset folder, and the encounter setup does not itself provide a creature visual. | **Combat state exists for one bespoke encounter; art/presentation and original template parity remain incomplete.** |
+| `goblin` / `elite_goblin` / `orc` / `bandit` | The 3D project has generic humanoid CharacterState/NPC skill-spending infrastructure and tests for generated goblin populations, plus humanoid Ara/Hollowmere models. I found no matching goblin, orc or bandit creature-specific 3D model/template roster on `dev`. | **Partial generic humanoid infrastructure; species-specific roster and visuals unverified/incomplete.** |
+| `wolf_rider_goblin` / `horse_archer` | No current mount relationship, mounted combat actor or rider-on-animal presentation integration found on `dev`. | **Not implemented as mounted units.** |
+| `wild_boar` / `boar` / `tiger` / `eagle` / `unicorn` | No corresponding 3D model or creature template found in the current creature asset directory or reviewed simulation files. | **Not yet represented in 3D.** |
+| `spider` / `troll` / `dragon_young` / `dragon_adult` / `dragon_ancient` / `skeleton` / `zombie` / `imp` / `ogre` / `wraith` / `basilisk` / `harpy` / `minotaur` / `revenant` | No corresponding 3D creature model or specific simulation template found in the current `dev` creature assets and reviewed simulation paths. | **Not yet represented in 3D.** Their special abilities should remain scoped to these future creature implementations. |
+| `siege_engine` | No matching 3D construct model or simulation template found in the inspected current project tree. | **Not yet represented in 3D.** |
+
+### Animal-attributes branch is relevant but not integrated
+
+The branch `feature/animal-attributes` contains `scripts/simulation/animal_catalog.gd`, which defines gameplay profiles for all 11 current Quaternius animal kinds. It also adds animal fields to `CharacterState`, integrates animal creation into `WorldSimulation` and the village, and extends simulation tests. The profile comments explicitly distinguish horse, wolf and deer values derived from original 2D templates from first-pass baselines for the additional animal models.
+
+However, the branch comparison against current `dev` reports **12 commits ahead and 11 behind**, with changes across eight files. It is therefore not part of current `dev` and should not be treated as implemented parity or merged wholesale without reconciling its divergence. The branch's animal profiles cover the current farm/wildlife models; they do not add the missing fantasy monster roster, monster-specific abilities, or the full 2D mount/rider relationship system.
+
+### Practical porting scope
+
+1. **Existing 3D animals first:** integrate and validate the animal profile work after reconciling `feature/animal-attributes` with current `dev`. This gives current farm/wildlife actors real simulation identities and stats rather than presentation-only labels.
+2. **Connect existing quest/encounter actors:** make the three farm wolves actual combat entities linked to quest progress; give the bespoke bear encounter a proper presentation model or explicitly reuse a suitable bear asset rather than silently substituting a bull.
+3. **Mounts are a separate system:** a horse model or `mountable` profile is not enough. Add rider/mount references, size eligibility, synchronised movement, mounted combat and dismount rules before claiming horse, wolf or mounted NPC parity.
+4. **Do not prematurely implement all 35 templates:** add each creature when its model, world/quest placement and intended behaviour are in scope. The Basilisk, Harpy, Minotaur, Spider, Revenant, Lich/Wraith and Dragon mechanics documented above should be attached to their owning creature/character implementations.
+5. **Keep general humanoid systems separate from creature species:** the existing NPC skill-spending and character presentation infrastructure can support humanoid enemies, but it does not prove that all original enemy templates, equipment, AI or species visuals have been ported.
+
+Source boundary: roster count and template assignments are from original `monsters.js`; 2D art cross-check is from `images/characters/creatures/`; current model inventory is from the recursive `dev` repository tree; scene placement is from `scripts/world/hollowmere_village.gd`; animal profile status is from `feature/animal-attributes`; encounter/quest status is from the current `dev` simulation scripts. Findings are scoped to those sources and do not claim that no other unreviewed branch or future asset work exists.
