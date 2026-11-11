@@ -35,11 +35,11 @@ test. Branches below are compared with the current `dev` head
 
 | Branch | Relationship to dev | Skill/effect relevance | Audit treatment |
 |---|---:|---|---|
-| [`feature/vision-stealth-perception`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/vision-stealth-perception) | 23 ahead / 29 behind | Adds `VisionRules`, `FogOfWar`, and a fog test. Candidate skills: `elf_vision`, `goblin_keen_senses`, `deep_sense`, `elf_darkvision`, `goblin_low_light_eyes`, `keen_perception`, plus two stealth skills with ID mismatches. | Not on dev; candidate only. The branch is substantially behind and must be reconciled, not merged wholesale. |
-| [`feature/skill-magic-foundation`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/skill-magic-foundation) | 70 ahead / 31 behind | Historical source for the skill/spell catalogues, progression and NPC spending foundations. Its own port plan still lists spell builder/casting and remaining effect families as future work. | The catalogues and progression foundations are now on dev. This branch is not evidence that spell effects work. |
-| [`feature/movement-reactions`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/movement-reactions) | 8 ahead / 116 behind | Contains movement/reaction work around Protector, Shield Other, Shield Proficiency, Sidestep, Sidestep Mastery, Spear Halt and Spear Intercept. | The relevant IDs and effect tests are already present on dev; this stale branch is not additional current coverage. |
-| [`feature/combat-reaction-triggers`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/combat-reaction-triggers) | 8 ahead / 121 behind | Earlier combat-reaction trigger work; no additional canonical skill ID references were found in its reviewed simulation file. | Not counted as a separate skill implementation. |
-| [`feature/equipment-gameplay-stat-integration`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/equipment-gameplay-stat-integration) | 5 ahead / 30 behind | Covers combat-stat integration for foliage expertise, Dwarven Axe Mastery, Goblin Opportunist, Orc Brute Strength/Ferocity and Spectral Form. | These skill reads are already present in dev's CombatRules. Several still need focused tests; branch presence does not upgrade their status. |
+| [`feature/vision-stealth-perception`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/vision-stealth-perception) | 25 ahead / 34 behind | Adds `VisionRules`, `FogOfWar`, and a fog test. Candidate skills: `elf_vision`, `goblin_keen_senses`, `deep_sense`, `elf_darkvision`, `goblin_low_light_eyes`, `keen_perception`, plus two stealth skills with ID mismatches. | Not on dev; candidate only. The branch is substantially behind and must be reconciled, not merged wholesale. |
+| [`feature/skill-magic-foundation`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/skill-magic-foundation) | 70 ahead / 36 behind | Historical source for the skill/spell catalogues, progression and NPC spending foundations. Its own port plan still lists spell builder/casting and remaining effect families as future work. | The catalogues and progression foundations are now on dev. This branch is not evidence that spell effects work. |
+| [`feature/movement-reactions`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/movement-reactions) | 8 ahead / 121 behind | Contains movement/reaction work around Protector, Shield Other, Shield Proficiency, Sidestep, Sidestep Mastery, Spear Halt and Spear Intercept. | The relevant IDs and effect tests are already present on dev; this stale branch is not additional current coverage. |
+| [`feature/combat-reaction-triggers`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/combat-reaction-triggers) | 8 ahead / 126 behind | Earlier combat-reaction trigger work; no additional canonical skill ID references were found in its reviewed simulation file. | Not counted as a separate skill implementation. |
+| [`feature/equipment-gameplay-stat-integration`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/equipment-gameplay-stat-integration) | 5 ahead / 35 behind | Covers combat-stat integration for foliage expertise, Dwarven Axe Mastery, Goblin Opportunist, Orc Brute Strength/Ferocity and Spectral Form. | These skill reads are already present in dev's CombatRules. Several still need focused tests; branch presence does not upgrade their status. |
 
 ### Vision branch: what it actually contains
 
@@ -639,3 +639,25 @@ runtime hook or focused test has not been established.
     5 points for a self-parry. The tests cover Protector reaction resolution
     and self-parry modifiers, but do not assert that distinct Protector bonus.
 
+
+
+### Additional branch cross-reference (rechecked against current dev)
+
+The following branches were also compared with current `dev` on 2026-11-11.
+They are not evidence of additional live skill effects:
+
+| Branch | Relationship to dev | Relevant contents | Audit treatment |
+|---|---:|---|---|
+| `feature/port-action-economy` | 0 ahead / 312 behind | No branch-only changed files remain relative to current dev. | Historical/fully superseded; no candidate effect to count. |
+| `feature/mechanics-port-foundation` | 1 ahead / 135 behind | Only adds/updates `docs/MECHANICS_PORT_REGISTER.md`. | Documentation only; no runtime skill effect. |
+| `feature/ally-combat-reactions` | 7 ahead / 122 behind | Only relevant gameplay-file change is a one-line UI reaction prompt change. | Presentation candidate only; no additional simulation skill effect. |
+| `feature/combat-resolution-foundation` | 36 ahead / 135 behind | Older combat foundation, including an earlier `CombatRules`, `CharacterState` and simulation implementation. | Stale predecessor to the current dev combat runtime; do not merge wholesale or count its effects separately. |
+| `feature/action-contract-downed-lifecycle` | 10 ahead / 129 behind | Action request/result/event contracts and downed-character lifecycle changes. | Potentially useful lifecycle foundation, but no additional canonical skill-effect implementation identified. |
+| `feature/animal-attributes` | 12 ahead / 4 behind | Adds `AnimalCatalog`, animal-specific state fields and creature presentation/world integration. | Relevant to the separate animal-stat work; not a riding-skill implementation. Reconcile its four commits behind dev before any integration. |
+
+The vision branch remains the only identified off-dev branch with a direct
+candidate implementation for perception/vision/stealth skills. It contains
+`VisionRules`, `FogOfWar` and a fog presentation test, but it is 34 commits
+behind current dev and has no dedicated effect tests for the range, LOS,
+low-light, perception or stealth calculations. It remains a candidate, not
+working functionality on dev.
