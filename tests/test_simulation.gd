@@ -93,7 +93,7 @@ func _test_vision_rules() -> void:
 
     observer.skills["elf_darkvision"] = 1
     _check(VisionRules.vision_range(observer, false, true) == 33, "Elf Darkvision should remove the low-light penalty")
-    observer.skills["elf_darkvision"] = 0
+    observer.skills.clear()
     observer.skills["goblin_keen_senses"] = 1
     observer.skills["goblin_low_light_eyes"] = 1
     _check(VisionRules.vision_range(observer, false, true) == 28, "Goblin Keen Senses should add three hexes and Low-light Eyes should remove the penalty")
