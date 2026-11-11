@@ -20,7 +20,7 @@ const HAIR_STYLE_IDS := {
     "Long": "long01", "Ponytail": "ponytail01", "Buzz cut": "buzz",
     "Mohawk": "mohawk", "Cornrows": "cornrows", "Box braids": "box_braids", "None": "none"
 }
-const BODY_BUILDS := ["Lean", "Average", "Broad", "Muscular", "Soft", "Androgynous"]
+const BODY_BUILDS := ["Lean", "Average", "Broad", "Muscular", "Soft"]
 const PRESENTATIONS := ["Masculine", "Feminine", "Androgynous", "Mixed", "Custom"]
 const PRONOUN_SETS := ["He / him", "She / her", "They / them", "Use my name", "Custom"]
 const ARA_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
@@ -341,7 +341,7 @@ func _refresh_appearance_preview(_index: int) -> void:
         if not preview_actor.configure_modular_garments():
             preview_status.text = "Base body loaded, but the local garment library has not been built yet."
         preview_variant_loaded = variant
-    var build_factors := {"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04, "Androgynous": 1.0}
+    var build_factors := {"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04}
     var profile := {
         "skin_colour": SKIN_COLOURS[skin_select.selected],
         "eye_colour": eye_select.get_item_text(eye_select.selected),
