@@ -470,13 +470,13 @@ func _create_upper_floor_rooms(parent: Node3D) -> void:
     _add_box(parent, "LandingTableLeg", Vector3(0.8, 3.48, 1.7), Vector3(0.12, 0.6, 0.12), dark_wood_material)
 
 func _create_bed_at_hex(parent: Node3D, bed_name: String, local_hex: Vector2i, blanket_colour: Color) -> void:
-    var position := HexGrid.axial_to_world(local_hex, HEX_RADIUS, UPPER_FLOOR_Y + 0.17)
-    _create_bed(parent, bed_name, position, blanket_colour)
+    var bed_world_position := HexGrid.axial_to_world(local_hex, HEX_RADIUS, UPPER_FLOOR_Y + 0.17)
+    _create_bed(parent, bed_name, bed_world_position, blanket_colour)
 
-func _create_bed(parent: Node3D, bed_name: String, position: Vector3, blanket_colour: Color) -> void:
+func _create_bed(parent: Node3D, bed_name: String, bed_position: Vector3, blanket_colour: Color) -> void:
     var bed := Node3D.new()
     bed.name = bed_name
-    bed.position = position
+    bed.position = bed_position
     parent.add_child(bed)
     _add_box(bed, "BedFrame", Vector3.ZERO, Vector3(1.25, 0.38, 2.15), dark_wood_material)
     _add_box(bed, "Mattress", Vector3(0.0, 0.22, 0.0), Vector3(1.15, 0.18, 2.0), _material(Color(0.78, 0.72, 0.58)))
