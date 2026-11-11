@@ -1109,9 +1109,13 @@ func _refresh_nearby_interactions() -> void:
         var talk_button := Button.new()
         talk_button.text = ("Engage · " if bool(entry.hostile) else "Talk · ") + String(entry.name)
         talk_button.custom_minimum_size = Vector2(225.0, 34.0)
-        talk_button.pressed.connect(func(): _interact_with_character(target_id))
+        talk_button.pressed.connect(_on_nearby_interaction_pressed.bind(target_id))
         nearby_interaction_box.add_child(talk_button)
     nearby_interaction_panel.visible = true
+
+
+func _on_nearby_interaction_pressed(character_id: String) -> void:
+    _interact_with_character(character_id)
 
 
 func _show_companion_dialogue(character_id: String) -> void:
