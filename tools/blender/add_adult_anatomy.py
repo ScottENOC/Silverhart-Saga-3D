@@ -241,21 +241,20 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
             colour.data[vertex.index].color = (1.0, 1.0, 1.0, 1.0)
             continue
         inner = max(
-            g(p.x,p.z,-width*0.024,anatomy_z-height*0.003,width*0.040,height*0.035),
-            g(p.x,p.z, width*0.024,anatomy_z-height*0.003,width*0.040,height*0.035),
+            g(p.x,p.z,-width*0.025,anatomy_z-height*0.004,width*0.014,height*0.026),
+            g(p.x,p.z, width*0.025,anatomy_z-height*0.004,width*0.014,height*0.026),
         )
+        # A narrow, high-contrast pigment transition follows the central
+        # vestibular valley; it should not wash across the outer labial ridges.
         central = max(
-            g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.025,height*0.018),
-            g(p.x,p.z,0.0,anatomy_z-height*0.035,width*0.020,height*0.012),
+            g(p.x,p.z,0.0,anatomy_z-height*0.020,width*0.008,height*0.023),
+            g(p.x,p.z,0.0,anatomy_z-height*0.036,width*0.010,height*0.010),
         )
-        # Multiplicative tints preserve the underlying skin palette. The inner
-        # folds receive a restrained rose-brown tint; the central region is
-        # warmer and more differentiated, not a universal bright-pink paint.
-        strength = min(1.0, inner * 0.88 + central * 0.12)
+        strength = min(1.0, inner * 0.42 + central * 0.78)
         central_strength = min(1.0, central)
-        red = 1.0 + 0.12 * strength + 0.06 * central_strength
-        green = 1.0 - 0.24 * strength - 0.18 * central_strength
-        blue = 1.0 - 0.18 * strength - 0.16 * central_strength
+        red = 1.0 + 0.16 * strength + 0.16 * central_strength
+        green = 1.0 - 0.20 * strength - 0.42 * central_strength
+        blue = 1.0 - 0.16 * strength - 0.34 * central_strength
         colour.data[vertex.index].color = (red, green, blue, 1.0)
         if strength > 0.15:
             painted_vertices += 1
