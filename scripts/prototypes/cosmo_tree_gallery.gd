@@ -171,14 +171,34 @@ func _build_season_quadrants() -> void:
 
 
 func _build_trees() -> void:
+	var loaded_scenes: Array[PackedScene] = []
+	var loaded_paths: Array[String] = []
+	print("COSMO GALLERY: checking all 16 GLB resources before instancing.")
+
+	for path in TREE_PATHS:
+		print("COSMO GALLERY: loading ", path)
+		if not ResourceLoader.exists(path):
+			push_error("COSMO GALLERY: resource does not exist: " + path)
+			loaded_scenes.append(null)
+			loaded_paths.append(path)
+			continue
+
+		var resource := ResourceLoader.load(path)
+		var packed_scene := resource as PackedScene
+		if packed_scene == null:
+			push_error("COSMO GALLERY: failed to load as PackedScene: " + path)
+		else:
+			print("COSMO GALLERY: loaded OK: ", path)
+		loaded_scenes.append(packed_scene)
+		loaded_paths.append(path)
+
 	var instance_count := 0
 	for season_index in range(SEASONS.size()):
 		var center := _season_center(season_index)
 		for model_index in range(TREE_PATHS.size()):
-			var path := TREE_PATHS[model_index]
-			var packed_scene := load(path) as PackedScene
+			var path := loaded_paths[model_index]
+			var packed_scene := loaded_scenes[model_index]
 			if packed_scene == null:
-				push_error("Could not load tree scene: " + path)
 				continue
 
 			var column := model_index % GRID_COLUMNS
@@ -206,6 +226,8 @@ func _build_trees() -> void:
 			add_child(label)
 
 	print("COSMO GALLERY: instantiated %d of 64 trees." % instance_count)
+	if instance_count < 64:
+		push_warning("COSMO GALLERY: some GLBs failed to load; see the exact paths above.")
 
 
 func _apply_season(tree_root: Node, model_name: String, season_index: int) -> void:
