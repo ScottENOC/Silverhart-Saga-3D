@@ -14,6 +14,10 @@ const SEASONAL_TREE_SCRIPT = preload("res://scripts/presentation/seasonal_tree_v
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 
+const TAVERN_BUILDING_ID := "hollow_tankard"
+const TAVERN_FRONT_DOOR_ID := "hollow_tankard_front_door"
+const TAVERN_DOOR_HEX := Vector2i(0, 3)
+
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
@@ -29,6 +33,8 @@ var character_panel: CharacterPanel
 var world_map_panel: CanvasLayer
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
+var tavern_door_pivot: Node3D
+var tavern_door_leaf: MeshInstance3D
 var actor_by_id: Dictionary = {}
 var starting_loadouts: Dictionary = {}
 var player_profile: Dictionary = {}
@@ -149,6 +155,17 @@ func _create_simulation() -> void:
             var blocked: bool = _is_wall_cell_blocked(world) or (inside_room and _is_furniture_cell_blocked(world)) or HollowmereVillageData.is_blocked(hex)
             var terrain_id := "timber_floor" if inside_room else HollowmereVillageData.terrain_id_at(hex)
             simulation.map_data.add_cell(hex, 0.0, not blocked, terrain_id)
+
+    # Building definitions are registered against the same continuous village
+    # map used by movement and pathfinding. Only mutable door state is saved.
+    simulation.building_registry.register_building({
+        "id": TAVERN_BUILDING_ID,
+        "name": "The Hollow Tankard",
+        "entrance_hex": TAVERN_DOOR_HEX,
+        "floor_count": 2,
+        "source_location": "campaign2World.js: Hollow Tankard",
+    })
+    simulation.building_registry.register_door(TAVERN_FRONT_DOOR_ID, TAVERN_BUILDING_ID, TAVERN_DOOR_HEX, true, false, 20)
 
     simulation.character_moved.connect(_on_character_moved)
     simulation.reaction_requested.connect(_on_reaction_requested)
@@ -305,8 +322,12 @@ func _create_building() -> void:
     _add_box(building, "DoorLintel", Vector3(0.0, 3.0, 5.5), Vector3(1.95, 0.35, 0.48), timber_material)
     _add_box(building, "DoorJambLeft", Vector3(-0.95, 1.55, 5.5), Vector3(0.22, 3.1, 0.48), timber_material)
     _add_box(building, "DoorJambRight", Vector3(0.95, 1.55, 5.5), Vector3(0.22, 3.1, 0.48), timber_material)
-    var door := _add_box(building, "OpenEntranceDoor", Vector3(-0.65, 1.25, 5.28), Vector3(1.3, 2.5, 0.16), dark_wood_material)
-    door.rotation_degrees.y = -48.0
+    tavern_door_pivot = Node3D.new()
+    tavern_door_pivot.name = "FrontDoorHinge"
+    tavern_door_pivot.position = Vector3(-0.8, 0.0, 5.5)
+    building.add_child(tavern_door_pivot)
+    tavern_door_leaf = _add_box(tavern_door_pivot, "FrontDoorLeaf", Vector3(0.65, 1.25, 0.0), Vector3(1.3, 2.5, 0.16), dark_wood_material)
+    _refresh_tavern_door_presentation()
 
     # East and west walls, each with a window opening.
     _add_wall_segment(building, Vector3(8.0, 1.8, -3.45), Vector3(0.35, WALL_HEIGHT, 4.1))
@@ -1447,7 +1468,8 @@ func _unhandled_input(event: InputEvent) -> void:
             get_viewport().set_input_as_handled()
             return
         if key_event.keycode == KEY_F:
-            _interact_with_nearest_npc()
+            if not _interact_with_nearest_door():
+                _interact_with_nearest_npc()
             get_viewport().set_input_as_handled()
             return
         if key_event.keycode == KEY_TAB:
@@ -1613,6 +1635,37 @@ func _on_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vect
     var actor: HexActorPresentation = actor_by_id.get(character_id) as HexActorPresentation
     if actor != null:
         actor.present_move_to(_hex_world_position(to_hex))
+
+func _interact_with_nearest_door() -> bool:
+    var state := simulation.get_character(active_character_id)
+    if state == null:
+        return false
+    var door := simulation.building_registry.get_door(TAVERN_FRONT_DOOR_ID)
+    if door == null or HexGrid.distance(state.axial, door.hex) > 1:
+        return false
+    var changed := simulation.building_registry.set_door_open(door.id, not door.is_passable())
+    if not changed:
+        print("The Hollow Tankard door is locked or cannot be moved.")
+        return true
+    _apply_tavern_door_state()
+    return true
+
+func _apply_tavern_door_state() -> void:
+    var door := simulation.building_registry.get_door(TAVERN_FRONT_DOOR_ID)
+    if door == null:
+        return
+    simulation.map_data.set_walkable(door.hex, door.is_passable())
+    _refresh_tavern_door_presentation()
+
+func _refresh_tavern_door_presentation() -> void:
+    if not is_instance_valid(tavern_door_pivot):
+        return
+    var door := simulation.building_registry.get_door(TAVERN_FRONT_DOOR_ID)
+    if door == null:
+        return
+    # A broken door hangs open. The hinge pivot keeps the visible leaf aligned
+    # with the same open/closed state that controls hex movement.
+    tavern_door_pivot.rotation.y = deg_to_rad(82.0) if door.is_passable() else 0.0
 
 func _hex_world_position(hex: Vector2i) -> Vector3:
     var centre := HexGrid.axial_to_world(hex, HEX_RADIUS)
