@@ -45,11 +45,38 @@
     "rowan_fletcher": [
       "bow",
       "light_armor"
+    ],
+    "companion_ser_aldric_thorne": [
+      "sword",
+      "wooden_shield"
+    ],
+    "companion_nix_sharpear": [
+      "dagger",
+      "light_armor"
+    ],
+    "companion_warlord_grukk": [
+      "axe",
+      "heavy_armor",
+      "wooden_shield"
+    ],
+    "companion_reyna_fletcher": [
+      "bow"
+    ],
+    "companion_mirabel_quill": [
+      "dagger"
+    ],
+    "companion_fenn_oakheart": [
+      "club"
+    ],
+    "companion_brother_alden": [],
+    "companion_snik_fangtooth": [
+      "dagger"
     ]
   },
   "notes": [
     "Every authored Hollowmere NPC and companion receives deterministic weapon and armour inventory from this file.",
     "Clothing and footwear inventory is created from each character's existing Ara appearance parameters in hollowmere_npcs.json.",
-    "Equipped item instances drive the visible garment surfaces on each character; authored NPC GLBs retain their own appearance-specific garment meshes."
+    "Equipped item instances drive the visible garment surfaces on each character; authored NPC GLBs retain their own appearance-specific garment meshes.",
+    "Canonical campaign companions are staged in Hollowmere with source-authored progression; runtime Ara bodies are temporary until individual companion models are generated."
   ]
 }

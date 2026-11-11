@@ -85,7 +85,7 @@ func _test_hollowmere_character_manifest() -> void:
     var manifest: Variant = JSON.parse_string(file.get_as_text())
     assert(manifest is Dictionary, "Hollowmere character manifest must be valid JSON")
     var characters: Array = manifest.get("characters", [])
-    assert(characters.size() == 13, "Expected 13 authored village character profiles")
+    assert(characters.size() == 21, "Expected 13 village profiles plus eight canonical campaign companions")
     var ids: Dictionary = {}
     for profile in characters:
         assert(profile.has("id") and profile.has("game_id") and profile.has("params"))
@@ -99,6 +99,24 @@ func _test_hollowmere_character_manifest() -> void:
         var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
         assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
         assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % profile["id"])
+    var companion_names := ["Ser Aldric Thorne", "Nix Sharpear", "Warlord Grukk Ironhide", "Reyna Fletcher", "Mirabel Quill", "Fenn Oakheart", "Brother Alden", "Snik Fangtooth"]
+    var companion_count := 0
+    for profile in characters:
+        if String(profile.get("role", "")) != "companion":
+            continue
+        companion_count += 1
+        assert(profile.has("progression"), "%s must have source-authored progression" % profile.get("name", "companion"))
+        var progression: Dictionary = profile["progression"]
+        assert(not progression.get("class_levels", []).is_empty(), "Canonical companions need ordered class levels")
+        assert(not progression.get("skill_picks", []).is_empty(), "Canonical companions need authored skill preferences")
+    assert(companion_count == 9, "Wren plus eight original campaign companions should be staged in Hollowmere")
+    for companion_name in companion_names:
+        var found := false
+        for profile in characters:
+            if String(profile.get("name", "")) == companion_name:
+                found = true
+                break
+        assert(found, "Missing original companion: %s" % companion_name)
 
 func _test_main_campaign_world_map() -> void:
     var grid := MAIN_CAMPAIGN_MAP.generate_grid()
