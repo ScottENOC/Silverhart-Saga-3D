@@ -26,6 +26,7 @@ const PRONOUN_SETS := ["He / him", "She / her", "They / them", "Use my name", "C
 const FEMALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/ara_person_body.glb"
 const MALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const ARA_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
+const CHARACTER_ASSEMBLY_RESOLVER = preload("res://scripts/presentation/character_assembly_resolver.gd")
 
 var name_edit: LineEdit
 var game_mode_select: OptionButton
@@ -354,9 +355,10 @@ func _refresh_appearance_preview(_index: int) -> void:
     }
     profile["height"] = inverse_lerp(0.90, 1.10, height_slider.value)
     profile["muscle"] = inverse_lerp(0.96, 1.055, float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)))
-    preview_actor.apply_player_profile(profile)
+    var resolved := CHARACTER_ASSEMBLY_RESOLVER.resolve_player(profile)
+    preview_actor.apply_resolved_appearance(resolved)
     preview_actor.apply_equipment_visuals(_preview_equipment_for_class())
-    var hair_id := String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02"))
+    var hair_id := String(resolved.get("hair_style_id", "short02"))
     var hair_path := "res://art/characters/ara_runtime/hair/%s_%s.glb" % [variant, hair_id]
     var using_ara_base := preview_actor.loaded_asset_path.contains("/ara_runtime/")
     var hair_loaded := false
