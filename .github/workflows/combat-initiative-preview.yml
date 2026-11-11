@@ -31,7 +31,7 @@ jobs:
         uses: chickensoft-games/setup-godot@v2
         with:
           version: 4.7.2
-          use-mono: false
+          use-dotnet: false
           include-templates: false
 
       - name: Verify engine version
