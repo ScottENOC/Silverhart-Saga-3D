@@ -27,6 +27,22 @@ class CharacterDefinitionTests(unittest.TestCase):
         self.assertEqual(params["shoes"], "combat_boots")
         self.assertEqual(params["weapon"], "none")
 
+    def test_male_profiles_get_average_body_modifiers_with_character_overrides(self):
+        male = next(c for c in self.manifest["characters"] if c["appearance"]["gender"] == 1)
+        params = ara_export_params(male, self.items)
+        self.assertEqual(params["modifiers"]["torso/torso-vshape"], 0.20)
+        self.assertEqual(params["modifiers"]["armslegs/upperarm-scale-horiz"], 0.12)
+
+        copied = json.loads(json.dumps(male))
+        copied["appearance"]["modifiers"] = {
+            "torso/torso-vshape": 0.55,
+            "armslegs/upperarm-muscle": 0.4,
+        }
+        overridden = ara_export_params(copied, self.items)
+        self.assertEqual(overridden["modifiers"]["torso/torso-vshape"], 0.55)
+        self.assertEqual(overridden["modifiers"]["armslegs/upperarm-muscle"], 0.4)
+        self.assertEqual(overridden["modifiers"]["armslegs/lowerarm-muscle"], 0.08)
+
     def test_un_equipped_inventory_does_not_change_ara_export(self):
         wren = next(c for c in self.manifest["characters"] if c["id"] == "wren_talbot")
         copied = json.loads(json.dumps(wren))
