@@ -13,6 +13,7 @@ signal movement_reaction_resolved(mover_id: String, halted: bool)
 
 var campaign_journal: CampaignJournal = CampaignJournal.new()
 var map_data: HexMapData = HexMapData.new()
+var building_registry: BuildingRegistry = BuildingRegistry.new()
 var world_chunks: HexWorldChunkStreamer = HexWorldChunkStreamer.new()
 var wilderness_resources: WildernessResourceSystem = WildernessResourceSystem.new()
 var characters: Dictionary = {}
@@ -778,6 +779,7 @@ func to_dict() -> Dictionary:
         "is_in_combat": is_in_combat,
         "characters": character_data,
         "wilderness_resources": wilderness_resources.to_dict(),
+        "buildings": building_registry.to_dict(),
     }
 
 func load_dict(data: Dictionary) -> void:
@@ -785,6 +787,7 @@ func load_dict(data: Dictionary) -> void:
     occupied_hexes.clear()
     clock.load_dict(data.get("world_clock", {}))
     wilderness_resources.load_dict(data.get("wilderness_resources", {}))
+    building_registry.load_dict(data.get("buildings", {}))
     is_in_combat = bool(data.get("is_in_combat", false))
     var saved_characters: Dictionary = data.get("characters", {})
     for character_id in saved_characters:
