@@ -6,7 +6,7 @@ var failures: int = 0
 
 func _initialize() -> void:
 	var observer := CharacterState.new("fog_test_player", "Fog Test Player", Vector2i.ZERO)
-	var fog = FOG_OF_WAR_SCRIPT.new()
+	var fog: Variant = FOG_OF_WAR_SCRIPT.new()
 	fog.call("initialize", observer, {}, {}, null)
 
 	_check(bool(fog.call("is_visible", Vector2i.ZERO)), "The observer's starting hex should be visible")
