@@ -2,7 +2,7 @@ name: Godot validation
 
 on:
   pull_request:
-    branches: [dev]
+    branches: [dev, "feature/hollowmere-building-port-spec"]
     paths:
       - "project.godot"
       - "export_presets.cfg"
