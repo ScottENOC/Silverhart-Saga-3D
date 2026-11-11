@@ -78,6 +78,7 @@ func _test_canonical_weapon_skill_runtime() -> void:
     _check(int(axe_result.get("raw_damage", 0)) == 10, "Axe damage mastery adds two damage per rank")
 
     var unarmed := CharacterState.new("unarmed_skill_attacker", "Unarmed Attacker")
+    unarmed.base_damage = 1
     unarmed.time_points = 20.0
     unarmed.skills["unarmed_hit"] = 1
     unarmed.skills["unarmed_dmg"] = 1
@@ -1519,8 +1520,21 @@ func _test_race_class_character_creation() -> void:
         "dwarf":{"dwarf":1,"endurance":2,"strength":1},
         "elf":{"elf":1,"agility":2,"arcane":1},
         "goblin":{"goblin":1,"agility":2,"weapons":1},
-        "orc":{"orc":1,"strength":2,"endurance":1}
+        "orc":{"orc":1,"strength":2,"endurance":1},
+        "half_elf":{"elf":1,"agility":1,"arcane":1,"wildcard":1},
+        "half_orc":{"orc":1,"strength":2,"endurance":1,"agility":1},
+        "halfling":{"agility":2,"endurance":1,"wildcard":1},
+        "gnome":{"arcane":2,"nature":1,"agility":1,"wildcard":1}
     }
+    _check(CharacterCreationRules.race_ids().size() == 9, "Character creator exposes all nine playable races")
+    for race_id in ["half_elf", "half_orc", "halfling", "gnome"]:
+        var race_profile := profile.duplicate(true)
+        race_profile["race"] = race_id
+        var race_state := CharacterCreationRules.create_player_state(race_profile, "new_race_" + race_id, Vector2i.ZERO)
+        var restored_race := CharacterState.from_dict(race_state.to_dict())
+        _check(restored_race.race == race_id, "New race identity survives save/load: %s" % race_id)
+        _check(restored_race.tags.has("race_%s" % race_id), "New race receives a race tag: %s" % race_id)
+
     var fighter_bonuses: Dictionary = CharacterCreationRules.class_definition("fighter").get("bonus", {})
     for race_id in expected_races:
         var race_profile := profile.duplicate(true)
