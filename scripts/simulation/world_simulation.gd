@@ -797,7 +797,17 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
             var previous_tp := state.time_points
             state.regenerate_time_points()
             var gained_tp := maxf(0.0, state.time_points - previous_tp)
-            if gained_tp > 0.0 and state.health < state.max_health:
+            # The source engine advances poison and withering only while the
+            # entity is below the 150 TP cap, using gained TP as the duration.
+            if gained_tp > 0.0 and previous_tp < 150.0:
+                for effect_event in StatusEffectRules.advance(state, gained_tp):
+                    action_committed.emit(SimulationEvent.new(
+                        String(effect_event.get("effect", "status_effect_tick")),
+                        state.id,
+                        String(effect_event.get("source_id", "")),
+                        effect_event
+                    ))
+            if state.alive and gained_tp > 0.0 and state.health < state.max_health:
                 state.health_regen_remainder += state.health_regeneration_per_time_point() * gained_tp
                 var whole_healing := floori(state.health_regen_remainder)
                 if whole_healing > 0:
