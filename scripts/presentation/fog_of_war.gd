@@ -125,7 +125,7 @@ func _build_fog_mesh() -> void:
 	fog_multimesh.instance_count = hexes.size()
 	for index in range(hexes.size()):
 		var hex: Vector2i = hexes[index]
-		var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, 0.035)
+		var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, 0.14)
 		fog_multimesh.set_instance_transform(index, Transform3D(Basis.IDENTITY, centre))
 		fog_multimesh.set_instance_custom_data(index, Color(0.0, 0.0, 0.0, 1.0))
 
@@ -138,10 +138,10 @@ void vertex() {
 	fog_state = INSTANCE_CUSTOM.r;
 }
 void fragment() {
-	if (fog_state > 1.5) {
+	if (fog_state > 0.75) {
 		discard;
 	}
-	if (fog_state < 0.5) {
+	if (fog_state < 0.25) {
 		ALBEDO = vec3(0.012, 0.016, 0.022);
 	} else {
 		ALBEDO = vec3(0.12, 0.14, 0.16);
@@ -216,10 +216,10 @@ func _set_fog_state(hex: Vector2i, state: int) -> bool:
 	if not hex_to_instance.has(hex):
 		return false
 	var index := int(hex_to_instance[hex])
-	var current := int(round(fog_multimesh.get_instance_custom_data(index).r))
+	var current := int(round(fog_multimesh.get_instance_custom_data(index).r * 2.0))
 	if current == state:
 		return false
-	fog_multimesh.set_instance_custom_data(index, Color(float(state), 0.0, 0.0, 1.0))
+	fog_multimesh.set_instance_custom_data(index, Color(float(state) * 0.5, 0.0, 0.0, 1.0))
 	return true
 
 func _apply_actor_visibility() -> void:
@@ -275,12 +275,17 @@ func _apply_village_visibility(cells_to_refresh: Dictionary) -> void:
 func _build_debug_panel() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "FogPerformanceOverlay"
-	layer.layer = 40
+	layer.layer = 250
 	add_child(layer)
 	debug_panel = PanelContainer.new()
 	debug_panel.position = Vector2(22.0, 158.0)
-	debug_panel.custom_minimum_size = Vector2(360.0, 118.0)
+	debug_panel.custom_minimum_size = Vector2(430.0, 132.0)
 	layer.add_child(debug_panel)
+	var toggle_button := Button.new()
+	toggle_button.text = "Fog performance  [F3]"
+	toggle_button.position = Vector2(22.0, 122.0)
+	toggle_button.pressed.connect(toggle_debug)
+	layer.add_child(toggle_button)
 	debug_label = Label.new()
 	debug_label.add_theme_font_size_override("font_size", 13)
 	debug_label.add_theme_color_override("font_color", Color(0.88, 0.92, 0.96))
