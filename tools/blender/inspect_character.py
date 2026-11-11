@@ -12,6 +12,7 @@ def arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default=os.environ.get("REVIEW_INPUT"), required=not bool(os.environ.get("REVIEW_INPUT")))
     parser.add_argument("--output-dir", default=os.environ.get("REVIEW_OUTPUT_DIR"), required=not bool(os.environ.get("REVIEW_OUTPUT_DIR")))
+    parser.add_argument("--focus-pelvis", action="store_true", help="Frame a close-up around the lower torso/pelvis")
     return parser.parse_args(raw)
 
 
@@ -68,6 +69,10 @@ def main():
     maximum = Vector(tuple(max(p[i] for p in points) for i in range(3)))
     centre = (minimum + maximum) * 0.5
     radius = max((maximum - minimum).length * 0.5, 0.5)
+    if args.focus_pelvis:
+        body_height = maximum.z - minimum.z
+        centre = Vector((centre.x, centre.y, minimum.z + body_height * 0.445))
+        radius = max(body_height * 0.12, 0.15)
 
     scene = bpy.context.scene
     available_engines = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
@@ -89,7 +94,7 @@ def main():
     light = bpy.data.objects.new("ReviewKey", light_data)
     bpy.context.collection.objects.link(light)
     light.location = centre + Vector((-radius, -radius * 1.5, radius * 1.5))
-    light.data.energy = 1800
+    light.data.energy = 1800 * min(1.0, radius * radius)
     light.data.shape = "DISK"
     light.data.size = radius * 1.2
 
