@@ -126,3 +126,30 @@ These are code-path explanations, not claims that every reported visual symptom 
 ## Disposition
 
 This audit identifies confirmed data/runtime mismatches that should be fixed before more anatomy sculpting or material tweaking. It does not change code or generated assets. PR #87 remains draft and unmerged; local Blender generation and Godot visual acceptance remain separate requirements.
+
+
+## Milestone 1 implementation update — 2026-11-11
+
+The first runtime resolver pass has now been committed to this feature branch.
+
+### Implemented
+
+- Added `scripts/presentation/character_assembly_resolver.gd` as the common adapter for canonical NPC definitions and the player's saved creator profile.
+- Both player preview and campaign spawn now use the resolver for body-variant selection and body-asset path resolution.
+- Both player and NPC campaign actors enter appearance application through `AraCharacterActor.apply_resolved_appearance()`.
+- NPC gender, body variant, hairstyle, hair tint, garment styles, inventory and equipped slots are read from canonical `appearance`, `inventory` and `equipped` fields.
+- NPC inventory instances are created from canonical item IDs and equipped by their canonical slot mapping. The deleted `hollowmere_loadouts.json` reader and old Ara-`params` clothing reconstruction have been removed from `hollow_tankard.gd`.
+- The Hollowmere manifest test now validates schema version 2 and canonical data fields. A resolver test covers Wren's profile, inventory/equipment, male body selection and player-profile adaptation.
+- Godot CI now runs the resolver test and no longer tries to parse the deleted loadout file.
+
+### Still intentionally incomplete
+
+- Player and NPC profile-specific Ara body generation is not yet generalised. Player currently resolves to the generic gendered body; only Wren has a profile-specific body asset.
+- The modular garment library is still Wren-only. Other profiles can resolve their appearance and inventory, but do not yet have profile-compatible modular clothing assets.
+- Legacy complete NPC GLBs remain an explicit fallback when a profile body is unavailable. Those legacy models still bypass separate hairstyle and garment assembly.
+- The actor still contains Wren-specific body/garment compatibility logic.
+- This change does not modify anatomy sculpting, body geometry, skin weights, garment extraction or generated GLBs.
+
+### Validation status
+
+The updated Godot and character-pipeline GitHub Actions workflows were triggered for this branch. Their results must be checked before local acceptance. Local Blender generation and Godot visual testing are still separate requirements.
