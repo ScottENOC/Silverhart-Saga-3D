@@ -364,6 +364,7 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
         anchor_y + base_depth_offset,
         anatomy_z + body_height * 0.004,
     ))
+    add_anatomy_bones(armature, pelvis_bone, target_base, target_axis, target_length)
 
     vertices = []
     for point in source_vertices:
@@ -383,9 +384,20 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
     bpy.context.collection.objects.link(phallus)
     for polygon in mesh.polygons:
         polygon.use_smooth = True
-    group = phallus.vertex_groups.new(name=pelvis_bone)
-    group.add(list(range(len(mesh.vertices))), 1.0, "REPLACE")
     phallus.parent = armature
+    shaft_groups = [phallus.vertex_groups.new(name=name) for name in
+                    ("AnatomyRoot", "AnatomyMid", "AnatomyTip")]
+    for vertex in mesh.vertices:
+        t = max(0.0, min(1.0, (Vector(vertex.co) - target_base).dot(target_axis) / target_length))
+        weights = (
+            max(0.0, min(1.0, (0.62 - t) / 0.42)),
+            max(0.0, 1.0 - abs(t - 0.52) / 0.42),
+            max(0.0, min(1.0, (t - 0.38) / 0.42)),
+        )
+        total = sum(weights)
+        for group, weight in zip(shaft_groups, weights):
+            if weight > 0.001 and total > 0.0:
+                group.add([vertex.index], weight / total, "REPLACE")
     phallus.matrix_parent_inverse = armature.matrix_world.inverted()
     modifier = phallus.modifiers.new("Ara pelvis skinning", "ARMATURE")
     modifier.object = armature
@@ -465,10 +477,8 @@ def join_male_anatomy_parts(parts, armature, pelvis_bone):
     bpy.ops.object.join()
     combined.name = "Male anatomy · Ara-derived unified surface"
     combined.data.name = "AraDerivedMaleAnatomyMesh"
-    group = combined.vertex_groups.get(pelvis_bone)
-    if group is None:
-        group = combined.vertex_groups.new(name=pelvis_bone)
-    group.add(list(range(len(combined.data.vertices))), 1.0, "REPLACE")
+    if combined.vertex_groups.get(pelvis_bone) is None:
+        combined.vertex_groups.new(name=pelvis_bone)
     combined.parent = armature
     combined.matrix_parent_inverse = armature.matrix_world.inverted()
     modifier = combined.modifiers.new("Ara pelvis skinning", "ARMATURE")
