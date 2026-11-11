@@ -1,6 +1,18 @@
 name: Average-body anatomy review
 
 on:
+  push:
+    branches:
+      - feature/unified-character-assembly
+    paths:
+      - "tools/build_ara_runtime_local.py"
+      - "tools/blender/add_adult_anatomy.py"
+      - "tools/blender/add_male_anatomy.py"
+      - "tools/blender/inspect_character.py"
+      - "tools/ara/patch_layering.py"
+      - "tools/character_definitions.py"
+      - "data/items/item_definitions.json"
+      - ".github/workflows/anatomy-review.yml"
   workflow_dispatch:
 
 permissions:
