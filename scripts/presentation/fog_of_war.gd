@@ -98,24 +98,26 @@ func _is_tavern_wall_cell(world: Vector3) -> bool:
 	return false
 
 func _build_fog_mesh() -> void:
+	# MultiMesh repeats this one small hex. Building the entire world mesh here
+	# would accidentally duplicate the whole map once per cell.
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var corners := HexGrid.corner_offsets(HEX_RADIUS)
+	for i in range(HexGrid.SIDE_COUNT):
+		var next_i := (i + 1) % HexGrid.SIDE_COUNT
+		surface.set_normal(Vector3.UP)
+		surface.add_vertex(Vector3.ZERO)
+		surface.add_vertex(Vector3(corners[i].x, 0.0, corners[i].y))
+		surface.add_vertex(Vector3(corners[next_i].x, 0.0, corners[next_i].y))
+	var fog_mesh := surface.commit()
+
 	for q in range(-MAP_RADIUS, MAP_RADIUS + 1):
 		for r in range(-MAP_RADIUS, MAP_RADIUS + 1):
 			var hex := Vector2i(q, r)
-			if not vision_map.has_cell(hex):
-				continue
-			for i in range(HexGrid.SIDE_COUNT):
-				var next_i := (i + 1) % HexGrid.SIDE_COUNT
-				surface.set_normal(Vector3.UP)
-				surface.add_vertex(Vector3.ZERO)
-				surface.add_vertex(Vector3(corners[i].x, 0.0, corners[i].y))
-				surface.add_vertex(Vector3(corners[next_i].x, 0.0, corners[next_i].y))
-			hex_to_instance[hex] = hexes.size()
-			hexes.append(hex)
+			if vision_map.has_cell(hex):
+				hex_to_instance[hex] = hexes.size()
+				hexes.append(hex)
 
-	var fog_mesh := surface.commit()
 	fog_multimesh = MultiMesh.new()
 	fog_multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	fog_multimesh.use_custom_data = true
