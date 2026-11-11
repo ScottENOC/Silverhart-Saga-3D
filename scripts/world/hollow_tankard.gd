@@ -37,6 +37,7 @@ var character_panel: CharacterPanel
 var world_map_panel: CanvasLayer
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
+var location_label: Label
 var upper_shell_group: Node3D
 var upper_floor_group: Node3D
 var upper_interior_group: Node3D
@@ -717,12 +718,12 @@ func _create_camera() -> void:
 
 func _create_hud() -> void:
     var layer := CanvasLayer.new()
-    var title_label := Label.new()
-    title_label.position = Vector2(22.0, 68.0)
-    title_label.text = "LOCATION  /  HOLLOW TANKARD"
-    title_label.add_theme_font_size_override("font_size", 20)
-    title_label.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
-    layer.add_child(title_label)
+    location_label = Label.new()
+    location_label.position = Vector2(22.0, 68.0)
+    location_label.text = "LOCATION  /  HOLLOW TANKARD"
+    location_label.add_theme_font_size_override("font_size", 20)
+    location_label.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
+    layer.add_child(location_label)
 
     var menu_button := Button.new()
     menu_button.text = "Menu"
@@ -749,7 +750,7 @@ func _create_hud() -> void:
     var controls_dialog := AcceptDialog.new()
     controls_dialog.name = "ControlsDialog"
     controls_dialog.title = "Hollow Tankard — Controls"
-    controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nF — use nearby door or talk to nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nV — toggle roof"
+    controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nF — use nearby door/stairs or talk to nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nV — toggle roof"
     controls_dialog.min_size = Vector2i(420, 430)
     layer.add_child(controls_dialog)
     game_menu.set_meta("controls_dialog", controls_dialog)
@@ -1511,6 +1512,7 @@ func _switch_party_member() -> void:
         camera_rig.follow_target = target
         var display_name := "You" if active_character_id == "player" else "Wren"
         party_switch_button.text = "Active: " + display_name + "  [Tab] Switch"
+    _refresh_tavern_floor_presentation()
     if character_panel != null:
         character_panel.set_character(active_character_id)
 
@@ -1785,6 +1787,8 @@ func _refresh_tavern_floor_presentation() -> void:
     var upstairs := active_state != null and _is_upper_floor_hex(active_state.axial)
     upper_shell_group.visible = not upstairs
     upper_floor_group.visible = upstairs
+    if location_label != null:
+        location_label.text = "LOCATION  /  HOLLOW TANKARD  —  " + ("UPPER FLOOR" if upstairs else "TAPROOM")
 
 func _interact_with_tavern_stairs() -> bool:
     var state := simulation.get_character(active_character_id)
