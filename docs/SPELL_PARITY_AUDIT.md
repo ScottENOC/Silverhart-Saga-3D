@@ -112,3 +112,36 @@ The descriptions in `skills.js` specify intended costs and effects (for example 
 This also means the 3D port should keep two counts distinct:
 - **15 registered base spells** — real original definitions, all currently data-only in 3D.
 - **19 orphan unlock definitions** — descriptions in the original skill tree, but no registered base spell/effect implementation confirmed in the original source.
+
+
+## Follow-up: learning skills are not wired to spell unlock state
+
+A further check of 3D `SkillProgression.purchase()` confirms that purchasing a
+skill increments the rank in `CharacterState.skills` and updates point
+accounting; it does not apply an unlock effect. In particular, no mapping was
+found from `learn_<spell_id>` ranks to
+`CharacterState.unlocked_base_spells`. NPC skill allocation likewise stores
+skill ranks but does not construct an unlocked spell list.
+
+The `unlocked_base_spells` and `max_spell_slots` fields in
+`CharacterState` are persisted, but the reviewed 3D simulation scripts do not
+consume them in a casting/preparation flow. This means that even the 15
+registered spells' `learn_*` skills are not yet demonstrated to unlock their
+corresponding spell IDs on 3D dev. Spell-learning integration is therefore
+missing before the spell builder/casting work even begins.
+
+## Follow-up: orphan source unlock cross-check
+
+The 19 orphan IDs listed above were also searched in the original 2D
+`spells.js`, `ui.js` and `spellPlanner.js`, in addition to
+`gameEngine.js`. No corresponding base-spell definitions or effect handlers
+were found in those magic files. The few string matches for `slow` are spell
+speed/variant controls, not a registered Slow spell; `command` matches are
+unrelated command/UI code. The classification remains **described by a skill,
+but not registered as a base spell and not implemented in the inspected 2D
+magic pipeline**.
+
+One source comment in `spellPlanner.js` says that both Dragon Breath and
+Temporal Rift have no `learn_*` skill, but the current `skills.js` does
+contain `learn_temporal_rift`. Treat that comment as stale; Temporal Rift is
+one of the 15 registered spells and is not an orphan unlock.
