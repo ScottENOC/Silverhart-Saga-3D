@@ -290,7 +290,7 @@ effects on dev, despite the candidate work above.
 | `sword_hit` | Sword Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `sword_parry` | Sword Parry | VERIFIED — automated effect test |
 | `sword_parry_chance` | Sword Parry Mastery | VERIFIED — automated chance-modifier test |
-| `sword_parry_cost` | Sword Parry Efficiency | IMPLEMENTATION FOUND — effect test still required |
+| `sword_parry_cost` | Sword Parry Efficiency | VERIFIED — automated TP-cost test |
 | `sword_riposte` | Riposte | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `threatening_presence` | Threatening Presence | UNVERIFIED — no effect test or confirmed runtime hook yet |
 
@@ -661,3 +661,22 @@ candidate implementation for perception/vision/stealth skills. It contains
 behind current dev and has no dedicated effect tests for the range, LOS,
 low-light, perception or stealth calculations. It remains a candidate, not
 working functionality on dev.
+
+
+### Current inventory totals
+
+The 257 canonical skill rows currently resolve to:
+
+| Evidence status | Skills |
+|---|---:|
+| Verified — automated effect test | 17 |
+| Partial — helper or limited effect test; parity gap remains | 5 |
+| Implementation found — focused effect test still required | 1 |
+| Feature-branch candidate only | 8 |
+| NPC/creature-focused, requiring separate behaviour audit | 15 |
+| Unverified — no current-dev effect established | 211 |
+| **Total** | **257** |
+
+These are evidence labels, not a claim that 211 skills are necessarily broken.
+The 22 skills with some effect-test coverage comprise 17 verified and 5
+partial; the partial group is not counted as complete parity.
