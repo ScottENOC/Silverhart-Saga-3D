@@ -102,7 +102,7 @@ func _apply_recursive(node: Node) -> void:
 func _slot_for_surface(mesh_instance: MeshInstance3D, surface: int) -> String:
 	if mesh_instance.has_meta("appearance_slot"):
 		return str(mesh_instance.get_meta("appearance_slot")).to_lower()
-	var material := mesh_instance.get_active_material(surface)
+	var material := _source_surface_material(mesh_instance, surface)
 	if material != null and not material.resource_name.is_empty():
 		return material.resource_name.to_lower()
 	return mesh_instance.name.to_lower()
@@ -164,13 +164,23 @@ func _apply_surface_material(mesh_instance: MeshInstance3D, tint: Color, slot: S
 	if mesh_instance.has_meta(base_key):
 		source = mesh_instance.get_meta(base_key) as Material
 	else:
-		source = mesh_instance.get_active_material(surface)
+		source = _source_surface_material(mesh_instance, surface)
 		if source != null:
 			mesh_instance.set_meta(base_key, source)
 	if source == null:
 		return
 	var material := _make_tinted_material(source, tint, slot, opacity)
 	mesh_instance.set_surface_override_material(surface, material)
+
+func _source_surface_material(mesh_instance: MeshInstance3D, surface: int) -> Material:
+	# Avoid relying on a RenderingServer instance: these meshes are also used by
+	# headless appearance tests and by character previews before scene instancing.
+	var material := mesh_instance.get_surface_override_material(surface)
+	if material == null:
+		material = mesh_instance.material_override
+	if material == null and mesh_instance.mesh != null and surface >= 0 and surface < mesh_instance.mesh.get_surface_count():
+		material = mesh_instance.mesh.surface_get_material(surface)
+	return material
 
 func _make_tinted_material(source: Material, tint: Color, slot: String, opacity: float) -> StandardMaterial3D:
 	var material: StandardMaterial3D
