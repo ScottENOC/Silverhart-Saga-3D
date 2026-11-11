@@ -34,7 +34,7 @@ const TILE_THICKNESS: float = 0.12
 const ROOM_HALF_WIDTH: float = 8.0
 const ROOM_HALF_DEPTH: float = 5.5
 const WALL_HEIGHT: float = 3.2
-const ROOF_RIDGE_HEIGHT: float = 5.8
+const ROOF_RIDGE_HEIGHT: float = 9.03
 
 var simulation: WorldSimulation
 var reaction_prompt: CanvasLayer
