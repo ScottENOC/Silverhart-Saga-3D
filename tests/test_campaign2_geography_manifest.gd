@@ -29,7 +29,8 @@ func _initialize() -> void:
 		"old_mac_farmstead", "skarn_tooth_camp", "northwatch_fort",
 		"ridgehold_fort", "skarnaks_hold", "kragmoor", "silthandriel",
 		"vessel_seekers_crypt", "corvin_ashgrave_barrow", "ashveil_lair",
-		"lich_chapterhouse", "emberwood_grove", "vampire_grave", "thieves_cove"
+		"lich_chapterhouse", "emberwood_grove", "vampire_grave", "thieves_cove",
+		"emberlode_mine", "farm_wolf_den", "unicorn_vale"
 	]:
 		assert(ids.has(required_id), "Missing required campaign destination: " + required_id)
 

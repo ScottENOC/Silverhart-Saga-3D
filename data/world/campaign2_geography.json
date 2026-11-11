@@ -337,6 +337,36 @@
       "r": 40,
       "visibility": "exploration_site",
       "source": "west road end plus (-22,18)"
+    },
+    {
+      "id": "emberlode_mine",
+      "name": "Emberlode Mine",
+      "kind": "mine",
+      "region": "human_west",
+      "q": -252,
+      "r": 16,
+      "visibility": "quest_site",
+      "source": "mineCenter at west road end q, six r north; buildEmberlode"
+    },
+    {
+      "id": "farm_wolf_den",
+      "name": "Old Mac's Wolf Den",
+      "kind": "wolf_den",
+      "region": "human_south",
+      "q": -59,
+      "r": 204,
+      "visibility": "quest_site",
+      "source": "farmhouse-derived pasture broken fence minus 50 q and plus 10 r; buildFarmstead"
+    },
+    {
+      "id": "unicorn_vale",
+      "name": "Unicorn Vale",
+      "kind": "roaming_encounter_area",
+      "region": "human_west",
+      "q": -286,
+      "r": 24,
+      "visibility": "exploration_site",
+      "source": "Emberwood Grove centre minus 20 q plus 14 r; eight-waypoint unicorn patrol loop with radius 12"
     }
   ],
   "connections": [
@@ -433,6 +463,21 @@
     {
       "from": "emberlode",
       "to": "thieves_cove",
+      "kind": "trail"
+    },
+    {
+      "from": "emberlode",
+      "to": "emberlode_mine",
+      "kind": "local_path"
+    },
+    {
+      "from": "old_mac_farmstead",
+      "to": "farm_wolf_den",
+      "kind": "trail"
+    },
+    {
+      "from": "emberwood_grove",
+      "to": "unicorn_vale",
       "kind": "trail"
     }
   ]
