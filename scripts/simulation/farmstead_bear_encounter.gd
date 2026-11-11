@@ -19,7 +19,7 @@ static func create_bear(simulation: WorldSimulation, hex: Vector2i) -> Dictionar
     bear.skills = {"claw_hit": 2, "claw_dmg": 2, "health": 4}
     bear.side = "enemy"
     bear.combat_dormant = true
-    bear.time_points = bear.max_time_points
+    bear.time_points = 100.0
     simulation.register_character(bear)
     return {"ok": true, "character_id": BEAR_ID}
 
@@ -44,7 +44,7 @@ static func start(simulation: WorldSimulation, party_ids: Array[String]) -> Dict
             continue
         member.side = "player"
         member.combat_dormant = false
-        member.time_points = member.max_time_points
+        member.time_points = 100.0
         valid_party.append(character_id)
     if valid_party.is_empty():
         return {"ok": false, "reason": "no_able_party_members"}
