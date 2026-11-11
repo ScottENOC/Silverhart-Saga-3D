@@ -74,9 +74,9 @@ func _build_environment() -> void:
 	camera.name = "Gallery Camera"
 	camera.position = Vector3(37.0, 39.0, 49.0)
 	camera.fov = 58.0
-	camera.look_at(Vector3(0.0, 4.0, 0.0), Vector3.UP)
 	camera.current = true
 	add_child(camera)
+	camera.look_at(Vector3(0.0, 4.0, 0.0), Vector3.UP)
 
 
 func _build_trees() -> void:
