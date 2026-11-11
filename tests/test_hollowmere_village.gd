@@ -1,8 +1,15 @@
 extends SceneTree
 
 const MAIN_CAMPAIGN_MAP = preload("res://scripts/world/main_campaign_world_map_data.gd")
+const COSMO_TREE_ROOT := "res://art/environment/trees/cosmo_generated/"
+const COSMO_TREE_VARIANTS := {
+    "ash": 4, "bush": 4, "cherry": 4, "laurel": 4, "low_poly_bush": 4,
+    "low_poly_tree": 6, "pine": 4, "spruce": 4, "tree_fern": 4,
+    "willow": 4, "winter_oak": 6
+}
 
 func _initialize() -> void:
+    _test_cosmo_tree_collection()
     _test_village_bounds_and_terrain()
     _test_road_network_connectivity()
     _test_building_thresholds()
@@ -78,7 +85,7 @@ func _test_hollowmere_character_manifest() -> void:
     var manifest: Variant = JSON.parse_string(file.get_as_text())
     assert(manifest is Dictionary, "Hollowmere character manifest must be valid JSON")
     var characters: Array = manifest.get("characters", [])
-    assert(characters.size() == 13, "Expected 13 authored village character profiles")
+    assert(characters.size() == 21, "Expected 13 village profiles plus eight canonical campaign companions")
     var ids: Dictionary = {}
     for profile in characters:
         assert(profile.has("id") and profile.has("game_id") and profile.has("params"))
@@ -92,6 +99,24 @@ func _test_hollowmere_character_manifest() -> void:
         var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
         assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
         assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % profile["id"])
+    var companion_names := ["Ser Aldric Thorne", "Nix Sharpear", "Warlord Grukk Ironhide", "Reyna Fletcher", "Mirabel Quill", "Fenn Oakheart", "Brother Alden", "Snik Fangtooth"]
+    var companion_count := 0
+    for profile in characters:
+        if String(profile.get("role", "")) != "companion":
+            continue
+        companion_count += 1
+        assert(profile.has("progression"), "%s must have source-authored progression" % profile.get("name", "companion"))
+        var progression: Dictionary = profile["progression"]
+        assert(not progression.get("class_levels", []).is_empty(), "Canonical companions need ordered class levels")
+        assert(not progression.get("skill_picks", []).is_empty(), "Canonical companions need authored skill preferences")
+    assert(companion_count == 9, "Wren plus eight original campaign companions should be staged in Hollowmere")
+    for companion_name in companion_names:
+        var found := false
+        for profile in characters:
+            if String(profile.get("name", "")) == companion_name:
+                found = true
+                break
+        assert(found, "Missing original companion: %s" % companion_name)
 
 func _test_main_campaign_world_map() -> void:
     var grid := MAIN_CAMPAIGN_MAP.generate_grid()
@@ -116,3 +141,14 @@ func _test_main_campaign_world_map() -> void:
     assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[0] == Vector2i(1, 5))
     assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[14] == Vector2i(15, 4))
     assert(MAIN_CAMPAIGN_MAP.world_cell_from_local_hex(Vector2i(8, 24)) == Vector2i(6, 6), "The local crossroads must map to Hollowmere's world cell")
+
+func _test_cosmo_tree_collection() -> void:
+    var loaded_count := 0
+    for family in COSMO_TREE_VARIANTS:
+        for variant in range(1, int(COSMO_TREE_VARIANTS[family]) + 1):
+            var path := COSMO_TREE_ROOT + "%s_%02d.glb" % [family, variant]
+            assert(ResourceLoader.exists(path), "Missing Cosmo vegetation asset: %s" % path)
+            var scene := load(path)
+            assert(scene is PackedScene, "Cosmo vegetation asset did not import as a PackedScene: %s" % path)
+            loaded_count += 1
+    assert(loaded_count == 48, "Expected all 48 distinct Cosmo vegetation models")

@@ -6,6 +6,21 @@ extends Node3D
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
 const GROUND_SIZE: float = 420.0
 const ORGANIC_FEATURES = preload("res://scripts/world/organic_world_features.gd")
+const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
+const COSMO_TREE_ROOT: String = "res://art/environment/trees/cosmo_generated/"
+const COSMO_TREE_VARIANTS := {
+	"ash": 4,
+	"bush": 4,
+	"cherry": 4,
+	"laurel": 4,
+	"low_poly_bush": 4,
+	"low_poly_tree": 6,
+	"pine": 4,
+	"spruce": 4,
+	"tree_fern": 4,
+	"willow": 4,
+	"winter_oak": 6
+}
 
 var grass_material: StandardMaterial3D
 var path_material: StandardMaterial3D
@@ -17,6 +32,7 @@ var dark_wood_material: StandardMaterial3D
 var roof_material: StandardMaterial3D
 var glass_material: StandardMaterial3D
 var foliage_materials: Array[StandardMaterial3D] = []
+var cosmo_forest_scenes: Dictionary = {}
 var field_material: StandardMaterial3D
 var crop_material: StandardMaterial3D
 var pasture_material: StandardMaterial3D
@@ -28,6 +44,8 @@ func _ready() -> void:
 	_create_paths_and_stream()
 	_create_buildings()
 	_create_farmstead()
+	_create_farm_animals()
+	_create_wilderness_animals()
 	_create_bridge()
 	_create_signpost()
 	_create_forest()
@@ -198,10 +216,70 @@ func _create_farmstead() -> void:
 	_add_crop_rows()
 	_add_farm_fence("FarmyardFence", [Vector2i(5, 50), Vector2i(8, 47), Vector2i(18, 47), Vector2i(26, 51), Vector2i(24, 59), Vector2i(15, 61), Vector2i(7, 58), Vector2i(5, 50)])
 	_add_farm_fence("PastureFence", [Vector2i(1, 61), Vector2i(15, 62), Vector2i(17, 74), Vector2i(2, 73), Vector2i(1, 61)])
+	_add_broken_fence_and_blood_trail()
 	var yard_lane: Array[Vector3] = []
 	for hex in HollowmereVillageData.FARMYARD_CENTRELINE:
 		yard_lane.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.035))
 	add_child(ORGANIC_FEATURES.make_ribbon("FarmyardLane", yard_lane, PackedFloat32Array([2.2, 2.0, 2.0, 2.0]), path_material, 0.0, 8))
+
+func _create_farm_animals() -> void:
+	# Old Mac's surviving herd occupies the fenced southern pasture.
+	_spawn_creature("FarmCowA", "cow", "farm", Vector2i(5, 66), 0.82)
+	_spawn_creature("FarmCowB", "cow", "farm", Vector2i(10, 69), 0.82)
+	_spawn_creature("FarmCowC", "cow", "farm", Vector2i(13, 64), 0.82)
+	# A farm horse is present as a visible future mount candidate.
+	_spawn_creature("FarmHorse", "horse", "mount", Vector2i(24, 57), 0.82)
+	# A second coat variant and a small farm dog use their own original glTF scenes.
+	_spawn_creature("FarmWhiteHorse", "horse", "mount", Vector2i(27, 61), 0.82, "Horse_White.gltf")
+	_spawn_creature("FarmShiba", "shiba_inu", "farm", Vector2i(19, 60), 0.48, "ShibaInu.gltf")
+
+func _add_broken_fence_and_blood_trail() -> void:
+	var gap_hex := Vector2i(1, 67)
+	var gap_centre := HexGrid.axial_to_world(gap_hex, HEX_RADIUS, 0.04)
+	var broken := Node3D.new()
+	broken.name = "BrokenPastureFence"
+	broken.position = gap_centre
+	add_child(broken)
+	var rail_a := _add_box(broken, "BrokenRailA", Vector3(-0.55, 0.32, -0.25), Vector3(1.3, 0.10, 0.12), fence_material)
+	rail_a.rotation.y = deg_to_rad(-24.0)
+	var rail_b := _add_box(broken, "BrokenRailB", Vector3(0.55, 0.22, 0.22), Vector3(1.0, 0.10, 0.12), dark_wood_material)
+	rail_b.rotation.y = deg_to_rad(18.0)
+
+	var blood_material := _material(Color(0.22, 0.045, 0.025))
+	var trail_hexes: Array[Vector2i] = [Vector2i(1, 67), Vector2i(-4, 68), Vector2i(-10, 69), Vector2i(-17, 70), Vector2i(-24, 71), Vector2i(-31, 72), Vector2i(-38, 73)]
+	for index in range(trail_hexes.size()):
+		var stain := MeshInstance3D.new()
+		stain.name = "BloodTrail_%02d" % index
+		var mesh := CylinderMesh.new()
+		mesh.top_radius = 0.13 if index < 3 else 0.075
+		mesh.bottom_radius = mesh.top_radius
+		mesh.height = 0.018
+		mesh.radial_segments = 7
+		stain.mesh = mesh
+		stain.material_override = blood_material
+		stain.position = HexGrid.axial_to_world(trail_hexes[index], HEX_RADIUS, 0.015)
+		add_child(stain)
+
+func _create_wilderness_animals() -> void:
+	# Ambient wildlife is placed in the outer forest belt, away from the
+	# settlement, farm and roads. These are presentation actors; encounter
+	# spawning and combat ownership remain with the world simulation.
+	_spawn_creature("WildernessDeer", "deer", "passive_wildlife", Vector2i(-34, 18), 0.78)
+	_spawn_creature("WildernessStag", "stag", "passive_wildlife", Vector2i(37, -12), 0.82)
+	_spawn_creature("WildernessFox", "fox", "passive_wildlife", Vector2i(-29, -30), 0.72)
+	_spawn_creature("WildernessWolf", "wolf", "predator", Vector2i(39, 39), 0.76)
+
+func _spawn_creature(actor_name: String, kind: String, behaviour_name: String, hex: Vector2i, scale_factor: float, asset_filename: String = "") -> void:
+	var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+	actor.name = actor_name
+	actor.creature_kind = kind
+	actor.behaviour = behaviour_name
+	actor.model_scale = scale_factor
+	var filename := asset_filename if not asset_filename.is_empty() else "%s.gltf" % kind.capitalize()
+	actor.model_path = "res://art/creatures/quaternius/%s" % filename
+	actor.position = HexGrid.axial_to_world(hex, HEX_RADIUS, 0.0)
+	actor.rotation.y = deg_to_rad(float(posmod(hex.x * 37 + hex.y * 19, 360)))
+	add_child(actor)
 
 func _add_farm_field(node_name: String, corners: Array[Vector2i], material: Material) -> void:
 	var points: Array[Vector3] = []
@@ -391,39 +469,120 @@ func _create_signpost() -> void:
 	add_child(east_west_label)
 
 func _create_forest() -> void:
-	var trunk_mesh := CylinderMesh.new()
-	trunk_mesh.top_radius = 0.10
-	trunk_mesh.bottom_radius = 0.18
-	trunk_mesh.height = 1.8
-	trunk_mesh.radial_segments = 7
-	var canopy_mesh := SphereMesh.new()
-	canopy_mesh.radius = 0.95
-	canopy_mesh.height = 1.9
+	_load_cosmo_forest_scenes()
+	var tree_index := 0
+	# Keep the authored forest footprint and its deterministic four-hex spacing.
+	# The old placeholder cylinders are replaced by the generated Cosmo tree GLBs.
 	for q in range(-96, 97, 4):
 		for r in range(-96, 97, 4):
 			var hex := Vector2i(q, r)
 			if not HollowmereVillageData.is_forest_candidate(hex):
 				continue
-			var noise := HollowmereVillageData._stable_noise(q + 17, r - 9)
-			if noise < 0.56:
+			var density_roll := HollowmereVillageData._stable_noise(q + 17, r - 9)
+			if density_roll < 0.56:
 				continue
-			var centre := HexGrid.axial_to_world(hex, HEX_RADIUS)
-			var jitter := Vector3((noise - 0.5) * 2.0, 0.0, (0.5 - fmod(noise * 3.7, 1.0)) * 2.0)
-			var tree := Node3D.new()
-			tree.name = "VillageTree"
-			tree.position = centre + jitter
-			add_child(tree)
-			var trunk := MeshInstance3D.new()
-			trunk.mesh = trunk_mesh
-			trunk.position.y = 0.9
-			trunk.material_override = _material(Color(0.25, 0.15, 0.09))
-			tree.add_child(trunk)
-			var canopy := MeshInstance3D.new()
-			canopy.mesh = canopy_mesh
-			canopy.position.y = 2.15
-			canopy.scale = Vector3(1.0 + noise * 0.25, 1.0 + noise * 0.32, 1.0 + noise * 0.25)
-			canopy.material_override = foliage_materials[int(noise * 10.0) % foliage_materials.size()]
-			tree.add_child(canopy)
+			var family := _select_cosmo_tree_family(hex)
+			if _spawn_cosmo_vegetation(family, hex, tree_index, false):
+				tree_index += 1
+
+	# A lighter understorey fills gaps without blocking the existing roads,
+	# buildings, stream crossing or farm. Shrubs and ferns are deliberately
+	# less frequent than canopy trees.
+	var understorey_index := 0
+	for q in range(-96, 97, 8):
+		for r in range(-96, 97, 8):
+			var hex := Vector2i(q, r)
+			if not HollowmereVillageData.is_forest_candidate(hex):
+				continue
+			if HollowmereVillageData.has_tree(hex):
+				continue
+			var density_roll := HollowmereVillageData._stable_noise(q + 977, r - 337)
+			if density_roll < 0.70:
+				continue
+			var near_stream := _is_near_village_stream(hex, 7.0)
+			var family := "bush"
+			if near_stream and density_roll < 0.84:
+				family = "tree_fern"
+			elif density_roll > 0.91:
+				family = "low_poly_bush"
+			if _spawn_cosmo_vegetation(family, hex, understorey_index, true):
+				understorey_index += 1
+
+func _load_cosmo_forest_scenes() -> void:
+	if not cosmo_forest_scenes.is_empty():
+		return
+	for family in COSMO_TREE_VARIANTS:
+		var variants: Array[PackedScene] = []
+		for variant in range(1, int(COSMO_TREE_VARIANTS[family]) + 1):
+			var path := COSMO_TREE_ROOT + "%s_%02d.glb" % [family, variant]
+			var packed := load(path) as PackedScene
+			if packed == null:
+				push_error("Could not load Cosmo forest model: %s" % path)
+				continue
+			variants.append(packed)
+		cosmo_forest_scenes[family] = variants
+
+func _select_cosmo_tree_family(hex: Vector2i) -> String:
+	var roll := HollowmereVillageData._stable_noise(hex.x + 401, hex.y - 719)
+	if _is_near_village_stream(hex, 7.0):
+		if roll < 0.48:
+			return "willow"
+		if roll < 0.66:
+			return "ash"
+		if roll < 0.82:
+			return "laurel"
+		if roll < 0.94:
+			return "cherry"
+		return "spruce"
+	if roll < 0.18:
+		return "ash"
+	if roll < 0.33:
+		return "cherry"
+	if roll < 0.46:
+		return "laurel"
+	if roll < 0.64:
+		return "pine"
+	if roll < 0.80:
+		return "spruce"
+	if roll < 0.92:
+		return "winter_oak"
+	return "low_poly_tree"
+
+func _is_near_village_stream(hex: Vector2i, distance: float) -> bool:
+	if absi(hex.x) > 34:
+		return false
+	return absf(float(hex.y) - HollowmereVillageData._river_centre_r(hex.x)) <= distance
+
+func _spawn_cosmo_vegetation(family: String, hex: Vector2i, index: int, is_understorey: bool) -> bool:
+	var variants: Array = cosmo_forest_scenes.get(family, [])
+	if variants.is_empty():
+		return false
+	var variant_roll := HollowmereVillageData._stable_noise(hex.x + 137, hex.y - 53)
+	var variant_index := mini(int(variant_roll * float(variants.size())), variants.size() - 1)
+	var packed := variants[variant_index] as PackedScene
+	if packed == null:
+		return false
+	var vegetation := packed.instantiate() as Node3D
+	if vegetation == null:
+		push_error("Cosmo model root is not Node3D: %s" % family)
+		return false
+
+	var size_roll := HollowmereVillageData._stable_noise(hex.x + 811, hex.y - 617)
+	var scale_min := 0.78 if not is_understorey else 0.68
+	var scale_range := 0.46 if not is_understorey else 0.48
+	var scale_factor := scale_min + size_roll * scale_range
+	if family == "low_poly_tree":
+		scale_factor *= 0.92
+	elif family == "tree_fern":
+		scale_factor *= 0.88
+	vegetation.name = "Cosmo_%s_%03d" % [family, index]
+	vegetation.scale = Vector3.ONE * scale_factor
+	var jitter_x := (HollowmereVillageData._stable_noise(hex.x + 31, hex.y + 19) - 0.5) * 1.5
+	var jitter_z := (HollowmereVillageData._stable_noise(hex.x - 43, hex.y + 71) - 0.5) * 1.5
+	vegetation.position = HexGrid.axial_to_world(hex, HEX_RADIUS) + Vector3(jitter_x, 0.0, jitter_z)
+	vegetation.rotation.y = HollowmereVillageData._stable_noise(hex.x + 503, hex.y - 907) * TAU
+	add_child(vegetation)
+	return true
 
 func _add_box(parent: Node3D, node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()

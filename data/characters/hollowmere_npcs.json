@@ -914,6 +914,485 @@
         "expression": "neutral",
         "hairColor": "#49372a"
       }
+    },
+    {
+      "id": "ser_aldric_thorne",
+      "game_id": "companion_ser_aldric_thorne",
+      "name": "Ser Aldric Thorne",
+      "role": "companion",
+      "hex": [
+        -11,
+        -5
+      ],
+      "detail": "runtime",
+      "progression": {
+        "race": "human",
+        "class_levels": [
+          "fighter",
+          "cleric"
+        ],
+        "skill_picks": [
+          "health",
+          "sword_hit",
+          "sword_dmg",
+          "sword_parry",
+          "learn_heal"
+        ],
+        "seed": "canonical-companion:Ser Aldric Thorne"
+      },
+      "extra_inventory": [],
+      "params": {
+        "seed": 1777517940,
+        "gender": 1,
+        "age": 0.62,
+        "muscle": 0.72,
+        "weight": 0.58,
+        "height": 0.68,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "brown",
+        "hair": "short03",
+        "hairTint": "#594a3c",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "long_tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "hairColor": "#594a3c"
+      },
+      "dialogue_id": "ser_aldric_captive",
+      "companion_dialogue_id": "companion_ser_aldric"
+    },
+    {
+      "id": "nix_sharpear",
+      "game_id": "companion_nix_sharpear",
+      "name": "Nix Sharpear",
+      "role": "companion",
+      "hex": [
+        -16,
+        9
+      ],
+      "detail": "runtime",
+      "progression": {
+        "race": "goblin",
+        "class_levels": [
+          "rogue",
+          "fighter"
+        ],
+        "skill_picks": [
+          "health",
+          "dagger_hit",
+          "dagger_hit",
+          "dagger_dmg",
+          "stealth_rogue",
+          "stealth_rogue",
+          "stealth_agility"
+        ],
+        "seed": "canonical-companion:Nix Sharpear"
+      },
+      "extra_inventory": [
+        "bow",
+        "torch"
+      ],
+      "params": {
+        "seed": 1094319253,
+        "gender": 1,
+        "age": 0.28,
+        "muscle": 0.38,
+        "weight": 0.3,
+        "height": 0.25,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "green",
+        "hair": "short02",
+        "hairTint": "#30251b",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "hairColor": "#30251b"
+      },
+      "dialogue_id": "nix_sharpear",
+      "companion_dialogue_id": "companion_nix_sharpear"
+    },
+    {
+      "id": "warlord_grukk_ironhide",
+      "game_id": "companion_warlord_grukk",
+      "name": "Warlord Grukk Ironhide",
+      "role": "companion",
+      "hex": [
+        16,
+        17
+      ],
+      "detail": "runtime",
+      "progression": {
+        "race": "orc",
+        "class_levels": [
+          "fighter"
+        ],
+        "skill_picks": [
+          "health",
+          "health",
+          "health",
+          "health",
+          "meleeDamage",
+          "meleeDamage",
+          "meleeDamage",
+          "axe_hit",
+          "axe_hit",
+          "axe_dmg",
+          "axe_dmg"
+        ],
+        "seed": "canonical-companion:Warlord Grukk Ironhide"
+      },
+      "extra_inventory": [],
+      "params": {
+        "seed": 1078451640,
+        "gender": 1,
+        "age": 0.48,
+        "muscle": 0.94,
+        "weight": 0.84,
+        "height": 0.82,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "brown",
+        "hair": "short02",
+        "hairTint": "#30231c",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "uniform_shirt",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "fatigue_pants",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "hairColor": "#30231c"
+      },
+      "dialogue_id": "orc_warlord",
+      "companion_dialogue_id": "companion_orc_warlord"
+    },
+    {
+      "id": "reyna_fletcher",
+      "game_id": "companion_reyna_fletcher",
+      "name": "Reyna Fletcher",
+      "role": "companion",
+      "hex": [
+        -18,
+        -12
+      ],
+      "detail": "runtime",
+      "progression": {
+        "race": "human",
+        "class_levels": [
+          "fighter"
+        ],
+        "skill_picks": [
+          "health",
+          "bow_hit",
+          "bow_dmg",
+          "fastMovement"
+        ],
+        "seed": "canonical-companion:Reyna Fletcher"
+      },
+      "extra_inventory": [
+        "sword"
+      ],
+      "params": {
+        "seed": 1112680012,
+        "gender": 0,
+        "age": 0.34,
+        "muscle": 0.58,
+        "weight": 0.38,
+        "height": 0.56,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "green",
+        "hair": "long01",
+        "hairTint": "#704b32",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "hairColor": "#704b32"
+      },
+      "dialogue_id": "reyna_fletcher",
+      "companion_dialogue_id": "reyna_fletcher"
+    },
+    {
+      "id": "mirabel_quill",
+      "game_id": "companion_mirabel_quill",
+      "name": "Mirabel Quill",
+      "role": "companion",
+      "hex": [
+        17,
+        -11
+      ],
+      "detail": "runtime",
+      "progression": {
+        "race": "elf",
+        "class_levels": [
+          "wizard"
+        ],
+        "skill_picks": [
+          "health",
+          "learn_firebolt",
+          "arcane_mana",
+          "firebolt_hit",
+          "firebolt_dmg"
+        ],
+        "seed": "canonical-companion:Mirabel Quill"
+      },
+      "extra_inventory": [],
+      "params": {
+        "seed": 2014858941,
+        "gender": 0,
+        "age": 0.29,
+        "muscle": 0.3,
+        "weight": 0.32,
+        "height": 0.58,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "bluegreen",
+        "hair": "long01",
+        "hairTint": "#8b765e",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "long_tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "wrapper_long",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "hairColor": "#8b765e"
+      },
+      "dialogue_id": "mirabel_quill",
+      "companion_dialogue_id": "mirabel_quill"
+    },
+    {
+      "id": "fenn_oakheart",
+      "game_id": "companion_fenn_oakheart",
+      "name": "Fenn Oakheart",
+      "role": "companion",
+      "hex": [
+        -17,
+        17
+      ],
+      "detail": "runtime",
+      "progression": {
+        "race": "human",
+        "class_levels": [
+          "druid"
+        ],
+        "skill_picks": [
+          "health",
+          "learn_summon_animal",
+          "barkskin_active",
+          "wild_shape_adaptation"
+        ],
+        "seed": "canonical-companion:Fenn Oakheart"
+      },
+      "extra_inventory": [],
+      "params": {
+        "seed": 133322726,
+        "gender": 1,
+        "age": 0.43,
+        "muscle": 0.52,
+        "weight": 0.5,
+        "height": 0.6,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "brownlight",
+        "hair": "short02",
+        "hairTint": "#57422d",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "hairColor": "#57422d"
+      },
+      "dialogue_id": "fenn_oakheart",
+      "companion_dialogue_id": "fenn_oakheart"
+    },
+    {
+      "id": "brother_alden",
+      "game_id": "companion_brother_alden",
+      "name": "Brother Alden",
+      "role": "companion",
+      "hex": [
+        5,
+        -16
+      ],
+      "detail": "runtime",
+      "progression": {
+        "race": "human",
+        "class_levels": [
+          "monk"
+        ],
+        "skill_picks": [
+          "unarmed_hit",
+          "unarmed_dmg",
+          "swift_step",
+          "trip_reaction"
+        ],
+        "seed": "canonical-companion:Brother Alden"
+      },
+      "extra_inventory": [],
+      "params": {
+        "seed": 1768587492,
+        "gender": 1,
+        "age": 0.62,
+        "muscle": 0.66,
+        "weight": 0.52,
+        "height": 0.64,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "grey",
+        "hair": "short03",
+        "hairTint": "#82715e",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "long_tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "hairColor": "#82715e"
+      },
+      "dialogue_id": "brother_alden",
+      "companion_dialogue_id": "brother_alden"
+    },
+    {
+      "id": "snik_fangtooth",
+      "game_id": "companion_snik_fangtooth",
+      "name": "Snik Fangtooth",
+      "role": "companion",
+      "hex": [
+        -19,
+        -2
+      ],
+      "detail": "runtime",
+      "progression": {
+        "race": "goblin",
+        "class_levels": [
+          "rogue"
+        ],
+        "skill_picks": [
+          "dagger_hit",
+          "dagger_dmg",
+          "stealth_rogue",
+          "quickRecovery",
+          "initiativeBonus"
+        ],
+        "seed": "canonical-companion:Snik Fangtooth"
+      },
+      "extra_inventory": [
+        "bow",
+        "torch"
+      ],
+      "params": {
+        "seed": 1400925785,
+        "gender": 1,
+        "age": 0.24,
+        "muscle": 0.35,
+        "weight": 0.28,
+        "height": 0.22,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "darkbrown",
+        "hair": "short02",
+        "hairTint": "#251d17",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "hairColor": "#251d17"
+      },
+      "dialogue_id": "snik_fangtooth",
+      "companion_dialogue_id": "snik_fangtooth"
     }
   ]
 }

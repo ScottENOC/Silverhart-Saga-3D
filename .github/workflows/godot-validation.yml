@@ -23,6 +23,8 @@ on:
       - "export_presets.cfg"
       - "art/characters/**"
       - "art/ui/**"
+      - "art/environment/**"
+      - "art/creatures/**"
       - "scenes/**"
       - "scripts/**"
       - "data/**"

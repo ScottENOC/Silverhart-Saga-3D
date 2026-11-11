@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="CosmoTreePreset" format=3 uid="uid://ci6072yv1385a"]
+
+[ext_resource type="Script" uid="uid://ceh6ii6tlpph4" path="res://addons/cosmo_tree_gen/resources/branch_level.gd" id="1_tgduv"]
+[ext_resource type="Material" uid="uid://dm5as0s5uoju2" path="res://addons/cosmo_tree_gen/materials/leaves_03.tres" id="2_82h6u"]
+[ext_resource type="Script" uid="uid://1tt4by0vsl04" path="res://addons/cosmo_tree_gen/resources/foliage_params.gd" id="3_1blq4"]
+[ext_resource type="Script" uid="uid://dlp11kr4f76j3" path="res://addons/cosmo_tree_gen/resources/preset.gd" id="4_kcckf"]
+[ext_resource type="Material" uid="uid://b7l8vw0qq0s25" path="res://addons/cosmo_tree_gen/materials/bark.tres" id="5_g1nna"]
+[ext_resource type="Script" uid="uid://c0ggn4wsaa746" path="res://addons/cosmo_tree_gen/resources/trunk_params.gd" id="6_dqbmr"]
+
+[sub_resource type="Resource" id="Resource_vkopi"]
+script = ExtResource("1_tgduv")
+count = 10
+terminal = true
+start = 0.3
+end = 0.95
+angle = 55.0
+gnarl = 0.25
+up_force = 0.35
+metadata/_custom_type_script = "uid://ceh6ii6tlpph4"
+
+[sub_resource type="Resource" id="Resource_qvfii"]
+script = ExtResource("1_tgduv")
+count = 4
+terminal = true
+start = 0.2
+end = 1.0
+angle = 45.0
+length = 0.5
+segments = 2
+up_force = 0.3
+metadata/_custom_type_script = "uid://ceh6ii6tlpph4"
+
+[sub_resource type="Resource" id="Resource_8rfdr"]
+script = ExtResource("3_1blq4")
+type = 2
+leaf_count = 8
+leaf_tip = true
+leaf_size = 1.3
+leaf_size_variance = 0.25
+leaf_start = 0.2
+leaf_inner_ao = 0.4
+metadata/_custom_type_script = "uid://1tt4by0vsl04"
+
+[sub_resource type="Resource" id="Resource_62gnj"]
+script = ExtResource("6_dqbmr")
+quality = 2
+height = 5.5
+radius_bottom = 0.24
+radius_top = 0.03
+lean = 0.2
+wobble = 0.1
+metadata/_custom_type_script = "uid://c0ggn4wsaa746"
+
+[resource]
+script = ExtResource("4_kcckf")
+trunk_params = SubResource("Resource_62gnj")
+branch_levels = Array[ExtResource("1_tgduv")]([SubResource("Resource_vkopi"), SubResource("Resource_qvfii")])
+foliage_params = SubResource("Resource_8rfdr")
+trunk_material = ExtResource("5_g1nna")
+foliage_material = ExtResource("2_82h6u")
