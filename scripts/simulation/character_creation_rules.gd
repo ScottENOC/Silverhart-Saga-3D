@@ -66,6 +66,7 @@ static func create_player_state(profile: Dictionary, character_id: String, start
     state.gender_presentation = String(profile.get("gender_presentation", "Masculine"))
     state.pronouns = String(profile.get("pronouns", "they/them"))
     state.class_levels = {class_id: 1}
+    state.class_level_sequence = [class_id]
     state.gold = int(_data().get("starting_resources", {}).get(state.campaign_id, 0))
     state.tags = ["humanoid", "race_%s" % race_id]
     var attributes: Dictionary = {}
@@ -109,6 +110,7 @@ static func create_player_state(profile: Dictionary, character_id: String, start
         if state.add_inventory_item(item) and equipped_ids.has(item_id):
             if not state.equip_inventory_item(String(item.instance_id)):
                 push_error("Could not equip starting item: %s" % item_id)
+    SkillProgression.initialise(state)
     return state
 
 static func preview_text(race_id: String, class_id: String, difficulty_id: String) -> String:
