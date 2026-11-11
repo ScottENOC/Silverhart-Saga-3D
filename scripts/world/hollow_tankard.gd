@@ -904,6 +904,7 @@ func _create_hud() -> void:
     reaction_prompt.name = "ReactionPrompt"
     reaction_prompt.choice_selected.connect(_on_reaction_choice_selected)
     add_child(reaction_prompt)
+    _refresh_tavern_floor_presentation()
 
 
 func _on_game_menu_selected(item_id: int) -> void:
