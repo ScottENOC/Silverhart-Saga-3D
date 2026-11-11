@@ -26,7 +26,7 @@ def arguments():
     parser.add_argument("--profile", choices=("female", "none"), default=os.environ.get("ARA_PROFILE"), required=not bool(os.environ.get("ARA_PROFILE")))
     parser.add_argument("--adult", action="store_true", default=os.environ.get("ARA_ADULT") == "1")
     parser.add_argument("--fit-existing", action="store_true", help="Only expand lower garments around anatomy already present in the input GLB")
-    parser.add_argument("--deformation-scale", type=float, default=1.0, help="Scale the explicitly calibrated female anatomy relief targets")
+    parser.add_argument("--deformation-scale", type=float, default=1.65, help="Scale the enhanced female anatomy relief targets")
     return parser.parse_args(raw)
 
 
@@ -235,9 +235,12 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
         return math.exp(-0.5 * (((x-cx)/sx)**2 + ((z-cz)/sz)**2))
 
     painted_vertices = 0
+    normals = skin.data.vertices
     for vertex in mesh.vertices:
         p = skin.matrix_world @ vertex.co
-        if abs(p.x) > width * 0.18 or abs(p.z-anatomy_z) > height * 0.070:
+        normal = (skin.matrix_world.to_3x3() @ vertex.normal).normalized()
+        if (normal.y > -0.08 or abs(p.x) > width * 0.18
+                or abs(p.z-anatomy_z) > height * 0.070):
             colour.data[vertex.index].color = (1.0, 1.0, 1.0, 1.0)
             continue
         outer = max(
@@ -248,20 +251,19 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
             g(p.x,p.z,-width*0.025,anatomy_z-height*0.004,width*0.014,height*0.026),
             g(p.x,p.z, width*0.025,anatomy_z-height*0.004,width*0.014,height*0.026),
         )
-        # The outer folds receive a soft, skin-relative rose tint. It is
-        # deliberately broader and less saturated than the inner-fold tint.
-        central = max(
-            g(p.x,p.z,0.0,anatomy_z-height*0.020,width*0.008,height*0.023),
-            g(p.x,p.z,0.0,anatomy_z-height*0.036,width*0.010,height*0.010),
-        )
-        outer_strength = min(1.0, outer * 0.72)
-        inner_strength = min(1.0, inner * 0.42 + central * 0.78)
-        central_strength = min(1.0, central)
-        red = 1.0 + 0.10 * outer_strength + 0.16 * inner_strength + 0.16 * central_strength
-        green = 1.0 - 0.055 * outer_strength - 0.20 * inner_strength - 0.42 * central_strength
-        blue = 1.0 - 0.035 * outer_strength - 0.16 * inner_strength - 0.34 * central_strength
+        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.018,width*0.0045,height*0.030)
+        vestibule = g(p.x,p.z,0.0,anatomy_z-height*0.026,width*0.015,height*0.010)
+        outer_strength = min(1.0, outer * 0.95)
+        inner_strength = min(1.0, inner * 0.82)
+        dark_strength = min(1.0, cleft * 0.92 + vestibule * 0.45)
+        # Multipliers tint the existing skin texture rather than replacing it:
+        # muted rose on outer folds, deeper rose on inner folds, and a narrow
+        # warm shadow in the cleft/vestibule. Smooth Gaussian falloffs avoid decals.
+        red = 1.0 + 0.045*outer_strength - 0.035*inner_strength - 0.12*dark_strength
+        green = 1.0 - 0.075*outer_strength - 0.24*inner_strength - 0.42*dark_strength
+        blue = 1.0 - 0.060*outer_strength - 0.20*inner_strength - 0.34*dark_strength
         colour.data[vertex.index].color = (red, green, blue, 1.0)
-        if max(outer_strength, inner_strength) > 0.15:
+        if max(outer_strength, inner_strength, dark_strength) > 0.12:
             painted_vertices += 1
     mesh.color_attributes.active_color = colour
     skin["anatomy_pigmented_vertex_count"] = painted_vertices
@@ -286,33 +288,30 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         n = normal.normalized() if normal.length else normal
         if n.y > -0.10 or abs(p.x) > width*0.27 or abs(p.z-anatomy_z) > 0.15:
             return p
-        # Relief targets are 25% above the upper ends of the initial ranges:
-        # mons 0.50%, outer folds 0.375%, inner folds 0.25%, hood 0.225%,
-        # and vestibular recess 0.1875% of measured character height.
+        # Stronger sculpt pass: distinct mons transition, paired outer/inner
+        # folds, a readable median cleft, vestibular hollow and posterior fold.
         mons = g(p.x,p.z,0.0,anatomy_z+height*0.035,width*0.105,height*0.020)
-        # Paired outer labial folds: two distinct lateral ridges with a
-        # deliberate central valley, rather than one continuous central mound.
-        outer_l = g(p.x,p.z,-width*0.060,anatomy_z-height*0.002,width*0.030,height*0.030)
-        outer_r = g(p.x,p.z, width*0.060,anatomy_z-height*0.002,width*0.030,height*0.030)
-        inner_l = g(p.x,p.z,-width*0.026,anatomy_z-height*0.004,width*0.013,height*0.022)
-        inner_r = g(p.x,p.z, width*0.026,anatomy_z-height*0.004,width*0.013,height*0.022)
-        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.012,width*0.0048,height*0.030)
-        vestibule = g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.018,height*0.009)
-        urethra = g(p.x,p.z,0.0,anatomy_z-height*0.016,width*0.0045,height*0.0025)
-        vaginal = g(p.x,p.z,0.0,anatomy_z-height*0.035,width*0.012,height*0.006)
-        hood = g(p.x,p.z,0.0,anatomy_z+height*0.020,width*0.023,height*0.007)
-        glans = g(p.x,p.z,0.0,anatomy_z+height*0.014,width*0.006,height*0.003)
-        frenulum = g(p.x,p.z,0.0,anatomy_z+height*0.007,width*0.004,height*0.0035)
-        fourchette = g(p.x,p.z,0.0,anatomy_z-height*0.051,width*0.018,height*0.0035)
+        outer_l = g(p.x,p.z,-width*0.060,anatomy_z-height*0.002,width*0.027,height*0.030)
+        outer_r = g(p.x,p.z, width*0.060,anatomy_z-height*0.002,width*0.027,height*0.030)
+        inner_l = g(p.x,p.z,-width*0.026,anatomy_z-height*0.004,width*0.011,height*0.022)
+        inner_r = g(p.x,p.z, width*0.026,anatomy_z-height*0.004,width*0.011,height*0.022)
+        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.012,width*0.0038,height*0.030)
+        vestibule = g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.017,height*0.009)
+        urethra = g(p.x,p.z,0.0,anatomy_z-height*0.016,width*0.0038,height*0.0025)
+        vaginal = g(p.x,p.z,0.0,anatomy_z-height*0.035,width*0.011,height*0.006)
+        hood = g(p.x,p.z,0.0,anatomy_z+height*0.020,width*0.020,height*0.007)
+        glans = g(p.x,p.z,0.0,anatomy_z+height*0.014,width*0.0055,height*0.003)
+        frenulum = g(p.x,p.z,0.0,anatomy_z+height*0.007,width*0.0035,height*0.0035)
+        fourchette = g(p.x,p.z,0.0,anatomy_z-height*0.051,width*0.016,height*0.0035)
         perineum = g(p.x,p.z,0.0,anatomy_z-height*0.068,width*0.045,height*0.013)
         outward = deformation_scale * height * (
-            0.0040*mons + 0.00525*(outer_l+outer_r)
-            + 0.00400*(inner_l+inner_r) + 0.00275*hood
-            + 0.00150*glans + 0.00075*frenulum + 0.00050*fourchette
+            0.0055*mons + 0.0080*(outer_l+outer_r)
+            + 0.0060*(inner_l+inner_r) + 0.0040*hood
+            + 0.0025*glans + 0.0012*frenulum + 0.0010*fourchette
         )
         inward = deformation_scale * height * (
-            0.00275*vestibule + 0.00850*cleft
-            + 0.0010*urethra + 0.0015*vaginal + 0.00025*perineum
+            0.0040*vestibule + 0.0110*cleft
+            + 0.0018*urethra + 0.0022*vaginal + 0.0004*perineum
         )
         p.y -= outward
         p.y += inward
@@ -374,6 +373,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     skin["anatomy_profile"] = "adult_female_integrated_skin"
     skin["review_status"] = "integrated_mesh_blockout_for_art_review"
     skin["anatomy_deformation_scale"] = float(deformation_scale)
+    skin["anatomy_detail_pass"] = "enhanced_fold_relief_and_skin_relative_rose_pigmentation_v2"
     skin["anatomy_method"] = "surface_displacement_preserve_morphs" if preserve_morphs else "local_subdivision_and_surface_displacement"
     skin["anatomy_parts"] = "mons,labia_majora,labia_minora,clitoral_hood,clitoral_glans,frenulum,vestibule,urethral_meatus,vaginal_opening,posterior_fourchette,perineal_transition"
     return skin
