@@ -38,7 +38,7 @@ static func options_with_skill_ranks(attacker: CharacterState, target: Character
     if definition.is_empty():
         definition = equipped
     var subtype := String(definition.get("subType", definition.get("sub_type", ""))).to_lower()
-    var has_weapon := subtype == "melee" or subtype == "ranged"
+    var has_weapon := not weapon_id.is_empty()
     var family := weapon_skill_family(weapon_id, definition)
     resolved["weapon_id"] = family if not family.is_empty() else weapon_id
     resolved["has_weapon"] = has_weapon
@@ -51,9 +51,9 @@ static func options_with_skill_ranks(attacker: CharacterState, target: Character
         resolved["unarmed_skill_hit_rank"] = maxi(0, int(attacker.skills.get("unarmed_hit", 0)))
         resolved["unarmed_skill_damage"] = maxi(0, int(attacker.skills.get("unarmed_dmg", 0)))
     if target != null:
-        resolved["target_caught_off_guard"] = target.caught_off_guard
-        resolved["elf_foliage_expertise"] = int(target.skills.get("elf_foliage_expertise", 0)) > 0
-        resolved["druid_foliage_expertise"] = int(target.skills.get("druid_foliage_expertise", 0)) > 0
+        resolved["target_caught_off_guard"] = bool(resolved.get("target_caught_off_guard", false)) or target.caught_off_guard
+        resolved["elf_foliage_expertise"] = bool(resolved.get("elf_foliage_expertise", false)) or int(target.skills.get("elf_foliage_expertise", 0)) > 0
+        resolved["druid_foliage_expertise"] = bool(resolved.get("druid_foliage_expertise", false)) or int(target.skills.get("druid_foliage_expertise", 0)) > 0
     return resolved
 
 
