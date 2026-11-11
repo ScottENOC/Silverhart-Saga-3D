@@ -139,12 +139,15 @@ func _build_interface() -> void:
 	location_heading.text = "JUMP TO LOCATION"
 	location_heading.add_theme_font_size_override("font_size", 13)
 	location_column.add_child(location_heading)
-	_add_jump_button(location_column, "Hollowmere", "hollowmere")
-	_add_jump_button(location_column, "Millbrook", "millbrook")
-	_add_jump_button(location_column, "Silverhart", "silverhart")
-	_add_jump_button(location_column, "Emberlode", "emberlode")
-	_add_jump_button(location_column, "Reddale", "reddale")
-	_add_jump_button(location_column, "Old Mac's Farmstead", "old_mac_farmstead")
+	var location_scroll := ScrollContainer.new()
+	location_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	location_scroll.custom_minimum_size = Vector2(0.0, 300.0)
+	location_column.add_child(location_scroll)
+	var location_list := VBoxContainer.new()
+	location_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	location_scroll.add_child(location_list)
+	for location in terrain_data.locations:
+		_add_jump_button(location_list, String(location.get("name", location.get("id", "Location"))), String(location.get("id", "")))
 
 	var macro_button := Button.new()
 	macro_button.text = "MACRO WORLD"
