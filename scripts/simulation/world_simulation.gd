@@ -94,6 +94,23 @@ func register_character(state: CharacterState) -> void:
     _attach_character_lifecycle(state)
 
 
+## Register an animal state through the same occupancy, lifecycle and save path
+## as every other world character. Animals must come from a known art profile.
+func register_animal(state: CharacterState) -> Dictionary:
+    if state == null:
+        return {"ok": false, "reason": "missing_animal_state"}
+    if state.race != "animal" or not AnimalCatalog.has_profile(state.creature_kind):
+        return {"ok": false, "reason": "invalid_animal_profile"}
+    if state.id.is_empty():
+        return {"ok": false, "reason": "empty_animal_id"}
+    if characters.has(state.id):
+        return {"ok": false, "reason": "duplicate_character_id"}
+    if occupied_hexes.has(state.axial):
+        return {"ok": false, "reason": "occupied_hex"}
+    register_character(state)
+    return {"ok": characters.has(state.id), "reason": "" if characters.has(state.id) else "registration_failed"}
+
+
 ## Build and register a humanoid NPC using the shared source-derived progression service.
 func build_and_register_npc(state: CharacterState, options: Dictionary) -> Dictionary:
     if state == null:
