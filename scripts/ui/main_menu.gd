@@ -2,6 +2,7 @@ extends Control
 const CAMPAIGN_SCENE := "res://scenes/main.tscn"
 const ARENA_SCENE := "res://scenes/arena/arena_placeholder.tscn"
 const WORLD_PREVIEW_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
+const REGIONAL_PREVIEW_SCENE := "res://scenes/prototypes/campaign2_regional_world_preview.tscn"
 
 func _ready() -> void:
 	_build_interface()
@@ -47,6 +48,7 @@ func _build_interface() -> void:
 	_add_mode_button(column, "CAMPAIGN", "A persistent world, stories and choices", _start_campaign)
 	_add_mode_button(column, "ARENA", "Standalone battles and arena progression", _start_arena)
 	_add_mode_button(column, "WORLD PREVIEW", "Browse the full Campaign 2 realm in 3D", _open_world_preview)
+	_add_mode_button(column, "REGIONAL MAP", "Explore streamed terrain around Hollowmere and beyond", _open_regional_preview)
 	var status := Label.new()
 	status.text = "The world preview is a map-development view, not a playable travel system."
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -90,3 +92,6 @@ func _start_arena() -> void:
 
 func _open_world_preview() -> void:
 	get_tree().change_scene_to_file(WORLD_PREVIEW_SCENE)
+
+func _open_regional_preview() -> void:
+	get_tree().change_scene_to_file(REGIONAL_PREVIEW_SCENE)

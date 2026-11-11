@@ -5,6 +5,7 @@ extends Node3D
 const MAP_DATA = preload("res://scripts/world/main_campaign_world_map_data.gd")
 const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
+const REGIONAL_SCENE := "res://scenes/prototypes/campaign2_regional_world_preview.tscn"
 const HEX_X_STEP := 1.5
 const HEX_Z_STEP := 1.7320508
 const TILE_RADIUS := 0.96
@@ -383,6 +384,17 @@ func _build_interface() -> void:
 	back.offset_bottom = 70.0
 	back.pressed.connect(func() -> void: get_tree().change_scene_to_file(MENU_SCENE))
 	root.add_child(back)
+
+	var regional_button := Button.new()
+	regional_button.text = "REGIONAL MAP"
+	regional_button.anchor_left = 1.0
+	regional_button.anchor_right = 1.0
+	regional_button.offset_left = -370.0
+	regional_button.offset_right = -194.0
+	regional_button.offset_top = 24.0
+	regional_button.offset_bottom = 70.0
+	regional_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(REGIONAL_SCENE))
+	root.add_child(regional_button)
 
 	var legend := PanelContainer.new()
 	legend.anchor_top = 1.0
