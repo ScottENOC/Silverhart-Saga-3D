@@ -89,6 +89,7 @@ var nearby_interaction_refresh: float = 0.0
 var farm_wolves_spawned: bool = false
 var farm_wolves_retry_armed: bool = false
 var wilderness_steps_since_spawn: int = 0
+var reyna_clue_visual: Node3D
 var wilderness_creature_nodes: Array[Node3D] = []
 var enemy_turn_processed: bool = false
 var enemy_turn_waiting_for_reaction: bool = false
@@ -438,6 +439,8 @@ func _create_characters() -> void:
     var dire_wolf_result := FARMSTEAD_DIRE_WOLF_SCRIPT.create_dire_wolf(simulation, Vector2i(30, 58))
     if bool(dire_wolf_result.get("ok", false)):
         _spawn_farmstead_dire_wolf()
+    if _reyna_objective_done("trail_found") and not _reyna_objective_done("child_rescued"):
+        _spawn_missing_child()
 
 
 func _spawn_farmstead_dire_wolf() -> void:
@@ -923,6 +926,9 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
     if choice_id.begins_with("recruit:"):
         _recruit_staged_companion(choice_id.trim_prefix("recruit:"))
         return
+    if choice_id == "reyna_rescue_child":
+        await _rescue_missing_child()
+        return
     if choice_id == "farm_wolves_accept":
         var accepted := FARM_WOLVES_QUEST_SCRIPT.accept(simulation.campaign_journal)
         if bool(accepted.get("ok", false)):
@@ -1006,9 +1012,18 @@ func _interact_with_character(character_id: String) -> void:
     if character_id == FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
         var dire_wolf_quest := simulation.campaign_journal.quest_state("reyna_dire_wolf_hunt")
         if String(dire_wolf_quest.get("status", "")) != "active":
-            _show_dialogue("Grain-raiding dire wolf", "The dire wolf is threatening Old Mac's livestock pens. Speak to Reyna before engaging it.", [{"id":"continue","label":"Understood","text":""}])
+            _show_dialogue("Dire wolf", "The huge wolf watches from the edge of the fields. Speak to Reyna before engaging it.", [{"id":"continue","label":"Understood","text":""}])
+            return
+        if not _reyna_objective_done("child_rescued"):
+            _show_dialogue("Dire wolf", "The dire wolf prowls near the old shelter. Tessa is still out there. Find her before provoking it.", [{"id":"continue","label":"Find Tessa first","text":""}])
             return
         _begin_dire_wolf_hunt_combat()
+        return
+    if character_id == "missing_child_tessa":
+        if _reyna_objective_done("child_rescued"):
+            _show_dialogue("Tessa", "Reyna said you were the one who got me out. I don't think I'll ever forget that.", [{"id":"continue","label":"You're safe now","text":""}])
+        else:
+            _show_dialogue("Tessa", "Please... it's outside. I can hear it moving around. Reyna said to stay quiet.", [{"id":"reyna_rescue_child","label":"Come with me. We'll get you home.","text":""}])
         return
     if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(character_id):
         _show_companion_dialogue(character_id)
@@ -1536,6 +1551,112 @@ func _update_combat_ui() -> void:
         combat_status_label.text = "%s  ·  HP %d/%d  ·  TP %d" % [current.display_name, current.health, current.max_health, roundi(current.time_points)]
 
 
+func _reyna_objective_done(objective_id: String) -> bool:
+    if simulation == null:
+        return false
+    var quest := simulation.campaign_journal.quest_state("reyna_dire_wolf_hunt")
+    var objectives: Dictionary = quest.get("objectives", {})
+    if not objectives.has(objective_id):
+        return false
+    var objective: Dictionary = objectives[objective_id]
+    return bool(objective.get("completed", false)) or float(objective.get("progress", 0.0)) >= float(objective.get("target", 1.0))
+
+
+func _set_reyna_objective(objective_id: String) -> void:
+    if simulation != null:
+        simulation.campaign_journal.set_objective_progress("reyna_dire_wolf_hunt", objective_id, 1.0)
+
+
+func _ensure_reyna_clue_visual() -> void:
+    if is_instance_valid(reyna_clue_visual):
+        return
+    var root := Node3D.new()
+    root.name = "ReynaMissingChildTrailClue"
+    root.position = _hex_world_position(Vector2i(22, 61))
+    var cloth := MeshInstance3D.new()
+    var cloth_mesh := BoxMesh.new()
+    cloth_mesh.size = Vector3(0.62, 0.055, 0.34)
+    cloth.mesh = cloth_mesh
+    cloth.position.y = 0.16
+    var cloth_material := StandardMaterial3D.new()
+    cloth_material.albedo_color = Color(0.12, 0.28, 0.62)
+    cloth_material.roughness = 0.95
+    cloth.material_override = cloth_material
+    root.add_child(cloth)
+    var label := Label3D.new()
+    label.text = "Torn blue cloth"
+    label.position.y = 0.62
+    label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    label.font_size = 22
+    label.outline_size = 5
+    label.modulate = Color(0.92, 0.9, 0.82)
+    root.add_child(label)
+    add_child(root)
+    reyna_clue_visual = root
+
+
+func _spawn_missing_child() -> void:
+    if actor_by_id.has("missing_child_tessa"):
+        return
+    _spawn_character("missing_child_tessa", "Tessa", Vector2i(27, 62), Color(0.35, 0.42, 0.7), false, "", {"params":{"gender":0,"hair":"short02"}})
+    var actor := actor_by_id.get("missing_child_tessa") as Node3D
+    if actor != null:
+        actor.scale = Vector3(0.72, 0.72, 0.72)
+        actor.set_meta("ambient_enabled", false)
+    var child_state := simulation.get_character("missing_child_tessa")
+    if child_state != null:
+        child_state.combat_dormant = true
+
+
+func _check_reyna_story_proximity() -> void:
+    if simulation == null or dialogue_open or encounter_active or simulation.is_in_combat:
+        return
+    var quest := simulation.campaign_journal.quest_state("reyna_dire_wolf_hunt")
+    if String(quest.get("status", "")) != "active":
+        return
+    if not _reyna_objective_done("trail_found"):
+        _ensure_reyna_clue_visual()
+        var player := simulation.get_character("player")
+        if player != null and HexGrid.distance(player.axial, Vector2i(22, 61)) <= 2:
+            _set_reyna_objective("trail_found")
+            if is_instance_valid(reyna_clue_visual):
+                reyna_clue_visual.queue_free()
+            reyna_clue_visual = null
+            _show_dialogue("Reyna Fletcher", "A strip of Tessa's blue cloak. And look here — small footprints in the mud, beside the drag marks. She was alive when she left the fence. The trail leads to the old shepherd's shelter. Come on!", [{"id":"continue","label":"Follow the tracks","text":""}])
+        return
+    if not _reyna_objective_done("child_rescued") and not actor_by_id.has("missing_child_tessa"):
+        var player_at_shelter := simulation.get_character("player")
+        if player_at_shelter != null and HexGrid.distance(player_at_shelter.axial, Vector2i(27, 62)) <= 2:
+            _spawn_missing_child()
+            _show_speech_bubble("companion_reyna_fletcher", "Tessa? It's Reyna. Stay where you are — we're getting you out.")
+            _show_dialogue("Reyna Fletcher", "The shelter door is hanging open. There's a child inside. I can hear her. The dire wolf is circling outside, waiting. Get close and speak softly; don't frighten her.", [{"id":"continue","label":"I'll get her out","text":""}])
+
+
+func _rescue_missing_child() -> void:
+    _close_dialogue()
+    var child_state := simulation.get_character("missing_child_tessa")
+    if child_state == null:
+        _show_dialogue("Reyna Fletcher", "Tessa isn't here. We need to find the shelter.", [{"id":"continue","label":"Continue","text":""}])
+        return
+    _show_speech_bubble("companion_reyna_fletcher", "I'll draw it away from the door. Get Tessa to Old Mac — don't look back!")
+    var destination := Vector2i(13, 58)
+    var path := simulation.find_path("missing_child_tessa", destination)
+    if path.size() > 1:
+        for index in range(1, path.size()):
+            if not simulation.try_move_character_step("missing_child_tessa", path[index]):
+                break
+            await get_tree().create_timer(0.16).timeout
+            if not is_instance_valid(self):
+                return
+    var child_actor := actor_by_id.get("missing_child_tessa") as Node3D
+    if child_actor != null:
+        child_actor.global_position = _hex_world_position(child_state.axial)
+    _set_reyna_objective("child_rescued")
+    _show_speech_bubble("missing_child_tessa", "I thought it was going to get me. Thank you.")
+    _show_speech_bubble("companion_reyna_fletcher", "She's safe. Now we make sure that thing never comes back.")
+    _show_dialogue("Reyna Fletcher", "Tessa is back at Old Mac's farm. She heard the wolf trying to break into the shelter. It has been hunting more than livestock. We finish this now — the beast is still out there, near the fields.", [{"id":"continue","label":"Then let's end it","text":""}])
+
+
 func _farm_wolves_remaining() -> int:
 	if not farm_wolves_spawned:
 		return -1
@@ -1699,7 +1820,7 @@ func _check_encounter_resolution() -> void:
             simulation.end_combat()
             FARMSTEAD_DIRE_WOLF_SCRIPT.finish(simulation, active_party_ids)
             encounter_active = false
-            _show_dialogue("Reyna Fletcher", "The dire wolf drives you back. It is still raiding the grain store. We can try again when we're ready.", [{"id":"continue","label":"Continue","text":""}])
+            _show_dialogue("Reyna Fletcher", "The dire wolf drives you back. It is still stalking the farmstead. Tessa is safe for now, but we cannot leave the beast alive. We can try again when we're ready.", [{"id":"continue","label":"Continue","text":""}])
         elif FARMSTEAD_DIRE_WOLF_SCRIPT.dire_wolf_defeated(simulation):
             simulation.end_combat()
             FARMSTEAD_DIRE_WOLF_SCRIPT.finish(simulation, active_party_ids)
@@ -1709,7 +1830,7 @@ func _check_encounter_resolution() -> void:
             if is_instance_valid(dire_wolf_actor):
                 dire_wolf_actor.queue_free()
             actor_by_id.erase(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
-            _show_speech_bubble("companion_reyna_fletcher", "That's the last of it. Old Mac's young stock should be safe now.")
+            _show_speech_bubble("companion_reyna_fletcher", "Tessa is safe. Old Mac's farm can breathe again.")
             _show_companion_dialogue("companion_reyna_fletcher")
         return
     if active_combat_kind == "farm_wolves":
@@ -1827,6 +1948,7 @@ func _switch_party_member() -> void:
 
 func _process(delta: float) -> void:
     _update_ambient_chatter(delta)
+    _check_reyna_story_proximity()
     _check_farm_wolf_proximity()
     _update_combat(delta)
     _update_combat_ui()
