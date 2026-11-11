@@ -30,7 +30,9 @@ func add_cell(hex: Vector2i, elevation: float = 0.0, walkable: bool = true, terr
 func set_walkable(hex: Vector2i, walkable: bool) -> bool:
     if not cells.has(hex):
         return false
-    cells[hex]["walkable"] = walkable
+    var cell: Dictionary = cells[hex]
+    cell["walkable"] = walkable
+    cells[hex] = cell
     return true
 
 func has_cell(hex: Vector2i) -> bool:
