@@ -18,6 +18,7 @@ const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_ca
 const FARMSTEAD_BEAR_SCRIPT = preload("res://scripts/simulation/farmstead_bear_encounter.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
+const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -29,6 +30,9 @@ const WALL_HEIGHT: float = 3.2
 const ROOF_RIDGE_HEIGHT: float = 5.8
 
 var simulation: WorldSimulation
+var save_load_menu: CanvasLayer
+var pending_save_data: Dictionary = {}
+var initial_character_baselines: Dictionary = {}
 var reaction_prompt: CanvasLayer
 var initiative_timeline: CombatInitiativeTimeline
 var character_panel: CharacterPanel
@@ -103,12 +107,17 @@ func _ready() -> void:
     _create_building()
     _create_furniture()
     _create_characters()
+    _capture_initial_character_baselines()
     HollowmereCampaignContent.initialize_social_standings(simulation.campaign_journal, String(player_profile.get("race", "human")))
     _create_camera()
     _create_hud()
     ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
     ambient_rng.randomize()
-    _run_opening_sequence()
+    if not pending_save_data.is_empty():
+        _apply_save_data(pending_save_data)
+        pending_save_data.clear()
+    else:
+        _run_opening_sequence()
 
 func _create_materials() -> void:
     grass_material = _material(Color(0.28, 0.38, 0.27))
@@ -708,11 +717,14 @@ func _create_hud() -> void:
     game_menu.add_item("Controls", 0)
     game_menu.add_separator()
     game_menu.add_item("Settings — coming later", 1)
-    game_menu.add_item("Save game — coming later", 2)
-    game_menu.add_item("Load game — coming later", 3)
+    game_menu.add_item("Save game…", 2)
+    game_menu.add_item("Load game…", 3)
+    game_menu.add_separator()
+    game_menu.add_item("Quick save  [F5]", 5)
+    game_menu.add_item("Quick load  [F9]", 6)
     game_menu.add_item("Return to main menu — coming later", 4)
-    for menu_index in range(1, 5):
-        game_menu.set_item_disabled(menu_index, true)
+    for menu_index in [1, 4]:
+        game_menu.set_item_disabled(game_menu.get_item_index(menu_index), true)
     game_menu.id_pressed.connect(_on_game_menu_selected)
     layer.add_child(game_menu)
     menu_button.pressed.connect(func():
@@ -723,7 +735,7 @@ func _create_hud() -> void:
     var controls_dialog := AcceptDialog.new()
     controls_dialog.name = "ControlsDialog"
     controls_dialog.title = "Hollow Tankard — Controls"
-    controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nChoose a specific person from the Nearby panel, or press F for the nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nV — toggle roof"
+    controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nChoose a specific person from the Nearby panel, or press F for the nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nF5 — quick save\nF9 — quick load\nV — toggle roof"
     controls_dialog.min_size = Vector2i(420, 430)
     layer.add_child(controls_dialog)
     game_menu.set_meta("controls_dialog", controls_dialog)
@@ -853,6 +865,9 @@ func _create_hud() -> void:
     zoom_panel.add_child(zoom_in_button)
 
     add_child(layer)
+    save_load_menu = SAVE_LOAD_MENU_SCRIPT.new() as CanvasLayer
+    save_load_menu.name = "SaveLoadMenu"
+    add_child(save_load_menu)
 
     initiative_timeline = INITIATIVE_TIMELINE_SCRIPT.new() as CombatInitiativeTimeline
     initiative_timeline.configure(simulation)
@@ -888,13 +903,180 @@ func _create_hud() -> void:
 
 
 func _on_game_menu_selected(item_id: int) -> void:
-    if item_id != 0:
+    match item_id:
+        0:
+            var menu := get_tree().root.find_child("GameMenu", true, false) as PopupMenu
+            if menu != null:
+                var dialog := menu.get_meta("controls_dialog") as AcceptDialog
+                if dialog != null:
+                    dialog.popup_centered()
+        2:
+            _open_save_menu()
+        3:
+            _open_load_menu()
+        5:
+            _quick_save()
+        6:
+            _quick_load()
+
+func _open_save_menu() -> void:
+    if simulation.is_in_combat or not simulation.pending_reaction.is_empty():
+        _show_save_notice("Save unavailable during an unresolved combat turn or reaction.")
         return
-    var menu := get_tree().root.find_child("GameMenu", true, false) as PopupMenu
-    if menu != null:
-        var dialog := menu.get_meta("controls_dialog") as AcceptDialog
-        if dialog != null:
-            dialog.popup_centered()
+    save_load_menu.open_for_save(_build_save_snapshot())
+
+func _open_load_menu() -> void:
+    save_load_menu.open_for_load()
+
+func _quick_save() -> void:
+    if simulation.is_in_combat or not simulation.pending_reaction.is_empty():
+        _show_save_notice("Quick save unavailable during an unresolved combat turn or reaction.")
+        return
+    var result := SaveManager.save_quick(_build_save_snapshot())
+    _show_save_notice("Quick save complete." if bool(result.get("ok", false)) else "Quick save failed: %s" % String(result.get("reason", "unknown error")))
+
+func _quick_load() -> void:
+    var result := SaveManager.load_snapshot(SaveManager.QUICK_SLOT)
+    if not bool(result.get("ok", false)):
+        _show_save_notice("No usable quick save: %s" % String(result.get("reason", "unknown error")))
+        return
+    SaveManager.set_pending_load(result["snapshot"])
+    get_tree().change_scene_to_file("res://scenes/main.tscn")
+
+func _show_save_notice(message: String) -> void:
+    var notice := AcceptDialog.new()
+    notice.dialog_text = message
+    add_child(notice)
+    notice.confirmed.connect(notice.queue_free)
+    notice.canceled.connect(notice.queue_free)
+    notice.popup_centered()
+
+func _capture_initial_character_baselines() -> void:
+    initial_character_baselines.clear()
+    for character_id_variant in simulation.characters.keys():
+        var character_id := String(character_id_variant)
+        var state := simulation.get_character(character_id)
+        if state != null:
+            initial_character_baselines[character_id] = state.to_dict()
+
+func _build_character_diffs() -> Dictionary:
+    var diffs: Dictionary = {}
+    for character_id_variant in simulation.characters.keys():
+        var character_id := String(character_id_variant)
+        var state := simulation.get_character(character_id)
+        if state == null:
+            continue
+        var current := state.to_dict()
+        if not initial_character_baselines.has(character_id):
+            diffs[character_id] = {"__full_record": current}
+            continue
+        var baseline: Dictionary = initial_character_baselines[character_id]
+        var changed: Dictionary = {}
+        for field in current.keys():
+            if not baseline.has(field) or current[field] != baseline[field]:
+                changed[field] = current[field]
+        if not changed.is_empty():
+            diffs[character_id] = changed
+    return diffs
+
+func _build_save_snapshot() -> Dictionary:
+    return {
+        "schema_version": 1,
+        "location": "Hollowmere — Hollow Tankard",
+        "player_profile": player_profile.duplicate(true),
+        "character_diffs": _build_character_diffs(),
+        "party_member_ids": simulation.party_member_ids.duplicate(),
+        "active_character_id": active_character_id,
+        "active_party_index": active_party_index,
+        "clock": simulation.clock.to_dict(),
+        "campaign_journal": simulation.campaign_journal.to_dict(),
+        "world_flags": {
+            "ambient_security": ambient_security,
+            "shakedown_started": shakedown_started,
+            "shakedown_resolved": shakedown_resolved,
+            "farm_wolves_spawned": farm_wolves_spawned,
+            "farm_wolves_retry_armed": farm_wolves_retry_armed,
+            "wilderness_steps_since_spawn": wilderness_steps_since_spawn
+        },
+        "camera": {
+            "zoom_distance": camera_rig.zoom_distance if camera_rig != null else 28.0,
+            "rotation": camera_rig.rotation if camera_rig != null else Vector3.ZERO
+        },
+        "playtime_seconds": 0.0
+    }
+
+func _apply_save_data(data: Dictionary) -> void:
+    simulation.is_in_combat = false
+    simulation.pending_reaction.clear()
+    simulation.pending_attack_context.clear()
+    simulation.pending_move_context.clear()
+    var saved_diffs: Variant = data.get("character_diffs", {})
+    if saved_diffs is Dictionary:
+        for character_id_variant in saved_diffs.keys():
+            var character_id := String(character_id_variant)
+            var diff: Variant = saved_diffs[character_id_variant]
+            if not diff is Dictionary:
+                continue
+            var restored: CharacterState
+            if diff.has("__full_record"):
+                restored = CharacterState.from_dict(diff["__full_record"])
+            else:
+                var existing := simulation.get_character(character_id)
+                if existing == null:
+                    push_warning("Save references unknown base character '%s'; skipped." % character_id)
+                    continue
+                var merged := existing.to_dict()
+                merged.merge(diff, true)
+                restored = CharacterState.from_dict(merged)
+            var previous := simulation.get_character(character_id)
+            if previous != null:
+                simulation.occupied_hexes.erase(previous.axial)
+            simulation.characters[character_id] = restored
+            simulation.occupied_hexes[restored.axial] = character_id
+            simulation._attach_character_lifecycle(restored)
+    simulation.party_member_ids.clear()
+    for member_id in data.get("party_member_ids", []):
+        var id := String(member_id)
+        if simulation.characters.has(id):
+            simulation.party_member_ids.append(id)
+    if simulation.party_member_ids.is_empty():
+        simulation.party_member_ids.append(simulation.player_character_id)
+    var clock_data: Variant = data.get("clock", {})
+    if clock_data is Dictionary:
+        simulation.clock.load_dict(clock_data)
+    var journal_data: Variant = data.get("campaign_journal", {})
+    if journal_data is Dictionary:
+        simulation.campaign_journal.load_dict(journal_data)
+    var flags: Dictionary = data.get("world_flags", {})
+    ambient_security = int(flags.get("ambient_security", ambient_security))
+    shakedown_started = bool(flags.get("shakedown_started", false))
+    shakedown_resolved = bool(flags.get("shakedown_resolved", false))
+    farm_wolves_spawned = bool(flags.get("farm_wolves_spawned", false))
+    farm_wolves_retry_armed = bool(flags.get("farm_wolves_retry_armed", false))
+    wilderness_steps_since_spawn = int(flags.get("wilderness_steps_since_spawn", 0))
+    active_character_id = String(data.get("active_character_id", "player"))
+    if simulation.get_character(active_character_id) == null:
+        active_character_id = "player"
+    active_party_index = clampi(int(data.get("active_party_index", 0)), 0, maxi(0, simulation.party_member_ids.size() - 1))
+    for character_id_variant in actor_by_id.keys():
+        var character_id := String(character_id_variant)
+        var state := simulation.get_character(character_id)
+        var actor := actor_by_id[character_id] as Node3D
+        if state == null or actor == null:
+            continue
+        actor.position = _hex_world_position(state.axial)
+        if actor is AraCharacterActor:
+            (actor as AraCharacterActor).apply_equipment_visuals(state.equipped_item_data)
+    if camera_rig != null:
+        camera_rig.follow_target = actor_by_id.get(active_character_id, actor_by_id.get("player")) as Node3D
+        var camera_data: Dictionary = data.get("camera", {})
+        camera_rig.zoom_distance = clampf(float(camera_data.get("zoom_distance", camera_rig.zoom_distance)), camera_rig.min_zoom, camera_rig.max_zoom)
+        if camera_data.get("rotation", null) is Vector3:
+            camera_rig.rotation = camera_data["rotation"]
+    if character_panel != null:
+        character_panel.set_character(active_character_id)
+    _update_combat_ui()
+    _refresh_resource_visuals()
 
 
 func _create_dialogue_panel(layer: CanvasLayer) -> void:
@@ -1950,6 +2132,14 @@ func _unhandled_input(event: InputEvent) -> void:
 
     if event is InputEventKey and event.pressed and not event.echo:
         var key_event := event as InputEventKey
+        if key_event.keycode == KEY_F5:
+            _quick_save()
+            get_viewport().set_input_as_handled()
+            return
+        if key_event.keycode == KEY_F9:
+            _quick_load()
+            get_viewport().set_input_as_handled()
+            return
         if key_event.keycode == KEY_SPACE:
             _attack_active_character()
             get_viewport().set_input_as_handled()
