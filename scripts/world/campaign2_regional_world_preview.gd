@@ -199,6 +199,8 @@ func jump_to_location(location_id: String) -> void:
 func _process(_delta: float) -> void:
 	_update_streamed_chunks(false)
 
+## Chunk membership is keyed to the camera focus, not the map's gameplay regions.
+## Crossing a chunk boundary loads the new 3x3 neighbourhood and retires stale chunks.
 func _update_streamed_chunks(force: bool) -> void:
 	var centre_hex := HexGrid.world_to_axial(Vector3(target.x, 0.0, target.z), HEX_RADIUS)
 	var centre_chunk := terrain_data.chunk_for_hex(centre_hex, CHUNK_SIZE)
