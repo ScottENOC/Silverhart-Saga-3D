@@ -13,6 +13,7 @@ def arguments():
     parser.add_argument("--input", default=os.environ.get("REVIEW_INPUT"), required=not bool(os.environ.get("REVIEW_INPUT")))
     parser.add_argument("--output-dir", default=os.environ.get("REVIEW_OUTPUT_DIR"), required=not bool(os.environ.get("REVIEW_OUTPUT_DIR")))
     parser.add_argument("--focus-pelvis", action="store_true", help="Frame a close-up around the lower torso/pelvis")
+    parser.add_argument("--frame", type=int, default=1, help="Animation frame to render from an imported GLB")
     return parser.parse_args(raw)
 
 
@@ -138,6 +139,8 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     clear_scene()
     import_model(args.input)
+    bpy.context.scene.frame_set(args.frame)
+    print(f"Review render animation frame: {args.frame}")
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     if not meshes:
         raise RuntimeError("GLB contained no mesh objects")
