@@ -95,6 +95,11 @@ var temperament: String = ""
 var vision_bonus: int = 0
 var scent_bonus: int = 0
 var individual_seed: int = 0
+## Riding links are stable character IDs; a mounted rider shares the mount's hex.
+var mounted_animal_id: String = ""
+var mounted_by_id: String = ""
+var mounted_original_side: String = "neutral"
+var mounted_original_combat_dormant: bool = false
 # equipment remains a compact slot -> gameplay item ID map for existing rules.
 # equipped_item_data stores the corresponding item instance metadata, while
 # inventory stores carried item instances with stable instance IDs.
@@ -305,6 +310,10 @@ func to_dict() -> Dictionary:
         "vision_bonus": vision_bonus,
         "scent_bonus": scent_bonus,
         "individual_seed": individual_seed,
+        "mounted_animal_id": mounted_animal_id,
+        "mounted_by_id": mounted_by_id,
+        "mounted_original_side": mounted_original_side,
+        "mounted_original_combat_dormant": mounted_original_combat_dormant,
         "equipment": equipment.duplicate(true),
         "inventory": inventory.duplicate(true),
         "equipped_item_data": equipped_item_data.duplicate(true),
@@ -401,6 +410,10 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.vision_bonus = int(data.get("vision_bonus", 0))
     state.scent_bonus = int(data.get("scent_bonus", 0))
     state.individual_seed = int(data.get("individual_seed", 0))
+    state.mounted_animal_id = String(data.get("mounted_animal_id", ""))
+    state.mounted_by_id = String(data.get("mounted_by_id", ""))
+    state.mounted_original_side = String(data.get("mounted_original_side", "neutral"))
+    state.mounted_original_combat_dormant = bool(data.get("mounted_original_combat_dormant", false))
     state.equipment = data.get("equipment", {}).duplicate(true)
     var saved_inventory: Array = data.get("inventory", [])
     for item in saved_inventory:
