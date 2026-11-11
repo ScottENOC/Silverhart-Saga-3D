@@ -34,6 +34,17 @@ const PROFILES := {
     "companion_snik_fangtooth":{"name":"Snik Fangtooth","quest":"star_fort_companion"}
 }
 
+const CANONICAL_IDS := {
+    "companion_ser_aldric_thorne":"ser_aldric_thorne",
+    "companion_nix_sharpear":"nix_sharpear",
+    "companion_warlord_grukk":"warlord_grukk_ironhide",
+    "companion_reyna_fletcher":"reyna_fletcher",
+    "companion_mirabel_quill":"mirabel_quill",
+    "companion_fenn_oakheart":"fenn_oakheart",
+    "companion_brother_alden":"brother_alden",
+    "companion_snik_fangtooth":"snik_fangtooth"
+}
+
 static func is_companion_id(character_id: String) -> bool:
     return PROFILES.has(character_id)
 
@@ -87,13 +98,14 @@ static func conversation(character_id: String, journal: CampaignJournal, invento
         return {}
     var name := String(profile.name)
     var quest_id := String(profile.quest)
-    if party_ids.has(character_id):
+    var canonical_id := String(CANONICAL_IDS.get(character_id, character_id))
+    if party_ids.has(character_id) or party_ids.has(canonical_id):
         return {"speaker":name,"text":"Good to have you with us. What do you need?","choices":[_choice("continue","Carry on.")]}
     var state := _state(journal, quest_id)
     var choices: Array[Dictionary] = []
     var body := ""
     var recruit_ready := false
-    match character_id:
+    match canonical_id:
         "ser_aldric_thorne":
             body = "Please... cut me loose. I came out here to deal with this goblin problem myself, and, well — here we are. Whatever you decide to do about them, I intend to see them gone from this land. I'll owe you a debt either way."
             recruit_ready = _completed(journal, quest_id)
