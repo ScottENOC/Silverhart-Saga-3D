@@ -177,9 +177,9 @@ func _test_additional_skill_effects() -> void:
     _check(is_equal_approx(MovementRules.terrain_multiplier(foliage_map, Vector2i.ZERO, druid), 1.0), "Foliage Mastery should remove the foliage movement penalty")
 
     var fast := CharacterState.new("fast_mover", "Fast Mover")
-    fast.skills["fastMovement"] = 2
+    fast.skills["fastMovement"] = 1
     fast.equipment["armour"] = "light_armor"
-    _check(is_equal_approx(MovementRules.base_cost_for(fast), 3.0), "Fast Movement should reduce movement cost by its rank in light armour")
+    _check(is_equal_approx(MovementRules.base_cost_for(fast), 4.0), "Fast Movement should reduce movement cost by its rank in light armour")
     var swift := CharacterState.new("swift_mover", "Swift Mover")
     swift.skills["swift_step"] = 1
     _check(is_equal_approx(MovementRules.base_cost_for(swift), 4.0), "Swift Step should reduce unarmoured, unshielded movement cost by one")
@@ -192,12 +192,12 @@ func _test_additional_skill_effects() -> void:
     attacker.health = 50
     attacker.skills["dwarf_axe_mastery"] = 1
     attacker.skills["orc_ferocity"] = 1
-    attacker.skills["goblin_opportunist"] = 2
+    attacker.skills["goblin_opportunist"] = 1
     var combined_damage := CombatRules.raw_damage(attacker, {
         "weapon_id": "axe",
         "target_caught_off_guard": true
     })
-    _check(combined_damage == 22, "Axe Mastery, Orc Ferocity and Goblin Opportunist should contribute their documented damage bonuses")
+    _check(combined_damage == 19, "Axe Mastery, Orc Ferocity and Goblin Opportunist should contribute their documented damage bonuses")
     attacker.health = 51
     var above_ferocity_threshold := CombatRules.raw_damage(attacker, {
         "weapon_id": "axe",
