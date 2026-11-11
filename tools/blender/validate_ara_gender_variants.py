@@ -200,6 +200,14 @@ def main():
                 "female": records["female_final"]["cross_section_profile"],
                 "male": records["male_final"]["cross_section_profile"],
             },
+            "raw_base_pair_cross_sections": {
+                "female": records["female_raw"]["cross_section_profile"],
+                "male": records["male_raw"]["cross_section_profile"],
+            },
+            "diagnostic_raw_pair_cross_sections": {
+                "female_max_breast": records.get("female_test_raw", {}).get("cross_section_profile"),
+                "male_min_breast_broad_upper_body": records.get("male_test_raw", {}).get("cross_section_profile"),
+            },
             "diagnostic_pair_cross_sections": {
                 "female_max_breast": records.get("female_test_final", {}).get("cross_section_profile"),
                 "male_min_breast_broad_upper_body": records.get("male_test_final", {}).get("cross_section_profile"),
