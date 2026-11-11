@@ -1580,6 +1580,10 @@ func _check_encounter_resolution() -> void:
             FARMSTEAD_BEAR_SCRIPT.finish(simulation, active_combat_party_ids)
             encounter_active = false
             COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "reyna_bear_hunt", "bear_slain")
+            var bear_actor := actor_by_id.get(FARMSTEAD_BEAR_SCRIPT.BEAR_ID) as Node3D
+            if is_instance_valid(bear_actor):
+                bear_actor.queue_free()
+            actor_by_id.erase(FARMSTEAD_BEAR_SCRIPT.BEAR_ID)
             _show_speech_bubble("companion_reyna_fletcher", "That's the last of it. Old Mac can sleep easier now.")
             _show_companion_dialogue("companion_reyna_fletcher")
         return
