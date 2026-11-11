@@ -82,6 +82,7 @@ func register_character(state: CharacterState) -> void:
     if occupied_hexes.has(state.axial):
         push_error("Cannot register %s: hex %s is already occupied." % [state.id, state.axial])
         return
+    state.sync_skill_effects()
     # A combatant who enters an encounter after it has started joins with a
     # full turn available, matching the campaign's intended encounter rule.
     if is_in_combat and state.side != "neutral" and not state.combat_dormant:
@@ -161,6 +162,10 @@ func start_combat() -> void:
     if is_in_combat:
         return
     is_in_combat = true
+    for value in characters.values():
+        var state := value as CharacterState
+        if state != null and state.alive:
+            state.time_points += 5.0 * float(maxi(0, int(state.skills.get("initiativeBonus", 0))))
     combat_started.emit()
 
 func end_combat() -> void:
@@ -720,7 +725,17 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
     for value in characters.values():
         var state := value as CharacterState
         if state != null and state.alive:
+            var previous_tp := state.time_points
             state.regenerate_time_points()
+            var gained_tp := maxf(0.0, state.time_points - previous_tp)
+            if gained_tp > 0.0 and state.health < state.max_health:
+                state.health_regen_remainder += state.health_regeneration_per_time_point() * gained_tp
+                var whole_healing := floori(state.health_regen_remainder)
+                if whole_healing > 0:
+                    state.apply_healing(whole_healing)
+                    state.health_regen_remainder -= float(whole_healing)
+            elif state.health >= state.max_health:
+                state.health_regen_remainder = 0.0
 
     wilderness_resources.advance_time(world_seconds)
     world_tick.emit(tick_index, world_seconds)
