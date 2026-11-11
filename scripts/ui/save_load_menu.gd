@@ -76,7 +76,7 @@ func _refresh_slots() -> void:
         var slot_name := slot_id.replace("_", " ").capitalize()
         if occupied:
             var saved_at := Time.get_datetime_string_from_unix_time(int(metadata.get("saved_at_unix", 0)), true)
-            button.text = "%s   ·   %s   ·   %s" % [slot_name, String(metadata.get("character_name", "Adventurer")), saved_at]
+            button.text = "%s   ·   %s   ·   %s   ·   %s" % [slot_name, String(metadata.get("character_name", "Adventurer")), String(metadata.get("location", "Unknown location")), saved_at]
         else:
             button.text = "%s   ·   Empty" % slot_name
         button.disabled = mode == "load" and not occupied
