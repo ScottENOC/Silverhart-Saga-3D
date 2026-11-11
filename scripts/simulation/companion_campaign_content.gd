@@ -17,13 +17,21 @@ const DEFINITIONS := [
 
 const PROFILES := {
     "ser_aldric_thorne":{"name":"Ser Aldric Thorne","quest":"aldric_rescue"},
+    "companion_ser_aldric_thorne":{"name":"Ser Aldric Thorne","quest":"aldric_rescue"},
     "nix_sharpear":{"name":"Nix Sharpear","quest":"goblin_threat"},
+    "companion_nix_sharpear":{"name":"Nix Sharpear","quest":"goblin_threat"},
     "warlord_grukk_ironhide":{"name":"Warlord Grukk Ironhide","quest":"orc_stronghold_trust"},
+    "companion_warlord_grukk":{"name":"Warlord Grukk Ironhide","quest":"orc_stronghold_trust"},
     "reyna_fletcher":{"name":"Reyna Fletcher","quest":"reyna_bear_hunt"},
+    "companion_reyna_fletcher":{"name":"Reyna Fletcher","quest":"reyna_bear_hunt"},
     "mirabel_quill":{"name":"Mirabel Quill","quest":"mirabel_spider_ruin"},
+    "companion_mirabel_quill":{"name":"Mirabel Quill","quest":"mirabel_spider_ruin"},
     "fenn_oakheart":{"name":"Fenn Oakheart","quest":"fenn_herb_gathering"},
+    "companion_fenn_oakheart":{"name":"Fenn Oakheart","quest":"fenn_herb_gathering"},
     "brother_alden":{"name":"Brother Alden","quest":"northwatch_siege"},
-    "snik_fangtooth":{"name":"Snik Fangtooth","quest":"star_fort_companion"}
+    "companion_brother_alden":{"name":"Brother Alden","quest":"northwatch_siege"},
+    "snik_fangtooth":{"name":"Snik Fangtooth","quest":"star_fort_companion"},
+    "companion_snik_fangtooth":{"name":"Snik Fangtooth","quest":"star_fort_companion"}
 }
 
 static func is_companion_id(character_id: String) -> bool:
