@@ -46,7 +46,7 @@ static func start(simulation: WorldSimulation) -> Dictionary:
         var ally_skills: Dictionary = ally_profile.get("skills", {})
         ally.skills = ally_skills.duplicate(true)
         ally.tags.append("hollowmere_defender")
-        ally.time_points = ally.max_time_points
+        ally.time_points = ActionEconomy.COMBAT_TURN_READY_TP
 
     for enemy_id in ENEMY_IDS:
         var enemy := simulation.get_character(enemy_id)
@@ -60,7 +60,7 @@ static func start(simulation: WorldSimulation) -> Dictionary:
         var enemy_skills: Dictionary = enemy_profile.get("skills", {})
         enemy.skills = enemy_skills.duplicate(true)
         enemy.tags.append("ironbond_soldier")
-        enemy.time_points = enemy.max_time_points
+        enemy.time_points = ActionEconomy.COMBAT_TURN_READY_TP
 
     simulation.start_combat()
     return {"ok": true, "enemy_ids": ENEMY_IDS.duplicate(), "party_ids": COMBAT_ALLY_IDS.duplicate()}

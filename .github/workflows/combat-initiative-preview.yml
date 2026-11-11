@@ -1,0 +1,67 @@
+name: Combat initiative CI and visual preview
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'scripts/ui/combat_initiative_*.gd'
+      - 'scripts/world/hollow_tankard.gd'
+      - 'scripts/simulation/**'
+      - 'tests/**'
+      - 'project.godot'
+      - '.github/workflows/combat-initiative-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: combat-initiative-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-capture:
+    name: Godot tests and initiative screenshot
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2 (standard)
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+
+      - name: Verify engine version
+        run: godot --version
+
+      - name: Import project resources
+        run: godot --headless --editor --path . --quit
+
+      - name: Run hex-grid tests
+        run: godot --headless --path . --script res://tests/test_hex_grid.gd
+
+      - name: Run simulation tests
+        run: godot --headless --path . --script res://tests/test_simulation.gd
+
+      - name: Install virtual display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Capture initiative timeline
+        run: |
+          mkdir -p artifacts
+          xvfb-run -a godot --path . --rendering-method gl_compatibility --script res://tests/capture_initiative_timeline.gd
+
+      - name: Upload test report and screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-initiative-preview
+          path: |
+            artifacts/initiative-timeline.png
+          if-no-files-found: warn
+          retention-days: 14

@@ -8,7 +8,9 @@ const COMBAT_TURN_READY_TP: float = 100.0
 const TURN_END_TP: int = 80
 const MIN_TURN_END_TP: int = 60
 const MAX_QUICK_RECOVERY_RANK: int = 20
-const DEFAULT_MAX_TP: float = 150.0
+const DEFAULT_MAX_TP: float = 120.0
+## Source regeneration gate: no further TP is gained once current TP reaches 150.
+## This is not a hard cap; a tick may carry a character past it.
 
 static func can_start_combat_turn(
     time_points: float,
@@ -38,7 +40,7 @@ static func regenerate(
     time_points: float,
     rate_per_tick: float = 1.0,
     tick_multiplier: float = 1.0,
-    maximum: float = DEFAULT_MAX_TP
+    maximum: float = 150.0
 ) -> float:
     if rate_per_tick <= 0.0 or tick_multiplier <= 0.0 or maximum <= 0.0:
         return time_points

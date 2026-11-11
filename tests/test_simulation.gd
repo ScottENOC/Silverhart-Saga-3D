@@ -1,5 +1,7 @@
 extends SceneTree
 
+const INITIATIVE_MODEL = preload("res://scripts/ui/combat_initiative_model.gd")
+
 var _failures: int = 0
 
 func _initialize() -> void:
@@ -22,6 +24,7 @@ func _initialize() -> void:
     _test_world_clock()
     _test_wilderness_resources_and_chunk_streaming()
     _test_combat_turn_scheduler()
+    _test_initiative_timeline_model()
     _test_combat_resolution()
     _test_downed_and_death_lifecycle()
     _test_unified_action_contract()
@@ -191,7 +194,8 @@ func _test_hollowmere_encounter() -> void:
     _check(simulation.get_character("dray_coltayne").side == "enemy")
     _check(not simulation.get_character("dray_coltayne").combat_dormant)
     _check(simulation.get_character("dray_coltayne").health == 130)
-    _check(simulation.get_character("dray_coltayne").time_points == simulation.get_character("dray_coltayne").max_time_points)
+    _check(is_equal_approx(simulation.get_character("dray_coltayne").time_points, 100.0), "Encounter combatants should begin at 100 TP")
+    _check(is_equal_approx(garrick.time_points, 100.0), "Authored allies should begin at 100 TP")
     _check(garrick.side == "player" and mira.side == "player" and oskar.side == "player", "Garrick, Mira and Oskar should join the player side")
     _check(not garrick.combat_dormant and not mira.combat_dormant and not oskar.combat_dormant, "Tavern allies should receive AI combat turns")
     _check(bystander.combat_dormant and bystander.side == "neutral", "Other tavern bystanders must not enter combat initiative")
@@ -203,7 +207,7 @@ func _test_hollowmere_encounter() -> void:
     simulation.turn_scheduler.current_character_id = "garrick_holt"
     var ally_attack := simulation.try_attack_character("garrick_holt", "hask_greel", {"time_point_cost": 10.0, "weapon_id": "club"}, 9128)
     _check(bool(ally_attack.get("ok", false)), "Garrick should use the same simulation attack resolver as the player")
-    _check(garrick.time_points == 140.0)
+    _check(garrick.time_points == 90.0, "Garrick starts at 100 TP and spends 10 TP on his attack")
     _check(simulation.try_end_current_turn(true))
     _check(garrick.time_points == 80.0, "AI allies should forfeit unused TP after their single action")
     _check(not HollowmereEncounter.enemies_defeated(simulation))
@@ -720,6 +724,83 @@ func _test_combat_turn_scheduler() -> void:
     _check(forced_actor.time_points == 80.0, "Voluntary turn end should forfeit unused TP to avoid immediate reselection")
     loaded.free()
     sim.free()
+
+    # Test late entry independently so the new combatant cannot perturb the
+    # scheduler's existing initiative-order assertions above.
+    var join_sim := WorldSimulation.new()
+    var existing := CharacterState.new("existing", "Existing", Vector2i.ZERO)
+    existing.side = "player"
+    existing.time_points = 50.0
+    join_sim.register_character(existing)
+    join_sim.start_combat()
+    var late_joiner := CharacterState.new("late_joiner", "Late Joiner", Vector2i(1, 0))
+    late_joiner.side = "player"
+    late_joiner.time_points = 12.0
+    join_sim.register_character(late_joiner)
+    _check(is_equal_approx(late_joiner.time_points, 100.0), "A character joining an active combat should receive 100 TP")
+    _check(join_sim.advance_world_seconds(0.1) == 0)
+    _check(join_sim.get_current_turn_character() == late_joiner, "A late entrant at 100 TP should be immediately eligible to act")
+    join_sim.free()
+
+func _test_initiative_timeline_model() -> void:
+    var fresh := CharacterState.new("fresh", "Fresh Adventurer", Vector2i(-5, 0))
+    _check(is_equal_approx(fresh.time_points, 100.0), "New characters should begin with 100 TP")
+
+    var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+    player.side = "player"
+    player.time_points = 80.0
+    var enemy := CharacterState.new("enemy_guard", "Guard", Vector2i(1, 0))
+    enemy.side = "enemy"
+    enemy.time_points = 120.0
+    enemy.health = 64
+    enemy.max_health = 120
+    enemy.current_mana = 17
+    enemy.max_mana = 40
+    var downed := CharacterState.new("downed_ally", "Downed Ally", Vector2i(0, 1))
+    downed.side = "player"
+    downed.time_points = 110.0
+    downed.unconscious = true
+    var dormant := CharacterState.new("tavern_guest", "Tavern Guest", Vector2i(1, 1))
+    dormant.side = "player"
+    dormant.combat_dormant = true
+    dormant.time_points = 150.0
+    var rider := CharacterState.new("horse", "Horse", Vector2i(2, 0))
+    rider.side = "player"
+    rider.is_rider = true
+    rider.time_points = 149.0
+    var neutral := CharacterState.new("villager", "Villager", Vector2i(2, 1))
+    neutral.side = "neutral"
+    neutral.time_points = 148.0
+
+    var characters := {
+        "player": player,
+        "enemy_guard": enemy,
+        "downed_ally": downed,
+        "tavern_guest": dormant,
+        "horse": rider,
+        "villager": neutral
+    }
+    var entries: Array[Dictionary] = INITIATIVE_MODEL.build_entries(characters, "player")
+    _check(entries.size() == 3, "Initiative should include active player/enemy combatants but exclude dormant NPCs, riders and neutral bystanders")
+    _check(String(entries[0]["id"]) == "enemy_guard", "Timeline should sort highest TP first")
+    _check(String(entries[1]["id"]) == "downed_ally", "Living unconscious combatants remain visible in the timeline")
+    _check(bool(entries[1]["is_unconscious"]) and not bool(entries[1]["can_start_turn"]), "Downed combatants should be visible but not eligible to act")
+    _check(String(entries[2]["id"]) == "player" and bool(entries[2]["is_active"]), "Current actor should be marked independently of its TP rank")
+    _check(int(entries[0]["health"]) == enemy.health and int(entries[0]["max_health"]) == enemy.max_health, "Initiative entries should expose current and maximum health")
+    _check(int(entries[0]["mana"]) == enemy.current_mana and int(entries[0]["max_mana"]) == enemy.max_mana, "Initiative entries should expose current and maximum mana")
+    _check(is_equal_approx(ActionEconomy.DEFAULT_MAX_TP, 120.0), "Source entity baseline maxTimePoints is 120, not 150")
+    _check(is_equal_approx(ActionEconomy.regenerate(149.0, 1.0, 1.0), 150.0), "TP regeneration should reach the source 150 gate")
+    _check(is_equal_approx(ActionEconomy.regenerate(149.5, 1.0, 1.0), 150.5), "The 150 TP regeneration gate should permit a one-tick overshoot")
+    _check(is_equal_approx(ActionEconomy.regenerate(150.0, 1.0, 1.0), 150.0), "TP regeneration should pause once current TP reaches 150")
+
+    var tied_a := CharacterState.new("ally_a", "Ally A")
+    var tied_b := CharacterState.new("ally_b", "Ally B")
+    tied_a.side = "player"
+    tied_b.side = "player"
+    tied_a.time_points = 100.0
+    tied_b.time_points = 100.0
+    var tied := INITIATIVE_MODEL.build_entries({"ally_b": tied_b, "ally_a": tied_a})
+    _check(String(tied[0]["id"]) == "ally_a" and String(tied[1]["id"]) == "ally_b", "Equal TP display order should be stable by ID")
 
 func _test_combat_resolution() -> void:
     var attacker := CharacterState.new("hero", "Hero")

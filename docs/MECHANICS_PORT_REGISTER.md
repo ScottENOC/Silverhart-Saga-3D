@@ -32,6 +32,27 @@ The old project is a substantial game, not just a hex movement prototype: its so
 | Save/load | Character/world-clock dictionary serialisation only | Versioned whole-world persistence and round-trip tests |
 | Other gameplay systems | Not yet represented in the simulation layer | See backlog below |
 
+
+## Combat Time Point initiative and timeline HUD
+
+The first 3D initiative presentation slice is implemented on `feature/combat-initiative-timeline`.
+
+- `ActionEconomy` and `CombatTurnScheduler` remain authoritative. The HUD never selects turns, spends TP or changes recovery.
+- `CombatInitiativeModel` produces a presentation-only roster sorted by current TP (highest first), with stable ID ordering for equal values. The scheduler's actual tie resolution remains its own seeded/random selection.
+- The roster includes living player- and enemy-side combatants, including downed characters for status visibility. Downed characters cannot act. It excludes dead characters, riders, combat-dormant background NPCs and neutral bystanders.
+- `CombatInitiativeTimeline` is attached to the Hollow Tankard HUD. It appears only during combat, marks the active actor, shows health, mana (when applicable), and TP as a plain number, and opens that character's details when selected.
+- The original `entities.js` sets `initialTimePoints = 0` and a separate `maxTimePoints = 120` (commented `Allow going over 100`). The intended 3D campaign rule is that newly created characters begin at 100 TP, authored combatants entering an encounter begin at 100 TP, and characters registered into an already-active combat are set to 100 TP. Existing combatants retain their current TP when combat starts. The 100 TP combat-readiness threshold and 80 TP normal turn-end threshold remain separate rules. The original engine also has an independent 150 TP regeneration gate; it is not a hard cap. The HUD displays TP as a plain number, not as a fraction or progress bar.
+- Initiative cards now reserve a face portrait viewport. They display a name-initial fallback until the 3D presentation layer supplies `CharacterState.portrait_texture`; the model and UI already accept that texture. Actual face capture/rendering is still future work, including creature portrait fallbacks.
+- The timeline refreshes from simulation state and does not sort or reshuffle the peaceful-exploration roster. It is hidden outside combat.
+
+### Remaining initiative work
+
+1. Port and test the remaining source action costs and recovery modifiers against the original browser engine.
+2. Add actual 3D portrait capture using the existing Ara character/equipment presentation, with a fallback for creatures and unloaded NPCs.
+3. Connect all combat entry points and future encounters to the same HUD, rather than only the Hollow Tankard opening encounter.
+4. Add save/load coverage for an active combat encounter and define how an active turn is resumed safely after loading.
+5. Reconcile any remaining source distinctions between the entity's `initiative`, `timePoints`, and `timePointsPerTick`; do not silently collapse them into one statistic.
+
 ## Current next porting slice
 
 The first attack resolver is a foundation, not a complete combat port. The next work should be ordered to avoid layering more mechanics on an incomplete state model:
