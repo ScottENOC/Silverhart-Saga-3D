@@ -181,6 +181,11 @@ func _build_screen() -> void:
         class_select.add_item(String(RULES.class_definition(class_id).get("label", class_id)))
         class_select.set_item_metadata(class_select.item_count - 1, class_id)
     _select_metadata(race_select, "human")
+    var race_note := Label.new()
+    race_note.text = "Race changes your starting attribute pools and available racial skill trees. All races currently share the existing character models; appearance is chosen separately."
+    race_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    race_note.add_theme_color_override("font_color", Color(0.78, 0.82, 0.76))
+    panel.add_child(race_note)
     _select_metadata(class_select, "fighter")
     _select_metadata(difficulty_select, "normal")
     race_select.item_selected.connect(_refresh_character_preview)
