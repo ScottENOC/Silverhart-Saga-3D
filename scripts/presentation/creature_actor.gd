@@ -98,5 +98,18 @@ func _play_matching(hints: PackedStringArray) -> bool:
                 return true
     return false
 
+## Creates the matching gameplay state for this rendered animal. The
+## returned state is independent of the imported model and can be registered
+## with WorldSimulation like any other combatant.
+func create_simulation_state(
+    creature_id: String,
+    display_name: String = "",
+    start_hex: Vector2i = Vector2i.ZERO,
+    individual_seed: int = 0
+) -> CharacterState:
+    return AnimalCatalog.create_state(
+        creature_kind, creature_id, display_name, start_hex, individual_seed
+    )
+
 func available_animations() -> PackedStringArray:
     return animation_names.duplicate()
