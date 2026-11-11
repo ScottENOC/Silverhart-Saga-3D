@@ -474,7 +474,8 @@ def main():
           "--male-test-final",male_test_out,
           "--output",gender_report])
     cached("validate-gender-anatomy",[gender_report],
-      [RAW/"ara_person_body.glb",male_raw,female_out,male_out,gender_validator],
+      [RAW/"ara_person_body.glb",male_raw,female_out,male_out,
+       female_test_raw,male_test_raw,female_test_out,male_test_out,gender_validator],
       "gender-anatomy-diagnostics-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
       validate_gender_variants)
 
