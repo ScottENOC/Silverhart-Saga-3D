@@ -1006,7 +1006,7 @@ func _interact_with_character(character_id: String) -> void:
     if character_id == FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
         var dire_wolf_quest := simulation.campaign_journal.quest_state("reyna_dire_wolf_hunt")
         if String(dire_wolf_quest.get("status", "")) != "active":
-            _show_dialogue("Grain-raiding dire wolf", "The dire wolf is tearing at the grain store. Speak to Reyna before engaging it.", [{"id":"continue","label":"Understood","text":""}])
+            _show_dialogue("Grain-raiding dire wolf", "The dire wolf is threatening Old Mac's livestock pens. Speak to Reyna before engaging it.", [{"id":"continue","label":"Understood","text":""}])
             return
         _begin_dire_wolf_hunt_combat()
         return
@@ -1709,7 +1709,7 @@ func _check_encounter_resolution() -> void:
             if is_instance_valid(dire_wolf_actor):
                 dire_wolf_actor.queue_free()
             actor_by_id.erase(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
-            _show_speech_bubble("companion_reyna_fletcher", "That's the last of it. Old Mac can sleep easier now.")
+            _show_speech_bubble("companion_reyna_fletcher", "That's the last of it. Old Mac's young stock should be safe now.")
             _show_companion_dialogue("companion_reyna_fletcher")
         return
     if active_combat_kind == "farm_wolves":
