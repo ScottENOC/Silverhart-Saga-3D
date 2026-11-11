@@ -1,8 +1,15 @@
 extends SceneTree
 
 const MAIN_CAMPAIGN_MAP = preload("res://scripts/world/main_campaign_world_map_data.gd")
+const COSMO_TREE_ROOT := "res://art/environment/trees/cosmo_generated/"
+const COSMO_TREE_VARIANTS := {
+    "ash": 4, "bush": 4, "cherry": 4, "laurel": 4, "low_poly_bush": 4,
+    "low_poly_tree": 6, "pine": 4, "spruce": 4, "tree_fern": 4,
+    "willow": 4, "winter_oak": 6
+}
 
 func _initialize() -> void:
+    _test_cosmo_tree_collection()
     _test_village_bounds_and_terrain()
     _test_road_network_connectivity()
     _test_building_thresholds()
@@ -116,3 +123,14 @@ func _test_main_campaign_world_map() -> void:
     assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[0] == Vector2i(1, 5))
     assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[14] == Vector2i(15, 4))
     assert(MAIN_CAMPAIGN_MAP.world_cell_from_local_hex(Vector2i(8, 24)) == Vector2i(6, 6), "The local crossroads must map to Hollowmere's world cell")
+
+func _test_cosmo_tree_collection() -> void:
+    var loaded_count := 0
+    for family in COSMO_TREE_VARIANTS:
+        for variant in range(1, int(COSMO_TREE_VARIANTS[family]) + 1):
+            var path := COSMO_TREE_ROOT + "%s_%02d.glb" % [family, variant]
+            assert(ResourceLoader.exists(path), "Missing Cosmo vegetation asset: %s" % path)
+            var scene := load(path)
+            assert(scene is PackedScene, "Cosmo vegetation asset did not import as a PackedScene: %s" % path)
+            loaded_count += 1
+    assert(loaded_count == 48, "Expected all 48 distinct Cosmo vegetation models")
