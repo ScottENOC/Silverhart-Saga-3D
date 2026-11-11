@@ -46,8 +46,9 @@ func save_snapshot(slot_id: String, snapshot: Dictionary, label: String = "Manua
         return {"ok": false, "reason": "open_failed", "error": FileAccess.get_open_error()}
     file.store_var(envelope, false)
     file.flush()
+    var write_error := file.get_error()
     file.close()
-    if FileAccess.get_open_error() != OK:
+    if write_error != OK:
         DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary))
         return {"ok": false, "reason": "write_failed"}
     var absolute_target := ProjectSettings.globalize_path(target)
