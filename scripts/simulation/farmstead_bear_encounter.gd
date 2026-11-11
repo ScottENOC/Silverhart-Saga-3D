@@ -53,7 +53,7 @@ static func start(simulation: WorldSimulation, party_ids: Array[String]) -> Dict
     bear.unconscious = false
     bear.side = "enemy"
     bear.combat_dormant = false
-    bear.time_points = bear.max_time_points
+    bear.time_points = 100.0
     simulation.start_combat()
     return {"ok": true, "party_ids": valid_party, "enemy_ids": [BEAR_ID]}
 
