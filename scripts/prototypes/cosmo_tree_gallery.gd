@@ -240,8 +240,8 @@ func _create_camera() -> void:
 	_camera = Camera3D.new()
 	_camera.name = "Orbit Camera"
 	_camera.fov = 58.0
-	_camera.current = true
 	add_child(_camera)
+	_camera.current = true
 
 
 func _update_camera() -> void:
