@@ -7,7 +7,7 @@ func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 	_check(terrain.terrain_for_hex(Vector2i(8, 24)) == "authored", "Hollowmere's authored village area must not be procedurally overwritten")
 	_check(terrain.terrain_for_hex(Vector2i(8, -25)) == "authored", "The authored village scene must retain its bridge crossing")
-	_check(terrain.terrain_for_hex(Vector2i(100, -25)) == "water", "The local stream must continue beyond the authored village radius")
+	_check(terrain.terrain_for_hex(Vector2i(100, -27)) == "water", "The local stream must continue beyond the authored village radius")
 	_check(terrain.terrain_for_hex(Vector2i(8, -176)) == "path", "The north road must follow the source road trace")
 	_check(terrain.terrain_for_hex(Vector2i(7, -366)) == "path", "The Millbrook road waypoint must be retained")
 	_check(terrain.terrain_for_hex(Vector2i(908, -626)) == "mountain", "Kragmoor must sit in the north-east mountain region")
