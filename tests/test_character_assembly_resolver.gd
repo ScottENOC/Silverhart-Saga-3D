@@ -43,6 +43,7 @@ func _run() -> void:
     assert(resolved_wren.get("profile_id", "") == "wren_talbot")
     assert(resolved_wren.get("game_id", "") == "companion_wren_talbot")
     assert(resolved_wren.get("body_variant", "") == "female")
+    assert(resolved_wren.get("body_profile", "") == "female_broad")
     assert(resolved_wren.get("hair_style_id", "") == "braid01")
     assert(resolved_wren.get("hair_tint", "") == "#252b62")
     assert(resolved_wren.get("equipped_ids", {}).get("shirt", "") == "fatigue_shirt")
@@ -62,6 +63,7 @@ func _run() -> void:
     var player := RESOLVER.resolve_player({
         "name": "Test Adventurer",
         "body_variant": "male",
+        "body_build": "Broad",
         "height": 0.55,
         "muscle": 0.8,
         "weight": 0.4,
@@ -72,6 +74,7 @@ func _run() -> void:
     })
     assert(player.get("is_player", false))
     assert(player.get("body_variant", "") == "male")
+    assert(player.get("body_profile", "") == "male_broad")
     assert(player.get("hair_style_id", "") == "short03")
     assert(player.get("appearance", {}).get("eyes", "") == "green")
     assert(player.get("appearance", {}).get("hairTint", "") == "#354d91")
