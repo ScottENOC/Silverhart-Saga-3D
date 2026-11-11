@@ -9,7 +9,7 @@ This is the first authored location in Silverhart Saga 3D. It replaces the tempo
 - Rectangular internal hall: 16m × 11m.
 - Approximate exterior footprint: 16.7m × 11.7m.
 - Wall thickness: 0.35m.
-- Eaves: 3.2m; ridge: 5.8m (provisional).
+- Ground-floor eaves: 3.2m; upper-storey eaves: 6.6m; roof ridge: 9.03m (provisional).
 - Pitched roof ridge runs along the long axis.
 - Centred south entrance: 1.6m wide × 2.4m high.
 - Bar on the north wall; fireplace on the west wall.
