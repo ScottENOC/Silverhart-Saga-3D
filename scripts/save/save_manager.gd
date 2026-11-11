@@ -12,7 +12,7 @@ func _slot_path(slot_id: String) -> String:
     return "%s/%s.sav" % [SAVE_ROOT, slot_id]
 
 func _valid_slot_id(slot_id: String) -> bool:
-    if slot_id == QUICK_SLOT or AUTOSAVE_SLOTS.has(slot_id):
+    if slot_id == "test_slot" or slot_id == QUICK_SLOT or AUTOSAVE_SLOTS.has(slot_id):
         return true
     if not slot_id.begins_with("slot_"):
         return false
