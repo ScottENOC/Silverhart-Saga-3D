@@ -14,6 +14,8 @@ var settlements: Array = []
 func _init(source_layouts: Array = []) -> void:
 	settlements = source_layouts.duplicate(true)
 
+## Each building and NPC is attached only to the chunk containing its source anchor.
+## When a chunk unloads, its settlement presentation unloads with it.
 func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: int) -> void:
 	for settlement in settlements:
 		for building in settlement.get("buildings", []):
