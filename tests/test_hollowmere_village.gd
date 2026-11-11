@@ -85,7 +85,7 @@ func _test_hollowmere_character_manifest() -> void:
     var manifest: Variant = JSON.parse_string(file.get_as_text())
     assert(manifest is Dictionary, "Hollowmere character manifest must be valid JSON")
     var characters: Array = manifest.get("characters", [])
-    assert(characters.size() == 21, "Expected 13 village profiles plus eight canonical campaign companions")
+    assert(characters.size() == 22, "Expected 13 village NPCs, one player avatar and eight canonical campaign companions")
     var ids: Dictionary = {}
     for profile in characters:
         assert(profile.has("id") and profile.has("game_id") and profile.has("params"))
