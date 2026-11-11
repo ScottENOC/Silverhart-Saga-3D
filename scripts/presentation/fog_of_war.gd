@@ -93,9 +93,9 @@ func _build_fog_mesh() -> void:
 			for i in range(HexGrid.SIDE_COUNT):
 				var next_i := (i + 1) % HexGrid.SIDE_COUNT
 				surface.set_normal(Vector3.UP)
-				surface.add_vertex(centre)
-				surface.add_vertex(centre + Vector3(corners[i].x, 0.0, corners[i].y))
-				surface.add_vertex(centre + Vector3(corners[next_i].x, 0.0, corners[next_i].y))
+				surface.add_vertex(Vector3.ZERO)
+				surface.add_vertex(Vector3(corners[i].x, 0.0, corners[i].y))
+				surface.add_vertex(Vector3(corners[next_i].x, 0.0, corners[next_i].y))
 			hex_to_instance[hex] = hexes.size()
 			hexes.append(hex)
 
@@ -200,7 +200,7 @@ func _set_fog_state(hex: Vector2i, state: int, _changed_count: int) -> void:
 	if not hex_to_instance.has(hex):
 		return
 	var index := int(hex_to_instance[hex])
-	var current := int(round(fog_multimesh.get_instance_custom_data(index).r * 2.0))
+	var current := int(round(fog_multimesh.get_instance_custom_data(index).r))
 	if current == state:
 		return
 	fog_multimesh.set_instance_custom_data(index, Color(float(state), 0.0, 0.0, 1.0))
