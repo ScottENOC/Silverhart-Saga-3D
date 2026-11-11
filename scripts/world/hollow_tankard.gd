@@ -21,7 +21,7 @@ const UPPER_FLOOR_ORIGIN := Vector2i(100, 100)
 const UPPER_FLOOR_Y := 3.38
 const TAVERN_STAIR_GROUND_HEX := Vector2i(3, 0)
 const TAVERN_STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + Vector2i(3, -1)
-const UPPER_BED_HEXES: Array[Vector2i] = [
+const UPPER_BED_HEXES = [
     Vector2i(-3, 0), Vector2i(-3, 2),
     Vector2i(2, -2), Vector2i(3, -2),
     Vector2i(2, 0), Vector2i(3, 0),
