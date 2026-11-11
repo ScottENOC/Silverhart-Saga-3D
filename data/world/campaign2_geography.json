@@ -1,0 +1,439 @@
+{
+  "schema_version": 1,
+  "campaign_id": 2,
+  "campaign_name": "Main Campaign — Hollowmere",
+  "coordinate_system": {
+    "strategic_grid": "16x16 odd-q offset hex grid from worldMap.js",
+    "local_grid": "Campaign 2 axial hex coordinates from campaign2World.js",
+    "local_hexes_per_strategic_cell": 130,
+    "origin": {
+      "local_q": 8,
+      "local_r": 24,
+      "column": 6,
+      "row": 6
+    },
+    "placement_rule": "Map positions are derived from source local axial coordinates using the original 130:1 conversion. Small 3D offsets are permitted for legibility; no exact generated road wiggles are required."
+  },
+  "geography": {
+    "ocean_columns": [
+      0,
+      1
+    ],
+    "human_lands": {
+      "columns": [
+        2,
+        9
+      ],
+      "rows": [
+        0,
+        15
+      ]
+    },
+    "orc_lands": {
+      "columns": [
+        10,
+        15
+      ],
+      "rows": [
+        0,
+        15
+      ]
+    },
+    "dwarven_mountains": {
+      "columns": [
+        12,
+        15
+      ],
+      "rows": [
+        0,
+        4
+      ]
+    },
+    "elven_forest": {
+      "columns": [
+        2,
+        9
+      ],
+      "rows": [
+        12,
+        15
+      ]
+    },
+    "river_path": [
+      [
+        1,
+        5
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        6,
+        5
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        8,
+        5
+      ],
+      [
+        9,
+        5
+      ],
+      [
+        10,
+        5
+      ],
+      [
+        11,
+        6
+      ],
+      [
+        12,
+        6
+      ],
+      [
+        13,
+        5
+      ],
+      [
+        14,
+        5
+      ],
+      [
+        15,
+        4
+      ]
+    ],
+    "notes": [
+      "The west coast, human centre, orc-held east, north-east Deepholds and southern Sylvan forest follow Campaign 2 worldMap.js.",
+      "The river path is the original 16x16 strategic-map path.",
+      "Faction ownership and terrain are distinct; the north-east dwarf/orc border trades cells as in the source."
+    ]
+  },
+  "locations": [
+    {
+      "id": "hollowmere",
+      "name": "Hollowmere",
+      "kind": "starting_village",
+      "region": "human",
+      "q": 8,
+      "r": 24,
+      "visibility": "settlement",
+      "source": "campaign2Landmarks.crossroads; fixed at strategic cell [6][6]"
+    },
+    {
+      "id": "millbrook",
+      "name": "Millbrook",
+      "kind": "village",
+      "region": "human",
+      "q": 7,
+      "r": -366,
+      "visibility": "settlement",
+      "source": "north road step 390; buildMillbrook"
+    },
+    {
+      "id": "silverhart",
+      "name": "Silverhart",
+      "kind": "capital",
+      "region": "human",
+      "q": 8,
+      "r": -496,
+      "visibility": "settlement",
+      "source": "north road end; palace marker is placed at the capital centre"
+    },
+    {
+      "id": "emberlode",
+      "name": "Emberlode",
+      "kind": "village_mine",
+      "region": "human",
+      "q": -256,
+      "r": 22,
+      "visibility": "settlement",
+      "source": "west road end minus four q; buildEmberlode"
+    },
+    {
+      "id": "reddale",
+      "name": "Reddale",
+      "kind": "town",
+      "region": "human",
+      "q": 138,
+      "r": 24,
+      "visibility": "settlement",
+      "source": "east road end; buildReddale"
+    },
+    {
+      "id": "old_mac_farmstead",
+      "name": "Old Mac's Farmstead",
+      "kind": "farmstead",
+      "region": "human",
+      "q": 0,
+      "r": 194,
+      "visibility": "settlement",
+      "source": "farm road end minus six q; buildFarmstead"
+    },
+    {
+      "id": "skarn_tooth_camp",
+      "name": "Skarn-tooth Camp",
+      "kind": "goblin_camp",
+      "region": "contested_human",
+      "q": 203,
+      "r": 23,
+      "visibility": "outpost",
+      "source": "border road step 195; buildGoblinCamp"
+    },
+    {
+      "id": "northwatch_fort",
+      "name": "Northwatch Fort",
+      "kind": "fort",
+      "region": "human_border",
+      "q": 268,
+      "r": -21,
+      "visibility": "fort",
+      "source": "border road step 260, then 43 r north; buildNorthwatchFort"
+    },
+    {
+      "id": "ridgehold_fort",
+      "name": "Ridgehold Fort",
+      "kind": "fort",
+      "region": "human_border",
+      "q": 426,
+      "r": 43,
+      "visibility": "fort",
+      "source": "border road end plus (28,20); buildRidgeholdFort"
+    },
+    {
+      "id": "skarnaks_hold",
+      "name": "Skarnak's Hold",
+      "kind": "orc_stronghold",
+      "region": "orc",
+      "q": 428,
+      "r": 17,
+      "visibility": "stronghold",
+      "source": "border road end plus (30,-6); buildOrcStronghold"
+    },
+    {
+      "id": "kragmoor",
+      "name": "Kragmoor",
+      "kind": "dwarven_capital",
+      "region": "dwarf",
+      "q": 908,
+      "r": -626,
+      "visibility": "capital",
+      "source": "fixed Deepholds anchor at crossroads plus (900,-650)"
+    },
+    {
+      "id": "silthandriel",
+      "name": "Sil'thandriel",
+      "kind": "elven_capital",
+      "region": "elf",
+      "q": -252,
+      "r": 934,
+      "visibility": "capital",
+      "source": "fixed Sylvan Court anchor at crossroads plus (-260,910)"
+    },
+    {
+      "id": "hollowmere_guild_den",
+      "name": "Hollowmere Guild Den",
+      "kind": "guild",
+      "region": "human",
+      "q": -12,
+      "r": -8,
+      "visibility": "local",
+      "source": "buildHollowmereGuildDen"
+    },
+    {
+      "id": "abandoned_house",
+      "name": "Abandoned House",
+      "kind": "haunted_house",
+      "region": "human",
+      "q": 14,
+      "r": -176,
+      "visibility": "quest_site",
+      "source": "north road step 200 plus six q"
+    },
+    {
+      "id": "vessel_seekers_crypt",
+      "name": "Vessel-Seeker's Crypt",
+      "kind": "dungeon",
+      "region": "human",
+      "q": 32,
+      "r": -154,
+      "visibility": "quest_site",
+      "source": "abandoned house centre plus (18,22)"
+    },
+    {
+      "id": "corvin_ashgrave_barrow",
+      "name": "Barrow of Corvin Ashgrave",
+      "kind": "dungeon",
+      "region": "human",
+      "q": 63,
+      "r": -160,
+      "visibility": "quest_site",
+      "source": "crypt ritual chamber plus (14,-6)"
+    },
+    {
+      "id": "ashveil_lair",
+      "name": "Ashveil's Dragon Lair",
+      "kind": "dragon_lair",
+      "region": "human_north",
+      "q": 107,
+      "r": -366,
+      "visibility": "quest_site",
+      "source": "Millbrook centre plus 100 q"
+    },
+    {
+      "id": "lich_chapterhouse",
+      "name": "Lich Chapterhouse",
+      "kind": "chapterhouse",
+      "region": "human_north",
+      "q": -33,
+      "r": -346,
+      "visibility": "quest_site",
+      "source": "Millbrook centre plus (-40,20)"
+    },
+    {
+      "id": "emberwood_grove",
+      "name": "Emberwood Grove",
+      "kind": "druid_grove",
+      "region": "human_west",
+      "q": -266,
+      "r": 10,
+      "visibility": "exploration_site",
+      "source": "west road end plus (-14,-12)"
+    },
+    {
+      "id": "vampire_grave",
+      "name": "Vampire Grave",
+      "kind": "grave",
+      "region": "human_west",
+      "q": -256,
+      "r": 28,
+      "visibility": "exploration_site",
+      "source": "west road end plus (-4,6)"
+    },
+    {
+      "id": "thieves_cove",
+      "name": "Thieves' Cove Caves",
+      "kind": "cave_network",
+      "region": "western_coast",
+      "q": -274,
+      "r": 40,
+      "visibility": "exploration_site",
+      "source": "west road end plus (-22,18)"
+    }
+  ],
+  "connections": [
+    {
+      "from": "hollowmere",
+      "to": "millbrook",
+      "kind": "road"
+    },
+    {
+      "from": "millbrook",
+      "to": "silverhart",
+      "kind": "road"
+    },
+    {
+      "from": "hollowmere",
+      "to": "reddale",
+      "kind": "road"
+    },
+    {
+      "from": "hollowmere",
+      "to": "emberlode",
+      "kind": "road"
+    },
+    {
+      "from": "hollowmere",
+      "to": "old_mac_farmstead",
+      "kind": "road"
+    },
+    {
+      "from": "reddale",
+      "to": "skarn_tooth_camp",
+      "kind": "border_road"
+    },
+    {
+      "from": "skarn_tooth_camp",
+      "to": "northwatch_fort",
+      "kind": "border_road"
+    },
+    {
+      "from": "northwatch_fort",
+      "to": "ridgehold_fort",
+      "kind": "border_road"
+    },
+    {
+      "from": "ridgehold_fort",
+      "to": "skarnaks_hold",
+      "kind": "border_road"
+    },
+    {
+      "from": "hollowmere",
+      "to": "kragmoor",
+      "kind": "long_road"
+    },
+    {
+      "from": "hollowmere",
+      "to": "silthandriel",
+      "kind": "long_road"
+    },
+    {
+      "from": "hollowmere",
+      "to": "hollowmere_guild_den",
+      "kind": "local_path"
+    },
+    {
+      "from": "abandoned_house",
+      "to": "vessel_seekers_crypt",
+      "kind": "trail"
+    },
+    {
+      "from": "vessel_seekers_crypt",
+      "to": "corvin_ashgrave_barrow",
+      "kind": "trail"
+    },
+    {
+      "from": "millbrook",
+      "to": "ashveil_lair",
+      "kind": "trail"
+    },
+    {
+      "from": "millbrook",
+      "to": "lich_chapterhouse",
+      "kind": "trail"
+    },
+    {
+      "from": "emberlode",
+      "to": "emberwood_grove",
+      "kind": "trail"
+    },
+    {
+      "from": "emberlode",
+      "to": "vampire_grave",
+      "kind": "trail"
+    },
+    {
+      "from": "emberlode",
+      "to": "thieves_cove",
+      "kind": "trail"
+    }
+  ]
+}
