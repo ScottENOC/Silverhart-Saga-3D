@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ITEM_CATALOG_PATH = ROOT / "data" / "items" / "item_definitions.json"
+BODY_PROFILE_PATH = ROOT / "data" / "characters" / "body_profiles.json"
 # Modest average male body-shape defaults. These are ordinary Ara detail
 # sliders, not hard-coded mesh deformation. A character's own modifiers override
 # individual values, so male NPCs still retain distinct physiques.
@@ -29,6 +30,14 @@ APPEARANCE_GEAR_FIELDS = {
 }
 
 
+def load_body_profile_catalog(path: Path = BODY_PROFILE_PATH) -> dict:
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    profiles = data.get("body_profiles")
+    if not isinstance(profiles, list):
+        raise ValueError(f"Invalid canonical body profile catalogue: {path}")
+    return {str(profile.get("id", "")): profile for profile in profiles}
+
+
 def load_item_catalog(path: Path = ITEM_CATALOG_PATH) -> dict:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     items = data.get("items")
@@ -44,6 +53,7 @@ def validate_character_definitions(manifest: dict, items: dict) -> None:
     if not isinstance(characters, list) or not characters:
         raise ValueError("Character manifest has no characters")
     seen_ids, seen_game_ids = set(), set()
+    body_profiles = load_body_profile_catalog()
     for character in characters:
         character_id = str(character.get("id", ""))
         game_id = str(character.get("game_id", ""))
@@ -90,8 +100,15 @@ def validate_character_definitions(manifest: dict, items: dict) -> None:
 
 def ara_export_params(character: dict, items: dict, *, include_equipped: bool = True,
                       name: str | None = None, detail: str | None = None) -> dict:
-    """Derive the Ara export payload from one canonical character definition."""
-    params = dict(character.get("appearance", {}))
+    """Derive an Ara instance from one canonical base plus character-level morph/appearance overrides."""
+    body_profile_id = str(character.get("body_profile", ""))
+    body_profiles = load_body_profile_catalog()
+    if body_profile_id not in body_profiles:
+        raise ValueError(f"{character.get('id', '<unknown>')}: unknown canonical body profile {body_profile_id!r}")
+    params = dict(body_profiles[body_profile_id].get("base_parameters", {}))
+    # Character appearance values are per-character morph/appearance overrides
+    # applied on top of the selected archetype; they do not define new base assets.
+    params.update(character.get("appearance", {}))
     if float(params.get("gender", 0.0)) >= 0.5:
         modifiers = dict(DEFAULT_MALE_BODY_MODIFIERS)
         modifiers.update(params.get("modifiers", {}))
