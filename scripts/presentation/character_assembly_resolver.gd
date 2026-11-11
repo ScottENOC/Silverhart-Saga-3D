@@ -5,6 +5,8 @@ extends RefCounted
 ## creator's saved profile is adapted into the same resolved shape.
 
 const ITEM_CATALOG = preload("res://scripts/simulation/item_catalog.gd")
+const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_body.glb"
+const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 
 static func resolve_npc(definition: Dictionary) -> Dictionary:
     var appearance_value: Variant = definition.get("appearance", {})
@@ -16,7 +18,7 @@ static func resolve_npc(definition: Dictionary) -> Dictionary:
 
     var appearance: Dictionary = appearance_value.duplicate(true)
     var gender := float(appearance.get("gender", 0.0))
-    return {
+    var resolved := {
         "profile_id": String(definition.get("id", "")),
         "game_id": String(definition.get("game_id", definition.get("id", ""))),
         "display_name": String(definition.get("name", definition.get("id", "Unknown"))),
@@ -30,6 +32,8 @@ static func resolve_npc(definition: Dictionary) -> Dictionary:
         "equipped_ids": equipped_value.duplicate(true),
         "is_player": false
     }
+    resolved.merge(_resolve_body_asset(resolved), true)
+    return resolved
 
 
 static func resolve_player(profile: Dictionary) -> Dictionary:
@@ -53,7 +57,7 @@ static func resolve_player(profile: Dictionary) -> Dictionary:
         "caucasian": 1.0,
         "garmentStyles": {}
     }
-    return {
+    var resolved := {
         "profile_id": "player",
         "game_id": "player",
         "display_name": String(profile.get("name", "Adventurer")),
@@ -66,6 +70,27 @@ static func resolve_player(profile: Dictionary) -> Dictionary:
         "inventory_ids": [],
         "equipped_ids": {},
         "is_player": true
+    }
+    resolved.merge(_resolve_body_asset(resolved), true)
+    return resolved
+
+
+static func _resolve_body_asset(resolved: Dictionary) -> Dictionary:
+    var body_variant := String(resolved.get("body_variant", "female"))
+    if not bool(resolved.get("is_player", false)):
+        var profile_id := String(resolved.get("profile_id", ""))
+        var profile_body_path := "res://art/characters/ara_runtime/bodies/%s.glb" % profile_id
+        if not profile_id.is_empty() and ResourceLoader.exists(profile_body_path):
+            return {"body_asset_path": profile_body_path, "legacy_visual_fallback": false}
+        for legacy_id in [profile_id, String(resolved.get("game_id", ""))]:
+            if legacy_id.is_empty():
+                continue
+            var legacy_path := "res://art/characters/hollowmere/%s.glb" % legacy_id
+            if ResourceLoader.exists(legacy_path):
+                return {"body_asset_path": legacy_path, "legacy_visual_fallback": true}
+    return {
+        "body_asset_path": PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET,
+        "legacy_visual_fallback": false
     }
 
 
