@@ -1,0 +1,65 @@
+name: Riding system CI and horse preview
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - 'scripts/simulation/**'
+      - 'scripts/presentation/creature_actor.gd'
+      - 'scripts/presentation/ara_character_actor.gd'
+      - 'scripts/world/hollow_tankard.gd'
+      - 'tests/test_simulation.gd'
+      - 'tests/capture_riding_preview.gd'
+      - 'project.godot'
+      - '.github/workflows/riding-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: riding-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  riding-tests-and-preview:
+    name: Riding tests and rider-on-horse images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@v4
+
+      - name: Install Godot 4.7.2 (standard)
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+
+      - name: Verify engine version
+        run: godot --version
+
+      - name: Import project resources
+        run: godot --headless --editor --path . --quit
+
+      - name: Run simulation tests
+        run: godot --headless --path . --script res://tests/test_simulation.gd
+
+      - name: Install virtual display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
+      - name: Render rider-on-horse previews
+        run: |
+          mkdir -p artifacts
+          xvfb-run -a godot --path . --rendering-method gl_compatibility --script res://tests/capture_riding_preview.gd
+
+      - name: Upload rider-on-horse screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: riding-on-horse-preview
+          path: artifacts/riding-preview-*.png
+          if-no-files-found: warn
+          retention-days: 14
