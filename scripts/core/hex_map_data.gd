@@ -27,6 +27,12 @@ func add_cell(hex: Vector2i, elevation: float = 0.0, walkable: bool = true, terr
         "movement_multiplier": resolved_multiplier,
     }
 
+func set_walkable(hex: Vector2i, walkable: bool) -> bool:
+    if not cells.has(hex):
+        return false
+    cells[hex]["walkable"] = walkable
+    return true
+
 func has_cell(hex: Vector2i) -> bool:
     return cells.has(hex)
 
