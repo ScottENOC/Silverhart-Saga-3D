@@ -20,7 +20,7 @@ const TAVERN_DOOR_HEX := Vector2i(0, 3)
 const UPPER_FLOOR_ORIGIN := Vector2i(100, 100)
 const UPPER_FLOOR_Y := 3.38
 const TAVERN_STAIR_GROUND_HEX := Vector2i(3, 0)
-const TAVERN_STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + TAVERN_STAIR_GROUND_HEX
+const TAVERN_STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + Vector2i(3, -1)
 
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
@@ -171,6 +171,7 @@ func _create_simulation() -> void:
         "name": "The Hollow Tankard",
         "entrance_hex": TAVERN_DOOR_HEX,
         "floor_count": 2,
+        "virtual_floor_bounds": [95, 105, 97, 103],
         "source_location": "campaign2World.js: Hollow Tankard",
     })
     simulation.building_registry.register_door(TAVERN_FRONT_DOOR_ID, TAVERN_BUILDING_ID, TAVERN_DOOR_HEX, true, false, 20)
@@ -436,8 +437,8 @@ func _create_upper_floor_rooms(parent: Node3D) -> void:
     # rooms reached from the central landing. Six beds provide modest lodging.
     _add_box(parent, "WestPartitionNorth", Vector3(0.0, 4.85, -3.15), Vector3(0.22, 2.9, 4.7), timber_material)
     _add_box(parent, "WestPartitionSouth", Vector3(0.0, 4.85, 3.15), Vector3(0.22, 2.9, 4.7), timber_material)
-    _add_box(parent, "EastPartitionNorth", Vector3(3.8, 4.85, 0.0), Vector3(7.6, 2.9, 0.22), timber_material)
-    _add_box(parent, "EastPartitionSouth", Vector3(7.0, 4.85, 0.0), Vector3(2.0, 2.9, 0.22), timber_material)
+    _add_box(parent, "EastPartitionNorth", Vector3(2.95, 4.85, 0.0), Vector3(2.9, 2.9, 0.22), timber_material)
+    _add_box(parent, "EastPartitionSouth", Vector3(7.4, 4.85, 0.0), Vector3(1.2, 2.9, 0.22), timber_material)
 
     _add_room_label(parent, "GARRICK'S ROOM", Vector3(-4.0, 6.35, -4.0))
     _add_room_label(parent, "GUEST ROOM", Vector3(3.8, 6.35, -4.0))
@@ -549,6 +550,8 @@ func _create_characters() -> void:
         if actor_id.is_empty() or model_id.is_empty():
             continue
         _spawn_character(actor_id, display_name, spawn, Color(0.42, 0.34, 0.25), false, model_id, profile)
+
+    _refresh_tavern_floor_presentation()
 
 
 func _load_starting_loadouts() -> Dictionary:
@@ -1763,7 +1766,6 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
         _refresh_tavern_floor_presentation()
 
 func _is_upper_floor_hex(hex: Vector2i) -> bool:
-    var local_hex := hex - UPPER_FLOOR_ORIGIN
     return hex.x >= UPPER_FLOOR_ORIGIN.x - 5 and hex.x <= UPPER_FLOOR_ORIGIN.x + 5 and hex.y >= UPPER_FLOOR_ORIGIN.y - 3 and hex.y <= UPPER_FLOOR_ORIGIN.y + 3 and simulation.map_data.has_cell(hex)
 
 func _refresh_tavern_floor_presentation() -> void:
