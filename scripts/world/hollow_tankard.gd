@@ -117,6 +117,8 @@ func _ready() -> void:
     if not pending_save_data.is_empty():
         _apply_save_data(pending_save_data)
         pending_save_data.clear()
+        if not shakedown_started:
+            _run_opening_sequence()
     else:
         SaveManager.save_autosave(_build_save_snapshot())
         _run_opening_sequence()
@@ -925,8 +927,8 @@ func _on_game_menu_selected(item_id: int) -> void:
             _quick_load()
 
 func _open_save_menu() -> void:
-    if simulation.is_in_combat or not simulation.pending_reaction.is_empty():
-        _show_save_notice("Save unavailable during an unresolved combat turn or reaction.")
+    if simulation.is_in_combat or not simulation.pending_reaction.is_empty() or dialogue_open or (shakedown_started and not shakedown_resolved):
+        _show_save_notice("Save unavailable during combat, dialogue or the opening confrontation.")
         return
     save_load_menu.open_for_save(_build_save_snapshot())
 
@@ -934,8 +936,8 @@ func _open_load_menu() -> void:
     save_load_menu.open_for_load()
 
 func _quick_save() -> void:
-    if simulation.is_in_combat or not simulation.pending_reaction.is_empty():
-        _show_save_notice("Quick save unavailable during an unresolved combat turn or reaction.")
+    if simulation.is_in_combat or not simulation.pending_reaction.is_empty() or dialogue_open or (shakedown_started and not shakedown_resolved):
+        _show_save_notice("Quick save unavailable during combat, dialogue or the opening confrontation.")
         return
     var result := SaveManager.save_quick(_build_save_snapshot())
     _show_save_notice("Quick save complete." if bool(result.get("ok", false)) else "Quick save failed: %s" % String(result.get("reason", "unknown error")))
@@ -2114,7 +2116,7 @@ func _switch_party_member() -> void:
         character_panel.set_character(active_character_id)
 
 func _process(delta: float) -> void:
-    if not simulation.is_in_combat and simulation.pending_reaction.is_empty() and not dialogue_open:
+    if not simulation.is_in_combat and simulation.pending_reaction.is_empty() and not dialogue_open and not (shakedown_started and not shakedown_resolved):
         autosave_accumulator += delta
         if autosave_accumulator >= 300.0:
             autosave_accumulator = 0.0
