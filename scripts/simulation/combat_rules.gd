@@ -175,6 +175,7 @@ static func resolve_attack(
             final_damage = roundi(final_damage * 1.1)
 
     var lifecycle := target.apply_damage(final_damage)
+    var status_effects := StatusEffectRules.apply_on_hit(attacker, target, resolved_options, final_damage, rng)
     return {
         "ok": true, "hit": true, "roll": roll,
         "hit_chance": chance, "raw_damage": raw,
@@ -182,5 +183,6 @@ static func resolve_attack(
         "target_defeated": not target.alive,
         "target_unconscious": target.unconscious,
         "target_lifecycle": lifecycle,
-        "target_health": target.health
+        "target_health": target.health,
+        "status_effects": status_effects
     }
