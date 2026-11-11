@@ -468,6 +468,10 @@ def main():
           "--male-raw",male_raw,
           "--female-final",female_out,
           "--male-final",male_out,
+          "--female-test-raw",female_test_raw,
+          "--male-test-raw",male_test_raw,
+          "--female-test-final",female_test_out,
+          "--male-test-final",male_test_out,
           "--output",gender_report])
     cached("validate-gender-anatomy",[gender_report],
       [RAW/"ara_person_body.glb",male_raw,female_out,male_out,gender_validator],
@@ -495,6 +499,20 @@ def main():
     review_character("male-body",male_out,"male")
     review_character("gender-test-female",female_test_out,"gender_test_female")
     review_character("gender-test-male",male_test_out,"gender_test_male")
+    # Dedicated pelvis close-ups use temporary blue material highlighting.
+    # These review-only renders are never copied into the runtime package.
+    anatomy_review=ROOT/"tools/blender/review_anatomy_closeup.py"
+    for label,model in [("female_max_breast",female_test_out),("male_min_breast_broad",male_test_out)]:
+        review_dir=review_root/"anatomy"/label
+        review_outputs=[review_dir/f"{label}_{view}_blue.png" for view in ["front","three_quarter"]]+[review_dir/f"{label}_anatomy_review.json"]
+        def anatomy_review_action(label=label,model=model,review_dir=review_dir):
+            review_dir.mkdir(parents=True,exist_ok=True)
+            run([blender,"--background","--python-exit-code","1","--python",anatomy_review,
+              "--","--input",model,"--output-dir",review_dir,"--label",label],env=review_env)
+        cached("review-anatomy-"+label,review_outputs,[model,anatomy_review],
+          "blue-pelvis-closeup-review-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+          anatomy_review_action)
+
     outfit_script=ROOT/"tools/review/render_modular_outfits.py"
     for outfit in ["dress","lace_bra","fishnet_bra","lace_briefs","fishnet_briefs","lace_shirt","fishnet_shirt","lace_pants","fishnet_pants"]:
         outputs=[review_root/"outfits"/outfit/f"{view}.png" for view in ["front","side","rear"]]+[review_root/"outfits"/outfit/"report.json"]
