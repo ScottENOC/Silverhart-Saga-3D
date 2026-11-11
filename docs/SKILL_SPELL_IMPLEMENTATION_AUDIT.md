@@ -1,7 +1,7 @@
 # Skill and Spell Implementation Audit
 
 **Baseline branch:** `dev`  
-**Baseline commit:** `bd270192da5c2ffd4317580175b76be53e46394e`  
+**Baseline commit:** `899931e6c37f70193c197870821bb1e0933f7589`  
 **Audit branch:** `audit/skill-spell-implementation-baseline`  
 **Scope:** source inspection of the skill catalogue, progression, movement, combat and current simulation tests. This is an initial evidence-based baseline, not a claim that every possible call site has been exhaustively searched.
 
@@ -20,8 +20,71 @@
 |---|---|
 | VERIFIED — automated effect test | Test exercises the actual gameplay effect, not merely selection or rank storage. |
 | IMPLEMENTATION FOUND — effect test still required | A runtime code path reads/applies the skill, but a focused effect test is missing. |
+| FEATURE BRANCH CANDIDATE — not on dev | A relevant implementation exists on a named feature branch, but is not present on `dev`; do not count it as working in the current game. |
 | UNVERIFIED | No effect test or confirmed runtime hook established in this pass. Do not assume it works. |
 | NPC/CREATURE | Intended primarily for NPC/monster use; still requires behaviour validation. |
+
+
+## Feature-branch cross-reference (reviewed 2026-11-11)
+
+This section records relevant work found outside `dev`. Branch presence is evidence
+of an implementation candidate only. It does **not** change the current-game status
+until the work is integrated into `dev` and its effect is covered by a deterministic
+test. Branches below are compared with the current `dev` head
+(`899931e6c37f70193c197870821bb1e0933f7589`).
+
+| Branch | Relationship to dev | Skill/effect relevance | Audit treatment |
+|---|---:|---|---|
+| [`feature/vision-stealth-perception`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/vision-stealth-perception) | 23 ahead / 29 behind | Adds `VisionRules`, `FogOfWar`, and a fog test. Candidate skills: `elf_vision`, `goblin_keen_senses`, `deep_sense`, `elf_darkvision`, `goblin_low_light_eyes`, `keen_perception`, plus two stealth skills with ID mismatches. | Not on dev; candidate only. The branch is substantially behind and must be reconciled, not merged wholesale. |
+| [`feature/skill-magic-foundation`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/skill-magic-foundation) | 70 ahead / 31 behind | Historical source for the skill/spell catalogues, progression and NPC spending foundations. Its own port plan still lists spell builder/casting and remaining effect families as future work. | The catalogues and progression foundations are now on dev. This branch is not evidence that spell effects work. |
+| [`feature/movement-reactions`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/movement-reactions) | 8 ahead / 116 behind | Contains movement/reaction work around Protector, Shield Other, Shield Proficiency, Sidestep, Sidestep Mastery, Spear Halt and Spear Intercept. | The relevant IDs and effect tests are already present on dev; this stale branch is not additional current coverage. |
+| [`feature/combat-reaction-triggers`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/combat-reaction-triggers) | 8 ahead / 121 behind | Earlier combat-reaction trigger work; no additional canonical skill ID references were found in its reviewed simulation file. | Not counted as a separate skill implementation. |
+| [`feature/equipment-gameplay-stat-integration`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/equipment-gameplay-stat-integration) | 5 ahead / 30 behind | Covers combat-stat integration for foliage expertise, Dwarven Axe Mastery, Goblin Opportunist, Orc Brute Strength/Ferocity and Spectral Form. | These skill reads are already present in dev's CombatRules. Several still need focused tests; branch presence does not upgrade their status. |
+
+### Vision branch: what it actually contains
+
+The branch adds:
+
+- `scripts/simulation/vision_rules.gd`: base vision range 25 hexes, separate
+  exploration range 30, range modifiers, low-light handling, axial-hex line of
+  sight, wall/blocker and elevation occlusion, plus separate numeric helpers for
+  perception and stealth.
+- `scripts/presentation/fog_of_war.gd`: persistent explored/visible hex state,
+  fog mesh rendering, and actor/resource visibility updates.
+- `tests/test_fog_of_war.gd`: checks initial visibility/exploration, fog mesh
+  coverage/culling bounds, and visibility/exploration changes after moving.
+
+Important limits found on inspection:
+
+1. The fog test does **not** directly test VisionRules range modifiers, line of
+   sight, elevation blockers, low-light behaviour or perception/stealth bonuses.
+   It exercises the fog presentation and movement state only. There is no
+   dedicated `test_vision_rules.gd` on that branch.
+2. The branch's `VisionRules.stealth_check_bonus()` reads
+   `inconspicuous` and `shadow_weaver`, but the canonical catalogue IDs on dev
+   are `stealth_agility` (display name Inconspicuous) and `stealth_rogue`
+   (display name Shadow Weaver). Those two bonuses therefore will not read the
+   canonical purchased ranks until the IDs are corrected.
+3. `stealth_detection_bonus()` and `stealth_check_bonus()` are helper
+   calculations, not a complete stealth system. The branch's own port notes
+   defer suspicion, hearing, stealth movement, enemy search/pursuit, party-shared
+   sightings, disguise and AI target selection.
+4. The vision branch has no dedicated PR associated with its current branch name
+   in the repository search. Treat it as independent work requiring review and
+   reconciliation with current dev, not as a ready-to-merge feature.
+
+### Current-dev source scan notes
+
+A broader scan of the current `scripts/` and `tests/` tree found 74 relevant
+GDScript/JSON files and 257 canonical skill IDs. The scan separates references
+in gameplay rules from references used only by catalogue/progression/NPC build
+logic. In particular, the fact that `npc_skill_spending.gd` knows a skill ID
+does not mean that skill's gameplay effect is implemented.
+
+The current `dev` tree has no `VisionRules`, `FogOfWar` or dedicated vision
+test file. Thus all vision/stealth skills remain unavailable as working gameplay
+effects on dev, despite the candidate work above.
+
 
 ## Skill inventory
 
@@ -31,12 +94,12 @@
 |---|---|---|
 | `acrobatics` | Acrobatics | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `fastMovement` | Fast Movement | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `keen_perception` | Keen Perception | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `keen_perception` | Keen Perception | FEATURE BRANCH CANDIDATE — detection helper exists off `dev`; no integration/effect test |
 | `riding` | Riding | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `sidestep` | Sidestep | VERIFIED — automated effect test |
 | `sidestep_mastery` | Sidestep Mastery | IMPLEMENTATION FOUND — effect test still required |
 | `slip_away` | Slip Away | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `stealth_agility` | Inconspicuous | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `stealth_agility` | Inconspicuous | FEATURE BRANCH CANDIDATE — branch helper uses the wrong skill ID (`inconspicuous`) |
 | `sure_footed` | Sure-Footed | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `timePointRate` | Time Point Rate | UNVERIFIED — no effect test or confirmed runtime hook yet |
 
@@ -46,10 +109,10 @@
 |---|---|---|
 | `ageless_patience` | Ageless Patience | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `elf_bow_range` | Elf Bow Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `elf_darkvision` | Elf Darkvision | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `elf_darkvision` | Elf Darkvision | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
 | `elf_foliage_expertise` | Woodland Stride | IMPLEMENTATION FOUND — effect test still required |
 | `elf_knowledge_nature` | Knowledge: Nature | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `elf_vision` | Keen Elf Sight | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `elf_vision` | Keen Elf Sight | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
 | `elven_grace` | Elven Grace | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `keen_hearing` | Keen Hearing | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `whisper_step` | Whisper Step | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -184,7 +247,7 @@
 | `quickRecovery` | Quick Recovery | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `sneak_attack_dmg` | Sneak Attack | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `speedy_stealth` | Speedy Stealth | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `stealth_rogue` | Shadow Weaver | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `stealth_rogue` | Shadow Weaver | FEATURE BRANCH CANDIDATE — branch helper uses the wrong skill ID (`shadow_weaver`) |
 | `subtle_spell` | Subtle Spell | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `trap_setting` | Trap Setting | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `vanish` | Vanish | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -250,7 +313,7 @@
 | Skill ID | Skill | Current evidence status |
 |---|---|---|
 | `battle_endurance` | Battle Endurance | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `deep_sense` | Deep Sense | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `deep_sense` | Deep Sense | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
 | `dwarf_axe_mastery` | Dwarven Axe Mastery | IMPLEMENTATION FOUND — effect test still required |
 | `dwarf_solid` | Solid as a Rock | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `grudge` | Grudge | UNVERIFIED — no effect test or confirmed runtime hook yet |
@@ -346,8 +409,8 @@
 
 | Skill ID | Skill | Current evidence status |
 |---|---|---|
-| `goblin_keen_senses` | Keen Senses | UNVERIFIED — no effect test or confirmed runtime hook yet |
-| `goblin_low_light_eyes` | Low-Light Eyes | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `goblin_keen_senses` | Keen Senses | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
+| `goblin_low_light_eyes` | Low-Light Eyes | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
 | `goblin_opportunist` | Opportunist | IMPLEMENTATION FOUND — effect test still required |
 | `goblin_pack_hunter` | Pack Hunter | UNVERIFIED — no effect test or confirmed runtime hook yet |
 | `goblin_quick_reflexes` | Quick Reflexes | UNVERIFIED — no effect test or confirmed runtime hook yet |
