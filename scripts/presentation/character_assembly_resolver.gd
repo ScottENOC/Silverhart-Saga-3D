@@ -23,6 +23,7 @@ static func resolve_npc(definition: Dictionary) -> Dictionary:
         "game_id": String(definition.get("game_id", definition.get("id", ""))),
         "display_name": String(definition.get("name", definition.get("id", "Unknown"))),
         "body_variant": "male" if gender >= 0.5 else "female",
+        "body_profile": String(definition.get("body_profile", ("male_" if gender >= 0.5 else "female_") + "average")),
         "appearance": appearance,
         "player_profile": {},
         "hair_style_id": String(appearance.get("hair", "none")),
