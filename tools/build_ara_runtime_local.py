@@ -225,7 +225,12 @@ def main():
         run([npm,"run","setup-assets"],cwd=GEN)
     elif ara_target_assets_need_rebuild():
         log("Ara target pack or slider catalog is empty; rebuilding public/assets with the Windows path fix.")
-        run([npm,"run","build-assets"],cwd=GEN)
+        if not (GEN/"vendor"/"mh"/"makehuman"/"data").is_dir() or not (GEN/"vendor"/"sys").is_dir():
+            run([npm,"run","setup-assets"],cwd=GEN)
+        else:
+            run([npm,"run","build-assets"],cwd=GEN)
+    if ara_target_assets_need_rebuild():
+        fail("Ara asset rebuild completed, but targets.pack or catalog sliders are still empty.")
     patch=ROOT/"tools/ara/patch_layering.py"
     patch_stamp=CACHE/"stamps"/"layering-patch.sha256"
     patch_hash=digest([patch],PIN)
