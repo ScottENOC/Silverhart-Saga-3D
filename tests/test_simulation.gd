@@ -31,6 +31,7 @@ func _initialize() -> void:
     _test_downed_and_death_lifecycle()
     _test_unified_action_contract()
     _test_attack_waits_for_parry_resolution()
+    _test_feint_uses_parry_reaction_without_attacking()
     _test_protector_ally_parry()
     _test_shield_other_reduces_one_attack()
     _test_spear_halt_commits_one_step_then_stops()
@@ -1158,6 +1159,38 @@ func _test_attack_waits_for_parry_resolution() -> void:
     _check(is_equal_approx(defender.time_points, 12.0), "The defender pays 3 TP to parry and 5 TP to riposte")
     _check(is_equal_approx(attacker.time_points, 25.0), "A successful parry still consumes the attack action's TP cost")
     sim.free()
+
+func _test_feint_uses_parry_reaction_without_attacking() -> void:
+    var sim := WorldSimulation.new()
+    sim.map_data.add_cell(Vector2i.ZERO)
+    sim.map_data.add_cell(Vector2i(1, 0))
+    var attacker := CharacterState.new("feinter", "Feinter", Vector2i.ZERO)
+    var defender := CharacterState.new("feint_defender", "Feint Defender", Vector2i(1, 0))
+    attacker.side = "player"
+    attacker.time_points = 10.0
+    attacker.equipment["weapon"] = "sword"
+    attacker.skills["sword_feint"] = 1
+    defender.side = "enemy"
+    defender.time_points = 20.0
+    defender.to_hit_melee = 100.0
+    defender.equipment["weapon"] = "sword"
+    defender.skills["sword_parry"] = 1
+    sim.register_character(attacker)
+    sim.register_character(defender)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = "feinter"
+
+    var pending := sim.submit_action(SimulationActionRequest.feint("feinter", "feint_defender"), 123)
+    _check(bool(pending.get("pending", false)), "A valid sword feint should request the defender's parry reaction")
+    _check(is_equal_approx(attacker.time_points, 9.0), "Feint should cost one TP before the reaction")
+    var resolved := sim.resolve_reaction("parry")
+    _check(bool(resolved.get("ok", false)))
+    _check(defender.parries_remaining == 2, "A feint should consume a parry when the defender takes the bait")
+    _check(is_equal_approx(defender.time_points, 17.0), "Defender pays the normal parry cost against a feint")
+    _check(attacker.health == 100 and defender.health == 100, "Feint itself should not deal attack damage")
+    _check(is_equal_approx(attacker.time_points, 9.0), "Feint should not also charge a normal attack")
+    sim.free()
+
 
 func _test_protector_ally_parry() -> void:
     var sim := WorldSimulation.new()
