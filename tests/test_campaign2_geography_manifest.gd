@@ -9,12 +9,15 @@ func _initialize() -> void:
 	assert(int(parsed.get("coordinate_system", {}).get("local_hexes_per_strategic_cell", 0)) == 130)
 
 	var locations: Array = parsed.get("locations", [])
+	assert(locations.size() == 24, "The current first-pass geography inventory should contain 24 destinations")
 	var ids: Dictionary = {}
 	var location_by_id: Dictionary = {}
 	for location in locations:
 		assert(location is Dictionary, "Every location must be an object")
 		var id := String(location.get("id", ""))
 		assert(not id.is_empty(), "Every location needs a stable id")
+		assert(not String(location.get("name", "")).is_empty(), "Every location needs a display name: " + id)
+		assert(not String(location.get("region", "")).is_empty(), "Every location needs a region: " + id)
 		assert(not ids.has(id), "Location ids must be unique: " + id)
 		ids[id] = true
 		location_by_id[id] = location
@@ -26,7 +29,8 @@ func _initialize() -> void:
 
 	for required_id in [
 		"hollowmere", "millbrook", "silverhart", "emberlode", "reddale",
-		"old_mac_farmstead", "skarn_tooth_camp", "northwatch_fort",
+		"old_mac_farmstead", "hollowmere_guild_den", "abandoned_house",
+		"skarn_tooth_camp", "northwatch_fort",
 		"ridgehold_fort", "skarnaks_hold", "kragmoor", "silthandriel",
 		"vessel_seekers_crypt", "corvin_ashgrave_barrow", "ashveil_lair",
 		"lich_chapterhouse", "emberwood_grove", "vampire_grave", "thieves_cove",
@@ -39,7 +43,7 @@ func _initialize() -> void:
 	assert(int(location_by_id["lich_chapterhouse"]["q"]) == -39, "Chapterhouse must be offset west of Millbrook centre")
 
 	var connections: Array = parsed.get("connections", [])
-	assert(not connections.is_empty(), "World travel connections must be present")
+	assert(connections.size() == 22, "The current first-pass travel graph should contain 22 connections")
 	for connection in connections:
 		assert(ids.has(String(connection.get("from", ""))), "Connection has unknown origin")
 		assert(ids.has(String(connection.get("to", ""))), "Connection has unknown destination")
