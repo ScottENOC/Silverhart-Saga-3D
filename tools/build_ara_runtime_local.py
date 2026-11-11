@@ -374,6 +374,22 @@ def main():
     def male_action():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_out,"--adult","--profile-name","standard"])
     cached("male-anatomy",[male_out],[male_raw,ROOT/"tools/blender/add_male_anatomy.py"],"male-anatomy-v2:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_action)
+    # Read-only audit: run the exact production deformation functions on raw exports,
+    # measure vertex movement in memory, then verify the meshes survive GLB round-trip.
+    anatomy_pipeline_audit=ARA/"ara_person_anatomy_pipeline_audit.json"
+    anatomy_audit_script=ROOT/"tools/blender/audit_anatomy_pipeline.py"
+    def audit_anatomy_pipeline():
+        run([blender,"--background","--python-exit-code","1","--python",anatomy_audit_script,"--",
+          "--female-raw",female_raw,"--male-raw",male_raw,
+          "--work-dir",RAW/"anatomy_pipeline_audit",
+          "--female-script",ROOT/"tools/blender/add_adult_anatomy.py",
+          "--male-script",ROOT/"tools/blender/add_male_anatomy.py",
+          "--output",anatomy_pipeline_audit])
+    cached("audit-anatomy-pipeline",[anatomy_pipeline_audit],
+      [female_raw,male_raw,anatomy_audit_script,
+       ROOT/"tools/blender/add_adult_anatomy.py",ROOT/"tools/blender/add_male_anatomy.py"],
+      "exact-deformation-and-glb-roundtrip-audit-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+      audit_anatomy_pipeline)
     # Modular GLB assembly, then dress slit and garment fitting.
     modular=RAW/"ara_person_modular_assembled.glb"; underwear=RAW/"ara_person_modular_underwear_assembled.glb"
     benchmark=ARA/"ara_person_benchmark.glb"; body_final=female_out
