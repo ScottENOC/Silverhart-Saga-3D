@@ -120,7 +120,7 @@ func _test_hollowmere_encounter() -> void:
     simulation.turn_scheduler.current_character_id = "garrick_holt"
     var ally_attack := simulation.try_attack_character("garrick_holt", "hask_greel", {"time_point_cost": 10.0, "weapon_id": "club"}, 9128)
     _check(bool(ally_attack.get("ok", false)), "Garrick should use the same simulation attack resolver as the player")
-    _check(garrick.time_points == 140.0)
+    _check(garrick.time_points == 90.0, "Garrick starts at 100 TP and spends 10 TP on his attack")
     _check(simulation.try_end_current_turn(true))
     _check(garrick.time_points == 80.0, "AI allies should forfeit unused TP after their single action")
     _check(not HollowmereEncounter.enemies_defeated(simulation))
