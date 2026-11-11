@@ -119,6 +119,15 @@ func _on_character_created(profile: Dictionary) -> void:
     tavern.set("player_profile", profile.duplicate(true))
     add_child(tavern)
 
+    # The exterior village is built first for presentation, while the tavern
+    # owns the single campaign simulation. Register those existing animal
+    # actors into that same simulation once both scenes are ready.
+    var campaign_simulation := tavern.get("simulation") as WorldSimulation
+    if campaign_simulation != null and village.has_method("register_animals_with_simulation"):
+        var animal_registration: Dictionary = village.call("register_animals_with_simulation", campaign_simulation)
+        if not bool(animal_registration.get("ok", false)):
+            push_warning("Some Hollowmere animals were not registered: %s" % animal_registration.get("skipped", []))
+
     _set_loading_stage(
         "Loading villagers and character models…",
         "Setting up NPCs, equipment, the player appearance and the opening scene.",
