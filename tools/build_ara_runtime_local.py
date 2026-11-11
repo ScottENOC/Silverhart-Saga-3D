@@ -399,7 +399,7 @@ def main():
                 "pigmentation": "skin-relative vertex colour; stronger inner/central contrast"
             },
             "male": {
-                "asset": male_final.name,
+                "assets": [male_erect.name, male_flaccid.name],
                 "anatomy_states": ["erect", "flaccid"],
                 "shared_mesh": True,
                 "dedicated_bones": ["AnatomyRoot", "AnatomyMid", "AnatomyTip"],
@@ -489,7 +489,7 @@ def main():
     male_out=ARA/"ara_person_male_body.glb"; male_raw=RAW/"ara_person_male_raw.glb"
     def male_action():
         run([blender,"--background","--python-exit-code","1","--python",ROOT/"tools/blender/add_male_anatomy.py","--","--input",male_raw,"--output",male_out,"--adult","--profile-name","standard","--anatomy-state","flaccid"])
-    cached("male-anatomy-flaccid",[male_out],[male_raw,ROOT/"tools/blender/add_male_anatomy.py"],"male-anatomy-flaccid-v1:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_action)
+    cached("male-anatomy-flaccid",[male_out],[male_raw,ROOT/"tools/blender/add_male_anatomy.py"],"male-anatomy-shared-rig-v2:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],male_action)
 
     # Preserve the previous protruding design as a separate optional reference;
     # it is never used by the default male body or garment-fitting pipeline.
@@ -630,7 +630,7 @@ def main():
     review_character("wren-body",wren_out,"wren_body")
     review_character("wren-dressed",wren_dressed_out,"wren_dressed")
     review_character("male-body-flaccid",male_out,"male_flaccid")
-    review_character("male-body-erect-reference",male_erect_reference,"male_erect_reference")
+    review_character("male-body-erect",male_erect_reference,"male_erect_reference")
     review_character("gender-test-female",female_test_out,"gender_test_female")
     review_character("gender-test-male",male_test_out,"gender_test_male")
     # Dedicated pelvis close-ups use temporary blue material highlighting.
