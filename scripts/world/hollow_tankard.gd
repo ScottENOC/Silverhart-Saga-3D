@@ -1157,6 +1157,8 @@ func _recruit_staged_companion(character_id: String) -> void:
         COMPANION_CAMPAIGN_SCRIPT.consume_item(player_state.inventory, "herbs", 3)
         COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "fenn_herb_gathering", "herbs_delivered")
     state.side = "player"
+    state.combat_dormant = false
+    state.time_points = 100.0
     if not party_member_ids.has(character_id):
         party_member_ids.append(character_id)
     var actor := actor_by_id.get(character_id) as Node3D
@@ -1620,8 +1622,11 @@ func _start_farm_wolf_encounter() -> void:
 
 	active_combat_kind = "farm_wolves"
 	active_enemy_ids = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
-	active_party_ids = FARM_WOLVES_QUEST_SCRIPT.PARTY_IDS.duplicate()
-	active_combat_controlled_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.duplicate()
+	active_party_ids.clear()
+	active_combat_controlled_ids.clear()
+	for party_id in simulation.party_member_ids:
+		active_party_ids.append(String(party_id))
+		active_combat_controlled_ids.append(String(party_id))
 	for value in simulation.characters.values():
 		var state: CharacterState = value
 		state.combat_dormant = true
