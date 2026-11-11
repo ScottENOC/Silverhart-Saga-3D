@@ -17,7 +17,8 @@ static func create_bear(simulation: WorldSimulation, hex: Vector2i) -> Dictionar
     bear.base_damage = 8
     bear.to_hit_melee = 7.0
     bear.skills = {"claw_hit": 2, "claw_dmg": 2, "health": 4}
-    bear.tags = ["animal", "bear"]
+    bear.tags.append("animal")
+    bear.tags.append("bear")
     bear.side = "enemy"
     bear.combat_dormant = true
     bear.time_points = 100.0
