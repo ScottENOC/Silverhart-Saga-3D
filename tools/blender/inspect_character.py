@@ -68,14 +68,22 @@ def show_vertex_colours_for_review(meshes):
             if shader is None:
                 continue
             base = shader.inputs.get("Base Color")
-            if base is None or any(link.to_socket == base for link in links):
+            if base is None:
                 continue
+            existing = next((link.from_socket for link in links if link.to_socket == base), None)
+            base_value = tuple(base.default_value)
+            for link in list(links):
+                if link.to_socket == base:
+                    links.remove(link)
             vertex = nodes.new("ShaderNodeVertexColor")
             vertex.layer_name = "Color"
             multiply = nodes.new("ShaderNodeMixRGB")
             multiply.blend_type = "MULTIPLY"
             multiply.inputs[0].default_value = 1.0
-            multiply.inputs[1].default_value = tuple(base.default_value)
+            if existing is not None:
+                links.new(existing, multiply.inputs[1])
+            else:
+                multiply.inputs[1].default_value = base_value
             links.new(vertex.outputs["Color"], multiply.inputs[2])
             links.new(multiply.outputs["Color"], base)
             print(f"Review material {material.name}: displaying vertex colour layer Color")
