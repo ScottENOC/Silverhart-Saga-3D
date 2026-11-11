@@ -267,6 +267,30 @@ def add_anatomy_bones(armature, pelvis_bone, base_world, axis_world, length):
     armature["male_anatomy_rig"] = "AnatomyRoot>AnatomyMid>AnatomyTip"
 
 
+def key_anatomy_pose_transition(armature, state):
+    """Author an erect-to-resting transition on the dedicated anatomy chain."""
+    import math
+    armature.animation_data_create()
+    action = bpy.data.actions.new("MaleAnatomy_ErectToFlaccid")
+    armature.animation_data.action = action
+    bones = [armature.pose.bones.get(name) for name in
+             ("AnatomyRoot", "AnatomyMid", "AnatomyTip")]
+    if any(bone is None for bone in bones):
+        raise RuntimeError("Dedicated male anatomy bones missing before animation")
+    for frame, root_angle, mid_angle, tip_angle in (
+        (1, 0.0, 0.0, 0.0),
+        (24, math.radians(55.0), math.radians(5.0), math.radians(3.0)),
+    ):
+        bpy.context.scene.frame_set(frame)
+        for bone, angle in zip(bones, (root_angle, mid_angle, tip_angle)):
+            bone.rotation_mode = "XYZ"
+            bone.rotation_euler.x = angle
+            bone.keyframe_insert(data_path="rotation_euler", frame=frame, group=bone.name)
+    bpy.context.scene.frame_set(24 if state == "flaccid" else 1)
+    armature["male_anatomy_animation"] = "MaleAnatomy_ErectToFlaccid"
+    armature["male_anatomy_pose"] = state
+
+
 def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
                                   body_height, anatomy_z, anchor_y, anatomy_state):
     """Reuse Ara's own middle-finger surface as the phallus modelling template.
@@ -621,6 +645,7 @@ def main():
     )
     anatomy["profile_name"] = args.profile_name
     anatomy["anatomy_state"] = args.anatomy_state
+    key_anatomy_pose_transition(armature, args.anatomy_state)
     # Join into the original Ara body mesh so the exported GLB retains one
     # full-rig skin rather than a separate pelvis-only skeleton palette.
     skin = merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone)
