@@ -425,6 +425,7 @@ func _test_farmstead_bear_encounter() -> void:
     _check(is_equal_approx(player.time_points, 100.0) and is_equal_approx(wren.time_points, 100.0), "The bear encounter should begin with party members at 100 TP")
     var bear := simulation.get_character(FarmsteadBearEncounter.BEAR_ID)
     _check(bear != null and bear.side == "enemy" and not bear.combat_dormant, "The bear should be an active enemy combatant")
+    _check(is_equal_approx(bear.time_points, 100.0), "The bear should also start at 100 TP")
     bear.apply_damage(1000)
     _check(FarmsteadBearEncounter.bear_defeated(simulation), "Defeating the bear should resolve the encounter target")
     simulation.end_combat()
