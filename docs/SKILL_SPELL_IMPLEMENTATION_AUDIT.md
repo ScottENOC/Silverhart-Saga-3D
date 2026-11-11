@@ -700,3 +700,114 @@ These are confirmed 2D systems and current 3D gaps from the inspected source
 files. They should be treated as separate feature families when planning the
 port, rather than attempting to implement every remaining skill as an
 independent one-off effect.
+
+
+## Detailed original-2D behaviour audit: stealth, perception, riding and combat (2026-11-11)
+
+This pass distinguishes three separate questions:
+
+1. Does the original 2D game implement the described behaviour at runtime?
+2. Is the skill actually wired into that 2D behaviour, rather than merely listed in `skills.js`?
+3. Does current 3D `dev` implement the equivalent behaviour?
+
+The 2D findings below are source-backed runtime reads/actions. The 3D findings refer to the current `dev` simulation files inspected in this pass, especially `WorldSimulation`, `CombatRules`, `MovementRules` and `CharacterState`. They are not a claim that every script in either repository has been exhaustively searched.
+
+### Stealth and perception
+
+| 2D skill/system | Confirmed original 2D runtime behaviour | Current 3D `dev` |
+|---|---|---|
+| `stealth_agility` (Inconspicuous), `stealth_rogue` (Shadow Weaver) | Each adds +5 to the actor's stealth score. `tryStealth()` refuses entry while any opponent can currently see the actor; the score is then built from base 50, skill bonuses, light, terrain stealth bonus and armour penalties. The score is recalculated after movement/actions. | No stealth state, stealth score, stealth-entry action or detection integration found in current dev. The vision branch reads the wrong IDs (`inconspicuous`, `shadow_weaver`). |
+| `keen_perception` | Adds +10 per rank to the chance to spot a stealthed target in `canSee()`. It also adds +10 per rank to the perception score used by `trapSystem.js` to detect prepared traps. The catalogue description additionally mentions secret doors/hidden objects; this pass confirmed the stealth and trap uses, but not a general secret-door detector. | No current-dev perception/detection hook. The off-dev VisionRules branch contains a +10/rank helper only; its fog test does not exercise it. |
+| `elf_darkvision`, `goblin_low_light_eyes` | Both bypass the ordinary low-light reduction to vision range. The same condition removes the light penalty from the stealth spotting roll. | No current-dev low-light or darkvision runtime. VisionRules contains candidate handling off-dev, not on dev. |
+| `speedy_stealth` | Reduces the extra movement cost while stealthed by 2 TP (the 2D movement surcharge is otherwise +4). | No current-dev stealth movement cost because stealth itself is not integrated. |
+| `sneak_attack_dmg` | Adds +4 damage per rank when no living opponent can see the attacker. This is a real damage-resolution read, not just the description. | `CombatRules` accepts a caller-supplied `sneak_attack_bonus`, but the current normal attack path does not derive it from stealth/visibility or the canonical skill rank. Not parity. |
+| `assassinate` | Active weapon attack: only available through the skill UI with a weapon equipped; if no enemy can see the actor, the attack receives +50 hit chance and costs 80 TP. | No equivalent action or visibility-gated attack found in current dev. |
+
+The original 2D detection formula is not simply a fixed perception check: it combines
+target stealth score, distance, the viewer's `keen_perception`, carried light,
+ambient light and the viewer's remembered spotted targets. Losing line of sight
+removes the current spotted-target memory. This is a more complete behaviour
+than the off-dev 3D helper currently represents.
+
+The following catalogue entries were **not found as runtime reads/actions** in the
+inspected 2D `gameEngine.js` / `ui.js` paths: `whisper_step`,
+`dirty_fighting` and `vanish`. They should not be described as working 2D
+stealth abilities solely from their catalogue descriptions. This is a bounded
+finding from the inspected files, not proof that no other legacy module refers
+to them.
+
+### Riding and mounted movement
+
+The original 2D implementation is a real rider/mount relationship:
+
+- `riding`, `riding_druid` and `riding_paladin` are mutually exclusive
+  alternatives for the same riding eligibility. The skill UI treats any one
+  as satisfying the shared requirement and prevents learning a second variant.
+- The action UI only offers Mount/Dismount when one of those skills is present.
+- Mounting requires a friendly, unoccupied mount within adjacency, a positive
+  `mountSize`, and `riderSize <= mountSize`. Dismounting requires an adjacent
+  valid hex.
+- Rider and mount retain linked `riding` / `rider` references. Movement,
+  falls, floor transitions, forced movement and reactions keep their positions
+  synchronised.
+- While mounted, the mount is the `moveEntity`: its Fast Movement / Swift Step
+  ranks, armour and shield state determine those movement discounts. The rider's
+  stealth surcharge and Quick Recovery threshold remain rider-side. Mount TP
+  exhaustion is checked separately against the mount's 80-TP threshold.
+- Creature templates carry mount size, rider size, mount type and their own
+  skills. Some NPCs spawn already mounted.
+
+Current 3D `dev` has no mount relationship, mount/dismount action, size
+compatibility rule or mounted movement ownership. The `feature/animal-attributes`
+branch is not a substitute: it adds animal catalogue/state attributes, not the
+rider/mount relationship. Therefore all three Riding skill IDs remain
+unimplemented in the current 3D game, despite being functional in the 2D source.
+
+### Selected combat abilities: original 2D implementation confirmed
+
+| Skill ID / family | Confirmed original 2D behaviour | Current 3D `dev` |
+|---|---|---|
+| `battle_reflexes` | Defender gains 1 TP when attacked. | No corresponding attack-trigger TP gain found. |
+| `dagger_quick_draw` | After throwing a dagger, automatically equips another dagger from inventory if one remains. | No dagger-throw/quick-draw loop found. |
+| `shield_bash` | On an incoming miss, a shield user may spend 3 TP to make a basic counterattack, without weapon/skill bonuses. | No Shield Bash action/reaction path found. |
+| `trip_reaction` | After a melee attack misses, may spend 2 TP to attempt a counter-trip, reducing the attacker's TP by 5 on success. | No corresponding reaction path found. |
+| `disarm` | Active adjacent attack; 50% base success chance, drops the target's weapon (or eligible offhand item), costs 5 TP. | No disarm action found. |
+| `shove` | Active adjacent action routed through the 2D shove resolver; also used by NPC AI. | No shove action/resolver found. |
+| `<weapon>_feint` | Generic suffix-based action: spends 1 TP and attacks as a feint, intended to induce a defender to waste a parry. | No feint action or feint-aware parry path found. |
+| `<weapon>_riposte` | After a successful matching weapon parry, may make a basic counterattack for 5 TP. | No riposte path found. |
+| `unarmed_reaction_block` | A landed unarmed hit blocks the target's reactions until its next action. | No unarmed reaction-block effect found. |
+| `siphoning_palm` | A landed unarmed hit transfers up to 1 mana per rank (maximum 3) from target to attacker. | No unarmed mana-siphon effect found. |
+| `slip_away` | After being hit, may spend 5 TP to move to an adjacent free hex; requires light/no armour and an available reaction. | No Slip Away reaction found. |
+| `sunder_armor` | Melee hits stack a target reduction penalty up to the attacker's skill rank. | No armour-sunder effect found. |
+| `hamstring` | Melee hits stack a movement-cost debuff on the target up to skill rank. | No hamstring effect found. |
+
+These 2D implementations are not inferred from the catalogue: the reviewed
+`gameEngine.js` contains the corresponding action branches, reaction callbacks
+or damage-resolution reads. They are still absent from current 3D dev unless
+explicitly listed in the existing 3D coverage sections above.
+
+### Catalogue descriptions without a confirmed 2D runtime hook in this pass
+
+The following combat-oriented entries were not found as runtime reads/actions
+in the inspected 2D combat paths: `deflect_arrows`, `sword_footwork`,
+`threatening_presence` and `weapon_swap`. The generic feint and riposte
+paths are implemented, but this does not establish that every catalogue ID
+describing those families is wired correctly. These entries need a wider
+cross-file trace before they can be called either implemented or definitively
+unused in the original game.
+
+### Audit consequence / next targets
+
+The original 2D source confirms substantially more gameplay than the current
+3D implementation for these categories. The immediate 3D gaps are not just
+missing numeric modifiers: they include the entire visibility/stealth state
+machine, mount relationships and movement ownership, and several action and
+reaction triggers. The vision branch is a useful starting point but needs
+canonical skill-ID fixes, deterministic VisionRules tests and integration into
+the current simulation before it can count as a port.
+
+Next audit pass should trace the remaining combat skill families (especially
+weapon proficiency, parry extensions, forced movement, status effects and
+racial creature passives) across all 2D modules, then compare each confirmed
+effect with the current 3D resolver and tests. No gameplay mechanics were
+implemented in this audit pass.
