@@ -25,6 +25,62 @@ def import_model(path):
     bpy.ops.import_scene.gltf(filepath=os.path.abspath(path))
 
 
+def pelvis_focus_height(meshes, height):
+    """Use the rig's paired upper-leg roots to frame the pelvis, not a body-bounds fraction."""
+    armature = next((o for o in bpy.context.scene.objects if o.type == "ARMATURE"), None)
+    if armature is not None:
+        aliases = {
+            "left": {"leftupleg", "leftupperleg", "upleg_l", "upperleg_l", "thigh_l", "leftthigh", "lthigh", "thigh.l"},
+            "right": {"rightupleg", "rightupperleg", "upleg_r", "upperleg_r", "thigh_r", "rightthigh", "rthigh", "thigh.r"},
+        }
+        roots = {}
+        for side, names in aliases.items():
+            bone = next((b for b in armature.data.bones
+                         if b.name.lower().replace(" ", "").replace("-", "_") in names), None)
+            if bone is not None:
+                roots[side] = armature.matrix_world @ bone.head_local
+        if len(roots) == 2:
+            hipline = (roots["left"].z + roots["right"].z) * 0.5
+            print(f"Pelvis camera target from paired upper-leg roots: {hipline:.4f}")
+            return hipline - height * 0.050
+    # Defensive fallback for an unrigged diagnostic GLB: the hip line is
+    # materially above the old 44.5%-of-bounds target on Ara exports.
+    print("WARNING: paired leg roots unavailable; using calibrated 63%-height pelvis fallback")
+    return min(p.z for o in meshes for p in
+               [o.matrix_world @ Vector(c) for c in o.bound_box]) + height * 0.63
+
+
+def show_vertex_colours_for_review(meshes):
+    """Make glTF COLOR_0 visible in Blender review renders without altering the GLB."""
+    for obj in meshes:
+        if obj.type != "MESH":
+            continue
+        attribute = obj.data.color_attributes.get("Color")
+        if attribute is None:
+            continue
+        for material in obj.data.materials:
+            if material is None:
+                continue
+            material.use_nodes = True
+            nodes = material.node_tree.nodes
+            links = material.node_tree.links
+            shader = next((n for n in nodes if n.type == "BSDF_PRINCIPLED"), None)
+            if shader is None:
+                continue
+            base = shader.inputs.get("Base Color")
+            if base is None or any(link.to_socket == base for link in links):
+                continue
+            vertex = nodes.new("ShaderNodeVertexColor")
+            vertex.layer_name = "Color"
+            multiply = nodes.new("ShaderNodeMixRGB")
+            multiply.blend_type = "MULTIPLY"
+            multiply.inputs[0].default_value = 1.0
+            multiply.inputs[1].default_value = tuple(base.default_value)
+            links.new(vertex.outputs["Color"], multiply.inputs[2])
+            links.new(multiply.outputs["Color"], base)
+            print(f"Review material {material.name}: displaying vertex colour layer Color")
+
+
 def mesh_report():
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     armatures = [o for o in bpy.context.scene.objects if o.type == "ARMATURE"]
@@ -64,6 +120,7 @@ def main():
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     if not meshes:
         raise RuntimeError("GLB contained no mesh objects")
+    show_vertex_colours_for_review(meshes)
     points = [o.matrix_world @ Vector(corner) for o in meshes for corner in o.bound_box]
     minimum = Vector(tuple(min(p[i] for p in points) for i in range(3)))
     maximum = Vector(tuple(max(p[i] for p in points) for i in range(3)))
@@ -71,8 +128,8 @@ def main():
     radius = max((maximum - minimum).length * 0.5, 0.5)
     if args.focus_pelvis:
         body_height = maximum.z - minimum.z
-        centre = Vector((centre.x, centre.y, minimum.z + body_height * 0.445))
-        radius = max(body_height * 0.12, 0.15)
+        centre = Vector((centre.x, centre.y, pelvis_focus_height(meshes, body_height)))
+        radius = max(body_height * 0.085, 0.15)
 
     scene = bpy.context.scene
     available_engines = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
