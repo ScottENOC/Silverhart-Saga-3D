@@ -555,6 +555,9 @@ func _test_animal_riding() -> void:
     _check(bool(simulation.can_ride(rider.id, horse.id).get("ok", false)), "Divine Riding should independently grant mount permission")
     rider.skills.erase("riding_paladin")
     rider.skills["riding_druid"] = 1
+    horse.side = "enemy"
+    _check(String(simulation.can_ride(rider.id, horse.id).get("reason", "")) == "hostile_mount", "Hostile quest animals cannot be mounted")
+    horse.side = "neutral"
 
     var mounted := simulation.mount_animal(rider.id, horse.id)
     _check(bool(mounted.get("ok", false)), "Nature Riding should allow mounting an appropriately sized horse")
