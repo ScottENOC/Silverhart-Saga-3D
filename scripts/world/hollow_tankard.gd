@@ -760,7 +760,7 @@ func _create_hud() -> void:
     var controls_dialog := AcceptDialog.new()
     controls_dialog.name = "ControlsDialog"
     controls_dialog.title = "Hollow Tankard — Controls"
-    controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nF — talk to nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nV — toggle roof"
+    controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nChoose a specific person from the Nearby panel, or press F for the nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nV — toggle roof"
     controls_dialog.min_size = Vector2i(420, 430)
     layer.add_child(controls_dialog)
     game_menu.set_meta("controls_dialog", controls_dialog)
