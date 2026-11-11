@@ -369,7 +369,8 @@ func _submit_feint(request: SimulationActionRequest, random_seed: int) -> Dictio
         return {"ok": false, "reason": "invalid_feint_target"}
     if HexGrid.distance(attacker.axial, target.axial) != 1:
         return {"ok": false, "reason": "target_out_of_feint_range"}
-    var weapon_id := String(attacker.equipment.get("weapon", attacker.equipped_item_data.get("weapon", {}).get("id", "")))
+    var equipped_weapon_data: Dictionary = attacker.equipped_item_data.get("weapon", {})
+    var weapon_id := String(attacker.equipment.get("weapon", equipped_weapon_data.get("id", "")))
     var family := CombatRules.weapon_skill_family(weapon_id, ItemCatalog.get_definition(weapon_id))
     if family not in ["sword", "dagger"] or int(attacker.skills.get("%s_feint" % family, 0)) <= 0:
         return {"ok": false, "reason": "feint_skill_or_weapon_required"}
@@ -378,6 +379,8 @@ func _submit_feint(request: SimulationActionRequest, random_seed: int) -> Dictio
 
     var reactions := _attack_reaction_options(attacker, target, {"is_feint": true})
     if reactions.is_empty():
+        if attacker.should_end_turn():
+            try_end_current_turn()
         return {"ok": true, "action_type": "feint", "feinted": true, "reaction_offered": false, "time_point_cost": 1.0}
     pending_attack_context = {
         "attacker_id": attacker.id,
@@ -510,7 +513,8 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
         var effect := String(selected.get("effect", ""))
         var reactor := get_character(String(selected.get("reactor_id", target_id)))
         if reactor == null or not reactor.can_act():
-            _resolve_attack_action(attacker_id, target_id, options, seed + 1 if seed != 0 else 0)
+            if not is_feint:
+                _resolve_attack_action(attacker_id, target_id, options, seed + 1 if seed != 0 else 0)
             return
 
         if effect == "parry" or effect == "protector_parry":
