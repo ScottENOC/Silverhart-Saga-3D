@@ -1609,6 +1609,16 @@ func _refresh_resource_visuals() -> void:
         if is_instance_valid(visual):
             visual.refresh(simulation.ensure_resource_at(hex), month_index)
 
+func _input(event: InputEvent) -> void:
+    # F3 is a global diagnostic shortcut. Handle it before GUI controls can
+    # consume the key event (for example while a slider or text field has focus).
+    if event is InputEventKey and event.pressed and not event.echo:
+        var key_event := event as InputEventKey
+        if key_event.keycode == KEY_F3 or key_event.physical_keycode == KEY_F3:
+            if fog_of_war != null:
+                fog_of_war.toggle_debug()
+            get_viewport().set_input_as_handled()
+
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseButton:
         var mouse_event := event as InputEventMouseButton
@@ -1621,11 +1631,6 @@ func _unhandled_input(event: InputEvent) -> void:
 
     if event is InputEventKey and event.pressed and not event.echo:
         var key_event := event as InputEventKey
-        if key_event.keycode == KEY_F3:
-            if fog_of_war != null:
-                fog_of_war.toggle_debug()
-            get_viewport().set_input_as_handled()
-            return
         if key_event.keycode == KEY_SPACE:
             _attack_active_character()
             get_viewport().set_input_as_handled()
