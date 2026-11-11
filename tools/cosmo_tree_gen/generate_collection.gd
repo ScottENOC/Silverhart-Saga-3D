@@ -1,11 +1,10 @@
 extends SceneTree
 
-# Second small batch: add three new vegetation forms with four variants each.
-# Existing 28 tree assets are left untouched.
+# Final collection batch: complete the existing low-poly tree and winter oak families.
+# Four variants of each; all previously generated assets remain untouched.
 const PRESET_PATHS: Array[String] = [
-	"res://addons/cosmo_tree_gen/presets/bush.tres",
-	"res://addons/cosmo_tree_gen/presets/low_poly_bush.tres",
-	"res://addons/cosmo_tree_gen/presets/tree_fern.tres",
+	"res://addons/cosmo_tree_gen/presets/low_poly_tree.tres",
+	"res://addons/cosmo_tree_gen/presets/winter_oak.tres",
 ]
 
 const VARIANTS_PER_PRESET := 4
@@ -29,13 +28,13 @@ func _run_collection() -> void:
 		for variant in range(VARIANTS_PER_PRESET):
 			var tree := CosmoTreeGen.new()
 			tree.auto_generate = false
-			tree.noise_seed = 63000 + total * 137
+			tree.noise_seed = 81000 + total * 137
 			tree.apply_preset(preset)
 			tree.generate_lod = true
 			tree.collision_type = CosmoTreeGen.CollisionType.TRIMESH
 			tree.collision_max_height = tree.trunk_params.height * 0.3
 			tree.generate()
-			var variant_number := variant + 1
+			var variant_number := variant + 3
 			tree.name = "%s_%02d" % [preset_name, variant_number]
 			var output_path := "%s/%s_%02d.glb" % [OUTPUT_DIR, preset_name, variant_number]
 			var error_code: Error = await tree.export_gltf(output_path, {
@@ -50,8 +49,8 @@ func _run_collection() -> void:
 			print("COSMO_TREE_EXPORTED: " + output_path)
 			total += 1
 	print("COSMO_TREE_BATCH_COMPLETE: %d additional assets exported" % total)
-	if total != 12:
-		push_error("Expected exactly 12 additional assets; exported %d" % total)
+	if total != 8:
+		push_error("Expected exactly 8 additional assets; exported %d" % total)
 		quit(1)
 		return
 	quit(0)
