@@ -125,7 +125,14 @@ func _build_fog_mesh() -> void:
 	fog_multimesh.instance_count = hexes.size()
 	for index in range(hexes.size()):
 		var hex: Vector2i = hexes[index]
-		var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, 0.14)
+		var world := HexGrid.axial_to_world(hex, HEX_RADIUS)
+		var inside_tavern := absf(world.x) < ROOM_HALF_WIDTH - 0.2 and absf(world.z) < ROOM_HALF_DEPTH - 0.2
+		# The tavern's local hex tiles sit above the village ground plane.
+		# Match each surface rather than floating the entire village overlay.
+		var fog_height := -0.18
+		if absi(hex.x) <= 7 and absi(hex.y) <= 7:
+			fog_height = 0.14 if inside_tavern else 0.01
+		var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, fog_height)
 		fog_multimesh.set_instance_transform(index, Transform3D(Basis.IDENTITY, centre))
 		fog_multimesh.set_instance_custom_data(index, Color(0.0, 0.0, 0.0, 1.0))
 
