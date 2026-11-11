@@ -620,7 +620,7 @@ func _create_hud() -> void:
     var controls_dialog := AcceptDialog.new()
     controls_dialog.name = "ControlsDialog"
     controls_dialog.title = "Hollow Tankard — Controls"
-    controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nF — talk to nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nV — toggle roof"
+    controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nF — use nearby door or talk to nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nV — toggle roof"
     controls_dialog.min_size = Vector2i(420, 430)
     layer.add_child(controls_dialog)
     game_menu.set_meta("controls_dialog", controls_dialog)
@@ -1643,7 +1643,11 @@ func _interact_with_nearest_door() -> bool:
     var door := simulation.building_registry.get_door(TAVERN_FRONT_DOOR_ID)
     if door == null or HexGrid.distance(state.axial, door.hex) > 1:
         return false
-    var changed := simulation.building_registry.set_door_open(door.id, not door.is_passable())
+    var should_open := not door.is_passable()
+    if not should_open and simulation.occupied_hexes.has(door.hex):
+        print("The doorway is occupied; move clear before closing it.")
+        return true
+    var changed := simulation.building_registry.set_door_open(door.id, should_open)
     if not changed:
         print("The Hollow Tankard door is locked or cannot be moved.")
         return true
