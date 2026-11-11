@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="CosmoTreePreset" format=3 uid="uid://dwg0ccb88gvo2"]
+
+[ext_resource type="Script" uid="uid://ceh6ii6tlpph4" path="res://addons/cosmo_tree_gen/resources/branch_level.gd" id="1_ngpsf"]
+[ext_resource type="Material" uid="uid://ud2fyw42vi52" path="res://demo/materials/leaves_07.tres" id="2_0me7m"]
+[ext_resource type="Script" uid="uid://1tt4by0vsl04" path="res://addons/cosmo_tree_gen/resources/foliage_params.gd" id="3_kkdlt"]
+[ext_resource type="Script" uid="uid://dlp11kr4f76j3" path="res://addons/cosmo_tree_gen/resources/preset.gd" id="4_ctvk1"]
+[ext_resource type="Material" uid="uid://b7l8vw0qq0s25" path="res://addons/cosmo_tree_gen/materials/bark.tres" id="5_3d3xq"]
+[ext_resource type="Script" uid="uid://c0ggn4wsaa746" path="res://addons/cosmo_tree_gen/resources/trunk_params.gd" id="6_sieer"]
+
+[sub_resource type="Resource" id="Resource_u5t42"]
+script = ExtResource("1_ngpsf")
+count = 7
+start = 0.8
+end = 1.0
+angle = 60.0
+length = 0.95
+radius = 0.7
+up_force = 0.15
+metadata/_custom_type_script = "uid://ceh6ii6tlpph4"
+
+[sub_resource type="Resource" id="Resource_5de16"]
+script = ExtResource("1_ngpsf")
+count = 8
+terminal = true
+start = 0.1
+end = 1.0
+angle = 70.0
+length = 1.0
+radius = 0.4
+segments = 6
+gnarl = 0.1
+up_force = -2.0
+metadata/_custom_type_script = "uid://ceh6ii6tlpph4"
+
+[sub_resource type="Resource" id="Resource_h5sl1"]
+script = ExtResource("3_kkdlt")
+type = 2
+leaf_count = 20
+leaf_tip = true
+leaf_size = 0.5
+leaf_size_variance = 0.2
+leaf_start = 0.0
+leaf_angle = 15.0
+leaf_canopy_normals = 0.7
+leaf_inner_ao = 0.4
+metadata/_custom_type_script = "uid://1tt4by0vsl04"
+
+[sub_resource type="Resource" id="Resource_143ej"]
+script = ExtResource("6_sieer")
+quality = 2
+height = 3.2
+radius_bottom = 0.4
+radius_top = 0.12
+lean = 0.5
+wobble = 0.3
+sink_depth = 0.12
+metadata/_custom_type_script = "uid://c0ggn4wsaa746"
+
+[resource]
+script = ExtResource("4_ctvk1")
+trunk_params = SubResource("Resource_143ej")
+branch_levels = Array[ExtResource("1_ngpsf")]([SubResource("Resource_u5t42"), SubResource("Resource_5de16")])
+foliage_params = SubResource("Resource_h5sl1")
+trunk_material = ExtResource("5_3d3xq")
+foliage_material = ExtResource("2_0me7m")
