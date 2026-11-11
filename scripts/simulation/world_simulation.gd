@@ -142,6 +142,8 @@ func mount_animal(rider_id: String, animal_id: String, time_point_cost: float = 
         return eligibility
     var rider := get_character(rider_id)
     var mount := get_character(animal_id)
+    if is_in_combat and (not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != rider.id):
+        return {"ok": false, "reason": "not_actor_turn"}
     if not rider.can_spend_time_points(time_point_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
     if occupied_hexes.has(rider.axial) and String(occupied_hexes[rider.axial]) == rider.id:
@@ -175,6 +177,8 @@ func dismount_animal(rider_id: String, time_point_cost: float = 5.0) -> Dictiona
         return {"ok": false, "reason": "mount_link_invalid"}
     if not rider.can_act() or not mount.can_act():
         return {"ok": false, "reason": "character_unavailable"}
+    if is_in_combat and (not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != rider.id):
+        return {"ok": false, "reason": "not_actor_turn"}
     if not rider.can_spend_time_points(time_point_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
     var destination := Vector2i(2147483647, 2147483647)
@@ -745,7 +749,8 @@ func _resume_pending_move(choice_id: String, reason: String) -> void:
     var result_data := SimulationActionResult.new("move", true, "", mover.id, "", payload).to_dict()
     action_committed.emit(SimulationEvent.new("character_moved", mover.id, "", result_data))
     movement_reaction_resolved.emit(mover.id, halt_after_step)
-    if mover.should_end_turn():
+    var turn_actor := get_character(String(context.get("turn_actor_id", mover.id)))
+    if turn_actor != null and turn_actor.should_end_turn():
         try_end_current_turn()
 
 func _resolve_attack_action(attacker_id: String, target_id: String, options: Dictionary, random_seed: int) -> Dictionary:
@@ -796,6 +801,7 @@ func _submit_move(request: SimulationActionRequest) -> Dictionary:
         if not movement_reactions.is_empty():
             pending_move_context = {
                 "mover_id": movement_state.id,
+                "turn_actor_id": state.id,
                 "origin": movement_state.axial,
                 "destination": request.destination,
                 "time_point_cost": cost,
