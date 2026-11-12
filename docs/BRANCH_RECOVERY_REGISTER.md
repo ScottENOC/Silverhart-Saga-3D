@@ -614,3 +614,6 @@ These remain in the parallel character/anatomy stream and are inventoried only t
 - fix/skill-effect-test-rank-fixtures compares 1 / 25 with one test file. It is an older test_simulation.gd snapshot; the rank-1 expectations and core cases are represented in current tests, while the broader current suite has additional vision/status/reaction/lifecycle coverage. No wholesale test replacement; preserve as test-history.
 
 The branch-name reconciliation now confirms that all 134 live branch names are mentioned in this register (the audit branch itself is the document's own source branch). This is a name-coverage check only: it does not mean every branch has had full tree/blob/CI/asset review or that Stage 1 is complete.
+
+
+- audit/feature-branch-consolidation is this audit's own working branch and the source of PR #123; it is a documentation-only recovery record targeting dev_2. Keep the PR draft until the full audit is signed off.
