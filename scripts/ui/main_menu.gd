@@ -1,6 +1,8 @@
 extends Control
 const CAMPAIGN_SCENE := "res://scenes/main.tscn"
 const ARENA_SCENE := "res://scenes/arena/arena_placeholder.tscn"
+const WORLD_PREVIEW_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
+const REGIONAL_PREVIEW_SCENE := "res://scenes/prototypes/campaign2_regional_world_preview.tscn"
 func _ready() -> void:
     _build_interface()
     AudioManager.enter_mode("menu")
@@ -15,7 +17,7 @@ func _build_interface() -> void:
     centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     add_child(centre)
     var panel := PanelContainer.new()
-    panel.custom_minimum_size = Vector2(420, 0)
+    panel.custom_minimum_size = Vector2(460, 0)
     var style := StyleBoxFlat.new()
     style.bg_color = Color("#1c2833")
     style.border_color = Color("#9a8054")
@@ -44,8 +46,10 @@ func _build_interface() -> void:
     column.add_child(HSeparator.new())
     _add_mode_button(column, "CAMPAIGN", "A persistent world, stories and choices", _start_campaign)
     _add_mode_button(column, "ARENA", "Standalone battles and arena progression", _start_arena)
+    _add_mode_button(column, "WORLD PREVIEW", "Browse the full Campaign 2 realm in 3D", _open_world_preview)
+    _add_mode_button(column, "REGIONAL MAP", "Explore streamed terrain around Hollowmere and beyond", _open_regional_preview)
     var status := Label.new()
-    status.text = "Select a game mode to continue"
+    status.text = "World previews are map-development views, not playable travel systems."
     status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     status.add_theme_font_size_override("font_size", 12)
     status.add_theme_color_override("font_color", Color("#93a2ad"))
@@ -83,3 +87,9 @@ func _start_campaign() -> void:
 func _start_arena() -> void:
     AudioManager.enter_mode("arena")
     get_tree().change_scene_to_file(ARENA_SCENE)
+
+func _open_world_preview() -> void:
+    get_tree().change_scene_to_file(WORLD_PREVIEW_SCENE)
+
+func _open_regional_preview() -> void:
+    get_tree().change_scene_to_file(REGIONAL_PREVIEW_SCENE)
