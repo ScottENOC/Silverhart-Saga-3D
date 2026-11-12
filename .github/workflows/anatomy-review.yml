@@ -53,6 +53,11 @@ jobs:
         run: |
           blender --background --python-expr "import sys; import numpy; print('Blender Python:', sys.version); print('NumPy:', numpy.__version__)"
 
+      - name: Test Blender glTF vertex-colour round-trip
+        env:
+          PYTHONPATH: /usr/lib/python3/dist-packages
+        run: blender --background --python tools/blender/test_gltf_vertex_colours.py
+
       - name: Enable Corepack
         run: corepack enable
 
