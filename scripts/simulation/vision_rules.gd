@@ -13,6 +13,7 @@ const OPAQUE_TERRAIN_IDS: Array[String] = [
     "wall",
     "keep_wall",
     "climbable_wall",
+    "palisade_wall",
 ]
 
 ## Racial/sensory skills alter range; darkvision traits remove the low-light
@@ -99,7 +100,7 @@ static func can_see(
     low_light: bool = false,
     target_illuminated: bool = false
 ) -> bool:
-    if observer == null or target == null or not target.alive:
+    if observer == null or target == null or not observer.alive or not target.alive:
         return false
     var distance := HexGrid.distance(observer.axial, target.axial)
     if distance > vision_range(observer, indoors, low_light, target_illuminated):
@@ -119,8 +120,8 @@ static func stealth_check_bonus(target: CharacterState) -> int:
     if target == null:
         return 0
     return 5 * (
-        _skill_rank(target, "inconspicuous")
-        + _skill_rank(target, "shadow_weaver")
+        _skill_rank(target, "stealth_agility")
+        + _skill_rank(target, "stealth_rogue")
     )
 
 
