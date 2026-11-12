@@ -1107,3 +1107,15 @@ This section turns the deferred candidates into actionable recovery recipes. The
 - Files changed: `scripts/world/hollowmere_village.gd` (preserve axial hex, add canonical animal-state registration), `scripts/world/world_root.gd` (register exterior animals after tavern simulation initialises), and `tests/test_hollowmere_village.gd` (all ten farm/wilderness actors, actor-to-state references, neutral/dormant/ambient tags and duplicate registration).
 - This is the remaining safe integration slice from #110. It does not port the old riding-preview workflow or fixed `(0, 1.35, 0)` rider attachment; those still require a real presentation mount-socket contract and visual validation. Original #110 branch and PR remain untouched pending #128 CI and a final remaining-diff check.
 - PR #128 workflow run `43204254123` was in progress at audit update; do not record it as passed until the exact PR head completes all Godot 4.7.2 stages.
+
+
+### Correction to #110 remaining-diff disposition — mount command and presentation code
+
+A further complete PR-diff inspection shows that #110 is **not preview-only** after #126/#128. Its old `HollowTankard` snapshot also contains a player mount toggle on `R`, nearest-mount selection, rider reparent/attach/detach, camera follow changes, and mounted facing/movement presentation. Current `dev_2` does not yet have these `HollowTankard` methods or the `R` input binding. These are genuine branch-only integration candidates and must be preserved.
+
+- The simulation-side operations (`mount_animal`, `dismount_animal`, mounted movement, reciprocal links, save/load and lifecycle rules) are already in #126 and must not be copied again.
+- PR #128 now registers all ten exterior animals, sets each actor's `axial_hex`, and puts each actor in the `creature_actors` group used by mount lookup. A test checks group membership as well as registration.
+- The remaining #110 UI/presentation port should be a separate selective PR after #128 passes: add the `R` binding without disturbing current F5/F9 save/load, door/stairs interaction, current input flow or path movement; port/adapt mount selection/status feedback and actor attach/detach/camera follow; synchronize mounted rider/mount facing and movement in current `_on_character_moved`/rotation handling.
+- **Do not copy the old `HollowTankard` file.** It predates current save/load diffs, two-storey building/door framework, current WorldRoot integration and later simulation changes. Port only the isolated mount methods and the necessary call sites into current code.
+- The current source preview hard-codes rider local position `(0, 1.35, 0)` and rotation zero. Treat this as a provisional seat transform only; do not call it a validated saddle socket or assume the rider animation is compatible. Visual acceptance against the current horse GLB and both male/female base rigs remains required.
+- Consequently, do **not** close PR #110 yet. Keep it open until #128 is accepted and the mount UI/presentation code has either been selectively recovered or explicitly dispositioned. Keep the original branch permanently regardless of PR closure.
