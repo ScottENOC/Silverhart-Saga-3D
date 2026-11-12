@@ -396,6 +396,17 @@ func _test_status_effects_and_combat_debuffs() -> void:
             break
     _check(poison_proc, "Poison Bite should successfully proc on a deterministic 50% roll")
 
+    var ranged_attacker := CharacterState.new("ranged_status_attacker", "Ranged Status Attacker")
+    ranged_attacker.health = 50
+    ranged_attacker.max_health = 100
+    ranged_attacker.skills["poison_bite"] = 1
+    ranged_attacker.skills["life_drain"] = 1
+    var ranged_target := CharacterState.new("ranged_status_target", "Ranged Status Target")
+    rng.seed = 1
+    StatusEffectRules.apply_on_hit(ranged_attacker, ranged_target, {"is_ranged": true, "has_weapon": true}, 4, rng)
+    _check(ranged_attacker.health == 50, "Life Drain does not trigger on ranged attacks")
+    _check(ranged_target.poison_remaining_tp == 0.0, "Poison Bite does not trigger on ranged attacks")
+
     var ticking := CharacterState.new("status_ticking", "Status Ticking")
     ticking.health = 100
     ticking.max_health = 100
