@@ -97,6 +97,165 @@ func register_character(state: CharacterState) -> void:
 
 
 ## Build and register a humanoid NPC using the shared source-derived progression service.
+## Register an animal through the same character, occupancy, lifecycle and save path.
+func register_animal(state: CharacterState) -> Dictionary:
+    if state == null:
+        return {"ok": false, "reason": "missing_animal_state"}
+    if state.race != "animal" or not AnimalCatalog.has_profile(state.creature_kind):
+        return {"ok": false, "reason": "invalid_animal_profile"}
+    if state.id.is_empty():
+        return {"ok": false, "reason": "empty_animal_id"}
+    if characters.has(state.id):
+        return {"ok": false, "reason": "duplicate_character_id"}
+    if occupied_hexes.has(state.axial):
+        return {"ok": false, "reason": "occupied_hex"}
+    register_character(state)
+    return {"ok": characters.has(state.id), "reason": "" if characters.has(state.id) else "registration_failed"}
+
+
+func can_ride(character_id: String, animal_id: String) -> Dictionary:
+    var rider := get_character(character_id)
+    var mount := get_character(animal_id)
+    if rider == null or mount == null:
+        return {"ok": false, "reason": "unknown_character"}
+    if rider.race == "animal" or mount.race != "animal" or not mount.mountable:
+        return {"ok": false, "reason": "not_a_mount"}
+    if mount.side == "enemy":
+        return {"ok": false, "reason": "hostile_mount"}
+    if not rider.mounted_animal_id.is_empty() or not mount.mounted_by_id.is_empty():
+        return {"ok": false, "reason": "already_mounted"}
+    if not rider.can_act() or not mount.can_act():
+        return {"ok": false, "reason": "character_unavailable"}
+    var has_riding_skill := int(rider.skills.get("riding", 0)) > 0 \
+        or int(rider.skills.get("riding_druid", 0)) > 0 \
+        or int(rider.skills.get("riding_paladin", 0)) > 0
+    if not has_riding_skill:
+        return {"ok": false, "reason": "riding_skill_required"}
+    if mount.mount_size < 2:
+        return {"ok": false, "reason": "mount_too_small"}
+    if HexGrid.distance(rider.axial, mount.axial) > 1:
+        return {"ok": false, "reason": "mount_not_adjacent"}
+    return {"ok": true, "reason": ""}
+
+
+func mount_animal(rider_id: String, animal_id: String, time_point_cost: float = 5.0) -> Dictionary:
+    var eligibility := can_ride(rider_id, animal_id)
+    if not bool(eligibility.get("ok", false)):
+        return eligibility
+    var rider := get_character(rider_id)
+    var mount := get_character(animal_id)
+    if is_in_combat:
+        if not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != rider.id:
+            return {"ok": false, "reason": "not_actor_turn"}
+        if rider.time_points <= float(ActionEconomy.turn_end_threshold(rider.quick_recovery_rank)):
+            return {"ok": false, "reason": "turn_movement_exhausted"}
+    if not rider.can_spend_time_points(time_point_cost):
+        return {"ok": false, "reason": "insufficient_time_points"}
+    if occupied_hexes.get(rider.axial, "") == rider.id:
+        occupied_hexes.erase(rider.axial)
+    if not rider.spend_time_points(time_point_cost):
+        return {"ok": false, "reason": "insufficient_time_points"}
+    rider.mounted_animal_id = mount.id
+    rider.axial = mount.axial
+    rider.facing_direction = mount.facing_direction
+    mount.mounted_by_id = rider.id
+    mount.mounted_original_side = mount.side
+    mount.mounted_original_combat_dormant = mount.combat_dormant
+    mount.side = rider.side
+    mount.combat_dormant = false
+    mount.is_rider = true
+    action_committed.emit(SimulationEvent.new("animal_mounted", rider.id, mount.id, {
+        "rider_id": rider.id, "mount_id": mount.id, "hex": mount.axial,
+        "time_point_cost": time_point_cost
+    }))
+    if is_in_combat and rider.should_end_turn():
+        try_end_current_turn()
+    return {"ok": true, "rider_id": rider.id, "mount_id": mount.id, "hex": mount.axial}
+
+
+func _find_dismount_destination(origin: Vector2i) -> Vector2i:
+    for candidate in HexGrid.neighbors(origin):
+        if map_data.is_walkable(candidate) and not occupied_hexes.has(candidate):
+            return candidate
+    return Vector2i(2147483647, 2147483647)
+
+
+func dismount_animal(rider_id: String, time_point_cost: float = 5.0) -> Dictionary:
+    var rider := get_character(rider_id)
+    if rider == null:
+        return {"ok": false, "reason": "unknown_character"}
+    if rider.mounted_animal_id.is_empty():
+        return {"ok": false, "reason": "not_mounted"}
+    var mount := get_character(rider.mounted_animal_id)
+    if mount == null or mount.mounted_by_id != rider.id:
+        return {"ok": false, "reason": "mount_link_invalid"}
+    if not rider.can_act():
+        return {"ok": false, "reason": "character_unavailable"}
+    if is_in_combat:
+        if not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != rider.id:
+            return {"ok": false, "reason": "not_actor_turn"}
+        if rider.time_points <= float(ActionEconomy.turn_end_threshold(rider.quick_recovery_rank)):
+            return {"ok": false, "reason": "turn_movement_exhausted"}
+    if not rider.can_spend_time_points(time_point_cost):
+        return {"ok": false, "reason": "insufficient_time_points"}
+    var destination := _find_dismount_destination(mount.axial)
+    if destination.x == 2147483647:
+        return {"ok": false, "reason": "no_dismount_space"}
+    if not rider.spend_time_points(time_point_cost):
+        return {"ok": false, "reason": "insufficient_time_points"}
+    var origin := rider.axial
+    rider.mounted_animal_id = ""
+    rider.axial = destination
+    rider.facing_direction = mount.facing_direction
+    occupied_hexes[destination] = rider.id
+    mount.mounted_by_id = ""
+    mount.is_rider = false
+    mount.side = mount.mounted_original_side
+    mount.combat_dormant = mount.mounted_original_combat_dormant
+    action_committed.emit(SimulationEvent.new("animal_dismounted", rider.id, mount.id, {
+        "rider_id": rider.id, "mount_id": mount.id, "from_hex": origin,
+        "to_hex": destination, "time_point_cost": time_point_cost
+    }))
+    if is_in_combat and rider.should_end_turn():
+        try_end_current_turn()
+    return {"ok": true, "rider_id": rider.id, "mount_id": mount.id, "hex": destination}
+
+
+func _force_dismount_pair(rider: CharacterState, mount: CharacterState, reason: String) -> void:
+    if rider == null or mount == null:
+        return
+    var origin := mount.axial
+    var destination := _find_dismount_destination(origin)
+    rider.mounted_animal_id = ""
+    mount.mounted_by_id = ""
+    mount.is_rider = false
+    mount.side = mount.mounted_original_side
+    mount.combat_dormant = mount.mounted_original_combat_dormant
+    if destination.x != 2147483647:
+        rider.axial = destination
+        occupied_hexes[destination] = rider.id
+        occupied_hexes[origin] = mount.id
+    else:
+        # If every adjacent hex is blocked, the incapacitated body yields the
+        # shared cell to the still-capable participant. No reciprocal link remains.
+        rider.axial = origin
+        if rider.can_act() and not mount.can_act():
+            occupied_hexes[origin] = rider.id
+        else:
+            occupied_hexes[origin] = mount.id
+    action_committed.emit(SimulationEvent.new("animal_forced_dismount", rider.id, mount.id, {
+        "rider_id": rider.id, "mount_id": mount.id, "hex": rider.axial, "reason": reason
+    }))
+
+
+func _movement_state_for(state: CharacterState) -> CharacterState:
+    if state == null or state.mounted_animal_id.is_empty():
+        return state
+    var mount := get_character(state.mounted_animal_id)
+    if mount == null or mount.mounted_by_id != state.id or not mount.can_act():
+        return state
+    return mount
+
 func build_and_register_npc(state: CharacterState, options: Dictionary) -> Dictionary:
     if state == null:
         return {"ok": false, "reason": "missing_character"}
@@ -342,16 +501,20 @@ func _attach_character_lifecycle(state: CharacterState) -> void:
     if not state.lifecycle_changed.is_connected(_on_character_lifecycle_changed):
         state.lifecycle_changed.connect(_on_character_lifecycle_changed)
 
-func _on_character_lifecycle_changed(character_id: String, _transition: String) -> void:
+func _on_character_lifecycle_changed(character_id: String, transition: String) -> void:
     var state := get_character(character_id)
     if state == null:
         return
+    if not state.can_act():
+        if not state.mounted_animal_id.is_empty():
+            _force_dismount_pair(state, get_character(state.mounted_animal_id), transition)
+        elif not state.mounted_by_id.is_empty():
+            _force_dismount_pair(get_character(state.mounted_by_id), state, transition)
     if not state.can_act() and not pending_reaction.is_empty() and (String(pending_reaction.get("reactor_id", "")) == character_id or pending_reaction.get("reactor_ids", []).has(character_id)):
         _finish_pending_reaction("", "reactor_incapacitated")
     if not state.can_act() and turn_scheduler.has_active_turn() and turn_scheduler.current_character_id == character_id:
         if pending_reaction.is_empty():
             turn_scheduler.try_end_turn(characters, true)
-
 func try_attack_character(attacker_id: String, target_id: String, options: Dictionary = {}, random_seed: int = 0) -> Dictionary:
     return submit_action(SimulationActionRequest.attack(attacker_id, target_id, options), random_seed)
 
@@ -596,11 +759,11 @@ func _resume_pending_attack(choice_id: String, reason: String) -> void:
     var followup_seed := seed + 1 if seed != 0 else 0
     _resolve_attack_action(attacker_id, target_id, options, followup_seed)
 
-func _movement_reaction_options(mover: CharacterState, next_hex: Vector2i) -> Array[Dictionary]:
+func _movement_reaction_options(mover: CharacterState, next_hex: Vector2i, excluded_character_id: String = "") -> Array[Dictionary]:
     var result: Array[Dictionary] = []
     for value in characters.values():
         var reactor := value as CharacterState
-        if reactor == null or reactor == mover or not reactor.can_act() or reactor.reaction_blocked:
+        if reactor == null or reactor == mover or reactor.id == excluded_character_id or not reactor.can_act() or reactor.reaction_blocked:
             continue
         if HexGrid.distance(next_hex, reactor.axial) > 1:
             continue
@@ -678,10 +841,12 @@ func _resume_pending_move(choice_id: String, reason: String) -> void:
     if reason == "combat_ended":
         return
     var mover := get_character(String(context.get("mover_id", "")))
-    if mover == null:
+    var turn_actor := get_character(String(context.get("turn_actor_id", context.get("mover_id", ""))))
+    if mover == null or turn_actor == null or not mover.can_act() or not turn_actor.can_act():
+        movement_reaction_resolved.emit(String(context.get("turn_actor_id", context.get("mover_id", ""))), true)
         return
-    if not mover.can_act():
-        movement_reaction_resolved.emit(mover.id, true)
+    if turn_actor.id != mover.id and turn_actor.mounted_animal_id != mover.id:
+        movement_reaction_resolved.emit(turn_actor.id, true)
         return
 
     var selected: Dictionary = {}
@@ -705,21 +870,23 @@ func _resume_pending_move(choice_id: String, reason: String) -> void:
     var halt_after_step := effect == "spear_halt"
     var origin: Vector2i = context.get("origin", mover.axial)
     var destination: Vector2i = context.get("destination", mover.axial)
+    if not mover.can_act() or (turn_actor.id != mover.id and turn_actor.mounted_animal_id != mover.id):
+        movement_reaction_resolved.emit(turn_actor.id, true)
+        return
     if mover.axial != origin or not _can_move_to(mover, destination):
-        movement_reaction_resolved.emit(mover.id, true)
+        movement_reaction_resolved.emit(turn_actor.id, true)
         return
     var cost := float(context.get("time_point_cost", 0.0))
     if not mover.spend_time_points(cost):
-        movement_reaction_resolved.emit(mover.id, true)
+        movement_reaction_resolved.emit(turn_actor.id, true)
         return
     _commit_move(mover, destination)
-    var payload := {"from_hex": origin, "to_hex": destination, "time_point_cost": cost, "halted_by_reaction": halt_after_step}
-    var result_data := SimulationActionResult.new("move", true, "", mover.id, "", payload).to_dict()
-    action_committed.emit(SimulationEvent.new("character_moved", mover.id, "", result_data))
-    movement_reaction_resolved.emit(mover.id, halt_after_step)
-    if mover.should_end_turn():
+    var payload := {"from_hex": origin, "to_hex": destination, "time_point_cost": cost, "halted_by_reaction": halt_after_step, "movement_owner_id": mover.id}
+    var result_data := SimulationActionResult.new("move", true, "", turn_actor.id, "", payload).to_dict()
+    action_committed.emit(SimulationEvent.new("character_moved", turn_actor.id, "", result_data))
+    movement_reaction_resolved.emit(turn_actor.id, halt_after_step)
+    if turn_actor.should_end_turn():
         try_end_current_turn()
-
 func _resolve_attack_action(attacker_id: String, target_id: String, options: Dictionary, random_seed: int) -> Dictionary:
     var attacker := get_character(attacker_id)
     var target := get_character(target_id)
@@ -747,7 +914,8 @@ func _submit_move(request: SimulationActionRequest) -> Dictionary:
     var combat_step := bool(request.options.get("combat_step", false))
     if state == null or not state.can_act():
         return {"ok": false, "reason": "actor_unavailable"}
-    if not _can_move_to(state, request.destination):
+    var movement_state := _movement_state_for(state)
+    if not _can_move_to(movement_state, request.destination):
         return {"ok": false, "reason": "invalid_destination"}
     if combat_step and is_in_combat:
         if not turn_scheduler.has_active_turn() or turn_scheduler.current_character_id != request.actor_id:
@@ -756,41 +924,41 @@ func _submit_move(request: SimulationActionRequest) -> Dictionary:
             return {"ok": false, "reason": "turn_movement_exhausted"}
     var cost := request.time_point_cost
     if terrain_cost:
-        cost = MovementRules.step_cost(map_data, state.axial, request.destination, state)
+        cost = MovementRules.step_cost(map_data, movement_state.axial, request.destination, movement_state)
     if not is_finite(cost) or cost < 0.0:
         return {"ok": false, "reason": "invalid_action_cost"}
-    if not state.can_spend_time_points(cost):
+    if not movement_state.can_spend_time_points(cost):
         return {"ok": false, "reason": "insufficient_time_points"}
 
     if is_in_combat and combat_step:
-        var movement_reactions := _movement_reaction_options(state, request.destination)
+        var movement_reactions := _movement_reaction_options(movement_state, request.destination, state.id)
         if not movement_reactions.is_empty():
             pending_move_context = {
-                "mover_id": state.id,
-                "origin": state.axial,
+                "mover_id": movement_state.id,
+                "turn_actor_id": state.id,
+                "origin": movement_state.axial,
                 "destination": request.destination,
                 "time_point_cost": cost,
                 "reactions": movement_reactions.duplicate(true)
             }
             var first_reactor_id := String(movement_reactions[0].get("reactor_id", ""))
-            var reaction_request := request_reaction(first_reactor_id, movement_reactions, "move:%s:%s:%s" % [state.id, request.destination.x, request.destination.y])
+            var reaction_request := request_reaction(first_reactor_id, movement_reactions, "move:%s:%s:%s" % [movement_state.id, request.destination.x, request.destination.y])
             if bool(reaction_request.get("pending", false)):
                 pending_move_context["reaction_request_id"] = int(reaction_request.get("request_id", 0))
                 return {"ok": true, "pending": true, "action_type": "move", "request_id": reaction_request.get("request_id", 0)}
             pending_move_context.clear()
 
-    var origin := state.axial
-    if not state.spend_time_points(cost):
+    var origin := movement_state.axial
+    if not movement_state.spend_time_points(cost):
         return {"ok": false, "reason": "insufficient_time_points"}
-    _commit_move(state, request.destination)
-    var payload := {"from_hex": origin, "to_hex": request.destination, "time_point_cost": cost}
+    _commit_move(movement_state, request.destination)
+    var payload := {"from_hex": origin, "to_hex": request.destination, "time_point_cost": cost, "movement_owner_id": movement_state.id}
     var typed_result := SimulationActionResult.new("move", true, "", request.actor_id, "", payload)
     var result_data := typed_result.to_dict()
     action_committed.emit(SimulationEvent.new("character_moved", request.actor_id, "", result_data))
     if is_in_combat and state.should_end_turn():
         try_end_current_turn()
     return result_data
-
 func get_current_turn_character() -> CharacterState:
     if not turn_scheduler.has_active_turn():
         return null
@@ -799,8 +967,13 @@ func get_current_turn_character() -> CharacterState:
 func try_end_current_turn(forced: bool = false) -> bool:
     if not pending_reaction.is_empty() and not forced:
         return false
-    return turn_scheduler.try_end_turn(characters, forced)
-
+    var ending_character := get_current_turn_character()
+    var ended := turn_scheduler.try_end_turn(characters, forced)
+    if ended and ending_character != null and not ending_character.mounted_animal_id.is_empty():
+        var mount := get_character(ending_character.mounted_animal_id)
+        if mount != null:
+            mount.time_points = minf(mount.time_points, float(ActionEconomy.TURN_END_TP))
+    return ended
 func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
     # Guard direct/test-driven clock advancement as well as the normal
     # _process freeze: no TP or world tick work occurs during an active turn.
@@ -839,11 +1012,13 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
 ## resolved TP cost from the movement rules.
 func try_move_character(character_id: String, destination: Vector2i) -> bool:
     var state := get_character(character_id)
-    if not _can_move_to(state, destination):
+    if state == null:
         return false
-    _commit_move(state, destination)
+    var movement_state := _movement_state_for(state)
+    if not _can_move_to(movement_state, destination):
+        return false
+    _commit_move(movement_state, destination)
     return true
-
 func try_move_character_action(character_id: String, destination: Vector2i, time_point_cost: float = 5.0) -> bool:
     var result := submit_action(SimulationActionRequest.move(character_id, destination, time_point_cost))
     return bool(result.get("ok", false))
@@ -869,8 +1044,8 @@ func find_path(character_id: String, destination: Vector2i) -> Array[Vector2i]:
     var state := get_character(character_id)
     if state == null:
         return []
-    return HexPathfinder.find_path(map_data, occupied_hexes, state.axial, destination, state, characters, is_in_combat)
-
+    var movement_state := _movement_state_for(state)
+    return HexPathfinder.find_path(map_data, occupied_hexes, movement_state.axial, destination, movement_state, characters, is_in_combat)
 func _is_virtual_building_floor_hex(hex: Vector2i) -> bool:
     for definition_value in building_registry.definitions.values():
         if not definition_value is Dictionary:
@@ -885,11 +1060,8 @@ func movement_cost(character_id: String, destination: Vector2i) -> float:
     var state := get_character(character_id)
     if state == null:
         return INF
-    return MovementRules.step_cost(map_data, state.axial, destination, state)
-
-## Execute one adjacent step using the same cost used by pathfinding.
-## In combat, the final step may take TP below the normal turn-end threshold,
-## matching the original game's movement allowance.
+    var movement_state := _movement_state_for(state)
+    return MovementRules.step_cost(map_data, movement_state.axial, destination, movement_state)
 func try_move_character_step(character_id: String, destination: Vector2i) -> bool:
     var request := SimulationActionRequest.move(character_id, destination, 0.0)
     request.options["terrain_cost"] = true
@@ -956,8 +1128,12 @@ func _commit_move(state: CharacterState, destination: Vector2i) -> void:
     occupied_hexes.erase(origin)
     state.axial = destination
     occupied_hexes[destination] = state.id
+    if not state.mounted_by_id.is_empty():
+        var mounted_rider := get_character(state.mounted_by_id)
+        if mounted_rider != null and mounted_rider.mounted_animal_id == state.id:
+            mounted_rider.axial = destination
+            mounted_rider.facing_direction = state.facing_direction
     character_moved.emit(state.id, origin, destination)
-
 func to_dict() -> Dictionary:
     var character_data: Dictionary = {}
     for character_id in characters:
@@ -990,11 +1166,32 @@ func load_dict(data: Dictionary) -> void:
         var state := CharacterState.from_dict(saved_characters[character_id])
         if state.id.is_empty():
             state.id = String(character_id)
-        if occupied_hexes.has(state.axial):
-            push_error("Save contains overlapping characters at %s." % state.axial)
-            continue
         characters[state.id] = state
-        occupied_hexes[state.axial] = state.id
+        # Mounted riders share their mount's hex and do not reserve a second cell.
+        if state.mounted_animal_id.is_empty():
+            if occupied_hexes.has(state.axial):
+                push_error("Save contains overlapping characters at %s." % state.axial)
+                characters.erase(state.id)
+                continue
+            occupied_hexes[state.axial] = state.id
+    # Validate reciprocal links after every character has been restored.
+    for value in characters.values():
+        var state := value as CharacterState
+        if state == null:
+            continue
+        if not state.mounted_animal_id.is_empty():
+            var mount := get_character(state.mounted_animal_id)
+            if mount == null or mount.mounted_by_id != state.id:
+                state.mounted_animal_id = ""
+                if not occupied_hexes.has(state.axial):
+                    occupied_hexes[state.axial] = state.id
+        if not state.mounted_by_id.is_empty():
+            var rider := get_character(state.mounted_by_id)
+            if rider == null or rider.mounted_animal_id != state.id:
+                state.mounted_by_id = ""
+                state.is_rider = false
+                state.side = state.mounted_original_side
+                state.combat_dormant = state.mounted_original_combat_dormant
     for member_id in data.get("party_member_ids", []):
         var saved_member_id := String(member_id)
         if characters.has(saved_member_id) and not party_member_ids.has(saved_member_id):
@@ -1007,5 +1204,4 @@ func load_dict(data: Dictionary) -> void:
     next_reaction_request_id = 1
     for value in characters.values():
         _attach_character_lifecycle(value as CharacterState)
-    # The active character's TP is preserved; initiative is selected again.
     turn_scheduler.clear()
