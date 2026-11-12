@@ -329,30 +329,24 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         n = normal.normalized() if normal.length else normal
         if n.y > -0.10 or abs(p.x) > width*0.27 or abs(p.z-anatomy_z) > 0.15:
             return p
-        # Stronger sculpt pass: distinct mons transition, paired outer/inner
-        # folds, a readable median cleft, vestibular hollow and posterior fold.
-        mons = g(p.x,p.z,0.0,anatomy_z+height*0.035,width*0.105,height*0.020)
-        outer_l = g(p.x,p.z,-width*0.060,anatomy_z-height*0.002,width*0.027,height*0.030)
-        outer_r = g(p.x,p.z, width*0.060,anatomy_z-height*0.002,width*0.027,height*0.030)
-        inner_l = g(p.x,p.z,-width*0.026,anatomy_z-height*0.012,width*0.0085,height*0.019)
-        inner_r = g(p.x,p.z, width*0.026,anatomy_z-height*0.012,width*0.0085,height*0.019)
-        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.0032,height*0.014)
-        vestibule = g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.017,height*0.009)
-        urethra = g(p.x,p.z,0.0,anatomy_z-height*0.016,width*0.0038,height*0.0025)
-        vaginal = g(p.x,p.z,0.0,anatomy_z-height*0.035,width*0.011,height*0.006)
-        hood = g(p.x,p.z,0.0,anatomy_z+height*0.013,width*0.022,height*0.0045)
-        glans = g(p.x,p.z,0.0,anatomy_z+height*0.007,width*0.0050,height*0.0035)
-        frenulum = g(p.x,p.z,0.0,anatomy_z+height*0.001,width*0.0030,height*0.0025)
-        fourchette = g(p.x,p.z,0.0,anatomy_z-height*0.051,width*0.016,height*0.0035)
-        perineum = g(p.x,p.z,0.0,anatomy_z-height*0.068,width*0.045,height*0.013)
+        # Readable, simplified external anatomy: broad paired labia majora,
+        # distinct but restrained inner folds, a short central cleft and a
+        # modest clitoral hood. Avoid tiny pseudo-detail that collapses on Ara's
+        # production mesh resolution or turns the whole region into a mons.
+        mons = g(p.x,p.z,0.0,anatomy_z+height*0.030,width*0.095,height*0.022)
+        outer_l = g(p.x,p.z,-width*0.064,anatomy_z-height*0.004,width*0.034,height*0.034)
+        outer_r = g(p.x,p.z, width*0.064,anatomy_z-height*0.004,width*0.034,height*0.034)
+        inner_l = g(p.x,p.z,-width*0.028,anatomy_z-height*0.014,width*0.014,height*0.024)
+        inner_r = g(p.x,p.z, width*0.028,anatomy_z-height*0.014,width*0.014,height*0.024)
+        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.022,width*0.0055,height*0.023)
+        vestibule = g(p.x,p.z,0.0,anatomy_z-height*0.026,width*0.018,height*0.011)
+        hood = g(p.x,p.z,0.0,anatomy_z+height*0.010,width*0.021,height*0.007)
         outward = deformation_scale * height * (
-            0.0055*mons + 0.0080*(outer_l+outer_r)
-            + 0.0080*(inner_l+inner_r) + 0.0055*hood
-            + 0.0040*glans + 0.0018*frenulum + 0.0010*fourchette
+            0.0040*mons + 0.0150*(outer_l+outer_r)
+            + 0.0140*(inner_l+inner_r) + 0.0070*hood
         )
         inward = deformation_scale * height * (
-            0.0040*vestibule + 0.0110*cleft
-            + 0.0018*urethra + 0.0022*vaginal + 0.0004*perineum
+            0.0120*cleft + 0.0080*vestibule
         )
         p.y -= outward
         p.y += inward
@@ -414,7 +408,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     skin["anatomy_profile"] = "adult_female_integrated_skin"
     skin["review_status"] = "integrated_mesh_blockout_for_art_review"
     skin["anatomy_deformation_scale"] = float(deformation_scale)
-    skin["anatomy_detail_pass"] = "shortened_lower_cleft_paired_inner_folds_defined_clitoral_relief_v3"
+    skin["anatomy_detail_pass"] = "paired_labia_clear_short_cleft_simplified_relief_v4"
     skin["anatomy_method"] = "surface_displacement_preserve_morphs" if preserve_morphs else "local_subdivision_and_surface_displacement"
     skin["anatomy_parts"] = "mons,labia_majora,labia_minora,clitoral_hood,clitoral_glans,frenulum,vestibule,urethral_meatus,vaginal_opening,posterior_fourchette,perineal_transition"
     return skin
