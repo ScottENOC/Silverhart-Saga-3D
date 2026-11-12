@@ -654,3 +654,50 @@ The immediate acceptance criterion is not simply a green generator workflow: ins
 | `feature/ara-shields-helmets-hairstyles` | Branch comparison returned 404. | **Unresolved historical name; verify via live branch list.** |
 | `feat/ara-hairstyles-medieval-equipment` | 33 ahead / 102 behind; hair manifest byte-identical to current, extensive assets. | **Integrated asset set; retain history and only add proven missing variants.** |
 | `feat/player-morphs-inventory-weapons` | 7 ahead / 102 behind; old inventory fixture/creator/catalogue changes. | **Do not ship test inventory; compare only missing test cases.** |
+
+
+## Second-pass: skills, spells, animal simulation and farm quest branches
+
+### Skills and spells
+
+- `feature/skill-magic-foundation` is largely integrated. Its `skill_definitions.json` and `skill_catalog.gd` are byte-identical to current `dev_2`; `skill_progression.gd` differs by only one line. NPC skill spending and the 257-skill catalogue are already present. The branch's older CharacterState/WorldSimulation files must not be merged.
+- `feature/skill-magic-foundation-current-dev` and `feature/port-action-economy` compare as zero commits ahead of current `dev_2`; no merge work remains on them.
+- `feature/missing-skill-runtime-port` has unique historical commits but the inspected character-creation, progression and creator code is already in current; its world/combat files are older snapshots. It is likely superseded; retain history and only salvage a demonstrably missing skill effect.
+- `fix/skill-effect-test-rank-fixtures` is an older test file snapshot. Current tests already contain the corrected Fast Movement/Goblin Opportunist rank coverage and many later tests; do not replace the current test suite.
+- `audit/skill-effect-branch-cross-reference`, `audit/skill-effect-parity-update` and `audit/spell-parity-and-test-findings` are documentation/audit branches. The current `docs/SKILL_SPELL_IMPLEMENTATION_AUDIT.md` is longer (1,053 lines) than the 642-line version on the parity branch, but it still contains stale references to `dev` and says vision/stealth are only off-branch candidates. That statement is no longer accurate after PR #122 integrated the spatial `VisionRules` foundation into `dev_2`. The document must be updated to distinguish spatial LOS from detection/stealth effects and AI knowledge.
+- The spell catalogue remains data, not a complete spell runtime. The branch's 15 base spells do not prove casting, targeting, costs, effects, save/load or spell tests are implemented. Keep spell runtime as a separate backlog item.
+
+### Animal and farm/wildlife branches
+
+- `feature/farm-wildlife-creatures` has its `farm_wolves_quest.gd`, `creature_actor.gd` and `test_farm_wolves_quest.gd` byte-for-byte identical to current `dev_2`. This branch's wolf quest and creature presentation are integrated; its older WorldSimulation/HollowTankard files must not be merged.
+- `feature/animal-attributes` is the predecessor to `feature/animal-riding-validation`; the riding branch is one commit ahead. The riding branch introduces `AnimalCatalog`, mount state, registration and mount/dismount simulation rules, plus a riding preview workflow. These are not present as an `AnimalCatalog` file in current `dev_2`; this remains a genuine integration candidate after the previously recorded HP double-application and emergency-dismount issues are fixed.
+- The riding workflow's last run on the current branch head was not found; the latest runs discovered were on older commits. Before merging, run current-head CI, test horse/wolf HP after registration, mount/rider reciprocal links, death/incapacitation while mounted, emergency dismount, save/load and the six-direction/occupancy constraints. Inspect the riding preview as a separate visual acceptance gate.
+- `feature/farmstead-bear-creature-model` contains a unique Tessa missing-child / dire-wolf quest variation and `FarmsteadDireWolfEncounter`; that file is absent from current `dev_2`. It is a salvage candidate, not a whole-branch merge. It currently duplicates health through both explicit max HP and the Health skill, and its encounter lifecycle does not restore all non-party characters' prior dormant state. Reconcile the quest design with the existing bear quest and shared animal profile before porting.
+- The current `FarmsteadBearEncounter` already has the same double-health issue: it sets 180 HP and four Health ranks, then registration adds another 40 HP through skill effects. It also changes every character's `combat_dormant` flag and does not restore non-party characters' previous values at encounter end. These are baseline bugs to fix independently of the #99 quest decision.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `audit/skill-effect-branch-cross-reference` | 1 ahead / 24 behind; audit doc only. | **Superseded by current longer skill audit; retain history.** |
+| `audit/skill-effect-parity-update` | 3 ahead / 21 behind; older audit doc. | **Update current audit from verified evidence; do not merge stale document.** |
+| `audit/spell-parity-and-test-findings` | 2 ahead / 23 behind; spell audit doc only. | **Retain findings; reconcile into current skill/spell audit if still relevant.** |
+| `audit/skill-spell-implementation-baseline` | 0 ahead / 26 behind. | **No unique commits; retain.** |
+| `fix/skill-effect-test-rank-fixtures` | 1 ahead / 21 behind; older test snapshot. | **Integrated/evolved.** Preserve history; no re-merge. |
+| `feature/skill-magic-foundation-current-dev` | 0 ahead / 29 behind. | **No unique commits; retain.** |
+| `feature/missing-skill-runtime-port` | 21 ahead / 11 behind; older code snapshots. | **Likely superseded; salvage only missing runtime effects after direct verification.** |
+| `feature/skill-magic-foundation` | 70 ahead / 55 behind; canonical catalogue/catalog code identical, progression nearly identical. | **Integrated/evolved; retain history.** |
+| `feature/port-action-economy` | 0 ahead / 331 behind. | **No unique commits; retain.** |
+| `feature/animal-attributes` | 29 ahead / 23 behind; predecessor to riding branch. | **Use riding branch as the current source candidate; do not merge both.** |
+| `feature/animal-riding-validation` | 30 ahead / 23 behind; unique AnimalCatalog/mount system. | **Port after bug fixes and current-head CI/visual review.** |
+| `feature/farm-wildlife-creatures` | 22 ahead / 54 behind; three core quest/creature files byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+| `feature/farmstead-bear-creature-model` | 27 ahead / 27 behind; unique Tessa/dire-wolf quest. | **Selective salvage after health/lifecycle fixes and quest-design decision.** |
+| `feature/status-effects-combat-debuffs` | 10 ahead / 10 behind; already documented above as integrated. | **Integrated.** Preserve history. |
+
+### Important gameplay gaps that remain after branch consolidation
+
+- Vision foundation is integrated; detection, stealth checks, character memory, AI uncertainty/search behaviour, hearing/noise and fog exploration persistence remain separate work.
+- Skill catalogue and progression plumbing are integrated; many individual effects still require parity review and deterministic tests.
+- Spell definitions exist; spell casting/effect resolution remains unimplemented or unverified.
+- Farm wolf quest and creature actor are integrated; mount/riding gameplay is not.
+- The Tessa/dire-wolf quest is not integrated; current bear quest needs the HP and dormant-state fixes noted above.
