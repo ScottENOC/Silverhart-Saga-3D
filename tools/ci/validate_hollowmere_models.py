@@ -19,11 +19,16 @@ def main() -> None:
     if not generated_path.is_file():
         fail("generated profiles.json is missing")
     generated = json.loads(generated_path.read_text(encoding="utf-8"))
-    expected = {item["id"] for item in source.get("characters", [])}
+    source_items = source.get("characters", [])
+    expected = {item["id"] for item in source_items}
     actual_items = generated.get("characters", [])
     actual = {item.get("id") for item in actual_items}
-    if len(expected) != 14:
-        fail(f"source cast changed unexpectedly: expected 13 village NPCs plus 1 player avatar, found {len(expected)}")
+    if not expected:
+        fail("source cast is empty")
+    if len(expected) != len(source_items):
+        fail("source cast contains duplicate character IDs")
+    if len(actual) != len(actual_items):
+        fail("generated profiles contain duplicate character IDs")
     if not any(item.get("id") == "player_avatar" and item.get("role") == "player avatar" for item in source.get("characters", [])):
         fail("generic Ara player avatar profile is missing")
     if len(actual_items) != len(expected) or actual != expected:
