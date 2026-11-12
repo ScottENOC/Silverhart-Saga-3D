@@ -1129,3 +1129,15 @@ The current inventory is 135 branches / 20 open PRs. PR #128 recovers the missin
 ## Animal mount presentation recovery — 12 November 2026
 
 PR #130 selectively ports the remaining mount toggle and rider presentation from #110 after #126, #128 and #129. It includes R/HUD controls, camera follow, rider attach/detach, forced dismount and post-load reattachment, plus isolated regression tests. The seat offset remains provisional and requires PC visual acceptance. Current inventory is 137 live branches / 20 open PRs; PR #130's Godot 4.7.2 validation run `43206955005` was pending at the time of this refresh.
+
+
+## Late-pass repository refresh — 12 November 2026
+
+- GitHub's live branch API now returns **138 branches** and **20 open PRs**. All 138 branch names are explicitly represented in the recovery register, including meta refs and the newly surfaced parallel anatomy/morph test branch. This is inventory coverage, not a claim that all code/assets have been exhaustively reviewed.
+- Current `dev_2` head is `0138f1ebd5cc6b677319a4e007d3b581c3301e97`, incorporating PR #129 animal actor save/restore binding. Production `dev` and `main` remain untouched.
+- PR #130 remains a draft against `dev_2`; exact-head run `43207796933` passed Godot validation. The rider seat offset remains provisional and needs visual acceptance on the actual horse and both accepted body variants.
+- PR #121 remains a draft visual-review candidate, but GitHub currently reports it non-mergeable and its recorded base predates recent integration merges. If visually accepted, refresh it against current `dev_2` and rerun CI before merging.
+- Direct source comparison of `feature/missing-skill-runtime-port` found no missing code slice suitable for porting: its changed CharacterState/CombatRules/WorldSimulation/test files are older snapshots, while the current branch contains later status-effect, animal/mount, equipment validation and lifecycle changes. The other four changed files are identical; the old tests are a subset. Preserve the source branch, no merge.
+- Newly surfaced `feature/anatomy-morph-sculpt-tests` and historical `feature/wren-anatomy-piercings-halter-fit` are retained as parallel anatomy/modelling history and are not duplicated in this audit.
+
+**Stage 1 remains open.** The next work is to complete the remaining file-level reconciliation and dependency map for all non-parallel branches, especially distinct deployment workflow logic, branch-only quest/encounter work, source-content parity and residual test scenarios. No feature branches were deleted, no PRs were closed, and no production branch was changed.
