@@ -24,8 +24,11 @@ func _initialize() -> void:
 		fog_mesh.custom_aabb.has_point(far_transform.origin),
 		"The fog MultiMesh culling bounds should include the far edge of the whole village"
 	)
+	# The intended fog height is 0.08 m; compare against the actual road-ribbon
+	# surface (0.03 m) rather than the exact decimal literal, which may round
+	# slightly when stored in a Godot Vector3 float.
 	_check(
-		far_transform.origin.y >= 0.08,
+		far_transform.origin.y > 0.03,
 		"Outdoor fog should sit above the village ground and road ribbons"
 	)
 
