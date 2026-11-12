@@ -32,7 +32,6 @@ const UPPER_BED_HEXES = [
     Vector2i(2, 0), Vector2i(3, 0),
 ]
 
-const ROOF_RIDGE_HEIGHT: float = 9.03
 var location_label: Label
 var upper_shell_group: Node3D
 var upper_floor_group: Node3D
