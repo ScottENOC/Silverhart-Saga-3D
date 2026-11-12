@@ -687,10 +687,12 @@ func _spawn_missing_child() -> void:
     if actor_by_id.has("missing_child_tessa"):
         return
     var existing := simulation.get_character("missing_child_tessa")
+    var spawn_hex := Vector2i(27, 62)
     if existing != null:
+        spawn_hex = existing.axial
         simulation.characters.erase("missing_child_tessa")
         simulation.occupied_hexes.erase(existing.axial)
-    _spawn_character("missing_child_tessa", "Tessa", Vector2i(27, 62), Color(0.35, 0.42, 0.7), false, "", {"params":{"gender":0,"hair":"short02"}})
+    _spawn_character("missing_child_tessa", "Tessa", spawn_hex, Color(0.35, 0.42, 0.7), false, "", {"params":{"gender":0,"hair":"short02"}})
     var actor := actor_by_id.get("missing_child_tessa") as Node3D
     if actor != null:
         actor.scale = Vector3(0.72, 0.72, 0.72)
@@ -1344,6 +1346,10 @@ func _apply_save_data(data: Dictionary) -> void:
     var journal_data: Variant = data.get("campaign_journal", {})
     if journal_data is Dictionary:
         simulation.campaign_journal.load_dict(journal_data)
+    # Dynamic Tessa is saved as a full character record. Recreate her presentation
+    # after the journal is restored, retaining her saved axial position.
+    if simulation.get_character("missing_child_tessa") != null:
+        _spawn_missing_child()
     var resource_data: Variant = data.get("wilderness_resources", {})
     if resource_data is Dictionary:
         simulation.wilderness_resources.load_dict(resource_data)
@@ -1941,9 +1947,9 @@ func _run_ai_combat_turn(combatant: CharacterState) -> void:
             "weapon_id": weapon_id,
             "is_ranged": String(weapon.get("subType", "")) == "ranged"
         }
-        if combatant.race == "bear" or combatant.tags.has("farm_quest_wolf"):
-            var natural_hit_rank := int(combatant.skills.get("claw_hit", combatant.skills.get("bite_hit", 0)))
-            var natural_damage_rank := int(combatant.skills.get("claw_dmg", combatant.skills.get("bite_dmg", 0)))
+        if combatant.race == "bear" or combatant.tags.has("farm_quest_wolf") or combatant.tags.has("dire_wolf"):
+            var natural_hit_rank := int(combatant.skills.get("bite_hit", combatant.skills.get("claw_hit", 0)))
+            var natural_damage_rank := int(combatant.skills.get("bite_dmg", combatant.skills.get("claw_dmg", 0)))
             attack_options["unarmed_skill_hit"] = natural_hit_rank > 0
             attack_options["unarmed_skill_damage"] = natural_damage_rank
         var result := simulation.try_attack_character(combatant.id, target.id, attack_options, int(combatant.id.hash()))
