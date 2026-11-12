@@ -135,6 +135,31 @@ func remove_inventory_item(instance_id: String, quantity: int = 1) -> bool:
     return false
 
 
+func _equipment_item_is_valid(item: Dictionary, slot: String) -> bool:
+    var item_type := String(item.get("type", "")).to_lower()
+    if item_type.is_empty():
+        return false
+    match slot:
+        "weapon":
+            return item_type == "weapon"
+        "offhand":
+            return item_type == "shield" or (item_type == "weapon" and bool(item.get("canOffhand", false)))
+        "armour":
+            return item_type == "armor" or item_type == "armour"
+        "helmet":
+            return item_type == "helmet"
+        "accessory":
+            return item_type == "accessory"
+        "underTop", "underBottom", "shirt", "pants", "shoes":
+            return item_type == "clothing"
+        _:
+            return false
+
+
+func _weapon_requires_both_hands(item: Dictionary) -> bool:
+    return String(item.get("type", "")).to_lower() == "weapon" and int(item.get("hands", 1)) >= 2
+
+
 func equip_inventory_item(instance_id: String) -> bool:
     for index in range(inventory.size()):
         var item: Dictionary = inventory[index]
@@ -144,6 +169,16 @@ func equip_inventory_item(instance_id: String) -> bool:
         var item_id := String(item.get("id", ""))
         if slot.is_empty() or item_id.is_empty() or int(item.get("quantity", 1)) != 1:
             return false
+        if not _equipment_item_is_valid(item, slot):
+            return false
+        # A two-handed weapon occupies both hands. Reject conflicting gear
+        # instead of silently discarding the offhand item.
+        if slot == "weapon" and _weapon_requires_both_hands(item) and equipped_item_data.has("offhand"):
+            return false
+        if slot == "offhand":
+            var current_weapon: Dictionary = equipped_item_data.get("weapon", {})
+            if _weapon_requires_both_hands(current_weapon):
+                return false
         if equipped_item_data.has(slot):
             var previously_equipped: Dictionary = equipped_item_data[slot]
             inventory.append(previously_equipped.duplicate(true))
