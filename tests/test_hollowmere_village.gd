@@ -161,6 +161,7 @@ func _test_animal_actor_registration() -> void:
             continue
         actor_count += 1
         assert(actor.axial_hex != Vector2i.ZERO, "%s should retain its authored hex" % actor.name)
+        assert(actor.is_in_group("creature_actors"), "%s should be discoverable by mount presentation lookup" % actor.name)
         assert(actor.simulation_state != null, "%s should retain its registered simulation state" % actor.name)
         assert(simulation.get_character(actor.simulation_state.id) == actor.simulation_state, "%s should reference the canonical simulation state" % actor.name)
         assert(actor.simulation_state.side == "neutral", "Ambient animals should remain neutral")
