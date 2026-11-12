@@ -179,3 +179,20 @@ The following comparisons were made against `dev_2` after the main register was 
 - `feat/wren-only-pages-two-character-workshop` and `fix/ara-review-crash-remove-legacy-wren-build` share the exact same export workflow blob, despite their different branch names.
 - `fix/publish-all-male-workshop-previews` still deserves a narrow logic comparison: its purpose is a male-preview publication fix, and branch-level workflow similarity alone is insufficient to prove the current workflow covers it.
 - No deployment workflow was merged or changed during this audit. The source-branch mismatch on `dev_2` is deliberately left as a recorded decision/blocker, not silently fixed as part of branch preservation.
+
+
+### Focused exception: `fix/publish-all-male-workshop-previews` is not fully superseded
+
+A deeper workflow comparison found a unique contribution that was not apparent from the one-file compare summary:
+
+- The branch's `wren-workshop.yml` is 652 lines versus 687 current on `dev_2`.
+- It generates three male body builds (`base`, `small`, `large`), creates separate processed anatomy GLBs and review renders for all three, and publishes all three to the Workshop site/package.
+- Current `dev_2` generates and publishes the standard male base only. It does not currently have the branch's small/large profile generation steps.
+- This is a real workflow capability gap, not just a stale workflow copy. However, it encodes three male base meshes, while the current character design discussion has favoured one accepted male base and one accepted female base with character-level morphs. It must not be merged as a new permanent body-profile architecture without resolving that design decision.
+- **Disposition revised:** preserve as an explicit alternative/profile-testing source. After the current base-body/morph strategy is settled, decide whether small/large exports are useful as temporary comparative validation fixtures. If yes, port only the generator/review matrix and keep those outputs out of the runtime character catalogue unless separately approved. Add validation that garment fit and morph deformation remain correct across the intended supported range.
+
+## Current open PR snapshot (12 November 2026)
+
+The refreshed open-PR listing returned 19 PRs. #123 is still a draft audit PR targeting `dev_2`; #121 is a draft visual-acceptance candidate targeting `dev_2`. The other open PRs still mostly target `dev`, including #110 riding, #99 farmstead rescue, #96 vision/fog, #90 skills/magic, #89 content census, #88 world port, #87 character assembly, #77/#76 clothing/equipment, #74 player inventory, #73 companion model, #34 workflow consolidation, #29 creator, #26/#25 pipeline/clothing, #8 anatomy and #5 audio/mode selection.
+
+This confirms that the audit and the old PRs are not ready for bulk merge. Before acting on any of them, refresh its head SHA, base SHA, changed files and current-head workflow evidence. Keep #123 draft until every live branch has a documented recovery/disposition. No PR was merged or closed during this snapshot.
