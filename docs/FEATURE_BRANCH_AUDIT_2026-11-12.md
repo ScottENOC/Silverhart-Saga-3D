@@ -334,3 +334,44 @@ A preliminary content comparison found its character-creation rules, skill-progr
 ### Repository style rule reconciliation
 
 The style mismatch is broader than `vision_rules.gd`: current GDScript files such as `character_state.gd` also use spaces while `.editorconfig` specifies tabs. The repository needs one agreed GDScript indentation convention and an automated check. Do not apply a repository-wide formatting churn until that convention is decided.
+
+
+### #99 farmstead rescue / dire-wolf quest
+
+The branch contains a genuinely distinct campaign beat: Reyna's recruitment is moved from the simple grain-raiding bear quest to a three-stage missing-child rescue (find Tessa's trail, rescue her, defeat the dire wolf). The new `FarmsteadDireWolfEncounter` service and scene staging are not present in current `dev_2`.
+
+The branch's `hollow_tankard.gd` and test files are older snapshots, so this is not a safe whole-file merge. Its companion-content change replaces `reyna_bear_hunt` with `reyna_dire_wolf_hunt`; that is a campaign design/content decision to carry forward deliberately, not a mechanical merge conflict to resolve automatically.
+
+The new dire-wolf helper repeats two issues seen in the current bear helper:
+- It sets a large explicit max health and also adds `health` skill ranks, which `register_character()` applies again through `sync_skill_effects()`.
+- It marks every character in the simulation dormant at encounter start, but only restores the party members at finish.
+
+**Port recommendation:** retain the Tessa rescue as a distinct quest improvement, but port its quest-state and scene logic onto current `dev_2`. Make the encounter use the shared animal profile/registration path if #110 is accepted, avoid double-applying health skills, and make encounter participation restore each character's prior dormant/side state.
+
+### Existing `dev_2` farmstead bear issues
+
+The current `scripts/simulation/farmstead_bear_encounter.gd` has the same health calculation problem: it sets the bear to 180 HP and assigns four `health` ranks, then `WorldSimulation.register_character()` calls `sync_skill_effects()`, adding another 40 HP. The registered bear therefore has 220 HP, not the declared 180.
+
+The encounter also sets every simulation character's `combat_dormant` flag to true and does not restore the previous values for non-party characters in `finish()`. This is already in the integration baseline and should be fixed independently of whether #99 is ported.
+
+### #87 canonical character assembly schema
+
+The schema migration is valuable, but the current branch's schema-v2 `hollowmere_npcs.json` contains 14 records while current `dev_2` schema-v1 contains 22. The eight records missing from the branch are:
+- Ser Aldric Thorne
+- Nix Sharpear
+- Warlord Grukk Ironhide
+- Reyna Fletcher
+- Mirabel Quill
+- Fenn Oakheart
+- Brother Alden
+- Snik Fangtooth
+
+The branch also deletes `hollowmere_loadouts.json` and moves inventory/equipment into the character definitions. That is a sensible canonical-source direction, but it must migrate all 22 current records and preserve current quest/companion additions. Do not apply the schema-v2 JSON as-is.
+
+The branch adds a new `CharacterAssemblyResolver` and substantial Blender/Ara tooling. Its current-head CI evidence is only the average-body anatomy review; the Godot validation and local Blender/in-game acceptance gates remain open.
+
+### #88 strict Godot validation runner
+
+The latest #88 Godot workflow failed in `tests/test_character_appearance.gd:73`: the synthetic bra material's applied tint did not equal `appearance.bra_tint`. A later assertion also emitted `Parameter "material" is null`. The test script subsequently printed a success message, but the new `tools/ci/run_godot_checked.sh` correctly converted the emitted script/material errors into a failing workflow.
+
+The hex-grid and simulation tests passed in that same run. The strict runner is a useful CI improvement to port to current `dev_2` (after reviewing its detection patterns), while the appearance test/material defect must be fixed rather than weakening the runner.
