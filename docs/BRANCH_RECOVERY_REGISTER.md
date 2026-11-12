@@ -1186,3 +1186,10 @@ GitHub now returns 136 live branch names and 20 open PRs. All 136 branch names a
 - PR #130 (`integration/animal-mount-controls-dev2`) is a selective adaptation of the remaining player-facing mount code from #110, based on the current `dev_2` head after #129. It adds R/HUD mount toggle, registered actor lookup, rider reparenting, camera follow, mount facing/movement handling, forced-dismount detachment and post-load reattachment. It deliberately does not copy the old HollowTankard snapshot.
 - PR #130 adds an isolated mount presentation test host/actor and tests explicit mount/dismount, seat transform, rider movement event handling, facing, forced dismount and restoration after load. Godot workflow run `43206955005` was in progress at the time of this update; no test pass or merge claim yet.
 - The seat remains a provisional fixed `(0, 1.35, 0)` offset from #110. PC visual review against the horse GLB and both accepted male/female rigs remains a merge gate. No saddle socket, animation retargeting or dynamic wilderness creature registration is claimed.
+
+
+## Latest live inventory after mount-control recovery PR — 12 November 2026
+
+- Current GitHub branch count: 137. All 137 names are represented in this register, including `integration/animal-mount-controls-dev2`.
+- Current open PR count: 20 (three target `dev_2`, 16 target `dev`, one targets the dress-review branch). PR #128 and #129 are merged; PR #130 is the new mount-control/presentation recovery candidate.
+- PR #130 head is `e010b1ed2fc3fa7397d85756c52656f7b1e6cb5a`; Godot validation run `43206955005` was still in progress at the time of this note. Its full CI and new mount-presentation tests must pass before considering merge; provisional seat transform still requires PC visual acceptance.
