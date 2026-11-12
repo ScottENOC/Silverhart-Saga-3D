@@ -62,6 +62,17 @@ var temp_reduction: int = 0
 var caught_off_guard: bool = false
 var climbing: bool = false
 var reaction_blocked: bool = false
+## Persistent combat status state; durations are remaining Time Points.
+var poison_remaining_tp: float = 0.0
+var poison_damage_per_tp: float = 0.0
+var poison_damage_remainder: float = 0.0
+var poison_source_id: String = ""
+var wither_remaining_tp: float = 0.0
+var wither_damage_per_tp: float = 0.0
+var wither_damage_remainder: float = 0.0
+var wither_source_id: String = ""
+var sunder_stacks: int = 0
+var hobbled_stacks: int = 0
 var parries_remaining: int = 3
 var sidesteps_remaining: int = 3
 var tags: Array[String] = []
@@ -205,6 +216,18 @@ func apply_healing(amount: int) -> String:
         return "revived_from_unconscious"
     return "healed"
 
+## Poison is lethal at zero HP in the source game, unlike ordinary damage.
+func apply_poison_damage(amount: int) -> String:
+    if not alive or amount <= 0:
+        return "unchanged"
+    health -= amount
+    if health <= 0:
+        alive = false
+        unconscious = false
+        lifecycle_changed.emit(id, "died_from_poison")
+        return "died"
+    return "poisoned"
+
 func can_start_combat_turn() -> bool:
     return ActionEconomy.can_start_combat_turn(
         time_points, alive, unconscious, is_rider, combat_dormant
@@ -286,6 +309,16 @@ func to_dict() -> Dictionary:
         "caught_off_guard": caught_off_guard,
         "climbing": climbing,
         "reaction_blocked": reaction_blocked,
+        "poison_remaining_tp": poison_remaining_tp,
+        "poison_damage_per_tp": poison_damage_per_tp,
+        "poison_damage_remainder": poison_damage_remainder,
+        "poison_source_id": poison_source_id,
+        "wither_remaining_tp": wither_remaining_tp,
+        "wither_damage_per_tp": wither_damage_per_tp,
+        "wither_damage_remainder": wither_damage_remainder,
+        "wither_source_id": wither_source_id,
+        "sunder_stacks": sunder_stacks,
+        "hobbled_stacks": hobbled_stacks,
         "parries_remaining": parries_remaining,
         "sidesteps_remaining": sidesteps_remaining,
         "tags": tags.duplicate(),
@@ -371,6 +404,16 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.caught_off_guard = bool(data.get("caught_off_guard", false))
     state.climbing = bool(data.get("climbing", false))
     state.reaction_blocked = bool(data.get("reaction_blocked", false))
+    state.poison_remaining_tp = maxf(0.0, float(data.get("poison_remaining_tp", 0.0)))
+    state.poison_damage_per_tp = maxf(0.0, float(data.get("poison_damage_per_tp", 0.0)))
+    state.poison_damage_remainder = maxf(0.0, float(data.get("poison_damage_remainder", 0.0)))
+    state.poison_source_id = String(data.get("poison_source_id", ""))
+    state.wither_remaining_tp = maxf(0.0, float(data.get("wither_remaining_tp", 0.0)))
+    state.wither_damage_per_tp = maxf(0.0, float(data.get("wither_damage_per_tp", 0.0)))
+    state.wither_damage_remainder = maxf(0.0, float(data.get("wither_damage_remainder", 0.0)))
+    state.wither_source_id = String(data.get("wither_source_id", ""))
+    state.sunder_stacks = maxi(0, int(data.get("sunder_stacks", 0)))
+    state.hobbled_stacks = maxi(0, int(data.get("hobbled_stacks", 0)))
     state.parries_remaining = clampi(int(data.get("parries_remaining", 3)), 0, 3)
     state.sidesteps_remaining = clampi(int(data.get("sidesteps_remaining", 3)), 0, 3)
     var saved_tags: Array = data.get("tags", [])

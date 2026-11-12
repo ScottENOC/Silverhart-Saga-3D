@@ -32,4 +32,4 @@ static func step_cost(map_data: HexMapData, from_hex: Vector2i, to_hex: Vector2i
     var elevation_multiplier := TerrainElevationRules.movement_multiplier(map_data, from_hex, to_hex, state)
     if is_inf(elevation_multiplier):
         return INF
-    return base_cost_for(state) * terrain_multiplier(map_data, to_hex, state) * elevation_multiplier
+    return base_cost_for(state) * terrain_multiplier(map_data, to_hex, state) * elevation_multiplier * StatusEffectRules.movement_multiplier(state)
