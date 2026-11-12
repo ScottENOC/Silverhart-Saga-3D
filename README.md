@@ -47,6 +47,7 @@ With Godot installed, run:
 ```powershell
 godot --headless --path . --script res://tests/test_hex_grid.gd
 godot --headless --path . --script res://tests/test_simulation.gd
+godot --headless --path . --script res://tests/test_save_manager.gd
 ```
 
-The test scripts are included but have not yet been executed in this environment. See `docs/` for the technical decisions and milestone plan.
+The test scripts are included but have not yet been executed in this environment. See `docs/` for the technical decisions and milestone plan, including `docs/save_system.md`.
