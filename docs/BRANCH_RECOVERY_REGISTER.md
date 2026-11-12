@@ -1,7 +1,8 @@
 # Branch recovery register — deep audit supplement (12 November 2026)
 
-**Integration baseline:** `dev_2` at `6e6aaa78a9b5031978dfa239f43441d58f4ea6be` (PR #124 equipment-rules port).
-**Live branch inventory:** 131 branches, refreshed 12 November 2026.
+**Initial integration baseline:** `dev_2` at `6e6aaa78a9b5031978dfa239f43441d58f4ea6be` (PR #124 equipment-rules port).
+**Latest integration baseline:** `dev_2` at `374d4a2894e0c118c4a35d075a23ca568ff51209` (PR #127 equipment appearance/heraldry utility).
+**Live branch inventory:** 134 branches, refreshed 12 November 2026.
 **Scope of this supplement:** source-tree and full recursive Git tree comparisons for the large orphan branches listed below. This supplements `FEATURE_BRANCH_AUDIT_2026-11-12.md`; it does not declare the repository-wide audit complete.
 
 ## Method and interpretation
@@ -11,7 +12,7 @@
 - A path existing on both branches does not mean its contents are equivalent. For important paths, blob SHAs and file sizes were checked.
 - A path absent from `dev_2` is a recovery candidate, not automatically a merge candidate. It may be obsolete tooling, an old workflow or a prototype.
 - Binary GLB/PNG files are represented in Git tree listings; text fetches cannot be used to inspect binary contents. Visual acceptance remains separate from CI.
-- No branch was deleted, reset or force-pushed during this audit. No code was merged in this supplement.
+- No branch was deleted, reset or force-pushed during the initial comparison pass. Subsequent user-directed selective code merges are recorded below; original feature branches remain intact.
 
 ## Deep comparison findings
 
@@ -136,7 +137,7 @@
 
 ## Remaining work before audit completion
 
-1. Continue branch-by-branch review of all 131 live branches, including small branches and branches with no unique commits. For each, distinguish commit ancestry, tree paths, blob equality, changed logic/assets, CI evidence, dependencies and recovery route.
+1. Complete the remaining full branch-by-branch review of all 134 live branches, including small branches and branches with no unique commits. The register now has name coverage for all 134; full tree/blob/asset/test/dependency review is still required for the remaining candidates.
 2. Review all open PRs at their current head SHA; the earlier PR register is a snapshot, not current status.
 3. Inspect remaining deployment/workshop branches and exact current Pages artifact paths. Keep deployment-source choice separate from feature integration.
 4. Complete exact comparisons of all unique tests and GLTF/GLB/texture assets on the remaining candidate branches.
@@ -214,7 +215,7 @@ These checks extend the branch-by-branch register beyond the first orphan batch.
 - Compare: 14 ahead / 102 behind; seven changed files; 314 tracked paths; seven absent paths.
 - The distinct missing deliverable consists of `scripts/characters/equipment_appearance.gd`, `shaders/shield_heraldry.gdshader`, `tests/test_equipment_appearance.gd`, and its design document. The other three missing paths are the old modular assembler and Wren blockout tools.
 - The helper is a library candidate, not yet proven to be used by the current Ara actor/equipment presentation pipeline. The branch tests use synthetic meshes/materials; they do not prove that exported shield/helmet assets expose stable metadata or that the game invokes the helper.
-- **Disposition:** genuine selective-salvage candidate. Preserve all branch work. Recover helper, shader, tests and doc as a separate integration branch only after confirming stable surface identifiers, wiring into runtime equipment presentation, tests against actual exported assets and visual acceptance.
+- **Disposition revised:** selective helper/shader/test/doc slice was recovered and merged by PR #127. The helper is now available in current `dev_2`, but is not yet claimed to be wired into the runtime equipment presentation path. The branch's armour-prop generator and mesh changes remain with the separate modelling stream.
 
 ### `feat/tapered-split-dress-v2`
 
@@ -238,7 +239,7 @@ These checks extend the branch-by-branch register beyond the first orphan batch.
   - Tests: four geography/road/settlement/terrain manifest tests.
   - Strict runner: `tools/ci/run_godot_checked.sh`.
 - This is not merely an old snapshot: the missing geography/road/settlement data and builder/test suite are a substantial source-content preservation package. Earlier CI evidence says hex-grid/simulation tests passed but Godot workflow #42994727983 failed on a synthetic clothing material tint/null-material assertion. The strict runner correctly surfaced errors; do not weaken it to obtain green CI.
-- **Disposition:** high-value deferred recovery candidate. Preserve all source data, docs, preview tools and tests. First review the source fidelity and schema against current world/map data, inspect the strict runner's error-detection behaviour, then port geography data, preview/builders and tests in separate steps. This is priority-4 world/mechanics work, so do not let it interrupt completion of the current priority-1 branch register.
+- **Disposition revised:** Campaign 2 geography/road/settlement data, previews/builders, tests and strict runner were selectively recovered by PR #125 and merged into current `dev_2`. The original branch remains intact as provenance for its unrelated world-simulation, appearance and other snapshots; do not merge those wholesale. This is world data plus development previews, not a completed playable world-travel system.
 
 ### `feature/farmstead-bear-creature-model`
 
@@ -256,7 +257,7 @@ These checks extend the branch-by-branch register beyond the first orphan batch.
 - Riding branch tree: 1,066 paths; three paths absent from current `dev_2`: `.github/workflows/riding-preview.yml`, `scripts/simulation/animal_catalog.gd`, and `tests/capture_riding_preview.gd`.
 - Both branches also change existing `CharacterState`, `WorldSimulation`, `HollowTankard`, village and creature actor files. Those are stale snapshots and must be reviewed as selective diffs, not copied.
 - The animal catalogue and riding-preview capture are genuinely missing paths; the current tree's farm/wolf creature actor is not an animal simulation catalogue or mount lifecycle.
-- **Disposition:** preserve both branches and treat riding as the continuation. After priority-1 audit completion, create a fresh integration branch from current `dev_2`, recover the catalogue and tests, and port simulation changes by function. Hard gates remain the double-applied Health ranks, atomic rider/mount lifecycle cleanup on death/incapacitation, occupancy transfer and save/load after forced dismount. No current-head workflow evidence was found in the previous audit snapshot; rerun validation on the exact candidate commit before merge.
+- **Disposition revised:** animal catalogue, mount state, riding simulation and lifecycle/save-load regression coverage were selectively recovered by PR #126 and merged into current `dev_2`. The old branches remain intact. The distinct riding-preview workflow/capture script was not merged; preserve it for later visual review, noting that it currently uses a fixed parent/offset rather than a production mount-visual attachment API.
 
 ### `feature/skill-magic-foundation`
 
@@ -325,19 +326,19 @@ The user confirmed that the separate character/clothing/hair/equipment modelling
 - Recovered geography, road and settlement manifests, preview scenes/scripts, settlement builder, terrain data, source/design documentation, tests, strict Godot output checker, CI coverage and main-menu preview entry points.
 - This is **world data plus development previews**, not a completed playable world-travel system. The source branch `feature/full-world-port-foundation` remains intact. Its unrelated stale WorldSimulation/HollowTankard/appearance snapshots were not merged.
 
-### Animal riding — selective integration PR in validation
+### Animal riding — selectively integrated
 
-- New branch `integration/animal-riding-dev2`, PR **#126**, targets `dev_2`; current head after lifecycle-fixture correction is `3b57f9c7ac862bab97d07b5a7ce70ac9847ef6f0`.
-- Ported animal catalogue and persistent animal/mount state into the current CharacterState/WorldSimulation architecture; retained current building, status-effect, save, reaction and progression code rather than copying stale snapshots.
-- Corrected the source branch's double-applied Health issue: horse/wolf use 10 base HP plus their innate Health ranks once (nominal 50/20 HP).
-- Added mount/dismount, mount-profile movement/TP use, reciprocal save/load links, turn-end TP capping, and forced detachment when either rider or mount is incapacitated. Added regression tests for those paths.
-- PR #126 is ready for review; current-head Godot 4.7.2 workflow is running. Do not merge until the exact latest head passes and any failures are resolved.
-- This port is simulation/runtime foundation only; player-facing riding controls and final mount visual/animation attachment remain separate work.
+- PR **#126** merged after the exact current-head Godot 4.7.2 workflow passed (run `43187949002`), at `69a0f715a9b01efca3aec017cc703fc62e317ffb`.
+- Ported animal catalogue and persistent animal/mount state into current CharacterState/WorldSimulation architecture; retained current building, status-effect, save, reaction and progression code rather than copying stale snapshots.
+- Corrected the source branch's double-applied Health issue: horse/wolf use 10 base HP plus innate Health ranks once (nominal 50/20 HP).
+- Added mount/dismount, mount-profile movement/TP use, reciprocal save/load links, turn-end TP capping and forced detachment when either rider or mount is incapacitated, with regression tests.
+- This is simulation/runtime foundation only; player-facing riding controls and final mount visual/animation attachment remain separate work. The original PR #110 remains open for its separate preview workflow/capture disposition.
 
-### Equipment appearance/heraldry — isolated recovery candidate
+### Equipment appearance/heraldry — selectively integrated
 
-- `EquipmentAppearance`, shield heraldry shader, tests and documentation remain unique to `feat/equipment-materials-heraldry`.
-- The helper is not yet proven to be wired into the current Ara actor/equipment presentation path. It is separate from generating equipment meshes, but the user has another workstream handling equipment modelling. Keep this isolated; only merge the helper/test slice after checking for conflicts and confirming the intended runtime integration point. Do not import the branch's armour-prop generator or other modelling workflow changes as part of this audit.
+- PR **#127** merged into `dev_2` at `374d4a2894e0c118c4a35d075a23ca568ff51209`; refreshed full Godot 4.7.2 workflow run `43188654261` passed.
+- Merged only the EquipmentAppearance helper, shield heraldry shader, focused test, scope/usage documentation and CI invocation.
+- The helper is available in current `dev_2`, but is not yet claimed to be invoked by runtime equipment presentation. Armour-prop generation, shield/helmet GLBs and actor/equipment visual wiring remain with the separate modelling stream.
 
 ### Combat initiative — already integrated
 
@@ -356,10 +357,10 @@ The user confirmed that the separate character/clothing/hair/equipment modelling
 - Confirmed green steps included engine import, hex grid, the full simulation/movement/combat/animal/riding test suite, building/door, SaveManager, campaign restore, character appearance, wilderness/creature tests, all Campaign 2 tests and all scene smoke tests.
 - The old `feature/animal-riding-validation` branch and PR #110 remain intact pending the broader audit of its preview-capture workflow and any remaining branch-only material. Do not delete the branch or blindly merge the old PR.
 
-### Equipment appearance — refresh on current baseline
+### Equipment appearance — merge completed
 
-- PR **#127** has been refreshed after #126 merged. Its integration branch is now based on the latest `dev_2` commit and its compare against `dev_2` contains only the four helper/shader/test/doc files plus the one CI test step.
-- New current-head Godot validation is running. The earlier pre-refresh run passed, but the refreshed head must pass before merge.
+- PR **#127** was refreshed after #126, passed the current-head Godot 4.7.2 workflow `43188654261`, and merged at `374d4a2894e0c118c4a35d075a23ca568ff51209`.
+- Only the helper, shader, focused test, scope documentation and CI invocation were merged. Runtime asset wiring remains with the separate modelling stream.
 
 
 ### Equipment appearance/heraldry — utility integrated
