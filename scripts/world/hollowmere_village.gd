@@ -269,11 +269,40 @@ func _create_wilderness_animals() -> void:
 	_spawn_creature("WildernessFox", "fox", "passive_wildlife", Vector2i(-29, -30), 0.72)
 	_spawn_creature("WildernessWolf", "wolf", "predator", Vector2i(39, 39), 0.76)
 
+## Registers the existing exterior animal actors in the campaign simulation.
+## They remain neutral and dormant until an encounter explicitly activates them.
+func register_animals_with_simulation(simulation: WorldSimulation) -> Dictionary:
+	if simulation == null:
+		return {"ok": false, "reason": "missing_simulation", "registered_ids": []}
+	var registered_ids: Array[String] = []
+	var skipped: Array[Dictionary] = []
+	for child in get_children():
+		var actor := child as CreatureActor
+		if actor == null:
+			continue
+		var animal_id := "animal_" + actor.name.to_lower()
+		var state := actor.create_simulation_state(animal_id, actor.name, actor.axial_hex)
+		if state == null:
+			skipped.append({"actor": actor.name, "reason": "missing_animal_profile"})
+			continue
+		state.side = "neutral"
+		state.combat_dormant = true
+		if not state.tags.has("ambient_animal"):
+			state.tags.append("ambient_animal")
+		var result := simulation.register_animal(state)
+		if not bool(result.get("ok", false)):
+			skipped.append({"actor": actor.name, "reason": String(result.get("reason", "registration_failed"))})
+			continue
+		actor.simulation_state = state
+		registered_ids.append(state.id)
+	return {"ok": skipped.is_empty(), "registered_ids": registered_ids, "skipped": skipped}
+
 func _spawn_creature(actor_name: String, kind: String, behaviour_name: String, hex: Vector2i, scale_factor: float, asset_filename: String = "") -> void:
 	var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
 	actor.name = actor_name
 	actor.creature_kind = kind
 	actor.behaviour = behaviour_name
+	actor.axial_hex = hex
 	actor.model_scale = scale_factor
 	var filename := asset_filename if not asset_filename.is_empty() else "%s.gltf" % kind.capitalize()
 	actor.model_path = "res://art/creatures/quaternius/%s" % filename
