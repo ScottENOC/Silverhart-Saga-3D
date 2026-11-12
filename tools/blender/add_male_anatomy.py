@@ -747,6 +747,7 @@ def main():
     skin = merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone)
     if skin.data.color_attributes.get("Color") is None:
         raise RuntimeError("Male anatomy vertex colours were lost while joining anatomy into the Ara skin")
+    skin.data.color_attributes.active_color = skin.data.color_attributes.get("Color")
     skin_material = next((m for m in skin.data.materials if m and "skin" in m.name.lower()), None)
     wire_vertex_colour_to_skin_material(skin_material, "Color")
     skin["anatomy_colour_export_validation"] = "Color attribute present and connected to Principled Base Color"
