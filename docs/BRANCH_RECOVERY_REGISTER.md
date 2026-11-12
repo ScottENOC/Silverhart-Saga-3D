@@ -930,3 +930,34 @@ These are audited for retention only; they belong to the other active character/
 - Player creator branches are superseded by current code and stale manifest assumptions.
 - Cosmo evaluation tooling is intentionally excluded; generated assets remain an asset/provenance concern only.
 - No branches were merged or closed in this pass.
+
+
+## Audit-document, CI and repository-maintenance branches — focused review, 12 November 2026
+
+### Skill/spell audit documents
+
+- `audit/skill-effect-branch-cross-reference` (1 / 28) and `audit/skill-effect-parity-update` (3 / 25) modify `docs/SKILL_SPELL_IMPLEMENTATION_AUDIT.md`; `audit/skill-spell-implementation-baseline` is behind current with zero commits ahead. Current `dev_2` already contains a larger, updated version of the skill/spell implementation audit (about 85.9 KB vs 37–45 KB on these branches), so the older copies must not replace it.
+- `audit/spell-parity-and-test-findings` adds `docs/SPELL_PARITY_AUDIT.md`; current `dev_2` already has a larger current copy (about 15.8 KB vs 14 KB on the branch), so it is integrated/evolved.
+- `docs/content-parity-audit` adds a 29 KB `docs/CONTENT_PARITY_AUDIT.md` which is not currently present in `dev_2`. It is a useful broad 2D-content parity inventory, but its baseline is `dev` at an earlier commit and it is explicitly an initial audit rather than accepted implementation evidence.
+- **Disposition:** preserve the current skill/spell and spell-parity docs; no re-merge. Keep the content-parity audit as a unique documentation salvage candidate. Before bringing it into current docs, update its baseline/evidence against `dev_2`, reconcile its status terms with the current porting register and retain its distinction between code presence and tested/accepted gameplay.
+
+### CI and test branches
+
+- `test/save-manager-hardening` has one commit ahead, but its `tests/test_save_manager.gd` is byte-identical to current `dev_2`; no port.
+- `test/save-restore-scene` and `test/save-restore-scene-dev2` contain earlier save-restore runner/boot-scene iterations. The current restore integration test was already recovered by PR #120 and passed; do not merge the old runner or HollowTankard diagnostic snapshots.
+- `test/additional-skill-effect-coverage` is an older `tests/test_simulation.gd` snapshot. Current tests include the additional racial/movement effect assertions plus newer status, vision, animal, reaction and lifecycle coverage. Do not replace the current suite.
+- `ci/enable-dev2-validation` is superseded by the current `godot-validation.yml`, which already triggers for `dev` and `dev_2` and includes the later simulation, save, building, wilderness, creature, map and character checks.
+- `ci/incremental-character-pipeline` is a stacked/older character pipeline and cache iteration (30 / 164; ten paths), with anatomy and Workshop changes. Keep it with the separate modelling stream; do not merge workflow or Blender snapshots during this audit.
+- `chore/consolidate-preview-and-review-workflows` is an older workflow consolidation proposal, including deletion of review workflows. Current workflow dependencies have evolved; do not apply its deletions wholesale. Its `docs/CI_WORKFLOWS.md` is absent from current and may be useful as a source inventory, but must be refreshed against the actual current workflow graph before inclusion.
+
+### Repository maintenance
+
+- `chore/repository-formatting-rules` adds `.editorconfig` and modifies `.gitattributes`; both files are byte-identical to current `dev_2`. No merge needed. The editor config declares tabs for GDScript/scenes/resources, but current files still contain spaces in many places; configuration presence is not proof of formatting compliance or CI enforcement.
+- `chore/remove-huggingface-deployment` removes two old HF workflows. Current Pages deployment has evolved; do not merge historical deletions without checking live workflow paths. HF deployment is no longer the active preview approach.
+- `test/chatgpt-session-write-access-20261105` is behind current `dev_2` with zero commits ahead; no recovery needed.
+
+### Current disposition from this group
+
+- Current skill/spell audits and save/CI test coverage are already represented or superseded.
+- `docs/CONTENT_PARITY_AUDIT.md` and `docs/CI_WORKFLOWS.md` are the two distinct documentation candidates identified here; preserve their branches and update their evidence before deciding whether to add them to current docs.
+- No branch was merged or closed in this pass.
