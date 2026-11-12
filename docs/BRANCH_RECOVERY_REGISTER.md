@@ -1321,3 +1321,15 @@ The branch's `HollowmereVillage.md` is byte-identical to current `dev_2`. Its 13
 - `feature/farm-wildlife-creatures` remains a candidate for final source-level reconciliation only; its farm quest/creature actor logic overlaps already integrated current systems and must not be merged wholesale.
 
 **Next audit focus:** reconcile the remaining non-modelling opening-village/deployment changes and refresh the source-content census against `Hex-crpg/main` and current `dev_2`. Keep modelling work out of this stream. No changes to `dev` or `main`; no feature branches deleted.
+
+
+### Focused non-modelling reconciliation — opening-village lineage
+
+Compared `feature/opening-village`, `feature/shared-character-system` and `feature/iphone-hollowmere-ara-preview` against current `dev_2` recursive trees.
+
+- Their shared core/world files (`scripts/simulation/character_state.gd`, `scripts/simulation/world_simulation.gd`, `scripts/core/hex_map_data.gd`, `scripts/world/hollow_tankard.gd`, `scripts/world/hollowmere_village.gd`, `scripts/world/hollowmere_village_data.gd`, `scripts/world/world_root.gd`, and associated tests) are older snapshots from a much earlier integration base. The current files have since evolved substantially; do not copy these files or merge the branches wholesale.
+- The opening-village branch's exterior scene script is an early procedural blockout (13.8 KB); current `dev_2` has the evolved 3D village implementation and later world systems. The branch's village data/test snapshots also predate current geography, settlement and wilderness work.
+- The additional workflows are predominantly Ara character generation/review, male anatomy, old Hollowmere capture/validation, and Hugging Face storage/deployment. They do not represent missing campaign runtime functionality. Hugging Face deploy scripts/workflows are superseded by the current GitHub Pages workflow and should remain historical.
+- `feature/shared-character-system` and `feature/iphone-hollowmere-ara-preview` share the same older core lineage; their extra distinct files are primarily modelling/preview pipeline work, which is explicitly outside this audit's scope.
+- No unique non-modelling runtime code or regression test from these three branches has been identified for selective recovery. Preserve all three source branches; mark their old world/simulation snapshots as superseded. If any specific original village layout/detail is still desired, compare it as a content/design reference rather than porting the old implementation.
+
