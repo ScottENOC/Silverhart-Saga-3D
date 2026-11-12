@@ -40,7 +40,7 @@ The table is a first-pass disposition, not approval to merge. “CI” refers to
 | #110 | `feature/animal-riding-validation` — animal profiles and riding | 30 commits; based on old `dev`; no workflow run found for the current head SHA. The `feature/animal-attributes` branch is its direct predecessor; riding branch is one commit ahead. | **Revalidate and port to dev_2.** Run current-head tests and inspect rider screenshots before merge. Animal autonomous AI and broader mounted combat remain out of scope. |
 | #99 | `feature/farmstead-bear-creature-model` — Tessa rescue / dire wolf quest | 27 commits; Godot workflow #42987629965 passed on current head. Based on old `dev`; overlaps the skill/companion and farm quest work in #90. | **Reconcile dependencies and port selectively.** Confirm quest state, recruitment gates, scene integration and avoid duplicate bear/dire-wolf encounter services. |
 | #96 | `feature/vision-stealth-perception` — fog of war and vision profiling | 27 commits; latest Godot workflow #43131614222 failed. Its spatial LOS foundation has been replaced by the tested, merged #122 foundation. | **Do not merge wholesale.** Salvage fog presentation only after designing explored-state persistence, scene lifecycle and the separation of visibility, detection, character memory and AI knowledge. |
-| #91 | `feature/equipment-gameplay-stat-integration` — equipment stat rules | 5 commits; Godot workflow #42738211492 passed on current head. Based on old `dev`; changes are relatively focused. | **High-priority selective port.** Review against current item/equipment and combat APIs, then rebase/port and rerun tests on `dev_2`. |
+| #91 | `feature/equipment-gameplay-stat-integration` — equipment stat rules | Historical source; useful rules selectively ported in PR #124, which passed current Godot 4.7.2 CI and merged to `dev_2`. | **Superseded by PR #124.** PR #91 closed; original feature branch retained. |
 | #90 | `feature/skill-magic-foundation` — skill catalogue, progression, NPC builds and quest follow-up | 70 commits; current head has no matching workflow run. Latest branch workflow evidence found was for an earlier SHA. Overlaps #99, animal/companion work, and the separate missing-skill runtime branch. | **Do not merge as one unit.** Audit and split into skill catalogue/progression core, NPC build policy, companion persistence, and farm quest/UI work. Validate each slice against the current character-state architecture. |
 | #89 | `docs/content-census` — source content census | 2 commits; documentation-only; no workflow required. Based on old `dev`. | **Port/update documentation.** Reconcile its counts and findings against current `dev_2` before adding it to the current docs. |
 | #88 | `feature/full-world-port-foundation` — Campaign 2 world foundation | 47 commits; character/audio/combat auxiliary workflows passed, but Godot workflow #42994727983 failed. Based on old `dev`. Large preview/data slice, not a traversable campaign. | **Fix and stage.** Review failure logs, validate geography and scene integration, then port a playable Hollowmere–Millbrook slice rather than the whole world dump. |
@@ -141,7 +141,7 @@ Keep these as explicit visual acceptance gates rather than treating CI success a
 8. Run the full Godot 4.7.2 suite after each integration batch; perform PC visual acceptance for asset/scene work.
 9. Promote from `dev_2` only after the integrated baseline is coherent and stable.
 
-## Complete branch-name inventory (130 live branches)
+## Complete branch-name inventory (131 live branches)
 
 ```text
 audit/feature-branch-consolidation
@@ -259,6 +259,7 @@ fix/skill-effect-test-rank-fixtures
 fix/split-game-export-and-pages-deploy
 fix/workshop-dress-and-game-loading-stages
 fix/wren-lace-fishnet-and-anatomy
+integration/equipment-rules-dev2
 integration/hollowmere-dev-visual-review
 integration/hollowmere-npc-visuals
 integration/hollowmere-world-simulation
@@ -929,3 +930,12 @@ It ports only the unique #91 rule changes onto current files:
 - current-suite regression tests for helmet mitigation/save/load, invalid slot rejection and both hand-conflict directions.
 
 It does not copy #91's stale full-file snapshots or old porting-register docs. PR #124 is open/draft and its Godot 4.7.2 workflow #43177332927 was still running at the time of this update. Do not close historical PR #91 until #124 has passed and merged; retain the original #91 branch permanently.
+
+
+## Equipment rules integration completed
+
+PR #124 is confirmed merged into `dev_2` at `6e6aaa78a9b5031978dfa239f43441d58f4ea6be`. Its Godot 4.7.2 headless validation workflow #43177332927 passed. The merged changes are equipment type/slot validation, two-handed/offhand conflict protection, equipped helmet mitigation and regression tests against the current simulation code.
+
+Historical PR #91 has been closed as superseded by #124. Its original branch `feature/equipment-gameplay-stat-integration` remains present and is retained permanently. No feature branch was deleted.
+
+At this update, the live GitHub listing contains 131 branches across two pages, and 19 pull requests remain open (including audit PR #123). The active integration baseline is now `dev_2` at `6e6aaa78a9b5031978dfa239f43441d58f4ea6be`.
