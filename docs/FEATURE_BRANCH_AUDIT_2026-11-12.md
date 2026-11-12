@@ -10,7 +10,7 @@ This is the first repository-wide inventory and triage pass for the consolidatio
 
 This is not a claim that every line of every orphan branch has been reviewed. It is an inventory, ancestry comparison and first-pass disposition. Branches marked for salvage still require file-level diff review and validation before code is ported.
 
-**Latest refresh (12 November 2026):** GitHub currently returns 135 live branches and 20 open PRs (including the new animal world-registration recovery branch/PR #128). Current `dev_2` head is `374d4a2894e0c118c4a35d075a23ca568ff51209`. The initial baseline SHA above is retained as the audit-start reference. All 135 branch names are now represented in `docs/BRANCH_RECOVERY_REGISTER.md`, but exact tree/blob/test/dependency review is still incomplete. PR #123 remains a draft against `dev_2`; PR #121 remains a draft pending visual acceptance and needs a fresh base comparison before any merge.
+**Latest refresh (12 November 2026):** GitHub currently returns 137 live branches and 20 open PRs (including the new animal world-registration recovery branch/PR #128). Current `dev_2` head is `374d4a2894e0c118c4a35d075a23ca568ff51209`. The initial baseline SHA above is retained as the audit-start reference. All 137 branch names are now represented in `docs/BRANCH_RECOVERY_REGISTER.md`, but exact tree/blob/test/dependency review is still incomplete. PR #123 remains a draft against `dev_2`; PR #121 remains a draft pending visual acceptance and needs a fresh base comparison before any merge.
 
 ## Rules for this audit
 
@@ -1124,3 +1124,8 @@ The branch recovery register now contains explicit dispositions for all 134 live
 ## Inventory refresh after PR #128 — 12 November 2026
 
 The current inventory is 135 branches / 20 open PRs. PR #128 recovers the missing registration of the ten exterior Hollowmere animals into the campaign simulation. Its initial full Godot run passed, but the updated head with a mount-lookup group assertion is still under fresh validation. PR #110 remains open because it also contains mount-toggle and rider attachment/detachment presentation code not yet selectively ported; the old HollowTankard snapshot must not be merged wholesale. The recovery register records the exact remaining port boundary.
+
+
+## Animal mount presentation recovery — 12 November 2026
+
+PR #130 selectively ports the remaining mount toggle and rider presentation from #110 after #126, #128 and #129. It includes R/HUD controls, camera follow, rider attach/detach, forced dismount and post-load reattachment, plus isolated regression tests. The seat offset remains provisional and requires PC visual acceptance. Current inventory is 137 live branches / 20 open PRs; PR #130's Godot 4.7.2 validation run `43206955005` was pending at the time of this refresh.
