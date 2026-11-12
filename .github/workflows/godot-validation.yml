@@ -110,3 +110,13 @@ jobs:
         run: godot --headless --path . --scene res://scenes/main.tscn --quit-after 10
       - name: Smoke-test opening village
         run: godot --headless --path . --quit-after 10
+      - name: Capture mounted rider visual review
+        run: xvfb-run -a godot --path . --rendering-method gl_compatibility --script res://tests/capture_mount_review.gd
+      - name: Upload mounted rider visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mounted-rider-visual-review
+          path: mount-review.png
+          if-no-files-found: warn
+          retention-days: 7
