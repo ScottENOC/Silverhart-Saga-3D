@@ -360,3 +360,24 @@ The user confirmed that the separate character/clothing/hair/equipment modelling
 
 - PR **#127** has been refreshed after #126 merged. Its integration branch is now based on the latest `dev_2` commit and its compare against `dev_2` contains only the four helper/shader/test/doc files plus the one CI test step.
 - New current-head Godot validation is running. The earlier pre-refresh run passed, but the refreshed head must pass before merge.
+
+
+### Equipment appearance/heraldry — utility integrated
+
+- Selective recovery PR **#127** merged into `dev_2` at `374d4a2894e0c118c4a35d075a23ca568ff51209`.
+- Refreshed current-head Godot 4.7.2 workflow `43188654261` passed. This included the new equipment appearance/heraldry test, animal/riding tests, Campaign 2 tests and the full existing simulation/scene suite.
+- Merged only `EquipmentAppearance`, the shield heraldry shader, the focused test and usage/scope documentation, plus its CI invocation.
+- Intentionally did not merge Blender armour-prop generation, shield/helmet GLB changes, or actor/equipment visual wiring. The helper is now available on `dev_2`, but is **not yet claimed to be invoked by the runtime equipment presentation path**. The separate modelling stream can wire it to accepted assets without needing to recover this helper again.
+
+### Four-item reconciliation
+
+| Area | Result on `dev_2` |
+|---|---|
+| Campaign 2 world data/previews | PR #125 merged; full relevant CI passed |
+| Animal profiles/riding simulation | PR #126 merged; full relevant CI passed |
+| Equipment appearance/heraldry utility | PR #127 merged; full relevant CI passed; runtime wiring remains separate |
+| Combat initiative timeline | Already present and wired before this recovery pass; no merge required |
+
+The user's requested four-item recovery is therefore complete at the code/test foundation level. The Cosmo evaluation tooling is excluded by user direction; generated tree assets remain in the current tree. The parallel character/clothing/hair/equipment modelling stream is excluded from this recovery pass.
+
+**This does not close Stage 1 as a whole.** The repository-wide branch inventory/recovery register still needs final review of all remaining branches, open PRs and their dependencies. PR #123 remains draft and must not be treated as the final audit sign-off.
