@@ -647,3 +647,13 @@ Refreshed from the live open-PR list and commit-specific PR-triggered workflow q
 | #5 | a563b16b700131115f7506faf19998b570bdc6b2 | dev | Audio and mode validation passed, run 42159015364 | Audio/menu foundation is already integrated/evolved; Arena remains placeholder. No re-merge. |
 
 Current dev_2 head at this refresh: 374d4a2894e0c118c4a35d075a23ca568ff51209. All PRs above remain open as observed in the live listing; this refresh did not merge or close any PR. The only PR currently targeting dev_2 besides this audit is #121; its base commit predates #125–#127, so a successful older workflow must not be treated as merge approval on the current baseline.
+
+
+### Final focused workflow exception: fix/ara-review-crash-remove-legacy-wren-build
+
+A direct source comparison of this branch's workflows against current dev_2 resolves the earlier open question:
+
+- Its wren-workshop workflow is 522 lines; current dev_2 is 687 lines and includes additional JavaScript validation, packaging and review safeguards. Both generate Ara assets; the old branch does not contribute a unique current Ara build capability.
+- Its godot-web-export workflow is a 131-line early exporter; current dev_2 uses the 329-line combined game/Workshop/props Pages workflow. The branch's exporter is an earlier version of the same lineage as feat/wren-only-pages-two-character-workshop.
+- The current workflow contains no separate legacy Wren model build to remove; it already builds/consumes the Ara runtime package. No unique crash fix was identified that is absent from current validation.
+- **Disposition revised:** superseded workflow history; preserve the branch, no merge. Do not replace current workflows with its older copies.
