@@ -27,14 +27,14 @@ static func apply_on_hit(
         target.reaction_blocked = true
         events.append({"effect": "reaction_block", "target_id": target.id})
 
-    if int(attacker.skills.get("poison_bite", 0)) > 0 and rng.randf() < 0.5:
+    if not is_ranged and int(attacker.skills.get("poison_bite", 0)) > 0 and rng.randf() < 0.5:
         target.poison_remaining_tp = POISON_DURATION_TP
         target.poison_damage_per_tp = POISON_DAMAGE_PER_TP
         target.poison_damage_remainder = 0.0
         target.poison_source_id = attacker.id
         events.append({"effect": "poison", "target_id": target.id, "duration_tp": POISON_DURATION_TP, "damage_per_tp": POISON_DAMAGE_PER_TP})
 
-    if int(attacker.skills.get("life_drain", 0)) > 0:
+    if not is_ranged and int(attacker.skills.get("life_drain", 0)) > 0:
         var drained := mini(damage_dealt, 2)
         var health_before := attacker.health
         attacker.apply_healing(drained)
