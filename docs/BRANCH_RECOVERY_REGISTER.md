@@ -617,3 +617,32 @@ The branch-name reconciliation now confirms that all 134 live branch names are m
 
 
 - audit/feature-branch-consolidation is this audit's own working branch and the source of PR #123; it is a documentation-only recovery record targeting dev_2. Keep the PR draft until the full audit is signed off.
+
+
+## Open pull-request evidence refresh — exact current heads, 12 November 2026
+
+Refreshed from the live open-PR list and commit-specific PR-triggered workflow queries. A zero-run result means the query returned no PR-triggered run for that exact head SHA; it does not prove no manual run ever occurred. Successful CI is not visual acceptance.
+
+| PR | Head SHA | Base | Exact-head PR workflow evidence | Current action/disposition |
+|---:|---|---|---|---|
+| #123 | 40017e46c1e6c6367532e5b0ee6667b338f33f3c | dev_2 (base SHA 143e1b0, now stale) | No PR-triggered run | Draft documentation audit. Keep draft until full Stage 1 sign-off; update/reconcile against current base before merge. |
+| #121 | a614c6e802d5b0aadbb242cb2b7f47324640715c | dev_2 (base SHA 585f914, now stale) | Godot validation passed, run 43151102411 | Hold for PC visual playtest. Before merge, refresh against current dev_2 head 374d4a2 and rerun validation; confirm actual GLB clips, actor alignment, camera and skip. |
+| #110 | 1c2a1039c01b691d6a8408d08b56cde56fb62cbd | dev | No PR-triggered run | Runtime riding selectively superseded by #126; preview workflow/capture remains a distinct candidate. Keep open until its preview disposition is settled; do not merge old simulation snapshots. |
+| #99 | 30672f5c54623fabe0bf37792fed11e275042f51 | dev | Godot validation passed, run 42987629965 | Preserve Tessa rescue/dire-wolf quest as selective salvage; fix health/dormancy lifecycle defects and port against current journal/companion state only after Stage 1. |
+| #96 | 06db693c101f059c469e15a6ff87a16b2d9c25db | dev | No PR-triggered run | Current LOS foundation is #122; fog-of-war presentation/test remain distinct. Do not merge wholesale; design explored/known save-state first. |
+| #90 | ab312d52e535a7cd068c9219636c9d3c05e9765f | dev | No PR-triggered run | Historical skill/magic source; no wholesale merge. Current runtime/data evolved; spellcasting still requires separate implementation. |
+| #89 | 12d2f4677c78890a634e4d1b88d70caa84fb2f50 | dev | No PR-triggered run | Content census/parity docs are useful but stale. Reconcile into one current doc; do not merge unchanged. |
+| #88 | 717ca26d21448aebede343a1fb58e955a128f168 | dev | Audio/mode pass 42994733145; character pipeline pass 42994727840; initiative pass 42994728267; Godot validation failed 42994727983 | Campaign 2 source data/builders/previews selectively recovered by #125. Keep other unique content/provenance; fix strict-runner/material test defect rather than weakening checks. |
+| #87 | 85291ecc6b453e64e436ea5ad8a5caaea712e725 | dev | No PR-triggered run | High-value character assembly source, but no wholesale merge: 14-vs-22 NPC migration, absent body/garment assets, resolver validation/idempotency and base-body strategy remain. Parallel modelling stream owns acceptance. |
+| #77 | 406c601280a3a407fb6bc4978aa2be8507471d02 | dev | Character pipeline passed, run 42523557776 | Hold for dress render/fit review; no unique art path missing from current tree. |
+| #76 | 7124ad01a4b1ac4eaa151d349a9970689e3b758f | dev | Character pipeline passed 42522266864; Godot passed 42522266845 | Helper/shader/test slice already merged via #127. Do not merge old PR; remaining mesh/actor modelling stays separate. |
+| #74 | 194b0b30eb5efd9de06281bc561e00ea466a7991 | dev | Character pipeline passed 42476563807; Godot cancelled 42476563828 | Development/test inventory only. Not production-ready campaign starting inventory; no merge. |
+| #73 | 4b0bbfb2814d52d2c5e1d8f1ba14485d9024b6ee | dev | Character pipeline passed 42473677508; Godot passed 42473677553; Hollowmere Ara build failed 42473677510 | Hold companion model pending asset workflow repair and visual/rig/armour review; no completed GLB path confirmed. |
+| #34 | 6a19ae285689c39a9df909ec7751575a42f13d17 | dev | Village validation passed 42408658352; Godot/Blender passed 42408658216; screenshot capture passed 42408658331 | Historical workflow consolidation only. Do not apply deletions to current workflows wholesale. |
+| #29 | 8956d001f9891bca7350e34520c4b9b7e3759579 | dev | No PR-triggered run | Creator UI is an older snapshot; retain as design lineage, no wholesale merge. |
+| #26 | 4d7fe0ed4288ac4159d7d981984d5507803f822a | fix/dress-selector-and-loading-review | No PR-triggered run | Stacked pipeline/cache branch; preserve and split/revalidate only if a concrete current pipeline gap remains. |
+| #25 | 345f08b60083392a2510629ada6e916f1f32fac4 | dev | Village validation passed 42342623831; screenshot capture passed 42342623865; Godot/Blender passed 42342623840; male anatomy blockout passed 42342624135 | Hold for source/visual review; split deployment from anatomy/clothing; current base has evolved. |
+| #8 | b8a401cd883c41cbf70c095af783fe018c7ff9a0 | dev | No PR-triggered run | Large Wren anatomy/modular clothing source belongs to the parallel modelling stream. Preserve; no merge here. |
+| #5 | a563b16b700131115f7506faf19998b570bdc6b2 | dev | Audio and mode validation passed, run 42159015364 | Audio/menu foundation is already integrated/evolved; Arena remains placeholder. No re-merge. |
+
+Current dev_2 head at this refresh: 374d4a2894e0c118c4a35d075a23ca568ff51209. All PRs above remain open as observed in the live listing; this refresh did not merge or close any PR. The only PR currently targeting dev_2 besides this audit is #121; its base commit predates #125–#127, so a successful older workflow must not be treated as merge approval on the current baseline.
