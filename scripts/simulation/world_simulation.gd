@@ -96,7 +96,6 @@ func register_character(state: CharacterState) -> void:
     _attach_character_lifecycle(state)
 
 
-## Build and register a humanoid NPC using the shared source-derived progression service.
 ## Register an animal through the same character, occupancy, lifecycle and save path.
 func register_animal(state: CharacterState) -> Dictionary:
     if state == null:
@@ -256,6 +255,7 @@ func _movement_state_for(state: CharacterState) -> CharacterState:
         return state
     return mount
 
+## Build and register a humanoid NPC using the shared source-derived progression service.
 func build_and_register_npc(state: CharacterState, options: Dictionary) -> Dictionary:
     if state == null:
         return {"ok": false, "reason": "missing_character"}
@@ -1133,6 +1133,7 @@ func _commit_move(state: CharacterState, destination: Vector2i) -> void:
         if mounted_rider != null and mounted_rider.mounted_animal_id == state.id:
             mounted_rider.axial = destination
             mounted_rider.facing_direction = state.facing_direction
+            character_moved.emit(mounted_rider.id, origin, destination)
     character_moved.emit(state.id, origin, destination)
 func to_dict() -> Dictionary:
     var character_data: Dictionary = {}
@@ -1185,6 +1186,8 @@ func load_dict(data: Dictionary) -> void:
                 state.mounted_animal_id = ""
                 if not occupied_hexes.has(state.axial):
                     occupied_hexes[state.axial] = state.id
+            else:
+                state.axial = mount.axial
         if not state.mounted_by_id.is_empty():
             var rider := get_character(state.mounted_by_id)
             if rider == null or rider.mounted_animal_id != state.id:
