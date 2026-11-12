@@ -21,7 +21,7 @@ const PROFILES: Dictionary = {
         "skills": {"meleeDamage": 2}
     },
     "horse": {
-        "display_name": "Horse", "health": 50, "strength": 5, "endurance": 6, "agility": 6,
+        "display_name": "Horse", "health": 10, "strength": 5, "endurance": 6, "agility": 6,
         "damage": 1, "to_hit": 0.0, "dodge": 0.0, "tp_rate": 1.0, "fast_movement": 2,
         "vision": 0, "scent": 1, "size": 3, "mount_size": 3, "mountable": true,
         "carry_capacity": 4, "movement_mode": "ground", "temperament": "domestic",
@@ -42,7 +42,7 @@ const PROFILES: Dictionary = {
         "skills": {}
     },
     "wolf": {
-        "display_name": "Wolf", "health": 20, "strength": 4, "endurance": 3, "agility": 7,
+        "display_name": "Wolf", "health": 10, "strength": 4, "endurance": 3, "agility": 7,
         "damage": 3, "to_hit": 5.0, "dodge": 5.0, "tp_rate": 1.3, "fast_movement": 1,
         "vision": 10, "scent": 3, "size": 2, "mount_size": 2, "mountable": true,
         "carry_capacity": 1, "movement_mode": "ground", "temperament": "predator",
@@ -170,6 +170,9 @@ static func create_state(
     state.combat_dormant = false
     state.is_rider = false
     state.impassable_to_player = false
+    # Apply innate Health and Time Point Rate ranks once, using the same
+    # progression path as every registered campaign character.
+    state.sync_skill_effects()
     return state
 
 static func validate_profiles() -> Dictionary:
