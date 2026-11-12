@@ -452,21 +452,52 @@ func _tint_attached_hair(colour: Color) -> void:
             material.albedo_color = Color(colour.r, colour.g, colour.b, material.albedo_color.a)
             mesh_instance.set_surface_override_material(surface, material)
 
+## Return the clips embedded in the currently loaded Ara GLB.
+func available_animation_names() -> PackedStringArray:
+    if animation_player == null or not is_instance_valid(animation_player):
+        return PackedStringArray()
+    return animation_player.get_animation_list()
+
+
+## Play the first clip whose name contains one of the supplied terms.
+## Matching is case-insensitive because Ara exports may prefix clip names.
+## Returns the actual clip name, or an empty string when no match exists.
+func play_animation_matching(preferred_terms: Array[String], fallback_terms: Array[String] = [], blend_seconds: float = 0.2) -> String:
+    if animation_player == null or not is_instance_valid(animation_player):
+        return ""
+    var clip_names := animation_player.get_animation_list()
+    var selected := _find_animation_clip(clip_names, preferred_terms)
+    if selected.is_empty():
+        selected = _find_animation_clip(clip_names, fallback_terms)
+    if selected.is_empty():
+        return ""
+    animation_player.play(selected, blend_seconds)
+    return selected
+
+
+func _find_animation_clip(clip_names: PackedStringArray, terms: Array[String]) -> String:
+    for term in terms:
+        var needle := term.to_lower()
+        for clip_variant in clip_names:
+            var clip := String(clip_variant)
+            if clip.to_lower() == needle:
+                return clip
+    for term in terms:
+        var needle := term.to_lower()
+        for clip_variant in clip_names:
+            var clip := String(clip_variant)
+            if clip.to_lower().contains(needle):
+                return clip
+    return ""
+
+
 func _play_idle_if_available() -> void:
     if animation_player == null or not is_instance_valid(animation_player):
         push_warning("Ara character has no AnimationPlayer; it will remain in its exported rest pose.")
         return
-    var idle_clip := ""
-    for animation_name in animation_player.get_animation_list():
-        if String(animation_name).to_lower() == "idle":
-            idle_clip = String(animation_name)
-            break
-        if idle_clip.is_empty() and String(animation_name).to_lower().contains("idle"):
-            idle_clip = String(animation_name)
+    var idle_clip := play_animation_matching(["idle"], ["stand"])
     if idle_clip.is_empty():
-        push_warning("Ara character has no idle animation. Available clips: %s" % [", ".join(animation_player.get_animation_list())])
-        return
-    animation_player.play(idle_clip)
+        push_warning("Ara character has no idle animation. Available clips: %s" % [", ".join(available_animation_names())])
 
 func _find_animation_player(node: Node) -> AnimationPlayer:
     if node is AnimationPlayer:
