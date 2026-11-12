@@ -370,6 +370,27 @@ def main():
                  "--input", male_raw, "--output", pose_output, "--adult",
                  "--profile-name", "male_average", "--anatomy-state", pose_name], env=review_env)
 
+        # New comparison: one unchanged erect basis mesh with a real flaccid
+        # shape key, animated together with the existing anatomy bone chain.
+        male_morph_pose = review_root / "male_average_morph_pose.glb"
+        male_morph_dir = review_root / "male_morph_pose"
+        male_morph_dir.mkdir(parents=True, exist_ok=True)
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/test_male_morph_pose.py", "--",
+             "--input", male_erect, "--output", male_morph_pose,
+             "--review-dir", male_morph_dir], env=review_env)
+
+        # New standalone high-resolution sculpt prototype, conformed to the
+        # raw Ara female pelvis. It is deliberately not integrated into the
+        # production body or clothing pipeline.
+        female_sculpt = review_root / "female_vulva_highres_sculpt.glb"
+        female_sculpt_dir = review_root / "female_vulva_sculpt"
+        female_sculpt_dir.mkdir(parents=True, exist_ok=True)
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/build_female_vulva_sculpt.py", "--",
+             "--input", female_raw, "--output", female_sculpt,
+             "--review-dir", female_sculpt_dir, "--resolution", "160"], env=review_env)
+
         shutil.copy2(female_raw, review_root / "female_average_raw.glb")
         shutil.copy2(male_raw, review_root / "male_average_raw.glb")
         review_models = (
