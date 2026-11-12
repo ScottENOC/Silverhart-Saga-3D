@@ -601,3 +601,16 @@ These remain in the parallel character/anatomy stream and are inventoried only t
 - Fog of war is the only newly confirmed deferred vision deliverable in this group; it is not equivalent to the LOS code already merged. Keep it separate from the current branch-audit task until the save/discovery state contract is decided.
 - NPC preview generation and the dire-wolf quest are genuine absent-path candidates, but both depend on current canonical NPC/quest state and should not be ported from their old scene snapshots.
 - No branches in this group were merged or closed. Original feature branches remain intact.
+
+
+## Final unmentioned branch-name pass — 12 November 2026
+
+- feat/campaign-loading-feedback compares 1 / 105 with one WorldRoot change. Current WorldRoot has since evolved; the branch's loading overlay is an earlier loading-stage implementation. Preserve as UX history; do not replace current scene transitions.
+- feat/character-preview-loading-progress compares 3 / 104 with one PlayerCharacterCreator change. The current creator includes the threaded resource loading progress, per-asset status and failure reporting from this lineage, with additional body/hair readiness states. No re-port.
+- feature/audio-and-mode-select is the earlier PR #5 lineage. AudioManager, legacy importer, main-menu/arena scenes and migration doc are represented in current; main_menu.gd has evolved. Arena remains a placeholder. No re-merge.
+- feature/iphone-web-preview-pipeline has zero commits ahead of current dev_2. No port; preserve its historical branch ref.
+- feature/main-campaign-world-map-validated has the same head SHA as feature/main-campaign-world-map and the same 12 / 140, eight-file compare. Treat as duplicate validation alias for the same lineage; current map implementation is already represented. No separate integration.
+- feature/wren-anatomy-piercings-halter-fit is the 179-commit source branch for open PR #8. Its 24 changed paths are a large historical Wren/modular clothing/anatomy pipeline, including Blender tools, review renderer, workflows, accessory/appearance helpers and workshop content. This is within the user's separate character/clothing/anatomy stream. Preserve untouched; no merge or PR closure from this audit.
+- fix/skill-effect-test-rank-fixtures compares 1 / 25 with one test file. It is an older test_simulation.gd snapshot; the rank-1 expectations and core cases are represented in current tests, while the broader current suite has additional vision/status/reaction/lifecycle coverage. No wholesale test replacement; preserve as test-history.
+
+The branch-name reconciliation now confirms that all 134 live branch names are mentioned in this register (the audit branch itself is the document's own source branch). This is a name-coverage check only: it does not mean every branch has had full tree/blob/CI/asset review or that Stage 1 is complete.
