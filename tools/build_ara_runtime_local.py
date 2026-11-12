@@ -364,6 +364,34 @@ def main():
              ROOT / "tools/blender/add_adult_anatomy.py", "--",
              "--input", female_raw, "--output", female_hybrid, "--profile", "female",
              "--adult", "--deformation-scale", "1.65", "--method", "hybrid"], env=review_env)
+
+        # Independent review candidate: Claude's integrated surface-following
+        # sculpt. It is deliberately separate from female_final and production.
+        female_claude = review_root / "female_average_claude_integrated.glb"
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/add_adult_anatomy_claude.py", "--",
+             "--input", female_raw, "--output", female_claude, "--profile", "female",
+             "--adult", "--method", "integrated", "--deformation-scale", "1.65"], env=review_env)
+
+        # Use the established character cameras plus blue and natural-colour
+        # close-ups. Keep all outputs inside the review artifact.
+        claude_review_dir = review_root / "renders" / "female_average_claude_integrated"
+        for focus_name, focus_args in (("full", []), ("pelvis", ["--focus-pelvis"])):
+            output_dir = claude_review_dir / focus_name
+            output_dir.mkdir(parents=True, exist_ok=True)
+            run([blender, "--background", "--python-exit-code", "1", "--python",
+                 ROOT / "tools/blender/inspect_character.py", "--",
+                 "--input", female_claude, "--output-dir", output_dir,
+                 "--frame", "1", *focus_args], env=review_env)
+        claude_detail_dir = claude_review_dir / "pelvis_detail"
+        claude_detail_dir.mkdir(parents=True, exist_ok=True)
+        anatomy_review = ROOT / "tools" / "blender" / "review_anatomy_closeup.py"
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             anatomy_review, "--", "--input", female_claude, "--output-dir", claude_detail_dir,
+             "--label", "female_average_claude_integrated"], env=review_env)
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             anatomy_review, "--", "--input", female_claude, "--output-dir", claude_detail_dir,
+             "--label", "female_average_claude_integrated", "--natural-colour"], env=review_env)
         for pose_name, pose_output in (("erect", male_erect), ("flaccid", male_flaccid)):
             run([blender, "--background", "--python-exit-code", "1", "--python",
                  ROOT / "tools/blender/add_male_anatomy.py", "--",
@@ -431,9 +459,10 @@ def main():
             "schema_version": 1,
             "purpose": "visual anatomy prototype only; not production-approved",
             "ara_generator_commit": PIN,
-            "profiles": ["female_average", "female_average_hybrid", "male_average_erect", "male_average_flaccid"],
+            "profiles": ["female_average", "female_average_hybrid", "female_average_claude_integrated", "male_average_erect", "male_average_flaccid"],
             "female": {
                 "asset": female_final.name,
+                "claude_integrated_review_candidate": female_claude.name,
                 "hybrid_comparison_asset": female_hybrid.name,
                 "hybrid_method": "integrated skin sculpt plus buried surface-sampled, pelvis-weighted lofts sharing Ara skin material",
                 "deformation_scale": 1.65,
