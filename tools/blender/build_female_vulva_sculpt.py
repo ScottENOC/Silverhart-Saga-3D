@@ -121,11 +121,13 @@ def main():
     patch["review_status"]="high_resolution_sculpt_prototype_requires_visual_review_and_retopology"
     patch["grid_resolution"]=res
     # Export a standalone unrigged high-res sculpt patch for independent review.
-    patch.parent=None; patch.modifiers.clear()
+    patch_world=patch.matrix_world.copy()
+    patch.parent=None; patch.matrix_world=patch_world
+    for modifier in list(patch.modifiers): patch.modifiers.remove(modifier)
     bpy.ops.object.select_all(action="DESELECT"); patch.select_set(True); bpy.context.view_layer.objects.active=patch
     bpy.ops.export_scene.gltf(filepath=os.path.abspath(a.output),export_format="GLB",use_selection=True,export_apply=False)
     # Restore the patch to the review character and render multi-angle closeups.
-    patch.parent=arm; patch.parent_type="OBJECT"; patch.matrix_parent_inverse=arm.matrix_world.inverted()
+    patch.parent=arm; patch.matrix_world=patch_world; patch.parent_type="OBJECT"
     mod=patch.modifiers.new("Ara pelvis deformation","ARMATURE"); mod.object=arm
     scene=bpy.context.scene
     scene.render.engine="BLENDER_EEVEE_NEXT"; scene.render.resolution_x=1000; scene.render.resolution_y=1000
