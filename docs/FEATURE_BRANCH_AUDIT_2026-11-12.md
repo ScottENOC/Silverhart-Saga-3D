@@ -1100,3 +1100,9 @@ The live branch listing was refreshed from both GitHub API pages. Several branch
 - `ci/incremental-character-pipeline` and `chore/consolidate-preview-and-review-workflows` are older pipeline/workflow snapshots. Current independent asset workflows and artifact-based game export are more complete; do not replace them.
 - `chore/remove-huggingface-deployment` contains only old HF audit/reset workflows; current repository has already moved to GitHub Pages. No merge.
 - `chore/repository-formatting-rules` is represented in current `.editorconfig`/`.gitattributes`; the remaining issue is enforcement/legacy GDScript indentation, not missing config.
+
+
+### Animal simulation and remaining magic runtime
+
+- `feature/animal-attributes` is not already integrated: current `dev_2` has creature presentation and farm-wolf quest code, but no `AnimalCatalog` or mount/riding simulation. The branch introduces those systems; `feature/animal-riding-validation` is one commit ahead and extends them. This is a substantive future port candidate, not a superseded branch. Preserve the shared HP/double-application and incapacitated mount/rider lifecycle defects recorded above as hard acceptance gates. Do not merge either stale branch wholesale.
+- `feature/skill-magic-foundation` and related skill branches are not a missing runtime port to merge blindly. Current `dev_2` has skill catalogue/progression/NPC spending, but its script tree has no spell catalogue/resolver/casting/AI spell planner. `data/magic/base_spells.json` contains the 15 base spell definitions and CharacterState stores spell-related fields; that is data/state, not castable gameplay. The spell parity audit records the 15 spells as data-only pending a spell action contract, target/terrain validation, cast/effect resolver, ongoing-effect lifecycle, AI use and deterministic tests. Treat spellcasting as a new planned system, not as complete because a legacy branch or catalogue exists.
