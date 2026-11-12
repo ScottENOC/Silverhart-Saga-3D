@@ -1333,3 +1333,15 @@ Compared `feature/opening-village`, `feature/shared-character-system` and `featu
 - `feature/shared-character-system` and `feature/iphone-hollowmere-ara-preview` share the same older core lineage; their extra distinct files are primarily modelling/preview pipeline work, which is explicitly outside this audit's scope.
 - No unique non-modelling runtime code or regression test from these three branches has been identified for selective recovery. Preserve all three source branches; mark their old world/simulation snapshots as superseded. If any specific original village layout/detail is still desired, compare it as a content/design reference rather than porting the old implementation.
 
+
+
+## Refreshed source-content census — 13 November 2026
+
+- Added `docs/CONTENT_CENSUS_2026-11-13.md`, comparing `Hex-crpg/main` commit `4de96f16889d43cae91e03832c8eb1c1b4b00e42` with current `dev_2` commit `a8b5987ebdc12b016d99e2550349f17a8fd62645`.
+- Corrected source repository size: **822 file blobs**, not 893 files. The recursive tree has 893 entries including 71 directories.
+- Confirmed source counts: 186 direct skill declarations + 71 generated weapon-skill entries = 257; 15 registered base spells; 63 equipment definitions; 98 named-NPC records; 35 monster templates; 206 Playwright test files.
+- Confirmed current `dev_2` data: 257 skill rows, 15 base spells, 76 item definitions, 98 legacy named-NPC rows, 22 Hollowmere cast records, 35 legacy enemy rows, 24 Campaign 2 location records / 22 connections, and one settlement layout. Arena data contains 18 opponent-pool, 6 beast-pool and 8 scenario-type entries.
+- Important status boundary: data migration is not runtime parity. All 15 spells remain definitions only with no cast resolver found in the current simulation tree; Arena remains a placeholder despite its data; only one settlement layout is currently represented; and the 98 named NPC rows are a source roster, not 98 active in-world NPCs.
+- Current target tree has 1,105 file blobs, 113 GDScript files, 23 `tests/test_*` files and 31 total files under `tests/` including capture/diagnostic/save-restore support. Source has 206 Playwright test files. These are not equivalent coverage counts.
+- Existing skill-effect and spell audits use older `dev` baselines. Their research is useful, but detailed skill-effect counts are provisional until recertified against this exact `dev_2` head.
+- No gameplay code was changed by the census; no branch merges or deletions; `dev` and `main` remain untouched.
