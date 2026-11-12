@@ -40,14 +40,15 @@ func _capture() -> void:
     ground.position.y = -0.05
     world.add_child(ground)
 
-    # Use a front three-quarter view: both mounts sit side-by-side across X,
-    # while the camera looks along -Z. Add the camera before look_at(); Godot
-    # cannot orient a Camera3D until it is inside the scene tree.
+    # True side-on view of the horses. Add the camera before look_at(); Godot
+    # cannot orient a Camera3D until it is inside the scene tree. The horse
+    # models face along their local forward axis, so viewing from +X exposes
+    # the rider silhouette instead of hiding it behind the horse's chest.
     var camera := Camera3D.new()
-    camera.position = Vector3(0.0, 4.2, 13.5)
-    camera.fov = 55
+    camera.position = Vector3(11.5, 3.0, 0.0)
+    camera.fov = 48
     world.add_child(camera)
-    camera.look_at(Vector3(0.0, 1.35, 0.0), Vector3.UP)
+    camera.look_at(Vector3(0.0, 1.45, 0.0), Vector3.UP)
     camera.current = true
 
     var ok_f := _add_pair(world, -3.8, FEMALE_BODY, "FEMALE BASE")
