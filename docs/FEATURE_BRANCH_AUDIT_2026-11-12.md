@@ -939,3 +939,21 @@ PR #124 is confirmed merged into `dev_2` at `6e6aaa78a9b5031978dfa239f43441d58f4
 Historical PR #91 has been closed as superseded by #124. Its original branch `feature/equipment-gameplay-stat-integration` remains present and is retained permanently. No feature branch was deleted.
 
 At this update, the live GitHub listing contains 131 branches across two pages, and 19 pull requests remain open (including audit PR #123). The active integration baseline is now `dev_2` at `6e6aaa78a9b5031978dfa239f43441d58f4ea6be`.
+
+
+### #87 unified character assembly — deeper resolver review
+
+A closer review confirms the branch does wire `CharacterAssemblyResolver` into its Ara actor, player creator and `HollowTankard` NPC spawning. It is not merely an unused helper. The architecture is promising: one resolved runtime contract supplies body asset, appearance, garment styles, inventory and equipment, and the NPC inventory adapter verifies that equipped items are owned and match their declared slots.
+
+However, several migration/maintainability gates remain:
+
+1. **Incomplete cast migration:** the branch's schema-v2 NPC manifest has 14 records versus 22 on current `dev_2`. Eight current NPCs are dropped, and the separate loadout file is removed. All current NPCs and their quest/companion/loadout state must be migrated before adopting the schema.
+2. **Body assets are not included:** `body_profiles.json` declares ten profile IDs and paths, but the ten `bodies/*.glb` and `garments/*.glb` assets are absent from the branch. The resolver therefore falls back to the shared male/female Ara assets and marks the body profile as pending. The JSON profile catalogue is not evidence that ten fitted body/garment variants exist.
+3. **Potential duplicate-item collision:** `populate_npc_inventory` builds instance IDs as `canonical_<character>_<item>` and stores one instance per item ID in a dictionary. Repeated copies of the same item would collide/overwrite the lookup. Current 14 profiles happen not to contain duplicate inventory IDs, but the resolver should support stack/duplicate items or reject them explicitly.
+4. **Non-atomic failure:** the resolver adds inventory items before validating all equipped references. A malformed later item or invalid slot returns false after partially mutating the CharacterState. Prevalidate the full resolved recipe before applying it, or roll back on failure.
+5. **Repeat-call behaviour:** deterministic instance IDs make the population helper non-idempotent; a second call can fail or leave partial state. Define whether it is one-shot and enforce that contract.
+6. **No generated asset acceptance:** the resolver tests validate metadata and fallback selection, not the generated body/garment GLBs, deformation or clothing fit. The branch's average-body review workflow does not build or validate the full ten-profile library.
+
+The ten-profile direction also differs from the current body-asset goal: establish one accepted male base and one accepted female base, then validate morphs and clothing against those rigs. Treat the ten-profile catalogue as a proposal, not a requirement. If the project keeps one base per body model, the resolver should represent body variant + morph recipe rather than ten separately authored base meshes.
+
+**Disposition remains:** major salvage candidate; do not merge wholesale. First decide the body-profile model, fix resolver recipe validation/idempotency, migrate all current NPCs, build the actual base-body/garment assets and test them in Godot.
