@@ -28,6 +28,47 @@ def clear_scene():
     bpy.ops.object.delete(use_global=False)
 
 
+
+def ensure_review_vertex_colour_shader(skin):
+    """Make the Color attribute visible in review renders without discarding skin texture."""
+    attribute = skin.data.color_attributes.get("Color")
+    if attribute is None:
+        return {"present": False, "points": 0, "wired_materials": []}
+    wired = []
+    for material in skin.data.materials:
+        if material is None or not material.use_nodes:
+            continue
+        nodes = material.node_tree.nodes
+        links = material.node_tree.links
+        shader = next((node for node in nodes if node.type == "BSDF_PRINCIPLED"), None)
+        if shader is None:
+            continue
+        base = shader.inputs.get("Base Color")
+        if base is None:
+            continue
+        if not any(node.get("anatomy_vertex_colour_layer") == "Color" for node in nodes):
+            vertex_colour = nodes.new("ShaderNodeVertexColor")
+            vertex_colour.layer_name = "Color"
+            vertex_colour.label = "Anatomy vertex colour"
+            multiply = nodes.new("ShaderNodeMixRGB")
+            multiply.blend_type = "MULTIPLY"
+            multiply.inputs["Fac"].default_value = 1.0
+            multiply.label = "Skin texture × anatomy tint"
+            multiply["anatomy_vertex_colour_layer"] = "Color"
+            existing = list(base.links)
+            if existing:
+                source = existing[0].from_socket
+                for link in existing:
+                    links.remove(link)
+                links.new(source, multiply.inputs["Color1"])
+            else:
+                multiply.inputs["Color1"].default_value = (1.0, 1.0, 1.0, 1.0)
+            links.new(vertex_colour.outputs["Color"], multiply.inputs["Color2"])
+            links.new(multiply.outputs["Color"], base)
+        wired.append(material.name)
+    return {"present": True, "points": len(attribute.data), "wired_materials": wired}
+
+
 def skin_mesh():
     candidates = []
     for obj in bpy.context.scene.objects:
@@ -117,6 +158,7 @@ def main():
     width = maximum.x - minimum.x
     pelvis_z = pelvic_landmark(armature, height)
     highlighted = 0 if args.natural_colour else highlight_pelvis(skin, pelvis_z, height, width)
+    vertex_colour_report = ensure_review_vertex_colour_shader(skin) if args.natural_colour else {"diagnostic_overlay": True}
 
     scene = bpy.context.scene
     available = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
@@ -128,6 +170,10 @@ def main():
         scene.eevee.taa_render_samples = 48
     scene.render.image_settings.file_format = "PNG"
     scene.world.color = (0.22, 0.22, 0.22)
+    scene.view_settings.view_transform = "Standard"
+    scene.view_settings.look = "Medium High Contrast"
+    scene.view_settings.exposure = 0.0
+    scene.view_settings.gamma = 1.0
     scene.render.film_transparent = False
 
     for index, (offset, energy, size) in enumerate((
@@ -161,6 +207,7 @@ def main():
         "blue_highlighted_front_polygons": highlighted,
         "blue_material_is_review_only": not args.natural_colour,
         "natural_colour_render": args.natural_colour,
+        "vertex_colour": vertex_colour_report,
     }
     import json
     with open(os.path.join(args.output_dir, f"{args.label}_anatomy_review.json"), "w") as stream:
