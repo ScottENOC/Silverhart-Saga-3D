@@ -44,10 +44,14 @@ func _capture() -> void:
     # sees the horse head-on; use +Z for a genuine broadside rider silhouette.
     # Add the camera before look_at() so Godot can orient it in the scene tree.
     var camera := Camera3D.new()
-    camera.position = Vector3(0.0, 3.3, 16.0)
-    camera.fov = 48
+    # Orthographic projection removes the perspective-size distortion that
+    # made the horse at x=-6 appear larger and the centre horse look head-on.
+    # All three variants now share the same true broadside scale and angle.
+    camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+    camera.size = 10.0
+    camera.position = Vector3(0.0, 3.3, 18.0)
     world.add_child(camera)
-    camera.look_at(Vector3(0.0, 1.8, 0.0), Vector3.UP)
+    camera.look_at(Vector3(0.0, 2.0, 0.0), Vector3.UP)
     camera.current = true
 
     var ok_original := _add_pair(world, -6.0, FEMALE_BODY, "ORIGINAL 0.82", 0.82, 1.90)
