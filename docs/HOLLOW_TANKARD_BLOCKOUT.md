@@ -9,7 +9,7 @@ This is the first authored location in Silverhart Saga 3D. It replaces the tempo
 - Rectangular internal hall: 16m × 11m.
 - Approximate exterior footprint: 16.7m × 11.7m.
 - Wall thickness: 0.35m.
-- Eaves: 3.2m; ridge: 5.8m (provisional).
+- Ground-floor eaves: 3.2m; upper-storey eaves: 6.6m; roof ridge: 9.03m (provisional).
 - Pitched roof ridge runs along the long axis.
 - Centred south entrance: 1.6m wide × 2.4m high.
 - Bar on the north wall; fireplace on the west wall.
@@ -45,3 +45,16 @@ This is the first authored location in Silverhart Saga 3D. It replaces the tempo
 6. Does the camera remain useful inside the room and just outside the entrance?
 
 Treat measurements as a first blockout. Adjust the room and grid together based on the running scene rather than preserving a dimension that feels wrong in play.
+
+
+## Two-storey lodging update
+
+The Hollow Tankard now has a second storey above the taproom. The upper floor uses a reserved axial-coordinate range projected onto the same physical building footprint. Its grid is scaled to the existing 16m × 11m tavern envelope, while upstairs movement and occupancy remain separate from ground-floor characters within the shared campaign simulation and save format.
+
+- A physical staircase on the east side connects the taproom and upper landing. Stand within one hex and press **F** to climb or descend.
+- The upper floor has a west-side private suite labelled for Garrick Holt and two guest rooms in the east wing, with six furnished beds in total. This preserves the original 2D social-fabric data's six bed placements and eight-person lodging capacity; the 3D layout scales the floor to the current tavern envelope.
+- The original 2D source places the stair on a ground-floor candidate hex (including `(3, 0)`) and reuses that coordinate on the upper floor. The 3D stair flight uses a one-hex-offset upper landing so the visible flight has a physically sensible run; the campaign remains on the same simulation and no separate interior scene is introduced.
+- Garrick's private room is a new 3D room assignment requested for this port; the original 2D data defines the lodging floor and beds but does not label a named Garrick bedroom.
+- The upper floor is navigable by keyboard and click-to-move. The camera follows the character vertically, and click picking uses the current floor's elevation.
+- The roof remains a separate **V** cutaway. While downstairs, the upper exterior shell is shown; while upstairs, the shell is hidden and the furnished upper floor is shown.
+- Garrick remains in his existing ground-floor opening-scene role. His upstairs room is reserved for later day/night schedule integration; no unsupported schedule has been invented.
