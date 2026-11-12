@@ -2148,7 +2148,7 @@ func _test_mounted_lifecycle_cleanup() -> void:
     doomed_rider.side = "player"
     doomed_rider.skills["riding_druid"] = 1
     rider_simulation.register_character(doomed_rider)
-    var second_horse := AnimalCatalog.create_state("rider_death_horse", "rider_death_horse", "Horse", Vector2i(1, 0), 9090)
+    var second_horse := AnimalCatalog.create_state("horse", "rider_death_horse", "Horse", Vector2i(1, 0), 9090)
     second_horse.combat_dormant = true
     for hex in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(2, 1), Vector2i(1, 1), Vector2i(0, 1)]:
         rider_simulation.map_data.add_cell(hex, 0.0, true, "grass")
