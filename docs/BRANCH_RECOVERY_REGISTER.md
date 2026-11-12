@@ -698,3 +698,44 @@ This is the practical dependency map for avoiding duplicate or order-sensitive m
 - Keep #99 quest and #73 companion work dependent on current canonical quest/companion IDs and the accepted character pipeline.
 - Design fog-of-war persistence/knowledge before extracting #96's fog presentation.
 - Only then consider remaining 2D mechanics and new features, in accordance with the user's priority order. This dependency map is a preservation/recovery aid, not approval to start those feature ports now.
+
+
+## Large orphan character, village and mechanics branches — focused review, 12 November 2026
+
+### Opening village and iPhone Ara preview lineage
+
+- `feature/opening-village` compares 194 ahead / 361 behind with 35 paths; `feature/iphone-hollowmere-ara-preview` compares 178 / 361 with 36 paths. They share the same 13-NPC appearance manifest and most of the same Ara/village code lineage. The iPhone branch adds `iphone-hollowmere-ara-preview.yml`, `export_presets.cfg` and `tools/deploy_web.py`; the deploy script targets the old Hugging Face Space (`Thisisausername836/silverhart-saga-3d`).
+- Both manifests contain only 13 NPCs: Wren, Garrick, Mira, Oskar, Wick, Dray, Tomlin, Hask, Yvette, Hendra, tavern patron, Elder Marta and Rowan Fletcher. Current `dev_2` has 22 records, including the player and eight later companion/quest characters. Do not replace the current manifest with the older 13-record version.
+- Their `scripts/world/hollowmere_village.gd` is an earlier 220m blockout snapshot; current `dev_2` has a 420m village presentation with organic world features, imported tree support, creature actors and later settlement evolution. Their `world_root.gd`, Hollow Tankard, Ara actor and accessory/appearance files are also older architectural snapshots.
+- The branch family contains distinct old Blender/GLB assembly and character appearance tooling, but it overlaps `feature/shared-character-system`, `feature/unified-character-assembly` (#87), and the parallel anatomy/modelling stream. It is not a second independent runtime implementation to port.
+- **Disposition:** preserve both branches as provenance and historical iPhone preview lineage. No code merge. The old HF deployment script is superseded by the current GitHub Pages pipeline; don't restore it. Reuse any unique modelling/assembly ideas only through the agreed one-male/one-female base plus morph workflow and after visual acceptance.
+
+### Shared character system and modular-character proof of concept
+
+- `feature/shared-character-system` compares 125 / 361 with 18 paths. It is largely the same early Ara character-appearance/accessory-attachment lineage as the opening-village branch; its unique path set is smaller, not a more current alternative.
+- `feature/modular-character-poc` compares 51 / 361 with 17 paths. It adds distinct `CharacterAccessoryFactory`, `CharacterAttachmentRig`, `CharacterAppearanceStore`, socket calibration data and a garment shader, plus Blender/TypeScript preparation tools. These are genuine prototype artifacts, but overlap the later unified assembly resolver (#87) and the current separate modelling workstream. They do not establish that their attachment or garment pipeline is the accepted production contract.
+- **Disposition:** retain both. No runtime port now. During priority-2 architecture review, compare the modular POC's separation of appearance data, attachment rig and factory with the #87 resolver and current Ara actor; select one coherent design, don't combine duplicate parallel systems. Any shader/asset tool recovery should be a separate, tested change after model/garment compatibility is demonstrated.
+
+### Missing skill runtime port
+
+- `feature/missing-skill-runtime-port` compares 21 / 15 with eight changed paths. `skill_progression.gd`, `character_creation_rules.gd`, `simulation_action_request.gd` and `player_character_creator.gd` are byte-identical to current `dev_2`. Its `combat_rules.gd` is older: current adds equipped-helmet reduction and on-hit StatusEffectRules integration. Its `CharacterState` is an older 402-line snapshot; current is 529 lines and includes persistent status/debuff and animal/mount state. Its `tests/test_simulation.gd` is also an older 1,762-line snapshot versus the current 2,162-line suite.
+- The source branch's unique `WorldSimulation` code is an earlier movement-reaction implementation. Current `dev_2` has evolved movement reactions with exclusions, building-floor handling, animal/mount integration, and additional simulation APIs; the branch's lifecycle handler is also older.
+- **Disposition:** superseded by current simulation evolution; no cherry-pick or merge. It does not contain a missing skill runtime payload that should be recovered independently. Preserve as historical intermediate port work. The broader missing stealth/spell mechanics are separately tracked gaps, not evidence that this branch should be merged.
+
+### Character inventory panel and arena roster
+
+- `feature/character-inventory-panel` compares 14 / 143 with eight changed paths. Its `scripts/ui/character_panel.gd` is an older 263-line UI snapshot; current `dev_2` panel is 317 lines and adds ItemCatalog integration, `equipment_changed` signalling and scroll-position preservation. Its CharacterState/CombatRules/MovementRules/WorldSimulation/HollowTankard/test snapshots are older than current. No unique UI feature was identified that is missing from the current panel.
+- `feature/arena-and-full-character-roster` compares 7 / 108 with seven changed paths. Arena opponent data, legacy enemy roster, named NPC roster, roster validator/tests and roster documentation are already represented in current `dev_2` (same data/test lineage); workflow differences are older validation snapshots. Arena gameplay remains a placeholder, not a missing roster port.
+- **Disposition:** no merge for either branch. Preserve as provenance; future Arena gameplay is a separate feature after priority-1 audit and mechanics port planning.
+
+### Active anatomy branches — compare only for audit boundaries
+
+- `feature/anatomy-geometry-revision` is now 206 ahead / 61 behind with 34 changed paths; it includes body-profile/schema changes, resolver, NPC manifest edits, garment library and anatomy validation/review tools. `feature/male-anatomy-skinned-mesh` is 143 / 361 with 21 changed paths and shares the earlier Ara actor/appearance/tooling lineage; `feat/ara-hairstyles-medieval-equipment` is 33 / 106 with 182 paths, including extensive male/female hair GLBs/textures, equipment prop tools and validation workflows.
+- These are live parallel modelling/anatomy deliverables. The first branch overlaps #87's character assembly/schema migration, while the latter two include sizeable asset sets that must be reviewed as actual model/texture files, not inferred from filenames. Do not merge, rewrite or prune them during this code-preservation pass. Their binary asset acceptance and body/clothing fit belong to the separate visual review stream.
+
+### Current conclusions from this group
+
+- The early Hollowmere/Ara branches are not a safe source for current NPC manifests or village code: 13 NPCs and a small blockout versus the current 22-NPC manifest and evolved village.
+- The modular POC has unique architecture prototypes worth evaluating later, not code to merge before the architecture decision.
+- The missing-skill branch is superseded, and the inventory panel/arena roster work is already represented in current `dev_2`.
+- No branches in this group were merged or closed; all historical refs remain intact.
