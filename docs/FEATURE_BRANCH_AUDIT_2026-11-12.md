@@ -641,7 +641,7 @@ The immediate acceptance criterion is not simply a green generator workflow: ins
 | `feature/character-starting-clothing` | 12 ahead / 63 behind; starting-clothing test is byte-identical to current. | **Integrated/evolved.** Preserve history; no re-merge. |
 | `feature/male-anatomy-geometry-review` | 5 ahead / 147 behind; older generator branch, CI passed on 7 November. | **Superseded by current anatomy geometry work.** Preserve history. |
 | `feature/player-character-visual-phase1` | 12 ahead / 124 behind; phase-one doc identical, creator script older. | **Integrated/evolved.** Preserve history; no re-merge. |
-| `feature/player-custom-avatar-selection` | 1 ahead / 64 behind; three-line scene change. | **Check for a missing behaviour only; otherwise superseded.** |
+| `feature/player-custom-avatar-selection` | 1 ahead / 64 behind; its three-line custom female avatar selection is present in current `HollowTankard` (at later line numbers). | **Integrated.** Preserve history; no re-merge. |
 | `feature/reusable-npc-workshop` | 5 ahead / 357 behind; two new tooling files absent from current. | **Deferred salvage candidate after schema alignment.** |
 | `feature/runtime-tattoos` | 8 ahead / 136 behind; tattoo UI/code already present in current page. | **Integrated.** Preserve history; no re-merge. |
 | `fix/generic-clothing-visibility` | 3 ahead / 60 behind; earlier body/garment visibility logic. | **Superseded by current AraCharacterActor.** |
@@ -957,3 +957,6 @@ However, several migration/maintainability gates remain:
 The ten-profile direction also differs from the current body-asset goal: establish one accepted male base and one accepted female base, then validate morphs and clothing against those rigs. Treat the ten-profile catalogue as a proposal, not a requirement. If the project keeps one base per body model, the resolver should represent body variant + morph recipe rather than ten separately authored base meshes.
 
 **Disposition remains:** major salvage candidate; do not merge wholesale. First decide the body-profile model, fix resolver recipe validation/idempotency, migrate all current NPCs, build the actual base-body/garment assets and test them in Godot.
+
+
+The `feature/player-custom-avatar-selection` change was checked directly: current `HollowTankard` already selects `player_avatar.glb` for the female player when the custom asset exists, with the shared Ara female asset as fallback. No port remains.
