@@ -63,6 +63,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_building_framework.gd
       - name: Run SaveManager round-trip tests
         run: godot --headless --path . --script res://tests/test_save_manager.gd
+      - name: Diagnose direct HollowTankard script load
+        run: godot --headless --path . --script res://tests/diagnose_tavern_script_load.gd
       - name: Run campaign save/restore scene integration tests
         run: timeout 180s godot --headless --path . res://tests/save_restore_boot.tscn
       - name: Run NPC pass-through tests
