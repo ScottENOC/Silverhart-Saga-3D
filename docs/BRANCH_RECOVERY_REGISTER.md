@@ -141,3 +141,41 @@
 3. Inspect remaining deployment/workshop branches and exact current Pages artifact paths. Keep deployment-source choice separate from feature integration.
 4. Complete exact comparisons of all unique tests and GLTF/GLB/texture assets on the remaining candidate branches.
 5. Keep PR #123 draft until this register and the main audit are complete. Do not merge the audit as “complete” while any of the above remains open.
+
+
+## Deployment and Workshop branch group — deep comparison
+
+The following comparisons were made against `dev_2` after the main register was created. They are workflow/source comparisons, not an attempt to deploy or change the Pages source.
+
+### Current deployment workflow
+
+- Current `.github/workflows/godot-web-export.yml` on `dev_2` is 329 lines (blob `c598027c73a2f7654e5d607e2294208d1830c3bf`). It is materially more capable than the old 135-line `feature/godot-web-pages-export` workflow.
+- It independently retrieves the Hollowmere Ara model artifact, optionally retrieves Workshop body/prop packages, builds and validates the Godot web/PWA export, uploads the game artifact, and deploys a combined Pages tree with the Workshop site when available (falling back to the checked-in `site/` shell).
+- **Confirmed integration defect / unresolved deployment decision:** its `workflow_run` and `push` filters are `dev`; checkout refs and all artifact discovery queries are also `dev`. Therefore this workflow on `dev_2` does not build or deploy `dev_2` changes. This is not fixed by merging any of the old deployment branches. Do not retarget it until the intended source-of-truth branch and how the user's iPhone review should follow `dev_2` are explicitly settled.
+
+### Branch-by-branch disposition
+
+| Branch | Compare vs dev_2 | File-level result | Recovery/disposition |
+|---|---:|---|---|
+| `feature/godot-web-pages-export` | 13 ahead / 166 behind; 5 files | Old 135-line workflow; checkout v4, older Pages actions and a deployment gate requiring the Workshop artifact to be ready. | Superseded by current 329-line workflow. Keep history; no wholesale merge. |
+| `feature/hollowmere-github-pages` | 5 / 163; 4 files | Older 170-line workflow plus old iPhone-preview workflow and HF deploy helper. | Superseded; retain as deployment lineage. Do not restore HF deploy helper. |
+| `feature/ios-game-pwa` | 12 / 161; 3 files | `tools/pwa/package_godot_pwa.py` has the exact same blob SHA on branch and `dev_2`; workflow is older; includes phone-testing documentation. | PWA packager is already integrated byte-for-byte. Review only phone-testing doc for any still-valid manual acceptance checklist; no code port. |
+| `fix/combined-game-workshop-pages-deploy` | 4 / 119; 4 files | Separate combined deploy workflow and older export workflow; both target `dev`. | Its artifact-composition approach is represented by the current workflow. Preserve as historical fallback; no wholesale merge. |
+| `deploy/wren-workshop-github-pages` | 1 / 167; 1 file | Old Wren-only Pages workflow snapshot. | Superseded by current Workshop artifact workflow and combined deploy. No merge. |
+| `fix/pages-deploy-artifact-based-v2` | 4 / 117; 2 files | Old artifact-based workflow pair. | Compare history retained; no unique current integration gap established. |
+| `fix/pages-deploy-game-and-workshop-artifacts` | 9 / 118; 4 files | Another prior combined artifact/deploy iteration and doc. | Current workflow has since incorporated the combined artifact path and optional Workshop fallback. No wholesale merge. |
+| `fix/pages-game-artifact-path` | 1 / 115; 1 file | Old 250-line export workflow. | Superseded by current workflow; no merge. |
+| `fix/split-game-export-and-pages-deploy` | 1 / 116; 1 file | Old 250-line export workflow; substantially the same design as the prior artifact-path iteration. | Superseded; no merge. |
+| `maintenance/single-iphone-preview-pipeline` | 0 / 168; 0 files | No unique commits/files relative to `dev_2`. | No port; keep historical branch. |
+| `fix/workshop-dress-and-game-loading-stages` | 4 / 158; 3 files | Old Workshop workflow/site plus an early 3,345-character `WorldRoot` loading overlay. | The loading UI is a potential UX reference only; current `WorldRoot` is substantially evolved. Do not replace it. Compare interaction semantics only if current loading feedback has a concrete gap. |
+| `fix/publish-all-male-workshop-previews` | 1 / 144; 1 file | Old 34,889-character Workshop workflow versus current 35,501-character workflow. | No direct merge. Review the actual male artifact discovery/validation logic against current workflow before marking fully superseded; if a male preview is missing, port only that job/step and add a test. |
+| `feat/wren-only-pages-two-character-workshop` | 5 / 157; 3 files | Earlier two-character Workshop and Pages composition workflow/site. | Superseded by current combined workflow; retain as history. |
+| `fix/ara-review-crash-remove-legacy-wren-build` | 4 / 156; 4 files | Its `godot-web-export.yml` is exactly the same blob as `feat/wren-only-pages-two-character-workshop` (same SHA); changes are mostly validation/Workshop workflow and docs. | Preserve as a focused historical fix. Compare its Ara review crash fix against current character validation workflow before final disposition; do not merge old workflow snapshots. |
+
+### Additional dependency and deployment notes
+
+- `feature/ios-game-pwa`'s PWA packager is already present in `dev_2` with exact blob identity; it is not a missing implementation.
+- `fix/pages-game-artifact-path` and `fix/split-game-export-and-pages-deploy` are successive near-identical workflow variants; neither supersedes the current 329-line workflow.
+- `feat/wren-only-pages-two-character-workshop` and `fix/ara-review-crash-remove-legacy-wren-build` share the exact same export workflow blob, despite their different branch names.
+- `fix/publish-all-male-workshop-previews` still deserves a narrow logic comparison: its purpose is a male-preview publication fix, and branch-level workflow similarity alone is insufficient to prove the current workflow covers it.
+- No deployment workflow was merged or changed during this audit. The source-branch mismatch on `dev_2` is deliberately left as a recorded decision/blocker, not silently fixed as part of branch preservation.
