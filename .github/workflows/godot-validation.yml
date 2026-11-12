@@ -81,6 +81,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_farm_wolves_quest.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
+      - name: Run animal mount presentation tests
+        run: godot --headless --path . --script res://tests/test_mount_presentation.gd
       - name: Run Campaign 2 road manifest tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_road_paths.gd
       - name: Run Campaign 2 geography manifest tests
