@@ -76,9 +76,11 @@ func _run() -> void:
     _check(change_error == OK, "The integration harness should enter the real campaign scene")
 
     var tavern: Node = null
-    for _frame in range(600):
+    for _frame in range(120):
         await get_tree().process_frame
-        tavern = get_tree().root.find_child("HollowTankard", true, false)
+        var scene_root := get_tree().current_scene
+        if scene_root != null:
+            tavern = scene_root.get("tavern") as Node
         if tavern != null and tavern.get("simulation") != null:
             print("[SaveRestoreIntegration] HollowTankard is ready; checking restored state.")
             break
