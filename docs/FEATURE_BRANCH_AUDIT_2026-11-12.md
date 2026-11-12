@@ -491,7 +491,7 @@ Both branches should be retained and marked **integrated**.
 | `feature/organic-hollowmere-geography` | 17 ahead / 85 behind; helper/data content is represented, scene is an older subset. | **Integrated/superseded.** Preserve history; no wholesale merge. |
 | `feature/hollowmere-building-port-spec` | 39 ahead / 54 behind; its framework is now PR #119. | **Integrated via #119.** Preserve history; no re-merge. |
 | `feature/main-campaign-world-map-validated` | 12 ahead / 136 behind; map UI and data files are byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
-| `feature/wilderness-world-foundation` | Branch comparison returned 404; branch was in the earlier inventory but is not currently resolvable by GitHub. | **Unresolved reference.** Do not infer deletion or recreate it; verify branch existence through the live branch list. |
+| `feat/wilderness-world-foundation` | Branch comparison returned 404; branch was in the earlier inventory but is not currently resolvable by GitHub. | **Unresolved reference.** Do not infer deletion or recreate it; verify branch existence through the live branch list. |
 | `feat/wilderness-art-and-gatherable-visuals` | 18 ahead / 119 behind; resource visual script is byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
 | `feature/hollowmere-cosmo-forest` | 4 ahead / 53 behind; very large Cosmo add-on, generated assets and demo tree. Current village references Cosmo-generated trees. | **Integrated asset source; review licensing/provenance and generated runtime assets only if a specific missing variant is identified.** Preserve history. |
 | `feat/seasonal-wilderness-visuals` | 5 ahead / 121 behind; older procedural tree script predates current Kenney GLB implementation. | **Superseded.** Preserve history; do not merge. |
@@ -502,7 +502,7 @@ Both branches should be retained and marked **integrated**.
 | `feature/legacy-porting-matrix` | 2 ahead / 111 behind; documentation-only and stale. | **Superseded by current audit/register.** Preserve history. |
 | `feature/mechanics-port-foundation` | 1 ahead / 154 behind; documentation-only and stale. | **Superseded by current audit/register.** Preserve history. |
 | `feat/campaign-loading-feedback` | 1 ahead / 101 behind; one focused `world_root.gd` change. | **Inspect the isolated loading-feedback delta against current scene loading before deciding whether to port.** |
-| `feature/campaign-loading-feedback` | Branch comparison returned 404; only `feat/campaign-loading-feedback` was resolvable. | **Unresolved historical name; do not assume it exists.** |
+| `feat/campaign-loading-feedback` | Branch comparison returned 404; only `feat/campaign-loading-feedback` was resolvable. | **Unresolved historical name; do not assume it exists.** |
 | `feature/hollowmere-ironbond-opening-cutscene` | 17 ahead / 54 behind; source implementation overlaps current PR #121 integration branch. | **Source branch retained; PR #121 remains the integration candidate and still needs visual acceptance.** |
 | `feature/game-real-hollowmere-character-art` | 6 ahead / 159 behind; adds model validation tooling and web-export workflow changes. | **Audit tooling separately; avoid merging stale workflow changes.** |
 
@@ -651,7 +651,7 @@ The immediate acceptance criterion is not simply a green generator workflow: ins
 | `diagnostic/ara-garment-surface-report` | 1 ahead / 59 behind; earlier actor diagnostics. | **Integrated/evolved in current diagnostics; retain.** |
 | `diagnostic/ara-report-on-character-configure` | 1 ahead / 58 behind; earlier actor diagnostics. | **Integrated/evolved in current diagnostics; retain.** |
 | `feature/ara-character-evaluation` | 4 ahead / 379 behind; evaluation doc/workflow changes. | **Retain findings; current workflow supersedes old branch.** |
-| `feature/ara-shields-helmets-hairstyles` | Branch comparison returned 404. | **Unresolved historical name; verify via live branch list.** |
+| `feat/ara-shields-helmets-hairstyles` | Branch comparison returned 404. | **Unresolved historical name; verify via live branch list.** |
 | `feat/ara-hairstyles-medieval-equipment` | 33 ahead / 102 behind; hair manifest byte-identical to current, extensive assets. | **Integrated asset set; retain history and only add proven missing variants.** |
 | `feat/player-morphs-inventory-weapons` | 7 ahead / 102 behind; old inventory fixture/creator/catalogue changes. | **Do not ship test inventory; compare only missing test cases.** |
 
@@ -745,3 +745,35 @@ The immediate acceptance criterion is not simply a green generator workflow: ins
 | `feature/legacy-audio-menu-dev` | 12 ahead / 111 behind; older audio/menu stack. | **Integrated via current dev_2 audio branch; no re-merge.** |
 | `feature/opening-village` | 194 ahead / 357 behind; very large early stack. | **Superseded historical source; no wholesale merge.** |
 | `feature/full-world-port-foundation` | 47 ahead / 27 behind; unique geography/road/settlement data; CI appearance test failed. | **Stage data and preview tools separately after fixing strict test failure; not a full campaign merge.** |
+
+
+## Second-pass: wilderness foundation, asset pipelines and remaining documentation branches
+
+### Additional integrations confirmed
+
+- `feat/wilderness-world-foundation` is a real branch (the earlier `feature/` spelling was incorrect). Its `hex_world_chunk_streamer.gd` is byte-for-byte identical to current `dev_2`; its `wilderness_resource_system.gd` is also present in current and has since evolved from 167 to 173 lines. Do not re-merge the old system.
+- `feature/cosmo-tree-gen-evaluation` contains the full Cosmo generator and evaluation outputs; the core `cosmo_tree_gen.gd` is byte-for-byte identical to current `dev_2`. The generated tree asset family is already present in current. Preserve the branch as provenance/evaluation history; no bulk asset merge.
+- `chore/repository-formatting-rules` has `.editorconfig` and `.gitattributes` byte-for-byte identical to current `dev_2`. The style/line-ending rules are integrated, but automated enforcement is still incomplete.
+- `feat/ara-shields-helmets-hairstyles` is a real branch (the earlier `feature/` spelling was incorrect). Its medieval armour builder is already present in current `dev_2` in a slightly evolved form; do not merge the old copy.
+- `feat/equipment-materials-heraldry` adds genuinely new `EquipmentAppearance` and shield-heraldry shader files absent from current `dev_2`. This is a real candidate, but requires a deliberate integration into the current AraCharacterActor/equipment visual path and rebuilt shield/helmet assets. The branch's tests and docs alone do not prove runtime use.
+- `feat/tapered-split-dress-v2` has a substantially longer dress generator (266 lines versus 161 current) and is the current source candidate for the tapered split-dress variant. Its character pipeline validation passed, but visual review remains outstanding. Do not merge the generator or change the default dress until the exported result is inspected.
+- `docs/content-census` and `docs/content-parity-audit` contain large source-content audits that are not in current `dev_2`. They are reference material, not executable integration. Reconcile their claims against the current 3D port and mark content as implemented only where there is a verified runtime path and test/visual evidence.
+- `feature/legacy-porting-matrix-dev2` is a one-commit documentation branch and `feature/legacy-porting-matrix` is an older version. Both should be reconciled into the current audit rather than merged as competing status registers.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feat/wilderness-world-foundation` | 9 ahead / 122 behind; streamer identical, resource system present and evolved. | **Integrated/evolved.** Preserve history; no re-merge. |
+| `feature/cosmo-tree-gen-evaluation` | 23 ahead / 57 behind; core generator identical, asset family already present. | **Integrated asset/tool source.** Preserve evaluation history; no re-merge. |
+| `docs/content-census` | 2 ahead / 55 behind; adds content census and parity documents. | **Reference only; reconcile claims into current docs after evidence check.** |
+| `docs/content-parity-audit` | 1 ahead / 55 behind; adds parity document. | **Reference only; do not merge stale status claims.** |
+| `chore/repository-formatting-rules` | 2 ahead / 61 behind; editorconfig and attributes are byte-identical to current. | **Integrated.** Preserve history. |
+| `feat/equipment-materials-heraldry` | 14 ahead / 101 behind; adds runtime appearance/shader files absent from current. | **Selective salvage candidate after visual asset rebuild and actor integration review.** |
+| `feat/tapered-split-dress-v2` | 8 ahead / 101 behind; newer generator, CI passed, visual acceptance pending. | **Hold for render acceptance; then port the approved asset/generator change.** |
+| `feat/ara-shields-helmets-hairstyles` | 15 ahead / 102 behind; armour builder already exists in evolved form in current. | **Integrated/evolved; retain history.** |
+| `feature/legacy-porting-matrix-dev2` | 1 ahead / 105 behind; documentation-only. | **Reconcile into current audit; do not merge stale matrix.** |
+
+### Live branch-reference corrections
+
+A few names in the initial inventory were misspelled or used the wrong prefix. The resolvable refs are `feat/wilderness-world-foundation`, `feat/ara-shields-helmets-hairstyles` and `feat/campaign-loading-feedback`. The earlier `feature/` spellings returned 404; this was a name mismatch, not evidence that the real `feat/` branches had been deleted.
