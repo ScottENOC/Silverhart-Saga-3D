@@ -131,7 +131,8 @@ static func damage_reduction(target: CharacterState) -> int:
         if String(equipped_shield.get("type", "")) == "shield":
             reduction += int(equipped_shield.get("reduction", 0))
             reduction += int(target.skills.get("shield_proficiency", 0))
-    reduction += target.helmet_reduction + target.temp_reduction
+    var equipped_helmet: Dictionary = target.equipped_item_data.get("helmet", {})
+    reduction += target.helmet_reduction + int(equipped_helmet.get("reduction", 0)) + target.temp_reduction
     reduction += 2 * int(target.skills.get("spectral_form", 0) > 0)
     return maxi(0, reduction)
 
