@@ -777,3 +777,37 @@ The immediate acceptance criterion is not simply a green generator workflow: ins
 ### Live branch-reference corrections
 
 A few names in the initial inventory were misspelled or used the wrong prefix. The resolvable refs are `feat/wilderness-world-foundation`, `feat/ara-shields-helmets-hairstyles` and `feat/campaign-loading-feedback`. The earlier `feature/` spellings returned 404; this was a name mismatch, not evidence that the real `feat/` branches had been deleted.
+
+
+## Second-pass: remaining loading, preview and test branches
+
+### Loading and preview work
+
+- `feat/campaign-loading-feedback` is an earlier `world_root.gd` loading overlay. Current `world_root.gd` contains the loading overlay plus campaign restore progress and save-load integration; the old branch adds no lines missing from current in the inspected file.
+- `fix/workshop-dress-and-game-loading-stages` is an older loading screen implementation and old Wren workflow change. Current `world_root.gd` is 147 lines and includes the later detailed progress stages, character creator loading, campaign restoration and tavern setup. The old 91-line world_root snapshot must not replace it.
+- `feat/character-preview-loading-progress` is an older 472-line player creator. Current creator is 495 lines and contains later race/class integration, class-driven starting equipment and equipment preview. The old shirt/legwear selectors are not the correct current architecture.
+- `feat/wren-only-pages-two-character-workshop` is an early game/workshop deployment iteration. Its web-export workflow is 131 lines compared with the current 329-line artifact-aware exporter and lacks the current supporting Ara/props/armour asset retrieval. Do not restore it.
+- `maintenance/single-iphone-preview-pipeline` compares as zero commits ahead of `dev_2`; no merge work remains.
+
+### Save restore test branches
+
+- `test/save-restore-scene-dev2` is the source branch for merged PR #120. Its branch history remains ahead after squash merge, but the integrated current restore runner has additional resilience and diagnostics. Do not merge it again.
+- `test/save-restore-scene` is an earlier runner variant; current `tests/save_restore_runner.gd` uses the actual current scene-root/tavern reference and a shorter bounded wait. Retain the older branch as historical test development.
+- `test/chatgpt-session-write-access-20261105` compares as zero commits ahead of current `dev_2`.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feat/character-preview-loading-progress` | 3 ahead / 100 behind; old player creator snapshot. | **Superseded by current creator; retain history.** |
+| `feat/wren-only-pages-two-character-workshop` | 5 ahead / 156 behind; early Pages workflow. | **Superseded by current artifact-aware workflows.** |
+| `feat/campaign-loading-feedback` | 1 ahead / 101 behind; old world-root loading overlay. | **Integrated/evolved; no re-merge.** |
+| `fix/workshop-dress-and-game-loading-stages` | 4 ahead / 157 behind; older world-root and workshop workflow. | **Superseded by current world-root and pipeline.** |
+| `maintenance/single-iphone-preview-pipeline` | 0 ahead / 167 behind. | **No unique commits; retain.** |
+| `test/save-restore-scene` | 6 ahead / 3 behind; earlier save/restore runner. | **Superseded by merged PR #120 and current runner.** |
+| `test/chatgpt-session-write-access-20261105` | 0 ahead / 357 behind. | **No unique commits; retain.** |
+| `test/save-restore-scene-dev2` | 15 ahead / 2 behind; source for merged PR #120. | **Integrated by PR #120.** Preserve history; no re-merge. |
+
+### Branch and PR counts at the end of this pass
+
+The live GitHub listing returned 130 branches across two pages (100 + 30). The 20 open PRs include this audit PR #123; before creating the audit PR there were 19 open PRs. PR #122 is confirmed closed and merged into `dev_2` at `143e1b02e87a795a00794f0eb291fe4db50e0175`; PRs #119 and #120 are also confirmed merged. PR #121 remains open/draft and requires visual acceptance.
