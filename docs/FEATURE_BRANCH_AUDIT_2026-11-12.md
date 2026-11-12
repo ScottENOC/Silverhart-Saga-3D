@@ -960,3 +960,15 @@ The ten-profile direction also differs from the current body-asset goal: establi
 
 
 The `feature/player-custom-avatar-selection` change was checked directly: current `HollowTankard` already selects `player_avatar.glb` for the female player when the custom asset exists, with the shared Ara female asset as fallback. No port remains.
+
+
+### #110 animal/riding — deeper lifecycle review
+
+The mount review confirms two additional gaps beyond the HP calculation:
+
+- `WorldSimulation._on_character_lifecycle_changed` clears pending reactions and ends an incapacitated active turn, but it does not detach a rider from an incapacitated/dead mount or release an incapacitated rider from a mount.
+- `dismount_animal()` rejects the operation unless both rider and mount can act. That makes the normal dismount path unavailable precisely when one participant is unconscious/dead.
+- `_movement_state_for()` continues to resolve a rider to the mount while reciprocal IDs remain set. A dead/unavailable mount can therefore strand the rider's movement and leave the mount flagged as an initiative-excluded rider.
+- Existing tests cover normal mount, shared occupancy, movement cost, TP, save/load and initiative exclusion. They do not cover rider death/unconsciousness, mount death/unconsciousness, emergency dismount, stale reciprocal links or recovery after the mount is removed.
+
+Before porting, define a single lifecycle rule for the relationship: when either participant becomes unable to carry the relationship, clear both IDs and the mount's rider flag atomically, release/transfer occupancy safely, and decide whether the rider is placed on a valid adjacent hex or receives a fall consequence. The forced cleanup path must not require either character to be able to act. Add tests for both directions and save/load after cleanup.
