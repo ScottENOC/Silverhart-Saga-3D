@@ -59,6 +59,7 @@ func _capture() -> void:
     for _i in range(12):
         await process_frame
     await create_timer(1.0).timeout
+    _report_runtime_model_bounds(world)
     var img := root.get_texture().get_image()
     if img == null or img.is_empty():
         push_error("No rendered image")
@@ -75,6 +76,7 @@ func _capture() -> void:
 func _add_pair(world: Node3D, x: float, body_path: String, title: String) -> bool:
     var horse := CREATURE_ACTOR.new() as CreatureActor
     horse.name = title.replace(" ", "") + "Horse"
+    horse.add_to_group("mount_size_review_horses")
     horse.creature_kind = "horse"
     horse.behaviour = "mount"
     horse.model_scale = 0.82
@@ -84,6 +86,7 @@ func _add_pair(world: Node3D, x: float, body_path: String, title: String) -> boo
 
     var rider := ARA_ACTOR.new() as AraCharacterActor
     rider.name = title.replace(" ", "") + "Rider"
+    rider.add_to_group("mount_size_review_riders")
     world.add_child(rider)
     if not rider.configure(body_path):
         return false
@@ -101,3 +104,33 @@ func _add_pair(world: Node3D, x: float, body_path: String, title: String) -> boo
         title, rider.transform, rider.model_root.transform, rider.global_position, horse.global_position
     ])
     return true
+
+func _report_runtime_model_bounds(world: Node3D) -> void:
+    for horse in world.get_tree().get_nodes_in_group("mount_size_review_horses"):
+        if horse is CreatureActor and horse.model_root != null:
+            var bounds := _combined_mesh_bounds(horse.model_root)
+            print("[Mount size] HORSE runtime_scale=%.3f mesh_bounds_m=(%.3f, %.3f, %.3f) min=%s max=%s" % [
+                horse.model_scale, bounds.size.x, bounds.size.y, bounds.size.z, bounds.position, bounds.end
+            ])
+    for rider in world.get_tree().get_nodes_in_group("mount_size_review_riders"):
+        if rider is AraCharacterActor and rider.model_root != null:
+            var bounds := _combined_mesh_bounds(rider.model_root)
+            print("[Mount size] ARA asset=%s mesh_bounds_m=(%.3f, %.3f, %.3f) min=%s max=%s" % [
+                rider.loaded_asset_path, bounds.size.x, bounds.size.y, bounds.size.z, bounds.position, bounds.end
+            ])
+
+func _combined_mesh_bounds(model: Node3D) -> AABB:
+    var found := false
+    var combined := AABB()
+    var meshes := model.find_children("*", "MeshInstance3D", true, false)
+    for node in meshes:
+        var mesh_instance := node as MeshInstance3D
+        if mesh_instance == null or mesh_instance.mesh == null:
+            continue
+        var world_bounds: AABB = mesh_instance.global_transform * mesh_instance.get_aabb()
+        if not found:
+            combined = world_bounds
+            found = true
+        else:
+            combined = combined.merge(world_bounds)
+    return combined
