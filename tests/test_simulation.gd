@@ -454,8 +454,8 @@ func _test_vision_rules() -> void:
         "elf_vision": 2,
         "deep_sense": 1,
         "keen_perception": 2,
-        "inconspicuous": 1,
-        "shadow_weaver": 1
+        "stealth_agility": 1,
+        "stealth_rogue": 1
     }
     _check(VisionRules.vision_range(observer) == 33, "Elf vision should add four hexes per rank")
     _check(VisionRules.vision_range(observer, true) == 37, "Deep Sense should add four hexes indoors")
@@ -482,6 +482,9 @@ func _test_vision_rules() -> void:
     map.cells[Vector2i(2, 0)]["blocks_vision"] = true
     _check(not VisionRules.has_line_of_sight(map, observer.axial, target.axial), "An explicit opaque cell should block line of sight")
     map.cells[Vector2i(2, 0)]["blocks_vision"] = false
+    map.cells[Vector2i(2, 0)]["terrain_id"] = "palisade_wall"
+    _check(not VisionRules.has_line_of_sight(map, observer.axial, target.axial), "Palisade walls should block line of sight")
+    map.cells[Vector2i(2, 0)]["terrain_id"] = "grass"
     map.cells[Vector2i(2, 0)]["elevation"] = 3.0
     _check(not VisionRules.has_line_of_sight(map, observer.axial, target.axial), "A ridge above the sight line should block line of sight")
     map.cells[Vector2i(2, 0)]["elevation"] = 0.0
@@ -495,6 +498,26 @@ func _test_vision_rules() -> void:
     target.axial = Vector2i(34, 0)
     map.add_cell(Vector2i(34, 0), 0.0, true, "grass")
     _check(not VisionRules.can_see(map, observer, target), "Targets beyond modified vision range should not be visible")
+
+    # LOS must be reciprocal and work along all six axial directions, not only
+    # the single horizontal ray used by the basic blocker test.
+    var directions: Array[Vector2i] = [
+        Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 1),
+        Vector2i(-1, 0), Vector2i(0, -1), Vector2i(1, -1)
+    ]
+    var directional_map := HexMapData.new()
+    for direction in directions:
+        for step in range(0, 5):
+            directional_map.add_cell(direction * step, 0.0, true, "grass")
+        _check(VisionRules.has_line_of_sight(directional_map, Vector2i.ZERO, direction * 4), "LOS should work in each of the six hex directions")
+        _check(VisionRules.has_line_of_sight(directional_map, direction * 4, Vector2i.ZERO), "LOS should be reciprocal in each of the six hex directions")
+        directional_map.cells[direction * 2]["terrain_id"] = "palisade_wall"
+        _check(not VisionRules.has_line_of_sight(directional_map, Vector2i.ZERO, direction * 4), "A palisade should block LOS in every hex direction")
+        directional_map.cells[direction * 2]["terrain_id"] = "grass"
+
+    var dead_observer := CharacterState.new("dead_observer", "Dead Observer", Vector2i.ZERO)
+    dead_observer.alive = false
+    _check(not VisionRules.can_see(directional_map, dead_observer, target), "A dead observer cannot see targets")
 
 
 func _check(condition: bool, message: String = "Assertion failed") -> void:
