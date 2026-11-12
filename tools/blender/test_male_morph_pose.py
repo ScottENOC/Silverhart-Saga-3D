@@ -83,7 +83,9 @@ def main():
     scene=bpy.context.scene
     scene.frame_start=1; scene.frame_end=24
     # Verify the rig animation exists; don't silently substitute a static pose.
-    if arm.animation_data is None or arm.animation_data.action is None:
+    has_rig_animation = (arm.animation_data is not None and
+                         (arm.animation_data.action is not None or len(arm.animation_data.nla_tracks) > 0))
+    if not has_rig_animation:
         raise RuntimeError("No imported AnatomyRoot/Mid/Tip pose animation to combine with morph")
     for frame in (1,8,16,24):
         scene.frame_set(frame); bpy.context.view_layer.update()
