@@ -5,12 +5,15 @@ on:
     branches:
       - feature/unified-character-assembly
       - feature/anatomy-geometry-revision
+      - feature/anatomy-morph-sculpt-tests
     paths:
       - "tools/build_ara_runtime_local.py"
       - "tools/blender/add_adult_anatomy.py"
       - "tools/blender/add_male_anatomy.py"
       - "tools/blender/review_anatomy_closeup.py"
       - "tools/blender/inspect_character.py"
+      - "tools/blender/test_male_morph_pose.py"
+      - "tools/blender/build_female_vulva_sculpt.py"
       - "tools/ara/patch_layering.py"
       - "tools/character_definitions.py"
       - "data/items/item_definitions.json"
