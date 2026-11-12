@@ -669,7 +669,7 @@ def main():
             run([blender,"--background","--python-exit-code","1","--python",anatomy_review,
               "--","--input",model,"--output-dir",review_dir,"--label",label,"--natural-colour"],env=review_env)
         cached("review-anatomy-"+label,review_outputs,[model,anatomy_review],
-          "blue-and-natural-pelvis-closeup-review-v2:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
+          "blue-and-natural-pelvis-closeup-review-v3-shader-validation:blender:"+subprocess.check_output([blender,"--version"],text=True).splitlines()[0],
           anatomy_review_action)
 
     outfit_script=ROOT/"tools/review/render_modular_outfits.py"
