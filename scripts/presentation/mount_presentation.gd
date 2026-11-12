@@ -3,7 +3,7 @@ extends RefCounted
 ## Presentation-only helpers for attaching a rider actor to a mount actor.
 ## Simulation state remains authoritative; this class never changes game rules.
 
-const RIDER_SEAT_POSITION := Vector3(0.0, 1.90, 0.0)
+const RIDER_SEAT_POSITION := Vector3(0.0, 1.05, 0.0)
 
 static func attach_rider(rider_actor: Node3D, mount_actor: Node3D) -> bool:
     if rider_actor == null or mount_actor == null:
