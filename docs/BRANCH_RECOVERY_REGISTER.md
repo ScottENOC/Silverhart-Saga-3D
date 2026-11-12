@@ -1200,3 +1200,9 @@ GitHub now returns 136 live branch names and 20 open PRs. All 136 branch names a
 - First PR #130 workflow `43206955005` failed only at the newly added mount-presentation test. The test tried to subclass/preload the entire `HollowTankard`, which pulled its `SaveManager` autoload dependency into a standalone `--script` test before the autoload was available, then crashed. The production code itself had passed all earlier workflow stages; the run did not establish full success.
 - Reworked the test boundary: extracted the seat/attach/detach/facing/mounted-movement presentation helpers into `scripts/presentation/mount_presentation.gd` and replaced the heavyweight HollowTankard fixture with a standalone Node3D test. This also separates presentation concerns from the large scene script.
 - The latest PR #130 head is `024a790b0fb28eedf3da8d9891e8a01465a4d2ed`; fresh Godot workflow `43207796933` is pending. Do not use the failed earlier run as the final status.
+
+
+### PR #130 final CI result — 12 November 2026
+
+- Latest PR #130 head `024a790b0fb28eedf3da8d9891e8a01465a4d2ed` completed Godot 4.7.2 validation run `43207796933` successfully: all 31 steps passed, including the isolated mount-presentation helper tests and the existing project validation suite.
+- PR #130 remains open and draft, targets `dev_2`, and GitHub reports it mergeable/clean. It has deliberately not been merged: the fixed seat offset is still provisional and requires PC visual acceptance against the actual horse model and both accepted body rigs. CI proves script/test correctness, not that the rider looks correctly seated or animates acceptably.
