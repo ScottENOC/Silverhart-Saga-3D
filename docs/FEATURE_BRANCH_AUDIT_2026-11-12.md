@@ -701,3 +701,47 @@ The immediate acceptance criterion is not simply a green generator workflow: ins
 - Spell definitions exist; spell casting/effect resolution remains unimplemented or unverified.
 - Farm wolf quest and creature actor are integrated; mount/riding gameplay is not.
 - The Tessa/dire-wolf quest is not integrated; current bear quest needs the HP and dormant-state fixes noted above.
+
+
+## Second-pass: save/load, character creation, legacy roster and world-port branches
+
+### Save/load
+
+- `feature/save-load-system` has `save_manager.gd` and `save_load_menu.gd` byte-for-byte identical to current `dev_2`. Its 42-line test file is an older subset of the current 76-line test suite.
+- The SaveManager branch's unique history is already integrated. PR #120 added campaign scene restore coverage; PR #119 added persistent building door state. No merge is required from the old save-system branch.
+- The known remaining save limitations are not solved merely by merging the old branch: combat is intentionally not saveable, transient reactions/active turns are not serialized, and dynamic character appearance/gear and mutable world/container state still need deliberate persistence policy.
+
+### Character creation and legacy rosters
+
+- `feature/arena-and-full-character-roster` has both `legacy_named_npcs.json` and `legacy_enemy_roster.json` byte-for-byte identical to current `dev_2`; the roster content and validation work are integrated.
+- `feature/game-start-race-class` and `feature/game-start-race-class-validation` are duplicate-history branches from the initial inventory. The latter's creation rules and JSON are older than current `dev_2`; current files have additional validation/logic. Do not merge the older rules over current.
+- `feature/player-character-creator` and `feature/player-character-creator-dev` are early creator implementations. Their 200-line creator is substantially older than the current 495-line implementation. The later creator and appearance phase are already evolved in current; retain the branch for historical design and recover only a missing user-facing choice.
+- `feature/character-inventory-panel` adds an old character panel and stat mutations on a stale simulation API. Current character/inventory UI and item definitions have moved on; do not merge the old panel or CharacterState.
+- `feature/arena-and-full-character-roster` is effectively integrated as data and validation. Arena gameplay itself remains a placeholder, so do not interpret roster data as a completed arena mode.
+
+### Companion and world foundation
+
+- `feature/ser-aldric-first-companion-model` adds `companion_models.json` (absent in current) and modifies the Ara NPC build workflow. It is a small but distinct companion asset integration candidate. Its character-pipeline and Godot workflows passed in earlier evidence, but the Ara build itself failed and visual rig/armour acceptance remains outstanding. Keep it deferred until the current base body/rig is accepted; do not treat the model metadata as proof that the companion model works in game.
+- `feature/opening-village` is a very large old stack (194 ahead / 357 behind) containing early NPC, Ara, village, workflow and Workshop implementations. Current `dev_2` has later versions of these systems. It is a historical source branch, not a merge candidate.
+- `feature/full-world-port-foundation` remains a genuine future world-data source (47 ahead / 27 behind): Campaign 2 geography, road-path data, settlement layouts, macro/regional preview scenes and audit docs are unique. It is not yet a playable traversable campaign world. Its Godot workflow failed because the strict checked runner detected a synthetic bra material assertion mismatch and a null-material engine error in the appearance test, despite a later script success line. The strict error detection is useful and should be considered for a separate port; the test/material defect must be fixed rather than weakening the runner.
+- `feature/terrain-character-grounding-test`, `feature/ara-skeleton-animation-validation` and `feature/ara-visual-animation-review` compare as zero commits ahead of current `dev_2`; no merge work remains on these refs.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feature/save-load-system` | 26 ahead / 11 behind; manager/menu byte-identical, test file older. | **Integrated.** Preserve history; no re-merge. |
+| `feature/character-inventory-panel` | 14 ahead / 139 behind; old panel and simulation snapshot. | **Superseded; retain history.** |
+| `feature/arena-and-full-character-roster` | 7 ahead / 104 behind; both large roster JSON files byte-identical to current. | **Integrated.** Preserve history; arena mechanics remain incomplete. |
+| `feature/game-start-race-class-validation` | 11 ahead / 137 behind; creation rules are older than current. | **Integrated/evolved; no re-merge.** |
+| `feature/player-character-creator-dev` | 10 ahead / 158 behind; older creator UI and actor integration. | **Superseded by current creator; retain.** |
+| `feature/player-character-creator` | 19 ahead / 159 behind; same early creator stack plus workflow/validator. | **Superseded by current creator; salvage only if a missing user-facing option is identified.** |
+| `feature/terrain-character-grounding-test` | 0 ahead / 297 behind. | **No unique commits; retain.** |
+| `feature/ara-skeleton-animation-validation` | 0 ahead / 292 behind. | **No unique commits; retain.** |
+| `feature/ara-visual-animation-review` | 0 ahead / 284 behind. | **No unique commits; retain.** |
+| `feature/ser-aldric-first-companion-model` | 7 ahead / 102 behind; companion model manifest/workflow absent from current. | **Deferred asset candidate; rebuild and visually validate against approved Ara base.** |
+| `feature/character-pipeline-foundation` | 2 ahead / 525 behind; old docs-only stack. | **Superseded documentation; retain.** |
+| `feature/main-campaign-world-map` | 12 ahead / 136 behind; map UI/data already identical to current (see earlier entry). | **Integrated.** Preserve history. |
+| `feature/legacy-audio-menu-dev` | 12 ahead / 111 behind; older audio/menu stack. | **Integrated via current dev_2 audio branch; no re-merge.** |
+| `feature/opening-village` | 194 ahead / 357 behind; very large early stack. | **Superseded historical source; no wholesale merge.** |
+| `feature/full-world-port-foundation` | 47 ahead / 27 behind; unique geography/road/settlement data; CI appearance test failed. | **Stage data and preview tools separately after fixing strict test failure; not a full campaign merge.** |
