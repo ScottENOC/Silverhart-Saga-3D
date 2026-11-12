@@ -898,7 +898,41 @@ func _test_equipped_item_combat_effects() -> void:
     var restored := CharacterState.from_dict(defender.to_dict())
     _check(restored.equipped_item_data.has("armour") and restored.equipped_item_data.has("offhand"), "Equipped item instances must survive save/load")
     _check(CombatRules.damage_reduction(restored) == 5)
-    
+
+    var helmet := ItemCatalog.create_instance("nasal_helm", "helmet_001")
+    _check(defender.add_inventory_item(helmet), "Helmet should be carried as an item instance")
+    _check(defender.equip_inventory_item("helmet_001"), "A helmet should equip to the helmet slot")
+    _check(CombatRules.damage_reduction(defender) == 6, "Equipped helmet reduction must contribute to incoming damage mitigation")
+    var restored_with_helmet := CharacterState.from_dict(defender.to_dict())
+    _check(CombatRules.damage_reduction(restored_with_helmet) == 6, "Helmet reduction must survive save/load")
+
+    var invalid_slot_item := {
+        "instance_id": "wrong_slot_001", "id": "bad_helmet", "type": "helmet",
+        "equipment_slot": "armour", "reduction": 4, "quantity": 1
+    }
+    _check(defender.add_inventory_item(invalid_slot_item))
+    _check(not defender.equip_inventory_item("wrong_slot_001"), "A helmet must not equip into the body-armour slot")
+    _check(defender.inventory.size() == 1, "Rejected equipment must remain in inventory")
+
+    var two_hander := {
+        "instance_id": "spear_001", "id": "spear", "type": "weapon",
+        "equipment_slot": "weapon", "hands": 2, "damage": 4, "quantity": 1
+    }
+    _check(defender.add_inventory_item(two_hander))
+    _check(not defender.equip_inventory_item("spear_001"), "A two-handed weapon must not equip while an offhand shield is equipped")
+    _check(defender.inventory.size() == 2, "Rejected two-handed weapon must remain in inventory")
+
+    var empty_handed := CharacterState.new("empty_handed", "Empty handed")
+    _check(empty_handed.add_inventory_item(two_hander.duplicate(true)))
+    _check(empty_handed.equip_inventory_item("spear_001"), "A two-handed weapon should equip when both hands are free")
+    var conflicting_shield := {
+        "instance_id": "shield_002", "id": "wooden_shield", "type": "shield",
+        "equipment_slot": "offhand", "reduction": 1, "quantity": 1
+    }
+    _check(empty_handed.add_inventory_item(conflicting_shield))
+    _check(not empty_handed.equip_inventory_item("shield_002"), "An offhand shield must not equip alongside a two-handed weapon")
+    _check(empty_handed.inventory.size() == 1, "Rejected shield must remain in inventory")
+
 func _test_movement_validation() -> void:
     var sim := WorldSimulation.new()
     sim.map_data.add_cell(Vector2i(0, 0))
