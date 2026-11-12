@@ -54,15 +54,19 @@ func _capture() -> void:
     camera.look_at(Vector3(0.0, 2.0, 0.0), Vector3.UP)
     camera.current = true
 
-    var ok_original := _add_pair(world, -6.0, FEMALE_BODY, "ORIGINAL 0.82", 0.82, 1.90)
-    var ok_scaled := _add_pair(world, 0.0, FEMALE_BODY, "SCALED 0.48", 0.48, 1.11)
-    var ok_small := _add_pair(world, 6.0, FEMALE_BODY, "PROPOSED 0.45", 0.45, 1.05)
-    if not ok_original or not ok_scaled or not ok_small:
+    var ok_female := _add_pair(world, -3.2, FEMALE_BODY, "FEMALE RIDING", 0.45, 1.05)
+    var ok_male := _add_pair(world, 3.2, MALE_BODY, "MALE RIDING", 0.45, 1.05)
+    if not ok_female or not ok_male:
         push_error("Failed to load one or more Ara/horse models")
         quit(1)
         return
     for _i in range(12):
         await process_frame
+    var riding_clips_ok := _play_riding_clip_for_all_riders(world)
+    if not riding_clips_ok:
+        push_error("Ride horse (trot) animation is missing from one or more Ara rigs")
+        quit(1)
+        return
     await create_timer(1.0).timeout
     _report_runtime_model_bounds(world)
     var img := root.get_texture().get_image()
@@ -112,6 +116,22 @@ func _add_pair(world: Node3D, x: float, body_path: String, title: String, horse_
         title, horse_scale, rider_seat_y, rider.transform, rider.model_root.transform, rider.global_position, horse.global_position
     ])
     return true
+
+func _play_riding_clip_for_all_riders(world: Node3D) -> bool:
+    var all_ok := true
+    for rider_node in world.get_tree().get_nodes_in_group("mount_size_review_riders"):
+        var rider := rider_node as AraCharacterActor
+        if rider == null or rider.animation_player == null:
+            all_ok = false
+            continue
+        var clip := StringName("Ride horse (trot)")
+        if not rider.animation_player.has_animation(clip):
+            push_error("Ara rig %s does not contain %s" % [rider.name, clip])
+            all_ok = false
+            continue
+        rider.animation_player.play(clip)
+        print("[Mount review] RIDING_ANIMATION rider=%s clip=%s" % [rider.name, clip])
+    return all_ok
 
 func _report_runtime_model_bounds(world: Node3D) -> void:
     for horse in world.get_tree().get_nodes_in_group("mount_size_review_horses"):
