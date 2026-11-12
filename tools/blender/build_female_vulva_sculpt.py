@@ -130,7 +130,10 @@ def main():
     patch.parent=arm; patch.matrix_world=patch_world; patch.parent_type="OBJECT"
     mod=patch.modifiers.new("Ara pelvis deformation","ARMATURE"); mod.object=arm
     scene=bpy.context.scene
-    scene.render.engine="BLENDER_EEVEE_NEXT"; scene.render.resolution_x=1000; scene.render.resolution_y=1000
+    engines={item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
+    scene.render.engine=next((e for e in ("BLENDER_EEVEE_NEXT","BLENDER_EEVEE","BLENDER_WORKBENCH") if e in engines),None)
+    if scene.render.engine is None: raise RuntimeError("No supported Blender render engine")
+    scene.render.resolution_x=1000; scene.render.resolution_y=1000
     scene.render.resolution_percentage=100; scene.render.image_settings.file_format="PNG"
     scene.view_settings.view_transform="Standard"; scene.world.color=(0.18,0.18,0.18)
     scene.render.film_transparent=False
