@@ -1286,3 +1286,14 @@ The remaining branch inventory includes older Ara/Workshop and Pages workflow va
 The branch's `HollowmereVillage.md` is byte-identical to current `dev_2`. Its 13-NPC validator snapshots are older than current: current Godot/Python validators require 13 NPCs plus the generated `player_avatar` profile (14 total), reject duplicate IDs and check that the player-avatar source definition exists. The branch's deployment workflow is also an earlier combined Pages design; current `godot-web-export.yml` is substantially more complete, including independent current Workshop body and medieval prop artifact retrieval, legacy audio import, equipment smoke test, PWA build/version validation and combined deployment fallback. The branch's `hollowmere-npcs.yml` lacks the current gendered adult-anatomy integration steps.
 **Disposition:** no code or workflow port. Preserve as provenance; current validators/workflow supersede it. Continue to track the current workflow's unresolved `dev` source filters separately.
 
+
+
+## Selective recovery: Tessa rescue and Reyna quest
+
+- Source: `feature/farmstead-bear-creature-model`, original PR [#99](https://github.com/ScottENOC/Silverhart-Saga-3D/pull/99). Source branch and PR remain open and unchanged.
+- The source branch diverged from the latest `dev_2` baseline (27 commits ahead / 33 behind). Its old `HollowTankard` snapshot was not merged wholesale.
+- Selective recovery is in [PR #131](https://github.com/ScottENOC/Silverhart-Saga-3D/pull/131), branch `integration/tessa-rescue-quest-dev2`, targeting `dev_2`.
+- Recovered non-modelling work: staged trail clue, shepherd shelter, Tessa encounter/rescue, dire-wolf hunt, three-objective Reyna recruitment gate, separate Old Mac wolf-pack quest, current-world integration, save/restore handling, encounter tests and documentation.
+- Corrected source defects: dire-wolf Health ranks now apply once (120 base + 3 ranks = 150 HP); encounter start snapshots and restores every character's previous side/dormancy instead of leaving unrelated actors dormant; dire wolf uses bite skill ranks in AI combat.
+- Automated Godot 4.7.2 validation for PR #131 is running on the latest head `efa6fa2d1c71f149d99bc88568fd14d8941d7266` (workflow run `43308185539`). No merge until the exact-head run completes successfully and the save/quest integration has been reviewed.
+- This is a gameplay quest integration using an existing creature asset; character/anatomy/clothing modelling remains in the separate modelling stream.
