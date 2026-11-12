@@ -52,7 +52,7 @@ func _capture() -> void:
 
     var ok_original := _add_pair(world, -6.0, FEMALE_BODY, "ORIGINAL 0.82", 0.82, 1.90)
     var ok_scaled := _add_pair(world, 0.0, FEMALE_BODY, "SCALED 0.48", 0.48, 1.11)
-    var ok_small := _add_pair(world, 6.0, FEMALE_BODY, "SCALED 0.44", 0.44, 1.02)
+    var ok_small := _add_pair(world, 6.0, FEMALE_BODY, "PROPOSED 0.45", 0.45, 1.05)
     if not ok_original or not ok_scaled or not ok_small:
         push_error("Failed to load one or more Ara/horse models")
         quit(1)
