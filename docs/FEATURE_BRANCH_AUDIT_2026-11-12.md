@@ -1141,3 +1141,15 @@ PR #130 selectively ports the remaining mount toggle and rider presentation from
 - Newly surfaced `feature/anatomy-morph-sculpt-tests` and historical `feature/wren-anatomy-piercings-halter-fit` are retained as parallel anatomy/modelling history and are not duplicated in this audit.
 
 **Stage 1 remains open.** The next work is to complete the remaining file-level reconciliation and dependency map for all non-parallel branches, especially distinct deployment workflow logic, branch-only quest/encounter work, source-content parity and residual test scenarios. No feature branches were deleted, no PRs were closed, and no production branch was changed.
+
+
+## Latest refresh — 13 November 2026
+
+- Current `dev_2` head is `a8b5987ebdc12b016d99e2550349f17a8fd62645`, following the selective Tessa rescue / Reyna quest merge in PR #131. Its exact-head Godot 4.7.2 validation run `43308185539` passed. No manual playthrough is claimed.
+- Live repository inventory is **139 branches and 20 open PRs**. All 139 branch names are represented in the recovery register; branch-name coverage is not equivalent to exhaustive content review.
+- PR #130 mount presentation remains a draft. Its integration branch is one commit behind current `dev_2`; refresh it and rerun current-head CI after the required PC visual seat/fit review. The original #110 branch/PR remain preserved.
+- The missing-skill-runtime branch and arena/full-roster branch were rechecked: the former's changes are superseded older snapshots; the latter's substantive data, docs, validator and test blobs match current `dev_2` exactly.
+- Large opening-village/shared-character/phone-preview branches remain mixed with the parallel modelling pipeline and older world snapshots. No wholesale merge is appropriate. Continue the non-modelling file-level reconciliation, particularly world presentation and deployment workflow differences.
+- The content census branch is based on an older `dev` snapshot dated 10 November. Its counts and parity claims must be refreshed against `Hex-crpg/main` and current `dev_2` before being treated as current.
+
+Stage 1 remains open. Preserve all historical branches and keep `dev` and `main` untouched.
