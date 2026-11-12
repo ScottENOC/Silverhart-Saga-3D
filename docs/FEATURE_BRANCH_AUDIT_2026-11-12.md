@@ -916,3 +916,16 @@ A passing branch workflow only validates the commit and paths it actually exerci
 ### Character inventory panel confirmation
 
 The `feature/character-inventory-panel` branch's 263-line `CharacterPanel` is present in current `dev_2) as a 317-line evolved version. Current adds the item catalogue integration, equipment-change signal and scroll-position preservation; its old CharacterState/CombatRules snapshots must not be merged. The character/inventory panel is therefore integrated, not missing.
+
+
+## Selective integration started: equipment rules (PR #124)
+
+The first small, high-confidence port from the audit is now isolated in PR #124, `integration/equipment-rules-dev2`, based directly on the audit baseline `dev_2` SHA `143e1b02e87a795a00794f0eb291fe4db50e0175`.
+
+It ports only the unique #91 rule changes onto current files:
+- equipment type/slot validation;
+- two-handed/offhand conflict rejection without discarding the rejected inventory item;
+- equipped helmet reduction in `CombatRules`;
+- current-suite regression tests for helmet mitigation/save/load, invalid slot rejection and both hand-conflict directions.
+
+It does not copy #91's stale full-file snapshots or old porting-register docs. PR #124 is open/draft and its Godot 4.7.2 workflow #43177332927 was still running at the time of this update. Do not close historical PR #91 until #124 has passed and merged; retain the original #91 branch permanently.
