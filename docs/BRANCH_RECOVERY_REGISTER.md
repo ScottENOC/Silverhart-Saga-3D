@@ -348,3 +348,15 @@ The user confirmed that the separate character/clothing/hair/equipment modelling
 - Cosmo Tree Generator evaluation/gallery/regeneration tooling: user confirms the generator was only used to produce assets that have already been accepted. Current generated tree assets are present; no need to recover the evaluation tools.
 - Separate character, clothing, hair and equipment modelling workstream: do not duplicate its work in this integration sequence.
 
+
+
+### Animal riding — merge completed
+
+- PR **#126** passed the full current-head Godot 4.7.2 workflow (run `43187949002`) and merged into `dev_2` at `69a0f715a9b01efca3aec017cc703fc62e317ffb`.
+- Confirmed green steps included engine import, hex grid, the full simulation/movement/combat/animal/riding test suite, building/door, SaveManager, campaign restore, character appearance, wilderness/creature tests, all Campaign 2 tests and all scene smoke tests.
+- The old `feature/animal-riding-validation` branch and PR #110 remain intact pending the broader audit of its preview-capture workflow and any remaining branch-only material. Do not delete the branch or blindly merge the old PR.
+
+### Equipment appearance — refresh on current baseline
+
+- PR **#127** has been refreshed after #126 merged. Its integration branch is now based on the latest `dev_2` commit and its compare against `dev_2` contains only the four helper/shader/test/doc files plus the one CI test step.
+- New current-head Godot validation is running. The earlier pre-refresh run passed, but the refreshed head must pass before merge.
