@@ -984,3 +984,54 @@ The current `.github/workflows/wren-workshop.yml` is 687 lines and includes curr
 - `chore/consolidate-preview-and-review-workflows` predates the current workflow and removes dedicated review workflows; it should not be used to collapse the current pipeline.
 
 These branches contain useful historical experiments, but none should replace the current Wren Workshop workflow. Any future workflow refactor should preserve the current independent artifact stages and run on the exact source commit being reviewed.
+
+
+## Second-pass audit: combat, campaign, world and deployment (2026-11-12)
+
+The live branch inventory was refreshed from GitHub's two-page branch listing before this pass. This pass intentionally excludes anatomy branches, which are being handled separately.
+
+### Combat, reactions and turn resolution
+
+The current `dev_2` `WorldSimulation` is materially newer than most of the combat feature branches. It already contains authoritative `SimulationActionRequest` submission, pending-reaction lifecycle, multi-reactor options (each option names its own TP-paying reactor), movement-reaction resolution, pending attack/move contexts, and turn-scheduler integration. The old reaction branches are not safe to merge as whole files.
+
+- `feature/action-contract-downed-lifecycle` (10 ahead / 149 behind; 9 changed files): old snapshots of `character_state.gd`, `combat_rules.gd`, `world_simulation.gd` and tests. Its action-contract/downed foundation is represented in current code; retain as historical source, no wholesale merge.
+- `feature/ally-combat-reactions` (7 ahead / 142 behind): its 205-line world-simulation delta predates current multi-reactor handling. The current simulation already accepts options with explicit `reactor_id`, validates each reactor and charges that character's TP. No direct port indicated.
+- `feature/combat-reaction-triggers` (8 ahead / 146 behind) and `feature/movement-reactions` (8 ahead / 141 behind): old `WorldSimulation`/CharacterState snapshots and tests; movement-reaction resolution is already present in current code. Audit any isolated trigger rule only if a gameplay test identifies a missing case.
+- `feature/reaction-resolution-turn-safety` (4 ahead / 148 behind): old simulation snapshot. Current code already blocks world-time advancement while a reaction is pending and handles lifecycle changes, but a dedicated current-head adversarial test pass is still warranted for cancellation, reactor incapacitation, nested requests, combat end and turn advancement. Do not merge the stale file.
+- `feature/in-game-reaction-prompt` (2 ahead / 143 behind): the current `scripts/ui/reaction_prompt.gd` is already present; the branch changes that UI and `HollowTankard` only. Treat as superseded unless a visual review reveals a concrete missing interaction.
+- `feature/status-effects-combat-debuffs` (10 ahead / 11 behind): `status_effect_rules.gd` and `movement_rules.gd` are byte-identical to current `dev_2`; its CharacterState, CombatRules, WorldSimulation and test files are older snapshots (e.g. CharacterState 445 lines vs current 480). No wholesale merge. Inspect any unique test/rule case against current status-effect persistence before disposition is final.
+- `feature/combat-resolution-foundation` (36 ahead / 155 behind): broad old workflow/character/combat snapshot. Not a safe merge source.
+- `feature/combat-initiative-timeline` (36 ahead / 55 behind): contains a substantial unique presentation layer (`CombatInitiativeTimeline` and model, with capture test/workflow). This is the clearest isolated salvage candidate in this combat group, but its cards are 276×174 px and the panel assumes a wide desktop layout. Do not merge the UI unchanged; adapt to the project's compact phone layout, ensure it handles large parties/long names and hidden/neutral/dormant/rider states, then run headless and visual review on the current scene.
+- `feature/hollowmere-shakedown-combat` (50 ahead / 128 behind): old simulation, encounter, campaign-content and ambient-chatter snapshots. Its turn scheduler is byte-identical to current. Port only distinct encounter/dialogue content after comparing quest IDs, current campaign journal state and the current encounter lifecycle; do not merge the branch's full HollowTankard or WorldSimulation.
+- `feature/ally-combat-reactions`, `feature/combat-reaction-triggers`, `feature/movement-reactions` and `feature/reaction-resolution-turn-safety` should remain preserved as historical branches; no branch deletion.
+
+**Combat disposition:** no combat branch is currently safe for wholesale merge. The initiative timeline is a potential isolated UI port. The remaining work is to test current turn/reaction state transitions adversarially and continue the user's explicitly outstanding stealth/detection/AI-under-uncertainty work separately from the already-integrated line-of-sight foundation. A character merely observed at a past time should become a time-stamped, confidence-limited memory; it must not remain omnisciently targetable after leaving current LOS.
+
+### Campaign journal, save/load and strategic map
+
+- `feature/campaign-quest-journal` (5 ahead / 135 behind): its 211-line journal is older than the current 331-line `CampaignJournal`. Current code additionally has faction knowledge, NPC standings/knowledge, merchant influence and expanded persistence/event handling. Do not merge the old journal.
+- `feature/save-load-system` (26 ahead / 12 behind): `scripts/save/save_manager.gd` and `scripts/ui/save_load_menu.gd` are byte-identical to current `dev_2`. The save manager, eight manual slots, quicksave and rotating autosaves are already integrated. Its remaining differences are not evidence of missing save functionality; inspect only any distinct scene wiring or tests before closing its audit disposition.
+- `feature/main-campaign-world-map-validated` (12 ahead / 137 behind): the main map UI and data scripts are byte-identical to current `dev_2`. The branch is superseded for those features; its old `HollowTankard`/creator/world-root snapshots must not be merged.
+- `feature/hollowmere-building-port-spec` (39 ahead / 55 behind): the building registry and door-state persistence are already integrated through the newer building framework / PR #119. Its registry implementation is effectively the current one; retain the specification as historical design material, not a merge candidate.
+- The `feature/hollowmere-dialogue-ambient-chatter` and `feature/campaign-quest-journal` branches overlap older versions of campaign journal and content. Reconcile quest/dialogue IDs against current definitions before selectively porting any new story content.
+
+### Hollowmere geography, wilderness and seasonal presentation
+
+- `feature/organic-hollowmere-geography` (17 ahead / 86 behind): its 442-line village script is an earlier version of current `scripts/world/hollowmere_village.gd` (601 lines). Current code already includes the organic stream/road treatment and adds farm/wilderness creature presentation and other evolved content. The branch is superseded; do not merge its village script.
+- `feat/wilderness-world-foundation` (9 ahead / 123 behind): its resource-system file is an older 167-line snapshot versus current 173-line implementation. Current `WorldSimulation` already owns `WildernessResourceSystem` and `HexWorldChunkStreamer`; compare isolated rules/tests only if a missing resource behavior is identified.
+- `feat/wilderness-art-and-gatherable-visuals` (18 ahead / 120 behind): contains seasonal/resource visual and asset-bootstrap work, but overlaps the current newer wilderness resource/presentation pipeline. No wholesale merge.
+- `feat/seasonal-wilderness-visuals` (5 ahead / 122 behind): its 147-line procedural placeholder is superseded by current 180-line `SeasonalTreeVisual`, which supports imported Kenney Nature Kit assets and procedural fallback. No port.
+- The map, village and wilderness branches are old snapshots. Preserve them; do not infer missing features from ahead counts.
+
+### GitHub Pages / PWA deployment
+
+The deployment workflow deserves a separate integration fix, not a wholesale workflow-branch merge.
+
+- Current `dev_2` `.github/workflows/godot-web-export.yml` is 329 lines and is materially more advanced than the 135-line `feature/godot-web-pages-export` version. It downloads independently generated Ara/Workshop/prop artifacts, builds and validates the Godot PWA, saves the game artifact, then deploys a combined Pages artifact with a Workshop site when available. The old branch is superseded.
+- However, the current workflow's push trigger, workflow-run filters, artifact searches and checkout steps all explicitly target `dev`, not `dev_2`. Thus merging code into `dev_2` alone does not cause this workflow to build/deploy that branch. This must be reconciled deliberately with the chosen deployment source; do not silently retarget or push gameplay into `dev`.
+- `fix/combined-game-workshop-pages-deploy` is an older 122-line combined deploy workflow. Its general artifact-composition approach is now represented in the current Godot web export workflow, but its exact failure gating differs. Current workflow permits the Workshop site artifact to be absent and falls back to checked-in `site/`; it still requires the Hollowmere Ara artifact, while weapon/armour props and Workshop body assets are optional.
+- `feature/ios-game-pwa` contains an older packaging implementation; current web export already invokes `tools/pwa/package_godot_pwa.py` and verifies manifest, worker, icons, wasm and pck.
+- `deploy/wren-workshop-github-pages` and `fix/split-game-export-and-pages-deploy` are older workflow variants; no wholesale merge.
+- The current workflow's validator step is named "Verify all 13 NPCs and the player avatar". This count/contract should be checked against the current canonical NPC manifest before treating deployment validation as authoritative, particularly given the schema migration work recorded above.
+
+**Deployment disposition:** retain the current more complete workflow, but create a separate small deployment-source fix once the intended Pages source branch is confirmed. Verify both the game and Workshop routes from the same commit, and ensure a failure in one optional asset build does not suppress an otherwise deployable game/Workshop artifact.
