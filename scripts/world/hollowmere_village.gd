@@ -281,6 +281,20 @@ func register_animals_with_simulation(simulation: WorldSimulation) -> Dictionary
 		if actor == null:
 			continue
 		var animal_id := "animal_" + actor.name.to_lower()
+		var existing_state := simulation.get_character(animal_id)
+		if existing_state != null:
+			if existing_state.race != "animal" or existing_state.creature_kind != actor.creature_kind:
+				skipped.append({"actor": actor.name, "reason": "existing_state_profile_mismatch"})
+				continue
+			# Save restoration may have registered this animal before WorldRoot
+			# reconnects the exterior presentation actor. Bind to the restored
+			# state and restore its saved position/facing without resetting status.
+			actor.simulation_state = existing_state
+			actor.axial_hex = existing_state.axial
+			actor.position = HexGrid.axial_to_world(existing_state.axial, HEX_RADIUS, 0.0)
+			actor.rotation.y = deg_to_rad(float(2 - existing_state.facing_direction) * 60.0)
+			registered_ids.append(existing_state.id)
+			continue
 		var state := actor.create_simulation_state(animal_id, actor.name, actor.axial_hex)
 		if state == null:
 			skipped.append({"actor": actor.name, "reason": "missing_animal_profile"})

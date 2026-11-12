@@ -149,29 +149,45 @@ func _test_animal_actor_registration() -> void:
     village.call("_create_farm_animals")
     village.call("_create_wilderness_animals")
     var simulation := WorldSimulation.new()
+    # Simulate a saved animal already restored into WorldSimulation before
+    # WorldRoot reconnects the exterior presentation actors.
+    var restored_horse := AnimalCatalog.create_state("horse", "animal_farmhorse", "Farm Horse", Vector2i(30, 61), 991)
+    restored_horse.side = "player"
+    restored_horse.combat_dormant = false
+    restored_horse.facing_direction = 3
+    assert(bool(simulation.register_animal(restored_horse).get("ok", false)), "The saved horse fixture should register before scene binding")
     var result: Dictionary = village.call("register_animals_with_simulation", simulation)
-    assert(bool(result.get("ok", false)), "All authored Hollowmere animals should register in the campaign simulation")
+    assert(bool(result.get("ok", false)), "All authored Hollowmere animals should register or bind to restored states")
     var registered_ids: Array = result.get("registered_ids", [])
-    assert(registered_ids.size() == 10, "The six farm animals and four wilderness animals should be registered")
+    assert(registered_ids.size() == 10, "The six farm animals and four wilderness animals should be bound")
     assert((result.get("skipped", []) as Array).is_empty(), "No authored animal should be skipped during registration")
     var actor_count := 0
+    var farm_horse: CreatureActor
     for child in village.get_children():
         var actor := child as CreatureActor
         if actor == null:
             continue
         actor_count += 1
-        assert(actor.axial_hex != Vector2i.ZERO, "%s should retain its authored hex" % actor.name)
+        assert(actor.axial_hex != Vector2i.ZERO, "%s should retain its authored or restored hex" % actor.name)
         assert(actor.is_in_group("creature_actors"), "%s should be discoverable by mount presentation lookup" % actor.name)
         assert(actor.simulation_state != null, "%s should retain its registered simulation state" % actor.name)
         assert(simulation.get_character(actor.simulation_state.id) == actor.simulation_state, "%s should reference the canonical simulation state" % actor.name)
-        assert(actor.simulation_state.side == "neutral", "Ambient animals should remain neutral")
-        assert(actor.simulation_state.combat_dormant, "Ambient animals should remain dormant until an encounter activates them")
-        assert(actor.simulation_state.tags.has("ambient_animal"), "Registered village animals should be tagged as ambient wildlife")
+        if actor.name == "FarmHorse":
+            farm_horse = actor
+        else:
+            assert(actor.simulation_state.side == "neutral", "New ambient animals should remain neutral")
+            assert(actor.simulation_state.combat_dormant, "New ambient animals should remain dormant until activated")
+            assert(actor.simulation_state.tags.has("ambient_animal"), "New village animals should be tagged as ambient wildlife")
     assert(actor_count == 10, "The test should exercise every authored village animal actor")
+    assert(farm_horse != null and farm_horse.simulation_state == restored_horse, "The visual horse must bind to the restored canonical state")
+    assert(farm_horse.axial_hex == Vector2i(30, 61), "The visual horse should move to its saved hex")
+    assert(farm_horse.position.distance_to(HexGrid.axial_to_world(Vector2i(30, 61), HexGrid.DEFAULT_RADIUS_M, 0.0)) < 0.001, "The visual horse should restore its saved world position")
+    assert(is_equal_approx(farm_horse.rotation.y, deg_to_rad(-60.0)), "The visual horse should restore its saved facing")
+    assert(restored_horse.side == "player" and not restored_horse.combat_dormant, "Binding must not reset restored animal status")
     var repeated: Dictionary = village.call("register_animals_with_simulation", simulation)
-    assert(not bool(repeated.get("ok", true)), "A second registration should report duplicate IDs rather than silently succeeding")
-    assert((repeated.get("registered_ids", []) as Array).is_empty(), "A repeated registration must not create duplicate animal states")
-    assert((repeated.get("skipped", []) as Array).size() == 10, "Every previously registered animal should be reported as a duplicate")
+    assert(bool(repeated.get("ok", false)), "Repeated registration should be idempotent")
+    assert((repeated.get("registered_ids", []) as Array).size() == 10, "Repeated registration should bind all ten canonical states")
+    assert((repeated.get("skipped", []) as Array).is_empty(), "Repeated registration should not report duplicates as errors")
     assert(simulation.characters.size() == 10, "Repeated registration must leave the campaign registry unchanged")
     village.free()
     simulation.free()
