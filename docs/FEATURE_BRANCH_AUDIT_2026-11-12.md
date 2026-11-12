@@ -10,7 +10,7 @@ This is the first repository-wide inventory and triage pass for the consolidatio
 
 This is not a claim that every line of every orphan branch has been reviewed. It is an inventory, ancestry comparison and first-pass disposition. Branches marked for salvage still require file-level diff review and validation before code is ported.
 
-**Latest refresh (12 November 2026):** GitHub currently returns 134 live branches and 19 open PRs. Current `dev_2` head is `374d4a2894e0c118c4a35d075a23ca568ff51209`. The initial baseline SHA above is retained as the audit-start reference. All 134 branch names are now represented in `docs/BRANCH_RECOVERY_REGISTER.md`, but exact tree/blob/test/dependency review is still incomplete. PR #123 remains a draft against `dev_2`; PR #121 remains a draft pending visual acceptance and needs a fresh base comparison before any merge.
+**Latest refresh (12 November 2026):** GitHub currently returns 135 live branches and 20 open PRs (including the new animal world-registration recovery branch/PR #128). Current `dev_2` head is `374d4a2894e0c118c4a35d075a23ca568ff51209`. The initial baseline SHA above is retained as the audit-start reference. All 135 branch names are now represented in `docs/BRANCH_RECOVERY_REGISTER.md`, but exact tree/blob/test/dependency review is still incomplete. PR #123 remains a draft against `dev_2`; PR #121 remains a draft pending visual acceptance and needs a fresh base comparison before any merge.
 
 ## Rules for this audit
 
@@ -1119,3 +1119,8 @@ The live branch listing was refreshed from both GitHub API pages. Several branch
 ## Further refresh — 12 November 2026
 
 The branch recovery register now contains explicit dispositions for all 134 live branch names and selective recovery playbooks for character assembly (#87), fog/stealth (#96), Tessa/dire-wolf quest (#99), shakedown combat, animal preview (#110), opening cinematic (#121) and unique documentation candidates. PR #128 recovers the final village-to-simulation registration slice from #110. No original feature branch has been deleted; no code has been merged into `dev` or `main`. `dev_2` remains the integration baseline. The remaining work is validation and review of deferred candidates, not a mandate to merge every open PR.
+
+
+## Inventory refresh after PR #128 — 12 November 2026
+
+The current inventory is 135 branches / 20 open PRs. PR #128 recovers the missing registration of the ten exterior Hollowmere animals into the campaign simulation. Its initial full Godot run passed, but the updated head with a mount-lookup group assertion is still under fresh validation. PR #110 remains open because it also contains mount-toggle and rider attachment/detachment presentation code not yet selectively ported; the old HollowTankard snapshot must not be merged wholesale. The recovery register records the exact remaining port boundary.
