@@ -1135,3 +1135,18 @@ A further complete PR-diff inspection shows that #110 is **not preview-only** af
 - Post-merge lifecycle review found an ordering edge case: `HollowTankard._ready()` applies pending save data before `WorldRoot` registers the exterior actors. On restore, the simulation may already contain saved animal IDs. A naive registration would report duplicates and leave the presentation actors without `simulation_state` references; it would also fail to restore saved animal position/facing.
 - Focused correction is now in PR #129, branch `fix/animal-restore-actor-binding-dev2`, based on `dev_2` head `3767ea7ebb62c726c3b0b48ea7d0afb608382dd6`. It binds matching pre-restored animal states to their actors, restores saved axial position/facing, preserves saved side/dormancy/mount links and makes registration idempotent. Its regression test pre-registers a moved/player-side horse before actor binding. Workflow run `43205739155` was in progress at the time of this note; no pass/merge claim yet.
 - The #110 mount-toggle/actor attachment/detachment presentation code remains a separate recovery candidate after this save/restore edge is validated. It must be adapted to current `HollowTankard`; no old scene snapshot.
+
+
+### Additional mount-presentation acceptance checks discovered in #110
+
+The #110 `HollowTankard` mount code is useful but not ready to copy verbatim:
+
+- It adds `R` as mount/dismount input and shows status feedback through the resource label. Current `dev_2` uses `R` nowhere, so this key is available, but the current F5/F9 quick-save/load, F stairs/doors/NPC interaction, G gathering and movement bindings must remain unchanged.
+- It reparents the rider actor under the mount and makes the camera follow the mount. The seat offset is hard-coded to `(0, 1.35, 0)` with zero rotation; no saddle/socket calibration or animation-state retargeting is provided. Treat it as a provisional static preview only.
+- Its `_on_character_moved` receives a movement event for the rider and the mount. Because the rider is a child of the mount, independently tweening the rider to the hex centre would destroy the seat offset. Adapt current code to skip presentation movement for a mounted rider and move only the mount actor; retain wilderness spawn checks for a mounted player.
+- Add an `animal_forced_dismount` event handler. Simulation already breaks reciprocal links when rider or mount is incapacitated, but the old presentation code only detaches on an explicit R-key dismount. Without a handler, the rider can remain parented to an incapacitated mount after simulation has forced a dismount.
+- Add a post-load attachment restoration call after PR #129 has rebound the mount actor to its restored CharacterState. The old code does not reparent a saved mounted rider after load.
+- When switching party members, camera follow should target the mount if the newly active character is already mounted. The old branch always targets the rider actor.
+- The dynamic wilderness animals spawned inside `HollowTankard` are currently presentation-only; they are not registered with WorldSimulation and do not carry a `simulation_state`/group membership. Do not accidentally make them selectable mounts until they are registered as simulation actors or explicitly excluded.
+
+These are adaptation requirements for a separate mount-presentation PR. They do not invalidate the already merged simulation layer or PR #128 world registration.
