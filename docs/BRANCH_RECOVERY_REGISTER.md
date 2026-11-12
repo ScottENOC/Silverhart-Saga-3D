@@ -196,3 +196,53 @@ A deeper workflow comparison found a unique contribution that was not apparent f
 The refreshed open-PR listing returned 19 PRs. #123 is still a draft audit PR targeting `dev_2`; #121 is a draft visual-acceptance candidate targeting `dev_2`. The other open PRs still mostly target `dev`, including #110 riding, #99 farmstead rescue, #96 vision/fog, #90 skills/magic, #89 content census, #88 world port, #87 character assembly, #77/#76 clothing/equipment, #74 player inventory, #73 companion model, #34 workflow consolidation, #29 creator, #26/#25 pipeline/clothing, #8 anatomy and #5 audio/mode selection.
 
 This confirms that the audit and the old PRs are not ready for bulk merge. Before acting on any of them, refresh its head SHA, base SHA, changed files and current-head workflow evidence. Keep #123 draft until every live branch has a documented recovery/disposition. No PR was merged or closed during this snapshot.
+
+
+## Further salvage-candidate tree checks
+
+These checks extend the branch-by-branch register beyond the first orphan batch. Missing paths below are exact recursive-tree differences against current `dev_2`; they are recovery candidates, not permission to merge an entire branch.
+
+### `feature/reusable-npc-workshop`
+
+- Compare: 5 ahead / 358 behind; five compare-diff paths; 33 tracked paths in the branch tree.
+- Seven paths absent from `dev_2`: old HF audit/reset workflows, `scripts/presentation/modular_character_assembler.gd`, `tools/ara/build_npc_previews.py`, `tools/ara/npc_profiles.json`, and the two Wren blockout/s sculpt tools.
+- The two NPC preview/profile files are the distinct contribution relevant to a large reusable NPC roster; the assembler is an earlier alternate architecture.
+- **Disposition:** deferred tooling salvage candidate. Preserve branch. Review preview builder inputs/outputs and adapt them to current canonical NPC definitions/resolver before any port. Do not revive its old assembler or HF workflows.
+
+### `feat/equipment-materials-heraldry`
+
+- Compare: 14 ahead / 102 behind; seven changed files; 314 tracked paths; seven absent paths.
+- The distinct missing deliverable consists of `scripts/characters/equipment_appearance.gd`, `shaders/shield_heraldry.gdshader`, `tests/test_equipment_appearance.gd`, and its design document. The other three missing paths are the old modular assembler and Wren blockout tools.
+- The helper is a library candidate, not yet proven to be used by the current Ara actor/equipment presentation pipeline. The branch tests use synthetic meshes/materials; they do not prove that exported shield/helmet assets expose stable metadata or that the game invokes the helper.
+- **Disposition:** genuine selective-salvage candidate. Preserve all branch work. Recover helper, shader, tests and doc as a separate integration branch only after confirming stable surface identifiers, wiring into runtime equipment presentation, tests against actual exported assets and visual acceptance.
+
+### `feat/tapered-split-dress-v2`
+
+- Compare: 8 ahead / 102 behind; five changed files; 310 tracked paths; only three absent paths (the old modular assembler and Wren blockout tools).
+- No unique art path is absent from the current tree. The candidate's value is its newer dress-generator logic and the resulting reviewable variant, not a missing asset directory.
+- **Disposition:** hold for visual acceptance. Compare the generator function-level changes and exact GLB/material output against current before deciding whether any source or asset needs recovery. Do not replace the default dress based only on CI.
+
+### `feature/ser-aldric-first-companion-model`
+
+- Compare: 7 ahead / 103 behind; five changed files; 132 tracked paths; five absent paths.
+- Two relevant absent paths are `data/characters/companion_models.json` and `docs/FIRST_COMPANION_MODEL.md`; the remaining three are the old modular assembler/Wren tools. No missing companion model binary path was found by this tree-path comparison.
+- **Disposition:** retain as an asset candidate and provenance. Inspect its manifest/workflow and actual GLB path against current canonical character definitions. Do not add a separate companion registry if the current resolver can express the same model choice. Visual/rig/armour acceptance remains outstanding.
+
+### `feature/full-world-port-foundation`
+
+- Compare: 47 ahead / 28 behind; 27 changed paths; 1,078 tracked paths; 20 paths absent from `dev_2`.
+- Missing unique world content and tooling includes:
+  - Data: `data/world/campaign2_geography.json`, `campaign2_road_paths.json`, `campaign2_settlement_layouts.json`.
+  - Source/parity documents: `docs/campaign2_npc_dialogue_index.md`, `campaign2_source_inventory.md`, `full_world_2d_to_3d_port_plan.md`, `full_world_fidelity_and_inspection.md`, `original_2d_campaign2_source_audit.md`, `source_to_3d_world_gap_audit.md`.
+  - Preview/builders: macro/regional preview scenes and scripts, `scripts/world/campaign2_settlement_builder.gd`, `campaign2_world_terrain_data.gd`.
+  - Tests: four geography/road/settlement/terrain manifest tests.
+  - Strict runner: `tools/ci/run_godot_checked.sh`.
+- This is not merely an old snapshot: the missing geography/road/settlement data and builder/test suite are a substantial source-content preservation package. Earlier CI evidence says hex-grid/simulation tests passed but Godot workflow #42994727983 failed on a synthetic clothing material tint/null-material assertion. The strict runner correctly surfaced errors; do not weaken it to obtain green CI.
+- **Disposition:** high-value deferred recovery candidate. Preserve all source data, docs, preview tools and tests. First review the source fidelity and schema against current world/map data, inspect the strict runner's error-detection behaviour, then port geography data, preview/builders and tests in separate steps. This is priority-4 world/mechanics work, so do not let it interrupt completion of the current priority-1 branch register.
+
+### `feature/farmstead-bear-creature-model`
+
+- Compare: 27 ahead / 28 behind; five changed paths; 1,058 tracked paths; one absent runtime path: `scripts/simulation/farmstead_dire_wolf_encounter.gd`.
+- The unique service is the Tessa rescue/dire-wolf encounter implementation recorded in the primary audit. It is not already represented by the farm-wolf quest actor alone.
+- **Disposition:** retain as a distinct quest salvage candidate. The branch's encounter health setup double-applies Health ranks at character registration and its dormancy handling does not restore all characters' previous state. Do not port until those lifecycle/state issues are fixed and quest state is integrated with current journal/companion IDs.
+
