@@ -1089,3 +1089,14 @@ The current workflow's step label says "Verify all 13 NPCs and the player avatar
 ### Branch inventory / PR state
 
 The live branch listing was refreshed from both GitHub API pages. Several branches created after the earlier inventory (including `docs/content-parity-audit`, `feature/in-game-reaction-prompt`, `feat/wren-only-pages-two-character-workshop`, and `integration/equipment-rules-dev2`) are now included in the live inventory. The current open PR list contains #123 (audit), #121 (opening cinematic), #110 (riding), #99 (farmstead rescue), #96 (vision/fog), #90 (skills/magic), #89 (content census), #88 (world port), #87 (character assembly), #77/#76 (clothing/equipment art), #74 (player inventory), #73 (companion model), #34 (workflow consolidation), #29 (creator), #26/#25 (pipeline/clothing), #8 (anatomy), and #5 (audio/mode selection). Most legacy PRs still target `dev`, not `dev_2`; do not merge them into the active baseline without a fresh selective port.
+
+
+### Test and CI branch confirmation
+
+- `test/save-manager-hardening` contains a `tests/test_save_manager.gd` file byte-identical to current `dev_2`; no additional hardening test is missing from that branch.
+- `test/save-restore-scene` and `test/save-restore-scene-dev2` contain the same current `tests/save_restore_runner.gd` used by the save/restore integration test. The latter branch also changes an old `HollowTankard` snapshot and is not a safe source. PR #120's current restore test is already merged and its CI passed.
+- `test/additional-skill-effect-coverage` is an older test-suite snapshot. Its extra Fast Movement / Goblin Opportunist assertions use older rank expectations; current `dev_2` has an evolved `_test_additional_skill_effects()` with current rank expectations and additional status, vision, parry, sidestep and lifecycle coverage. No test-file merge.
+- `ci/enable-dev2-validation` is superseded by the current `godot-validation.yml`, which already triggers for both `dev` and `dev_2` and includes SaveManager, campaign restore, building/door, wilderness, seasonal tree, creature, map and character validation.
+- `ci/incremental-character-pipeline` and `chore/consolidate-preview-and-review-workflows` are older pipeline/workflow snapshots. Current independent asset workflows and artifact-based game export are more complete; do not replace them.
+- `chore/remove-huggingface-deployment` contains only old HF audit/reset workflows; current repository has already moved to GitHub Pages. No merge.
+- `chore/repository-formatting-rules` is represented in current `.editorconfig`/`.gitattributes`; the remaining issue is enforcement/legacy GDScript indentation, not missing config.
