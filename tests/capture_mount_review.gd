@@ -40,16 +40,13 @@ func _capture() -> void:
     ground.position.y = -0.05
     world.add_child(ground)
 
-    # Quaternius Horse.gltf faces along local +X. A camera on +X therefore
-    # sees the horse head-on; use +Z for a genuine broadside rider silhouette.
-    # Add the camera before look_at() so Godot can orient it in the scene tree.
+    # The previous +Z camera produced a head-on view. This +X camera
+    # gives a true side profile so seat height, pelvis contact and leg
+    # placement can be judged against the horse's back.
     var camera := Camera3D.new()
-    # Orthographic projection removes the perspective-size distortion that
-    # made the horse at x=-6 appear larger and the centre horse look head-on.
-    # All three variants now share the same true broadside scale and angle.
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL
     camera.size = 10.0
-    camera.position = Vector3(0.0, 3.3, 18.0)
+    camera.position = Vector3(18.0, 3.3, 0.0)
     world.add_child(camera)
     camera.look_at(Vector3(0.0, 2.0, 0.0), Vector3.UP)
     camera.current = true
@@ -101,8 +98,6 @@ func _add_pair(world: Node3D, x: float, body_path: String, title: String, horse_
         return false
     if not MOUNT_PRESENTATION.attach_rider(rider, horse):
         return false
-    # Diagnostic-only seat offsets compare the existing setup with offsets
-    # scaled to the horse asset; production mount presentation is unchanged.
     rider.position = Vector3(0.0, rider_seat_y, 0.0)
     var label := Label3D.new()
     label.text = title
