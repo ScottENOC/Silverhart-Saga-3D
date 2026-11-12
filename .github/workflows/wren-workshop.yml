@@ -9,7 +9,7 @@ on:
         type: string
         default: ""
   push:
-    branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates]
+    branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates, feat/tapered-split-dress-v2]
     paths:
       - "tools/ara/patch_layering.py"
       - "tools/ara/assemble_modular_glb.py"
@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Compile anatomy, clothing and review tools
-        run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
+        run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_dress_slit.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
       - name: Validate Wren Workshop JavaScript
         run: |
           python - <<'PY'
@@ -467,10 +467,12 @@ jobs:
           export LIBGL_ALWAYS_SOFTWARE=1
           OUT=art/characters/ara/review/outfits
           mkdir -p "$OUT"
-          blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
-            art/characters/ara/ara_person_modular.glb "$OUT" dress
-          for view in front side rear; do test -s "$OUT/dress/$view.png"; done
-          test -s "$OUT/dress/report.json"
+          for outfit in dress dress_v2; do
+            blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
+              art/characters/ara/ara_person_modular.glb "$OUT" "$outfit"
+            for view in front side rear; do test -s "$OUT/$outfit/$view.png"; done
+            test -s "$OUT/$outfit/report.json"
+          done
       - name: Render lace and fishnet garment review angles
         shell: bash
         run: |
