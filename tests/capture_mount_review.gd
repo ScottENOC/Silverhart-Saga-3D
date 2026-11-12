@@ -44,15 +44,16 @@ func _capture() -> void:
     # sees the horse head-on; use +Z for a genuine broadside rider silhouette.
     # Add the camera before look_at() so Godot can orient it in the scene tree.
     var camera := Camera3D.new()
-    camera.position = Vector3(0.0, 3.0, 11.5)
+    camera.position = Vector3(0.0, 3.3, 16.0)
     camera.fov = 48
     world.add_child(camera)
-    camera.look_at(Vector3(0.0, 1.45, 0.0), Vector3.UP)
+    camera.look_at(Vector3(0.0, 1.8, 0.0), Vector3.UP)
     camera.current = true
 
-    var ok_f := _add_pair(world, -3.8, FEMALE_BODY, "FEMALE BASE")
-    var ok_m := _add_pair(world, 3.8, MALE_BODY, "MALE BASE")
-    if not ok_f or not ok_m:
+    var ok_original := _add_pair(world, -6.0, FEMALE_BODY, "ORIGINAL 0.82", 0.82, 1.90)
+    var ok_scaled := _add_pair(world, 0.0, FEMALE_BODY, "SCALED 0.48", 0.48, 1.11)
+    var ok_small := _add_pair(world, 6.0, FEMALE_BODY, "SCALED 0.44", 0.44, 1.02)
+    if not ok_original or not ok_scaled or not ok_small:
         push_error("Failed to load one or more Ara/horse models")
         quit(1)
         return
@@ -73,13 +74,13 @@ func _capture() -> void:
     print("MOUNT_REVIEW_IMAGE=" + ProjectSettings.globalize_path(OUTPUT_PATH))
     quit(0)
 
-func _add_pair(world: Node3D, x: float, body_path: String, title: String) -> bool:
+func _add_pair(world: Node3D, x: float, body_path: String, title: String, horse_scale: float, rider_seat_y: float) -> bool:
     var horse := CREATURE_ACTOR.new() as CreatureActor
     horse.name = title.replace(" ", "") + "Horse"
     horse.add_to_group("mount_size_review_horses")
     horse.creature_kind = "horse"
     horse.behaviour = "mount"
-    horse.model_scale = 0.82
+    horse.model_scale = horse_scale
     horse.model_path = HORSE_MODEL
     horse.position = Vector3(x, 0, 0)
     world.add_child(horse)
@@ -92,16 +93,19 @@ func _add_pair(world: Node3D, x: float, body_path: String, title: String) -> boo
         return false
     if not MOUNT_PRESENTATION.attach_rider(rider, horse):
         return false
+    # Diagnostic-only seat offsets compare the existing setup with offsets
+    # scaled to the horse asset; production mount presentation is unchanged.
+    rider.position = Vector3(0.0, rider_seat_y, 0.0)
     var label := Label3D.new()
     label.text = title
     label.font_size = 48
     label.outline_size = 10
     label.modulate = Color(1.0, 0.95, 0.78)
-    label.position = Vector3(x, 3.5, 0.0)
+    label.position = Vector3(x, 4.15, 0.0)
     label.rotation_degrees.y = 90
     world.add_child(label)
-    print("[Mount review] %s rider root=%s model=%s rider_global=%s horse_global=%s" % [
-        title, rider.transform, rider.model_root.transform, rider.global_position, horse.global_position
+    print("[Mount review] %s horse_scale=%.3f rider_seat_y=%.3f rider_root=%s model=%s rider_global=%s horse_global=%s" % [
+        title, horse_scale, rider_seat_y, rider.transform, rider.model_root.transform, rider.global_position, horse.global_position
     ])
     return true
 
