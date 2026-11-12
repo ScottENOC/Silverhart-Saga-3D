@@ -1119,3 +1119,11 @@ A further complete PR-diff inspection shows that #110 is **not preview-only** af
 - **Do not copy the old `HollowTankard` file.** It predates current save/load diffs, two-storey building/door framework, current WorldRoot integration and later simulation changes. Port only the isolated mount methods and the necessary call sites into current code.
 - The current source preview hard-codes rider local position `(0, 1.35, 0)` and rotation zero. Treat this as a provisional seat transform only; do not call it a validated saddle socket or assume the rider animation is compatible. Visual acceptance against the current horse GLB and both male/female base rigs remains required.
 - Consequently, do **not** close PR #110 yet. Keep it open until #128 is accepted and the mount UI/presentation code has either been selectively recovered or explicitly dispositioned. Keep the original branch permanently regardless of PR closure.
+
+
+## Inventory refresh after PR #128 creation — 12 November 2026
+
+- GitHub branch list now returns 135 live branches (the previous 134-name snapshot plus `integration/animal-world-registration-dev2`). All 135 names are represented in this register.
+- Open PR count is now 20: three target `dev_2`, 16 target `dev`, and one targets `fix/dress-selector-and-loading-review`. PR #128 is the new `dev_2` animal world-registration recovery; PR #123 remains the audit draft; PR #121 remains the cinematic visual-review candidate.
+- PR #128's first full Godot 4.7.2 run (`43204254123`) passed all 28 workflow stages on its initial head. The branch was then tightened to add `creature_actors` group membership and an assertion for mount lookup. Updated head `049d6d4bc2404cffd805b491c2f32d4a32ecbce8` is under a fresh validation run (`43204852927`); only the updated-head result can authorise merge.
+- #110 is not ready to close: its mount-toggle, actor attachment/detachment and facing/movement presentation are distinct from the simulation foundation already merged in #126 and village registration being recovered in #128. Preserve this code for a separate selective port; do not import its stale `HollowTankard` snapshot.
