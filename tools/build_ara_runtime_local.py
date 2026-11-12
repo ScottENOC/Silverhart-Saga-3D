@@ -425,6 +425,86 @@ def main():
              "lace_bra", "fishnet_bra", "triangle_bra",
              "string_briefs", "lace_briefs", "fishnet_briefs"], env=review_env)
 
+        # Repeat the exact garment inventory at Ara's maximum breast-size
+        # setting. This reveals whether garment morph targets track the body
+        # and whether nipple geometry remains covered by opaque fabrics.
+        large_body_params = dict(body)
+        large_body_params.update({
+            "name": "Ara female large-breast fit review body",
+            "breastSize": 1.0,
+            "breastFirmness": 1.0,
+        })
+        large_body_raw = RAW / "ara_person_female_large_breast.glb"
+        large_body_param = RAW / "ara_person_female_large_breast.params.json"
+        large_body_param.write_text(json.dumps(large_body_params, indent=2) + "\\n")
+        export("ara_person_female_large_breast", large_body_params)
+        large_body_raw = RAW / "ara_person_female_large_breast.glb"
+        large_body_anatomy = review_root / "female_large_breast_integrated.glb"
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/add_adult_anatomy_claude.py", "--",
+             "--input", large_body_raw, "--output", large_body_anatomy,
+             "--profile", "female", "--adult", "--method", "integrated",
+             "--deformation-scale", "1.65"], env=review_env)
+
+        large_keys = (
+            "ara_person_large_breast_benchmark",
+            "ara_person_large_breast_halter_bra_lace",
+            "ara_person_large_breast_halter_bra_fishnet",
+            "ara_person_large_breast_triangle_bikini_top",
+            "ara_person_large_breast_string_bikini_bottom",
+            "ara_person_large_breast_lace_briefs",
+            "ara_person_large_breast_fishnet_briefs",
+        )
+        large_sources = {}
+        for key, source_key in zip(large_keys, (
+            "ara_person_benchmark", "ara_person_halter_bra_lace",
+            "ara_person_halter_bra_fishnet", "ara_person_triangle_bikini_top",
+            "ara_person_string_bikini_bottom", "ara_person_lace_briefs",
+            "ara_person_fishnet_briefs",
+        )):
+            large_params = dict(params[source_key])
+            large_params.update({
+                "name": "Ara large-breast fit review - " + source_key,
+                "breastSize": 1.0,
+                "breastFirmness": 1.0,
+            })
+            export(key, large_params)
+            large_sources[key] = RAW / (key + ".glb")
+
+        large_assembled = review_root / "female_large_breast_underwear_assembled.glb"
+        large_fitted = review_root / "female_large_breast_underwear_fitted.glb"
+        large_assemble_args = [
+            py, ROOT / "tools/ara/assemble_modular_glb.py",
+            large_body_anatomy, large_assembled,
+            large_sources[large_keys[0]], "Bra",
+            large_sources[large_keys[0]], "Briefs",
+            large_sources[large_keys[1]], "Halter lace bra cups",
+            large_sources[large_keys[1]], "Halter lace bra piping",
+            large_sources[large_keys[1]], "Halter lace bra straps",
+            large_sources[large_keys[2]], "Halter fishnet bra cups",
+            large_sources[large_keys[2]], "Halter fishnet bra straps",
+            large_sources[large_keys[3]], "Triangle bikini top",
+            large_sources[large_keys[3]], "Triangle bikini strings",
+            large_sources[large_keys[4]], "String bikini bottom",
+            large_sources[large_keys[4]], "String bikini strings",
+            large_sources[large_keys[5]], "Lace briefs",
+            large_sources[large_keys[5]], "Lace briefs ties",
+            large_sources[large_keys[6]], "Fishnet briefs",
+            large_sources[large_keys[6]], "Fishnet briefs ties",
+        ]
+        run(large_assemble_args)
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/add_adult_anatomy.py", "--",
+             "--input", large_assembled, "--output", large_fitted,
+             "--profile", "none", "--adult", "--fit-existing"], env=review_env)
+        large_review_dir = review_root / "renders" / "female_large_breast_underwear"
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/review/render_modular_outfits.py", "--",
+             large_fitted, large_review_dir,
+             "skin", "standard_bra", "standard_briefs",
+             "lace_bra", "fishnet_bra", "triangle_bra",
+             "string_briefs", "lace_briefs", "fishnet_briefs"], env=review_env)
+
         # Use the established character cameras plus blue and natural-colour
         # close-ups. Keep all outputs inside the review artifact.
         claude_review_dir = review_root / "renders" / "female_average_claude_integrated"
