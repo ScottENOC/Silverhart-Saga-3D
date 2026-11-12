@@ -373,6 +373,60 @@ def main():
              "--input", female_raw, "--output", female_claude, "--profile", "female",
              "--adult", "--method", "integrated", "--deformation-scale", "1.65"], env=review_env)
 
+        # Export Ara's underwear variants against the same average female
+        # profile, then assemble them over the accepted integrated-surface body.
+        # This is a review-only fit pass: it never replaces the production body.
+        underwear_keys = (
+            "ara_person_benchmark", "ara_person_halter_bra_lace",
+            "ara_person_halter_bra_fishnet", "ara_person_triangle_bikini_top",
+            "ara_person_string_bikini_bottom", "ara_person_lace_briefs",
+            "ara_person_fishnet_briefs",
+        )
+        for key in underwear_keys:
+            export(key, params[key])
+
+        underwear_assembled = review_root / "female_underwear_all_assembled.glb"
+        underwear_fitted = review_root / "female_underwear_all_fitted.glb"
+        benchmark_glb = RAW / "ara_person_benchmark.glb"
+        lace_bra_glb = RAW / "ara_person_halter_bra_lace.glb"
+        fishnet_bra_glb = RAW / "ara_person_halter_bra_fishnet.glb"
+        triangle_glb = RAW / "ara_person_triangle_bikini_top.glb"
+        string_bottom_glb = RAW / "ara_person_string_bikini_bottom.glb"
+        lace_briefs_glb = RAW / "ara_person_lace_briefs.glb"
+        fishnet_briefs_glb = RAW / "ara_person_fishnet_briefs.glb"
+        assemble_args = [
+            py, ROOT / "tools/ara/assemble_modular_glb.py",
+            female_claude, underwear_assembled,
+            benchmark_glb, "Bra", benchmark_glb, "Briefs",
+            lace_bra_glb, "Halter lace bra cups",
+            lace_bra_glb, "Halter lace bra piping",
+            lace_bra_glb, "Halter lace bra straps",
+            fishnet_bra_glb, "Halter fishnet bra cups",
+            fishnet_bra_glb, "Halter fishnet bra straps",
+            triangle_glb, "Triangle bikini top",
+            triangle_glb, "Triangle bikini strings",
+            string_bottom_glb, "String bikini bottom",
+            string_bottom_glb, "String bikini strings",
+            lace_briefs_glb, "Lace briefs",
+            lace_briefs_glb, "Lace briefs ties",
+            fishnet_briefs_glb, "Fishnet briefs",
+            fishnet_briefs_glb, "Fishnet briefs ties",
+        ]
+        run(assemble_args)
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/add_adult_anatomy.py", "--",
+             "--input", underwear_assembled, "--output", underwear_fitted,
+             "--profile", "none", "--adult", "--fit-existing"], env=review_env)
+        underwear_review_dir = review_root / "renders" / "female_underwear"
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/review/render_modular_outfits.py", "--",
+             underwear_fitted, underwear_review_dir,
+             "skin", "standard_bra", "standard_briefs",
+             "lace_bra", "fishnet_bra", "triangle_bra",
+             "string_briefs", "lace_briefs", "fishnet_briefs"], env=review_env)
+        shutil.copy2(underwear_assembled, review_root / "female_underwear_all_assembled.glb")
+        shutil.copy2(underwear_fitted, review_root / "female_underwear_all_fitted.glb")
+
         # Use the established character cameras plus blue and natural-colour
         # close-ups. Keep all outputs inside the review artifact.
         claude_review_dir = review_root / "renders" / "female_average_claude_integrated"
