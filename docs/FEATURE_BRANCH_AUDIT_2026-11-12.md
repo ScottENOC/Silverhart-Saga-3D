@@ -509,3 +509,80 @@ Both branches should be retained and marked **integrated**.
 ### World-content review notes
 
 The current Hollowmere scene is materially ahead of several source branches. The 3D village scene now includes imported tree variants, creature actor integration and later presentation code; old village snapshots should be treated as source references, not replacements. The world-map UI/data are already in the current baseline, while a truly traversable campaign map, inter-settlement travel and broader world simulation remain separate gameplay milestones and must not be marked complete merely because the map widget exists.
+
+
+## Second-pass: CI, Pages deployment, iPhone preview and audio branches
+
+### Current deployment architecture and a significant integration boundary
+
+The current `dev_2` workflow inventory contains 12 workflows. The production GitHub Pages workflows are still explicitly wired to `dev`:
+
+- `godot-web-export.yml` triggers on pushes and upstream character workflow completions on `dev`, explicitly checks out `ref: dev`, and queries supporting character/workshop artifacts from `dev`.
+- `wren-workshop.yml` builds on `dev` and selected character-fix branches; its Pages upload/deploy steps are gated on `github.ref_name == 'dev'`.
+- The old `combined-pages-deploy.yml` is not present in current `dev_2`.
+
+**Consequence:** a manual dispatch of the current game export workflow from `dev_2` still checks out `dev` and retrieves `dev` artifacts. It is not a valid preview of the `dev_2` game. A push to `dev_2` does not trigger the production Pages workflow. Do not change the production deploy to `dev_2` implicitly: first decide whether we want a separate dev_2 preview deployment or to keep Pages as a dev-only release channel. This is a concrete blocker to using the current Pages URL as visual acceptance of unmerged `dev_2` work.
+
+### Character/workshop pipeline branches
+
+- `chore/consolidate-preview-and-review-workflows` deletes three dedicated workflows (iPhone preview, male anatomy, Wren modular review) and retains/updates only selected ones. Do not apply its historical deletions wholesale; current pipeline has multiple independent asset build/review stages.
+- `ci/incremental-character-pipeline` is a large stale workflow/Blender stack (30 ahead / 160 behind) that removes the male anatomy workflow and changes web export, Wren Workshop, anatomy generators and loading shell. It must be split into cache improvements, generator changes and deployment changes.
+- `fix/ara-review-crash-remove-legacy-wren-build` modifies several workflows and Wren docs; inspect against current Ara pipeline before porting.
+- `fix/hollowmere-cast-validator` is a focused validator change (1 ahead / 10 behind); review its stricter cast validation against the current validator and retain only useful test coverage.
+- `feature/iphone-web-preview-pipeline` compares as zero commits ahead of `dev_2` and has no unique merge content.
+
+### Godot web export / Pages branch family
+
+The following branches are historical iterations of the game export and Pages workflow:
+- `feature/godot-web-pages-export`
+- `feature/hollowmere-github-pages`
+- `fix/combined-game-workshop-pages-deploy`
+- `fix/pages-deploy-artifact-based-v2`
+- `fix/pages-deploy-game-and-workshop-artifacts`
+- `fix/pages-game-artifact-path`
+- `fix/split-game-export-and-pages-deploy`
+- `fix/workshop-dress-and-game-loading-stages`
+- `deploy/wren-workshop-github-pages`
+
+These branches are all substantially behind current `dev_2` and change overlapping workflow files. Some introduced a combined Pages deploy, while later iterations removed it and returned to separate artifact flows. The current `godot-web-export.yml` is a much later 329-line workflow that fetches successful supporting artifacts and publishes the game. Do not merge old workflow files over it. If the dev_2 preview requirement is accepted, implement a small dedicated preview workflow using the dev_2 SHA and isolated artifact/deployment path; do not resurrect an old combined deployment design by default.
+
+### Audio and mode-selection branch family
+
+- `feature/legacy-audio-menu-dev2` has `audio_manager.gd`, `main_menu.gd` and `main_menu.tscn` byte-for-byte identical to current `dev_2`.
+- Current `project.godot` autoloads AudioManager and starts at the Campaign/Arena main menu. The arena scene remains a placeholder.
+- `feature/ios-game-pwa` has its PWA packaging tool and phone-testing instructions byte-for-byte identical to current `dev_2`.
+- `feature/audio-and-mode-select` / PR #5 is historical source work; current mode/audio scripts are already integrated.
+- Legacy audio binaries are not stored in the repository. `tools/import_legacy_audio.py` downloads the pinned original `Hex-crpg` audio assets and converts them with FFmpeg. The current audio validation workflow performs that import before Godot smoke tests.
+- `audio-mode-validation.yml` is currently triggered for PRs/pushes to `dev`, not `dev_2`; manual dispatch can be used for a selected branch. Do not assume a `dev_2` PR automatically runs this workflow.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `chore/consolidate-preview-and-review-workflows` | 7 ahead / 154 behind; removes three dedicated workflows. | **Do not merge wholesale.** Salvage documentation only after reconciliation with current workflow inventory. |
+| `ci/enable-dev2-validation` | 1 ahead / 6 behind; focused Godot validation trigger change. | **Review against current workflow; likely already superseded by dev_2 PR CI.** |
+| `ci/incremental-character-pipeline` | 30 ahead / 160 behind; broad stale pipeline/generator/web-shell changes. | **Split and salvage only specific cache or generator improvements.** |
+| `feature/godot-web-pages-export` | 13 ahead / 165 behind; early web export workflow. | **Superseded by current 329-line export workflow.** Preserve history. |
+| `feature/hollowmere-github-pages` | 5 ahead / 162 behind; early Pages workflow iteration. | **Superseded.** Preserve history. |
+| `feature/ios-game-pwa` | 12 ahead / 160 behind; PWA tool and phone guide are byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+| `feature/iphone-web-preview-pipeline` | 0 ahead / 352 behind. | **No unique commits.** Retain as historical branch. |
+| `deploy/wren-workshop-github-pages` | 1 ahead / 166 behind; old workshop Pages changes. | **Superseded by current Wren workflow.** Preserve history. |
+| `fix/combined-game-workshop-pages-deploy` | 4 ahead / 118 behind; adds combined deploy file absent from current. | **Do not restore without an explicit architecture decision.** |
+| `fix/pages-deploy-artifact-based-v2` | 4 ahead / 116 behind; earlier artifact workflow. | **Superseded by current export workflow.** |
+| `fix/pages-deploy-game-and-workshop-artifacts` | 9 ahead / 117 behind; removes combined deploy and changes artifact handling. | **Historical iteration; current workflow supersedes.** |
+| `fix/pages-game-artifact-path` | 1 ahead / 114 behind; small path fix on old workflow. | **Check whether current workflow already handles this path; no wholesale merge.** |
+| `fix/split-game-export-and-pages-deploy` | 1 ahead / 115 behind; old export workflow change. | **Superseded unless a specific regression is found.** |
+| `fix/workshop-dress-and-game-loading-stages` | 4 ahead / 157 behind; mixes workshop pipeline and game loading screen changes. | **Split by responsibility; compare loading changes against current `world_root.gd`.** |
+| `fix/hollowmere-cast-validator` | 1 ahead / 10 behind; focused validator. | **Small salvage candidate after checking current validator.** |
+| `fix/ara-review-crash-remove-legacy-wren-build` | 4 ahead / 155 behind; workflow/docs changes. | **Review isolated fixes only; preserve current independent build stages.** |
+| `chore/remove-huggingface-deployment` | 2 ahead / 163 behind; removes old HF audit/reset workflows. | **Historical deployment cleanup; current Pages architecture already supersedes HF.** |
+| `feature/legacy-audio-menu-dev2` | 10 ahead / 107 behind; audio manager, main menu and scene are byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+
+### Deployment decision required before the next visual review cycle
+
+Keep production Pages deployment on `dev` unless intentionally changing release policy. If `dev_2` needs a phone-review URL before promotion, create a separate preview workflow and URL that:
+1. checks out the exact `dev_2` commit (not hard-coded `dev`);
+2. builds its own game artifact and required character/workshop assets from that same SHA or pinned compatible artifacts;
+3. publishes to an isolated preview path or separate Pages environment;
+4. never overwrites the production `dev` build;
+5. reports the source commit in the preview page so screenshots can be tied to a known revision.
