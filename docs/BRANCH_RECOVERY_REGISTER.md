@@ -1178,3 +1178,11 @@ These are adaptation requirements for a separate mount-presentation PR. They do 
 ### Live inventory count
 
 GitHub now returns 136 live branch names and 20 open PRs. All 136 branch names are represented in this register. The count includes new PR #129's fix branch; merged PR #128 is no longer an open PR. No original feature branch has been deleted.
+
+
+## Animal save-restore and mount-control recovery — PRs #129 and #130
+
+- PR #129 merged to `dev_2` at `0138f1ebd5cc6b677319a4e007d3b581c3301e97`. Exact-head Godot 4.7.2 run `43205739155` passed all 30 stages. The new village registration path now rebinds restored animal states idempotently, restores saved position/facing and preserves status/mount links.
+- PR #130 (`integration/animal-mount-controls-dev2`) is a selective adaptation of the remaining player-facing mount code from #110, based on the current `dev_2` head after #129. It adds R/HUD mount toggle, registered actor lookup, rider reparenting, camera follow, mount facing/movement handling, forced-dismount detachment and post-load reattachment. It deliberately does not copy the old HollowTankard snapshot.
+- PR #130 adds an isolated mount presentation test host/actor and tests explicit mount/dismount, seat transform, rider movement event handling, facing, forced dismount and restoration after load. Godot workflow run `43206955005` was in progress at the time of this update; no test pass or merge claim yet.
+- The seat remains a provisional fixed `(0, 1.35, 0)` offset from #110. PC visual review against the horse GLB and both accepted male/female rigs remains a merge gate. No saddle socket, animation retargeting or dynamic wilderness creature registration is claimed.
