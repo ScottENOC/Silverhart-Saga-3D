@@ -1098,3 +1098,12 @@ This section turns the deferred candidates into actionable recovery recipes. The
 - Open PRs #87, #88, #90, #96, #99 and #110 currently target `dev`; do not merge or retarget them as part of this audit. Their current PR status is evidence of open historical proposals, not a requirement to keep them open forever.
 - PR #110 can be closed as superseded after its remaining preview-only diff is confirmed and the #126 merge is referenced. Other old PRs stay open/draft until each has a recorded disposition and any unique work is safely preserved.
 - No new gameplay work should begin until the remaining branch-only assets/data/tools and recovery recipes have been inventoried, and the user has reviewed any material trade-off. Character assembly remains coordinated with the separate modelling stream.
+
+
+## Animal world-registration recovery — PR #128, 12 November 2026
+
+- Further review of PR #110 found that the animal simulation base from #126 was not yet connected to the ten visible exterior village creature actors. Current `CreatureActor` already had `create_simulation_state()`, but current `HollowmereVillage._spawn_creature()` did not set `axial_hex`; there was no village registration method, and current `WorldRoot` did not register the village actors with the tavern's campaign simulation. Thus the animal models remained presentation-only in the live campaign despite the simulation catalogue/riding rules being present.
+- Recovered selectively on `integration/animal-world-registration-dev2`, PR [#128](https://github.com/ScottENOC/Silverhart-Saga-3D/pull/128), targeting `dev_2` from base `374d4a2894e0c118c4a35d075a23ca568ff51209`.
+- Files changed: `scripts/world/hollowmere_village.gd` (preserve axial hex, add canonical animal-state registration), `scripts/world/world_root.gd` (register exterior animals after tavern simulation initialises), and `tests/test_hollowmere_village.gd` (all ten farm/wilderness actors, actor-to-state references, neutral/dormant/ambient tags and duplicate registration).
+- This is the remaining safe integration slice from #110. It does not port the old riding-preview workflow or fixed `(0, 1.35, 0)` rider attachment; those still require a real presentation mount-socket contract and visual validation. Original #110 branch and PR remain untouched pending #128 CI and a final remaining-diff check.
+- PR #128 workflow run `43204254123` was in progress at audit update; do not record it as passed until the exact PR head completes all Godot 4.7.2 stages.
