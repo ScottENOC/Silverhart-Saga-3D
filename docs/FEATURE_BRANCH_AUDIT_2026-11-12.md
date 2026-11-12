@@ -911,3 +911,8 @@ Every candidate port should include:
 7. a short docs update naming what is complete and what remains.
 
 A passing branch workflow only validates the commit and paths it actually exercised. It does not imply visual acceptance, current-`dev_2` compatibility or maintainability.
+
+
+### Character inventory panel confirmation
+
+The `feature/character-inventory-panel` branch's 263-line `CharacterPanel` is present in current `dev_2) as a 317-line evolved version. Current adds the item catalogue integration, equipment-change signal and scroll-position preservation; its old CharacterState/CombatRules snapshots must not be merged. The character/inventory panel is therefore integrated, not missing.
