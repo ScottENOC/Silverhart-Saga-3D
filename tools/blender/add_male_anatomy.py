@@ -32,6 +32,46 @@ def arguments():
     return parser.parse_args(raw)
 
 
+
+def wire_vertex_colour_to_skin_material(material, attribute_name="Color"):
+    """Multiply the skin texture by anatomy vertex colours for Blender and glTF."""
+    if material is None or not material.use_nodes:
+        raise RuntimeError("Skin material must use nodes to display anatomy vertex colours")
+    nodes = material.node_tree.nodes
+    links = material.node_tree.links
+    shader = next((node for node in nodes if node.type == "BSDF_PRINCIPLED"), None)
+    if shader is None:
+        raise RuntimeError("Skin material has no Principled BSDF")
+    base = shader.inputs.get("Base Color")
+    if base is None:
+        raise RuntimeError("Skin shader has no Base Color input")
+    if any(node.get("anatomy_vertex_colour_layer") == attribute_name for node in nodes):
+        return
+    vertex_colour = nodes.new("ShaderNodeVertexColor")
+    vertex_colour.layer_name = attribute_name
+    vertex_colour.label = "Anatomy skin-tone variation"
+    vertex_colour.name = "AnatomyVertexColour"
+    vertex_colour.location = (shader.location.x - 420, shader.location.y - 180)
+    multiply = nodes.new("ShaderNodeMixRGB")
+    multiply.blend_type = "MULTIPLY"
+    multiply.inputs["Fac"].default_value = 1.0
+    multiply.label = "Preserve skin texture; apply anatomy tint"
+    multiply.name = "AnatomyColourMultiply"
+    multiply.location = (shader.location.x - 190, shader.location.y - 100)
+    multiply["anatomy_vertex_colour_layer"] = attribute_name
+    existing_links = list(base.links)
+    if existing_links:
+        original_socket = existing_links[0].from_socket
+        for link in existing_links:
+            links.remove(link)
+        links.new(original_socket, multiply.inputs["Color1"])
+    else:
+        multiply.inputs["Color1"].default_value = (1.0, 1.0, 1.0, 1.0)
+    links.new(vertex_colour.outputs["Color"], multiply.inputs["Color2"])
+    links.new(multiply.outputs["Color"], base)
+    print(f"Skin shader now multiplies its base texture by vertex colour layer {attribute_name!r}")
+
+
 def material_name(obj):
     return " ".join(slot.material.name.lower() for slot in obj.material_slots if slot.material)
 
@@ -409,7 +449,7 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
         glans = math.exp(-0.5 * ((t - 0.875) / 0.075) ** 2)
         corona_groove = math.exp(-0.5 * ((t - 0.785) / 0.026) ** 2)
         root_taper = 0.82 + 0.18 * min(1.0, t / 0.18)
-        profile_scale = root_taper + 0.20 * glans - 0.105 * corona_groove
+        profile_scale = root_taper + 0.24 * glans - 0.13 * corona_groove
         transformed = (
             source_axis * (along * length_scale) + radial * radial_scale * profile_scale
         )
@@ -441,7 +481,7 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
     modifier = phallus.modifiers.new("Ara pelvis skinning", "ARMATURE")
     modifier.object = armature
     phallus["anatomy_state"] = anatomy_state
-    phallus["anatomy_parts"] = "finger_derived_root,shaft,rounded_distal_tip"
+    phallus["anatomy_parts"] = "integrated_root,tapered_shaft,defined_corona,rounded_glans"
     phallus["source_template"] = "Ara_RightHandMiddleFinger_skin_surface"
     phallus["source_face_count"] = len(selected_faces)
     phallus["source_length_m"] = source_length
@@ -705,6 +745,11 @@ def main():
     # Join into the original Ara body mesh so the exported GLB retains one
     # full-rig skin rather than a separate pelvis-only skeleton palette.
     skin = merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone)
+    if skin.data.color_attributes.get("Color") is None:
+        raise RuntimeError("Male anatomy vertex colours were lost while joining anatomy into the Ara skin")
+    skin_material = next((m for m in skin.data.materials if m and "skin" in m.name.lower()), None)
+    wire_vertex_colour_to_skin_material(skin_material, "Color")
+    skin["anatomy_colour_export_validation"] = "Color attribute present and connected to Principled Base Color"
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
