@@ -284,3 +284,31 @@ These checks extend the branch-by-branch register beyond the first orphan batch.
 ### Farmstead follow-up
 
 `feature/farmstead-bear-creature-model` has one unique missing runtime service (`farmstead_dire_wolf_encounter.gd`) as recorded above. The broader `feature/skill-magic-foundation` branch contains an older bear encounter implementation and companion dialogue snapshot; the two branches must be reconciled with current quest IDs and canonical companion identity before either quest extension is recovered. Do not merge either old `HollowTankard` or `WorldSimulation` snapshot.
+
+
+## Current-head PR and workflow evidence refresh
+
+Refreshed 12 November 2026 against the current open PR metadata. “No runs” below means the commit-specific PR-workflow query returned no PR-triggered workflow run for that exact head SHA; it does not prove that no manual or non-PR workflow has ever run. A green workflow only validates its tested scope and does not waive visual acceptance.
+
+| PR | Current head SHA (abbreviated) | Base | Current-head PR workflow evidence | Current disposition |
+|---|---|---|---|---|
+| #121 | `a614c6e` | `dev_2` | Godot validation passed. | Hold for in-game cinematic visual acceptance; mergeable metadata true. |
+| #110 | `1c2a103` | `dev` | No PR-triggered run returned for exact head. | Hold; current-head validation required; mergeable metadata false. |
+| #99 | `30672f5` | `dev` | Godot validation passed. | Selective quest salvage only; fix health/dormancy state defects; mergeable false. |
+| #96 | `06db693` | `dev` | No PR-triggered run returned for exact head. | Do not merge wholesale; latest previously recorded run failed; salvage only after perception architecture is designed; mergeable false. |
+| #90 | `ab312d5` | `dev` | No PR-triggered run returned for exact head. | No wholesale merge; audit isolated skill/quest changes; mergeable false. |
+| #89 | `12d2f46` | `dev` | No PR-triggered run returned for exact head. | Update/reconcile source census as documentation only; mergeable true. |
+| #88 | `717ca26` | `dev` | Audio/mode validation passed; character pipeline passed; combat initiative CI/preview passed; Godot validation failed. | Fix strict-runner/material issue and review world data in slices; mergeable true. |
+| #87 | `85291ec` | `dev` | No PR-triggered run returned for exact head. | Major character-assembly salvage; no wholesale merge; schema/NPC migration and asset gaps remain; mergeable false. |
+| #77 | `406c601` | `dev` | Character pipeline validation passed. | Hold for dress render/fit acceptance; mergeable true. |
+| #76 | `7124ad0` | `dev` | Character pipeline and Godot validation passed. | Selective helper/shader port only after actual runtime wiring and asset review; mergeable true. |
+| #74 | `194b0b3` | `dev` | Character pipeline passed; Godot validation cancelled. | Development/test inventory only; do not ship as campaign starting inventory; mergeable false. |
+| #73 | `4b0bbfb` | `dev` | Character pipeline and Godot validation passed; Hollowmere Ara character build failed. | Hold model pending asset workflow repair and visual/rig/armour review; mergeable false. |
+| #34 | `6a19ae2` | `dev` | Hollowmere village, Godot/Blender and screenshot workflows passed. | Do not apply historical workflow deletions; reconcile against current independent workflows; mergeable false. |
+| #29 | `8956d00` | `dev` | No PR-triggered run returned for exact head. | Creator UI only as selective salvage; current Ara creator is newer; mergeable false. |
+| #26 | `4d7fe0e` | `fix/dress-selector-and-loading-review` | No PR-triggered run returned for exact head. | Stale stacked pipeline/cache work; split from parent and revalidate; mergeable true. |
+| #25 | `345f08b` | `dev` | Village validation, screenshot capture, Godot/Blender and male anatomy blockout passed. | Visual/source review and split deployment from anatomy/clothing; mergeable false. |
+| #8 | `b8a401c` | `dev` | No PR-triggered run returned for exact head. | Preserve; do not merge wholesale; current Ara pipeline differs; mergeable false. |
+| #5 | `a563b16` | `dev` | Godot audio/mode validation passed. | Foundation already integrated/evolved; Arena remains placeholder; no re-merge; mergeable false. |
+
+The PR base SHA recorded by GitHub may predate later `dev_2` commits. In particular, #121 was created against an earlier `dev_2` head; its current target remains `dev_2`, but any merge decision must be based on a fresh comparison/revalidation against the then-current base. None of these PRs was merged or closed during this refresh.
