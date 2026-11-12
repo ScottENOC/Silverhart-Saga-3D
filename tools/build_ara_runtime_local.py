@@ -435,8 +435,6 @@ def main():
             "breastFirmness": 1.0,
         })
         large_body_raw = RAW / "ara_person_female_large_breast.glb"
-        large_body_param = RAW / "ara_person_female_large_breast.params.json"
-        large_body_param.write_text(json.dumps(large_body_params, indent=2) + "\\n")
         export("ara_person_female_large_breast", large_body_params)
         large_body_raw = RAW / "ara_person_female_large_breast.glb"
         large_body_anatomy = review_root / "female_large_breast_integrated.glb"
