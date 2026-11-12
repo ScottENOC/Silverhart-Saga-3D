@@ -393,6 +393,7 @@ def main():
         anatomy_review = ROOT / "tools" / "blender" / "review_anatomy_closeup.py"
         closeup_reports = {}
         for label, model in (("female_average", female_final),
+                             ("female_average_hybrid", female_hybrid),
                              ("male_average_erect", male_erect),
                              ("male_average_flaccid", male_flaccid)):
             closeup_dir = review_root / "renders" / label / "pelvis_detail"
