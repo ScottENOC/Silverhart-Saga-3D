@@ -222,11 +222,11 @@ def create_uv_surface(name, centre, scale, material, armature, pelvis_bone,
 
 def create_flaccid_phallus(material, armature, pelvis_bone, body_height, anatomy_z, anchor_y, centre_x=0.0):
     """Create a new compact, downward-resting flaccid form (not the old finger mesh)."""
-    axis = Vector((0.0, -0.43, -0.90)).normalized()
+    axis = Vector((0.38, -0.34, -0.86)).normalized()
     right = Vector((1.0, 0.0, 0.0))
     side = axis.cross(right).normalized()
-    length = body_height * 0.038
-    radius = body_height * 0.0085  # fuller relaxed shaft, +42% radius
+    length = body_height * 0.044
+    radius = body_height * 0.0090  # fuller relaxed shaft, with a less rigid resting silhouette
     base = Vector((centre_x, anchor_y + body_height * 0.003, anatomy_z + body_height * 0.003))
 
     # Longitudinal silhouette: narrow attachment, fuller shaft, a restrained
@@ -242,7 +242,9 @@ def create_flaccid_phallus(material, armature, pelvis_bone, body_height, anatomy
     faces = []
     for t, width_factor in profile:
         # A slight natural curve back toward the body as the form descends.
-        centre = base + axis * (length * t) + Vector((0.0, body_height * 0.0015 * math.sin(math.pi * t), 0.0))
+        centre = (base + axis * (length * t)
+                  + Vector((body_height * 0.0035 * math.sin(math.pi * t),
+                            body_height * 0.0010 * math.sin(math.pi * t), 0.0)))
         ring_radius = radius * width_factor
         for segment in range(segments):
             angle = 2.0 * math.pi * segment / segments
@@ -272,7 +274,8 @@ def create_flaccid_phallus(material, armature, pelvis_bone, body_height, anatomy
         material, armature, pelvis_bone
     )
     obj["anatomy_state"] = "flaccid"
-    obj["anatomy_method"] = "new_parametric_resting_form_not_finger_template"
+    obj["anatomy_method"] = "curved_downward_resting_profile_not_finger_template"
+    obj["resting_pose"] = "angled_and_gently_curved"
     obj["target_length_m"] = length
     obj["maximum_radius_m"] = radius * max(value for _t, value in profile)
     return obj
