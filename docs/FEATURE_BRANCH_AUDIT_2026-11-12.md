@@ -284,3 +284,53 @@ The next pass should inspect the actual changed files and commit histories for t
 5. the orphaned combat/action/reaction branches and their overlap with the current simulation kernel.
 
 For each, record: files changed, already-integrated hunks, unique reusable hunks, API/data conflicts, missing tests, latest CI status, visual acceptance needs, and a final merge/port/defer/archive recommendation.
+
+
+## Second-pass file-level findings (in progress)
+
+### #91 equipment gameplay/stat integration
+
+The actual changes are small and useful: validate item type against its equipment slot, reject two-handed/offhand conflicts without destroying inventory, and include the equipped helmet's reduction in combat mitigation.
+
+However, the branch's versions of `character_state.gd`, `combat_rules.gd` and `test_simulation.gd` are substantially older than the current `dev_2` files (349 vs 445 lines, 125 vs 189, and 1,183 vs 1,928 respectively). The passing workflow therefore validates the old branch snapshot, not the code as it would integrate today.
+
+**Port recommendation:** transplant the two focused rule changes and their regression tests onto current `dev_2`; do not merge the old files. Current item definitions confirm `nasal_helm` is a helmet in the `helmet` slot, and spear/bow are two-handed while dagger/sword support offhand use. Run the complete current Godot suite after the port.
+
+### #110 animal simulation and riding
+
+The animal catalogue and riding work is genuinely new, but the current branch has no Actions run for its current head. The code review found a concrete health calculation defect:
+
+- Horse profile declares 50 health and 4 `health` skill ranks.
+- Wolf profile declares 20 health and 1 `health` rank.
+- `register_character()` calls `CharacterState.sync_skill_effects()`, which adds 10 max/current HP per unapplied `health` rank.
+- Consequently, registering these profiles increases the horse from approximately 50 to 90 HP and the wolf from approximately 20 to 30 HP. The current tests check the values immediately after `AnimalCatalog.create_state()`, before registration, so they miss the defect.
+
+The source-compatible interpretation is 10 base HP plus four/one Health ranks. Correct the profile base values and apply the skill effect exactly once (while retaining the intended individual variance), then assert health after registration and save/load.
+
+The happy-path riding tests cover mounting, shared occupancy, movement TP, initiative exclusion, dismounting and save/load. They do not yet cover a mount or rider dying/becoming unconscious while mounted, broken reciprocal links, or size compatibility beyond a hard-coded minimum mount size. In particular, `dismount_animal()` currently requires the mount to be able to act, which can strand a rider on an incapacitated mount. Add an explicit forced/emergency dismount or lifecycle cleanup rule and tests.
+
+**Port recommendation:** fix these issues on a clean `dev_2` integration branch, add current-head CI, and review the rider screenshots. Do not merge the stale `world_simulation.gd` or `hollow_tankard.gd` wholesale.
+
+### #90 skill, progression, companion and farmstead branch
+
+A direct content comparison against current `dev_2` shows that several files highlighted by the PR are already identical to the baseline:
+- `data/skills/skill_definitions.json`
+- `scripts/simulation/skill_catalog.gd`
+- `scripts/simulation/npc_skill_spending.gd`
+- `data/characters/hollowmere_npcs.json`
+- `data/characters/hollowmere_loadouts.json`
+- `data/magic/base_spells.json`
+
+The current branch's `character_state.gd`, `world_simulation.gd` and `hollow_tankard.gd` are older snapshots than `dev_2`; they omit later status-effect, building, save/load and other integration work. Its companion dialogue code also lacks the canonical companion-ID normalization now present in `dev_2`.
+
+**Port recommendation:** do not merge PR #90 as a 70-commit feature. Its skill catalogue, skill metadata and NPC spending foundation are already present. Audit only the remaining farmstead visuals, dialogue/quest additions and any genuinely missing skill-effect behaviour. Reconcile the bear quest with #99's dire-wolf/Tessa rescue design before adding either to the campaign.
+
+### `feature/missing-skill-runtime-port` orphan branch
+
+A preliminary content comparison found its character-creation rules, skill-progression implementation, player-creator code and simulation action-request contract identical to current `dev_2`. Its character/combat/world files are older and omit current status-effect and building integrations; its test file is also an older subset of the current suite.
+
+**Provisional disposition:** likely superseded/archival rather than a merge candidate. Complete a final file-by-file check for any isolated skill-effect code not represented in current `StatusEffectRules` or `CombatRules` before closing it out.
+
+### Repository style rule reconciliation
+
+The style mismatch is broader than `vision_rules.gd`: current GDScript files such as `character_state.gd` also use spaces while `.editorconfig` specifies tabs. The repository needs one agreed GDScript indentation convention and an automated check. Do not apply a repository-wide formatting churn until that convention is decided.
