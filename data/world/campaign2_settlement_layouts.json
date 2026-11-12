@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "coordinate_system": "local_axial_qr",
+  "source": "Hex-crpg Campaign 2 buildMillbrook() and campaign2Content.js",
+  "settlements": [
+    {
+      "id": "millbrook",
+      "name": "Millbrook",
+      "location_id": "millbrook",
+      "center": {
+        "q": 1,
+        "r": -366
+      },
+      "road_endpoint": {
+        "q": 7,
+        "r": -366
+      },
+      "source_builder": "campaign2World.js:buildMillbrook",
+      "buildings": [
+        {
+          "id": "millbrook_house",
+          "kind": "house",
+          "style": "timber_cottage",
+          "center": {
+            "q": 1,
+            "r": -366
+          },
+          "half_q": 3,
+          "half_r": 3,
+          "door": {
+            "q": 4,
+            "r": -366
+          },
+          "features": [
+            "fireplace"
+          ],
+          "interior": {
+            "kind": "single_room",
+            "floor": "wood"
+          }
+        }
+      ],
+      "paths": [
+        {
+          "id": "millbrook_house_spur",
+          "kind": "road",
+          "from": {
+            "q": 5,
+            "r": -366
+          },
+          "to": {
+            "q": 6,
+            "r": -366
+          }
+        }
+      ],
+      "npcs": [
+        {
+          "id": "petra_hollis",
+          "name": "Petra Hollis",
+          "title": "Millbrook Villager",
+          "dialogue_id": "petra_hollis",
+          "faction_id": "silverhart_kingdom",
+          "side": "neutral",
+          "class_levels": [
+            "rogue"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "position": {
+            "q": 2,
+            "r": -366
+          },
+          "body_variant": "female",
+          "appearance": {
+            "skin_colour": "#e8c2a2",
+            "eye_colour": "Brown",
+            "hair_colour": "Chestnut",
+            "hair_style": "bob01",
+            "height_scale": 0.99,
+            "build_scale": 1,
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "campaign2Content.js:campaign2MillbrookVillager"
+        },
+        {
+          "id": "border_war_quartermaster",
+          "name": "Quartermaster Rurik Voss",
+          "title": "The King's Quartermaster",
+          "dialogue_id": "border_war_quartermaster",
+          "faction_id": "silverhart_kingdom",
+          "side": "neutral",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "sword_hit"
+          ],
+          "inventory_equipment": [
+            "sword",
+            "light_armor"
+          ],
+          "quest_hooks": [
+            "border_war"
+          ],
+          "position": {
+            "q": 5,
+            "r": -366
+          },
+          "body_variant": "male",
+          "appearance": {
+            "skin_colour": "#d6a47e",
+            "eye_colour": "Brown",
+            "hair_colour": "Dark brown",
+            "hair_style": "short02",
+            "height_scale": 1.03,
+            "build_scale": 1.045,
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "combat_boots",
+              "garment_visual": "combat_boots"
+            },
+            "armour": {
+              "id": "light_armor"
+            },
+            "weapon": {
+              "id": "sword"
+            }
+          },
+          "source": "campaign2Content.js:campaign2BorderWarQuartermaster"
+        }
+      ]
+    }
+  ]
+}
