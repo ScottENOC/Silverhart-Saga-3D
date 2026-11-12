@@ -246,3 +246,41 @@ These checks extend the branch-by-branch register beyond the first orphan batch.
 - The unique service is the Tessa rescue/dire-wolf encounter implementation recorded in the primary audit. It is not already represented by the farm-wolf quest actor alone.
 - **Disposition:** retain as a distinct quest salvage candidate. The branch's encounter health setup double-applies Health ranks at character registration and its dormancy handling does not restore all characters' previous state. Do not port until those lifecycle/state issues are fixed and quest state is integrated with current journal/companion IDs.
 
+
+
+## Further simulation and combat lineage checks
+
+### `feature/animal-attributes` and `feature/animal-riding-validation`
+
+- Compare: 29 ahead / 24 behind for `feature/animal-attributes`; 30 ahead / 24 behind for riding. The riding branch is the one-commit continuation.
+- Riding branch tree: 1,066 paths; three paths absent from current `dev_2`: `.github/workflows/riding-preview.yml`, `scripts/simulation/animal_catalog.gd`, and `tests/capture_riding_preview.gd`.
+- Both branches also change existing `CharacterState`, `WorldSimulation`, `HollowTankard`, village and creature actor files. Those are stale snapshots and must be reviewed as selective diffs, not copied.
+- The animal catalogue and riding-preview capture are genuinely missing paths; the current tree's farm/wolf creature actor is not an animal simulation catalogue or mount lifecycle.
+- **Disposition:** preserve both branches and treat riding as the continuation. After priority-1 audit completion, create a fresh integration branch from current `dev_2`, recover the catalogue and tests, and port simulation changes by function. Hard gates remain the double-applied Health ranks, atomic rider/mount lifecycle cleanup on death/incapacitation, occupancy transfer and save/load after forced dismount. No current-head workflow evidence was found in the previous audit snapshot; rerun validation on the exact candidate commit before merge.
+
+### `feature/skill-magic-foundation`
+
+- Compare: 70 ahead / 56 behind; 16 changed paths. Its recursive branch tree has no paths absent from `dev_2`.
+- Key skill definitions/catalogue/progression/NPC spending and spell JSON already exist in the current tree. The branch's `companion_campaign_content.gd`, `farmstead_bear_encounter.gd` and skill/magic plan are not identical, but direct comparison shows its two extra companion lines are an older non-canonical-ID path; current `dev_2` correctly checks both original and canonical party IDs. The branch's one extra bear line adds an animal tag now not needed in the same form by current data/logic.
+- **Disposition:** no wholesale port and no missing file recovery. Keep it as lineage for the skill/quest work. If a specific skill effect or quest dialogue is not covered in current tests, recover that scenario individually; do not restore older canonical-ID or encounter snapshots. Spellcasting remains a separate unimplemented runtime system despite the existing spell data.
+
+### `feature/action-contract-downed-lifecycle`
+
+- Compare: 10 ahead / 149 behind; nine changed paths. The only branch-tree paths absent from current `dev_2` are the old modular assembler and two Wren blockout tools; its action-request/result/event, CharacterState, CombatRules and WorldSimulation paths all exist in current.
+- **Disposition:** action contract/downed lifecycle is represented in the evolved current simulation. Do not port old simulation files. Preserve the branch as implementation/test lineage; inspect only whether a specific regression assertion is missing from the current suite.
+
+### `feature/combat-initiative-timeline`
+
+- Compare: 36 ahead / 55 behind; 11 changed paths. Its recursive tree has no paths absent from `dev_2`.
+- Crucially, `combat_initiative_model.gd`, `combat_initiative_timeline.gd` and `tests/capture_initiative_timeline.gd` are each byte-for-byte identical between the branch and current `dev_2`. Current `HollowTankard.gd` preloads the timeline, constructs/configures it and connects its character-selected signal.
+- **Disposition revised:** initiative timeline presentation is already integrated and wired; do not treat it as an outstanding salvage candidate or merge it again. The old branch's remaining changes are older simulation/world snapshots and workflow/docs history. Visual acceptance of the current panel is still separate.
+
+### `feature/ally-combat-reactions`, `feature/combat-reaction-triggers`, `feature/movement-reactions`, `feature/reaction-resolution-turn-safety`, and `feature/combat-resolution-foundation`
+
+- Current compare file lists show changes only to old simulation snapshots, tests, documentation and (for the broad foundation branch) old workflow/character pipeline files. Their current-tree paths exist in `dev_2`; do not infer missing implementation from their ahead counts.
+- The action contract, reaction trigger/turn safety and downed lifecycle foundations have since been integrated/evolved. The remaining work is adversarial current-head test coverage for pending reaction cancellation, reactor/target incapacitation, nested requests, combat end, movement opportunity reactions and safe turn advancement.
+- **Disposition:** preserve all five branches as history and regression-scenario sources. No wholesale merge. Recover a specific assertion only after confirming the current test suite lacks it.
+
+### Farmstead follow-up
+
+`feature/farmstead-bear-creature-model` has one unique missing runtime service (`farmstead_dire_wolf_encounter.gd`) as recorded above. The broader `feature/skill-magic-foundation` branch contains an older bear encounter implementation and companion dialogue snapshot; the two branches must be reconciled with current quest IDs and canonical companion identity before either quest extension is recovered. Do not merge either old `HollowTankard` or `WorldSimulation` snapshot.
