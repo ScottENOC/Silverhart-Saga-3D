@@ -375,3 +375,17 @@ The branch adds a new `CharacterAssemblyResolver` and substantial Blender/Ara to
 The latest #88 Godot workflow failed in `tests/test_character_appearance.gd:73`: the synthetic bra material's applied tint did not equal `appearance.bra_tint`. A later assertion also emitted `Parameter "material" is null`. The test script subsequently printed a success message, but the new `tools/ci/run_godot_checked.sh` correctly converted the emitted script/material errors into a failing workflow.
 
 The hex-grid and simulation tests passed in that same run. The strict runner is a useful CI improvement to port to current `dev_2` (after reviewing its detection patterns), while the appearance test/material defect must be fixed rather than weakening the runner.
+
+
+## Permanent feature-branch preservation policy
+
+Feature branches are retained as permanent development history by default. Consolidation is about integrating the useful work into `dev_2`, not deleting the original branch.
+
+- **Merged:** retain the branch; close the PR when appropriate and record the merge commit / replacement integration.
+- **Superseded:** retain the branch and record the successor branch or PR.
+- **Deferred/incomplete:** retain the branch for future work; do not close merely because it is not currently mergeable.
+- **Duplicate:** retain both histories initially and mark one as canonical. Do not delete either as part of this audit.
+- **Abandoned:** retain unless the repository owner explicitly authorises deletion.
+- Do not reuse old branch names for new work. Create fresh branches from `dev_2` for new integration or follow-up changes.
+
+Closing a pull request is a review-queue decision, not a branch deletion instruction. A closed PR's branch may still be checked out, compared, and used as the source for a later port.
