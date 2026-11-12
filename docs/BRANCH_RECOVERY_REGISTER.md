@@ -564,3 +564,40 @@ This pass adds dispositions for the small/focused branches above, but it does no
 - The old skill-effect branch has a small number of rank-2 test cases worth retaining, but current test coverage is substantially broader. This is a test-design note, not a current CI failure.
 - Several branches with nonzero ahead counts are simply alternate historical documents or snapshots. Compare ancestry alone must not drive a merge.
 - No test, CI, documentation, audio, or wilderness branch was merged during this pass. All original branch refs remain intact.
+
+
+## Additional remaining branch families — 12 November 2026
+
+### Fog of war, campaign journal, NPC workshop and companion model
+
+- feature/vision-stealth-perception compares 27 / 57 with seven changed paths. The current VisionRules LOS/range foundation is already represented by merged PR #122, but this source branch also has distinct scripts/presentation/fog_of_war.gd, tests/test_fog_of_war.gd and docs/VISION_STEALTH_PORT.md. These are not equivalent to the current LOS foundation.
+  - **Disposition:** preserve as a high-value deferred salvage source. Do not merge the stale WorldSimulation/HollowTankard or the old vision implementation wholesale. Before porting fog presentation, design explored/known state, observer knowledge, save/load representation and interaction with campaign map discovery. PR #96 remains open against old dev; its latest recorded workflow failed/no current-head pass. Revalidate on a fresh dev_2 integration branch only after that design.
+- feature/campaign-quest-journal compares 5 / 138 with four changed paths. Its CampaignJournal, WorldSimulation and tests are older snapshots; current journal is substantially longer and includes faction knowledge, NPC standings/knowledge, merchant influence and expanded persistence/event handling.
+  - **Disposition:** no wholesale port. Preserve any distinct quest text/test scenario as source material; current journal remains canonical.
+- feature/reusable-npc-workshop compares 5 / 361 with five changed paths. The older modular assembler is not current, but tools/ara/build_npc_previews.py and tools/ara/npc_profiles.json are distinct absent preview/profile tooling for a reusable NPC roster.
+  - **Disposition:** preserve as a deferred tooling candidate. Adapt its inputs/outputs to the current canonical 22-character manifest and whichever resolver/assembly contract is ultimately accepted. Do not revive its old assembler or Wren/HF workflow.
+- feature/ser-aldric-first-companion-model compares 7 / 106 with five changed paths. data/characters/companion_models.json and docs/FIRST_COMPANION_MODEL.md are distinct absent paths; no companion-model GLB binary path is present in that branch tree. Its builder/armour tools need comparison with the current Ara pipeline.
+  - **Disposition:** retain as model/companion provenance, not as a finished model delivery. No separate companion registry until the current character assembly design is settled; verify the actual generated GLB and rig/armour visually before accepting it.
+- feature/farmstead-bear-creature-model compares 27 / 31 with five changed paths. Its distinct farmstead_dire_wolf_encounter.gd service remains absent from current, although its companion content, scene and tests are old snapshots.
+  - **Disposition:** preserve as a separate Tessa rescue/dire-wolf quest salvage candidate. Fix the double-applied Health ranks and restore all characters' prior dormancy/side state; reconcile quest/journal and canonical companion IDs before any selective port. Do not copy its old HollowTankard or campaign content snapshots.
+
+### Character presentation and anatomy review branches
+
+These remain in the parallel character/anatomy stream and are inventoried only to protect their history.
+
+- feat/ara-shields-helmets-hairstyles compares 15 / 106 with seven changed paths: two armour-prop workflows, equipment pipeline documentation, two asset tests and Blender weapon/armour builders. It overlaps feat/ara-hairstyles-medieval-equipment and the separate modelling stream.
+  - **Disposition:** preserve. Do not merge workflow, asset generator or actor changes through this audit. Visual/rig/fit acceptance remains the correct gate.
+- feature/male-anatomy-geometry-review compares 5 / 151 with three workflow/site/Blender-tool paths. It belongs to the current anatomy review lineage.
+  - **Disposition:** preserve and leave untouched by the integration audit.
+- feature/player-character-visual-phase1 compares 12 / 128 with five changed paths. It adds an older player-visual phase document and changes Ara actor, creator, HollowTankard and export workflow snapshots; current actor/creator are evolved.
+  - **Disposition:** retain as design history; do not replace current player/actor code. Any unique acceptance criteria in the document should be reconciled with the current male/female base + morph direction by the modelling stream.
+- feature/hollowmere-building-port-spec compares 39 / 58 with nine changed paths, but its building registry, door-state persistence, simulation hooks, specification and tests are the source of the already-merged two-storey building/door foundation (#119).
+  - **Disposition:** already integrated. Keep as provenance; no re-merge.
+- feature/hollowmere-cosmo-forest is the large addon/generated-tree branch. The user's explicit exclusion applies to its generator/evaluation/gallery tooling; generated assets are already in current. No merge.
+- feature/skill-magic-foundation-current-dev and the older audit/skill-spell-implementation-baseline are zero-ahead snapshots; no port.
+
+### Follow-up constraints
+
+- Fog of war is the only newly confirmed deferred vision deliverable in this group; it is not equivalent to the LOS code already merged. Keep it separate from the current branch-audit task until the save/discovery state contract is decided.
+- NPC preview generation and the dire-wolf quest are genuine absent-path candidates, but both depend on current canonical NPC/quest state and should not be ported from their old scene snapshots.
+- No branches in this group were merged or closed. Original feature branches remain intact.
