@@ -13,6 +13,7 @@ on:
       - "tools/blender/review_anatomy_closeup.py"
       - "tools/blender/inspect_character.py"
       - "tools/blender/test_male_morph_pose.py"
+      - "tools/review/render_modular_outfits.py"
       - "tools/blender/build_female_vulva_sculpt.py"
       - "tools/ara/patch_layering.py"
       - "tools/character_definitions.py"
