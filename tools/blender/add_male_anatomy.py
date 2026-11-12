@@ -503,9 +503,11 @@ def create_scrotum(tree, material, armature, pelvis_bone, width, height, anatomy
     # an envelope about 6.1 cm wide x 4.3 cm deep x 6.4 cm tall.
     centre_z = anatomy_z - height * 0.024
     surface_y = anchor_y
-    width_radius = height * 0.017
-    depth_radius = height * 0.012
-    height_radius = height * 0.018
+    # A more compact, vertically restrained envelope avoids a spherical
+    # silhouette and leaves the relaxed shaft visually distinct.
+    width_radius = height * 0.0155
+    depth_radius = height * 0.0105
+    height_radius = height * 0.0145
     depth = depth_radius
     centre = Vector((centre_x, surface_y + depth * 0.30, centre_z))
     sac = create_uv_surface(
@@ -724,10 +726,18 @@ def main():
     # Both states use Ara's same native finger-derived surface, so the
     # flaccid form retains the erect form's shaft/glans character rather than
     # switching to an unrelated parametric capsule. Only scale and pose differ.
-    phallus = create_finger_derived_phallus(
-        skin, skin_material, armature, pelvis_bone, height, anatomy_z,
-        pelvic_surface_y, args.anatomy_state, centre_x
-    )
+    if args.anatomy_state == "flaccid":
+        # Use the dedicated fuller resting profile. The finger-derived template
+        # remains the unchanged source for the accepted erect reference.
+        phallus = create_flaccid_phallus(
+            skin_material, armature, pelvis_bone, height, anatomy_z,
+            pelvic_surface_y, centre_x
+        )
+    else:
+        phallus = create_finger_derived_phallus(
+            skin, skin_material, armature, pelvis_bone, height, anatomy_z,
+            pelvic_surface_y, args.anatomy_state, centre_x
+        )
     scrotum = create_scrotum(
         surface_tree, skin_material, armature, pelvis_bone, width, height, anatomy_z,
         pelvic_surface_y, args.anatomy_state, centre_x
