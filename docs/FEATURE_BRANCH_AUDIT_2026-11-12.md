@@ -466,3 +466,46 @@ This is a coherent “save only at safe campaign boundaries” design. The test 
 - `test/additional-skill-effect-coverage` is an older test-suite snapshot. Its inspected assertions for Fast Movement, Goblin Opportunist and parry TP cost are all present in current `tests/test_simulation.gd`. Current tests also include newer weapon-skill, status-effect, feint and vision coverage. Do not merge the older test file over the current suite.
 
 Both branches should be retained and marked **integrated**.
+
+
+## Second-pass: Hollowmere, campaign content, world map and wilderness branches
+
+### Work already represented in dev_2
+
+- `feature/hollowmere-building-port-spec` is the historical source for the building/door framework now integrated through PR #119. Its branch is 39 ahead / 54 behind, but must not be merged over the current two-storey tavern implementation.
+- `feature/main-campaign-world-map-validated` has its `main_campaign_world_map.gd` and `main_campaign_world_map_data.gd` files byte-for-byte identical to current `dev_2`. The branch's unique history is already represented in the baseline.
+- `feat/wilderness-art-and-gatherable-visuals` has `wilderness_resource_visual.gd` byte-for-byte identical to current `dev_2`; its resource visual work is integrated.
+- `feature/hollowmere-shakedown-combat` has its `hollowmere_campaign_content.gd` byte-for-byte identical to current `dev_2`. The current `hollowmere_encounter.gd` differs in two lines: it sets participants to `ActionEconomy.COMBAT_TURN_READY_TP` rather than `max_time_points`, so the old branch must not overwrite the current turn-readiness rule.
+- `feature/organic-hollowmere-geography` contains the organic world feature helper and village-data work already represented in current `dev_2`; its older village scene is substantially shorter (442 lines versus 601) and predates the current imported Cosmo tree assets, creature actors and later village presentation work. Its helper differs only in a small compatibility expression using `back()` versus explicit final-index access.
+- `feature/campaign-quest-journal` is an older journal implementation. Current `CampaignJournal` is more extensive, with NPC/faction standing, knowledge and merchant influence state; do not replace it with the 211-line branch snapshot.
+- `feature/hollowmere-dialogue-ambient-chatter` is superseded by current campaign content. Its ambient chatter lacks the current shakedown-choice gate, and its campaign content is an older subset of the current file.
+- `feature/hollowmere-items-and-inventory-art` is an older 63-item catalogue; current `item_definitions.json` has 76 items including later underwear/garment definitions. Do not replace current item data with the older catalogue.
+- `feat/seasonal-wilderness-visuals` contains an older procedural-only tree implementation. Current `seasonal_tree_visual.gd` uses imported Kenney Nature Kit GLBs with procedural winter fallback; preserve the current asset-backed implementation.
+- `feature/legacy-porting-matrix` and `feature/mechanics-port-foundation` are documentation-only source branches. Their registers predate many merged systems; use the current audit and current baseline as the source of truth rather than copying their old status tables.
+- `feature/hollowmere-ironbond-opening-cutscene` is a source branch for the opening cinematic. The current integration work is tracked separately in PR #121; compare the actual integration branch and its reviewed code rather than merging this source branch independently.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feature/organic-hollowmere-geography` | 17 ahead / 85 behind; helper/data content is represented, scene is an older subset. | **Integrated/superseded.** Preserve history; no wholesale merge. |
+| `feature/hollowmere-building-port-spec` | 39 ahead / 54 behind; its framework is now PR #119. | **Integrated via #119.** Preserve history; no re-merge. |
+| `feature/main-campaign-world-map-validated` | 12 ahead / 136 behind; map UI and data files are byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+| `feature/wilderness-world-foundation` | Branch comparison returned 404; branch was in the earlier inventory but is not currently resolvable by GitHub. | **Unresolved reference.** Do not infer deletion or recreate it; verify branch existence through the live branch list. |
+| `feat/wilderness-art-and-gatherable-visuals` | 18 ahead / 119 behind; resource visual script is byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+| `feature/hollowmere-cosmo-forest` | 4 ahead / 53 behind; very large Cosmo add-on, generated assets and demo tree. Current village references Cosmo-generated trees. | **Integrated asset source; review licensing/provenance and generated runtime assets only if a specific missing variant is identified.** Preserve history. |
+| `feat/seasonal-wilderness-visuals` | 5 ahead / 121 behind; older procedural tree script predates current Kenney GLB implementation. | **Superseded.** Preserve history; do not merge. |
+| `feature/hollowmere-dialogue-ambient-chatter` | 16 ahead / 133 behind; older campaign content and chatter implementation. | **Superseded by richer current campaign content.** Preserve history; do not merge. |
+| `feature/hollowmere-items-and-inventory-art` | 2 ahead / 138 behind; older 63-item catalogue versus current 76-item catalogue. | **Integrated/evolved.** Preserve history; do not replace current data. |
+| `feature/hollowmere-shakedown-combat` | 50 ahead / 127 behind; campaign content file identical; encounter differs only in old max-TP initialisation. | **Integrated with later correction.** Preserve history; no re-merge. |
+| `feature/campaign-quest-journal` | 5 ahead / 134 behind; old 211-line journal versus current 331-line reputation-aware implementation. | **Integrated/evolved.** Preserve history; no re-merge. |
+| `feature/legacy-porting-matrix` | 2 ahead / 111 behind; documentation-only and stale. | **Superseded by current audit/register.** Preserve history. |
+| `feature/mechanics-port-foundation` | 1 ahead / 154 behind; documentation-only and stale. | **Superseded by current audit/register.** Preserve history. |
+| `feat/campaign-loading-feedback` | 1 ahead / 101 behind; one focused `world_root.gd` change. | **Inspect the isolated loading-feedback delta against current scene loading before deciding whether to port.** |
+| `feature/campaign-loading-feedback` | Branch comparison returned 404; only `feat/campaign-loading-feedback` was resolvable. | **Unresolved historical name; do not assume it exists.** |
+| `feature/hollowmere-ironbond-opening-cutscene` | 17 ahead / 54 behind; source implementation overlaps current PR #121 integration branch. | **Source branch retained; PR #121 remains the integration candidate and still needs visual acceptance.** |
+| `feature/game-real-hollowmere-character-art` | 6 ahead / 159 behind; adds model validation tooling and web-export workflow changes. | **Audit tooling separately; avoid merging stale workflow changes.** |
+
+### World-content review notes
+
+The current Hollowmere scene is materially ahead of several source branches. The 3D village scene now includes imported tree variants, creature actor integration and later presentation code; old village snapshots should be treated as source references, not replacements. The world-map UI/data are already in the current baseline, while a truly traversable campaign map, inter-settlement travel and broader world simulation remain separate gameplay milestones and must not be marked complete merely because the map widget exists.
