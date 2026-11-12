@@ -1176,6 +1176,7 @@ func _build_save_snapshot() -> Dictionary:
         "clock": simulation.clock.to_dict(),
         "campaign_journal": simulation.campaign_journal.to_dict(),
         "wilderness_resources": simulation.wilderness_resources.to_dict(),
+        "buildings": simulation.building_registry.to_dict(),
         "world_flags": {
             "ambient_security": ambient_security,
             "shakedown_started": shakedown_started,
@@ -1260,6 +1261,9 @@ func _apply_save_data(data: Dictionary) -> void:
     var resource_data: Variant = data.get("wilderness_resources", {})
     if resource_data is Dictionary:
         simulation.wilderness_resources.load_dict(resource_data)
+    var building_data: Variant = data.get("buildings", {})
+    if building_data is Dictionary:
+        simulation.building_registry.load_dict(building_data)
     var flags: Dictionary = data.get("world_flags", {})
     ambient_security = int(flags.get("ambient_security", ambient_security))
     shakedown_started = bool(flags.get("shakedown_started", false))
