@@ -863,3 +863,36 @@ The branch compare `ahead/behind` counts describe ancestry, not outstanding work
 - Old Pages workflows are superseded, but the `dev` versus `dev_2` deployment trigger mismatch remains a real decision to resolve deliberately.
 - Cosmo tooling remains out of scope by user direction; retain source provenance without merging.
 - No branches were merged or closed in this pass.
+
+
+## Integration and visual-fix branch family — focused review, 12 November 2026
+
+### Already-integrated dev_2 branches
+
+- `integration/two-storey-tankard-dev2` compares 10 / 7 with nine paths and is the source branch for the building/door foundation merged as PR #119. It remains historical provenance; do not merge again.
+- `integration/vision-foundation-dev2` compares 3 / 5 with three paths and is the source for the spatial vision/hex LOS foundation merged as PR #122. The separate fog-of-war presentation in the older feature branch is not included in that merge.
+- `integration/hollowmere-dev-visual-review`, `integration/hollowmere-npc-visuals`, `integration/hollowmere-world-simulation` and `integration/wren-modular-clothing` have zero commits ahead of current `dev_2`; no code recovery needed.
+
+### Opening cinematic integration branch / PR #121
+
+- `integration/opening-cinematic-dev2` compares 6 / 6 with six paths. It contains `cinematic_director.gd`, animation-matching test and in-engine cutscene design doc, plus actor/HollowTankard integration. This is the current open PR #121 candidate.
+- Its earlier Godot validation passed on run `43151102411`, but the PR base SHA predates merged PRs #125–#127. It has not had visual PC acceptance. A headless test can establish that animations load/match, but cannot establish camera framing, actor alignment, cinematic pacing or skip behavior.
+- **Disposition:** preserve and hold. User/PC visual review first; then refresh onto current `dev_2` and rerun full Godot validation. No merge now.
+
+### Parallel modelling/anatomy visual-fix branches
+
+These are audited for retention only; they belong to the other active character/clothing stream and must not be edited or merged by this integration pass.
+
+- `fix/anatomy-pelvic-landmark-port` is behind current `dev_2` with zero ahead commits; its work has been superseded/evolved in the current anatomy lineage.
+- `fix/male-anatomy-surface-sampling` has one commit ahead changing only `tools/blender/add_male_anatomy.py`; preserve as a narrow experiment, no merge into gameplay baseline.
+- `fix/generic-clothing-visibility` (3 / 64) and `fix/keep-body-visible-under-clothing` (2 / 66) change only `ara_character_actor.gd`; preserve both as competing/historical fixes for the transparent-clothing body-visibility issue. Do not choose one by branch age alone; the modelling stream should test actual transparent garments and morphs before accepting a single implementation.
+- `fix/modular-outfit-review-material-duplicates` (6 / 165; two paths) changes the Workshop build workflow and modular outfit review renderer; preserve as visual QA tooling lineage. It is not production game code.
+- `fix/player-equipment-visuals` (4 / 68; two paths) changes Ara actor and HollowTankard visual integration. Keep with the parallel model/equipment review; don't merge without actual asset/rig review.
+- `fix/wren-lace-fishnet-and-anatomy` (19 / 169; six paths) changes Workshop workflow/site, Ara layering patch, adult/male anatomy Blender scripts and outfit renderer. This is a visual/model pipeline candidate; preserve and leave to the parallel stream.
+- `fix/dress-selector-and-loading-review` (15 / 164; eight paths) combines older Pages/export workflow changes, clothing/anatomy builder changes and a custom loading shell. It is stacked lineage with `ci/incremental-character-pipeline` and overlaps #8/#25. Preserve; any salvage must split PWA/deploy, UI loading and garment/anatomy concerns into separate changes. Do not merge the branch wholesale.
+
+### Current disposition from this group
+
+- Building/door and vision foundations are already integrated; no re-merge.
+- Cinematic PR #121 remains the only current `dev_2` visual integration candidate and needs PC review plus refreshed CI.
+- All remaining `fix/*` character visual branches remain preserved for the parallel modelling stream; no gameplay integration action taken.
