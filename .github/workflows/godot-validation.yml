@@ -59,6 +59,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
       - name: Run simulation, movement and combat tests
         run: godot --headless --path . --script res://tests/test_simulation.gd
+      - name: Run reusable building and door tests
+        run: godot --headless --path . --script res://tests/test_building_framework.gd
       - name: Run SaveManager round-trip tests
         run: godot --headless --path . --script res://tests/test_save_manager.gd
       - name: Run NPC pass-through tests
