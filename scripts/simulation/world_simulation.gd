@@ -13,6 +13,7 @@ signal movement_reaction_resolved(mover_id: String, halted: bool)
 
 var campaign_journal: CampaignJournal = CampaignJournal.new()
 var map_data: HexMapData = HexMapData.new()
+var building_registry: BuildingRegistry = BuildingRegistry.new()
 var world_chunks: HexWorldChunkStreamer = HexWorldChunkStreamer.new()
 var wilderness_resources: WildernessResourceSystem = WildernessResourceSystem.new()
 var characters: Dictionary = {}
@@ -147,6 +148,20 @@ func party_members() -> Array[CharacterState]:
 
 func get_character(character_id: String) -> CharacterState:
     return characters.get(character_id) as CharacterState
+
+## Move a character between connected building floors without spending movement TP.
+func relocate_character(character_id: String, destination: Vector2i) -> bool:
+    var state := get_character(character_id)
+    if state == null or not map_data.is_walkable(destination) or occupied_hexes.has(destination):
+        return false
+    var origin := state.axial
+    if origin == destination:
+        return true
+    occupied_hexes.erase(origin)
+    state.axial = destination
+    occupied_hexes[destination] = character_id
+    character_moved.emit(character_id, origin, destination)
+    return true
 
 
 ## Player and recruited companion points remain unspent; ordinary NPCs auto-allocate.
@@ -849,11 +864,22 @@ func harvest_resource_at(character_id: String, hex: Vector2i) -> Dictionary:
     return wilderness_resources.harvest(hex, map_data.terrain_id_at(hex), character, clock.world_seconds)
 
 func find_path(character_id: String, destination: Vector2i) -> Array[Vector2i]:
-    ensure_exploration_region(destination)
+    if not _is_virtual_building_floor_hex(destination):
+        ensure_exploration_region(destination)
     var state := get_character(character_id)
     if state == null:
         return []
     return HexPathfinder.find_path(map_data, occupied_hexes, state.axial, destination, state, characters, is_in_combat)
+
+func _is_virtual_building_floor_hex(hex: Vector2i) -> bool:
+    for definition_value in building_registry.definitions.values():
+        if not definition_value is Dictionary:
+            continue
+        var bounds: Variant = definition_value.get("virtual_floor_bounds", [])
+        if bounds is Array and bounds.size() == 4:
+            if hex.x >= int(bounds[0]) and hex.x <= int(bounds[1]) and hex.y >= int(bounds[2]) and hex.y <= int(bounds[3]):
+                return true
+    return false
 
 func movement_cost(character_id: String, destination: Vector2i) -> float:
     var state := get_character(character_id)
@@ -913,7 +939,8 @@ func _find_npc_sidestep_hex(occupant: CharacterState, mover_origin: Vector2i) ->
     return Vector2i(999999, 999999)
 
 func _commit_move(state: CharacterState, destination: Vector2i) -> void:
-    ensure_exploration_region(destination)
+    if not _is_virtual_building_floor_hex(destination):
+        ensure_exploration_region(destination)
     var origin: Vector2i = state.axial
     var occupant_id := String(occupied_hexes.get(destination, ""))
     if not occupant_id.is_empty():
@@ -943,6 +970,7 @@ func to_dict() -> Dictionary:
         "party_member_ids": party_member_ids.duplicate(),
         "characters": character_data,
         "wilderness_resources": wilderness_resources.to_dict(),
+        "buildings": building_registry.to_dict(),
     }
 
 func load_dict(data: Dictionary) -> void:
@@ -952,6 +980,10 @@ func load_dict(data: Dictionary) -> void:
     player_character_id = String(data.get("player_character_id", "player"))
     clock.load_dict(data.get("world_clock", {}))
     wilderness_resources.load_dict(data.get("wilderness_resources", {}))
+    building_registry.load_dict(data.get("buildings", {}))
+    for door_value in building_registry.doors.values():
+        var building_door := door_value as BuildingDoorState
+        map_data.set_walkable(building_door.hex, building_door.is_passable())
     is_in_combat = bool(data.get("is_in_combat", false))
     var saved_characters: Dictionary = data.get("characters", {})
     for character_id in saved_characters:
