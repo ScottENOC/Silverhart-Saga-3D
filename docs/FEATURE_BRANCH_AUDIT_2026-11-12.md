@@ -1,0 +1,1166 @@
+# Feature branch consolidation audit — 12 November 2026
+
+## Purpose and scope
+
+This is the first repository-wide inventory and triage pass for the consolidation of `ScottENOC/Silverhart-Saga-3D` into `dev_2`. It records what is known to remain on branches, what is already integrated, what is duplicated, and what needs a deeper code review.
+
+**Integration baseline:** `dev_2`  
+**Baseline commit at audit start:** `143e1b02e87a795a00794f0eb291fe4db50e0175`  
+**Repository snapshot:** 129 branches across the first two branch-list pages; 19 open pull requests.
+
+This is not a claim that every line of every orphan branch has been reviewed. It is an inventory, ancestry comparison and first-pass disposition. Branches marked for salvage still require file-level diff review and validation before code is ported.
+
+**Latest refresh (12 November 2026):** GitHub currently returns 137 live branches and 20 open PRs (including the new animal world-registration recovery branch/PR #128). Current `dev_2` head is `374d4a2894e0c118c4a35d075a23ca568ff51209`. The initial baseline SHA above is retained as the audit-start reference. All 137 branch names are now represented in `docs/BRANCH_RECOVERY_REGISTER.md`, but exact tree/blob/test/dependency review is still incomplete. PR #123 remains a draft against `dev_2`; PR #121 remains a draft pending visual acceptance and needs a fresh base comparison before any merge.
+
+## Rules for this audit
+
+1. `dev_2` is the integration baseline. Do not merge into `dev` or `main` as part of this work.
+2. A branch being ahead of `dev_2` does not prove its work is missing. Squash merges create new commit IDs; check merged PRs and actual file content before porting.
+3. A green workflow is evidence for the tested commit and tested scope only. It is not visual acceptance or proof of maintainability.
+4. Do not bulk-merge stale branches. Prefer small ports with explicit dependencies, tests and review.
+5. Preserve original branches until their useful work has been accounted for. Do not delete branches as part of this audit.
+6. Keep simulation authoritative, presentation disposable, stable IDs for persistent state, explicit commands/events for mutations, and headless tests for simulation rules.
+7. Follow `.editorconfig`: GDScript, scenes and resources use tabs; JSON uses two spaces. CI currently does not appear to enforce every formatting rule.
+
+## Recently integrated work — do not re-merge
+
+| PR | Work | Result |
+|---|---|---|
+| #119 | Two-storey Hollow Tankard / reusable building and door framework | Merged to `dev_2`; building/door, SaveManager round-trip and regression CI passed. |
+| #120 | Campaign save/restore scene integration test | Merged to `dev_2`; full Godot workflow passed. |
+| #122 | Spatial vision and hex LOS foundation | Merged to `dev_2`; Godot 4.7.2 workflow #667 passed all 21 stages. |
+| #124 | Equipment rules: slot validation, two-handed conflicts, rejected items retained in inventory and helmet mitigation | Selective port merged to `dev_2`; regression coverage passed. |
+| #125 | Campaign 2 geography, roads, settlements, builders and macro/regional previews | Selective port merged to `dev_2` at `b5e26431fba576c0727e27dd389bac7ce5760d3a`; full Godot 4.7.2 CI passed. |
+| #126 | Animal catalogue, mount state and riding simulation | Selective port merged to `dev_2` at `69a0f715a9b01efca3aec017cc703fc62e317ffb`; full Godot 4.7.2 CI passed. |
+| #127 | Equipment appearance/heraldry helper, shader, tests and documentation | Selective port merged to `dev_2` at `374d4a2894e0c118c4a35d075a23ca568ff51209`; refreshed full Godot 4.7.2 CI passed. Runtime wiring to final equipment assets remains separate. |
+
+The corresponding historical branches may still compare as ahead because these PRs were squash-merged. In particular, `integration/two-storey-tankard-dev2`, `integration/save-load-dev2`, `test/save-restore-scene-dev2` and `integration/vision-foundation-dev2` are not fresh merge candidates. Their integrated content must be checked against the merged PRs, not re-applied.
+
+## Open pull request register
+
+The table is a first-pass disposition, not approval to merge. “CI” refers to the latest workflow evidence available for the current PR head at audit time.
+
+| PR | Branch / subject | Current evidence | Initial disposition |
+|---|---|---|---|
+| #121 | `integration/opening-cinematic-dev2` — Hollowmere opening cinematic | Godot workflow #43151102411 passed. Requires actual in-game review of GLB animation availability, actor alignment, framing and skip behaviour. Base is `dev_2`; GitHub reports mergeable. | **Hold for visual acceptance.** Do not merge until the cinematic is inspected in-game. |
+| #110 | `feature/animal-riding-validation` — animal profiles and riding | Runtime catalogue/mount/riding work was selectively recovered by merged PR #126. Its separate riding-preview workflow/capture script was not ported; the capture currently uses a fixed parent and offset rather than a production mount-visual API. | **Do not merge the old PR wholesale.** Keep it open only while the preview capture is assessed; preserve the source branch. |
+| #99 | `feature/farmstead-bear-creature-model` — Tessa rescue / dire wolf quest | 27 commits; Godot workflow #42987629965 passed on current head. Based on old `dev`; overlaps the skill/companion and farm quest work in #90. | **Reconcile dependencies and port selectively.** Confirm quest state, recruitment gates, scene integration and avoid duplicate bear/dire-wolf encounter services. |
+| #96 | `feature/vision-stealth-perception` — fog of war and vision profiling | 27 commits; latest Godot workflow #43131614222 failed. Its spatial LOS foundation has been replaced by the tested, merged #122 foundation. | **Do not merge wholesale.** Salvage fog presentation only after designing explored-state persistence, scene lifecycle and the separation of visibility, detection, character memory and AI knowledge. |
+| #91 | `feature/equipment-gameplay-stat-integration` — equipment stat rules | Historical source; useful rules selectively ported in PR #124, which passed current Godot 4.7.2 CI and merged to `dev_2`. | **Superseded by PR #124.** PR #91 closed; original feature branch retained. |
+| #90 | `feature/skill-magic-foundation` — skill catalogue, progression, NPC builds and quest follow-up | 70 commits; current head has no matching workflow run. Latest branch workflow evidence found was for an earlier SHA. Overlaps #99, animal/companion work, and the separate missing-skill runtime branch. | **Do not merge as one unit.** Audit and split into skill catalogue/progression core, NPC build policy, companion persistence, and farm quest/UI work. Validate each slice against the current character-state architecture. |
+| #89 | `docs/content-census` — source content census | 2 commits; documentation-only; no workflow required. Based on old `dev`. | **Port/update documentation.** Reconcile its counts and findings against current `dev_2` before adding it to the current docs. |
+| #88 | `feature/full-world-port-foundation` — Campaign 2 world foundation | Campaign 2 geography/road/settlement data, builders, previews and strict test runner were selectively recovered by merged PR #125. The old Godot workflow #42994727983 failed on a character appearance material assertion. | **Do not merge wholesale.** Preserve the branch's unrelated source history; fix the strict-runner/material issue only if remaining branch content is later recovered. |
+| #87 | `feature/unified-character-assembly` — canonical character definitions and Ara assembly | 197 commits; latest average-body anatomy review passed, but no Godot validation run was found for the current head. Local Blender build and visual inspection remain required. | **Major salvage candidate; no wholesale merge.** Review schema migration, resolver, equipment slots, anatomy pipeline, exporter and generated assets as separate deliverables. |
+| #77 | `feat/tapered-split-dress-v2` — alternate split dress | 8 commits; character-pipeline validation passed. Visual review remains outstanding. | **Low-risk visual port after render review.** Keep original dress as default until accepted. |
+| #76 | `feat/equipment-materials-heraldry` — PBR finishes and shield heraldry | Helper, shader, focused test and scope documentation were selectively merged by PR #127. Shield/helmet exports and actor/equipment visual wiring remain in the separate modelling stream. | **No re-merge.** Keep the original branch for its remaining asset/provenance work; do not import its modelling changes here. |
+| #74 | `feat/player-morphs-inventory-weapons` — seed player inventory with every item | 7 commits; character pipeline passed, Godot run was cancelled. Description explicitly calls this a development/test inventory. | **Do not ship as campaign behaviour.** Retain tests or convert to a development fixture; normal starting gear, loot and shops should determine inventory. |
+| #73 | `feature/ser-aldric-first-companion-model` — Aldric companion model | 7 commits; character pipeline and Godot passed, but Ara character build failed. Visual/rig/armour acceptance is outstanding. | **Hold as an asset candidate.** Fix the asset workflow and inspect the model; do not introduce the model as accepted runtime content yet. |
+| #34 | `chore/consolidate-preview-and-review-workflows` — CI workflow consolidation | Hollowmere, Godot/Blender and screenshot workflows passed on its branch. Based on old `dev`; its changes remove/retire several workflows. | **Re-audit current workflows before porting.** Preserve useful separation and documentation, but do not apply historical deletions blindly. |
+| #29 | `feature/player-character-creator` — first-run creator | 19 commits; no current-head workflow evidence. Depends on old PR #28 and stores many appearance values without rendering them on the player placeholder. | **Likely superseded in part by #87.** Salvage any useful creator UI/identity choices after checking the current Ara player path. |
+| #26 | `ci/incremental-character-pipeline` — build caching | 15 commits stacked on #25; no current-head workflow evidence. It changes pipeline workflows/docs rather than merging character assets itself. | **Port after workflow consolidation.** Re-key caches against the current production pipeline and verify cache invalidation; do not merge the stale stack unchanged. |
+| #25 | `fix/dress-selector-and-loading-review` — anatomy, clothing and browser loading | 15 commits; its latest listed Hollowmere, Godot/Blender, screenshot and male-anatomy workflows passed. Based on old `dev`; visual correctness is not established by CI. | **Salvage selectively.** Compare with #8 and #87, inspect current generated renders, then separate browser shell/deployment fixes from anatomy and garment changes. |
+| #8 | `feature/wren-anatomy-piercings-halter-fit` — Wren anatomy and modular clothing | 179 commits; latest Wren Workshop and modular garment review workflows failed. Based on old `dev`; substantial overlap with #25 and #87. | **Do not merge wholesale.** Preserve as source history; extract only still-needed anatomy/garment changes after comparing with the current Ara pipeline and reviewed outputs. |
+| #5 | `feature/audio-and-mode-select` — Campaign/Arena selector and AudioManager | AudioManager, legacy importer, main-menu scene and arena placeholder scene are byte-identical to current `dev_2`; current main-menu script has evolved. Arena remains a placeholder and imported audio binaries are fetched by the importer. | **Already integrated/evolved.** Do not merge the old PR; keep Arena gameplay and actual audio content as separate incomplete work. |
+
+## Branches with no unique commits against dev_2
+
+The following branches compared as zero commits ahead of `dev_2` at the time of the audit. They are not merge candidates unless a new commit is added. Keep them until their historical purpose is accounted for; archival/cleanup can be a later, explicit operation.
+
+- `audit/skill-spell-implementation-baseline`
+- `feature/ara-skeleton-animation-validation`
+- `feature/ara-visual-animation-review`
+- `feature/iphone-web-preview-pipeline`
+- `feature/port-action-economy`
+- `feature/skill-magic-foundation-current-dev`
+- `feature/terrain-character-grounding-test`
+- `fix/anatomy-pelvic-landmark-port`
+- `integration/hollowmere-dev-visual-review`
+- `integration/hollowmere-npc-visuals`
+- `integration/hollowmere-world-simulation`
+- `integration/wren-modular-clothing`
+- `maintenance/single-iphone-preview-pipeline`
+- `test/chatgpt-session-write-access-20261105`
+- `dev`
+
+## Duplicate or closely related branch pairs
+
+| Branches | Finding | Disposition |
+|---|---|---|
+| `feature/game-start-race-class` / `feature/game-start-race-class-validation` | Identical commit history and tree. | Keep one canonical reference; do not merge twice. |
+| `feature/main-campaign-world-map` / `feature/main-campaign-world-map-validated` | Identical commit history and tree. | Keep one canonical reference; do not merge twice. |
+| `feature/animal-attributes` / `feature/animal-riding-validation` | Riding branch is one commit ahead of animal-attributes. | Treat #110 as the continuation; review the one-commit delta. |
+| `integration/two-storey-tankard-dev2`, `integration/save-load-dev2`, `test/save-restore-scene-dev2`, `integration/vision-foundation-dev2` | Their intended integration work is represented by merged PRs #119, #120 and #122. | Do not re-port without identifying genuinely new changes. |
+
+## Large orphan branches requiring dedicated salvage review
+
+These branches have meaningful unique histories relative to `dev_2`, but are too large, stale or overlapping to merge without a file-level audit:
+
+| Branch | Ahead / behind dev_2 | Diff footprint | Initial interpretation |
+|---|---:|---:|---|
+| `feature/anatomy-geometry-revision` | 200 / 57 | 34 files, ~5,558 changed lines | Recent anatomy geometry/review work. Compare against #87 and current Blender pipeline; preserve accepted geometry changes and review renders. |
+| `feature/male-anatomy-skinned-mesh` | 143 / 357 | 21 files, ~2,843 changed lines | Older male skinned-mesh work; compare with latest male anatomy work and avoid resurrecting superseded geometry. |
+| `feature/shared-character-system` | 125 / 357 | 18 files, ~2,469 changed lines | Earlier shared character foundation; substantial overlap with #87 and Wren branches. |
+| `feature/opening-village` | 194 / 357 | 35 files, ~4,929 changed lines | Earlier Hollowmere village implementation; compare with current `dev_2` and world branches before recovering any content. |
+| `feature/iphone-hollowmere-ara-preview` | 178 / 357 | 36 files, ~4,981 changed lines | Old iPhone build/deployment path; likely superseded by current Pages pipeline. Audit only for missing deployment logic. |
+| `feat/ara-hairstyles-medieval-equipment` | 33 / 102 | 182 files, ~6,949 changed lines | Large asset/model generation branch. Inventory generated assets versus source generators and current Ara library. |
+| `feature/cosmo-tree-gen-evaluation` | 23 / 57 | 181 files, ~7,856 changed lines | Large vegetation asset evaluation; distinguish reusable production assets from evaluation outputs. |
+| `feature/modular-character-poc` | 51 / 357 | 17 files, ~1,291 changed lines | Earlier modular character proof of concept; compare with current assembly pipeline. |
+| `feature/missing-skill-runtime-port` | 21 / 11 | 8 files, ~331 changed lines | Focused runtime skill-effect work; overlaps skill progression branch and should be reconciled before either is ported. |
+| `feature/farm-wildlife-creatures` | 22 / 54 | 9 files, ~593 changed lines | Animal/creature work; compare with #99 and #110 rather than duplicating creature state. |
+| `feature/character-inventory-panel` | 14 / 139 | 8 files, ~457 changed lines | Older UI/equipment work; compare against current inventory and canonical character definitions. |
+| `feature/arena-and-full-character-roster` | 7 / 104 | 7 files, ~1,936 changed lines | Roster/Arena content; compare with #5 and current shared character state before porting. |
+
+## Initial codebase consistency findings
+
+### Architecture boundaries
+
+The current `docs/ARCHITECTURE.md` and `docs/MECHANICS_PORT_REGISTER.md` describe several systems as absent or not yet tested even though later merged work now includes:
+- reusable building/door state and a two-storey tavern;
+- SaveManager slots, quicksave/autosaves and campaign save/restore integration coverage;
+- a reusable spatial vision/LOS foundation.
+
+The architecture and porting documents need a fact-checked refresh after branch disposition. Do not update them by simply changing every status to “complete”: known save/load limitations, unimplemented stealth/AI, and missing gameplay integrations remain.
+
+### Style enforcement
+
+`.editorconfig` requires tabs in GDScript. The newly merged `scripts/simulation/vision_rules.gd` uses spaces for indentation. This is a concrete style-rule inconsistency and indicates that the current CI does not enforce the repository's formatting rules. Add a formatter/lint check or normalize changed GDScript consistently; do not reformat the entire repository as an incidental side effect.
+
+### Test evidence versus acceptance
+
+Headless Godot tests are useful but do not establish:
+- correct 3D model/garment fit or animation deformation;
+- correct camera framing and cinematic blocking;
+- actual browser deployment and mobile interaction;
+- visual occlusion/clipping or lighting quality.
+
+Keep these as explicit visual acceptance gates rather than treating CI success as a substitute.
+
+## Recommended consolidation order
+
+1. Finish this audit with file-level review of all open PRs and unique orphan-branch diffs.
+2. Revalidate small, focused gameplay candidates (#91 first; #110 after current-head tests; #76/#77 after asset review).
+3. Split large systems (#90 skills, #87 character assembly, #88 world foundation) into independently reviewable slices.
+4. Resolve overlaps among #8/#25/#87 and the anatomy/garment orphan branches before importing further character work.
+5. Reconcile #99 farm quests with #90 companion/quest state and #110 animal simulation.
+6. Port #5 audio/mode selection and #34/#26 workflow improvements only after checking current workflow ownership and deployment boundaries.
+7. Update architecture/porting documentation from verified current behaviour.
+8. Run the full Godot 4.7.2 suite after each integration batch; perform PC visual acceptance for asset/scene work.
+9. Promote from `dev_2` only after the integrated baseline is coherent and stable.
+
+## Complete branch-name inventory (131 live branches)
+
+```text
+audit/feature-branch-consolidation
+audit/skill-effect-branch-cross-reference
+audit/skill-effect-parity-update
+audit/skill-spell-implementation-baseline
+audit/spell-parity-and-test-findings
+chore/consolidate-preview-and-review-workflows
+chore/remove-huggingface-deployment
+chore/repository-formatting-rules
+ci/enable-dev2-validation
+ci/incremental-character-pipeline
+deploy/wren-workshop-github-pages
+dev
+dev_2
+diagnostic/ara-garment-surface-report
+diagnostic/ara-report-on-character-configure
+docs/content-census
+docs/content-parity-audit
+feat/ara-hairstyles-medieval-equipment
+feat/ara-shields-helmets-hairstyles
+feat/campaign-loading-feedback
+feat/character-preview-loading-progress
+feat/equipment-materials-heraldry
+feat/player-morphs-inventory-weapons
+feat/seasonal-wilderness-visuals
+feat/tapered-split-dress-v2
+feat/wilderness-art-and-gatherable-visuals
+feat/wilderness-world-foundation
+feat/wren-only-pages-two-character-workshop
+feature/action-contract-downed-lifecycle
+feature/ally-combat-reactions
+feature/anatomy-geometry-revision
+feature/animal-attributes
+feature/animal-riding-validation
+feature/ara-character-evaluation
+feature/ara-skeleton-animation-validation
+feature/ara-visual-animation-review
+feature/arena-and-full-character-roster
+feature/audio-and-mode-select
+feature/campaign-quest-journal
+feature/character-inventory-panel
+feature/character-pipeline-foundation
+feature/character-starting-clothing
+feature/combat-initiative-timeline
+feature/combat-reaction-triggers
+feature/combat-resolution-foundation
+feature/cosmo-tree-gen-evaluation
+feature/equipment-gameplay-stat-integration
+feature/farm-wildlife-creatures
+feature/farmstead-bear-creature-model
+feature/full-world-port-foundation
+feature/game-real-hollowmere-character-art
+feature/game-start-race-class
+feature/game-start-race-class-validation
+feature/godot-web-pages-export
+feature/hollowmere-building-port-spec
+feature/hollowmere-cosmo-forest
+feature/hollowmere-dialogue-ambient-chatter
+feature/hollowmere-github-pages
+feature/hollowmere-ironbond-opening-cutscene
+feature/hollowmere-items-and-inventory-art
+feature/hollowmere-shakedown-combat
+feature/in-game-reaction-prompt
+feature/ios-game-pwa
+feature/iphone-hollowmere-ara-preview
+feature/iphone-web-preview-pipeline
+feature/legacy-audio-menu-dev
+feature/legacy-audio-menu-dev2
+feature/legacy-porting-matrix
+feature/legacy-porting-matrix-dev2
+feature/main-campaign-world-map
+feature/main-campaign-world-map-validated
+feature/male-anatomy-geometry-review
+feature/male-anatomy-skinned-mesh
+feature/mechanics-port-foundation
+feature/missing-skill-runtime-port
+feature/modular-character-poc
+feature/movement-reactions
+feature/opening-village
+feature/organic-hollowmere-geography
+feature/player-character-creator
+feature/player-character-creator-dev
+feature/player-character-visual-phase1
+feature/player-custom-avatar-selection
+feature/port-action-economy
+feature/reaction-resolution-turn-safety
+feature/reusable-npc-workshop
+feature/runtime-tattoos
+feature/save-load-system
+feature/ser-aldric-first-companion-model
+feature/shared-character-system
+feature/skill-magic-foundation
+feature/skill-magic-foundation-current-dev
+feature/status-effects-combat-debuffs
+feature/terrain-character-grounding-test
+feature/unified-character-assembly
+feature/vision-stealth-perception
+feature/wren-anatomy-piercings-halter-fit
+fix/anatomy-pelvic-landmark-port
+fix/ara-review-crash-remove-legacy-wren-build
+fix/combined-game-workshop-pages-deploy
+fix/dress-selector-and-loading-review
+fix/generic-clothing-visibility
+fix/hollowmere-cast-validator
+fix/keep-body-visible-under-clothing
+fix/male-anatomy-surface-sampling
+fix/modular-outfit-review-material-duplicates
+fix/pages-deploy-artifact-based-v2
+fix/pages-deploy-game-and-workshop-artifacts
+fix/pages-game-artifact-path
+fix/player-equipment-visuals
+fix/publish-all-male-workshop-previews
+fix/skill-effect-test-rank-fixtures
+fix/split-game-export-and-pages-deploy
+fix/workshop-dress-and-game-loading-stages
+fix/wren-lace-fishnet-and-anatomy
+integration/equipment-rules-dev2
+integration/hollowmere-dev-visual-review
+integration/hollowmere-npc-visuals
+integration/hollowmere-world-simulation
+integration/opening-cinematic-dev2
+integration/save-load-dev2
+integration/two-storey-tankard-dev2
+integration/vision-foundation-dev2
+integration/wren-modular-clothing
+main
+maintenance/single-iphone-preview-pipeline
+test/additional-skill-effect-coverage
+test/chatgpt-session-write-access-20261105
+test/save-manager-hardening
+test/save-restore-scene
+test/save-restore-scene-dev2
+```
+
+## Next audit pass
+
+The next pass should inspect the actual changed files and commit histories for the unique branches, beginning with:
+1. #91 equipment rules and #110 animal/riding;
+2. #90 skills versus `feature/missing-skill-runtime-port`;
+3. #87 unified assembly versus #8/#25 and the anatomy branches;
+4. #88 world foundation versus the opening-village and geography branches;
+5. the orphaned combat/action/reaction branches and their overlap with the current simulation kernel.
+
+For each, record: files changed, already-integrated hunks, unique reusable hunks, API/data conflicts, missing tests, latest CI status, visual acceptance needs, and a final merge/port/defer/archive recommendation.
+
+
+## Second-pass file-level findings (in progress)
+
+### #91 equipment gameplay/stat integration
+
+The actual changes are small and useful: validate item type against its equipment slot, reject two-handed/offhand conflicts without destroying inventory, and include the equipped helmet's reduction in combat mitigation.
+
+However, the branch's versions of `character_state.gd`, `combat_rules.gd` and `test_simulation.gd` are substantially older than the current `dev_2` files (349 vs 445 lines, 125 vs 189, and 1,183 vs 1,928 respectively). The passing workflow therefore validates the old branch snapshot, not the code as it would integrate today.
+
+**Port recommendation:** transplant the two focused rule changes and their regression tests onto current `dev_2`; do not merge the old files. Current item definitions confirm `nasal_helm` is a helmet in the `helmet` slot, and spear/bow are two-handed while dagger/sword support offhand use. Run the complete current Godot suite after the port.
+
+### #110 animal simulation and riding
+
+The animal catalogue and riding work is genuinely new, but the current branch has no Actions run for its current head. The code review found a concrete health calculation defect:
+
+- Horse profile declares 50 health and 4 `health` skill ranks.
+- Wolf profile declares 20 health and 1 `health` rank.
+- `register_character()` calls `CharacterState.sync_skill_effects()`, which adds 10 max/current HP per unapplied `health` rank.
+- Consequently, registering these profiles increases the horse from approximately 50 to 90 HP and the wolf from approximately 20 to 30 HP. The current tests check the values immediately after `AnimalCatalog.create_state()`, before registration, so they miss the defect.
+
+The source-compatible interpretation is 10 base HP plus four/one Health ranks. Correct the profile base values and apply the skill effect exactly once (while retaining the intended individual variance), then assert health after registration and save/load.
+
+The happy-path riding tests cover mounting, shared occupancy, movement TP, initiative exclusion, dismounting and save/load. They do not yet cover a mount or rider dying/becoming unconscious while mounted, broken reciprocal links, or size compatibility beyond a hard-coded minimum mount size. In particular, `dismount_animal()` currently requires the mount to be able to act, which can strand a rider on an incapacitated mount. Add an explicit forced/emergency dismount or lifecycle cleanup rule and tests.
+
+**Port recommendation:** fix these issues on a clean `dev_2` integration branch, add current-head CI, and review the rider screenshots. Do not merge the stale `world_simulation.gd` or `hollow_tankard.gd` wholesale.
+
+### #90 skill, progression, companion and farmstead branch
+
+A direct content comparison against current `dev_2` shows that several files highlighted by the PR are already identical to the baseline:
+- `data/skills/skill_definitions.json`
+- `scripts/simulation/skill_catalog.gd`
+- `scripts/simulation/npc_skill_spending.gd`
+- `data/characters/hollowmere_npcs.json`
+- `data/characters/hollowmere_loadouts.json`
+- `data/magic/base_spells.json`
+
+The current branch's `character_state.gd`, `world_simulation.gd` and `hollow_tankard.gd` are older snapshots than `dev_2`; they omit later status-effect, building, save/load and other integration work. Its companion dialogue code also lacks the canonical companion-ID normalization now present in `dev_2`.
+
+**Port recommendation:** do not merge PR #90 as a 70-commit feature. Its skill catalogue, skill metadata and NPC spending foundation are already present. Audit only the remaining farmstead visuals, dialogue/quest additions and any genuinely missing skill-effect behaviour. Reconcile the bear quest with #99's dire-wolf/Tessa rescue design before adding either to the campaign.
+
+### `feature/missing-skill-runtime-port` orphan branch
+
+A preliminary content comparison found its character-creation rules, skill-progression implementation, player-creator code and simulation action-request contract identical to current `dev_2`. Its character/combat/world files are older and omit current status-effect and building integrations; its test file is also an older subset of the current suite.
+
+**Provisional disposition:** likely superseded/archival rather than a merge candidate. Complete a final file-by-file check for any isolated skill-effect code not represented in current `StatusEffectRules` or `CombatRules` before closing it out.
+
+### Repository style rule reconciliation
+
+The style mismatch is broader than `vision_rules.gd`: current GDScript files such as `character_state.gd` also use spaces while `.editorconfig` specifies tabs. The repository needs one agreed GDScript indentation convention and an automated check. Do not apply a repository-wide formatting churn until that convention is decided.
+
+
+### #99 farmstead rescue / dire-wolf quest
+
+The branch contains a genuinely distinct campaign beat: Reyna's recruitment is moved from the simple grain-raiding bear quest to a three-stage missing-child rescue (find Tessa's trail, rescue her, defeat the dire wolf). The new `FarmsteadDireWolfEncounter` service and scene staging are not present in current `dev_2`.
+
+The branch's `hollow_tankard.gd` and test files are older snapshots, so this is not a safe whole-file merge. Its companion-content change replaces `reyna_bear_hunt` with `reyna_dire_wolf_hunt`; that is a campaign design/content decision to carry forward deliberately, not a mechanical merge conflict to resolve automatically.
+
+The new dire-wolf helper repeats two issues seen in the current bear helper:
+- It sets a large explicit max health and also adds `health` skill ranks, which `register_character()` applies again through `sync_skill_effects()`.
+- It marks every character in the simulation dormant at encounter start, but only restores the party members at finish.
+
+**Port recommendation:** retain the Tessa rescue as a distinct quest improvement, but port its quest-state and scene logic onto current `dev_2`. Make the encounter use the shared animal profile/registration path if #110 is accepted, avoid double-applying health skills, and make encounter participation restore each character's prior dormant/side state.
+
+### Existing `dev_2` farmstead bear issues
+
+The current `scripts/simulation/farmstead_bear_encounter.gd` has the same health calculation problem: it sets the bear to 180 HP and assigns four `health` ranks, then `WorldSimulation.register_character()` calls `sync_skill_effects()`, adding another 40 HP. The registered bear therefore has 220 HP, not the declared 180.
+
+The encounter also sets every simulation character's `combat_dormant` flag to true and does not restore the previous values for non-party characters in `finish()`. This is already in the integration baseline and should be fixed independently of whether #99 is ported.
+
+### #87 canonical character assembly schema
+
+The schema migration is valuable, but the current branch's schema-v2 `hollowmere_npcs.json` contains 14 records while current `dev_2` schema-v1 contains 22. The eight records missing from the branch are:
+- Ser Aldric Thorne
+- Nix Sharpear
+- Warlord Grukk Ironhide
+- Reyna Fletcher
+- Mirabel Quill
+- Fenn Oakheart
+- Brother Alden
+- Snik Fangtooth
+
+The branch also deletes `hollowmere_loadouts.json` and moves inventory/equipment into the character definitions. That is a sensible canonical-source direction, but it must migrate all 22 current records and preserve current quest/companion additions. Do not apply the schema-v2 JSON as-is.
+
+The branch adds a new `CharacterAssemblyResolver` and substantial Blender/Ara tooling. Its current-head CI evidence is only the average-body anatomy review; the Godot validation and local Blender/in-game acceptance gates remain open.
+
+### #88 strict Godot validation runner
+
+The latest #88 Godot workflow failed in `tests/test_character_appearance.gd:73`: the synthetic bra material's applied tint did not equal `appearance.bra_tint`. A later assertion also emitted `Parameter "material" is null`. The test script subsequently printed a success message, but the new `tools/ci/run_godot_checked.sh` correctly converted the emitted script/material errors into a failing workflow.
+
+The hex-grid and simulation tests passed in that same run. The strict runner is a useful CI improvement to port to current `dev_2` (after reviewing its detection patterns), while the appearance test/material defect must be fixed rather than weakening the runner.
+
+
+## Permanent feature-branch preservation policy
+
+Feature branches are retained as permanent development history by default. Consolidation is about integrating the useful work into `dev_2`, not deleting the original branch.
+
+- **Merged:** retain the branch; close the PR when appropriate and record the merge commit / replacement integration.
+- **Superseded:** retain the branch and record the successor branch or PR.
+- **Deferred/incomplete:** retain the branch for future work; do not close merely because it is not currently mergeable.
+- **Duplicate:** retain both histories initially and mark one as canonical. Do not delete either as part of this audit.
+- **Abandoned:** retain unless the repository owner explicitly authorises deletion.
+- Do not reuse old branch names for new work. Create fresh branches from `dev_2` for new integration or follow-up changes.
+
+Closing a pull request is a review-queue decision, not a branch deletion instruction. A closed PR's branch may still be checked out, compared, and used as the source for a later port.
+
+
+## Second-pass: combat, actions and reaction branches
+
+### Current integration baseline already contains much of this cluster
+
+The following files on old feature branches are already present in `dev_2`:
+
+- `scripts/simulation/status_effect_rules.gd` from `feature/status-effects-combat-debuffs` is byte-for-byte identical to `dev_2`.
+- `scripts/ui/combat_initiative_timeline.gd` from `feature/combat-initiative-timeline` is byte-for-byte identical to `dev_2`.
+- `scripts/ui/reaction_prompt.gd` from `feature/in-game-reaction-prompt` exists in `dev_2`; the only difference in the inspected file is that the current UI description correctly explains that nearby defenders may react and each option is paid for by its named character.
+- `SimulationActionRequest`, `SimulationActionResult` and `SimulationEvent` are already in `dev_2`. The old `feature/action-contract-downed-lifecycle` request enum predates the current FEINT action, and its `world_simulation.gd` is only 250 lines versus the current 1,012-line implementation. Do not transplant its old world simulation or request type over the current implementation.
+- `CombatRules` exists in `dev_2` and is materially more developed than the old `feature/combat-resolution-foundation` version (189 lines versus 117 in the inspected version). The old branch lacks current weapon-family mapping and skill-rank option resolution. Its old combat resolver must not replace the current one.
+
+The current `WorldSimulation` owns pending reaction state, request IDs, eligibility validation, TP payment, resolution/cancellation, pending attack resumption, movement-reaction sequencing and lifecycle interruption. The old `feature/ally-combat-reactions`, `feature/combat-reaction-triggers`, `feature/movement-reactions` and `feature/reaction-resolution-turn-safety` branches are all far behind `dev_2`; they should be treated as historical source branches, not as merge candidates.
+
+### Status-effect integration is present and tested
+
+The current baseline:
+- applies status effects on successful attacks;
+- advances poison/withering using actual gained TP;
+- applies hamstring as a movement-cost multiplier;
+- persists poison, withering, sunder and hamstring state through CharacterState serialization;
+- has focused tests for proc behaviour, rank caps, ranged exclusions, tick durations, lethal poison, save/load and movement costs.
+
+The implementation is integrated through `WorldSimulation`, `MovementRules` and `CharacterState`; it is not just an unused catalogue/helper. No new merge is required from `feature/status-effects-combat-debuffs`.
+
+### Initiative timeline and reaction prompt
+
+The initiative timeline branch's UI script is already byte-identical to current `dev_2`. The prompt is also integrated, with a small current-baseline improvement to explain multi-character reaction ownership. These branches should be marked **integrated; retain original branch** rather than merged again.
+
+### Branch-by-branch provisional disposition
+
+| Branch | Comparison to dev_2 | Disposition |
+|---|---|---|
+| `feature/action-contract-downed-lifecycle` | 10 commits ahead / 148 behind; request/result/event contracts are present but old request enum lacks FEINT and world simulation is an obsolete snapshot. | **Superseded/integrated in evolved form.** Preserve history; do not merge. |
+| `feature/ally-combat-reactions` | 7 ahead / 141 behind; old world simulation is far behind current reaction coordinator. | **Superseded/integrated in evolved form.** Preserve history; do not merge. |
+| `feature/combat-initiative-timeline` | 36 ahead / 54 behind; timeline UI is byte-identical to current `dev_2`. | **Integrated.** Preserve history; no re-merge. |
+| `feature/combat-reaction-triggers` | 8 ahead / 145 behind; old world-simulation implementation is superseded by the current reaction lifecycle. | **Superseded/integrated in evolved form.** Preserve history; do not merge. |
+| `feature/combat-resolution-foundation` | 36 ahead / 154 behind; old CombatRules lacks later skill/equipment integration and is not a safe replacement. | **Superseded in evolved form.** Preserve history; inspect only for any isolated missing rule not represented in current tests. |
+| `feature/in-game-reaction-prompt` | 2 ahead / 142 behind; UI exists in current baseline with improved multi-reactor explanation. | **Integrated.** Preserve history; no re-merge. |
+| `feature/movement-reactions` | 8 ahead / 140 behind; current WorldSimulation owns movement reaction flow and pending movement context. | **Superseded/integrated in evolved form.** Preserve history; do not merge. |
+| `feature/reaction-resolution-turn-safety` | 4 ahead / 147 behind; current baseline resolves/cancels pending reactions on lifecycle and combat transitions. | **Superseded/integrated in evolved form.** Preserve history; do not merge. |
+| `feature/status-effects-combat-debuffs` | 10 ahead / 10 behind; status rules file is byte-identical and covered by current simulation tests. | **Integrated.** Preserve history; no re-merge. |
+| `test/additional-skill-effect-coverage` | 3 ahead / 23 behind; test-only branch. | **Compare test assertions against current suite; port only missing cases.** |
+| `test/save-manager-hardening` | 1 ahead / 4 behind; one focused save-manager test change. | **Review the single test delta against current SaveManager and test suite; likely a small port candidate.** |
+
+### Architecture and maintainability checks still required
+
+The presence of these systems in `dev_2` is not a full architectural sign-off. The follow-up review should verify:
+- simulation remains authoritative and emits stable, typed events for presentation;
+- reaction requests cannot leave an active turn or pending attack permanently stranded when a reactor dies, becomes incapacitated, combat ends, or a request is cancelled;
+- pending reaction / pending attack / pending movement context are either serialized or explicitly disallowed at save boundaries;
+- reaction option IDs are unique within a request and every option's reactor is validated at resolution;
+- status-effect stacking, source attribution, expiry, lethal poison and save/load semantics are explicitly documented;
+- status effects are not applied twice when an attack is resumed after a reaction;
+- the UI prompt handles a stale request ID safely and cannot resolve a newer reaction with an old button press.
+
+These are review/test requirements, not claims that a defect has already been demonstrated.
+
+
+### Additional save/reaction boundary verification
+
+The save boundary is deliberately explicit in the current baseline:
+- `HollowTankard` blocks manual, quick and autosaves during combat, dialogue, pending reactions and the opening confrontation.
+- `WorldSimulation.to_dict()` persists world clock, combat flag, party, characters, resources and buildings, but does not serialise a pending reaction, pending attack context or active scheduler turn.
+- `WorldSimulation.load_dict()` clears pending reactions and resets the reaction request counter and turn scheduler; the saved active combat flag is subsequently cleared by the campaign scene restore path.
+- Autosaves are only triggered outside combat, pending reactions, dialogue and the opening confrontation.
+
+This is a coherent “save only at safe campaign boundaries” design. The test and documentation should preserve that invariant; do not attempt to serialize half-finished reaction prompts as part of the current save format.
+
+### Test-only branch findings
+
+- `test/save-manager-hardening`'s `tests/test_save_manager.gd` is byte-for-byte identical to the current `dev_2` file. Its single unique commit is already represented in the baseline; no port is required.
+- `test/additional-skill-effect-coverage` is an older test-suite snapshot. Its inspected assertions for Fast Movement, Goblin Opportunist and parry TP cost are all present in current `tests/test_simulation.gd`. Current tests also include newer weapon-skill, status-effect, feint and vision coverage. Do not merge the older test file over the current suite.
+
+Both branches should be retained and marked **integrated**.
+
+
+## Second-pass: Hollowmere, campaign content, world map and wilderness branches
+
+### Work already represented in dev_2
+
+- `feature/hollowmere-building-port-spec` is the historical source for the building/door framework now integrated through PR #119. Its branch is 39 ahead / 54 behind, but must not be merged over the current two-storey tavern implementation.
+- `feature/main-campaign-world-map-validated` has its `main_campaign_world_map.gd` and `main_campaign_world_map_data.gd` files byte-for-byte identical to current `dev_2`. The branch's unique history is already represented in the baseline.
+- `feat/wilderness-art-and-gatherable-visuals` has `wilderness_resource_visual.gd` byte-for-byte identical to current `dev_2`; its resource visual work is integrated.
+- `feature/hollowmere-shakedown-combat` has its `hollowmere_campaign_content.gd` byte-for-byte identical to current `dev_2`. The current `hollowmere_encounter.gd` differs in two lines: it sets participants to `ActionEconomy.COMBAT_TURN_READY_TP` rather than `max_time_points`, so the old branch must not overwrite the current turn-readiness rule.
+- `feature/organic-hollowmere-geography` contains the organic world feature helper and village-data work already represented in current `dev_2`; its older village scene is substantially shorter (442 lines versus 601) and predates the current imported Cosmo tree assets, creature actors and later village presentation work. Its helper differs only in a small compatibility expression using `back()` versus explicit final-index access.
+- `feature/campaign-quest-journal` is an older journal implementation. Current `CampaignJournal` is more extensive, with NPC/faction standing, knowledge and merchant influence state; do not replace it with the 211-line branch snapshot.
+- `feature/hollowmere-dialogue-ambient-chatter` is superseded by current campaign content. Its ambient chatter lacks the current shakedown-choice gate, and its campaign content is an older subset of the current file.
+- `feature/hollowmere-items-and-inventory-art` is an older 63-item catalogue; current `item_definitions.json` has 76 items including later underwear/garment definitions. Do not replace current item data with the older catalogue.
+- `feat/seasonal-wilderness-visuals` contains an older procedural-only tree implementation. Current `seasonal_tree_visual.gd` uses imported Kenney Nature Kit GLBs with procedural winter fallback; preserve the current asset-backed implementation.
+- `feature/legacy-porting-matrix` and `feature/mechanics-port-foundation` are documentation-only source branches. Their registers predate many merged systems; use the current audit and current baseline as the source of truth rather than copying their old status tables.
+- `feature/hollowmere-ironbond-opening-cutscene` is a source branch for the opening cinematic. The current integration work is tracked separately in PR #121; compare the actual integration branch and its reviewed code rather than merging this source branch independently.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feature/organic-hollowmere-geography` | 17 ahead / 85 behind; helper/data content is represented, scene is an older subset. | **Integrated/superseded.** Preserve history; no wholesale merge. |
+| `feature/hollowmere-building-port-spec` | 39 ahead / 54 behind; its framework is now PR #119. | **Integrated via #119.** Preserve history; no re-merge. |
+| `feature/main-campaign-world-map-validated` | 12 ahead / 136 behind; map UI and data files are byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+| `feat/wilderness-world-foundation` | Branch comparison returned 404; branch was in the earlier inventory but is not currently resolvable by GitHub. | **Unresolved reference.** Do not infer deletion or recreate it; verify branch existence through the live branch list. |
+| `feat/wilderness-art-and-gatherable-visuals` | 18 ahead / 119 behind; resource visual script is byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+| `feature/hollowmere-cosmo-forest` | 4 ahead / 53 behind; very large Cosmo add-on, generated assets and demo tree. Current village references Cosmo-generated trees. | **Integrated asset source; review licensing/provenance and generated runtime assets only if a specific missing variant is identified.** Preserve history. |
+| `feat/seasonal-wilderness-visuals` | 5 ahead / 121 behind; older procedural tree script predates current Kenney GLB implementation. | **Superseded.** Preserve history; do not merge. |
+| `feature/hollowmere-dialogue-ambient-chatter` | 16 ahead / 133 behind; older campaign content and chatter implementation. | **Superseded by richer current campaign content.** Preserve history; do not merge. |
+| `feature/hollowmere-items-and-inventory-art` | 2 ahead / 138 behind; older 63-item catalogue versus current 76-item catalogue. | **Integrated/evolved.** Preserve history; do not replace current data. |
+| `feature/hollowmere-shakedown-combat` | 50 ahead / 127 behind; campaign content file identical; encounter differs only in old max-TP initialisation. | **Integrated with later correction.** Preserve history; no re-merge. |
+| `feature/campaign-quest-journal` | 5 ahead / 134 behind; old 211-line journal versus current 331-line reputation-aware implementation. | **Integrated/evolved.** Preserve history; no re-merge. |
+| `feature/legacy-porting-matrix` | 2 ahead / 111 behind; documentation-only and stale. | **Superseded by current audit/register.** Preserve history. |
+| `feature/mechanics-port-foundation` | 1 ahead / 154 behind; documentation-only and stale. | **Superseded by current audit/register.** Preserve history. |
+| `feat/campaign-loading-feedback` | 1 ahead / 101 behind; one focused `world_root.gd` change. | **Inspect the isolated loading-feedback delta against current scene loading before deciding whether to port.** |
+| `feat/campaign-loading-feedback` | Branch comparison returned 404; only `feat/campaign-loading-feedback` was resolvable. | **Unresolved historical name; do not assume it exists.** |
+| `feature/hollowmere-ironbond-opening-cutscene` | 17 ahead / 54 behind; source implementation overlaps current PR #121 integration branch. | **Source branch retained; PR #121 remains the integration candidate and still needs visual acceptance.** |
+| `feature/game-real-hollowmere-character-art` | 6 ahead / 159 behind; adds model validation tooling and web-export workflow changes. | **Audit tooling separately; avoid merging stale workflow changes.** |
+
+### World-content review notes
+
+The current Hollowmere scene is materially ahead of several source branches. The 3D village scene now includes imported tree variants, creature actor integration and later presentation code; old village snapshots should be treated as source references, not replacements. The world-map UI/data are already in the current baseline, while a truly traversable campaign map, inter-settlement travel and broader world simulation remain separate gameplay milestones and must not be marked complete merely because the map widget exists.
+
+
+## Second-pass: CI, Pages deployment, iPhone preview and audio branches
+
+### Current deployment architecture and a significant integration boundary
+
+The current `dev_2` workflow inventory contains 12 workflows. The production GitHub Pages workflows are still explicitly wired to `dev`:
+
+- `godot-web-export.yml` triggers on pushes and upstream character workflow completions on `dev`, explicitly checks out `ref: dev`, and queries supporting character/workshop artifacts from `dev`.
+- `wren-workshop.yml` builds on `dev` and selected character-fix branches; its Pages upload/deploy steps are gated on `github.ref_name == 'dev'`.
+- The old `combined-pages-deploy.yml` is not present in current `dev_2`.
+
+**Consequence:** a manual dispatch of the current game export workflow from `dev_2` still checks out `dev` and retrieves `dev` artifacts. It is not a valid preview of the `dev_2` game. A push to `dev_2` does not trigger the production Pages workflow. Do not change the production deploy to `dev_2` implicitly: first decide whether we want a separate dev_2 preview deployment or to keep Pages as a dev-only release channel. This is a concrete blocker to using the current Pages URL as visual acceptance of unmerged `dev_2` work.
+
+### Character/workshop pipeline branches
+
+- `chore/consolidate-preview-and-review-workflows` deletes three dedicated workflows (iPhone preview, male anatomy, Wren modular review) and retains/updates only selected ones. Do not apply its historical deletions wholesale; current pipeline has multiple independent asset build/review stages.
+- `ci/incremental-character-pipeline` is a large stale workflow/Blender stack (30 ahead / 160 behind) that removes the male anatomy workflow and changes web export, Wren Workshop, anatomy generators and loading shell. It must be split into cache improvements, generator changes and deployment changes.
+- `fix/ara-review-crash-remove-legacy-wren-build` modifies several workflows and Wren docs; inspect against current Ara pipeline before porting.
+- `fix/hollowmere-cast-validator` is a focused validator change (1 ahead / 10 behind); review its stricter cast validation against the current validator and retain only useful test coverage.
+- `feature/iphone-web-preview-pipeline` compares as zero commits ahead of `dev_2` and has no unique merge content.
+
+### Godot web export / Pages branch family
+
+The following branches are historical iterations of the game export and Pages workflow:
+- `feature/godot-web-pages-export`
+- `feature/hollowmere-github-pages`
+- `fix/combined-game-workshop-pages-deploy`
+- `fix/pages-deploy-artifact-based-v2`
+- `fix/pages-deploy-game-and-workshop-artifacts`
+- `fix/pages-game-artifact-path`
+- `fix/split-game-export-and-pages-deploy`
+- `fix/workshop-dress-and-game-loading-stages`
+- `deploy/wren-workshop-github-pages`
+
+These branches are all substantially behind current `dev_2` and change overlapping workflow files. Some introduced a combined Pages deploy, while later iterations removed it and returned to separate artifact flows. The current `godot-web-export.yml` is a much later 329-line workflow that fetches successful supporting artifacts and publishes the game. Do not merge old workflow files over it. If the dev_2 preview requirement is accepted, implement a small dedicated preview workflow using the dev_2 SHA and isolated artifact/deployment path; do not resurrect an old combined deployment design by default.
+
+### Audio and mode-selection branch family
+
+- `feature/legacy-audio-menu-dev2` has `audio_manager.gd`, `main_menu.gd` and `main_menu.tscn` byte-for-byte identical to current `dev_2`.
+- Current `project.godot` autoloads AudioManager and starts at the Campaign/Arena main menu. The arena scene remains a placeholder.
+- `feature/ios-game-pwa` has its PWA packaging tool and phone-testing instructions byte-for-byte identical to current `dev_2`.
+- `feature/audio-and-mode-select` / PR #5 is historical source work; current mode/audio scripts are already integrated.
+- Legacy audio binaries are not stored in the repository. `tools/import_legacy_audio.py` downloads the pinned original `Hex-crpg` audio assets and converts them with FFmpeg. The current audio validation workflow performs that import before Godot smoke tests.
+- `audio-mode-validation.yml` is currently triggered for PRs/pushes to `dev`, not `dev_2`; manual dispatch can be used for a selected branch. Do not assume a `dev_2` PR automatically runs this workflow.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `chore/consolidate-preview-and-review-workflows` | 7 ahead / 154 behind; removes three dedicated workflows. | **Do not merge wholesale.** Salvage documentation only after reconciliation with current workflow inventory. |
+| `ci/enable-dev2-validation` | 1 ahead / 6 behind; focused Godot validation trigger change. | **Review against current workflow; likely already superseded by dev_2 PR CI.** |
+| `ci/incremental-character-pipeline` | 30 ahead / 160 behind; broad stale pipeline/generator/web-shell changes. | **Split and salvage only specific cache or generator improvements.** |
+| `feature/godot-web-pages-export` | 13 ahead / 165 behind; early web export workflow. | **Superseded by current 329-line export workflow.** Preserve history. |
+| `feature/hollowmere-github-pages` | 5 ahead / 162 behind; early Pages workflow iteration. | **Superseded.** Preserve history. |
+| `feature/ios-game-pwa` | 12 ahead / 160 behind; PWA tool and phone guide are byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+| `feature/iphone-web-preview-pipeline` | 0 ahead / 352 behind. | **No unique commits.** Retain as historical branch. |
+| `deploy/wren-workshop-github-pages` | 1 ahead / 166 behind; old workshop Pages changes. | **Superseded by current Wren workflow.** Preserve history. |
+| `fix/combined-game-workshop-pages-deploy` | 4 ahead / 118 behind; adds combined deploy file absent from current. | **Do not restore without an explicit architecture decision.** |
+| `fix/pages-deploy-artifact-based-v2` | 4 ahead / 116 behind; earlier artifact workflow. | **Superseded by current export workflow.** |
+| `fix/pages-deploy-game-and-workshop-artifacts` | 9 ahead / 117 behind; removes combined deploy and changes artifact handling. | **Historical iteration; current workflow supersedes.** |
+| `fix/pages-game-artifact-path` | 1 ahead / 114 behind; small path fix on old workflow. | **Check whether current workflow already handles this path; no wholesale merge.** |
+| `fix/split-game-export-and-pages-deploy` | 1 ahead / 115 behind; old export workflow change. | **Superseded unless a specific regression is found.** |
+| `fix/workshop-dress-and-game-loading-stages` | 4 ahead / 157 behind; mixes workshop pipeline and game loading screen changes. | **Split by responsibility; compare loading changes against current `world_root.gd`.** |
+| `fix/hollowmere-cast-validator` | 1 ahead / 10 behind; focused validator. | **Small salvage candidate after checking current validator.** |
+| `fix/ara-review-crash-remove-legacy-wren-build` | 4 ahead / 155 behind; workflow/docs changes. | **Review isolated fixes only; preserve current independent build stages.** |
+| `chore/remove-huggingface-deployment` | 2 ahead / 163 behind; removes old HF audit/reset workflows. | **Historical deployment cleanup; current Pages architecture already supersedes HF.** |
+| `feature/legacy-audio-menu-dev2` | 10 ahead / 107 behind; audio manager, main menu and scene are byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+
+### Deployment decision required before the next visual review cycle
+
+Keep production Pages deployment on `dev` unless intentionally changing release policy. If `dev_2` needs a phone-review URL before promotion, create a separate preview workflow and URL that:
+1. checks out the exact `dev_2` commit (not hard-coded `dev`);
+2. builds its own game artifact and required character/workshop assets from that same SHA or pinned compatible artifacts;
+3. publishes to an isolated preview path or separate Pages environment;
+4. never overwrites the production `dev` build;
+5. reports the source commit in the preview page so screenshots can be tied to a known revision.
+
+
+## Second-pass: Ara character, clothing, anatomy and workshop branches
+
+### Character foundation and starting clothing
+
+- `feature/character-pipeline-foundation` is documentation-only against current `dev_2` (2 ahead / 525 behind). Current `docs/CHARACTER_PIPELINE.md` and workflow structure have moved on substantially; use current docs as the baseline.
+- `feature/character-starting-clothing` has its `tests/test_starting_clothing.gd` byte-for-byte identical to current `dev_2`. Its actor, item data and creation rules are older snapshots; current starting-clothing behaviour is already present and the actor has since evolved. No merge required.
+- `feature/player-character-visual-phase1` has its phase-one design document identical to current; its 419-line creator script is older than current `dev_2` (495 lines). It explicitly describes height/build as whole-model scaling, not true anatomical morphs, and garment selection as saved state rather than mesh swapping. The current creator has since evolved; preserve the doc as a scope boundary, not a code merge.
+- `feature/player-custom-avatar-selection` is a three-line scene integration change on an old base. Check whether its specific selection behaviour is present in current `HollowTankard` before any port.
+- `feature/character-inventory-panel` and `feat/player-morphs-inventory-weapons` are older UI/test inventory work; do not ship the all-items inventory as campaign starting equipment. Use test fixtures for exhaustive catalogue coverage.
+
+### Character assembly, Ara assets and NPC workshop
+
+- `feature/unified-character-assembly` remains a major salvage candidate, not a merge candidate. The branch's schema-v2 NPC file has 14 records versus 22 current schema-v1 records, and deletes the separate loadout file. Any adoption must migrate all 22 current NPCs and preserve their quest/companion state.
+- `feat/ara-hairstyles-medieval-equipment` has its 2,341-line runtime hair manifest byte-for-byte identical to current `dev_2`; the current build tool for medieval armour props has since evolved slightly. Its asset/manifest work is represented, but any missing GLB or material variant should be identified by manifest/path before adding duplicate assets.
+- `feature/reusable-npc-workshop` contains `build_npc_previews.py` and `npc_profiles.json`, neither of which exists in current `dev_2`. This is potentially useful tooling for a 100+ NPC roster, but it is built on a very stale character assembler (5 ahead / 357 behind). Treat as a deferred tooling salvage candidate; first align it to the current character definition/resolver schema.
+- `feature/ara-character-evaluation` is a documentation/workshop workflow branch on a very old base. Use its evaluation findings only where they still describe the current Ara assets; do not replace current workflow files.
+- `feature/runtime-tattoos` has the live tattoo controls and implementation in `site/index.html`; current `dev_2` contains the same tattoo UI and runtime code. The remaining differences in the page are later unrelated workshop improvements, so no merge is needed.
+
+### Clothing visibility and outfit pipeline fixes
+
+The body-visible-under-clothing safety rule is present in current `AraCharacterActor`: the current implementation hides only surfaces positively identified as known garment surfaces; unknown surfaces remain visible rather than risking holes in the skin. The current path also normalises garment labels and includes the later surface-report diagnostics.
+
+The old fixes:
+- `fix/generic-clothing-visibility`
+- `fix/keep-body-visible-under-clothing`
+- `fix/player-equipment-visuals`
+
+are earlier versions of this logic and are materially shorter than current `ara_character_actor.gd` (523–551 lines versus 574). They must not be merged over the current actor. This code-level guard does not prove visual acceptance: transparent fabric, surface naming, skin visibility, clipping and body/garment fit still require the current workshop render and in-game checks.
+
+`fix/wren-lace-fishnet-and-anatomy` is also an older patch-layering version (208 lines versus 233 current) and predates later idempotency/source-contract handling. Current pipeline code already has the underTop/underBottom, lace/fishnet and opacity work. Do not apply the old patch over the current script. `fix/modular-outfit-review-material-duplicates` is an earlier render script version (187 lines versus 188 current); inspect only if a specific missing material label or duplicate-render regression is reported.
+
+### Anatomy geometry branch family — do not merge before visual acceptance
+
+The geometry branches remain active work, not completed integration candidates:
+- `feature/anatomy-geometry-revision` (200 ahead / 57 behind; 34 changed files, ~5,558 changed lines) is the current broad anatomy workstream. Its latest Average-body anatomy review run #43173981591 was still in progress at this audit pass (commit `e2d1c4c361058da8f0042359f8dc369c567c8ffa`).
+- `feature/male-anatomy-skinned-mesh` (143 ahead / 357 behind) is an older skinned-mesh implementation. Its latest Male anatomy blockout run #42186638804 passed on 6 November, but the geometry-revision branch is newer; do not resurrect older mesh geometry without comparing outputs.
+- `feature/male-anatomy-geometry-review` and `fix/male-anatomy-surface-sampling` are older generator/review iterations. Their latest character-pipeline validation runs passed, but their Blender generator files are behind the current 463-line `add_male_anatomy.py`.
+- `fix/anatomy-pelvic-landmark-port` had no Actions runs found for the branch.
+- `feature/wren-anatomy-piercings-halter-fit` has failed Wren Workshop and modular garment review runs on its latest listed head (8 November). It overlaps current Ara base anatomy/clothing work and should not be merged wholesale.
+
+The immediate acceptance criterion is not simply a green generator workflow: inspect the current male and female body renders, then validate the actual skinned meshes in Godot. The base-body shape, anatomy colour/material, deformation and clothing fit must be accepted before treating the anatomy/assembly branches as production-ready.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feature/character-pipeline-foundation` | 2 ahead / 525 behind; docs-only. | **Superseded documentation.** Preserve history. |
+| `feature/character-starting-clothing` | 12 ahead / 63 behind; starting-clothing test is byte-identical to current. | **Integrated/evolved.** Preserve history; no re-merge. |
+| `feature/male-anatomy-geometry-review` | 5 ahead / 147 behind; older generator branch, CI passed on 7 November. | **Superseded by current anatomy geometry work.** Preserve history. |
+| `feature/player-character-visual-phase1` | 12 ahead / 124 behind; phase-one doc identical, creator script older. | **Integrated/evolved.** Preserve history; no re-merge. |
+| `feature/player-custom-avatar-selection` | 1 ahead / 64 behind; its three-line custom female avatar selection is present in current `HollowTankard` (at later line numbers). | **Integrated.** Preserve history; no re-merge. |
+| `feature/reusable-npc-workshop` | 5 ahead / 357 behind; two new tooling files absent from current. | **Deferred salvage candidate after schema alignment.** |
+| `feature/runtime-tattoos` | 8 ahead / 136 behind; tattoo UI/code already present in current page. | **Integrated.** Preserve history; no re-merge. |
+| `fix/generic-clothing-visibility` | 3 ahead / 60 behind; earlier body/garment visibility logic. | **Superseded by current AraCharacterActor.** |
+| `fix/keep-body-visible-under-clothing` | 2 ahead / 62 behind; earlier garment-only surface hiding. | **Superseded by current AraCharacterActor.** |
+| `fix/player-equipment-visuals` | 4 ahead / 64 behind; earlier equipment visual changes. | **Superseded/evolved.** |
+| `fix/male-anatomy-surface-sampling` | 1 ahead / 144 behind; earlier male geometry sampling generator. | **Superseded by current generator; preserve history.** |
+| `fix/wren-lace-fishnet-and-anatomy` | 19 ahead / 165 behind; older layering patch and anatomy generator changes. | **Superseded by current patching pipeline; salvage only missing asset results.** |
+| `fix/modular-outfit-review-material-duplicates` | 6 ahead / 161 behind; earlier render review script. | **Superseded/evolved.** |
+| `fix/publish-all-male-workshop-previews` | 1 ahead / 143 behind; small Wren workflow change. | **Check current artifact publication; no wholesale merge.** |
+| `diagnostic/ara-garment-surface-report` | 1 ahead / 59 behind; earlier actor diagnostics. | **Integrated/evolved in current diagnostics; retain.** |
+| `diagnostic/ara-report-on-character-configure` | 1 ahead / 58 behind; earlier actor diagnostics. | **Integrated/evolved in current diagnostics; retain.** |
+| `feature/ara-character-evaluation` | 4 ahead / 379 behind; evaluation doc/workflow changes. | **Retain findings; current workflow supersedes old branch.** |
+| `feat/ara-shields-helmets-hairstyles` | Branch comparison returned 404. | **Unresolved historical name; verify via live branch list.** |
+| `feat/ara-hairstyles-medieval-equipment` | 33 ahead / 102 behind; hair manifest byte-identical to current, extensive assets. | **Integrated asset set; retain history and only add proven missing variants.** |
+| `feat/player-morphs-inventory-weapons` | 7 ahead / 102 behind; old inventory fixture/creator/catalogue changes. | **Do not ship test inventory; compare only missing test cases.** |
+
+
+## Second-pass: skills, spells, animal simulation and farm quest branches
+
+### Skills and spells
+
+- `feature/skill-magic-foundation` is largely integrated. Its `skill_definitions.json` and `skill_catalog.gd` are byte-identical to current `dev_2`; `skill_progression.gd` differs by only one line. NPC skill spending and the 257-skill catalogue are already present. The branch's older CharacterState/WorldSimulation files must not be merged.
+- `feature/skill-magic-foundation-current-dev` and `feature/port-action-economy` compare as zero commits ahead of current `dev_2`; no merge work remains on them.
+- `feature/missing-skill-runtime-port` has unique historical commits but the inspected character-creation, progression and creator code is already in current; its world/combat files are older snapshots. It is likely superseded; retain history and only salvage a demonstrably missing skill effect.
+- `fix/skill-effect-test-rank-fixtures` is an older test file snapshot. Current tests already contain the corrected Fast Movement/Goblin Opportunist rank coverage and many later tests; do not replace the current test suite.
+- `audit/skill-effect-branch-cross-reference`, `audit/skill-effect-parity-update` and `audit/spell-parity-and-test-findings` are documentation/audit branches. The current `docs/SKILL_SPELL_IMPLEMENTATION_AUDIT.md` is longer (1,053 lines) than the 642-line version on the parity branch, but it still contains stale references to `dev` and says vision/stealth are only off-branch candidates. That statement is no longer accurate after PR #122 integrated the spatial `VisionRules` foundation into `dev_2`. The document must be updated to distinguish spatial LOS from detection/stealth effects and AI knowledge.
+- The spell catalogue remains data, not a complete spell runtime. The branch's 15 base spells do not prove casting, targeting, costs, effects, save/load or spell tests are implemented. Keep spell runtime as a separate backlog item.
+
+### Animal and farm/wildlife branches
+
+- `feature/farm-wildlife-creatures` has its `farm_wolves_quest.gd`, `creature_actor.gd` and `test_farm_wolves_quest.gd` byte-for-byte identical to current `dev_2`. This branch's wolf quest and creature presentation are integrated; its older WorldSimulation/HollowTankard files must not be merged.
+- `feature/animal-attributes` is the predecessor to `feature/animal-riding-validation`; the riding branch is one commit ahead. The riding branch introduces `AnimalCatalog`, mount state, registration and mount/dismount simulation rules, plus a riding preview workflow. These are not present as an `AnimalCatalog` file in current `dev_2`; this remains a genuine integration candidate after the previously recorded HP double-application and emergency-dismount issues are fixed.
+- The riding workflow's last run on the current branch head was not found; the latest runs discovered were on older commits. Before merging, run current-head CI, test horse/wolf HP after registration, mount/rider reciprocal links, death/incapacitation while mounted, emergency dismount, save/load and the six-direction/occupancy constraints. Inspect the riding preview as a separate visual acceptance gate.
+- `feature/farmstead-bear-creature-model` contains a unique Tessa missing-child / dire-wolf quest variation and `FarmsteadDireWolfEncounter`; that file is absent from current `dev_2`. It is a salvage candidate, not a whole-branch merge. It currently duplicates health through both explicit max HP and the Health skill, and its encounter lifecycle does not restore all non-party characters' prior dormant state. Reconcile the quest design with the existing bear quest and shared animal profile before porting.
+- The current `FarmsteadBearEncounter` already has the same double-health issue: it sets 180 HP and four Health ranks, then registration adds another 40 HP through skill effects. It also changes every character's `combat_dormant` flag and does not restore non-party characters' previous values at encounter end. These are baseline bugs to fix independently of the #99 quest decision.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `audit/skill-effect-branch-cross-reference` | 1 ahead / 24 behind; audit doc only. | **Superseded by current longer skill audit; retain history.** |
+| `audit/skill-effect-parity-update` | 3 ahead / 21 behind; older audit doc. | **Update current audit from verified evidence; do not merge stale document.** |
+| `audit/spell-parity-and-test-findings` | 2 ahead / 23 behind; spell audit doc only. | **Retain findings; reconcile into current skill/spell audit if still relevant.** |
+| `audit/skill-spell-implementation-baseline` | 0 ahead / 26 behind. | **No unique commits; retain.** |
+| `fix/skill-effect-test-rank-fixtures` | 1 ahead / 21 behind; older test snapshot. | **Integrated/evolved.** Preserve history; no re-merge. |
+| `feature/skill-magic-foundation-current-dev` | 0 ahead / 29 behind. | **No unique commits; retain.** |
+| `feature/missing-skill-runtime-port` | 21 ahead / 11 behind; older code snapshots. | **Likely superseded; salvage only missing runtime effects after direct verification.** |
+| `feature/skill-magic-foundation` | 70 ahead / 55 behind; canonical catalogue/catalog code identical, progression nearly identical. | **Integrated/evolved; retain history.** |
+| `feature/port-action-economy` | 0 ahead / 331 behind. | **No unique commits; retain.** |
+| `feature/animal-attributes` | 29 ahead / 23 behind; predecessor to riding branch. | **Use riding branch as the current source candidate; do not merge both.** |
+| `feature/animal-riding-validation` | 30 ahead / 23 behind; unique AnimalCatalog/mount system. | **Port after bug fixes and current-head CI/visual review.** |
+| `feature/farm-wildlife-creatures` | 22 ahead / 54 behind; three core quest/creature files byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+| `feature/farmstead-bear-creature-model` | 27 ahead / 27 behind; unique Tessa/dire-wolf quest. | **Selective salvage after health/lifecycle fixes and quest-design decision.** |
+| `feature/status-effects-combat-debuffs` | 10 ahead / 10 behind; already documented above as integrated. | **Integrated.** Preserve history. |
+
+### Important gameplay gaps that remain after branch consolidation
+
+- Vision foundation is integrated; detection, stealth checks, character memory, AI uncertainty/search behaviour, hearing/noise and fog exploration persistence remain separate work.
+- Skill catalogue and progression plumbing are integrated; many individual effects still require parity review and deterministic tests.
+- Spell definitions exist; spell casting/effect resolution remains unimplemented or unverified.
+- Farm wolf quest and creature actor are integrated; mount/riding gameplay is not.
+- The Tessa/dire-wolf quest is not integrated; current bear quest needs the HP and dormant-state fixes noted above.
+
+
+## Second-pass: save/load, character creation, legacy roster and world-port branches
+
+### Save/load
+
+- `feature/save-load-system` has `save_manager.gd` and `save_load_menu.gd` byte-for-byte identical to current `dev_2`. Its 42-line test file is an older subset of the current 76-line test suite.
+- The SaveManager branch's unique history is already integrated. PR #120 added campaign scene restore coverage; PR #119 added persistent building door state. No merge is required from the old save-system branch.
+- The known remaining save limitations are not solved merely by merging the old branch: combat is intentionally not saveable, transient reactions/active turns are not serialized, and dynamic character appearance/gear and mutable world/container state still need deliberate persistence policy.
+
+### Character creation and legacy rosters
+
+- `feature/arena-and-full-character-roster` has both `legacy_named_npcs.json` and `legacy_enemy_roster.json` byte-for-byte identical to current `dev_2`; the roster content and validation work are integrated.
+- `feature/game-start-race-class` and `feature/game-start-race-class-validation` are duplicate-history branches from the initial inventory. The latter's creation rules and JSON are older than current `dev_2`; current files have additional validation/logic. Do not merge the older rules over current.
+- `feature/player-character-creator` and `feature/player-character-creator-dev` are early creator implementations. Their 200-line creator is substantially older than the current 495-line implementation. The later creator and appearance phase are already evolved in current; retain the branch for historical design and recover only a missing user-facing choice.
+- `feature/character-inventory-panel` adds an old character panel and stat mutations on a stale simulation API. Current character/inventory UI and item definitions have moved on; do not merge the old panel or CharacterState.
+- `feature/arena-and-full-character-roster` is effectively integrated as data and validation. Arena gameplay itself remains a placeholder, so do not interpret roster data as a completed arena mode.
+
+### Companion and world foundation
+
+- `feature/ser-aldric-first-companion-model` adds `companion_models.json` (absent in current) and modifies the Ara NPC build workflow. It is a small but distinct companion asset integration candidate. Its character-pipeline and Godot workflows passed in earlier evidence, but the Ara build itself failed and visual rig/armour acceptance remains outstanding. Keep it deferred until the current base body/rig is accepted; do not treat the model metadata as proof that the companion model works in game.
+- `feature/opening-village` is a very large old stack (194 ahead / 357 behind) containing early NPC, Ara, village, workflow and Workshop implementations. Current `dev_2` has later versions of these systems. It is a historical source branch, not a merge candidate.
+- `feature/full-world-port-foundation` remains a genuine future world-data source (47 ahead / 27 behind): Campaign 2 geography, road-path data, settlement layouts, macro/regional preview scenes and audit docs are unique. It is not yet a playable traversable campaign world. Its Godot workflow failed because the strict checked runner detected a synthetic bra material assertion mismatch and a null-material engine error in the appearance test, despite a later script success line. The strict error detection is useful and should be considered for a separate port; the test/material defect must be fixed rather than weakening the runner.
+- `feature/terrain-character-grounding-test`, `feature/ara-skeleton-animation-validation` and `feature/ara-visual-animation-review` compare as zero commits ahead of current `dev_2`; no merge work remains on these refs.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feature/save-load-system` | 26 ahead / 11 behind; manager/menu byte-identical, test file older. | **Integrated.** Preserve history; no re-merge. |
+| `feature/character-inventory-panel` | 14 ahead / 139 behind; old panel and simulation snapshot. | **Superseded; retain history.** |
+| `feature/arena-and-full-character-roster` | 7 ahead / 104 behind; both large roster JSON files byte-identical to current. | **Integrated.** Preserve history; arena mechanics remain incomplete. |
+| `feature/game-start-race-class-validation` | 11 ahead / 137 behind; creation rules are older than current. | **Integrated/evolved; no re-merge.** |
+| `feature/player-character-creator-dev` | 10 ahead / 158 behind; older creator UI and actor integration. | **Superseded by current creator; retain.** |
+| `feature/player-character-creator` | 19 ahead / 159 behind; same early creator stack plus workflow/validator. | **Superseded by current creator; salvage only if a missing user-facing option is identified.** |
+| `feature/terrain-character-grounding-test` | 0 ahead / 297 behind. | **No unique commits; retain.** |
+| `feature/ara-skeleton-animation-validation` | 0 ahead / 292 behind. | **No unique commits; retain.** |
+| `feature/ara-visual-animation-review` | 0 ahead / 284 behind. | **No unique commits; retain.** |
+| `feature/ser-aldric-first-companion-model` | 7 ahead / 102 behind; companion model manifest/workflow absent from current. | **Deferred asset candidate; rebuild and visually validate against approved Ara base.** |
+| `feature/character-pipeline-foundation` | 2 ahead / 525 behind; old docs-only stack. | **Superseded documentation; retain.** |
+| `feature/main-campaign-world-map` | 12 ahead / 136 behind; map UI/data already identical to current (see earlier entry). | **Integrated.** Preserve history. |
+| `feature/legacy-audio-menu-dev` | 12 ahead / 111 behind; older audio/menu stack. | **Integrated via current dev_2 audio branch; no re-merge.** |
+| `feature/opening-village` | 194 ahead / 357 behind; very large early stack. | **Superseded historical source; no wholesale merge.** |
+| `feature/full-world-port-foundation` | 47 ahead / 27 behind; unique geography/road/settlement data; CI appearance test failed. | **Stage data and preview tools separately after fixing strict test failure; not a full campaign merge.** |
+
+
+## Second-pass: wilderness foundation, asset pipelines and remaining documentation branches
+
+### Additional integrations confirmed
+
+- `feat/wilderness-world-foundation` is a real branch (the earlier `feature/` spelling was incorrect). Its `hex_world_chunk_streamer.gd` is byte-for-byte identical to current `dev_2`; its `wilderness_resource_system.gd` is also present in current and has since evolved from 167 to 173 lines. Do not re-merge the old system.
+- `feature/cosmo-tree-gen-evaluation` contains the full Cosmo generator and evaluation outputs; the core `cosmo_tree_gen.gd` is byte-for-byte identical to current `dev_2`. The generated tree asset family is already present in current. Preserve the branch as provenance/evaluation history; no bulk asset merge.
+- `chore/repository-formatting-rules` has `.editorconfig` and `.gitattributes` byte-for-byte identical to current `dev_2`. The style/line-ending rules are integrated, but automated enforcement is still incomplete.
+- `feat/ara-shields-helmets-hairstyles` is a real branch (the earlier `feature/` spelling was incorrect). Its medieval armour builder is already present in current `dev_2` in a slightly evolved form; do not merge the old copy.
+- `feat/equipment-materials-heraldry` adds genuinely new `EquipmentAppearance` and shield-heraldry shader files absent from current `dev_2`. This is a real candidate, but requires a deliberate integration into the current AraCharacterActor/equipment visual path and rebuilt shield/helmet assets. The branch's tests and docs alone do not prove runtime use.
+- `feat/tapered-split-dress-v2` has a substantially longer dress generator (266 lines versus 161 current) and is the current source candidate for the tapered split-dress variant. Its character pipeline validation passed, but visual review remains outstanding. Do not merge the generator or change the default dress until the exported result is inspected.
+- `docs/content-census` and `docs/content-parity-audit` contain large source-content audits that are not in current `dev_2`. They are reference material, not executable integration. Reconcile their claims against the current 3D port and mark content as implemented only where there is a verified runtime path and test/visual evidence.
+- `feature/legacy-porting-matrix-dev2` is a one-commit documentation branch and `feature/legacy-porting-matrix` is an older version. Both should be reconciled into the current audit rather than merged as competing status registers.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feat/wilderness-world-foundation` | 9 ahead / 122 behind; streamer identical, resource system present and evolved. | **Integrated/evolved.** Preserve history; no re-merge. |
+| `feature/cosmo-tree-gen-evaluation` | 23 ahead / 57 behind; core generator identical, asset family already present. | **Integrated asset/tool source.** Preserve evaluation history; no re-merge. |
+| `docs/content-census` | 2 ahead / 55 behind; adds content census and parity documents. | **Reference only; reconcile claims into current docs after evidence check.** |
+| `docs/content-parity-audit` | 1 ahead / 55 behind; adds parity document. | **Reference only; do not merge stale status claims.** |
+| `chore/repository-formatting-rules` | 2 ahead / 61 behind; editorconfig and attributes are byte-identical to current. | **Integrated.** Preserve history. |
+| `feat/equipment-materials-heraldry` | 14 ahead / 101 behind; adds runtime appearance/shader files absent from current. | **Selective salvage candidate after visual asset rebuild and actor integration review.** |
+| `feat/tapered-split-dress-v2` | 8 ahead / 101 behind; newer generator, CI passed, visual acceptance pending. | **Hold for render acceptance; then port the approved asset/generator change.** |
+| `feat/ara-shields-helmets-hairstyles` | 15 ahead / 102 behind; armour builder already exists in evolved form in current. | **Integrated/evolved; retain history.** |
+| `feature/legacy-porting-matrix-dev2` | 1 ahead / 105 behind; documentation-only. | **Reconcile into current audit; do not merge stale matrix.** |
+
+### Live branch-reference corrections
+
+A few names in the initial inventory were misspelled or used the wrong prefix. The resolvable refs are `feat/wilderness-world-foundation`, `feat/ara-shields-helmets-hairstyles` and `feat/campaign-loading-feedback`. The earlier `feature/` spellings returned 404; this was a name mismatch, not evidence that the real `feat/` branches had been deleted.
+
+
+## Second-pass: remaining loading, preview and test branches
+
+### Loading and preview work
+
+- `feat/campaign-loading-feedback` is an earlier `world_root.gd` loading overlay. Current `world_root.gd` contains the loading overlay plus campaign restore progress and save-load integration; the old branch adds no lines missing from current in the inspected file.
+- `fix/workshop-dress-and-game-loading-stages` is an older loading screen implementation and old Wren workflow change. Current `world_root.gd` is 147 lines and includes the later detailed progress stages, character creator loading, campaign restoration and tavern setup. The old 91-line world_root snapshot must not replace it.
+- `feat/character-preview-loading-progress` is an older 472-line player creator. Current creator is 495 lines and contains later race/class integration, class-driven starting equipment and equipment preview. The old shirt/legwear selectors are not the correct current architecture.
+- `feat/wren-only-pages-two-character-workshop` is an early game/workshop deployment iteration. Its web-export workflow is 131 lines compared with the current 329-line artifact-aware exporter and lacks the current supporting Ara/props/armour asset retrieval. Do not restore it.
+- `maintenance/single-iphone-preview-pipeline` compares as zero commits ahead of `dev_2`; no merge work remains.
+
+### Save restore test branches
+
+- `test/save-restore-scene-dev2` is the source branch for merged PR #120. Its branch history remains ahead after squash merge, but the integrated current restore runner has additional resilience and diagnostics. Do not merge it again.
+- `test/save-restore-scene` is an earlier runner variant; current `tests/save_restore_runner.gd` uses the actual current scene-root/tavern reference and a shorter bounded wait. Retain the older branch as historical test development.
+- `test/chatgpt-session-write-access-20261105` compares as zero commits ahead of current `dev_2`.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feat/character-preview-loading-progress` | 3 ahead / 100 behind; old player creator snapshot. | **Superseded by current creator; retain history.** |
+| `feat/wren-only-pages-two-character-workshop` | 5 ahead / 156 behind; early Pages workflow. | **Superseded by current artifact-aware workflows.** |
+| `feat/campaign-loading-feedback` | 1 ahead / 101 behind; old world-root loading overlay. | **Integrated/evolved; no re-merge.** |
+| `fix/workshop-dress-and-game-loading-stages` | 4 ahead / 157 behind; older world-root and workshop workflow. | **Superseded by current world-root and pipeline.** |
+| `maintenance/single-iphone-preview-pipeline` | 0 ahead / 167 behind. | **No unique commits; retain.** |
+| `test/save-restore-scene` | 6 ahead / 3 behind; earlier save/restore runner. | **Superseded by merged PR #120 and current runner.** |
+| `test/chatgpt-session-write-access-20261105` | 0 ahead / 357 behind. | **No unique commits; retain.** |
+| `test/save-restore-scene-dev2` | 15 ahead / 2 behind; source for merged PR #120. | **Integrated by PR #120.** Preserve history; no re-merge. |
+
+### Branch and PR counts at the end of this pass
+
+The live GitHub listing returned 130 branches across two pages (100 + 30). The 20 open PRs include this audit PR #123; before creating the audit PR there were 19 open PRs. PR #122 is confirmed closed and merged into `dev_2` at `143e1b02e87a795a00794f0eb291fe4db50e0175`; PRs #119 and #120 are also confirmed merged. PR #121 remains open/draft and requires visual acceptance.
+
+
+## Base-branch comparison and equipment-appearance code review
+
+### dev, dev_2 and main
+
+- `dev` compares as 0 ahead / 8 behind `dev_2`; it has no unique file changes relative to the current integration baseline. It is close, but still behind the latest `dev_2` integration commits.
+- `main` compares as 1 ahead / 525 behind `dev_2`. Its only file in the compare result is `combat-initiative-preview.yml`, and that workflow is byte-for-byte identical to the copy already in `dev_2`. The one commit is therefore historical duplicate content, not a reason to merge `main` into `dev_2`.
+- Keep `dev_2` as the active integration baseline. Do not promote or merge branches to `main` as part of this audit.
+
+### Equipment materials/heraldry branch code review
+
+The new `EquipmentAppearance` helper is sensibly defensive in several ways:
+- duplicates per-instance materials instead of recolouring shared resources;
+- preserves unknown imported surfaces by default;
+- rejects incompatible finish profiles for known surface categories;
+- isolates heraldry into a dedicated shader/material path.
+
+However, PR #76 does not modify `AraCharacterActor`, the character equipment presentation flow or `HollowTankard`. The new helper is therefore a library candidate, not an end-to-end runtime feature. Its tests exercise synthetic BoxMesh surfaces and a synthetic material named `HeraldryFace`; they do not prove the current exported shield/helmet assets expose the expected stable surface names or that the game calls the helper.
+
+**Required before integration:** wire the helper into the actual equipment actor/prop assembly path, use stable explicit surface metadata rather than relying solely on imported material resource names, add a test against the exported shield asset, and visually inspect the resulting finishes/heraldry. Do not merge this branch as “equipment appearance complete” based only on its isolated unit tests.
+
+### Additional branch disposition
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `dev` | 0 ahead / 8 behind `dev_2`. | **No unique work; retain as a near-current integration/release branch.** |
+| `main` | 1 ahead / 525 behind; only workflow file is byte-identical to current. | **Do not merge; preserve as the current production branch until an intentional release promotion.** |
+
+
+## Second-pass: early shared-character and iPhone preview prototypes
+
+- `feature/shared-character-system` is an early 125-commit character-system stack on a very stale base. Its `character_appearance.gd` and `assemble_modular_glb.py` are byte-for-byte identical to current `dev_2`; its accessory attachment helper is an older variant. The branch's anatomy/workshop pipeline has since evolved through Ara and the canonical assembly work. Preserve it as historical source; do not merge the stack.
+- `feature/modular-character-poc` is an earlier modular-character prototype. It contains a different presentation assembler, attachment rig, appearance store and garment shader that are absent from current `dev_2`. These are not automatically missing features: the current project uses the Ara modular GLB pipeline and `AraCharacterActor`, so the prototype's separate runtime model would introduce a competing source of truth. Only recover a specific algorithm if the current Ara path has a demonstrated gap.
+- `feature/iphone-hollowmere-ara-preview` is an early combined iPhone game/workshop deployment stack. Its `export_presets.cfg` is byte-identical to current; its `tools/deploy_web.py` and multiple old workflows are superseded by the current GitHub Pages artifact workflows. Its early Hollowmere/character source files are older than current. Do not revive the old deploy script or combine it with the current Pages pipeline.
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feature/shared-character-system` | 125 ahead / 357 behind; core appearance and modular GLB assembler identical to current. | **Superseded/evolved; preserve history, no wholesale merge.** |
+| `feature/modular-character-poc` | 51 ahead / 357 behind; older alternate runtime character architecture. | **Superseded prototype; retain for reference only.** |
+| `feature/iphone-hollowmere-ara-preview` | 178 ahead / 357 behind; export preset identical, deploy script obsolete. | **Superseded deployment prototype; preserve history.** |
+
+
+### Hollowmere model validator lineage
+
+The current `tools/ci/validate_hollowmere_models.gd` and `.py` are present in `dev_2`. The old `feature/game-real-hollowmere-character-art` validator expects exactly 13 profiles and predates the current 14-profile set including `player_avatar`; do not port it. `fix/hollowmere-cast-validator`'s Python validator is byte-for-byte identical to current and adds the duplicate-ID, empty-cast and player-avatar checks. It is already integrated.
+
+| Branch | Evidence | Disposition |
+|---|---|---|
+| `feature/game-real-hollowmere-character-art` | Old 13-profile validator; current baseline expects 14 including player avatar. | **Superseded; retain history.** |
+| `fix/hollowmere-cast-validator` | Python validator byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+
+
+## Cross-cutting architecture, maintainability and repository-rule findings
+
+### Documentation is materially behind the integrated baseline
+
+The current `docs/ARCHITECTURE.md` still says the first increment is a simulation-only foundation and that tests have not yet been run in Godot. It does not describe the integrated SaveManager, building/door registry, campaign restore integration, current reaction pipeline, status-effect persistence, or the current Ara runtime pipeline.
+
+The current `docs/MECHANICS_PORT_REGISTER.md` still has a number of outdated statuses and describes combat/action-contract/reaction/downed-lifecycle work as outstanding even though current `dev_2` contains these foundations. It also labels its verified baseline as `dev`, not `dev_2`.
+
+Do not update these documents by marking whole systems “complete”. The correct next step is a verified status refresh that distinguishes implemented foundations, tested gameplay effects, incomplete integration and visual acceptance. In particular:
+- combat action contracts, downed lifecycle and reactions are implemented, but combat AI, uncertainty, ranged/LOS integration and many source rules remain incomplete;
+- save/load and campaign restore exist, but only safe-boundary saves are supported and not every mutable world/character state is persisted;
+- spatial vision/LOS is integrated, but stealth/detection, character memory and fog exploration persistence remain outstanding;
+- the 257-skill catalogue and progression exist, but not all skill effects are implemented/tested;
+- 15 base spell definitions exist, but casting/effect resolution is not established;
+- a campaign world-map UI exists, but this is not a complete traversable campaign world.
+
+### Large orchestration scripts need a later architecture pass
+
+Current `dev_2` has:
+- `scripts/world/hollow_tankard.gd`: 2,730 lines;
+- `scripts/simulation/world_simulation.gd`: 1,012 lines;
+- `scripts/presentation/ara_character_actor.gd`: 574 lines.
+
+These scripts have accumulated multiple responsibilities. `HollowTankard` coordinates the village scene, player/NPC spawning, interactions, combat presentation, save/load, quest triggers, UI, world visuals and campaign setup. `WorldSimulation` owns the clock, character registration, movement/action dispatch, combat reactions, pending action context, campaign journal, buildings, wilderness resources and serialization. `AraCharacterActor` owns model loading, animation, modular garment attachment, surface visibility, equipment and player appearance.
+
+This is not a reason to stop integration, but it is a strong reason to avoid copying entire stale versions of these files from feature branches. Future refactoring should extract cohesive services/controllers with explicit contracts, leaving scene scripts as orchestration and presentation adapters. Keep refactors separate from gameplay ports so regressions can be attributed.
+
+### Repository-rule enforcement
+
+The current `.editorconfig` and `.gitattributes` are present and consistent across the formatting-rules branch and `dev_2`. However, current GDScript files such as `vision_rules.gd`, `character_state.gd` and `world_simulation.gd` use spaces for indentation despite `.editorconfig` requiring tabs for `*.gd`.
+
+This indicates the style rule is not enforced in CI. Agree the intended convention, then add a GDScript formatter/lint check to Godot validation and apply it to touched files. Do not bulk-reformat the entire repository in the same PR as a gameplay feature.
+
+### Review discipline for future ports
+
+Every candidate port should include:
+1. current `dev_2` API compatibility (no wholesale replacement of newer files);
+2. explicit stable-ID/data-schema handling;
+3. simulation/presentation boundary review;
+4. deterministic headless regression tests for rules and persistence;
+5. source-parity evidence where porting legacy behaviour;
+6. visual acceptance for models, clothing, scenes, animations and mobile UI;
+7. a short docs update naming what is complete and what remains.
+
+A passing branch workflow only validates the commit and paths it actually exercised. It does not imply visual acceptance, current-`dev_2` compatibility or maintainability.
+
+
+### Character inventory panel confirmation
+
+The `feature/character-inventory-panel` branch's 263-line `CharacterPanel` is present in current `dev_2) as a 317-line evolved version. Current adds the item catalogue integration, equipment-change signal and scroll-position preservation; its old CharacterState/CombatRules snapshots must not be merged. The character/inventory panel is therefore integrated, not missing.
+
+
+## Selective integration started: equipment rules (PR #124)
+
+The first small, high-confidence port from the audit is now isolated in PR #124, `integration/equipment-rules-dev2`, based directly on the audit baseline `dev_2` SHA `143e1b02e87a795a00794f0eb291fe4db50e0175`.
+
+It ports only the unique #91 rule changes onto current files:
+- equipment type/slot validation;
+- two-handed/offhand conflict rejection without discarding the rejected inventory item;
+- equipped helmet reduction in `CombatRules`;
+- current-suite regression tests for helmet mitigation/save/load, invalid slot rejection and both hand-conflict directions.
+
+It does not copy #91's stale full-file snapshots or old porting-register docs. PR #124 is open/draft and its Godot 4.7.2 workflow #43177332927 was still running at the time of this update. Do not close historical PR #91 until #124 has passed and merged; retain the original #91 branch permanently.
+
+
+## Equipment rules integration completed
+
+PR #124 is confirmed merged into `dev_2` at `6e6aaa78a9b5031978dfa239f43441d58f4ea6be`. Its Godot 4.7.2 headless validation workflow #43177332927 passed. The merged changes are equipment type/slot validation, two-handed/offhand conflict protection, equipped helmet mitigation and regression tests against the current simulation code.
+
+Historical PR #91 has been closed as superseded by #124. Its original branch `feature/equipment-gameplay-stat-integration` remains present and is retained permanently. No feature branch was deleted.
+
+At this update, the live GitHub listing contains 131 branches across two pages, and 19 pull requests remain open (including audit PR #123). The active integration baseline is now `dev_2` at `6e6aaa78a9b5031978dfa239f43441d58f4ea6be`.
+
+
+### #87 unified character assembly — deeper resolver review
+
+A closer review confirms the branch does wire `CharacterAssemblyResolver` into its Ara actor, player creator and `HollowTankard` NPC spawning. It is not merely an unused helper. The architecture is promising: one resolved runtime contract supplies body asset, appearance, garment styles, inventory and equipment, and the NPC inventory adapter verifies that equipped items are owned and match their declared slots.
+
+However, several migration/maintainability gates remain:
+
+1. **Incomplete cast migration:** the branch's schema-v2 NPC manifest has 14 records versus 22 on current `dev_2`. Eight current NPCs are dropped, and the separate loadout file is removed. All current NPCs and their quest/companion/loadout state must be migrated before adopting the schema.
+2. **Body assets are not included:** `body_profiles.json` declares ten profile IDs and paths, but the ten `bodies/*.glb` and `garments/*.glb` assets are absent from the branch. The resolver therefore falls back to the shared male/female Ara assets and marks the body profile as pending. The JSON profile catalogue is not evidence that ten fitted body/garment variants exist.
+3. **Potential duplicate-item collision:** `populate_npc_inventory` builds instance IDs as `canonical_<character>_<item>` and stores one instance per item ID in a dictionary. Repeated copies of the same item would collide/overwrite the lookup. Current 14 profiles happen not to contain duplicate inventory IDs, but the resolver should support stack/duplicate items or reject them explicitly.
+4. **Non-atomic failure:** the resolver adds inventory items before validating all equipped references. A malformed later item or invalid slot returns false after partially mutating the CharacterState. Prevalidate the full resolved recipe before applying it, or roll back on failure.
+5. **Repeat-call behaviour:** deterministic instance IDs make the population helper non-idempotent; a second call can fail or leave partial state. Define whether it is one-shot and enforce that contract.
+6. **No generated asset acceptance:** the resolver tests validate metadata and fallback selection, not the generated body/garment GLBs, deformation or clothing fit. The branch's average-body review workflow does not build or validate the full ten-profile library.
+
+The ten-profile direction also differs from the current body-asset goal: establish one accepted male base and one accepted female base, then validate morphs and clothing against those rigs. Treat the ten-profile catalogue as a proposal, not a requirement. If the project keeps one base per body model, the resolver should represent body variant + morph recipe rather than ten separately authored base meshes.
+
+**Disposition remains:** major salvage candidate; do not merge wholesale. First decide the body-profile model, fix resolver recipe validation/idempotency, migrate all current NPCs, build the actual base-body/garment assets and test them in Godot.
+
+
+The `feature/player-custom-avatar-selection` change was checked directly: current `HollowTankard` already selects `player_avatar.glb` for the female player when the custom asset exists, with the shared Ara female asset as fallback. No port remains.
+
+
+### #110 animal/riding — deeper lifecycle review
+
+The mount review confirms two additional gaps beyond the HP calculation:
+
+- `WorldSimulation._on_character_lifecycle_changed` clears pending reactions and ends an incapacitated active turn, but it does not detach a rider from an incapacitated/dead mount or release an incapacitated rider from a mount.
+- `dismount_animal()` rejects the operation unless both rider and mount can act. That makes the normal dismount path unavailable precisely when one participant is unconscious/dead.
+- `_movement_state_for()` continues to resolve a rider to the mount while reciprocal IDs remain set. A dead/unavailable mount can therefore strand the rider's movement and leave the mount flagged as an initiative-excluded rider.
+- Existing tests cover normal mount, shared occupancy, movement cost, TP, save/load and initiative exclusion. They do not cover rider death/unconsciousness, mount death/unconsciousness, emergency dismount, stale reciprocal links or recovery after the mount is removed.
+
+Before porting, define a single lifecycle rule for the relationship: when either participant becomes unable to carry the relationship, clear both IDs and the mount's rider flag atomically, release/transfer occupancy safely, and decide whether the rider is placed on a valid adjacent hex or receives a fall consequence. The forced cleanup path must not require either character to be able to act. Add tests for both directions and save/load after cleanup.
+
+
+### Wren Workshop workflow lineage — deeper comparison
+
+The current `.github/workflows/wren-workshop.yml` is 687 lines and includes current Ara asset build stages, modular garment tools, male anatomy build/review, JavaScript validation and artifact handling. The older variants are not safe workflow replacements:
+
+- `fix/ara-review-crash-remove-legacy-wren-build` is 522 lines and still contains a separate tattoo-body GLB generation path plus older anatomy build steps. Current workflow instead validates the workshop's runtime tattoo implementation and rejects obsolete tattoo-body asset references.
+- `fix/publish-all-male-workshop-previews` is 652 lines and generates multiple small/large male body profiles. Current workflow deliberately builds one standard male base body and four review angles, which is the cleaner path while the project is settling one male and one female base with morphs.
+- `feature/ara-character-evaluation` is an older Wren-from-scratch blockout/sculpt pipeline. It is superseded by the Ara base-person workflow and should remain historical reference.
+- `chore/consolidate-preview-and-review-workflows` predates the current workflow and removes dedicated review workflows; it should not be used to collapse the current pipeline.
+
+These branches contain useful historical experiments, but none should replace the current Wren Workshop workflow. Any future workflow refactor should preserve the current independent artifact stages and run on the exact source commit being reviewed.
+
+
+## Second-pass audit: combat, campaign, world and deployment (2026-11-12)
+
+The live branch inventory was refreshed from GitHub's two-page branch listing before this pass. This pass intentionally excludes anatomy branches, which are being handled separately.
+
+### Combat, reactions and turn resolution
+
+The current `dev_2` `WorldSimulation` is materially newer than most of the combat feature branches. It already contains authoritative `SimulationActionRequest` submission, pending-reaction lifecycle, multi-reactor options (each option names its own TP-paying reactor), movement-reaction resolution, pending attack/move contexts, and turn-scheduler integration. The old reaction branches are not safe to merge as whole files.
+
+- `feature/action-contract-downed-lifecycle` (10 ahead / 149 behind; 9 changed files): old snapshots of `character_state.gd`, `combat_rules.gd`, `world_simulation.gd` and tests. Its action-contract/downed foundation is represented in current code; retain as historical source, no wholesale merge.
+- `feature/ally-combat-reactions` (7 ahead / 142 behind): its 205-line world-simulation delta predates current multi-reactor handling. The current simulation already accepts options with explicit `reactor_id`, validates each reactor and charges that character's TP. No direct port indicated.
+- `feature/combat-reaction-triggers` (8 ahead / 146 behind) and `feature/movement-reactions` (8 ahead / 141 behind): old `WorldSimulation`/CharacterState snapshots and tests; movement-reaction resolution is already present in current code. Audit any isolated trigger rule only if a gameplay test identifies a missing case.
+- `feature/reaction-resolution-turn-safety` (4 ahead / 148 behind): old simulation snapshot. Current code already blocks world-time advancement while a reaction is pending and handles lifecycle changes, but a dedicated current-head adversarial test pass is still warranted for cancellation, reactor incapacitation, nested requests, combat end and turn advancement. Do not merge the stale file.
+- `feature/in-game-reaction-prompt` (2 ahead / 143 behind): the current `scripts/ui/reaction_prompt.gd` is already present; the branch changes that UI and `HollowTankard` only. Treat as superseded unless a visual review reveals a concrete missing interaction.
+- `feature/status-effects-combat-debuffs` (10 ahead / 11 behind): `status_effect_rules.gd` and `movement_rules.gd` are byte-identical to current `dev_2`; its CharacterState, CombatRules, WorldSimulation and test files are older snapshots (e.g. CharacterState 445 lines vs current 480). No wholesale merge. Inspect any unique test/rule case against current status-effect persistence before disposition is final.
+- `feature/combat-resolution-foundation` (36 ahead / 155 behind): broad old workflow/character/combat snapshot. Not a safe merge source.
+- `feature/combat-initiative-timeline` (36 ahead / 55 behind): contains a substantial unique presentation layer (`CombatInitiativeTimeline` and model, with capture test/workflow). This is the clearest isolated salvage candidate in this combat group, but its cards are 276×174 px and the panel assumes a wide desktop layout. Do not merge the UI unchanged; adapt to the project's compact phone layout, ensure it handles large parties/long names and hidden/neutral/dormant/rider states, then run headless and visual review on the current scene.
+- `feature/hollowmere-shakedown-combat` (50 ahead / 128 behind): old simulation, encounter, campaign-content and ambient-chatter snapshots. Its turn scheduler is byte-identical to current. Port only distinct encounter/dialogue content after comparing quest IDs, current campaign journal state and the current encounter lifecycle; do not merge the branch's full HollowTankard or WorldSimulation.
+- `feature/ally-combat-reactions`, `feature/combat-reaction-triggers`, `feature/movement-reactions` and `feature/reaction-resolution-turn-safety` should remain preserved as historical branches; no branch deletion.
+
+**Combat disposition:** no combat branch is currently safe for wholesale merge. The initiative timeline is a potential isolated UI port. The remaining work is to test current turn/reaction state transitions adversarially and continue the user's explicitly outstanding stealth/detection/AI-under-uncertainty work separately from the already-integrated line-of-sight foundation. A character merely observed at a past time should become a time-stamped, confidence-limited memory; it must not remain omnisciently targetable after leaving current LOS.
+
+### Campaign journal, save/load and strategic map
+
+- `feature/campaign-quest-journal` (5 ahead / 135 behind): its 211-line journal is older than the current 331-line `CampaignJournal`. Current code additionally has faction knowledge, NPC standings/knowledge, merchant influence and expanded persistence/event handling. Do not merge the old journal.
+- `feature/save-load-system` (26 ahead / 12 behind): `scripts/save/save_manager.gd` and `scripts/ui/save_load_menu.gd` are byte-identical to current `dev_2`. The save manager, eight manual slots, quicksave and rotating autosaves are already integrated. Its remaining differences are not evidence of missing save functionality; inspect only any distinct scene wiring or tests before closing its audit disposition.
+- `feature/main-campaign-world-map-validated` (12 ahead / 137 behind): the main map UI and data scripts are byte-identical to current `dev_2`. The branch is superseded for those features; its old `HollowTankard`/creator/world-root snapshots must not be merged.
+- `feature/hollowmere-building-port-spec` (39 ahead / 55 behind): the building registry and door-state persistence are already integrated through the newer building framework / PR #119. Its registry implementation is effectively the current one; retain the specification as historical design material, not a merge candidate.
+- The `feature/hollowmere-dialogue-ambient-chatter` and `feature/campaign-quest-journal` branches overlap older versions of campaign journal and content. Reconcile quest/dialogue IDs against current definitions before selectively porting any new story content.
+
+### Hollowmere geography, wilderness and seasonal presentation
+
+- `feature/organic-hollowmere-geography` (17 ahead / 86 behind): its 442-line village script is an earlier version of current `scripts/world/hollowmere_village.gd` (601 lines). Current code already includes the organic stream/road treatment and adds farm/wilderness creature presentation and other evolved content. The branch is superseded; do not merge its village script.
+- `feat/wilderness-world-foundation` (9 ahead / 123 behind): its resource-system file is an older 167-line snapshot versus current 173-line implementation. Current `WorldSimulation` already owns `WildernessResourceSystem` and `HexWorldChunkStreamer`; compare isolated rules/tests only if a missing resource behavior is identified.
+- `feat/wilderness-art-and-gatherable-visuals` (18 ahead / 120 behind): contains seasonal/resource visual and asset-bootstrap work, but overlaps the current newer wilderness resource/presentation pipeline. No wholesale merge.
+- `feat/seasonal-wilderness-visuals` (5 ahead / 122 behind): its 147-line procedural placeholder is superseded by current 180-line `SeasonalTreeVisual`, which supports imported Kenney Nature Kit assets and procedural fallback. No port.
+- The map, village and wilderness branches are old snapshots. Preserve them; do not infer missing features from ahead counts.
+
+### GitHub Pages / PWA deployment
+
+The deployment workflow deserves a separate integration fix, not a wholesale workflow-branch merge.
+
+- Current `dev_2` `.github/workflows/godot-web-export.yml` is 329 lines and is materially more advanced than the 135-line `feature/godot-web-pages-export` version. It downloads independently generated Ara/Workshop/prop artifacts, builds and validates the Godot PWA, saves the game artifact, then deploys a combined Pages artifact with a Workshop site when available. The old branch is superseded.
+- However, the current workflow's push trigger, workflow-run filters, artifact searches and checkout steps all explicitly target `dev`, not `dev_2`. Thus merging code into `dev_2` alone does not cause this workflow to build/deploy that branch. This must be reconciled deliberately with the chosen deployment source; do not silently retarget or push gameplay into `dev`.
+- `fix/combined-game-workshop-pages-deploy` is an older 122-line combined deploy workflow. Its general artifact-composition approach is now represented in the current Godot web export workflow, but its exact failure gating differs. Current workflow permits the Workshop site artifact to be absent and falls back to checked-in `site/`; it still requires the Hollowmere Ara artifact, while weapon/armour props and Workshop body assets are optional.
+- `feature/ios-game-pwa` contains an older packaging implementation; current web export already invokes `tools/pwa/package_godot_pwa.py` and verifies manifest, worker, icons, wasm and pck.
+- `deploy/wren-workshop-github-pages` and `fix/split-game-export-and-pages-deploy` are older workflow variants; no wholesale merge.
+- The current workflow's validator step is named "Verify all 13 NPCs and the player avatar". This count/contract should be checked against the current canonical NPC manifest before treating deployment validation as authoritative, particularly given the schema migration work recorded above.
+
+**Deployment disposition:** retain the current more complete workflow, but create a separate small deployment-source fix once the intended Pages source branch is confirmed. Verify both the game and Workshop routes from the same commit, and ensure a failure in one optional asset build does not suppress an otherwise deployable game/Workshop artifact.
+
+
+### Vision / stealth / AI uncertainty boundary check
+
+A direct source review of current `dev_2` confirms the spatial LOS foundation is real, but it is not a complete stealth/perception system:
+
+- `VisionRules.vision_range()` applies racial/sensory and low-light range modifiers.
+- `VisionRules.has_line_of_sight()` traces hex rays and accounts for opaque terrain, explicit vision blockers and elevated terrain/ridges. Missing map cells block sight.
+- `VisionRules.can_see()` combines alive-state, range and LOS.
+- `stealth_detection_bonus()` and `stealth_check_bonus()` expose skill-derived modifiers, but there is no resolution function that compares them, no persistent hidden/detected state, no observer-specific last-known-position memory, and no AI policy that acts on uncertainty.
+- The current simulation's attack path checks targetability and combat relationships, but does not yet make hostile AI decisions from observer-specific perception/memory.
+
+Therefore #122 should be described as the spatial vision/LOS foundation only. It does not complete stealth, detection, fog-of-war presentation or AI under uncertainty. The next coherent feature should be a simulation-owned perception model with observer-specific contacts: currently visible, detected-but-not-currently-visible (last-known location plus timestamp/confidence), or unknown. AI should choose search/investigate/guard/reposition actions from those contacts and must not query hidden character positions as an oracle. Add deterministic tests for skill bonuses, cover/lighting, losing LOS, stale memories, false/uncertain leads, and save/load of memory if memory persists across saves. Keep fog rendering/UI as a separate consumer of that model.
+
+The `feature/vision-stealth-perception` branch is not an integration source: it is stale against `dev_2`, its latest known workflow failed, and its broad world-simulation snapshot is superseded by the LOS foundation. Salvage only a demonstrably correct isolated visual/fog technique after the perception contract is designed.
+
+### Deployment NPC-count label clarification
+
+The current workflow's step label says "Verify all 13 NPCs and the player avatar", but the validator itself does not hard-code 13: it reads the canonical `hollowmere_npcs.json` manifest, requires a `player_avatar` entry, and checks that every source ID has a matching generated profile and valid GLB/parameter file. The current `dev_2` manifest contains 22 character records. The step label is stale/misleading; the validator's dynamic count is the authoritative check. Rename the workflow step when making the deployment-source correction.
+
+
+### Additional world, roster, audio and item branches
+
+- `feature/farm-wildlife-creatures` (22 ahead / 55 behind): its `farm_wolves_quest.gd`, `creature_actor.gd`, quest tests and farm/wildlife documentation are byte-identical to current `dev_2`. Its Hollowmere village script is older. The farm/wolf quest and creature actor are integrated; no port.
+- `feature/arena-and-full-character-roster` (7 ahead / 105 behind): arena opponent data, legacy enemy roster, roster validator and roster tests are byte-identical to current `dev_2`. Integrated; no port.
+- `feature/hollowmere-items-and-inventory-art` (2 ahead / 139 behind): ItemCatalog is byte-identical to current. Its CharacterPanel is an older 297-line version versus current 317-line panel. No merge; inspect the SVG icon atlas only if current UI is missing a specific icon.
+- `feature/legacy-audio-menu-dev` and `feature/legacy-audio-menu-dev2`: current `AudioManager` is byte-identical to the newer dev2 branch. The audio/menu foundation was integrated/evolved; old scenes, workflow and main-menu snapshots are not safe replacements. The arena remains a placeholder; do not treat the presence of audio import code as completion of arena mode.
+- `feature/game-start-race-class` and `feature/game-start-race-class-validation`: same old implementation lineage and identical to each other, both substantially behind current. Current character creation and starting-race/class implementation have evolved; no wholesale merge.
+- `feature/character-starting-clothing`: old loadout, actor, creator and simulation snapshots; no merge. Current character definitions/loadouts and Ara actor are newer. Check a specific clothing default only if a current NPC/player loadout demonstrates a gap.
+- `feature/player-character-visual-phase1`: older Ara actor/player creator snapshots and export workflow; superseded by current 574-line actor and 495-line creator. No merge.
+- `feature/reusable-npc-workshop`: extremely stale against current workshop (358 commits behind) and introduces a competing modular assembler/profile pipeline. Current Ara workflow and resolver architecture have superseded it; preserve as prototype, no merge.
+- `feature/runtime-tattoos`: older workshop workflow/site changes. Current tattoo behaviour is implemented at runtime and current workflow rejects the old baked tattoo-body asset route; no merge.
+- `feat/character-preview-loading-progress`: small isolated creator UI change (one file). Keep as a possible UX salvage only after comparing its loading-state semantics with the current creator; do not merge its old player creator file.
+- `feat/campaign-loading-feedback`: one old `WorldRoot` change; compare its progress feedback with current loading transitions before any salvage. The branch is not a full feature integration.
+- `feature/legacy-porting-matrix` and `feature/legacy-porting-matrix-dev2`: documentation-only branches behind current code. Reconcile their useful source-parity notes into the current audit/port register rather than merging stale docs.
+- `feature/mechanics-port-foundation`: documentation-only, one ahead but 155 behind; current register has evolved. No merge.
+- `feature/port-action-economy` and `feature/skill-magic-foundation-current-dev`: no commits ahead of current `dev_2`; no merge.
+
+### Cosmo tree generator and forest branches
+
+- `feature/cosmo-tree-gen-evaluation` and `feature/hollowmere-cosmo-forest` carry a large third-party Cosmo Tree Generator addon, presets and generated GLBs. Current `dev_2` already contains the generated tree collection and `HollowmereVillage` references it, while current seasonal tree rendering uses imported Kenney Nature Kit GLBs with procedural fallback. The addon is not required at runtime for the already-generated GLBs. Do not merge the large addon/demo tree-generator branch into the game merely to retain generated outputs; keep the addon as a separate evaluation/provenance source unless the team chooses to maintain in-game tree generation.
+- `feat/wilderness-art-and-gatherable-visuals` and `feat/seasonal-wilderness-visuals` overlap older seasonal/resource visuals. Current seasonal tree script is the newer 180-line version and is byte-identical to the branch's farm/wildlife derivative; no merge.
+
+### Cinematic and remaining presentation branches
+
+- `feature/hollowmere-ironbond-opening-cutscene` is a separate earlier cinematic implementation with its own director/actor/world-script changes. Current candidate for visual acceptance is PR #121 `integration/opening-cinematic-dev2`; review the actual current branch/scene, not the older source branch. Keep both histories.
+- `feature/main-campaign-world-map` and `feature/main-campaign-world-map-validated` are the same evolved map lineage; current map UI/data files are byte-identical. No merge.
+- `feature/hollowmere-building-port-spec` and its associated building/door framework are represented in the already-merged PR #119. No merge.
+- `feature/hollowmere-github-pages` is an old deployment workflow/script bundle. Current PWA and combined Pages build supersede it; no merge.
+- `feature/ios-game-pwa` is an earlier packaging implementation, superseded by current PWA packaging and workflow validation.
+
+### Branch inventory / PR state
+
+The live branch listing was refreshed from both GitHub API pages. Several branches created after the earlier inventory (including `docs/content-parity-audit`, `feature/in-game-reaction-prompt`, `feat/wren-only-pages-two-character-workshop`, and `integration/equipment-rules-dev2`) are now included in the live inventory. The current open PR list contains #123 (audit), #121 (opening cinematic), #110 (riding), #99 (farmstead rescue), #96 (vision/fog), #90 (skills/magic), #89 (content census), #88 (world port), #87 (character assembly), #77/#76 (clothing/equipment art), #74 (player inventory), #73 (companion model), #34 (workflow consolidation), #29 (creator), #26/#25 (pipeline/clothing), #8 (anatomy), and #5 (audio/mode selection). Most legacy PRs still target `dev`, not `dev_2`; do not merge them into the active baseline without a fresh selective port.
+
+
+### Test and CI branch confirmation
+
+- `test/save-manager-hardening` contains a `tests/test_save_manager.gd` file byte-identical to current `dev_2`; no additional hardening test is missing from that branch.
+- `test/save-restore-scene` and `test/save-restore-scene-dev2` contain the same current `tests/save_restore_runner.gd` used by the save/restore integration test. The latter branch also changes an old `HollowTankard` snapshot and is not a safe source. PR #120's current restore test is already merged and its CI passed.
+- `test/additional-skill-effect-coverage` is an older test-suite snapshot. Its extra Fast Movement / Goblin Opportunist assertions use older rank expectations; current `dev_2` has an evolved `_test_additional_skill_effects()` with current rank expectations and additional status, vision, parry, sidestep and lifecycle coverage. No test-file merge.
+- `ci/enable-dev2-validation` is superseded by the current `godot-validation.yml`, which already triggers for both `dev` and `dev_2` and includes SaveManager, campaign restore, building/door, wilderness, seasonal tree, creature, map and character validation.
+- `ci/incremental-character-pipeline` and `chore/consolidate-preview-and-review-workflows` are older pipeline/workflow snapshots. Current independent asset workflows and artifact-based game export are more complete; do not replace them.
+- `chore/remove-huggingface-deployment` contains only old HF audit/reset workflows; current repository has already moved to GitHub Pages. No merge.
+- `chore/repository-formatting-rules` is represented in current `.editorconfig`/`.gitattributes`; the remaining issue is enforcement/legacy GDScript indentation, not missing config.
+
+
+### Animal simulation, world registration and remaining magic runtime
+
+- The simulation/runtime portion of `feature/animal-riding-validation` was selectively recovered by PR #126: AnimalCatalog, animal state persistence, riding eligibility/mount/dismount, mounted movement and lifecycle tests. The earlier `feature/animal-attributes` branch is a predecessor, not a separate missing feature.
+- A second review found that the ten visible exterior village animal actors were still presentation-only: current `CreatureActor` had the state adapter, but `HollowmereVillage` did not set each actor's axial hex or register the actors, and `WorldRoot` did not connect them to the campaign simulation. This remaining integration was selectively recovered as PR #128, targeting `dev_2`; its Godot 4.7.2 validation run `43204254123` was pending at the time of this update. Do not call it passed until the exact head completes.
+- The old #110 riding-preview capture remains unported: it reparents the rider to a horse at a fixed `(0, 1.35, 0)` transform and is not a production mount-socket/animation attachment test. Keep the source branch and PR intact until #128 passes and the remaining diff is confirmed preview-only; any preview recovery must use a real runtime attachment contract.
+- `feature/skill-magic-foundation` and related skill branches are not a missing runtime port to merge blindly. Current `dev_2` has skill catalogue/progression/NPC spending, but its script tree has no spell catalogue/resolver/casting/AI spell planner. `data/magic/base_spells.json` contains the 15 base spell definitions and CharacterState stores spell-related fields; that is data/state, not castable gameplay. Treat spellcasting as a new planned system, not as complete because a legacy branch or catalogue exists.
+
+
+## Further refresh — 12 November 2026
+
+The branch recovery register now contains explicit dispositions for all 134 live branch names and selective recovery playbooks for character assembly (#87), fog/stealth (#96), Tessa/dire-wolf quest (#99), shakedown combat, animal preview (#110), opening cinematic (#121) and unique documentation candidates. PR #128 recovers the final village-to-simulation registration slice from #110. No original feature branch has been deleted; no code has been merged into `dev` or `main`. `dev_2` remains the integration baseline. The remaining work is validation and review of deferred candidates, not a mandate to merge every open PR.
+
+
+## Inventory refresh after PR #128 — 12 November 2026
+
+The current inventory is 135 branches / 20 open PRs. PR #128 recovers the missing registration of the ten exterior Hollowmere animals into the campaign simulation. Its initial full Godot run passed, but the updated head with a mount-lookup group assertion is still under fresh validation. PR #110 remains open because it also contains mount-toggle and rider attachment/detachment presentation code not yet selectively ported; the old HollowTankard snapshot must not be merged wholesale. The recovery register records the exact remaining port boundary.
+
+
+## Animal mount presentation recovery — 12 November 2026
+
+PR #130 selectively ports the remaining mount toggle and rider presentation from #110 after #126, #128 and #129. It includes R/HUD controls, camera follow, rider attach/detach, forced dismount and post-load reattachment, plus isolated regression tests. The seat offset remains provisional and requires PC visual acceptance. Current inventory is 137 live branches / 20 open PRs; PR #130's Godot 4.7.2 validation run `43206955005` was pending at the time of this refresh.
+
+
+## Late-pass repository refresh — 12 November 2026
+
+- GitHub's live branch API now returns **138 branches** and **20 open PRs**. All 138 branch names are explicitly represented in the recovery register, including meta refs and the newly surfaced parallel anatomy/morph test branch. This is inventory coverage, not a claim that all code/assets have been exhaustively reviewed.
+- Current `dev_2` head is `0138f1ebd5cc6b677319a4e007d3b581c3301e97`, incorporating PR #129 animal actor save/restore binding. Production `dev` and `main` remain untouched.
+- PR #130 remains a draft against `dev_2`; exact-head run `43207796933` passed Godot validation. The rider seat offset remains provisional and needs visual acceptance on the actual horse and both accepted body variants.
+- PR #121 remains a draft visual-review candidate, but GitHub currently reports it non-mergeable and its recorded base predates recent integration merges. If visually accepted, refresh it against current `dev_2` and rerun CI before merging.
+- Direct source comparison of `feature/missing-skill-runtime-port` found no missing code slice suitable for porting: its changed CharacterState/CombatRules/WorldSimulation/test files are older snapshots, while the current branch contains later status-effect, animal/mount, equipment validation and lifecycle changes. The other four changed files are identical; the old tests are a subset. Preserve the source branch, no merge.
+- Newly surfaced `feature/anatomy-morph-sculpt-tests` and historical `feature/wren-anatomy-piercings-halter-fit` are retained as parallel anatomy/modelling history and are not duplicated in this audit.
+
+**Stage 1 remains open.** The next work is to complete the remaining file-level reconciliation and dependency map for all non-parallel branches, especially distinct deployment workflow logic, branch-only quest/encounter work, source-content parity and residual test scenarios. No feature branches were deleted, no PRs were closed, and no production branch was changed.
+
+
+## Latest refresh — 13 November 2026
+
+- Current `dev_2` head is `a8b5987ebdc12b016d99e2550349f17a8fd62645`, following the selective Tessa rescue / Reyna quest merge in PR #131. Its exact-head Godot 4.7.2 validation run `43308185539` passed. No manual playthrough is claimed.
+- Live repository inventory is **139 branches and 20 open PRs**. All 139 branch names are represented in the recovery register; branch-name coverage is not equivalent to exhaustive content review.
+- PR #130 mount presentation remains a draft. Its integration branch is one commit behind current `dev_2`; refresh it and rerun current-head CI after the required PC visual seat/fit review. The original #110 branch/PR remain preserved.
+- The missing-skill-runtime branch and arena/full-roster branch were rechecked: the former's changes are superseded older snapshots; the latter's substantive data, docs, validator and test blobs match current `dev_2` exactly.
+- Large opening-village/shared-character/phone-preview branches remain mixed with the parallel modelling pipeline and older world snapshots. No wholesale merge is appropriate. Continue the non-modelling file-level reconciliation, particularly world presentation and deployment workflow differences.
+- The content census branch is based on an older `dev` snapshot dated 10 November. Its counts and parity claims must be refreshed against `Hex-crpg/main` and current `dev_2` before being treated as current.
+
+Stage 1 remains open. Preserve all historical branches and keep `dev` and `main` untouched.
+
+
+## Source-content census refresh — 13 November 2026
+
+Added `docs/CONTENT_CENSUS_2026-11-13.md`, based on exact source/target commits:
+- `Hex-crpg/main`: `4de96f16889d43cae91e03832c8eb1c1b4b00e42`.
+- `Silverhart-Saga-3D/dev_2`: `a8b5987ebdc12b016d99e2550349f17a8fd62645`.
+
+Key confirmed source counts are 257 skills (186 direct + 71 generated), 15 registered spells, 63 equipment definitions, 98 named NPC records, 35 monster templates and 206 Playwright test files. Current `dev_2` contains 257 skill rows, 15 spell definitions, 76 item definitions, 98 legacy named-NPC rows, 22 Hollowmere cast records, 35 enemy roster rows, 24 Campaign 2 location records / 22 connections and one settlement layout. These are data counts, not playable-content counts. All 15 spells remain data-only; Arena remains a placeholder despite migrated opponent/scenario data; the full Campaign 2 world is not playable. The detailed skill-effect audit uses an older `dev` baseline and needs exact-head recertification before its effect counts are treated as current.
+
+The source repository has 822 file blobs; 893 was the recursive tree-entry count including directories. This correction is recorded in the new census and recovery register.
