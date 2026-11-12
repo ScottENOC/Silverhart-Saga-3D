@@ -389,3 +389,62 @@ Feature branches are retained as permanent development history by default. Conso
 - Do not reuse old branch names for new work. Create fresh branches from `dev_2` for new integration or follow-up changes.
 
 Closing a pull request is a review-queue decision, not a branch deletion instruction. A closed PR's branch may still be checked out, compared, and used as the source for a later port.
+
+
+## Second-pass: combat, actions and reaction branches
+
+### Current integration baseline already contains much of this cluster
+
+The following files on old feature branches are already present in `dev_2`:
+
+- `scripts/simulation/status_effect_rules.gd` from `feature/status-effects-combat-debuffs` is byte-for-byte identical to `dev_2`.
+- `scripts/ui/combat_initiative_timeline.gd` from `feature/combat-initiative-timeline` is byte-for-byte identical to `dev_2`.
+- `scripts/ui/reaction_prompt.gd` from `feature/in-game-reaction-prompt` exists in `dev_2`; the only difference in the inspected file is that the current UI description correctly explains that nearby defenders may react and each option is paid for by its named character.
+- `SimulationActionRequest`, `SimulationActionResult` and `SimulationEvent` are already in `dev_2`. The old `feature/action-contract-downed-lifecycle` request enum predates the current FEINT action, and its `world_simulation.gd` is only 250 lines versus the current 1,012-line implementation. Do not transplant its old world simulation or request type over the current implementation.
+- `CombatRules` exists in `dev_2` and is materially more developed than the old `feature/combat-resolution-foundation` version (189 lines versus 117 in the inspected version). The old branch lacks current weapon-family mapping and skill-rank option resolution. Its old combat resolver must not replace the current one.
+
+The current `WorldSimulation` owns pending reaction state, request IDs, eligibility validation, TP payment, resolution/cancellation, pending attack resumption, movement-reaction sequencing and lifecycle interruption. The old `feature/ally-combat-reactions`, `feature/combat-reaction-triggers`, `feature/movement-reactions` and `feature/reaction-resolution-turn-safety` branches are all far behind `dev_2`; they should be treated as historical source branches, not as merge candidates.
+
+### Status-effect integration is present and tested
+
+The current baseline:
+- applies status effects on successful attacks;
+- advances poison/withering using actual gained TP;
+- applies hamstring as a movement-cost multiplier;
+- persists poison, withering, sunder and hamstring state through CharacterState serialization;
+- has focused tests for proc behaviour, rank caps, ranged exclusions, tick durations, lethal poison, save/load and movement costs.
+
+The implementation is integrated through `WorldSimulation`, `MovementRules` and `CharacterState`; it is not just an unused catalogue/helper. No new merge is required from `feature/status-effects-combat-debuffs`.
+
+### Initiative timeline and reaction prompt
+
+The initiative timeline branch's UI script is already byte-identical to current `dev_2`. The prompt is also integrated, with a small current-baseline improvement to explain multi-character reaction ownership. These branches should be marked **integrated; retain original branch** rather than merged again.
+
+### Branch-by-branch provisional disposition
+
+| Branch | Comparison to dev_2 | Disposition |
+|---|---|---|
+| `feature/action-contract-downed-lifecycle` | 10 commits ahead / 148 behind; request/result/event contracts are present but old request enum lacks FEINT and world simulation is an obsolete snapshot. | **Superseded/integrated in evolved form.** Preserve history; do not merge. |
+| `feature/ally-combat-reactions` | 7 ahead / 141 behind; old world simulation is far behind current reaction coordinator. | **Superseded/integrated in evolved form.** Preserve history; do not merge. |
+| `feature/combat-initiative-timeline` | 36 ahead / 54 behind; timeline UI is byte-identical to current `dev_2`. | **Integrated.** Preserve history; no re-merge. |
+| `feature/combat-reaction-triggers` | 8 ahead / 145 behind; old world-simulation implementation is superseded by the current reaction lifecycle. | **Superseded/integrated in evolved form.** Preserve history; do not merge. |
+| `feature/combat-resolution-foundation` | 36 ahead / 154 behind; old CombatRules lacks later skill/equipment integration and is not a safe replacement. | **Superseded in evolved form.** Preserve history; inspect only for any isolated missing rule not represented in current tests. |
+| `feature/in-game-reaction-prompt` | 2 ahead / 142 behind; UI exists in current baseline with improved multi-reactor explanation. | **Integrated.** Preserve history; no re-merge. |
+| `feature/movement-reactions` | 8 ahead / 140 behind; current WorldSimulation owns movement reaction flow and pending movement context. | **Superseded/integrated in evolved form.** Preserve history; do not merge. |
+| `feature/reaction-resolution-turn-safety` | 4 ahead / 147 behind; current baseline resolves/cancels pending reactions on lifecycle and combat transitions. | **Superseded/integrated in evolved form.** Preserve history; do not merge. |
+| `feature/status-effects-combat-debuffs` | 10 ahead / 10 behind; status rules file is byte-identical and covered by current simulation tests. | **Integrated.** Preserve history; no re-merge. |
+| `test/additional-skill-effect-coverage` | 3 ahead / 23 behind; test-only branch. | **Compare test assertions against current suite; port only missing cases.** |
+| `test/save-manager-hardening` | 1 ahead / 4 behind; one focused save-manager test change. | **Review the single test delta against current SaveManager and test suite; likely a small port candidate.** |
+
+### Architecture and maintainability checks still required
+
+The presence of these systems in `dev_2` is not a full architectural sign-off. The follow-up review should verify:
+- simulation remains authoritative and emits stable, typed events for presentation;
+- reaction requests cannot leave an active turn or pending attack permanently stranded when a reactor dies, becomes incapacitated, combat ends, or a request is cancelled;
+- pending reaction / pending attack / pending movement context are either serialized or explicitly disallowed at save boundaries;
+- reaction option IDs are unique within a request and every option's reactor is validated at resolution;
+- status-effect stacking, source attribution, expiry, lethal poison and save/load semantics are explicitly documented;
+- status effects are not applied twice when an attack is resumed after a reaction;
+- the UI prompt handles a stale request ID safely and cannot resolve a newer reaction with an old button press.
+
+These are review/test requirements, not claims that a defect has already been demonstrated.
