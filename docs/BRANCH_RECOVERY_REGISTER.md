@@ -1150,3 +1150,31 @@ The #110 `HollowTankard` mount code is useful but not ready to copy verbatim:
 - The dynamic wilderness animals spawned inside `HollowTankard` are currently presentation-only; they are not registered with WorldSimulation and do not carry a `simulation_state`/group membership. Do not accidentally make them selectable mounts until they are registered as simulation actors or explicitly excluded.
 
 These are adaptation requirements for a separate mount-presentation PR. They do not invalidate the already merged simulation layer or PR #128 world registration.
+
+
+## Additional branches discovered in the latest live refresh — 12 November 2026
+
+### Content census / parity documentation
+
+- `docs/content-census` compares 2 / 60 with `dev_2` and adds two substantial documents: `docs/CONTENT_CENSUS.md` (~28.8 KB) and `docs/CONTENT_PARITY_AUDIT.md` (~29.3 KB). Both are based on the older `dev` baseline and dated 10 November. The census contains source-backed inventory counts (98 named NPCs, 35 creature/enemy templates, 63 source equipment definitions vs 76 3D definitions, 186 skill definitions, 15 spells, quest/dialogue catalogue and Arena/world data) and correctly warns that data presence is not equivalent to gameplay/visual acceptance. The parity audit inventories missing/partial 2D content and systems.
+- `docs/content-parity-audit` (1 / 59) carries only the parity document; it is an earlier/duplicate documentation lineage. `docs/content-census` is the richer combined candidate.
+- **Disposition:** preserve both source branches; no merge of their status claims as-is. Refresh the source-to-port comparisons against `Hex-crpg/main` and current `dev_2`, verify the counts, update the audited ref/date, and reconcile against `LEGACY_PORTING_MATRIX.md`, `MECHANICS_PORT_REGISTER.md` and this recovery register. Keep separate status columns for data ported, runtime implemented, tests passed, persistence, visual acceptance and playable end-to-end. Then create a documentation-only PR from `dev_2`; no runtime files need to move.
+
+### In-game reaction prompt branch
+
+- `feature/in-game-reaction-prompt` compares 2 / 147 with two paths. Its `scripts/ui/reaction_prompt.gd` is an older variation; current `dev_2` has the same modal component with a more useful generic explanation that nearby defenders may react and that each option is paid for by the named character. Its `HollowTankard` is a very early 37.5 KB snapshot, compared with the current ~131 KB evolved script and lacks current save/load, upper floor/door, resource, and later campaign integration.
+- **Disposition:** no merge. Reaction prompt UI and integration are already represented/evolved in current. Retain the branch as implementation history; do not replace current scene logic.
+
+### Hollowmere cast validator
+
+- `fix/hollowmere-cast-validator` compares 1 / 15 with one path. Exact blob check confirms `tools/ci/validate_hollowmere_models.py` is byte-identical to current `dev_2`.
+- **Disposition:** already integrated/evolved; no merge.
+
+### Current animal integration branches
+
+- `integration/animal-world-registration-dev2` is the source branch for merged PR #128 (merge commit `3767ea7ebb62c726c3b0b48ea7d0afb608382dd6`). Keep it as history; no re-merge.
+- `fix/animal-restore-actor-binding-dev2` is the source branch for open PR #129. It is a two-file, focused fix to rebind saved animal states and make exterior actor registration idempotent. Its current workflow run is `43205739155`; the result is pending and must be checked against head `27088d58de36d722d1c4462dc68318e492aa157e` before merge.
+
+### Live inventory count
+
+GitHub now returns 136 live branch names and 20 open PRs. All 136 branch names are represented in this register. The count includes new PR #129's fix branch; merged PR #128 is no longer an open PR. No original feature branch has been deleted.
