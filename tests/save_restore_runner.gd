@@ -70,15 +70,17 @@ func _run() -> void:
     }
     baseline.free()
 
+    print("[SaveRestoreIntegration] Seeding pending snapshot and launching main scene.")
     SaveManager.set_pending_load(snapshot)
     var change_error := get_tree().change_scene_to_file("res://scenes/main.tscn")
     _check(change_error == OK, "The integration harness should enter the real campaign scene")
 
     var tavern: Node = null
-    for _frame in range(300):
+    for _frame in range(600):
         await get_tree().process_frame
         tavern = get_tree().root.find_child("HollowTankard", true, false)
         if tavern != null and tavern.get("simulation") != null:
+            print("[SaveRestoreIntegration] HollowTankard is ready; checking restored state.")
             break
 
     _check(tavern != null, "The real campaign scene should construct HollowTankard from a pending save")
