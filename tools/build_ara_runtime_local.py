@@ -424,8 +424,6 @@ def main():
              "skin", "standard_bra", "standard_briefs",
              "lace_bra", "fishnet_bra", "triangle_bra",
              "string_briefs", "lace_briefs", "fishnet_briefs"], env=review_env)
-        shutil.copy2(underwear_assembled, review_root / "female_underwear_all_assembled.glb")
-        shutil.copy2(underwear_fitted, review_root / "female_underwear_all_fitted.glb")
 
         # Use the established character cameras plus blue and natural-colour
         # close-ups. Keep all outputs inside the review artifact.
