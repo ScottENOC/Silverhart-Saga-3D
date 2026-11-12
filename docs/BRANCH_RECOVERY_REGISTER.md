@@ -500,3 +500,67 @@ These branches belong to, or directly overlap, the separate character/clothing/h
 ### What this pass does not sign off
 
 This pass adds dispositions for the small/focused branches above, but it does not certify the full 134-branch inventory complete. The remaining deployment variants, diagnostics, test-only branches, large character assembly/anatomy sources and every current open PR still need final per-branch records for unique assets/tests, workflow head SHA and dependency relationships. Stage 1 remains open.
+
+
+## Test, CI, source-parity and remaining world-system branch pass — 12 November 2026
+
+### Test-only branches
+
+| Branch | Fresh compare | Exact check | Disposition |
+|---|---:|---|---|
+| `test/save-manager-hardening` | 1 / 8; 1 file | `tests/test_save_manager.gd` is byte-identical to current `dev_2`. | Already represented; no port. |
+| `test/save-restore-scene` | 6 / 7; 4 files | Its boot/runner files are an older snapshot; the current runner/boot files are present and have evolved. | No wholesale port. Retain history. |
+| `test/save-restore-scene-dev2` | 15 / 6; 6 files | Its save-restore runner and boot scene are byte-identical to current; `tests/diagnose_tavern_script_load.gd` is also byte-identical to current. Its HollowTankard/workflow changes are older snapshots. | Already represented; no port. |
+| `test/additional-skill-effect-coverage` | 3 / 27; 1 file | The branch's whole old test file is superseded, but it contains higher-rank Fast Movement and Goblin Opportunist test values (rank 2) not used verbatim in current tests. Current tests include broader vision, status-effect, parry, sidestep and lifecycle coverage. | Preserve as an additional rank-scaling test source. Do not replace current test file. If extended later, adapt the rank-2 cases to current fixtures and assert exact scaling at ranks 1 and 2. |
+| `ci/enable-dev2-validation` | 1 / 10; 1 file | Old validation workflow; current workflow is materially broader and is already configured for the current integration baseline. | Superseded; no port. |
+| `ci/incremental-character-pipeline` | 30 / 164; 10 files | Older export/workshop workflow, anatomy scripts, site and custom loading shell. It overlaps the separate character pipeline stream; current Pages workflow is more advanced. | Preserve as pipeline history. Do not merge stale workflow or Blender snapshots into the game. |
+| `test/chatgpt-session-write-access-20261105` | Not a production test candidate | Session/tool-access branch only. | Preserve as operational history; do not merge into the game. |
+
+### Workflow consolidation, repository hygiene and deployment cleanup
+
+- `chore/consolidate-preview-and-review-workflows` compares 7 / 158 with seven changed workflow/doc files. It removes historical workflows and consolidates older preview jobs, but those deletions are based on a previous workflow topology. Current `dev_2` has a more capable independent character/workshop/export workflow set.
+  - **Disposition:** retain the workflow-consolidation rationale and `docs/CI_WORKFLOWS.md` as a reference; do not apply its historical deletions wholesale. Reconcile each current workflow's triggers/artifacts against the intended deployment branch separately.
+- `chore/remove-huggingface-deployment` compares 2 / 167 and only deletes the old HF storage/reset workflows. Those workflows are absent from the current tree and GitHub Pages is now the deployment target.
+  - **Disposition:** already reflected in current deployment state; no port.
+- `chore/repository-formatting-rules` compares 2 / 65. Both `.editorconfig` and `.gitattributes` are byte-identical to current `dev_2`.
+  - **Disposition:** already integrated; no port. Formatting enforcement remains a separate question because existing GDScript files have not all been normalised.
+- `ci/incremental-character-pipeline` and `chore/consolidate-preview-and-review-workflows` are not evidence that current Pages deployment should be changed. The previously recorded `dev` versus `dev_2` source mismatch remains unresolved by design.
+
+### Source parity and mechanics documentation branches
+
+- `docs/content-census` compares 2 / 59 and adds `docs/CONTENT_CENSUS.md` plus an older `docs/CONTENT_PARITY_AUDIT.md`. The census file is not present in current `dev_2`; it is a source-content inventory, not runtime code.
+  - **Disposition:** preserve as a valuable source reference. Reconcile against current source repositories and the current 22-NPC roster before deciding whether to port a revised census. Do not merge the stale parity checklist unchanged.
+- `docs/content-parity-audit` is a separate one-commit documentation branch with a 607-line parity checklist, also based on old `dev`. It overlaps the census branch's parity document but has its own content.
+  - **Disposition:** preserve both documents until their unique source findings are reconciled; then publish one current, dated parity baseline rather than merging duplicate historical documents.
+- `audit/spell-parity-and-test-findings` adds `docs/SPELL_PARITY_AUDIT.md`; current `dev_2` already has a later/different version of that path. The branch document is not a reason to restore old spell status.
+  - **Disposition:** preserve as source notes; reconcile only genuinely missing spell definitions or tests against current data and runtime. Spellcasting remains unimplemented as a complete runtime loop.
+- `audit/skill-effect-parity-update` and `audit/skill-effect-branch-cross-reference` modify the existing `docs/SKILL_SPELL_IMPLEMENTATION_AUDIT.md`. The current document has evolved; the branch versions contain older references/status rows.
+  - **Disposition:** no document replacement. Review any branch-only source citations or test cases before finalising the current audit.
+- `audit/skill-spell-implementation-baseline` has zero commits ahead of current `dev_2`; it is an ancestor/snapshot only.
+- `feature/legacy-porting-matrix`, `feature/legacy-porting-matrix-dev2` and `feature/mechanics-port-foundation` are documentation-only historical snapshots. Current `LEGACY_PORTING_MATRIX.md` and `MECHANICS_PORT_REGISTER.md` are already present and have evolved. Preserve the older branch notes as provenance; do not overwrite current registers.
+
+### Game-start, audio and cinematic lineages
+
+- `feature/skill-magic-foundation-current-dev` has zero commits ahead of current `dev_2`; no port.
+- `feature/game-start-race-class` and `feature/game-start-race-class-validation` point to the same branch head and are the same older implementation lineage (11 / 141, 11 changed paths). Their creation-rules data/script, CharacterState, CombatRules, creator, panel, scene and tests are older snapshots. Current creation and simulation systems have evolved.
+  - **Disposition:** preserve both names/history; no wholesale port or replacement.
+- `feature/legacy-audio-menu-dev` and `feature/legacy-audio-menu-dev2` are two iterations of the same audio/menu foundation. The following paths are byte-identical to current `dev_2`: `scripts/audio/audio_manager.gd`, `tools/import_legacy_audio.py`, `scenes/main_menu.tscn` and `scenes/arena/arena_placeholder.tscn`. The current `scripts/ui/main_menu.gd` is newer than the branch snapshot. Audio binary assets are fetched by the importer rather than committed as branch binaries.
+  - **Disposition:** foundation already integrated/evolved; no re-merge. The arena scene remains a placeholder and should not be mistaken for a completed arena mode.
+- `feature/hollowmere-ironbond-opening-cutscene` is the older cinematic source line. Its director/actor/scene changes were reapplied to current `dev_2` as PR #121. Keep the old branch as provenance; visual acceptance belongs to #121, not this older branch.
+
+### Wilderness, forest and environmental asset branches
+
+- `feat/wilderness-art-and-gatherable-visuals` compares 18 / 123 with 11 changed paths. Its `wilderness_resource_visual.gd`, visual test, and Kenney asset-fetch script are all byte-identical to current `dev_2`. Its modified seasonal/resource/world/scene/test files are older snapshots.
+  - **Disposition:** wilderness gathering visuals and validation are already represented; no port.
+- `feat/wilderness-world-foundation` compares 9 / 126 with six changed paths. `hex_world_chunk_streamer.gd` is byte-identical to current. Its `wilderness_resource_system.gd` is an older version of the current file; WorldSimulation and HollowTankard are older snapshots.
+  - **Disposition:** no re-port; preserve as architecture lineage.
+- `feat/seasonal-wilderness-visuals` compares 5 / 125 with four changed paths. The current `seasonal_tree_visual.gd` is longer/evolved and supports imported Kenney Nature Kit assets with procedural fallback; the branch version is older.
+  - **Disposition:** already evolved in current; no port.
+- `feature/hollowmere-cosmo-forest` contains the Cosmo addon/demo and generated tree collection. The previous recursive-tree/blob audit found that generated GLBs and their runtime paths are already in current `dev_2`. The remaining addon/demo files are generator provenance and are not required to use the accepted generated assets.
+  - **Disposition:** follow the user's direction: no need to recover evaluation/gallery/regeneration tooling. Preserve source branch as provenance; do not merge its large addon/demo payload.
+
+### Final caveats for this pass
+
+- The old skill-effect branch has a small number of rank-2 test cases worth retaining, but current test coverage is substantially broader. This is a test-design note, not a current CI failure.
+- Several branches with nonzero ahead counts are simply alternate historical documents or snapshots. Compare ancestry alone must not drive a merge.
+- No test, CI, documentation, audio, or wilderness branch was merged during this pass. All original branch refs remain intact.
