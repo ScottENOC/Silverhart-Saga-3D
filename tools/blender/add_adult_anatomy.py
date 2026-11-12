@@ -223,6 +223,47 @@ def uv_ellipsoid(name, location, scale, collection):
     return obj
 
 
+
+def wire_vertex_colour_to_skin_material(material, attribute_name="Color"):
+    """Multiply the existing skin texture by the exported anatomy vertex colours."""
+    if material is None or not material.use_nodes:
+        raise RuntimeError("Skin material must use nodes to display anatomy vertex colours")
+    nodes = material.node_tree.nodes
+    links = material.node_tree.links
+    shader = next((node for node in nodes if node.type == "BSDF_PRINCIPLED"), None)
+    if shader is None:
+        raise RuntimeError("Skin material has no Principled BSDF for anatomy colour integration")
+    base = shader.inputs.get("Base Color")
+    if base is None:
+        raise RuntimeError("Skin shader has no Base Color input")
+    # Avoid adding duplicate multipliers if this builder is run more than once.
+    if any(node.get("anatomy_vertex_colour_layer") == attribute_name for node in nodes):
+        return
+    vertex_colour = nodes.new("ShaderNodeVertexColor")
+    vertex_colour.layer_name = attribute_name
+    vertex_colour.label = "Anatomy skin-tone variation"
+    vertex_colour.name = "AnatomyVertexColour"
+    vertex_colour.location = (shader.location.x - 420, shader.location.y - 180)
+    multiply = nodes.new("ShaderNodeMixRGB")
+    multiply.blend_type = "MULTIPLY"
+    multiply.inputs["Fac"].default_value = 1.0
+    multiply.label = "Preserve skin texture; apply anatomy tint"
+    multiply.name = "AnatomyColourMultiply"
+    multiply.location = (shader.location.x - 190, shader.location.y - 100)
+    multiply["anatomy_vertex_colour_layer"] = attribute_name
+    existing_links = list(base.links)
+    if existing_links:
+        original_socket = existing_links[0].from_socket
+        for link in existing_links:
+            links.remove(link)
+        links.new(original_socket, multiply.inputs["Color1"])
+    else:
+        multiply.inputs["Color1"].default_value = (1.0, 1.0, 1.0, 1.0)
+    links.new(vertex_colour.outputs["Color"], multiply.inputs["Color2"])
+    links.new(multiply.outputs["Color"], base)
+    print(f"Skin shader now multiplies its base texture by vertex colour layer {attribute_name!r}")
+
+
 def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
     """Add skin-tone-relative pigmentation as glTF vertex colour (COLOR_0)."""
     mesh = skin.data
@@ -235,7 +276,6 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
         return math.exp(-0.5 * (((x-cx)/sx)**2 + ((z-cz)/sz)**2))
 
     painted_vertices = 0
-    normals = skin.data.vertices
     for vertex in mesh.vertices:
         p = skin.matrix_world @ vertex.co
         normal = (skin.matrix_world.to_3x3() @ vertex.normal).normalized()
@@ -293,21 +333,21 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         mons = g(p.x,p.z,0.0,anatomy_z+height*0.035,width*0.105,height*0.020)
         outer_l = g(p.x,p.z,-width*0.060,anatomy_z-height*0.002,width*0.027,height*0.030)
         outer_r = g(p.x,p.z, width*0.060,anatomy_z-height*0.002,width*0.027,height*0.030)
-        inner_l = g(p.x,p.z,-width*0.026,anatomy_z-height*0.004,width*0.011,height*0.022)
-        inner_r = g(p.x,p.z, width*0.026,anatomy_z-height*0.004,width*0.011,height*0.022)
-        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.012,width*0.0038,height*0.030)
+        inner_l = g(p.x,p.z,-width*0.026,anatomy_z-height*0.012,width*0.0085,height*0.019)
+        inner_r = g(p.x,p.z, width*0.026,anatomy_z-height*0.012,width*0.0085,height*0.019)
+        cleft = g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.0032,height*0.014)
         vestibule = g(p.x,p.z,0.0,anatomy_z-height*0.024,width*0.017,height*0.009)
         urethra = g(p.x,p.z,0.0,anatomy_z-height*0.016,width*0.0038,height*0.0025)
         vaginal = g(p.x,p.z,0.0,anatomy_z-height*0.035,width*0.011,height*0.006)
-        hood = g(p.x,p.z,0.0,anatomy_z+height*0.020,width*0.020,height*0.007)
-        glans = g(p.x,p.z,0.0,anatomy_z+height*0.014,width*0.0055,height*0.003)
-        frenulum = g(p.x,p.z,0.0,anatomy_z+height*0.007,width*0.0035,height*0.0035)
+        hood = g(p.x,p.z,0.0,anatomy_z+height*0.013,width*0.022,height*0.0045)
+        glans = g(p.x,p.z,0.0,anatomy_z+height*0.007,width*0.0050,height*0.0035)
+        frenulum = g(p.x,p.z,0.0,anatomy_z+height*0.001,width*0.0030,height*0.0025)
         fourchette = g(p.x,p.z,0.0,anatomy_z-height*0.051,width*0.016,height*0.0035)
         perineum = g(p.x,p.z,0.0,anatomy_z-height*0.068,width*0.045,height*0.013)
         outward = deformation_scale * height * (
             0.0055*mons + 0.0080*(outer_l+outer_r)
-            + 0.0060*(inner_l+inner_r) + 0.0040*hood
-            + 0.0025*glans + 0.0012*frenulum + 0.0010*fourchette
+            + 0.0080*(inner_l+inner_r) + 0.0055*hood
+            + 0.0040*glans + 0.0018*frenulum + 0.0010*fourchette
         )
         inward = deformation_scale * height * (
             0.0040*vestibule + 0.0110*cleft
@@ -373,7 +413,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     skin["anatomy_profile"] = "adult_female_integrated_skin"
     skin["review_status"] = "integrated_mesh_blockout_for_art_review"
     skin["anatomy_deformation_scale"] = float(deformation_scale)
-    skin["anatomy_detail_pass"] = "enhanced_fold_relief_and_skin_relative_rose_pigmentation_v2"
+    skin["anatomy_detail_pass"] = "shortened_lower_cleft_paired_inner_folds_defined_clitoral_relief_v3"
     skin["anatomy_method"] = "surface_displacement_preserve_morphs" if preserve_morphs else "local_subdivision_and_surface_displacement"
     skin["anatomy_parts"] = "mons,labia_majora,labia_minora,clitoral_hood,clitoral_glans,frenulum,vestibule,urethral_meatus,vaginal_opening,posterior_fourchette,perineal_transition"
     return skin
@@ -581,6 +621,8 @@ def main():
     if args.profile == "female":
         anatomy = integrate_anatomy_into_skin(skin, anatomy_z, width, height, args.deformation_scale)
         apply_anatomy_pigmentation(skin, anatomy_z, width, height)
+        skin_material = next((m for m in skin.data.materials if m and "skin" in m.name.lower()), None)
+        wire_vertex_colour_to_skin_material(skin_material, "Color")
         surface_tree = build_bvh(skin)
         pelvis_surface_tree = surface_tree
     create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, anatomy_z, body_front_y)
