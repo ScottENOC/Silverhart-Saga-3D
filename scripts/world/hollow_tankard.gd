@@ -1277,7 +1277,7 @@ func _apply_save_data(data: Dictionary) -> void:
     if party_switch_button != null:
         var active_state := simulation.get_character(active_character_id)
         var active_name := "You" if active_character_id == "player" else (active_state.display_name if active_state != null else active_character_id)
-        party_switch_button.text = "Active: " + active_name + "  [Tab] Switch
+        party_switch_button.text = "Active: " + active_name + "  [Tab] Switch"
     for character_id_variant in actor_by_id.keys():
         var character_id := String(character_id_variant)
         var state := simulation.get_character(character_id)
