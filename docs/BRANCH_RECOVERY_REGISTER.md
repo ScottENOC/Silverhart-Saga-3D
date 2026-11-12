@@ -781,3 +781,47 @@ This is the practical dependency map for avoiding duplicate or order-sensitive m
 - Combat reaction/resolution branches are historical intermediate steps superseded by current code.
 - The 13-NPC GLB validator is not safe to reuse unchanged; its manifest-driven concept may be adapted later.
 - No branches in this group were merged or closed; original branch refs remain intact.
+
+
+## Remaining campaign, save, equipment and world-system branches — focused review, 12 November 2026
+
+### Action contracts, downed lifecycle and status effects
+
+- `feature/action-contract-downed-lifecycle` compares 10 / 152 with nine paths. It introduced `SimulationActionRequest`, `SimulationActionResult` and `SimulationEvent`, but these contracts are already represented in current `dev_2`; its CharacterState/CombatRules/WorldSimulation/test files are earlier snapshots. No unique current action-contract capability was identified.
+- `feature/status-effects-combat-debuffs` compares 10 / 14 with six paths. Its `status_effect_rules.gd` and related combat/status work are already represented in current code, with current tests extended for status effects and lifecycle; its older CharacterState/CombatRules/MovementRules/WorldSimulation/test snapshots must not replace current.
+- **Disposition:** no merge. Preserve as implementation lineage; current dev_2 is the source of truth.
+
+### Combat initiative timeline
+
+- `feature/combat-initiative-timeline` compares 36 / 58 with eleven paths. Exact blob checks confirm `combat_initiative_model.gd`, `combat_initiative_timeline.gd` and `hollowmere_encounter.gd` are byte-identical to current `dev_2`. The remaining compare differences are older snapshots of action economy, CharacterState, WorldSimulation, HollowTankard and tests plus an older preview workflow.
+- **Disposition:** already integrated/evolved; no re-merge. The original branch is preserved for provenance. Initiative is not a remaining merge candidate.
+
+### Hollowmere items and inventory art
+
+- `feature/hollowmere-items-and-inventory-art` compares 2 / 142 with nine paths. `ItemCatalog` and `art/ui/item_icon_atlas.svg` are byte-identical to current. Its item definitions differ from current, but the current catalogue includes later equipment slot/mitigation changes; its CharacterPanel and HollowTankard snapshots are older. Its `hollowmere_loadouts.json` is an older standalone loadout source, whereas current character definitions/inventory integration have evolved.
+- **Disposition:** no merge. Do not replace current item definitions or UI with the old snapshots. If an icon is later found missing in the live UI, compare the SVG atlas content directly; the atlas itself is already present.
+
+### Starting clothing and character creation
+
+- `feature/character-starting-clothing` compares 12 / 67 with six paths, including an old loadout/item-definition snapshot, Ara actor and CharacterCreationRules changes, HollowTankard and a dedicated starting-clothing test. It overlaps the later player-creator, item catalogue and equipment-rule work. Its data/scripts are not a safe current baseline; compare its test intent only if a specific starting-loadout gap is identified.
+- `feature/player-custom-avatar-selection` compares 1 / 68 with one HollowTankard change. Current HollowTankard already selects `player_avatar.glb` for a feminine player when available and falls back to the shared Ara female asset. No separate port required.
+- `feature/game-start-race-class` and `feature/game-start-race-class-validation` have identical 11 / 141 comparisons and the same old character-creation lineage. Current CharacterCreationRules, player creator, CharacterState and HollowTankard have since evolved; no wholesale merge.
+- **Disposition:** preserve these historical sources. Do not reintroduce old player-creation/loadout snapshots; use current code and the agreed base-body/morph direction.
+
+### Campaign map and save/load
+
+- `feature/main-campaign-world-map` compares 12 / 140 with eight paths. The main campaign map UI/data scripts are already represented in current; its WorldRoot/HollowTankard/player-creator snapshots are older. The validated alias has the same head and comparison. No re-merge.
+- `feature/save-load-system` compares 26 / 15 with eight paths; `integration/save-load-dev2` compares 10 / 9 with nine paths. Both have `save_manager.gd` byte-identical to current. The old save test differs from current, which has evolved coverage; menu and scene wiring are also represented/evolved. Current system provides manual slots, quicksave and rotating autosaves.
+- **Disposition:** save/load is already integrated. Do not replace current tests/menu/scene with old copies. Keep both branches as provenance; no merge needed.
+
+### Buildings, geography, wilderness and seasonal visuals
+
+- `feature/hollowmere-building-port-spec` is the source lineage for the two-storey building/door framework merged by #119. Current `BuildingRegistry` and related runtime files have evolved; no re-merge.
+- `feature/organic-hollowmere-geography` compares 17 / 89 with five paths. Its organic-world feature script and village data/presentation have since evolved in current `dev_2`; do not replace current 420m village with its older geography snapshot.
+- `feat/wilderness-world-foundation` compares 9 / 126 with six paths. WildernessResourceSystem, chunk streamer and simulation wiring are represented in current; current code has evolved. No re-merge.
+- `feat/seasonal-wilderness-visuals` compares 5 / 125 with four paths. Current `SeasonalTreeVisual` is an evolved version supporting imported Kenney Nature Kit assets and procedural fallback. No re-merge.
+- **Disposition:** these are already integrated/evolved or superseded; preserve historical refs and don't merge stale copies.
+
+### Cross-check note
+
+The branch compare `ahead/behind` counts describe ancestry, not outstanding work. Exact blob identity and current behavior were checked for the key initiative, item catalogue/icon atlas and save manager files. For files that differ, the current side is the evolved baseline; this group revealed no additional safe code merge. No branch was deleted or closed.
