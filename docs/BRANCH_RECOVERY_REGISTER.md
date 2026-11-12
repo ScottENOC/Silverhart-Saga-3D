@@ -110,9 +110,9 @@
 
 ### `feature/farm-wildlife-creatures`
 
-- Compare: 22 ahead / 55 behind; nine changed paths. Current tree comparison and prior source review establish that `farm_wolves_quest.gd`, `creature_actor.gd`, their tests and docs are byte-identical to `dev_2`; village script is an older snapshot.
-- The branch also changes two Quaternius GLTF source descriptors. These should be checked for exact blob equality/current importer relevance before any disposition is called final.
-- **Disposition:** gameplay quest/creature code is already integrated; no re-port. Keep branch as provenance. Check the two GLTF descriptor diffs and any test coverage delta before final archival classification.
+- Fresh compare: 22 ahead / 58 behind; nine changed paths. `farm_wolves_quest.gd`, `tests/test_farm_wolves_quest.gd` and `docs/FARM_AND_WILDLIFE.md` are byte-identical to current `dev_2`. `creature_actor.gd` is an older snapshot; current adds hex position and CharacterState linkage (`axial_hex`, `simulation_state`). Village/HollowTankard/workflow files are older snapshots.
+- Both Quaternius GLTF source descriptors (`Horse_White.gltf` and `ShibaInu.gltf`) were checked and are byte-identical to current `dev_2`.
+- **Disposition revised:** quest/test/docs and model descriptors are already represented; no re-port. Preserve branch as provenance. Its older CreatureActor and scene snapshots must not replace the current simulation-aware actor.
 
 ### `feature/character-inventory-panel`
 
