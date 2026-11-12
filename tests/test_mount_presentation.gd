@@ -22,7 +22,7 @@ func _run() -> void:
 
     _check(MOUNT_PRESENTATION.attach_rider(rider_actor, mount_actor), "Attach helper should accept valid actors")
     _check(rider_actor.get_parent() == mount_actor, "Rider actor should be parented to the mount")
-    _check(rider_actor.position.distance_to(Vector3(0.0, 1.90, 0.0)) < 0.001, "Rider should use the raised seat transform")
+    _check(rider_actor.position.distance_to(Vector3(0.0, 1.05, 0.0)) < 0.001, "Rider should use the calibrated seat transform")
     _check(rider_actor.rotation == Vector3.ZERO, "Rider should use neutral local seat rotation")
     _check(not name_label.visible, "Rider name label should be hidden while mounted")
 
