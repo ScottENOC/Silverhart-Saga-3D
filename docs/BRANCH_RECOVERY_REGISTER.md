@@ -896,3 +896,37 @@ These are audited for retention only; they belong to the other active character/
 - Building/door and vision foundations are already integrated; no re-merge.
 - Cinematic PR #121 remains the only current `dev_2` visual integration candidate and needs PC review plus refreshed CI.
 - All remaining `fix/*` character visual branches remain preserved for the parallel modelling stream; no gameplay integration action taken.
+
+
+## Final deployment and creator-branch lineage — focused review, 12 November 2026
+
+### Pages deployment experiments
+
+- `fix/combined-game-workshop-pages-deploy` (4 / 122; four paths), `fix/pages-deploy-artifact-based-v2` (4 / 120; two paths), `fix/pages-deploy-game-and-workshop-artifacts` (9 / 121; four paths), `fix/pages-game-artifact-path` (1 / 118; one path) and `fix/split-game-export-and-pages-deploy` (1 / 119; one path) are successive iterations of the combined Pages workflow. Some add then remove a separate combined workflow; later versions use artifact-based packaging. None supersedes current `dev_2`'s more advanced 329-line workflow, which assembles the game, Ara/Workshop and prop artifacts.
+- `maintenance/single-iphone-preview-pipeline` and `feature/iphone-web-preview-pipeline` have zero commits ahead of current; they are historical pipeline snapshots.
+- `feat/wren-only-pages-two-character-workshop` (5 / 160; three paths) is an older variant of the current Workshop/Pages pipeline. `fix/workshop-dress-and-game-loading-stages` (4 / 161; three paths) mixes Workshop build, WorldRoot loading and site UI; current workflow/creator code has evolved. `fix/publish-all-male-workshop-previews` (1 / 147; one workflow path) is an older attempt at preview publication.
+- `fix/ara-review-crash-remove-legacy-wren-build` was compared directly with current workflows: its Workshop and Godot exporter workflows are older than current; it adds no unique current Ara runtime build capability. It is superseded.
+- **Disposition:** preserve all as workflow history. No workflow cherry-pick. Deployment-source mismatch (`dev` trigger/artifact source vs `dev_2` integration baseline) remains an explicit decision before current-head Pages deployment can be used as a trustworthy review loop.
+
+### Cinematic alternative lineage
+
+- `feature/hollowmere-ironbond-opening-cutscene` compares 17 / 58 with four paths and contains a separate `cinematic_director.gd` plus actor/HollowTankard changes and design doc. It overlaps the newer `integration/opening-cinematic-dev2` / PR #121 lineage but is based on older code.
+- **Disposition:** preserve as an alternative implementation/provenance source. PR #121 is the current visual-review candidate; do not merge both cinematic branches or mix their scene/actor snapshots. If #121 fails visual acceptance, compare the old director's unique approach before deciding whether to salvage any isolated concept.
+
+### Player character creator lineage
+
+- `feature/player-character-creator` compares 19 / 163 with eleven paths; `feature/player-character-creator-dev` compares 10 / 162 with nine paths. Both are older player-creator implementations and include 13-NPC-era manifest, Ara actor/HollowTankard/WorldRoot snapshots and 13/14-profile validators. Current `PlayerCharacterCreator` is a later 495-line implementation with threaded preview loading/progress and current 22-character manifest. The old validator's 13-NPC assumptions are not compatible with current data.
+- **Disposition:** no wholesale merge. Preserve design/interaction history; if a unique creator interaction is missing, recover that isolated behavior against the current creator and current character assembly contract. Do not replace the 22-NPC manifest or current creator.
+
+### Cosmo evaluation branch
+
+- `feature/cosmo-tree-gen-evaluation` compares 23 / 61 with 181 paths and contains the Cosmo addon, a large generated tree collection, gallery scene/script and generator workflow. This is the evaluation tooling the user explicitly said is not required. The game already contains the accepted generated tree collection and current seasonal/resource visuals; the runtime does not need the generator plugin.
+- **Disposition:** no merge by explicit user direction. Retain branch as source/provenance; only recover an individually identified missing generated asset if a later asset audit proves it is absent and required.
+
+### Current conclusions from this group
+
+- No remaining deployment branch provides a better production workflow than current `dev_2`; the deployment source choice is the only unresolved operational issue.
+- Keep one cinematic implementation candidate (#121) for visual review; preserve the earlier cinematic branch without combining them.
+- Player creator branches are superseded by current code and stale manifest assumptions.
+- Cosmo evaluation tooling is intentionally excluded; generated assets remain an asset/provenance concern only.
+- No branches were merged or closed in this pass.
