@@ -448,3 +448,21 @@ The presence of these systems in `dev_2` is not a full architectural sign-off. T
 - the UI prompt handles a stale request ID safely and cannot resolve a newer reaction with an old button press.
 
 These are review/test requirements, not claims that a defect has already been demonstrated.
+
+
+### Additional save/reaction boundary verification
+
+The save boundary is deliberately explicit in the current baseline:
+- `HollowTankard` blocks manual, quick and autosaves during combat, dialogue, pending reactions and the opening confrontation.
+- `WorldSimulation.to_dict()` persists world clock, combat flag, party, characters, resources and buildings, but does not serialise a pending reaction, pending attack context or active scheduler turn.
+- `WorldSimulation.load_dict()` clears pending reactions and resets the reaction request counter and turn scheduler; the saved active combat flag is subsequently cleared by the campaign scene restore path.
+- Autosaves are only triggered outside combat, pending reactions, dialogue and the opening confrontation.
+
+This is a coherent “save only at safe campaign boundaries” design. The test and documentation should preserve that invariant; do not attempt to serialize half-finished reaction prompts as part of the current save format.
+
+### Test-only branch findings
+
+- `test/save-manager-hardening`'s `tests/test_save_manager.gd` is byte-for-byte identical to the current `dev_2` file. Its single unique commit is already represented in the baseline; no port is required.
+- `test/additional-skill-effect-coverage` is an older test-suite snapshot. Its inspected assertions for Fast Movement, Goblin Opportunist and parry TP cost are all present in current `tests/test_simulation.gd`. Current tests also include newer weapon-skill, status-effect, feint and vision coverage. Do not merge the older test file over the current suite.
+
+Both branches should be retained and marked **integrated**.
