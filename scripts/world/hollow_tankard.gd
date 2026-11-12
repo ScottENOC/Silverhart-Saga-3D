@@ -6,6 +6,7 @@ const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_body.g
 const PLAYER_CUSTOM_FEMALE_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
 const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
+const MOUNT_PRESENTATION = preload("res://scripts/presentation/mount_presentation.gd")
 const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_timeline.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
@@ -2537,7 +2538,7 @@ func _rotate_active_character(steps: int) -> void:
         if mount != null:
             mount.facing_direction = state.facing_direction
         if mount_actor != null:
-            mount_actor.rotation.y = deg_to_rad(float(2 - state.facing_direction) * 60.0)
+            MOUNT_PRESENTATION.set_mount_facing(mount_actor, state.facing_direction)
     else:
         actor.rotation.y = deg_to_rad(float(2 - state.facing_direction) * 60.0)
 
@@ -2591,14 +2592,8 @@ func _attach_rider_to_mount(rider_id: String, mount_id: String) -> bool:
     var mount_actor := _find_creature_actor(mount_id)
     if rider_actor == null or mount_actor == null:
         return false
-    rider_actor.reparent(mount_actor, true)
-    rider_actor.position = Vector3(0.0, 1.35, 0.0)
-    rider_actor.rotation = Vector3.ZERO
-    var name_label := rider_actor.get_node_or_null("PlayerNameLabel") as Label3D
-    if name_label == null:
-        name_label = rider_actor.get_node_or_null("CharacterNameLabel") as Label3D
-    if name_label != null:
-        name_label.visible = false
+    if not MOUNT_PRESENTATION.attach_rider(rider_actor, mount_actor):
+        return false
     if active_character_id == rider_id:
         camera_rig.follow_target = mount_actor
     return true
@@ -2615,15 +2610,7 @@ func _detach_rider_from_mount(rider_id: String) -> void:
     var rider := simulation.get_character(rider_id)
     if rider_actor == null or rider == null:
         return
-    if rider_actor.get_parent() != self:
-        rider_actor.reparent(self, true)
-    rider_actor.position = _hex_world_position(rider.axial)
-    rider_actor.rotation.y = deg_to_rad(float(2 - rider.facing_direction) * 60.0)
-    var name_label := rider_actor.get_node_or_null("PlayerNameLabel") as Label3D
-    if name_label == null:
-        name_label = rider_actor.get_node_or_null("CharacterNameLabel") as Label3D
-    if name_label != null:
-        name_label.visible = true
+    MOUNT_PRESENTATION.detach_rider(rider_actor, self, _hex_world_position(rider.axial), rider.facing_direction)
     if active_character_id == rider_id:
         camera_rig.follow_target = rider_actor
 
@@ -2681,7 +2668,7 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
     # rider is already parented to the mount, so moving it independently
     # would pull it off the seat while the mount tween runs.
     var actor: Node3D
-    if moved_state == null or moved_state.mounted_animal_id.is_empty():
+    if MOUNT_PRESENTATION.should_animate_character(moved_state):
         actor = actor_by_id.get(character_id) as Node3D
         if actor == null:
             actor = _find_creature_actor(character_id)
