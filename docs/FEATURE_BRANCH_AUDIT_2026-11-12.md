@@ -813,3 +813,31 @@ A few names in the initial inventory were misspelled or used the wrong prefix. T
 ### Branch and PR counts at the end of this pass
 
 The live GitHub listing returned 130 branches across two pages (100 + 30). The 20 open PRs include this audit PR #123; before creating the audit PR there were 19 open PRs. PR #122 is confirmed closed and merged into `dev_2` at `143e1b02e87a795a00794f0eb291fe4db50e0175`; PRs #119 and #120 are also confirmed merged. PR #121 remains open/draft and requires visual acceptance.
+
+
+## Base-branch comparison and equipment-appearance code review
+
+### dev, dev_2 and main
+
+- `dev` compares as 0 ahead / 8 behind `dev_2`; it has no unique file changes relative to the current integration baseline. It is close, but still behind the latest `dev_2` integration commits.
+- `main` compares as 1 ahead / 525 behind `dev_2`. Its only file in the compare result is `combat-initiative-preview.yml`, and that workflow is byte-for-byte identical to the copy already in `dev_2`. The one commit is therefore historical duplicate content, not a reason to merge `main` into `dev_2`.
+- Keep `dev_2` as the active integration baseline. Do not promote or merge branches to `main` as part of this audit.
+
+### Equipment materials/heraldry branch code review
+
+The new `EquipmentAppearance` helper is sensibly defensive in several ways:
+- duplicates per-instance materials instead of recolouring shared resources;
+- preserves unknown imported surfaces by default;
+- rejects incompatible finish profiles for known surface categories;
+- isolates heraldry into a dedicated shader/material path.
+
+However, PR #76 does not modify `AraCharacterActor`, the character equipment presentation flow or `HollowTankard`. The new helper is therefore a library candidate, not an end-to-end runtime feature. Its tests exercise synthetic BoxMesh surfaces and a synthetic material named `HeraldryFace`; they do not prove the current exported shield/helmet assets expose the expected stable surface names or that the game calls the helper.
+
+**Required before integration:** wire the helper into the actual equipment actor/prop assembly path, use stable explicit surface metadata rather than relying solely on imported material resource names, add a test against the exported shield asset, and visually inspect the resulting finishes/heraldry. Do not merge this branch as “equipment appearance complete” based only on its isolated unit tests.
+
+### Additional branch disposition
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `dev` | 0 ahead / 8 behind `dev_2`. | **No unique work; retain as a near-current integration/release branch.** |
+| `main` | 1 ahead / 525 behind; only workflow file is byte-identical to current. | **Do not merge; preserve as the current production branch until an intentional release promotion.** |
