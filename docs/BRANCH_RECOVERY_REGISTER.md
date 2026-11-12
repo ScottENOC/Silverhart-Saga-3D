@@ -1279,3 +1279,10 @@ The following refs were refreshed against current `dev_2`. They belong to the se
 | `feature/game-real-hollowmere-character-art` | 6 / 165; five paths | Web export/NPC workflows, village docs and Hollowmere model validators. | Asset/deployment validation candidate; preserve and compare its validator semantics against current Pages workflow before any port. |
 
 The remaining branch inventory includes older Ara/Workshop and Pages workflow variants already covered in the earlier tables. Their ancestry counts remain secondary to exact file content and current workflow behaviour.
+
+
+### Focused validator/workflow check: `feature/game-real-hollowmere-character-art`
+
+The branch's `HollowmereVillage.md` is byte-identical to current `dev_2`. Its 13-NPC validator snapshots are older than current: current Godot/Python validators require 13 NPCs plus the generated `player_avatar` profile (14 total), reject duplicate IDs and check that the player-avatar source definition exists. The branch's deployment workflow is also an earlier combined Pages design; current `godot-web-export.yml` is substantially more complete, including independent current Workshop body and medieval prop artifact retrieval, legacy audio import, equipment smoke test, PWA build/version validation and combined deployment fallback. The branch's `hollowmere-npcs.yml` lacks the current gendered adult-anatomy integration steps.
+**Disposition:** no code or workflow port. Preserve as provenance; current validators/workflow supersede it. Continue to track the current workflow's unresolved `dev` source filters separately.
+
