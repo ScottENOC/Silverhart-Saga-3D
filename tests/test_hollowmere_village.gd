@@ -1,6 +1,7 @@
 extends SceneTree
 
 const MAIN_CAMPAIGN_MAP = preload("res://scripts/world/main_campaign_world_map_data.gd")
+const HOLLOWMERE_VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
 const COSMO_TREE_ROOT := "res://art/environment/trees/cosmo_generated/"
 const COSMO_TREE_VARIANTS := {
     "ash": 4, "bush": 4, "cherry": 4, "laurel": 4, "low_poly_bush": 4,
@@ -14,6 +15,7 @@ func _initialize() -> void:
     _test_road_network_connectivity()
     _test_building_thresholds()
     _test_hollowmere_character_manifest()
+    _test_animal_actor_registration()
     print("Hollowmere village tests passed.")
     quit()
 
@@ -141,6 +143,37 @@ func _test_main_campaign_world_map() -> void:
     assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[0] == Vector2i(1, 5))
     assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[14] == Vector2i(15, 4))
     assert(MAIN_CAMPAIGN_MAP.world_cell_from_local_hex(Vector2i(8, 24)) == Vector2i(6, 6), "The local crossroads must map to Hollowmere's world cell")
+
+func _test_animal_actor_registration() -> void:
+    var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
+    village.call("_create_farm_animals")
+    village.call("_create_wilderness_animals")
+    var simulation := WorldSimulation.new()
+    var result: Dictionary = village.call("register_animals_with_simulation", simulation)
+    assert(bool(result.get("ok", false)), "All authored Hollowmere animals should register in the campaign simulation")
+    var registered_ids: Array = result.get("registered_ids", [])
+    assert(registered_ids.size() == 10, "The six farm animals and four wilderness animals should be registered")
+    assert((result.get("skipped", []) as Array).is_empty(), "No authored animal should be skipped during registration")
+    var actor_count := 0
+    for child in village.get_children():
+        var actor := child as CreatureActor
+        if actor == null:
+            continue
+        actor_count += 1
+        assert(actor.axial_hex != Vector2i.ZERO, "%s should retain its authored hex" % actor.name)
+        assert(actor.simulation_state != null, "%s should retain its registered simulation state" % actor.name)
+        assert(simulation.get_character(actor.simulation_state.id) == actor.simulation_state, "%s should reference the canonical simulation state" % actor.name)
+        assert(actor.simulation_state.side == "neutral", "Ambient animals should remain neutral")
+        assert(actor.simulation_state.combat_dormant, "Ambient animals should remain dormant until an encounter activates them")
+        assert(actor.simulation_state.tags.has("ambient_animal"), "Registered village animals should be tagged as ambient wildlife")
+    assert(actor_count == 10, "The test should exercise every authored village animal actor")
+    var repeated: Dictionary = village.call("register_animals_with_simulation", simulation)
+    assert(not bool(repeated.get("ok", true)), "A second registration should report duplicate IDs rather than silently succeeding")
+    assert((repeated.get("registered_ids", []) as Array).is_empty(), "A repeated registration must not create duplicate animal states")
+    assert((repeated.get("skipped", []) as Array).size() == 10, "Every previously registered animal should be reported as a duplicate")
+    assert(simulation.characters.size() == 10, "Repeated registration must leave the campaign registry unchanged")
+    village.free()
+    simulation.free()
 
 func _test_cosmo_tree_collection() -> void:
     var loaded_count := 0
