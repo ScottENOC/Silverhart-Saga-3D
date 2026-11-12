@@ -381,3 +381,47 @@ The user confirmed that the separate character/clothing/hair/equipment modelling
 The user's requested four-item recovery is therefore complete at the code/test foundation level. The Cosmo evaluation tooling is excluded by user direction; generated tree assets remain in the current tree. The parallel character/clothing/hair/equipment modelling stream is excluded from this recovery pass.
 
 **This does not close Stage 1 as a whole.** The repository-wide branch inventory/recovery register still needs final review of all remaining branches, open PRs and their dependencies. PR #123 remains draft and must not be treated as the final audit sign-off.
+
+
+## Live inventory refresh — later 12 November 2026 snapshot
+
+This refresh supersedes earlier branch-count and compare-count snapshots above where they differ. It is an additive audit update; historical branch names and earlier findings remain recorded.
+
+- Live GitHub API returned **134 branches** across two pages (100 + 34), including protected integration history and all original feature branches.
+- There are **19 open PRs**. #123 remains draft and targets `dev_2`; #121 remains draft and targets `dev_2` for visual cinematic acceptance. The other 17 open PRs still target `dev` or a stacked feature branch. No source feature branch was deleted.
+- Current `dev_2` head is `374d4a2894e0c118c4a35d075a23ca568ff51209` (PR #127). The earlier inventory/register baseline at #124 is stale by three successful selective merges: #125 Campaign 2, #126 riding, #127 equipment appearance.
+- New names in this later branch inventory relative to the previous 131-branch snapshot include `docs/content-parity-audit`, `feat/wren-only-pages-two-character-workshop`, `feature/in-game-reaction-prompt`, `fix/hollowmere-cast-validator`, and the newer integration branches created for #125–#127. These must be classified separately; the integration branches are recovery records, not source feature branches.
+
+### Refreshed comparisons of large historical branches
+
+All counts below are fresh `dev_2...branch` compare-endpoint values at the current head. The file lists are merge-base diffs; they are not a substitute for recursive-tree or blob comparisons.
+
+| Branch | Ahead / behind | Changed paths | Current audit conclusion |
+|---|---:|---:|---|
+| `feature/opening-village` | 194 / 361 | 35 | Earlier village/NPC/actor snapshots; no unique binary art. Do not replace current village/actor files. Retain history; selectively recover a specific absent building/layout detail only with a test. |
+| `feature/iphone-hollowmere-ara-preview` | 178 / 361 | 36 | Same old village/Ara lineage plus HF-specific deploy helper and preview workflow. No unique binary art. Preserve as deployment history; do not restore HF publisher. |
+| `feature/shared-character-system` | 125 / 361 | 18 | Earlier appearance/accessory/actor snapshots. Keep as architectural lineage; no wholesale port. Its relationship to modular-character-poc and #87 remains important. |
+| `feat/ara-hairstyles-medieval-equipment` | 33 / 106 | 182 | The 182-path compare diff is mostly asset and workflow ancestry; the previous recursive-tree/blob audit found the 169 art paths and hair manifest already present in current. Do not re-port assets or duplicate the separate modelling stream. |
+| `feature/modular-character-poc` | 51 / 361 | 17 | Still has genuinely absent prototype paths, including modular assembler, accessory factory/attachment rig, appearance store, garment shader, socket calibration and exporter/review tools. Preserve as a high-value architecture prototype; no wholesale merge. |
+| `feature/missing-skill-runtime-port` | 21 / 15 | 8 | The branch's CharacterState, action request, skill progression, creation rules, player creator and simulation-test lines are represented in evolved `dev_2`. Its older WorldSimulation movement-reaction/lifecycle implementations are superseded by current versions with expanded contracts. No unique test lines were found in the branch snapshot. Retain as lineage; no direct port currently justified. |
+| `feature/animal-attributes` | 29 / 27 | 10 | Animal catalogue and simulation files are represented in the merged riding implementation, with current catalogue content evolved. Its preview workflow/capture script remain a separate missing pair; see below. |
+| `feature/action-contract-downed-lifecycle` | 10 / 152 | 9 | Existing action/event/result/lifecycle paths are evolved in current. Retain for history and regression provenance; no old snapshot port. |
+| `feature/combat-reaction-triggers` | 8 / 149 | 4 | Changes are to existing simulation/test/docs paths. Current reaction system is evolved; preserve as test-history source, not a wholesale merge. |
+| `feature/combat-resolution-foundation` | 36 / 158 | 18 | Broad old combat and workflow snapshot. Current paths exist and have since evolved; no wholesale merge. |
+| `feature/movement-reactions` | 8 / 144 | 5 | Existing movement/reaction paths are evolved in current. Preserve regression lineage; no wholesale merge. |
+| `feature/status-effects-combat-debuffs` | 10 / 14 | 6 | `scripts/simulation/status_effect_rules.gd` is byte-identical to current `dev_2`; other files are older snapshots. No port. |
+
+### Animal riding preview — retained but not yet accepted
+
+- PR #126 merged the simulation/catalogue/mount lifecycle work, but did not import `.github/workflows/riding-preview.yml` or `tests/capture_riding_preview.gd` from the original animal branches.
+- The preview workflow renders three rider-on-horse screenshots (female, male and side view), and prints the rider animation list and skeleton bone names. This is potentially useful evidence for the later visual stream.
+- The capture script currently parents an Ara rider directly under a `CreatureActor` and applies a fixed local offset (`y = 1.35)); it does not call or validate a production mount-visual attachment API. Therefore its output is a **prototype composition preview**, not proof that runtime riding visuals, animation retargeting or seat alignment work.
+- **Disposition:** preserve both original animal branches and this capture workflow. Do not close PR #110 as wholly superseded until the preview's value is decided. If adopted later, move the preview to the current CI branch and update it to exercise the actual runtime attachment contract once that exists. No branch deletion.
+
+### Current audit controls
+
+- Do not close #110 yet: its simulation payload is selectively integrated by #126, but its distinct preview capture remains unaudited for final use.
+- Keep #121 open/draft until a human visual playtest confirms GLB animation clips, seated/standing alignment, framing and skip behaviour.
+- Keep #123 draft. The refreshed count is not a completed inventory: the remaining small, deployment, diagnostics, test, content and integration branches still need exact path/blob/test/dependency dispositions.
+- Preserve all original feature branches. Closing an obsolete PR later does not imply deleting its source branch.
+- No gameplay branch has been merged in this refresh. The next audit pass should cover the newly visible branch names and then finish the remaining branch groups, especially the deployment/workshop variants and isolated test/diagnostic branches.
