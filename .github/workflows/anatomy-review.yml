@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/unified-character-assembly
+      - feature/anatomy-geometry-revision
     paths:
       - "tools/build_ara_runtime_local.py"
       - "tools/blender/add_adult_anatomy.py"
