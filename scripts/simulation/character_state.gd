@@ -93,6 +93,25 @@ var quick_recovery_rank: int = 0
 var skills: Dictionary = {}
 var skill_effect_ranks_applied: Dictionary = {}
 var health_regen_remainder: float = 0.0
+
+# Animal-only identity and physical profile. Kept separate from the human
+# skill-point attributes so animal stats never enter character progression.
+var creature_kind: String = ""
+var animal_attributes: Dictionary = {}
+var creature_size: int = 0
+var mount_size: int = 0
+var mountable: bool = false
+var carry_capacity: int = 0
+var movement_mode: String = "ground"
+var temperament: String = ""
+var vision_bonus: int = 0
+var scent_bonus: int = 0
+var individual_seed: int = 0
+## Stable links; a mounted rider shares the mount's hex and does not own occupancy.
+var mounted_animal_id: String = ""
+var mounted_by_id: String = ""
+var mounted_original_side: String = "neutral"
+var mounted_original_combat_dormant: bool = false
 # equipment remains a compact slot -> gameplay item ID map for existing rules.
 # equipped_item_data stores the corresponding item instance metadata, while
 # inventory stores carried item instances with stable instance IDs.
@@ -368,6 +387,21 @@ func to_dict() -> Dictionary:
         "total_time_points_spent": total_time_points_spent,
         "quick_recovery_rank": quick_recovery_rank,
         "skills": skills.duplicate(true),
+        "creature_kind": creature_kind,
+        "animal_attributes": animal_attributes.duplicate(true),
+        "creature_size": creature_size,
+        "mount_size": mount_size,
+        "mountable": mountable,
+        "carry_capacity": carry_capacity,
+        "movement_mode": movement_mode,
+        "temperament": temperament,
+        "vision_bonus": vision_bonus,
+        "scent_bonus": scent_bonus,
+        "individual_seed": individual_seed,
+        "mounted_animal_id": mounted_animal_id,
+        "mounted_by_id": mounted_by_id,
+        "mounted_original_side": mounted_original_side,
+        "mounted_original_combat_dormant": mounted_original_combat_dormant,
         "skill_effect_ranks_applied": skill_effect_ranks_applied.duplicate(true),
         "health_regen_remainder": health_regen_remainder,
         "equipment": equipment.duplicate(true),
@@ -465,6 +499,21 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.total_time_points_spent = float(data.get("total_time_points_spent", 0.0))
     state.quick_recovery_rank = clampi(int(data.get("quick_recovery_rank", 0)), 0, ActionEconomy.MAX_QUICK_RECOVERY_RANK)
     state.skills = data.get("skills", {}).duplicate(true)
+    state.creature_kind = String(data.get("creature_kind", ""))
+    state.animal_attributes = data.get("animal_attributes", {}).duplicate(true)
+    state.creature_size = maxi(0, int(data.get("creature_size", 0)))
+    state.mount_size = maxi(0, int(data.get("mount_size", 0)))
+    state.mountable = bool(data.get("mountable", false))
+    state.carry_capacity = maxi(0, int(data.get("carry_capacity", 0)))
+    state.movement_mode = String(data.get("movement_mode", "ground"))
+    state.temperament = String(data.get("temperament", ""))
+    state.vision_bonus = int(data.get("vision_bonus", 0))
+    state.scent_bonus = int(data.get("scent_bonus", 0))
+    state.individual_seed = int(data.get("individual_seed", 0))
+    state.mounted_animal_id = String(data.get("mounted_animal_id", ""))
+    state.mounted_by_id = String(data.get("mounted_by_id", ""))
+    state.mounted_original_side = String(data.get("mounted_original_side", "neutral"))
+    state.mounted_original_combat_dormant = bool(data.get("mounted_original_combat_dormant", false))
     state.skill_effect_ranks_applied = data.get("skill_effect_ranks_applied", {}).duplicate(true)
     state.health_regen_remainder = maxf(0.0, float(data.get("health_regen_remainder", 0.0)))
     if not data.has("skill_effect_ranks_applied"):
