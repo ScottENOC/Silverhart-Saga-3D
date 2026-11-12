@@ -1054,3 +1054,38 @@ The `feature/vision-stealth-perception` branch is not an integration source: it 
 ### Deployment NPC-count label clarification
 
 The current workflow's step label says "Verify all 13 NPCs and the player avatar", but the validator itself does not hard-code 13: it reads the canonical `hollowmere_npcs.json` manifest, requires a `player_avatar` entry, and checks that every source ID has a matching generated profile and valid GLB/parameter file. The current `dev_2` manifest contains 22 character records. The step label is stale/misleading; the validator's dynamic count is the authoritative check. Rename the workflow step when making the deployment-source correction.
+
+
+### Additional world, roster, audio and item branches
+
+- `feature/farm-wildlife-creatures` (22 ahead / 55 behind): its `farm_wolves_quest.gd`, `creature_actor.gd`, quest tests and farm/wildlife documentation are byte-identical to current `dev_2`. Its Hollowmere village script is older. The farm/wolf quest and creature actor are integrated; no port.
+- `feature/arena-and-full-character-roster` (7 ahead / 105 behind): arena opponent data, legacy enemy roster, roster validator and roster tests are byte-identical to current `dev_2`. Integrated; no port.
+- `feature/hollowmere-items-and-inventory-art` (2 ahead / 139 behind): ItemCatalog is byte-identical to current. Its CharacterPanel is an older 297-line version versus current 317-line panel. No merge; inspect the SVG icon atlas only if current UI is missing a specific icon.
+- `feature/legacy-audio-menu-dev` and `feature/legacy-audio-menu-dev2`: current `AudioManager` is byte-identical to the newer dev2 branch. The audio/menu foundation was integrated/evolved; old scenes, workflow and main-menu snapshots are not safe replacements. The arena remains a placeholder; do not treat the presence of audio import code as completion of arena mode.
+- `feature/game-start-race-class` and `feature/game-start-race-class-validation`: same old implementation lineage and identical to each other, both substantially behind current. Current character creation and starting-race/class implementation have evolved; no wholesale merge.
+- `feature/character-starting-clothing`: old loadout, actor, creator and simulation snapshots; no merge. Current character definitions/loadouts and Ara actor are newer. Check a specific clothing default only if a current NPC/player loadout demonstrates a gap.
+- `feature/player-character-visual-phase1`: older Ara actor/player creator snapshots and export workflow; superseded by current 574-line actor and 495-line creator. No merge.
+- `feature/reusable-npc-workshop`: extremely stale against current workshop (358 commits behind) and introduces a competing modular assembler/profile pipeline. Current Ara workflow and resolver architecture have superseded it; preserve as prototype, no merge.
+- `feature/runtime-tattoos`: older workshop workflow/site changes. Current tattoo behaviour is implemented at runtime and current workflow rejects the old baked tattoo-body asset route; no merge.
+- `feat/character-preview-loading-progress`: small isolated creator UI change (one file). Keep as a possible UX salvage only after comparing its loading-state semantics with the current creator; do not merge its old player creator file.
+- `feat/campaign-loading-feedback`: one old `WorldRoot` change; compare its progress feedback with current loading transitions before any salvage. The branch is not a full feature integration.
+- `feature/legacy-porting-matrix` and `feature/legacy-porting-matrix-dev2`: documentation-only branches behind current code. Reconcile their useful source-parity notes into the current audit/port register rather than merging stale docs.
+- `feature/mechanics-port-foundation`: documentation-only, one ahead but 155 behind; current register has evolved. No merge.
+- `feature/port-action-economy` and `feature/skill-magic-foundation-current-dev`: no commits ahead of current `dev_2`; no merge.
+
+### Cosmo tree generator and forest branches
+
+- `feature/cosmo-tree-gen-evaluation` and `feature/hollowmere-cosmo-forest` carry a large third-party Cosmo Tree Generator addon, presets and generated GLBs. Current `dev_2` already contains the generated tree collection and `HollowmereVillage` references it, while current seasonal tree rendering uses imported Kenney Nature Kit GLBs with procedural fallback. The addon is not required at runtime for the already-generated GLBs. Do not merge the large addon/demo tree-generator branch into the game merely to retain generated outputs; keep the addon as a separate evaluation/provenance source unless the team chooses to maintain in-game tree generation.
+- `feat/wilderness-art-and-gatherable-visuals` and `feat/seasonal-wilderness-visuals` overlap older seasonal/resource visuals. Current seasonal tree script is the newer 180-line version and is byte-identical to the branch's farm/wildlife derivative; no merge.
+
+### Cinematic and remaining presentation branches
+
+- `feature/hollowmere-ironbond-opening-cutscene` is a separate earlier cinematic implementation with its own director/actor/world-script changes. Current candidate for visual acceptance is PR #121 `integration/opening-cinematic-dev2`; review the actual current branch/scene, not the older source branch. Keep both histories.
+- `feature/main-campaign-world-map` and `feature/main-campaign-world-map-validated` are the same evolved map lineage; current map UI/data files are byte-identical. No merge.
+- `feature/hollowmere-building-port-spec` and its associated building/door framework are represented in the already-merged PR #119. No merge.
+- `feature/hollowmere-github-pages` is an old deployment workflow/script bundle. Current PWA and combined Pages build supersede it; no merge.
+- `feature/ios-game-pwa` is an earlier packaging implementation, superseded by current PWA packaging and workflow validation.
+
+### Branch inventory / PR state
+
+The live branch listing was refreshed from both GitHub API pages. Several branches created after the earlier inventory (including `docs/content-parity-audit`, `feature/in-game-reaction-prompt`, `feat/wren-only-pages-two-character-workshop`, and `integration/equipment-rules-dev2`) are now included in the live inventory. The current open PR list contains #123 (audit), #121 (opening cinematic), #110 (riding), #99 (farmstead rescue), #96 (vision/fog), #90 (skills/magic), #89 (content census), #88 (world port), #87 (character assembly), #77/#76 (clothing/equipment art), #74 (player inventory), #73 (companion model), #34 (workflow consolidation), #29 (creator), #26/#25 (pipeline/clothing), #8 (anatomy), and #5 (audio/mode selection). Most legacy PRs still target `dev`, not `dev_2`; do not merge them into the active baseline without a fresh selective port.
