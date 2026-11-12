@@ -1234,3 +1234,48 @@ GitHub now returns 136 live branch names and 20 open PRs. All 136 branch names a
 | `audit/feature-branch-consolidation` | This audit's own working branch. | Keep as the documentation-only audit source; PR #123 remains draft. |
 | `main` | Production/default branch, not an integration target for this audit. | Leave untouched. |
 
+
+
+## Late-pass family reconciliation — additional live branches
+
+### Skill/spell documentation branches
+
+| Branch | Compare vs current `dev_2` | Source-level finding | Disposition |
+|---|---:|---|---|
+| `audit/skill-effect-branch-cross-reference` | 1 ahead / 30 behind; one changed file | Older 37 KB version of `docs/SKILL_SPELL_IMPLEMENTATION_AUDIT.md`; current `dev_2` has an 85 KB evolved version. | No port. Retain as audit lineage; use current document as the working copy. |
+| `audit/skill-effect-parity-update` | 3 / 27; one changed file | Older 45 KB version of the same audit; current `dev_2` version is materially more complete. | No port. Do not replace the current audit with the older branch snapshot. |
+| `audit/skill-spell-implementation-baseline` | 0 / 32; no changed paths | Ancestor/documentation baseline; no unique change relative to current `dev_2`. | No port; preserve history. |
+| `audit/spell-parity-and-test-findings` | 2 / 29; one changed file | Its 14 KB `SPELL_PARITY_AUDIT.md` is superseded by the 15.7 KB current `dev_2` document, which includes the later orphan-unlock and spell-learning checks. | No port. Keep the current document as source of truth. |
+
+The current `dev_2` documentation still records the important implementation boundary: 257 skill IDs and 15 registered base spells exist as data/progression foundations, but spell casting/effect resolution is not established; 19 source unlock descriptions are orphaned from registered base spells. The skills audit marks effect coverage individually rather than treating catalogue presence as implementation. These docs are useful parity references, not a reason to start spell feature work during Stage 1.
+
+### Hollowmere dialogue / shakedown branch family
+
+- `feature/hollowmere-dialogue-ambient-chatter`: 16 ahead / 139 behind; six changed paths. The current `ambient_chatter.gd` and `hollowmere_campaign_content.gd` are byte-identical to this branch; `campaign_journal.gd` is also represented in the evolved current tree. Its `HollowTankard` and simulation-test files are older snapshots. The only branch-only function names found in the old scene are Wren-specific model/underwear toggles, not missing current campaign logic.
+- `feature/hollowmere-shakedown-combat`: 50 ahead / 133 behind; eight changed paths. The current ambient chatter, campaign content, campaign journal and combat turn scheduler are byte-identical to the branch. Its `hollowmere_encounter.gd` differs only in setting both sides to `max_time_points`; current code deliberately uses `ActionEconomy.COMBAT_TURN_READY_TP`. Its 69 KB `HollowTankard` and 62 KB test file are older snapshots than the 132 KB / 136 KB current versions. No branch-only test function was found.
+- **Disposition:** no missing runtime slice identified. Preserve both branches as campaign/encounter lineage; do not copy their old `HollowTankard`, journal or test snapshots over current `dev_2`.
+
+### Parallel character/anatomy/visual work — preserve, do not duplicate
+
+The following refs were refreshed against current `dev_2`. They belong to the separate modelling/visual acceptance stream or are diagnostic branches; they are recorded here for preservation and dependency awareness, not as permission to merge them into the game during Stage 1.
+
+| Branch | Compare vs `dev_2` | Changed paths / known scope | Audit treatment |
+|---|---:|---|---|
+| `feature/anatomy-morph-sculpt-tests` | 215 / 63; 36 paths | Body profiles/NPC schema, resolver, anatomy scripts, garment library/rig tools, vulva sculpt, male morph-pose test, validation workflows and assembly tests. | Active parallel anatomy candidate; overlaps `feature/anatomy-geometry-revision` and the ten-profile proposal. Preserve; no merge until current accepted male/female base and morph strategy is settled and visual assets/tests are accepted. |
+| `feature/male-anatomy-geometry-review` | 5 / 153; three paths | Workshop workflow/site and male anatomy generator. | Parallel visual review; preserve, no merge in this audit. |
+| `feature/ara-character-evaluation` | 4 / 385; four paths | Workshop workflow, evaluation/pipeline docs and site. | Parallel character evaluation; preserve; assess through the modelling stream. |
+| `feature/ara-skeleton-animation-validation` | 0 / 298; no changed paths | No unique current-tree delta. | No port; preserve historical validation ref. |
+| `feature/ara-visual-animation-review` | 0 / 290; no changed paths | No unique current-tree delta. | No port; preserve historical review ref. |
+| `feature/terrain-character-grounding-test` | 0 / 303; no changed paths | No unique current-tree delta. | No port; preserve historical test ref. |
+| `fix/anatomy-pelvic-landmark-port` | 0 / 171; no changed paths | No unique current-tree delta. | No port; preserve historical ref. |
+| `diagnostic/ara-garment-surface-report` | 1 / 65; one actor file | Diagnostic change to Ara actor configuration. | Preserve diagnostic result/source; do not merge without the parallel stream confirming the finding and fix. |
+| `diagnostic/ara-report-on-character-configure` | 1 / 64; one actor file | Diagnostic change to Ara actor configuration. | Same; preserve, no automatic merge. |
+| `fix/generic-clothing-visibility` | 3 / 66; one actor file | Clothing/body visibility fix candidate. | Parallel clothing stream; preserve and visually validate against transparent garments and morphs. |
+| `fix/keep-body-visible-under-clothing` | 2 / 68; one actor file | Body visibility under clothing fix candidate. | Parallel clothing stream; preserve and visually validate; no duplicate port here. |
+| `fix/male-anatomy-surface-sampling` | 1 / 150; one Blender generator file | Male anatomy surface sampling adjustment. | Parallel anatomy stream; preserve pending mesh-level review. |
+| `fix/modular-outfit-review-material-duplicates` | 6 / 167; two paths | Outfit review renderer and Workshop workflow. | Parallel clothing QA; preserve pending review of material duplication results. |
+| `fix/player-equipment-visuals` | 4 / 70; two paths | Ara actor and HollowTankard presentation. | Parallel equipment visuals; preserve; no merge until accepted model/equipment visual review. |
+| `fix/wren-lace-fishnet-and-anatomy` | 19 / 171; six paths | Workshop workflow/site, layering patch and male/female anatomy scripts/review renderer. | Parallel clothing/anatomy stream; preserve; no wholesale merge into current Ara pipeline. |
+| `feature/game-real-hollowmere-character-art` | 6 / 165; five paths | Web export/NPC workflows, village docs and Hollowmere model validators. | Asset/deployment validation candidate; preserve and compare its validator semantics against current Pages workflow before any port. |
+
+The remaining branch inventory includes older Ara/Workshop and Pages workflow variants already covered in the earlier tables. Their ancestry counts remain secondary to exact file content and current workflow behaviour.
