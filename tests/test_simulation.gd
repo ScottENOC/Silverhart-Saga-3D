@@ -41,6 +41,7 @@ func _initialize() -> void:
     _test_additional_skill_effects()
     _test_reaction_resolution_safety()
     _test_incapacitated_turn_cleanup()
+    _test_vision_rules()
     if _failures > 0:
         push_error("%d test assertion(s) failed." % _failures)
         quit(1)
@@ -442,6 +443,58 @@ func _test_status_effects_and_combat_debuffs() -> void:
     hobbled.hobbled_stacks = 2
     _check(is_equal_approx(MovementRules.step_cost(movement_map, Vector2i.ZERO, Vector2i(1, 0), unhampered), 5.0), "Normal movement cost remains unchanged")
     _check(is_equal_approx(MovementRules.step_cost(movement_map, Vector2i.ZERO, Vector2i(1, 0), hobbled), 7.0), "Each Hamstring stack increases movement cost by twenty percent")
+
+
+func _test_vision_rules() -> void:
+    var observer := CharacterState.new("vision_observer", "Observer", Vector2i(0, 0))
+    _check(VisionRules.vision_range(observer) == 25, "Base live vision should be 25 hexes")
+    _check(VisionRules.exploration_range() == 30, "Exploration range should remain separate at 30 hexes")
+
+    observer.skills = {
+        "elf_vision": 2,
+        "deep_sense": 1,
+        "keen_perception": 2,
+        "inconspicuous": 1,
+        "shadow_weaver": 1
+    }
+    _check(VisionRules.vision_range(observer) == 33, "Elf vision should add four hexes per rank")
+    _check(VisionRules.vision_range(observer, true) == 37, "Deep Sense should add four hexes indoors")
+    _check(VisionRules.vision_range(observer, false, true) == 6, "Low light should reduce non-darkvision range to the 0.2 factor")
+    _check(VisionRules.stealth_detection_bonus(observer) == 20, "Keen Perception should add ten detection points per rank")
+    _check(VisionRules.stealth_check_bonus(observer) == 10, "Inconspicuous and Shadow Weaver should each add five stealth points per rank")
+
+    observer.skills["elf_darkvision"] = 1
+    _check(VisionRules.vision_range(observer, false, true) == 33, "Elf Darkvision should remove the low-light penalty")
+    observer.skills.clear()
+    observer.skills["goblin_keen_senses"] = 1
+    observer.skills["goblin_low_light_eyes"] = 1
+    _check(VisionRules.vision_range(observer, false, true) == 28, "Goblin Keen Senses should add three hexes and Low-light Eyes should remove the penalty")
+
+    var map := HexMapData.new()
+    for q in range(0, 5):
+        map.add_cell(Vector2i(q, 0), 0.0, true, "grass")
+    var target := CharacterState.new("vision_target", "Target", Vector2i(4, 0))
+    observer.axial = Vector2i(0, 0)
+    observer.skills.clear()
+    _check(VisionRules.has_line_of_sight(map, observer.axial, target.axial), "Clear intervening hexes should permit line of sight")
+    _check(VisionRules.can_see(map, observer, target), "A target within base range and clear LOS should be visible")
+
+    map.cells[Vector2i(2, 0)]["blocks_vision"] = true
+    _check(not VisionRules.has_line_of_sight(map, observer.axial, target.axial), "An explicit opaque cell should block line of sight")
+    map.cells[Vector2i(2, 0)]["blocks_vision"] = false
+    map.cells[Vector2i(2, 0)]["elevation"] = 3.0
+    _check(not VisionRules.has_line_of_sight(map, observer.axial, target.axial), "A ridge above the sight line should block line of sight")
+    map.cells[Vector2i(2, 0)]["elevation"] = 0.0
+    _check(VisionRules.has_line_of_sight(map, observer.axial, target.axial), "Sight should recover when the ridge is removed")
+
+    observer.skills["elf_vision"] = 2
+    target.axial = Vector2i(30, 0)
+    for q in range(5, 35):
+        map.add_cell(Vector2i(q, 0), 0.0, true, "grass")
+    _check(VisionRules.can_see(map, observer, target), "Elf vision should extend the visibility boundary to 33 hexes")
+    target.axial = Vector2i(34, 0)
+    map.add_cell(Vector2i(34, 0), 0.0, true, "grass")
+    _check(not VisionRules.can_see(map, observer, target), "Targets beyond modified vision range should not be visible")
 
 
 func _check(condition: bool, message: String = "Assertion failed") -> void:
