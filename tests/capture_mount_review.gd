@@ -40,12 +40,11 @@ func _capture() -> void:
     ground.position.y = -0.05
     world.add_child(ground)
 
-    # True side-on view of the horses. Add the camera before look_at(); Godot
-    # cannot orient a Camera3D until it is inside the scene tree. The horse
-    # models face along their local forward axis, so viewing from +X exposes
-    # the rider silhouette instead of hiding it behind the horse's chest.
+    # Quaternius Horse.gltf faces along local +X. A camera on +X therefore
+    # sees the horse head-on; use +Z for a genuine broadside rider silhouette.
+    # Add the camera before look_at() so Godot can orient it in the scene tree.
     var camera := Camera3D.new()
-    camera.position = Vector3(11.5, 3.0, 0.0)
+    camera.position = Vector3(0.0, 3.0, 11.5)
     camera.fov = 48
     world.add_child(camera)
     camera.look_at(Vector3(0.0, 1.45, 0.0), Vector3.UP)
