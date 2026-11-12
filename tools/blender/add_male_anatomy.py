@@ -226,7 +226,7 @@ def create_flaccid_phallus(material, armature, pelvis_bone, body_height, anatomy
     right = Vector((1.0, 0.0, 0.0))
     side = axis.cross(right).normalized()
     length = body_height * 0.038
-    radius = body_height * 0.0060
+    radius = body_height * 0.0085  # fuller relaxed shaft, +42% radius
     base = Vector((centre_x, anchor_y + body_height * 0.003, anatomy_z + body_height * 0.003))
 
     # Longitudinal silhouette: narrow attachment, fuller shaft, a restrained
@@ -556,7 +556,7 @@ def paint_male_anatomy_detail(obj, centre_x, anatomy_z, height, anchor_y, state,
             along = relative.dot(axis)
             t = max(0.0, min(1.0, along / length))
             radial = (relative - axis * along).length
-            radius = height * (0.0060 if state == 'flaccid' else 0.010)
+            radius = height * (0.0085 if state == 'flaccid' else 0.010)
             glans = math.exp(-0.5 * ((t - 0.88) / 0.085) ** 2) * max(0.0, 1.0 - radial / (radius * 1.8))
             groove = math.exp(-0.5 * ((t - 0.785) / 0.028) ** 2) * max(0.0, 1.0 - radial / (radius * 1.5))
             strength = min(1.0, 0.58 * glans + 0.20 * groove)
