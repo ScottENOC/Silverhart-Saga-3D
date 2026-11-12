@@ -961,3 +961,23 @@ These are audited for retention only; they belong to the other active character/
 - Current skill/spell audits and save/CI test coverage are already represented or superseded.
 - `docs/CONTENT_PARITY_AUDIT.md` and `docs/CI_WORKFLOWS.md` are the two distinct documentation candidates identified here; preserve their branches and update their evidence before deciding whether to add them to current docs.
 - No branch was merged or closed in this pass.
+
+
+## Low-coverage branch records and exact-blob follow-up — 12 November 2026
+
+- `deploy/wren-workshop-github-pages` compares 1 / 170 with one Workshop workflow change. It is an older Pages deployment iteration; current combined game/Workshop workflow is more advanced. Preserve, no merge.
+- `feature/runtime-tattoos` compares 8 / 140 with three paths. Its `docs/WREN_WORKSHOP.md` is byte-identical to current, and the runtime tattoo customization described is in the browser Workshop, not a new Godot actor implementation. Its workflow/site are older snapshots. Preserve, no merge.
+- `feat/ara-shields-helmets-hairstyles` is 15 / 106 with seven paths: armour-prop workflows, equipment pipeline doc, asset tests and Blender prop builders. It remains in the separate modelling stream; preserve, no merge here.
+- `feat/campaign-loading-feedback` (1 / 105) is an older WorldRoot loading overlay; current WorldRoot adds campaign restore progress. No re-port.
+- `feat/character-preview-loading-progress` (3 / 104) is an older creator preview-loading implementation; current creator includes the threaded status/progress behavior and additional body/hair readiness/failure reporting. No re-port.
+- `feature/campaign-quest-journal` (5 / 138) is an earlier CampaignJournal/WorldSimulation/test snapshot. Current journal has more extensive faction/NPC knowledge, standing and merchant influence persistence. No wholesale port.
+- `feature/hollowmere-dialogue-ambient-chatter` (16 / 137) contains older campaign content and ambient chatter; current content has evolved choice-specific dialogue and reputation state. Its apparent unique lines were compared and are present or superseded; no separate content payload has been identified for recovery.
+- `feature/main-campaign-world-map-validated` is the same head and same 12 / 140 comparison as `feature/main-campaign-world-map`; treat as a duplicate validation alias, not a separate implementation.
+- `feature/male-anatomy-geometry-review` (5 / 151) changes only the Workshop workflow/site and Blender male-anatomy tool. Parallel anatomy stream; preserve, do not merge.
+- `feature/player-character-visual-phase1` (12 / 128) is an older player visual/actor/creator/scene snapshot plus phase doc. Current actor/creator have evolved; preserve unique design criteria for the modelling stream, no code merge.
+- `fix/skill-effect-test-rank-fixtures` (1 / 25) is an older simulation test snapshot; current suite contains those cases with updated rank constraints and broader coverage. No re-port.
+- `integration/animal-riding-dev2` is the selective source for merged PR #126; `integration/campaign2-world-dev2` is the source for merged PR #125; `integration/equipment-heraldry-dev2` is the source for merged PR #127; and `integration/equipment-rules-dev2` is the source for merged PR #124. These integration branches remain historical recovery branches; no second merge.
+
+### Remaining note on audit completeness
+
+This pass now has explicit comparison/disposition notes for the low-coverage names above. Name coverage remains 134/134. The audit still does not claim exhaustive visual review of all binary assets or in-game acceptance of modelling branches; those are deliberately delegated to the parallel modelling stream. The remaining technical uncertainty is concentrated in (a) the `dev` versus `dev_2` Pages deployment source, (b) PC visual acceptance and refreshed validation for cinematic PR #121, and (c) the exact salvage design for deferred quest/fog/NPC-preview candidates. None of these warrants a merge or branch deletion now.
