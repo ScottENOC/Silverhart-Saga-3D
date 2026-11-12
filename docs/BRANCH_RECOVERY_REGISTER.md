@@ -981,3 +981,120 @@ These are audited for retention only; they belong to the other active character/
 ### Remaining note on audit completeness
 
 This pass now has explicit comparison/disposition notes for the low-coverage names above. Name coverage remains 134/134. The audit still does not claim exhaustive visual review of all binary assets or in-game acceptance of modelling branches; those are deliberately delegated to the parallel modelling stream. The remaining technical uncertainty is concentrated in (a) the `dev` versus `dev_2` Pages deployment source, (b) PC visual acceptance and refreshed validation for cinematic PR #121, and (c) the exact salvage design for deferred quest/fog/NPC-preview candidates. None of these warrants a merge or branch deletion now.
+
+
+## Selective recovery playbooks and preservation gates — 12 November 2026
+
+This section turns the deferred candidates into actionable recovery recipes. The recipes intentionally start from the latest `dev_2` and preserve the original source branch. No recipe authorises a wholesale merge of a stale PR.
+
+### 1. Character assembly / NPC canonicalisation — #87
+
+**Source:** `feature/unified-character-assembly`; open draft PR #87 currently targets `dev`, not `dev_2`.
+
+**Preserve now:** the original branch and PR, its resolver implementation, schema/design documents, Blender/ARA build tools, profile catalogue, tests and any generated assets. Do not delete `hollowmere_loadouts.json` or replace the current NPC manifest during preservation.
+
+**Recovery order when the character-model stream is ready:**
+1. Agree the runtime contract first: one accepted male base and one accepted female base, per-character morph/appearance recipe, garment fit data and equipment slots. The branch's ten separately exported body/garment profiles are a proposal, not the agreed production model.
+2. Create a new integration branch from the then-current `dev_2`; do not retarget or force-push the historical branch.
+3. Port/adapt `character_assembly_resolver.gd` as a pure data-to-runtime adapter. It should resolve base body variant plus morph recipe, hairstyle, garment style and equipment references without generating bespoke body assets.
+4. Migrate all 22 current NPC definitions before changing schema. Preserve every current ID, quest/companion reference, inventory and equipment item. Add schema migration tests that prove old definitions still load.
+5. Prevalidate the complete inventory/equipment payload before mutating CharacterState; reject duplicate item IDs or support stack quantities; make repeated resolver calls idempotent or explicitly reject a second application.
+6. Add only the two accepted base body assets and their tested clothing/garment assets. The ten declared profile GLB paths in the source branch are not present as a complete set; catalogue entries alone do not satisfy this gate.
+7. Run manifest validation, resolver tests, all current Godot tests, and in-game NPC/player appearance, morph and garment fit review. Keep Blender generation/validation CI separate from the runtime game tests.
+
+**Hard blockers:** 14-vs-22 NPC migration; ten missing profile/garment GLBs; duplicate inventory IDs can overwrite; resolver mutates before all equipment references are validated; deterministic IDs make repeated population non-idempotent; current user direction is two base bodies plus morphs, not ten independently maintained body bases.
+
+**Acceptance:** all 22 existing NPCs resolve; player creator resolves male/female base; inventory ownership and slot validation pass; repeated load/resolve does not duplicate or lose items; representative clothing remains fitted across supported morphs; no accepted model asset is inferred from a path string.
+
+### 2. Fog of war and stealth perception — #96
+
+**Source:** `feature/vision-stealth-perception`; open draft PR #96 targets `dev`. Its `VisionRules` spatial foundation was selectively recovered by PR #122; fog presentation remains branch-only.
+
+**Preserve now:** `scripts/presentation/fog_of_war.gd`, `tests/test_fog_of_war.gd`, `docs/VISION_STEALTH_PORT.md` and the historical PR. Do not merge the old `HollowTankard`, `WorldSimulation`, test-suite or workflow snapshots.
+
+**Recovery order:**
+1. Start from current `dev_2` `VisionRules`/`HexMapData` and the #122 LOS tests. Compare the branch fog script against the current village/map geometry and current 420m world layout.
+2. Split persistent exploration data from the `Node3D` renderer. Store explored hex IDs per player/party/campaign in stable save data; compute current visible hexes from current observers. MultiMesh, debug panel, cached geometry and actor-node references are disposable presentation state and must be rebuilt after load.
+3. Define whether exploration is player-only or party-shared, and how indoor/tavern, unloaded chunks and map transitions are represented. Never serialize MultiMesh instance indices or scene-node paths as world knowledge.
+4. Adapt fog rendering to current village/world extents and chunk streaming; avoid hard-coded map radius, 190m bounds and stale geometry assumptions unless they are derived from current map data.
+5. Add tests for reveal, loss of live visibility, persistent exploration across save/load, observer movement, multiple observers, map transitions, unloaded cells and deterministic rebuild. Add an in-game visual review for edge clipping, roads/buildings and indoor transitions.
+6. Only after fog/exploration is stable should stealth detection, suspicion, observer-specific last-known-position memory and AI search/pursuit be designed as separate simulation state and rules.
+
+**Hard blockers:** current branch fog script couples saved knowledge and presentation caches; old fixed map dimensions/geometry; no campaign persistence contract; no enemy memory/search/suspicion implementation. The `VisionRules` LOS foundation is already in `dev_2`, but stealth bonuses alone are not a stealth system.
+
+**Acceptance:** explored state survives save/load and rebuild; live visibility is recomputed; no renderer object is saved; map edge/indoor tests pass; AI memory remains observer-specific and does not reveal unseen current positions.
+
+### 3. Tessa rescue / dire-wolf quest — #99
+
+**Source:** `feature/farmstead-bear-creature-model`; open draft PR #99 targets `dev` and is based on old quest/world snapshots.
+
+**Preserve now:** Tessa rescue quest content, trail/rescue/encounter beat design, dire-wolf encounter helper, tests and branch history. Do not replace current companion content or current HollowTankard wholesale.
+
+**Recovery order:**
+1. Rebase conceptually—not mechanically—onto current `dev_2` quest/campaign state, current 22-NPC definitions, #126 `AnimalCatalog`/mount registration and current `WorldSimulation`.
+2. Port quest progression as explicit stable campaign events/states: missing child reported, trail found, Tessa rescued, dire wolf defeated, reward/recruitment outcome. Preserve save/restore between each stage.
+3. Reuse the current wolf animal profile and registration rules; do not create a second animal stats implementation. Choose one source of base HP and apply Health skill effects exactly once. #126's double-health correction is the rule to preserve.
+4. Snapshot every character's prior `combat_dormant`, `side`, TP and relevant combat state before encounter staging; restore the exact prior values on victory, defeat, cancellation and scene exit. Never set all registered characters dormant and later restore only the party.
+5. Add tests for duplicate quest start, missing/dead party members, dire-wolf registration, HP after registration, all encounter outcomes, save/restore at every quest stage and restoration of unrelated bystanders.
+6. Run the quest through the actual Hollowmere scene and validate that Tessa, trail markers, encounter trigger and recruitment/reward are reachable and understandable.
+
+**Hard blockers:** old helper gives wolf explicit max HP and adds Health ranks, causing Health to be applied again during registration; global dormancy mutation is not symmetrically restored; old `HollowTankard` and test snapshots conflict with current code.
+
+**Acceptance:** deterministic quest-state transitions and save/restore; one health calculation; unrelated NPC states unchanged after every exit path; no stale scene snapshot.
+
+### 4. Hollowmere shakedown encounter
+
+**Source:** `feature/hollowmere-shakedown-combat` (no current open PR). Unique `HollowmereEncounter` and test are present; current CampaignJournal is identical to `dev_2`, but the branch's broad HollowTankard/test snapshots are stale.
+
+**Preserve now:** `hollowmere_encounter.gd`, the `_test_hollowmere_encounter` test intent, and relevant encounter dialogue/quest design. No merge yet.
+
+**Recovery order:**
+1. Port only the encounter state machine and its focused test into a new branch from current `dev_2`.
+2. Replace hard-coded roster assumptions with validated current NPC IDs and an explicit encounter roster definition. Validate every participant and every profile before mutating anyone.
+3. Snapshot and restore prior side, dormant state, TP, combat flags and any temporary stats/tags for every affected actor; cover victory, party defeat, abort and scene transition.
+4. Ensure encounter start/finish is idempotent and save/load policy is explicit (either prohibit saving mid-encounter with a clear result, or serialize the encounter state completely).
+5. Use current combat action/reaction/turn scheduler APIs and test actual AI turns, target eligibility, ally defeat, enemy defeat and turn cleanup.
+6. Integrate into current HollowTankard via a small encounter controller/event boundary; do not copy the old 1,528-line HollowTankard or 1,115-line test suite.
+
+**Hard blockers:** all-character dormancy/side mutations are not restored for every bystander; temporary ally/enemy stats and tags are applied directly; scene wrapper/quest outcome and interruption handling need validation.
+
+**Acceptance:** no unrelated NPC changes after encounter; repeated start/finish safe; defeat/victory/abort paths close combat cleanly; current simulation suite remains intact and focused encounter tests pass.
+
+### 5. Animal riding preview workflow — #110 after #126
+
+**Source:** `feature/animal-riding-validation`; open non-draft PR #110 targets `dev`. Simulation/riding code was selectively merged as #126; this preview workflow was deliberately not ported.
+
+**Preserve now:** `tests/capture_riding_preview.gd`, `.github/workflows/riding-preview.yml` and the original branch/PR. The current capture hard-codes the rider seat at `(0, 1.35, 0)` and reparents the rider directly to the horse; this is a static composition, not evidence of a production mount socket or animation attachment.
+
+**Recovery order:**
+1. Close #110 as superseded only after confirming its remaining diff contains no additional simulation or asset payload beyond the already recovered #126 code and this preview prototype. Keep the branch permanently.
+2. Define a mount presentation contract in the current CreatureActor/Ara actor layer: mount socket/bone or calibrated transform, rider facing/scale, animation state and dismount cleanup. Keep it presentation-only; simulation mount links remain authoritative.
+3. Rebuild the preview capture against that real contract; capture male/female riders, side/rear views, walk/idle and mount/dismount states where animations exist.
+4. Store preview artifacts as CI outputs for review; do not make headless screenshot generation a substitute for visual fit acceptance.
+5. Only then add the preview job to the current validation workflow, with paths and branch filters aligned to the selected integration/deployment strategy.
+
+**Acceptance:** preview exercises the same attachment path used in-game, both body variants fit, rider does not detach/fall through during animation, and CI reports the exact tested commit.
+
+### 6. Opening cinematic — #121
+
+**Source:** `integration/opening-cinematic-dev2`; open draft PR #121 already targets `dev_2`.
+
+**Recovery order:**
+1. Perform PC visual acceptance before code changes: verify imported GLB animation clips, actor alignment, camera framing, lighting, pacing, skip and return-to-control.
+2. If accepted, refresh the branch onto current `dev_2` without deleting its history; resolve conflicts by retaining current actor/HollowTankard architecture and only reapplying cinematic-specific files/wiring.
+3. Run full Godot 4.7.2 validation on the refreshed exact head; inspect generated output and rerun visual review after any scene/transform changes.
+4. Merge only the cinematic-specific implementation after the visual gate. Keep the alternative `feature/hollowmere-ironbond-opening-cutscene` branch as historical alternative; do not combine two directors.
+
+**Acceptance:** PC review sign-off plus fresh full Godot CI on the exact merge head. The earlier green headless run alone is insufficient.
+
+### 7. Unique documentation salvage candidates
+
+- `docs/content-parity-audit` contains `docs/CONTENT_PARITY_AUDIT.md` not present on `dev_2`. Preserve the branch. Before adding the document, update its source baseline and every file/feature status against current `dev_2`; reconcile statuses with `docs/LEGACY_PORTING_MATRIX.md` and this register. It must distinguish present, partially implemented, tested, visually accepted and playable. Do not copy stale status claims as current facts.
+- `chore/consolidate-preview-and-review-workflows` contains `docs/CI_WORKFLOWS.md` not present on `dev_2`, but also proposes deleting old workflows. Preserve only the workflow inventory as a possible documentation extraction; refresh each workflow trigger, artifact dependency, required input and deployment source against current files. Do not merge its workflow deletions.
+
+### Preservation policy and next decision point
+
+- All historical source branches remain intact. Selective recovery branches must be created from the latest `dev_2` and must cite the source branch/commit and the exact paths/commits recovered.
+- Open PRs #87, #88, #90, #96, #99 and #110 currently target `dev`; do not merge or retarget them as part of this audit. Their current PR status is evidence of open historical proposals, not a requirement to keep them open forever.
+- PR #110 can be closed as superseded after its remaining preview-only diff is confirmed and the #126 merge is referenced. Other old PRs stay open/draft until each has a recorded disposition and any unique work is safely preserved.
+- No new gameplay work should begin until the remaining branch-only assets/data/tools and recovery recipes have been inventoried, and the user has reviewed any material trade-off. Character assembly remains coordinated with the separate modelling stream.
