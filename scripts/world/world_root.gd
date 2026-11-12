@@ -136,6 +136,8 @@ func _on_character_created(profile: Dictionary) -> void:
         var animal_registration: Dictionary = village.call("register_animals_with_simulation", campaign_simulation)
         if not bool(animal_registration.get("ok", false)):
             push_warning("Some Hollowmere animals were not registered: %s" % animal_registration.get("skipped", []))
+    if tavern.has_method("restore_mounted_actor_attachments"):
+        tavern.call("restore_mounted_actor_attachments")
 
     _set_loading_stage(
         "Loading villagers and character models…",
