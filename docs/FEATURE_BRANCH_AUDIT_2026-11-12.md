@@ -864,3 +864,50 @@ The current `tools/ci/validate_hollowmere_models.gd` and `.py` are present in `d
 |---|---|---|
 | `feature/game-real-hollowmere-character-art` | Old 13-profile validator; current baseline expects 14 including player avatar. | **Superseded; retain history.** |
 | `fix/hollowmere-cast-validator` | Python validator byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
+
+
+## Cross-cutting architecture, maintainability and repository-rule findings
+
+### Documentation is materially behind the integrated baseline
+
+The current `docs/ARCHITECTURE.md` still says the first increment is a simulation-only foundation and that tests have not yet been run in Godot. It does not describe the integrated SaveManager, building/door registry, campaign restore integration, current reaction pipeline, status-effect persistence, or the current Ara runtime pipeline.
+
+The current `docs/MECHANICS_PORT_REGISTER.md` still has a number of outdated statuses and describes combat/action-contract/reaction/downed-lifecycle work as outstanding even though current `dev_2` contains these foundations. It also labels its verified baseline as `dev`, not `dev_2`.
+
+Do not update these documents by marking whole systems “complete”. The correct next step is a verified status refresh that distinguishes implemented foundations, tested gameplay effects, incomplete integration and visual acceptance. In particular:
+- combat action contracts, downed lifecycle and reactions are implemented, but combat AI, uncertainty, ranged/LOS integration and many source rules remain incomplete;
+- save/load and campaign restore exist, but only safe-boundary saves are supported and not every mutable world/character state is persisted;
+- spatial vision/LOS is integrated, but stealth/detection, character memory and fog exploration persistence remain outstanding;
+- the 257-skill catalogue and progression exist, but not all skill effects are implemented/tested;
+- 15 base spell definitions exist, but casting/effect resolution is not established;
+- a campaign world-map UI exists, but this is not a complete traversable campaign world.
+
+### Large orchestration scripts need a later architecture pass
+
+Current `dev_2` has:
+- `scripts/world/hollow_tankard.gd`: 2,730 lines;
+- `scripts/simulation/world_simulation.gd`: 1,012 lines;
+- `scripts/presentation/ara_character_actor.gd`: 574 lines.
+
+These scripts have accumulated multiple responsibilities. `HollowTankard` coordinates the village scene, player/NPC spawning, interactions, combat presentation, save/load, quest triggers, UI, world visuals and campaign setup. `WorldSimulation` owns the clock, character registration, movement/action dispatch, combat reactions, pending action context, campaign journal, buildings, wilderness resources and serialization. `AraCharacterActor` owns model loading, animation, modular garment attachment, surface visibility, equipment and player appearance.
+
+This is not a reason to stop integration, but it is a strong reason to avoid copying entire stale versions of these files from feature branches. Future refactoring should extract cohesive services/controllers with explicit contracts, leaving scene scripts as orchestration and presentation adapters. Keep refactors separate from gameplay ports so regressions can be attributed.
+
+### Repository-rule enforcement
+
+The current `.editorconfig` and `.gitattributes` are present and consistent across the formatting-rules branch and `dev_2`. However, current GDScript files such as `vision_rules.gd`, `character_state.gd` and `world_simulation.gd` use spaces for indentation despite `.editorconfig` requiring tabs for `*.gd`.
+
+This indicates the style rule is not enforced in CI. Agree the intended convention, then add a GDScript formatter/lint check to Godot validation and apply it to touched files. Do not bulk-reformat the entire repository in the same PR as a gameplay feature.
+
+### Review discipline for future ports
+
+Every candidate port should include:
+1. current `dev_2` API compatibility (no wholesale replacement of newer files);
+2. explicit stable-ID/data-schema handling;
+3. simulation/presentation boundary review;
+4. deterministic headless regression tests for rules and persistence;
+5. source-parity evidence where porting legacy behaviour;
+6. visual acceptance for models, clothing, scenes, animations and mobile UI;
+7. a short docs update naming what is complete and what remains.
+
+A passing branch workflow only validates the commit and paths it actually exercised. It does not imply visual acceptance, current-`dev_2` compatibility or maintainability.
