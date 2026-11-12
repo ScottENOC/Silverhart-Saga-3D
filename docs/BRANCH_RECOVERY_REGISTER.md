@@ -739,3 +739,45 @@ This is the practical dependency map for avoiding duplicate or order-sensitive m
 - The modular POC has unique architecture prototypes worth evaluating later, not code to merge before the architecture decision.
 - The missing-skill branch is superseded, and the inventory panel/arena roster work is already represented in current `dev_2`.
 - No branches in this group were merged or closed; all historical refs remain intact.
+
+
+## Combat, Ara validation and remaining diagnostic branches — focused review, 12 November 2026
+
+### Animal attributes predecessor
+
+- `feature/animal-attributes` compares 29 / 27 with ten paths and is the direct predecessor to `feature/animal-riding-validation` / PR #110. Its `animal_catalog.gd`, CharacterState and WorldSimulation snapshots are superseded by the selective runtime implementation merged in PR #126. The distinct `riding-preview.yml` and `capture_riding_preview.gd` are the same fixed-offset prototype preview workflow already noted under #110.
+- **Disposition:** no merge. Preserve as the earlier source lineage for #126; no separate animal-attribute feature remains to recover.
+
+### Hollowmere shakedown combat
+
+- `feature/hollowmere-shakedown-combat` compares 50 / 131 with eight paths and contains a distinct `scripts/simulation/hollowmere_encounter.gd` plus a focused `_test_hollowmere_encounter()` suite. It stages Garrick, Mira and Oskar as allies against Dray, Tomlin and Hask; it uses current-style WorldSimulation attack resolution and completes the fight choice in the shakedown quest.
+- The branch also contains a broad old `HollowTankard` snapshot (1,528 lines) that adds encounter orchestration, combat UI/targeting and soldier movement. Its `CampaignJournal` is byte-identical to current `dev_2`; its campaign-content and ambient-chatter files are not safe to replace without line-level comparison. Its test file is much smaller/older than current (1,115 lines vs 2,162), so it cannot replace the current suite.
+- **Known lifecycle concern:** `HollowmereEncounter.start()` marks every registered character dormant, then selectively wakes combatants. `finish()` restores its hard-coded allies/enemies and player-controlled IDs, but does not restore every noncombatant's prior `combat_dormant` and `side` values. The quest wrapper also needs to prove the encounter is safely resumable/serializable and handles player/companion defeat, cancellation and scene exit.
+- **Disposition:** preserve as a high-value deferred quest/combat integration candidate, not a ready merge. It depends on the current campaign journal, current CharacterState/WorldSimulation, current 22-NPC manifest and #126 animal/mount changes. After Stage 1, selectively port the encounter state machine and tests; do not copy the old HollowTankard, combat rules, journal or test snapshots wholesale. Fix state restoration and verify target selection/AI before calling the fight branch playable.
+
+### Combat reaction and resolution lineage
+
+- `feature/combat-reaction-triggers` (8 / 149; four paths), `feature/ally-combat-reactions` (7 / 145; four paths), `feature/movement-reactions` (8 / 144; five paths) and `feature/reaction-resolution-turn-safety` (4 / 151; four paths) are older intermediate changes to CharacterState, WorldSimulation, reaction prompt and tests. Current `dev_2` already includes the evolved combat and movement reaction resolver, ally/defender options, sidestep destination validation, reaction prompt and turn-safety/lifecycle handling. Their changed mechanics are represented in the current larger WorldSimulation and test suite; no missing source-only reaction API was identified in this pass.
+- `feature/combat-resolution-foundation` (36 / 158; 18 paths) is an older broader combat implementation with old CombatRules/CharacterState/WorldSimulation/test snapshots and historical workflow cleanup. Current combat includes later equipment mitigation, status-effect hooks, animal/mount state, and expanded tests. Its old workflow deletions must not be applied to current CI.
+- **Disposition:** no wholesale merge or test replacement. Preserve these branches as development history. If a concrete regression is discovered later, port the isolated rule with a current-head regression test rather than importing an older simulation snapshot.
+
+### Real Hollowmere character-art validators
+
+- `feature/game-real-hollowmere-character-art` compares 6 / 163 with five paths. Its two new validators (`validate_hollowmere_models.py` and `.gd`) check generated GLBs and imported animation tracks, which is a useful type of CI coverage. However, the scripts hard-code a 13-NPC/14-total profile count and `art/characters/hollowmere/<id>.glb` layout, while current `dev_2` uses a 22-character manifest and an Ara runtime artifact workflow. The Python validator additionally requires the player-avatar role to be present in the source manifest, which differs from the older branch's 13-NPC assumptions.
+- Its docs/workflow changes are an old 13-character generated-artifact setup and are not a safe fit for current runtime package paths or Pages deployment. The model validation idea remains useful, but must be adapted to the current 22-character manifest and exact artifact package contract.
+- **Disposition:** preserve as validation design/source. Do not merge these validators unchanged; if the current Ara artifact pipeline lacks equivalent checks, write a fresh manifest-driven validator against its actual package and test it independently.
+
+### Ara evaluation and pipeline branches
+
+- `feature/ara-character-evaluation` compares 4 / 383 with four paths: adds an Ara evaluation doc and changes the Workshop workflow/site/art pipeline docs. It is older evaluation/documentation lineage; user has explicitly said Cosmo evaluation tooling is unnecessary, but this is Ara character evaluation, so preserve its review criteria as documentation if not duplicated. Do not restore its older Workshop workflow.
+- `feature/character-pipeline-foundation` compares 2 / 529 and adds only `docs/CHARACTER_PIPELINE.md`; preserve as design provenance and reconcile any unique requirements into current pipeline docs, no runtime merge.
+- `feature/ara-skeleton-animation-validation`, `feature/ara-visual-animation-review` and `feature/terrain-character-grounding-test` have zero commits ahead of current `dev_2`; no code recovery needed.
+- `diagnostic/ara-garment-surface-report` and `diagnostic/ara-report-on-character-configure` each have one commit ahead and change only `scripts/presentation/ara_character_actor.gd`. They are narrow diagnostic experiments in the separate modelling stream. Preserve for reference; do not merge debug instrumentation into runtime without a concrete, reproducible need.
+
+### Current disposition from this group
+
+- #126 fully supersedes the animal-attributes predecessor for simulation/riding code.
+- The shakedown fight is a meaningful unintegrated quest/combat candidate, but its encounter lifecycle and older scene snapshot need deliberate adaptation.
+- Combat reaction/resolution branches are historical intermediate steps superseded by current code.
+- The 13-NPC GLB validator is not safe to reuse unchanged; its manifest-driven concept may be adapted later.
+- No branches in this group were merged or closed; original branch refs remain intact.
