@@ -745,9 +745,13 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
     var grukk_with_trust := CompanionCampaignContent.conversation("warlord_grukk_ironhide", journal, empty_inventory, no_party)
     _check(_has_companion_recruit_choice(grukk_with_trust), "Grukk should offer to join at 40 orc standing")
 
-    _check(bool(journal.start_quest("reyna_bear_hunt").get("ok", false)))
-    _check(bool(CompanionCampaignContent.complete_objective(journal, "reyna_bear_hunt", "bear_slain").get("ok", false)))
-    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Reyna should join after the bear is defeated")
+    _check(bool(journal.start_quest("reyna_dire_wolf_hunt").get("ok", false)))
+    _check(not _has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Reyna must not recruit before Tessa is rescued and the dire wolf is defeated")
+    _check(bool(journal.set_objective_progress("reyna_dire_wolf_hunt", "trail_found", 1.0).get("ok", false)))
+    _check(bool(journal.set_objective_progress("reyna_dire_wolf_hunt", "child_rescued", 1.0).get("ok", false)))
+    _check(not _has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Rescuing Tessa alone must not unlock Reyna")
+    _check(bool(CompanionCampaignContent.complete_objective(journal, "reyna_dire_wolf_hunt", "dire_wolf_slain").get("ok", false)))
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", journal, empty_inventory, no_party)), "Reyna should recruit only after the rescue and dire wolf hunt")
     _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("companion_reyna_fletcher", journal, empty_inventory, no_party)), "Reyna's manifest game ID must resolve to her recruitment dialogue")
 
     _check(bool(journal.start_quest("mirabel_spider_ruin").get("ok", false)))
@@ -804,7 +808,10 @@ func _test_farmstead_dire_wolf_encounter() -> void:
     _check(not civilian.combat_dormant and civilian.side == "neutral", "Civilian world state should be restored")
     _check(unrelated_enemy.combat_dormant and unrelated_enemy.side == "enemy", "Existing dormant enemy state should be preserved")
     _check(wolf.combat_dormant and wolf.side == "enemy", "Dire wolf should return to its dormant enemy state")
-    simulation.free()func _has_companion_recruit_choice(conversation: Dictionary) -> bool:
+    simulation.free()
+
+
+func _has_companion_recruit_choice(conversation: Dictionary) -> bool:
     for choice_value in conversation.get("choices", []):
         var choice: Dictionary = choice_value
         if String(choice.get("id", "")).begins_with("recruit:"):
