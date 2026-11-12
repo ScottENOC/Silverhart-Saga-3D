@@ -141,9 +141,10 @@ Keep these as explicit visual acceptance gates rather than treating CI success a
 8. Run the full Godot 4.7.2 suite after each integration batch; perform PC visual acceptance for asset/scene work.
 9. Promote from `dev_2` only after the integrated baseline is coherent and stable.
 
-## Complete branch-name inventory (129 branches)
+## Complete branch-name inventory (130 live branches)
 
 ```text
+audit/feature-branch-consolidation
 audit/skill-effect-branch-cross-reference
 audit/skill-effect-parity-update
 audit/skill-spell-implementation-baseline
@@ -170,6 +171,7 @@ feat/seasonal-wilderness-visuals
 feat/tapered-split-dress-v2
 feat/wilderness-art-and-gatherable-visuals
 feat/wilderness-world-foundation
+feat/wren-only-pages-two-character-workshop
 feature/action-contract-downed-lifecycle
 feature/ally-combat-reactions
 feature/anatomy-geometry-revision
