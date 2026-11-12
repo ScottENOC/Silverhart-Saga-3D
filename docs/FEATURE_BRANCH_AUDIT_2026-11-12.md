@@ -1153,3 +1153,14 @@ PR #130 selectively ports the remaining mount toggle and rider presentation from
 - The content census branch is based on an older `dev` snapshot dated 10 November. Its counts and parity claims must be refreshed against `Hex-crpg/main` and current `dev_2` before being treated as current.
 
 Stage 1 remains open. Preserve all historical branches and keep `dev` and `main` untouched.
+
+
+## Source-content census refresh — 13 November 2026
+
+Added `docs/CONTENT_CENSUS_2026-11-13.md`, based on exact source/target commits:
+- `Hex-crpg/main`: `4de96f16889d43cae91e03832c8eb1c1b4b00e42`.
+- `Silverhart-Saga-3D/dev_2`: `a8b5987ebdc12b016d99e2550349f17a8fd62645`.
+
+Key confirmed source counts are 257 skills (186 direct + 71 generated), 15 registered spells, 63 equipment definitions, 98 named NPC records, 35 monster templates and 206 Playwright test files. Current `dev_2` contains 257 skill rows, 15 spell definitions, 76 item definitions, 98 legacy named-NPC rows, 22 Hollowmere cast records, 35 enemy roster rows, 24 Campaign 2 location records / 22 connections and one settlement layout. These are data counts, not playable-content counts. All 15 spells remain data-only; Arena remains a placeholder despite migrated opponent/scenario data; the full Campaign 2 world is not playable. The detailed skill-effect audit uses an older `dev` baseline and needs exact-head recertification before its effect counts are treated as current.
+
+The source repository has 822 file blobs; 893 was the recursive tree-entry count including directories. This correction is recorded in the new census and recovery register.
