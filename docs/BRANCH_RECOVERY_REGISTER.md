@@ -1297,3 +1297,12 @@ The branch's `HollowmereVillage.md` is byte-identical to current `dev_2`. Its 13
 - Corrected source defects: dire-wolf Health ranks now apply once (120 base + 3 ranks = 150 HP); encounter start snapshots and restores every character's previous side/dormancy instead of leaving unrelated actors dormant; dire wolf uses bite skill ranks in AI combat.
 - Automated Godot 4.7.2 validation for PR #131 is running on the latest head `efa6fa2d1c71f149d99bc88568fd14d8941d7266` (workflow run `43308185539`). No merge until the exact-head run completes successfully and the save/quest integration has been reviewed.
 - This is a gameplay quest integration using an existing creature asset; character/anatomy/clothing modelling remains in the separate modelling stream.
+
+
+### PR #131 — Tessa rescue / Reyna quest (merged)
+
+- Selective non-modelling recovery from `feature/farmstead-bear-creature-model`.
+- PR [#131](https://github.com/ScottENOC/Silverhart-Saga-3D/pull/131) merged to `dev_2` on 13 November 2026.
+- Exact-head Godot 4.7.2 workflow `43308185539` passed on `efa6fa2d1c71f149d99bc88568fd14d8941d7266`.
+- Squash merge commit: `a8b5987ebdc12b016d99e2550349f17a8fd62645`; this is the current `dev_2` head at time of update.
+- Source PR #99 and `feature/farmstead-bear-creature-model` remain preserved; no historical feature branch deleted.
