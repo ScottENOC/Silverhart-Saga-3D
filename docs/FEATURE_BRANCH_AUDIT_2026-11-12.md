@@ -841,3 +841,16 @@ However, PR #76 does not modify `AraCharacterActor`, the character equipment pre
 |---|---|---|
 | `dev` | 0 ahead / 8 behind `dev_2`. | **No unique work; retain as a near-current integration/release branch.** |
 | `main` | 1 ahead / 525 behind; only workflow file is byte-identical to current. | **Do not merge; preserve as the current production branch until an intentional release promotion.** |
+
+
+## Second-pass: early shared-character and iPhone preview prototypes
+
+- `feature/shared-character-system` is an early 125-commit character-system stack on a very stale base. Its `character_appearance.gd` and `assemble_modular_glb.py` are byte-for-byte identical to current `dev_2`; its accessory attachment helper is an older variant. The branch's anatomy/workshop pipeline has since evolved through Ara and the canonical assembly work. Preserve it as historical source; do not merge the stack.
+- `feature/modular-character-poc` is an earlier modular-character prototype. It contains a different presentation assembler, attachment rig, appearance store and garment shader that are absent from current `dev_2`. These are not automatically missing features: the current project uses the Ara modular GLB pipeline and `AraCharacterActor`, so the prototype's separate runtime model would introduce a competing source of truth. Only recover a specific algorithm if the current Ara path has a demonstrated gap.
+- `feature/iphone-hollowmere-ara-preview` is an early combined iPhone game/workshop deployment stack. Its `export_presets.cfg` is byte-identical to current; its `tools/deploy_web.py` and multiple old workflows are superseded by the current GitHub Pages artifact workflows. Its early Hollowmere/character source files are older than current. Do not revive the old deploy script or combine it with the current Pages pipeline.
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feature/shared-character-system` | 125 ahead / 357 behind; core appearance and modular GLB assembler identical to current. | **Superseded/evolved; preserve history, no wholesale merge.** |
+| `feature/modular-character-poc` | 51 ahead / 357 behind; older alternate runtime character architecture. | **Superseded prototype; retain for reference only.** |
+| `feature/iphone-hollowmere-ara-preview` | 178 ahead / 357 behind; export preset identical, deploy script obsolete. | **Superseded deployment prototype; preserve history.** |
