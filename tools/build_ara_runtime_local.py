@@ -348,6 +348,7 @@ def main():
         female_raw = RAW / "ara_person_body.glb"
         male_raw = RAW / "ara_person_male_raw.glb"
         female_final = review_root / "female_average_vulva.glb"
+        female_hybrid = review_root / "female_average_hybrid.glb"
         male_erect = review_root / "male_average_erect.glb"
         male_flaccid = review_root / "male_average_flaccid.glb"
         export("ara_person_body", body)
@@ -359,6 +360,10 @@ def main():
              ROOT / "tools/blender/add_adult_anatomy.py", "--",
              "--input", female_raw, "--output", female_final, "--profile", "female",
              "--adult", "--deformation-scale", "1.65"], env=review_env)
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/add_adult_anatomy.py", "--",
+             "--input", female_raw, "--output", female_hybrid, "--profile", "female",
+             "--adult", "--deformation-scale", "1.65", "--method", "hybrid"], env=review_env)
         for pose_name, pose_output in (("erect", male_erect), ("flaccid", male_flaccid)):
             run([blender, "--background", "--python-exit-code", "1", "--python",
                  ROOT / "tools/blender/add_male_anatomy.py", "--",
@@ -369,6 +374,7 @@ def main():
         shutil.copy2(male_raw, review_root / "male_average_raw.glb")
         review_models = (
             ("female_average", female_final, "female", 1),
+            ("female_average_hybrid", female_hybrid, "female", 1),
             ("male_average_erect", male_erect, "male", 1),
             ("male_average_flaccid", male_flaccid, "male", 24),
         )
@@ -403,9 +409,11 @@ def main():
             "schema_version": 1,
             "purpose": "visual anatomy prototype only; not production-approved",
             "ara_generator_commit": PIN,
-            "profiles": ["female_average", "male_average_erect", "male_average_flaccid"],
+            "profiles": ["female_average", "female_average_hybrid", "male_average_erect", "male_average_flaccid"],
             "female": {
                 "asset": female_final.name,
+                "hybrid_comparison_asset": female_hybrid.name,
+                "hybrid_method": "integrated skin sculpt plus buried surface-sampled, pelvis-weighted lofts sharing Ara skin material",
                 "deformation_scale": 1.65,
                 "targets_percent_of_body_height": {
                     "mons_pubis_fullness": 0.50,
