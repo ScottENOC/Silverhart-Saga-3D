@@ -825,3 +825,41 @@ This is the practical dependency map for avoiding duplicate or order-sensitive m
 ### Cross-check note
 
 The branch compare `ahead/behind` counts describe ancestry, not outstanding work. Exact blob identity and current behavior were checked for the key initiative, item catalogue/icon atlas and save manager files. For files that differ, the current side is the evolved baseline; this group revealed no additional safe code merge. No branch was deleted or closed.
+
+
+## Audio, Pages/PWA, porting documentation and wilderness-art lineage — focused review, 12 November 2026
+
+### Audio and mode-select branches
+
+- `feature/legacy-audio-menu-dev` (12 / 115; ten paths) and `feature/legacy-audio-menu-dev2` (10 / 111; ten paths) are early versions of the audio/menu work. `scripts/audio/audio_manager.gd` is byte-identical to current `dev_2`; both branches' main-menu/arena scenes and importer are the same integrated lineage, while current main-menu logic and Pages workflow have evolved. `feature/audio-and-mode-select` / PR #5 is the related later source already reviewed.
+- **Disposition:** already integrated/evolved; no re-merge. Audio binaries are imported from the legacy source by the importer, not committed as game assets. Arena remains a placeholder; do not mistake the menu/audio foundation for completed Arena gameplay.
+
+### GitHub Pages and iPhone PWA branches
+
+- `feature/ios-game-pwa` compares 12 / 164 with three paths. Exact blob checks confirm both `tools/pwa/package_godot_pwa.py` and `docs/PHONE_TESTING.md` are byte-identical to current `dev_2`. The PWA packaging helper is already used in the evolved Pages pipeline.
+- `feature/godot-web-pages-export` (13 / 169; five paths), `feature/hollowmere-github-pages` (5 / 166; four paths), `feature/iphone-web-preview-pipeline` (0 ahead), and older deploy branches are historical iterations of web export/Pages packaging. Current `dev_2` has the more advanced combined 329-line game/Workshop/props artifact workflow. The old HF deploy helper was removed in a later Pages lineage; do not restore it.
+- **Important outstanding deployment-source decision:** current `dev_2` workflow triggers/queries artifact sources for `dev`, not `dev_2`. Merging to `dev_2` alone does not deploy the branch. This is an operational baseline decision, not a missing workflow port; do not silently retarget deployment or push gameplay to `dev`. The selected production source must be reconciled explicitly before treating Pages as a current-head visual acceptance loop.
+- **Disposition:** no merge from these older branches. PWA code and phone instructions are already integrated. Keep old deploy branches as provenance; the only unresolved item is intentional deployment-source configuration and a successful current-head Pages run from the chosen source.
+
+### Legacy porting matrices and mechanics documentation
+
+- `feature/legacy-porting-matrix` and `feature/legacy-porting-matrix-dev2` both contain the same 9.2 KB older `docs/LEGACY_PORTING_MATRIX.md`; current `dev_2` has a newer ~21 KB version with expanded status and evidence. The two old branches are duplicate documentation lineage, not two separate documents to merge.
+- `feature/mechanics-port-foundation` contains only an early `docs/MECHANICS_PORT_REGISTER.md`; current `dev_2` has the evolved mechanics register. `feature/port-action-economy` and `feature/skill-magic-foundation-current-dev` have zero commits ahead.
+- **Disposition:** current docs are canonical; no merge. Any unique source-mechanics parity notes should be reconciled into the current register, not restored as stale files.
+
+### Wilderness art and gatherable visuals
+
+- `feat/wilderness-art-and-gatherable-visuals` compares 18 / 123 with eleven paths. Exact blob checks confirm `scripts/presentation/wilderness_resource_visual.gd` and `tests/test_wilderness_resource_visuals.gd` are byte-identical to current `dev_2`. The visual supports fruit/timber trees, ore, stone, herb patches and fishing spots, using the Kenney Nature asset package with procedural fallbacks. The asset-fetch helper and older seasonal/world simulation snapshots are not a reason to merge the branch wholesale.
+- **Disposition:** the gatherable visual implementation and its tests are already integrated/evolved. No re-merge. Preserve the branch for its historical asset-fetch/provenance script; current world and seasonal tree code remain canonical.
+
+### Cosmo forest addon and generated assets
+
+- `feature/hollowmere-cosmo-forest` compares 4 / 57 with 178 paths. Its addon/plugin structure is present in current `dev_2` (the plugin configuration blob is identical); the branch also contains a large set of generated GLB tree/bush assets. User has explicitly excluded the Cosmo generator/evaluation tooling from recovery because accepted generated assets are already available in the game tree.
+- **Disposition:** no addon/demo/evaluation merge. Keep original branch as provenance. Runtime should consume accepted generated GLBs as assets, not require the generator plugin. If a particular asset is later found missing, recover that exact asset independently after checking its source/licence and whether current seasonal/world visuals use it.
+
+### Current conclusions from this group
+
+- AudioManager, PWA packaging, iPhone testing instructions, wilderness resource visuals/tests and the current legacy/mechanics registers are already represented in current `dev_2`.
+- Old Pages workflows are superseded, but the `dev` versus `dev_2` deployment trigger mismatch remains a real decision to resolve deliberately.
+- Cosmo tooling remains out of scope by user direction; retain source provenance without merging.
+- No branches were merged or closed in this pass.
