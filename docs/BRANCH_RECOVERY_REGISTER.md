@@ -312,3 +312,39 @@ Refreshed 12 November 2026 against the current open PR metadata. “No runs” b
 | #5 | `a563b16` | `dev` | Godot audio/mode validation passed. | Foundation already integrated/evolved; Arena remains placeholder; no re-merge; mergeable false. |
 
 The PR base SHA recorded by GitHub may predate later `dev_2` commits. In particular, #121 was created against an earlier `dev_2` head; its current target remains `dev_2`, but any merge decision must be based on a fresh comparison/revalidation against the then-current base. None of these PRs was merged or closed during this refresh.
+
+
+## User-directed stage-1 integration status (12 November 2026)
+
+The user confirmed that the separate character/clothing/hair/equipment modelling workstream should not be duplicated in this branch audit, and that the Cosmo Tree Generator evaluation tooling is not required. The four previously highlighted areas were reconciled as follows:
+
+### Campaign 2 world — integrated
+
+- Selective recovery PR **#125** merged into `dev_2` at `b5e26431fba576c0727e27dd389bac7ce5760d3a`.
+- Godot 4.7.2 validation passed on the exact PR head. Existing simulation/building/save/restore/character tests passed; all four new Campaign 2 data/terrain tests passed; macro-world and regional-world preview smoke tests passed.
+- Recovered geography, road and settlement manifests, preview scenes/scripts, settlement builder, terrain data, source/design documentation, tests, strict Godot output checker, CI coverage and main-menu preview entry points.
+- This is **world data plus development previews**, not a completed playable world-travel system. The source branch `feature/full-world-port-foundation` remains intact. Its unrelated stale WorldSimulation/HollowTankard/appearance snapshots were not merged.
+
+### Animal riding — selective integration PR in validation
+
+- New branch `integration/animal-riding-dev2`, PR **#126**, targets `dev_2`; current head after lifecycle-fixture correction is `3b57f9c7ac862bab97d07b5a7ce70ac9847ef6f0`.
+- Ported animal catalogue and persistent animal/mount state into the current CharacterState/WorldSimulation architecture; retained current building, status-effect, save, reaction and progression code rather than copying stale snapshots.
+- Corrected the source branch's double-applied Health issue: horse/wolf use 10 base HP plus their innate Health ranks once (nominal 50/20 HP).
+- Added mount/dismount, mount-profile movement/TP use, reciprocal save/load links, turn-end TP capping, and forced detachment when either rider or mount is incapacitated. Added regression tests for those paths.
+- PR #126 is ready for review; current-head Godot 4.7.2 workflow is running. Do not merge until the exact latest head passes and any failures are resolved.
+- This port is simulation/runtime foundation only; player-facing riding controls and final mount visual/animation attachment remain separate work.
+
+### Equipment appearance/heraldry — isolated recovery candidate
+
+- `EquipmentAppearance`, shield heraldry shader, tests and documentation remain unique to `feat/equipment-materials-heraldry`.
+- The helper is not yet proven to be wired into the current Ara actor/equipment presentation path. It is separate from generating equipment meshes, but the user has another workstream handling equipment modelling. Keep this isolated; only merge the helper/test slice after checking for conflicts and confirming the intended runtime integration point. Do not import the branch's armour-prop generator or other modelling workflow changes as part of this audit.
+
+### Combat initiative — already integrated
+
+- Initiative model, timeline UI and capture test are byte-identical to `dev_2`; current `HollowTankard` preloads and wires the timeline. No additional port.
+
+### Explicitly out of scope
+
+- Cosmo Tree Generator evaluation/gallery/regeneration tooling: user confirms the generator was only used to produce assets that have already been accepted. Current generated tree assets are present; no need to recover the evaluation tools.
+- Separate character, clothing, hair and equipment modelling workstream: do not duplicate its work in this integration sequence.
+
