@@ -586,3 +586,71 @@ Keep production Pages deployment on `dev` unless intentionally changing release 
 3. publishes to an isolated preview path or separate Pages environment;
 4. never overwrites the production `dev` build;
 5. reports the source commit in the preview page so screenshots can be tied to a known revision.
+
+
+## Second-pass: Ara character, clothing, anatomy and workshop branches
+
+### Character foundation and starting clothing
+
+- `feature/character-pipeline-foundation` is documentation-only against current `dev_2` (2 ahead / 525 behind). Current `docs/CHARACTER_PIPELINE.md` and workflow structure have moved on substantially; use current docs as the baseline.
+- `feature/character-starting-clothing` has its `tests/test_starting_clothing.gd` byte-for-byte identical to current `dev_2`. Its actor, item data and creation rules are older snapshots; current starting-clothing behaviour is already present and the actor has since evolved. No merge required.
+- `feature/player-character-visual-phase1` has its phase-one design document identical to current; its 419-line creator script is older than current `dev_2` (495 lines). It explicitly describes height/build as whole-model scaling, not true anatomical morphs, and garment selection as saved state rather than mesh swapping. The current creator has since evolved; preserve the doc as a scope boundary, not a code merge.
+- `feature/player-custom-avatar-selection` is a three-line scene integration change on an old base. Check whether its specific selection behaviour is present in current `HollowTankard` before any port.
+- `feature/character-inventory-panel` and `feat/player-morphs-inventory-weapons` are older UI/test inventory work; do not ship the all-items inventory as campaign starting equipment. Use test fixtures for exhaustive catalogue coverage.
+
+### Character assembly, Ara assets and NPC workshop
+
+- `feature/unified-character-assembly` remains a major salvage candidate, not a merge candidate. The branch's schema-v2 NPC file has 14 records versus 22 current schema-v1 records, and deletes the separate loadout file. Any adoption must migrate all 22 current NPCs and preserve their quest/companion state.
+- `feat/ara-hairstyles-medieval-equipment` has its 2,341-line runtime hair manifest byte-for-byte identical to current `dev_2`; the current build tool for medieval armour props has since evolved slightly. Its asset/manifest work is represented, but any missing GLB or material variant should be identified by manifest/path before adding duplicate assets.
+- `feature/reusable-npc-workshop` contains `build_npc_previews.py` and `npc_profiles.json`, neither of which exists in current `dev_2`. This is potentially useful tooling for a 100+ NPC roster, but it is built on a very stale character assembler (5 ahead / 357 behind). Treat as a deferred tooling salvage candidate; first align it to the current character definition/resolver schema.
+- `feature/ara-character-evaluation` is a documentation/workshop workflow branch on a very old base. Use its evaluation findings only where they still describe the current Ara assets; do not replace current workflow files.
+- `feature/runtime-tattoos` has the live tattoo controls and implementation in `site/index.html`; current `dev_2` contains the same tattoo UI and runtime code. The remaining differences in the page are later unrelated workshop improvements, so no merge is needed.
+
+### Clothing visibility and outfit pipeline fixes
+
+The body-visible-under-clothing safety rule is present in current `AraCharacterActor`: the current implementation hides only surfaces positively identified as known garment surfaces; unknown surfaces remain visible rather than risking holes in the skin. The current path also normalises garment labels and includes the later surface-report diagnostics.
+
+The old fixes:
+- `fix/generic-clothing-visibility`
+- `fix/keep-body-visible-under-clothing`
+- `fix/player-equipment-visuals`
+
+are earlier versions of this logic and are materially shorter than current `ara_character_actor.gd` (523–551 lines versus 574). They must not be merged over the current actor. This code-level guard does not prove visual acceptance: transparent fabric, surface naming, skin visibility, clipping and body/garment fit still require the current workshop render and in-game checks.
+
+`fix/wren-lace-fishnet-and-anatomy` is also an older patch-layering version (208 lines versus 233 current) and predates later idempotency/source-contract handling. Current pipeline code already has the underTop/underBottom, lace/fishnet and opacity work. Do not apply the old patch over the current script. `fix/modular-outfit-review-material-duplicates` is an earlier render script version (187 lines versus 188 current); inspect only if a specific missing material label or duplicate-render regression is reported.
+
+### Anatomy geometry branch family — do not merge before visual acceptance
+
+The geometry branches remain active work, not completed integration candidates:
+- `feature/anatomy-geometry-revision` (200 ahead / 57 behind; 34 changed files, ~5,558 changed lines) is the current broad anatomy workstream. Its latest Average-body anatomy review run #43173981591 was still in progress at this audit pass (commit `e2d1c4c361058da8f0042359f8dc369c567c8ffa`).
+- `feature/male-anatomy-skinned-mesh` (143 ahead / 357 behind) is an older skinned-mesh implementation. Its latest Male anatomy blockout run #42186638804 passed on 6 November, but the geometry-revision branch is newer; do not resurrect older mesh geometry without comparing outputs.
+- `feature/male-anatomy-geometry-review` and `fix/male-anatomy-surface-sampling` are older generator/review iterations. Their latest character-pipeline validation runs passed, but their Blender generator files are behind the current 463-line `add_male_anatomy.py`.
+- `fix/anatomy-pelvic-landmark-port` had no Actions runs found for the branch.
+- `feature/wren-anatomy-piercings-halter-fit` has failed Wren Workshop and modular garment review runs on its latest listed head (8 November). It overlaps current Ara base anatomy/clothing work and should not be merged wholesale.
+
+The immediate acceptance criterion is not simply a green generator workflow: inspect the current male and female body renders, then validate the actual skinned meshes in Godot. The base-body shape, anatomy colour/material, deformation and clothing fit must be accepted before treating the anatomy/assembly branches as production-ready.
+
+### Provisional dispositions
+
+| Branch | Comparison / evidence | Disposition |
+|---|---|---|
+| `feature/character-pipeline-foundation` | 2 ahead / 525 behind; docs-only. | **Superseded documentation.** Preserve history. |
+| `feature/character-starting-clothing` | 12 ahead / 63 behind; starting-clothing test is byte-identical to current. | **Integrated/evolved.** Preserve history; no re-merge. |
+| `feature/male-anatomy-geometry-review` | 5 ahead / 147 behind; older generator branch, CI passed on 7 November. | **Superseded by current anatomy geometry work.** Preserve history. |
+| `feature/player-character-visual-phase1` | 12 ahead / 124 behind; phase-one doc identical, creator script older. | **Integrated/evolved.** Preserve history; no re-merge. |
+| `feature/player-custom-avatar-selection` | 1 ahead / 64 behind; three-line scene change. | **Check for a missing behaviour only; otherwise superseded.** |
+| `feature/reusable-npc-workshop` | 5 ahead / 357 behind; two new tooling files absent from current. | **Deferred salvage candidate after schema alignment.** |
+| `feature/runtime-tattoos` | 8 ahead / 136 behind; tattoo UI/code already present in current page. | **Integrated.** Preserve history; no re-merge. |
+| `fix/generic-clothing-visibility` | 3 ahead / 60 behind; earlier body/garment visibility logic. | **Superseded by current AraCharacterActor.** |
+| `fix/keep-body-visible-under-clothing` | 2 ahead / 62 behind; earlier garment-only surface hiding. | **Superseded by current AraCharacterActor.** |
+| `fix/player-equipment-visuals` | 4 ahead / 64 behind; earlier equipment visual changes. | **Superseded/evolved.** |
+| `fix/male-anatomy-surface-sampling` | 1 ahead / 144 behind; earlier male geometry sampling generator. | **Superseded by current generator; preserve history.** |
+| `fix/wren-lace-fishnet-and-anatomy` | 19 ahead / 165 behind; older layering patch and anatomy generator changes. | **Superseded by current patching pipeline; salvage only missing asset results.** |
+| `fix/modular-outfit-review-material-duplicates` | 6 ahead / 161 behind; earlier render review script. | **Superseded/evolved.** |
+| `fix/publish-all-male-workshop-previews` | 1 ahead / 143 behind; small Wren workflow change. | **Check current artifact publication; no wholesale merge.** |
+| `diagnostic/ara-garment-surface-report` | 1 ahead / 59 behind; earlier actor diagnostics. | **Integrated/evolved in current diagnostics; retain.** |
+| `diagnostic/ara-report-on-character-configure` | 1 ahead / 58 behind; earlier actor diagnostics. | **Integrated/evolved in current diagnostics; retain.** |
+| `feature/ara-character-evaluation` | 4 ahead / 379 behind; evaluation doc/workflow changes. | **Retain findings; current workflow supersedes old branch.** |
+| `feature/ara-shields-helmets-hairstyles` | Branch comparison returned 404. | **Unresolved historical name; verify via live branch list.** |
+| `feat/ara-hairstyles-medieval-equipment` | 33 ahead / 102 behind; hair manifest byte-identical to current, extensive assets. | **Integrated asset set; retain history and only add proven missing variants.** |
+| `feat/player-morphs-inventory-weapons` | 7 ahead / 102 behind; old inventory fixture/creator/catalogue changes. | **Do not ship test inventory; compare only missing test cases.** |
