@@ -972,3 +972,15 @@ The mount review confirms two additional gaps beyond the HP calculation:
 - Existing tests cover normal mount, shared occupancy, movement cost, TP, save/load and initiative exclusion. They do not cover rider death/unconsciousness, mount death/unconsciousness, emergency dismount, stale reciprocal links or recovery after the mount is removed.
 
 Before porting, define a single lifecycle rule for the relationship: when either participant becomes unable to carry the relationship, clear both IDs and the mount's rider flag atomically, release/transfer occupancy safely, and decide whether the rider is placed on a valid adjacent hex or receives a fall consequence. The forced cleanup path must not require either character to be able to act. Add tests for both directions and save/load after cleanup.
+
+
+### Wren Workshop workflow lineage — deeper comparison
+
+The current `.github/workflows/wren-workshop.yml` is 687 lines and includes current Ara asset build stages, modular garment tools, male anatomy build/review, JavaScript validation and artifact handling. The older variants are not safe workflow replacements:
+
+- `fix/ara-review-crash-remove-legacy-wren-build` is 522 lines and still contains a separate tattoo-body GLB generation path plus older anatomy build steps. Current workflow instead validates the workshop's runtime tattoo implementation and rejects obsolete tattoo-body asset references.
+- `fix/publish-all-male-workshop-previews` is 652 lines and generates multiple small/large male body profiles. Current workflow deliberately builds one standard male base body and four review angles, which is the cleaner path while the project is settling one male and one female base with morphs.
+- `feature/ara-character-evaluation` is an older Wren-from-scratch blockout/sculpt pipeline. It is superseded by the Ara base-person workflow and should remain historical reference.
+- `chore/consolidate-preview-and-review-workflows` predates the current workflow and removes dedicated review workflows; it should not be used to collapse the current pipeline.
+
+These branches contain useful historical experiments, but none should replace the current Wren Workshop workflow. Any future workflow refactor should preserve the current independent artifact stages and run on the exact source commit being reviewed.
