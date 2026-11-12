@@ -27,6 +27,7 @@ def arguments():
     parser.add_argument("--adult", action="store_true", default=os.environ.get("ARA_ADULT") == "1")
     parser.add_argument("--fit-existing", action="store_true", help="Only expand lower garments around anatomy already present in the input GLB")
     parser.add_argument("--deformation-scale", type=float, default=1.65, help="Scale the enhanced female anatomy relief targets")
+    parser.add_argument("--method", choices=("integrated", "hybrid"), default="integrated", help="Compare the integrated skin sculpt with an additional buried, skin-material loft treatment")
     return parser.parse_args(raw)
 
 
@@ -414,6 +415,88 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     return skin
 
 
+
+def add_hybrid_labial_forms(skin, surface_tree, armature, anatomy_z, width, height):
+    """Add restrained, buried loft forms over the integrated skin sculpt.
+
+    Each loft follows sampled Ara skin ring-by-ring, embeds its rear half beneath
+    the surface, tapers into the body, shares the skin material and is pelvis
+    weighted. The underlying body remains continuous and morph-compatible.
+    """
+    skin_material = next((m for m in skin.data.materials if m and "skin" in m.name.lower()), None)
+    if skin_material is None:
+        raise RuntimeError("Hybrid anatomy requires the original Ara skin material")
+    modifier_source = next((m for m in skin.modifiers if m.type == "ARMATURE"), None)
+    if modifier_source is None:
+        raise RuntimeError("Hybrid anatomy requires the original Ara armature modifier")
+    armature = modifier_source.object
+    hips = next((b.name for b in armature.data.bones
+                 if b.name.lower().replace(" ", "") in ("hips", "hip", "pelvis")), None)
+    if hips is None:
+        hips = next((b.name for b in armature.data.bones if "hip" in b.name.lower() or "pelvis" in b.name.lower()), None)
+    if hips is None:
+        raise RuntimeError("Hybrid anatomy could not locate the pelvis weighting bone")
+
+    vertices, faces, uv_values = [], [], []
+    segments, rings = 32, 24
+    forms = [
+        (width * 0.043, width * 0.028, height * 0.0060, 0.006, 0.054),
+        (width * 0.019, width * 0.012, height * 0.0034, 0.002, 0.041),
+    ]
+    for side in (-1.0, 1.0):
+        for form_index, (offset, radius_x, radius_y, top, span) in enumerate(forms):
+            start = len(vertices)
+            for ri in range(rings + 1):
+                t = ri / rings
+                z = anatomy_z + height * top - height * span * t
+                taper = max(0.0, math.sin(math.pi * t)) ** (0.62 if form_index == 0 else 0.72)
+                local_radius_x = radius_x * (0.16 + 0.84 * taper)
+                local_radius_y = radius_y * (0.12 + 0.88 * taper)
+                centre_x = side * offset
+                for si in range(segments):
+                    angle = 2.0 * math.pi * si / segments
+                    x = centre_x + local_radius_x * math.cos(angle)
+                    sample = front_hit_data(surface_tree, x, z)
+                    if sample is None:
+                        raise RuntimeError(f"Hybrid anatomy could not sample Ara skin at x={x:.4f}, z={z:.4f}")
+                    surface_y = sample[0].y
+                    y = surface_y - local_radius_y * (0.48 + 0.98 * math.sin(angle))
+                    vertices.append((x, y, z))
+                    uv_values.append((si / segments, t))
+            for ri in range(rings):
+                for si in range(segments):
+                    a = start + ri * segments + si
+                    b = start + ri * segments + (si + 1) % segments
+                    c = start + (ri + 1) * segments + (si + 1) % segments
+                    d = start + (ri + 1) * segments + si
+                    faces.append((a, b, c, d))
+
+    mesh = bpy.data.meshes.new("AraHybridPelvicFormsMesh")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.materials.append(skin_material)
+    mesh.update()
+    uv_layer = mesh.uv_layers.new(name="UVMap")
+    for poly in mesh.polygons:
+        poly.use_smooth = True
+        for loop_index in poly.loop_indices:
+            vertex_index = mesh.loops[loop_index].vertex_index
+            uv_layer.data[loop_index].uv = uv_values[vertex_index]
+    obj = bpy.data.objects.new("Adult female anatomy · buried hybrid skin lofts", mesh)
+    bpy.context.collection.objects.link(obj)
+    group = obj.vertex_groups.new(name=hips)
+    group.add(list(range(len(vertices))), 1.0, "REPLACE")
+    obj.parent = armature
+    obj.matrix_parent_inverse = armature.matrix_world.inverted()
+    modifier = obj.modifiers.new("Ara pelvis skinning", "ARMATURE")
+    modifier.object = armature
+    obj["anatomy_method"] = "buried_surface_sampled_lofts_shared_skin_material"
+    obj["anatomy_profile"] = "adult_female_hybrid_review_only"
+    obj["review_status"] = "experimental_not_production_approved"
+    print(f"Added {len(vertices)} surface-sampled, pelvis-weighted hybrid anatomy vertices")
+    return obj
+
+
+
 def expand_lower_garments(objects, pelvis_z, body_front_y, width):
     # Apply the local pelvic allowance only to vertices belonging to lower-garment
     # material faces. Modular GLBs can contain skin and garments in one Blender
@@ -620,6 +703,9 @@ def main():
         wire_vertex_colour_to_skin_material(skin_material, "Color")
         surface_tree = build_bvh(skin)
         pelvis_surface_tree = surface_tree
+        if args.method == "hybrid":
+            add_hybrid_labial_forms(skin, surface_tree, armature, anatomy_z, width, height)
+            skin["anatomy_method"] = "integrated_skin_sculpt_plus_buried_surface_sampled_hybrid_lofts"
     create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, anatomy_z, body_front_y)
     if anatomy is not None:
         # The hood sits just above the vulvar cleft, not on the mons pubis.
