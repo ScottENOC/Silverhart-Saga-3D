@@ -1306,3 +1306,18 @@ The branch's `HollowmereVillage.md` is byte-identical to current `dev_2`. Its 13
 - Exact-head Godot 4.7.2 workflow `43308185539` passed on `efa6fa2d1c71f149d99bc88568fd14d8941d7266`.
 - Squash merge commit: `a8b5987ebdc12b016d99e2550349f17a8fd62645`; this is the current `dev_2` head at time of update.
 - Source PR #99 and `feature/farmstead-bear-creature-model` remain preserved; no historical feature branch deleted.
+
+
+## Live refresh — 13 November 2026
+
+- Current `dev_2` head: `a8b5987ebdc12b016d99e2550349f17a8fd62645` (PR #131 Tessa rescue).
+- Live branch inventory: **139 branches** across two GitHub API pages; all 139 names are represented in this register. This confirms inventory-name coverage, not exhaustive blob/asset review of every branch.
+- Open pull requests: **20**. PR #123 remains draft and unmerged; PR #130 remains draft; PR #121 remains draft; original source PRs #99 and #110 remain open/preserved.
+- PR #131 Tessa rescue is merged to `dev_2`; exact-head Godot 4.7.2 run `43308185539` passed. The source branch and PR #99 remain intact.
+- PR #130 mount presentation is now one commit behind current `dev_2` (merge base `0138f1ebd5cc6b677319a4e007d3b581c3301e97`; current head `a8b5987ebdc12b016d99e2550349f17a8fd62645`). GitHub currently reports the PR mergeable, but it must be refreshed onto the latest base and its exact head revalidated. The fixed seat offset remains a PC visual-acceptance gate; do not merge solely on headless CI.
+- `feature/missing-skill-runtime-port` compared against current `dev_2`: 21 commits ahead / 18 behind; its eight changed paths are older snapshots of current simulation/character systems. No unique safe port identified; preserve as historical source.
+- `feature/arena-and-full-character-roster`: its six substantive data/docs/test/validator files have exact matching blob SHAs on current `dev_2`; no recovery required. Its ancestry count (7 ahead / 111 behind) is not evidence of missing content.
+- `feature/opening-village`, `feature/shared-character-system` and `feature/iphone-hollowmere-ara-preview` remain heavily mixed with Ara/modelling pipeline changes and old Hollowmere snapshots. Do not merge wholesale. Their non-modelling world/deployment changes require further file-level reconciliation against current village and Pages workflow before any port.
+- `feature/farm-wildlife-creatures` remains a candidate for final source-level reconciliation only; its farm quest/creature actor logic overlaps already integrated current systems and must not be merged wholesale.
+
+**Next audit focus:** reconcile the remaining non-modelling opening-village/deployment changes and refresh the source-content census against `Hex-crpg/main` and current `dev_2`. Keep modelling work out of this stream. No changes to `dev` or `main`; no feature branches deleted.
