@@ -425,3 +425,78 @@ All counts below are fresh `dev_2...branch` compare-endpoint values at the curre
 - Keep #123 draft. The refreshed count is not a completed inventory: the remaining small, deployment, diagnostics, test, content and integration branches still need exact path/blob/test/dependency dispositions.
 - Preserve all original feature branches. Closing an obsolete PR later does not imply deleting its source branch.
 - No gameplay branch has been merged in this refresh. The next audit pass should cover the newly visible branch names and then finish the remaining branch groups, especially the deployment/workshop variants and isolated test/diagnostic branches.
+
+
+## Remaining small-branch and focused-lineage pass — 12 November 2026
+
+The following are fresh `dev_2...branch` comparisons and targeted file/blob checks. “No port” means the relevant behaviour or asset is already represented in the evolved current tree, not that the source branch should be deleted.
+
+### Documentation, validation and reaction UI
+
+| Branch | Fresh compare | Findings | Disposition |
+|---|---:|---|---|
+| `docs/content-parity-audit` | 1 ahead / 59 behind; 1 file | Adds a 607-line 2D-to-3D content parity audit, based on old `dev`. It is useful source inventory, but explicitly describes an early project state and cannot be treated as current implementation status. | Preserve as a documentation source. Reconcile its source checklist against current `dev_2` and the branch recovery register before publishing a current parity baseline. |
+| `feature/in-game-reaction-prompt` | 2 / 146; 2 files | Its modal prompt and HollowTankard wiring are present in current `dev_2`; the current prompt file is a later version and current HollowTankard connects reaction and movement-reaction events. Its HollowTankard is an old snapshot. | Already evolved/integrated. No re-port; preserve branch history. |
+| `fix/hollowmere-cast-validator` | 1 / 14; 1 file | The validator file is byte-identical to current `dev_2` (same blob SHA). | Already integrated; no port. |
+| `feature/character-pipeline-foundation` | 2 / 529; 1 file | Adds only the older character-pipeline design document. | Documentation lineage only; retain and mine for any unrecorded decisions, but do not merge an old baseline document unchanged. |
+| `feature/ara-character-evaluation` | 4 / 383; 4 files | Old Ara evaluation workflow/site/docs changes; no simulation/runtime paths. | Keep as pipeline history. Do not conflate it with the Cosmo Tree Generator evaluation tooling that the user explicitly excluded. |
+| `feat/wren-only-pages-two-character-workshop` | 5 / 160; 3 files | Old two-character Workshop/export workflow and site shell; current combined workflow is more advanced. | Superseded deployment history; no merge. |
+
+### Dialogue, encounters and world presentation
+
+- `feature/hollowmere-dialogue-ambient-chatter` compares 16 ahead / 137 behind with six changed paths. Its ambient chatter script is an older version of the current script. Its campaign-content file is also an older snapshot, but contains some distinct shakedown NPC-standing deltas and greeting/chatter lines not present verbatim in current content. These are content candidates, not a reason to replace current campaign content.
+  - **Disposition:** preserve. Before final archival classification, compare the branch's unique dialogue/standing outcomes with the current quest/journal design and the separate shakedown encounter. Recover only specific missing authored content with current canonical NPC IDs and tests.
+- `feature/hollowmere-shakedown-combat` compares 50 ahead / 131 behind with eight changed paths. Its `hollowmere_encounter.gd` exists in current but is an older version; its campaign content, journal, turn scheduler, HollowTankard and ambient chatter are older snapshots. No missing encounter script path was found.
+  - **Disposition:** retain as encounter-design/test lineage. Do not merge the stale encounter or scene. Reconcile any unique narrative/choice consequences with the current quest and reaction systems after the branch inventory is complete.
+- `feature/organic-hollowmere-geography` compares 17 ahead / 89 behind with five changed paths. The organic-world helper and village data paths exist in current; the branch's versions are older than current. The current village implementation has evolved stream/road and farm/wilderness presentation.
+  - **Disposition:** no wholesale port. Preserve the branch and selectively compare a specific missing geographical feature only if a current scene/data review demonstrates a gap.
+- `feature/main-campaign-world-map` compares 12 ahead / 140 behind; its map UI/data and documentation paths are already represented by the current campaign-map implementation. Its changed player creator/HollowTankard/world-root files are older snapshots.
+  - **Disposition:** no re-port; preserve the planning and design history.
+
+### Character, clothing and equipment focused branches
+
+These branches belong to, or directly overlap, the separate character/clothing/hair/equipment modelling stream. They are inventoried to preserve their work, not to duplicate or alter that stream.
+
+| Branch | Fresh compare | Current-tree check / disposition |
+|---|---:|---|
+| `diagnostic/ara-garment-surface-report` | 1 / 63; 1 file | One Ara actor diagnostic change. Preserve as diagnostic evidence; do not merge into the game runtime. |
+| `diagnostic/ara-report-on-character-configure` | 1 / 62; 1 file | One Ara actor diagnostic change. Preserve; do not merge runtime diagnostics. |
+| `feature/ara-skeleton-animation-validation` | 0 ahead | No unique commits/files relative to current. Keep history. |
+| `feature/ara-visual-animation-review` | 0 ahead | No unique commits/files relative to current. Keep history. |
+| `feature/character-starting-clothing` | 12 / 67; 6 files | Its `tests/test_starting_clothing.gd` is byte-identical to current; changed loadout/item/actor/creator/scene files are old snapshots. Preserve; no wholesale port. |
+| `feature/player-character-creator-dev` | 10 / 162; 9 files | Creator, actor, NPC manifest and scene are old snapshots; the current creator/runtime has evolved. Validator paths are represented in current. Preserve as design lineage; no wholesale port. |
+| `feature/game-real-hollowmere-character-art` | 6 / 163; 5 files | The cast validator files are present in current; remaining workflow/docs changes are older pipeline snapshots. Preserve for asset-pipeline provenance; do not replace current workflow. |
+| `feature/player-custom-avatar-selection` | 1 / 68; 1 file | Only an older HollowTankard snapshot; current scene already selects the player avatar with fallback. No port. |
+| `fix/generic-clothing-visibility` | 3 / 64; 1 file | Ara actor-only change in the parallel modelling stream. Preserve; no integration here. |
+| `fix/keep-body-visible-under-clothing` | 2 / 66; 1 file | Ara actor-only change in the parallel modelling stream. Preserve; no integration here. |
+| `fix/player-equipment-visuals` | 4 / 68; 2 files | Actor/HollowTankard visual changes belong to the modelling stream; no merge in this audit. |
+| `fix/wren-lace-fishnet-and-anatomy` | 19 / 169; 6 files | Workflow/site and Blender/review-tool changes belong to the modelling stream. Preserve; do not copy into the game branch. |
+| `fix/male-anatomy-surface-sampling` | 1 / 148; 1 file | Blender male-anatomy tool change belongs to the separate anatomy stream. Preserve and leave untouched. |
+| `fix/modular-outfit-review-material-duplicates` | 6 / 165; 2 files | Review renderer/workflow changes belong to the modelling pipeline. Preserve for that stream; no game-runtime merge. |
+| `fix/anatomy-pelvic-landmark-port` | 0 ahead | No unique commits/files relative to current. Keep branch history. |
+| `feature/runtime-tattoos` | 8 / 140; 3 files | Older Workshop workflow/docs/site snapshot; runtime tattoo support is already present in current. No re-port. |
+| `feat/player-morphs-inventory-weapons` | 7 / 103; 7 files | Character pipeline/test inventory rather than production-ready campaign starting inventory. Keep for later visual and inventory review; do not ship its test loadout wholesale. |
+| `feat/tapered-split-dress-v2` | 8 / 102; 5 files | No unique art path absent from current; hold its generator/output for visual fit acceptance. |
+
+### Save/load, items, inventory and other previously compared branches
+
+- `feature/save-load-system` remains a source/provenance branch. Its SaveManager and save/load menu are represented in current `dev_2`; the branch's eight-file compare is dominated by older README/project/HollowTankard/world-root snapshots and the already-integrated test/doc material. No re-port.
+- `feature/hollowmere-items-and-inventory-art` has the same item icon atlas blob as current. ItemCatalog is already integrated; its CharacterPanel is older than the current panel, and its data/scene/test files are historical snapshots. No wholesale port; no missing icon atlas recovery.
+- `feature/character-inventory-panel` remains an older UI iteration; current panel has evolved catalogue/equipment-change/scroll behaviour. Preserve for interaction history, not as a replacement.
+- `feature/arena-and-full-character-roster` remains byte-identical for its arena data/roster validator/test contribution. No re-port.
+- `feature/terrain-character-grounding-test`, `feature/port-action-economy`, `fix/anatomy-pelvic-landmark-port`, `feature/ara-skeleton-animation-validation` and `feature/ara-visual-animation-review` currently have zero commits ahead of `dev_2`; their branch names remain preserved, but they do not represent unmerged code at this baseline.
+- `feature/equipment-gameplay-stat-integration` is the old source lineage for PR #124. Its relevant equipment rule changes are already integrated; do not merge the old branch.
+- `feature/combat-initiative-timeline` remains already integrated and wired; its old preview workflow and capture files are not proof of a missing runtime timeline.
+
+### Integration branch disposition
+
+- `integration/campaign2-world-dev2`, `integration/animal-riding-dev2`, and `integration/equipment-heraldry-dev2` are the source branches for merged PRs #125–#127. Keep as merge provenance; do not re-merge.
+- `integration/equipment-rules-dev2` is the source for merged PR #124. Keep as provenance; do not re-merge.
+- `integration/two-storey-tankard-dev2` and `integration/vision-foundation-dev2` are the sources for previously merged building/door and vision foundation work (#119/#122). Keep as provenance; do not re-merge.
+- `integration/save-load-dev2` contains save/load integration work already represented in current; no additional merge from the stale branch.
+- `integration/opening-cinematic-dev2` remains the live head for draft PR #121. It is not merged; visual acceptance remains the blocker.
+- `integration/hollowmere-dev-visual-review`, `integration/hollowmere-npc-visuals`, `integration/hollowmere-world-simulation` and `integration/wren-modular-clothing` have zero commits ahead of current `dev_2`; preserve as historical integration snapshots.
+
+### What this pass does not sign off
+
+This pass adds dispositions for the small/focused branches above, but it does not certify the full 134-branch inventory complete. The remaining deployment variants, diagnostics, test-only branches, large character assembly/anatomy sources and every current open PR still need final per-branch records for unique assets/tests, workflow head SHA and dependency relationships. Stage 1 remains open.
