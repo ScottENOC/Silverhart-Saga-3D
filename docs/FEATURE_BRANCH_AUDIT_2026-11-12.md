@@ -854,3 +854,13 @@ However, PR #76 does not modify `AraCharacterActor`, the character equipment pre
 | `feature/shared-character-system` | 125 ahead / 357 behind; core appearance and modular GLB assembler identical to current. | **Superseded/evolved; preserve history, no wholesale merge.** |
 | `feature/modular-character-poc` | 51 ahead / 357 behind; older alternate runtime character architecture. | **Superseded prototype; retain for reference only.** |
 | `feature/iphone-hollowmere-ara-preview` | 178 ahead / 357 behind; export preset identical, deploy script obsolete. | **Superseded deployment prototype; preserve history.** |
+
+
+### Hollowmere model validator lineage
+
+The current `tools/ci/validate_hollowmere_models.gd` and `.py` are present in `dev_2`. The old `feature/game-real-hollowmere-character-art` validator expects exactly 13 profiles and predates the current 14-profile set including `player_avatar`; do not port it. `fix/hollowmere-cast-validator`'s Python validator is byte-for-byte identical to current and adds the duplicate-ID, empty-cast and player-avatar checks. It is already integrated.
+
+| Branch | Evidence | Disposition |
+|---|---|---|
+| `feature/game-real-hollowmere-character-art` | Old 13-profile validator; current baseline expects 14 including player avatar. | **Superseded; retain history.** |
+| `fix/hollowmere-cast-validator` | Python validator byte-identical to current. | **Integrated.** Preserve history; no re-merge. |
