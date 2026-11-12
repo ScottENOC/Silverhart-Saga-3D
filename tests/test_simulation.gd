@@ -776,6 +776,7 @@ func _test_companion_campaign_dialogue_and_recruitment() -> void:
     CompanionCampaignContent.register_quest_definitions(restored)
     restored.load_dict(journal.to_dict())
     _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("nix_sharpear", restored, empty_inventory, no_party)), "Companion quest outcomes should persist through journal save/load")
+    _check(_has_companion_recruit_choice(CompanionCampaignContent.conversation("reyna_fletcher", restored, empty_inventory, no_party)), "Reyna's staged rescue outcome should persist through journal save/load")
 
 
 func _test_farmstead_dire_wolf_encounter() -> void:
