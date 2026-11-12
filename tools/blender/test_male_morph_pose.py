@@ -104,7 +104,9 @@ def main():
             camdata.type="ORTHO"; camdata.ortho_scale=max(height*0.18,0.12)
             scene.camera=cam
             # Use a neutral studio setup.
-            scene.render.engine="BLENDER_EEVEE_NEXT"
+            engines={item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
+        scene.render.engine=next((e for e in ("BLENDER_EEVEE_NEXT","BLENDER_EEVEE","BLENDER_WORKBENCH") if e in engines),None)
+        if scene.render.engine is None: raise RuntimeError("No supported Blender render engine")
             scene.render.resolution_x=900; scene.render.resolution_y=900
             scene.render.resolution_percentage=100
             scene.render.image_settings.file_format="PNG"
