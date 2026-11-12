@@ -657,3 +657,44 @@ A direct source comparison of this branch's workflows against current dev_2 reso
 - Its godot-web-export workflow is a 131-line early exporter; current dev_2 uses the 329-line combined game/Workshop/props Pages workflow. The branch's exporter is an earlier version of the same lineage as feat/wren-only-pages-two-character-workshop.
 - The current workflow contains no separate legacy Wren model build to remove; it already builds/consumes the Ara runtime package. No unique crash fix was identified that is absent from current validation.
 - **Disposition revised:** superseded workflow history; preserve the branch, no merge. Do not replace current workflows with its older copies.
+
+
+## Cross-PR dependency and integration-order map — 12 November 2026
+
+This is the practical dependency map for avoiding duplicate or order-sensitive merges. It distinguishes already recovered code from still-open historical PRs.
+
+| Source PR/branch | Depends on / overlaps | Current integration consequence |
+|---|---|---|
+| #124 / feature/equipment-gameplay-stat-integration | Current CharacterState, ItemCatalog and CombatRules | Equipment slot/two-handed/helmet rule slice is already merged. Do not re-merge #91. |
+| #125 / feature/full-world-port-foundation | Current HexMapData, WorldRoot, Campaign2/world data | Campaign2 data/builders/previews are already merged. Other stale simulation/scene snapshots remain untrusted. |
+| #126 / feature/animal-riding-validation | Current CharacterState, WorldSimulation, CreatureActor, save/load and lifecycle APIs | Riding runtime is already merged. Its original PR #110 is not a second integration candidate; only the preview capture remains to decide. |
+| #127 / feat/equipment-materials-heraldry | Current equipment definitions and later Ara actor/equipment presentation | Helper/shader/test are already merged. Runtime asset wiring belongs to the separate modelling stream. |
+| #121 / integration/opening-cinematic-dev2 | #119 two-storey tavern/building, current HollowTankard scene, Ara animation assets | Visual review only. Refresh against latest dev_2 before merge because its base SHA predates #125–#127. |
+| #110 / feature/animal-riding-validation | #126 selectively supersedes simulation payload; preview capture is a separate visual-only candidate | Keep open until preview disposition; do not merge old WorldSimulation/CharacterState snapshots. |
+| #99 / feature/farmstead-bear-creature-model | #90 older skill/companion/quest content; current CampaignJournal and canonical companion IDs; #126 animal profile only if reused | Port only Tessa quest-state/encounter service after lifecycle fixes. Do not copy old HollowTankard or quest-content snapshots. |
+| #96 / feature/vision-stealth-perception | #122 already supplies spatial VisionRules/LOS; current save/load and campaign map discovery contract | Fog-of-war is still a distinct candidate, but requires a persistence/knowledge design before implementation. |
+| #90 / feature/skill-magic-foundation | #99 quest content, companion/NPC progression, current CharacterState/SkillProgression | Preserve as source history. No wholesale merge; spell JSON is not a working casting system. |
+| #87 / feature/unified-character-assembly | feature/anatomy-geometry-revision, feature/shared-character-system, feature/modular-character-poc, #8, #25, #29, #73 | Major architecture candidate with conflicting body-profile/schema assumptions. Decide one-base-plus-morphs, migrate all 22 NPCs and validate assets before any selective port. |
+| #8 / feature/wren-anatomy-piercings-halter-fit | #25 dress/loading pipeline, #87 assembly schema, active Ara anatomy stream | Parallel modelling/anatomy history only. Preserve; no wholesale merge. |
+| #25 / fix/dress-selector-and-loading-review | #8 Wren garment work, #26 incremental pipeline, current Ara actor/creator | Historical pipeline; split browser/deployment from garment/anatomy before any salvage. Visual acceptance required. |
+| #26 / ci/incremental-character-pipeline | Stacked directly on #25 | Do not merge as an independent production branch. Reconcile only after #25's useful workflow changes are isolated. |
+| #76 / feat/equipment-materials-heraldry | #127 already recovered helper; separate armour/helmet modelling | No second helper merge. Keep remaining modelling changes out of this audit. |
+| #73 / feature/ser-aldric-first-companion-model | Current Ara character builder and eventual assembly resolver (#87); companion identity/manifest | No model acceptance: binary GLB path absent. Do not add a parallel companion registry prematurely. |
+| #74 / feat/player-morphs-inventory-weapons | Current ItemCatalog, player starting loadout and creator | Test inventory only; do not replace campaign starting gear/loot/shop logic. |
+| #77 / feat/tapered-split-dress-v2 | Current garment pipeline and base-body/morph acceptance | Hold for rendered fit review; no default garment replacement based on CI. |
+| #34 / chore/consolidate-preview-and-review-workflows | Current independent character, Ara, prop, export and Pages workflows | Workflow cleanup must follow current artifact dependencies; do not apply its historical deletions. |
+| #89 / docs/content-census | docs/content-parity-audit and current source content/22-NPC manifest | Reconcile into one current source census; don't merge stale duplicated documents unchanged. |
+| #5 / feature/audio-and-mode-select | Current AudioManager/importer and main-menu flow | Already integrated/evolved; no dependency blocker for current gameplay. Arena remains placeholder. |
+
+### Safe integration order already completed
+
+1. #119 building/door foundation → #120 restore test → #122 vision/LOS foundation (historical baseline).
+2. #124 equipment gameplay rules → #125 Campaign2 world data/previews → #126 animal/riding simulation → #127 equipment appearance helper. All are now in current dev_2 and their original feature branches remain intact.
+3. #121 is the only currently open PR targeting dev_2 that is a gameplay/presentation candidate; keep it isolated for visual acceptance and then refresh/revalidate against current dev_2.
+
+### Deferred recovery order after Stage 1 sign-off
+
+- First resolve architecture and schema direction for #87 and its predecessor branches before importing any NPC/garment assembly code.
+- Keep #99 quest and #73 companion work dependent on current canonical quest/companion IDs and the accepted character pipeline.
+- Design fog-of-war persistence/knowledge before extracting #96's fog presentation.
+- Only then consider remaining 2D mechanics and new features, in accordance with the user's priority order. This dependency map is a preservation/recovery aid, not approval to start those feature ports now.
