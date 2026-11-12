@@ -437,6 +437,34 @@ def add_hybrid_labial_forms(skin, surface_tree, armature, anatomy_z, width, heig
     if hips is None:
         raise RuntimeError("Hybrid anatomy could not locate the pelvis weighting bone")
 
+    # Ara's pelvis/upper-thigh topology has small gaps in the front silhouette.
+    # A strict single ray at every loft vertex can therefore miss even though
+    # the surrounding skin is present. Search a small local X/Z neighbourhood
+    # for the nearest front-facing skin hit; never substitute a distant point.
+    fallback_samples = 0
+    def sample_skin(x, z):
+        nonlocal fallback_samples
+        hit = front_hit_data(surface_tree, x, z)
+        if hit is not None:
+            return hit
+        candidates = []
+        # Fine-to-coarse local search, prioritising the closest anatomical point.
+        for step in range(1, 9):
+            delta = step * 0.0025
+            for dx, dz in ((delta, 0.0), (-delta, 0.0),
+                           (0.0, delta), (0.0, -delta),
+                           (delta, delta), (delta, -delta),
+                           (-delta, delta), (-delta, -delta)):
+                candidate = front_hit_data(surface_tree, x + dx, z + dz)
+                if candidate is not None:
+                    candidates.append((dx*dx + dz*dz, candidate))
+            if candidates:
+                break
+        if not candidates:
+            return None
+        fallback_samples += 1
+        return min(candidates, key=lambda item: item[0])[1]
+
     vertices, faces, uv_values = [], [], []
     segments, rings = 32, 24
     forms = [
@@ -456,7 +484,7 @@ def add_hybrid_labial_forms(skin, surface_tree, armature, anatomy_z, width, heig
                 for si in range(segments):
                     angle = 2.0 * math.pi * si / segments
                     x = centre_x + local_radius_x * math.cos(angle)
-                    sample = front_hit_data(surface_tree, x, z)
+                    sample = sample_skin(x, z)
                     if sample is None:
                         raise RuntimeError(f"Hybrid anatomy could not sample Ara skin at x={x:.4f}, z={z:.4f}")
                     surface_y = sample[0].y
@@ -492,7 +520,7 @@ def add_hybrid_labial_forms(skin, surface_tree, armature, anatomy_z, width, heig
     obj["anatomy_method"] = "buried_surface_sampled_lofts_shared_skin_material"
     obj["anatomy_profile"] = "adult_female_hybrid_review_only"
     obj["review_status"] = "experimental_not_production_approved"
-    print(f"Added {len(vertices)} surface-sampled, pelvis-weighted hybrid anatomy vertices")
+    print(f"Added {len(vertices)} surface-sampled, pelvis-weighted hybrid anatomy vertices; local fallback samples={fallback_samples}")
     return obj
 
 
