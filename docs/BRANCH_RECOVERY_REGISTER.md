@@ -1193,3 +1193,10 @@ GitHub now returns 136 live branch names and 20 open PRs. All 136 branch names a
 - Current GitHub branch count: 137. All 137 names are represented in this register, including `integration/animal-mount-controls-dev2`.
 - Current open PR count: 20 (three target `dev_2`, 16 target `dev`, one targets the dress-review branch). PR #128 and #129 are merged; PR #130 is the new mount-control/presentation recovery candidate.
 - PR #130 head is `e010b1ed2fc3fa7397d85756c52656f7b1e6cb5a`; Godot validation run `43206955005` was still in progress at the time of this note. Its full CI and new mount-presentation tests must pass before considering merge; provisional seat transform still requires PC visual acceptance.
+
+
+### PR #130 test correction and latest validation head
+
+- First PR #130 workflow `43206955005` failed only at the newly added mount-presentation test. The test tried to subclass/preload the entire `HollowTankard`, which pulled its `SaveManager` autoload dependency into a standalone `--script` test before the autoload was available, then crashed. The production code itself had passed all earlier workflow stages; the run did not establish full success.
+- Reworked the test boundary: extracted the seat/attach/detach/facing/mounted-movement presentation helpers into `scripts/presentation/mount_presentation.gd` and replaced the heavyweight HollowTankard fixture with a standalone Node3D test. This also separates presentation concerns from the large scene script.
+- The latest PR #130 head is `024a790b0fb28eedf3da8d9891e8a01465a4d2ed`; fresh Godot workflow `43207796933` is pending. Do not use the failed earlier run as the final status.
