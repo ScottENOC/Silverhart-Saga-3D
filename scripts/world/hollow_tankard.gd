@@ -711,8 +711,8 @@ func _check_reyna_story_proximity() -> void:
         return
     if not _reyna_objective_done("trail_found"):
         _ensure_reyna_clue_visual()
-        var player := simulation.get_character("player")
-        if player != null and HexGrid.distance(player.axial, Vector2i(22, 61)) <= 2:
+        var active_state := simulation.get_character(active_character_id)
+        if active_state != null and HexGrid.distance(active_state.axial, Vector2i(22, 61)) <= 2:
             _set_reyna_objective("trail_found")
             if is_instance_valid(reyna_clue_visual):
                 reyna_clue_visual.queue_free()
@@ -720,8 +720,8 @@ func _check_reyna_story_proximity() -> void:
             _show_dialogue("Reyna Fletcher", "A strip of Tessa's blue cloak. And look here — small footprints in the mud, beside the drag marks. She was alive when she left the fence. The trail leads to the old shepherd's shelter. Come on!", [{"id":"continue","label":"Follow the tracks","text":""}])
         return
     if not _reyna_objective_done("child_rescued") and not actor_by_id.has("missing_child_tessa"):
-        var player_at_shelter := simulation.get_character("player")
-        if player_at_shelter != null and HexGrid.distance(player_at_shelter.axial, Vector2i(27, 62)) <= 2:
+        var active_state_at_shelter := simulation.get_character(active_character_id)
+        if active_state_at_shelter != null and HexGrid.distance(active_state_at_shelter.axial, Vector2i(27, 62)) <= 2:
             _spawn_missing_child()
             _show_speech_bubble("companion_reyna_fletcher", "Tessa? It's Reyna. Stay where you are — we're getting you out.")
             _show_dialogue("Reyna Fletcher", "The shelter door is hanging open. There's a child inside. I can hear her. The dire wolf is circling outside, waiting. Get close and speak softly; don't frighten her.", [{"id":"continue","label":"I'll get her out","text":""}])
@@ -1381,6 +1381,12 @@ func _apply_save_data(data: Dictionary) -> void:
         actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
         if actor is AraCharacterActor:
             (actor as AraCharacterActor).apply_equipment_visuals(state.equipped_item_data)
+    var saved_dire_wolf := simulation.get_character(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
+    if saved_dire_wolf == null or not saved_dire_wolf.can_act():
+        var defeated_wolf_actor := actor_by_id.get(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID) as Node3D
+        if is_instance_valid(defeated_wolf_actor):
+            defeated_wolf_actor.queue_free()
+        actor_by_id.erase(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
     if camera_rig != null:
         camera_rig.follow_target = actor_by_id.get(active_character_id, actor_by_id.get("player")) as Node3D
         var camera_data: Dictionary = data.get("camera", {})
