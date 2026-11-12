@@ -1035,3 +1035,22 @@ The deployment workflow deserves a separate integration fix, not a wholesale wor
 - The current workflow's validator step is named "Verify all 13 NPCs and the player avatar". This count/contract should be checked against the current canonical NPC manifest before treating deployment validation as authoritative, particularly given the schema migration work recorded above.
 
 **Deployment disposition:** retain the current more complete workflow, but create a separate small deployment-source fix once the intended Pages source branch is confirmed. Verify both the game and Workshop routes from the same commit, and ensure a failure in one optional asset build does not suppress an otherwise deployable game/Workshop artifact.
+
+
+### Vision / stealth / AI uncertainty boundary check
+
+A direct source review of current `dev_2` confirms the spatial LOS foundation is real, but it is not a complete stealth/perception system:
+
+- `VisionRules.vision_range()` applies racial/sensory and low-light range modifiers.
+- `VisionRules.has_line_of_sight()` traces hex rays and accounts for opaque terrain, explicit vision blockers and elevated terrain/ridges. Missing map cells block sight.
+- `VisionRules.can_see()` combines alive-state, range and LOS.
+- `stealth_detection_bonus()` and `stealth_check_bonus()` expose skill-derived modifiers, but there is no resolution function that compares them, no persistent hidden/detected state, no observer-specific last-known-position memory, and no AI policy that acts on uncertainty.
+- The current simulation's attack path checks targetability and combat relationships, but does not yet make hostile AI decisions from observer-specific perception/memory.
+
+Therefore #122 should be described as the spatial vision/LOS foundation only. It does not complete stealth, detection, fog-of-war presentation or AI under uncertainty. The next coherent feature should be a simulation-owned perception model with observer-specific contacts: currently visible, detected-but-not-currently-visible (last-known location plus timestamp/confidence), or unknown. AI should choose search/investigate/guard/reposition actions from those contacts and must not query hidden character positions as an oracle. Add deterministic tests for skill bonuses, cover/lighting, losing LOS, stale memories, false/uncertain leads, and save/load of memory if memory persists across saves. Keep fog rendering/UI as a separate consumer of that model.
+
+The `feature/vision-stealth-perception` branch is not an integration source: it is stale against `dev_2`, its latest known workflow failed, and its broad world-simulation snapshot is superseded by the LOS foundation. Salvage only a demonstrably correct isolated visual/fog technique after the perception contract is designed.
+
+### Deployment NPC-count label clarification
+
+The current workflow's step label says "Verify all 13 NPCs and the player avatar", but the validator itself does not hard-code 13: it reads the canonical `hollowmere_npcs.json` manifest, requires a `player_avatar` entry, and checks that every source ID has a matching generated profile and valid GLB/parameter file. The current `dev_2` manifest contains 22 character records. The step label is stale/misleading; the validator's dynamic count is the authoritative check. Rename the workflow step when making the deployment-source correction.
