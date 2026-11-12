@@ -79,14 +79,29 @@ jobs:
         run: godot --headless --path . --script res://tests/test_farm_wolves_quest.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
+      - name: Run Campaign 2 road manifest tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_road_paths.gd
+      - name: Run Campaign 2 geography manifest tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_geography_manifest.gd
+      - name: Run Campaign 2 world terrain tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_terrain.gd
+      - name: Run Campaign 2 settlement layout tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
       - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null
           python -m json.tool data/characters/hollowmere_loadouts.json > /dev/null
           python -m json.tool data/characters/character_creation_rules.json > /dev/null
           python -m json.tool data/items/item_definitions.json > /dev/null
+          python -m json.tool data/world/campaign2_geography.json > /dev/null
+          python -m json.tool data/world/campaign2_road_paths.json > /dev/null
+          python -m json.tool data/world/campaign2_settlement_layouts.json > /dev/null
       - name: Smoke-test terrain prototype
         run: godot --headless --path . --scene res://scenes/prototypes/terrain_elevation_prototype.tscn --quit-after 5
+      - name: Smoke-test Campaign 2 macro-world preview
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --scene res://scenes/prototypes/campaign2_macro_world_preview.tscn --quit-after 5
+      - name: Smoke-test Campaign 2 regional streamed world
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --scene res://scenes/prototypes/campaign2_regional_world_preview.tscn --quit-after 10
       - name: Smoke-test campaign character creation and opening scene
         run: godot --headless --path . --scene res://scenes/main.tscn --quit-after 10
       - name: Smoke-test opening village
