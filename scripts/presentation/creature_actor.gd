@@ -17,6 +17,9 @@ var model_root: Node3D
 var animation_player: AnimationPlayer
 var animation_names: PackedStringArray = PackedStringArray()
 var active_animation: StringName = &""
+## Hex-grid position and simulation state are assigned by the world owner.
+var axial_hex: Vector2i = Vector2i.ZERO
+var simulation_state: CharacterState
 
 func _ready() -> void:
     _load_model()
@@ -97,6 +100,17 @@ func _play_matching(hints: PackedStringArray) -> bool:
                 active_animation = StringName(candidate)
                 return true
     return false
+
+## Creates the matching gameplay state for this rendered animal.
+func create_simulation_state(
+    creature_id: String,
+    display_name: String = "",
+    start_hex: Vector2i = Vector2i.ZERO,
+    individual_seed: int = 0
+) -> CharacterState:
+    simulation_state = AnimalCatalog.create_state(creature_kind, creature_id, display_name, start_hex, individual_seed)
+    axial_hex = start_hex
+    return simulation_state
 
 func available_animations() -> PackedStringArray:
     return animation_names.duplicate()
