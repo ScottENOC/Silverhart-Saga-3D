@@ -61,6 +61,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_simulation.gd
       - name: Run SaveManager round-trip tests
         run: godot --headless --path . --script res://tests/test_save_manager.gd
+      - name: Run campaign save/restore scene integration tests
+        run: godot --headless --path . --scene res://tests/save_restore_boot.tscn
       - name: Run NPC pass-through tests
         run: godot --headless --path . --script res://tests/test_npc_pass_through.gd
       - name: Run character appearance tests
