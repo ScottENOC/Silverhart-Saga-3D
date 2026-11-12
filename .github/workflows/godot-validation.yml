@@ -71,6 +71,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_npc_pass_through.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
+      - name: Run equipment appearance and heraldry tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_equipment_appearance.gd
       - name: Run seasonal tree tests
         run: godot --headless --path . --script res://tests/test_seasonal_trees.gd
       - name: Run wilderness resource visual tests
