@@ -1,8 +1,8 @@
 # Branch recovery register — deep audit supplement (12 November 2026)
 
 **Initial integration baseline:** `dev_2` at `6e6aaa78a9b5031978dfa239f43441d58f4ea6be` (PR #124 equipment-rules port).
-**Latest integration baseline:** `dev_2` at `374d4a2894e0c118c4a35d075a23ca568ff51209` (PR #127 equipment appearance/heraldry utility).
-**Live branch inventory:** 134 branches, refreshed 12 November 2026.
+**Latest integration baseline:** `dev_2` at `0138f1ebd5cc6b677319a4e007d3b581c3301e97` (PR #129 saved-animal-actor restoration).
+**Live branch inventory:** 138 branches, refreshed 12 November 2026 (late pass).
 **Scope of this supplement:** source-tree and full recursive Git tree comparisons for the large orphan branches listed below. This supplements `FEATURE_BRANCH_AUDIT_2026-11-12.md`; it does not declare the repository-wide audit complete.
 
 ## Method and interpretation
@@ -1206,3 +1206,31 @@ GitHub now returns 136 live branch names and 20 open PRs. All 136 branch names a
 
 - Latest PR #130 head `024a790b0fb28eedf3da8d9891e8a01465a4d2ed` completed Godot 4.7.2 validation run `43207796933` successfully: all 31 steps passed, including the isolated mount-presentation helper tests and the existing project validation suite.
 - PR #130 remains open and draft, targets `dev_2`, and GitHub reports it mergeable/clean. It has deliberately not been merged: the fixed seat offset is still provisional and requires PC visual acceptance against the actual horse model and both accepted body rigs. CI proves script/test correctness, not that the rider looks correctly seated or animates acceptably.
+
+
+## Live repository refresh — 12 November 2026, late pass
+
+- **Current integration baseline:** `dev_2` at `0138f1ebd5cc6b677319a4e007d3b581c3301e97` (PR #129 saved-animal-actor restoration).
+- **Live refs:** 138 branches, including `main`, `dev`, `dev_2`, the audit branch itself and newly added parallel anatomy work. There are 20 open PRs.
+- **Audit coverage:** all 138 names are now explicitly represented in this register, including the meta branches and the parallel anatomy branch noted below. Name coverage is not equivalent to content review or merge approval.
+- **PR #130:** branch `integration/animal-mount-controls-dev2`, head `024a790b0fb28eedf3da8d9891e8a01465a4d2ed`, targets `dev_2` at `0138f1e`. Exact-head Godot validation run `43207796933` completed successfully. The PR remains draft and unmerged pending actual horse-saddle/accepted-body visual review; the fixed seat offset is provisional.
+- **PR #121:** remains draft, but GitHub currently reports `mergeable=false`; its base SHA `585f914` predates the Campaign 2 and animal/equipment recovery merges. It must not be merged from this stale base. After visual review, rebase/refresh against current `dev_2` and rerun the full workflow.
+- **PR #123:** remains draft, open and mergeable; it targets `dev_2`. This audit branch itself is counted in the 138 live refs.
+
+### Focused disposition: `feature/missing-skill-runtime-port`
+
+- Fresh compare against current `dev_2`: 21 commits ahead / 17 behind; eight changed paths relative to merge base.
+- The changed paths are CharacterState, CombatRules, WorldSimulation, the simulation tests, character creation rules, action request, skill progression and player creator.
+- Direct source comparison shows this is an older implementation snapshot, not a clean set of missing skill features. The current `CharacterState` includes later status-effect persistence/lifecycle, animal and mount state, equipment-slot validation and poison handling absent from the branch. Current `CombatRules` includes status-effect application and evolved armour/helmet handling. Current `WorldSimulation` retains the movement-reaction system but has evolved it for current action/event contracts, mounted movement ownership and newer lifecycle rules; the branch version predates those changes. Character creation rules, action request, skill progression and player creator are byte-identical.
+- The branch's simulation tests are an older subset; no branch-only test function or unique assertion was identified in the direct line comparison. Current tests add status effects, vision and animal/riding coverage.
+- **Disposition:** no code port identified. Treat the branch as superseded implementation/test lineage; preserve it, do not merge its snapshots, and only revisit if a specific 2D skill mechanic can be shown absent from current code and current tests.
+
+### Newly surfaced parallel/meta refs
+
+| Ref | Current relation to `dev_2` | Disposition |
+|---|---|---|
+| `feature/anatomy-morph-sculpt-tests` | Newly present parallel anatomy/morph test branch; current comparison is recorded in the branch audit pass. | Preserve and leave to the separate anatomy stream; do not duplicate or merge during the integration audit. |
+| `feature/wren-anatomy-piercings-halter-fit` | Historical Wren anatomy/clothing PR #8 branch. | Preserve as historical modelling lineage; no wholesale merge into current Ara workflow. |
+| `audit/feature-branch-consolidation` | This audit's own working branch. | Keep as the documentation-only audit source; PR #123 remains draft. |
+| `main` | Production/default branch, not an integration target for this audit. | Leave untouched. |
+
