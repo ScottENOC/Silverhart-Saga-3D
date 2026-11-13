@@ -16,6 +16,7 @@ on:
       - "tools/review/render_modular_outfits.py"
       - "tools/blender/build_female_vulva_sculpt.py"
       - "tools/ara/patch_layering.py"
+      - "tools/ara/assemble_modular_glb.py"
       - "tools/character_definitions.py"
       - "data/items/item_definitions.json"
       - ".github/workflows/anatomy-review.yml"
