@@ -17,7 +17,7 @@ on:
       - "tools/ci/**"
       - ".github/workflows/godot-validation.yml"
   push:
-    branches: [dev, dev_2]
+    branches: [dev, dev_2, "feature/**"]
     paths:
       - "project.godot"
       - "export_presets.cfg"
