@@ -110,3 +110,13 @@ jobs:
         run: godot --headless --path . --scene res://scenes/main.tscn --quit-after 10
       - name: Smoke-test opening village
         run: godot --headless --path . --quit-after 10
+      - name: Capture horse saddle and bridle visual review
+        run: xvfb-run -a godot --path . --rendering-method gl_compatibility --script res://tests/capture_horse_tack_review.gd
+      - name: Upload horse tack visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: horse-tack-visual-review
+          path: horse-tack-review-*.png
+          if-no-files-found: warn
+          retention-days: 7
