@@ -59,6 +59,18 @@ jobs:
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
       - name: Run simulation, movement, combat, animal and riding tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_simulation.gd
+      - name: Run split character and progression tests
+        run: godot --headless --path . --script res://tests/test_character_systems.gd
+      - name: Run split campaign content tests
+        run: godot --headless --path . --script res://tests/test_campaign_content.gd
+      - name: Run split items and equipment tests
+        run: godot --headless --path . --script res://tests/test_items_and_equipment.gd
+      - name: Run split world and movement tests
+        run: godot --headless --path . --script res://tests/test_world_movement.gd
+      - name: Run split combat and reaction tests
+        run: godot --headless --path . --script res://tests/test_combat_and_reactions.gd
+      - name: Run split animal and riding tests
+        run: godot --headless --path . --script res://tests/test_animals_and_riding.gd
       - name: Run reusable building and door tests
         run: godot --headless --path . --script res://tests/test_building_framework.gd
       - name: Run SaveManager round-trip tests
