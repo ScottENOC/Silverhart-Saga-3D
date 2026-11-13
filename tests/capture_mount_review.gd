@@ -70,7 +70,7 @@ func _capture() -> void:
         return
     await create_timer(1.0).timeout
     _report_runtime_model_bounds(world)
-    if not _save_view(camera, Vector3(-10.0, 3.0, 0.0), Vector3(0.0, 1.9, 0.0), -90.0, FRONT_OUTPUT_PATH):
+    if not await _save_view(camera, Vector3(-10.0, 3.0, 0.0), Vector3(0.0, 1.9, 0.0), -90.0, FRONT_OUTPUT_PATH):
         quit(1)
         return
     if not _save_view(camera, Vector3(10.0, 3.0, 0.0), Vector3(0.0, 1.9, 0.0), 90.0, REAR_OUTPUT_PATH):
