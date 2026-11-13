@@ -1,5 +1,7 @@
 class_name CreatureActor
 extends Node3D
+
+const HORSE_TACK = preload("res://scripts/presentation/horse_tack_presentation.gd")
 ## Runtime wrapper for Quaternius animal scenes. Keeps each animal's imported
 ## skeleton and animation library intact; animation names are discovered at
 ## runtime because the packs do not share one naming convention.
@@ -39,6 +41,8 @@ func _load_model() -> void:
     model_root.name = "ImportedAnimalModel"
     model_root.scale = Vector3.ONE * model_scale
     add_child(model_root)
+    if creature_kind == "horse":
+        HORSE_TACK.attach_to_horse(model_root)
     animation_player = _find_animation_player(model_root)
     if animation_player == null:
         push_warning("No AnimationPlayer found in creature model: %s" % model_path)
