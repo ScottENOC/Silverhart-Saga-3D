@@ -121,6 +121,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mounted-rider-visual-review
-          path: mount-review.png
+          path: mount-review-*.png
           if-no-files-found: warn
           retention-days: 7
