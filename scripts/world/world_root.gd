@@ -126,7 +126,7 @@ func _on_character_created(profile: Dictionary) -> void:
 
     _set_loading_stage(
         "Building the Hollow Tankard…",
-        "Creating the hex map, tavern interior, furniture, simulation and starting area.",
+        "Creating the hex map, tavern interior, furniture and starting area.",
         50.0
     )
     await get_tree().process_frame
