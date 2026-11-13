@@ -33,8 +33,15 @@ func _capture() -> void:
 
     var sun := DirectionalLight3D.new()
     sun.rotation_degrees = Vector3(-35.0, -35.0, 0.0)
-    sun.light_energy = 1.5
+    sun.light_energy = 1.15
     world.add_child(sun)
+
+    # Soft fill from the opposite side keeps rear-facing tack details readable.
+    var fill := DirectionalLight3D.new()
+    fill.rotation_degrees = Vector3(-18.0, 145.0, 0.0)
+    fill.light_energy = 0.75
+    fill.light_color = Color(0.78, 0.84, 1.0)
+    world.add_child(fill)
 
     var ground := MeshInstance3D.new()
     var ground_mesh := PlaneMesh.new()
