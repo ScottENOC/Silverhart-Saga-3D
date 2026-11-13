@@ -23,12 +23,22 @@ def write(path,doc,binary):
     Path(path).write_bytes(struct.pack('<4sII',b'glTF',2,total)+struct.pack('<I4s',len(j),b'JSON')+j+struct.pack('<I4s',len(binary),b'BIN\0')+binary)
 
 def body_node(d):
+    # Prefer the unique skinned mesh. Blender's GLB round-trip may rename the
+    # original Ara "Skin" material to "Skin.001", so material-name equality is
+    # not a reliable way to identify the body node.
+    skinned=[n for n in d.get('nodes',[]) if 'mesh' in n and 'skin' in n]
+    if len(skinned)==1:
+        return skinned[0]
+    # Multi-mesh exports: retain a material-based fallback, accepting Blender
+    # numeric suffixes while still requiring a single unambiguous candidate.
     hits=[]
-    for n in d['nodes']:
-        if 'mesh' not in n or 'skin' not in n: continue
-        names=[d['materials'][p.get('material',0)].get('name') for p in d['meshes'][n['mesh']]['primitives']]
-        if 'Skin' in names: hits.append(n)
-    if len(hits)!=1: raise ValueError(f'Expected one skinned body mesh, got {len(hits)}')
+    for n in skinned:
+        names=[d['materials'][p.get('material',0)].get('name','')
+               for p in d['meshes'][n['mesh']].get('primitives',[])]
+        if any(name == 'Skin' or name.startswith('Skin.') for name in names):
+            hits.append(n)
+    if len(hits)!=1:
+        raise ValueError(f'Expected one skinned body mesh, got {len(skinned)} skinned nodes and {len(hits)} skin-material candidates')
     return hits[0]
 
 def append_bytes(target,buf,data,target_type=None):
