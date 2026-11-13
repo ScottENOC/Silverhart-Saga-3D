@@ -81,6 +81,12 @@ jobs:
         run: godot --headless --path . --script res://tests/test_farm_wolves_quest.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
+      - name: Run animal mount presentation tests
+        run: godot --headless --path . --script res://tests/test_mount_presentation.gd
+      - name: Diagnose Ara male/female riding rigs
+        run: godot --headless --path . --script res://tests/diagnose_ara_riding_rig.gd
+      - name: Diagnose Ara riding animation tracks and evaluated pose
+        run: godot --headless --path . --script res://tests/diagnose_ara_riding_animation.gd
       - name: Run Campaign 2 road manifest tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_road_paths.gd
       - name: Run Campaign 2 geography manifest tests
@@ -108,3 +114,13 @@ jobs:
         run: godot --headless --path . --scene res://scenes/main.tscn --quit-after 10
       - name: Smoke-test opening village
         run: godot --headless --path . --quit-after 10
+      - name: Capture mounted rider visual review
+        run: xvfb-run -a godot --path . --rendering-method gl_compatibility --script res://tests/capture_mount_review.gd
+      - name: Upload mounted rider visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mounted-rider-visual-review
+          path: mount-review-*.png
+          if-no-files-found: warn
+          retention-days: 7

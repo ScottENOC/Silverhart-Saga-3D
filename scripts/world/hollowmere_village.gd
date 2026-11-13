@@ -228,9 +228,9 @@ func _create_farm_animals() -> void:
 	_spawn_creature("FarmCowB", "cow", "farm", Vector2i(10, 69), 0.82)
 	_spawn_creature("FarmCowC", "cow", "farm", Vector2i(13, 64), 0.82)
 	# A farm horse is present as a visible future mount candidate.
-	_spawn_creature("FarmHorse", "horse", "mount", Vector2i(24, 57), 0.82)
+	_spawn_creature("FarmHorse", "horse", "mount", Vector2i(24, 57), 0.45)
 	# A second coat variant and a small farm dog use their own original glTF scenes.
-	_spawn_creature("FarmWhiteHorse", "horse", "mount", Vector2i(27, 61), 0.82, "Horse_White.gltf")
+	_spawn_creature("FarmWhiteHorse", "horse", "mount", Vector2i(27, 61), 0.45, "Horse_White.gltf")
 	_spawn_creature("FarmShiba", "shiba_inu", "farm", Vector2i(19, 60), 0.48, "ShibaInu.gltf")
 
 func _add_broken_fence_and_blood_trail() -> void:

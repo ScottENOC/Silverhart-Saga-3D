@@ -6,6 +6,7 @@ const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_body.g
 const PLAYER_CUSTOM_FEMALE_ASSET := "res://art/characters/hollowmere/player_avatar.glb"
 const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
+const MOUNT_PRESENTATION = preload("res://scripts/presentation/mount_presentation.gd")
 const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_timeline.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
@@ -235,6 +236,7 @@ func _create_simulation() -> void:
             simulation.map_data.add_cell(UPPER_FLOOR_ORIGIN + local_hex, UPPER_FLOOR_Y, not (partition_wall or furniture_blocked), "timber_floor")
 
     simulation.character_moved.connect(_on_character_moved)
+    simulation.action_committed.connect(_on_simulation_action_committed)
     simulation.reaction_requested.connect(_on_reaction_requested)
     simulation.reaction_resolved.connect(_on_reaction_resolved)
     simulation.movement_reaction_resolved.connect(_on_movement_reaction_resolved)
@@ -988,8 +990,8 @@ func _create_hud() -> void:
     controls_dialog.name = "ControlsDialog"
     controls_dialog.title = "Hollow Tankard — Controls"
     controls_dialog.dialog_text = "MOVE\\nW / A / S / D / Q / E — move one hex\\nClick a walkable hex — plot a path\\n[ and ] — turn active character\\n\\nINTERACT\\nF — use nearby door/stairs or talk to nearest person\\nG — gather nearby resource\\nTab — switch active party member\\nC — character sheet\\nI — inventory and equipment\\n\\nCOMBAT\\nSpace — attack\\nEnter — end turn\\n\\nWORLD\\nV — toggle roof"
-    controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nChoose a specific person from the Nearby panel, or press F for the nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nF5 — quick save\nF9 — quick load\nV — toggle roof"
-    controls_dialog.min_size = Vector2i(420, 430)
+    controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nChoose a specific person from the Nearby panel, or press F for the nearest person\nG — gather nearby resource\nR — mount or dismount a nearby suitable animal\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nF5 — quick save\nF9 — quick load\nV — toggle roof"
+    controls_dialog.min_size = Vector2i(420, 450)
     layer.add_child(controls_dialog)
     game_menu.set_meta("controls_dialog", controls_dialog)
 
@@ -1006,6 +1008,14 @@ func _create_hud() -> void:
     gather_button.custom_minimum_size = Vector2(145.0, 42.0)
     gather_button.pressed.connect(_gather_at_player)
     layer.add_child(gather_button)
+
+    var mount_button := Button.new()
+    mount_button.text = "Mount [R]"
+    mount_button.position = Vector2(990.0, 18.0)
+    mount_button.custom_minimum_size = Vector2(145.0, 42.0)
+    mount_button.tooltip_text = "Mount or dismount a suitable adjacent animal"
+    mount_button.pressed.connect(_toggle_mount)
+    layer.add_child(mount_button)
 
     party_switch_button = Button.new()
     party_switch_button.text = "Active: You  [Tab] Switch"
@@ -2375,10 +2385,14 @@ func _switch_party_member() -> void:
     _clear_path_markers()
     active_party_index = (active_party_index + 1) % party_member_ids.size()
     active_character_id = party_member_ids[active_party_index]
+    var active_state := simulation.get_character(active_character_id)
     var target: Node3D = actor_by_id.get(active_character_id) as Node3D
+    if active_state != null and not active_state.mounted_animal_id.is_empty():
+        var mount_actor := _find_creature_actor(active_state.mounted_animal_id)
+        if mount_actor != null:
+            target = mount_actor
     if target != null:
         camera_rig.follow_target = target
-        var active_state := simulation.get_character(active_character_id)
         var display_name := "You" if active_character_id == "player" else (active_state.display_name if active_state != null else active_character_id)
         party_switch_button.text = "Active: " + display_name + "  [Tab] Switch"
     _refresh_tavern_floor_presentation()
@@ -2483,6 +2497,10 @@ func _unhandled_input(event: InputEvent) -> void:
             return
         if key_event.keycode == KEY_G:
             _gather_at_player()
+            get_viewport().set_input_as_handled()
+            return
+        if key_event.keycode == KEY_R:
+            _toggle_mount()
             get_viewport().set_input_as_handled()
             return
         if key_event.keycode == KEY_F:
@@ -2620,7 +2638,103 @@ func _rotate_active_character(steps: int) -> void:
     if state == null or actor == null:
         return
     state.facing_direction = posmod(state.facing_direction + steps, 6)
-    actor.rotation.y = deg_to_rad(float(2 - state.facing_direction) * 60.0)
+    if not state.mounted_animal_id.is_empty():
+        var mount := simulation.get_character(state.mounted_animal_id)
+        var mount_actor := _find_creature_actor(state.mounted_animal_id)
+        if mount != null:
+            mount.facing_direction = state.facing_direction
+        if mount_actor != null:
+            MOUNT_PRESENTATION.set_mount_facing(mount_actor, state.facing_direction)
+    else:
+        actor.rotation.y = deg_to_rad(float(2 - state.facing_direction) * 60.0)
+
+func _toggle_mount() -> void:
+    var rider := simulation.get_character(active_character_id)
+    if rider == null:
+        return
+    if not rider.mounted_animal_id.is_empty():
+        var result := simulation.dismount_animal(rider.id)
+        if not bool(result.get("ok", false)):
+            resource_status_label.text = "Cannot dismount: " + String(result.get("reason", "unknown"))
+            return
+        _detach_rider_from_mount(rider.id)
+        resource_status_label.text = "Dismounted."
+        return
+
+    var nearest_mount: CharacterState
+    var nearest_distance := 2
+    for value in simulation.characters.values():
+        var candidate := value as CharacterState
+        if candidate == null or candidate.race != "animal" or not candidate.mountable or not candidate.mounted_by_id.is_empty():
+            continue
+        var distance := HexGrid.distance(rider.axial, candidate.axial)
+        if distance <= 1 and distance < nearest_distance:
+            nearest_mount = candidate
+            nearest_distance = distance
+    if nearest_mount == null:
+        resource_status_label.text = "Move next to a suitable mount first."
+        return
+    var rider_actor := actor_by_id.get(rider.id) as Node3D
+    var mount_actor := _find_creature_actor(nearest_mount.id)
+    if rider_actor == null or mount_actor == null:
+        resource_status_label.text = "That animal is not ready for mounting."
+        return
+    var mount_result := simulation.mount_animal(rider.id, nearest_mount.id)
+    if not bool(mount_result.get("ok", false)):
+        var reasons := {
+            "riding_skill_required": "You need Riding, Nature Riding or Divine Riding.",
+            "insufficient_time_points": "Not enough Time Points to mount.",
+            "mount_not_adjacent": "Move closer to the animal first.",
+            "already_mounted": "You or that animal is already mounted.",
+            "hostile_mount": "You cannot mount a hostile animal."
+        }
+        resource_status_label.text = String(reasons.get(String(mount_result.get("reason", "")), "Cannot mount: " + String(mount_result.get("reason", "unknown"))))
+        return
+    _attach_rider_to_mount(rider.id, nearest_mount.id)
+    resource_status_label.text = "Mounted " + nearest_mount.display_name + ". Travel spends the animal's Time Points."
+
+func _attach_rider_to_mount(rider_id: String, mount_id: String) -> bool:
+    var rider_actor := actor_by_id.get(rider_id) as Node3D
+    var mount_actor := _find_creature_actor(mount_id)
+    if rider_actor == null or mount_actor == null:
+        return false
+    if not MOUNT_PRESENTATION.attach_rider(rider_actor, mount_actor):
+        return false
+    if active_character_id == rider_id:
+        camera_rig.follow_target = mount_actor
+    return true
+
+func _find_creature_actor(animal_id: String) -> CreatureActor:
+    for node in get_tree().get_nodes_in_group("creature_actors"):
+        var creature := node as CreatureActor
+        if creature != null and creature.simulation_state != null and creature.simulation_state.id == animal_id:
+            return creature
+    return null
+
+func _detach_rider_from_mount(rider_id: String) -> void:
+    var rider_actor := actor_by_id.get(rider_id) as Node3D
+    var rider := simulation.get_character(rider_id)
+    if rider_actor == null or rider == null:
+        return
+    MOUNT_PRESENTATION.detach_rider(rider_actor, self, _hex_world_position(rider.axial), rider.facing_direction)
+    if active_character_id == rider_id:
+        camera_rig.follow_target = rider_actor
+
+func restore_mounted_actor_attachments() -> void:
+    if simulation == null:
+        return
+    for value in simulation.characters.values():
+        var rider := value as CharacterState
+        if rider == null or rider.mounted_animal_id.is_empty():
+            continue
+        if not _attach_rider_to_mount(rider.id, rider.mounted_animal_id):
+            push_warning("Could not restore mounted presentation for rider %s and mount %s." % [rider.id, rider.mounted_animal_id])
+
+func _on_simulation_action_committed(event: SimulationEvent) -> void:
+    if event == null or event.event_type != "animal_forced_dismount":
+        return
+    var rider_id := String(event.payload.get("rider_id", event.actor_id))
+    _detach_rider_from_mount(rider_id)
 
 func _attempt_move(relative_step: int) -> void:
     if simulation.clock.paused:
@@ -2655,7 +2769,15 @@ func _find_valid_spawn_hex(preferred: Vector2i) -> Vector2i:
     return candidates[0]
 
 func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vector2i) -> void:
-    var actor := actor_by_id.get(character_id) as Node3D
+    var moved_state := simulation.get_character(character_id)
+    # WorldSimulation emits a movement event for both mount and rider. The
+    # rider is already parented to the mount, so moving it independently
+    # would pull it off the seat while the mount tween runs.
+    var actor: Node3D
+    if MOUNT_PRESENTATION.should_animate_character(moved_state):
+        actor = actor_by_id.get(character_id) as Node3D
+        if actor == null:
+            actor = _find_creature_actor(character_id)
     if actor != null:
         var destination := _hex_world_position(to_hex)
         if _is_upper_floor_hex(from_hex) != _is_upper_floor_hex(to_hex):
@@ -2672,6 +2794,10 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
         _refresh_tavern_floor_presentation()
     if character_id == "player":
         _maybe_spawn_wilderness_creature(to_hex)
+    elif moved_state != null and not moved_state.mounted_by_id.is_empty():
+        var mounted_rider := simulation.get_character(moved_state.mounted_by_id)
+        if mounted_rider != null and mounted_rider.id == "player":
+            _maybe_spawn_wilderness_creature(to_hex)
 
 func _is_upper_floor_hex(hex: Vector2i) -> bool:
     return hex.x >= UPPER_FLOOR_ORIGIN.x - 4 and hex.x <= UPPER_FLOOR_ORIGIN.x + 4 and hex.y >= UPPER_FLOOR_ORIGIN.y - 4 and hex.y <= UPPER_FLOOR_ORIGIN.y + 4 and simulation.map_data.has_cell(hex)
