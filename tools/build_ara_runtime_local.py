@@ -196,8 +196,12 @@ def parse_build_options():
     parser.add_argument("--max-cache-age-hours", type=float, default=None,
                         help="Rebuild a stage if its successful cache manifest is older than this many hours.")
     parser.add_argument("--anatomy-review-only", action="store_true",
-                        help="Build only female_average and male_average anatomy review assets; skip clothing/NPC pipeline.")
+                        help="Build the complete female and male anatomy comparison review.")
+    parser.add_argument("--underwear-review-only", action="store_true",
+                        help="Build only the accepted female body and modular underwear review; skip male and unrelated anatomy previews.")
     options = parser.parse_args()
+    if options.anatomy_review_only and options.underwear_review_only:
+        parser.error("Choose only one review mode.")
     if options.max_cache_age_hours is not None and options.max_cache_age_hours < 0:
         parser.error("--max-cache-age-hours must be zero or greater")
     return options
@@ -342,6 +346,78 @@ def main():
             shutil.copy2(found,glb)
         cached("ara-"+key,[glb],[param,patch,ROOT/"tools/character_definitions.py",ROOT/"data/items/item_definitions.json",GEN/"public/assets/targets.pack",GEN/"public/assets/catalog.json"],PIN+":"+str(current),action)
         shutil.copy2(glb,ARA/(key+".glb")); shutil.copy2(param,ARA/(key+".params.json"))
+    if options.underwear_review_only:
+        review_root = ROOT / "build" / "anatomy-review"
+        review_root.mkdir(parents=True, exist_ok=True)
+        female_raw = RAW / "ara_person_body.glb"
+        female_claude = review_root / "female_average_claude_integrated.glb"
+        export("ara_person_body", body)
+
+        review_env = os.environ.copy()
+        review_env.update({"EGL_PLATFORM": "surfaceless", "LIBGL_ALWAYS_SOFTWARE": "1"})
+        # Reuse the accepted integrated body when restored from the Actions cache.
+        # The workflow cache key includes this sculpt script and the Ara body inputs.
+        if FORCE_REBUILD or not female_claude.is_file():
+            run([blender, "--background", "--python-exit-code", "1", "--python",
+                 ROOT / "tools/blender/add_adult_anatomy_claude.py", "--",
+                 "--input", female_raw, "--output", female_claude, "--profile", "female",
+                 "--adult", "--method", "integrated", "--deformation-scale", "1.65"], env=review_env)
+
+        underwear_keys = (
+            "ara_person_benchmark", "ara_person_halter_bra_lace",
+            "ara_person_halter_bra_fishnet", "ara_person_triangle_bikini_top",
+            "ara_person_string_bikini_bottom", "ara_person_lace_briefs",
+            "ara_person_fishnet_briefs",
+        )
+        for key in underwear_keys:
+            export(key, params[key])
+
+        underwear_assembled = review_root / "female_underwear_all_assembled.glb"
+        underwear_fitted = review_root / "female_underwear_all_fitted.glb"
+        assemble_args = [
+            py, ROOT / "tools/ara/assemble_modular_glb.py",
+            female_claude, underwear_assembled,
+            RAW / "ara_person_benchmark.glb", "Bra",
+            RAW / "ara_person_benchmark.glb", "Briefs",
+            RAW / "ara_person_halter_bra_lace.glb", "Halter lace bra cups",
+            RAW / "ara_person_halter_bra_lace.glb", "Halter lace bra piping",
+            RAW / "ara_person_halter_bra_lace.glb", "Halter lace bra straps",
+            RAW / "ara_person_halter_bra_fishnet.glb", "Halter fishnet bra cups",
+            RAW / "ara_person_halter_bra_fishnet.glb", "Halter fishnet bra straps",
+            RAW / "ara_person_triangle_bikini_top.glb", "Bikini top=Triangle bikini top",
+            RAW / "ara_person_triangle_bikini_top.glb", "Bikini strings*=Triangle bikini strings",
+            RAW / "ara_person_string_bikini_bottom.glb", "Bikini bottom=String bikini bottom",
+            RAW / "ara_person_string_bikini_bottom.glb", "Bikini strings*=String bikini strings",
+            RAW / "ara_person_lace_briefs.glb", "Bikini bottom=Lace briefs",
+            RAW / "ara_person_lace_briefs.glb", "Bikini strings*=Lace briefs ties",
+            RAW / "ara_person_fishnet_briefs.glb", "Bikini bottom=Fishnet briefs",
+            RAW / "ara_person_fishnet_briefs.glb", "Bikini strings*=Fishnet briefs ties",
+        ]
+        run(assemble_args)
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/add_adult_anatomy.py", "--",
+             "--input", underwear_assembled, "--output", underwear_fitted,
+             "--profile", "none", "--adult", "--fit-existing"], env=review_env)
+        underwear_review_dir = review_root / "renders" / "female_underwear"
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/review/render_modular_outfits.py", "--",
+             underwear_fitted, underwear_review_dir,
+             "skin", "standard_bra", "standard_briefs",
+             "lace_bra", "fishnet_bra", "triangle_bra",
+             "string_briefs", "lace_briefs", "fishnet_briefs"], env=review_env)
+
+        shutil.copy2(female_raw, review_root / "female_average_raw.glb")
+        report = {
+            "schema_version": 1,
+            "purpose": "female modular underwear fitting review; fixed accepted body, no male/anatomy regeneration",
+            "female_body": female_claude.name,
+            "underwear_assembled": underwear_assembled.name,
+            "underwear_fitted": underwear_fitted.name,
+            "outfits": ["standard_bra", "standard_briefs", "lace_bra", "fishnet_bra", "triangle_bra", "string_briefs", "lace_briefs", "fishnet_briefs"],
+        }
+        (review_root / "underwear_review_report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        return
+
     if options.anatomy_review_only:
         review_root = ROOT / "build" / "anatomy-review"
         review_root.mkdir(parents=True, exist_ok=True)
