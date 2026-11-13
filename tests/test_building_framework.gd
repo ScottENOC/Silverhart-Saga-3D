@@ -4,6 +4,7 @@ const DOOR_SCRIPT = preload("res://scripts/world/building_door_state.gd")
 const REGISTRY_SCRIPT = preload("res://scripts/world/building_registry.gd")
 const MAP_SCRIPT = preload("res://scripts/core/hex_map_data.gd")
 const WORLD_SIM_SCRIPT = preload("res://scripts/simulation/world_simulation.gd")
+const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
 
 func _initialize() -> void:
     _test_door_lifecycle()
