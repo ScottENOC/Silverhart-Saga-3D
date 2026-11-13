@@ -59,6 +59,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
       - name: Run simulation, movement, combat, animal and riding tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_simulation.gd
+      - name: Run horse tack presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_horse_tack_presentation.gd
       - name: Run reusable building and door tests
         run: godot --headless --path . --script res://tests/test_building_framework.gd
       - name: Run SaveManager round-trip tests
