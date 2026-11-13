@@ -3,6 +3,9 @@ extends Node3D
 const HOLLOWMERE_VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
 const HOLLOW_TANKARD_SCRIPT = preload("res://scripts/world/hollow_tankard.gd")
 const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_creator.gd")
+const HOLLOWMERE_CAMPAIGN_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
+const COMPANION_CAMPAIGN_CONTENT = preload("res://scripts/simulation/companion_campaign_content.gd")
+const FARM_WOLVES_QUEST = preload("res://scripts/simulation/farm_wolves_quest.gd")
 
 var simulation: WorldSimulation
 var village: Node3D
@@ -46,6 +49,18 @@ func _ready() -> void:
 
     # The creator is now ready and visible on its own CanvasLayer.
     loading_layer.visible = false
+
+func _initialize_campaign_simulation(profile: Dictionary) -> void:
+    # Campaign rules and initial state belong to the campaign composition
+    # root, not to whichever location happens to present the opening scene.
+    simulation.clock.set_world_seconds(11.0 * 3600.0)
+    simulation.campaign_journal.register_quest_definition(HOLLOWMERE_CAMPAIGN_CONTENT.shakedown_quest_definition())
+    simulation.campaign_journal.register_quest_definition(FARM_WOLVES_QUEST.definition())
+    COMPANION_CAMPAIGN_CONTENT.register_quest_definitions(simulation.campaign_journal)
+    HOLLOWMERE_CAMPAIGN_CONTENT.initialize_social_standings(
+        simulation.campaign_journal,
+        String(profile.get("race", "human"))
+    )
 
 func _create_loading_overlay() -> void:
     loading_layer = CanvasLayer.new()
@@ -119,6 +134,7 @@ func _on_character_created(profile: Dictionary) -> void:
     simulation = WorldSimulation.new()
     simulation.name = "WorldSimulation"
     add_child(simulation)
+    _initialize_campaign_simulation(profile)
 
     village = HOLLOWMERE_VILLAGE_SCRIPT.new()
     village.name = "HollowmereVillage"
