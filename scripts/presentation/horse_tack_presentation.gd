@@ -36,17 +36,19 @@ static func attach_to_horse(model_root: Node3D) -> Node3D:
     # Girth under the horse's barrel, with visible near/far stirrup leathers.
     _add_box(tack, "SaddleGirth", Vector3(1.48, 0.12, 0.16), Vector3(0.0, 2.45, 0.12), DARK_LEATHER)
     for side in [-1.0, 1.0]:
+        var side_name: String = "Left" if side < 0.0 else "Right"
         var x: float = float(side) * 0.58
-        _add_strap(tack, "StirrupLeather%s" % str(side), Vector3(x, 3.05, 0.12), Vector3(x, 1.72, 0.12), DARK_LEATHER, 0.075)
-        _add_box(tack, "Stirrup%s" % str(side), Vector3(0.10, 0.12, 0.38), Vector3(x, 1.66, 0.12), METAL)
+        _add_strap(tack, "StirrupLeather%s" % side_name, Vector3(x, 3.05, 0.12), Vector3(x, 1.72, 0.12), DARK_LEATHER, 0.075)
+        _add_box(tack, "Stirrup%s" % side_name, Vector3(0.10, 0.12, 0.38), Vector3(x, 1.66, 0.12), METAL)
 
     # Bridle: crown, cheek pieces, browband, noseband and bit.
     _add_strap(tack, "Crownpiece", Vector3(-0.43, 3.15, -1.45), Vector3(0.43, 3.15, -1.45), LEATHER, 0.075)
     _add_strap(tack, "Browband", Vector3(-0.47, 3.00, -1.62), Vector3(0.47, 3.00, -1.62), LEATHER, 0.07)
     _add_strap(tack, "Noseband", Vector3(-0.43, 2.52, -2.32), Vector3(0.43, 2.52, -2.32), DARK_LEATHER, 0.09)
     for side in [-1.0, 1.0]:
-        _add_strap(tack, "Cheekpiece%s" % str(side), Vector3(side * 0.43, 3.12, -1.48), Vector3(side * 0.43, 2.52, -2.32), LEATHER, 0.065)
-        _add_strap(tack, "Rein%s" % str(side), Vector3(side * 0.43, 2.45, -2.38), Vector3(side * 0.48, 3.10, 0.42), DARK_LEATHER, 0.045)
+        var side_name: String = "Left" if side < 0.0 else "Right"
+        _add_strap(tack, "Cheekpiece%s" % side_name, Vector3(side * 0.43, 3.12, -1.48), Vector3(side * 0.43, 2.52, -2.32), LEATHER, 0.065)
+        _add_strap(tack, "Rein%s" % side_name, Vector3(side * 0.43, 2.45, -2.38), Vector3(side * 0.48, 3.10, 0.42), DARK_LEATHER, 0.045)
     _add_strap(tack, "Bit", Vector3(-0.48, 2.43, -2.40), Vector3(0.48, 2.43, -2.40), METAL, 0.055)
     return tack
 
