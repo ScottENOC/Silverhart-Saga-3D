@@ -22,21 +22,22 @@ static func attach_to_horse(model_root: Node3D) -> Node3D:
 	model_root.add_child(tack)
 
 	# A shaped cloth numnah follows the back instead of sitting as a flat box.
-	_add_saddle_surface(tack, "SaddleBlanket", 0.66, 0.78, 3.53, -0.48, WOOL, 0.10, 0.035, 0.28)
+	_add_saddle_surface(tack, "SaddleBlanket", 0.70, 0.78, 3.53, -0.48, WOOL, 0.10, 0.035, 0.54)
 	_add_saddle_binding(tack)
 	# The padded seat is a continuous curved surface with raised pommel and cantle.
 	_add_saddle_surface(tack, "SaddleSeat", 0.43, 0.61, 3.59, -0.48, LEATHER, 0.075, 0.095)
 	# Raised padded rolls form the pommel and cantle as part of the saddle.
-	_add_saddle_roll(tack, "SaddlePommel", Vector3(0.0, 3.70, 0.08), Vector3(0.66, 0.16, 0.16))
-	_add_saddle_roll(tack, "SaddleCantle", Vector3(0.0, 3.72, -1.04), Vector3(0.72, 0.18, 0.17))
+	_add_saddle_roll(tack, "SaddlePommel", Vector3(0.0, 3.68, 0.08), Vector3(0.66, 0.11, 0.16))
+	_add_saddle_roll(tack, "SaddleCantle", Vector3(0.0, 3.69, -1.04), Vector3(0.72, 0.12, 0.17))
 	# Side skirts/flaps drape down over the horse's barrel.
 	for side in [-1.0, 1.0]:
 		_add_saddle_flap(tack, side)
 		_add_ribbon(tack, "StirrupLeather%s" % ("Left" if side < 0.0 else "Right"), [
-			Vector3(side * 0.49, 3.48, -0.45),
-			Vector3(side * 0.56, 3.08, -0.46),
-			Vector3(side * 0.60, 2.10, -0.46),
-			Vector3(side * 0.60, 1.62, -0.46)
+			Vector3(side * 0.48, 3.48, -0.48),
+			Vector3(side * 0.55, 3.28, -0.48),
+			Vector3(side * 0.59, 2.72, -0.48),
+			Vector3(side * 0.63, 2.12, -0.48),
+			Vector3(side * 0.64, 1.72, -0.48)
 		], DARK_LEATHER, 0.105)
 		_add_stirrup(tack, side)
 		_add_ribbon(tack, "GirthSide%s" % ("Left" if side < 0.0 else "Right"), [
@@ -161,7 +162,7 @@ static func _add_saddle_surface(parent: Node3D, node_name: String, half_width: f
 static func _saddle_point(u: float, v: float, half_width: float, half_length: float, base_y: float, centre_z: float, crown: float, end_raise: float, side_drape: float = 0.0) -> Vector3:
 	var taper := 0.88 + 0.12 * cos(absf(v) * PI * 0.5)
 	var x := u * half_width * taper
-	var y := base_y + crown * (1.0 - u * u) + end_raise * pow(absf(v), 3.0) - side_drape * pow(absf(u), 5.0)
+	var y := base_y + crown * (1.0 - u * u) + end_raise * pow(absf(v), 3.0) - side_drape * pow(absf(u), 2.4)
 	return Vector3(x, y, centre_z + v * half_length)
 
 
@@ -196,13 +197,13 @@ static func _flap_point(side: float, u: float, v: float) -> Vector3:
 	var bottom_x := side * (0.58 + 0.06 * (1.0 - absf(v)))
 	var x := lerpf(top_x, bottom_x, u)
 	var top_y := 3.52 - 0.04 * absf(v)
-	var bottom_y := 2.70 + 0.12 * absf(v) + 0.05 * cos(v * PI)
+	var bottom_y := 2.78 + 0.24 * pow(absf(v), 1.7) + 0.035 * cos(v * PI)
 	var y := lerpf(top_y, bottom_y, u) - 0.055 * sin(u * PI) + 0.025 * pow(absf(v), 2.0)
 	return Vector3(x, y, z)
 
 
 static func _add_stirrup(parent: Node3D, side: float) -> void:
-	var centre := Vector3(side * 0.62, 1.84, 0.0)
+	var centre := Vector3(side * 0.64, 1.84, -0.48)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var outer := 0.17
