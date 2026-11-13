@@ -232,12 +232,10 @@ edit("src/core/garments/swimwear.ts", [
 ])
 
 
-# Lace and fishnet halters are one connected front garment: bridge the inner
-# edges of the fitted bust panels across the sternum instead of leaving two
-# detached triangles. The same bridge is textured as lace or woven as fishnet.
+# Join the two fitted halter panels with a shaped bridge across the sternum.
+# This is deliberately part of the fabric grid, not a connecting cord.
 edit("src/core/garments/swimwear.ts", [
-    ("  const cupMeshes = lifted.filter((x): x is Vec3[][] => !!x);",
-     `  const cupMeshes = lifted.filter((x): x is Vec3[][] => !!x);
+    ("  const cupMeshes = lifted.filter((x): x is Vec3[][] => !!x);", """  const cupMeshes = lifted.filter((x): x is Vec3[][] => !!x);
   if (mode && cupMeshes.length === 2) {
     const left = cupMeshes[0], right = cupMeshes[1];
     const rows = Math.min(left.length, right.length);
@@ -256,5 +254,5 @@ edit("src/core/garments/swimwear.ts", [
       bridge.push(row);
     }
     cupMeshes.push(bridge);
-  }`)
+  }"""),
 ]);
