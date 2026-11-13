@@ -2,7 +2,7 @@ name: Godot validation
 
 on:
   pull_request:
-    branches: [dev]
+    branches: [dev, dev_2]
     paths:
       - "project.godot"
       - "export_presets.cfg"
@@ -17,7 +17,7 @@ on:
       - "tools/ci/**"
       - ".github/workflows/godot-validation.yml"
   push:
-    branches: [dev]
+    branches: [dev, dev_2]
     paths:
       - "project.godot"
       - "export_presets.cfg"
@@ -29,6 +29,12 @@ on:
       - "tests/**"
       - ".github/workflows/godot-validation.yml"
   workflow_dispatch:
+    inputs:
+      target_ref:
+        description: "Branch or commit SHA to validate"
+        required: true
+        default: "dev_2"
+        type: string
 
 permissions:
   contents: read
@@ -44,6 +50,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.target_ref || github.sha }}
       - name: Fetch verified Kenney Nature Kit models
         run: python tools/ci/fetch_kenney_nature_assets.py
       - name: Install Godot 4.7.2
@@ -57,12 +65,32 @@ jobs:
           godot --headless --editor --path . --quit
       - name: Run hex-grid tests
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
-      - name: Run simulation, movement and combat tests
-        run: godot --headless --path . --script res://tests/test_simulation.gd
+      - name: Run split character and progression tests
+        run: godot --headless --path . --script res://tests/test_character_systems.gd
+      - name: Run split campaign content tests
+        run: godot --headless --path . --script res://tests/test_campaign_content.gd
+      - name: Run split items and equipment tests
+        run: godot --headless --path . --script res://tests/test_items_and_equipment.gd
+      - name: Run split world and movement tests
+        run: godot --headless --path . --script res://tests/test_world_movement.gd
+      - name: Run split combat and reaction tests
+        run: godot --headless --path . --script res://tests/test_combat_and_reactions.gd
+      - name: Run split animal and riding tests
+        run: godot --headless --path . --script res://tests/test_animals_and_riding.gd
+      - name: Run reusable building and door tests
+        run: godot --headless --path . --script res://tests/test_building_framework.gd
+      - name: Run SaveManager round-trip tests
+        run: godot --headless --path . --script res://tests/test_save_manager.gd
+      - name: Diagnose direct HollowTankard script load
+        run: godot --headless --path . --script res://tests/diagnose_tavern_script_load.gd
+      - name: Run campaign save/restore scene integration tests
+        run: timeout 180s godot --headless --path . res://tests/save_restore_boot.tscn
       - name: Run NPC pass-through tests
         run: godot --headless --path . --script res://tests/test_npc_pass_through.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
+      - name: Run equipment appearance and heraldry tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_equipment_appearance.gd
       - name: Run seasonal tree tests
         run: godot --headless --path . --script res://tests/test_seasonal_trees.gd
       - name: Run wilderness resource visual tests
@@ -71,14 +99,29 @@ jobs:
         run: godot --headless --path . --script res://tests/test_farm_wolves_quest.gd
       - name: Run Hollowmere map and character profile tests
         run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
+      - name: Run Campaign 2 road manifest tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_road_paths.gd
+      - name: Run Campaign 2 geography manifest tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_geography_manifest.gd
+      - name: Run Campaign 2 world terrain tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_terrain.gd
+      - name: Run Campaign 2 settlement layout tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
       - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null
           python -m json.tool data/characters/hollowmere_loadouts.json > /dev/null
           python -m json.tool data/characters/character_creation_rules.json > /dev/null
           python -m json.tool data/items/item_definitions.json > /dev/null
+          python -m json.tool data/world/campaign2_geography.json > /dev/null
+          python -m json.tool data/world/campaign2_road_paths.json > /dev/null
+          python -m json.tool data/world/campaign2_settlement_layouts.json > /dev/null
       - name: Smoke-test terrain prototype
         run: godot --headless --path . --scene res://scenes/prototypes/terrain_elevation_prototype.tscn --quit-after 5
+      - name: Smoke-test Campaign 2 macro-world preview
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --scene res://scenes/prototypes/campaign2_macro_world_preview.tscn --quit-after 5
+      - name: Smoke-test Campaign 2 regional streamed world
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --scene res://scenes/prototypes/campaign2_regional_world_preview.tscn --quit-after 10
       - name: Smoke-test campaign character creation and opening scene
         run: godot --headless --path . --scene res://scenes/main.tscn --quit-after 10
       - name: Smoke-test opening village
