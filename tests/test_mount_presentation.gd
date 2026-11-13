@@ -16,6 +16,19 @@ func _run() -> void:
     var name_label := Label3D.new()
     name_label.name = "PlayerNameLabel"
     rider_actor.add_child(name_label)
+
+    var animation_player := AnimationPlayer.new()
+    animation_player.name = "AnimationPlayer"
+    var library := AnimationLibrary.new()
+    var idle := Animation.new()
+    idle.length = 1.0
+    var riding := Animation.new()
+    riding.length = 1.0
+    library.add_animation("Idle", idle)
+    library.add_animation("Ride motorcycle", riding)
+    animation_player.add_animation_library("", library)
+    rider_actor.add_child(animation_player)
+
     var mount_actor := Node3D.new()
     mount_actor.name = "TestMountActor"
     scene_root.add_child(mount_actor)
@@ -25,6 +38,7 @@ func _run() -> void:
     _check(rider_actor.position.distance_to(Vector3(0.0, 1.05, 0.0)) < 0.001, "Rider should use the calibrated seat transform")
     _check(rider_actor.rotation == Vector3.ZERO, "Rider should use neutral local seat rotation")
     _check(not name_label.visible, "Rider name label should be hidden while mounted")
+    _check(animation_player.current_animation == "Ride motorcycle", "Mounting should play the astride riding animation")
 
     MOUNT_PRESENTATION.set_mount_facing(mount_actor, 1)
     _check(is_equal_approx(mount_actor.rotation.y, deg_to_rad(60.0)), "Mount facing helper should apply the requested hex direction")
@@ -40,6 +54,7 @@ func _run() -> void:
     _check(rider_actor.position.distance_to(destination) < 0.001, "Dismounted rider should move to the simulation destination")
     _check(is_equal_approx(rider_actor.rotation.y, 0.0), "Dismounted rider should restore the simulation facing")
     _check(name_label.visible, "Rider name label should return after dismount")
+    _check(animation_player.current_animation == "Idle", "Dismounting should restore the idle animation")
     _check(not MOUNT_PRESENTATION.attach_rider(null, mount_actor), "Attach helper should reject a missing rider")
     _check(not MOUNT_PRESENTATION.detach_rider(rider_actor, null, Vector3.ZERO, 0), "Detach helper should reject a missing destination parent")
 
