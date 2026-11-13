@@ -23,6 +23,7 @@ static func attach_to_horse(model_root: Node3D) -> Node3D:
 
 	# A shaped cloth numnah follows the back instead of sitting as a flat box.
 	_add_saddle_surface(tack, "SaddleBlanket", 0.66, 0.78, 3.53, -0.48, WOOL, 0.10, 0.035)
+	_add_saddle_binding(tack)
 	# The padded seat is a continuous curved surface with raised pommel and cantle.
 	_add_saddle_surface(tack, "SaddleSeat", 0.43, 0.61, 3.59, -0.48, LEATHER, 0.075, 0.095)
 	# Raised padded rolls form the pommel and cantle as part of the saddle.
@@ -88,6 +89,36 @@ static func attach_to_horse(model_root: Node3D) -> Node3D:
 		Vector3(0.25, 3.47, 3.29)
 	], METAL, 0.045)
 	return tack
+
+
+static func _add_saddle_binding(parent: Node3D) -> void:
+	# A narrow darker hem makes the numnah read as finished cloth, not a floating sheet.
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var boundary: Array[Vector3] = []
+	var steps := 18
+	for i in range(steps):
+		boundary.append(_saddle_point(-1.0 + 2.0 * float(i) / steps, -1.0, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035))
+	for i in range(steps):
+		boundary.append(_saddle_point(1.0, -1.0 + 2.0 * float(i) / steps, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035))
+	for i in range(steps):
+		boundary.append(_saddle_point(1.0 - 2.0 * float(i) / steps, 1.0, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035))
+	for i in range(steps):
+		boundary.append(_saddle_point(-1.0, 1.0 - 2.0 * float(i) / steps, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035))
+	for i in range(boundary.size()):
+		var p0 := boundary[i] + Vector3.UP * 0.008
+		var p1 := boundary[(i + 1) % boundary.size()] + Vector3.UP * 0.008
+		var tangent := (p1 - p0).normalized()
+		var across := Vector3.UP.cross(tangent).normalized() * 0.018
+		var a := p0 - across
+		var b := p0 + across
+		var c := p1 + across
+		var d := p1 - across
+		st.add_vertex(a); st.add_vertex(b); st.add_vertex(c)
+		st.add_vertex(a); st.add_vertex(c); st.add_vertex(d)
+	st.generate_normals()
+	_add_mesh(parent, "SaddleBlanketBinding", st.commit(), WOOL_DARK, 0.95)
+
 
 
 static func _add_saddle_roll(parent: Node3D, node_name: String, position: Vector3, scale: Vector3) -> void:
