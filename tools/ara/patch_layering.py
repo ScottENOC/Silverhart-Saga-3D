@@ -230,3 +230,31 @@ edit("src/core/garments/swimwear.ts", [
     ("id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard']",
      "id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard', 'lace', 'fishnet']"),
 ])
+
+
+# Lace and fishnet halters are one connected front garment: bridge the inner
+# edges of the fitted bust panels across the sternum instead of leaving two
+# detached triangles. The same bridge is textured as lace or woven as fishnet.
+edit("src/core/garments/swimwear.ts", [
+    ("  const cupMeshes = lifted.filter((x): x is Vec3[][] => !!x);",
+     `  const cupMeshes = lifted.filter((x): x is Vec3[][] => !!x);
+  if (mode && cupMeshes.length === 2) {
+    const left = cupMeshes[0], right = cupMeshes[1];
+    const rows = Math.min(left.length, right.length);
+    const bridge: Vec3[][] = [];
+    for (let i = 0; i < rows; i++) {
+      const a = left[i][0], b = right[i][0];
+      const row: Vec3[] = [];
+      for (let j = 0; j < 9; j++) {
+        const t = j / 8;
+        row.push([
+          a[0] + (b[0] - a[0]) * t,
+          a[1] + (b[1] - a[1]) * t,
+          a[2] + (b[2] - a[2]) * t - cm(0.12) * Math.sin(Math.PI * t),
+        ]);
+      }
+      bridge.push(row);
+    }
+    cupMeshes.push(bridge);
+  }`)
+]);
