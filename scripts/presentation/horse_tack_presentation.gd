@@ -22,70 +22,70 @@ static func attach_to_horse(model_root: Node3D) -> Node3D:
 	model_root.add_child(tack)
 
 	# A shaped cloth numnah follows the back instead of sitting as a flat box.
-	_add_saddle_surface(tack, "SaddleBlanket", 0.70, 0.91, 2.99, 0.02, WOOL, 0.035, 0.045)
+	_add_saddle_surface(tack, "SaddleBlanket", 0.66, 0.78, 3.53, -0.48, WOOL, 0.10, 0.035)
 	# The padded seat is a continuous curved surface with raised pommel and cantle.
-	_add_saddle_surface(tack, "SaddleSeat", 0.48, 0.69, 3.105, 0.02, LEATHER, 0.075, 0.16)
+	_add_saddle_surface(tack, "SaddleSeat", 0.43, 0.61, 3.59, -0.48, LEATHER, 0.075, 0.095)
 	# Raised padded rolls form the pommel and cantle as part of the saddle.
-	_add_saddle_roll(tack, "SaddlePommel", Vector3(0.0, 3.18, 0.47), Vector3(0.72, 0.20, 0.20))
-	_add_saddle_roll(tack, "SaddleCantle", Vector3(0.0, 3.20, -0.53), Vector3(0.78, 0.23, 0.22))
+	_add_saddle_roll(tack, "SaddlePommel", Vector3(0.0, 3.70, 0.08), Vector3(0.66, 0.16, 0.16))
+	_add_saddle_roll(tack, "SaddleCantle", Vector3(0.0, 3.72, -1.04), Vector3(0.72, 0.18, 0.17))
 	# Side skirts/flaps drape down over the horse's barrel.
 	for side in [-1.0, 1.0]:
 		_add_saddle_flap(tack, side)
 		_add_ribbon(tack, "StirrupLeather%s" % ("Left" if side < 0.0 else "Right"), [
-			Vector3(side * 0.51, 3.02, 0.06),
-			Vector3(side * 0.59, 2.76, 0.02),
-			Vector3(side * 0.62, 2.24, 0.00),
-			Vector3(side * 0.62, 1.88, 0.00)
+			Vector3(side * 0.49, 3.48, -0.45),
+			Vector3(side * 0.56, 3.08, -0.46),
+			Vector3(side * 0.60, 2.10, -0.46),
+			Vector3(side * 0.60, 1.62, -0.46)
 		], DARK_LEATHER, 0.105)
 		_add_stirrup(tack, side)
 		_add_ribbon(tack, "GirthSide%s" % ("Left" if side < 0.0 else "Right"), [
-			Vector3(side * 0.57, 2.91, 0.12),
-			Vector3(side * 0.61, 2.61, 0.12),
-			Vector3(side * 0.59, 2.36, 0.12)
+			Vector3(side * 0.55, 3.02, -0.44),
+			Vector3(side * 0.61, 2.72, -0.44),
+			Vector3(side * 0.58, 2.45, -0.44)
 		], DARK_LEATHER, 0.13)
 
 	# The girth passes beneath the barrel; visible side sections join below.
 	_add_ribbon(tack, "SaddleGirth", [
-		Vector3(-0.59, 2.36, 0.12), Vector3(-0.30, 2.29, 0.12),
-		Vector3(0.0, 2.27, 0.12), Vector3(0.30, 2.29, 0.12),
-		Vector3(0.59, 2.36, 0.12)
+		Vector3(-0.58, 2.45, -0.44), Vector3(-0.30, 2.36, -0.44),
+		Vector3(0.0, 2.33, -0.44), Vector3(0.30, 2.36, -0.44),
+		Vector3(0.58, 2.45, -0.44)
 	], DARK_LEATHER, 0.13)
 
 	# Bridle bands are curved ribbons that sit against the head, not floating cuboids.
 	_add_ribbon(tack, "Crownpiece", [
-		Vector3(-0.39, 3.19, 1.43), Vector3(-0.30, 3.32, 1.34),
-		Vector3(0.0, 3.37, 1.30), Vector3(0.30, 3.32, 1.34),
-		Vector3(0.39, 3.19, 1.43)
+		Vector3(-0.25, 4.08, 2.30), Vector3(-0.18, 4.17, 2.20),
+		Vector3(0.0, 4.20, 2.16), Vector3(0.18, 4.17, 2.20),
+		Vector3(0.25, 4.08, 2.30)
 	], LEATHER, 0.075)
 	_add_ribbon(tack, "Browband", [
-		Vector3(-0.43, 3.02, 1.62), Vector3(-0.22, 3.08, 1.66),
-		Vector3(0.0, 3.10, 1.67), Vector3(0.22, 3.08, 1.66),
-		Vector3(0.43, 3.02, 1.62)
+		Vector3(-0.28, 3.94, 2.56), Vector3(-0.14, 3.99, 2.62),
+		Vector3(0.0, 4.01, 2.63), Vector3(0.14, 3.99, 2.62),
+		Vector3(0.28, 3.94, 2.56)
 	], DARK_LEATHER, 0.065)
 	_add_ribbon(tack, "Noseband", [
-		Vector3(-0.38, 2.57, 2.26), Vector3(-0.22, 2.54, 2.31),
-		Vector3(0.0, 2.53, 2.32), Vector3(0.22, 2.54, 2.31),
-		Vector3(0.38, 2.57, 2.26)
+		Vector3(-0.24, 3.58, 3.14), Vector3(-0.14, 3.54, 3.22),
+		Vector3(0.0, 3.53, 3.24), Vector3(0.14, 3.54, 3.22),
+		Vector3(0.24, 3.58, 3.14)
 	], DARK_LEATHER, 0.085)
 	for side in [-1.0, 1.0]:
 		var side_name := "Left" if side < 0.0 else "Right"
 		_add_ribbon(tack, "Cheekpiece%s" % side_name, [
-			Vector3(side * 0.39, 3.18, 1.43),
-			Vector3(side * 0.42, 2.98, 1.65),
-			Vector3(side * 0.40, 2.76, 1.94),
-			Vector3(side * 0.38, 2.57, 2.26)
+			Vector3(side * 0.25, 4.08, 2.30),
+			Vector3(side * 0.29, 3.91, 2.58),
+			Vector3(side * 0.28, 3.72, 2.91),
+			Vector3(side * 0.24, 3.58, 3.14)
 		], LEATHER, 0.065)
 		_add_ribbon(tack, "Rein%s" % side_name, [
-			Vector3(side * 0.38, 2.48, 2.32),
-			Vector3(side * 0.46, 2.57, 1.90),
-			Vector3(side * 0.50, 2.78, 1.35),
-			Vector3(side * 0.48, 3.02, 0.70),
-			Vector3(side * 0.43, 3.08, 0.38)
+			Vector3(side * 0.24, 3.48, 3.28),
+			Vector3(side * 0.31, 3.61, 2.92),
+			Vector3(side * 0.36, 3.76, 2.34),
+			Vector3(side * 0.39, 3.55, 1.55),
+			Vector3(side * 0.43, 3.30, 0.65)
 		], DARK_LEATHER, 0.043)
 	_add_ribbon(tack, "Bit", [
-		Vector3(-0.43, 2.47, 2.34), Vector3(-0.22, 2.44, 2.37),
-		Vector3(0.0, 2.43, 2.38), Vector3(0.22, 2.44, 2.37),
-		Vector3(0.43, 2.47, 2.34)
+		Vector3(-0.25, 3.47, 3.29), Vector3(-0.13, 3.44, 3.34),
+		Vector3(0.0, 3.43, 3.35), Vector3(0.13, 3.44, 3.34),
+		Vector3(0.25, 3.47, 3.29)
 	], METAL, 0.045)
 	return tack
 
@@ -160,12 +160,12 @@ static func _add_saddle_flap(parent: Node3D, side: float) -> void:
 
 
 static func _flap_point(side: float, u: float, v: float) -> Vector3:
-	var z := 0.02 + v * 0.62
+	var z := -0.48 + v * 0.62
 	var top_x := side * (0.43 + 0.10 * (1.0 - absf(v)))
 	var bottom_x := side * (0.57 + 0.04 * (1.0 - absf(v)))
 	var x := lerpf(top_x, bottom_x, u)
-	var top_y := 3.07 - 0.05 * absf(v)
-	var bottom_y := 2.45 + 0.10 * absf(v)
+	var top_y := 3.52 - 0.04 * absf(v)
+	var bottom_y := 2.58 + 0.10 * absf(v)
 	var y := lerpf(top_y, bottom_y, u) - 0.035 * sin(u * PI)
 	return Vector3(x, y, z)
 
