@@ -4,6 +4,7 @@ const DOOR_SCRIPT = preload("res://scripts/world/building_door_state.gd")
 const REGISTRY_SCRIPT = preload("res://scripts/world/building_registry.gd")
 const MAP_SCRIPT = preload("res://scripts/core/hex_map_data.gd")
 const WORLD_SIM_SCRIPT = preload("res://scripts/simulation/world_simulation.gd")
+const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
 
 func _initialize() -> void:
     _test_door_lifecycle()
@@ -11,6 +12,7 @@ func _initialize() -> void:
     _test_door_map_blocking()
     _test_world_simulation_save_round_trip()
     _test_character_floor_relocation()
+    _test_building_layout_registration()
     print("Building framework tests passed.")
     quit()
 
@@ -89,4 +91,39 @@ func _test_character_floor_relocation() -> void:
     assert(restored_character.axial == Vector2i(100, 100), "An upstairs location must persist in character saves.")
     assert(simulation.relocate_character("player", Vector2i.ZERO), "The character should be able to descend.")
     assert(character.axial == Vector2i.ZERO and simulation.occupied_hexes.get(Vector2i.ZERO, "") == "player")
+    simulation.free()
+func _test_building_layout_registration() -> void:
+    var simulation = WORLD_SIM_SCRIPT.new()
+    simulation.map_data.add_cell(Vector2i.ZERO, 0.0, true, "grass")
+    simulation.map_data.add_cell(Vector2i(0, 1), 0.0, true, "path")
+    var building_definition := {
+        "id": "test_inn",
+        "name": "Test Inn",
+        "entrance_hex": Vector2i(0, 1),
+        "floor_count": 2,
+    }
+    var door_definition := {
+        "id": "test_inn_front",
+        "building_id": "test_inn",
+        "hex": Vector2i(0, 1),
+        "starts_open": false,
+        "starts_locked": true,
+        "durability": 30,
+    }
+    var floors: Array[Dictionary] = [
+        {"hex": Vector2i(100, 100), "elevation": 3.38, "walkable": true, "terrain_id": "timber_floor"},
+        {"hex": Vector2i(101, 100), "elevation": 3.38, "walkable": false, "terrain_id": "timber_floor"},
+    ]
+    assert(BUILDING_LAYOUT_REGISTRAR.register_layout(simulation, building_definition, door_definition, floors))
+    assert(simulation.building_registry.get_building("test_inn").get("floor_count", 0) == 2)
+    assert(not simulation.building_registry.get_door("test_inn_front").is_passable())
+    assert(not simulation.map_data.is_walkable(Vector2i(0, 1)), "A closed starting door must block its map cell.")
+    assert(simulation.map_data.is_walkable(Vector2i(100, 100)))
+    assert(not simulation.map_data.is_walkable(Vector2i(101, 100)))
+    assert(is_equal_approx(simulation.map_data.elevation_at(Vector2i(100, 100)), 3.38))
+    assert(not BUILDING_LAYOUT_REGISTRAR.register_layout(simulation, building_definition, door_definition, floors), "Duplicate building layouts must be rejected.")
+    var missing_door_cell_simulation = WORLD_SIM_SCRIPT.new()
+    assert(not BUILDING_LAYOUT_REGISTRAR.register_layout(missing_door_cell_simulation, building_definition, door_definition, floors), "A door without a registered map cell must be rejected.")
+    assert(not missing_door_cell_simulation.building_registry.definitions.has("test_inn"), "Invalid layouts must not partially register buildings.")
+    missing_door_cell_simulation.free()
     simulation.free()
