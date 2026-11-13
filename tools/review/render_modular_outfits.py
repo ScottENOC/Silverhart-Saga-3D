@@ -93,28 +93,59 @@ def isolate_outfit(keep):
         raise RuntimeError("Requested garment material(s) absent or empty: " + ", ".join(missing))
     return removed, kept_faces
 
-def bounds():
+def torso_frame():
+    """Frame the torso rather than the full character."""
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
-    points = [o.matrix_world @ Vector(corner) for o in meshes for corner in o.bound_box]
-    if not points:
+    if not meshes:
         raise RuntimeError("No mesh geometry remains after outfit isolation")
-    lo = Vector(tuple(min(p[i] for p in points) for i in range(3)))
-    hi = Vector(tuple(max(p[i] for p in points) for i in range(3)))
-    return (lo + hi) * 0.5, max((hi - lo).length * 0.5, 0.5)
+    body = max(meshes, key=lambda o: len(o.data.polygons))
+    corners = [body.matrix_world @ Vector(corner) for corner in body.bound_box]
+    lo = Vector(tuple(min(p[i] for p in corners) for i in range(3)))
+    hi = Vector(tuple(max(p[i] for p in corners) for i in range(3)))
+    height = max(hi.z - lo.z, 0.1)
+    centre = Vector(((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, lo.z + height * 0.68))
+    frame_height = height * 0.48
+    return centre, height, frame_height
 
-def camera_for_view(name, centre, radius):
+def aim_at(obj, point):
+    obj.rotation_euler = (Vector(point) - obj.location).to_track_quat("-Z", "Y").to_euler()
+
+def camera_for_view(name, centre, height, frame_height):
     data = bpy.data.cameras.new("OutfitReview_" + name)
     camera = bpy.data.objects.new("OutfitReview_" + name, data)
     bpy.context.collection.objects.link(camera)
     direction = {
-        "front": Vector((0, -1, 0.08)),
-        "side": Vector((1, 0, 0.08)),
-        "rear": Vector((0, 1, 0.08)),
+        "front": Vector((0, -1, 0)),
+        "side": Vector((1, 0, 0)),
+        "rear": Vector((0, 1, 0)),
     }[name]
-    camera.location = centre + direction.normalized() * radius * 2.9
-    camera.rotation_euler = (centre - camera.location).to_track_quat("-Z", "Y").to_euler()
-    data.lens = 55
+    camera.location = centre + direction * height * 3.5
+    aim_at(camera, centre)
+    data.type = "ORTHO"
+    data.ortho_scale = frame_height
     return camera
+
+def setup_review_lighting(scene, centre, height):
+    """Use symmetric soft lights for comparable front, side and rear exposure."""
+    scene.world.color = (0.12, 0.12, 0.12)
+    if scene.world.use_nodes:
+        scene.world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.12, 0.12, 0.12, 1)
+        scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.45
+    lights = [
+        ("ReviewFrontKey", (0, -2.0, 1.2), 1050, height * 1.15),
+        ("ReviewRearKey", (0, 2.0, 1.2), 1050, height * 1.15),
+        ("ReviewLeftFill", (-1.8, 0, 0.35), 650, height * 1.25),
+        ("ReviewRightFill", (1.8, 0, 0.35), 650, height * 1.25),
+    ]
+    for name, offset, energy, size in lights:
+        data = bpy.data.lights.new(name, "AREA")
+        obj = bpy.data.objects.new(name, data)
+        bpy.context.collection.objects.link(obj)
+        obj.location = centre + Vector(offset) * height
+        data.energy = energy
+        data.shape = "DISK"
+        data.size = size
+        aim_at(obj, centre)
 
 def render_outfit(input_path, output_root, outfit, keep):
     clear_scene()
@@ -126,7 +157,7 @@ def render_outfit(input_path, output_root, outfit, keep):
     if unknown:
         raise RuntimeError("Unclassified garment material(s): " + ", ".join(unknown))
     removed, kept_faces = isolate_outfit(keep)
-    centre, radius = bounds()
+    centre, body_height, frame_height = torso_frame()
     scene = bpy.context.scene
     engines = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
     for engine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE", "BLENDER_WORKBENCH"):
@@ -135,21 +166,14 @@ def render_outfit(input_path, output_root, outfit, keep):
             break
     else:
         raise RuntimeError("No supported Blender render engine")
-    scene.render.resolution_x = 720
-    scene.render.resolution_y = 960
+    scene.render.resolution_x = 1024
+    scene.render.resolution_y = 1024
     scene.render.resolution_percentage = 100
     if scene.render.engine in {"BLENDER_EEVEE", "BLENDER_EEVEE_NEXT"}:
         scene.eevee.taa_render_samples = 16
     scene.render.image_settings.file_format = "PNG"
     scene.render.film_transparent = False
-    scene.world.color = (0.18, 0.18, 0.18)
-    light_data = bpy.data.lights.new("OutfitReviewKey", "AREA")
-    light = bpy.data.objects.new("OutfitReviewKey", light_data)
-    bpy.context.collection.objects.link(light)
-    light.location = centre + Vector((-radius, -radius * 1.5, radius * 1.5))
-    light.data.energy = 1800
-    light.data.shape = "DISK"
-    light.data.size = radius * 1.2
+    setup_review_lighting(scene, centre, body_height)
 
     output = Path(output_root) / outfit
     output.mkdir(parents=True, exist_ok=True)
@@ -165,7 +189,7 @@ def render_outfit(input_path, output_root, outfit, keep):
     }
     (output / "report.json").write_text(json.dumps(report, indent=2))
     for view in ("front", "side", "rear"):
-        camera = camera_for_view(view, centre, radius)
+        camera = camera_for_view(view, centre, body_height, frame_height)
         scene.camera = camera
         scene.render.filepath = str(output / (view + ".png"))
         bpy.ops.render.render(write_still=True)
