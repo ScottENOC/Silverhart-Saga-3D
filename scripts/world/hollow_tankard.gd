@@ -193,7 +193,6 @@ func _configure_location_simulation() -> void:
     if simulation == null:
         push_error("Campaign simulation was not configured before HollowTankard entered the scene tree.")
         return
-    # Campaign 2 opens at 11:00 on the first day, matching the browser game.
     simulation.clock.ticked.connect(_on_world_clock_ticked)
     # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
     for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
