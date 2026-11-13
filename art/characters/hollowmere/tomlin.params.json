@@ -1,0 +1,53 @@
+{
+  "seed": 1286,
+  "gender": 1,
+  "age": 0.52,
+  "muscle": 0.64,
+  "weight": 0.44,
+  "height": 0.62,
+  "proportions": 0.56,
+  "african": 0.05,
+  "asian": 0.9,
+  "caucasian": 0.05,
+  "eyes": "darkbrown",
+  "hair": "cornrows",
+  "hairTint": "#171313",
+  "facialHair": "none",
+  "tattoos": [],
+  "outfit": "none",
+  "top": "uniform_shirt",
+  "underTop": "none",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "fatigue_pants",
+  "underwear": false,
+  "shoes": "combat_boots",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [
+    "utility_belt"
+  ],
+  "garmentStyles": {
+    "uniform_shirt": {
+      "pattern": "solid",
+      "color": "#394b38",
+      "color2": "#242b22"
+    },
+    "fatigue_pants": {
+      "pattern": "solid",
+      "color": "#30322d",
+      "color2": "#30322d"
+    }
+  },
+  "detail": "medium",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#171313",
+  "name": "Tomlin Brask"
+}

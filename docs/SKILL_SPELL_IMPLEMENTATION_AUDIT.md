@@ -1,0 +1,1052 @@
+# Skill and Spell Implementation Audit
+
+**Baseline branch:** `dev`  
+**Baseline commit:** `76f25f01332f60ec3a58738bf58553afa12437ae`  
+**Audit branch:** `audit/skill-effect-parity-update`  
+**Scope:** source inspection of the 257-skill catalogue, original 2D skill definitions and gameplay references, current 3D simulation/movement/combat runtime, effect tests, and relevant feature branches. This remains an evidence-based audit; absence of a hook in the inspected runtime is not proof that no implementation exists elsewhere.
+
+## Summary
+
+- Catalogue contains **257 skills** and **15 base spells**.
+- Skill catalogue loading, purchase eligibility, prerequisites, point accounting, NPC skill allocation and save/load have automated coverage in `tests/test_simulation.gd`. These tests verify progression plumbing, not the gameplay effect of every purchased skill.
+- **22 skill IDs now have direct automated effect-test coverage** on `dev` after PR #102: movement discounts, foliage movement, several racial combat passives, spectral damage reduction, parry variants/modifiers, Shield Other/Proficiency, Protector, spear reactions and Sidestep/Mastery. Foliage is only partially covered against the original 2D behaviour; see the follow-up comparison below.
+- PR #102 added deterministic tests for those additional effects. PR #105 has now corrected those fixtures to keep Fast Movement and Goblin Opportunist within their catalogue max-rank limits.
+- The spell file is currently a **15-entry data catalogue**. The reviewed simulation scripts contain character spell-slot/unlock storage, but this audit did not identify a spell-casting/effect resolver or spell-effect tests. All spells therefore remain unverified.
+- All remaining skills are deliberately marked **UNVERIFIED**, not “broken” or “not implemented”: absence of a hook in the reviewed core files is not proof that no implementation exists elsewhere.
+
+## Status definitions
+
+| Status | Meaning |
+|---|---|
+| VERIFIED — automated effect test | Test exercises the actual gameplay effect, not merely selection or rank storage. |
+| IMPLEMENTATION FOUND — effect test still required | A runtime code path reads/applies the skill, but a focused effect test is missing. |
+| FEATURE BRANCH CANDIDATE — not on dev | A relevant implementation exists on a named feature branch, but is not present on `dev`; do not count it as working in the current game. |
+| UNVERIFIED | No effect test or confirmed runtime hook established in this pass. Do not assume it works. |
+| NPC/CREATURE | Intended primarily for NPC/monster use; still requires behaviour validation. |
+
+
+## Feature-branch cross-reference (reviewed 2026-11-11)
+
+This section records relevant work found outside `dev`. Branch presence is evidence
+of an implementation candidate only. It does **not** change the current-game status
+until the work is integrated into `dev` and its effect is covered by a deterministic
+test. Branches below are compared with the current `dev` head
+(`899931e6c37f70193c197870821bb1e0933f7589`).
+
+| Branch | Relationship to dev | Skill/effect relevance | Audit treatment |
+|---|---:|---|---|
+| [`feature/vision-stealth-perception`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/vision-stealth-perception) | 25 ahead / 34 behind | Adds `VisionRules`, `FogOfWar`, and a fog test. Candidate skills: `elf_vision`, `goblin_keen_senses`, `deep_sense`, `elf_darkvision`, `goblin_low_light_eyes`, `keen_perception`, plus two stealth skills with ID mismatches. | Not on dev; candidate only. The branch is substantially behind and must be reconciled, not merged wholesale. |
+| [`feature/skill-magic-foundation`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/skill-magic-foundation) | 70 ahead / 36 behind | Historical source for the skill/spell catalogues, progression and NPC spending foundations. Its own port plan still lists spell builder/casting and remaining effect families as future work. | The catalogues and progression foundations are now on dev. This branch is not evidence that spell effects work. |
+| [`feature/movement-reactions`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/movement-reactions) | 8 ahead / 121 behind | Contains movement/reaction work around Protector, Shield Other, Shield Proficiency, Sidestep, Sidestep Mastery, Spear Halt and Spear Intercept. | The relevant IDs and effect tests are already present on dev; this stale branch is not additional current coverage. |
+| [`feature/combat-reaction-triggers`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/combat-reaction-triggers) | 8 ahead / 126 behind | Earlier combat-reaction trigger work; no additional canonical skill ID references were found in its reviewed simulation file. | Not counted as a separate skill implementation. |
+| [`feature/equipment-gameplay-stat-integration`](https://github.com/ScottENOC/Silverhart-Saga-3D/tree/feature/equipment-gameplay-stat-integration) | 5 ahead / 35 behind | Covers combat-stat integration for foliage expertise, Dwarven Axe Mastery, Goblin Opportunist, Orc Brute Strength/Ferocity and Spectral Form. | These skill reads are already present in dev's CombatRules. Several still need focused tests; branch presence does not upgrade their status. |
+
+### Vision branch: what it actually contains
+
+The branch adds:
+
+- `scripts/simulation/vision_rules.gd`: base vision range 25 hexes, separate
+  exploration range 30, range modifiers, low-light handling, axial-hex line of
+  sight, wall/blocker and elevation occlusion, plus separate numeric helpers for
+  perception and stealth.
+- `scripts/presentation/fog_of_war.gd`: persistent explored/visible hex state,
+  fog mesh rendering, and actor/resource visibility updates.
+- `tests/test_fog_of_war.gd`: checks initial visibility/exploration, fog mesh
+  coverage/culling bounds, and visibility/exploration changes after moving.
+
+Important limits found on inspection:
+
+1. The fog test does **not** directly test VisionRules range modifiers, line of
+   sight, elevation blockers, low-light behaviour or perception/stealth bonuses.
+   It exercises the fog presentation and movement state only. There is no
+   dedicated `test_vision_rules.gd` on that branch.
+2. The branch's `VisionRules.stealth_check_bonus()` reads
+   `inconspicuous` and `shadow_weaver`, but the canonical catalogue IDs on dev
+   are `stealth_agility` (display name Inconspicuous) and `stealth_rogue`
+   (display name Shadow Weaver). Those two bonuses therefore will not read the
+   canonical purchased ranks until the IDs are corrected.
+3. `stealth_detection_bonus()` and `stealth_check_bonus()` are helper
+   calculations, not a complete stealth system. The branch's own port notes
+   defer suspicion, hearing, stealth movement, enemy search/pursuit, party-shared
+   sightings, disguise and AI target selection.
+4. The vision branch has no dedicated PR associated with its current branch name
+   in the repository search. Treat it as independent work requiring review and
+   reconciliation with current dev, not as a ready-to-merge feature.
+
+### Current-dev source scan notes
+
+A broader scan of the current `scripts/` and `tests/` tree found 74 relevant
+GDScript/JSON files and 257 canonical skill IDs. The scan separates references
+in gameplay rules from references used only by catalogue/progression/NPC build
+logic. In particular, the fact that `npc_skill_spending.gd` knows a skill ID
+does not mean that skill's gameplay effect is implemented.
+
+The current `dev` tree has no `VisionRules`, `FogOfWar` or dedicated vision
+test file. Thus all vision/stealth skills remain unavailable as working gameplay
+effects on dev, despite the candidate work above.
+
+
+## Skill inventory
+
+### agility (10)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `acrobatics` | Acrobatics | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `fastMovement` | Fast Movement | VERIFIED — automated movement-cost effect test |
+| `keen_perception` | Keen Perception | FEATURE BRANCH CANDIDATE — detection helper exists off `dev`; no integration/effect test |
+| `riding` | Riding | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `sidestep` | Sidestep | VERIFIED — automated effect test |
+| `sidestep_mastery` | Sidestep Mastery | VERIFIED — automated effect test |
+| `slip_away` | Slip Away | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `stealth_agility` | Inconspicuous | FEATURE BRANCH CANDIDATE — branch helper uses the wrong skill ID (`inconspicuous`) |
+| `sure_footed` | Sure-Footed | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `timePointRate` | Time Point Rate | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### elf (9)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `ageless_patience` | Ageless Patience | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `elf_bow_range` | Elf Bow Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `elf_darkvision` | Elf Darkvision | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
+| `elf_foliage_expertise` | Woodland Stride | PARTIAL — movement effect tested; original stealth/defence effects not fully integrated |
+| `elf_knowledge_nature` | Knowledge: Nature | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `elf_vision` | Keen Elf Sight | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
+| `elven_grace` | Elven Grace | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `keen_hearing` | Keen Hearing | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `whisper_step` | Whisper Step | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### monk (7)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `agile_climber` | Agile Climber | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `disarm` | Disarm | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `focused_strike` | Focused Strike | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `iron_shirt` | Iron Shirt | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `joint_lock` | Joint Lock | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `swift_step` | Swift Step | VERIFIED — automated movement-cost effect test |
+| `trip_reaction` | Counter Trip | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### nature (33)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `animal_companion` | Animal Companion | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `companion_agi_end` | Companion Grace | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `companion_str_end` | Companion Brawn | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `keen_forager` | Keen Forager | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_barkskin_spell` | Learn Barkskin (Spell) | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_boar_summon` | Boar Summoning | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_call_of_the_wild` | Learn Call of the Wild | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_calm_animal` | Learn Calm Animal | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_camouflage` | Learn Camouflage | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_eagle_summon` | Eagle Summoning | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_entangle` | Learn Entangle | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_natures_vigor` | Learn Nature | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_root` | Learn Root | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_spore_cloud` | Learn Spore Cloud | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_summon_animal` | Learn Summon Animal | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_tiger_summon` | Tiger Summoning | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_wild_fury` | Learn Wild Fury | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_armor_ease` | Wild Ease | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_bounty` | Forager | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_burst` | Nature Burst | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_butchery` | Butchery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_cap` | Nature Cap | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_expand` | Nature Expansion | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_magnitude` | Nature Potency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_mana` | Nature Mana | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_quickened` | Quickened Nature | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_range` | Nature Range | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_ranger` | Ranger | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_regen` | Nature Regeneration | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_slowed` | Slowed Nature | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_spell_slots` | Nature Spell Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_targets` | Nature\ | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nature_touch` | Nature Touch | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### misc (9)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `appraisal` | Appraisal | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `appraiser` | Appraiser | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `cooking` | Cooking | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `insight` | Insight | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `intimidation` | Intimidation | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `lockpicking` | Lockpicking | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `persuasion` | Persuasion | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `smithing` | Smithing | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `survival` | Survival | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### arcane (26)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `arcane_burst` | Arcane Burst | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_cap` | Arcane Cap | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_expand` | Arcane Expansion | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_magnitude` | Arcane Potency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_mana` | Arcane Mana | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_quickened` | Quickened Arcane | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_range` | Arcane Range | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_regen` | Arcane Regeneration | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_slowed` | Slowed Arcane | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_spell_slots` | Arcane Spell Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_targets` | Arcane Fork | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_touch` | Arcane Touch | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `blood_magic` | Warlock | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `disguise_equipment` | Disguised Equipment | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_blink` | Learn Blink | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_chain_lightning` | Learn Chain Lightning | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_counterspell` | Learn Counterspell | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_disguise_self` | Learn Disguise Self | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_energy_shield` | Learn Energy Shield | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_feather_fall` | Learn Feather Fall | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_firebolt` | Learn Firebolt | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_force_push` | Learn Force Push | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_gravity_well` | Learn Gravity Well | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_haste` | Learn Haste | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_slow` | Learn Slow | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_temporal_rift` | Learn Temporal Rift | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### wizard (4)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `arcane_eff_magnitude` | Wizard Potency Efficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_eff_range` | Wizard Range Efficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `arcane_eff_speed` | Wizard Speed Efficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `firebolt_hit` | Firebolt Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### cleric (9)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `armistice` | Armistice | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `cleric_trigger_damage` | Divine Retribution | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `cleric_trigger_dmg_red` | Feeble Strike | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `cleric_trigger_heal_red` | Severed Grace | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `cleric_trigger_mana` | Divine Drain | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `cleric_trigger_vision` | Clouded Mind | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_judgment` | Divine Judgment | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `extended_sentence` | Extended Sentence | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `holy_ground` | Holy Ground | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### rogue (12)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `assassinate` | Assassinate | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `dagger_quick_draw` | Dagger Quick Draw | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `dirty_fighting` | Dirty Fighting | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `initiativeBonus` | Initiative Bonus | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `pickpocket` | Pickpocket | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `quickRecovery` | Quick Recovery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `sneak_attack_dmg` | Sneak Attack | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `speedy_stealth` | Speedy Stealth | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `stealth_rogue` | Shadow Weaver | FEATURE BRANCH CANDIDATE — branch helper uses the wrong skill ID (`shadow_weaver`) |
+| `subtle_spell` | Subtle Spell | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `trap_setting` | Trap Setting | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `vanish` | Vanish | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### weapons (37)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `axe_cleave` | Armor Cleave | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `axe_dmg` | Axe Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `axe_hit` | Axe Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `axe_rend` | Rend | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `bladestorm` | Bladestorm | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `bow_dmg` | Bow Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `bow_hit` | Bow Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `club_dmg` | Club Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `club_hit` | Club Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `dagger_dmg` | Dagger Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `dagger_feint` | Dagger Feint | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `dagger_hit` | Dagger Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `dagger_parry` | Dagger Parry | VERIFIED — automated effect test |
+| `dagger_parry_chance` | Dagger Parry Mastery | VERIFIED — automated chance-modifier test |
+| `dagger_parry_cost` | Dagger Parry Efficiency | VERIFIED — automated TP-cost test |
+| `dagger_throw` | Throw Dagger | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `hack_and_slash` | Hack and Slash | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `hamstring` | Hamstring | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `headsmans_blow` | Headsman's Blow | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `in_the_way` | In the Way | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `shield_bash` | Shield Bash | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `shield_other` | Shield Other | VERIFIED — automated effect test |
+| `shield_proficiency` | Shield Proficiency | PARTIAL — Shield Other bonus tested; passive shield damage reduction is not applied in `CombatRules.damage_reduction()` |
+| `spear_dmg` | Spear Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `spear_halt` | Spear Halt | VERIFIED — automated effect test |
+| `spear_hit` | Spear Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `spear_intercept` | Spear Intercept | VERIFIED — automated effect test |
+| `sunder_armor` | Sunder Armor | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `sword_dmg` | Sword Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `sword_feint` | Sword Feint | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `sword_footwork` | Duelist's Footwork | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `sword_hit` | Sword Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `sword_parry` | Sword Parry | VERIFIED — automated effect test |
+| `sword_parry_chance` | Sword Parry Mastery | VERIFIED — automated chance-modifier test |
+| `sword_parry_cost` | Sword Parry Efficiency | VERIFIED — automated TP-cost test |
+| `sword_riposte` | Riposte | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `threatening_presence` | Threatening Presence | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### druid (9)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `barkskin_active` | Barkskin | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `druid_foliage_expertise` | Foliage Mastery | PARTIAL — movement effect tested; original stealth/defence effects not fully integrated |
+| `druid_knowledge_nature` | Knowledge: Nature | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_unicorn_summon` | Unicorn Bond | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `natural_senses` | Natural Senses | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `natures_bond` | Nature | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `riding_druid` | Nature Riding | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `venomous_summon` | Venomous Summon | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `wild_shape_adaptation` | Wild Shape Adaptation | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### dwarf (6)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `battle_endurance` | Battle Endurance | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `deep_sense` | Deep Sense | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
+| `dwarf_axe_mastery` | Dwarven Axe Mastery | PARTIAL — raw-damage helper tested, but normal attack submission does not derive `weapon_id` from equipped weapon |
+| `dwarf_solid` | Solid as a Rock | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `grudge` | Grudge | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `stonewall` | Stonewall | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### fighter (8)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `battle_reflexes` | Battle Reflexes | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `brace` | Brace | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `press_the_advantage` | Press the Advantage | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `protector` | Protector | VERIFIED — automated effect test |
+| `rally` | Rally | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `suppression` | Suppression | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `weapon_swap` | Weapon Swap | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `zone_of_control` | Zone of Control | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### strength (9)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `bull_rush` | Bull Rush | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `heavy_armor_training` | Heavy Armor Training | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `iron_grip` | Iron Grip | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `light_armor_training` | Light Armor Training | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `medium_armor_training` | Medium Armor Training | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `meleeDamage` | Weapon Damage | IMPLEMENTATION FOUND — CombatRules reads the rank as flat attack damage; focused effect test still required |
+| `powerful_shove` | Powerful Shove | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `shove` | Shove | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `strong_back` | Strong Back | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### Way of the open palm (8)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `deflect_arrows` | Deflect Arrows | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `nerve_strike` | Nerve Strike | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `palm_strike` | Palm Strike | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `redirect` | Redirect | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `siphoning_palm` | Siphoning Palm | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `unarmed_dmg` | Unarmed Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `unarmed_hit` | Unarmed Proficiency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `unarmed_reaction_block` | Pressure Point Strike | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### divine (25)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `divine_armor_ease` | Vestment Ease | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_burst` | Divine Burst | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_cap` | Divine Cap | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_expand` | Divine Expansion | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_magnitude` | Divine Potency | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_mana` | Divine Mana | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_quickened` | Quickened Divine | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_range` | Divine Range | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_regen` | Divine Regeneration | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_slowed` | Slowed Divine | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_spell_slots` | Divine Spell Mastery | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_targets` | Divine Presence | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `divine_touch` | Divine Touch | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `knowledge_religion` | Knowledge: Religion | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_command` | Learn Command | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_condemn` | Learn Condemn | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_curse` | Learn Curse | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_divine_protection` | Learn Divine Protection | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_divine_silence` | Learn Divine Silence | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_divine_wrath` | Learn Divine Wrath | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_excommunicate` | Learn Excommunicate | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_heal` | Learn Heal | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_mark_of_guilt` | Learn Mark of Guilt | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_sanctuary` | Learn Sanctuary | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `learn_smite_evil` | Learn Smite Evil | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### monster_skills (11)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `fly` | Fly | NPC/CREATURE — runtime behaviour not yet audited |
+| `furious_charge` | Furious Charge | NPC/CREATURE — runtime behaviour not yet audited |
+| `gore_charge` | Gore Charge | NPC/CREATURE — runtime behaviour not yet audited |
+| `land` | Land | NPC/CREATURE — runtime behaviour not yet audited |
+| `life_drain` | Life Drain | NPC/CREATURE — runtime behaviour not yet audited |
+| `petrify_gaze` | Petrifying Gaze | NPC/CREATURE — runtime behaviour not yet audited |
+| `poison_bite` | Poison Bite | NPC/CREATURE — runtime behaviour not yet audited |
+| `regeneration` | Regeneration | NPC/CREATURE — runtime behaviour not yet audited |
+| `revenant_revive` | Revenant Undying | NPC/CREATURE — runtime behaviour not yet audited |
+| `siren_song` | Siren Song | NPC/CREATURE — runtime behaviour not yet audited |
+| `spectral_form` | Spectral Form | VERIFIED — automated damage-reduction test |
+
+### goblin (5)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `goblin_keen_senses` | Keen Senses | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
+| `goblin_low_light_eyes` | Low-Light Eyes | FEATURE BRANCH CANDIDATE — vision logic exists off `dev`; no direct effect test |
+| `goblin_opportunist` | Opportunist | PARTIAL — raw-damage option tested; normal attack submission does not derive `target_caught_off_guard` from target state |
+| `goblin_pack_hunter` | Pack Hunter | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `goblin_quick_reflexes` | Quick Reflexes | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### endurance (7)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `grit` | Grit | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `hardened` | Hardened | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `health` | Health | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `health_regen` | Constitution | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `quartermaster` | Quartermaster | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `second_wind` | Second Wind | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `unwavering` | Unwavering | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### leatherworker (1)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `leatherworking` | Leatherworking | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### lich (5)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `lich_command_the_dead` | Command the Dead | NPC/CREATURE — runtime behaviour not yet audited |
+| `lich_deathless_flesh` | Deathless Flesh | NPC/CREATURE — runtime behaviour not yet audited |
+| `lich_grave_chill` | Grave Chill | NPC/CREATURE — runtime behaviour not yet audited |
+| `lich_soul_anchor` | Soul Anchor | NPC/CREATURE — runtime behaviour not yet audited |
+| `lich_withering_touch` | Withering Touch | NPC/CREATURE — runtime behaviour not yet audited |
+
+### orc (5)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `orc_brute_strength` | Brute Strength | VERIFIED — automated effect test |
+| `orc_ferocity` | Ferocity | VERIFIED — automated half-health damage-threshold test |
+| `orc_momentum` | Momentum | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `orc_relentless` | Relentless | UNVERIFIED — no effect test or confirmed runtime hook yet |
+| `orc_thick_hide` | Thick Hide | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### paladin (1)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `riding_paladin` | Divine Riding | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+### runesmith (1)
+
+| Skill ID | Skill | Current evidence status |
+|---|---|---|
+| `runesmithing` | Runesmithing | UNVERIFIED — no effect test or confirmed runtime hook yet |
+
+## Spell inventory
+
+| Spell ID | Spell | School | Current evidence status |
+|---|---|---|---|
+| `firebolt` | Firebolt | arcane | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `heal` | Heal | divine | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `smite_evil` | Smite Evil | divine | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `divine_silence` | Divine Silence | divine | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `sanctuary` | Sanctuary | divine | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `divine_protection` | Divine Protection | divine | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `summon_animal` | Summon Animal | nature | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `counterspell` | Counterspell | arcane | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `dragon_breath` | Dragon Breath | arcane | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `entangle` | Entangle | nature | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `wild_fury` | Wild Fury | nature | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `calm_animal` | Calm Animal | nature | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `disguise_self` | Disguise Self | arcane | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `temporal_rift` | Temporal Rift | arcane | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+| `feather_fall` | Feather Fall | arcane | UNVERIFIED — catalogue data only; no confirmed cast/effect test |
+
+## Known implementation details and gaps
+
+1. `SkillCatalog` loads and validates the 257-entry JSON catalogue. It does not apply effects.
+2. `SkillProgression` handles purchases, prerequisites, ranks, pool spending and grants. It does not apply effects.
+3. `WorldSimulation` has tested reaction paths for sword parry, Protector, Shield Other, Spear Halt, Spear Intercept and Sidestep.
+4. `CombatRules` applies Orc Brute Strength in damage calculation; the simulation test asserts the resulting damage.
+5. `MovementRules` reads `fastMovement`/ `fast_movement`, `swift_step`, and foliage expertise. Existing movement test exercises the legacy camelCase `fastMovement` key; add an explicit canonical-ID test.
+6. The movement code reads a `climbing` rank, but the catalogue has Agile Climber and Sure-Footed rather than a matching `climbing` skill ID. Treat that as a likely wiring mismatch until resolved.
+7. Character state stores `unlocked_base_spells` and `max_spell_slots`, but storage/unlock is not evidence that a spell can be cast or resolve its intended effect.
+
+## Next audit steps
+
+- Add focused deterministic tests for every skill with a runtime hook, including rank scaling, prerequisites, equipment/terrain restrictions and negative cases.
+- Search all remaining gameplay/UI scripts for skill-ID reads and compare them against canonical catalogue IDs; flag aliases and dead keys.
+- Trace spell unlock → preparation/slot selection → cast request → mana/TP payment → target validation → effect resolution → duration/expiry/save-load. Until that chain exists and is tested, spells remain unverified.
+- Run the Godot 4.7.2 headless suite and record the exact commit and Actions run against this audit.
+
+
+## Current-dev effect parity follow-up (2026-11-11)
+
+This section supersedes the earlier seven-effect test count. The current `dev`
+baseline is `d08bb529c32b44c1b3a00f1bae18b94c73a8b80f`, after PR #102 was
+merged. The current test suite exercises **22 canonical skill IDs** through
+actual movement, combat or reaction outcomes:
+
+- Movement: `fastMovement`, `swift_step`, `sidestep`, `sidestep_mastery`.
+- Foliage: `elf_foliage_expertise`, `druid_foliage_expertise` (movement only;
+  not full source parity).
+- Combat passives: `meleeDamage` is implemented but not yet effect-tested;
+  tested: `dwarf_axe_mastery`, `orc_brute_strength`, `orc_ferocity`,
+  `goblin_opportunist`, `spectral_form`.
+- Defensive reactions: `sword_parry`, `dagger_parry`,
+  `sword_parry_cost`, `dagger_parry_cost`, `sword_parry_chance`,
+  `dagger_parry_chance`, `protector`, `shield_other`,
+  `shield_proficiency`.
+- Movement reactions: `spear_halt`, `spear_intercept`.
+
+The foliage, Dwarven Axe Mastery, Shield Proficiency and Goblin Opportunist tests are **partial**, not complete. 2D Woodland Stride /
+Foliage Mastery remove the foliage movement penalty, add +20 to stealth score
+in foliage, and impose an additional 10-point hit-chance penalty on attacks
+against a character in foliage with either skill. 3D currently tests the
+movement multiplier only. `CombatRules.hit_chance()` can apply a foliage
+defence penalty only when caller-supplied options explicitly set
+`elf_foliage_expertise` or `druid_foliage_expertise`; it does not derive
+those flags from the target's purchased skill ranks. No 3D stealth score or
+stealth integration for these skills was found in the inspected runtime.
+
+### Important original-2D / current-3D mismatches
+
+1. **Climbing skill IDs and effects do not match.** The 2D catalogue has
+   `agile_climber`, `sure_footed` and `iron_grip`. The original 2D movement
+   rules stack these three skills: each reduces the TP surcharge for
+   `climbRisk` terrain by 20% (minimum 40% remaining with all three), and
+   each reduces combat fall chance by 10 percentage points. 3D
+   `TerrainElevationRules` instead reads `skills["climbing"]` or
+   `skills["climb"]` as a single rank threshold to permit steeper terrain;
+   neither is a canonical catalogue ID. The existing 3D elevation test
+   manually assigns `climbing` ranks 1 and 3, so it tests the placeholder
+   rather than a purchasable skill. This is a **confirmed integration gap and
+   semantic mismatch**, not just missing test coverage.
+
+2. **Quick Recovery and Time Point Rate are not connected to their catalogue
+   ranks.** 3D has `CharacterState.quick_recovery_rank` and
+   `time_points_per_tick` fields and `ActionEconomy` consumes those fields,
+   but the inspected runtime does not map canonical skill ranks
+   `quickRecovery` and `timePointRate` into them. The fields currently
+   behave as separate state values, not demonstrated skill effects.
+
+3. **Initiative Bonus is not applied at combat start.** The original 2D
+   initialises combat with +5 TP per `initiativeBonus` rank. 3D
+   `WorldSimulation.start_combat()` only changes combat state and emits a
+   signal; no skill-rank bonus is applied in the inspected start path.
+
+4. **Health and regeneration ranks need an explicit integration pass.** The
+   original 2D `health` skill increases current and maximum HP by 10 per
+   rank; `health_regen` increases regeneration by 0.1 per rank. 3D
+   `CharacterState` stores health and maximum health but the inspected
+   progression/runtime path does not apply those canonical ranks. Do not
+   confuse innate creature regeneration or the generic HP fields with
+   implementation of these purchased skills.
+
+5. **Weapon proficiency/damage skills are not automatically resolved from
+   ranks.** 3D `CombatRules` accepts `weapon_skill_hit`,
+   `weapon_skill_damage`, `unarmed_skill_hit` and
+   `unarmed_skill_damage` as action options, but the inspected combat
+   resolver does not map canonical `<weapon>_hit` / `<weapon>_dmg` skill
+   ranks into those options. The catalogue/progression system can store and
+   purchase them; that alone does not implement their hit/damage effects.
+
+6. **Foliage and mounted movement remain incomplete.** 3D's tested movement
+   discounts operate on the `CharacterState` passed to `MovementRules`.
+   The original 2D movement code applies Fast Movement / Swift Step to the
+   actual move entity (the mount when the player is riding). A full 3D riding
+   implementation and explicit rider/mount skill ownership rules are still
+   needed before claiming parity for mounted movement.
+
+7. **The 3D test fixtures needed a rank correction.** Original catalogue
+   max-rank values are one for Fast Movement and Goblin Opportunist. PR #102
+   initially tested those effects with rank two. PR #105 corrected the
+   fixtures to legal rank-one values and adjusted expected movement cost and
+   damage; its Godot validation and initiative preview both passed before it
+   was merged.
+
+### Runtime coverage that is present but not yet complete
+
+- `MovementRules` reads `fastMovement` / `fast_movement`,
+  `swift_step`, `elf_foliage_expertise` and
+  `druid_foliage_expertise`.
+- `CombatRules` reads `meleeDamage`, `dwarf_axe_mastery`,
+  `orc_brute_strength`, `orc_ferocity`, `goblin_opportunist` and
+  `spectral_form`. The goblin bonus is rank-scaled in 3D, while the source
+  skill is max rank one and describes a fixed +3 bonus; legal ranks therefore
+  produce the same result.
+- `WorldSimulation` contains the sword/dagger parry, Protector, Shield Other,
+  Spear Halt, Spear Intercept and Sidestep reaction paths. Parry efficiency,
+  parry chance and Sidestep Mastery are read by those paths.
+- `TerrainElevationRules` reads the non-canonical `climbing` / `climb`
+  aliases; this should be reconciled with the three canonical climbing skills
+  rather than treated as a successful skill implementation.
+
+### Test coverage is not parity coverage
+
+The 22 effect-tested IDs are not 22 complete source-parity skills. The two
+foliage skills currently cover only movement, and Protector's special
++10-per-rank parry chance branch is not separately asserted. The remaining
+catalogue skills still require per-skill source tracing. The old 257-skill
+inventory deliberately retains conservative `UNVERIFIED` labels where a
+runtime hook or focused test has not been established.
+
+
+8. **Several passing helper tests do not prove end-to-end combat integration.**
+   `WorldSimulation._submit_attack()` passes the caller's action options
+   through to `CombatRules.resolve_attack()` without deriving the equipped
+   weapon ID or target's `caught_off_guard` state. Therefore the current
+   Dwarven Axe Mastery test proves the raw-damage helper when supplied
+   `weapon_id: "axe"`, not that a normal attack automatically supplies it.
+   Similarly, Goblin Opportunist's test supplies
+   `target_caught_off_guard: true` directly; the normal attack path does not
+   populate that option from the target's state. Both remain partial pending
+   an end-to-end action test and integration fix.
+
+9. **Shield Proficiency is only partly applied.** The 3D Shield Other reaction
+   adds the ally's `shield_proficiency` rank to the temporary shield
+   reduction, and the test confirms that interaction. But ordinary passive
+   damage reduction in `CombatRules.damage_reduction()` adds the equipped
+   shield's reduction without adding `target.skills["shield_proficiency"]`.
+   The original 2D rule applies Shield Proficiency to ordinary shield defence
+   as well as the Shield Other calculation.
+
+10. **Protector's enhanced parry chance needs its own test.** The runtime
+    applies a 10-percentage-point bonus per rank for Protector parries, versus
+    5 points for a self-parry. The tests cover Protector reaction resolution
+    and self-parry modifiers, but do not assert that distinct Protector bonus.
+
+
+
+### Additional branch cross-reference (rechecked against current dev)
+
+The following branches were also compared with current `dev` on 2026-11-11.
+They are not evidence of additional live skill effects:
+
+| Branch | Relationship to dev | Relevant contents | Audit treatment |
+|---|---:|---|---|
+| `feature/port-action-economy` | 0 ahead / 312 behind | No branch-only changed files remain relative to current dev. | Historical/fully superseded; no candidate effect to count. |
+| `feature/mechanics-port-foundation` | 1 ahead / 135 behind | Only adds/updates `docs/MECHANICS_PORT_REGISTER.md`. | Documentation only; no runtime skill effect. |
+| `feature/ally-combat-reactions` | 7 ahead / 122 behind | Only relevant gameplay-file change is a one-line UI reaction prompt change. | Presentation candidate only; no additional simulation skill effect. |
+| `feature/combat-resolution-foundation` | 36 ahead / 135 behind | Older combat foundation, including an earlier `CombatRules`, `CharacterState` and simulation implementation. | Stale predecessor to the current dev combat runtime; do not merge wholesale or count its effects separately. |
+| `feature/action-contract-downed-lifecycle` | 10 ahead / 129 behind | Action request/result/event contracts and downed-character lifecycle changes. | Potentially useful lifecycle foundation, but no additional canonical skill-effect implementation identified. |
+| `feature/animal-attributes` | 12 ahead / 4 behind | Adds `AnimalCatalog`, animal-specific state fields and creature presentation/world integration. | Relevant to the separate animal-stat work; not a riding-skill implementation. Reconcile its four commits behind dev before any integration. |
+
+The vision branch remains the only identified off-dev branch with a direct
+candidate implementation for perception/vision/stealth skills. It contains
+`VisionRules`, `FogOfWar` and a fog presentation test, but it is 34 commits
+behind current dev and has no dedicated effect tests for the range, LOS,
+low-light, perception or stealth calculations. It remains a candidate, not
+working functionality on dev.
+
+
+### Current inventory totals
+
+The 257 canonical skill rows currently resolve to:
+
+| Evidence status | Skills |
+|---|---:|
+| Verified — automated effect test | 17 |
+| Partial — helper or limited effect test; parity gap remains | 5 |
+| Implementation found — focused effect test still required | 1 |
+| Feature-branch candidate only | 8 |
+| NPC/creature-focused, requiring separate behaviour audit | 15 |
+| Unverified — no current-dev effect established | 211 |
+| **Total** | **257** |
+
+These are evidence labels, not a claim that 211 skills are necessarily broken.
+The 22 skills with some effect-test coverage comprise 17 verified and 5
+partial; the partial group is not counted as complete parity.
+
+
+## Additional source-backed 2D systems with no current-dev equivalent found
+
+The original 2D project has supporting systems outside `gameEngine.js`.
+Reviewing those files confirms that some skills depend on whole gameplay
+subsystems, not a simple numeric modifier:
+
+| 2D source | Original behaviour | Current 3D status |
+|---|---|---|
+| `npcBuilder.js` / `skills.js` | NPC construction invokes each purchased skill's `apply(this)` hook, then tops HP to the resulting max HP and builds the NPC's prepared spellbook. | 3D progression stores ranks and NPC allocation; no equivalent general skill-application hook was found. This is why state fields such as max HP, TP regeneration and spell unlocks are not automatically derived from purchased ranks. |
+| `trapSystem.js` | Material-driven traps (snare, deadfall, pressure-plate spikes), build times/material costs, concealment, detection, disarming, and a tamper rune. The legacy `trap_setting` key is retained as the broader Traps skill rank. | No trap gameplay system or trap-skill runtime integration found in current 3D GDScript. |
+| `monsters.js` / `entities.js` | Rider/mount entity relationships, mount types, rider sizes, mounted movement and NPC mount training. `riding`, `riding_druid` and `riding_paladin` are eligibility skills. | Current dev has no equivalent mount relationship/action system. The off-dev `feature/animal-attributes` branch adds animal attributes/catalogue state, not rider/mount integration or the Riding skills. |
+| `disguiseSelfSystem.js` plus spell pipeline | Disguise Self applies a configurable appearance and optional target identity/faction/dialogue profile; `disguise_equipment` permits visual equipment/clothing-colour overlays. | No 3D spell cast, disguise profile state or skill-driven disguise equipment integration found. |
+| `npcProgression.js` / `monsters.js` | NPC archetypes and creature templates deliberately choose skills such as Riding, Quick Recovery, Initiative Bonus, spell learning, racial passives and weapon skills. | 3D NPC skill allocation can store/purchase catalogue ranks, but a rank in a skill is not evidence that the corresponding 2D gameplay subsystem exists in 3D. |
+
+These are confirmed 2D systems and current 3D gaps from the inspected source
+files. They should be treated as separate feature families when planning the
+port, rather than attempting to implement every remaining skill as an
+independent one-off effect.
+
+
+## Detailed original-2D behaviour audit: stealth, perception, riding and combat (2026-11-11)
+
+This pass distinguishes three separate questions:
+
+1. Does the original 2D game implement the described behaviour at runtime?
+2. Is the skill actually wired into that 2D behaviour, rather than merely listed in `skills.js`?
+3. Does current 3D `dev` implement the equivalent behaviour?
+
+The 2D findings below are source-backed runtime reads/actions. The 3D findings refer to the current `dev` simulation files inspected in this pass, especially `WorldSimulation`, `CombatRules`, `MovementRules` and `CharacterState`. They are not a claim that every script in either repository has been exhaustively searched.
+
+### Stealth and perception
+
+| 2D skill/system | Confirmed original 2D runtime behaviour | Current 3D `dev` |
+|---|---|---|
+| `stealth_agility` (Inconspicuous), `stealth_rogue` (Shadow Weaver) | Each adds +5 to the actor's stealth score. `tryStealth()` refuses entry while any opponent can currently see the actor; the score is then built from base 50, skill bonuses, light, terrain stealth bonus and armour penalties. The score is recalculated after movement/actions. | No stealth state, stealth score, stealth-entry action or detection integration found in current dev. The vision branch reads the wrong IDs (`inconspicuous`, `shadow_weaver`). |
+| `keen_perception` | Adds +10 per rank to the chance to spot a stealthed target in `canSee()`. It also adds +10 per rank to the perception score used by `trapSystem.js` to detect prepared traps. The catalogue description additionally mentions secret doors/hidden objects; this pass confirmed the stealth and trap uses, but not a general secret-door detector. | No current-dev perception/detection hook. The off-dev VisionRules branch contains a +10/rank helper only; its fog test does not exercise it. |
+| `elf_darkvision`, `goblin_low_light_eyes` | Both bypass the ordinary low-light reduction to vision range. The same condition removes the light penalty from the stealth spotting roll. | No current-dev low-light or darkvision runtime. VisionRules contains candidate handling off-dev, not on dev. |
+| `speedy_stealth` | Reduces the extra movement cost while stealthed by 2 TP (the 2D movement surcharge is otherwise +4). | No current-dev stealth movement cost because stealth itself is not integrated. |
+| `sneak_attack_dmg` | Adds +4 damage per rank when no living opponent can see the attacker. This is a real damage-resolution read, not just the description. | `CombatRules` accepts a caller-supplied `sneak_attack_bonus`, but the current normal attack path does not derive it from stealth/visibility or the canonical skill rank. Not parity. |
+| `assassinate` | Active weapon attack: only available through the skill UI with a weapon equipped; if no enemy can see the actor, the attack receives +50 hit chance and costs 80 TP. | No equivalent action or visibility-gated attack found in current dev. |
+
+The original 2D detection formula is not simply a fixed perception check: it combines
+target stealth score, distance, the viewer's `keen_perception`, carried light,
+ambient light and the viewer's remembered spotted targets. Losing line of sight
+removes the current spotted-target memory. This is a more complete behaviour
+than the off-dev 3D helper currently represents.
+
+The following catalogue entries were **not found as runtime reads/actions** in the
+inspected 2D `gameEngine.js` / `ui.js` paths: `whisper_step`,
+`dirty_fighting` and `vanish`. They should not be described as working 2D
+stealth abilities solely from their catalogue descriptions. This is a bounded
+finding from the inspected files, not proof that no other legacy module refers
+to them.
+
+### Riding and mounted movement
+
+The original 2D implementation is a real rider/mount relationship:
+
+- `riding`, `riding_druid` and `riding_paladin` are mutually exclusive
+  alternatives for the same riding eligibility. The skill UI treats any one
+  as satisfying the shared requirement and prevents learning a second variant.
+- The action UI only offers Mount/Dismount when one of those skills is present.
+- Mounting requires a friendly, unoccupied mount within adjacency, a positive
+  `mountSize`, and `riderSize <= mountSize`. Dismounting requires an adjacent
+  valid hex.
+- Rider and mount retain linked `riding` / `rider` references. Movement,
+  falls, floor transitions, forced movement and reactions keep their positions
+  synchronised.
+- While mounted, the mount is the `moveEntity`: its Fast Movement / Swift Step
+  ranks, armour and shield state determine those movement discounts. The rider's
+  stealth surcharge and Quick Recovery threshold remain rider-side. Mount TP
+  exhaustion is checked separately against the mount's 80-TP threshold.
+- Creature templates carry mount size, rider size, mount type and their own
+  skills. Some NPCs spawn already mounted.
+
+Current 3D `dev` has no mount relationship, mount/dismount action, size
+compatibility rule or mounted movement ownership. The `feature/animal-attributes`
+branch is not a substitute: it adds animal catalogue/state attributes, not the
+rider/mount relationship. Therefore all three Riding skill IDs remain
+unimplemented in the current 3D game, despite being functional in the 2D source.
+
+### Selected combat abilities: original 2D implementation confirmed
+
+| Skill ID / family | Confirmed original 2D behaviour | Current 3D `dev` |
+|---|---|---|
+| `battle_reflexes` | Defender gains 1 TP when attacked. | No corresponding attack-trigger TP gain found. |
+| `dagger_quick_draw` | After throwing a dagger, automatically equips another dagger from inventory if one remains. | No dagger-throw/quick-draw loop found. |
+| `shield_bash` | On an incoming miss, a shield user may spend 3 TP to make a basic counterattack, without weapon/skill bonuses. | No Shield Bash action/reaction path found. |
+| `trip_reaction` | After a melee attack misses, may spend 2 TP to attempt a counter-trip, reducing the attacker's TP by 5 on success. | No corresponding reaction path found. |
+| `disarm` | Active adjacent attack; 50% base success chance, drops the target's weapon (or eligible offhand item), costs 5 TP. | No disarm action found. |
+| `shove` | Active adjacent action routed through the 2D shove resolver; also used by NPC AI. | No shove action/resolver found. |
+| `<weapon>_feint` | Generic suffix-based action: spends 1 TP and attacks as a feint, intended to induce a defender to waste a parry. | No feint action or feint-aware parry path found. |
+| `<weapon>_riposte` | After a successful matching weapon parry, may make a basic counterattack for 5 TP. | No riposte path found. |
+| `unarmed_reaction_block` | A landed unarmed hit blocks the target's reactions until its next action. | No unarmed reaction-block effect found. |
+| `siphoning_palm` | A landed unarmed hit transfers up to 1 mana per rank (maximum 3) from target to attacker. | No unarmed mana-siphon effect found. |
+| `slip_away` | After being hit, may spend 5 TP to move to an adjacent free hex; requires light/no armour and an available reaction. | No Slip Away reaction found. |
+| `sunder_armor` | Melee hits stack a target reduction penalty up to the attacker's skill rank. | No armour-sunder effect found. |
+| `hamstring` | Melee hits stack a movement-cost debuff on the target up to skill rank. | No hamstring effect found. |
+
+These 2D implementations are not inferred from the catalogue: the reviewed
+`gameEngine.js` contains the corresponding action branches, reaction callbacks
+or damage-resolution reads. They are still absent from current 3D dev unless
+explicitly listed in the existing 3D coverage sections above.
+
+### Catalogue descriptions without a confirmed 2D runtime hook in this pass
+
+The following combat-oriented entries were not found as runtime reads/actions
+in the inspected 2D combat paths: `deflect_arrows`, `sword_footwork`,
+`threatening_presence` and `weapon_swap`. The generic feint and riposte
+paths are implemented, but this does not establish that every catalogue ID
+describing those families is wired correctly. These entries need a wider
+cross-file trace before they can be called either implemented or definitively
+unused in the original game.
+
+### Audit consequence / next targets
+
+The original 2D source confirms substantially more gameplay than the current
+3D implementation for these categories. The immediate 3D gaps are not just
+missing numeric modifiers: they include the entire visibility/stealth state
+machine, mount relationships and movement ownership, and several action and
+reaction triggers. The vision branch is a useful starting point but needs
+canonical skill-ID fixes, deterministic VisionRules tests and integration into
+the current simulation before it can count as a port.
+
+Next audit pass should trace the remaining combat skill families (especially
+weapon proficiency, parry extensions, forced movement, status effects and
+racial creature passives) across all 2D modules, then compare each confirmed
+effect with the current 3D resolver and tests. No gameplay mechanics were
+implemented in this audit pass.
+
+
+## Detailed combat parity audit: weapon proficiency, parry extensions, statuses and racial passives (2026-11-11)
+
+This pass traces the original 2D `generateWeaponSkills()` and `resolveAttack()`
+paths against current 3D `CombatRules` and `WorldSimulation`. It distinguishes
+a 2D skill that has a real runtime read from a 3D resolver that merely accepts
+a caller-supplied option.
+
+### Weapon proficiency and weapon mastery
+
+The 2D `generateWeaponSkills()` generator creates `<weapon>_hit` and
+`<weapon>_dmg` skills for sword, axe, bow, spear, dagger and club. A hit rank
+adds +5 percentage points to hit chance when that weapon is used; each damage
+rank adds +2 damage. Axe damage mastery allows three ranks; other generated
+weapon damage skills allow one. The 2D resolver dynamically reads the equipped
+weapon ID and the corresponding skill rank during the ordinary attack.
+
+The same pattern is implemented separately for unarmed combat:
+`unarmed_hit` adds +5 hit chance and `unarmed_dmg` adds +2 damage. The 2D
+source comments explicitly note that unarmed support needed its own branch
+because a weapon-ID lookup cannot match a fist attack.
+
+Current 3D `CombatRules` has options for `weapon_skill_hit`,
+`weapon_skill_damage`, `unarmed_skill_hit` and
+`unarmed_skill_damage`, but the normal `WorldSimulation._submit_attack()`
+path passes request options through without deriving these values from the
+attacker's equipped weapon and canonical skill ranks. Therefore:
+- The formulas exist in a helper, but normal attacks do not demonstrate
+  weapon/unarmed proficiency parity.
+- The same missing action-path mapping affects the normal weapon-damage
+  mastery bonus.
+- `meleeDamage` is different: it is read directly from the character's skill
+  dictionary by `CombatRules.raw_damage()`, so that one is integrated.
+
+### Parry extensions and reaction families
+
+The 2D generated sword/dagger skill chain includes:
+- `<weapon>_parry`: unlocks a 3 TP parry reaction.
+- `<weapon>_parry_chance`: +5 percentage points per rank to parry success.
+- `<weapon>_parry_cost`: reduces the parry cost by 1 TP.
+- `<weapon>_feint`: a 1 TP active feint intended to induce an enemy to waste
+  a parry.
+- `<weapon>_riposte`: after a successful matching parry, permits a 5 TP
+  basic counterattack.
+
+The 2D normal parry applies the chance skill at x5; Protector applies it at
+x10. The current 3D `WorldSimulation` has integrated sword/dagger parry
+eligibility, parry-cost reduction, chance rank at x5 and Protector at x10.
+This is a genuine integrated subset, not merely a helper. However:
+- The normal 3D attack reaction path does not execute a riposte after a
+  successful parry.
+- There is no feint action in the 3D action contract/resolver to trigger the
+  2D parry-wasting interaction.
+- The prior audit's Protector reaction coverage remains valid, but its
+  additional special chance branch should have a focused assertion.
+- 3D has Shield Other with shield proficiency added to the ally's temporary
+  reduction; ordinary passive shield damage reduction still does not add the
+  proficiency rank in `CombatRules.damage_reduction()`.
+
+### Status effects and damage-triggered passives
+
+The following original 2D effects have live attack/tick behaviour:
+
+| Skill/effect | Original 2D runtime | Current 3D `dev` |
+|---|---|---|
+| `poison_bite` | A melee hit has a 50% chance to apply 10 TP ticks of poison at 2 damage per tick. | No poison state, application or tick processing found in `CharacterState` / `WorldSimulation`. |
+| `life_drain` | Each successful hit heals the attacker by up to 2 HP, bounded by damage dealt and max HP. | No corresponding attack-resolution healing hook found. |
+| `regeneration` | 20% chance to heal 1 HP per tick. | No regeneration-skill tick hook found. |
+| Lich `witheringTouchStacks` | A landed attack adds 5 ticks of withering damage; tick processing applies the stored damage. | No withering status fields or tick processing found. |
+| `sunder_armor` | Melee hits reduce the target's base reduction by 1 per stack, capped by the attacker's rank, for the fight. | No sunder stacks or persistent reduction-debuff application found. |
+| `hamstring` | Melee hits apply hobbled stacks, capped by skill rank; movement-cost calculation consumes the stacks. | No hobbled state or movement-cost integration found. |
+| `unarmed_reaction_block` | A successful unarmed hit blocks target reactions until their next action. | A generic `reaction_blocked` state exists and is respected by reaction eligibility, but the normal attack resolver does not set it from this skill. |
+| `siphoning_palm` | Unarmed hit transfers up to 1 mana per rank (max 3) from target to attacker. | No mana-siphon attack hook found. |
+| `spectral_form` | Reduces incoming damage by 2. | Integrated directly in `CombatRules.damage_reduction()`. |
+
+This confirms that the 3D lifecycle/damage foundation is not yet a general
+status-effect system. In particular, the existence of `reaction_blocked`
+does not make Pressure Point Strike implemented until the attack resolver
+sets it from the canonical skill.
+
+### Racial and creature combat passives
+
+| 2D skill | Confirmed original 2D behaviour | Current 3D `dev` |
+|---|---|---|
+| `dwarf_axe_mastery` | +2 damage with an equipped axe. | Damage helper checks the skill, but only when caller supplies `weapon_id: "axe"`; normal attack submission does not derive that from equipment. |
+| `dwarf_solid` | Adds +5 percentage points forced-movement resistance. | No forced-movement resolver or resistance application found. |
+| `goblin_opportunist` | +3 damage against a target already caught off guard. | Helper checks a caller-supplied `target_caught_off_guard`; normal attack submission does not derive it from target state. |
+| `goblin_pack_hunter` | +2 damage per rank if an ally is adjacent to the target. | No flank/adjacent-ally derivation found in normal 3D attack resolution. |
+| `goblin_quick_reflexes` | +2 passive dodge per rank, applied to the character's dodge stat. | No canonical skill-to-`passive_dodge` application found in the reviewed current-dev progression/combat path. |
+| `orc_brute_strength` | +2 melee damage per rank. | Integrated in `CombatRules.raw_damage()`. |
+| `orc_thick_hide` | +1 base damage reduction per rank, applied to the character's base reduction. | No canonical skill-to-`base_reduction` application found in the reviewed path. |
+| `orc_ferocity` | +4 damage at or below half HP. | Integrated in `CombatRules.raw_damage()`. |
+| `orc_momentum` | +3 damage per rank after moving at least 2 hexes from the turn-start hex. | No turn-start position snapshot or momentum damage calculation found in current dev. |
+| `orc_relentless` | +8 current and max HP per rank. | No canonical skill-to-health/max-health application found. |
+| `poison_bite`, `life_drain`, `regeneration` | Creature passives used by monster templates and runtime. | No matching attack/tick effects found in current 3D simulation. |
+| `spectral_form` | +2 incoming damage reduction. | Integrated and previously covered by an effect test. |
+
+The original 2D monster templates also assign these skills to creatures
+(e.g. spider poison bite, wraith life drain/spectral form and troll shove).
+That is evidence they are intended as live creature abilities, not merely
+player-facing catalogue ideas.
+
+### Forced movement and control: scope clarification
+
+The earlier audit confirmed 2D Shove, Disarm and Counter Trip. This pass
+confirms a broader 2D combat control layer: forced movement resistance
+(`dwarf_solid`), Hobbled movement penalties, Counter Trip's TP reduction,
+and movement-reaction triggers. Current 3D includes spear intercept/halt and
+sidestep movement reactions, but does not yet provide a general shove/trip/
+disarm resolver, forced-movement resistance, or attack-applied movement
+debuffs.
+
+### Implementation implications
+
+The next implementation work should be organised around normal action
+integration rather than adding isolated skill branches:
+1. Resolve equipped weapon identity and skill ranks into hit/damage inputs in
+   the normal attack path.
+2. Complete the parry chain (feint and riposte) and add direct tests for
+   ordinary parry, Protector chance scaling and Shield Proficiency's passive
+   shield contribution.
+3. Introduce a small, serialisable status-effect model for poison, wither,
+   hobbled, sunder and reaction block, with explicit duration/stack rules.
+4. Add source-backed racial passive derivation and turn-start movement state.
+5. Add general forced movement and resistance before porting shove/trip/
+   disarm as isolated UI actions.
+
+No gameplay mechanics were implemented in this audit pass. This section is
+source comparison and implementation planning only.
+
+
+## Detailed creature abilities, control effects and Lich skills (2026-11-11)
+
+This pass separates abilities that are deliberately attached to particular creature templates from skills that are player-facing or general-purpose. A creature-specific effect is a real porting requirement for that creature if we retain it, but it is not automatically a requirement for every NPC or the player. Conversely, some abilities stored in the `monster_skills` catalogue are exposed through player action handling or assigned to ordinary animals, so the catalogue tree name alone is not a reliable scope indicator.
+
+### Creature-specific abilities confirmed in original 2D
+
+| Ability | Original 2D evidence and intended scope | Current 3D `dev` evidence |
+|---|---|---|
+| `petrify_gaze` — Basilisk | Basilisk template owns the skill. AI uses it once per combat for 10 TP, selecting the nearest opposing living entity within 8 hexes and line of sight; applies 30 TP ticks of petrification, which prevents the target acting. | No gaze, petrified state or corresponding action/tick handling found in the reviewed `WorldSimulation` or the previously reviewed 3D combat core. Treat as a Basilisk-specific gap, not a universal character skill. |
+| `siren_song` — Harpy | Harpy template owns the skill. Once per combat, costs 8 TP and charms every opposing living entity within 8 hexes. Each charmed entity spends its next turn moving one available hex towards the Harpy, then the charm clears. | No charm state or forced-next-turn movement hook found in reviewed 3D simulation. Harpy-specific gap. |
+| `gore_charge` — Minotaur | Minotaur template owns the skill. AI charges a target 2–5 hexes away, moves to a free adjacent hex, makes an attack with +6 damage, then attempts a shove; costs 10 TP. | No gore-charge action or linked charge/attack/shove sequence found in reviewed 3D simulation. Minotaur-specific gap; depends on general forced-movement support. |
+| Spider web fling (not a catalogue skill ID) | Spider AI has a hard-coded special action: once per combat, selects a visible opposing target within 10 hexes, applies 40 TP ticks of webbing, and spends 5 TP. Webbing prevents movement. This is keyed to the entity name `Spider`, not a skill rank. | No webbed condition or movement-blocking status found in reviewed 3D simulation. This should be tracked as a creature ability/status, not falsely counted as a missing canonical skill ID. |
+| `revenant_revive` — Revenant | Revenant template owns the skill. On its first lethal hit, it remains alive and returns at half maximum HP; subsequent lethal damage follows normal death handling. | No one-time revival-on-lethal-damage hook found in reviewed 3D combat/lifecycle path. Revenant-specific gap. |
+| `life_drain` / `spectral_form` — Wraith | Wraith template owns both. Successful attacks heal the Wraith by up to 2 HP, bounded by damage dealt and max HP; Spectral Form reduces incoming damage by 2. These two effects were already assessed in the preceding combat audit. | Spectral Form is integrated and effect-tested. Life Drain has no corresponding 3D attack-resolution healing hook in the reviewed combat path. |
+| `regeneration` — Troll and other creatures | Troll template owns the skill. Runtime has a 20% per-tick chance to heal 1 HP (scaled by tick multiplier). This is an innate creature passive in these templates, distinct from the player-facing `health_regen` skill. | No equivalent regeneration-skill tick hook found in reviewed 3D simulation. This is a creature passive as well as a broader reusable status/tick capability. |
+
+### Creature-assigned skills whose implementation is not purely creature-specific
+
+| Skill | Original 2D evidence and scope | Audit interpretation |
+|---|---|---|
+| `furious_charge` | Active action costs 10 TP, requires a hostile target 3–5 hexes away, moves adjacent and attacks for +4 damage. It is assigned to creature templates including Wild Boar, Boar and Tiger (and the Unicorn companion). The inspected `gameEngine.js` contains the player action handler but no separate AI use keyed to `furious_charge`. | The active action exists, but creature-template assignment does not prove creature AI actually invokes it. Record player action as implemented in 2D; record NPC/animal AI activation as unverified, not as confirmed parity. |
+| `fly` / `land` | Active actions toggle `isFlying`, each costing 1 TP. The 2D engine also has innate flying creatures whose templates set `isFlying: true`; those templates do not need to purchase these action IDs. | Separate player-toggle actions from innate creature flight. Do not require every flying creature to have `fly`/ `land` ranks. Current 3D reviewed simulation has no corresponding action hooks established in this pass. |
+| `zone_of_control` | General fighter passive, not monster-only. When a player leaves an enemy's melee reach (including weapon reach), the departing movement step costs 2x at rank 1 or 3x at rank 2. The check reads the threatening enemy's rank. | A general combat/movement rule. No corresponding zone-of-control movement-cost integration found in reviewed 3D simulation. This should not be grouped with monster-only powers. |
+| `suppression` | Catalogue description says enemies leaving Zone of Control also lose 3 TP. The inspected original `gameEngine.js` contains the Zone of Control movement multiplier but no `suppression` runtime read or TP-loss branch. | Catalogue description only / unverified 2D implementation. Do not label it a confirmed 2D mechanic until a runtime path is found. |
+
+### Lich tree: player-facing, quest-granted abilities
+
+These skills are not simply monster-template abilities. The original 2D `skills.js` defines them in the Lich tree, and their `apply()` hooks set persistent character fields. The original game also includes corresponding attack, AI and lethal-damage hooks:
+
+| Skill | Confirmed 2D effect | Current 3D `dev` evidence |
+|---|---|---|
+| `lich_deathless_flesh` | Adds +1 to base damage reduction per rank. | No canonical rank-to-base-reduction application found in reviewed 3D progression/combat path. |
+| `lich_grave_chill` | Successful melee hit heals 2 HP per rank, bounded by max HP. | No equivalent skill-derived melee healing hook found. |
+| `lich_withering_touch` | Each successful hit applies 5 ticks of damage-over-time per stored rank; periodic tick processing damages the target. | No matching withering status state/application/tick path found. |
+| `lich_command_the_dead` | Sets `commandsUndead`; hostile AI excludes player-side entities with that flag when the AI entity is tagged undead. This is a faction/target-selection interaction, not a direct damage effect. | No equivalent undead allegiance/AI target-exclusion hook found in reviewed 3D simulation. |
+| `lich_soul_anchor` | Once per rest, lethal damage to the player leaves them at 1 HP; the effect is consumed until rest recovery. | No equivalent once-per-rest lethal-damage save found in reviewed 3D lifecycle path. |
+
+### Source boundaries and porting implications
+
+- Original 2D sources traced for this pass: `skills.js` (definitions and Lich `apply()` hooks), `monsters.js` (which templates receive creature skills), and `gameEngine.js` (AI priorities, player action handlers, movement/turn conditions, attack hooks and tick processing).
+- Current 3D comparison includes `scripts/simulation/world_simulation.gd` plus the combat and lifecycle paths already reviewed in the preceding audit sections. A missing keyword in one file is not proof of absence from every project module; findings above are deliberately phrased as absence from the reviewed runtime paths.
+- Creature-only abilities should be ported with their owning creature and required status/action support, rather than exposed indiscriminately as player skills.
+- Reusable foundations should come first where several abilities depend on them: timed status effects (petrification, webbing, poison and withering), forced movement/shove, one-time combat-use state, turn-control effects, and AI allegiance/target filtering.
+- Keep the distinction between a skill assigned in a creature template and an AI that actually invokes it. `furious_charge` demonstrates why template assignment alone is insufficient evidence of creature behaviour.
+- `zone_of_control` belongs in the general movement/combat audit; `suppression` remains unverified despite its catalogue description.
+- No gameplay code was changed in this audit pass.
+
+
+## Original creature roster versus current 3D assets and gameplay (2026-11-12)
+
+This section answers a different question from skill parity: which original 2D creature templates are actually represented in the current 3D project, and which are not yet part of the 3D roster? It distinguishes visual assets, presentation actors, simulation entities and combat encounters. A model file alone is not an implemented creature.
+
+### Original 2D roster inventory
+
+The original `monsters.js` defines 35 template IDs. Grouped by role:
+
+| Group | Original 2D template IDs |
+|---|---|
+| Humanoid/faction and named combatants (11) | `goblin`, `elite_goblin`, `orc`, `bandit`, `wolf_rider_goblin`, `horse_archer`, `Grishnak`, `Sir Alistair`, `Viper`, `Krog the Unstoppable`, `Sylvara the Huntress` |
+| Animals and beasts (10) | `wolf`, `deer`, `wild_boar`, `horse`, `spider`, `bear`, `boar`, `tiger`, `eagle`, `unicorn` |
+| Fantasy monsters and undead (13) | `troll`, `dragon_young`, `dragon_adult`, `dragon_ancient`, `skeleton`, `zombie`, `imp`, `ogre`, `wraith`, `basilisk`, `harpy`, `minotaur`, `revenant` |
+| Construct (1) | `siege_engine` |
+| **Total** | **35 templates** |
+
+The named combatants are templates in the original roster, but are not additional creature species. The three dragon tiers are separate gameplay templates sharing the dragon visual family.
+
+### Current 3D creature assets and placement
+
+The current `dev` tree contains 12 Quaternius animal model files representing 11 kinds (Horse and Horse_White are two horse variants):
+
+- Cow, Bull, Horse, Donkey, Alpaca, Deer, Fox, Stag, Husky, Shiba Inu and Wolf.
+- The `CreatureActor` presentation wrapper supports those 11 kinds and discovers each imported model's animation clips at runtime.
+- `hollowmere_village.gd` currently places nine presentation actors: three cows, two horses (standard and white), one Shiba Inu, one deer, one stag, one fox and one wolf.
+- Bull, Donkey, Alpaca and Husky have model assets but are not currently placed by the village scene.
+- The scene labels these actors as farm, passive wildlife, predator or mount. In the current `CreatureActor` script those are presentation labels; the wrapper loads and animates a model but does not implement autonomous animal AI, combat, mounting or simulation state.
+
+Only three current 3D model kinds directly match original 2D creature templates: Horse, Deer and Wolf. Cow, Bull, Donkey, Alpaca, Fox, Stag, Husky and Shiba Inu are additional 3D animal kinds without a corresponding template in the inspected original `monsters.js`. They are useful world-life additions, not evidence of original creature parity.
+
+### 3D gameplay status for original templates
+
+| Original template(s) | Current 3D status on `dev` | Classification |
+|---|---|---|
+| `wolf` | A visible wilderness wolf is spawned as a presentation actor. The farm-wolves quest tracks three defeat counts, but `FarmWolvesQuest` itself defines quest progress/rewards and does not create combat wolves. The visible wilderness wolf is explicitly described as ambient presentation; no link from it to the quest or a combat CharacterState was found in the inspected village/quest/simulation paths. | **Visual only / quest tracking only**, not a complete combat creature. |
+| `deer` | Visible wilderness presentation actor; no corresponding animal CharacterState creation or behaviour found on `dev`. | **Visual only.** |
+| `horse` | Visible farm presentation actors, described in the scene as future mount candidates. Current `CharacterState` / `WorldSimulation` on `dev` do not contain the general animal profile and rider/mount relationship implementation. | **Visual only; mounting not implemented.** |
+| `bear` | `FarmsteadBearEncounter` can create an enemy `CharacterState` with 180 HP, claw hit/damage ranks and animal/bear tags. This is a bespoke grain-raiding bear encounter, not a direct conversion of the original 2D Bear template (30 base HP with health/unarmed/melee skills). No dedicated bear model exists in the current creature asset folder, and the encounter setup does not itself provide a creature visual. | **Combat state exists for one bespoke encounter; art/presentation and original template parity remain incomplete.** |
+| `goblin` / `elite_goblin` / `orc` / `bandit` | The 3D project has generic humanoid CharacterState/NPC skill-spending infrastructure and tests for generated goblin populations, plus humanoid Ara/Hollowmere models. I found no matching goblin, orc or bandit creature-specific 3D model/template roster on `dev`. | **Partial generic humanoid infrastructure; species-specific roster and visuals unverified/incomplete.** |
+| `wolf_rider_goblin` / `horse_archer` | No current mount relationship, mounted combat actor or rider-on-animal presentation integration found on `dev`. | **Not implemented as mounted units.** |
+| `wild_boar` / `boar` / `tiger` / `eagle` / `unicorn` | No corresponding 3D model or creature template found in the current creature asset directory or reviewed simulation files. | **Not yet represented in 3D.** |
+| `spider` / `troll` / `dragon_young` / `dragon_adult` / `dragon_ancient` / `skeleton` / `zombie` / `imp` / `ogre` / `wraith` / `basilisk` / `harpy` / `minotaur` / `revenant` | No corresponding 3D creature model or specific simulation template found in the current `dev` creature assets and reviewed simulation paths. | **Not yet represented in 3D.** Their special abilities should remain scoped to these future creature implementations. |
+| `siege_engine` | No matching 3D construct model or simulation template found in the inspected current project tree. | **Not yet represented in 3D.** |
+
+### Animal-attributes branch is relevant but not integrated
+
+The branch `feature/animal-attributes` contains `scripts/simulation/animal_catalog.gd`, which defines gameplay profiles for all 11 current Quaternius animal kinds. It also adds animal fields to `CharacterState`, integrates animal creation into `WorldSimulation` and the village, and extends simulation tests. The profile comments explicitly distinguish horse, wolf and deer values derived from original 2D templates from first-pass baselines for the additional animal models.
+
+However, the branch comparison against current `dev` reports **12 commits ahead and 11 behind**, with changes across eight files. It is therefore not part of current `dev` and should not be treated as implemented parity or merged wholesale without reconciling its divergence. The branch's animal profiles cover the current farm/wildlife models; they do not add the missing fantasy monster roster, monster-specific abilities, or the full 2D mount/rider relationship system.
+
+### Practical porting scope
+
+1. **Existing 3D animals first:** integrate and validate the animal profile work after reconciling `feature/animal-attributes` with current `dev`. This gives current farm/wildlife actors real simulation identities and stats rather than presentation-only labels.
+2. **Connect existing quest/encounter actors:** make the three farm wolves actual combat entities linked to quest progress; give the bespoke bear encounter a proper presentation model or explicitly reuse a suitable bear asset rather than silently substituting a bull.
+3. **Mounts are a separate system:** a horse model or `mountable` profile is not enough. Add rider/mount references, size eligibility, synchronised movement, mounted combat and dismount rules before claiming horse, wolf or mounted NPC parity.
+4. **Do not prematurely implement all 35 templates:** add each creature when its model, world/quest placement and intended behaviour are in scope. The Basilisk, Harpy, Minotaur, Spider, Revenant, Lich/Wraith and Dragon mechanics documented above should be attached to their owning creature/character implementations.
+5. **Keep general humanoid systems separate from creature species:** the existing NPC skill-spending and character presentation infrastructure can support humanoid enemies, but it does not prove that all original enemy templates, equipment, AI or species visuals have been ported.
+
+Source boundary: roster count and template assignments are from original `monsters.js`; 2D art cross-check is from `images/characters/creatures/`; current model inventory is from the recursive `dev` repository tree; scene placement is from `scripts/world/hollowmere_village.gd`; animal profile status is from `feature/animal-attributes`; encounter/quest status is from the current `dev` simulation scripts. Findings are scoped to those sources and do not claim that no other unreviewed branch or future asset work exists.

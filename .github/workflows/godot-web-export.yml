@@ -1,0 +1,328 @@
+name: Build Godot Web Export
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Build Hollowmere Ara characters
+      - Build Wren Workshop
+      - Build Ara Medieval Props
+      - Build Ara Medieval Armour Props
+    types: [completed]
+    branches: [dev]
+  push:
+    branches: [dev]
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "scenes/**"
+      - "scripts/**"
+      - "data/**"
+      - "tools/pwa/**"
+      - "tools/ci/**"
+      - "tools/import_legacy_audio.py"
+      - ".github/workflows/godot-web-export.yml"
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: godot-web-export-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out game project
+        uses: actions/checkout@v7
+        with:
+          ref: dev
+
+      - name: Fetch verified Kenney Nature Kit models
+        run: python tools/ci/fetch_kenney_nature_assets.py
+
+      - name: Locate latest successful Hollowmere Ara character pack
+        id: ara-pack
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARA_RUN="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/hollowmere-npcs.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          if [ -z "$ARA_RUN" ]; then
+            echo "No successful Hollowmere Ara character generation run exists on dev." >&2
+            exit 1
+          fi
+          ARA_ARTIFACT="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$ARA_RUN/artifacts" --jq '.artifacts[] | select(.name == "hollowmere-npc-models" and .expired == false) | .id' | head -n 1)"
+          if [ -z "$ARA_ARTIFACT" ]; then
+            echo "The latest successful Hollowmere Ara run has no unexpired hollowmere-npc-models artifact." >&2
+            echo "Re-run the Build Hollowmere Ara characters workflow on dev." >&2
+            exit 1
+          fi
+          echo "run_id=$ARA_RUN" >> "$GITHUB_OUTPUT"
+
+      - name: Download generated Hollowmere Ara character models
+        uses: actions/download-artifact@v8
+        with:
+          name: hollowmere-npc-models
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.ara-pack.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: art/characters/hollowmere
+
+      - name: Locate the newest available Wren Workshop runtime package
+        id: workshop-assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=dev&per_page=10" --jq '.workflow_runs[].id')"
+          for run_id in $RUNS; do
+            artifact_name="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.expired == false) | select(.name | startswith("ara-runtime-assets-")) | .name' | head -n 1 || true)"
+            if [ -n "$artifact_name" ]; then
+              echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+              echo "artifact_name=$artifact_name" >> "$GITHUB_OUTPUT"
+              echo "found=true" >> "$GITHUB_OUTPUT"
+              echo "Using replaceable Workshop body package $artifact_name from run $run_id."
+              exit 0
+            fi
+          done
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          echo "No unexpired Workshop runtime package found; male preview will report its asset as unavailable."
+
+      - name: Download the latest Workshop body package
+        if: steps.workshop-assets.outputs.found == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ steps.workshop-assets.outputs.artifact_name }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.workshop-assets.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: /tmp/workshop-package
+
+      - name: Install replaceable Workshop body assets
+        if: steps.workshop-assets.outputs.found == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p art/characters/ara_runtime
+          unzip -q /tmp/workshop-package/ara-runtime-assets.zip -d art/characters/ara_runtime
+          if [ ! -s art/characters/ara_runtime/ara_person_male_body.glb ]; then
+            echo "::warning::Workshop package does not yet contain ara_person_male_body.glb."
+          fi
+
+      - name: Locate optional medieval weapon prop bundle
+        id: weapon-props
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ara-medieval-props.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          if [ -n "$RUN_ID" ]; then
+            NAME="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$RUN_ID/artifacts" --jq '.artifacts[] | select(.name | startswith("ara-medieval-props-")) | select(.expired == false) | .name' | head -n 1 || true)"
+            if [ -n "$NAME" ]; then
+              echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+              echo "artifact_name=$NAME" >> "$GITHUB_OUTPUT"
+              echo "found=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          echo "::warning::No successful weapon prop bundle; weapon meshes will be unavailable."
+
+      - name: Download medieval weapon props
+        if: steps.weapon-props.outputs.found == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ steps.weapon-props.outputs.artifact_name }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.weapon-props.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: art/characters/ara_runtime/props
+
+      - name: Locate optional medieval shield and helmet bundle
+        id: armour-props
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ara-medieval-armour-props.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          if [ -n "$RUN_ID" ]; then
+            NAME="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$RUN_ID/artifacts" --jq '.artifacts[] | select(.name | startswith("ara-medieval-armour-props-")) | select(.expired == false) | .name' | head -n 1 || true)"
+            if [ -n "$NAME" ]; then
+              echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+              echo "artifact_name=$NAME" >> "$GITHUB_OUTPUT"
+              echo "found=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          echo "::warning::No successful shield/helmet prop bundle; shield meshes will be unavailable."
+
+      - name: Download medieval shield and helmet props
+        if: steps.armour-props.outputs.found == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ steps.armour-props.outputs.artifact_name }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.armour-props.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: art/characters/ara_runtime/props
+
+      - name: Verify all 13 NPCs and the player avatar
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ci/validate_hollowmere_models.py
+
+      - name: Install FFmpeg for legacy audio import
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Import original music, dialogue and parry effects
+        run: python tools/import_legacy_audio.py
+
+      - name: Install Godot 4.7.2 and Web export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Import project and export browser build
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --version
+          godot --headless --editor --path . --quit
+          godot --headless --path . --script res://tools/ci/validate_hollowmere_models.gd
+          godot --headless --path . --script res://tests/test_ara_runtime_equipment.gd
+          mkdir -p dist/game
+          godot --headless --path . --export-release "Web" dist/game/index.html
+          test -s dist/game/index.html
+          find dist/game -maxdepth 1 -type f -name '*.wasm' -print -quit | grep -q .
+          find dist/game -maxdepth 1 -type f -name '*.pck' -print -quit | grep -q .
+          printf '%s\n' "${GITHUB_SHA}" > dist/game/build-version.txt
+          python tools/pwa/package_godot_pwa.py --directory dist/game --version "${GITHUB_SHA}"
+          python -m py_compile tools/pwa/package_godot_pwa.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("dist/game")
+          manifest = json.loads((root / "index.manifest.json").read_text())
+          assert manifest["start_url"] == "./index.html"
+          assert manifest["scope"] == "./"
+          assert manifest["display"] == "standalone"
+          assert manifest["name"] == "Silverhart Saga"
+          for name in ("index.service.worker.js", "index.apple-touch-icon.png", "index.144x144.png", "index.180x180.png", "index.512x512.png", "index.wasm", "index.pck", "build-version.txt"):
+              assert (root / name).is_file() and (root / name).stat().st_size > 0, name
+          for name in ("index.apple-touch-icon.png", "index.144x144.png", "index.180x180.png", "index.512x512.png"):
+              assert (root / name).read_bytes().startswith(b"\x89PNG\r\n\x1a\n"), name
+          worker = (root / "index.service.worker.js").read_text()
+          assert "ENSURE_CROSSORIGIN_ISOLATION_HEADERS" in worker
+          html = (root / "index.html").read_text()
+          assert 'rel="manifest"' in html and "index.service.worker.js" in html and "silverhart-update-now" in html
+          assert not (root / "service-worker.js").exists()
+          print("Godot native PWA package verified")
+          PY
+
+
+      - name: Save browser build artifact before deployment
+        uses: actions/upload-artifact@v7
+        with:
+          name: godot-web-export
+          path: dist/game/
+          if-no-files-found: error
+          retention-days: 90
+
+
+  deploy:
+    needs: export
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: combined-pages-deployment
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: https://scottenoc.github.io/Silverhart-Saga-3D/game/
+    steps:
+      - name: Check out dev site shell
+        uses: actions/checkout@v7
+        with:
+          ref: dev
+
+      - name: Download Godot browser build from this run
+        uses: actions/download-artifact@v8
+        with:
+          name: godot-web-export
+          path: /tmp/godot-game
+
+      - name: Locate latest available Wren Workshop site artifact
+        id: workshop-site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/wren-workshop.yml/runs?branch=dev&per_page=10" --jq '.workflow_runs[].id')"
+          for run_id in $RUNS; do
+            artifact_name="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name == "wren-workshop-site" and .expired == false) | .name' | head -n 1 || true)"
+            if [ -n "$artifact_name" ]; then
+              echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+              echo "found=true" >> "$GITHUB_OUTPUT"
+              echo "Using Wren Workshop site artifact from run $run_id."
+              exit 0
+            fi
+          done
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          echo "No successful Wren Workshop site artifact found; using checked-in site shell."
+
+      - name: Download latest Wren Workshop site
+        if: steps.workshop-site.outputs.found == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: wren-workshop-site
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.workshop-site.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: /tmp/wren-site
+
+      - name: Assemble and deploy combined Pages site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/pages
+          if [ "${{ steps.workshop-site.outputs.found }}" = "true" ]; then
+            cp -a /tmp/wren-site/. dist/pages/
+          else
+            cp -a site/. dist/pages/
+          fi
+          mkdir -p dist/pages/game
+          cp -a /tmp/godot-game/. dist/pages/game/
+          test -s dist/pages/index.html
+          test -s dist/pages/game/index.html
+          test -s dist/pages/game/index.wasm
+          test -s dist/pages/game/index.pck
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload combined Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist/pages
+
+      - name: Deploy combined Pages site
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+

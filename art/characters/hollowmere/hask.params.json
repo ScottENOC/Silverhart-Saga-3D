@@ -1,0 +1,55 @@
+{
+  "seed": 1397,
+  "gender": 1,
+  "age": 0.66,
+  "muscle": 0.76,
+  "weight": 0.78,
+  "height": 0.58,
+  "proportions": 0.62,
+  "african": 0.05,
+  "asian": 0.05,
+  "caucasian": 0.9,
+  "eyes": "brownlight",
+  "hair": "short03",
+  "hairTint": "#6e4d35",
+  "facialHair": "full_beard",
+  "beardColor": "#64462f",
+  "tattoos": [
+    "armband_l"
+  ],
+  "tattooInk": "#34251c",
+  "outfit": "none",
+  "top": "uniform_shirt",
+  "underTop": "none",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "fatigue_pants",
+  "underwear": false,
+  "shoes": "combat_boots",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [],
+  "garmentStyles": {
+    "uniform_shirt": {
+      "pattern": "solid",
+      "color": "#394b38",
+      "color2": "#242b22"
+    },
+    "fatigue_pants": {
+      "pattern": "solid",
+      "color": "#30322d",
+      "color2": "#30322d"
+    }
+  },
+  "detail": "medium",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#6e4d35",
+  "name": "Hask Greel"
+}

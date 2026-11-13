@@ -1,157 +1,137 @@
 extends Node3D
 
-const MAP_RANGE: int = 7
-const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
+const HOLLOWMERE_VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
+const HOLLOW_TANKARD_SCRIPT = preload("res://scripts/world/hollow_tankard.gd")
+const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_creator.gd")
 
-var simulation: WorldSimulation
-var player_visual: HexActorPresentation
-var camera_rig: OrbitCameraRig
-var tile_material: StandardMaterial3D
-
-var obstacle_hexes: Array[Vector2i] = [
-    Vector2i(2, 1),
-    Vector2i(-2, 2),
-    Vector2i(1, -3),
-]
+var village: Node3D
+var tavern: Node3D
+var loading_layer: CanvasLayer
+var loading_label: Label
+var loading_bar: ProgressBar
+var loading_detail: Label
 
 func _ready() -> void:
-    _create_lighting()
-    _create_simulation()
-    _create_terrain()
-    _create_player()
-    _create_camera()
-    _create_hud()
+    _create_loading_overlay()
+    loading_layer.visible = true
+    _set_loading_stage(
+        "Preparing the campaign…",
+        "Loading the character creator and its Ara model preview. This can take a little while on first launch.",
+        5.0
+    )
+    # Give Godot a frame to actually draw the loading screen before the
+    # character creator performs synchronous model/resource setup.
+    await get_tree().process_frame
 
-func _create_lighting() -> void:
-    var sun := DirectionalLight3D.new()
-    sun.rotation_degrees = Vector3(-52.0, -28.0, 0.0)
-    sun.light_energy = 1.15
-    add_child(sun)
+    _set_loading_stage(
+        "Loading character creation…",
+        "Preparing the character preview and appearance options.",
+        15.0
+    )
+    await get_tree().process_frame
 
-    var environment := WorldEnvironment.new()
-    var env := Environment.new()
-    env.background_mode = Environment.BG_COLOR
-    env.background_color = Color(0.48, 0.62, 0.69)
-    env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    env.ambient_light_color = Color(0.55, 0.60, 0.66)
-    env.ambient_light_energy = 0.55
-    environment.environment = env
-    add_child(environment)
+    var creator := CHARACTER_CREATOR_SCRIPT.new()
+    creator.name = "PlayerCharacterCreator"
+    creator.completed.connect(_on_character_created)
+    add_child(creator)
 
-func _create_simulation() -> void:
-    simulation = WorldSimulation.new()
-    simulation.name = "WorldSimulation"
-    add_child(simulation)
+    # The creator is now ready and visible on its own CanvasLayer.
+    loading_layer.visible = false
 
-    for q in range(-MAP_RANGE, MAP_RANGE + 1):
-        for r in range(-MAP_RANGE, MAP_RANGE + 1):
-            var hex := Vector2i(q, r)
-            var blocked: bool = obstacle_hexes.has(hex)
-            simulation.map_data.add_cell(hex, 0.0, not blocked, "grass")
+func _create_loading_overlay() -> void:
+    loading_layer = CanvasLayer.new()
+    loading_layer.name = "WorldLoadingOverlay"
+    loading_layer.layer = 200
+    loading_layer.visible = false
+    add_child(loading_layer)
 
-    var player_state := CharacterState.new("player", "Player", Vector2i.ZERO)
-    simulation.register_character(player_state)
-    simulation.character_moved.connect(_on_character_moved)
+    var backdrop := ColorRect.new()
+    backdrop.color = Color(0.035, 0.045, 0.06, 0.96)
+    backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    loading_layer.add_child(backdrop)
 
-func _create_terrain() -> void:
-    tile_material = StandardMaterial3D.new()
-    tile_material.albedo_color = Color(0.28, 0.38, 0.27)
-    tile_material.roughness = 1.0
+    var centre := CenterContainer.new()
+    centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    loading_layer.add_child(centre)
 
-    var blocked_material := StandardMaterial3D.new()
-    blocked_material.albedo_color = Color(0.30, 0.29, 0.25)
-    blocked_material.roughness = 1.0
+    var stack := VBoxContainer.new()
+    stack.custom_minimum_size = Vector2(420.0, 0.0)
+    stack.add_theme_constant_override("separation", 14)
+    centre.add_child(stack)
 
-    for q in range(-MAP_RANGE, MAP_RANGE + 1):
-        for r in range(-MAP_RANGE, MAP_RANGE + 1):
-            var hex := Vector2i(q, r)
-            var tile := MeshInstance3D.new()
-            var mesh := CylinderMesh.new()
-            mesh.top_radius = HEX_RADIUS
-            mesh.bottom_radius = HEX_RADIUS
-            mesh.height = 0.12
-            mesh.radial_segments = 6
-            mesh.rings = 1
-            tile.mesh = mesh
-            tile.position = HexGrid.axial_to_world(hex, HEX_RADIUS, -0.08)
-            tile.material_override = blocked_material if obstacle_hexes.has(hex) else tile_material
-            add_child(tile)
+    var heading := Label.new()
+    heading.text = "SILVERHART SAGA — MAIN CAMPAIGN"
+    heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    heading.add_theme_font_size_override("font_size", 22)
+    stack.add_child(heading)
 
-func _create_player() -> void:
-    player_visual = HexActorPresentation.new()
-    player_visual.name = "PlayerPresentation"
+    loading_label = Label.new()
+    loading_label.text = "Preparing your character…"
+    loading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    loading_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    stack.add_child(loading_label)
 
-    var body := MeshInstance3D.new()
-    var capsule := CapsuleMesh.new()
-    capsule.radius = 0.34
-    capsule.height = 1.8
-    body.mesh = capsule
-    body.position.y = 0.9
+    loading_bar = ProgressBar.new()
+    loading_bar.min_value = 0.0
+    loading_bar.max_value = 100.0
+    loading_bar.value = 0.0
+    loading_bar.show_percentage = false
+    loading_bar.custom_minimum_size = Vector2(420.0, 16.0)
+    stack.add_child(loading_bar)
 
-    var body_material := StandardMaterial3D.new()
-    body_material.albedo_color = Color(0.55, 0.24, 0.18)
-    body_material.roughness = 0.85
-    body.material_override = body_material
+    loading_detail = Label.new()
+    loading_detail.text = "Please wait…"
+    loading_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    loading_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    loading_detail.add_theme_font_size_override("font_size", 13)
+    loading_detail.add_theme_color_override("font_color", Color(0.72, 0.76, 0.79))
+    stack.add_child(loading_detail)
 
-    player_visual.add_child(body)
-    player_visual.position = HexGrid.axial_to_world(Vector2i.ZERO, HEX_RADIUS)
-    add_child(player_visual)
+func _set_loading_stage(message: String, detail: String, progress: float) -> void:
+    loading_label.text = message
+    loading_detail.text = detail
+    loading_bar.value = progress
 
-func _create_camera() -> void:
-    camera_rig = OrbitCameraRig.new()
-    camera_rig.name = "OrbitCameraRig"
+func _on_character_created(profile: Dictionary) -> void:
+    loading_layer.visible = true
 
-    var pitch_pivot := Node3D.new()
-    pitch_pivot.name = "PitchPivot"
-    camera_rig.add_child(pitch_pivot)
+    # Construct each large procedural scene only when needed. These are
+    # synchronous stages, so the displayed message identifies the operation
+    # currently occupying the main thread; the bar advances at stage boundaries.
+    _set_loading_stage(
+        "Generating Hollowmere village…",
+        "Creating terrain, roads, stream, buildings, bridge and surrounding forest.",
+        25.0
+    )
+    await get_tree().process_frame
+    village = HOLLOWMERE_VILLAGE_SCRIPT.new()
+    village.name = "HollowmereVillage"
+    add_child(village)
 
-    var camera := Camera3D.new()
-    camera.name = "Camera3D"
-    camera.current = true
-    camera.fov = 55.0
-    pitch_pivot.add_child(camera)
+    _set_loading_stage(
+        "Building the Hollow Tankard…",
+        "Creating the hex map, tavern interior, furniture, simulation and starting area.",
+        50.0
+    )
+    await get_tree().process_frame
+    tavern = HOLLOW_TANKARD_SCRIPT.new()
+    tavern.name = "HollowTankard"
+    tavern.set("player_profile", profile.duplicate(true))
+    add_child(tavern)
 
-    add_child(camera_rig)
-    camera_rig.follow_target = player_visual
+    _set_loading_stage(
+        "Loading villagers and character models…",
+        "Setting up NPCs, equipment, the player appearance and the opening scene.",
+        85.0
+    )
+    await get_tree().process_frame
+    if tavern.has_method("apply_player_profile"):
+        tavern.apply_player_profile(profile)
 
-func _create_hud() -> void:
-    var layer := CanvasLayer.new()
-    var label := Label.new()
-    label.position = Vector2(22, 18)
-    label.text = "HEX MOVEMENT PROTOTYPE   |   Q W E / A S D: move   |   Right-drag: orbit   |   Wheel: zoom"
-    label.add_theme_font_size_override("font_size", 18)
-    label.add_theme_color_override("font_color", Color(0.94, 0.93, 0.86))
-    layer.add_child(label)
-    add_child(layer)
-
-func _unhandled_input(event: InputEvent) -> void:
-    if event is InputEventKey and event.pressed and not event.echo:
-        var key_event := event as InputEventKey
-        var direction := Vector2i.ZERO
-        match key_event.keycode:
-            KEY_Q:
-                direction = Vector2i(-1, 0)
-            KEY_W:
-                direction = Vector2i(0, -1)
-            KEY_E:
-                direction = Vector2i(1, -1)
-            KEY_A:
-                direction = Vector2i(-1, 1)
-            KEY_S:
-                direction = Vector2i(0, 1)
-            KEY_D:
-                direction = Vector2i(1, 0)
-            _:
-                return
-        _attempt_debug_move(direction)
-
-func _attempt_debug_move(direction: Vector2i) -> void:
-    var state := simulation.get_character(simulation.player_character_id)
-    if state == null:
-        return
-    simulation.try_move_character(state.id, state.axial + direction)
-
-func _on_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
-    if character_id != simulation.player_character_id:
-        return
-    player_visual.present_move_to(HexGrid.axial_to_world(to_hex, HEX_RADIUS))
+    _set_loading_stage(
+        "Hollowmere is ready",
+        "Entering the Main Campaign…",
+        100.0
+    )
+    await get_tree().process_frame
+    loading_layer.visible = false

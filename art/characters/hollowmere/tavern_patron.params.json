@@ -1,0 +1,51 @@
+{
+  "seed": 1730,
+  "gender": 1,
+  "age": 0.58,
+  "muscle": 0.45,
+  "weight": 0.46,
+  "height": 0.5,
+  "proportions": 0.5,
+  "african": 0.05,
+  "asian": 0.9,
+  "caucasian": 0.05,
+  "eyes": "darkbrown",
+  "hair": "short02",
+  "hairTint": "#29201b",
+  "facialHair": "none",
+  "tattoos": [],
+  "outfit": "none",
+  "top": "tunic",
+  "underTop": "none",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "trousers",
+  "underwear": false,
+  "shoes": "sandals",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [],
+  "garmentStyles": {
+    "tunic": {
+      "pattern": "solid",
+      "color": "#6b5a46",
+      "color2": "#493a2b"
+    },
+    "trousers": {
+      "pattern": "solid",
+      "color": "#45403a",
+      "color2": "#45403a"
+    }
+  },
+  "detail": "low",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": false,
+  "faceShapes": false,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#29201b",
+  "name": "Bram Fenwick"
+}

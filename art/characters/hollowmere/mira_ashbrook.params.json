@@ -1,0 +1,53 @@
+{
+  "seed": 842,
+  "gender": 0,
+  "age": 0.46,
+  "muscle": 0.38,
+  "weight": 0.34,
+  "height": 0.44,
+  "proportions": 0.46,
+  "african": 0.05,
+  "asian": 0.05,
+  "caucasian": 0.9,
+  "eyes": "green",
+  "hair": "long01",
+  "hairTint": "#704b32",
+  "facialHair": "none",
+  "tattoos": [],
+  "outfit": "none",
+  "top": "tunic",
+  "underTop": "bra",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "wrapper_long",
+  "underwear": false,
+  "shoes": "sandals",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [
+    "bead_necklace"
+  ],
+  "garmentStyles": {
+    "tunic": {
+      "pattern": "solid",
+      "color": "#8b6843",
+      "color2": "#b18a59"
+    },
+    "wrapper_long": {
+      "pattern": "solid",
+      "color": "#4d5140",
+      "color2": "#4d5140"
+    }
+  },
+  "detail": "medium",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#704b32",
+  "name": "Mira Ashbrook"
+}

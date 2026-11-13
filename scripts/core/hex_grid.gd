@@ -5,6 +5,7 @@ extends RefCounted
 # against character size, doors, furniture and combat during M1.
 const DEFAULT_RADIUS_M: float = 1.25
 const SQRT_3: float = 1.7320508075688772
+const SIDE_COUNT: int = 6
 
 const DIRECTIONS: Array[Vector2i] = [
     Vector2i(1, 0),
@@ -19,6 +20,15 @@ static func axial_to_world(hex: Vector2i, radius: float = DEFAULT_RADIUS_M, elev
     var x: float = 1.5 * radius * float(hex.x)
     var z: float = SQRT_3 * radius * (float(hex.y) + float(hex.x) * 0.5)
     return Vector3(x, elevation, z)
+
+# The first corner lies on +X; successive corners advance 60 degrees in XZ.
+# This gives horizontal top/bottom edges and left/right points: flat-top.
+static func corner_offsets(radius: float = DEFAULT_RADIUS_M) -> PackedVector2Array:
+    var corners := PackedVector2Array()
+    for i in range(SIDE_COUNT):
+        var angle: float = deg_to_rad(60.0 * float(i))
+        corners.append(Vector2(cos(angle), sin(angle)) * radius)
+    return corners
 
 static func world_to_axial(position: Vector3, radius: float = DEFAULT_RADIUS_M) -> Vector2i:
     var qf: float = (2.0 / 3.0 * position.x) / radius

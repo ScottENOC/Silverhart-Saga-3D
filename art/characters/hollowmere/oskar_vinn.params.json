@@ -1,0 +1,54 @@
+{
+  "seed": 953,
+  "gender": 1,
+  "age": 0.6,
+  "muscle": 0.6,
+  "weight": 0.54,
+  "height": 0.63,
+  "proportions": 0.58,
+  "african": 0.05,
+  "asian": 0.05,
+  "caucasian": 0.9,
+  "eyes": "grey",
+  "hair": "short04",
+  "hairTint": "#49372a",
+  "facialHair": "stubble",
+  "beardColor": "#49372a",
+  "tattoos": [],
+  "outfit": "none",
+  "top": "long_tunic",
+  "underTop": "none",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "trousers",
+  "underwear": false,
+  "shoes": "sandals",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [
+    "belt"
+  ],
+  "garmentStyles": {
+    "long_tunic": {
+      "pattern": "solid",
+      "color": "#48525b",
+      "color2": "#9a8b69"
+    },
+    "trousers": {
+      "pattern": "solid",
+      "color": "#34383b",
+      "color2": "#34383b"
+    }
+  },
+  "detail": "medium",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#49372a",
+  "name": "Oskar Vinn"
+}

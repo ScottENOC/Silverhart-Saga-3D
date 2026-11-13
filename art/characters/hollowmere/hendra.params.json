@@ -1,0 +1,53 @@
+{
+  "seed": 1619,
+  "gender": 0,
+  "age": 0.72,
+  "muscle": 0.36,
+  "weight": 0.58,
+  "height": 0.46,
+  "proportions": 0.52,
+  "african": 0.05,
+  "asian": 0.05,
+  "caucasian": 0.9,
+  "eyes": "brownlight",
+  "hair": "box_braids",
+  "hairTint": "#554031",
+  "facialHair": "none",
+  "tattoos": [],
+  "outfit": "none",
+  "top": "long_tunic",
+  "underTop": "bra",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "wrapper_long",
+  "underwear": false,
+  "shoes": "sandals",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [
+    "amulets"
+  ],
+  "garmentStyles": {
+    "long_tunic": {
+      "pattern": "solid",
+      "color": "#7b6650",
+      "color2": "#4b3b2b"
+    },
+    "wrapper_long": {
+      "pattern": "solid",
+      "color": "#66513b",
+      "color2": "#66513b"
+    }
+  },
+  "detail": "medium",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#554031",
+  "name": "Hendra Wells"
+}

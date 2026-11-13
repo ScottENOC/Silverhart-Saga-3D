@@ -1,0 +1,57 @@
+{
+  "seed": 1175,
+  "gender": 1,
+  "age": 0.63,
+  "muscle": 0.88,
+  "weight": 0.48,
+  "height": 0.76,
+  "proportions": 0.72,
+  "african": 0.92,
+  "asian": 0.03,
+  "caucasian": 0.05,
+  "eyes": "darkbrown",
+  "hair": "buzz",
+  "hairTint": "#211a16",
+  "facialHair": "stubble",
+  "beardColor": "#211a16",
+  "tattoos": [
+    "forearm_l"
+  ],
+  "tattooInk": "#202020",
+  "outfit": "none",
+  "top": "uniform_shirt",
+  "underTop": "none",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "fatigue_pants",
+  "underwear": false,
+  "shoes": "combat_boots",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [
+    "arm_guards"
+  ],
+  "garmentStyles": {
+    "uniform_shirt": {
+      "pattern": "solid",
+      "color": "#394b38",
+      "color2": "#242b22"
+    },
+    "fatigue_pants": {
+      "pattern": "solid",
+      "color": "#30322d",
+      "color2": "#30322d"
+    }
+  },
+  "detail": "medium",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "determined",
+  "hairColor": "#211a16",
+  "name": "Dray Coltayne"
+}

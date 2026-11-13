@@ -46,7 +46,7 @@ Buildings share the world grid. A building's rendered architecture is separate f
 
 ## 4. Movement and combat
 
-Logical occupancy and legal movement remain simulation-owned. The presentation layer interpolates between accepted positions.
+Logical occupancy, legal movement, terrain costs and weighted A* route planning remain simulation-owned. The presentation layer requests a destination, previews the returned hex route and interpolates between accepted one-hex steps. Keyboard movement is a single adjacent step; mouse movement follows a cached route and replans if a step becomes blocked. Both inputs use the same TP-cost resolver.
 
 The eventual combat system preserves the source game's real-time world simulation and action/time-point economy, including movement and attack costs, reactions, interruptions, AI decisions and status effects. Do not replace it with conventional turn-based combat or free physics movement as the authority.
 
@@ -66,6 +66,15 @@ The Hollow Tankard opening should be event-driven, not copied as a chain of arbi
 - Build the Hollow Tankard as a real rectangular building first, then fit the logical grid to it.
 - Do not build the entire village before the tavern vertical slice is playable.
 
-## 7. Current prototype boundary
+## 7. Simulation port: first increment
 
-The current M1 prototype is only a technical test of axial conversion, movement validation, smooth actor presentation and a player-controlled orbit camera. It does not yet implement the original game's action points, combat, dialogue, campaign or persistence services.
+The first simulation increment is deliberately independent of the 3D scene:
+
+- `ActionEconomy` owns the 100 TP combat-readiness threshold, 80 TP turn-end threshold, Quick Recovery adjustment and 150 TP regeneration gate.
+- `CharacterState` stores TP, TP regeneration rate, health, axial position and stable identity, with dictionary serialisation.
+- `WorldClock` advances in fixed 0.4-second world-time steps. Exploration advances at 5 world-seconds per real second; combat waiting advances at 40, reflecting the source engine's different cadence. Time and TP progression pause while a combatant is taking a turn.
+- The calendar uses twelve 30-day months, preserving the source month names.
+- `CombatTurnScheduler` selects the eligible living, conscious, non-rider, non-dormant character with the highest TP; equal-TP ties are random.
+- `MovementRules` resolves base step cost, terrain multipliers and the first movement-skill discounts. `HexPathfinder` uses weighted A* over walkable, unoccupied cells; route costs and executed step costs share the same resolver.\n- `WorldSimulation` owns the clock, scheduler, occupancy, path queries and paid movement commands. It emits events for presentation to observe.\n- Hollow Tankard controls now use paid movement: Q/W/E/A/S/D move one adjacent hex relative to facing; left-click chooses a destination and follows a highlighted route one hex at a time. Camera orbit and zoom remain separate.
+
+This is a foundation slice, not the completed port. The elevation model is being reworked for 3D rather than copying the browser game's discrete elevation penalties: cell centres hold gameplay height, shared world-space vertex samples define a continuous rendered surface, and slope grade drives movement access/cost. Gentle and steep slopes are walkable with increasing cost; climbable faces require climbing skill; cliffs require expert climbing. The first visual prototype is a separate scene under `scenes/prototypes/terrain_elevation_prototype.tscn`. This remains a vertical slice: collision/physics, edge-specific ledges, falls, line-of-sight occlusion, roads, fences, cover fire, encumbrance, hamstring, friendly-occupant squeezing, reactions, mounts and AI pathing remain outstanding, as do the full status-effect tick, spell durations, combat actions, active-radius simulation culling, NPC schedules, world events and a versioned whole-world save service. Tests are authored but have not yet been run in Godot.

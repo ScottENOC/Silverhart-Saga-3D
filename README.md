@@ -7,9 +7,10 @@ A standalone Godot 4 project exploring a 3D implementation of the existing Silve
 **Milestone:** M1 prototype foundation  
 **Engine baseline:** Godot 4.7.2 stable (GDScript, Forward+)  
 **Target:** Windows PC first  
-**Prototype:** generated hex test field, six-direction logical movement, smooth 3D presentation, player-controlled orbit camera.
+**Prototype:** Hollow Tankard 3D scene, six-direction hex movement, weighted mouse-click pathfinding, route preview, smooth actor movement and player-controlled orbit camera.  
+**Simulation port in progress:** character Time Points, fixed-step world clock, Silverhart calendar, terrain-aware movement costs and combat initiative scheduler.
 
-This is a deliberately small technical prototype. It is not yet a port of the original combat, character progression, dialogue, campaign or persistence systems. Debug movement does not yet spend original-game time points or action points.
+The playable controls now use TP-costed movement. Keyboard input moves one adjacent hex; clicking a destination plans a weighted A* route and follows it one hex at a time. The free movement method remains available only as a debug/test API. The first movement pass includes terrain multipliers and the basic Fast Movement, Swift Step and foliage-expertise discounts. Elevation is being redesigned for 3D: gameplay uses centre heights and shared vertex samples to build a continuous terrain surface, while slope grades determine movement costs and climbing requirements. Open `scenes/prototypes/terrain_elevation_prototype.tscn` and run it as the current scene (F6) to inspect the valley, slope and ridge/escarpment blockout. The prototype is deliberately separate from the tavern scene while the terrain representation is validated.
 
 ## Open the project
 

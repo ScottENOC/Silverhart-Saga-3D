@@ -1,0 +1,949 @@
+{
+  "schema_version": 1,
+  "generator": "Ara 3D Gen",
+  "generator_commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395",
+  "characters": [
+    {
+      "id": "wren_talbot",
+      "game_id": "companion_wren_talbot",
+      "name": "Wren Talbot",
+      "role": "companion",
+      "dialogue_id": "",
+      "hex": [
+        -2,
+        1
+      ],
+      "detail": "high",
+      "model": "wren_talbot.glb",
+      "params": {
+        "seed": 218,
+        "gender": 0,
+        "age": 0.5,
+        "muscle": 0.62,
+        "weight": 0.42,
+        "height": 0.55,
+        "proportions": 0.58,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "brownlight",
+        "hair": "braid01",
+        "hairTint": "#252b62",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "fatigue_shirt",
+        "underTop": "bra",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "fatigue_pants",
+        "underwear": false,
+        "shoes": "combat_boots",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "garmentStyles": {
+          "fatigue_shirt": {
+            "pattern": "solid",
+            "color": "#244b2b",
+            "color2": "#a64c50"
+          },
+          "bra": {
+            "pattern": "solid",
+            "color": "#55452d",
+            "color2": "#d0c3a2"
+          },
+          "briefs": {
+            "pattern": "solid",
+            "color": "#55452d",
+            "color2": "#d0c3a2"
+          },
+          "fatigue_pants": {
+            "pattern": "solid",
+            "color": "#29292d",
+            "color2": "#29292d"
+          }
+        },
+        "detail": "high",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#252b62",
+        "name": "Wren Talbot"
+      }
+    },
+    {
+      "id": "garrick_holt",
+      "game_id": "garrick_holt",
+      "name": "Garrick Holt",
+      "role": "tavern keeper",
+      "dialogue_id": "garrick_holt",
+      "hex": [
+        -3,
+        -2
+      ],
+      "detail": "medium",
+      "model": "garrick_holt.glb",
+      "params": {
+        "seed": 731,
+        "gender": 1,
+        "age": 0.7,
+        "muscle": 0.58,
+        "weight": 0.7,
+        "height": 0.52,
+        "proportions": 0.62,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "brown",
+        "hair": "short02",
+        "hairTint": "#776e61",
+        "facialHair": "short_beard",
+        "beardColor": "#665b50",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "long_tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [
+          "belt"
+        ],
+        "garmentStyles": {
+          "long_tunic": {
+            "pattern": "solid",
+            "color": "#66513b",
+            "color2": "#3b3027"
+          },
+          "trousers": {
+            "pattern": "solid",
+            "color": "#39332e",
+            "color2": "#39332e"
+          }
+        },
+        "detail": "medium",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#776e61",
+        "name": "Garrick Holt"
+      }
+    },
+    {
+      "id": "mira_ashbrook",
+      "game_id": "mira_ashbrook",
+      "name": "Mira Ashbrook",
+      "role": "villager",
+      "dialogue_id": "mira_ashbrook",
+      "hex": [
+        2,
+        -2
+      ],
+      "detail": "medium",
+      "model": "mira_ashbrook.glb",
+      "params": {
+        "seed": 842,
+        "gender": 0,
+        "age": 0.46,
+        "muscle": 0.38,
+        "weight": 0.34,
+        "height": 0.44,
+        "proportions": 0.46,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "green",
+        "hair": "long01",
+        "hairTint": "#704b32",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "tunic",
+        "underTop": "bra",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "wrapper_long",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [
+          "bead_necklace"
+        ],
+        "garmentStyles": {
+          "tunic": {
+            "pattern": "solid",
+            "color": "#8b6843",
+            "color2": "#b18a59"
+          },
+          "wrapper_long": {
+            "pattern": "solid",
+            "color": "#4d5140",
+            "color2": "#4d5140"
+          }
+        },
+        "detail": "medium",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#704b32",
+        "name": "Mira Ashbrook"
+      }
+    },
+    {
+      "id": "oskar_vinn",
+      "game_id": "oskar_vinn",
+      "name": "Oskar Vinn",
+      "role": "villager",
+      "dialogue_id": "oskar_vinn",
+      "hex": [
+        3,
+        -2
+      ],
+      "detail": "medium",
+      "model": "oskar_vinn.glb",
+      "params": {
+        "seed": 953,
+        "gender": 1,
+        "age": 0.6,
+        "muscle": 0.6,
+        "weight": 0.54,
+        "height": 0.63,
+        "proportions": 0.58,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "grey",
+        "hair": "short04",
+        "hairTint": "#49372a",
+        "facialHair": "stubble",
+        "beardColor": "#49372a",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "long_tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [
+          "belt"
+        ],
+        "garmentStyles": {
+          "long_tunic": {
+            "pattern": "solid",
+            "color": "#48525b",
+            "color2": "#9a8b69"
+          },
+          "trousers": {
+            "pattern": "solid",
+            "color": "#34383b",
+            "color2": "#34383b"
+          }
+        },
+        "detail": "medium",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#49372a",
+        "name": "Oskar Vinn"
+      }
+    },
+    {
+      "id": "wick_hallow",
+      "game_id": "wick_hallow",
+      "name": "Wick Hallow",
+      "role": "general store keeper",
+      "dialogue_id": "wick_hallow",
+      "hex": [
+        0,
+        15
+      ],
+      "detail": "medium",
+      "model": "wick_hallow.glb",
+      "params": {
+        "seed": 1064,
+        "gender": 1,
+        "age": 0.88,
+        "muscle": 0.3,
+        "weight": 0.48,
+        "height": 0.43,
+        "proportions": 0.44,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "blue",
+        "hair": "buzz",
+        "hairTint": "#aaa49a",
+        "facialHair": "full_beard",
+        "beardColor": "#898176",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "long_tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "garmentStyles": {
+          "long_tunic": {
+            "pattern": "solid",
+            "color": "#766d59",
+            "color2": "#514b40"
+          },
+          "trousers": {
+            "pattern": "solid",
+            "color": "#484238",
+            "color2": "#484238"
+          }
+        },
+        "detail": "medium",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#aaa49a",
+        "name": "Wick Hallow"
+      }
+    },
+    {
+      "id": "dray",
+      "game_id": "dray_coltayne",
+      "name": "Dray Coltayne",
+      "role": "ironbond soldier",
+      "dialogue_id": "dray_coltayne",
+      "hex": [
+        -1,
+        6
+      ],
+      "detail": "medium",
+      "model": "dray.glb",
+      "params": {
+        "seed": 1175,
+        "gender": 1,
+        "age": 0.63,
+        "muscle": 0.88,
+        "weight": 0.48,
+        "height": 0.76,
+        "proportions": 0.72,
+        "african": 0.92,
+        "asian": 0.03,
+        "caucasian": 0.05,
+        "eyes": "darkbrown",
+        "hair": "buzz",
+        "hairTint": "#211a16",
+        "facialHair": "stubble",
+        "beardColor": "#211a16",
+        "tattoos": [
+          "forearm_l"
+        ],
+        "tattooInk": "#202020",
+        "outfit": "none",
+        "top": "uniform_shirt",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "fatigue_pants",
+        "underwear": false,
+        "shoes": "combat_boots",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [
+          "arm_guards"
+        ],
+        "garmentStyles": {
+          "uniform_shirt": {
+            "pattern": "solid",
+            "color": "#394b38",
+            "color2": "#242b22"
+          },
+          "fatigue_pants": {
+            "pattern": "solid",
+            "color": "#30322d",
+            "color2": "#30322d"
+          }
+        },
+        "detail": "medium",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "determined",
+        "hairColor": "#211a16",
+        "name": "Dray Coltayne"
+      }
+    },
+    {
+      "id": "tomlin",
+      "game_id": "tomlin_brask",
+      "name": "Tomlin Brask",
+      "role": "ironbond soldier",
+      "dialogue_id": "tomlin_brask",
+      "hex": [
+        0,
+        6
+      ],
+      "detail": "medium",
+      "model": "tomlin.glb",
+      "params": {
+        "seed": 1286,
+        "gender": 1,
+        "age": 0.52,
+        "muscle": 0.64,
+        "weight": 0.44,
+        "height": 0.62,
+        "proportions": 0.56,
+        "african": 0.05,
+        "asian": 0.9,
+        "caucasian": 0.05,
+        "eyes": "darkbrown",
+        "hair": "cornrows",
+        "hairTint": "#171313",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "uniform_shirt",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "fatigue_pants",
+        "underwear": false,
+        "shoes": "combat_boots",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [
+          "utility_belt"
+        ],
+        "garmentStyles": {
+          "uniform_shirt": {
+            "pattern": "solid",
+            "color": "#394b38",
+            "color2": "#242b22"
+          },
+          "fatigue_pants": {
+            "pattern": "solid",
+            "color": "#30322d",
+            "color2": "#30322d"
+          }
+        },
+        "detail": "medium",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#171313",
+        "name": "Tomlin Brask"
+      }
+    },
+    {
+      "id": "hask",
+      "game_id": "hask_greel",
+      "name": "Hask Greel",
+      "role": "ironbond soldier",
+      "dialogue_id": "hask_greel",
+      "hex": [
+        1,
+        6
+      ],
+      "detail": "medium",
+      "model": "hask.glb",
+      "params": {
+        "seed": 1397,
+        "gender": 1,
+        "age": 0.66,
+        "muscle": 0.76,
+        "weight": 0.78,
+        "height": 0.58,
+        "proportions": 0.62,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "brownlight",
+        "hair": "short03",
+        "hairTint": "#6e4d35",
+        "facialHair": "full_beard",
+        "beardColor": "#64462f",
+        "tattoos": [
+          "armband_l"
+        ],
+        "tattooInk": "#34251c",
+        "outfit": "none",
+        "top": "uniform_shirt",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "fatigue_pants",
+        "underwear": false,
+        "shoes": "combat_boots",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "garmentStyles": {
+          "uniform_shirt": {
+            "pattern": "solid",
+            "color": "#394b38",
+            "color2": "#242b22"
+          },
+          "fatigue_pants": {
+            "pattern": "solid",
+            "color": "#30322d",
+            "color2": "#30322d"
+          }
+        },
+        "detail": "medium",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#6e4d35",
+        "name": "Hask Greel"
+      }
+    },
+    {
+      "id": "yvette",
+      "game_id": "yvette_marlow",
+      "name": "Yvette Marlow",
+      "role": "villager",
+      "dialogue_id": "yvette_marlow",
+      "hex": [
+        -2,
+        2
+      ],
+      "detail": "medium",
+      "model": "yvette.glb",
+      "params": {
+        "seed": 1508,
+        "gender": 0,
+        "age": 0.56,
+        "muscle": 0.4,
+        "weight": 0.4,
+        "height": 0.52,
+        "proportions": 0.48,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "bluegreen",
+        "hair": "bob02",
+        "hairTint": "#4d3425",
+        "facialHair": "none",
+        "tattoos": [
+          "armband_l"
+        ],
+        "tattooInk": "#6b5140",
+        "outfit": "none",
+        "top": "tunic",
+        "underTop": "bra",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "wrapper_knee",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [
+          "bead_necklace"
+        ],
+        "garmentStyles": {
+          "tunic": {
+            "pattern": "solid",
+            "color": "#6b4c3a",
+            "color2": "#b18a59"
+          },
+          "wrapper_knee": {
+            "pattern": "solid",
+            "color": "#3d4d55",
+            "color2": "#3d4d55"
+          }
+        },
+        "detail": "medium",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#4d3425",
+        "name": "Yvette Marlow"
+      }
+    },
+    {
+      "id": "hendra",
+      "game_id": "hendra_wells",
+      "name": "Hendra Wells",
+      "role": "villager",
+      "dialogue_id": "hendra_wells",
+      "hex": [
+        -3,
+        2
+      ],
+      "detail": "medium",
+      "model": "hendra.glb",
+      "params": {
+        "seed": 1619,
+        "gender": 0,
+        "age": 0.72,
+        "muscle": 0.36,
+        "weight": 0.58,
+        "height": 0.46,
+        "proportions": 0.52,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "brownlight",
+        "hair": "box_braids",
+        "hairTint": "#554031",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "long_tunic",
+        "underTop": "bra",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "wrapper_long",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [
+          "amulets"
+        ],
+        "garmentStyles": {
+          "long_tunic": {
+            "pattern": "solid",
+            "color": "#7b6650",
+            "color2": "#4b3b2b"
+          },
+          "wrapper_long": {
+            "pattern": "solid",
+            "color": "#66513b",
+            "color2": "#66513b"
+          }
+        },
+        "detail": "medium",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#554031",
+        "name": "Hendra Wells"
+      }
+    },
+    {
+      "id": "tavern_patron",
+      "game_id": "tavern_patron",
+      "name": "Bram Fenwick",
+      "role": "background patron",
+      "dialogue_id": "",
+      "hex": [
+        3,
+        -2
+      ],
+      "detail": "low",
+      "model": "tavern_patron.glb",
+      "params": {
+        "seed": 1730,
+        "gender": 1,
+        "age": 0.58,
+        "muscle": 0.45,
+        "weight": 0.46,
+        "height": 0.5,
+        "proportions": 0.5,
+        "african": 0.05,
+        "asian": 0.9,
+        "caucasian": 0.05,
+        "eyes": "darkbrown",
+        "hair": "short02",
+        "hairTint": "#29201b",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "garmentStyles": {
+          "tunic": {
+            "pattern": "solid",
+            "color": "#6b5a46",
+            "color2": "#493a2b"
+          },
+          "trousers": {
+            "pattern": "solid",
+            "color": "#45403a",
+            "color2": "#45403a"
+          }
+        },
+        "detail": "low",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": false,
+        "faceShapes": false,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#29201b",
+        "name": "Bram Fenwick"
+      }
+    },
+    {
+      "id": "elder_marta",
+      "game_id": "marta_wynfield",
+      "name": "Elder Marta Wynfield",
+      "role": "village elder",
+      "dialogue_id": "marta_wynfield",
+      "hex": [
+        0,
+        -9
+      ],
+      "detail": "medium",
+      "model": "elder_marta.glb",
+      "params": {
+        "seed": 1841,
+        "gender": 0,
+        "age": 0.9,
+        "muscle": 0.28,
+        "weight": 0.48,
+        "height": 0.42,
+        "proportions": 0.46,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "grey",
+        "hair": "long01",
+        "hairTint": "#c1b9a8",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "long_tunic",
+        "underTop": "bra",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "wrapper_long",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [
+          "bead_necklace"
+        ],
+        "garmentStyles": {
+          "long_tunic": {
+            "pattern": "solid",
+            "color": "#776f5b",
+            "color2": "#c0ad82"
+          },
+          "wrapper_long": {
+            "pattern": "solid",
+            "color": "#554d40",
+            "color2": "#554d40"
+          }
+        },
+        "detail": "medium",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#c1b9a8",
+        "name": "Elder Marta Wynfield"
+      }
+    },
+    {
+      "id": "rowan_fletcher",
+      "game_id": "rowan_fletcher",
+      "name": "Rowan Fletcher",
+      "role": "wandering hunter",
+      "dialogue_id": "hollowmere_hunter",
+      "hex": [
+        12,
+        26
+      ],
+      "detail": "medium",
+      "model": "rowan_fletcher.glb",
+      "params": {
+        "seed": 1952,
+        "gender": 1,
+        "age": 0.58,
+        "muscle": 0.7,
+        "weight": 0.48,
+        "height": 0.68,
+        "proportions": 0.62,
+        "african": 0.05,
+        "asian": 0.05,
+        "caucasian": 0.9,
+        "eyes": "green",
+        "hair": "short03",
+        "hairTint": "#3c2d22",
+        "facialHair": "short_beard",
+        "beardColor": "#3c2d22",
+        "tattoos": [
+          "forearm_l"
+        ],
+        "tattooInk": "#4b3a2c",
+        "outfit": "none",
+        "top": "tattered_shirt",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "combat_boots",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [
+          "crossed_straps"
+        ],
+        "garmentStyles": {
+          "tattered_shirt": {
+            "pattern": "tattered",
+            "color": "#6b604b",
+            "color2": "#4b4032"
+          },
+          "trousers": {
+            "pattern": "solid",
+            "color": "#3b3328",
+            "color2": "#3b3328"
+          }
+        },
+        "detail": "medium",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#3c2d22",
+        "name": "Rowan Fletcher"
+      }
+    },
+    {
+      "id": "player_avatar",
+      "game_id": "player",
+      "name": "Player Character",
+      "role": "player avatar",
+      "dialogue_id": "",
+      "hex": [
+        -1,
+        2
+      ],
+      "detail": "high",
+      "model": "player_avatar.glb",
+      "params": {
+        "seed": 2468,
+        "gender": 0,
+        "age": 0.5,
+        "muscle": 0.5,
+        "weight": 0.5,
+        "height": 0.5,
+        "proportions": 0.5,
+        "african": 0.34,
+        "asian": 0.33,
+        "caucasian": 0.33,
+        "eyes": "brown",
+        "hair": "short02",
+        "hairTint": "#49372a",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "long_tunic",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "trousers",
+        "underwear": false,
+        "shoes": "sandals",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "garmentStyles": {
+          "long_tunic": {
+            "pattern": "solid",
+            "color": "#58634b",
+            "color2": "#a18b62"
+          },
+          "trousers": {
+            "pattern": "solid",
+            "color": "#393b3a",
+            "color2": "#393b3a"
+          }
+        },
+        "detail": "high",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "hairColor": "#49372a",
+        "name": "Player Character"
+      }
+    }
+  ]
+}

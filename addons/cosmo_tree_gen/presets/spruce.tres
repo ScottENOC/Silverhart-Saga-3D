@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="CosmoTreePreset" format=3 uid="uid://bsdok0v1dthfm"]
+
+[ext_resource type="Script" uid="uid://ceh6ii6tlpph4" path="res://addons/cosmo_tree_gen/resources/branch_level.gd" id="1_rth1g"]
+[ext_resource type="Material" uid="uid://bhtq0iyc1n5ch" path="res://demo/materials/leaves_06.tres" id="2_e5fhi"]
+[ext_resource type="Script" uid="uid://1tt4by0vsl04" path="res://addons/cosmo_tree_gen/resources/foliage_params.gd" id="3_fo1rj"]
+[ext_resource type="Script" uid="uid://dlp11kr4f76j3" path="res://addons/cosmo_tree_gen/resources/preset.gd" id="4_odxqs"]
+[ext_resource type="Material" uid="uid://b7l8vw0qq0s25" path="res://addons/cosmo_tree_gen/materials/bark.tres" id="5_uhc02"]
+[ext_resource type="Script" uid="uid://c0ggn4wsaa746" path="res://addons/cosmo_tree_gen/resources/trunk_params.gd" id="6_0w06b"]
+
+[sub_resource type="Curve" id="Curve_fy1p0"]
+_data = [Vector2(0, 0.88026786), 0.0, -0.14157727, 0, 0, Vector2(1, 0), -0.55938643, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Resource" id="Resource_xam2y"]
+script = ExtResource("1_rth1g")
+count = 60
+start = 0.156
+end = 0.97
+angle = 88.0
+length = 0.429
+length_curve = SubResource("Curve_fy1p0")
+gnarl = 0.1
+up_force = -0.6
+metadata/_custom_type_script = "uid://ceh6ii6tlpph4"
+
+[sub_resource type="Curve" id="Curve_x31ta"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.938999, 0.60456264), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Resource" id="Resource_fla3q"]
+script = ExtResource("3_fo1rj")
+type = 2
+leaf_count = 11
+leaf_tip = true
+leaf_size = 1.0
+leaf_size_curve = SubResource("Curve_x31ta")
+leaf_length_influence = 0.33
+leaf_size_variance = 0.2
+leaf_start = 0.05
+leaf_angle = 25.0
+leaf_canopy_normals = 0.5
+leaf_inner_ao = 0.5
+metadata/_custom_type_script = "uid://1tt4by0vsl04"
+
+[sub_resource type="Resource" id="Resource_jv588"]
+script = ExtResource("6_0w06b")
+quality = 2
+height = 8.0
+radius_bottom = 0.25
+radius_top = 0.01
+lean = 0.05
+wobble = 0.05
+metadata/_custom_type_script = "uid://c0ggn4wsaa746"
+
+[resource]
+script = ExtResource("4_odxqs")
+trunk_params = SubResource("Resource_jv588")
+branch_levels = Array[ExtResource("1_rth1g")]([SubResource("Resource_xam2y")])
+foliage_params = SubResource("Resource_fla3q")
+trunk_material = ExtResource("5_uhc02")
+foliage_material = ExtResource("2_e5fhi")

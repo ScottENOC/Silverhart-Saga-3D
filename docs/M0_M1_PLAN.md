@@ -41,12 +41,16 @@
 - No obvious visual snapping between adjacent cells.
 - The same logical map can be tested headlessly.
 
-## M1 decision gate
+## M1 decision gate — updated
 
-Do not build the tavern kit until these questions are answered by a running prototype:
-- Does 1.25m hex radius produce believable human scale?
-- Can a character pass through a realistic doorway?
-- Can two characters pass or fight in a modest room?
-- Does hex-constrained movement look natural enough?
-- Is the camera comfortable at both exploration and tactical distances?
-- Can physical props obstruct movement without creating disagreement with logical occupancy?
+The user has confirmed that six-direction movement and the player-controlled orbit camera feel good. The temporary outdoor field has served its purpose.
+
+The Hollow Tankard blockout is now the scale-validation environment. Assess the provisional 1.25m hex radius against human placeholders, the 1.6m entrance, furniture clearance, room proportions and the camera while moving around the actual building. Adjust the building and grid together if the proportions do not work; do not treat the provisional dimensions as immutable.
+
+Before advancing from blockout to detailed assets and the scripted opening, verify:
+- A character can enter and move through the doorway naturally.
+- Furniture footprints correspond to visible obstructions.
+- The central aisle and routes between tables are usable.
+- Multiple characters can occupy the room without awkward crowding.
+- The camera remains comfortable inside and just outside the building.
+- Visual and logical movement do not disagree.

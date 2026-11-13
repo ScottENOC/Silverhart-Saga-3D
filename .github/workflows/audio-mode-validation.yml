@@ -1,0 +1,64 @@
+name: Audio and game-mode validation
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - "project.godot"
+      - "scenes/main_menu.tscn"
+      - "scenes/arena/**"
+      - "scripts/audio/**"
+      - "scripts/ui/main_menu.gd"
+      - "scripts/ui/arena_placeholder.gd"
+      - "tools/import_legacy_audio.py"
+      - "docs/AUDIO_MIGRATION.md"
+      - ".github/workflows/audio-mode-validation.yml"
+  push:
+    branches: [dev]
+    paths:
+      - "project.godot"
+      - "scenes/main_menu.tscn"
+      - "scenes/arena/**"
+      - "scripts/audio/**"
+      - "scripts/ui/main_menu.gd"
+      - "scripts/ui/arena_placeholder.gd"
+      - "tools/import_legacy_audio.py"
+      - "docs/AUDIO_MIGRATION.md"
+      - ".github/workflows/audio-mode-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audio-mode-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Compile audio importer
+        run: python -m py_compile tools/import_legacy_audio.py
+      - name: Import original audio assets
+        run: python tools/import_legacy_audio.py
+      - name: Import Godot project
+        run: godot --headless --editor --path . --quit
+      - name: Smoke-test mode selector and Campaign startup
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --audio-driver Dummy --path . --quit-after 5 2>&1 | tee /tmp/audio-mode.log
+          if grep -Eq 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to instantiate|Parse Error' /tmp/audio-mode.log; then
+            cat /tmp/audio-mode.log
+            exit 1
+          fi

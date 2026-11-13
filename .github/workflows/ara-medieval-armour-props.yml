@@ -1,0 +1,49 @@
+name: Build Ara Medieval Armour Props
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths:
+      - "tools/ara/patch_medieval_weapons.py"
+      - "tools/ara/build_medieval_armor_props.py"
+      - ".github/workflows/ara-medieval-props.yml"
+      - ".github/workflows/ara-medieval-armour-props.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+      - name: Generate standalone shield and helmet GLBs
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python tools/ara/build_medieval_armor_props.py -- --output art/characters/ara_runtime/props
+          test "$(find art/characters/ara_runtime/props -name '*.glb' | wc -l)" -eq 7
+      - name: Import and smoke-test in Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Validate prop imports
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --quit
+          godot --headless --path . --script res://tests/test_ara_armour_assets.gd
+      - name: Upload blockout props
+        uses: actions/upload-artifact@v7
+        with:
+          name: ara-medieval-armour-props-${{ github.sha }}
+          path: art/characters/ara_runtime/props/
+          if-no-files-found: error
+          retention-days: 90

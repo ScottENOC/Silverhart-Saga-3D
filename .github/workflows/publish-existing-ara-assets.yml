@@ -1,0 +1,315 @@
+name: Publish Existing Ara Assets
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/publish-existing-ara-assets.yml"
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Completed Build Wren Workshop run containing the generated Ara artifacts"
+        required: true
+        type: string
+        default: "42537648604"
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: publish-existing-ara-assets
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: github-pages
+      url: https://scottenoc.github.io/Silverhart-Saga-3D/
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download existing raw Ara exports
+        uses: actions/download-artifact@v8
+        with:
+          name: ara-generated-models
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.source_run_id || '42537648604' }}
+          github-token: ${{ github.token }}
+          path: /tmp/ara-generated
+
+      - name: Download existing anatomy-integrated female and male bodies
+        shell: bash
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id || '42537648604' }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p art/characters/ara
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name processed-ara_person_body --dir /tmp/processed-female
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name processed-ara-male-body --dir /tmp/processed-male
+          test -s /tmp/processed-female/ara_person_body.glb
+          test -s /tmp/processed-male/ara_person_male_body.glb
+          cp /tmp/processed-female/ara_person_body.glb art/characters/ara/
+          cp /tmp/processed-male/ara_person_male_body.glb art/characters/ara/
+          if [ -d /tmp/processed-female/review ]; then
+            mkdir -p art/characters/ara/review
+            cp -a /tmp/processed-female/review/. art/characters/ara/review/
+          fi
+          if [ -d /tmp/processed-male/review ]; then
+            mkdir -p art/characters/ara/review
+            cp -a /tmp/processed-male/review/. art/characters/ara/review/
+          fi
+          cp /tmp/ara-generated/*.params.json art/characters/ara/
+          cp /tmp/ara-generated/ara_person_benchmark.glb art/characters/ara/
+          cp /tmp/ara-generated/ara_person_mobile.glb art/characters/ara/
+          for asset in ara_person_backless_slit_dress ara_person_halter_bra_lace ara_person_halter_bra_fishnet ara_person_tank_top ara_person_triangle_bikini_top ara_person_string_bikini_bottom ara_person_lace_briefs ara_person_fishnet_briefs ara_person_lace_shirt ara_person_fishnet_shirt ara_person_lace_pants ara_person_fishnet_pants; do
+            test -s "/tmp/ara-generated/$asset.glb"
+          done
+
+      - name: Assemble independently selectable equipment models
+        run: |
+          set -euo pipefail
+          python tools/ara/assemble_modular_glb.py \
+            art/characters/ara/ara_person_body.glb art/characters/ara/ara_person_modular.glb \
+            /tmp/ara-generated/ara_person_benchmark.glb "Fatigue pants#1" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Fatigue pants#2" \
+            /tmp/ara-generated/ara_person_backless_slit_dress.glb "Backless slit dress" \
+            /tmp/ara-generated/ara_person_backless_slit_dress.glb "Pencil skirt" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Shoes" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Boot shafts" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra piping" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra straps" \
+            /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra straps" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Briefs" \
+            /tmp/ara-generated/ara_person_tank_top.glb "Tank top" \
+            /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
+            /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini strings*=Triangle bikini strings" \
+            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
+            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings" \
+            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini bottom=Lace briefs" \
+            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties" \
+            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini bottom=Fishnet briefs" \
+            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini strings*=Fishnet briefs ties" \
+            /tmp/ara-generated/ara_person_lace_shirt.glb "Fatigue shirt=Lace shirt" \
+            /tmp/ara-generated/ara_person_fishnet_shirt.glb "Fatigue shirt=Fishnet shirt" \
+            /tmp/ara-generated/ara_person_lace_pants.glb "Fatigue pants#1=Lace pants" \
+            /tmp/ara-generated/ara_person_lace_pants.glb "Fatigue pants#2=Lace pants" \
+            /tmp/ara-generated/ara_person_fishnet_pants.glb "Fatigue pants#1=Fishnet pants" \
+            /tmp/ara-generated/ara_person_fishnet_pants.glb "Fatigue pants#2=Fishnet pants"
+          python tools/ara/assemble_modular_glb.py \
+            art/characters/ara/ara_person_body.glb art/characters/ara/ara_person_modular_underwear.glb \
+            /tmp/ara-generated/ara_person_benchmark.glb "Fatigue shirt" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Bra" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra piping" \
+            /tmp/ara-generated/ara_person_halter_bra_lace.glb "Halter lace bra straps" \
+            /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra cups" \
+            /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra straps" \
+            /tmp/ara-generated/ara_person_benchmark.glb "Briefs" \
+            /tmp/ara-generated/ara_person_tank_top.glb "Tank top" \
+            /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini top=Triangle bikini top" \
+            /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini strings*=Triangle bikini strings" \
+            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
+            /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings" \
+            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini bottom=Lace briefs" \
+            /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties" \
+            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini bottom=Fishnet briefs" \
+            /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini strings*=Fishnet briefs ties"
+
+      - name: Install Blender for garment fitting and reviews
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Cut the dress slit and fit garments to integrated anatomy
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 --python tools/blender/add_dress_slit.py -- --input art/characters/ara/ara_person_modular.glb --output /tmp/ara_person_modular_slit.glb
+          mv /tmp/ara_person_modular_slit.glb art/characters/ara/ara_person_modular.glb
+          blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- \
+            --input art/characters/ara/ara_person_modular.glb \
+            --output /tmp/ara_person_modular_fitted.glb --profile none --adult --fit-existing
+          mv /tmp/ara_person_modular_fitted.glb art/characters/ara/ara_person_modular.glb
+          blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- \
+            --input art/characters/ara/ara_person_modular_underwear.glb \
+            --output /tmp/ara_person_modular_underwear_fitted.glb --profile none --adult --fit-existing
+          mv /tmp/ara_person_modular_underwear_fitted.glb art/characters/ara/ara_person_modular_underwear.glb
+
+      - name: Render dress and lace/fishnet review angles
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          OUT=art/characters/ara/review/outfits
+          mkdir -p "$OUT"
+          blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
+            art/characters/ara/ara_person_modular.glb "$OUT" dress
+          for view in front side rear; do test -s "$OUT/dress/$view.png"; done
+          test -s "$OUT/dress/report.json"
+          for outfit in lace_bra fishnet_bra lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants; do
+            echo "Reviewing $outfit"
+            set +e
+            blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
+              art/characters/ara/ara_person_modular.glb "$OUT" "$outfit"
+            status=$?
+            set -e
+            for view in front side rear; do test -s "$OUT/$outfit/$view.png"; done
+            test -s "$OUT/$outfit/report.json"
+            if [ "$status" -ne 0 ] && [ "$status" -ne 139 ]; then
+              echo "::error::Review render failed for $outfit (exit $status)"
+              exit "$status"
+            fi
+          done
+          echo "Skipping optional armour review: the previous run did not produce the expected Leather armor material."
+
+      - name: Keep generated models and reviews as build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: character-pipeline-evaluation-existing-assets
+          path: |
+            art/characters/ara/*.glb
+            art/characters/ara/*.params.json
+            art/characters/ara/review/**
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Assemble Wren Workshop site
+        run: |
+          set -euo pipefail
+          mkdir -p site/assets
+          for asset in ara_person_benchmark.glb ara_person_modular.glb ara_person_modular_underwear.glb ara_person_mobile.glb ara_person_body.glb ara_person_male_body.glb; do
+            cp "art/characters/ara/$asset" "site/assets/$asset"
+          done
+          printf '%s\n' "${GITHUB_SHA}" > site/build-version.txt
+          test -s site/index.html
+          test -s site/README.md
+
+      - name: Assemble versioned Ara runtime package
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_DIR="$GITHUB_WORKSPACE/art/characters/ara_runtime_package"
+          mkdir -p "$PACKAGE_DIR"
+          for asset in ara_person_benchmark.glb ara_person_body.glb ara_person_modular.glb ara_person_modular_underwear.glb ara_person_male_body.glb; do
+            cp "art/characters/ara/$asset" "$PACKAGE_DIR/$asset"
+          done
+          export PACKAGE_DIR
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          package = Path(os.environ["PACKAGE_DIR"])
+          assets = {}
+          for path in sorted(package.glob("*.glb")):
+              payload = path.read_bytes()
+              assets[path.name] = {"size_bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
+          manifest = {
+              "schema_version": 1,
+              "package_version": os.environ["GITHUB_SHA"],
+              "source_commit": os.environ["GITHUB_SHA"],
+              "source_artifact_run": os.environ.get("SOURCE_RUN_ID", ""),
+              "generator": {"repository": "https://github.com/olatunde85/3d-gen", "commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395"},
+              "assets": assets
+          }
+          (package / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+          PY
+          cd "$PACKAGE_DIR"
+          zip -q -r "$GITHUB_WORKSPACE/ara-runtime-assets.zip" .
+          test -s "$GITHUB_WORKSPACE/ara-runtime-assets.zip"
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id || '42537648604' }}
+
+      - name: Upload versioned Ara runtime package
+        uses: actions/upload-artifact@v7
+        with:
+          name: ara-runtime-assets-existing-${{ inputs.source_run_id || '42537648604' }}-${{ github.sha }}
+          path: ara-runtime-assets.zip
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Save Wren Workshop site artifact
+        if: github.ref_name == 'dev'
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-workshop-site-existing-assets
+          path: site/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Locate latest available Godot browser build
+        if: github.ref_name == 'dev'
+        id: game-build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUNS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/godot-web-export.yml/runs?branch=dev&per_page=10" --jq '.workflow_runs[].id')"
+          for run_id in $RUNS; do
+            artifact_name="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id/artifacts" --jq '.artifacts[] | select(.name == "godot-web-export" and .expired == false) | .name' | head -n 1 || true)"
+            if [ -n "$artifact_name" ]; then
+              echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+              echo "found=true" >> "$GITHUB_OUTPUT"
+              echo "Using Godot browser build from run $run_id."
+              exit 0
+            fi
+          done
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          echo "No unexpired Godot browser build found; publishing Workshop only."
+
+      - name: Download latest Godot browser build
+        if: github.ref_name == 'dev' && steps.game-build.outputs.found == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: godot-web-export
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.game-build.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: /tmp/godot-game
+
+      - name: Assemble combined Pages site
+        if: github.ref_name == 'dev'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/pages
+          cp -a site/. dist/pages/
+          if [ "${{ steps.game-build.outputs.found }}" = "true" ]; then
+            mkdir -p dist/pages/game
+            cp -a /tmp/godot-game/. dist/pages/game/
+            test -s dist/pages/game/index.html
+            test -s dist/pages/game/index.wasm
+            test -s dist/pages/game/index.pck
+          fi
+          test -s dist/pages/index.html
+
+      - name: Configure GitHub Pages
+        if: github.ref_name == 'dev'
+        uses: actions/configure-pages@v6
+
+      - name: Upload combined Pages artifact
+        if: github.ref_name == 'dev'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist/pages
+
+      - name: Deploy combined Pages site
+        if: github.ref_name == 'dev'
+        id: deployment
+        uses: actions/deploy-pages@v5

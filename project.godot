@@ -4,7 +4,7 @@ config_version=5
 
 [application]
 config/name="Silverhart Saga 3D"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/main_menu.tscn"
 
 [display]
 window/size/viewport_width=1920
@@ -16,6 +16,7 @@ window/stretch/mode="canvas_items"
 [rendering]
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="mobile"
+renderer/rendering_method.web="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
 environment/defaults/default_clear_color=Color(0.11, 0.14, 0.16, 1)
 
@@ -23,3 +24,6 @@ environment/defaults/default_clear_color=Color(0.11, 0.14, 0.16, 1)
 3d/default_gravity=9.8
 
 run/max_fps=60
+
+[autoload]
+AudioManager="*res://scripts/audio/audio_manager.gd"

@@ -1,0 +1,51 @@
+{
+  "seed": 2468,
+  "gender": 0,
+  "age": 0.5,
+  "muscle": 0.5,
+  "weight": 0.5,
+  "height": 0.5,
+  "proportions": 0.5,
+  "african": 0.34,
+  "asian": 0.33,
+  "caucasian": 0.33,
+  "eyes": "brown",
+  "hair": "short02",
+  "hairTint": "#49372a",
+  "facialHair": "none",
+  "tattoos": [],
+  "outfit": "none",
+  "top": "long_tunic",
+  "underTop": "none",
+  "underBottom": "none",
+  "jacket": "none",
+  "bottom": "trousers",
+  "underwear": false,
+  "shoes": "sandals",
+  "hat": "none",
+  "weapon": "none",
+  "carry": "none",
+  "accessories": [],
+  "garmentStyles": {
+    "long_tunic": {
+      "pattern": "solid",
+      "color": "#58634b",
+      "color2": "#a18b62"
+    },
+    "trousers": {
+      "pattern": "solid",
+      "color": "#393b3a",
+      "color2": "#393b3a"
+    }
+  },
+  "detail": "high",
+  "rig": "game",
+  "restPose": "A",
+  "animations": true,
+  "faceBones": true,
+  "faceShapes": true,
+  "speechShapes": false,
+  "expression": "neutral",
+  "hairColor": "#49372a",
+  "name": "Player Character"
+}

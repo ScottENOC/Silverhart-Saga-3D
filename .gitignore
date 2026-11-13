@@ -3,7 +3,6 @@
 .import/
 .export/
 export.cfg
-export_presets.cfg
 
 # Build/export output
 build/
@@ -22,3 +21,7 @@ desktop.ini
 # Blender backups
 *.blend1
 *.blend2
+
+# Downloaded/generated Ara runtime package (recreated by character pipeline CI)
+art/characters/ara_runtime/
+art/characters/ara_runtime_package/

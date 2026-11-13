@@ -1,9 +1,11 @@
 class_name OrbitCameraRig
 extends Node3D
 
+signal zoom_changed(distance: float)
+
 @export var follow_target: Node3D
 @export var zoom_distance: float = 17.0
-@export var min_zoom: float = 7.0
+@export var min_zoom: float = 1.4
 @export var max_zoom: float = 32.0
 @export var orbit_sensitivity: float = 0.25
 @export var pitch_sensitivity: float = 0.20
@@ -20,6 +22,30 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
     if is_instance_valid(follow_target):
         global_position = follow_target.global_position + Vector3(0.0, 0.65, 0.0)
+    var max_below_horizon := _max_below_horizon_pitch()
+    pitch_pivot.rotation_degrees.x = minf(pitch_pivot.rotation_degrees.x, max_below_horizon)
+    _update_camera_clearance()
+
+func _max_below_horizon_pitch() -> float:
+    # The camera may dip below the horizon only while its position remains
+    # above the ground plane. Close zoom permits a larger downward-facing orbit.
+    var pivot_height := maxf(0.0, pitch_pivot.global_position.y - 0.25)
+    return rad_to_deg(asin(clampf(pivot_height / maxf(zoom_distance, 0.01), 0.0, 1.0)))
+
+func _update_camera_clearance() -> void:
+    # Preserve requested zoom while shortening the camera arm if geometry
+    # blocks the view, preventing floor and furniture clipping.
+    var start := pitch_pivot.global_position
+    var desired := pitch_pivot.to_global(Vector3(0.0, 0.0, zoom_distance))
+    var query := PhysicsRayQueryParameters3D.create(start, desired)
+    query.collide_with_areas = false
+    if is_instance_valid(follow_target) and follow_target is CollisionObject3D:
+        query.exclude = [follow_target.get_rid()]
+    var hit := get_world_3d().direct_space_state.intersect_ray(query)
+    var allowed_distance := zoom_distance
+    if not hit.is_empty():
+        allowed_distance = maxf(0.35, start.distance_to(hit.position) - 0.12)
+    camera.position.z = allowed_distance
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseButton:
@@ -27,19 +53,35 @@ func _unhandled_input(event: InputEvent) -> void:
         if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
             dragging = mouse_event.pressed
         elif mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
-            _set_zoom(zoom_distance - 1.5)
+            _set_zoom(zoom_distance - 0.5)
         elif mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-            _set_zoom(zoom_distance + 1.5)
+            _set_zoom(zoom_distance + 0.5)
+
+    elif event is InputEventKey and event.pressed and not event.echo:
+        var key_event := event as InputEventKey
+        if key_event.keycode in [KEY_PLUS, KEY_EQUAL, KEY_KP_ADD]:
+            zoom_by(-1.5)
+            get_viewport().set_input_as_handled()
+        elif key_event.keycode in [KEY_MINUS, KEY_KP_SUBTRACT]:
+            zoom_by(1.5)
+            get_viewport().set_input_as_handled()
 
     elif event is InputEventMouseMotion and dragging:
         var motion := event as InputEventMouseMotion
         rotation_degrees.y -= motion.relative.x * orbit_sensitivity
         pitch_pivot.rotation_degrees.x = clampf(
             pitch_pivot.rotation_degrees.x - motion.relative.y * pitch_sensitivity,
-            -78.0,
-            -25.0
+            -89.0,
+            _max_below_horizon_pitch()
         )
+
+func zoom_by(amount: float) -> void:
+    _set_zoom(zoom_distance + amount)
+
+func set_zoom(value: float) -> void:
+    _set_zoom(value)
 
 func _set_zoom(value: float) -> void:
     zoom_distance = clampf(value, min_zoom, max_zoom)
     camera.position.z = zoom_distance
+    zoom_changed.emit(zoom_distance)

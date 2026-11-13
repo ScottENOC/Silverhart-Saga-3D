@@ -1,0 +1,122 @@
+name: Build Ara Medieval Props
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [dev]
+    paths:
+      - "tools/ara/patch_medieval_weapons.py"
+      - "tools/ara/build_medieval_armor_props.py"
+      - ".github/workflows/ara-medieval-props.yml"
+      - ".github/workflows/ara-medieval-armour-props.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-props:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build pinned Ara generator with Silverhart weapon extensions
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
+          git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
+          python tools/ara/patch_medieval_weapons.py /tmp/ara-3d-gen
+          cd /tmp/ara-3d-gen
+          corepack enable
+          pnpm install --no-frozen-lockfile
+          npm run setup-assets
+
+          mkdir -p "$GITHUB_WORKSPACE/art/characters/ara/props"
+          for weapon in sword knife axe spear bow mace club; do
+            python - "$weapon" <<'PY'
+          import json, sys
+          weapon = sys.argv[1]
+          params = {
+              "name": "silverhart_prop",
+              "gender": 0,
+              "age": 0.5,
+              "muscle": 0.5,
+              "weight": 0.5,
+              "weapon": weapon,
+              "animations": False,
+              "faceBones": False,
+              "faceShapes": False,
+              "speechShapes": False
+          }
+          json.dump(params, open('/tmp/silverhart-prop.params.json', 'w'), indent=2)
+          PY
+            rm -rf /tmp/silverhart-prop-out
+            mkdir -p /tmp/silverhart-prop-out
+            npm run export -- --params /tmp/silverhart-prop.params.json --detail high --formats glb --out /tmp/silverhart-prop-out
+            PROP_ZIP="$(find /tmp/silverhart-prop-out -maxdepth 1 -type f -name '*.zip' -print -quit)"
+            test -n "$PROP_ZIP"
+            PROP_ENTRY="$(unzip -Z1 "$PROP_ZIP" | grep "silverhart_prop_"$weapon".glb" | head -n 1)"
+            test -n "$PROP_ENTRY"
+            unzip -p "$PROP_ZIP" "$PROP_ENTRY" > "$GITHUB_WORKSPACE/art/characters/ara/props/$weapon.glb"
+            test -s "$GITHUB_WORKSPACE/art/characters/ara/props/$weapon.glb"
+            echo "Built separate Ara $weapon prop."
+          done
+
+      - name: Create prop manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path("art/characters/ara/props")
+          assets = {}
+          for path in sorted(root.glob("*.glb")):
+              data = path.read_bytes()
+              assets[path.name] = {
+                  "size_bytes": len(data),
+                  "sha256": hashlib.sha256(data).hexdigest()
+              }
+          expected = {"sword.glb", "knife.glb", "axe.glb", "spear.glb", "bow.glb", "mace.glb", "club.glb"}
+          if set(assets) != expected:
+              raise SystemExit(f"Expected {sorted(expected)}, got {sorted(assets)}")
+          manifest = {
+              "schema_version": 1,
+              "generator": "Ara 3D Gen",
+              "generator_commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395",
+              "weapon_socket": "WeaponR",
+              "origin": "grip centre; zero-offset attachment to WeaponR",
+              "assets": assets
+          }
+          (root / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+          PY
+
+      - name: Upload medieval prop bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: ara-medieval-props-${{ github.sha }}
+          path: art/characters/ara/props/
+          if-no-files-found: error
+          retention-days: 90
+
+  validate-in-godot:
+    needs: build-props
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: ara-medieval-props-${{ github.sha }}
+          path: art/characters/ara_runtime/props
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import and smoke-test every prop
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --quit
+          godot --headless --path . --script res://tests/test_ara_equipment_assets.gd
