@@ -98,13 +98,13 @@ static func _add_saddle_binding(parent: Node3D) -> void:
 	var boundary: Array[Vector3] = []
 	var steps := 18
 	for i in range(steps):
-		boundary.append(_saddle_point(-1.0 + 2.0 * float(i) / steps, -1.0, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035))
+		boundary.append(_saddle_point(-1.0 + 2.0 * float(i) / steps, -1.0, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035, 0.28))
 	for i in range(steps):
-		boundary.append(_saddle_point(1.0, -1.0 + 2.0 * float(i) / steps, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035))
+		boundary.append(_saddle_point(1.0, -1.0 + 2.0 * float(i) / steps, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035, 0.28))
 	for i in range(steps):
-		boundary.append(_saddle_point(1.0 - 2.0 * float(i) / steps, 1.0, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035))
+		boundary.append(_saddle_point(1.0 - 2.0 * float(i) / steps, 1.0, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035, 0.28))
 	for i in range(steps):
-		boundary.append(_saddle_point(-1.0, 1.0 - 2.0 * float(i) / steps, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035))
+		boundary.append(_saddle_point(-1.0, 1.0 - 2.0 * float(i) / steps, 0.66, 0.78, 3.53, -0.48, 0.10, 0.035, 0.28))
 	for i in range(boundary.size()):
 		var p0 := boundary[i] + Vector3.UP * 0.008
 		var p1 := boundary[(i + 1) % boundary.size()] + Vector3.UP * 0.008
