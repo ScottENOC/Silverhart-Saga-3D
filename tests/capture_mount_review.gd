@@ -1,5 +1,5 @@
 extends SceneTree
-## Rendered side-on and three-quarter rider/mount diagnostics.
+## Rendered front and rear rider/mount diagnostics.
 const MOUNT_PRESENTATION = preload("res://scripts/presentation/mount_presentation.gd")
 const CREATURE_ACTOR = preload("res://scripts/presentation/creature_actor.gd")
 const ARA_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
@@ -46,7 +46,7 @@ func _capture() -> void:
     var camera := Camera3D.new()
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL
     camera.size = 11.5
-    camera.position = Vector3(-10.0, 3.0, 0.0)
+    camera.position = Vector3(0.0, 3.0, -10.0)
     world.add_child(camera)
     camera.look_at(Vector3(0.0, 1.9, 0.0), Vector3.UP)
     camera.current = true
@@ -65,15 +65,15 @@ func _capture() -> void:
         await process_frame
     var riding_clips_ok := _play_riding_clip_for_all_riders(world)
     if not riding_clips_ok:
-        push_error("Ride horse (trot) animation is missing from one or more Ara rigs")
+        push_error("Riding animation is missing from one or more Ara rigs")
         quit(1)
         return
     await create_timer(1.0).timeout
     _report_runtime_model_bounds(world)
-    if not await _save_view(camera, Vector3(-10.0, 3.0, 0.0), Vector3(0.0, 1.9, 0.0), -90.0, FRONT_OUTPUT_PATH):
+    if not await _save_view(camera, Vector3(0.0, 3.0, -10.0), Vector3(0.0, 1.9, 0.0), 0.0, FRONT_OUTPUT_PATH):
         quit(1)
         return
-    if not await _save_view(camera, Vector3(10.0, 3.0, 0.0), Vector3(0.0, 1.9, 0.0), 90.0, REAR_OUTPUT_PATH):
+    if not await _save_view(camera, Vector3(0.0, 3.0, 10.0), Vector3(0.0, 1.9, 0.0), 180.0, REAR_OUTPUT_PATH):
         quit(1)
         return
     quit(0)
@@ -98,7 +98,7 @@ func _save_view(camera: Camera3D, camera_position: Vector3, target: Vector3, lab
     print("MOUNT_REVIEW_IMAGE=" + ProjectSettings.globalize_path(output_path))
     return true
 
-func _add_pair(world: Node3D, z: float, body_path: String, title: String, horse_scale: float, rider_seat_y: float, clip: String) -> bool:
+func _add_pair(world: Node3D, x: float, body_path: String, title: String, horse_scale: float, rider_seat_y: float, clip: String) -> bool:
     var horse := CREATURE_ACTOR.new() as CreatureActor
     horse.name = title.replace(" ", "") + "Horse"
     horse.add_to_group("mount_size_review_horses")
@@ -106,7 +106,7 @@ func _add_pair(world: Node3D, z: float, body_path: String, title: String, horse_
     horse.behaviour = "mount"
     horse.model_scale = horse_scale
     horse.model_path = HORSE_MODEL
-    horse.position = Vector3(0, 0, z)
+    horse.position = Vector3(x, 0, 0)
     world.add_child(horse)
 
     var rider := ARA_ACTOR.new() as AraCharacterActor
@@ -123,7 +123,7 @@ func _add_pair(world: Node3D, z: float, body_path: String, title: String, horse_
     label.font_size = 48
     label.outline_size = 10
     label.modulate = Color(1.0, 0.95, 0.78)
-    label.position = Vector3(0.0, 4.15, z)
+    label.position = Vector3(x, 4.15, 0.0)
     label.rotation_degrees.y = 90
     label.add_to_group("mount_review_labels")
     world.add_child(label)
