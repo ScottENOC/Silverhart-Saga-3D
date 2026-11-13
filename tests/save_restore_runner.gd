@@ -87,7 +87,9 @@ func _run() -> void:
 
     _check(tavern != null, "The real campaign scene should construct HollowTankard from a pending save")
     var scene_root := get_tree().current_scene
-    var campaign_simulation := scene_root.get("simulation") as WorldSimulation if scene_root != null else null
+    var campaign_simulation: WorldSimulation
+    if scene_root != null:
+        campaign_simulation = scene_root.get("simulation") as WorldSimulation
     _check(campaign_simulation != null, "WorldRoot should own a live campaign simulation")
     if tavern != null:
         var simulation := tavern.get("simulation") as WorldSimulation
