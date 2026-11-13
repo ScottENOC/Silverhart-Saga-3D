@@ -14,9 +14,7 @@ const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter
 const SEASONAL_TREE_SCRIPT = preload("res://scripts/presentation/seasonal_tree_visual.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
-const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
-const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const TAVERN_BUILDING_ID := "hollow_tankard"
@@ -124,7 +122,7 @@ var enemy_turn_waiting_for_reaction: bool = false
 func _ready() -> void:
     _create_materials()
     _create_lighting()
-    _configure_campaign_simulation()
+    _configure_location_simulation()
     _create_ground_and_hexes()
     _create_wilderness_gatherable_grove()
     _create_building()
@@ -132,7 +130,6 @@ func _ready() -> void:
     _create_characters()
     _create_reyna_shelter()
     _capture_initial_character_baselines()
-    HollowmereCampaignContent.initialize_social_standings(simulation.campaign_journal, String(player_profile.get("race", "human")))
     _create_camera()
     _create_hud()
     ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
@@ -191,16 +188,13 @@ func configure_campaign(campaign_simulation: WorldSimulation, profile: Dictionar
     player_profile = profile.duplicate(true)
     pending_save_data = save_data.duplicate(true)
 
-func _configure_campaign_simulation() -> void:
+func _configure_location_simulation() -> void:
+    # Register this location's map, building, floor and presentation hooks.
     if simulation == null:
         push_error("Campaign simulation was not configured before HollowTankard entered the scene tree.")
         return
     # Campaign 2 opens at 11:00 on the first day, matching the browser game.
-    simulation.clock.set_world_seconds(11.0 * 3600.0)
     simulation.clock.ticked.connect(_on_world_clock_ticked)
-    simulation.campaign_journal.register_quest_definition(HollowmereCampaignContent.shakedown_quest_definition())
-    simulation.campaign_journal.register_quest_definition(FARM_WOLVES_QUEST_SCRIPT.definition())
-    COMPANION_CAMPAIGN_SCRIPT.register_quest_definitions(simulation.campaign_journal)
     # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
     for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
         for r in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
