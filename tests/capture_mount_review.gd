@@ -51,6 +51,7 @@ func _capture() -> void:
     camera.look_at(Vector3(0.0, 2.0, 0.0), Vector3.UP)
     camera.current = true
 
+    # Camera looks along +X, so separate comparison subjects along Z (screen horizontal), not X (depth).
     var ok_female := _add_pair(world, -3.2, FEMALE_BODY, "FEMALE RIDING", 0.45, 1.05)
     var ok_male := _add_pair(world, 3.2, MALE_BODY, "MALE RIDING", 0.45, 1.05)
     if not ok_female or not ok_male:
@@ -79,7 +80,7 @@ func _capture() -> void:
     print("MOUNT_REVIEW_IMAGE=" + ProjectSettings.globalize_path(OUTPUT_PATH))
     quit(0)
 
-func _add_pair(world: Node3D, x: float, body_path: String, title: String, horse_scale: float, rider_seat_y: float) -> bool:
+func _add_pair(world: Node3D, z: float, body_path: String, title: String, horse_scale: float, rider_seat_y: float) -> bool:
     var horse := CREATURE_ACTOR.new() as CreatureActor
     horse.name = title.replace(" ", "") + "Horse"
     horse.add_to_group("mount_size_review_horses")
@@ -87,7 +88,7 @@ func _add_pair(world: Node3D, x: float, body_path: String, title: String, horse_
     horse.behaviour = "mount"
     horse.model_scale = horse_scale
     horse.model_path = HORSE_MODEL
-    horse.position = Vector3(x, 0, 0)
+    horse.position = Vector3(0, 0, z)
     world.add_child(horse)
 
     var rider := ARA_ACTOR.new() as AraCharacterActor
@@ -104,7 +105,7 @@ func _add_pair(world: Node3D, x: float, body_path: String, title: String, horse_
     label.font_size = 48
     label.outline_size = 10
     label.modulate = Color(1.0, 0.95, 0.78)
-    label.position = Vector3(x, 4.15, 0.0)
+    label.position = Vector3(0.0, 4.15, z)
     label.rotation_degrees.y = 90
     world.add_child(label)
     print("[Mount review] %s horse_scale=%.3f rider_seat_y=%.3f rider_root=%s model=%s rider_global=%s horse_global=%s" % [
