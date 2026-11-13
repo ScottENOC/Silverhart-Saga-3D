@@ -584,12 +584,12 @@ def expand_lower_garments(objects, pelvis_z, body_front_y, width):
 
 
 def fit_garment_clearance(objects, skin, material_tokens, clearance=0.004):
-    """Push selected garment vertices just outside the full retained skin surface.
+    """Push selected garment vertices outside skin, including every shape-key state.
 
-    The body remains untouched. Fitting is performed against the integrated
-    female Ara skin, so briefs/bikini bottoms clear the vulvar contour and
-    bras/tops clear the lower breast fold instead of relying on the original
-    generic body shell offset.
+    Ara garment primitives carry facial shape keys. Updating only MeshVertex.co
+    can leave the Basis/key-block coordinates used by the glTF exporter unchanged.
+    Apply the same local-space displacement to Basis and every other key block,
+    preserving each morph delta while moving the garment surface as a whole.
     """
     tree = build_bvh(skin, material_tokens=("skin",))
     tokens = tuple(token.lower() for token in material_tokens)
@@ -607,27 +607,51 @@ def fit_garment_clearance(objects, skin, material_tokens, clearance=0.004):
                 garment_vertices.update(poly.vertices)
         if not garment_vertices:
             continue
+
         inv = obj.matrix_world.inverted()
+        shape_keys = obj.data.shape_keys
+        key_blocks = list(shape_keys.key_blocks) if shape_keys else []
+        basis = key_blocks[0] if key_blocks else None
         moved = 0
+        max_delta = 0.0
         for index in garment_vertices:
-            vert = obj.data.vertices[index]
-            world = obj.matrix_world @ vert.co
+            source_co = basis.data[index].co.copy() if basis else obj.data.vertices[index].co.copy()
+            world = obj.matrix_world @ source_co
             nearest = tree.find_nearest(world)
             if not nearest or nearest[0] is None or nearest[1] is None:
                 continue
             location, normal, _face, _distance = nearest
             normal = normal.normalized()
             signed = (world - location).dot(normal)
-            if signed < clearance:
-                world += normal * (clearance - signed)
-                vert.co = inv @ world
-                moved += 1
+            if signed >= clearance:
+                continue
+            world += normal * (clearance - signed)
+            fitted_co = inv @ world
+            delta = fitted_co - source_co
+            if delta.length_squared <= 1e-18:
+                continue
+
+            if key_blocks:
+                # Preserve all morph deltas by translating each state equally.
+                for key_block in key_blocks:
+                    key_block.data[index].co += delta
+                # Keep the underlying mesh coordinates in sync with Basis for
+                # Blender operations/exporters that inspect MeshVertex.co.
+                obj.data.vertices[index].co = basis.data[index].co
+            else:
+                obj.data.vertices[index].co = fitted_co
+            moved += 1
+            max_delta = max(max_delta, delta.length)
+
         if moved:
             obj.data.update()
-            print(f"Garment clearance: {obj.name} moved {moved} vertices ({clearance:.4f} m)")
+            print(
+                f"Garment clearance: {obj.name} moved {moved} vertices "
+                f"({clearance:.4f} m; {len(key_blocks)} shape keys; "
+                f"max local displacement {max_delta:.5f} m)"
+            )
             moved_total += moved
     return moved_total
-
 
 def fit_female_clothing(objects, skin):
     # Lower garments need a little more stand-off around the integrated vulvar
