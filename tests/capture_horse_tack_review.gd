@@ -1,13 +1,13 @@
 extends SceneTree
 ## Capture the real Quaternius horse with the modular tack attached.
-## Three orthographic views make saddle and bridle placement easy to inspect.
 
 const CREATURE_ACTOR = preload("res://scripts/presentation/creature_actor.gd")
 const HORSE_MODEL := "res://art/creatures/quaternius/Horse.gltf"
 const OUTPUTS := [
-    {"name": "side", "camera": Vector3(8.5, 3.0, 0.0), "target": Vector3(0.0, 1.55, 0.0)},
-    {"name": "front", "camera": Vector3(0.0, 3.0, -9.0), "target": Vector3(0.0, 1.55, -0.15)},
-    {"name": "rear", "camera": Vector3(0.0, 3.0, 9.0), "target": Vector3(0.0, 1.55, 0.15)}
+    {"name": "side", "camera": Vector3(7.0, 3.0, 0.0), "target": Vector3(0.0, 2.0, 0.0)},
+    # The imported horse faces +Z: positive Z is the front view.
+    {"name": "front", "camera": Vector3(0.0, 3.0, 8.0), "target": Vector3(0.0, 2.0, 0.15)},
+    {"name": "rear", "camera": Vector3(0.0, 3.0, -8.0), "target": Vector3(0.0, 2.0, -0.15)}
 ]
 
 func _initialize() -> void:
@@ -56,7 +56,7 @@ func _capture() -> void:
 
     var camera := Camera3D.new()
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-    camera.size = 6.2
+    camera.size = 4.2
     world.add_child(camera)
     camera.current = true
 
