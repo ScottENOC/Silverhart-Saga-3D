@@ -17,6 +17,7 @@ const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
+const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const TAVERN_BUILDING_ID := "hollow_tankard"
@@ -208,26 +209,9 @@ func _configure_location_simulation() -> void:
             var terrain_id := "timber_floor" if inside_room else HollowmereVillageData.terrain_id_at(hex)
             simulation.map_data.add_cell(hex, 0.0, not blocked, terrain_id)
 
-    # Building definitions are registered against the same continuous village
-    # map used by movement and pathfinding. Only mutable door state is saved.
-    simulation.building_registry.register_building({
-        "id": TAVERN_BUILDING_ID,
-        "name": "The Hollow Tankard",
-        "entrance_hex": TAVERN_DOOR_HEX,
-        "floor_count": 2,
-        "lodging_capacity": 8,
-        "sleeping_beds": 6,
-        "virtual_floor_bounds": [96, 104, 96, 104],
-        "source_location": "campaign2World.js: Hollow Tankard; hollowmereSocialFabric.js: buildTankardUpperFloor",
-        "source_stair_hex": TAVERN_STAIR_GROUND_HEX,
-        "upper_landing_hex": TAVERN_STAIR_UPPER_HEX,
-    })
-    simulation.building_registry.register_door(TAVERN_FRONT_DOOR_ID, TAVERN_BUILDING_ID, TAVERN_DOOR_HEX, true, false, 20)
-    simulation.building_registry.door_state_changed.connect(_on_building_door_state_changed)
-
-    # The upper floor uses its own axial coordinate range. Mapping those cells
-    # back onto the tavern footprint avoids collisions with ground-floor NPCs
-    # without splitting the building into a second scene or map.
+    # Keep this location's authored building and floor geometry here, but
+    # delegate registration and map-cell creation to the reusable framework.
+    var upper_floor_cells: Array[Dictionary] = []
     for q in range(-4, 5):
         var row_shift := -floori(float(q) / 2.0)
         for row in range(-2, 3):
@@ -235,7 +219,38 @@ func _configure_location_simulation() -> void:
             var local_world := HexGrid.axial_to_world(local_hex, HEX_RADIUS)
             var partition_wall := (q == 0 and absf(local_world.z) > 1.1) or (q >= 1 and q <= 4 and absf(local_world.z) < 0.55 and q != 3)
             var furniture_blocked := UPPER_BED_HEXES.has(local_hex)
-            simulation.map_data.add_cell(UPPER_FLOOR_ORIGIN + local_hex, UPPER_FLOOR_Y, not (partition_wall or furniture_blocked), "timber_floor")
+            upper_floor_cells.append({
+                "hex": UPPER_FLOOR_ORIGIN + local_hex,
+                "elevation": UPPER_FLOOR_Y,
+                "walkable": not (partition_wall or furniture_blocked),
+                "terrain_id": "timber_floor",
+            })
+
+    var building_definition := {
+        "id": TAVERN_BUILDING_ID,
+        "name": "The Hollow Tankard",
+        "entrance_hex": TAVERN_DOOR_HEX,
+        "floor_count": 2,
+        "lodging_capacity": 8,
+        "sleeping_beds": 6,
+        "virtual_floor_bounds": [96, 104, 96, 104],
+        "source_location": "campaign2World.js: Hollow Tankard; hollowmereSocialFabric.gd: buildTankardUpperFloor",
+        "source_stair_hex": TAVERN_STAIR_GROUND_HEX,
+        "upper_landing_hex": TAVERN_STAIR_UPPER_HEX,
+    }
+    var door_definition := {
+        "id": TAVERN_FRONT_DOOR_ID,
+        "building_id": TAVERN_BUILDING_ID,
+        "hex": TAVERN_DOOR_HEX,
+        "starts_open": true,
+        "starts_locked": false,
+        "durability": 20,
+    }
+    if not BUILDING_LAYOUT_REGISTRAR.register_layout(simulation, building_definition, door_definition, upper_floor_cells):
+        push_error("Failed to register the Hollow Tankard building layout.")
+        return
+    simulation.building_registry.door_state_changed.connect(_on_building_door_state_changed)
+
 
     simulation.character_moved.connect(_on_character_moved)
     simulation.reaction_requested.connect(_on_reaction_requested)
