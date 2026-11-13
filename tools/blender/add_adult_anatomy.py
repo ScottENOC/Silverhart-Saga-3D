@@ -43,15 +43,37 @@ def mesh_world_bounds(obj):
     )
 
 
-def build_bvh(obj):
+def build_bvh(obj, material_tokens=None):
+    """Build a world-space surface tree, optionally restricted to material slots.
+
+    Modular character GLBs combine skin and clothing into one skinned mesh.
+    A whole-object BVH therefore lets a garment find itself as its nearest
+    surface (zero distance), preventing the intended skin-clearance correction.
+    Restricting this tree to Skin faces keeps garment fitting referenced only
+    to the underlying body.
+    """
     depsgraph = bpy.context.evaluated_depsgraph_get()
     evaluated = obj.evaluated_get(depsgraph)
     mesh = evaluated.to_mesh()
     verts = [obj.matrix_world @ v.co for v in mesh.vertices]
-    polys = [list(p.vertices) for p in mesh.polygons]
-    tree = BVHTree.FromPolygons(verts, polys, all_triangles=False)
+    tokens = tuple(token.lower() for token in material_tokens) if material_tokens else ()
+    polys = []
+    for poly in mesh.polygons:
+        if tokens:
+            if poly.material_index >= len(obj.material_slots):
+                continue
+            material = obj.material_slots[poly.material_index].material
+            label = material.name.lower() if material else ""
+            if not any(token in label for token in tokens):
+                continue
+        polys.append(list(poly.vertices))
     evaluated.to_mesh_clear()
-    return tree
+    if not polys:
+        raise RuntimeError(
+            f"No surface polygons found for BVH on {obj.name!r} "
+            f"with material filter {tokens!r}"
+        )
+    return BVHTree.FromPolygons(verts, polys, all_triangles=False)
 
 
 def front_hit_data(tree, x, z):
@@ -569,7 +591,7 @@ def fit_garment_clearance(objects, skin, material_tokens, clearance=0.004):
     bras/tops clear the lower breast fold instead of relying on the original
     generic body shell offset.
     """
-    tree = build_bvh(skin)
+    tree = build_bvh(skin, material_tokens=("skin",))
     tokens = tuple(token.lower() for token in material_tokens)
     moved_total = 0
     for obj in objects:
