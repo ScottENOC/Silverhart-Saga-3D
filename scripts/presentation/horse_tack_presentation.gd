@@ -20,36 +20,37 @@ static func attach_to_horse(model_root: Node3D) -> Node3D:
     tack.name = "HorseTack"
     model_root.add_child(tack)
 
-    # Saddle blanket and a smooth, low-profile saddle seat.
-    _add_box(tack, "SaddleBlanket", Vector3(1.35, 0.10, 1.65), Vector3(0.0, 3.02, 0.05), WOOL)
-    var seat := CapsuleMesh.new()
-    seat.radius = 0.48
-    seat.height = 1.28
-    seat.radial_segments = 12
-    seat.rings = 4
+    # A narrow pad and low, broad seat sit along the horse's back.
+    _add_box(tack, "SaddleBlanket", Vector3(1.25, 0.09, 1.55), Vector3(0.0, 3.02, 0.02), WOOL)
+    var seat := SphereMesh.new()
+    seat.radius = 0.5
+    seat.height = 1.0
+    seat.radial_segments = 16
+    seat.rings = 8
     var seat_node := _add_mesh(tack, "SaddleSeat", seat, LEATHER)
-    seat_node.position = Vector3(0.0, 3.16, 0.05)
-    seat_node.rotation.x = deg_to_rad(90.0)
-    _add_box(tack, "SaddlePommel", Vector3(0.82, 0.24, 0.20), Vector3(0.0, 3.28, -0.49), LEATHER)
-    _add_box(tack, "SaddleCantle", Vector3(0.86, 0.28, 0.18), Vector3(0.0, 3.30, 0.59), DARK_LEATHER)
+    seat_node.position = Vector3(0.0, 3.13, 0.02)
+    seat_node.scale = Vector3(0.88, 0.34, 1.42)
+    # Pommel faces the horse's head (+Z); cantle faces the hindquarters (-Z).
+    _add_box(tack, "SaddlePommel", Vector3(0.76, 0.20, 0.16), Vector3(0.0, 3.23, 0.48), LEATHER)
+    _add_box(tack, "SaddleCantle", Vector3(0.80, 0.23, 0.16), Vector3(0.0, 3.25, -0.55), DARK_LEATHER)
 
-    # Girth under the horse's barrel, with visible near/far stirrup leathers.
-    _add_box(tack, "SaddleGirth", Vector3(1.48, 0.12, 0.16), Vector3(0.0, 2.45, 0.12), DARK_LEATHER)
+    # Girth and stirrups remain separate pieces for later equipment variants.
+    _add_box(tack, "SaddleGirth", Vector3(1.42, 0.11, 0.15), Vector3(0.0, 2.45, 0.10), DARK_LEATHER)
     for side in [-1.0, 1.0]:
         var side_name: String = "Left" if side < 0.0 else "Right"
-        var x: float = float(side) * 0.58
-        _add_strap(tack, "StirrupLeather%s" % side_name, Vector3(x, 3.05, 0.12), Vector3(x, 1.72, 0.12), DARK_LEATHER, 0.075)
-        _add_box(tack, "Stirrup%s" % side_name, Vector3(0.10, 0.12, 0.38), Vector3(x, 1.66, 0.12), METAL)
+        var x: float = float(side) * 0.56
+        _add_strap(tack, "StirrupLeather%s" % side_name, Vector3(x, 3.02, 0.08), Vector3(x, 1.78, 0.08), DARK_LEATHER, 0.065)
+        _add_box(tack, "Stirrup%s" % side_name, Vector3(0.10, 0.12, 0.34), Vector3(x, 1.72, 0.08), METAL)
 
-    # Bridle: crown, cheek pieces, browband, noseband and bit.
-    _add_strap(tack, "Crownpiece", Vector3(-0.43, 3.15, -1.45), Vector3(0.43, 3.15, -1.45), LEATHER, 0.075)
-    _add_strap(tack, "Browband", Vector3(-0.47, 3.00, -1.62), Vector3(0.47, 3.00, -1.62), LEATHER, 0.07)
-    _add_strap(tack, "Noseband", Vector3(-0.43, 2.52, -2.32), Vector3(0.43, 2.52, -2.32), DARK_LEATHER, 0.09)
+    # The imported horse faces +Z. Keep all bridle pieces on its head, not rump.
+    _add_strap(tack, "Crownpiece", Vector3(-0.40, 3.15, 1.43), Vector3(0.40, 3.15, 1.43), LEATHER, 0.07)
+    _add_strap(tack, "Browband", Vector3(-0.43, 3.00, 1.62), Vector3(0.43, 3.00, 1.62), LEATHER, 0.065)
+    _add_strap(tack, "Noseband", Vector3(-0.38, 2.54, 2.28), Vector3(0.38, 2.54, 2.28), DARK_LEATHER, 0.08)
     for side in [-1.0, 1.0]:
         var side_name: String = "Left" if side < 0.0 else "Right"
-        _add_strap(tack, "Cheekpiece%s" % side_name, Vector3(side * 0.43, 3.12, -1.48), Vector3(side * 0.43, 2.52, -2.32), LEATHER, 0.065)
-        _add_strap(tack, "Rein%s" % side_name, Vector3(side * 0.43, 2.45, -2.38), Vector3(side * 0.48, 3.10, 0.42), DARK_LEATHER, 0.045)
-    _add_strap(tack, "Bit", Vector3(-0.48, 2.43, -2.40), Vector3(0.48, 2.43, -2.40), METAL, 0.055)
+        _add_strap(tack, "Cheekpiece%s" % side_name, Vector3(side * 0.40, 3.12, 1.46), Vector3(side * 0.38, 2.54, 2.28), LEATHER, 0.06)
+        _add_strap(tack, "Rein%s" % side_name, Vector3(side * 0.38, 2.46, 2.34), Vector3(side * 0.48, 3.08, 0.40), DARK_LEATHER, 0.04)
+    _add_strap(tack, "Bit", Vector3(-0.43, 2.45, 2.36), Vector3(0.43, 2.45, 2.36), METAL, 0.05)
     return tack
 
 static func _add_box(parent: Node3D, node_name: String, size: Vector3, position: Vector3, colour: Color) -> MeshInstance3D:
