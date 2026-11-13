@@ -11,7 +11,7 @@ func _run() -> void:
     var tack := HORSE_TACK.attach_to_horse(horse_model)
     _check(tack != null, "Horse tack should attach to a valid horse model")
     _check(tack.get_parent() == horse_model, "Tack should remain a removable child of the horse model")
-    for required_part in ["SaddleBlanket", "SaddleSeat", "SaddlePommel", "SaddleCantle", "SaddleGirth", "StirrupLeather-1.0", "StirrupLeather1.0", "Crownpiece", "Browband", "Noseband", "Cheekpiece-1.0", "Cheekpiece1.0", "Rein-1.0", "Rein1.0", "Bit"]:
+    for required_part in ["SaddleBlanket", "SaddleSeat", "SaddlePommel", "SaddleCantle", "SaddleGirth", "StirrupLeatherLeft", "StirrupLeatherRight", "StirrupLeft", "StirrupRight", "Crownpiece", "Browband", "Noseband", "CheekpieceLeft", "CheekpieceRight", "ReinLeft", "ReinRight", "Bit"]:
         _check(tack.get_node_or_null(required_part) != null, "Missing tack component: %s" % required_part)
     var child_count := tack.get_child_count()
     _check(HORSE_TACK.attach_to_horse(horse_model) == tack, "Repeated attachment should reuse the existing tack node")
