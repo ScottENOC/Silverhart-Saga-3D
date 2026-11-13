@@ -45,16 +45,18 @@ func _capture() -> void:
     # placement can be judged against the horse's back.
     var camera := Camera3D.new()
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-    camera.size = 10.0
+    camera.size = 14.0
     camera.position = Vector3(18.0, 3.3, 0.0)
     world.add_child(camera)
     camera.look_at(Vector3(0.0, 2.0, 0.0), Vector3.UP)
     camera.current = true
 
     # Camera looks along +X, so separate comparison subjects along Z (screen horizontal), not X (depth).
-    var ok_female := _add_pair(world, -3.2, FEMALE_BODY, "FEMALE RIDING", 0.45, 1.05)
-    var ok_male := _add_pair(world, 3.2, MALE_BODY, "MALE RIDING", 0.45, 1.05)
-    if not ok_female or not ok_male:
+    var ok_female_horse := _add_pair(world, -4.8, FEMALE_BODY, "FEMALE HORSE TROT", 0.45, 1.05, "Ride horse (trot)")
+    var ok_male_horse := _add_pair(world, -1.6, MALE_BODY, "MALE HORSE TROT", 0.45, 1.05, "Ride horse (trot)")
+    var ok_female_motorcycle := _add_pair(world, 1.6, FEMALE_BODY, "FEMALE MOTORCYCLE", 0.45, 1.05, "Ride motorcycle")
+    var ok_male_motorcycle := _add_pair(world, 4.8, MALE_BODY, "MALE MOTORCYCLE", 0.45, 1.05, "Ride motorcycle")
+    if not ok_female_horse or not ok_male_horse or not ok_female_motorcycle or not ok_male_motorcycle:
         push_error("Failed to load one or more Ara/horse models")
         quit(1)
         return
@@ -80,7 +82,7 @@ func _capture() -> void:
     print("MOUNT_REVIEW_IMAGE=" + ProjectSettings.globalize_path(OUTPUT_PATH))
     quit(0)
 
-func _add_pair(world: Node3D, z: float, body_path: String, title: String, horse_scale: float, rider_seat_y: float) -> bool:
+func _add_pair(world: Node3D, z: float, body_path: String, title: String, horse_scale: float, rider_seat_y: float, clip: String) -> bool:
     var horse := CREATURE_ACTOR.new() as CreatureActor
     horse.name = title.replace(" ", "") + "Horse"
     horse.add_to_group("mount_size_review_horses")
@@ -108,8 +110,9 @@ func _add_pair(world: Node3D, z: float, body_path: String, title: String, horse_
     label.position = Vector3(0.0, 4.15, z)
     label.rotation_degrees.y = 90
     world.add_child(label)
-    print("[Mount review] %s horse_scale=%.3f rider_seat_y=%.3f rider_root=%s model=%s rider_global=%s horse_global=%s" % [
-        title, horse_scale, rider_seat_y, rider.transform, rider.model_root.transform, rider.global_position, horse.global_position
+    rider.set_meta("review_clip", clip)
+    print("[Mount review] %s clip=%s horse_scale=%.3f rider_seat_y=%.3f rider_root=%s model=%s rider_global=%s horse_global=%s" % [
+        title, clip, horse_scale, rider_seat_y, rider.transform, rider.model_root.transform, rider.global_position, horse.global_position
     ])
     return true
 
@@ -120,7 +123,7 @@ func _play_riding_clip_for_all_riders(world: Node3D) -> bool:
         if rider == null or rider.animation_player == null:
             all_ok = false
             continue
-        var clip := StringName("Ride horse (trot)")
+        var clip := StringName(rider.get_meta("review_clip", "Ride horse (trot)"))
         if not rider.animation_player.has_animation(clip):
             push_error("Ara rig %s does not contain %s" % [rider.name, clip])
             all_ok = false
