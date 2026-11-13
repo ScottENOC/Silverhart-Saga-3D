@@ -57,8 +57,6 @@ jobs:
           godot --headless --editor --path . --quit
       - name: Run hex-grid tests
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
-      - name: Run simulation, movement, combat, animal and riding tests
-        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_simulation.gd
       - name: Run split character and progression tests
         run: godot --headless --path . --script res://tests/test_character_systems.gd
       - name: Run split campaign content tests
