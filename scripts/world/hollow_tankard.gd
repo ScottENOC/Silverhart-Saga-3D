@@ -234,7 +234,7 @@ func _configure_location_simulation() -> void:
         "lodging_capacity": 8,
         "sleeping_beds": 6,
         "virtual_floor_bounds": [96, 104, 96, 104],
-        "source_location": "campaign2World.js: Hollow Tankard; hollowmereSocialFabric.gd: buildTankardUpperFloor",
+        "source_location": "campaign2World.js: Hollow Tankard; hollowmereSocialFabric.js: buildTankardUpperFloor",
         "source_stair_hex": TAVERN_STAIR_GROUND_HEX,
         "upper_landing_hex": TAVERN_STAIR_UPPER_HEX,
     }
