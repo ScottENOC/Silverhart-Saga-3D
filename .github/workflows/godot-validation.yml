@@ -77,6 +77,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_combat_and_reactions.gd
       - name: Run split animal and riding tests
         run: godot --headless --path . --script res://tests/test_animals_and_riding.gd
+      - name: Run horse tack presentation tests
+        run: godot --headless --path . --script res://tests/test_horse_tack_presentation.gd
       - name: Run reusable building and door tests
         run: godot --headless --path . --script res://tests/test_building_framework.gd
       - name: Run SaveManager round-trip tests
