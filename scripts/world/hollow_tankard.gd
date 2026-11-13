@@ -124,7 +124,7 @@ var enemy_turn_waiting_for_reaction: bool = false
 func _ready() -> void:
     _create_materials()
     _create_lighting()
-    _create_simulation()
+    _configure_campaign_simulation()
     _create_ground_and_hexes()
     _create_wilderness_gatherable_grove()
     _create_building()
@@ -183,13 +183,21 @@ func _create_lighting() -> void:
     environment_node.environment = environment
     add_child(environment_node)
 
-func _create_simulation() -> void:
-    simulation = WorldSimulation.new()
-    simulation.name = "WorldSimulation"
+func configure_campaign(campaign_simulation: WorldSimulation, profile: Dictionary, save_data: Dictionary) -> void:
+    if campaign_simulation == null:
+        push_error("HollowTankard requires a campaign simulation supplied by WorldRoot.")
+        return
+    simulation = campaign_simulation
+    player_profile = profile.duplicate(true)
+    pending_save_data = save_data.duplicate(true)
+
+func _configure_campaign_simulation() -> void:
+    if simulation == null:
+        push_error("Campaign simulation was not configured before HollowTankard entered the scene tree.")
+        return
     # Campaign 2 opens at 11:00 on the first day, matching the browser game.
     simulation.clock.set_world_seconds(11.0 * 3600.0)
     simulation.clock.ticked.connect(_on_world_clock_ticked)
-    add_child(simulation)
     simulation.campaign_journal.register_quest_definition(HollowmereCampaignContent.shakedown_quest_definition())
     simulation.campaign_journal.register_quest_definition(FARM_WOLVES_QUEST_SCRIPT.definition())
     COMPANION_CAMPAIGN_SCRIPT.register_quest_definitions(simulation.campaign_journal)
