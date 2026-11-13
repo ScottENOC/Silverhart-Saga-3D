@@ -25,6 +25,9 @@ static func attach_to_horse(model_root: Node3D) -> Node3D:
 	_add_saddle_surface(tack, "SaddleBlanket", 0.70, 0.91, 2.99, 0.02, WOOL, 0.035, 0.045)
 	# The padded seat is a continuous curved surface with raised pommel and cantle.
 	_add_saddle_surface(tack, "SaddleSeat", 0.48, 0.69, 3.105, 0.02, LEATHER, 0.075, 0.16)
+	# Raised padded rolls form the pommel and cantle as part of the saddle.
+	_add_saddle_roll(tack, "SaddlePommel", Vector3(0.0, 3.18, 0.47), Vector3(0.72, 0.20, 0.20))
+	_add_saddle_roll(tack, "SaddleCantle", Vector3(0.0, 3.20, -0.53), Vector3(0.78, 0.23, 0.22))
 	# Side skirts/flaps drape down over the horse's barrel.
 	for side in [-1.0, 1.0]:
 		_add_saddle_flap(tack, side)
@@ -42,7 +45,7 @@ static func attach_to_horse(model_root: Node3D) -> Node3D:
 		], DARK_LEATHER, 0.13)
 
 	# The girth passes beneath the barrel; visible side sections join below.
-	_add_ribbon(tack, "GirthUnder", [
+	_add_ribbon(tack, "SaddleGirth", [
 		Vector3(-0.59, 2.36, 0.12), Vector3(-0.30, 2.29, 0.12),
 		Vector3(0.0, 2.27, 0.12), Vector3(0.30, 2.29, 0.12),
 		Vector3(0.59, 2.36, 0.12)
@@ -85,6 +88,17 @@ static func attach_to_horse(model_root: Node3D) -> Node3D:
 		Vector3(0.43, 2.47, 2.34)
 	], METAL, 0.045)
 	return tack
+
+
+static func _add_saddle_roll(parent: Node3D, node_name: String, position: Vector3, scale: Vector3) -> void:
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.5
+	mesh.height = 1.0
+	mesh.radial_segments = 20
+	mesh.rings = 10
+	var node := _add_mesh(parent, node_name, mesh, LEATHER, 0.88)
+	node.position = position
+	node.scale = scale
 
 
 static func _add_saddle_surface(parent: Node3D, node_name: String, half_width: float, half_length: float, base_y: float, centre_z: float, colour: Color, crown: float, end_raise: float) -> void:
