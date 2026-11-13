@@ -108,6 +108,9 @@ func _run() -> void:
             _check(is_equal_approx(float(simulation.campaign_journal.faction_standings.get("restore_test_faction", 0.0)), -7.0), "Campaign journal standings should be restored")
             _check(simulation.wilderness_resources.nodes.has("10,10"), "Wilderness resource depletion data should be restored")
             _check(simulation.party_member_ids.size() == 1 and simulation.party_member_ids[0] == "player", "Simulation party membership should be restored")
+            _check(simulation.campaign_journal.quest_definitions.has("hollowmere_ironbond_shakedown"), "WorldRoot should register the opening campaign quest")
+            _check(simulation.campaign_journal.quest_definitions.has("farm_wolves"), "WorldRoot should register the farm quest")
+            _check(simulation.campaign_journal.quest_definitions.has("reyna_dire_wolf_hunt"), "WorldRoot should register companion campaign quests")
 
         var party: Array = tavern.get("party_member_ids")
         _check(party.size() == 1 and party[0] == "player", "Presentation party membership should be restored")
