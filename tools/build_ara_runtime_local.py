@@ -405,12 +405,12 @@ def main():
             fishnet_bra_glb, "Halter fishnet bra straps",
             triangle_glb, "Bikini top=Triangle bikini top",
             triangle_glb, "Bikini strings*=Triangle bikini strings",
-            string_bottom_glb, "String bikini bottom",
-            string_bottom_glb, "String bikini strings",
-            lace_briefs_glb, "Lace briefs",
-            lace_briefs_glb, "Lace briefs ties",
-            fishnet_briefs_glb, "Fishnet briefs",
-            fishnet_briefs_glb, "Fishnet briefs ties",
+            string_bottom_glb, "Bikini bottom=String bikini bottom",
+            string_bottom_glb, "Bikini strings*=String bikini strings",
+            lace_briefs_glb, "Bikini bottom=Lace briefs",
+            lace_briefs_glb, "Bikini strings*=Lace briefs ties",
+            fishnet_briefs_glb, "Bikini bottom=Fishnet briefs",
+            fishnet_briefs_glb, "Bikini strings*=Fishnet briefs ties",
         ]
         run(assemble_args)
         run([blender, "--background", "--python-exit-code", "1", "--python",
