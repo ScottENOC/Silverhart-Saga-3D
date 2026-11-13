@@ -22,7 +22,7 @@ static func attach_to_horse(model_root: Node3D) -> Node3D:
 	model_root.add_child(tack)
 
 	# A shaped cloth numnah follows the back instead of sitting as a flat box.
-	_add_saddle_surface(tack, "SaddleBlanket", 0.66, 0.78, 3.53, -0.48, WOOL, 0.10, 0.035)
+	_add_saddle_surface(tack, "SaddleBlanket", 0.66, 0.78, 3.53, -0.48, WOOL, 0.10, 0.035, 0.28)
 	_add_saddle_binding(tack)
 	# The padded seat is a continuous curved surface with raised pommel and cantle.
 	_add_saddle_surface(tack, "SaddleSeat", 0.43, 0.61, 3.59, -0.48, LEATHER, 0.075, 0.095)
@@ -132,7 +132,7 @@ static func _add_saddle_roll(parent: Node3D, node_name: String, position: Vector
 	node.scale = scale
 
 
-static func _add_saddle_surface(parent: Node3D, node_name: String, half_width: float, half_length: float, base_y: float, centre_z: float, colour: Color, crown: float, end_raise: float) -> void:
+static func _add_saddle_surface(parent: Node3D, node_name: String, half_width: float, half_length: float, base_y: float, centre_z: float, colour: Color, crown: float, end_raise: float, side_drape: float = 0.0) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var across := 16
@@ -143,10 +143,10 @@ static func _add_saddle_surface(parent: Node3D, node_name: String, half_width: f
 		for xi in range(across):
 			var u0 := -1.0 + 2.0 * float(xi) / float(across)
 			var u1 := -1.0 + 2.0 * float(xi + 1) / float(across)
-			var a := _saddle_point(u0, v0, half_width, half_length, base_y, centre_z, crown, end_raise)
-			var b := _saddle_point(u1, v0, half_width, half_length, base_y, centre_z, crown, end_raise)
-			var c := _saddle_point(u1, v1, half_width, half_length, base_y, centre_z, crown, end_raise)
-			var d := _saddle_point(u0, v1, half_width, half_length, base_y, centre_z, crown, end_raise)
+			var a := _saddle_point(u0, v0, half_width, half_length, base_y, centre_z, crown, end_raise, side_drape)
+			var b := _saddle_point(u1, v0, half_width, half_length, base_y, centre_z, crown, end_raise, side_drape)
+			var c := _saddle_point(u1, v1, half_width, half_length, base_y, centre_z, crown, end_raise, side_drape)
+			var d := _saddle_point(u0, v1, half_width, half_length, base_y, centre_z, crown, end_raise, side_drape)
 			st.add_vertex(a)
 			st.add_vertex(b)
 			st.add_vertex(c)
@@ -158,10 +158,10 @@ static func _add_saddle_surface(parent: Node3D, node_name: String, half_width: f
 	_add_mesh(parent, node_name, mesh, colour, 0.9)
 
 
-static func _saddle_point(u: float, v: float, half_width: float, half_length: float, base_y: float, centre_z: float, crown: float, end_raise: float) -> Vector3:
+static func _saddle_point(u: float, v: float, half_width: float, half_length: float, base_y: float, centre_z: float, crown: float, end_raise: float, side_drape: float = 0.0) -> Vector3:
 	var taper := 0.88 + 0.12 * cos(absf(v) * PI * 0.5)
 	var x := u * half_width * taper
-	var y := base_y + crown * (1.0 - u * u) + end_raise * pow(absf(v), 3.0)
+	var y := base_y + crown * (1.0 - u * u) + end_raise * pow(absf(v), 3.0) - side_drape * pow(absf(u), 5.0)
 	return Vector3(x, y, centre_z + v * half_length)
 
 
@@ -193,11 +193,11 @@ static func _add_saddle_flap(parent: Node3D, side: float) -> void:
 static func _flap_point(side: float, u: float, v: float) -> Vector3:
 	var z := -0.48 + v * 0.62
 	var top_x := side * (0.43 + 0.10 * (1.0 - absf(v)))
-	var bottom_x := side * (0.57 + 0.04 * (1.0 - absf(v)))
+	var bottom_x := side * (0.58 + 0.06 * (1.0 - absf(v)))
 	var x := lerpf(top_x, bottom_x, u)
 	var top_y := 3.52 - 0.04 * absf(v)
-	var bottom_y := 2.58 + 0.10 * absf(v)
-	var y := lerpf(top_y, bottom_y, u) - 0.035 * sin(u * PI)
+	var bottom_y := 2.70 + 0.12 * absf(v) + 0.05 * cos(v * PI)
+	var y := lerpf(top_y, bottom_y, u) - 0.055 * sin(u * PI) + 0.025 * pow(absf(v), 2.0)
 	return Vector3(x, y, z)
 
 
