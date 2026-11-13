@@ -21,6 +21,8 @@ static func register_layout(
         return false
     if door_id.is_empty() or door_building_id != building_id or not (door_hex is Vector2i):
         return false
+    if not simulation.map_data.has_cell(door_hex):
+        return false
     if simulation.building_registry.definitions.has(building_id) or simulation.building_registry.doors.has(door_id):
         return false
 
@@ -43,6 +45,9 @@ static func register_layout(
     ):
         simulation.building_registry.definitions.erase(building_id)
         return false
+
+    var registered_door := simulation.building_registry.get_door(door_id)
+    simulation.map_data.set_walkable(door_hex, registered_door.is_passable())
 
     for cell in floor_cells:
         simulation.map_data.add_cell(
