@@ -81,14 +81,21 @@ func _run() -> void:
         var scene_root := get_tree().current_scene
         if scene_root != null:
             tavern = scene_root.get("tavern") as Node
-        if tavern != null and tavern.get("simulation") != null:
+        if scene_root != null and scene_root.get("simulation") != null and tavern != null:
             print("[SaveRestoreIntegration] HollowTankard is ready; checking restored state.")
             break
 
     _check(tavern != null, "The real campaign scene should construct HollowTankard from a pending save")
+    var scene_root := get_tree().current_scene
+    var campaign_simulation: WorldSimulation
+    if scene_root != null:
+        campaign_simulation = scene_root.get("simulation") as WorldSimulation
+    _check(campaign_simulation != null, "WorldRoot should own a live campaign simulation")
     if tavern != null:
         var simulation := tavern.get("simulation") as WorldSimulation
-        _check(simulation != null, "The restored tavern should own a live WorldSimulation")
+        _check(simulation != null, "HollowTankard should receive the shared campaign simulation")
+        _check(simulation == campaign_simulation, "HollowTankard should use WorldRoot's shared campaign simulation")
+        _check(simulation.get_parent() == scene_root, "WorldSimulation should be owned by WorldRoot, not HollowTankard")
         if simulation != null:
             var restored_player := simulation.get_character("player")
             _check(restored_player != null, "The player should exist after restoring the campaign")

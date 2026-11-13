@@ -4,6 +4,7 @@ const HOLLOWMERE_VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_villag
 const HOLLOW_TANKARD_SCRIPT = preload("res://scripts/world/hollow_tankard.gd")
 const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_creator.gd")
 
+var simulation: WorldSimulation
 var village: Node3D
 var tavern: Node3D
 var loading_layer: CanvasLayer
@@ -112,28 +113,32 @@ func _on_character_created(profile: Dictionary) -> void:
         25.0
     )
     await get_tree().process_frame
+
+    # The campaign composition root owns the shared simulation. Locations
+    # configure and present it, but do not create or own its lifecycle.
+    simulation = WorldSimulation.new()
+    simulation.name = "WorldSimulation"
+    add_child(simulation)
+
     village = HOLLOWMERE_VILLAGE_SCRIPT.new()
     village.name = "HollowmereVillage"
     add_child(village)
 
     _set_loading_stage(
         "Building the Hollow Tankard…",
-        "Creating the hex map, tavern interior, furniture, simulation and starting area.",
+        "Creating the hex map, tavern interior, furniture and starting area.",
         50.0
     )
     await get_tree().process_frame
     tavern = HOLLOW_TANKARD_SCRIPT.new()
     tavern.name = "HollowTankard"
-    tavern.set("player_profile", profile.duplicate(true))
-    tavern.set("pending_save_data", pending_save_data.duplicate(true))
+    tavern.configure_campaign(simulation, profile, pending_save_data)
     add_child(tavern)
 
-    # The exterior village is built first for presentation, while the tavern
-    # owns the single campaign simulation. Register those existing animal
-    # actors into that same simulation once both scenes are ready.
-    var campaign_simulation := tavern.get("simulation") as WorldSimulation
-    if campaign_simulation != null and village.has_method("register_animals_with_simulation"):
-        var animal_registration: Dictionary = village.call("register_animals_with_simulation", campaign_simulation)
+    # Register the village's existing animal actors into the shared campaign
+    # simulation after both location presentations have completed setup.
+    if village.has_method("register_animals_with_simulation"):
+        var animal_registration: Dictionary = village.call("register_animals_with_simulation", simulation)
         if not bool(animal_registration.get("ok", false)):
             push_warning("Some Hollowmere animals were not registered: %s" % animal_registration.get("skipped", []))
 
