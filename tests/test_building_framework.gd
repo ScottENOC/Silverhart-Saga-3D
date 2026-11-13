@@ -95,6 +95,7 @@ func _test_character_floor_relocation() -> void:
 func _test_building_layout_registration() -> void:
     var simulation = WORLD_SIM_SCRIPT.new()
     simulation.map_data.add_cell(Vector2i.ZERO, 0.0, true, "grass")
+    simulation.map_data.add_cell(Vector2i(0, 1), 0.0, true, "path")
     var building_definition := {
         "id": "test_inn",
         "name": "Test Inn",
@@ -116,8 +117,13 @@ func _test_building_layout_registration() -> void:
     assert(BUILDING_LAYOUT_REGISTRAR.register_layout(simulation, building_definition, door_definition, floors))
     assert(simulation.building_registry.get_building("test_inn").get("floor_count", 0) == 2)
     assert(not simulation.building_registry.get_door("test_inn_front").is_passable())
+    assert(not simulation.map_data.is_walkable(Vector2i(0, 1)), "A closed starting door must block its map cell.")
     assert(simulation.map_data.is_walkable(Vector2i(100, 100)))
     assert(not simulation.map_data.is_walkable(Vector2i(101, 100)))
     assert(is_equal_approx(simulation.map_data.elevation_at(Vector2i(100, 100)), 3.38))
     assert(not BUILDING_LAYOUT_REGISTRAR.register_layout(simulation, building_definition, door_definition, floors), "Duplicate building layouts must be rejected.")
+    var missing_door_cell_simulation = WORLD_SIM_SCRIPT.new()
+    assert(not BUILDING_LAYOUT_REGISTRAR.register_layout(missing_door_cell_simulation, building_definition, door_definition, floors), "A door without a registered map cell must be rejected.")
+    assert(not missing_door_cell_simulation.building_registry.definitions.has("test_inn"), "Invalid layouts must not partially register buildings.")
+    missing_door_cell_simulation.free()
     simulation.free()
