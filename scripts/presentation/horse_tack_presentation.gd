@@ -36,7 +36,7 @@ static func attach_to_horse(model_root: Node3D) -> Node3D:
     # Girth under the horse's barrel, with visible near/far stirrup leathers.
     _add_box(tack, "SaddleGirth", Vector3(1.48, 0.12, 0.16), Vector3(0.0, 2.45, 0.12), DARK_LEATHER)
     for side in [-1.0, 1.0]:
-        var x := side * 0.58
+        var x: float = float(side) * 0.58
         _add_strap(tack, "StirrupLeather%s" % str(side), Vector3(x, 3.05, 0.12), Vector3(x, 1.72, 0.12), DARK_LEATHER, 0.075)
         _add_box(tack, "Stirrup%s" % str(side), Vector3(0.10, 0.12, 0.38), Vector3(x, 1.66, 0.12), METAL)
 
