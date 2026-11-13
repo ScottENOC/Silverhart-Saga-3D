@@ -103,8 +103,9 @@ def torso_frame():
     lo = Vector(tuple(min(p[i] for p in corners) for i in range(3)))
     hi = Vector(tuple(max(p[i] for p in corners) for i in range(3)))
     height = max(hi.z - lo.z, 0.1)
-    centre = Vector(((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, lo.z + height * 0.68))
-    frame_height = height * 0.48
+    centre = Vector(((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, lo.z + height * 0.70))
+    # A tighter shoulder-to-waist crop excludes the face and most of the pelvis.
+    frame_height = height * 0.34
     return centre, height, frame_height
 
 def aim_at(obj, point):
@@ -166,8 +167,8 @@ def render_outfit(input_path, output_root, outfit, keep):
             break
     else:
         raise RuntimeError("No supported Blender render engine")
-    scene.render.resolution_x = 1024
-    scene.render.resolution_y = 1024
+    scene.render.resolution_x = 1536
+    scene.render.resolution_y = 1536
     scene.render.resolution_percentage = 100
     if scene.render.engine in {"BLENDER_EEVEE", "BLENDER_EEVEE_NEXT"}:
         scene.eevee.taa_render_samples = 16
