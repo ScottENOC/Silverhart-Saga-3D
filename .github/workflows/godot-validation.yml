@@ -117,6 +117,12 @@ jobs:
             --output saddled-horse-da86d3.glb
           file saddled-horse-da86d3.glb
           test "$(stat -c%s saddled-horse-da86d3.glb)" -gt 100000
+      - name: Upload existing Quaternius horse reference
+        uses: actions/upload-artifact@v4
+        with:
+          name: quaternius-horse-reference
+          path: art/creatures/quaternius/Horse.gltf
+          retention-days: 7
       - name: Upload source model for tack extraction
         uses: actions/upload-artifact@v4
         with:
