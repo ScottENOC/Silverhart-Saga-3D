@@ -366,6 +366,49 @@ func party_members() -> Array[CharacterState]:
             result.append(state)
     return result
 
+## Return a detached snapshot of registered character states for presentation and iteration.
+func character_states() -> Array[CharacterState]:
+    var result: Array[CharacterState] = []
+    for value in characters.values():
+        var state := value as CharacterState
+        if state != null:
+            result.append(state)
+    return result
+
+
+## Return a copy so callers cannot mutate the simulation's party registry.
+func get_party_member_ids() -> Array[String]:
+    return party_member_ids.duplicate()
+
+
+## Restore party membership while ignoring unknown IDs and duplicate entries.
+func restore_party_members(member_ids: Array) -> void:
+    party_member_ids.clear()
+    for value in member_ids:
+        var character_id := String(value)
+        if characters.has(character_id) and not party_member_ids.has(character_id):
+            party_member_ids.append(character_id)
+    if party_member_ids.is_empty() and characters.has(player_character_id):
+        party_member_ids.append(player_character_id)
+
+
+func is_hex_occupied(hex: Vector2i) -> bool:
+    return occupied_hexes.has(hex)
+
+
+func has_pending_reaction() -> bool:
+    return not pending_reaction.is_empty()
+
+
+## Clear transient combat state before a location-level save is applied.
+## This is intentionally silent: restoring a save should not emit gameplay combat events.
+func reset_transient_combat_state() -> void:
+    is_in_combat = false
+    pending_reaction.clear()
+    pending_attack_context.clear()
+    pending_move_context.clear()
+    turn_scheduler.clear()
+
 func get_character(character_id: String) -> CharacterState:
     return characters.get(character_id) as CharacterState
 

@@ -7,6 +7,7 @@ var _failures: int = 0
 func _initialize() -> void:
     _test_combat_turn_scheduler()
     _test_initiative_timeline_model()
+    _test_simulation_ownership_snapshots_and_restore()
     _test_combat_resolution()
     _test_status_effects_and_combat_debuffs()
     _test_downed_and_death_lifecycle()
@@ -123,14 +124,7 @@ func _test_initiative_timeline_model() -> void:
     neutral.side = "neutral"
     neutral.time_points = 148.0
 
-    var characters := {
-        "player": player,
-        "enemy_guard": enemy,
-        "downed_ally": downed,
-        "tavern_guest": dormant,
-        "horse": rider,
-        "villager": neutral
-    }
+    var characters: Array[CharacterState] = [player, enemy, downed, dormant, rider, neutral]
     var entries: Array[Dictionary] = INITIATIVE_MODEL.build_entries(characters, "player")
     _check(entries.size() == 3, "Initiative should include active player/enemy combatants but exclude dormant NPCs, riders and neutral bystanders")
     _check(String(entries[0]["id"]) == "enemy_guard", "Timeline should sort highest TP first")
@@ -150,8 +144,49 @@ func _test_initiative_timeline_model() -> void:
     tied_b.side = "player"
     tied_a.time_points = 100.0
     tied_b.time_points = 100.0
-    var tied := INITIATIVE_MODEL.build_entries({"ally_b": tied_b, "ally_a": tied_a})
-    _check(String(tied[0]["id"]) == "ally_a" and String(tied[1]["id"]) == "ally_b", "Equal TP display order should be stable by ID")
+    var tied: Array[CharacterState] = [tied_b, tied_a]
+    var tied_entries := INITIATIVE_MODEL.build_entries(tied)
+    _check(String(tied_entries[0]["id"]) == "ally_a" and String(tied_entries[1]["id"]) == "ally_b", "Equal TP display order should be stable by ID")
+
+func _test_simulation_ownership_snapshots_and_restore() -> void:
+    var sim := WorldSimulation.new()
+    var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+    player.side = "player"
+    var companion := CharacterState.new("companion", "Companion", Vector2i(1, 0))
+    companion.side = "player"
+    var enemy := CharacterState.new("enemy", "Enemy", Vector2i(2, 0))
+    enemy.side = "enemy"
+    sim.register_character(player)
+    sim.register_character(companion)
+    sim.register_character(enemy)
+
+    var states := sim.character_states()
+    _check(states.size() == 3, "Character-state snapshots should include all registered characters")
+    states.clear()
+    _check(sim.get_character("player") == player, "Changing a returned state array must not change the character registry")
+    _check(sim.is_hex_occupied(Vector2i(1, 0)) and not sim.is_hex_occupied(Vector2i(9, 9)), "Occupancy queries should reflect registered hexes")
+
+    sim.restore_party_members(["companion", "unknown", "companion", "player"])
+    var party_ids := sim.get_party_member_ids()
+    _check(party_ids == ["companion", "player"], "Party restore should filter unknown IDs and duplicates while preserving order")
+    party_ids.clear()
+    _check(sim.get_party_member_ids().size() == 2, "Party ID snapshots must not expose the mutable party registry")
+    sim.restore_party_members(["unknown"])
+    _check(sim.get_party_member_ids() == ["player"], "Party restore should fall back to the player when no valid IDs remain")
+
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = "player"
+    sim.pending_reaction = {"reactor_id": "player"}
+    sim.pending_attack_context = {"attacker_id": "player"}
+    sim.pending_move_context = {"mover_id": "player"}
+    _check(sim.has_pending_reaction(), "Pending reaction query should report an active reaction")
+    sim.reset_transient_combat_state()
+    _check(not sim.is_in_combat and not sim.has_pending_reaction(), "Restore reset should leave combat inactive with no pending reaction")
+    _check(sim.pending_attack_context.is_empty() and sim.pending_move_context.is_empty(), "Restore reset should clear pending action contexts")
+    _check(not sim.turn_scheduler.has_active_turn(), "Restore reset should clear the active turn")
+
+    sim.free()
+
 
 func _test_combat_resolution() -> void:
     var attacker := CharacterState.new("hero", "Hero")

@@ -29,8 +29,7 @@ static func start(simulation: WorldSimulation) -> Dictionary:
         if simulation.get_character(character_id) == null:
             return {"ok": false, "reason": "missing_combatant", "character_id": character_id}
 
-    for value in simulation.characters.values():
-        var state: CharacterState = value
+    for state in simulation.character_states():
         state.combat_dormant = true
         if state.id in COMBAT_ALLY_IDS:
             state.side = "player"

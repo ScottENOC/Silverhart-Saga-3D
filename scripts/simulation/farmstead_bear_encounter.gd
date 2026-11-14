@@ -43,8 +43,7 @@ static func start(simulation: WorldSimulation, party_ids: Array[String]) -> Dict
             valid_party.append(character_id)
     if valid_party.is_empty():
         return {"ok": false, "reason": "no_able_party_members"}
-    for character_value in simulation.characters.values():
-        var state: CharacterState = character_value
+    for state in simulation.character_states():
         state.combat_dormant = true
     for character_id in valid_party:
         var member := simulation.get_character(character_id)

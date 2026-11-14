@@ -4,10 +4,9 @@ extends RefCounted
 ## Builds the source-style initiative strip from authoritative simulation state.
 ## The model never changes TP and never chooses the next actor.
 
-static func build_entries(characters: Dictionary, current_character_id: String = "") -> Array[Dictionary]:
+static func build_entries(characters: Array[CharacterState], current_character_id: String = "") -> Array[Dictionary]:
     var entries: Array[Dictionary] = []
-    for value in characters.values():
-        var state := value as CharacterState
+    for state in characters:
         if state == null or not state.alive or state.is_rider or state.combat_dormant:
             continue
         if state.side != "player" and state.side != "enemy":

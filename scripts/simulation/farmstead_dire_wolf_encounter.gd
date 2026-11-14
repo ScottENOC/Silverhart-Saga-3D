@@ -37,11 +37,8 @@ static func start(simulation: WorldSimulation, party_ids: Array[String]) -> Dict
         if member != null and member.can_act() and not valid_party.has(character_id): valid_party.append(character_id)
     if valid_party.is_empty(): return {"ok": false, "reason": "no_able_party_members"}
     var previous_states: Dictionary = {}
-    for key in simulation.characters.keys():
-        var id := String(key)
-        var state := simulation.get_character(id)
-        if state == null: continue
-        previous_states[id] = {"side": state.side, "combat_dormant": state.combat_dormant}
+    for state in simulation.character_states():
+        previous_states[state.id] = {"side": state.side, "combat_dormant": state.combat_dormant}
         state.combat_dormant = true
     for id in valid_party:
         var member := simulation.get_character(id)

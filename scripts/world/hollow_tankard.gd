@@ -772,7 +772,7 @@ func _rescue_missing_child() -> void:
 func _begin_dire_wolf_hunt_combat() -> void:
     _close_dialogue()
     var party_ids: Array[String] = []
-    for value in simulation.party_member_ids:
+    for value in simulation.get_party_member_ids():
         party_ids.append(String(value))
     var result := FARMSTEAD_DIRE_WOLF_SCRIPT.start(simulation, party_ids)
     if not bool(result.get("ok", false)):
@@ -1193,7 +1193,7 @@ func _on_game_menu_selected(item_id: int) -> void:
             _quick_load()
 
 func _open_save_menu() -> void:
-    if simulation.is_in_combat or not simulation.pending_reaction.is_empty() or dialogue_open or (shakedown_started and not shakedown_resolved):
+    if simulation.is_in_combat or simulation.has_pending_reaction() or dialogue_open or (shakedown_started and not shakedown_resolved):
         _show_save_notice("Save unavailable during combat, dialogue or the opening confrontation.")
         return
     save_load_menu.open_for_save(_build_save_snapshot())
@@ -1202,7 +1202,7 @@ func _open_load_menu() -> void:
     save_load_menu.open_for_load()
 
 func _quick_save() -> void:
-    if simulation.is_in_combat or not simulation.pending_reaction.is_empty() or dialogue_open or (shakedown_started and not shakedown_resolved):
+    if simulation.is_in_combat or simulation.has_pending_reaction() or dialogue_open or (shakedown_started and not shakedown_resolved):
         _show_save_notice("Quick save unavailable during combat, dialogue or the opening confrontation.")
         return
     var result := SaveManager.save_quick(_build_save_snapshot())
@@ -1226,19 +1226,13 @@ func _show_save_notice(message: String) -> void:
 
 func _capture_initial_character_baselines() -> void:
     initial_character_baselines.clear()
-    for character_id_variant in simulation.characters.keys():
-        var character_id := String(character_id_variant)
-        var state := simulation.get_character(character_id)
-        if state != null:
-            initial_character_baselines[character_id] = state.to_dict()
+    for state in simulation.character_states():
+        initial_character_baselines[state.id] = state.to_dict()
 
 func _build_character_diffs() -> Dictionary:
     var diffs: Dictionary = {}
-    for character_id_variant in simulation.characters.keys():
-        var character_id := String(character_id_variant)
-        var state := simulation.get_character(character_id)
-        if state == null:
-            continue
+    for state in simulation.character_states():
+        var character_id := state.id
         var current := state.to_dict()
         if not initial_character_baselines.has(character_id):
             diffs[character_id] = {"__full_record": current}
@@ -1277,7 +1271,7 @@ func _build_save_snapshot() -> Dictionary:
         "character_diffs": _build_character_diffs(),
         "appearance_diffs": _build_appearance_diffs(),
         "party_member_ids": party_member_ids.duplicate(),
-        "simulation_party_member_ids": simulation.party_member_ids.duplicate(),
+        "simulation_party_member_ids": simulation.get_party_member_ids(),
         "active_character_id": active_character_id,
         "active_party_index": active_party_index,
         "clock": simulation.clock.to_dict(),
@@ -1300,10 +1294,7 @@ func _build_save_snapshot() -> Dictionary:
     }
 
 func _apply_save_data(data: Dictionary) -> void:
-    simulation.is_in_combat = false
-    simulation.pending_reaction.clear()
-    simulation.pending_attack_context.clear()
-    simulation.pending_move_context.clear()
+    simulation.reset_transient_combat_state()
     var restored_states: Array[CharacterState] = []
     var saved_diffs: Variant = data.get("character_diffs", {})
     if saved_diffs is Dictionary:
@@ -1345,17 +1336,15 @@ func _apply_save_data(data: Dictionary) -> void:
     party_member_ids.clear()
     for member_id in data.get("party_member_ids", ["player", "companion_wren_talbot"]):
         var id := String(member_id)
-        if simulation.characters.has(id):
+        if simulation.get_character(id) != null:
             party_member_ids.append(id)
     if party_member_ids.is_empty():
         party_member_ids.append("player")
-    simulation.party_member_ids.clear()
-    for member_id in data.get("simulation_party_member_ids", data.get("party_member_ids", ["player"])):
-        var id := String(member_id)
-        if simulation.characters.has(id):
-            simulation.party_member_ids.append(id)
-    if simulation.party_member_ids.is_empty():
-        simulation.party_member_ids.append(simulation.player_character_id)
+    var saved_simulation_party: Variant = data.get("simulation_party_member_ids", data.get("party_member_ids", ["player"]))
+    if saved_simulation_party is Array:
+        simulation.restore_party_members(saved_simulation_party)
+    else:
+        simulation.restore_party_members(["player"])
     var clock_data: Variant = data.get("clock", {})
     if clock_data is Dictionary:
         simulation.clock.load_dict(clock_data)
@@ -1656,7 +1645,7 @@ func _show_companion_dialogue(character_id: String) -> void:
         character_id,
         simulation.campaign_journal,
         player_state.inventory,
-        simulation.party_member_ids
+        simulation.get_party_member_ids()
     )
     if conversation.is_empty():
         return
@@ -1763,7 +1752,7 @@ func _move_shakedown_soldiers_inside() -> void:
         var destinations: Array[Vector2i] = [preferred_destinations[index]]
         destinations.append_array(fallback_destinations)
         for destination in destinations:
-            if not simulation.map_data.is_walkable(destination) or simulation.occupied_hexes.has(destination):
+            if not simulation.map_data.is_walkable(destination) or simulation.is_hex_occupied(destination):
                 continue
             var path := simulation.find_path(character_id, destination)
             if path.size() > 1 and (best_path.is_empty() or path.size() < best_path.size()):
@@ -1912,7 +1901,7 @@ func _begin_shakedown_combat() -> void:
     active_enemy_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.duplicate()
     active_party_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.COMBAT_ALLY_IDS.duplicate()
     active_combat_controlled_ids = HOLLOWMERE_ENCOUNTER_SCRIPT.PLAYER_CONTROLLED_IDS.duplicate()
-    for party_id_value in simulation.party_member_ids:
+    for party_id_value in simulation.get_party_member_ids():
         var party_id := String(party_id_value)
         if not active_party_ids.has(party_id):
             active_party_ids.append(party_id)
@@ -1940,11 +1929,11 @@ func _update_combat(_delta: float) -> void:
     _check_encounter_resolution()
     if not encounter_active or not simulation.is_in_combat:
         return
-    if enemy_turn_waiting_for_reaction and simulation.pending_reaction.is_empty():
+    if enemy_turn_waiting_for_reaction and not simulation.has_pending_reaction():
         enemy_turn_waiting_for_reaction = false
         simulation.try_end_current_turn(true)
         return
-    if not simulation.pending_reaction.is_empty():
+    if simulation.has_pending_reaction():
         return
     var current := simulation.get_current_turn_character()
     if current == null or enemy_turn_processed:
@@ -1975,7 +1964,7 @@ func _run_ai_combat_turn(combatant: CharacterState) -> void:
             attack_options["unarmed_skill_hit"] = natural_hit_rank > 0
             attack_options["unarmed_skill_damage"] = natural_damage_rank
         var result := simulation.try_attack_character(combatant.id, target.id, attack_options, int(combatant.id.hash()))
-        if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
+        if bool(result.get("pending", false)) or simulation.has_pending_reaction():
             enemy_turn_waiting_for_reaction = true
         else:
             simulation.try_end_current_turn(true)
@@ -1985,7 +1974,7 @@ func _run_ai_combat_turn(combatant: CharacterState) -> void:
         simulation.try_end_current_turn(true)
         return
     var moved := simulation.try_move_character_step(combatant.id, next_step)
-    if moved and not simulation.pending_reaction.is_empty():
+    if moved and simulation.has_pending_reaction():
         enemy_turn_waiting_for_reaction = true
     else:
         simulation.try_end_current_turn(true)
@@ -2011,7 +2000,7 @@ func _nearest_opponent_target(combatant: CharacterState) -> CharacterState:
 func _best_enemy_approach_step(enemy: CharacterState, target: CharacterState) -> Vector2i:
     var best_path: Array[Vector2i] = []
     for destination in HexGrid.neighbors(target.axial):
-        if not simulation.map_data.is_walkable(destination) or simulation.occupied_hexes.has(destination):
+        if not simulation.map_data.is_walkable(destination) or simulation.is_hex_occupied(destination):
             continue
         var path := simulation.find_path(enemy.id, destination)
         if path.size() < 2:
@@ -2022,7 +2011,7 @@ func _best_enemy_approach_step(enemy: CharacterState, target: CharacterState) ->
 
 
 func _attack_active_character() -> void:
-    if not encounter_active or not simulation.is_in_combat or not simulation.pending_reaction.is_empty():
+    if not encounter_active or not simulation.is_in_combat or simulation.has_pending_reaction():
         return
     var current := simulation.get_current_turn_character()
     if current == null or current.id != active_character_id or current.side != "player":
@@ -2037,7 +2026,7 @@ func _attack_active_character() -> void:
         "time_point_cost": 10.0,
         "weapon_id": weapon_id
     }, int(current.id.hash() + target.id.hash()))
-    if bool(result.get("pending", false)) or not simulation.pending_reaction.is_empty():
+    if bool(result.get("pending", false)) or simulation.has_pending_reaction():
         combat_status_label.text = "Resolving a defensive reaction..."
     elif bool(result.get("ok", false)):
         combat_status_label.text = "Attack resolved against %s." % target.display_name
@@ -2067,7 +2056,7 @@ func _nearest_enemy_in_attack_range(attacker: CharacterState) -> CharacterState:
 
 
 func _end_active_turn() -> void:
-    if not encounter_active or not simulation.is_in_combat or not simulation.pending_reaction.is_empty():
+    if not encounter_active or not simulation.is_in_combat or simulation.has_pending_reaction():
         return
     var current := simulation.get_current_turn_character()
     if current == null or current.id != active_character_id or current.side != "player":
@@ -2085,10 +2074,10 @@ func _update_combat_ui() -> void:
     if not combat_visible:
         return
     var current := simulation.get_current_turn_character()
-    var player_turn := current != null and current.side == "player" and current.id == active_character_id and current.can_act() and simulation.pending_reaction.is_empty()
+    var player_turn := current != null and current.side == "player" and current.id == active_character_id and current.can_act() and not simulation.has_pending_reaction()
     attack_button.disabled = not player_turn or _nearest_enemy_in_attack_range(current) == null
     end_turn_button.disabled = not player_turn
-    if not simulation.pending_reaction.is_empty():
+    if simulation.has_pending_reaction():
         combat_status_label.text = "Reaction pending..."
     elif current == null:
         combat_status_label.text = "Waiting for the next combat turn..."
@@ -2171,10 +2160,10 @@ func _start_farm_wolf_encounter() -> void:
     active_enemy_ids = FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.duplicate()
     active_party_ids.clear()
     active_combat_controlled_ids.clear()
-    for party_id in simulation.party_member_ids:
+    for party_id in simulation.get_party_member_ids():
         active_party_ids.append(String(party_id))
         active_combat_controlled_ids.append(String(party_id))
-    for value in simulation.characters.values():
+    for value in simulation.character_states():
         var state: CharacterState = value
         state.combat_dormant = true
         if active_party_ids.has(state.id):
@@ -2250,7 +2239,7 @@ func _active_party_defeated() -> bool:
 
 
 func _restore_active_party_after_combat() -> void:
-    for character_id in simulation.party_member_ids:
+    for character_id in simulation.get_party_member_ids():
         var member := simulation.get_character(character_id)
         if member != null:
             member.side = "player"
@@ -2402,7 +2391,7 @@ func _switch_party_member() -> void:
         character_panel.set_character(active_character_id)
 
 func _process(delta: float) -> void:
-    if not simulation.is_in_combat and simulation.pending_reaction.is_empty() and not dialogue_open and not (shakedown_started and not shakedown_resolved):
+    if not simulation.is_in_combat and not simulation.has_pending_reaction() and not dialogue_open and not (shakedown_started and not shakedown_resolved):
         autosave_accumulator += delta
         if autosave_accumulator >= 300.0:
             autosave_accumulator = 0.0
@@ -2577,7 +2566,7 @@ func _set_move_destination(destination: Vector2i) -> void:
     _show_path_markers(path)
 
 func _advance_path_step() -> void:
-    if simulation.clock.paused or not simulation.pending_reaction.is_empty():
+    if simulation.clock.paused or simulation.has_pending_reaction():
         return
     if active_path.size() < 2:
         active_path.clear()
@@ -2655,7 +2644,7 @@ func _find_valid_spawn_hex(preferred: Vector2i) -> Vector2i:
         var cell: Vector2i = key
         if not simulation.map_data.is_walkable(cell):
             continue
-        if simulation.occupied_hexes.has(cell):
+        if simulation.is_hex_occupied(cell):
             continue
         candidates.append(cell)
     candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
@@ -2725,7 +2714,7 @@ func _interact_with_nearest_door() -> bool:
     if door == null or HexGrid.distance(state.axial, door.hex) > 1:
         return false
     var should_open := not door.is_passable()
-    if not should_open and simulation.occupied_hexes.has(door.hex):
+    if not should_open and simulation.is_hex_occupied(door.hex):
         print("The doorway is occupied; move clear before closing it.")
         return true
     var changed := simulation.building_registry.set_door_open(door.id, should_open)
@@ -2792,7 +2781,7 @@ func _maybe_spawn_wilderness_creature(player_hex: Vector2i) -> void:
             continue
         if HexGrid.distance(Vector2i.ZERO, candidate) <= 35 or HollowmereVillageData.is_farm_land(candidate):
             continue
-        if not simulation.map_data.is_walkable(candidate) or simulation.occupied_hexes.has(candidate):
+        if not simulation.map_data.is_walkable(candidate) or simulation.is_hex_occupied(candidate):
             continue
         var creature := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
         creature.name = "Wilderness_%s_%d" % [kind, wilderness_creature_nodes.size() + 1]
