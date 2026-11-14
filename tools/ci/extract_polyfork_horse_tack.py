@@ -136,12 +136,30 @@ def extract(doc,binary,node_name,output,scale,offset,tint):
     print(f"{output}: {len(output.read_bytes())} bytes; {vertex_count} vertices; {bounds}; source transform={transform}")
 
 
+def log_source_mesh_bounds(doc,binary):
+    print("POLYFORK SOURCE MODEL-SPACE MESH BOUNDS:")
+    for node_index,node in enumerate(doc.get("nodes",[])):
+        if "mesh" not in node:
+            continue
+        mesh=doc["meshes"][node["mesh"]]
+        for primitive in mesh.get("primitives",[]):
+            accessor=doc["accessors"][primitive["attributes"]["POSITION"]]
+            view=doc["bufferViews"][accessor["bufferView"]]
+            start=view.get("byteOffset",0)+accessor.get("byteOffset",0)
+            count=accessor["count"]
+            values=list(struct.iter_unpack("<3f",binary[start:start+count*12]))
+            matrix=world_matrix(doc,node_index)
+            points=[transform_point(matrix,v) for v in values]
+            bounds=[[min(p[i] for p in points),max(p[i] for p in points)] for i in range(3)]
+            print("POLYFORK_MESH name=%s index=%s bounds=%s vertices=%s" % (node.get("name",""),node_index,bounds,count))
+
 def main():
     source,output=pathlib.Path(sys.argv[1]),pathlib.Path(sys.argv[2]); output.mkdir(parents=True,exist_ok=True)
     doc,binary=read_glb(source)
-    # Polyfork's tack sits too low when transferred onto the taller Quaternius horse.
-    # Both models share the same forward axis; lift the fitted pieces in model space.
-    fit_offset=(0.0,1.35,0.0)
+    # Start from unmodified source model-space coordinates; fit after comparing
+    # source and Quaternius mesh bounds in the CI diagnostics.
+    log_source_mesh_bounds(doc,binary)
+    fit_offset=(0.0,0.0,0.0)
     extract(doc,binary,"attach-saddle",output/"horse_saddle.glb",(1.0,1.0,1.0),fit_offset,[0.42,0.22,0.10,1.0])
     extract(doc,binary,"attach-bridle",output/"horse_bridle.glb",(1.0,1.0,1.0),fit_offset,[0.12,0.075,0.045,1.0])
     (output/"ATTRIBUTION.md").write_text(
