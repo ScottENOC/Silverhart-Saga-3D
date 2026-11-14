@@ -400,7 +400,7 @@ def main():
         run([blender, "--background", "--python-exit-code", "1", "--python",
              ROOT / "tools/review/render_modular_outfits.py", "--",
              underwear_fitted, underwear_review_dir,
-             "skin", "standard_bra", "standard_briefs",
+             "skin", "tank_top", "standard_bra", "standard_briefs",
              "lace_bra", "fishnet_bra", "triangle_bra",
              "string_briefs", "lace_briefs", "fishnet_briefs"], env=review_env)
 
@@ -411,7 +411,7 @@ def main():
             "female_body": female_claude.name,
             "underwear_assembled": underwear_assembled.name,
             "underwear_fitted": underwear_fitted.name,
-            "outfits": ["standard_bra", "standard_briefs", "lace_bra", "fishnet_bra", "triangle_bra", "string_briefs", "lace_briefs", "fishnet_briefs"],
+            "outfits": ["tank_top", "standard_bra", "standard_briefs", "lace_bra", "fishnet_bra", "triangle_bra", "string_briefs", "lace_briefs", "fishnet_briefs"],
         }
         (review_root / "underwear_review_report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
         return
@@ -495,7 +495,7 @@ def main():
         run([blender, "--background", "--python-exit-code", "1", "--python",
              ROOT / "tools/review/render_modular_outfits.py", "--",
              underwear_fitted, underwear_review_dir,
-             "skin", "standard_bra", "standard_briefs",
+             "skin", "tank_top", "standard_bra", "standard_briefs",
              "lace_bra", "fishnet_bra", "triangle_bra",
              "string_briefs", "lace_briefs", "fishnet_briefs"], env=review_env)
 
