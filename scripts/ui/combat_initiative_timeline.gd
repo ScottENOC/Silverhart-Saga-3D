@@ -44,7 +44,7 @@ func refresh() -> void:
 
     var current := simulation.get_current_turn_character()
     var current_id := current.id if current != null else ""
-    var entries := MODEL_SCRIPT.build_entries(simulation.characters, current_id)
+    var entries := MODEL_SCRIPT.build_entries(simulation.character_states(), current_id)
     var signature := current_id
     for entry in entries:
         var portrait := entry.get("portrait_texture") as Texture2D
