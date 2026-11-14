@@ -14,6 +14,7 @@ jobs:
   acquire:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - name: Download free Polyfork Saddled Horse GLB
         run: |
           curl --fail --location --retry 3 \
@@ -26,4 +27,10 @@ jobs:
         with:
           name: polyfork-saddled-horse-source
           path: saddled-horse-da86d3.glb
+          retention-days: 7
+      - name: Upload existing Quaternius horse reference
+        uses: actions/upload-artifact@v4
+        with:
+          name: quaternius-horse-reference
+          path: art/creatures/quaternius/Horse.gltf
           retention-days: 7
