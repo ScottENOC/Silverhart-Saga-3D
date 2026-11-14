@@ -6,6 +6,7 @@ func _initialize() -> void:
     _test_character_round_trip()
     _test_skill_catalogue_and_progression()
     _test_npc_skill_spending_and_companion_boundary()
+    _test_party_roster_ownership_and_wren_policy()
     _test_race_class_character_creation()
     _test_canonical_weapon_skill_runtime()
     _test_core_character_skill_runtime()
@@ -268,6 +269,50 @@ func _test_npc_skill_spending_and_companion_boundary() -> void:
     var civilian := CharacterState.new("civilian_test", "Civilian Test")
     var civilian_result := NPCSkillSpending.build_civilian(civilian)
     _check(bool(civilian_result.get("ok", false)) and SkillProgression.available_points(civilian) == 0, "Civilians use an explicit zero-class, zero-point progression mode")
+
+func _test_party_roster_ownership_and_wren_policy() -> void:
+    var manifest_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
+    _check(manifest_file != null, "Hollowmere NPC manifest should be available to party setup")
+    if manifest_file == null:
+        return
+    var manifest: Variant = JSON.parse_string(manifest_file.get_as_text())
+    _check(manifest is Dictionary, "Hollowmere NPC manifest should parse")
+    if not manifest is Dictionary:
+        return
+    var wren_profile: Dictionary = {}
+    for profile_value in manifest.get("characters", []):
+        if profile_value is Dictionary and String(profile_value.get("game_id", "")) == "companion_wren_talbot":
+            wren_profile = profile_value
+            break
+    var party_rules: Dictionary = wren_profile.get("party", {})
+    _check(bool(party_rules.get("starts_in_party", false)), "Wren should be explicitly configured as a starting companion")
+    _check(bool(party_rules.get("never_voluntarily_leaves", false)), "Wren should never voluntarily leave the party")
+
+    var simulation := WorldSimulation.new()
+    var player := CharacterState.new("player", "Player", Vector2i.ZERO)
+    player.side = "player"
+    simulation.register_character(player)
+    var wren := CharacterState.new("companion_wren_talbot", "Wren Talbot", Vector2i(1, 0))
+    wren.side = "player" if bool(party_rules.get("starts_in_party", false)) else "neutral"
+    wren.companion_never_voluntarily_leaves = bool(party_rules.get("never_voluntarily_leaves", false))
+    if bool(party_rules.get("starts_in_party", false)):
+        wren.companion_recruitment_initialized = true
+        wren.progression_mode = "companion"
+    simulation.register_character(wren)
+    _check(simulation.get_party_member_ids() == ["player", "companion_wren_talbot"], "Simulation should own the ordered starting party: player then Wren")
+    _check(simulation.is_party_member("companion_wren_talbot"), "Wren should start in the simulation party")
+    _check(wren.companion_recruitment_initialized and wren.progression_mode == "companion", "Starting Wren must already be treated as a recruited companion")
+    var voluntary_departure := simulation.dismiss_companion("companion_wren_talbot", false)
+    _check(not bool(voluntary_departure.get("ok", false)) and String(voluntary_departure.get("reason", "")) == "companion_will_not_voluntarily_leave", "Wren must refuse autonomous departure")
+    _check(simulation.is_party_member("companion_wren_talbot"), "A refused voluntary departure must preserve Wren's membership")
+    var saved_wren := CharacterState.from_dict(wren.to_dict())
+    _check(saved_wren.companion_never_voluntarily_leaves, "Wren's no-voluntary-departure rule must survive character save/load")
+    var player_dismissal := simulation.dismiss_companion("companion_wren_talbot", true)
+    _check(bool(player_dismissal.get("ok", false)), "The player may still choose to dismiss Wren")
+    var rejoin := simulation.recruit_companion("companion_wren_talbot")
+    _check(bool(rejoin.get("ok", false)) and String(rejoin.get("reason", "")) == "rejoined_existing_companion", "Rejoining Wren must not rerun recruitment progression")
+    _check(simulation.get_party_member_ids() == ["player", "companion_wren_talbot"], "Rejoining Wren should restore her place after the player in party order")
+    simulation.free()
 
 func _test_race_class_character_creation() -> void:
     var profile := {"name":"Aldara","race":"human","character_class":"fighter","game_mode":"campaign","campaign_id":"2","difficulty_mode":"normal","gender_presentation":"Feminine","pronouns":"she/her"}
