@@ -8,6 +8,7 @@ func _initialize() -> void:
     _test_animal_riding()
     _test_mounted_lifecycle_cleanup()
     _test_restore_detaches_stale_character_lifecycle()
+    _test_batch_restore_owns_character_lifecycle_and_occupancy()
     if _failures > 0:
         push_error("%d test assertion(s) failed." % _failures)
         quit(1)
@@ -245,3 +246,43 @@ func _test_restore_detaches_stale_character_lifecycle() -> void:
     source.free()
     restored.free()
 
+func _test_batch_restore_owns_character_lifecycle_and_occupancy() -> void:
+    var source := WorldSimulation.new()
+    var source_rider := CharacterState.new("batch_rider", "Batch Rider", Vector2i.ZERO)
+    source_rider.side = "player"
+    source_rider.skills["riding"] = 1
+    source.register_character(source_rider)
+    var source_horse := AnimalCatalog.create_state("horse", "batch_horse", "Horse", Vector2i(1, 0), 9292)
+    source_horse.combat_dormant = true
+    source.register_animal(source_horse)
+    _check(bool(source.mount_animal(source_rider.id, source_horse.id).get("ok", false)), "Batch restore fixture should mount its rider")
+    source_rider.health = 0
+    source_rider.unconscious = true
+    var saved_characters: Dictionary = source.to_dict().get("characters", {})
+
+    var target := WorldSimulation.new()
+    var stale_rider := CharacterState.new("batch_rider", "Obsolete Rider", Vector2i(10, 10))
+    stale_rider.side = "player"
+    target.register_character(stale_rider)
+    var stale_horse := AnimalCatalog.create_state("horse", "batch_horse", "Obsolete Horse", Vector2i(11, 10), 9393)
+    stale_horse.combat_dormant = true
+    target.register_animal(stale_horse)
+
+    var restored_states: Array[CharacterState] = [
+        CharacterState.from_dict(saved_characters["batch_rider"]),
+        CharacterState.from_dict(saved_characters["batch_horse"]),
+    ]
+    _check(target.restore_character_states(restored_states), "Simulation should atomically restore a valid mounted character batch")
+    var current_rider := target.get_character("batch_rider")
+    var current_horse := target.get_character("batch_horse")
+    _check(current_rider != stale_rider and current_horse != stale_horse, "Batch restore should replace the registered character instances")
+    _check(current_rider.mounted_animal_id == current_horse.id and current_horse.mounted_by_id == current_rider.id, "Batch restore should retain reciprocal mount links")
+    _check(String(target.occupied_hexes.get(current_horse.axial, "")) == current_horse.id and target.occupied_hexes.size() == 1, "Batch restore should reserve the shared mount hex only once")
+
+    # An event from the replaced rider must not act on the restored rider with the same ID.
+    stale_rider.health = 1
+    stale_rider.apply_damage(2)
+    _check(current_rider.mounted_animal_id == current_horse.id and current_horse.mounted_by_id == current_rider.id, "Replaced character lifecycle handlers must be detached")
+
+    source.free()
+    target.free()

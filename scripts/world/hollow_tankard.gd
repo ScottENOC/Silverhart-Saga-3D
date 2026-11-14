@@ -708,8 +708,9 @@ func _spawn_missing_child() -> void:
     var spawn_hex := Vector2i(27, 62)
     if existing != null:
         spawn_hex = existing.axial
-        simulation.characters.erase("missing_child_tessa")
-        simulation.occupied_hexes.erase(existing.axial)
+        if not simulation.unregister_character("missing_child_tessa"):
+            push_warning("Could not replace the existing Tessa character state safely.")
+            return
     _spawn_character("missing_child_tessa", "Tessa", spawn_hex, Color(0.35, 0.42, 0.7), false, "", {"params":{"gender":0,"hair":"short02"}})
     var actor := actor_by_id.get("missing_child_tessa") as Node3D
     if actor != null:
@@ -1303,6 +1304,7 @@ func _apply_save_data(data: Dictionary) -> void:
     simulation.pending_reaction.clear()
     simulation.pending_attack_context.clear()
     simulation.pending_move_context.clear()
+    var restored_states: Array[CharacterState] = []
     var saved_diffs: Variant = data.get("character_diffs", {})
     if saved_diffs is Dictionary:
         for character_id_variant in saved_diffs.keys():
@@ -1321,15 +1323,11 @@ func _apply_save_data(data: Dictionary) -> void:
                 var merged := existing.to_dict()
                 merged.merge(diff, true)
                 restored = CharacterState.from_dict(merged)
-            var previous := simulation.get_character(character_id)
-            simulation.characters[character_id] = restored
-            simulation._attach_character_lifecycle(restored)
-    simulation.occupied_hexes.clear()
-    for character_id_variant in simulation.characters.keys():
-        var character_id := String(character_id_variant)
-        var restored_state := simulation.get_character(character_id)
-        if restored_state != null:
-            simulation.occupied_hexes[restored_state.axial] = character_id
+            restored.id = character_id
+            restored_states.append(restored)
+    if not simulation.restore_character_states(restored_states):
+        push_error("Saved character states could not be restored without invalid occupancy or mount links.")
+        return
     var appearance_diffs: Variant = data.get("appearance_diffs", {})
     if appearance_diffs is Dictionary:
         for actor_id_variant in appearance_diffs.keys():
