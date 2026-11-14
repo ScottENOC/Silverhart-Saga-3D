@@ -1980,7 +1980,6 @@ func _attack_active_character() -> void:
     _check_encounter_resolution()
 
 
-
 func _nearest_enemy_in_attack_range(attacker: CharacterState) -> CharacterState:
     var best: CharacterState
     var best_distance := 999
