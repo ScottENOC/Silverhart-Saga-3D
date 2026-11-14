@@ -1,4 +1,4 @@
-name: Acquire reference horse tack model
+name: Acquire and fit reference horse tack model
 
 on:
   workflow_dispatch:
@@ -8,11 +8,12 @@ on:
       - ".github/workflows/horse-tack-source.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  acquire:
+  acquire-and-fit:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - name: Download free Polyfork Saddled Horse GLB
@@ -22,15 +23,45 @@ jobs:
             --output saddled-horse-da86d3.glb
           file saddled-horse-da86d3.glb
           test "$(stat -c%s saddled-horse-da86d3.glb)" -gt 100000
-      - name: Upload source model for extraction review
+      - name: Extract and fit saddle and bridle meshes
+        run: |
+          python tools/ci/extract_polyfork_horse_tack.py \
+            saddled-horse-da86d3.glb art/creatures/quaternius/tack
+      - name: Import generated GLB assets in Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Verify engine version and import project
+        run: |
+          godot --version
+          godot --headless --editor --path . --quit
+      - name: Run modular horse tack tests
+        run: godot --headless --path . --script res://tests/test_horse_tack_presentation.gd
+      - name: Capture fitted tack from front, side and rear
+        run: xvfb-run -a godot --path . --rendering-method gl_compatibility --script res://tests/capture_horse_tack_review.gd
+      - name: Upload fitted tack visual review
         uses: actions/upload-artifact@v4
         with:
-          name: polyfork-saddled-horse-source
-          path: saddled-horse-da86d3.glb
+          name: fitted-horse-tack-visual-review
+          path: horse-tack-review-*.png
           retention-days: 7
-      - name: Upload existing Quaternius horse reference
+      - name: Upload extracted modular tack assets
         uses: actions/upload-artifact@v4
         with:
-          name: quaternius-horse-reference
-          path: art/creatures/quaternius/Horse.gltf
+          name: fitted-horse-tack-assets
+          path: art/creatures/quaternius/tack/*
           retention-days: 7
+      - name: Commit fitted tack assets to feature branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add art/creatures/quaternius/tack/
+          if git diff --cached --quiet; then
+            echo "No generated tack changes to commit."
+          else
+            git commit -m "Add fitted modular horse saddle and bridle [skip ci]"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
