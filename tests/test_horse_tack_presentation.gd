@@ -11,9 +11,14 @@ func _run() -> void:
     var tack := HORSE_TACK.attach_to_horse(horse_model)
     _check(tack != null, "Horse tack should attach to a valid horse model")
     _check(tack.get_parent() == horse_model, "Tack should remain a removable child of the horse model")
-    for required_part in ["SaddleBlanket", "SaddleBlanketBinding", "SaddleSeat", "SaddlePommel", "SaddleCantle", "SaddleGirth", "StirrupLeatherLeft", "StirrupLeatherRight", "StirrupLeft", "StirrupRight", "Crownpiece", "Browband", "Noseband", "CheekpieceLeft", "CheekpieceRight", "ReinLeft", "ReinRight", "Bit"]:
-        _check(tack.get_node_or_null(required_part) != null, "Missing tack component: %s" % required_part)
+    var saddle := tack.get_node_or_null("SaddleAsset")
+    var bridle := tack.get_node_or_null("BridleAsset")
+    _check(saddle != null, "Separate saddle asset should be attached")
+    _check(bridle != null, "Separate bridle asset should be attached")
+    _check(_contains_mesh(saddle), "Saddle asset should contain imported mesh geometry")
+    _check(_contains_mesh(bridle), "Bridle asset should contain imported mesh geometry")
     var child_count := tack.get_child_count()
+    _check(child_count == 2, "Saddle and bridle should remain independently replaceable modules")
     _check(HORSE_TACK.attach_to_horse(horse_model) == tack, "Repeated attachment should reuse the existing tack node")
     _check(tack.get_child_count() == child_count, "Repeated attachment should not duplicate tack geometry")
     var null_result = HORSE_TACK.attach_to_horse(null)
@@ -27,6 +32,16 @@ func _run() -> void:
     quit(0)
 
 var failures := 0
+
+func _contains_mesh(node: Node) -> bool:
+    if node == null:
+        return false
+    if node is MeshInstance3D and node.mesh != null:
+        return true
+    for child in node.get_children():
+        if _contains_mesh(child):
+            return true
+    return false
 
 func _check(condition: bool, message: String) -> void:
     if not condition:
