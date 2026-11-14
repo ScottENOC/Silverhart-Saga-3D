@@ -6,6 +6,7 @@ on:
     branches: ["feature/horse-tack-dev2"]
     paths:
       - ".github/workflows/horse-tack-source.yml"
+      - "tools/ci/extract_polyfork_horse_tack.py"
 
 permissions:
   contents: write
@@ -23,7 +24,7 @@ jobs:
             --output saddled-horse-da86d3.glb
           file saddled-horse-da86d3.glb
           test "$(stat -c%s saddled-horse-da86d3.glb)" -gt 100000
-      - name: Extract and fit saddle and bridle meshes
+      - name: Extract source-transformed saddle and bridle meshes
         run: |
           python tools/ci/extract_polyfork_horse_tack.py \
             saddled-horse-da86d3.glb art/creatures/quaternius/tack
@@ -37,7 +38,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No generated tack changes to commit."
           else
-            git commit -m "Add fitted modular horse saddle and bridle [skip ci]"
+            git commit -m "Preserve source transforms in modular horse tack [skip ci]"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
       - name: Import generated GLB assets in Godot
