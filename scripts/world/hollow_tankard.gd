@@ -65,7 +65,6 @@ var roof_group: Node3D
 var actor_by_id: Dictionary = {}
 var starting_loadouts: Dictionary = {}
 var player_profile: Dictionary = {}
-var party_member_ids: Array[String] = ["player", "companion_wren_talbot"]
 var active_party_index: int = 0
 var active_character_id: String = "player"
 var party_switch_button: Button
@@ -861,6 +860,12 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         state = CharacterState.new(id, display_name, spawn_hex)
         _apply_starting_loadout(state)
         _apply_npc_clothing_loadout(state, npc_profile)
+        var party_rules: Dictionary = npc_profile.get("party", {})
+        state.companion_never_voluntarily_leaves = bool(party_rules.get("never_voluntarily_leaves", false))
+        if bool(party_rules.get("starts_in_party", false)):
+            state.side = "player"
+            state.companion_recruitment_initialized = true
+            state.progression_mode = "companion"
         var progression: Dictionary = npc_profile.get("progression", {})
         if not progression.is_empty():
             var class_sequence: Array[String] = []
@@ -1271,8 +1276,7 @@ func _build_save_snapshot() -> Dictionary:
         "player_profile": player_profile.duplicate(true),
         "character_diffs": _build_character_diffs(),
         "appearance_diffs": _build_appearance_diffs(),
-        "party_member_ids": party_member_ids.duplicate(),
-        "simulation_party_member_ids": simulation.get_party_member_ids(),
+        "party_member_ids": simulation.get_party_member_ids(),
         "active_character_id": active_character_id,
         "active_party_index": active_party_index,
         "clock": simulation.clock.to_dict(),
@@ -1334,18 +1338,25 @@ func _apply_save_data(data: Dictionary) -> void:
             var model := actor.get_node_or_null("CharacterModel") as AraCharacterActor
             if model != null:
                 model.apply_npc_parameters(merged_appearance)
-    party_member_ids.clear()
-    for member_id in data.get("party_member_ids", ["player", "companion_wren_talbot"]):
-        var id := String(member_id)
-        if simulation.get_character(id) != null:
-            party_member_ids.append(id)
-    if party_member_ids.is_empty():
-        party_member_ids.append("player")
-    var saved_simulation_party: Variant = data.get("simulation_party_member_ids", data.get("party_member_ids", ["player"]))
-    if saved_simulation_party is Array:
-        simulation.restore_party_members(saved_simulation_party)
-    else:
-        simulation.restore_party_members(["player"])
+    # Older saves stored both a location-side roster and a simulation roster.
+    # Prefer the former for historical party ordering, then retain any members
+    # present only in the simulation snapshot. New saves write one canonical list.
+    var restored_party_ids: Array[String] = []
+    var legacy_location_party: Variant = data.get("party_member_ids", null)
+    var legacy_simulation_party: Variant = data.get("simulation_party_member_ids", null)
+    if legacy_location_party is Array:
+        for member_id in legacy_location_party:
+            var id := String(member_id)
+            if not restored_party_ids.has(id):
+                restored_party_ids.append(id)
+    if legacy_simulation_party is Array:
+        for member_id in legacy_simulation_party:
+            var id := String(member_id)
+            if not restored_party_ids.has(id):
+                restored_party_ids.append(id)
+    if restored_party_ids.is_empty():
+        restored_party_ids = ["player", "companion_wren_talbot"]
+    simulation.restore_party_members(restored_party_ids)
     var clock_data: Variant = data.get("clock", {})
     if clock_data is Dictionary:
         simulation.clock.load_dict(clock_data)
@@ -1370,9 +1381,10 @@ func _apply_save_data(data: Dictionary) -> void:
     farm_wolves_retry_armed = bool(flags.get("farm_wolves_retry_armed", false))
     wilderness_steps_since_spawn = int(flags.get("wilderness_steps_since_spawn", 0))
     active_character_id = String(data.get("active_character_id", "player"))
-    if simulation.get_character(active_character_id) == null:
-        active_character_id = "player"
-    active_party_index = clampi(int(data.get("active_party_index", 0)), 0, maxi(0, party_member_ids.size() - 1))
+    var restored_party := simulation.get_party_member_ids()
+    if not restored_party.has(active_character_id):
+        active_character_id = restored_party[0] if not restored_party.is_empty() else "player"
+    active_party_index = maxi(0, restored_party.find(active_character_id))
     if party_switch_button != null:
         var active_state := simulation.get_character(active_character_id)
         var active_name := "You" if active_character_id == "player" else (active_state.display_name if active_state != null else active_character_id)
@@ -1683,8 +1695,6 @@ func _recruit_staged_companion(character_id: String) -> void:
     state.side = "player"
     state.combat_dormant = false
     state.time_points = 100.0
-    if not party_member_ids.has(character_id):
-        party_member_ids.append(character_id)
     var actor := actor_by_id.get(character_id) as Node3D
     if actor != null:
         actor.set_meta("ambient_enabled", false)
@@ -2313,12 +2323,14 @@ func _on_camera_zoom_changed(value: float) -> void:
         zoom_slider.set_value_no_signal(value)
 
 func _switch_party_member() -> void:
-    if party_member_ids.is_empty():
+    var party_ids := simulation.get_party_member_ids()
+    if party_ids.is_empty():
         return
     active_path.clear()
     _clear_path_markers()
-    active_party_index = (active_party_index + 1) % party_member_ids.size()
-    active_character_id = party_member_ids[active_party_index]
+    var current_index := party_ids.find(active_character_id)
+    active_party_index = (current_index + 1) % party_ids.size()
+    active_character_id = party_ids[active_party_index]
     var target: Node3D = actor_by_id.get(active_character_id) as Node3D
     if target != null:
         camera_rig.follow_target = target
