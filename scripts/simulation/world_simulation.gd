@@ -501,6 +501,11 @@ func _attach_character_lifecycle(state: CharacterState) -> void:
     if not state.lifecycle_changed.is_connected(_on_character_lifecycle_changed):
         state.lifecycle_changed.connect(_on_character_lifecycle_changed)
 
+
+func _detach_character_lifecycle(state: CharacterState) -> void:
+    if state != null and state.lifecycle_changed.is_connected(_on_character_lifecycle_changed):
+        state.lifecycle_changed.disconnect(_on_character_lifecycle_changed)
+
 func _on_character_lifecycle_changed(character_id: String, transition: String) -> void:
     var state := get_character(character_id)
     if state == null:
@@ -1151,6 +1156,11 @@ func to_dict() -> Dictionary:
     }
 
 func load_dict(data: Dictionary) -> void:
+    # CharacterState objects can outlive a restore through references held by
+    # presentation or campaign code. Detach them before replacing the registry
+    # so stale lifecycle events cannot act on restored characters with the same ID.
+    for value in characters.values():
+        _detach_character_lifecycle(value as CharacterState)
     characters.clear()
     occupied_hexes.clear()
     party_member_ids.clear()

@@ -7,6 +7,7 @@ func _initialize() -> void:
     _test_animal_world_registration()
     _test_animal_riding()
     _test_mounted_lifecycle_cleanup()
+    _test_restore_detaches_stale_character_lifecycle()
     if _failures > 0:
         push_error("%d test assertion(s) failed." % _failures)
         quit(1)
@@ -210,3 +211,37 @@ func _test_mounted_lifecycle_cleanup() -> void:
     _check(doomed_rider.mounted_animal_id.is_empty() and second_horse.mounted_by_id.is_empty(), "A dead rider must be detached from the mount")
     _check(not second_horse.is_rider and second_horse.side == "neutral" and second_horse.combat_dormant, "Mount must return to its original world state when its rider dies")
     rider_simulation.free()
+func _test_restore_detaches_stale_character_lifecycle() -> void:
+    var source := WorldSimulation.new()
+    var source_rider := CharacterState.new("restored_rider", "Restored Rider", Vector2i.ZERO)
+    source_rider.side = "player"
+    source_rider.skills["riding"] = 1
+    source.register_character(source_rider)
+    var source_horse := AnimalCatalog.create_state("horse", "restored_horse", "Horse", Vector2i(1, 0), 9191)
+    source_horse.combat_dormant = true
+    source.register_animal(source_horse)
+    _check(bool(source.mount_animal(source_rider.id, source_horse.id).get("ok", false)), "Save fixture should mount its rider")
+    # Model a save made while the mounted rider is already downed. Avoid
+    # emitting a lifecycle signal in the source simulation.
+    source_rider.health = 0
+    source_rider.unconscious = true
+    var saved := source.to_dict()
+
+    var restored := WorldSimulation.new()
+    var stale_rider := CharacterState.new("restored_rider", "Obsolete Rider", Vector2i(10, 10))
+    restored.register_character(stale_rider)
+    restored.load_dict(saved)
+    var current_rider := restored.get_character("restored_rider")
+    var current_horse := restored.get_character("restored_horse")
+    _check(current_rider != stale_rider, "Restore should replace the registered CharacterState instance")
+    _check(current_rider.unconscious and current_rider.mounted_animal_id == current_horse.id, "Restored downed rider should retain its saved mount relationship")
+
+    # This event belongs to an obsolete object. It must not trigger lifecycle
+    # handling against the newly restored rider with the same stable ID.
+    stale_rider.health = 1
+    stale_rider.apply_damage(2)
+    _check(current_rider.mounted_animal_id == current_horse.id and current_horse.mounted_by_id == current_rider.id, "Stale lifecycle events must not dismount restored characters")
+
+    source.free()
+    restored.free()
+
