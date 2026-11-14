@@ -21,6 +21,7 @@ GARMENTS = {
 OUTFITS = {
     "skin": set(),
     "standard_bra": {"Bra"},
+    "tank_top": {"Tank top"},
     "standard_briefs": {"Briefs"},
     "triangle_bra": {"Triangle bikini top", "Triangle bikini strings"},
     "string_briefs": {"String bikini bottom", "String bikini strings"},

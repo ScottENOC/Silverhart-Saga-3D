@@ -364,7 +364,7 @@ def main():
                  "--adult", "--method", "integrated", "--deformation-scale", "1.65"], env=review_env)
 
         underwear_keys = (
-            "ara_person_benchmark", "ara_person_halter_bra_lace",
+            "ara_person_benchmark", "ara_person_tank_top", "ara_person_halter_bra_lace",
             "ara_person_halter_bra_fishnet", "ara_person_triangle_bikini_top",
             "ara_person_string_bikini_bottom", "ara_person_lace_briefs",
             "ara_person_fishnet_briefs",
@@ -379,6 +379,7 @@ def main():
             female_claude, underwear_assembled,
             RAW / "ara_person_benchmark.glb", "Bra",
             RAW / "ara_person_benchmark.glb", "Briefs",
+            RAW / "ara_person_tank_top.glb", "Tank top",
             RAW / "ara_person_halter_bra_lace.glb", "Halter lace bra",
             RAW / "ara_person_halter_bra_fishnet.glb", "Halter fishnet bra",
             RAW / "ara_person_triangle_bikini_top.glb", "Bikini top=Triangle bikini top",
