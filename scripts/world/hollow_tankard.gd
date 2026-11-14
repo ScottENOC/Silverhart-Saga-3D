@@ -18,6 +18,7 @@ const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_ca
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
+const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const TAVERN_BUILDING_ID := "hollow_tankard"
@@ -1946,68 +1947,12 @@ func _update_combat(_delta: float) -> void:
 
 
 func _run_ai_combat_turn(combatant: CharacterState) -> void:
-    var target := _nearest_opponent_target(combatant)
-    if target == null:
-        simulation.try_end_current_turn(true)
-        return
-    if HexGrid.distance(combatant.axial, target.axial) <= _attack_range_for(combatant):
-        var weapon_id := String(combatant.equipment.get("weapon", ""))
-        var weapon: Dictionary = combatant.equipped_item_data.get("weapon", {})
-        var attack_options := {
-            "time_point_cost": 10.0,
-            "weapon_id": weapon_id,
-            "is_ranged": String(weapon.get("subType", "")) == "ranged"
-        }
-        if combatant.race == "bear" or combatant.tags.has("farm_quest_wolf") or combatant.tags.has("dire_wolf"):
-            var natural_hit_rank := int(combatant.skills.get("bite_hit", combatant.skills.get("claw_hit", 0)))
-            var natural_damage_rank := int(combatant.skills.get("bite_dmg", combatant.skills.get("claw_dmg", 0)))
-            attack_options["unarmed_skill_hit"] = natural_hit_rank > 0
-            attack_options["unarmed_skill_damage"] = natural_damage_rank
-        var result := simulation.try_attack_character(combatant.id, target.id, attack_options, int(combatant.id.hash()))
-        if bool(result.get("pending", false)) or simulation.has_pending_reaction():
-            enemy_turn_waiting_for_reaction = true
-        else:
-            simulation.try_end_current_turn(true)
-        return
-    var next_step := _best_enemy_approach_step(combatant, target)
-    if next_step == INVALID_HEX:
-        simulation.try_end_current_turn(true)
-        return
-    var moved := simulation.try_move_character_step(combatant.id, next_step)
-    if moved and simulation.has_pending_reaction():
-        enemy_turn_waiting_for_reaction = true
-    else:
-        simulation.try_end_current_turn(true)
-
-
-func _nearest_opponent_target(combatant: CharacterState) -> CharacterState:
-    var best: CharacterState
-    var best_distance := 999
-    var opponent_ids: Array[String] = active_enemy_ids
-    if combatant.side == "enemy":
-        opponent_ids = active_party_ids
-    for opponent_id in opponent_ids:
-        var opponent := simulation.get_character(opponent_id)
-        if opponent == null or not opponent.can_act():
-            continue
-        var distance := HexGrid.distance(combatant.axial, opponent.axial)
-        if distance < best_distance:
-            best_distance = distance
-            best = opponent
-    return best
-
-
-func _best_enemy_approach_step(enemy: CharacterState, target: CharacterState) -> Vector2i:
-    var best_path: Array[Vector2i] = []
-    for destination in HexGrid.neighbors(target.axial):
-        if not simulation.map_data.is_walkable(destination) or simulation.is_hex_occupied(destination):
-            continue
-        var path := simulation.find_path(enemy.id, destination)
-        if path.size() < 2:
-            continue
-        if best_path.is_empty() or path.size() < best_path.size():
-            best_path = path
-    return best_path[1] if best_path.size() > 1 else INVALID_HEX
+    enemy_turn_waiting_for_reaction = COMBAT_AI_SCRIPT.take_turn(
+        simulation,
+        combatant,
+        active_enemy_ids,
+        active_party_ids
+    )
 
 
 func _attack_active_character() -> void:
@@ -2035,11 +1980,6 @@ func _attack_active_character() -> void:
     _check_encounter_resolution()
 
 
-func _attack_range_for(attacker: CharacterState) -> int:
-    if attacker == null:
-        return 1
-    var weapon: Dictionary = attacker.equipped_item_data.get("weapon", {})
-    return maxi(1, 1 + int(weapon.get("range", 0)))
 
 func _nearest_enemy_in_attack_range(attacker: CharacterState) -> CharacterState:
     var best: CharacterState
@@ -2049,7 +1989,7 @@ func _nearest_enemy_in_attack_range(attacker: CharacterState) -> CharacterState:
         if enemy == null or not enemy.can_act():
             continue
         var distance := HexGrid.distance(attacker.axial, enemy.axial)
-        if distance <= _attack_range_for(attacker) and distance < best_distance:
+        if distance <= COMBAT_AI_SCRIPT.attack_range_for(attacker) and distance < best_distance:
             best_distance = distance
             best = enemy
     return best
