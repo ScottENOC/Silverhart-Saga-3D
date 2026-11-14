@@ -1645,7 +1645,7 @@ func _show_companion_dialogue(character_id: String) -> void:
         character_id,
         simulation.campaign_journal,
         player_state.inventory,
-        simulation.party_member_ids
+        simulation.get_party_member_ids()
     )
     if conversation.is_empty():
         return
