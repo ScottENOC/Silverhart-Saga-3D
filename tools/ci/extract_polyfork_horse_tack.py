@@ -139,10 +139,11 @@ def extract(doc,binary,node_name,output,scale,offset,tint):
 def main():
     source,output=pathlib.Path(sys.argv[1]),pathlib.Path(sys.argv[2]); output.mkdir(parents=True,exist_ok=True)
     doc,binary=read_glb(source)
-    # Keep source-authored relative placement; apply only a modest uniform fit
-    # adjustment pending the next visual review. No arbitrary vertical/forward offset.
-    extract(doc,binary,"attach-saddle",output/"horse_saddle.glb",(1.0,1.0,1.0),(0.0,0.0,0.0),[0.42,0.22,0.10,1.0])
-    extract(doc,binary,"attach-bridle",output/"horse_bridle.glb",(1.0,1.0,1.0),(0.0,0.0,0.0),[0.12,0.075,0.045,1.0])
+    # Polyfork's tack sits too low when transferred onto the taller Quaternius horse.
+    # Both models share the same forward axis; lift the fitted pieces in model space.
+    fit_offset=(0.0,1.35,0.0)
+    extract(doc,binary,"attach-saddle",output/"horse_saddle.glb",(1.0,1.0,1.0),fit_offset,[0.42,0.22,0.10,1.0])
+    extract(doc,binary,"attach-bridle",output/"horse_bridle.glb",(1.0,1.0,1.0),fit_offset,[0.12,0.075,0.045,1.0])
     (output/"ATTRIBUTION.md").write_text(
         "# Horse tack mesh attribution\n\nExtracted and modified from **Saddled Horse** by Polyfork: https://polyfork.dev/asset/saddled-horse-da86d3\n\n"
         "Licensed under **Creative Commons Attribution 4.0 International (CC BY 4.0)**: https://creativecommons.org/licenses/by/4.0/\n\n"
