@@ -1323,8 +1323,7 @@ func _apply_save_data(data: Dictionary) -> void:
                 var merged := existing.to_dict()
                 merged.merge(diff, true)
                 restored = CharacterState.from_dict(merged)
-            if restored.id.is_empty():
-                restored.id = character_id
+            restored.id = character_id
             restored_states.append(restored)
     if not simulation.restore_character_states(restored_states):
         push_error("Saved character states could not be restored without invalid occupancy or mount links.")
