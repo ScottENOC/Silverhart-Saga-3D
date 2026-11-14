@@ -1,6 +1,7 @@
 extends SceneTree
 
 const INITIATIVE_MODEL = preload("res://scripts/ui/combat_initiative_model.gd")
+const COMBAT_AI = preload("res://scripts/simulation/combat_ai.gd")
 
 var _failures: int = 0
 
@@ -8,6 +9,7 @@ func _initialize() -> void:
     _test_combat_turn_scheduler()
     _test_initiative_timeline_model()
     _test_simulation_ownership_snapshots_and_restore()
+    _test_combat_ai_decisions()
     _test_combat_resolution()
     _test_status_effects_and_combat_debuffs()
     _test_downed_and_death_lifecycle()
@@ -705,4 +707,47 @@ func _test_incapacitated_turn_cleanup() -> void:
     sim.turn_scheduler.current_character_id = "actor"
     actor.apply_damage(150)
     _check(not sim.turn_scheduler.has_active_turn(), "An incapacitated active combatant must relinquish their turn")
+    sim.free()
+
+
+func _test_combat_ai_decisions() -> void:
+    var sim := WorldSimulation.new()
+    var enemy := CharacterState.new("enemy", "Enemy", Vector2i.ZERO)
+    enemy.side = "enemy"
+    var player := CharacterState.new("player", "Player", Vector2i(3, 0))
+    player.side = "player"
+    var companion := CharacterState.new("companion", "Companion", Vector2i(2, 0))
+    companion.side = "player"
+    var downed := CharacterState.new("downed", "Downed", Vector2i(1, 0))
+    downed.side = "player"
+    downed.unconscious = true
+    sim.register_character(enemy)
+    sim.register_character(player)
+    sim.register_character(companion)
+    sim.register_character(downed)
+
+    var party_ids: Array[String] = ["player", "companion", "downed"]
+    var enemy_ids: Array[String] = ["enemy"]
+    _check(COMBAT_AI.nearest_opponent_target(sim, enemy, enemy_ids, party_ids) == companion, "Enemy AI should target the nearest active party member")
+    _check(COMBAT_AI.nearest_opponent_target(sim, player, enemy_ids, party_ids) == enemy, "Player-side AI should target the configured enemy list")
+
+    for q in range(-1, 5):
+        for r in range(-2, 3):
+            sim.map_data.add_cell(Vector2i(q, r))
+    var approach := COMBAT_AI.best_approach_step(sim, enemy, player)
+    _check(approach != COMBAT_AI.INVALID_HEX, "Enemy AI should find a walkable approach step when a route exists")
+    _check(HexGrid.distance(enemy.axial, approach) == 1, "Enemy AI approach result should be the first adjacent movement step")
+    _check(sim.map_data.is_walkable(approach) and not sim.is_hex_occupied(approach), "Enemy AI should not approach through an occupied or blocked hex")
+
+    enemy.race = "bear"
+    enemy.equipment["weapon"] = "claws"
+    enemy.equipped_item_data["weapon"] = {"subType": "ranged", "range": 2}
+    enemy.skills["bite_hit"] = 3
+    enemy.skills["bite_dmg"] = 4
+    var attack_options := COMBAT_AI.attack_options_for(enemy)
+    _check(COMBAT_AI.attack_range_for(enemy) == 3, "AI attack range should use the equipped weapon range")
+    _check(String(attack_options.get("weapon_id", "")) == "claws", "AI attack options should preserve the equipped weapon ID")
+    _check(bool(attack_options.get("is_ranged", false)), "AI attack options should identify ranged weapons")
+    _check(bool(attack_options.get("unarmed_skill_hit", false)), "Creature AI should enable its natural hit skill")
+    _check(int(attack_options.get("unarmed_skill_damage", 0)) == 4, "Creature AI should pass its natural damage rank")
     sim.free()
