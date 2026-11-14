@@ -93,7 +93,7 @@ def extract(doc,binary,node_name,output,scale,offset,tint):
     transform=matmul(world_matrix(doc,node_index),node_matrix(mesh_node))
     packed,views,accessors=bytearray(),[],[]
     vertex_count=0
-    for semantic in ("POSITION","COLOR_0","NORMAL"):
+    for semantic in ("POSITION","NORMAL","COLOR_0"):
         if semantic not in attrs:
             if semantic=="COLOR_0":
                 continue
