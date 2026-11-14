@@ -349,7 +349,7 @@ func recruit_companion(character_id: String, preferred_skills: Dictionary = {}, 
     return result
 
 ## Leaving the active party never deletes or rebuilds the character's progression state.
-func dismiss_companion(character_id: String, player_initiated: bool = true) -> Dictionary:
+func dismiss_companion(character_id: String, player_initiated: bool = false) -> Dictionary:
     if character_id == player_character_id:
         return {"ok": false, "reason": "cannot_dismiss_player"}
     var state := get_character(character_id)
