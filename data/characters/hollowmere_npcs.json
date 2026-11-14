@@ -73,6 +73,10 @@
         "speechShapes": false,
         "expression": "neutral",
         "hairColor": "#252b62"
+      },
+      "party": {
+        "starts_in_party": true,
+        "never_voluntarily_leaves": true
       }
     },
     {
