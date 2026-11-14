@@ -21,6 +21,13 @@ def edit(path, replacements):
         ):
             continue
         if old not in source:
+            # The Ara export cache may contain our appended shell-based bra
+            # catalogue entries from an earlier run. Treat that as already
+            # patched instead of requiring the original end-of-catalogue anchor.
+            if path == "src/core/garments/catalog.ts" and old.startswith("  SLIDES,"):
+                required = ("id: 'bra'", "id: 'halter_bra_lace'", "id: 'halter_bra_fishnet'")
+                if all(item in source for item in required):
+                    continue
             # Accept an already-applied replacement, including when
             # subsequent patches have extended the replacement further.
             if new in source:
