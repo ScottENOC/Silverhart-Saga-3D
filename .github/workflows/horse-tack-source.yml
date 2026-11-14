@@ -1,0 +1,29 @@
+name: Acquire reference horse tack model
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["feature/horse-tack-dev2"]
+    paths:
+      - ".github/workflows/horse-tack-source.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  acquire:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download free Polyfork Saddled Horse GLB
+        run: |
+          curl --fail --location --retry 3 \
+            https://polyfork.dev/dl/saddled-horse-da86d3.glb \
+            --output saddled-horse-da86d3.glb
+          file saddled-horse-da86d3.glb
+          test "$(stat -c%s saddled-horse-da86d3.glb)" -gt 100000
+      - name: Upload source model for extraction review
+        uses: actions/upload-artifact@v4
+        with:
+          name: polyfork-saddled-horse-source
+          path: saddled-horse-da86d3.glb
+          retention-days: 7
