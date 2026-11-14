@@ -96,6 +96,67 @@ func register_character(state: CharacterState) -> void:
     _attach_character_lifecycle(state)
 
 
+## Replace or add a batch of restored states while preserving registry ownership.
+## The batch is validated as a whole so mounted pairs and shared occupancy remain consistent.
+func restore_character_states(states: Array[CharacterState]) -> bool:
+    var candidate_characters: Dictionary = characters.duplicate()
+    var replacement_ids: Dictionary = {}
+    for state in states:
+        if state == null or state.id.is_empty() or replacement_ids.has(state.id):
+            return false
+        replacement_ids[state.id] = true
+        candidate_characters[state.id] = state
+
+    var rebuilt_occupancy: Dictionary = {}
+    for character_id_value in candidate_characters.keys():
+        var character_id := String(character_id_value)
+        var state := candidate_characters[character_id_value] as CharacterState
+        if state == null:
+            return false
+        if not state.mounted_animal_id.is_empty():
+            var mount := candidate_characters.get(state.mounted_animal_id) as CharacterState
+            if mount == null or mount.mounted_by_id != state.id:
+                return false
+        if not state.mounted_by_id.is_empty():
+            var rider := candidate_characters.get(state.mounted_by_id) as CharacterState
+            if rider == null or rider.mounted_animal_id != state.id:
+                return false
+        # A mounted rider shares the mount's hex and must not reserve it twice.
+        if not state.mounted_animal_id.is_empty():
+            continue
+        if rebuilt_occupancy.has(state.axial):
+            return false
+        rebuilt_occupancy[state.axial] = state.id
+
+    for character_id_value in replacement_ids.keys():
+        var character_id := String(character_id_value)
+        var previous := get_character(character_id)
+        if previous != null:
+            _detach_character_lifecycle(previous)
+        var restored := candidate_characters[character_id] as CharacterState
+        characters[character_id] = restored
+        _attach_character_lifecycle(restored)
+
+    occupied_hexes.clear()
+    for hex in rebuilt_occupancy:
+        occupied_hexes[hex] = rebuilt_occupancy[hex]
+    return true
+
+
+## Remove a character through the simulation so listeners and occupancy are released.
+## Mounted participants must be dismounted before they can be removed.
+func unregister_character(character_id: String) -> bool:
+    var state := get_character(character_id)
+    if state == null or not state.mounted_animal_id.is_empty() or not state.mounted_by_id.is_empty():
+        return false
+    _detach_character_lifecycle(state)
+    characters.erase(character_id)
+    if String(occupied_hexes.get(state.axial, "")) == character_id:
+        occupied_hexes.erase(state.axial)
+    party_member_ids.erase(character_id)
+    return true
+
+
 ## Register an animal through the same character, occupancy, lifecycle and save path.
 func register_animal(state: CharacterState) -> Dictionary:
     if state == null:
