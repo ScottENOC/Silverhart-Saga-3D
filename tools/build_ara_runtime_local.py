@@ -863,7 +863,7 @@ def main():
           anatomy_review_action)
 
     outfit_script=ROOT/"tools/review/render_modular_outfits.py"
-    for outfit in ["dress","lace_bra","fishnet_bra","lace_briefs","fishnet_briefs","lace_shirt","fishnet_shirt","lace_pants","fishnet_pants"]:
+    for outfit in ["tank_top","standard_bra","triangle_bra","lace_bra","fishnet_bra","dress","lace_briefs","fishnet_briefs","lace_shirt","fishnet_shirt","lace_pants","fishnet_pants"]:
         outputs=[review_root/"outfits"/outfit/f"{view}.png" for view in ["front","side","rear"]]+[review_root/"outfits"/outfit/"report.json"]
         def render_action(outfit=outfit):
             outdir=review_root/"outfits"
