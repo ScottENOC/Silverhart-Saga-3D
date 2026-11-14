@@ -20,8 +20,8 @@ def read_glb(path: pathlib.Path):
         chunk = data[offset:offset + length]
         offset += length
         if kind == b"JSON":
-            doc = json.loads(chunk.rstrip(b" \\t\\r\\n\\0"))
-        elif kind == b"BIN\\0":
+            doc = json.loads(chunk.rstrip(b" \t\r\n\0"))
+        elif kind == b"BIN\0":
             binary = chunk
     if doc is None or binary is None:
         raise ValueError("GLB is missing JSON or BIN chunk")
@@ -83,11 +83,11 @@ def extract(doc, binary, node_name, output, scale, offset):
     json_chunk = json.dumps(out_doc, separators=(",", ":")).encode()
     json_chunk += b" " * ((4-len(json_chunk)%4)%4)
     bin_chunk = bytes(packed)
-    bin_chunk += b"\\0" * ((4-len(bin_chunk)%4)%4)
+    bin_chunk += b"\0" * ((4-len(bin_chunk)%4)%4)
     total = 12 + 8 + len(json_chunk) + 8 + len(bin_chunk)
     output.write_bytes(struct.pack("<4sII", b"glTF", 2, total) +
                        struct.pack("<I4s", len(json_chunk), b"JSON") + json_chunk +
-                       struct.pack("<I4s", len(bin_chunk), b"BIN\\0") + bin_chunk)
+                       struct.pack("<I4s", len(bin_chunk), b"BIN\0") + bin_chunk)
     print(f"{output}: {len(output.read_bytes())} bytes; {count} vertices; {bounds}")
 
 
@@ -101,14 +101,14 @@ def main():
     extract(doc, binary, "attach-bridle", output/"horse_bridle.glb",
             (1.15, 1.15, 1.15), (0.0, 2.10, 2.10))
     (output/"ATTRIBUTION.md").write_text(
-        "# Horse tack mesh attribution\\n\\n"
+        "# Horse tack mesh attribution\n\n"
         "Extracted and modified from **Saddled Horse** by Polyfork: "
-        "https://polyfork.dev/asset/saddled-horse-da86d3\\n\\n"
+        "https://polyfork.dev/asset/saddled-horse-da86d3\n\n"
         "Licensed under **Creative Commons Attribution 4.0 International "
-        "(CC BY 4.0)**: https://creativecommons.org/licenses/by/4.0/\\n\\n"
+        "(CC BY 4.0)**: https://creativecommons.org/licenses/by/4.0/\n\n"
         "Changes: extracted the named saddle and bridle meshes, removed source "
         "rig weights, retained vertex colours and normals, and applied separate "
-        "fitting transforms for Silverhart's Quaternius horse.\\n",
+        "fitting transforms for Silverhart's Quaternius horse.\n",
         encoding="utf-8")
 
 
