@@ -21,6 +21,8 @@ var skill_point_grants: Dictionary = {}
 var skill_progression_initialized: bool = false
 ## Companion recruitment is a one-time automatic allocation boundary.
 var companion_recruitment_initialized: bool = false
+## Some companions will never voluntarily abandon the party, though the player may dismiss them.
+var companion_never_voluntarily_leaves: bool = false
 var progression_mode: String = "player"
 var class_level_sequence: Array[String] = []
 var npc_preferred_skills: Dictionary = {}
@@ -322,6 +324,7 @@ func to_dict() -> Dictionary:
         "skill_point_grants": skill_point_grants.duplicate(true),
         "skill_progression_initialized": skill_progression_initialized,
         "companion_recruitment_initialized": companion_recruitment_initialized,
+        "companion_never_voluntarily_leaves": companion_never_voluntarily_leaves,
         "progression_mode": progression_mode,
         "class_level_sequence": class_level_sequence.duplicate(),
         "npc_preferred_skills": npc_preferred_skills.duplicate(true),
@@ -429,6 +432,7 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.skill_point_grants = data.get("skill_point_grants", {}).duplicate(true)
     state.skill_progression_initialized = bool(data.get("skill_progression_initialized", false))
     state.companion_recruitment_initialized = bool(data.get("companion_recruitment_initialized", false))
+    state.companion_never_voluntarily_leaves = bool(data.get("companion_never_voluntarily_leaves", false))
     state.progression_mode = String(data.get("progression_mode", "player"))
     for class_id in data.get("class_level_sequence", []):
         state.class_level_sequence.append(String(class_id))
