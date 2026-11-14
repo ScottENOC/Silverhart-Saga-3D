@@ -13,6 +13,26 @@ const OUTPUTS := [
 func _initialize() -> void:
     call_deferred("_capture")
 
+func _log_mesh_bounds(node: Node, model_root: Node3D) -> void:
+    if node is MeshInstance3D and node.mesh != null:
+        var mesh_instance := node as MeshInstance3D
+        var local_bounds: AABB = mesh_instance.get_aabb()
+        var model_transform := model_root.global_transform.affine_inverse() * mesh_instance.global_transform
+        var model_bounds := AABB()
+        var first := true
+        for x in [local_bounds.position.x, local_bounds.end.x]:
+            for y in [local_bounds.position.y, local_bounds.end.y]:
+                for z in [local_bounds.position.z, local_bounds.end.z]:
+                    var point := model_transform * Vector3(x, y, z)
+                    if first:
+                        model_bounds = AABB(point, Vector3.ZERO)
+                        first = false
+                    else:
+                        model_bounds = model_bounds.expand(point)
+        print("HORSE_MESH_BOUNDS path=%s model_bounds=%s" % [model_root.get_path_to(mesh_instance), model_bounds])
+    for child in node.get_children():
+        _log_mesh_bounds(child, model_root)
+
 func _capture() -> void:
     root.size = Vector2i(1800, 1100)
     DisplayServer.window_set_size(Vector2i(1800, 1100))
@@ -77,6 +97,8 @@ func _capture() -> void:
         push_error("HorseTack was not attached to the imported horse model")
         quit(1)
         return
+    print("HORSE MODEL SPACE DIAGNOSTICS (unscaled imported model):")
+    _log_mesh_bounds(horse.model_root, horse.model_root)
 
     for view in OUTPUTS:
         camera.position = view.camera
