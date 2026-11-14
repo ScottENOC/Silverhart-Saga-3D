@@ -751,3 +751,14 @@ func _test_combat_ai_decisions() -> void:
     _check(bool(attack_options.get("unarmed_skill_hit", false)), "Creature AI should enable its natural hit skill")
     _check(int(attack_options.get("unarmed_skill_damage", 0)) == 4, "Creature AI should pass its natural damage rank")
     sim.free()
+
+    var turn_sim := WorldSimulation.new()
+    var lone_enemy := CharacterState.new("lone_enemy", "Lone Enemy", Vector2i.ZERO)
+    lone_enemy.side = "enemy"
+    turn_sim.register_character(lone_enemy)
+    turn_sim.start_combat()
+    turn_sim.turn_scheduler.current_character_id = "lone_enemy"
+    var no_targets: Array[String] = []
+    _check(not COMBAT_AI.take_turn(turn_sim, lone_enemy, no_targets, no_targets), "An AI turn without a target should not wait for a reaction")
+    _check(not turn_sim.turn_scheduler.has_active_turn(), "An AI turn without a target should end its active turn")
+    turn_sim.free()
