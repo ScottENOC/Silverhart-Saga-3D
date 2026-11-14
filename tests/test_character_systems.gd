@@ -302,7 +302,7 @@ func _test_party_roster_ownership_and_wren_policy() -> void:
     _check(simulation.get_party_member_ids() == ["player", "companion_wren_talbot"], "Simulation should own the ordered starting party: player then Wren")
     _check(simulation.is_party_member("companion_wren_talbot"), "Wren should start in the simulation party")
     _check(wren.companion_recruitment_initialized and wren.progression_mode == "companion", "Starting Wren must already be treated as a recruited companion")
-    var voluntary_departure := simulation.dismiss_companion("companion_wren_talbot", false)
+    var voluntary_departure := simulation.dismiss_companion("companion_wren_talbot")
     _check(not bool(voluntary_departure.get("ok", false)) and String(voluntary_departure.get("reason", "")) == "companion_will_not_voluntarily_leave", "Wren must refuse autonomous departure")
     _check(simulation.is_party_member("companion_wren_talbot"), "A refused voluntary departure must preserve Wren's membership")
     var saved_wren := CharacterState.from_dict(wren.to_dict())
