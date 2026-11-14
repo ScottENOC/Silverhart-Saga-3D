@@ -860,12 +860,6 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
         state = CharacterState.new(id, display_name, spawn_hex)
         _apply_starting_loadout(state)
         _apply_npc_clothing_loadout(state, npc_profile)
-        var party_rules: Dictionary = npc_profile.get("party", {})
-        state.companion_never_voluntarily_leaves = bool(party_rules.get("never_voluntarily_leaves", false))
-        if bool(party_rules.get("starts_in_party", false)):
-            state.side = "player"
-            state.companion_recruitment_initialized = true
-            state.progression_mode = "companion"
         var progression: Dictionary = npc_profile.get("progression", {})
         if not progression.is_empty():
             var class_sequence: Array[String] = []
@@ -888,6 +882,12 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: C
             var extra_item := ItemCatalog.create_instance(String(extra_item_id), "start_%s_extra_%s" % [id, String(extra_item_id)])
             if not extra_item.is_empty():
                 state.add_inventory_item(extra_item)
+        var party_rules: Dictionary = npc_profile.get("party", {})
+        state.companion_never_voluntarily_leaves = bool(party_rules.get("never_voluntarily_leaves", false))
+        if bool(party_rules.get("starts_in_party", false)):
+            state.side = "player"
+            state.companion_recruitment_initialized = true
+            state.progression_mode = "companion"
     state.time_points = state.max_time_points
     simulation.register_character(state)
 
@@ -1692,9 +1692,6 @@ func _recruit_staged_companion(character_id: String) -> void:
     if character_id == "companion_fenn_oakheart":
         COMPANION_CAMPAIGN_SCRIPT.consume_item(player_state.inventory, "herbs", 3)
         COMPANION_CAMPAIGN_SCRIPT.complete_objective(simulation.campaign_journal, "fenn_herb_gathering", "herbs_delivered")
-    state.side = "player"
-    state.combat_dormant = false
-    state.time_points = 100.0
     var actor := actor_by_id.get(character_id) as Node3D
     if actor != null:
         actor.set_meta("ambient_enabled", false)
