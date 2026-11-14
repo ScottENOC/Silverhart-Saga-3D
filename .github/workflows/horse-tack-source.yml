@@ -24,7 +24,7 @@ jobs:
             --output saddled-horse-da86d3.glb
           file saddled-horse-da86d3.glb
           test "$(stat -c%s saddled-horse-da86d3.glb)" -gt 100000
-      - name: Extract source-transformed saddle and bridle meshes
+      - name: Extract source-transformed saddle and bridle meshes with corrected GLB parser
         run: |
           python tools/ci/extract_polyfork_horse_tack.py \
             saddled-horse-da86d3.glb art/creatures/quaternius/tack
