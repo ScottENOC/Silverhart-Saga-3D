@@ -347,7 +347,6 @@ func _test_campaign_character_factory() -> void:
     _check(wren.time_points == wren.max_time_points, "Factory should initialise NPC action points")
     _check(wren.equipped_item_data.has("shirt") and wren.equipped_item_data.has("pants"), "Factory should preserve authored NPC clothing equipment")
     _check(wren.level >= 1 and wren.class_levels.size() > 0, "Factory should preserve authored companion progression")
-    wren.free()
 
 
 func _test_race_class_character_creation() -> void:
