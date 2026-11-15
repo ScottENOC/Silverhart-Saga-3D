@@ -7,6 +7,7 @@ func _initialize() -> void:
     _test_skill_catalogue_and_progression()
     _test_npc_skill_spending_and_companion_boundary()
     _test_party_roster_ownership_and_wren_policy()
+    _test_campaign_character_factory()
     _test_race_class_character_creation()
     _test_canonical_weapon_skill_runtime()
     _test_core_character_skill_runtime()
@@ -313,6 +314,41 @@ func _test_party_roster_ownership_and_wren_policy() -> void:
     _check(bool(rejoin.get("ok", false)) and String(rejoin.get("reason", "")) == "rejoined_existing_companion", "Rejoining Wren must not rerun recruitment progression")
     _check(simulation.get_party_member_ids() == ["player", "companion_wren_talbot"], "Rejoining Wren should restore her place after the player in party order")
     simulation.free()
+
+func _test_campaign_character_factory() -> void:
+    var manifest_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
+    _check(manifest_file != null, "Campaign character factory should read the Hollowmere NPC manifest")
+    if manifest_file == null:
+        return
+    var manifest: Variant = JSON.parse_string(manifest_file.get_as_text())
+    if not manifest is Dictionary:
+        _check(false, "Campaign NPC manifest should parse for factory test")
+        return
+    var wren_profile: Dictionary = {}
+    for profile_value in manifest.get("characters", []):
+        if profile_value is Dictionary and String(profile_value.get("game_id", "")) == "companion_wren_talbot":
+            wren_profile = profile_value
+            break
+    _check(not wren_profile.is_empty(), "Campaign character factory test should find Wren's authored profile")
+    if wren_profile.is_empty():
+        return
+
+    var loadouts := CampaignCharacterFactory.load_starting_loadouts()
+    var wren := CampaignCharacterFactory.create_npc_state(
+        "companion_wren_talbot",
+        "Wren Talbot",
+        Vector2i(-2, 1),
+        wren_profile,
+        loadouts
+    )
+    _check(wren.side == "player", "Factory should apply Wren's starting-party rule to her simulation state")
+    _check(wren.companion_never_voluntarily_leaves, "Factory should apply Wren's permanent-loyalty rule")
+    _check(wren.companion_recruitment_initialized and wren.progression_mode == "companion", "Factory should prevent starting Wren from being processed as a fresh recruit")
+    _check(wren.time_points == wren.max_time_points, "Factory should initialise NPC action points")
+    _check(wren.equipped_item_data.has("shirt") and wren.equipped_item_data.has("pants"), "Factory should preserve authored NPC clothing equipment")
+    _check(wren.level >= 1 and wren.class_levels.size() > 0, "Factory should preserve authored companion progression")
+    wren.free()
+
 
 func _test_race_class_character_creation() -> void:
     var profile := {"name":"Aldara","race":"human","character_class":"fighter","game_mode":"campaign","campaign_id":"2","difficulty_mode":"normal","gender_presentation":"Feminine","pronouns":"she/her"}
