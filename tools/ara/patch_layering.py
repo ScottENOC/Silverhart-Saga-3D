@@ -216,9 +216,19 @@ edit("src/core/garments/swimwear.ts", [
     ("  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },",
      "  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },\n  { id: 'bra', label: 'Strapless bra', slot: 'top', patterns: ['solid', 'lace'], color: '#29242d', color2: '#987b91', build: (g, st) => bikiniTop(g, st, 'strapless') },"),
 ]);
-edit("src/core/garments/catalog.ts", [
-    ("  SLIDES,\n  // Shell-based bra garments override the earlier swimwear implementations.", "  SLIDES,\n];"),
-]);
+# Remove the complete stale shell-bra block from cached Ara exports. The old
+# cleanup only inserted an array terminator and left the appended objects behind.
+catalog_path = ROOT / "src/core/garments/catalog.ts"
+catalog_source = catalog_path.read_text()
+legacy_marker = "  // Shell-based bra garments override the earlier swimwear implementations."
+if legacy_marker in catalog_source:
+    legacy_start = catalog_source.index(legacy_marker)
+    legacy_end = catalog_source.rfind("];")
+    if legacy_end < legacy_start:
+        raise SystemExit("Could not find the end of the stale shell-bra catalogue block")
+    catalog_source = catalog_source[:legacy_start] + catalog_source[legacy_end:]
+    catalog_path.write_text(catalog_source)
+
 
 
 # Strapless uses the solid fabric selected in its style, not a nonexistent
