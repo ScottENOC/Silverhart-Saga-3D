@@ -1,21 +1,21 @@
 extends SceneTree
-## Rendered front and rear rider/mount diagnostics.
+## Close side and three-quarter bareback rider/mount diagnostics.
 const MOUNT_PRESENTATION = preload("res://scripts/presentation/mount_presentation.gd")
 const CREATURE_ACTOR = preload("res://scripts/presentation/creature_actor.gd")
 const ARA_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 const HORSE_MODEL := "res://art/creatures/quaternius/Horse.gltf"
 const FEMALE_BODY := "res://art/characters/ara_runtime/ara_person_body.glb"
 const MALE_BODY := "res://art/characters/ara_runtime/ara_person_male_body.glb"
-const FRONT_OUTPUT_PATH := "res://mount-review-front.png"
-const REAR_OUTPUT_PATH := "res://mount-review-rear.png"
+const SIDE_OUTPUT_PATH := "res://mount-review-side.png"
+const THREE_QUARTER_OUTPUT_PATH := "res://mount-review-three-quarter.png"
 
 func _initialize() -> void:
     call_deferred("_capture")
 
 func _capture() -> void:
-    root.size = Vector2i(1800, 1000)
-    DisplayServer.window_set_size(Vector2i(1800, 1000))
-    root.title = "Silverhart Saga — mounted rider front/rear review"
+    root.size = Vector2i(2400, 1400)
+    DisplayServer.window_set_size(Vector2i(2400, 1400))
+    root.title = "Silverhart Saga — bareback rider height review"
     var world := Node3D.new()
     root.add_child(world)
     var env_node := WorldEnvironment.new()
@@ -33,7 +33,7 @@ func _capture() -> void:
     world.add_child(sun)
     var ground := MeshInstance3D.new()
     var plane := PlaneMesh.new()
-    plane.size = Vector2(22, 16)
+    plane.size = Vector2(24, 20)
     ground.mesh = plane
     var gm := StandardMaterial3D.new()
     gm.albedo_color = Color(0.25, 0.31, 0.27)
@@ -41,14 +41,14 @@ func _capture() -> void:
     ground.position.y = -0.05
     world.add_child(ground)
 
-    # Front and rear views show whether the rider is centred over the spine
-    # and whether both legs hang evenly around the horse.
+    # Side and three-quarter views prioritise seat height, leg drape and contact
+    # with the horse. Bareback clipping is acceptable for this milestone.
     var camera := Camera3D.new()
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-    camera.size = 11.5
-    camera.position = Vector3(0.0, 3.0, -10.0)
+    camera.size = 6.2
+    camera.position = Vector3(10.0, 2.8, 0.0)
     world.add_child(camera)
-    camera.look_at(Vector3(0.0, 1.9, 0.0), Vector3.UP)
+    camera.look_at(Vector3(0.0, 1.35, 0.0), Vector3.UP)
     camera.current = true
 
     # Compare the existing 1.05 m attachment with a 0.85 m bareback position.
@@ -70,10 +70,10 @@ func _capture() -> void:
         return
     await create_timer(1.0).timeout
     _report_runtime_model_bounds(world)
-    if not await _save_view(camera, Vector3(0.0, 3.0, -10.0), Vector3(0.0, 1.9, 0.0), 0.0, FRONT_OUTPUT_PATH):
+    if not await _save_view(camera, Vector3(10.0, 2.8, 0.0), Vector3(0.0, 1.35, 0.0), 90.0, SIDE_OUTPUT_PATH):
         quit(1)
         return
-    if not await _save_view(camera, Vector3(0.0, 3.0, 10.0), Vector3(0.0, 1.9, 0.0), 180.0, REAR_OUTPUT_PATH):
+    if not await _save_view(camera, Vector3(8.0, 3.4, -7.0), Vector3(0.0, 1.35, 0.0), 50.0, THREE_QUARTER_OUTPUT_PATH):
         quit(1)
         return
     quit(0)
@@ -106,7 +106,7 @@ func _add_pair(world: Node3D, x: float, body_path: String, title: String, horse_
     horse.behaviour = "mount"
     horse.model_scale = horse_scale
     horse.model_path = HORSE_MODEL
-    horse.position = Vector3(x, 0, 0)
+    horse.position = Vector3(0, 0, x)
     world.add_child(horse)
 
     var rider := ARA_ACTOR.new() as AraCharacterActor
@@ -123,7 +123,7 @@ func _add_pair(world: Node3D, x: float, body_path: String, title: String, horse_
     label.font_size = 48
     label.outline_size = 10
     label.modulate = Color(1.0, 0.95, 0.78)
-    label.position = Vector3(x, 4.15, 0.0)
+    label.position = Vector3(0.0, 4.15, x)
     label.rotation_degrees.y = 90
     label.add_to_group("mount_review_labels")
     world.add_child(label)
