@@ -2,6 +2,7 @@ extends SceneTree
 
 
 func _initialize() -> void:
+    await process_frame
     _test_combat_hud_presentation_and_actions()
     print("Campaign UI tests passed.")
     quit()
