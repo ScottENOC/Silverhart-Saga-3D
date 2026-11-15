@@ -435,17 +435,29 @@ def main():
         male_body_briefs_source = RAW / "ara_person_male_briefs.glb"
         male_body_briefs_assembled = review_root / "male_average_briefs_assembled.glb"
         male_body_briefs = review_root / "male_average_flaccid_briefs.glb"
-        run([blender, "--background", "--python-exit-code", "1", "--python",
-             ROOT / "tools/blender/add_male_anatomy.py", "--",
-             "--input", male_raw, "--output", male_body, "--adult",
-             "--profile-name", "male_average", "--anatomy-state", "flaccid"], env=review_env)
-        run([py, ROOT / "tools/ara/assemble_modular_glb.py",
-             male_body, male_body_briefs_assembled,
-             male_body_briefs_source, "Briefs"])
-        run([blender, "--background", "--python-exit-code", "1", "--python",
-             ROOT / "tools/blender/add_adult_anatomy.py", "--",
-             "--input", male_body_briefs_assembled, "--output", male_body_briefs,
-             "--profile", "none", "--adult", "--fit-existing"], env=review_env)
+        cached("male-average-anatomy",
+               [male_body],
+               [male_raw, ROOT / "tools/blender/add_male_anatomy.py"],
+               "male_average:flaccid:integrated-rig:v1",
+               lambda: run([blender, "--background", "--python-exit-code", "1", "--python",
+                            ROOT / "tools/blender/add_male_anatomy.py", "--",
+                            "--input", male_raw, "--output", male_body, "--adult",
+                            "--profile-name", "male_average", "--anatomy-state", "flaccid"], env=review_env))
+        cached("male-average-briefs-assembly",
+               [male_body_briefs_assembled],
+               [male_body, male_body_briefs_source, ROOT / "tools/ara/assemble_modular_glb.py"],
+               "Briefs:joint-name-remap:v2",
+               lambda: run([py, ROOT / "tools/ara/assemble_modular_glb.py",
+                            male_body, male_body_briefs_assembled,
+                            male_body_briefs_source, "Briefs"]))
+        cached("male-average-briefs-fit",
+               [male_body_briefs],
+               [male_body_briefs_assembled, ROOT / "tools/blender/add_adult_anatomy.py"],
+               "profile:none:adult:fit-existing:v1",
+               lambda: run([blender, "--background", "--python-exit-code", "1", "--python",
+                            ROOT / "tools/blender/add_adult_anatomy.py", "--",
+                            "--input", male_body_briefs_assembled, "--output", male_body_briefs,
+                            "--profile", "none", "--adult", "--fit-existing"], env=review_env))
 
         # Produce standalone female briefs from the accepted integrated body.
         female_briefs_assembled = review_root / "female_average_briefs_assembled.glb"
