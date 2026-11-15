@@ -68,18 +68,13 @@ edit("src/core/garments/index.ts", [
     ("for (const id of [d.bottom, d.top, d.jacket, ...d.accessories]) dress(id);", "for (const id of [d.underBottom, d.bottom, d.underTop, d.top, d.jacket, ...d.accessories]) dress(id);\n  if (d.underwear && !d.underBottom && d.bottom && d.bottom !== 'briefs') parts.push(...briefsUnder({ ...g, underwear: true }));"),
 ])
 
-edit("src/core/garments/catalog.ts", [
-    ("  // ---------------- Tops\n", """  // ---------------- Tops
-  {
-    id: 'bra', label: 'Sports bra (under layer)', slot: 'top', patterns: ['solid'], color: '#34343a', color2: '#111114',
-    build: (g, st) => shellPart(g, {
-      // Close-fitting front and side chest band; thinner than the outer shirt.
-      covers: (v) => isTrunk(v) && v.tt > 0.52 && v.tt < 0.79 && Math.abs(v.tth) < 1.62,
-      offset: cm(0.48), tile: 0.2, relax: 3,
-    }, cloth(g, 'Bra', st)),
-  },
-"""),
-])
+# Restore the pinned upstream catalogue before applying our deterministic edits.
+# This also repairs stale/corrupted copies left by earlier interrupted patch runs.
+catalog_path = ROOT / "src/core/garments/catalog.ts"
+catalog_base = ROOT / "tools/ara/catalog.ts.base"
+catalog_path.write_text(catalog_base.read_text())
+
+
 
 
 # Extend Ara's existing lace texture into a true open-weave alpha-cutout fabric.
@@ -216,23 +211,6 @@ edit("src/core/garments/swimwear.ts", [
     ("  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },",
      "  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },\n  { id: 'bra', label: 'Strapless bra', slot: 'top', patterns: ['solid', 'lace'], color: '#29242d', color2: '#987b91', build: (g, st) => bikiniTop(g, st, 'strapless') },"),
 ]);
-# Remove the obsolete shell-bra catalogue append from restored Ara caches.
-# Earlier runs may have partially replaced its comment with an array terminator,
-# so use the unique halter ID as the reliable marker. Keep the original catalogue
-# array (including our legitimate bra entry inserted above "Tops") and discard
-# everything appended after its closing bracket.
-catalog_path = ROOT / "src/core/garments/catalog.ts"
-catalog_source = catalog_path.read_text()
-legacy_id = "id: 'halter_bra_lace'"
-if legacy_id in catalog_source:
-    legacy_start = catalog_source.index(legacy_id)
-    catalogue_end = catalog_source.rfind("];", 0, legacy_start)
-    if catalogue_end < 0:
-        raise SystemExit("Found stale halter bra entries but could not locate the original catalogue terminator")
-    catalog_source = catalog_source[:catalogue_end + 2] + "\n"
-    catalog_path.write_text(catalog_source)
-
-
 # Strapless uses the solid fabric selected in its style, not a nonexistent
 # procedural "strapless" texture pattern.
 edit("src/core/garments/swimwear.ts", [
