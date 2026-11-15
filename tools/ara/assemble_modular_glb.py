@@ -117,10 +117,20 @@ def add(target,buf,source_path,selector):
     source_names=source_mesh.get('extras',{}).get('targetNames')
     target_count=len(target_mesh.get('weights', target_names or []))
     source_count=len(source_mesh.get('weights', source_names or []))
-    if source_count != target_count:
-        raise ValueError(f'Morph target count differs in {source_path}: source={source_count}, target={target_count}')
-    if target_names is not None and source_names is not None and source_names != target_names:
-        raise ValueError(f'Morph target names differ in {source_path}')
+    if source_names is None or target_names is None:
+        if source_count != target_count:
+            raise ValueError(f'Morph target count differs without names in {source_path}: source={source_count}, target={target_count}')
+        morph_index_map=list(range(source_count))
+    else:
+        if len(source_names) != source_count or len(target_names) != target_count:
+            raise ValueError(f'Morph target name/weight count mismatch in {source_path}')
+        if len(set(source_names)) != len(source_names) or len(set(target_names)) != len(target_names):
+            raise ValueError(f'Duplicate morph target names in {source_path}')
+        target_lookup={name:i for i,name in enumerate(target_names)}
+        missing_names=[name for name in source_names if name not in target_lookup]
+        if missing_names:
+            raise ValueError(f'Garment morph targets absent from body in {source_path}: {missing_names}')
+        morph_index_map=[target_lookup[name] for name in source_names]
     target_name=None
     if '=' in selector: selector,target_name=selector.split('=',1)
     if selector.endswith('*'):
@@ -172,16 +182,19 @@ def add(target,buf,source_path,selector):
     # as the garment primitive. Accessor indices are document-local: they must
     # never be copied verbatim from the source GLB into the destination GLB.
     source_targets=p.get('targets', [])
-    if len(source_targets) != target_count:
-        raise ValueError(f'{selector}: expected {target_count} morph targets, found {len(source_targets)}')
-    remapped_targets=[]
-    for target_attrs in source_targets:
+    if len(source_targets) != source_count:
+        raise ValueError(f'{selector}: expected {source_count} source morph targets, found {len(source_targets)}')
+    # Reorder garment morphs by target-name and insert empty deltas for body-only
+    # morphs (e.g. the male Anatomy_Erect shape key). This preserves the body's
+    # morph contract without inventing garment deformation for unrelated keys.
+    remapped_targets=[{} for _ in range(target_count)]
+    for source_index,target_attrs in enumerate(source_targets):
         remapped={}
         for attr,old_ai in target_attrs.items():
             target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
             remapped[attr]=new_ai
-        remapped_targets.append(remapped)
-    if source_targets:
+        remapped_targets[morph_index_map[source_index]]=remapped
+    if source_targets or target_count:
         p['targets']=remapped_targets
 
     # Reuse a previously appended material for other primitives that form the
