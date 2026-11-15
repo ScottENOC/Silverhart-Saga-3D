@@ -298,6 +298,12 @@ def main():
       "name":"Ara Base Person - male body","seed":417,"gender":1,
       "breastSize":0,"breastFirmness":0,
       "modifiers":dict(DEFAULT_MALE_BODY_MODIFIERS)})
+    male_briefs=dict(male); male_briefs.update({
+      "name":"Ara Base Person - male briefs source","outfit":"none","top":"none",
+      "underTop":"none","underBottom":"briefs","jacket":"none","bottom":"none",
+      "underwear":False,"shoes":"none","hat":"none","weapon":"none","carry":"none",
+      "accessories":[],"earrings":"none",
+      "garmentStyles":{"briefs":{"pattern":"solid","color":"#3d4147","color2":"#22262b"}}})
     # Deliberately exaggerated comparison pair. These are diagnostic exports only;
     # they are never packaged or used as production character defaults.
     female_test=dict(body); female_test.update({
@@ -332,7 +338,7 @@ def main():
       "fishnet_pants":{"top":"none","underTop":"none","underBottom":"none","bottom":"fatigue_pants","garmentStyles":{"fatigue_pants":{"pattern":"fishnet","color":"#29242d","color2":"#987b91"}}},
       "backless_slit_dress":{"top":"backless_slit_dress","underTop":"none","underBottom":"none","bottom":"none"},
       "leather_armor":{"top":"none","underTop":"none","underBottom":"none","bottom":"none","accessories":["leather_armor"]}}
-    params={"ara_person_benchmark":base,"ara_person_body":body,"ara_person_male_raw":male,"ara_person_gender_test_female":female_test,"ara_person_gender_test_male":male_test,"ara_person_mobile":mobile,"ara_person_wrapper_knee":dict(body, name="Ara Wrapper Knee Source", bottom="wrapper_knee"),"ara_person_wren_body":wren_body,"ara_person_wren_dressed":wren_dressed,"ara_person_wren_dressed_no_shoes":wren_dressed_no_shoes}
+    params={"ara_person_benchmark":base,"ara_person_body":body,"ara_person_male_raw":male,"ara_person_gender_test_female":female_test,"ara_person_gender_test_male":male_test,"ara_person_mobile":mobile,"ara_person_wrapper_knee":dict(body, name="Ara Wrapper Knee Source", bottom="wrapper_knee"),"ara_person_wren_body":wren_body,"ara_person_wren_dressed":wren_dressed,"ara_person_wren_dressed_no_shoes":wren_dressed_no_shoes,"ara_person_male_briefs":male_briefs}
     for k,v in variants.items():
         p=dict(base); p.update({"name":"Ara Base Person - "+k,"jacket":"none","underwear":False,"shoes":"none","hat":"none","weapon":"none","carry":"none"}); p.update(v); params["ara_person_"+k]=p
     def export(key,p):
@@ -352,6 +358,8 @@ def main():
         female_raw = RAW / "ara_person_body.glb"
         female_claude = review_root / "female_average_claude_integrated.glb"
         export("ara_person_body", body)
+        export("ara_person_male_raw", male)
+        export("ara_person_male_briefs", male_briefs)
 
         review_env = os.environ.copy()
         review_env.update({"EGL_PLATFORM": "surfaceless", "LIBGL_ALWAYS_SOFTWARE": "1"})
@@ -413,6 +421,58 @@ def main():
             "underwear_fitted": underwear_fitted.name,
             "outfits": ["tank_top", "standard_bra", "standard_briefs", "lace_bra", "fishnet_bra", "triangle_bra", "string_briefs", "lace_briefs", "fishnet_briefs"],
         }
+        (review_root / "underwear_review_report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+
+        # Build the finished male anatomy from the pinned Ara male base, then
+        # fit male-specific briefs to that integrated full-rig character.
+        male_raw = RAW / "ara_person_male_raw.glb"
+        male_body = review_root / "male_average_flaccid.glb"
+        male_body_briefs_source = RAW / "ara_person_male_briefs.glb"
+        male_body_briefs_assembled = review_root / "male_average_briefs_assembled.glb"
+        male_body_briefs = review_root / "male_average_flaccid_briefs.glb"
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/add_male_anatomy.py", "--",
+             "--input", male_raw, "--output", male_body, "--adult",
+             "--profile-name", "male_average", "--anatomy-state", "flaccid"], env=review_env)
+        run([py, ROOT / "tools/ara/assemble_modular_glb.py",
+             male_body, male_body_briefs_assembled,
+             male_body_briefs_source, "Briefs"])
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/add_adult_anatomy.py", "--",
+             "--input", male_body_briefs_assembled, "--output", male_body_briefs,
+             "--profile", "none", "--adult", "--fit-existing"], env=review_env)
+
+        # Produce standalone female briefs from the accepted integrated body.
+        female_briefs_assembled = review_root / "female_average_briefs_assembled.glb"
+        female_briefs = review_root / "female_average_briefs.glb"
+        run([py, ROOT / "tools/ara/assemble_modular_glb.py",
+             female_claude, female_briefs_assembled,
+             RAW / "ara_person_benchmark.glb", "Briefs"])
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/blender/add_adult_anatomy.py", "--",
+             "--input", female_briefs_assembled, "--output", female_briefs,
+             "--profile", "none", "--adult", "--fit-existing"], env=review_env)
+
+        male_briefs_review = review_root / "renders" / "male_briefs"
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/review/render_modular_outfits.py", "--",
+             male_body_briefs, male_briefs_review, "standard_briefs"], env=review_env)
+        female_briefs_review = review_root / "renders" / "female_briefs"
+        run([blender, "--background", "--python-exit-code", "1", "--python",
+             ROOT / "tools/review/render_modular_outfits.py", "--",
+             female_briefs, female_briefs_review, "standard_briefs"], env=review_env)
+
+        shutil.copy2(male_raw, review_root / "male_average_raw.glb")
+        report["male_outputs"] = {
+            "body": male_body.name,
+            "body_with_briefs": male_body_briefs.name,
+            "anatomy_morph": "Anatomy_Erect (0=flaccid, 1=erect)"
+        }
+        report["female_outputs"] = {
+            "accepted_body": female_claude.name,
+            "body_with_briefs": female_briefs.name
+        }
+        report["briefs_review_views"] = ["front", "side", "rear"]
         (review_root / "underwear_review_report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
         return
 
