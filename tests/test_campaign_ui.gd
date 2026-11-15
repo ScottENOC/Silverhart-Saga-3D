@@ -4,6 +4,7 @@ extends SceneTree
 func _initialize() -> void:
     await process_frame
     _test_combat_hud_presentation_and_actions()
+    _test_dialogue_panel_presentation_and_choice_signal()
     print("Campaign UI tests passed.")
     quit()
 
@@ -41,3 +42,35 @@ func _test_combat_hud_presentation_and_actions() -> void:
     hud.present(false, false, false, "")
     assert(not hud.visible)
     hud.free()
+
+
+
+func _test_dialogue_panel_presentation_and_choice_signal() -> void:
+    var panel := CampaignDialoguePanel.new()
+    root.add_child(panel)
+    assert(not panel.visible)
+
+    var selected_choice: Dictionary = {}
+    panel.choice_selected.connect(func(choice: Dictionary): selected_choice = choice)
+    var choices: Array[Dictionary] = [
+        {"id": "start:quest_intro", "label": "Hear the offer", "available": true},
+        {"id": "locked", "label": "Not yet", "available": false, "unavailable_reason": "Requires a key."}
+    ]
+    panel.present("Mara", "There is work to be done.", choices)
+    assert(panel.visible)
+    assert(panel.speaker_text == "Mara")
+    assert(panel.speaker_label.text == "Mara")
+    assert(panel.body_label.text == "There is work to be done.")
+    assert(panel.choices_box.get_child_count() == 2)
+
+    var available_button := panel.choices_box.get_child(0) as Button
+    var unavailable_button := panel.choices_box.get_child(1) as Button
+    assert(not available_button.disabled)
+    assert(unavailable_button.disabled)
+    assert(unavailable_button.tooltip_text == "Requires a key.")
+    available_button.emit_signal("pressed")
+    assert(selected_choice == choices[0])
+
+    panel.dismiss()
+    assert(not panel.visible)
+    panel.free()
