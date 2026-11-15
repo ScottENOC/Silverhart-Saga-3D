@@ -415,7 +415,7 @@ def main():
         shutil.copy2(female_raw, review_root / "female_average_raw.glb")
         report = {
             "schema_version": 1,
-            "purpose": "female modular underwear fitting review; fixed accepted body, no male/anatomy regeneration",
+            "purpose": "female underwear review on the accepted body plus male anatomy and briefs build; female body is not regenerated or modified",
             "female_body": female_claude.name,
             "underwear_assembled": underwear_assembled.name,
             "underwear_fitted": underwear_fitted.name,
