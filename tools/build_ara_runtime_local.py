@@ -377,7 +377,7 @@ def main():
         assemble_args = [
             py, ROOT / "tools/ara/assemble_modular_glb.py",
             female_claude, underwear_assembled,
-            RAW / "ara_person_benchmark.glb", "Bra",
+            RAW / "ara_person_benchmark.glb", "Bikini top=Bra",
             RAW / "ara_person_benchmark.glb", "Briefs",
             RAW / "ara_person_tank_top.glb", "Tank top",
             RAW / "ara_person_halter_bra_lace.glb", "Halter lace bra",
