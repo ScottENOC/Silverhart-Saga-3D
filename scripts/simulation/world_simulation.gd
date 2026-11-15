@@ -341,14 +341,22 @@ func recruit_companion(character_id: String, preferred_skills: Dictionary = {}, 
         return result
     if not party_member_ids.has(character_id):
         party_member_ids.append(character_id)
+    state.side = "player"
+    state.combat_dormant = false
+    state.time_points = 100.0
     if reason == "already_recruited_once":
         return {"ok": true, "reason": "rejoined_existing_companion", "remaining": SkillProgression.available_points(state)}
     return result
 
 ## Leaving the active party never deletes or rebuilds the character's progression state.
-func dismiss_companion(character_id: String) -> Dictionary:
+func dismiss_companion(character_id: String, player_initiated: bool = false) -> Dictionary:
     if character_id == player_character_id:
         return {"ok": false, "reason": "cannot_dismiss_player"}
+    var state := get_character(character_id)
+    if state == null:
+        return {"ok": false, "reason": "unknown_character"}
+    if not player_initiated and state.companion_never_voluntarily_leaves:
+        return {"ok": false, "reason": "companion_will_not_voluntarily_leave"}
     var index := party_member_ids.find(character_id)
     if index < 0:
         return {"ok": false, "reason": "not_in_party"}

@@ -112,8 +112,10 @@ func _run() -> void:
             _check(simulation.campaign_journal.quest_definitions.has("farm_wolves"), "WorldRoot should register the farm quest")
             _check(simulation.campaign_journal.quest_definitions.has("reyna_dire_wolf_hunt"), "WorldRoot should register companion campaign quests")
 
-        var party: Array = tavern.get("party_member_ids")
-        _check(party.size() == 1 and party[0] == "player", "Presentation party membership should be restored")
+        # Party membership is owned exclusively by WorldSimulation. The integration
+        # assertion above verifies the restored canonical roster; HollowTankard
+        # should not maintain a second presentation-side copy.
+        _check(not ("party_member_ids" in tavern), "HollowTankard should not expose a duplicate party roster")
         _check(String(tavern.get("active_character_id")) == "player", "The active character should be restored")
         _check(bool(tavern.get("shakedown_started")) and bool(tavern.get("shakedown_resolved")), "Opening-confrontation flags should be restored without replay")
         var camera = tavern.get("camera_rig")
