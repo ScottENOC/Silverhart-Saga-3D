@@ -4,6 +4,7 @@ func _initialize() -> void:
 	_test_appearance_save_reload_and_material_application()
 	_test_materials_are_not_shared_between_characters()
 	_test_accessory_socket_attach_and_remove()
+	_test_campaign_character_actor_factory()
 	print("Character appearance and accessory tests passed.")
 	quit()
 
@@ -161,3 +162,30 @@ func _test_accessory_socket_attach_and_remove() -> void:
 		assert(str(piercing.get_meta("accessory_id")) == piercing_id)
 		assert(AccessoryAttachment.remove_by_id(character, piercing_id))
 	character.free()
+
+
+func _test_campaign_character_actor_factory() -> void:
+	var state := CharacterState.new("factory_player", "Factory Player", Vector2i(-1, 2))
+	var profile := {"name": "Factory Player", "body_variant": "female", "hair_style_id": "short02"}
+	var actor := CampaignCharacterActorFactory.create_actor(
+		state,
+		Vector3(1.5, 0.0, -2.0),
+		true,
+		profile,
+		{},
+		"",
+		"civilian"
+	)
+	assert(actor != null)
+	assert(actor.name == "factory_player")
+	assert(actor.position.is_equal_approx(Vector3(1.5, 0.0, -2.0)))
+	assert(actor.get_meta("character_id") == "factory_player")
+	assert(not actor.get_meta("ambient_enabled"))
+	assert(actor.get_meta("ambient_role") == "civilian")
+	var name_label := actor.get_node_or_null("PlayerNameLabel") as Label3D
+	assert(name_label != null and name_label.text == "You")
+	var model := actor.get_node_or_null("CharacterModel") as AraCharacterActor
+	assert(model != null)
+	assert(model.loaded_asset_path != "")
+	actor.free()
+	state.free()
