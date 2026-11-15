@@ -76,6 +76,8 @@ jobs:
         with:
           path: build/anatomy-review/female_average_claude_integrated.glb
           key: ara-female-integrated-${{ runner.os }}-${{ hashFiles('tools/blender/add_adult_anatomy_claude.py', 'tools/blender/add_adult_anatomy.py', 'tools/build_ara_runtime_local.py', 'tools/character_definitions.py') }}
+          restore-keys: |
+            ara-female-integrated-${{ runner.os }}-
 
       - name: Enable Corepack
         run: corepack enable
