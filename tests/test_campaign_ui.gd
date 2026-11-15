@@ -81,7 +81,8 @@ func _test_nearby_interaction_panel_presentation_and_selection() -> void:
     root.add_child(panel)
     assert(not panel.visible)
 
-    panel.present([])
+    var empty_entries: Array[Dictionary] = []
+    panel.present(empty_entries)
     assert(not panel.visible)
 
     var entries: Array[Dictionary] = []
@@ -107,7 +108,7 @@ func _test_nearby_interaction_panel_presentation_and_selection() -> void:
     (column.get_child(2) as Button).emit_signal("pressed")
     assert(selected_id == "character_1")
 
-    panel.present([])
+    panel.present(empty_entries)
     assert(not panel.visible)
     assert(panel.get_child_count() == 0)
     panel.free()
