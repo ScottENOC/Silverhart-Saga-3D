@@ -21,6 +21,17 @@ def edit(path, replacements):
         ):
             continue
         if old not in source:
+            # The cached Ara source may already include the later strapless
+            # extension of this same function signature. Treat that as the
+            # completed replacement rather than failing on the earlier
+            # lace/fishnet-only intermediate signature.
+            if (
+                path == "src/core/garments/swimwear.ts"
+                and old.startswith("function bikiniTop(")
+                and "function bikiniTop(g: GCtx, st: GarmentStyle, mode:" in source
+                and "'strapless'" in source
+            ):
+                continue
             # The Ara export cache may contain our appended shell-based bra
             # catalogue entries from an earlier run. Treat that as already
             # patched instead of requiring the original end-of-catalogue anchor.
