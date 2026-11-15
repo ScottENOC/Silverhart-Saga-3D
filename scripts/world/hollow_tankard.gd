@@ -91,10 +91,7 @@ var ambient_security: int = 50
 var shakedown_started: bool = false
 var shakedown_resolved: bool = false
 var dialogue_open: bool = false
-var dialogue_panel: PanelContainer
-var dialogue_speaker_label: Label
-var dialogue_body_label: Label
-var dialogue_choices_box: VBoxContainer
+var dialogue_panel: CampaignDialoguePanel
 var combat_hud: CampaignCombatHud
 var resource_status_label: Label
 var resource_visuals_by_hex: Dictionary = {}
@@ -1255,59 +1252,17 @@ func _apply_save_data(data: Dictionary) -> void:
 
 
 func _create_dialogue_panel(layer: CanvasLayer) -> void:
-    dialogue_panel = PanelContainer.new()
+    dialogue_panel = CampaignDialoguePanel.new()
     dialogue_panel.name = "CampaignDialoguePanel"
-    dialogue_panel.anchor_left = 0.5
-    dialogue_panel.anchor_right = 0.5
-    dialogue_panel.anchor_top = 1.0
-    dialogue_panel.anchor_bottom = 1.0
-    dialogue_panel.offset_left = -310.0
-    dialogue_panel.offset_right = 310.0
-    dialogue_panel.offset_top = -300.0
-    dialogue_panel.offset_bottom = -22.0
-    dialogue_panel.visible = false
+    dialogue_panel.choice_selected.connect(_select_dialogue_choice)
     layer.add_child(dialogue_panel)
-
-    var column := VBoxContainer.new()
-    column.add_theme_constant_override("separation", 10)
-    dialogue_panel.add_child(column)
-
-    dialogue_speaker_label = Label.new()
-    dialogue_speaker_label.add_theme_font_size_override("font_size", 22)
-    dialogue_speaker_label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.55))
-    column.add_child(dialogue_speaker_label)
-
-    dialogue_body_label = Label.new()
-    dialogue_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    dialogue_body_label.custom_minimum_size = Vector2(580.0, 76.0)
-    dialogue_body_label.add_theme_font_size_override("font_size", 18)
-    column.add_child(dialogue_body_label)
-
-    dialogue_choices_box = VBoxContainer.new()
-    dialogue_choices_box.add_theme_constant_override("separation", 6)
-    column.add_child(dialogue_choices_box)
 
 
 func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary]) -> void:
     if dialogue_panel == null:
         return
     dialogue_open = true
-    dialogue_speaker_label.text = speaker
-    dialogue_body_label.text = body
-    for child in dialogue_choices_box.get_children():
-        child.queue_free()
-    for choice_value in choices:
-        var choice: Dictionary = choice_value
-        var button := Button.new()
-        button.text = String(choice.get("label", "Continue"))
-        button.custom_minimum_size = Vector2(0.0, 38.0)
-        button.disabled = not bool(choice.get("available", true))
-        if not button.disabled:
-            button.pressed.connect(func(): _select_dialogue_choice(choice.duplicate(true)))
-        else:
-            button.tooltip_text = String(choice.get("unavailable_reason", "Not available yet."))
-        dialogue_choices_box.add_child(button)
-    dialogue_panel.visible = true
+    dialogue_panel.present(speaker, body, choices)
 
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
@@ -1363,12 +1318,12 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
     var response_text := String(choice.get("text", ""))
     if choice_id == "spar":
         response_text += "\n\nA full sparring encounter is not connected to the 3D combat interface yet."
-    _show_dialogue(dialogue_speaker_label.text, response_text, [{"id": "continue", "label": "Continue", "text": ""}])
+    _show_dialogue(dialogue_panel.speaker_text, response_text, [{"id": "continue", "label": "Continue", "text": ""}])
 
 func _close_dialogue() -> void:
     dialogue_open = false
     if dialogue_panel != null:
-        dialogue_panel.visible = false
+        dialogue_panel.dismiss()
 
 
 func _interact_with_nearest_npc() -> void:
