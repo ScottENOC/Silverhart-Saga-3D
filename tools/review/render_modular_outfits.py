@@ -95,8 +95,8 @@ def isolate_outfit(keep):
         raise RuntimeError("Requested garment material(s) absent or empty: " + ", ".join(missing))
     return removed, kept_faces
 
-def torso_frame():
-    """Frame the torso rather than the full character."""
+def torso_frame(outfit):
+    """Frame the relevant torso or pelvis region rather than the full character."""
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     if not meshes:
         raise RuntimeError("No mesh geometry remains after outfit isolation")
@@ -105,9 +105,13 @@ def torso_frame():
     lo = Vector(tuple(min(p[i] for p in corners) for i in range(3)))
     hi = Vector(tuple(max(p[i] for p in corners) for i in range(3)))
     height = max(hi.z - lo.z, 0.1)
-    centre = Vector(((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, lo.z + height * 0.70))
-    # A tighter shoulder-to-waist crop excludes the face and most of the pelvis.
-    frame_height = height * 0.34
+    if "briefs" in outfit:
+        centre = Vector(((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, lo.z + height * 0.49))
+        frame_height = height * 0.27
+    else:
+        centre = Vector(((lo.x + hi.x) * 0.5, (lo.y + hi.y) * 0.5, lo.z + height * 0.70))
+        # A tighter shoulder-to-waist crop excludes the face and most of the pelvis.
+        frame_height = height * 0.34
     return centre, height, frame_height
 
 def aim_at(obj, point):
@@ -160,7 +164,7 @@ def render_outfit(input_path, output_root, outfit, keep):
     if unknown:
         raise RuntimeError("Unclassified garment material(s): " + ", ".join(unknown))
     removed, kept_faces = isolate_outfit(keep)
-    centre, body_height, frame_height = torso_frame()
+    centre, body_height, frame_height = torso_frame(outfit)
     scene = bpy.context.scene
     engines = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
     for engine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE", "BLENDER_WORKBENCH"):
