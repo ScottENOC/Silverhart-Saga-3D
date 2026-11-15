@@ -9,7 +9,6 @@ const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_timeline.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
-const CHARACTER_CREATION_RULES = preload("res://scripts/simulation/character_creation_rules.gd")
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
 const SEASONAL_TREE_SCRIPT = preload("res://scripts/presentation/seasonal_tree_visual.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
@@ -794,100 +793,12 @@ func _begin_dire_wolf_hunt_combat() -> void:
     _update_combat_ui()
 
 func _load_starting_loadouts() -> Dictionary:
-    var file := FileAccess.open("res://data/characters/hollowmere_loadouts.json", FileAccess.READ)
-    if file == null:
-        push_error("Hollowmere starting loadouts are missing.")
-        return {}
-    var parsed: Variant = JSON.parse_string(file.get_as_text())
-    if not parsed is Dictionary:
-        push_error("Hollowmere starting loadouts are not valid JSON.")
-        return {}
-    var characters: Variant = parsed.get("characters", {})
-    if characters is Dictionary:
-        return characters
-    return {}
-
-
-func _apply_starting_loadout(state: CharacterState) -> void:
-    var item_ids: Variant = starting_loadouts.get(state.id, [])
-    if not item_ids is Array:
-        push_error("Starting loadout for %s is not an array." % state.id)
-        return
-    for index in range(item_ids.size()):
-        var item_id := String(item_ids[index])
-        var instance_id := "start_%s_%s_%02d" % [state.id, item_id, index]
-        var item := ItemCatalog.create_instance(item_id, instance_id)
-        if item.is_empty():
-            push_error("Unknown starting item '%s' for %s." % [item_id, state.id])
-            continue
-        if not state.add_inventory_item(item):
-            push_error("Could not add starting item '%s' to %s." % [item_id, state.id])
-            continue
-        if not state.equip_inventory_item(instance_id):
-            push_error("Could not equip starting item '%s' on %s." % [item_id, state.id])
-
-
-func _apply_npc_clothing_loadout(state: CharacterState, npc_profile: Dictionary) -> void:
-    var params: Dictionary = npc_profile.get("params", {})
-    var clothing_parameters := [
-        {"parameter": "underTop", "slot": "underTop"},
-        {"parameter": "underBottom", "slot": "underBottom"},
-        {"parameter": "top", "slot": "shirt"},
-        {"parameter": "bottom", "slot": "pants"},
-        {"parameter": "shoes", "slot": "shoes"}
-    ]
-    for entry in clothing_parameters:
-        var garment_id := String(params.get(entry.parameter, "none"))
-        if garment_id.is_empty() or garment_id == "none":
-            continue
-        var item := ItemCatalog.create_instance(garment_id, "start_%s_clothing_%s" % [state.id, entry.slot])
-        if item.is_empty():
-            push_warning("NPC %s has Ara garment '%s' without an inventory definition." % [state.id, garment_id])
-            continue
-        if not state.add_inventory_item(item):
-            push_error("Could not add NPC clothing '%s' to %s." % [garment_id, state.id])
-            continue
-        if not state.equip_inventory_item(String(item.instance_id)):
-            push_error("Could not equip NPC clothing '%s' on %s." % [garment_id, state.id])
+    return CampaignCharacterFactory.load_starting_loadouts()
 
 
 func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, ara_model_id: String = "", npc_profile: Dictionary = {}) -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
-    var state: CharacterState
-    if is_player:
-        state = CHARACTER_CREATION_RULES.create_player_state(player_profile, id, spawn_hex)
-    else:
-        state = CharacterState.new(id, display_name, spawn_hex)
-        _apply_starting_loadout(state)
-        _apply_npc_clothing_loadout(state, npc_profile)
-        var progression: Dictionary = npc_profile.get("progression", {})
-        if not progression.is_empty():
-            var class_sequence: Array[String] = []
-            for class_id in progression.get("class_levels", []):
-                class_sequence.append(String(class_id))
-            var preferred_skills: Dictionary = {}
-            for skill_id in progression.get("skill_picks", []):
-                var key := String(skill_id)
-                preferred_skills[key] = int(preferred_skills.get(key, 0)) + 1
-            var build_result := NPCSkillSpending.build_authored(
-                state,
-                String(progression.get("race", "human")),
-                class_sequence,
-                preferred_skills,
-                String(progression.get("seed", "canonical-companion:" + id))
-            )
-            if not bool(build_result.get("ok", false)):
-                push_error("Could not build canonical companion %s: %s" % [id, build_result])
-        for extra_item_id in npc_profile.get("extra_inventory", []):
-            var extra_item := ItemCatalog.create_instance(String(extra_item_id), "start_%s_extra_%s" % [id, String(extra_item_id)])
-            if not extra_item.is_empty():
-                state.add_inventory_item(extra_item)
-        var party_rules: Dictionary = npc_profile.get("party", {})
-        state.companion_never_voluntarily_leaves = bool(party_rules.get("never_voluntarily_leaves", false))
-        if bool(party_rules.get("starts_in_party", false)):
-            state.side = "player"
-            state.companion_recruitment_initialized = true
-            state.progression_mode = "companion"
+    var state := CampaignCharacterFactory.create_player_state(player_profile, id, spawn_hex) if is_player else CampaignCharacterFactory.create_npc_state(id, display_name, spawn_hex, npc_profile, starting_loadouts)
     state.time_points = state.max_time_points
     simulation.register_character(state)
 
