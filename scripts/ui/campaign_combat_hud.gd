@@ -49,3 +49,7 @@ func present(combat_visible: bool, can_end_turn: bool, can_attack: bool, status_
     end_turn_button.disabled = not can_end_turn
     attack_button.disabled = not can_attack
     status_label.text = status_text
+
+
+func set_status_text(status_text: String) -> void:
+    status_label.text = status_text
