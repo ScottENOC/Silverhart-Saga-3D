@@ -238,11 +238,16 @@ def main():
     if ara_target_assets_need_rebuild():
         fail("Ara asset rebuild completed, but targets.pack or catalog sliders are still empty.")
     patch=ROOT/"tools/ara/patch_layering.py"
+    # The Ara checkout is cached between Actions runs. Always restore every
+    # patched upstream source file to the pinned commit before applying our
+    # deterministic patch set; otherwise a changed patch script can encounter
+    # a partially or fully patched source tree from an earlier run.
+    patch_paths=["src/core/params.ts","src/core/garments/index.ts","src/core/garments/catalog.ts","src/core/garments/kit.ts","src/core/garments/textures.ts","src/core/garments/swimwear.ts"]
+    run([git,"checkout","--",*patch_paths],cwd=GEN)
+    run([py,patch],cwd=GEN)
     patch_stamp=CACHE/"stamps"/"layering-patch.sha256"
     patch_hash=digest([patch],PIN)
-    if not patch_stamp.is_file() or patch_stamp.read_text().strip()!=patch_hash:
-        run([py,patch],cwd=GEN)
-        patch_stamp.parent.mkdir(parents=True,exist_ok=True); patch_stamp.write_text(patch_hash+"\n")
+    patch_stamp.parent.mkdir(parents=True,exist_ok=True); patch_stamp.write_text(patch_hash+"\n")
     base={
       "name":"Ara Base Person - dressed preview","seed":218,"gender":0,"age":0.5,
       "muscle":0.5,"weight":0.5,"height":0.5,"proportions":0.5,
