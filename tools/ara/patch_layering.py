@@ -220,6 +220,14 @@ edit("src/core/garments/catalog.ts", [
     ("  SLIDES,\\n  // Shell-based bra garments override the earlier swimwear implementations.", "  SLIDES,\\n];"),
 ]);
 
+
+# Strapless uses the solid fabric selected in its style, not a nonexistent
+# procedural "strapless" texture pattern.
+edit("src/core/garments/swimwear.ts", [
+    ("mode ? { ...st, pattern: mode } : st",
+     "(mode === 'lace' || mode === 'fishnet') ? { ...st, pattern: mode } : st"),
+]);
+
 print("Ara underTop, separate lace/fishnet halters, backless side-slit dress and briefs layering patch applied.")
 
 
