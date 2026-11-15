@@ -283,3 +283,5 @@ edit("src/core/garments/swimwear.ts", [
 
 
 # Keep the fitted-cup swimwear implementations; do not append shell-mask overrides.
+
+# Build baseline lookup is anchored to this script's repository directory.
