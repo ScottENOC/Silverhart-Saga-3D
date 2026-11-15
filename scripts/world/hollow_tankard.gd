@@ -95,9 +95,7 @@ var dialogue_panel: PanelContainer
 var dialogue_speaker_label: Label
 var dialogue_body_label: Label
 var dialogue_choices_box: VBoxContainer
-var attack_button: Button
-var end_turn_button: Button
-var combat_status_label: Label
+var combat_hud: CampaignCombatHud
 var resource_status_label: Label
 var resource_visuals_by_hex: Dictionary = {}
 var encounter_active: bool = false
@@ -916,28 +914,11 @@ func _create_hud() -> void:
     world_map_button.pressed.connect(_toggle_world_map)
     layer.add_child(world_map_button)
 
-    attack_button = Button.new()
-    attack_button.text = "Attack [Space]"
-    attack_button.position = Vector2(840.0, 70.0)
-    attack_button.custom_minimum_size = Vector2(145.0, 42.0)
-    attack_button.visible = false
-    attack_button.pressed.connect(_attack_active_character)
-    layer.add_child(attack_button)
-
-    end_turn_button = Button.new()
-    end_turn_button.text = "End Turn [Enter]"
-    end_turn_button.position = Vector2(995.0, 70.0)
-    end_turn_button.custom_minimum_size = Vector2(160.0, 42.0)
-    end_turn_button.visible = false
-    end_turn_button.pressed.connect(_end_active_turn)
-    layer.add_child(end_turn_button)
-
-    combat_status_label = Label.new()
-    combat_status_label.position = Vector2(610.0, 120.0)
-    combat_status_label.custom_minimum_size = Vector2(360.0, 54.0)
-    combat_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    combat_status_label.visible = false
-    layer.add_child(combat_status_label)
+    combat_hud = CampaignCombatHud.new()
+    combat_hud.name = "CampaignCombatHud"
+    layer.add_child(combat_hud)
+    combat_hud.attack_requested.connect(_attack_active_character)
+    combat_hud.end_turn_requested.connect(_end_active_turn)
 
     var facing_panel := HBoxContainer.new()
     facing_panel.position = Vector2(22.0, 194.0)
@@ -1823,11 +1804,11 @@ func _attack_active_character() -> void:
         return
     var current := simulation.get_current_turn_character()
     if current == null or current.id != active_character_id or current.side != "player":
-        combat_status_label.text = "It is not this character turn. Switch party members with Tab."
+        combat_hud.set_status_text("It is not this character turn. Switch party members with Tab.")
         return
     var target := _nearest_enemy_in_attack_range(current)
     if target == null:
-        combat_status_label.text = "No enemy in reach. Move closer to an enemy first."
+        combat_hud.set_status_text("No enemy in reach. Move closer to an enemy first.")
         return
     var weapon_id := String(current.equipment.get("weapon", ""))
     var result := simulation.try_attack_character(current.id, target.id, {
@@ -1835,11 +1816,11 @@ func _attack_active_character() -> void:
         "weapon_id": weapon_id
     }, int(current.id.hash() + target.id.hash()))
     if bool(result.get("pending", false)) or simulation.has_pending_reaction():
-        combat_status_label.text = "Resolving a defensive reaction..."
+        combat_hud.set_status_text("Resolving a defensive reaction...")
     elif bool(result.get("ok", false)):
-        combat_status_label.text = "Attack resolved against %s." % target.display_name
+        combat_hud.set_status_text("Attack resolved against %s." % target.display_name)
     else:
-        combat_status_label.text = "Attack unavailable: %s" % String(result.get("reason", "unknown"))
+        combat_hud.set_status_text("Attack unavailable: %s" % String(result.get("reason", "unknown")))
     _check_encounter_resolution()
 
 
@@ -1867,30 +1848,29 @@ func _end_active_turn() -> void:
 
 
 func _update_combat_ui() -> void:
-    if attack_button == null or end_turn_button == null or combat_status_label == null:
+    if combat_hud == null:
         return
     var combat_visible := encounter_active and simulation != null and simulation.is_in_combat
-    attack_button.visible = combat_visible
-    end_turn_button.visible = combat_visible
-    combat_status_label.visible = combat_visible
     if not combat_visible:
+        combat_hud.present(false, false, false, "")
         return
     var current := simulation.get_current_turn_character()
     var player_turn := current != null and current.side == "player" and current.id == active_character_id and current.can_act() and not simulation.has_pending_reaction()
-    attack_button.disabled = not player_turn or _nearest_enemy_in_attack_range(current) == null
-    end_turn_button.disabled = not player_turn
+    var can_attack := player_turn and _nearest_enemy_in_attack_range(current) != null
+    var status_text := ""
     if simulation.has_pending_reaction():
-        combat_status_label.text = "Reaction pending..."
+        status_text = "Reaction pending..."
     elif current == null:
-        combat_status_label.text = "Waiting for the next combat turn..."
+        status_text = "Waiting for the next combat turn..."
     elif current.side == "enemy":
-        combat_status_label.text = "%s is acting..." % current.display_name
+        status_text = "%s is acting..." % current.display_name
     elif current.id != active_character_id and active_combat_controlled_ids.has(current.id):
-        combat_status_label.text = "Switch to %s with Tab." % current.display_name
+        status_text = "Switch to %s with Tab." % current.display_name
     elif current.id != active_character_id:
-        combat_status_label.text = "%s is acting..." % current.display_name
+        status_text = "%s is acting..." % current.display_name
     else:
-        combat_status_label.text = "%s  ·  HP %d/%d  ·  TP %d" % [current.display_name, current.health, current.max_health, roundi(current.time_points)]
+        status_text = "%s  ·  HP %d/%d  ·  TP %d" % [current.display_name, current.health, current.max_health, roundi(current.time_points)]
+    combat_hud.present(true, player_turn, can_attack, status_text)
 
 
 func _farm_wolves_remaining() -> int:
