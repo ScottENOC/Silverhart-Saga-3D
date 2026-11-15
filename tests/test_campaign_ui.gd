@@ -5,6 +5,7 @@ func _initialize() -> void:
     await process_frame
     _test_combat_hud_presentation_and_actions()
     _test_dialogue_panel_presentation_and_choice_signal()
+    _test_nearby_interaction_panel_presentation_and_selection()
     print("Campaign UI tests passed.")
     quit()
 
@@ -73,4 +74,40 @@ func _test_dialogue_panel_presentation_and_choice_signal() -> void:
 
     panel.dismiss()
     assert(not panel.visible)
+    panel.free()
+
+func _test_nearby_interaction_panel_presentation_and_selection() -> void:
+    var panel := NearbyInteractionPanel.new()
+    root.add_child(panel)
+    assert(not panel.visible)
+
+    panel.present([])
+    assert(not panel.visible)
+
+    var entries: Array[Dictionary] = []
+    for index in range(7):
+        entries.append({
+            "id": "character_%d" % index,
+            "name": "Character %d" % index,
+            "distance": index,
+            "hostile": index == 1
+        })
+
+    var selected_id := ""
+    panel.character_selected.connect(func(character_id: String): selected_id = character_id)
+    panel.present(entries)
+    assert(panel.visible)
+    var column := panel.get_child(0) as VBoxContainer
+    assert(column.get_child_count() == 7)
+    assert((column.get_child(0) as Label).text == "NEARBY PEOPLE")
+    assert((column.get_child(1) as Button).text == "Talk · Character 0")
+    assert((column.get_child(2) as Button).text == "Engage · Character 1")
+    assert((column.get_child(6) as Button).text == "Talk · Character 5")
+
+    (column.get_child(2) as Button).emit_signal("pressed")
+    assert(selected_id == "character_1")
+
+    panel.present([])
+    assert(not panel.visible)
+    assert(panel.get_child_count() == 0)
     panel.free()
