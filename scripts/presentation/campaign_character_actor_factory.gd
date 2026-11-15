@@ -51,7 +51,8 @@ static func create_actor(
         if is_player:
             ara_model.apply_player_profile(player_profile)
         else:
-            ara_model.apply_npc_parameters(npc_profile.get("params", {}))
+            var params: Dictionary = npc_profile.get("params", {})
+            ara_model.apply_npc_parameters(params)
         if model_path.contains("/ara_runtime/"):
             var hair_id := str(player_profile.get("hair_style_id", "short02")) if is_player else str(npc_profile.get("params", {}).get("hair", "short02"))
             _attach_ara_hair(ara_model, body_variant, hair_id)
