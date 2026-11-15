@@ -188,4 +188,3 @@ func _test_campaign_character_actor_factory() -> void:
 	assert(model != null)
 	assert(model.loaded_asset_path != "")
 	actor.free()
-	state.free()
