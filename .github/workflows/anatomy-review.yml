@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: anatomy-review-${{ github.ref }}
@@ -85,6 +85,37 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: "1"
           PYTHONPATH: /usr/lib/python3/dist-packages
         run: python tools/build_ara_runtime_local.py --underwear-review-only
+
+      - name: Push male and female anatomy outputs to dev and dev_2
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          source_dir="$GITHUB_WORKSPACE/build/anatomy-review"
+          test -s "$source_dir/female_average_claude_integrated.glb"
+          test -s "$source_dir/female_average_briefs.glb"
+          test -s "$source_dir/male_average_flaccid.glb"
+          test -s "$source_dir/male_average_flaccid_briefs.glb"
+          for target in dev dev_2; do
+            git fetch origin "$target"
+            worktree="$(mktemp -d)"
+            git worktree add --detach "$worktree" "origin/$target"
+            mkdir -p "$worktree/art/characters/ara"
+            cp "$source_dir/female_average_claude_integrated.glb" "$worktree/art/characters/ara/ara_person_body.glb"
+            cp "$source_dir/female_average_briefs.glb" "$worktree/art/characters/ara/ara_person_body_briefs.glb"
+            cp "$source_dir/male_average_flaccid.glb" "$worktree/art/characters/ara/ara_person_male_body.glb"
+            cp "$source_dir/male_average_flaccid_briefs.glb" "$worktree/art/characters/ara/ara_person_male_body_briefs.glb"
+            git -C "$worktree" add art/characters/ara/ara_person_body.glb art/characters/ara/ara_person_body_briefs.glb art/characters/ara/ara_person_male_body.glb art/characters/ara/ara_person_male_body_briefs.glb
+            if ! git -C "$worktree" diff --cached --quiet; then
+              git -C "$worktree" commit -m "Add male and female anatomy outputs with briefs"
+              git -C "$worktree" push origin "HEAD:$target"
+            else
+              echo "Anatomy outputs already current on $target"
+            fi
+            git worktree remove --force "$worktree"
+          done
 
       - name: Upload anatomy review package
         if: always()
