@@ -3,6 +3,8 @@ extends RefCounted
 ## Presentation-only helpers for attaching a rider actor to a mount actor.
 ## Simulation state remains authoritative; this class never changes game rules.
 
+## Bareback baseline: deliberately prioritise a stable astride pose over tack alignment.
+## Minor mesh clipping is accepted for this milestone; revisit only with a dedicated horse clip.
 const RIDER_SEAT_POSITION := Vector3(0.0, 1.05, 0.0)
 const RIDING_ANIMATION := &"Ride motorcycle"
 
