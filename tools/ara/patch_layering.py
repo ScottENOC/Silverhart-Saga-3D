@@ -71,7 +71,7 @@ edit("src/core/garments/index.ts", [
 # Restore the pinned upstream catalogue before applying our deterministic edits.
 # This also repairs stale/corrupted copies left by earlier interrupted patch runs.
 catalog_path = ROOT / "src/core/garments/catalog.ts"
-catalog_base = ROOT / "tools/ara/catalog.ts.base"
+catalog_base = Path(__file__).resolve().with_name("catalog.ts.base")
 catalog_path.write_text(catalog_base.read_text())
 
 
