@@ -7,6 +7,8 @@ on:
     paths:
       - ".github/workflows/horse-tack-source.yml"
       - "tools/ci/extract_polyfork_horse_tack.py"
+      - "scripts/presentation/horse_tack_presentation.gd"
+      - "tests/capture_horse_tack_review.gd"
 
 permissions:
   contents: write
