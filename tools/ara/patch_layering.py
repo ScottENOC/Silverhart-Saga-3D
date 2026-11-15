@@ -74,6 +74,40 @@ catalog_path = ROOT / "src/core/garments/catalog.ts"
 catalog_base = Path(__file__).resolve().with_name("catalog.ts.base")
 catalog_path.write_text(catalog_base.read_text())
 
+# Replace the two string-based halter bra constructions with fitted tank-top
+# shells. They retain Ara's complete torso-and-shoulder coverage and follow the
+# accepted body's bust contour; lace/fishnet is a fabric treatment, not a pair
+# of cups suspended from narrow cords. The body is never hidden by alpha fabric.
+edit("src/core/garments/catalog.ts", [
+    ("  ...SWIMWEAR,\n  ...STREET,", `  ...SWIMWEAR.filter((item) => item.id !== 'halter_bra_lace' && item.id !== 'halter_bra_fishnet'),
+  {
+    id: 'halter_bra_lace', label: 'Halter lace bra', slot: 'top',
+    patterns: ['lace'], color: '#29242d', color2: '#987b91',
+    build: (g, st) => {
+      const sx = g.body.L.shoulderX;
+      return shellPart(g, {
+        // Same fitted shell coverage as Ara's tank top: continuous torso
+        // fabric with broad shoulder coverage, not separate cup triangles.
+        covers: (v) => isUpper(v) && v.tt >= 0.16 && (v.tt < 0.74 || Math.abs(v.ax - 0.6 * sx) < 0.2 * sx),
+        offset: cm(0.7), tile: 0.2, relax: 4,
+      }, cloth(g, 'Halter lace bra shell', st), false);
+    },
+  },
+  {
+    id: 'halter_bra_fishnet', label: 'Halter fishnet bra', slot: 'top',
+    patterns: ['fishnet'], color: '#29242d', color2: '#987b91',
+    build: (g, st) => {
+      const sx = g.body.L.shoulderX;
+      return shellPart(g, {
+        // Identical fitted garment geometry; only the fabric weave differs.
+        covers: (v) => isUpper(v) && v.tt >= 0.16 && (v.tt < 0.74 || Math.abs(v.ax - 0.6 * sx) < 0.2 * sx),
+        offset: cm(0.7), tile: 0.2, relax: 4,
+      }, cloth(g, 'Halter fishnet bra shell', st), false);
+    },
+  },
+  ...STREET,`) 
+]);
+
 
 
 
