@@ -66,6 +66,7 @@ jobs:
         with:
           path: |
             build/local-cache/ara
+            build/anatomy-review
             art/characters/ara
           key: ara-underwear-${{ runner.os }}-${{ hashFiles('tools/build_ara_runtime_local.py', 'tools/ara/patch_layering.py', 'tools/character_definitions.py', 'data/items/item_definitions.json') }}
           restore-keys: |
