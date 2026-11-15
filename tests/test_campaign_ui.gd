@@ -35,6 +35,8 @@ func _test_combat_hud_presentation_and_actions() -> void:
     assert(not hud.end_turn_button.disabled)
     assert(not hud.attack_button.disabled)
     assert(hud.status_label.text == "Ready.")
+    hud.set_status_text("Attack resolved.")
+    assert(hud.status_label.text == "Attack resolved.")
 
     hud.present(false, false, false, "")
     assert(not hud.visible)
