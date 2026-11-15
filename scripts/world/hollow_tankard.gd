@@ -1804,11 +1804,11 @@ func _attack_active_character() -> void:
         return
     var current := simulation.get_current_turn_character()
     if current == null or current.id != active_character_id or current.side != "player":
-        combat_hud.set_status_text( "It is not this character turn. Switch party members with Tab."
+        combat_hud.set_status_text("It is not this character turn. Switch party members with Tab.")
         return
     var target := _nearest_enemy_in_attack_range(current)
     if target == null:
-        combat_hud.set_status_text( "No enemy in reach. Move closer to an enemy first."
+        combat_hud.set_status_text("No enemy in reach. Move closer to an enemy first.")
         return
     var weapon_id := String(current.equipment.get("weapon", ""))
     var result := simulation.try_attack_character(current.id, target.id, {
@@ -1816,11 +1816,11 @@ func _attack_active_character() -> void:
         "weapon_id": weapon_id
     }, int(current.id.hash() + target.id.hash()))
     if bool(result.get("pending", false)) or simulation.has_pending_reaction():
-        combat_hud.set_status_text( "Resolving a defensive reaction..."
+        combat_hud.set_status_text("Resolving a defensive reaction...")
     elif bool(result.get("ok", false)):
-        combat_hud.set_status_text( "Attack resolved against %s." % target.display_name
+        combat_hud.set_status_text("Attack resolved against %s." % target.display_name)
     else:
-        combat_hud.set_status_text( "Attack unavailable: %s" % String(result.get("reason", "unknown"))
+        combat_hud.set_status_text("Attack unavailable: %s" % String(result.get("reason", "unknown")))
     _check_encounter_resolution()
 
 
