@@ -98,8 +98,10 @@ def add(target,buf,source_path,selector):
     src,sbuf=read(source_path)
     tj=[target['nodes'][i].get('name') for i in target['skins'][0]['joints']]
     sj=[src['nodes'][i].get('name') for i in src['skins'][0]['joints']]
-    if set(tj)!=set(sj): raise ValueError(f'Skeleton bones differ in {source_path}')
-    joint_map=[tj.index(name) for name in sj]
+    # Garment configurations may export extra unused helper bones. Only
+    # joints carrying non-zero garment weights must exist in the target rig.
+    target_joint_index={name:i for i,name in enumerate(tj)}
+    joint_map=[target_joint_index.get(name,0) for name in sj]
     tn=body_node(target); sn=body_node(src)
     target_mesh=target['meshes'][tn['mesh']]
     source_mesh=src['meshes'][sn['mesh']]
@@ -134,6 +136,22 @@ def add(target,buf,source_path,selector):
     matches=[p for p in src['meshes'][sn['mesh']]['primitives'] if p.get('material') is not None and src['materials'][p['material']].get('name')==name]
     if occurrence<0 or occurrence>=len(matches): raise ValueError(f'{selector}: found {len(matches)} in {source_path}; materials={[m.get("name") for m in src["materials"]]}')
     p=copy.deepcopy(matches[occurrence]); sm=copy.deepcopy(src['materials'][p['material']])
+    # Ignore zero-weight joint slots, but never silently remap a bone that
+    # actually deforms this garment and is absent from the destination rig.
+    missing={i for i,bone in enumerate(sj) if bone not in target_joint_index}
+    if missing:
+        attrs=p.get('attributes',{})
+        for joint_attr,weight_attr in (('JOINTS_0','WEIGHTS_0'),('JOINTS_1','WEIGHTS_1')):
+            if joint_attr not in attrs or weight_attr not in attrs: continue
+            joint_rows=accessor_rows(src,sbuf,attrs[joint_attr])
+            weight_rows=accessor_rows(src,sbuf,attrs[weight_attr])
+            for vertex,(joint_row,weight_row) in enumerate(zip(joint_rows,weight_rows)):
+                for joint,weight in zip(joint_row,weight_row):
+                    if weight > 1e-8 and int(joint) in missing:
+                        raise ValueError(
+                            f'Garment {selector} uses source-only bone {sj[int(joint)]!r} '
+                            f'at vertex {vertex}; it is not present in target rig {source_path}'
+                        )
     sm['name']=target_name or (f'{name}.{occurrence:03d}' if occurrence else name)
     ia=src['accessors'][p['indices']]; iv=src['bufferViews'][ia['bufferView']]
     if ia['componentType'] not in (5123,5125): raise ValueError('Unsupported index type')
