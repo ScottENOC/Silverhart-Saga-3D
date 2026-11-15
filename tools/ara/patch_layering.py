@@ -229,7 +229,7 @@ if legacy_id in catalog_source:
     catalogue_end = catalog_source.rfind("];", 0, legacy_start)
     if catalogue_end < 0:
         raise SystemExit("Found stale halter bra entries but could not locate the original catalogue terminator")
-    catalog_source = catalog_source[:catalogue_end + 2] + "\\n"
+    catalog_source = catalog_source[:catalogue_end + 2] + "\n"
     catalog_path.write_text(catalog_source)
 
 
