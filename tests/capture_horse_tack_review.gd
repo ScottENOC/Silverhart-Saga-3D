@@ -29,7 +29,7 @@ func _log_mesh_bounds(node: Node, model_root: Node3D) -> void:
                         first = false
                     else:
                         model_bounds = model_bounds.expand(point)
-        print("HORSE_MESH_BOUNDS path=%s model_bounds=%s" % [model_root.get_path_to(mesh_instance), model_bounds])
+        print("HORSE_MESH_BOUNDS path=%s mesh=%s model_bounds=%s local_bounds=%s" % [model_root.get_path_to(mesh_instance), mesh_instance.name, model_bounds, local_bounds])
     for child in node.get_children():
         _log_mesh_bounds(child, model_root)
 
@@ -83,7 +83,8 @@ func _capture() -> void:
 
     var camera := Camera3D.new()
     camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-    camera.size = 4.2
+    # Tighter framing makes tack placement and clipping inspectable in CI artifacts.
+    camera.size = 2.8
     world.add_child(camera)
     camera.current = true
 
@@ -98,7 +99,12 @@ func _capture() -> void:
         quit(1)
         return
     print("HORSE MODEL SPACE DIAGNOSTICS (unscaled imported model):")
+    print("HORSE_MODEL_ROOT_CHILDREN=" + str(horse.model_root.get_children().map(func(n): return n.name)))
     _log_mesh_bounds(horse.model_root, horse.model_root)
+    var tack_root := horse.model_root.get_node_or_null("HorseTack")
+    if tack_root != null:
+        print("TACK_DIAGNOSTICS:")
+        _log_mesh_bounds(tack_root, horse.model_root)
 
     for view in OUTPUTS:
         camera.position = view.camera
