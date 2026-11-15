@@ -90,6 +90,18 @@ jobs:
           PYTHONPATH: /usr/lib/python3/dist-packages
         run: python tools/build_ara_runtime_local.py --underwear-review-only
 
+      # Save generated anatomy and stage manifests even when a later garment
+      # assembly step fails, so expensive anatomy sculpting is not repeated.
+      - name: Persist anatomy build cache after partial failure
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            build/local-cache/ara
+            build/anatomy-review
+            art/characters/ara
+          key: ara-underwear-${{ runner.os }}-${{ hashFiles('tools/build_ara_runtime_local.py', 'tools/ara/patch_layering.py', 'tools/character_definitions.py', 'data/items/item_definitions.json') }}
+
       - name: Push male and female anatomy outputs to dev and dev_2
         env:
           GH_TOKEN: ${{ github.token }}
