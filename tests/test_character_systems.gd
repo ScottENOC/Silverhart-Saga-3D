@@ -316,21 +316,27 @@ func _test_party_roster_ownership_and_wren_policy() -> void:
     simulation.free()
 
 func _test_campaign_character_factory() -> void:
-    var manifest_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
-    _check(manifest_file != null, "Campaign character factory should read the Hollowmere NPC manifest")
-    if manifest_file == null:
+    var file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
+    _check(file != null, "Campaign character factory test should read the NPC manifest")
+    if file == null:
         return
-    var manifest: Variant = JSON.parse_string(manifest_file.get_as_text())
+    var manifest: Variant = JSON.parse_string(file.get_as_text())
+    _check(manifest is Dictionary, "NPC manifest should be valid JSON")
     if not manifest is Dictionary:
-        _check(false, "Campaign NPC manifest should parse for factory test")
         return
     var wren_profile: Dictionary = {}
+    var aldric_profile: Dictionary = {}
     for profile_value in manifest.get("characters", []):
-        if profile_value is Dictionary and String(profile_value.get("game_id", "")) == "companion_wren_talbot":
-            wren_profile = profile_value
-            break
+        if not profile_value is Dictionary:
+            continue
+        match String(profile_value.get("game_id", "")):
+            "companion_wren_talbot":
+                wren_profile = profile_value
+            "companion_ser_aldric_thorne":
+                aldric_profile = profile_value
     _check(not wren_profile.is_empty(), "Campaign character factory test should find Wren's authored profile")
-    if wren_profile.is_empty():
+    _check(not aldric_profile.is_empty(), "Campaign character factory test should find Aldric's authored progression profile")
+    if wren_profile.is_empty() or aldric_profile.is_empty():
         return
 
     var loadouts := CampaignCharacterFactory.load_starting_loadouts()
@@ -346,7 +352,18 @@ func _test_campaign_character_factory() -> void:
     _check(wren.companion_recruitment_initialized and wren.progression_mode == "companion", "Factory should prevent starting Wren from being processed as a fresh recruit")
     _check(wren.time_points == wren.max_time_points, "Factory should initialise NPC action points")
     _check(wren.equipped_item_data.has("shirt") and wren.equipped_item_data.has("pants"), "Factory should preserve authored NPC clothing equipment")
-    _check(wren.level >= 1 and wren.class_levels.size() > 0, "Factory should preserve authored companion progression")
+
+    # Wren's manifest entry intentionally has no progression block. Use Aldric,
+    # whose entry explicitly authors class levels and skill picks, to test that path.
+    var aldric := CampaignCharacterFactory.create_npc_state(
+        "companion_ser_aldric_thorne",
+        "Ser Aldric Thorne",
+        Vector2i(-11, -5),
+        aldric_profile,
+        loadouts
+    )
+    _check(aldric.level == 2 and aldric.class_levels.size() > 0, "Factory should preserve authored companion class progression")
+    _check(aldric.npc_authored_progression and aldric.skill_progression_initialized, "Factory should initialise authored companion skill progression")
 
 
 func _test_race_class_character_creation() -> void:
