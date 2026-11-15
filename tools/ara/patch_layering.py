@@ -201,6 +201,25 @@ edit("src/core/garments/catalog.ts", [
   // ---------------- Bottoms\n""")
 ])
 
+
+# Use Ara's fitted breast-cup projection for the strapless bra as well. Unlike
+# the triangle bikini it has no neck tie; its back band is doubled and widened.
+edit("src/core/garments/swimwear.ts", [
+    ("function bikiniTop(g: GCtx, st: GarmentStyle, mode: 'lace' | 'fishnet' | null = null): GPart[] {",
+     "function bikiniTop(g: GCtx, st: GarmentStyle, mode: 'lace' | 'fishnet' | 'strapless' | null = null): GPart[] {"),
+    ("  for (const [ci, c] of cs.entries()) {",
+     "  if (mode !== 'strapless') for (const [ci, c] of cs.entries()) {"),
+    ("  const halter = merge([...strings, bow(layOn(skin, [tie, tie, tie], cm(0.3), 1)[1], [0, 0.3, -1], cm(1.6))])!;",
+     "  const halter = mode === 'strapless' ? merge(strings)! : merge([...strings, bow(layOn(skin, [tie, tie, tie], cm(0.3), 1)[1], [0, 0.3, -1], cm(1.6))])!;"),
+    ("strings.push(cord(layOn(skin, spline([l, ...back.filter((_, i) => i % 4 === 0), r], 4), cm(0.3)), mode ? cm(0.22) : cm(0.14), false, 6));",
+     "const bandPath = layOn(skin, spline([l, ...back.filter((_, i) => i % 4 === 0), r], 4), cm(0.3));\\n      strings.push(cord(bandPath, mode === 'strapless' ? cm(0.34) : mode ? cm(0.22) : cm(0.14), false, 8));\\n      if (mode === 'strapless') strings.push(cord(bandPath.map((p) => [p[0], p[1] - cm(1.3), p[2]]), cm(0.34), false, 8));"),
+    ("  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },",
+     "  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },\\n  { id: 'bra', label: 'Strapless bra', slot: 'top', patterns: ['solid', 'lace'], color: '#29242d', color2: '#987b91', build: (g, st) => bikiniTop(g, st, 'strapless') },"),
+]);
+edit("src/core/garments/catalog.ts", [
+    ("  SLIDES,\\n  // Shell-based bra garments override the earlier swimwear implementations.", "  SLIDES,\\n];"),
+]);
+
 print("Ara underTop, separate lace/fishnet halters, backless side-slit dress and briefs layering patch applied.")
 
 
