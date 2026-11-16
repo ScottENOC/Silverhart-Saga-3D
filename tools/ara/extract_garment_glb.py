@@ -156,6 +156,20 @@ def compact(doc, binary, body_node):
         if "sampler" in texture:
             texture["sampler"] = sampler_map[texture["sampler"]]
 
+    def remap_material_textures(value):
+        if isinstance(value, dict):
+            if isinstance(value.get("index"), int) and value["index"] in texture_map:
+                value["index"] = texture_map[value["index"]]
+            for child in value.values():
+                remap_material_textures(child)
+        elif isinstance(value, list):
+            for child in value:
+                remap_material_textures(child)
+
+    new_materials = [copy.deepcopy(doc["materials"][i]) for i in used_materials]
+    for material in new_materials:
+        remap_material_textures(material)
+
     new_nodes = copy.deepcopy(doc["nodes"])
     target_node_index = doc["nodes"].index(body_node)
     for index, node in enumerate(new_nodes):
@@ -170,7 +184,7 @@ def compact(doc, binary, body_node):
     result["meshes"] = [mesh]
     result["accessors"] = new_accessors
     result["bufferViews"] = new_views
-    result["materials"] = [copy.deepcopy(doc["materials"][i]) for i in used_materials]
+    result["materials"] = new_materials
     result["textures"] = new_textures
     result["images"] = new_images
     result["samplers"] = new_samplers
