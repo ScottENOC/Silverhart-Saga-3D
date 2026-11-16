@@ -87,4 +87,7 @@ jobs:
             exit 0
           fi
           git commit -m "Build Ara female body with integrated anatomy"
+          # The branch may have advanced while Blender/Godot were running.
+          git fetch origin dev_2
+          git rebase origin/dev_2
           git push origin HEAD:dev_2
