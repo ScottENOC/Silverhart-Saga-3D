@@ -37,6 +37,11 @@ jobs:
           cd /tmp/ara-3d-gen
           corepack enable
           pnpm install --no-frozen-lockfile
+          # The MakeHuman project now designates files2 as its primary asset
+          # mirror; the generator's pinned setup script still points at the
+          # old secondary host.
+          sed -i 's#https://files.makehumancommunity.org/asset_packs/#https://files2.makehumancommunity.org/asset_packs/#' scripts/setup-assets.ts
+          grep -F "https://files2.makehumancommunity.org/asset_packs/makehuman_system_assets/" scripts/setup-assets.ts
           setup_ok=false
           for attempt in 1 2 3; do
             if npm run setup-assets; then
