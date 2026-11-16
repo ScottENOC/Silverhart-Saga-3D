@@ -99,11 +99,32 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 static func apply_equipment_visuals(actor: Node3D, state: CharacterState) -> void:
     if actor == null or state == null or not is_instance_valid(actor):
         return
+    var ara := _get_ara_actor(actor)
+    if ara != null:
+        ara.apply_equipment_visuals(state.equipped_item_data)
+
+
+static func apply_player_profile(actor: Node3D, profile: Dictionary) -> void:
+    if actor == null or not is_instance_valid(actor):
+        return
+    actor.set_meta("player_profile", profile.duplicate(true))
+    actor.set_meta("appearance_profile", profile.duplicate(true))
+    actor.set_meta("body_variant", String(profile.get("body_variant", "female")))
+    actor.set_meta("gender_presentation", String(profile.get("gender_presentation", "Androgynous")))
+    actor.set_meta("pronouns", String(profile.get("pronouns", "they/them")))
+    var name_label := actor.get_node_or_null("PlayerNameLabel") as Label3D
+    if name_label != null:
+        name_label.text = String(profile.get("name", "Adventurer"))
+    var ara := _get_ara_actor(actor)
+    if ara != null:
+        ara.apply_player_profile(profile)
+
+
+static func _get_ara_actor(actor: Node3D) -> AraCharacterActor:
     var ara := actor as AraCharacterActor
     if ara == null:
         ara = actor.get_node_or_null("CharacterModel") as AraCharacterActor
-    if ara != null:
-        ara.apply_equipment_visuals(state.equipped_item_data)
+    return ara
 
 
 static func _create_actor_presentation(
