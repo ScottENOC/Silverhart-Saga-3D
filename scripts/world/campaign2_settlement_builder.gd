@@ -4,10 +4,7 @@ extends RefCounted
 ## The data layout is separate from the reusable 3D construction routines.
 
 const HEX_RADIUS := HexGrid.DEFAULT_RADIUS_M
-const ARA_ACTOR_SCRIPT = preload("res://scripts/presentation/ara_character_actor.gd")
-const FEMALE_BODY := "res://art/characters/ara_runtime/ara_person_body.glb"
-const MALE_BODY := "res://art/characters/ara_runtime/ara_person_male_body.glb"
-const HAIR_ROOT := "res://art/characters/ara_runtime/hair/"
+const CHARACTER_ACTOR_FACTORY = preload("res://scripts/presentation/campaign_character_actor_factory.gd")
 
 var settlements: Array = []
 
@@ -109,75 +106,14 @@ func _material(colour: Color, roughness: float = 0.88) -> StandardMaterial3D:
 	return material
 
 func _add_npc(parent: Node3D, npc: Dictionary) -> void:
-	var npc_id := String(npc.get("id", "campaign2_npc"))
-	var name := String(npc.get("name", npc_id))
-	var variant := String(npc.get("body_variant", "female"))
-	var actor := ARA_ACTOR_SCRIPT.new() as AraCharacterActor
-	actor.name = "NPC_" + npc_id
-	parent.add_child(actor)
-	var asset_path := MALE_BODY if variant == "male" else FEMALE_BODY
-	var loaded := actor.configure(asset_path)
-	var appearance: Dictionary = npc.get("appearance", {})
-	if loaded:
-		actor.apply_player_profile({
-			"skin_colour": appearance.get("skin_colour", "#b9825f"),
-			"eye_colour": appearance.get("eye_colour", "Brown"),
-			"hair_colour": appearance.get("hair_colour", "Dark brown"),
-			"height_scale": float(appearance.get("height_scale", 1.0)),
-			"build_scale": float(appearance.get("build_scale", 1.0)),
-			"body_variant": variant,
-			"gender_presentation": appearance.get("gender_presentation", "Androgynous"),
-			"pronouns": appearance.get("pronouns", "they/them")
-		})
-		var hair_style := String(appearance.get("hair_style", ""))
-		if not hair_style.is_empty():
-			actor.set_hairstyle(HAIR_ROOT + variant + "_" + hair_style + ".glb")
-		actor.apply_equipment_visuals(npc.get("visual_equipment", {}))
-	else:
-		_add_fallback_person(actor)
-
 	var hex := _read_hex(npc.get("position", {}))
-	actor.position = HexGrid.axial_to_world(hex, HEX_RADIUS)
-	actor.rotation.y = deg_to_rad(180.0)
-	actor.set_meta("campaign2_npc_id", npc_id)
-	actor.set_meta("dialogue_id", String(npc.get("dialogue_id", "")))
-	actor.set_meta("faction_id", String(npc.get("faction_id", "")))
-	actor.set_meta("side", String(npc.get("side", "neutral")))
-	actor.set_meta("class_levels", npc.get("class_levels", []))
-	actor.set_meta("skill_picks", npc.get("skill_picks", []))
-	actor.set_meta("quest_hooks", npc.get("quest_hooks", []))
-	actor.add_to_group("campaign2_npc")
-
-	var label := Label3D.new()
-	label.name = "Name_" + npc_id
-	label.text = name
-	label.font_size = 30
-	label.pixel_size = 0.012
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.no_depth_test = true
-	label.modulate = Color("#f4e7ca")
-	label.outline_size = 6
-	label.outline_modulate = Color("#17212a")
-	label.position = actor.position + Vector3(0.0, 2.35, 0.0)
-	parent.add_child(label)
-
-func _add_fallback_person(parent: Node3D) -> void:
-	var body := MeshInstance3D.new()
-	var body_mesh := CapsuleMesh.new()
-	body_mesh.radius = 0.34
-	body_mesh.height = 1.65
-	body.mesh = body_mesh
-	body.position = Vector3(0.0, 0.85, 0.0)
-	body.material_override = _material(Color("#687a83"))
-	parent.add_child(body)
-	var head := MeshInstance3D.new()
-	var head_mesh := SphereMesh.new()
-	head_mesh.radius = 0.22
-	head_mesh.height = 0.44
-	head.mesh = head_mesh
-	head.position = Vector3(0.0, 1.78, 0.0)
-	head.material_override = _material(Color("#c99e7a"))
-	parent.add_child(head)
+	var actor := CHARACTER_ACTOR_FACTORY.create_settlement_actor(
+		npc,
+		HexGrid.axial_to_world(hex, HEX_RADIUS)
+	)
+	if actor == null:
+		return
+	parent.add_child(actor)
 
 func _contains_chunk(hex: Vector2i, chunk_min: Vector2i, chunk_size: int) -> bool:
 	return hex.x >= chunk_min.x and hex.x < chunk_min.x + chunk_size and hex.y >= chunk_min.y and hex.y < chunk_min.y + chunk_size
