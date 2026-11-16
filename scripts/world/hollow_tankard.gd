@@ -1166,10 +1166,7 @@ func _apply_save_data(data: Dictionary) -> void:
             var base: Dictionary = actor.get_meta("base_appearance_profile", {})
             var merged_appearance := base.duplicate(true)
             merged_appearance.merge(appearance_diffs[actor_id], true)
-            actor.set_meta("appearance_profile", merged_appearance)
-            var model := actor.get_node_or_null("CharacterModel") as AraCharacterActor
-            if model != null:
-                model.apply_npc_parameters(merged_appearance)
+            CampaignCharacterActorFactory.apply_npc_parameters(actor, merged_appearance)
     # Older saves stored both a location-side roster and a simulation roster.
     # Prefer the former for historical party ordering, then retain any members
     # present only in the simulation snapshot. New saves write one canonical list.
