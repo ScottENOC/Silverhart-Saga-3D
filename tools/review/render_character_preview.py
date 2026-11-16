@@ -62,28 +62,42 @@ def apply_profile(objects, profile):
 
 def setup_render(centre, radius, out, view):
     scene = bpy.context.scene
-    # Ubuntu's Blender 5.0 package exposes EEVEE under BLENDER_EEVEE.
     engines = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
     scene.render.engine = "BLENDER_EEVEE" if "BLENDER_EEVEE" in engines else "BLENDER_EEVEE_NEXT"
     scene.render.resolution_x, scene.render.resolution_y = 720, 960
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
     scene.render.film_transparent = False
-    scene.world.color = (0.055, 0.065, 0.085)
-    scene.view_settings.view_transform = "Standard"
-    scene.view_settings.look = "Medium High Contrast"
-    direction = {"front":Vector((0,-1,0.08)), "side":Vector((1,0,0.08)), "rear":Vector((0,1,0.08))}[view]
+    # Neutral studio environment with restrained illumination.
+    if scene.world is None:
+        scene.world = bpy.data.worlds.new("PreviewWorld")
+    scene.world.use_nodes = True
+    background = scene.world.node_tree.nodes.get("Background")
+    if background:
+        background.inputs["Color"].default_value = (0.055, 0.065, 0.085, 1)
+        background.inputs["Strength"].default_value = 0.28
+    scene.view_settings.view_transform = "AgX"
+    try:
+        scene.view_settings.look = "Medium High Contrast"
+    except TypeError:
+        pass
+    scene.view_settings.exposure = -0.65
+    scene.view_settings.gamma = 1.0
+    direction = {"front":Vector((0,-1,0)), "side":Vector((1,0,0))}[view]
     cam_data = bpy.data.cameras.new("PreviewCamera")
     cam = bpy.data.objects.new("PreviewCamera", cam_data)
     bpy.context.collection.objects.link(cam)
-    cam.location = centre + direction.normalized() * radius * 3.0
+    cam.location = centre + direction.normalized() * radius * 4.0
     cam.rotation_euler = (centre-cam.location).to_track_quat("-Z","Y").to_euler()
-    cam_data.lens = 55
+    # Orthographic projection avoids perspective exaggeration of hands near the lens.
+    cam_data.type = "ORTHO"
+    aspect = scene.render.resolution_x / scene.render.resolution_y
+    cam_data.ortho_scale = max(radius * 2.0 * aspect, radius * 1.35) * 1.25
     scene.camera = cam
     for name, offset, power, size in [
-        ("Key",Vector((-radius,-radius*1.4,radius*1.6)),180,radius*1.2),
-        ("Fill",Vector((radius*1.2,-radius,radius*0.7)),90,radius),
-        ("Rim",Vector((0,radius*1.5,radius*1.3)),140,radius),
+        ("Key",Vector((-radius,-radius*1.4,radius*1.5)),65,radius*1.35),
+        ("Fill",Vector((radius*1.2,-radius,radius*0.7)),28,radius*1.2),
+        ("Rim",Vector((0,radius*1.5,radius*1.3)),42,radius*1.3),
     ]:
         ld=bpy.data.lights.new(name,"AREA"); lo=bpy.data.objects.new(name,ld); bpy.context.collection.objects.link(lo)
         lo.location=centre+offset; ld.energy=power; ld.shape="DISK"; ld.size=size
@@ -195,5 +209,5 @@ def main():
             "mesh_count":len(meshes),"framing_objects":[o.name for o in frame_meshes],
             "mesh_stats":mesh_stats,"shape_key_vertex_audit":key_audit,"views":["front","side"]}
     (output/"profile_report.json").write_text(json.dumps(report,indent=2))
-    print("[Character preview] rendered front, side and rear:", output, flush=True)
+    print("[Character preview] rendered orthographic front and side:", output, flush=True)
 if __name__=="__main__": main()
