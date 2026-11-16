@@ -60,12 +60,14 @@ def main():
     clear_scene()
     body_objects = import_glb(body_path)
     imported = list(body_objects)
+    hair_objects = []
     hair_path_value = profile.get("hair_asset", "")
     if hair_path_value:
         hair_path = root / hair_path_value
         if not hair_path.is_file():
             raise FileNotFoundError(hair_path)
-        imported.extend(import_glb(hair_path))
+        hair_objects = import_glb(hair_path)
+        imported.extend(hair_objects)
 
     cleared_actions = []
     if profile.get("reset_armatures_to_rest", True):
@@ -119,8 +121,10 @@ def main():
             material = slot.material
             if material is None or material.as_pointer() in tinted_materials:
                 continue
-            for token, tint in profile.get("material_tints", {}).items():
-                if token.casefold() in material.name.casefold():
+            tint_rules = profile.get("material_tints", {})
+            is_hair_asset = obj in hair_objects
+            for token, tint in tint_rules.items():
+                if (is_hair_asset and token.casefold() == "hair") or (not is_hair_asset and token.casefold() in material.name.casefold()):
                     colour = tint.get("colour", tint.get("color")) if isinstance(tint, dict) else tint
                     mix_factor = tint.get("mix", 0.35) if isinstance(tint, dict) else 0.35
                     tint_material(material, colour, mix_factor)
@@ -150,6 +154,24 @@ def main():
     if "FINISHED" not in result or not output_path.is_file() or output_path.stat().st_size < 100_000:
         raise RuntimeError("Blender GLB export did not produce a valid-sized output file")
 
+    from mathutils import Vector
+    def object_diagnostics(obj):
+        corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box] if obj.type == "MESH" else []
+        return {
+            "name": obj.name, "type": obj.type,
+            "world_location": [round(float(v), 5) for v in obj.matrix_world.translation],
+            "world_bounds_min": [round(float(min(v[i] for v in corners)), 5) for i in range(3)] if corners else None,
+            "world_bounds_max": [round(float(max(v[i] for v in corners)), 5) for i in range(3)] if corners else None,
+            "materials": [slot.material.name if slot.material else None for slot in obj.material_slots] if obj.type == "MESH" else [],
+            "armature_modifier_targets": [m.object.name for m in obj.modifiers if m.type == "ARMATURE" and m.object] if obj.type == "MESH" else []
+        }
+    rig_diagnostics = []
+    for obj in armatures:
+        head_bones = [b for b in obj.data.bones if any(k in b.name.casefold() for k in ("head", "neck"))]
+        rig_diagnostics.append({
+            "armature": obj.name,
+            "head_bones": [{"name": b.name, "head_world": [round(float(v), 5) for v in (obj.matrix_world @ b.head)]} for b in head_bones]
+        })
     report = {
         "name": profile.get("name", "Ara character"),
         "output": output_path.name,
@@ -162,9 +184,13 @@ def main():
         "cleared_actions": cleared_actions,
         "mesh_count": len(meshes),
         "mesh_objects": [obj.name for obj in meshes],
+        "object_diagnostics": [object_diagnostics(obj) for obj in imported],
+        "rig_diagnostics": rig_diagnostics,
         "output_bytes": output_path.stat().st_size,
         "notes": [
             "Standalone export assembled from existing Ara body and hair GLBs.",
+            "Separate braid asset materials receive the configured Hair tint regardless of source material name.",
+            "Object bounds and head/neck bone coordinates are included to support precise hairstyle alignment.",
             "Source GLBs and Godot game files are not modified.",
             "Clothing has not been added to this first Wren export."
         ]
