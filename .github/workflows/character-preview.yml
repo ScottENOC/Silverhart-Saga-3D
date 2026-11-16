@@ -28,10 +28,11 @@ jobs:
       - name: Install Blender
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender libegl1 libgl1-mesa-dri
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
       - name: Render character views
         run: |
           mkdir -p build/character-preview
+          export PYTHONPATH=/usr/lib/python3/dist-packages:$PYTHONPATH
           blender --background --python-exit-code 1 --python tools/review/render_character_preview.py -- character-preview/profile.json build/character-preview "$GITHUB_WORKSPACE"
           test -s build/character-preview/front.png
           test -s build/character-preview/side.png
