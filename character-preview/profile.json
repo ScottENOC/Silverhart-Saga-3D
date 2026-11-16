@@ -1,0 +1,19 @@
+{
+  "name": "Wren Talbot — preview",
+  "model": "art/characters/ara_runtime/ara_person_body_anatomy.glb",
+  "hair_asset": "art/characters/ara_runtime/hair/female_braid01.glb",
+  "shape_keys": {
+    "body_height": 0.1,
+    "body_muscle": 0.12,
+    "body_weight": -0.08,
+    "body_breasts": 0.35,
+    "body_legs": 0.08,
+    "body_proportions": 0.08
+  },
+  "material_tints": {
+    "Skin": "#a1845b",
+    "Hair": "#252b62",
+    "Eye": "#3f8b58",
+    "Eyes": "#3f8b58"
+  }
+}
