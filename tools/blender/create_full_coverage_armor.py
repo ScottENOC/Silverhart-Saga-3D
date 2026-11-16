@@ -143,6 +143,15 @@ def main():
     armour["review_status"] = "first_pass_full_coverage_armour_requires_visual_review"
     print(f"Generated full-coverage leather armour from {len(selected_faces)} Ara body faces; removed {removed_old} faces from old accessory")
 
+    # Join the armour panels into the body's skinned mesh while retaining the
+    # Leather armor material slot. The GLB extraction tool can then select the
+    # armour as one independent rigged garment primitive.
+    bpy.ops.object.select_all(action="DESELECT")
+    skin.select_set(True)
+    armour.select_set(True)
+    bpy.context.view_layer.objects.active = skin
+    bpy.ops.object.join()
+
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
         if obj.type in {"MESH", "ARMATURE", "EMPTY"}:
