@@ -119,7 +119,7 @@ def main():
     lo=Vector(tuple(min(p[i] for p in pts) for i in range(3)))
     hi=Vector(tuple(max(p[i] for p in pts) for i in range(3)))
     centre=(lo+hi)*0.5; radius=max((hi-lo).length*0.5,0.5)
-    for view in ("front","side","rear"): setup_render(centre,radius,output,view)
+    for view in ("front","side"): setup_render(centre,radius,output,view)
     mesh_stats=[]
     key_audit=[]
     deps=bpy.context.evaluated_depsgraph_get()
@@ -193,7 +193,7 @@ def main():
     report={"name":profile.get("name","Ara Character"),"model":profile["model"],"hair_asset":hair,
             "shape_keys_applied":profile.get("shape_keys",{}),"material_tints":profile.get("material_tints",{}),
             "mesh_count":len(meshes),"framing_objects":[o.name for o in frame_meshes],
-            "mesh_stats":mesh_stats,"shape_key_vertex_audit":key_audit,"views":["front","side","rear"]}
+            "mesh_stats":mesh_stats,"shape_key_vertex_audit":key_audit,"views":["front","side"]}
     (output/"profile_report.json").write_text(json.dumps(report,indent=2))
     print("[Character preview] rendered front, side and rear:", output, flush=True)
 if __name__=="__main__": main()
