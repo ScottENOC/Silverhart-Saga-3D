@@ -33,6 +33,10 @@ func _run() -> void:
     var actor := ACTOR_SCRIPT.new() as AraCharacterActor
     root.add_child(actor)
     assert(actor.configure(BODY_PATH), "Could not configure female Ara base body")
+    var braid_path := "res://art/characters/ara_runtime/hair/female_braid01.glb"
+    assert(ResourceLoader.exists(braid_path), "Missing Ara female braid hairstyle")
+    assert(actor.set_hairstyle(braid_path), "Could not bind Ara braid to the shared female body")
+    assert(not actor.hair_instances.is_empty(), "Ara braid attached no skinned meshes")
     actor.apply_player_profile({"body_variant": "female"})
 
     var equipment: Dictionary = {}
