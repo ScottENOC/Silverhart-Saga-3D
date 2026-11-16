@@ -19,15 +19,21 @@ def material_name(doc, primitive):
     return str(doc.get("materials", [])[index].get("name", ""))
 
 
-def strip_body_mesh(doc):
+def strip_body_mesh(doc, keep_materials):
     body = assembler.body_node(doc)
     mesh = doc["meshes"][body["mesh"]]
+    tokens = [str(value).strip().lower() for value in keep_materials if str(value).strip()]
+    if not tokens:
+        raise ValueError("At least one --keep-material token is required")
     mesh["primitives"] = [
         primitive for primitive in mesh["primitives"]
-        if material_name(doc, primitive).strip().lower() != "skin"
+        if any(material_name(doc, primitive).strip().lower().startswith(token) for token in tokens)
     ]
     if not mesh["primitives"]:
-        raise ValueError("No garment primitives remain after removing the Skin surface")
+        available = [_material_name for _material_name in (
+            material_name(doc, primitive) for primitive in doc["meshes"][body["mesh"]]["primitives"]
+        )]
+        raise ValueError("No selected garment primitives remain; requested=%s available=%s" % (tokens, available))
     return body
 
 
@@ -198,32 +204,35 @@ def main():
     parser.add_argument("--source", default="")
     parser.add_argument("--selector", action="append", default=[])
     parser.add_argument("--strip-input", default="")
+    parser.add_argument("--keep-material", action="append", default=[])
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
     if args.strip_input:
         doc, binary = assembler.read(args.strip_input)
-    else:
-        if not args.body or not args.source or not args.selector:
-            parser.error("provide --body, --source and at least one --selector, or use --strip-input")
-        doc, binary = assembler.read(args.body)
-        binary = binary[:doc["buffers"][0]["byteLength"]]
-        for selector in args.selector:
-            doc, binary = assembler.add(doc, binary, args.source, selector)
+        body_node = strip_body_mesh(doc, args.keep_material)
+        compact_doc, compact_binary = compact(doc, binary, body_node)
+        assembler.validate_morph_targets(compact_doc)
+        assembler.write(args.output, compact_doc, compact_binary)
+        check, _ = assembler.read(args.output)
+        if len(check.get("meshes", [])) != 1:
+            raise ValueError("Standalone garment GLB must contain exactly one mesh")
+        print("Wrote %s (%s bytes, %s garment primitives)" % (
+            args.output, Path(args.output).stat().st_size,
+            len(check["meshes"][0]["primitives"])
+        ))
+        return
 
-    body_node = strip_body_mesh(doc)
-    compact_doc, compact_binary = compact(doc, binary, body_node)
-    assembler.validate_morph_targets(compact_doc)
-    assembler.write(args.output, compact_doc, compact_binary)
-    check, _ = assembler.read(args.output)
-    if len(check.get("meshes", [])) != 1:
-        raise ValueError("Standalone garment GLB must contain exactly one mesh")
-    for primitive in check["meshes"][0]["primitives"]:
-        if material_name(check, primitive).strip().lower() == "skin":
-            raise ValueError("Standalone garment still contains the Skin surface")
-    print("Wrote %s (%s bytes, %s garment primitives)" % (
-        args.output, Path(args.output).stat().st_size,
-        len(check["meshes"][0]["primitives"])
+    if not args.body or not args.source or not args.selector:
+        parser.error("provide --body, --source and at least one --selector, or use --strip-input")
+    doc, binary = assembler.read(args.body)
+    binary = binary[:doc["buffers"][0]["byteLength"]]
+    for selector in args.selector:
+        doc, binary = assembler.add(doc, binary, args.source, selector)
+    assembler.validate_morph_targets(doc)
+    assembler.write(args.output, doc, binary)
+    print("Wrote fitted-body assembly %s (%s bytes)" % (
+        args.output, Path(args.output).stat().st_size
     ))
 
 
