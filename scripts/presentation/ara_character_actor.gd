@@ -626,6 +626,7 @@ func apply_body_parameters(profile: Dictionary) -> void:
         "legs": clampf(float(profile.get("legs", 0.5)), 0.0, 1.0)
     }
     var applied := 0
+    var applied_parameters: Dictionary = {}
     var height_morph_applied := false
     var meshes: Array[MeshInstance3D] = []
     _collect_meshes(model_root, meshes)
@@ -637,8 +638,13 @@ func apply_body_parameters(profile: Dictionary) -> void:
             for parameter in aliases.keys():
                 for alias in aliases[parameter]:
                     if shape_name == alias or shape_name.ends_with(alias):
-                        mesh_instance.set_blend_shape_value(shape_index, values[parameter])
+                        # Body shape keys are authored around the neutral
+                        # midpoint (0.5); Godot's relative blend-shape values
+                        # therefore run from -0.5 to +0.5.
+                        var shape_value := values[parameter] - 0.5 if shape_name.begins_with("body") else values[parameter]
+                        mesh_instance.set_blend_shape_value(shape_index, shape_value)
                         applied += 1
+                        applied_parameters[parameter] = true
                         if parameter == "height":
                             height_morph_applied = true
                         break
@@ -655,6 +661,7 @@ func apply_body_parameters(profile: Dictionary) -> void:
     )
     set_meta("body_parameters", values)
     set_meta("body_morph_targets_applied", applied)
+    set_meta("body_morph_parameters_applied", applied_parameters)
 
 func apply_npc_parameters(params: Dictionary) -> void:
     if model_root == null:
