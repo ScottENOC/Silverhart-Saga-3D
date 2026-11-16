@@ -29,14 +29,26 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
-      - name: Render character views
+      - name: Create neutral baseline profile
         run: |
-          mkdir -p build/character-preview
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = json.loads(Path("character-preview/profile.json").read_text())
+          p["name"] = "Ara neutral baseline"
+          p["shape_keys"] = {key: 0.0 for key in p.get("shape_keys", {})}
+          Path("build/ara-baseline-profile.json").write_text(json.dumps(p, indent=2))
+          PY
+      - name: Render neutral baseline and Wren comparison
+        run: |
+          mkdir -p build/character-preview/baseline build/character-preview/wren
           export PYTHONPATH=/usr/lib/python3/dist-packages:$PYTHONPATH
-          blender --background --python-exit-code 1 --python tools/review/render_character_preview.py -- character-preview/profile.json build/character-preview "$GITHUB_WORKSPACE"
-          test -s build/character-preview/front.png
-          test -s build/character-preview/side.png
-          test -s build/character-preview/rear.png
+          blender --background --python-exit-code 1 --python tools/review/render_character_preview.py -- build/ara-baseline-profile.json build/character-preview/baseline "$GITHUB_WORKSPACE"
+          blender --background --python-exit-code 1 --python tools/review/render_character_preview.py -- character-preview/profile.json build/character-preview/wren "$GITHUB_WORKSPACE"
+          for view in front side rear; do
+            test -s "build/character-preview/baseline/$view.png"
+            test -s "build/character-preview/wren/$view.png"
+          done
       - name: Upload preview images
         uses: actions/upload-artifact@v4
         with:
