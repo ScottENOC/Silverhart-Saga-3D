@@ -192,23 +192,7 @@ jobs:
           set -euo pipefail
           cd /tmp/ara-3d-gen
           for weapon in sword knife axe spear bow mace club; do
-            python - "$weapon" <<'PY'
-          import json, sys
-          weapon = sys.argv[1]
-          params = {
-              "name": "silverhart_prop",
-              "gender": 0,
-              "age": 0.5,
-              "muscle": 0.5,
-              "weight": 0.5,
-              "weapon": weapon,
-              "animations": False,
-              "faceBones": False,
-              "faceShapes": False,
-              "speechShapes": False
-          }
-          json.dump(params, open('/tmp/silverhart-prop.params.json', 'w'), indent=2)
-          PY
+            python -c 'import json,sys; w=sys.argv[1]; p={"name":"silverhart_prop","gender":0,"age":0.5,"muscle":0.5,"weight":0.5,"weapon":w,"animations":False,"faceBones":False,"faceShapes":False,"speechShapes":False}; json.dump(p,open("/tmp/silverhart-prop.params.json","w"),indent=2)' "$weapon"
             rm -rf "/tmp/silverhart-prop-out"
             mkdir -p "/tmp/silverhart-prop-out"
             npm run export -- --params /tmp/silverhart-prop.params.json --detail high --formats glb --out /tmp/silverhart-prop-out
