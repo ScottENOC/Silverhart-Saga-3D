@@ -81,9 +81,9 @@ def setup_render(centre, radius, out, view):
     cam_data.lens = 55
     scene.camera = cam
     for name, offset, power, size in [
-        ("Key",Vector((-radius,-radius*1.4,radius*1.6)),500,radius*1.2),
-        ("Fill",Vector((radius*1.2,-radius,radius*0.7)),220,radius),
-        ("Rim",Vector((0,radius*1.5,radius*1.3)),350,radius),
+        ("Key",Vector((-radius,-radius*1.4,radius*1.6)),180,radius*1.2),
+        ("Fill",Vector((radius*1.2,-radius,radius*0.7)),90,radius),
+        ("Rim",Vector((0,radius*1.5,radius*1.3)),140,radius),
     ]:
         ld=bpy.data.lights.new(name,"AREA"); lo=bpy.data.objects.new(name,ld); bpy.context.collection.objects.link(lo)
         lo.location=centre+offset; ld.energy=power; ld.shape="DISK"; ld.size=size
@@ -109,8 +109,11 @@ def main():
     meshes=find_meshes(objects)
     if not meshes: raise RuntimeError("No mesh objects imported")
     deps=bpy.context.evaluated_depsgraph_get()
+    # Large imported helper icospheres must not distort character framing.
+    frame_meshes=[o for o in meshes if o.name.casefold() not in {"icosphere","icosphere.001"}]
+    if not frame_meshes: frame_meshes=meshes
     pts=[]
-    for obj in meshes:
+    for obj in frame_meshes:
         ev=obj.evaluated_get(deps)
         for corner in ev.bound_box: pts.append(ev.matrix_world @ Vector(corner))
     lo=Vector(tuple(min(p[i] for p in pts) for i in range(3)))
@@ -126,7 +129,11 @@ def main():
         available=list(sk.key_blocks.keys())[1:] if sk else []
         matched=[]
         missing=[]
+        key_ranges={}
         if sk:
+            for block in sk.key_blocks:
+                if block.name != "Basis":
+                    key_ranges[block.name]={"min":float(block.slider_min),"max":float(block.slider_max)}
             # Measure actual evaluated vertex movement, not the static object bound_box.
             original_values={block.name:block.value for block in sk.key_blocks}
             for block in sk.key_blocks:
@@ -144,6 +151,7 @@ def main():
                     continue
                 matched.append(key_name)
                 block.value=float(value)
+                effective_value=float(block.value)
                 deps.update()
                 ev=obj.evaluated_get(deps)
                 test_mesh=ev.to_mesh()
@@ -156,7 +164,9 @@ def main():
                 else:
                     max_delta=mean_delta=None
                 key_audit.append({"object":obj.name,"key":key_name,"requested_value":float(value),
-                                  "matched":True,"max_vertex_delta":round(max_delta,7) if max_delta is not None else None,
+                                  "matched":True,"effective_value_after_clamp":effective_value,
+                                  "slider_min":float(block.slider_min),"slider_max":float(block.slider_max),
+                                  "max_vertex_delta":round(max_delta,7) if max_delta is not None else None,
                                   "mean_vertex_delta":round(mean_delta,7) if mean_delta is not None else None})
                 block.value=0.0
             for block in sk.key_blocks:
@@ -172,12 +182,18 @@ def main():
         else:
             dims=[0.0,0.0,0.0]
         ev.to_mesh_clear()
-        mesh_stats.append({"object":obj.name,"evaluated_dimensions_xyz":[round(v,5) for v in dims],
+        mesh_stats.append({"object":obj.name,"location_xyz":[round(v,5) for v in obj.matrix_world.translation],
+                           "parent":obj.parent.name if obj.parent else None,
+                           "vertex_count":len(obj.data.vertices),
+                           "material_names":[m.name if m else None for m in obj.data.materials],
+                           "evaluated_dimensions_xyz":[round(v,5) for v in dims],
+                           "shape_key_ranges":key_ranges,
                            "shape_keys_available":available,"requested_keys_matched":matched,
                            "requested_keys_missing":missing})
     report={"name":profile.get("name","Ara Character"),"model":profile["model"],"hair_asset":hair,
             "shape_keys_applied":profile.get("shape_keys",{}),"material_tints":profile.get("material_tints",{}),
-            "mesh_count":len(meshes),"mesh_stats":mesh_stats,"shape_key_vertex_audit":key_audit,"views":["front","side","rear"]}
+            "mesh_count":len(meshes),"framing_objects":[o.name for o in frame_meshes],
+            "mesh_stats":mesh_stats,"shape_key_vertex_audit":key_audit,"views":["front","side","rear"]}
     (output/"profile_report.json").write_text(json.dumps(report,indent=2))
     print("[Character preview] rendered front, side and rear:", output, flush=True)
 if __name__=="__main__": main()
