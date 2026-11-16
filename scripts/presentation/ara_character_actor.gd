@@ -348,8 +348,12 @@ func apply_player_profile(profile: Dictionary) -> void:
         "White": Color("#e4dfd2"), "Blue": Color("#354d91"),
         "Green": Color("#426b49")
     }
-    tint_materials("skin", skin)
-    tint_materials("eye", eye_colours.get(str(profile.get("eye_colour", "Brown")), Color("#49301f")))
+    var skin_surfaces_tinted := tint_materials("skin", skin)
+    var eye_surfaces_tinted := tint_materials("eye", eye_colours.get(str(profile.get("eye_colour", "Brown")), Color("#49301f")))
+    print("[Ara appearance] asset=%s skin=%s surfaces=%d eyes=%s surfaces=%d" % [
+        loaded_asset_path, skin.to_html(false), skin_surfaces_tinted,
+        str(profile.get("eye_colour", "Brown")), eye_surfaces_tinted
+    ])
     var hair_colour_value := str(profile.get("hair_colour", "Dark brown"))
     current_hair_colour = Color.from_string(
         hair_colour_value,
@@ -442,6 +446,13 @@ func _remap_hair_skin_to_skeleton(mesh_instance: MeshInstance3D, source_skeleton
         var bone_name := source_skeleton.get_bone_name(source_bone_index)
         var target_bone_index := target_skeleton.find_bone(bone_name)
         if target_bone_index < 0:
+            var target_names: Array[String] = []
+            for target_index in range(target_skeleton.get_bone_count()):
+                target_names.append(target_skeleton.get_bone_name(target_index))
+            push_warning("Ara hair bind bone '%s' is missing from target skeleton. Source bones=%d target bones=%d target sample=%s" % [
+                bone_name, source_skeleton.get_bone_count(), target_skeleton.get_bone_count(),
+                ", ".join(target_names.slice(0, 16))
+            ])
             return false
         remapped_skin.set_bind_bone(bind_index, target_bone_index)
     mesh_instance.skin = remapped_skin
@@ -660,5 +671,8 @@ func apply_npc_parameters(params: Dictionary) -> void:
         "pronouns": "they/them"
     }
     apply_player_profile(profile)
-    tint_materials("hair", hair_tint)
+    var hair_surfaces_tinted := tint_materials("hair", hair_tint)
     current_hair_colour = hair_tint
+    print("[Ara appearance] NPC hair tint=%s base_surfaces=%d style=%s" % [
+        hair_tint.to_html(false), hair_surfaces_tinted, str(params.get("hair", "short02"))
+    ])
