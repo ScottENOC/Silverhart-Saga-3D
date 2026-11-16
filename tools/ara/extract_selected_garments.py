@@ -62,7 +62,9 @@ def extract_one(source_path, output_path, dry_run=False):
             continue
         mesh = doc["meshes"][node["mesh"]]
         names = [primitive_material_name(doc, primitive) for primitive in mesh.get("primitives", [])]
-        if any(is_body_material(name) for name in names):
+        has_body = any(is_body_material(name) for name in names)
+        has_garment = any(name and not is_body_material(name) for name in names)
+        if has_body and has_garment:
             candidates.append((node, names))
     if len(candidates) != 1:
         raise ValueError(
