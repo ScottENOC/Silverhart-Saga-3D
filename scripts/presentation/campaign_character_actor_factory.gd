@@ -23,16 +23,11 @@ static func create_actor(
 
     var body_variant := String(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
-    # Every female campaign character uses the same Ara body asset. Do not
-    # substitute player-avatar or authored NPC GLBs: those exports can have
-    # different body meshes and rig/material setups, which caused Wren and
-    # settlement NPCs to diverge from the player presentation.
-    if body_variant == "female":
-        model_path = PLAYER_FEMALE_ASSET
-    elif not is_player and not ara_model_id.is_empty():
-        var authored_npc_path := "res://art/characters/hollowmere/%s.glb" % ara_model_id
-        if ResourceLoader.exists(authored_npc_path):
-            model_path = authored_npc_path
+    # All campaign characters use the same gendered Ara runtime base as the
+    # player. Per-NPC GLBs bake in their own body, hair and materials, which
+    # prevents consistent runtime morphs and appearance customisation.
+    # Individual identity comes from each NPC's params and attached hair.
+    model_path = PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
 
     var hair_id := String(player_profile.get("hair_style_id", "short02")) if is_player else String(npc_profile.get("params", {}).get("hair", "short02"))
     var appearance := player_profile if is_player else npc_profile
