@@ -584,7 +584,7 @@ func _create_furniture() -> void:
 func _create_characters() -> void:
     starting_loadouts = _load_starting_loadouts()
     # Player and NPCs use the shared gendered Ara base mesh.
-    _spawn_character("player", String(player_profile.get("name", "Adventurer")), Vector2i(-1, 2), Color(0.55, 0.24, 0.18), true)
+    _spawn_character("player", String(player_profile.get("name", "Adventurer")), Vector2i(-1, 2), true)
 
     var profile_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
     if profile_file == null:
@@ -611,10 +611,10 @@ func _create_characters() -> void:
         var display_name := str(profile.get("name", actor_id))
         if actor_id.is_empty() or model_id.is_empty():
             continue
-        _spawn_character(actor_id, display_name, spawn, Color(0.42, 0.34, 0.25), false, model_id, profile)
+        _spawn_character(actor_id, display_name, spawn, false, model_id, profile)
 
     # Old Mac lives at his farmstead on the same continuous axial world grid.
-    _spawn_character("old_mac", "Old Mac", Vector2i(12, 58), Color(0.42, 0.34, 0.25), false, "", {"params": {"gender": 1}})
+    _spawn_character("old_mac", "Old Mac", Vector2i(12, 58), false, "", {"params": {"gender": 1}})
     var wolf_result := FARMSTEAD_DIRE_WOLF_SCRIPT.create_dire_wolf(simulation, Vector2i(30, 58))
     if bool(wolf_result.get("ok", false)):
         _spawn_farmstead_dire_wolf()
@@ -701,7 +701,7 @@ func _spawn_missing_child() -> void:
         if not simulation.unregister_character("missing_child_tessa"):
             push_warning("Could not replace the existing Tessa character state safely.")
             return
-    _spawn_character("missing_child_tessa", "Tessa", spawn_hex, Color(0.35, 0.42, 0.7), false, "", {"params":{"gender":0,"hair":"short02"}})
+    _spawn_character("missing_child_tessa", "Tessa", spawn_hex, false, "", {"params":{"gender":0,"hair":"short02"}})
     var actor := actor_by_id.get("missing_child_tessa") as Node3D
     if actor != null:
         actor.scale = Vector3(0.72, 0.72, 0.72)
@@ -787,25 +787,23 @@ func _load_starting_loadouts() -> Dictionary:
     return CampaignCharacterFactory.load_starting_loadouts()
 
 
-func _spawn_character(id: String, display_name: String, hex: Vector2i, colour: Color, is_player: bool = false, ara_model_id: String = "", npc_profile: Dictionary = {}) -> void:
+func _spawn_character(id: String, display_name: String, hex: Vector2i, is_player: bool = false, ara_model_id: String = "", npc_profile: Dictionary = {}) -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
-    var state := CampaignCharacterFactory.create_player_state(player_profile, id, spawn_hex) if is_player else CampaignCharacterFactory.create_npc_state(id, display_name, spawn_hex, npc_profile, starting_loadouts)
-    state.time_points = state.max_time_points
-    simulation.register_character(state)
-
-    var actor := CampaignCharacterActorFactory.create_actor(
-        state,
+    CampaignCharacterSpawner.spawn_character(
+        simulation,
+        self,
+        actor_by_id,
+        player_profile,
+        starting_loadouts,
+        id,
+        display_name,
+        spawn_hex,
         _hex_world_position(spawn_hex),
         is_player,
-        player_profile,
-        npc_profile,
         ara_model_id,
+        npc_profile,
         _ambient_role_for_id(id)
     )
-    if actor == null:
-        return
-    add_child(actor)
-    actor_by_id[id] = actor
 
 func _create_camera() -> void:
     camera_rig = OrbitCameraRig.new()
