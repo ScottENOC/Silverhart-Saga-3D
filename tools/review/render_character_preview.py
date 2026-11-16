@@ -3,6 +3,7 @@
 import json, math, sys
 from pathlib import Path
 import bpy, bmesh
+PREVIEW_CLEARED_ACTIONS = []
 from mathutils import Vector
 
 def args():
@@ -23,6 +24,16 @@ def find_meshes(objects):
     return [o for o in objects if o.type == "MESH"]
 
 def apply_profile(objects, profile):
+    # A character preview should not inherit an imported animation such as "Carry idle".
+    # Clear actions in this temporary Blender scene so the mesh uses its neutral rest pose.
+    global PREVIEW_CLEARED_ACTIONS
+    PREVIEW_CLEARED_ACTIONS = []
+    if profile.get("reset_armatures_to_rest", True):
+        for obj in objects:
+            if obj.type == "ARMATURE" and obj.animation_data:
+                action_name = obj.animation_data.action.name if obj.animation_data.action else None
+                obj.animation_data_clear()
+                PREVIEW_CLEARED_ACTIONS.append({"armature": obj.name, "cleared_action": action_name})
     tints = profile.get("material_tints", {})
     hidden = {x.casefold() for x in profile.get("hide_materials", [])}
     for obj in find_meshes(objects):
@@ -238,7 +249,7 @@ def main():
     report={"name":profile.get("name","Ara Character"),"model":profile["model"],"hair_asset":hair,
             "shape_keys_applied":profile.get("shape_keys",{}),"material_tints":profile.get("material_tints",{}),
             "mesh_count":len(meshes),"framing_objects":[o.name for o in frame_meshes],
-            "mesh_stats":mesh_stats,"shape_key_vertex_audit":key_audit,"scene_diagnostics":scene_diagnostics,"views":["front","side"]}
+            "mesh_stats":mesh_stats,"shape_key_vertex_audit":key_audit,"scene_diagnostics":scene_diagnostics,"animation_actions_cleared":PREVIEW_CLEARED_ACTIONS,"views":["front","side"]}
     (output/"profile_report.json").write_text(json.dumps(report,indent=2))
     print("[Character preview] rendered orthographic front and side:", output, flush=True)
 if __name__=="__main__": main()
