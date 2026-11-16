@@ -378,15 +378,10 @@ func _refresh_appearance_preview(_index: int) -> void:
         preview_status.text = "Loaded 1 of 1 assets · Legacy preview model ready. Install the Ara hair bundle to enable separate hairstyles."
 
 func _preview_equipment_for_class() -> Dictionary:
-    var definition := RULES.class_definition(_selected_id(class_select, "fighter"))
-    var equipped: Dictionary = {}
-    for item_id_variant in definition.get("equipped", []):
-        var item_id := String(item_id_variant)
-        var item := ITEM_CATALOG.get_definition(item_id)
-        var slot := String(item.get("equipment_slot", ""))
-        if not slot.is_empty():
-            equipped[slot] = item
-    return equipped
+    # The creator is an appearance preview, not an equipment/loadout preview.
+    # Keep the character unclothed here; the actual starting inventory and
+    # equipped state are assigned by campaign setup after creation.
+    return {}
 
 
 func _load_preview_asset(path: String, description: String, loaded_count: int, total_count: int) -> Resource:
