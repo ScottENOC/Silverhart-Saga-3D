@@ -350,7 +350,11 @@ func apply_player_profile(profile: Dictionary) -> void:
     }
     tint_materials("skin", skin)
     tint_materials("eye", eye_colours.get(str(profile.get("eye_colour", "Brown")), Color("#49301f")))
-    current_hair_colour = hair_colours.get(str(profile.get("hair_colour", "Dark brown")), Color("#49372a"))
+    var hair_colour_value := str(profile.get("hair_colour", "Dark brown"))
+    current_hair_colour = Color.from_string(
+        hair_colour_value,
+        hair_colours.get(hair_colour_value, Color("#49372a"))
+    )
     tint_materials("hair", current_hair_colour)
     _tint_attached_hair(current_hair_colour)
 
