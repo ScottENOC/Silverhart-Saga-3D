@@ -147,11 +147,6 @@ def compact(doc, binary, body_node):
     for skin in doc.get("skins", []):
         if "inverseBindMatrices" in skin:
             skin["inverseBindMatrices"] = accessor_map[skin["inverseBindMatrices"]]
-    for animation in doc.get("animations", []):
-        for sampler in animation.get("samplers", []):
-            sampler["input"] = accessor_map[sampler["input"]]
-            sampler["output"] = accessor_map[sampler["output"]]
-
     image_map = {old: new for new, old in enumerate(sorted(used_images))}
     sampler_map = {old: new for new, old in enumerate(sorted(used_samplers))}
     texture_map = {old: new for new, old in enumerate(sorted(used_textures))}
