@@ -120,6 +120,15 @@ static func apply_player_profile(actor: Node3D, profile: Dictionary) -> void:
         ara.apply_player_profile(profile)
 
 
+static func apply_npc_parameters(actor: Node3D, params: Dictionary) -> void:
+    if actor == null or not is_instance_valid(actor):
+        return
+    actor.set_meta("appearance_profile", params.duplicate(true))
+    var ara := _get_ara_actor(actor)
+    if ara != null:
+        ara.apply_npc_parameters(params)
+
+
 static func _get_ara_actor(actor: Node3D) -> AraCharacterActor:
     var ara := actor as AraCharacterActor
     if ara == null:
