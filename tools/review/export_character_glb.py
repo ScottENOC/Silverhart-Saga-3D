@@ -4,6 +4,7 @@ import json
 import sys
 from pathlib import Path
 import bpy
+import bmesh
 
 def arguments():
     values = sys.argv[sys.argv.index("--") + 1:]
@@ -20,7 +21,7 @@ def import_glb(path):
     bpy.ops.import_scene.gltf(filepath=str(path))
     return [obj for obj in bpy.context.scene.objects if obj not in before]
 
-def tint_material(material, hex_colour):
+def tint_material(material, hex_colour, mix_factor=0.35):
     """Tint without discarding an existing base-colour texture."""
     colour = hex_colour.lstrip("#")
     rgba = tuple(int(colour[i:i + 2], 16) / 255.0 for i in (0, 2, 4)) + (1.0,)
@@ -44,8 +45,8 @@ def tint_material(material, hex_colour):
     multiply = nodes.new("ShaderNodeMixRGB")
     multiply.name = "Character Tint"
     multiply.label = "Character Tint"
-    multiply.blend_type = "MULTIPLY"
-    multiply.inputs["Fac"].default_value = 1.0
+    multiply.blend_type = "MIX"
+    multiply.inputs["Fac"].default_value = max(0.0, min(1.0, float(mix_factor)))
     multiply.inputs["Color2"].default_value = rgba
     material.node_tree.links.new(source_socket, multiply.inputs["Color1"])
     material.node_tree.links.new(multiply.outputs["Color"], base)
@@ -57,7 +58,8 @@ def main():
     if not body_path.is_file():
         raise FileNotFoundError(body_path)
     clear_scene()
-    imported = import_glb(body_path)
+    body_objects = import_glb(body_path)
+    imported = list(body_objects)
     hair_path_value = profile.get("hair_asset", "")
     if hair_path_value:
         hair_path = root / hair_path_value
@@ -72,6 +74,29 @@ def main():
                 action = obj.animation_data.action
                 cleared_actions.append({"armature": obj.name, "action": action.name if action else None})
                 obj.animation_data_clear()
+
+    # Remove the base model's short-hair cap when a separate hairstyle is supplied.
+    hide_body_tokens = {value.casefold() for value in profile.get("hide_materials_on_body", [])}
+    if hide_body_tokens:
+        for obj in body_objects:
+            if obj.type != "MESH":
+                continue
+            bm = bmesh.new()
+            bm.from_mesh(obj.data)
+            faces = []
+            for face in bm.faces:
+                idx = face.material_index
+                mat = obj.data.materials[idx] if idx < len(obj.data.materials) else None
+                if mat and any(token in mat.name.casefold() for token in hide_body_tokens):
+                    faces.append(face)
+            if faces:
+                bmesh.ops.delete(bm, geom=faces, context="FACES")
+                loose = [vert for vert in bm.verts if not vert.link_faces]
+                if loose:
+                    bmesh.ops.delete(bm, geom=loose, context="VERTS")
+                bm.to_mesh(obj.data)
+                obj.data.update()
+            bm.free()
 
     requested_keys = profile.get("shape_keys", {})
     key_results = []
@@ -94,13 +119,15 @@ def main():
             material = slot.material
             if material is None or material.as_pointer() in tinted_materials:
                 continue
-            for token, colour in profile.get("material_tints", {}).items():
+            for token, tint in profile.get("material_tints", {}).items():
                 if token.casefold() in material.name.casefold():
-                    tint_material(material, colour)
+                    colour = tint.get("colour", tint.get("color")) if isinstance(tint, dict) else tint
+                    mix_factor = tint.get("mix", 0.35) if isinstance(tint, dict) else 0.35
+                    tint_material(material, colour, mix_factor)
                     tinted_materials.add(material.as_pointer())
                     material_results.append({
                         "mesh": obj.name, "material": material.name,
-                        "tint_token": token, "colour": colour
+                        "tint_token": token, "colour": colour, "mix": mix_factor
                     })
                     break
 
