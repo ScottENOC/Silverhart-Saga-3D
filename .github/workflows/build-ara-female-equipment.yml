@@ -102,23 +102,27 @@ jobs:
             source_glb="$(find "/tmp/ara-garment-raw/$variant" -maxdepth 1 -type f -name '*.glb' -print -quit)"
             test -n "$source_glb"
             case "$variant" in
-              bra) selectors=("Bra") ;;
-              briefs) selectors=("Briefs") ;;
-              fatigue_shirt) selectors=("Fatigue shirt") ;;
-              fatigue_pants) selectors=("Fatigue pants*") ;;
-              combat_boots) selectors=("Shoes" "Boot shafts") ;;
-              tunic) selectors=("Tunic*") ;;
-              long_tunic) selectors=("Long tunic*") ;;
-              trousers) selectors=("Trousers*") ;;
-              wrapper_long) selectors=("Wrapper long*") ;;
-              wrapper_knee) selectors=("Wrapper knee*") ;;
-              uniform_shirt) selectors=("Uniform shirt*") ;;
-              tattered_shirt) selectors=("Tattered shirt*") ;;
-              sandals) selectors=("Shoes") ;;
+              bra) selectors=("Bra"); keeps=("Bra") ;;
+              briefs) selectors=("Briefs"); keeps=("Briefs") ;;
+              fatigue_shirt) selectors=("Fatigue shirt"); keeps=("Fatigue shirt") ;;
+              fatigue_pants) selectors=("Fatigue pants*"); keeps=("Fatigue pants") ;;
+              combat_boots) selectors=("Shoes" "Boot shafts"); keeps=("Shoes" "Boot shafts") ;;
+              tunic) selectors=("Tunic*"); keeps=("Tunic") ;;
+              long_tunic) selectors=("Long tunic*"); keeps=("Long tunic") ;;
+              trousers) selectors=("Trousers*"); keeps=("Trousers") ;;
+              wrapper_long) selectors=("Wrapper long*"); keeps=("Wrapper long") ;;
+              wrapper_knee) selectors=("Wrapper knee*"); keeps=("Wrapper knee") ;;
+              uniform_shirt) selectors=("Uniform shirt*"); keeps=("Uniform shirt") ;;
+              tattered_shirt) selectors=("Tattered shirt*"); keeps=("Tattered shirt") ;;
+              sandals) selectors=("Shoes"); keeps=("Shoes") ;;
             esac
             extract_args=()
             for selector in "${selectors[@]}"; do
               extract_args+=(--selector "$selector")
+            done
+            keep_args=()
+            for keep in "${keeps[@]}"; do
+              keep_args+=(--keep-material "$keep")
             done
             python "$GITHUB_WORKSPACE/tools/ara/extract_garment_glb.py" \
               --body "$GITHUB_WORKSPACE/art/characters/ara_runtime/ara_person_body.glb" \
@@ -132,7 +136,8 @@ jobs:
               --profile none --adult --fit-existing
             python "$GITHUB_WORKSPACE/tools/ara/extract_garment_glb.py" \
               --strip-input "/tmp/ara-garment-fitted-$variant.glb" \
-              --output "$GITHUB_WORKSPACE/art/characters/ara_runtime/garments/female_$variant.glb"
+              --output "$GITHUB_WORKSPACE/art/characters/ara_runtime/garments/female_$variant.glb" \
+              "${keep_args[@]}"
           done
 
       - name: Build standalone female leather armour from existing integrated anatomy
@@ -147,6 +152,10 @@ jobs:
             --body art/characters/ara_runtime/ara_person_body.glb \
             --source /tmp/ara-full-coverage-armour.glb \
             --selector "Leather armor" \
+            --output /tmp/ara-full-coverage-armour-assembled.glb
+          python tools/ara/extract_garment_glb.py \
+            --strip-input /tmp/ara-full-coverage-armour-assembled.glb \
+            --keep-material "Leather armor" \
             --output art/characters/ara_runtime/garments/female_leather_armor.glb
 
       - name: Build standalone hand props, shields and helmets
