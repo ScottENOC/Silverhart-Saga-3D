@@ -379,9 +379,9 @@ func set_hairstyle(glb_path: String) -> bool:
         return false
     var source_root := packed.instantiate()
     var source_skeleton := _find_skeleton(source_root)
-    if source_skeleton == null or not _same_skeleton(source_skeleton, target_skeleton):
+    if source_skeleton == null:
         source_root.free()
-        push_warning("Cannot attach Ara hair: exported skeleton does not match the character")
+        push_warning("Cannot attach Ara hair: exported GLB has no Skeleton3D")
         return false
     var source_meshes: Array[MeshInstance3D] = []
     _collect_skinned_meshes(source_root, source_meshes)
@@ -396,6 +396,12 @@ func set_hairstyle(glb_path: String) -> bool:
         var instance := source_mesh.duplicate() as MeshInstance3D
         if instance == null:
             continue
+        if not _remap_hair_skin_to_skeleton(instance, source_skeleton, target_skeleton):
+            instance.free()
+            source_root.free()
+            clear_hairstyle()
+            push_warning("Cannot attach Ara hair: its skin references bones absent from the character skeleton")
+            return false
         instance.name = "Swappable_" + source_mesh.name
         model_root.add_child(instance)
         instance.skeleton = instance.get_path_to(target_skeleton)
@@ -413,6 +419,29 @@ func clear_hairstyle() -> void:
             instance.queue_free()
     hair_instances.clear()
     _set_embedded_hair_visible(true)
+
+func _remap_hair_skin_to_skeleton(mesh_instance: MeshInstance3D, source_skeleton: Skeleton3D, target_skeleton: Skeleton3D) -> bool:
+    if mesh_instance == null or mesh_instance.skin == null:
+        return false
+    # Ara hair exports and the assembled runtime body can contain the same
+    # named bones in different orders. Remap each skin bind by bone name before
+    # rebinding the mesh; comparing the entire skeleton arrays rejected valid
+    # hairstyles and left every character with the base haircut.
+    var remapped_skin := mesh_instance.skin.duplicate() as Skin
+    if remapped_skin == null:
+        return false
+    for bind_index in range(remapped_skin.get_bind_count()):
+        var source_bone_index := remapped_skin.get_bind_bone(bind_index)
+        if source_bone_index < 0 or source_bone_index >= source_skeleton.get_bone_count():
+            return false
+        var bone_name := source_skeleton.get_bone_name(source_bone_index)
+        var target_bone_index := target_skeleton.find_bone(bone_name)
+        if target_bone_index < 0:
+            return false
+        remapped_skin.set_bind_bone(bind_index, target_bone_index)
+    mesh_instance.skin = remapped_skin
+    return true
+
 
 func _same_skeleton(a: Skeleton3D, b: Skeleton3D) -> bool:
     if a.get_bone_count() != b.get_bone_count():
