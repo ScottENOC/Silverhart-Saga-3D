@@ -26,6 +26,11 @@ def apply_profile(objects, profile):
     tints = profile.get("material_tints", {})
     hidden = {x.casefold() for x in profile.get("hide_materials", [])}
     for obj in find_meshes(objects):
+        if profile.get("disable_armature_modifiers", False):
+            for modifier in obj.modifiers:
+                if modifier.type == "ARMATURE":
+                    modifier.show_viewport = False
+                    modifier.show_render = False
         if obj.data.shape_keys:
             for key, value in profile.get("shape_keys", {}).items():
                 block = obj.data.shape_keys.key_blocks.get(key)
@@ -204,10 +209,36 @@ def main():
                            "shape_key_ranges":key_ranges,
                            "shape_keys_available":available,"requested_keys_matched":matched,
                            "requested_keys_missing":missing})
+    scene_diagnostics=[]
+    for obj in bpy.context.scene.objects:
+        item={"name":obj.name,"type":obj.type,
+              "parent":obj.parent.name if obj.parent else None,
+              "location":[round(v,6) for v in obj.location],
+              "rotation_euler":[round(v,6) for v in obj.rotation_euler],
+              "scale":[round(v,6) for v in obj.scale]}
+        if obj.type == "MESH":
+            item["vertex_groups"]=[g.name for g in obj.vertex_groups]
+            item["modifiers"]=[{"name":m.name,"type":m.type,
+                                "show_viewport":bool(m.show_viewport),
+                                "show_render":bool(m.show_render),
+                                "target":m.object.name if m.type=="ARMATURE" and m.object else None}
+                               for m in obj.modifiers]
+        elif obj.type == "ARMATURE":
+            item["bone_count"]=len(obj.data.bones)
+            item["bones"]=[{"name":b.name,"length":round(b.length,6),
+                            "parent":b.parent.name if b.parent else None,
+                            "pose_location":[round(v,6) for v in obj.pose.bones[b.name].location],
+                            "pose_rotation_euler":[round(v,6) for v in obj.pose.bones[b.name].rotation_euler],
+                            "rotation_mode":obj.pose.bones[b.name].rotation_mode}
+                           for b in obj.data.bones]
+            item["animation_data"]=bool(obj.animation_data and obj.animation_data.action)
+            if obj.animation_data and obj.animation_data.action:
+                item["action_name"]=obj.animation_data.action.name
+        scene_diagnostics.append(item)
     report={"name":profile.get("name","Ara Character"),"model":profile["model"],"hair_asset":hair,
             "shape_keys_applied":profile.get("shape_keys",{}),"material_tints":profile.get("material_tints",{}),
             "mesh_count":len(meshes),"framing_objects":[o.name for o in frame_meshes],
-            "mesh_stats":mesh_stats,"shape_key_vertex_audit":key_audit,"views":["front","side"]}
+            "mesh_stats":mesh_stats,"shape_key_vertex_audit":key_audit,"scene_diagnostics":scene_diagnostics,"views":["front","side"]}
     (output/"profile_report.json").write_text(json.dumps(report,indent=2))
     print("[Character preview] rendered orthographic front and side:", output, flush=True)
 if __name__=="__main__": main()
