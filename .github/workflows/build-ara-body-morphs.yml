@@ -77,11 +77,11 @@ jobs:
                   "sha256": hashlib.sha256(payload).hexdigest()
               }
           version_source = "".join(
-              f"{name}:{entry['sha256']}\\n"
+              f"{name}:{entry['sha256']}\n"
               for name, entry in sorted(manifest["assets"].items())
           ).encode()
           manifest["package_version"] = "local-" + hashlib.sha256(version_source).hexdigest()[:16]
-          manifest_path.write_text(json.dumps(manifest, indent=2) + "\\n")
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
