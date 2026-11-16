@@ -14,7 +14,7 @@ permissions:
 
 concurrency:
   group: ara-female-runtime-equipment
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -37,7 +37,21 @@ jobs:
           cd /tmp/ara-3d-gen
           corepack enable
           pnpm install --no-frozen-lockfile
-          npm run setup-assets
+          setup_ok=false
+          for attempt in 1 2 3; do
+            if npm run setup-assets; then
+              setup_ok=true
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "Ara asset setup failed on attempt $attempt; retrying after 20 seconds."
+              sleep 20
+            fi
+          done
+          if [ "$setup_ok" != "true" ]; then
+            echo "Ara asset setup failed after three attempts."
+            exit 1
+          fi
           python "$GITHUB_WORKSPACE/tools/ara/patch_layering.py"
 
           python - <<'PY'
