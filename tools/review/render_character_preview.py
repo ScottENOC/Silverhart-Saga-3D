@@ -92,7 +92,7 @@ def setup_render(centre, radius, out, view):
     # Orthographic projection avoids perspective exaggeration of hands near the lens.
     cam_data.type = "ORTHO"
     aspect = scene.render.resolution_x / scene.render.resolution_y
-    cam_data.ortho_scale = max(radius * 2.0 * aspect, radius * 1.35) * 1.25
+    cam_data.ortho_scale = radius * 4.0  # generous full-body margin; includes head and feet
     scene.camera = cam
     for name, offset, power, size in [
         ("Key",Vector((-radius,-radius*1.4,radius*1.5)),65,radius*1.35),
