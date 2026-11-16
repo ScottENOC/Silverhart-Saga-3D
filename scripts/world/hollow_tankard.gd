@@ -1231,8 +1231,7 @@ func _apply_save_data(data: Dictionary) -> void:
             continue
         actor.position = _hex_world_position(state.axial)
         actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
-        if actor is AraCharacterActor:
-            (actor as AraCharacterActor).apply_equipment_visuals(state.equipped_item_data)
+        CampaignCharacterActorFactory.apply_equipment_visuals(actor, state)
     var saved_dire_wolf := simulation.get_character(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
     if saved_dire_wolf == null or not saved_dire_wolf.can_act():
         var defeated_wolf_actor := actor_by_id.get(FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID) as Node3D
@@ -2038,9 +2037,7 @@ func _on_character_equipment_changed(changed_character_id: String) -> void:
     var actor := actor_by_id.get(changed_character_id) as Node3D
     if state == null or actor == null:
         return
-    var ara := actor.get_node_or_null("CharacterModel")
-    if ara is AraCharacterActor:
-        (ara as AraCharacterActor).apply_equipment_visuals(state.equipped_item_data)
+    CampaignCharacterActorFactory.apply_equipment_visuals(actor, state)
 
 
 func _toggle_character_panel() -> void:
