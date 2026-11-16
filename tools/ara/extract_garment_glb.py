@@ -72,11 +72,6 @@ def compact(doc, binary, body_node):
     for skin in doc.get("skins", []):
         if "inverseBindMatrices" in skin:
             used_accessors.add(skin["inverseBindMatrices"])
-    for animation in doc.get("animations", []):
-        for sampler in animation.get("samplers", []):
-            used_accessors.add(sampler["input"])
-            used_accessors.add(sampler["output"])
-
     used_materials = sorted({
         primitive["material"] for primitive in mesh["primitives"]
         if "material" in primitive
@@ -205,6 +200,9 @@ def compact(doc, binary, body_node):
     result["images"] = new_images
     result["samplers"] = new_samplers
     result["buffers"] = [{"byteLength": len(new_binary)}]
+    # Garment meshes share the actor's live skeleton; they do not need duplicate
+    # animation clips in every clothing file.
+    result.pop("animations", None)
     return result, bytes(new_binary)
 
 
