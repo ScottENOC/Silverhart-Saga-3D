@@ -39,6 +39,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
 
+      - name: Generate shared female Ara body with integrated anatomy
+        shell: bash
+        run: |
+          set -euo pipefail
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_adult_anatomy.py -- \
+            --input art/characters/ara_runtime/ara_person_body_anatomy.glb \
+            --output art/characters/ara_runtime/ara_person_body_anatomy.glb \
+            --profile female --adult
+          test -s art/characters/ara_runtime/ara_person_body_anatomy.glb
+
       - name: Generate independent Ara garment exports
         shell: bash
         run: |
@@ -145,7 +156,7 @@ jobs:
               keep_args+=(--keep-material "$keep")
             done
             python "$GITHUB_WORKSPACE/tools/ara/extract_garment_glb.py" \
-              --body "$GITHUB_WORKSPACE/art/characters/ara_runtime/ara_person_body.glb" \
+              --body "$GITHUB_WORKSPACE/art/characters/ara_runtime/ara_person_body_anatomy.glb" \
               --source "$source_glb" \
               --output "/tmp/ara-garment-assembled-$variant.glb" \
               "${extract_args[@]}"
@@ -166,10 +177,10 @@ jobs:
           set -euo pipefail
           blender --background --python-exit-code 1 \
             --python tools/blender/create_full_coverage_armor.py -- \
-            --input art/characters/ara_runtime/ara_person_body.glb \
+            --input art/characters/ara_runtime/ara_person_body_anatomy.glb \
             --output /tmp/ara-full-coverage-armour.glb
           python tools/ara/extract_garment_glb.py \
-            --body art/characters/ara_runtime/ara_person_body.glb \
+            --body art/characters/ara_runtime/ara_person_body_anatomy.glb \
             --source /tmp/ara-full-coverage-armour.glb \
             --selector "Leather armor" \
             --output /tmp/ara-full-coverage-armour-assembled.glb
@@ -215,6 +226,13 @@ jobs:
           manifest_path = root / "manifest.json"
           manifest = json.loads(manifest_path.read_text())
           assets = manifest.setdefault("assets", {})
+          anatomy = root / "ara_person_body_anatomy.glb"
+          if anatomy.exists():
+              payload = anatomy.read_bytes()
+              assets[anatomy.name] = {
+                  "size_bytes": len(payload),
+                  "sha256": hashlib.sha256(payload).hexdigest()
+              }
           for folder in ("garments", "props"):
               for path in sorted((root / folder).glob("*.glb")):
                   payload = path.read_bytes()
