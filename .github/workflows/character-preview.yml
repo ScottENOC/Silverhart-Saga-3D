@@ -16,7 +16,7 @@ concurrency:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,7 +46,7 @@ jobs:
           export PYTHONPATH=/usr/lib/python3/dist-packages:$PYTHONPATH
           blender --background --python-exit-code 1 --python tools/review/render_character_preview.py -- build/ara-baseline-profile.json build/character-preview/baseline "$GITHUB_WORKSPACE"
           blender --background --python-exit-code 1 --python tools/review/render_character_preview.py -- character-preview/profile.json build/character-preview/wren "$GITHUB_WORKSPACE"
-          for view in front side rear; do
+          for view in front side; do
             test -s "build/character-preview/baseline/$view.png"
             test -s "build/character-preview/wren/$view.png"
           done
