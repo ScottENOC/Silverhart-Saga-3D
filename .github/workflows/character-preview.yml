@@ -31,6 +31,7 @@ jobs:
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
       - name: Create neutral baseline profile
         run: |
+          mkdir -p build
           python - <<'PY'
           import json
           from pathlib import Path
