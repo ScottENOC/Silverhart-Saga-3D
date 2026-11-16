@@ -7,9 +7,10 @@ var model_root: Node3D
 var animation_player: AnimationPlayer
 var loaded_asset_path: String = ""
 var hair_instances: Array[MeshInstance3D] = []
-var modular_garment_meshes: Array[MeshInstance3D] = []
+var garment_attachments: Dictionary = {}
 var equipment_attachments: Dictionary = {}
-const MODULAR_GARMENT_ASSET := "res://art/characters/ara_runtime/ara_person_modular.glb"
+var body_variant: String = "female"
+const GARMENT_ASSET_ROOT := "res://art/characters/ara_runtime/garments/"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
 const GARMENT_VISUALS := ["bra", "briefs", "long_tunic", "trousers", "tunic", "wrapper_long", "uniform_shirt", "fatigue_pants", "wrapper_knee", "tattered_shirt", "fatigue_shirt", "sandals", "combat_boots", "leather armor"]
 var current_hair_colour: Color = Color("#49372a")
@@ -21,6 +22,7 @@ func configure(glb_path: String) -> bool:
     model_root = null
     animation_player = null
     hair_instances.clear()
+    _clear_garment_attachments()
     loaded_asset_path = ""
     if not ResourceLoader.exists(glb_path):
         push_warning("Ara character asset is not installed: " + glb_path)
@@ -42,53 +44,6 @@ func configure(glb_path: String) -> bool:
     # modular-clothing export is available or successfully attached.
     call_deferred("_dump_garment_surface_report")
     return true
-
-## Attach modular garment surfaces to this actor's own Ara skeleton.
-## The original body mesh remains visible, preventing transparent clothing from
-## cutting holes in the skin beneath it.
-func configure_modular_garments(glb_path: String = MODULAR_GARMENT_ASSET) -> bool:
-    _clear_modular_garments()
-    if model_root == null or not ResourceLoader.exists(glb_path):
-        return false
-    var target_skeleton := _find_skeleton(model_root)
-    if target_skeleton == null:
-        push_warning("Cannot attach modular garments: target Ara body has no Skeleton3D")
-        return false
-    var packed := load(glb_path) as PackedScene
-    if packed == null:
-        return false
-    var source_root := packed.instantiate()
-    var source_skeleton := _find_skeleton(source_root)
-    if source_skeleton == null or not _same_skeleton(source_skeleton, target_skeleton):
-        source_root.free()
-        push_warning("Cannot attach modular garments: Workshop skeleton does not match actor skeleton")
-        return false
-    var source_meshes: Array[MeshInstance3D] = []
-    _collect_skinned_meshes(source_root, source_meshes)
-    if source_meshes.is_empty():
-        source_root.free()
-        push_warning("Modular garment export contains no skinned meshes")
-        return false
-    for source_mesh in source_meshes:
-        var instance := MeshInstance3D.new()
-        instance.name = "AraModularGarments_" + source_mesh.name
-        instance.mesh = source_mesh.mesh
-        instance.skin = source_mesh.skin
-        instance.transform = source_mesh.transform
-        model_root.add_child(instance)
-        instance.skeleton = instance.get_path_to(target_skeleton)
-        modular_garment_meshes.append(instance)
-        for surface in range(instance.mesh.get_surface_count()):
-            # The modular export may contain body/skin surfaces as well as
-            # garments. Only hide surfaces positively identified as garments;
-            # unknown surfaces stay visible rather than risking holes in skin.
-            var label := _surface_label(instance, surface) + " " + instance.name
-            if _is_known_garment_surface(label):
-                _set_modular_surface_visible(instance, surface, false)
-    source_root.free()
-    set_meta("modular_garments_loaded", not modular_garment_meshes.is_empty())
-    return not modular_garment_meshes.is_empty()
-
 
 func _dump_garment_surface_report() -> void:
     if has_meta("ara_garment_surface_reported"):
@@ -120,11 +75,67 @@ func _dump_garment_surface_report() -> void:
             ])
     print("[Ara garment report] END")
 
-func _clear_modular_garments() -> void:
-    for instance in modular_garment_meshes:
+func _clear_garment_attachments() -> void:
+    for garment_id in garment_attachments:
+        for instance in garment_attachments[garment_id]:
+            if is_instance_valid(instance):
+                instance.queue_free()
+    garment_attachments.clear()
+
+
+func _set_garment_attachment_visible(garment_id: String, visible: bool) -> void:
+    if garment_id.is_empty() or body_variant != "female":
+        return
+    if not garment_attachments.has(garment_id):
+        if not visible or not _load_garment_attachment(garment_id):
+            return
+    for instance in garment_attachments.get(garment_id, []):
         if is_instance_valid(instance):
-            instance.queue_free()
-    modular_garment_meshes.clear()
+            instance.visible = visible
+
+
+func _load_garment_attachment(garment_id: String) -> bool:
+    if model_root == null:
+        return false
+    var path := GARMENT_ASSET_ROOT + "female_" + garment_id + ".glb"
+    if not ResourceLoader.exists(path):
+        push_warning("Ara garment '%s' is not installed at %s" % [garment_id, path])
+        return false
+    var target_skeleton := _find_skeleton(model_root)
+    if target_skeleton == null:
+        push_warning("Cannot attach Ara garment '%s': target body has no Skeleton3D" % garment_id)
+        return false
+    var packed := load(path) as PackedScene
+    if packed == null:
+        push_warning("Ara garment '%s' could not be loaded as a PackedScene" % path)
+        return false
+    var source_root := packed.instantiate()
+    var source_skeleton := _find_skeleton(source_root)
+    if source_skeleton == null or not _same_skeleton(source_skeleton, target_skeleton):
+        source_root.free()
+        push_warning("Cannot attach Ara garment '%s': garment skeleton does not match actor skeleton" % garment_id)
+        return false
+    var source_meshes: Array[MeshInstance3D] = []
+    _collect_skinned_meshes(source_root, source_meshes)
+    if source_meshes.is_empty():
+        source_root.free()
+        push_warning("Ara garment '%s' contains no skinned meshes" % garment_id)
+        return false
+    var attached: Array[MeshInstance3D] = []
+    for source_mesh in source_meshes:
+        var instance := source_mesh.duplicate() as MeshInstance3D
+        if instance == null:
+            continue
+        instance.name = "Garment_%s_%s" % [garment_id, source_mesh.name]
+        model_root.add_child(instance)
+        instance.skeleton = instance.get_path_to(target_skeleton)
+        instance.visible = false
+        attached.append(instance)
+    source_root.free()
+    if attached.is_empty():
+        return false
+    garment_attachments[garment_id] = attached
+    return true
 
 
 func _surface_label(mesh_instance: MeshInstance3D, surface: int) -> String:
@@ -174,10 +185,9 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
             "helmet":
                 helmet_id = item_id
 
-    # Clothing can be exported either as surfaces in the authored character
-    # GLB or in the separate modular clothing GLB. Drive both through the same
-    # item metadata. Only surfaces with an explicit garment token are touched;
-    # body, skin, hair and other appearance surfaces remain untouched.
+    # Authored character GLBs may contain baked clothing. Hide those surfaces
+    # and render equipped garments from independent skinned GLBs. The base body
+    # remains visible; clothing never replaces or cuts holes in the skin.
     if model_root != null:
         var character_meshes: Array[MeshInstance3D] = []
         _collect_meshes(model_root, character_meshes)
@@ -188,14 +198,13 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
                 continue
             for surface in range(mesh_instance.mesh.get_surface_count()):
                 var label := _surface_label(mesh_instance, surface) + " " + mesh_instance.name
-                if not _is_known_garment_surface(label):
-                    continue
-                var show_surface := false
-                for fragment in visible_garments:
-                    if _garment_label_matches(label, fragment):
-                        show_surface = true
-                        break
-                _set_modular_surface_visible(mesh_instance, surface, show_surface)
+                if _is_known_garment_surface(label):
+                    _set_modular_surface_visible(mesh_instance, surface, false)
+
+    for garment_id in garment_attachments.keys():
+        _set_garment_attachment_visible(String(garment_id), false)
+    for garment_visual in visible_garments:
+        _set_garment_attachment_visible(_garment_asset_id(garment_visual), true)
 
     _set_equipment_prop("weapon", _weapon_prop_id(weapon_id), "WeaponR")
     var shield_prop := "round_shield" if offhand_id == "wooden_shield" else ( "kite_shield" if offhand_id == "bulwark_shield" else "")
@@ -203,8 +212,8 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
     _set_equipment_prop("helmet", _helmet_prop_id(helmet_id), "Head")
 
 
-func _normalise_garment_label(value: String) -> String:
-    return value.to_lower().replace("_", "").replace("-", "").replace(" ", "")
+func _garment_asset_id(value: String) -> String:
+    return value.to_lower().strip_edges().replace("-", "_").replace(" ", "_")
 
 func _is_known_garment_surface(label: String) -> bool:
     for garment_id in GARMENT_VISUALS:
@@ -332,7 +341,11 @@ func apply_player_profile(profile: Dictionary) -> void:
     _tint_attached_hair(current_hair_colour)
 
     apply_body_parameters(profile)
-    set_meta("body_variant", str(profile.get("body_variant", "female")))
+    var next_body_variant := str(profile.get("body_variant", "female"))
+    if next_body_variant != body_variant:
+        _clear_garment_attachments()
+    body_variant = next_body_variant
+    set_meta("body_variant", body_variant)
     set_meta("gender_presentation", str(profile.get("gender_presentation", "Feminine")))
     set_meta("pronouns", str(profile.get("pronouns", "they/them")))
 
