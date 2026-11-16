@@ -23,6 +23,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Validate Python asset tools
+        run: |
+          python -m py_compile \
+            tools/ara/assemble_modular_glb.py \
+            tools/ara/extract_garment_glb.py \
+            tools/ara/patch_medieval_weapons.py \
+            tools/ara/build_medieval_armor_props.py \
+            tools/blender/add_adult_anatomy.py \
+            tools/blender/create_full_coverage_armor.py
+
       - name: Install Blender
         run: |
           sudo apt-get update
@@ -207,6 +217,31 @@ jobs:
             test -s "$GITHUB_WORKSPACE/art/characters/ara_runtime/props/$weapon.glb"
           done
 
+      - name: Update Ara runtime asset manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path("art/characters/ara_runtime")
+          manifest_path = root / "manifest.json"
+          manifest = json.loads(manifest_path.read_text())
+          assets = manifest.setdefault("assets", {})
+          for folder in ("garments", "props"):
+              for path in sorted((root / folder).glob("*.glb")):
+                  payload = path.read_bytes()
+                  assets[f"{folder}/{path.name}"] = {
+                      "size_bytes": len(payload),
+                      "sha256": hashlib.sha256(payload).hexdigest()
+                  }
+          version_source = "".join(
+              f"{name}:{entry['sha256']}\n" for name, entry in sorted(assets.items())
+          ).encode()
+          manifest["package_version"] = "local-" + hashlib.sha256(version_source).hexdigest()[:16]
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+          PY
+
       - name: Import and validate all runtime equipment in Godot
         uses: chickensoft-games/setup-godot@v2
         with:
@@ -227,7 +262,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add art/characters/ara_runtime/garments art/characters/ara_runtime/props
+          git add art/characters/ara_runtime/garments art/characters/ara_runtime/props art/characters/ara_runtime/manifest.json
           if git diff --cached --quiet; then
             echo "Runtime equipment assets are already current."
             exit 0
