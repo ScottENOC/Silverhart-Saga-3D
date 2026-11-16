@@ -67,6 +67,7 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
         "pronouns": String(appearance.get("pronouns", "they/them"))
     }
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+    var equipment: Dictionary = npc.get("visual_equipment", {})
     var actor := _create_actor_presentation(
         character_id,
         display_name,
@@ -74,7 +75,7 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
         model_path,
         body_variant,
         profile,
-        npc.get("visual_equipment", {}),
+        equipment,
         false,
         "",
         String(appearance.get("hair_style", "")),
