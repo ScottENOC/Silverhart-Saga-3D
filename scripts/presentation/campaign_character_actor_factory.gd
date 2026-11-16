@@ -53,13 +53,22 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
     var character_id := String(npc.get("id", "campaign2_npc"))
     var display_name := String(npc.get("name", character_id))
     var appearance: Dictionary = npc.get("appearance", {})
-    var body_variant := String(appearance.get("body_variant", npc.get("body_variant", "female")))
+    var body_variant := String(appearance.get("body_variant", npc.get("body_variant", "")))
+    if body_variant.is_empty():
+        var presentation := String(appearance.get("gender_presentation", "")).to_lower()
+        body_variant = "male" if presentation in ["male", "masculine", "man"] else "female"
+    var height_scale := float(appearance.get("height_scale", 1.0))
+    var build_scale := float(appearance.get("build_scale", 1.0))
     var profile := {
         "skin_colour": String(appearance.get("skin_colour", "#b9825f")),
         "eye_colour": String(appearance.get("eye_colour", "Brown")),
         "hair_colour": String(appearance.get("hair_colour", "Dark brown")),
-        "height_scale": float(appearance.get("height_scale", 1.0)),
-        "build_scale": float(appearance.get("build_scale", 1.0)),
+        "height": float(appearance.get("height", clampf((height_scale - 0.8) / 0.4, 0.0, 1.0))),
+        "muscle": float(appearance.get("muscle", clampf((build_scale - 0.8) / 0.4, 0.0, 1.0))),
+        "weight": float(appearance.get("weight", 0.5)),
+        "proportions": float(appearance.get("proportions", 0.5)),
+        "breasts": float(appearance.get("breasts", 0.5)),
+        "legs": float(appearance.get("legs", 0.5)),
         "body_variant": body_variant,
         "gender_presentation": String(appearance.get("gender_presentation", "Androgynous")),
         "pronouns": String(appearance.get("pronouns", "they/them"))
