@@ -154,7 +154,7 @@ static func _create_actor_presentation(
     actor.name = character_id
     actor.position = world_position
     actor.set_meta("character_id", character_id)
-    actor.set_meta("ambient_enabled", not is_player and character_id != "companion_wren_talbot")
+    actor.set_meta("ambient_enabled", not is_player)
     actor.set_meta("ambient_role", ambient_role)
     var base_appearance: Dictionary = appearance_profile.get("params", {}).duplicate(true) if appearance_profile.has("params") else appearance_profile.duplicate(true)
     actor.set_meta("base_appearance_profile", base_appearance)
