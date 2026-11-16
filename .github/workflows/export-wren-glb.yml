@@ -40,14 +40,7 @@ jobs:
           blender --background --python-exit-code 1 --python tools/review/export_character_glb.py -- character-preview/wren.json build/wren/Wren.glb "$GITHUB_WORKSPACE"
           test -s build/wren/Wren.glb
           test -s build/wren/Wren-export-report.json
-      - name: Render inspection views
-        run: |
-          mkdir -p build/wren/inspection
-          export PYTHONPATH=/usr/lib/python3/dist-packages:$PYTHONPATH
-          blender --background --python-exit-code 1 --python tools/review/render_character_preview.py -- character-preview/wren.json build/wren/inspection "$GITHUB_WORKSPACE"
-          test -s build/wren/inspection/front.png
-          test -s build/wren/inspection/side.png
-      - name: Upload Wren GLB and inspection files
+      - name: Upload Wren GLB and export report
         uses: actions/upload-artifact@v4
         with:
           name: wren-character-glb-${{ github.run_number }}
