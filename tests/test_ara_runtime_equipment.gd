@@ -2,7 +2,7 @@ extends SceneTree
 
 const ACTOR_SCRIPT = preload("res://scripts/presentation/ara_character_actor.gd")
 const FACTORY_SCRIPT = preload("res://scripts/presentation/campaign_character_actor_factory.gd")
-const BODY_PATH := "res://art/characters/ara_runtime/ara_person_body.glb"
+const BODY_PATH := "res://art/characters/ara_runtime/ara_person_body_anatomy.glb"
 const MALE_BODY_PATH := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const GARMENT_ROOT := "res://art/characters/ara_runtime/garments/"
 const REQUIRED_GARMENTS := [
