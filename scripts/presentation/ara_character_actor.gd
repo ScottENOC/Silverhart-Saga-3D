@@ -217,7 +217,16 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
 
 
 func _garment_asset_id(value: String) -> String:
-    return value.to_lower().strip_edges().replace("-", "_").replace(" ", "_")
+    var normalized := value.to_lower().strip_edges().replace("-", "_").replace(" ", "_")
+    # Legacy inventory visuals use generic names. Resolve them to the first
+    # approved standalone garment rather than looking for nonexistent files.
+    match normalized:
+        "bra":
+            return "halter_bra_lace"
+        "briefs":
+            return "lace_briefs"
+        _:
+            return normalized
 
 func _is_known_garment_surface(label: String) -> bool:
     for garment_id in GARMENT_VISUALS:

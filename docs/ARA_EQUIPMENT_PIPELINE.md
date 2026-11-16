@@ -36,3 +36,34 @@ The other shield and helmet assets are additional visual variants for future cat
 ## Hairstyles
 
 See [ARA_HAIR_PIPELINE.md](ARA_HAIR_PIPELINE.md). Hair is extracted from Ara's material groups with its skin weights preserved, exported as standalone skinned GLBs, and selected in the player creator. Hair colour is applied as a runtime material tint. The manual/branch-triggered build workflow validates the generated meshes before committing them to the feature branch.
+
+
+## Selected standalone Ara garments (existing generated exports only)
+
+The runtime does not need the full MakeHuman/Ara clothing catalogue. Extract only the
+small set already present in `build/local-cache/ara/generated`:
+
+- Lace and fishnet briefs
+- Lace and fishnet pants
+- Lace and fishnet shirts
+- Lace and fishnet halter bras
+- Leather armour (including its separate pauldron primitives)
+
+Run the extraction helper from the repository root:
+
+```bash
+python tools/ara/extract_selected_garments.py --dry-run
+python tools/ara/extract_selected_garments.py
+```
+
+It reads the existing full-character GLBs, retains only non-body garment materials,
+and writes independent skinned meshes to
+`art/characters/ara_runtime/garments/female_<garment-id>.glb`. It does not invoke
+Blender, download anything, regenerate anatomy, or alter the source exports. The
+base body remains a separate runtime asset.
+
+The legacy equipment visuals `bra` and `briefs` resolve to the lace halter bra and
+lace briefs by default. Explicit visuals `halter_bra_fishnet`, `fishnet_briefs`,
+`lace_pants`, `fishnet_pants`, `lace_shirt`, and `fishnet_shirt` select their
+matching independent assets. The leather armour item resolves to
+`female_leather_armor.glb`.
