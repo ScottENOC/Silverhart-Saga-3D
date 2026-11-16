@@ -1,0 +1,96 @@
+name: Build Ara body morph assets
+
+on:
+  push:
+    branches: [dev_2]
+    paths:
+      - "tools/blender/add_body_morphs.py"
+      - ".github/workflows/build-ara-body-morphs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ara-body-morphs
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev_2
+
+      - name: Validate morph builder syntax
+        run: python -m py_compile tools/blender/add_body_morphs.py
+
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Add shared body morphs to female and male models
+        shell: bash
+        run: |
+          set -euo pipefail
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_body_morphs.py -- \
+            --input art/characters/ara_runtime/ara_person_body_anatomy.glb \
+            --output art/characters/ara_runtime/ara_person_body_anatomy.glb
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_body_morphs.py -- \
+            --input art/characters/ara_runtime/ara_person_male_body.glb \
+            --output art/characters/ara_runtime/ara_person_male_body.glb
+          test "$(wc -c < art/characters/ara_runtime/ara_person_body_anatomy.glb)" -gt 1000000
+          test "$(wc -c < art/characters/ara_runtime/ara_person_male_body.glb)" -gt 1000000
+
+      - name: Validate generated models in Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import project and generated models
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --quit
+          test -s art/characters/ara_runtime/ara_person_body_anatomy.glb.import
+          test -s art/characters/ara_runtime/ara_person_male_body.glb.import
+
+      - name: Update manifest and commit generated models
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path("art/characters/ara_runtime")
+          manifest_path = root / "manifest.json"
+          manifest = json.loads(manifest_path.read_text())
+          for name in ("ara_person_body_anatomy.glb", "ara_person_male_body.glb"):
+              payload = (root / name).read_bytes()
+              manifest.setdefault("assets", {})[name] = {
+                  "size_bytes": len(payload),
+                  "sha256": hashlib.sha256(payload).hexdigest()
+              }
+          version_source = "".join(
+              f"{name}:{entry['sha256']}\\n"
+              for name, entry in sorted(manifest["assets"].items())
+          ).encode()
+          manifest["package_version"] = "local-" + hashlib.sha256(version_source).hexdigest()[:16]
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\\n")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f -- art/characters/ara_runtime/ara_person_body_anatomy.glb art/characters/ara_runtime/ara_person_male_body.glb art/characters/ara_runtime/manifest.json
+          if git diff --cached --quiet; then
+            echo "Generated Ara morph assets are already current."
+            exit 0
+          fi
+          git commit -m "Build Ara male and female body morph assets"
+          git fetch origin dev_2
+          git rebase origin/dev_2
+          git push origin HEAD:dev_2
