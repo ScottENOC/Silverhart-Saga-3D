@@ -45,7 +45,7 @@ jobs:
           set -euo pipefail
           blender --background --python-exit-code 1 \
             --python tools/blender/add_adult_anatomy.py -- \
-            --input art/characters/ara_runtime/ara_person_body_anatomy.glb \
+            --input art/characters/ara_runtime/ara_person_body.glb \
             --output art/characters/ara_runtime/ara_person_body_anatomy.glb \
             --profile female --adult
           test -s art/characters/ara_runtime/ara_person_body_anatomy.glb
