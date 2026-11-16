@@ -1,6 +1,6 @@
 class_name CampaignCharacterActorFactory
 extends RefCounted
-## Builds the 3D presentation for a campaign character.
+## Builds every human character through one Ara presentation path.
 ## Simulation state and world placement remain owned by the caller.
 
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
@@ -22,22 +22,7 @@ static func create_actor(
         push_error("Cannot create character presentation without simulation state.")
         return null
 
-    var actor := HexActorPresentation.new()
-    actor.name = state.id
-    actor.position = world_position
-    actor.set_meta("character_id", state.id)
-    actor.set_meta("ambient_enabled", not is_player and state.id != "companion_wren_talbot")
-    actor.set_meta("ambient_role", ambient_role)
-    var base_appearance: Dictionary = npc_profile.get("params", {}).duplicate(true) if not is_player else {}
-    actor.set_meta("base_appearance_profile", base_appearance.duplicate(true))
-    actor.set_meta("appearance_profile", base_appearance.duplicate(true))
-    actor.rotation.y = deg_to_rad(float(state.facing_direction - 2) * 60.0)
-
-    var ara_model := ARA_CHARACTER_ACTOR.new() as AraCharacterActor
-    ara_model.name = "CharacterModel"
-    actor.add_child(ara_model)
-
-    var body_variant := str(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
+    var body_variant := String(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
     if is_player and body_variant == "female" and ResourceLoader.exists(PLAYER_CUSTOM_FEMALE_ASSET):
         model_path = PLAYER_CUSTOM_FEMALE_ASSET
@@ -46,28 +31,123 @@ static func create_actor(
         if ResourceLoader.exists(authored_npc_path):
             model_path = authored_npc_path
 
-    var model_loaded := ara_model.configure(model_path)
-    if model_loaded:
-        if is_player:
-            ara_model.apply_player_profile(player_profile)
+    var hair_id := String(player_profile.get("hair_style_id", "short02")) if is_player else String(npc_profile.get("params", {}).get("hair", "short02"))
+    var appearance := player_profile if is_player else npc_profile
+    return _create_actor_presentation(
+        state.id,
+        state.display_name,
+        world_position,
+        model_path,
+        body_variant,
+        appearance,
+        state.equipped_item_data,
+        is_player,
+        ambient_role,
+        hair_id,
+        deg_to_rad(float(state.facing_direction - 2) * 60.0)
+    )
+
+
+## Settlement NPCs use the same Ara renderer, equipment mapping, hair
+## attachment and nameplate as campaign characters. This builder supplies only
+## settlement-specific appearance data and world placement.
+static func create_settlement_actor(npc: Dictionary, world_position: Vector3) -> Node3D:
+    var character_id := String(npc.get("id", "campaign2_npc"))
+    var display_name := String(npc.get("name", character_id))
+    var body_variant := String(npc.get("body_variant", "female"))
+    var appearance: Dictionary = npc.get("appearance", {})
+    var profile := {
+        "skin_colour": String(appearance.get("skin_colour", "#b9825f")),
+        "eye_colour": String(appearance.get("eye_colour", "Brown")),
+        "hair_colour": String(appearance.get("hair_colour", "Dark brown")),
+        "height_scale": float(appearance.get("height_scale", 1.0)),
+        "build_scale": float(appearance.get("build_scale", 1.0)),
+        "body_variant": body_variant,
+        "gender_presentation": String(appearance.get("gender_presentation", "Androgynous")),
+        "pronouns": String(appearance.get("pronouns", "they/them"))
+    }
+    var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+    var actor := _create_actor_presentation(
+        character_id,
+        display_name,
+        world_position,
+        model_path,
+        body_variant,
+        profile,
+        npc.get("visual_equipment", {}),
+        false,
+        "",
+        String(appearance.get("hair_style", "")),
+        deg_to_rad(180.0)
+    )
+    if actor != null:
+        actor.name = "NPC_" + character_id
+        actor.set_meta("campaign2_npc_id", character_id)
+        actor.set_meta("dialogue_id", String(npc.get("dialogue_id", "")))
+        actor.set_meta("faction_id", String(npc.get("faction_id", "")))
+        actor.set_meta("side", String(npc.get("side", "neutral")))
+        actor.set_meta("class_levels", npc.get("class_levels", []))
+        actor.set_meta("skill_picks", npc.get("skill_picks", []))
+        actor.set_meta("quest_hooks", npc.get("quest_hooks", []))
+        actor.add_to_group("campaign2_npc")
+    return actor
+
+
+## Equipment refreshes are routed through the presentation factory so callers
+## never need to know where the AraCharacterActor sits in the scene tree.
+static func apply_equipment_visuals(actor: Node3D, state: CharacterState) -> void:
+    if actor == null or state == null or not is_instance_valid(actor):
+        return
+    var ara := actor as AraCharacterActor
+    if ara == null:
+        ara = actor.get_node_or_null("CharacterModel") as AraCharacterActor
+    if ara != null:
+        ara.apply_equipment_visuals(state.equipped_item_data)
+
+
+static func _create_actor_presentation(
+    character_id: String,
+    display_name: String,
+    world_position: Vector3,
+    model_path: String,
+    body_variant: String,
+    appearance_profile: Dictionary,
+    equipped_item_data: Dictionary,
+    is_player: bool,
+    ambient_role: String,
+    hair_id: String,
+    facing_rotation: float
+) -> Node3D:
+    var actor := HexActorPresentation.new()
+    actor.name = character_id
+    actor.position = world_position
+    actor.set_meta("character_id", character_id)
+    actor.set_meta("ambient_enabled", not is_player and character_id != "companion_wren_talbot")
+    actor.set_meta("ambient_role", ambient_role)
+    var base_appearance: Dictionary = appearance_profile.get("params", {}).duplicate(true) if appearance_profile.has("params") else appearance_profile.duplicate(true)
+    actor.set_meta("base_appearance_profile", base_appearance)
+    actor.set_meta("appearance_profile", appearance_profile.duplicate(true))
+    actor.rotation.y = facing_rotation
+
+    var ara_model := ARA_CHARACTER_ACTOR.new() as AraCharacterActor
+    ara_model.name = "CharacterModel"
+    actor.add_child(ara_model)
+
+    if ara_model.configure(model_path):
+        if appearance_profile.has("params"):
+            ara_model.apply_npc_parameters(appearance_profile.get("params", {}))
         else:
-            var params: Dictionary = npc_profile.get("params", {})
-            ara_model.apply_npc_parameters(params)
+            ara_model.apply_player_profile(appearance_profile)
         if model_path.contains("/ara_runtime/"):
-            var hair_id := str(player_profile.get("hair_style_id", "short02")) if is_player else str(npc_profile.get("params", {}).get("hair", "short02"))
             _attach_ara_hair(ara_model, body_variant, hair_id)
-        # Authored Hollowmere NPC GLBs already contain their selected Ara garments.
-        # Runtime base bodies and the player avatar need the separate modular layer.
-        if is_player or model_path.contains("/ara_runtime/"):
-            ara_model.configure_modular_garments()
-        ara_model.apply_equipment_visuals(state.equipped_item_data)
+        ara_model.apply_equipment_visuals(equipped_item_data)
     else:
-        push_error("Character '%s' could not load Ara model '%s'. No primitive substitute will be shown." % [state.display_name, model_path])
+        push_error("Character '%s' could not load Ara model '%s'. No primitive substitute will be shown." % [display_name, model_path])
         ara_model.queue_free()
 
     var name_label := Label3D.new()
     name_label.name = "PlayerNameLabel" if is_player else "CharacterNameLabel"
-    name_label.text = "You" if is_player else state.display_name
+    name_label.text = "You" if is_player else display_name
     name_label.position.y = 2.08
     name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
     name_label.font_size = 32
