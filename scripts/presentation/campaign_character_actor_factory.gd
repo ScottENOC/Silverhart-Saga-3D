@@ -54,8 +54,8 @@ static func create_actor(
 static func create_settlement_actor(npc: Dictionary, world_position: Vector3) -> Node3D:
     var character_id := String(npc.get("id", "campaign2_npc"))
     var display_name := String(npc.get("name", character_id))
-    var body_variant := String(npc.get("body_variant", "female"))
     var appearance: Dictionary = npc.get("appearance", {})
+    var body_variant := String(appearance.get("body_variant", npc.get("body_variant", "female")))
     var profile := {
         "skin_colour": String(appearance.get("skin_colour", "#b9825f")),
         "eye_colour": String(appearance.get("eye_colour", "Brown")),
