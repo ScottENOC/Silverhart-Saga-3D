@@ -136,6 +136,9 @@ func _load_garment_attachment(garment_id: String) -> bool:
     if attached.is_empty():
         return false
     garment_attachments[garment_id] = attached
+    var current_body_parameters: Dictionary = get_meta("body_parameters", {})
+    if not current_body_parameters.is_empty():
+        apply_body_parameters(current_body_parameters)
     return true
 
 
