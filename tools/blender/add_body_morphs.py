@@ -6,6 +6,7 @@ existing armature and facial keys and are driven per-character in Godot.
 """
 import argparse
 import math
+import sys
 from pathlib import Path
 
 import bpy
@@ -26,7 +27,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
-    return parser.parse_args(bpy.context.argv[bpy.context.argv.index("--") + 1:])
+    return parser.parse_args(sys.argv[sys.argv.index("--") + 1:])
 
 
 def smoothstep(a, b, value):
