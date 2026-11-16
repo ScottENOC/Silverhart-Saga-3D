@@ -1,0 +1,56 @@
+name: Export Wren GLB
+
+on:
+  push:
+    branches: [dev_2]
+    paths:
+      - "character-preview/wren.json"
+      - "tools/review/export_character_glb.py"
+      - ".github/workflows/export-wren-glb.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: export-wren-glb
+  cancel-in-progress: true
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev_2
+      - name: Validate exporter and Wren profile
+        run: |
+          python -m py_compile tools/review/export_character_glb.py
+          python -m json.tool character-preview/wren.json >/dev/null
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+      - name: Assemble and export Wren GLB
+        run: |
+          mkdir -p build/wren
+          export PYTHONPATH=/usr/lib/python3/dist-packages:$PYTHONPATH
+          blender --background --python-exit-code 1 --python tools/review/export_character_glb.py -- character-preview/wren.json build/wren/Wren.glb "$GITHUB_WORKSPACE"
+          test -s build/wren/Wren.glb
+          test -s build/wren/Wren-export-report.json
+      - name: Render inspection views
+        run: |
+          mkdir -p build/wren/inspection
+          export PYTHONPATH=/usr/lib/python3/dist-packages:$PYTHONPATH
+          blender --background --python-exit-code 1 --python tools/review/render_character_preview.py -- character-preview/wren.json build/wren/inspection "$GITHUB_WORKSPACE"
+          test -s build/wren/inspection/front.png
+          test -s build/wren/inspection/side.png
+      - name: Upload Wren GLB and inspection files
+        uses: actions/upload-artifact@v4
+        with:
+          name: wren-character-glb-${{ github.run_number }}
+          path: build/wren/
+          if-no-files-found: error
+          retention-days: 30
