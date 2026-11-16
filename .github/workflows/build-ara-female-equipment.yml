@@ -1,0 +1,171 @@
+name: Build Separate Ara Female Runtime Equipment
+
+on:
+  push:
+    branches: [dev_2]
+    paths:
+      - ".github/workflows/build-ara-female-equipment.yml"
+      - "tools/ara/extract_garment_glb.py"
+      - "tools/blender/create_full_coverage_armor.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ara-female-runtime-equipment
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Generate independent Ara garment exports
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
+          git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
+          cd /tmp/ara-3d-gen
+          corepack enable
+          pnpm install --no-frozen-lockfile
+          npm run setup-assets
+          python "$GITHUB_WORKSPACE/tools/ara/patch_layering.py"
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          base = {
+              "seed": 218, "gender": 0, "age": 0.5, "muscle": 0.5,
+              "weight": 0.5, "height": 0.5, "proportions": 0.5,
+              "african": 0.05, "asian": 0.05, "caucasian": 0.9,
+              "breastSize": 0.5, "breastFirmness": 0.55,
+              "hair": "short02", "hairTint": "#49372a",
+              "outfit": "none", "top": "none", "underTop": "none",
+              "underBottom": "none", "jacket": "none", "bottom": "none",
+              "underwear": False, "shoes": "none", "hat": "none",
+              "weapon": "none", "carry": "none", "accessories": [],
+              "detail": "high", "rig": "game", "restPose": "A",
+              "animations": True, "faceBones": True, "faceShapes": True,
+              "speechShapes": False, "expression": "neutral"
+          }
+          variants = {
+              "bra": {"underTop": "bra"},
+              "briefs": {"underBottom": "briefs"},
+              "fatigue_shirt": {"top": "fatigue_shirt"},
+              "fatigue_pants": {"bottom": "fatigue_pants"},
+              "combat_boots": {"shoes": "combat_boots"},
+              "tunic": {"top": "tunic"},
+              "long_tunic": {"top": "long_tunic"},
+              "trousers": {"bottom": "trousers"},
+              "wrapper_long": {"bottom": "wrapper_long"},
+              "wrapper_knee": {"bottom": "wrapper_knee"},
+              "uniform_shirt": {"top": "uniform_shirt"},
+              "tattered_shirt": {"top": "tattered_shirt"},
+              "sandals": {"shoes": "sandals"}
+          }
+          root = Path("/tmp/ara-garment-params")
+          root.mkdir(parents=True, exist_ok=True)
+          for name, updates in variants.items():
+              params = dict(base)
+              params.update(updates)
+              params["name"] = "Ara runtime garment - " + name
+              (root / (name + ".json")).write_text(json.dumps(params, indent=2) + "\n")
+          PY
+
+          mkdir -p /tmp/ara-garment-raw
+          for variant in bra briefs fatigue_shirt fatigue_pants combat_boots tunic long_tunic trousers wrapper_long wrapper_knee uniform_shirt tattered_shirt sandals; do
+            mkdir -p "/tmp/ara-garment-raw/$variant"
+            npm run export -- --params "/tmp/ara-garment-params/$variant.json" --detail high --formats glb --out "/tmp/ara-garment-raw/$variant"
+            source_glb="$(find "/tmp/ara-garment-raw/$variant" -maxdepth 1 -type f -name '*.glb' -print -quit)"
+            test -n "$source_glb"
+            case "$variant" in
+              bra) selectors=("Bra") ;;
+              briefs) selectors=("Briefs") ;;
+              fatigue_shirt) selectors=("Fatigue shirt") ;;
+              fatigue_pants) selectors=("Fatigue pants*") ;;
+              combat_boots) selectors=("Shoes" "Boot shafts") ;;
+              tunic) selectors=("Tunic*") ;;
+              long_tunic) selectors=("Long tunic*") ;;
+              trousers) selectors=("Trousers*") ;;
+              wrapper_long) selectors=("Wrapper long*") ;;
+              wrapper_knee) selectors=("Wrapper knee*") ;;
+              uniform_shirt) selectors=("Uniform shirt*") ;;
+              tattered_shirt) selectors=("Tattered shirt*") ;;
+              sandals) selectors=("Shoes") ;;
+            esac
+            extract_args=()
+            for selector in "${selectors[@]}"; do
+              extract_args+=(--selector "$selector")
+            done
+            python "$GITHUB_WORKSPACE/tools/ara/extract_garment_glb.py" \
+              --body "$GITHUB_WORKSPACE/art/characters/ara_runtime/ara_person_body.glb" \
+              --source "$source_glb" \
+              --output "/tmp/ara-garment-assembled-$variant.glb" \
+              "${extract_args[@]}"
+            blender --background --python-exit-code 1 \
+              --python "$GITHUB_WORKSPACE/tools/blender/add_adult_anatomy.py" -- \
+              --input "/tmp/ara-garment-assembled-$variant.glb" \
+              --output "/tmp/ara-garment-fitted-$variant.glb" \
+              --profile none --adult --fit-existing
+            python "$GITHUB_WORKSPACE/tools/ara/extract_garment_glb.py" \
+              --strip-input "/tmp/ara-garment-fitted-$variant.glb" \
+              --output "$GITHUB_WORKSPACE/art/characters/ara_runtime/garments/female_$variant.glb"
+          done
+
+      - name: Build standalone female leather armour from existing integrated anatomy
+        shell: bash
+        run: |
+          set -euo pipefail
+          blender --background --python-exit-code 1 \
+            --python tools/blender/create_full_coverage_armor.py -- \
+            --input art/characters/ara_runtime/ara_person_body.glb \
+            --output /tmp/ara-full-coverage-armour.glb
+          python tools/ara/extract_garment_glb.py \
+            --body art/characters/ara_runtime/ara_person_body.glb \
+            --source /tmp/ara-full-coverage-armour.glb \
+            --selector "Leather armor" \
+            --output art/characters/ara_runtime/garments/female_leather_armor.glb
+
+      - name: Build standalone hand props, shields and helmets
+        shell: bash
+        run: |
+          set -euo pipefail
+          blender --background --python tools/ara/build_medieval_armor_props.py -- \
+            --output art/characters/ara_runtime/props
+          test "$(find art/characters/ara_runtime/props -name '*.glb' | wc -l)" -eq 7
+
+      - name: Import and validate all runtime equipment in Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Godot import and runtime equipment smoke test
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --quit
+          godot --headless --path . --script res://tests/test_ara_runtime_equipment.gd
+          godot --headless --path . --script res://tests/test_ara_equipment_assets.gd
+
+      - name: Commit generated runtime equipment assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add art/characters/ara_runtime/garments art/characters/ara_runtime/props
+          if git diff --cached --quiet; then
+            echo "Runtime equipment assets are already current."
+            exit 0
+          fi
+          git commit -m "Add separate Ara female runtime garments and armour"
+          git push origin "$GITHUB_REF_NAME"
