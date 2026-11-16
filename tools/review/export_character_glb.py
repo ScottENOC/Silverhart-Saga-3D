@@ -76,6 +76,7 @@ def main():
     requested_keys = profile.get("shape_keys", {})
     key_results = []
     material_results = []
+    tinted_materials = set()
     for obj in imported:
         if obj.type != "MESH":
             continue
@@ -91,15 +92,17 @@ def main():
                     })
         for slot in obj.material_slots:
             material = slot.material
-            if material is None:
+            if material is None or material.as_pointer() in tinted_materials:
                 continue
             for token, colour in profile.get("material_tints", {}).items():
                 if token.casefold() in material.name.casefold():
                     tint_material(material, colour)
+                    tinted_materials.add(material.as_pointer())
                     material_results.append({
                         "mesh": obj.name, "material": material.name,
                         "tint_token": token, "colour": colour
                     })
+                    break
 
     meshes = [obj for obj in imported if obj.type == "MESH"]
     armatures = [obj for obj in imported if obj.type == "ARMATURE"]
