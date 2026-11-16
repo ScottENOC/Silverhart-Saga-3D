@@ -25,7 +25,7 @@
         "african": 0.05,
         "asian": 0.05,
         "caucasian": 0.9,
-        "eyes": "brownlight",
+        "eyes": "green",
         "hair": "braid01",
         "hairTint": "#252b62",
         "facialHair": "none",
@@ -72,7 +72,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#252b62"
+        "hairColor": "#252b62",
+        "legs": 0.62,
+        "breasts": 0.76,
+        "skinTint": "#a1845b"
       },
       "party": {
         "starts_in_party": true,
@@ -140,7 +143,8 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#776e61"
+        "hairColor": "#776e61",
+        "legs": 0.68
       },
       "dialogue_id": "garrick_holt"
     },
@@ -204,7 +208,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#704b32"
+        "hairColor": "#704b32",
+        "legs": 0.43,
+        "breasts": 0.43
       },
       "dialogue_id": "mira_ashbrook"
     },
@@ -269,7 +275,8 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#49372a"
+        "hairColor": "#49372a",
+        "legs": 0.64
       },
       "dialogue_id": "oskar_vinn"
     },
@@ -332,7 +339,8 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#aaa49a"
+        "hairColor": "#aaa49a",
+        "legs": 0.4
       },
       "dialogue_id": "wick_hallow"
     },
@@ -400,7 +408,8 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "determined",
-        "hairColor": "#211a16"
+        "hairColor": "#211a16",
+        "legs": 0.74
       },
       "dialogue_id": "dray_coltayne"
     },
@@ -464,7 +473,8 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#171313"
+        "hairColor": "#171313",
+        "legs": 0.6
       },
       "dialogue_id": "tomlin_brask"
     },
@@ -530,7 +540,8 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#6e4d35"
+        "hairColor": "#6e4d35",
+        "legs": 0.7
       },
       "dialogue_id": "hask_greel"
     },
@@ -597,7 +608,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#4d3425"
+        "hairColor": "#4d3425",
+        "legs": 0.48,
+        "breasts": 0.58
       },
       "dialogue_id": "yvette_marlow"
     },
@@ -661,7 +674,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#554031"
+        "hairColor": "#554031",
+        "legs": 0.58,
+        "breasts": 0.66
       },
       "dialogue_id": "hendra_wells"
     },
@@ -723,7 +738,8 @@
         "faceShapes": false,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#29201b"
+        "hairColor": "#29201b",
+        "legs": 0.52
       }
     },
     {
@@ -786,7 +802,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#c1b9a8"
+        "hairColor": "#c1b9a8",
+        "legs": 0.42,
+        "breasts": 0.4
       },
       "dialogue_id": "marta_wynfield"
     },
@@ -854,7 +872,8 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#3c2d22"
+        "hairColor": "#3c2d22",
+        "legs": 0.68
       },
       "dialogue_id": "hollowmere_hunter"
     },
@@ -916,7 +935,9 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#49372a"
+        "hairColor": "#49372a",
+        "legs": 0.5,
+        "breasts": 0.5
       }
     },
     {
@@ -973,7 +994,8 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#594a3c"
+        "hairColor": "#594a3c",
+        "legs": 0.66
       },
       "dialogue_id": "ser_aldric_captive",
       "companion_dialogue_id": "companion_ser_aldric"
@@ -1037,7 +1059,8 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#30251b"
+        "hairColor": "#30251b",
+        "legs": 0.38
       },
       "dialogue_id": "nix_sharpear",
       "companion_dialogue_id": "companion_nix_sharpear"
@@ -1101,7 +1124,8 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#30231c"
+        "hairColor": "#30231c",
+        "legs": 0.78
       },
       "dialogue_id": "orc_warlord",
       "companion_dialogue_id": "companion_orc_warlord"
@@ -1160,7 +1184,8 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#704b32"
+        "hairColor": "#704b32",
+        "legs": 0.6
       },
       "dialogue_id": "reyna_fletcher",
       "companion_dialogue_id": "reyna_fletcher"
@@ -1218,7 +1243,8 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#8b765e"
+        "hairColor": "#8b765e",
+        "legs": 0.46
       },
       "dialogue_id": "mirabel_quill",
       "companion_dialogue_id": "mirabel_quill"
@@ -1275,7 +1301,8 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#57422d"
+        "hairColor": "#57422d",
+        "legs": 0.57
       },
       "dialogue_id": "fenn_oakheart",
       "companion_dialogue_id": "fenn_oakheart"
@@ -1332,7 +1359,8 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#82715e"
+        "hairColor": "#82715e",
+        "legs": 0.63
       },
       "dialogue_id": "brother_alden",
       "companion_dialogue_id": "brother_alden"
@@ -1393,7 +1421,8 @@
         "weapon": "none",
         "carry": "none",
         "accessories": [],
-        "hairColor": "#251d17"
+        "hairColor": "#251d17",
+        "legs": 0.36
       },
       "dialogue_id": "snik_fangtooth",
       "companion_dialogue_id": "snik_fangtooth"
