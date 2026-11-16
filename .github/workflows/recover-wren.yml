@@ -1,0 +1,49 @@
+name: Recover Wren appearance files
+
+on:
+  push:
+    branches: [dev_2]
+    paths:
+      - .github/workflows/recover-wren.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out dev_2
+        uses: actions/checkout@v4
+        with:
+          ref: dev_2
+
+      - name: Download the original NPC model artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hollowmere-npc-models
+          run-id: 42316268427
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ScottENOC/Silverhart-Saga-3D
+          path: recovered-artifact
+
+      - name: Install recovered Wren files and commit them
+        shell: bash
+        run: |
+          set -euo pipefail
+          model="$(find recovered-artifact -type f -name 'wren_talbot.glb' -print -quit)"
+          params="$(find recovered-artifact -type f -name 'wren_talbot.params.json' -print -quit)"
+          test -n "$model" && test -s "$model"
+          test -n "$params" && test -s "$params"
+          mkdir -p art/characters/hollowmere/recovered
+          cp "$model" art/characters/hollowmere/recovered/wren_talbot.glb
+          cp "$params" art/characters/hollowmere/recovered/wren_talbot.params.json
+          test "$(wc -c < art/characters/hollowmere/recovered/wren_talbot.glb)" -gt 1000000
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add art/characters/hollowmere/recovered/wren_talbot.glb art/characters/hollowmere/recovered/wren_talbot.params.json
+          git add -u .github/workflows/recover-wren.yml
+          git commit -m "Recover Wren appearance model and parameters"
+          git push origin HEAD:dev_2
