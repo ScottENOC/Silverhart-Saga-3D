@@ -350,6 +350,8 @@ func apply_player_profile(profile: Dictionary) -> void:
     }
     var skin_surfaces_tinted := tint_materials("skin", skin)
     var eye_surfaces_tinted := tint_materials("eye", eye_colours.get(str(profile.get("eye_colour", "Brown")), Color("#49301f")))
+    set_meta("skin_surfaces_tinted", skin_surfaces_tinted)
+    set_meta("eye_surfaces_tinted", eye_surfaces_tinted)
     print("[Ara appearance] asset=%s skin=%s surfaces=%d eyes=%s surfaces=%d" % [
         loaded_asset_path, skin.to_html(false), skin_surfaces_tinted,
         str(profile.get("eye_colour", "Brown")), eye_surfaces_tinted
