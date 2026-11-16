@@ -117,9 +117,16 @@ def main():
     hi=Vector(tuple(max(p[i] for p in pts) for i in range(3)))
     centre=(lo+hi)*0.5; radius=max((hi-lo).length*0.5,0.5)
     for view in ("front","side","rear"): setup_render(centre,radius,output,view)
+    mesh_stats=[]
+    for obj in meshes:
+        world_points=[obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
+        dims=[max(p[i] for p in world_points)-min(p[i] for p in world_points) for i in range(3)]
+        key_names=list(obj.data.shape_keys.key_blocks.keys())[1:] if obj.data.shape_keys else []
+        mesh_stats.append({"object":obj.name,"dimensions_xyz":[round(v,5) for v in dims],
+                           "shape_keys_available":key_names})
     report={"name":profile.get("name","Ara Character"),"model":profile["model"],"hair_asset":hair,
-            "shape_keys":profile.get("shape_keys",{}),"material_tints":profile.get("material_tints",{}),
-            "mesh_count":len(meshes),"views":["front","side","rear"]}
+            "shape_keys_applied":profile.get("shape_keys",{}),"material_tints":profile.get("material_tints",{}),
+            "mesh_count":len(meshes),"mesh_stats":mesh_stats,"views":["front","side","rear"]}
     (output/"profile_report.json").write_text(json.dumps(report,indent=2))
     print("[Character preview] rendered front, side and rear:", output, flush=True)
 if __name__=="__main__": main()
