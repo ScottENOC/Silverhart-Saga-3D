@@ -1,0 +1,90 @@
+name: Build Ara female anatomy asset
+
+on:
+  push:
+    branches: [dev_2]
+    paths:
+      - "tools/blender/add_adult_anatomy.py"
+      - ".github/workflows/build-ara-female-anatomy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ara-female-anatomy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev_2
+
+      - name: Validate anatomy script syntax
+        run: python -m py_compile tools/blender/add_adult_anatomy.py
+
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Generate a separate anatomy-integrated Ara female body
+        shell: bash
+        run: |
+          set -euo pipefail
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_adult_anatomy.py -- \
+            --input art/characters/ara_runtime/ara_person_body.glb \
+            --output art/characters/ara_runtime/ara_person_body_anatomy.glb \
+            --profile female --adult --method integrated --deformation-scale 1.65
+          test -s art/characters/ara_runtime/ara_person_body_anatomy.glb
+          test "$(wc -c < art/characters/ara_runtime/ara_person_body_anatomy.glb)" -gt 1000000
+
+      - name: Validate generated GLB in Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Import project and generated model
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path . --quit
+          test -s art/characters/ara_runtime/ara_person_body_anatomy.glb.import
+
+      - name: Update runtime manifest and commit the generated body
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path("art/characters/ara_runtime")
+          asset = root / "ara_person_body_anatomy.glb"
+          payload = asset.read_bytes()
+          manifest_path = root / "manifest.json"
+          manifest = json.loads(manifest_path.read_text())
+          manifest.setdefault("assets", {})[asset.name] = {
+              "size_bytes": len(payload),
+              "sha256": hashlib.sha256(payload).hexdigest()
+          }
+          version_source = "".join(
+              f"{name}:{entry['sha256']}\\n"
+              for name, entry in sorted(manifest["assets"].items())
+          ).encode()
+          manifest["package_version"] = "local-" + hashlib.sha256(version_source).hexdigest()[:16]
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\\n")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add art/characters/ara_runtime/ara_person_body_anatomy.glb art/characters/ara_runtime/manifest.json
+          if git diff --cached --quiet; then
+            echo "Generated anatomy asset is already current."
+            exit 0
+          fi
+          git commit -m "Build Ara female body with integrated anatomy"
+          git push origin HEAD:dev_2
