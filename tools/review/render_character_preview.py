@@ -2,7 +2,7 @@
 """Render a configurable Ara character directly from repository GLBs (no Godot)."""
 import json, math, sys
 from pathlib import Path
-import bpy
+import bpy, bmesh
 from mathutils import Vector
 
 def args():
@@ -35,20 +35,31 @@ def apply_profile(objects, profile):
             mat = slot.material
             if not mat: continue
             name = mat.name.casefold()
-            if any(x in name for x in hidden):
-                slot.material = None
-                continue
-            if shown and any(token in name for token in shown):
-                pass
             for token, colour in tints.items():
                 if token.casefold() in name:
+                    c = colour.lstrip("#")
+                    rgb = tuple(int(c[i:i+2],16)/255 for i in (0,2,4))
                     if mat.use_nodes and mat.node_tree:
                         bsdf = next((n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
                         if bsdf:
-                            c = colour.lstrip("#")
-                            rgb = tuple(int(c[i:i+2],16)/255 for i in (0,2,4))
                             bsdf.inputs["Base Color"].default_value = (*rgb, 1)
                     mat.diffuse_color = (*rgb, 1)
+        if hidden:
+            bm = bmesh.new()
+            bm.from_mesh(obj.data)
+            remove = []
+            for face in bm.faces:
+                idx = face.material_index
+                material = obj.data.materials[idx] if idx < len(obj.data.materials) else None
+                if material and any(token in material.name.casefold() for token in hidden):
+                    remove.append(face)
+            if remove:
+                bmesh.ops.delete(bm, geom=remove, context="FACES")
+                loose = [v for v in bm.verts if not v.link_faces]
+                if loose: bmesh.ops.delete(bm, geom=loose, context="VERTS")
+                bm.to_mesh(obj.data)
+                obj.data.update()
+            bm.free()
     return
 
 def setup_render(centre, radius, out, view):
