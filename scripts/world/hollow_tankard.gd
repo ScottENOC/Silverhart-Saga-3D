@@ -2552,23 +2552,4 @@ func apply_player_profile(profile: Dictionary) -> void:
     var actor := actor_by_id.get("player") as Node3D
     if actor == null:
         return
-    actor.set_meta("player_profile", profile.duplicate(true))
-    var name_label := actor.get_node_or_null("PlayerNameLabel") as Label3D
-    if name_label != null:
-        name_label.text = str(profile.get("name", "Adventurer"))
-    var ara := actor.get_node_or_null("CharacterModel")
-    if ara is AraCharacterActor:
-        (ara as AraCharacterActor).apply_player_profile(profile)
-    else:
-        # The capsule fallback is deliberately neutral when a Workshop body
-        # export is unavailable; never silently display the wrong body variant.
-        var skin := Color.from_string(str(profile.get("skin_colour", "#b9825f")), Color(0.72, 0.57, 0.43))
-        var head := actor.get_node_or_null("PlayerHead") as MeshInstance3D
-        if head != null:
-            head.material_override = _material(skin)
-        var body := actor.get_node_or_null("PlayerBody") as MeshInstance3D
-        if body != null:
-            body.material_override = _material(skin)
-        actor.set_meta("body_variant", str(profile.get("body_variant", "female")))
-        actor.set_meta("gender_presentation", str(profile.get("gender_presentation", "Androgynous")))
-        actor.set_meta("pronouns", str(profile.get("pronouns", "they/them")))
+    CampaignCharacterActorFactory.apply_player_profile(actor, profile)
