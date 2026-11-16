@@ -39,16 +39,22 @@ jobs:
           p["name"] = "Ara neutral baseline"
           p["shape_keys"] = {key: 0.0 for key in p.get("shape_keys", {})}
           Path("build/ara-baseline-profile.json").write_text(json.dumps(p, indent=2))
+          p = json.loads(Path("character-preview/profile.json").read_text())
+          p["name"] = "Wren armature modifiers disabled diagnostic"
+          p["disable_armature_modifiers"] = True
+          Path("build/ara-armature-disabled-profile.json").write_text(json.dumps(p, indent=2))
           PY
       - name: Render neutral baseline and Wren comparison
         run: |
-          mkdir -p build/character-preview/baseline build/character-preview/wren
+          mkdir -p build/character-preview/baseline build/character-preview/wren build/character-preview/armature-disabled
           export PYTHONPATH=/usr/lib/python3/dist-packages:$PYTHONPATH
           blender --background --python-exit-code 1 --python tools/review/render_character_preview.py -- build/ara-baseline-profile.json build/character-preview/baseline "$GITHUB_WORKSPACE"
           blender --background --python-exit-code 1 --python tools/review/render_character_preview.py -- character-preview/profile.json build/character-preview/wren "$GITHUB_WORKSPACE"
+          blender --background --python-exit-code 1 --python tools/review/render_character_preview.py -- build/ara-armature-disabled-profile.json build/character-preview/armature-disabled "$GITHUB_WORKSPACE"
           for view in front side; do
             test -s "build/character-preview/baseline/$view.png"
             test -s "build/character-preview/wren/$view.png"
+            test -s "build/character-preview/armature-disabled/$view.png"
           done
       - name: Upload preview images
         uses: actions/upload-artifact@v4
