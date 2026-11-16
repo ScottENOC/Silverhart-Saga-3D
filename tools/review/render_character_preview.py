@@ -7,7 +7,7 @@ from mathutils import Vector
 
 def args():
     a = sys.argv[sys.argv.index("--") + 1:]
-    if len(a) != 3: raise SystemExit("usage: blender --background --python render_character_preview.py -- CONFIG OUTPUT_DIR")
+    if len(a) != 3: raise SystemExit("usage: blender --background --python render_character_preview.py -- CONFIG OUTPUT_DIR ROOT")
     return Path(a[0]), Path(a[1]), Path(a[2])
 
 def clear():
@@ -25,7 +25,6 @@ def find_meshes(objects):
 def apply_profile(objects, profile):
     tints = profile.get("material_tints", {})
     hidden = {x.casefold() for x in profile.get("hide_materials", [])}
-    shown = {x.casefold() for x in profile.get("show_materials", [])}
     for obj in find_meshes(objects):
         if obj.data.shape_keys:
             for key, value in profile.get("shape_keys", {}).items():
@@ -60,11 +59,12 @@ def apply_profile(objects, profile):
                 bm.to_mesh(obj.data)
                 obj.data.update()
             bm.free()
-    return
 
 def setup_render(centre, radius, out, view):
     scene = bpy.context.scene
-    scene.render.engine = "BLENDER_EEVEE_NEXT"
+    # Ubuntu's Blender 5.0 package exposes EEVEE under BLENDER_EEVEE.
+    engines = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
+    scene.render.engine = "BLENDER_EEVEE" if "BLENDER_EEVEE" in engines else "BLENDER_EEVEE_NEXT"
     scene.render.resolution_x, scene.render.resolution_y = 720, 960
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
@@ -104,8 +104,7 @@ def main():
     if hair:
         hair_path=root/hair
         if not hair_path.is_file(): raise FileNotFoundError(hair_path)
-        hair_objects=import_glb(hair_path)
-        objects += hair_objects
+        objects += import_glb(hair_path)
     apply_profile(objects,profile)
     meshes=find_meshes(objects)
     if not meshes: raise RuntimeError("No mesh objects imported")
