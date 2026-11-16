@@ -254,15 +254,17 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	var wren_model := wren_actor.get_node_or_null("CharacterModel") as AraCharacterActor
 	assert(wren_model != null)
 	assert(wren_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_body_anatomy.glb")
-	assert(not wren_model.hair_instances.is_empty(), "Wren's Ara braid did not attach")
-	assert(wren_model.current_hair_colour.is_equal_approx(Color("#252b62")))
 	var body_parameters: Dictionary = wren_model.get_meta("body_parameters", {})
-	assert(is_equal_approx(float(body_parameters.get("breasts", 0.0)), 0.76))
-	assert(is_equal_approx(float(body_parameters.get("legs", 0.0)), 0.62))
 	var blend_shape_names: Array[String] = []
 	_collect_blend_shape_names(wren_model.model_root, blend_shape_names)
 	print("ARA_SHARED_BODY_BLEND_SHAPES: %s" % ", ".join(blend_shape_names))
 	print("ARA_WREN_MORPHS_APPLIED: %s" % str(wren_model.get_meta("body_morph_targets_applied", 0)))
+	print("ARA_WREN_HAIR_INSTANCES: %d" % wren_model.hair_instances.size())
+	print("ARA_WREN_SKIN_TINT: %s" % str(wren_model.current_hair_colour))
+	assert(not wren_model.hair_instances.is_empty(), "Wren's Ara braid did not attach")
+	assert(wren_model.current_hair_colour.is_equal_approx(Color("#252b62")))
+	assert(is_equal_approx(float(body_parameters.get("breasts", 0.0)), 0.76))
+	assert(is_equal_approx(float(body_parameters.get("legs", 0.0)), 0.62))
 	wren_actor.free()
 
 
