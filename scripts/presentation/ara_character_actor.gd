@@ -338,7 +338,8 @@ func apply_player_profile(profile: Dictionary) -> void:
         "Brown": Color("#49301f"), "Light brown": Color("#795334"),
         "Dark brown": Color("#24170f"), "Green": Color("#55744b"),
         "Blue": Color("#426f9a"), "Grey": Color("#777d83"),
-        "Ice blue": Color("#9bc8df")
+        "Ice blue": Color("#9bc8df"), "Blue green": Color("#4f8173"),
+        "Hazel": Color("#78633c")
     }
     var hair_colours := {
         "Black": Color("#171513"), "Dark brown": Color("#49372a"),
@@ -570,15 +571,20 @@ func apply_body_parameters(profile: Dictionary) -> void:
         "muscle": ["muscle", "muscularity", "musclemass", "bodymuscle"],
         "weight": ["weight", "bodyweight", "fat", "bodyfat", "adiposity"],
         "height": ["height", "bodyheight", "stature"],
-        "proportions": ["proportion", "proportions", "bodyproportion"]
+        "proportions": ["proportion", "proportions", "bodyproportion"],
+        "breasts": ["breast", "breasts", "breastsize", "bust", "bustsize", "chestsize"],
+        "legs": ["legs", "legsize", "thigh", "thighsize", "calf", "calfsize"]
     }
     var values := {
         "muscle": clampf(float(profile.get("muscle", 0.5)), 0.0, 1.0),
         "weight": clampf(float(profile.get("weight", 0.5)), 0.0, 1.0),
         "height": clampf(float(profile.get("height", 0.5)), 0.0, 1.0),
-        "proportions": clampf(float(profile.get("proportions", 0.5)), 0.0, 1.0)
+        "proportions": clampf(float(profile.get("proportions", 0.5)), 0.0, 1.0),
+        "breasts": clampf(float(profile.get("breasts", 0.5)), 0.0, 1.0),
+        "legs": clampf(float(profile.get("legs", 0.5)), 0.0, 1.0)
     }
     var applied := 0
+    var height_morph_applied := false
     var meshes: Array[MeshInstance3D] = []
     _collect_meshes(model_root, meshes)
     for mesh_instance in meshes:
@@ -591,7 +597,20 @@ func apply_body_parameters(profile: Dictionary) -> void:
                     if shape_name == alias or shape_name.ends_with(alias):
                         mesh_instance.set_blend_shape_value(shape_index, values[parameter])
                         applied += 1
+                        if parameter == "height":
+                            height_morph_applied = true
                         break
+    # Some Ara exports do not expose a stature blend shape. Preserve the
+    # requested height variation with a modest vertical scale in that case.
+    var base_scale: Vector3 = get_meta("ara_base_model_scale", model_root.scale)
+    if not has_meta("ara_base_model_scale"):
+        set_meta("ara_base_model_scale", model_root.scale)
+        base_scale = model_root.scale
+    model_root.scale = base_scale if height_morph_applied else Vector3(
+        base_scale.x,
+        base_scale.y * lerpf(0.90, 1.10, values["height"]),
+        base_scale.z
+    )
     set_meta("body_parameters", values)
     set_meta("body_morph_targets_applied", applied)
 
@@ -599,18 +618,29 @@ func apply_npc_parameters(params: Dictionary) -> void:
     if model_root == null:
         return
     var gender := int(params.get("gender", 0))
-    var skin := Color("#b9825f")
-    var african := float(params.get("african", 0.0))
-    var asian := float(params.get("asian", 0.0))
-    if african >= 0.6:
-        skin = Color("#70452f")
-    elif asian >= 0.5:
-        skin = Color("#b58a68")
-    elif float(params.get("caucasian", 0.0)) >= 0.6:
-        skin = Color("#d6a47e")
+    # Blend the Ara complexion sliders instead of collapsing them into three
+    # hard thresholds. An explicit skinTint can refine an individual character.
+    var african := maxf(0.0, float(params.get("african", 0.0)))
+    var asian := maxf(0.0, float(params.get("asian", 0.0)))
+    var caucasian := maxf(0.0, float(params.get("caucasian", 0.0)))
+    var complexion_total := african + asian + caucasian
+    if complexion_total <= 0.001:
+        complexion_total = 1.0
+        caucasian = 1.0
+    var skin := (
+        Color("#70452f") * african
+        + Color("#b58a68") * asian
+        + Color("#d6a47e") * caucasian
+    ) / complexion_total
+    if params.has("skinTint"):
+        skin = Color.from_string(str(params.get("skinTint")), skin)
     var eye_id := str(params.get("eyes", "brown")).to_lower()
-    var eye_map := {"brown": "Brown", "brownlight": "Light brown", "darkbrown": "Dark brown", "green": "Green", "blue": "Blue", "grey": "Grey"}
-    var hair_tint := Color.from_string(str(params.get("hairTint", "#49372a")), Color("#49372a"))
+    var eye_map := {
+        "brown": "Brown", "brownlight": "Light brown", "darkbrown": "Dark brown",
+        "green": "Green", "blue": "Blue", "grey": "Grey",
+        "bluegreen": "Blue green", "hazel": "Hazel", "iceblue": "Ice blue"
+    }
+    var hair_tint := Color.from_string(str(params.get("hairTint", params.get("hairColor", "#49372a"))), Color("#49372a"))
     var profile := {
         "skin_colour": skin.to_html(false),
         "eye_colour": eye_map.get(eye_id, "Brown"),
@@ -619,6 +649,8 @@ func apply_npc_parameters(params: Dictionary) -> void:
         "muscle": float(params.get("muscle", 0.5)),
         "weight": float(params.get("weight", 0.5)),
         "proportions": float(params.get("proportions", 0.5)),
+        "breasts": float(params.get("breasts", 0.5)),
+        "legs": float(params.get("legs", 0.5)),
         "body_variant": "male" if gender == 1 else "female",
         "gender_presentation": "Masculine" if gender == 1 else "Feminine",
         "pronouns": "they/them"
