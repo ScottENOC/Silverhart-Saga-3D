@@ -5,6 +5,7 @@ func _initialize() -> void:
 	_test_materials_are_not_shared_between_characters()
 	_test_accessory_socket_attach_and_remove()
 	_test_campaign_character_actor_factory()
+	_test_shared_ara_npc_models_and_wren_appearance()
 	print("Character appearance and accessory tests passed.")
 	quit()
 
@@ -188,3 +189,58 @@ func _test_campaign_character_actor_factory() -> void:
 	assert(model != null)
 	assert(model.loaded_asset_path != "")
 	actor.free()
+
+
+func _test_shared_ara_npc_models_and_wren_appearance() -> void:
+	var male_state := CharacterState.new("garrick_test", "Garrick", Vector2i.ZERO)
+	var male_profile := {
+		"params": {
+			"gender": 1,
+			"age": 0.7,
+			"height": 0.52,
+			"muscle": 0.58,
+			"weight": 0.7,
+			"eyes": "brown",
+			"hair": "short02",
+			"hairTint": "#776e61"
+		}
+	}
+	var male_actor := CampaignCharacterActorFactory.create_actor(
+		male_state, Vector3.ZERO, false, {}, male_profile, "garrick_holt.glb", "civilian"
+	)
+	assert(male_actor != null)
+	var male_model := male_actor.get_node_or_null("CharacterModel") as AraCharacterActor
+	assert(male_model != null)
+	assert(male_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_male_body.glb")
+	male_actor.free()
+
+	var wren_state := CharacterState.new("wren_test", "Wren", Vector2i.ZERO)
+	var wren_profile := {
+		"params": {
+			"gender": 0,
+			"age": 0.5,
+			"height": 0.55,
+			"muscle": 0.62,
+			"weight": 0.42,
+			"proportions": 0.58,
+			"breasts": 0.76,
+			"legs": 0.62,
+			"eyes": "green",
+			"skinTint": "#a1845b",
+			"hair": "braid01",
+			"hairTint": "#252b62"
+		}
+	}
+	var wren_actor := CampaignCharacterActorFactory.create_actor(
+		wren_state, Vector3.ZERO, false, {}, wren_profile, "wren_talbot.glb", "companion"
+	)
+	assert(wren_actor != null)
+	var wren_model := wren_actor.get_node_or_null("CharacterModel") as AraCharacterActor
+	assert(wren_model != null)
+	assert(wren_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_body_anatomy.glb")
+	assert(not wren_model.hair_instances.is_empty(), "Wren's Ara braid did not attach")
+	assert(wren_model.current_hair_colour.is_equal_approx(Color("#252b62")))
+	var body_parameters: Dictionary = wren_model.get_meta("body_parameters", {})
+	assert(is_equal_approx(float(body_parameters.get("breasts", 0.0)), 0.76))
+	assert(is_equal_approx(float(body_parameters.get("legs", 0.0)), 0.62))
+	wren_actor.free()
