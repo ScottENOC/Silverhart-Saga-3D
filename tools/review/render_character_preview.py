@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Render a configurable Ara character directly from repository GLBs (no Godot)."""
+import json, math, sys
+from pathlib import Path
+import bpy
+from mathutils import Vector
+
+def args():
+    a = sys.argv[sys.argv.index("--") + 1:]
+    if len(a) != 3: raise SystemExit("usage: blender --background --python render_character_preview.py -- CONFIG OUTPUT_DIR")
+    return Path(a[0]), Path(a[1]), Path(a[2])
+
+def clear():
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.object.delete(use_global=False)
+
+def import_glb(path):
+    before = set(bpy.context.scene.objects)
+    bpy.ops.import_scene.gltf(filepath=str(path))
+    return [o for o in bpy.context.scene.objects if o not in before]
+
+def find_meshes(objects):
+    return [o for o in objects if o.type == "MESH"]
+
+def apply_profile(objects, profile):
+    tints = profile.get("material_tints", {})
+    hidden = {x.casefold() for x in profile.get("hide_materials", [])}
+    shown = {x.casefold() for x in profile.get("show_materials", [])}
+    for obj in find_meshes(objects):
+        if obj.data.shape_keys:
+            for key, value in profile.get("shape_keys", {}).items():
+                block = obj.data.shape_keys.key_blocks.get(key)
+                if block: block.value = float(value)
+        for slot in obj.material_slots:
+            mat = slot.material
+            if not mat: continue
+            name = mat.name.casefold()
+            if any(x in name for x in hidden):
+                slot.material = None
+                continue
+            if shown and any(token in name for token in shown):
+                pass
+            for token, colour in tints.items():
+                if token.casefold() in name:
+                    if mat.use_nodes and mat.node_tree:
+                        bsdf = next((n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+                        if bsdf:
+                            c = colour.lstrip("#")
+                            rgb = tuple(int(c[i:i+2],16)/255 for i in (0,2,4))
+                            bsdf.inputs["Base Color"].default_value = (*rgb, 1)
+                    mat.diffuse_color = (*rgb, 1)
+    return
+
+def setup_render(centre, radius, out, view):
+    scene = bpy.context.scene
+    scene.render.engine = "BLENDER_EEVEE_NEXT"
+    scene.render.resolution_x, scene.render.resolution_y = 720, 960
+    scene.render.resolution_percentage = 100
+    scene.render.image_settings.file_format = "PNG"
+    scene.render.film_transparent = False
+    scene.world.color = (0.055, 0.065, 0.085)
+    scene.view_settings.view_transform = "Standard"
+    scene.view_settings.look = "Medium High Contrast"
+    direction = {"front":Vector((0,-1,0.08)), "side":Vector((1,0,0.08)), "rear":Vector((0,1,0.08))}[view]
+    cam_data = bpy.data.cameras.new("PreviewCamera")
+    cam = bpy.data.objects.new("PreviewCamera", cam_data)
+    bpy.context.collection.objects.link(cam)
+    cam.location = centre + direction.normalized() * radius * 3.0
+    cam.rotation_euler = (centre-cam.location).to_track_quat("-Z","Y").to_euler()
+    cam_data.lens = 55
+    scene.camera = cam
+    for name, offset, power, size in [
+        ("Key",Vector((-radius,-radius*1.4,radius*1.6)),1700,radius*1.2),
+        ("Fill",Vector((radius*1.2,-radius,radius*0.7)),900,radius),
+        ("Rim",Vector((0,radius*1.5,radius*1.3)),1400,radius),
+    ]:
+        ld=bpy.data.lights.new(name,"AREA"); lo=bpy.data.objects.new(name,ld); bpy.context.collection.objects.link(lo)
+        lo.location=centre+offset; ld.energy=power; ld.shape="DISK"; ld.size=size
+    scene.render.filepath=str(out / (view+".png"))
+    bpy.ops.render.render(write_still=True)
+    bpy.data.objects.remove(cam,do_unlink=True)
+    for o in [o for o in scene.objects if o.type=="LIGHT"]:
+        bpy.data.objects.remove(o,do_unlink=True)
+
+def main():
+    config_path, output, root = args()
+    profile=json.loads(config_path.read_text())
+    clear(); output.mkdir(parents=True,exist_ok=True)
+    model=root/profile["model"]
+    if not model.is_file(): raise FileNotFoundError(model)
+    objects=import_glb(model)
+    hair=profile.get("hair_asset","")
+    if hair:
+        hair_path=root/hair
+        if not hair_path.is_file(): raise FileNotFoundError(hair_path)
+        hair_objects=import_glb(hair_path)
+        objects += hair_objects
+    apply_profile(objects,profile)
+    meshes=find_meshes(objects)
+    if not meshes: raise RuntimeError("No mesh objects imported")
+    deps=bpy.context.evaluated_depsgraph_get()
+    pts=[]
+    for obj in meshes:
+        ev=obj.evaluated_get(deps)
+        for corner in ev.bound_box: pts.append(ev.matrix_world @ Vector(corner))
+    lo=Vector(tuple(min(p[i] for p in pts) for i in range(3)))
+    hi=Vector(tuple(max(p[i] for p in pts) for i in range(3)))
+    centre=(lo+hi)*0.5; radius=max((hi-lo).length*0.5,0.5)
+    for view in ("front","side","rear"): setup_render(centre,radius,output,view)
+    report={"name":profile.get("name","Ara Character"),"model":profile["model"],"hair_asset":hair,
+            "shape_keys":profile.get("shape_keys",{}),"material_tints":profile.get("material_tints",{}),
+            "mesh_count":len(meshes),"views":["front","side","rear"]}
+    (output/"profile_report.json").write_text(json.dumps(report,indent=2))
+    print("[Character preview] rendered front, side and rear:", output, flush=True)
+if __name__=="__main__": main()
