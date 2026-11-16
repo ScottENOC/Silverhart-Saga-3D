@@ -431,33 +431,60 @@ func clear_hairstyle() -> void:
 
 func _remap_hair_skin_to_skeleton(mesh_instance: MeshInstance3D, source_skeleton: Skeleton3D, target_skeleton: Skeleton3D) -> bool:
     if mesh_instance == null or mesh_instance.skin == null:
+        push_warning("Ara hair remap: mesh has no Skin resource")
         return false
-    # Ara hair exports and the assembled runtime body can contain the same
-    # named bones in different orders. Remap each skin bind by bone name before
-    # rebinding the mesh; comparing the entire skeleton arrays rejected valid
-    # hairstyles and left every character with the base haircut.
     var remapped_skin := mesh_instance.skin.duplicate() as Skin
     if remapped_skin == null:
         return false
+
+    # Some exported Ara hairstyles retain auxiliary scalp/physics bones that
+    # are not present in the lean runtime body rig. Preserve exact matches;
+    # bind only unmatched hair influences to the target Head bone so the
+    # hairstyle remains attached and follows head animation rather than being
+    # discarded altogether.
+    var head_bone := _find_bone_case_insensitive(target_skeleton, "head")
+    if head_bone < 0:
+        push_warning("Ara hair remap: target skeleton has no Head bone")
+        return false
+    var remapped_count := 0
+    var fallback_count := 0
     for bind_index in range(remapped_skin.get_bind_count()):
         var source_bone_index := remapped_skin.get_bind_bone(bind_index)
-        if source_bone_index < 0 or source_bone_index >= source_skeleton.get_bone_count():
-            return false
-        var bone_name := source_skeleton.get_bone_name(source_bone_index)
-        var target_bone_index := target_skeleton.find_bone(bone_name)
+        var source_bone_name := ""
+        if source_bone_index >= 0 and source_bone_index < source_skeleton.get_bone_count():
+            source_bone_name = source_skeleton.get_bone_name(source_bone_index)
+        if source_bone_name.is_empty():
+            source_bone_name = str(remapped_skin.get_bind_name(bind_index))
+        var target_bone_index := target_skeleton.find_bone(source_bone_name)
         if target_bone_index < 0:
-            var target_names: Array[String] = []
-            for target_index in range(target_skeleton.get_bone_count()):
-                target_names.append(target_skeleton.get_bone_name(target_index))
-            push_warning("Ara hair bind bone '%s' is missing from target skeleton. Source bones=%d target bones=%d target sample=%s" % [
-                bone_name, source_skeleton.get_bone_count(), target_skeleton.get_bone_count(),
-                ", ".join(target_names.slice(0, 16))
-            ])
-            return false
+            target_bone_index = _find_bone_case_insensitive(target_skeleton, source_bone_name)
+        if target_bone_index < 0:
+            target_bone_index = head_bone
+            fallback_count += 1
+        else:
+            remapped_count += 1
         remapped_skin.set_bind_bone(bind_index, target_bone_index)
+        # Rebuild the inverse bind transform against the target skeleton rest
+        # pose; reusing an auxiliary rig's inverse bind can offset the hair.
+        remapped_skin.set_bind_pose(bind_index, target_skeleton.get_bone_global_rest(target_bone_index).affine_inverse())
+
     mesh_instance.skin = remapped_skin
+    if fallback_count > 0:
+        print("[Ara hair remap] %s: %d named binds, %d auxiliary binds attached to Head" % [
+            mesh_instance.name, remapped_count, fallback_count
+        ])
     return true
 
+
+func _find_bone_case_insensitive(skeleton: Skeleton3D, requested_name: String) -> int:
+    var wanted := requested_name.to_lower().replace("_", "").replace("-", "").replace(" ", "")
+    if wanted.is_empty():
+        return -1
+    for bone_index in range(skeleton.get_bone_count()):
+        var candidate := skeleton.get_bone_name(bone_index).to_lower().replace("_", "").replace("-", "").replace(" ", "")
+        if candidate == wanted or candidate.ends_with(wanted) or wanted.ends_with(candidate):
+            return bone_index
+    return -1
 
 func _same_skeleton(a: Skeleton3D, b: Skeleton3D) -> bool:
     if a.get_bone_count() != b.get_bone_count():
