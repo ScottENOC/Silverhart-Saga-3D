@@ -127,6 +127,7 @@ func _load_garment_attachment(garment_id: String) -> bool:
         if instance == null:
             continue
         instance.name = "Garment_%s_%s" % [garment_id, source_mesh.name]
+        instance.set_meta("ara_external_garment", true)
         model_root.add_child(instance)
         instance.skeleton = instance.get_path_to(target_skeleton)
         instance.visible = false
@@ -194,7 +195,7 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
         for mesh_instance in character_meshes:
             if not is_instance_valid(mesh_instance) or mesh_instance.mesh == null:
                 continue
-            if hair_instances.has(mesh_instance):
+            if hair_instances.has(mesh_instance) or bool(mesh_instance.get_meta("ara_external_garment", false)):
                 continue
             for surface in range(mesh_instance.mesh.get_surface_count()):
                 var label := _surface_label(mesh_instance, surface) + " " + mesh_instance.name
