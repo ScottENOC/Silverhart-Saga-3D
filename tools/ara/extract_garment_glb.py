@@ -20,21 +20,31 @@ def material_name(doc, primitive):
 
 
 def strip_body_mesh(doc, keep_materials):
-    body = assembler.body_node(doc)
-    mesh = doc["meshes"][body["mesh"]]
     tokens = [str(value).strip().lower() for value in keep_materials if str(value).strip()]
     if not tokens:
         raise ValueError("At least one --keep-material token is required")
+    garment_node = None
+    for node in doc.get("nodes", []):
+        if "mesh" not in node or "skin" not in node:
+            continue
+        mesh = doc["meshes"][node["mesh"]]
+        if any(
+            any(material_name(doc, primitive).strip().lower().startswith(token) for token in tokens)
+            for primitive in mesh.get("primitives", [])
+        ):
+            garment_node = node
+            break
+    if garment_node is None:
+        raise ValueError("No skinned mesh contains the requested garment materials: %s" % tokens)
+    mesh = doc["meshes"][garment_node["mesh"]]
+    available = [material_name(doc, primitive) for primitive in mesh.get("primitives", [])]
     mesh["primitives"] = [
         primitive for primitive in mesh["primitives"]
         if any(material_name(doc, primitive).strip().lower().startswith(token) for token in tokens)
     ]
     if not mesh["primitives"]:
-        available = [_material_name for _material_name in (
-            material_name(doc, primitive) for primitive in doc["meshes"][body["mesh"]]["primitives"]
-        )]
         raise ValueError("No selected garment primitives remain; requested=%s available=%s" % (tokens, available))
-    return body
+    return garment_node
 
 
 def collect_texture_indices(value, output):
