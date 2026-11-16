@@ -214,6 +214,22 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	assert(male_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_male_body.glb")
 	male_actor.free()
 
+	var settlement_actor := CampaignCharacterActorFactory.create_settlement_actor({
+		"id": "rurik_test",
+		"name": "Rurik",
+		"appearance": {
+			"gender_presentation": "Masculine",
+			"height_scale": 1.03,
+			"build_scale": 1.045,
+			"hair_style": "short02"
+		}
+	}, Vector3.ZERO)
+	assert(settlement_actor != null)
+	var settlement_model := settlement_actor.get_node_or_null("CharacterModel") as AraCharacterActor
+	assert(settlement_model != null)
+	assert(settlement_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_male_body.glb")
+	settlement_actor.free()
+
 	var wren_state := CharacterState.new("wren_test", "Wren", Vector2i.ZERO)
 	var wren_profile := {
 		"params": {
@@ -243,4 +259,18 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	var body_parameters: Dictionary = wren_model.get_meta("body_parameters", {})
 	assert(is_equal_approx(float(body_parameters.get("breasts", 0.0)), 0.76))
 	assert(is_equal_approx(float(body_parameters.get("legs", 0.0)), 0.62))
+	var blend_shape_names: Array[String] = []
+	_collect_blend_shape_names(wren_model.model_root, blend_shape_names)
+	print("ARA_SHARED_BODY_BLEND_SHAPES: %s" % ", ".join(blend_shape_names))
+	print("ARA_WREN_MORPHS_APPLIED: %s" % str(wren_model.get_meta("body_morph_targets_applied", 0)))
 	wren_actor.free()
+
+
+func _collect_blend_shape_names(node: Node, output: Array[String]) -> void:
+	if node is MeshInstance3D and node.mesh != null:
+		for index in range(node.mesh.get_blend_shape_count()):
+			var shape_name := String(node.mesh.get_blend_shape_name(index))
+			if not output.has(shape_name):
+				output.append(shape_name)
+	for child in node.get_children():
+		_collect_blend_shape_names(child, output)
