@@ -23,7 +23,7 @@ def import_glb(path):
 def find_meshes(objects):
     return [o for o in objects if o.type == "MESH"]
 
-def apply_profile(objects, profile):
+def apply_profile(objects, profile, body_objects=None):
     # A character preview should not inherit an imported animation such as "Carry idle".
     # Clear actions in this temporary Blender scene so the mesh uses its neutral rest pose.
     global PREVIEW_CLEARED_ACTIONS
@@ -34,6 +34,27 @@ def apply_profile(objects, profile):
                 action_name = obj.animation_data.action.name if obj.animation_data.action else None
                 obj.animation_data_clear()
                 PREVIEW_CLEARED_ACTIONS.append({"armature": obj.name, "cleared_action": action_name})
+    hide_body = {x.casefold() for x in profile.get("hide_materials_on_body", [])}
+    if hide_body and body_objects:
+        for obj in body_objects:
+            if obj.type != "MESH":
+                continue
+            bm = bmesh.new()
+            bm.from_mesh(obj.data)
+            remove = []
+            for face in bm.faces:
+                idx = face.material_index
+                mat = obj.data.materials[idx] if idx < len(obj.data.materials) else None
+                if mat and any(token in mat.name.casefold() for token in hide_body):
+                    remove.append(face)
+            if remove:
+                bmesh.ops.delete(bm, geom=remove, context="FACES")
+                loose = [v for v in bm.verts if not v.link_faces]
+                if loose:
+                    bmesh.ops.delete(bm, geom=loose, context="VERTS")
+                bm.to_mesh(obj.data)
+                obj.data.update()
+            bm.free()
     tints = profile.get("material_tints", {})
     hidden = {x.casefold() for x in profile.get("hide_materials", [])}
     for obj in find_meshes(objects):
@@ -50,8 +71,9 @@ def apply_profile(objects, profile):
             mat = slot.material
             if not mat: continue
             name = mat.name.casefold()
-            for token, colour in tints.items():
+            for token, tint in tints.items():
                 if token.casefold() in name:
+                    colour = tint.get("colour", tint.get("color")) if isinstance(tint, dict) else tint
                     c = colour.lstrip("#")
                     rgb = tuple(int(c[i:i+2],16)/255 for i in (0,2,4))
                     if mat.use_nodes and mat.node_tree:
@@ -130,12 +152,13 @@ def main():
     model=root/profile["model"]
     if not model.is_file(): raise FileNotFoundError(model)
     objects=import_glb(model)
+    body_objects=list(objects)
     hair=profile.get("hair_asset","")
     if hair:
         hair_path=root/hair
         if not hair_path.is_file(): raise FileNotFoundError(hair_path)
         objects += import_glb(hair_path)
-    apply_profile(objects,profile)
+    apply_profile(objects,profile,body_objects)
     meshes=find_meshes(objects)
     if not meshes: raise RuntimeError("No mesh objects imported")
     deps=bpy.context.evaluated_depsgraph_get()
