@@ -19,7 +19,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: ara-body-morph-godot-preview
+  group: ara-body-morph-godot-preview-isolated
   cancel-in-progress: false
 
 jobs:
