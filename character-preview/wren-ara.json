@@ -6,7 +6,6 @@
   "params": {
     "name": "Wren",
     "gender": 0,
-    "age": 0.5,
     "muscle": 0.7,
     "weight": 0.35,
     "height": 0.55,
@@ -17,11 +16,11 @@
     "breastSize": 0.76,
     "breastFirmness": 0.6,
     "skin": "auto",
-    "skinTint": "#B9C68D",
+    "skinTint": "#AEBB7C",
     "eyes": "lightblue",
     "hair": "braid01",
-    "hairTint": "#5F91FF",
-    "hairColor": "#5F91FF",
+    "hairTint": "#287BFF",
+    "hairColor": "#287BFF",
     "facialHair": "none",
     "outfit": "none",
     "top": "none",
@@ -50,6 +49,7 @@
     "speechShapes": true,
     "expression": "neutral",
     "teeth": "teeth_base",
-    "tongue": true
+    "tongue": true,
+    "ageYears": 25
   }
 }
