@@ -22,9 +22,9 @@ variants = {
     },
     "combined_stronger": {
         "buttocks/buttocks-volume": -0.35,
-        "hip/hip-scale-horiz": -0.35,
-        "hip/hip-scale-depth": -0.20,
-        "armslegs/upperarm-shoulder-muscle:decr|incr": 0.45,
+        "hip/hip-scale-horiz": -0.50,
+        "hip/hip-scale-depth": -0.40,
+        "armslegs/upperarm-shoulder-muscle:decr|incr": 0.70,
     },
 }
 root = Path("build/reyna-slider-comparison")
