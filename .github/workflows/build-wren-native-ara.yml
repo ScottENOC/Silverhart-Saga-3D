@@ -57,7 +57,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export PYTHONPATH="/usr/lib/python3/dist-packages:\${PYTHONPATH:-}"
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           blender --background --python-exit-code 1 \
             --python tools/blender/add_adult_anatomy.py -- \
             --input build/wren-native/Wren_Ara_raw.glb \
@@ -71,7 +71,7 @@ jobs:
       - name: Render Wren for visual review
         run: |
           set -euo pipefail
-          export PYTHONPATH="/usr/lib/python3/dist-packages:\${PYTHONPATH:-}"
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           blender --background --python-exit-code 1 \
             --python tools/review/render_wren_native.py -- \
             build/wren-native/Wren.glb build/wren-native/preview
@@ -110,7 +110,7 @@ jobs:
       - name: Upload Wren model and visual review
         uses: actions/upload-artifact@v4
         with:
-          name: wren-native-ara-\${{ github.run_number }}
+          name: wren-native-ara-${{ github.run_number }}
           path: |
             build/wren-native/Wren.glb
             build/wren-native/Wren_native_Ara_bundle.zip
