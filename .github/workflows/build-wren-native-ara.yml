@@ -5,6 +5,7 @@ on:
     branches: [dev_2]
     paths:
       - "character-preview/wren-ara.json"
+      - ".github/workflows/build-wren-native-ara.yml"
       - "tools/blender/add_adult_anatomy.py"
       - "tools/review/render_wren_native.py"
   workflow_dispatch:
