@@ -8,6 +8,7 @@ on:
       - ".github/workflows/build-reyna-native-ara.yml"
       - "tools/review/reyna_native_preview.gd"
       - "tools/review/recolor_wren_glb.py"
+      - "tools/blender/add_adult_anatomy.py"
   workflow_dispatch:
 
 permissions:
@@ -52,7 +53,17 @@ jobs:
           raw_glb="$(find build/reyna-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
           test -n "$raw_glb"
           test -s "$raw_glb"
-          cp "$raw_glb" build/reyna-native/Reyna.glb
+          cp "$raw_glb" build/reyna-native/Reyna-ara-base.glb
+
+      - name: Add female adult anatomy with the established Blender sculpt
+        run: |
+          set -euo pipefail
+          blender --background --python-exit-code 1 \\
+            --python tools/blender/add_adult_anatomy.py -- \\
+            --input build/reyna-native/Reyna-ara-base.glb \\
+            --output build/reyna-native/Reyna.glb \\
+            --profile female --adult
+          test -s build/reyna-native/Reyna.glb
 
       - name: Apply Reyna skin and hair colours
         run: |
