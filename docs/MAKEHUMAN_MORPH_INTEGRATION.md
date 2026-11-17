@@ -20,7 +20,7 @@ tools/makehuman/target_format.py parses .target and .target.gz rows, converts th
 
 Run its tests with:
 
-    python -m unittest tests.test_makehuman_target_format
+    python -m unittest discover -s tests -p test_makehuman_target_format.py
 
 Inspect a target with:
 
