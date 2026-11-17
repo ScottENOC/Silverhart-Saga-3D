@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "package_version": "local-73db7f09ee72c111",
+  "package_version": "local-a339972869df6e80",
   "source_commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395",
   "generator": {
     "repository": "https://github.com/olatunde85/3d-gen",
@@ -29,7 +29,7 @@
     },
     "ara_person_body_anatomy.glb": {
       "size_bytes": 20318612,
-      "sha256": "b5f52c11e432fb0af57746f43804b29580ee02e07a4747053315e37ef551bb67"
+      "sha256": "92d88d933e75683f1812315e197126e09adfbd00060c1879d67088c72ddac792"
     }
   }
 }
