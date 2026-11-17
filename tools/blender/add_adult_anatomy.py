@@ -45,29 +45,19 @@ def mesh_world_bounds(obj):
 
 
 def build_bvh(obj):
-    """Build a BVH in world space because all anatomy sampling uses world coordinates.
-
-    BVHTree.FromObject returns object-local coordinates. Passing world-space
-    rays to that tree caused misses and nearest-surface fallbacks on scaled
-    Ara imports. Transform the evaluated mesh vertices first, then build the
-    tree from those world-space polygons.
-    """
     depsgraph = bpy.context.evaluated_depsgraph_get()
     evaluated = obj.evaluated_get(depsgraph)
     mesh = evaluated.to_mesh()
-    try:
-        matrix_world = evaluated.matrix_world.copy()
-        vertices = [matrix_world @ vertex.co for vertex in mesh.vertices]
-        polygons = [list(poly.vertices) for poly in mesh.polygons]
-        if not vertices or not polygons:
-            raise RuntimeError("Cannot build anatomy BVH from an empty mesh")
-        return BVHTree.FromPolygons(vertices, polygons, all_triangles=False)
-    finally:
-        evaluated.to_mesh_clear()
+    verts = [obj.matrix_world @ v.co for v in mesh.vertices]
+    polys = [list(p.vertices) for p in mesh.polygons]
+    tree = BVHTree.FromPolygons(verts, polys, all_triangles=False)
+    evaluated.to_mesh_clear()
+    return tree
+
 
 def front_hit_data(tree, x, z):
     location, normal, _index, _distance = tree.ray_cast(
-        Vector((x, 2.0, z)), Vector((0.0, -1.0, 0.0)), 4.0
+        Vector((x, -2.0, z)), Vector((0.0, 1.0, 0.0)), 4.0
     )
     if location is None:
         return None
@@ -147,10 +137,10 @@ def frontmost_vertex_anchor(obj, x_min, x_max, z_min, z_max):
         if not (x_min <= p.x <= x_max and z_min <= p.z <= z_max):
             continue
         n = (obj.matrix_world.to_3x3() @ v.normal).normalized()
-        if n.y < 0.12:
+        if n.y > -0.12:
             continue
         score = p.y
-        if best is None or score > best[0]:
+        if best is None or score < best[0]:
             best = (score, p.copy(), n.copy())
     evaluated.to_mesh_clear()
     return (best[1], best[2]) if best else None
@@ -332,59 +322,44 @@ def _env(t, a, b, w):
 
 
 def _surface_midline(skin, hipline_z, k):
-    """Sample the visible front/underside midline with rays, then arc-length resample it.
-
-    Vertex-only extraction could select interior vertices at x≈0, placing the
-    anatomy sculpt inside the pelvis. A front-to-back BVH ray at each z samples
-    the actual exterior skin surface instead.
-    """
-    tree = build_bvh(skin)
-    z_top = hipline_z + 0.10 * k
-    z_bottom = hipline_z - 0.14 * k
+    """Ordered (y, z) polyline of the front/underside midline surface, plus arc length."""
+    mw = skin.matrix_world
+    rot = mw.to_3x3()
     pts = []
-    samples = 240
-    for index in range(samples + 1):
-        z = z_top + (z_bottom - z_top) * index / samples
-        hit = front_hit_data(tree, 0.0, z)
-        if hit is not None:
-            pts.append((hit[0].y, hit[0].z))
-
+    for v in skin.data.vertices:
+        p = mw @ v.co
+        if abs(p.x) > 0.002 * k or not (hipline_z - 0.14 * k < p.z < hipline_z + 0.10 * k):
+            continue
+        n = (rot @ v.normal).normalized()
+        if p.y > 0.0 or n.y > 0.35:
+            continue
+        pts.append((p.y, p.z))
     if len(pts) < 8:
-        raise RuntimeError("Could not ray-sample the visible pelvic midline surface (%d points)" % len(pts))
-
-    # Rays are sampled from upper mons toward the perineum; sort by descending z
-    # so arc length increases toward the introitus.
-    pts.sort(key=lambda point: point[1], reverse=True)
-    deduplicated = []
-    for point in pts:
-        if not deduplicated or abs(point[1] - deduplicated[-1][1]) > 1e-6:
-            deduplicated.append(point)
-    pts = deduplicated
-
-    # Light smoothing (1-2-1) removes ray-sampling jitter without moving the line
-    # away from the exterior surface.
-    for _ in range(3):
+        raise RuntimeError("Could not extract the pelvic midline surface (%d points)" % len(pts))
+    cy, cz = -0.02 * k, hipline_z + 0.035 * k
+    pts.sort(key=lambda q: math.atan2(-(q[1] - cz), -(q[0] - cy)))
+    # light smoothing (1-2-1) to remove vertex jitter
+    for _ in range(4):
         pts = [pts[0]] + [
             (0.25 * pts[i - 1][0] + 0.5 * pts[i][0] + 0.25 * pts[i + 1][0],
              0.25 * pts[i - 1][1] + 0.5 * pts[i][1] + 0.25 * pts[i + 1][1])
             for i in range(1, len(pts) - 1)] + [pts[-1]]
-
+    # resample uniformly (1.5 mm)
     seg = [0.0]
     for i in range(1, len(pts)):
         seg.append(seg[-1] + math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]))
     step = 0.0015 * k
-    out, distance, segment = [], 0.0, 0
-    while distance <= seg[-1]:
-        while segment < len(seg) - 2 and seg[segment + 1] < distance:
-            segment += 1
-        fraction = (distance - seg[segment]) / max(seg[segment + 1] - seg[segment], 1e-9)
-        out.append((
-            pts[segment][0] + fraction * (pts[segment + 1][0] - pts[segment][0]),
-            pts[segment][1] + fraction * (pts[segment + 1][1] - pts[segment][1]),
-        ))
-        distance += step
-    arc = [index * step for index in range(len(out))]
+    out, s, j = [], 0.0, 0
+    while s <= seg[-1]:
+        while j < len(seg) - 2 and seg[j + 1] < s:
+            j += 1
+        f = (s - seg[j]) / max(seg[j + 1] - seg[j], 1e-9)
+        out.append((pts[j][0] + f * (pts[j + 1][0] - pts[j][0]),
+                    pts[j][1] + f * (pts[j + 1][1] - pts[j][1])))
+        s += step
+    arc = [i * step for i in range(len(out))]
     return out, arc
+
 
 def _locate_introitus(line, arc, k):
     """The introitus sits where the front surface turns under: the foremost point of the underside."""
@@ -470,8 +445,6 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     line, arc = _surface_midline(skin, hipline_z, k)
     iA = _locate_introitus(line, arc, k)
     sA = arc[iA]
-    probe = min(line, key=lambda point: abs(point[1] - hipline_z))
-    print(f"Pelvic front midline check: y={probe[0]:.4f} z={probe[1]:.4f}")
     print(f"Female anatomy: midline {len(line)} samples, introitus at y={line[iA][0]:.4f} z={line[iA][1]:.4f}")
 
     prep = _prep_line(line, arc)
@@ -495,7 +468,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         cand = []
         for f in bm.faces:
             c = mw @ f.calc_center_median()
-            if abs(c.x) <= 0.042 * k and z_lo <= c.z <= z_hi and c.y > -0.02 \
+            if abs(c.x) <= 0.042 * k and z_lo <= c.z <= z_hi and c.y < 0.02 \
                     and f.calc_perimeter() / len(f.verts) > target * 1.6:
                 cand.append((f, c))
         if not cand:
@@ -511,7 +484,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     sel = []
     for v in bm.verts:
         p = mw @ v.co
-        if abs(p.x) <= 0.065 * k and z_lo <= p.z <= z_hi and p.y > -0.02:
+        if abs(p.x) <= 0.065 * k and z_lo <= p.z <= z_hi and p.y < 0.02:
             sel.append((v, p))
     moved = 0
     touched = []
@@ -600,7 +573,7 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
     mw = skin.matrix_world
     worlds = [mw @ v.co for v in mesh.vertices]
     z_lo, z_hi = hipline_z - 0.15 * k, hipline_z + 0.10 * k
-    cand = [i for i, p in enumerate(worlds) if abs(p.x) <= 0.05 * k and z_lo <= p.z <= z_hi and p.y > -0.02]
+    cand = [i for i, p in enumerate(worlds) if abs(p.x) <= 0.05 * k and z_lo <= p.z <= z_hi and p.y < 0.02]
     out = np.ones(len(worlds) * 4, dtype=np.float32)
     painted = 0
     if cand:
@@ -679,9 +652,8 @@ def add_hybrid_labial_forms(skin, surface_tree, armature, anatomy_z, width, heig
     vertices, faces, uv_values = [], [], []
     segments, rings = 32, 24
     forms = [
-        # Smaller, surface-conforming outer and inner labial folds.
-        (width * 0.020, width * 0.013, height * 0.0045, 0.004, 0.035),
-        (width * 0.010, width * 0.006, height * 0.0025, 0.002, 0.028),
+        (width * 0.043, width * 0.028, height * 0.0060, 0.006, 0.054),
+        (width * 0.019, width * 0.012, height * 0.0034, 0.002, 0.041),
     ]
     for side in (-1.0, 1.0):
         for form_index, (offset, radius_x, radius_y, top, span) in enumerate(forms):
@@ -699,13 +671,9 @@ def add_hybrid_labial_forms(skin, surface_tree, armature, anatomy_z, width, heig
                     sample = sample_skin(x, z)
                     if sample is None:
                         raise RuntimeError(f"Hybrid anatomy could not sample Ara skin at x={x:.4f}, z={z:.4f}")
-                    surface_point = sample[0]
-                    normal = sample[1].normalized()
-                    if normal.y < 0.0:
-                        normal = -normal
-                    depth = local_radius_y * (0.48 + 0.98 * math.sin(angle))
-                    position = surface_point + normal * depth
-                    vertices.append(tuple(position))
+                    surface_y = sample[0].y
+                    y = surface_y - local_radius_y * (0.48 + 0.98 * math.sin(angle))
+                    vertices.append((x, y, z))
                     uv_values.append((si / segments, t))
             for ri in range(rings):
                 for si in range(segments):
@@ -896,7 +864,7 @@ def main():
                     result = front_hit_data(tree, x, z)
                     if result:
                         location, normal = result
-                        if normal.y > 0.15:
+                        if normal.y < -0.15:
                             candidates.append((abs(z - anatomy_z) + abs(x) * 0.35,
                                                location.y, location, candidate_obj.name))
             if candidates and any(k in material_name(candidate_obj) for k in ("pants", "trouser", "brief", "underwear")):
