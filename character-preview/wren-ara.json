@@ -38,7 +38,7 @@
       "cheek/cheek-bones:decr|incr": 0.15,
       "chin/chin-prominent": 0.1,
       "chin/chin-width": -0.12,
-      "head/head-square": -0.18,
+      "head/head-oval": 0.16,
       "head/head-fat": -0.08
     },
     "detail": "high",
