@@ -53,11 +53,11 @@ def material_by_name(document, name):
     raise ValueError(f"Could not find GLB material named {name!r}")
 
 
-def recolor(path: Path, profile_path: Path, hair_gamma: float):
+def recolor(path: Path, profile_path: Path, hair_gamma: float, grey_strands: bool = False):
     profile = json.loads(profile_path.read_text())
     params = profile.get("params", {})
     skin_factor = parse_hex(params.get("skinTint", "#FFFFFF"))
-    hair_factor = parse_hex(params.get("hairTint", "#FFFFFF"))
+    hair_factor = [1.0, 1.0, 1.0, 1.0] if grey_strands else parse_hex(params.get("hairTint", "#FFFFFF"))
 
     document, old_binary, chunks = parse_glb(path.read_bytes())
     skin_material = material_by_name(document, "Skin")
@@ -89,16 +89,29 @@ def recolor(path: Path, profile_path: Path, hair_gamma: float):
     source_bytes = old_binary[start:start + view["byteLength"]]
     source_image = Image.open(BytesIO(source_bytes)).convert("RGBA")
 
-    # Preserve the strand texture and alpha while lifting dark brown/black RGB.
-    lut = [
-        min(255, int(round(((value / 255.0) ** hair_gamma) * 255.0)))
-        for value in range(256)
-    ]
+    # Preserve the strand texture and alpha. For Aldric, map the texture's
+    # natural strand highlights to restrained silver-grey over a near-black base.
     red, green, blue, alpha = source_image.split()
-    lifted = Image.merge(
-        "RGBA",
-        (red.point(lut), green.point(lut), blue.point(lut), alpha),
-    )
+    if grey_strands:
+        import numpy as np
+        rgb = np.asarray(source_image.convert("RGB"), dtype=np.float32)
+        luminance = rgb[..., 0] * 0.2126 + rgb[..., 1] * 0.7152 + rgb[..., 2] * 0.0722
+        # Ara's texture carries fine strand variation. Keep most fibres black;
+        # only the brighter strand detail transitions to charcoal/silver.
+        t = np.clip((luminance - 92.0) / 118.0, 0.0, 1.0)
+        t = t * t * (3.0 - 2.0 * t)
+        value = 18.0 + t * 112.0
+        grey = Image.fromarray(value.astype("uint8"), mode="L")
+        lifted = Image.merge("RGBA", (grey, grey, grey, alpha))
+    else:
+        lut = [
+            min(255, int(round(((value / 255.0) ** hair_gamma) * 255.0)))
+            for value in range(256)
+        ]
+        lifted = Image.merge(
+            "RGBA",
+            (red.point(lut), green.point(lut), blue.point(lut), alpha),
+        )
     output = BytesIO()
     lifted.save(output, format="PNG", optimize=True)
     hair_png = output.getvalue()
@@ -143,6 +156,7 @@ def recolor(path: Path, profile_path: Path, hair_gamma: float):
         "skin_factor": skin_factor,
         "hair_factor": hair_factor,
         "hair_gamma": hair_gamma,
+        "grey_strands": grey_strands,
         "hair_texture_bytes_before": len(source_bytes),
         "hair_texture_bytes_after": len(hair_png),
         "glb_bytes": len(result),
@@ -154,5 +168,6 @@ if __name__ == "__main__":
     parser.add_argument("--model", required=True, type=Path)
     parser.add_argument("--profile", required=True, type=Path)
     parser.add_argument("--hair-gamma", type=float, default=0.28)
+    parser.add_argument("--grey-strands", action="store_true")
     arguments = parser.parse_args()
-    recolor(arguments.model, arguments.profile, arguments.hair_gamma)
+    recolor(arguments.model, arguments.profile, arguments.hair_gamma, arguments.grey_strands)
