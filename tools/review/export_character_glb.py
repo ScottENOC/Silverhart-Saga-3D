@@ -181,13 +181,12 @@ def main():
     ]
     if not body_candidates:
         raise RuntimeError("Could not identify the skinned body mesh for height calibration")
-    body_mesh = max(
-        body_candidates,
-        key=lambda obj: max((obj.evaluated_get(depsgraph).matrix_world @ Vector(corner)).z
-                            for corner in obj.evaluated_get(depsgraph).bound_box)
-                        - min((obj.evaluated_get(depsgraph).matrix_world @ Vector(corner)).z
-                              for corner in obj.evaluated_get(depsgraph).bound_box))
-    )
+    def evaluated_height(obj):
+        evaluated = obj.evaluated_get(depsgraph)
+        corners = [evaluated.matrix_world @ Vector(corner) for corner in evaluated.bound_box]
+        return max(v.z for v in corners) - min(v.z for v in corners)
+
+    body_mesh = max(body_candidates, key=evaluated_height)
     evaluated_body = body_mesh.evaluated_get(depsgraph)
     body_corners = [evaluated_body.matrix_world @ Vector(corner) for corner in evaluated_body.bound_box]
     source_height = max(v.z for v in body_corners) - min(v.z for v in body_corners)
