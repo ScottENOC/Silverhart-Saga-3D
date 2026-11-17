@@ -5,7 +5,7 @@
   "hair_asset": "art/characters/ara_runtime/hair/female_braid01.glb",
   "reset_armatures_to_rest": true,
   "shape_keys": {
-    "body_height": 0.1,
+    "body_height": 0,
     "body_muscle": 0.28,
     "body_weight": 0,
     "body_breasts": 0.55,
@@ -19,14 +19,12 @@
     },
     "Hair": {
       "colour": "#3154b5",
-      "mix": 0.88
+      "mix": 1
     },
     "Eyes": {
       "colour": "#3f75c9",
       "mix": 0.92
     }
   },
-  "hide_materials_on_body": [
-    "Hair"
-  ]
+  "target_height_m": 1.7
 }

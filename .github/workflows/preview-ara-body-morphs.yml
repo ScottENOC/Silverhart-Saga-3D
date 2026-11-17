@@ -1,0 +1,110 @@
+name: Preview Ara body morphs in Godot
+
+on:
+  push:
+    branches: [dev_2]
+    paths:
+      - ".github/workflows/preview-ara-body-morphs.yml"
+      - "tools/review/ara_body_morph_preview.gd"
+      - "tools/review/create_ara_morph_contact_sheet.py"
+  workflow_dispatch:
+    inputs:
+      morph_run_id:
+        description: "Successful Build Ara body morph GLB run ID"
+        required: true
+        default: "44027585962"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ara-body-morph-godot-preview-isolated
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    name: Import, exercise and render Ara blend shapes in Godot
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev_2
+
+      - name: Download isolated morph candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MORPH_RUN_ID: ${{ inputs.morph_run_id || '44027585962' }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/ara-morph
+          gh run download "$MORPH_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name ara-body-morph-glb-13 \
+            --dir build/ara-morph
+          test -s build/ara-morph/ara_person_body_anatomy_morphs.glb
+          test -s build/ara-morph/morph-build-report.json
+          python -m json.tool build/ara-morph/morph-build-report.json >/dev/null
+
+      - name: Assemble a minimal Godot preview project
+        run: |
+          set -euo pipefail
+          preview=build/ara-morph-preview-project
+          mkdir -p "$preview/build" "$preview/art/characters/ara_runtime" "$preview/tools/review"
+          cp build/ara-morph/ara_person_body_anatomy_morphs.glb "$preview/build/ara_person_body_anatomy_morphs.glb"
+          cp art/characters/ara_runtime/ara_person_body_anatomy.glb "$preview/art/characters/ara_runtime/ara_person_body_anatomy.glb"
+          cp tools/review/ara_body_morph_preview.gd "$preview/tools/review/ara_body_morph_preview.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Ara Body Morph Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Install virtual display and software OpenGL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri python3-pil
+
+      - name: Import the two GLBs into the isolated Godot project
+        run: |
+          godot --version
+          godot --headless --editor --path build/ara-morph-preview-project --quit
+
+      - name: Exercise imported blend shapes and render comparisons
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/ara-morph-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/ara_body_morph_preview.gd
+
+      - name: Build labelled front and side comparison sheets
+        run: |
+          python3 tools/review/create_ara_morph_contact_sheet.py \
+            --input-dir build/ara-morph-preview-project/build/ara-morph-renders \
+            --output build/ara-morph-preview-project/build/ara-morph-renders/comparison.png
+
+      - name: Upload Godot runtime renders and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ara-body-morph-godot-preview-${{ github.run_number }}
+          path: |
+            build/ara-morph-preview-project/build/ara-morph-renders/
+            build/ara-morph/morph-build-report.json
+          if-no-files-found: error
+          retention-days: 30

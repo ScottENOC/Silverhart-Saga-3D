@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Apply the character profile's skin/hair tints to a final embedded GLB.
+
+Ara's MakeHuman hair proxy texture is unusually dark. A gentle gamma lift makes
+its blue material tint visible without replacing the braid texture or geometry.
+"""
+import argparse
+import json
+import struct
+from io import BytesIO
+from pathlib import Path
+
+from PIL import Image
+
+
+def parse_hex(value: str):
+    value = value.strip().lstrip("#")
+    if len(value) == 3:
+        value = "".join(ch * 2 for ch in value)
+    if len(value) != 6:
+        raise ValueError(f"Expected #RRGGBB colour, got {value!r}")
+    return [int(value[i:i + 2], 16) / 255.0 for i in (0, 2, 4)] + [1.0]
+
+
+def parse_glb(data: bytes):
+    if len(data) < 20:
+        raise ValueError("Input is too short to be a GLB")
+    magic, version, total_length = struct.unpack_from("<4sII", data, 0)
+    if magic != b"glTF" or version != 2 or total_length != len(data):
+        raise ValueError("Invalid GLB header")
+    chunks = []
+    offset = 12
+    while offset < len(data):
+        length, kind = struct.unpack_from("<I4s", data, offset)
+        offset += 8
+        payload = data[offset:offset + length]
+        if len(payload) != length:
+            raise ValueError("Truncated GLB chunk")
+        chunks.append([kind, payload])
+        offset += length
+    json_chunk = next((payload for kind, payload in chunks if kind == b"JSON"), None)
+    bin_chunk = next((payload for kind, payload in chunks if kind == b"BIN\x00"), None)
+    if json_chunk is None or bin_chunk is None:
+        raise ValueError("Expected JSON and BIN chunks in GLB")
+    document = json.loads(json_chunk.decode("utf-8").rstrip("\x00 "))
+    return document, bin_chunk, chunks
+
+
+def material_by_name(document, name):
+    for material in document.get("materials", []):
+        if material.get("name", "").strip().lower() == name.lower():
+            return material
+    raise ValueError(f"Could not find GLB material named {name!r}")
+
+
+def recolor(path: Path, profile_path: Path, hair_gamma: float):
+    profile = json.loads(profile_path.read_text())
+    params = profile.get("params", {})
+    skin_factor = parse_hex(params.get("skinTint", "#FFFFFF"))
+    hair_factor = parse_hex(params.get("hairTint", "#FFFFFF"))
+
+    document, old_binary, chunks = parse_glb(path.read_bytes())
+    skin_material = material_by_name(document, "Skin")
+    hair_material = material_by_name(document, "Hair")
+    skin_pbr = skin_material.setdefault("pbrMetallicRoughness", {})
+    hair_pbr = hair_material.setdefault("pbrMetallicRoughness", {})
+    # Ara's native export can omit these factors when a texture is connected.
+    # Explicit factors ensure the profile colours survive the anatomy pass.
+    skin_pbr["baseColorFactor"] = skin_factor
+    hair_pbr["baseColorFactor"] = hair_factor
+
+    texture_index = hair_pbr.get("baseColorTexture", {}).get("index")
+    if texture_index is None:
+        raise ValueError("Hair material has no base-colour texture")
+    texture = document.get("textures", [])[texture_index]
+    image_index = texture.get("source")
+    if image_index is None:
+        raise ValueError("Hair texture has no embedded image source")
+    image = document.get("images", [])[image_index]
+    view_index = image.get("bufferView")
+    if view_index is None:
+        raise ValueError("Hair image is not embedded in a GLB bufferView")
+
+    views = document.get("bufferViews", [])
+    view = views[view_index]
+    if view.get("buffer", 0) != 0:
+        raise ValueError("Only the primary embedded GLB buffer is supported")
+    start = view.get("byteOffset", 0)
+    source_bytes = old_binary[start:start + view["byteLength"]]
+    source_image = Image.open(BytesIO(source_bytes)).convert("RGBA")
+
+    # Preserve the strand texture and alpha while lifting dark brown/black RGB.
+    lut = [
+        min(255, int(round(((value / 255.0) ** hair_gamma) * 255.0)))
+        for value in range(256)
+    ]
+    red, green, blue, alpha = source_image.split()
+    lifted = Image.merge(
+        "RGBA",
+        (red.point(lut), green.point(lut), blue.point(lut), alpha),
+    )
+    output = BytesIO()
+    lifted.save(output, format="PNG", optimize=True)
+    hair_png = output.getvalue()
+    image["mimeType"] = "image/png"
+
+    # Repack the BIN chunk and update every bufferView offset/length.
+    new_binary = bytearray()
+    for index, buffer_view in enumerate(views):
+        old_start = buffer_view.get("byteOffset", 0)
+        old_end = old_start + buffer_view["byteLength"]
+        payload = hair_png if index == view_index else old_binary[old_start:old_end]
+        while len(new_binary) % 4:
+            new_binary.append(0)
+        buffer_view["byteOffset"] = len(new_binary)
+        buffer_view["byteLength"] = len(payload)
+        new_binary.extend(payload)
+    buffer_length = len(new_binary)
+    while len(new_binary) % 4:
+        new_binary.append(0)
+    document["buffers"][0]["byteLength"] = buffer_length
+
+    rebuilt_chunks = []
+    for kind, payload in chunks:
+        if kind == b"JSON":
+            payload = json.dumps(
+                document, separators=(",", ":"), ensure_ascii=False
+            ).encode("utf-8")
+            payload += b" " * ((-len(payload)) % 4)
+        elif kind == b"BIN\x00":
+            payload = bytes(new_binary)
+        rebuilt_chunks.append((kind, payload))
+
+    total_length = 12 + sum(8 + len(payload) for _, payload in rebuilt_chunks)
+    result = bytearray(struct.pack("<4sII", b"glTF", 2, total_length))
+    for kind, payload in rebuilt_chunks:
+        result.extend(struct.pack("<I4s", len(payload), kind))
+        result.extend(payload)
+    path.write_bytes(result)
+
+    print(json.dumps({
+        "ok": True,
+        "skin_factor": skin_factor,
+        "hair_factor": hair_factor,
+        "hair_gamma": hair_gamma,
+        "hair_texture_bytes_before": len(source_bytes),
+        "hair_texture_bytes_after": len(hair_png),
+        "glb_bytes": len(result),
+    }, indent=2))
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", required=True, type=Path)
+    parser.add_argument("--profile", required=True, type=Path)
+    parser.add_argument("--hair-gamma", type=float, default=0.28)
+    arguments = parser.parse_args()
+    recolor(arguments.model, arguments.profile, arguments.hair_gamma)

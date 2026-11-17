@@ -60,12 +60,14 @@ def main():
     clear_scene()
     body_objects = import_glb(body_path)
     imported = list(body_objects)
+    hair_objects = []
     hair_path_value = profile.get("hair_asset", "")
     if hair_path_value:
         hair_path = root / hair_path_value
         if not hair_path.is_file():
             raise FileNotFoundError(hair_path)
-        imported.extend(import_glb(hair_path))
+        hair_objects = import_glb(hair_path)
+        imported.extend(hair_objects)
 
     cleared_actions = []
     if profile.get("reset_armatures_to_rest", True):
@@ -74,6 +76,35 @@ def main():
                 action = obj.animation_data.action
                 cleared_actions.append({"armature": obj.name, "action": action.name if action else None})
                 obj.animation_data_clear()
+
+    # Align the separate hairstyle's Head rest-bone transform to the body Head bone.
+    # Both Ara assets share the same skeleton naming; applying the same delta to every
+    # imported hair object preserves the hair mesh/armature relationship.
+    from mathutils import Matrix, Vector
+    hair_alignment = {"applied": False}
+    if hair_objects:
+        body_armature = next((o for o in body_objects if o.type == "ARMATURE"), None)
+        hair_armature = next((o for o in hair_objects if o.type == "ARMATURE"), None)
+        if body_armature and hair_armature:
+            body_head = next((b for b in body_armature.data.bones if b.name.casefold() == "head"), None)
+            hair_head = next((b for b in hair_armature.data.bones if b.name.casefold() == "head"), None)
+            if body_head and hair_head:
+                target_head = body_armature.matrix_world @ body_head.matrix_local
+                source_head = hair_armature.matrix_world @ hair_head.matrix_local
+                delta = target_head @ source_head.inverted()
+                for obj in hair_objects:
+                    obj.matrix_world = delta @ obj.matrix_world
+                hair_alignment = {
+                    "applied": True,
+                    "anchor_bone": "Head",
+                    "body_head_world": [round(float(v), 5) for v in target_head.translation],
+                    "hair_head_world_before": [round(float(v), 5) for v in source_head.translation],
+                    "hair_head_world_after": [round(float(v), 5) for v in (delta @ source_head).translation]
+                }
+            else:
+                hair_alignment["warning"] = "Could not find an exact Head bone on both rigs."
+        else:
+            hair_alignment["warning"] = "Could not find both body and hair armatures."
 
     # Remove the base model's short-hair cap when a separate hairstyle is supplied.
     hide_body_tokens = {value.casefold() for value in profile.get("hide_materials_on_body", [])}
@@ -119,8 +150,10 @@ def main():
             material = slot.material
             if material is None or material.as_pointer() in tinted_materials:
                 continue
-            for token, tint in profile.get("material_tints", {}).items():
-                if token.casefold() in material.name.casefold():
+            tint_rules = profile.get("material_tints", {})
+            is_hair_asset = obj in hair_objects
+            for token, tint in tint_rules.items():
+                if (is_hair_asset and token.casefold() == "hair") or (not is_hair_asset and token.casefold() in material.name.casefold()):
                     colour = tint.get("colour", tint.get("color")) if isinstance(tint, dict) else tint
                     mix_factor = tint.get("mix", 0.35) if isinstance(tint, dict) else 0.35
                     tint_material(material, colour, mix_factor)
@@ -138,6 +171,40 @@ def main():
     if not armatures:
         raise RuntimeError("No armatures were imported; refusing to export an unrigged character")
 
+    # Calibrate the whole assembled character to a real-world target height.
+    # Measure the evaluated body mesh after shape keys, excluding unskinned helper meshes.
+    target_height = float(profile.get("target_height_m", 1.70))
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    body_candidates = [
+        obj for obj in body_objects
+        if obj.type == "MESH" and any(m.type == "ARMATURE" and m.object for m in obj.modifiers)
+    ]
+    if not body_candidates:
+        raise RuntimeError("Could not identify the skinned body mesh for height calibration")
+    def evaluated_height(obj):
+        evaluated = obj.evaluated_get(depsgraph)
+        corners = [evaluated.matrix_world @ Vector(corner) for corner in evaluated.bound_box]
+        return max(v.z for v in corners) - min(v.z for v in corners)
+
+    body_mesh = max(body_candidates, key=evaluated_height)
+    evaluated_body = body_mesh.evaluated_get(depsgraph)
+    body_corners = [evaluated_body.matrix_world @ Vector(corner) for corner in evaluated_body.bound_box]
+    source_height = max(v.z for v in body_corners) - min(v.z for v in body_corners)
+    if source_height <= 0.01:
+        raise RuntimeError(f"Invalid measured body height: {source_height}")
+    height_scale = target_height / source_height
+    ground_offset = -min(v.z for v in body_corners) * height_scale
+    world_calibration = Matrix.Translation(Vector((0.0, 0.0, ground_offset))) @ Matrix.Scale(height_scale, 4)
+    for obj in imported:
+        obj.matrix_world = world_calibration @ obj.matrix_world
+    height_calibration = {
+        "target_height_m": target_height,
+        "measured_source_height_m": round(float(source_height), 5),
+        "uniform_scale_factor": round(float(height_scale), 6),
+        "ground_offset_m": round(float(ground_offset), 5),
+        "body_mesh": body_mesh.name
+    }
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.object.select_all(action="DESELECT")
     for obj in imported:
@@ -150,6 +217,24 @@ def main():
     if "FINISHED" not in result or not output_path.is_file() or output_path.stat().st_size < 100_000:
         raise RuntimeError("Blender GLB export did not produce a valid-sized output file")
 
+    from mathutils import Vector
+    def object_diagnostics(obj):
+        corners = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box] if obj.type == "MESH" else []
+        return {
+            "name": obj.name, "type": obj.type,
+            "world_location": [round(float(v), 5) for v in obj.matrix_world.translation],
+            "world_bounds_min": [round(float(min(v[i] for v in corners)), 5) for i in range(3)] if corners else None,
+            "world_bounds_max": [round(float(max(v[i] for v in corners)), 5) for i in range(3)] if corners else None,
+            "materials": [slot.material.name if slot.material else None for slot in obj.material_slots] if obj.type == "MESH" else [],
+            "armature_modifier_targets": [m.object.name for m in obj.modifiers if m.type == "ARMATURE" and m.object] if obj.type == "MESH" else []
+        }
+    rig_diagnostics = []
+    for obj in armatures:
+        head_bones = [b for b in obj.data.bones if any(k in b.name.casefold() for k in ("head", "neck"))]
+        rig_diagnostics.append({
+            "armature": obj.name,
+            "head_bones": [{"name": b.name, "head_world": [round(float(v), 5) for v in (obj.matrix_world @ b.head)]} for b in head_bones]
+        })
     report = {
         "name": profile.get("name", "Ara character"),
         "output": output_path.name,
@@ -162,9 +247,16 @@ def main():
         "cleared_actions": cleared_actions,
         "mesh_count": len(meshes),
         "mesh_objects": [obj.name for obj in meshes],
+        "object_diagnostics": [object_diagnostics(obj) for obj in imported],
+        "rig_diagnostics": rig_diagnostics,
+        "hair_alignment": hair_alignment,
+        "height_calibration": height_calibration,
         "output_bytes": output_path.stat().st_size,
         "notes": [
             "Standalone export assembled from existing Ara body and hair GLBs.",
+            "Separate braid asset materials receive the configured Hair tint regardless of source material name.",
+            "The hairstyle is aligned to the body's Head rest-bone transform before export.",
+            "The complete character is uniformly calibrated to the configured target height with feet grounded.",
             "Source GLBs and Godot game files are not modified.",
             "Clothing has not been added to this first Wren export."
         ]
