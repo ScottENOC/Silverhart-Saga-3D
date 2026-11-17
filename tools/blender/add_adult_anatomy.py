@@ -45,15 +45,25 @@ def mesh_world_bounds(obj):
 
 
 def build_bvh(obj):
+    """Build a BVH in world space because all anatomy sampling uses world coordinates.
+
+    BVHTree.FromObject returns object-local coordinates. Passing world-space
+    rays to that tree caused misses and nearest-surface fallbacks on scaled
+    Ara imports. Transform the evaluated mesh vertices first, then build the
+    tree from those world-space polygons.
+    """
     depsgraph = bpy.context.evaluated_depsgraph_get()
     evaluated = obj.evaluated_get(depsgraph)
     mesh = evaluated.to_mesh()
-    verts = [obj.matrix_world @ v.co for v in mesh.vertices]
-    polys = [list(p.vertices) for p in mesh.polygons]
-    tree = BVHTree.FromPolygons(verts, polys, all_triangles=False)
-    evaluated.to_mesh_clear()
-    return tree
-
+    try:
+        matrix_world = evaluated.matrix_world.copy()
+        vertices = [matrix_world @ vertex.co for vertex in mesh.vertices]
+        polygons = [list(poly.vertices) for poly in mesh.polygons]
+        if not vertices or not polygons:
+            raise RuntimeError("Cannot build anatomy BVH from an empty mesh")
+        return BVHTree.FromPolygons(vertices, polygons, all_triangles=False)
+    finally:
+        evaluated.to_mesh_clear()
 
 def front_hit_data(tree, x, z):
     location, normal, _index, _distance = tree.ray_cast(
