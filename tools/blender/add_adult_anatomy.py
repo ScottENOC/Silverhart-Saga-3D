@@ -600,7 +600,7 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
     mw = skin.matrix_world
     worlds = [mw @ v.co for v in mesh.vertices]
     z_lo, z_hi = hipline_z - 0.15 * k, hipline_z + 0.10 * k
-    cand = [i for i, p in enumerate(worlds) if abs(p.x) <= 0.05 * k and z_lo <= p.z <= z_hi and p.y < 0.02]
+    cand = [i for i, p in enumerate(worlds) if abs(p.x) <= 0.05 * k and z_lo <= p.z <= z_hi and p.y > -0.02]
     out = np.ones(len(worlds) * 4, dtype=np.float32)
     painted = 0
     if cand:
