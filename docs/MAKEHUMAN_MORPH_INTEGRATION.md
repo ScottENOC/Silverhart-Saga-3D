@@ -28,6 +28,10 @@ Inspect a target with:
 
 ## Next engineering decision
 
-Build a topology correspondence test between the exact Ara source mesh and MPFB's base mesh. If Ara's high-detail export is a subdivision/retopology of the same source, recover the source-to-export mapping and transfer each target's displacement through barycentric surface correspondence. If it is a different base mesh, either retarget the MPFB morphs onto Ara's topology or evaluate using the compatible MPFB base as the body foundation.
+Prefer Ara's own morph engine as the source of truth rather than importing MPFB target indices blindly. Ara documents that its medium-detail export uses the full base mesh, while high detail applies Catmull-Clark subdivision. The next CI probe therefore exports the same Ara character twice at medium detail, changing only the muscle parameter, then compares vertex counts, primitive layout and index buffers.
 
-Only after a measured correspondence test should we add the real body targets to the runtime GLB and wire Godot sliders to them. Keep the six existing blockout keys separate as temporary prototypes.
+- If the two exports have identical topology and non-zero position deltas, create a relative blend shape from the difference and verify it in Godot.
+- If topology differs between parameter variants, inspect the Ara build pipeline and find a stable pre-subdivision stage or explicit vertex correspondence.
+- If Ara's own exports cannot provide stable topology, investigate a proper transfer from the MakeHuman base mesh. Do not apply raw MPFB indices to the Ara GLB.
+
+The initial probe is configured in .github/workflows/build-ara-body-morphs.yml and tools/makehuman/compare_glb_topology.py. Keep the six existing hand-built blockout keys separate as temporary prototypes, not production morphs.
