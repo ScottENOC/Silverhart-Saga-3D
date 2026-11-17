@@ -75,7 +75,7 @@ jobs:
       - name: Install virtual display and software OpenGL
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri
+          sudo apt-get install -y xvfb libgl1-mesa-dri python3-pil
 
       - name: Import the two GLBs into the isolated Godot project
         run: |
@@ -95,7 +95,7 @@ jobs:
 
       - name: Build labelled front and side comparison sheets
         run: |
-          python tools/review/create_ara_morph_contact_sheet.py \
+          python3 tools/review/create_ara_morph_contact_sheet.py \
             --input-dir build/ara-morph-preview-project/build/ara-morph-renders \
             --output build/ara-morph-preview-project/build/ara-morph-renders/comparison.png
 
