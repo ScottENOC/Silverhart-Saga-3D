@@ -5,6 +5,7 @@ on:
     branches: [dev]
     paths:
       - "character-preview/aldric-ara.json"
+      - "data/characters/hollowmere_npcs.json"
       - ".github/workflows/build-aldric-native-ara.yml"
       - "tools/review/aldric_native_preview.gd"
       - "tools/review/recolor_wren_glb.py"
@@ -67,7 +68,7 @@ jobs:
           python tools/review/recolor_wren_glb.py \
             --model build/aldric-native/Aldric.glb \
             --profile character-preview/aldric-ara.json \
-            --hair-gamma 0.28
+            --hair-gamma 0.28 --grey-strands
           test -s build/aldric-native/Aldric.glb
 
       - name: Assemble isolated Godot preview project
