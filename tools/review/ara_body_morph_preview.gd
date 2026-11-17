@@ -115,17 +115,18 @@ func _create_lighting(stage: Node3D) -> void:
     environment.background_mode = Environment.BG_COLOR
     environment.background_color = Color("#252a30")
     environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-    environment.ambient_light_color = Color("#c6cbd0")
-    environment.ambient_light_energy = 0.75
+    environment.ambient_light_color = Color("#b8c0c9")
+    environment.ambient_light_energy = 0.32
     environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+    environment.tonemap_exposure = 0.82
     var world := WorldEnvironment.new()
     world.environment = environment
     stage.add_child(world)
 
     var light := DirectionalLight3D.new()
     light.rotation_degrees = Vector3(-24.0, -28.0, 0.0)
-    light.light_energy = 2.0
-    light.shadow_enabled = true
+    light.light_energy = 0.95
+    light.shadow_enabled = false
     stage.add_child(light)
 
 func _create_camera(stage: Node3D) -> void:
