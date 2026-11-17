@@ -2,8 +2,8 @@ extends SceneTree
 ## Isolated Godot preview of the final native-Ara Reyna GLB.
 ## This project does not load the game scenes or modify gameplay.
 
-const MODEL_PATH := OS.get_environment("REYNA_MODEL_PATH") if OS.get_environment("REYNA_MODEL_PATH") != "" else "res://build/reyna-native/Reyna.glb"
-const OUTPUT_DIR := OS.get_environment("REYNA_OUTPUT_DIR") if OS.get_environment("REYNA_OUTPUT_DIR") != "" else "res://build/reyna-native/preview"
+var MODEL_PATH := OS.get_environment("REYNA_MODEL_PATH") if OS.get_environment("REYNA_MODEL_PATH") != "" else "res://build/reyna-native/Reyna.glb"
+var OUTPUT_DIR := OS.get_environment("REYNA_OUTPUT_DIR") if OS.get_environment("REYNA_OUTPUT_DIR") != "" else "res://build/reyna-native/preview"
 const VIEW_SIZE := Vector2i(720, 960)
 
 var camera: Camera3D
