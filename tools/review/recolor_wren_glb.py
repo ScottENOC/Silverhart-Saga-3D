@@ -115,9 +115,10 @@ def recolor(path: Path, profile_path: Path, hair_gamma: float):
         buffer_view["byteOffset"] = len(new_binary)
         buffer_view["byteLength"] = len(payload)
         new_binary.extend(payload)
+    buffer_length = len(new_binary)
     while len(new_binary) % 4:
         new_binary.append(0)
-    document["buffers"][0]["byteLength"] = len(new_binary)
+    document["buffers"][0]["byteLength"] = buffer_length
 
     rebuilt_chunks = []
     for kind, payload in chunks:
