@@ -1,6 +1,13 @@
 name: Compare Reyna Ara body sliders
 
 on:
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/compare-reyna-ara-body-sliders.yml"
+      - "tools/ara/build_reyna_slider_variants.py"
+      - "tools/review/reyna_slider_preview.gd"
+      - "character-preview/reyna-ara.json"
   workflow_dispatch:
 
 permissions:
