@@ -45,8 +45,26 @@ jobs:
             --dir build/ara-morph
           test -s build/ara-morph/ara_person_body_anatomy_morphs.glb
           test -s build/ara-morph/morph-build-report.json
-          cp build/ara-morph/ara_person_body_anatomy_morphs.glb build/ara_person_body_anatomy_morphs.glb
           python -m json.tool build/ara-morph/morph-build-report.json >/dev/null
+
+      - name: Assemble a minimal Godot preview project
+        run: |
+          set -euo pipefail
+          preview=build/ara-morph-preview-project
+          mkdir -p "$preview/build" "$preview/art/characters/ara_runtime" "$preview/tools/review"
+          cp build/ara-morph/ara_person_body_anatomy_morphs.glb "$preview/build/ara_person_body_anatomy_morphs.glb"
+          cp art/characters/ara_runtime/ara_person_body_anatomy.glb "$preview/art/characters/ara_runtime/ara_person_body_anatomy.glb"
+          cp tools/review/ara_body_morph_preview.gd "$preview/tools/review/ara_body_morph_preview.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Ara Body Morph Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
 
       - name: Install Godot 4.7.2
         uses: chickensoft-games/setup-godot@v2
@@ -59,10 +77,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dri
 
-      - name: Import the candidate GLB into Godot
+      - name: Import the two GLBs into the isolated Godot project
         run: |
           godot --version
-          godot --headless --editor --path . --quit
+          godot --headless --editor --path build/ara-morph-preview-project --quit
 
       - name: Exercise imported blend shapes and render comparisons
         env:
@@ -70,23 +88,23 @@ jobs:
         run: |
           set -euo pipefail
           xvfb-run -a -s "-screen 0 1280x1024x24" \
-            godot --path . \
+            godot --path build/ara-morph-preview-project \
             --rendering-method gl_compatibility \
             --rendering-driver opengl3 \
             --script res://tools/review/ara_body_morph_preview.gd
 
-      - name: Build labelled contact sheet
+      - name: Build labelled front and side comparison sheets
         run: |
           python tools/review/create_ara_morph_contact_sheet.py \
-            --input-dir build/ara-morph-renders \
-            --output build/ara-morph-renders/contact-sheet.png
+            --input-dir build/ara-morph-preview-project/build/ara-morph-renders \
+            --output build/ara-morph-preview-project/build/ara-morph-renders/comparison.png
 
       - name: Upload Godot runtime renders and report
         uses: actions/upload-artifact@v4
         with:
           name: ara-body-morph-godot-preview-${{ github.run_number }}
           path: |
-            build/ara-morph-renders/
+            build/ara-morph-preview-project/build/ara-morph-renders/
             build/ara-morph/morph-build-report.json
           if-no-files-found: error
           retention-days: 30
