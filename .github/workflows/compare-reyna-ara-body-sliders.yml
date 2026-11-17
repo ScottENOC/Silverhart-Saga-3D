@@ -35,6 +35,11 @@ jobs:
       - name: Generate controlled profiles
         run: |
           python tools/ara/build_reyna_slider_variants.py
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
       - name: Build, anatomise and render each variant
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
@@ -63,9 +68,10 @@ jobs:
             cp "$raw" "$out/Reyna-ara-base.glb"
             blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- --input "$out/Reyna-ara-base.glb" --output "$out/Reyna.glb" --profile female --adult
             python tools/review/recolor_wren_glb.py --model "$out/Reyna.glb" --profile "$out/profile.json" --hair-gamma 0.28
-            export REYNA_MODEL_PATH="$(pwd)/$out/Reyna.glb"
-            export REYNA_OUTPUT_DIR="res://build/reyna-slider-comparison/$variant/preview"
             mkdir -p "$preview/build/reyna-slider-comparison/$variant/preview"
+            cp "$out/Reyna.glb" "$preview/build/reyna-slider-comparison/$variant/Reyna.glb"
+            export REYNA_MODEL_PATH="res://build/reyna-slider-comparison/$variant/Reyna.glb"
+            export REYNA_OUTPUT_DIR="res://build/reyna-slider-comparison/$variant/preview"
             godot --headless --editor --path "$preview" --quit
             xvfb-run -a -s "-screen 0 1280x1024x24" godot --path "$preview" --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/reyna_slider_preview.gd
             for view in front side threequarter pelvis; do test -s "$preview/build/reyna-slider-comparison/$variant/preview/$view.png"; done
