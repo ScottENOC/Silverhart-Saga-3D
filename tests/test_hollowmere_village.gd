@@ -191,11 +191,11 @@ func _test_village_uses_shared_vegetation_generator() -> void:
 	var canopy_count := 0
 	var understorey_count := 0
 	for child in village.get_children():
-		if child.name.begins_with("HollowmereTree_"):
+		if String(child.name).begins_with("HollowmereTree_"):
 			canopy_count += 1
-		elif child.name.begins_with("HollowmereUnderstorey_"):
+		elif String(child.name).begins_with("HollowmereUnderstorey_"):
 			understorey_count += 1
-		if child.name.begins_with("HollowmereTree_") or child.name.begins_with("HollowmereUnderstorey_"):
+		if String(child.name).begins_with("HollowmereTree_") or String(child.name).begins_with("HollowmereUnderstorey_"):
 			assert(child.has_meta("vegetation_family"), "Generated vegetation must identify its shared catalogue family")
 	assert(canopy_count > 0, "The shared generator should populate Hollowmere's canopy")
 	assert(understorey_count > 0, "The shared generator should populate Hollowmere's understorey")

@@ -40,7 +40,7 @@ func _test_tavern_uses_shared_generator() -> void:
 	tavern.call("_create_wilderness_gatherable_grove")
 	var grove_count := 0
 	for child in tavern.get_children():
-		if child.name.begins_with("TavernGrove_"):
+		if String(child.name).begins_with("TavernGrove_"):
 			grove_count += 1
 			_check(child.has_meta("vegetation_family"), "Tavern grove trees must use the shared vegetation catalogue")
 	_check(grove_count == 4, "The tavern should use four authored placements from the shared generator")
