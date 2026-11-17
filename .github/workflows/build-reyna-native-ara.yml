@@ -58,7 +58,7 @@ jobs:
       - name: Add female adult anatomy with the established Blender sculpt
         run: |
           set -euo pipefail
-          blender --background --python-exit-code 1 \\
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \\
             --python tools/blender/add_adult_anatomy.py -- \\
             --input build/reyna-native/Reyna-ara-base.glb \\
             --output build/reyna-native/Reyna.glb \\
