@@ -1,10 +1,13 @@
 extends SceneTree
 
+const TAVERN_SCRIPT = preload("res://scripts/world/hollow_tankard.gd")
+
 var failures: int = 0
 
 func _initialize() -> void:
 	_test_catalogue()
 	_test_authored_placements()
+	_test_tavern_uses_shared_generator()
 	_test_deterministic_grid_generation()
 	if failures > 0:
 		push_error("%d world vegetation test(s) failed." % failures)
@@ -29,6 +32,20 @@ func _test_authored_placements() -> void:
 	for child in grove.get_children():
 		_check(child.has_meta("vegetation_family"), "Every generated model should expose its catalogue family")
 	grove.free()
+
+func _test_tavern_uses_shared_generator() -> void:
+	var tavern := TAVERN_SCRIPT.new() as Node3D
+	var simulation := WorldSimulation.new()
+	tavern.simulation = simulation
+	tavern.call("_create_wilderness_gatherable_grove")
+	var grove_count := 0
+	for child in tavern.get_children():
+		if child.name.begins_with("TavernGrove_"):
+			grove_count += 1
+			_check(child.has_meta("vegetation_family"), "Tavern grove trees must use the shared vegetation catalogue")
+	_check(grove_count == 4, "The tavern should use four authored placements from the shared generator")
+	tavern.free()
+	simulation.free()
 
 func _test_deterministic_grid_generation() -> void:
 	var first := Node3D.new()
