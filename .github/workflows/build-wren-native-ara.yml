@@ -8,6 +8,7 @@ on:
       - ".github/workflows/build-wren-native-ara.yml"
       - "tools/blender/add_adult_anatomy.py"
       - "tools/review/wren_native_preview.gd"
+      - "tools/review/recolor_wren_glb.py"
   workflow_dispatch:
 
 permissions:
@@ -34,12 +35,12 @@ jobs:
         run: |
           set -euo pipefail
           python -m json.tool character-preview/wren-ara.json >/dev/null
-          python -m py_compile tools/blender/add_adult_anatomy.py tools/review/render_wren_native.py
+          python -m py_compile tools/blender/add_adult_anatomy.py tools/review/render_wren_native.py tools/review/recolor_wren_glb.py
 
       - name: Install Blender and its numerical dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          sudo apt-get install -y blender python3-numpy python3-pil libegl1 libgl1-mesa-dri
 
       - name: Generate the unclothed native Ara Wren body
         run: |
@@ -68,6 +69,15 @@ jobs:
           test -s build/wren-native/Wren.glb
           test "$(wc -c < build/wren-native/Wren.glb)" -gt 1000000
           grep -q "Exported adult anatomy variant" build/wren-native/anatomy-build.log
+
+      - name: Apply Wren profile skin and hair colours
+        run: |
+          set -euo pipefail
+          python tools/review/recolor_wren_glb.py \
+            --model build/wren-native/Wren.glb \
+            --profile character-preview/wren-ara.json \
+            --hair-gamma 0.28
+          test -s build/wren-native/Wren.glb
 
       - name: Assemble an isolated Godot preview project
         run: |
@@ -114,7 +124,7 @@ jobs:
             --rendering-method gl_compatibility \
             --rendering-driver opengl3 \
             --script res://tools/review/wren_native_preview.gd
-          for view in front side threequarter face; do
+          for view in front side threequarter face pelvis; do
             test -s "build/wren-native-preview-project/build/wren-native/preview/$view.png"
           done
           test -s build/wren-native-preview-project/build/wren-native/preview/render-report.json
@@ -130,7 +140,7 @@ jobs:
           Wren.glb is the final rigged GLB generated from wren-ara.json and then
           passed through the repository's integrated adult female anatomy sculpt.
           The model retains Ara's game skeleton and facial expression / speech
-          blend shapes. The body settings are baked into this export.
+          blend shapes. The body settings and profile skin/hair colours are baked into this export.
           
           To regenerate: run the Build Wren with native Ara generator workflow
           on dev_2. The workflow uses Ara 3D Gen and tools/blender/add_adult_anatomy.py.
@@ -140,7 +150,7 @@ jobs:
               archive.write(root / "Wren.glb", "Wren.glb")
               archive.write(Path("character-preview/wren-ara.json"), "wren-ara.json")
               archive.write(root / "preview/render-report.json", "preview/render-report.json")
-              for view in ("front", "side", "threequarter", "face"):
+              for view in ("front", "side", "threequarter", "face", "pelvis"):
                   archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
               archive.writestr("README.txt", readme)
           PY
