@@ -1,6 +1,12 @@
 name: Preview Ara body morphs in Godot
 
 on:
+  push:
+    branches: [dev_2]
+    paths:
+      - ".github/workflows/preview-ara-body-morphs.yml"
+      - "tools/review/ara_body_morph_preview.gd"
+      - "tools/review/create_ara_morph_contact_sheet.py"
   workflow_dispatch:
     inputs:
       morph_run_id:
