@@ -1,10 +1,12 @@
-name: Probe Ara body morph topology
+name: Build Ara body morph GLB
 
 on:
   push:
     branches: [dev_2]
     paths:
       - "tools/makehuman/compare_glb_topology.py"
+      - "tools/blender/build_ara_body_morphs.py"
+      - "tools/blender/add_adult_anatomy.py"
       - ".github/workflows/build-ara-body-morphs.yml"
       - "character-preview/wren-ara.json"
   workflow_dispatch:
@@ -13,13 +15,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: ara-body-morph-topology
+  group: ara-body-morph-build
   cancel-in-progress: false
 
 jobs:
-  probe:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,17 +31,22 @@ jobs:
         with:
           node-version: 20
 
-      - name: Prepare bare-body profiles with different muscle values
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Prepare low, neutral and high Ara body profiles
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           source = json.loads(Path("character-preview/wren-ara.json").read_text())
-          for name, muscle in (("base", 0.20), ("muscle", 0.80)):
+          for name, muscle in (("low", 0.20), ("neutral", 0.50), ("high", 0.80)):
               profile = json.loads(json.dumps(source))
               params = profile["params"]
               params.update({
-                  "name": f"MorphProbe_{name}",
+                  "name": f"AraMuscle_{name}",
                   "seed": 1,
                   "gender": 0,
                   "muscle": muscle,
@@ -69,33 +76,55 @@ jobs:
                   "teeth": "none",
                   "tongue": False,
               })
-              Path(f"build/morph-probe/{name}.json").parent.mkdir(parents=True, exist_ok=True)
-              Path(f"build/morph-probe/{name}.json").write_text(json.dumps(profile, indent=2) + "\n")
+              folder = Path(f"build/ara-morph/{name}")
+              folder.mkdir(parents=True, exist_ok=True)
+              (folder / "profile.json").write_text(json.dumps(profile, indent=2) + "\n")
           PY
 
-      - name: Export bare base and muscle-variant bodies at medium detail
+      - name: Export the three matching Ara body states
         run: |
           set -euo pipefail
-          npx --yes ara3d@latest export --params build/morph-probe/base.json --detail medium --no-animations --out build/morph-probe/base
-          npx --yes ara3d@latest export --params build/morph-probe/muscle.json --detail medium --no-animations --out build/morph-probe/muscle
-          base="$(find build/morph-probe/base -maxdepth 1 -type f -name '*.glb' | head -n 1)"
-          muscle="$(find build/morph-probe/muscle -maxdepth 1 -type f -name '*.glb' | head -n 1)"
-          test -s "$base"
-          test -s "$muscle"
-          echo "$base" > build/morph-probe/base-path.txt
-          echo "$muscle" > build/morph-probe/muscle-path.txt
+          for state in low neutral high; do
+            npx --yes ara3d@latest export \
+              --params "build/ara-morph/$state/profile.json" \
+              --detail medium --no-animations --out "build/ara-morph/$state/export"
+            glb="$(find "build/ara-morph/$state/export" -maxdepth 1 -type f -name '*.glb' | head -n 1)"
+            test -s "$glb"
+            echo "$glb" > "build/ara-morph/$state/source-path.txt"
+          done
 
-      - name: Compare vertex and index topology
+      - name: Apply the same integrated anatomy pass to all three states
         run: |
           set -euo pipefail
-          base="$(cat build/morph-probe/base-path.txt)"
-          muscle="$(cat build/morph-probe/muscle-path.txt)"
-          python tools/makehuman/compare_glb_topology.py --base "$base" --variant "$muscle" --output build/morph-probe/topology-report.json
+          for state in low neutral high; do
+            input="$(cat "build/ara-morph/$state/source-path.txt")"
+            blender --background --python-exit-code 1 \
+              --python tools/blender/add_adult_anatomy.py -- \
+              --input "$input" \
+              --output "build/ara-morph/$state/anatomy.glb" \
+              --profile female --adult
+            test -s "build/ara-morph/$state/anatomy.glb"
+          done
 
-      - name: Upload topology probe
+      - name: Build verified relative Ara muscle shape keys
+        run: |
+          set -euo pipefail
+          blender --background --python-exit-code 1 \
+            --python tools/blender/build_ara_body_morphs.py -- \
+            --base build/ara-morph/neutral/anatomy.glb \
+            --low build/ara-morph/low/anatomy.glb \
+            --high build/ara-morph/high/anatomy.glb \
+            --output build/ara-morph/ara_person_body_anatomy_morphs.glb \
+            --report build/ara-morph/morph-build-report.json
+          test -s build/ara-morph/ara_person_body_anatomy_morphs.glb
+          test -s build/ara-morph/morph-build-report.json
+
+      - name: Upload candidate GLB and build report
         uses: actions/upload-artifact@v4
         with:
-          name: ara-body-morph-topology-${{ github.run_number }}
-          path: build/morph-probe/
+          name: ara-body-morph-glb-${{ github.run_number }}
+          path: |
+            build/ara-morph/ara_person_body_anatomy_morphs.glb
+            build/ara-morph/morph-build-report.json
           if-no-files-found: error
           retention-days: 30
