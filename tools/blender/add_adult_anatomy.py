@@ -67,7 +67,7 @@ def build_bvh(obj):
 
 def front_hit_data(tree, x, z):
     location, normal, _index, _distance = tree.ray_cast(
-        Vector((x, -2.0, z)), Vector((0.0, 1.0, 0.0)), 4.0
+        Vector((x, 2.0, z)), Vector((0.0, -1.0, 0.0)), 4.0
     )
     if location is None:
         return None
@@ -147,10 +147,10 @@ def frontmost_vertex_anchor(obj, x_min, x_max, z_min, z_max):
         if not (x_min <= p.x <= x_max and z_min <= p.z <= z_max):
             continue
         n = (obj.matrix_world.to_3x3() @ v.normal).normalized()
-        if n.y > -0.12:
+        if n.y < 0.12:
             continue
         score = p.y
-        if best is None or score < best[0]:
+        if best is None or score > best[0]:
             best = (score, p.copy(), n.copy())
     evaluated.to_mesh_clear()
     return (best[1], best[2]) if best else None
@@ -495,7 +495,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         cand = []
         for f in bm.faces:
             c = mw @ f.calc_center_median()
-            if abs(c.x) <= 0.042 * k and z_lo <= c.z <= z_hi and c.y < 0.02 \
+            if abs(c.x) <= 0.042 * k and z_lo <= c.z <= z_hi and c.y > -0.02 \
                     and f.calc_perimeter() / len(f.verts) > target * 1.6:
                 cand.append((f, c))
         if not cand:
@@ -511,7 +511,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     sel = []
     for v in bm.verts:
         p = mw @ v.co
-        if abs(p.x) <= 0.065 * k and z_lo <= p.z <= z_hi and p.y < 0.02:
+        if abs(p.x) <= 0.065 * k and z_lo <= p.z <= z_hi and p.y > -0.02:
             sel.append((v, p))
     moved = 0
     touched = []
@@ -701,7 +701,7 @@ def add_hybrid_labial_forms(skin, surface_tree, armature, anatomy_z, width, heig
                         raise RuntimeError(f"Hybrid anatomy could not sample Ara skin at x={x:.4f}, z={z:.4f}")
                     surface_point = sample[0]
                     normal = sample[1].normalized()
-                    if normal.y > 0.0:
+                    if normal.y < 0.0:
                         normal = -normal
                     depth = local_radius_y * (0.48 + 0.98 * math.sin(angle))
                     position = surface_point + normal * depth
@@ -896,7 +896,7 @@ def main():
                     result = front_hit_data(tree, x, z)
                     if result:
                         location, normal = result
-                        if normal.y < -0.15:
+                        if normal.y > 0.15:
                             candidates.append((abs(z - anatomy_z) + abs(x) * 0.35,
                                                location.y, location, candidate_obj.name))
             if candidates and any(k in material_name(candidate_obj) for k in ("pants", "trouser", "brief", "underwear")):
