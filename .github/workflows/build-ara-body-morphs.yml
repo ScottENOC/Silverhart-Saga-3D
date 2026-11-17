@@ -68,7 +68,7 @@ jobs:
                   "accessories": [],
                   "tattoos": [],
                   "earrings": "none",
-                  "rig": "none",
+                  "rig": "game",
                   "faceBones": False,
                   "animations": False,
                   "faceShapes": False,
