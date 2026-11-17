@@ -66,8 +66,8 @@ jobs:
           npx --yes ara3d@latest export --params character-preview/wren-ara.json --detail high --no-animations --formats glb,zip --out build/wren-native
           glb="$(find build/wren-native -maxdepth 1 -type f -name '*.glb' | head -n 1)"
           test -n "$glb"
-          cp "$glb" build/wren-native/Wren.glb
-          test -s build/wren-native/Wren.glb
+          test -s "$glb"
+          echo "Native Ara GLB: $glb"
           echo "=== Generated files ==="
           ls -lh build/wren-native
       - name: Upload native Ara Wren and regeneration bundle
