@@ -39,6 +39,7 @@
     "expression": "neutral",
     "teeth": "teeth_base",
     "tongue": true,
-    "ageYears": 40
+    "ageYears": 40,
+    "seed": 1401
   }
 }
