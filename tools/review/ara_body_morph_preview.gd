@@ -1,8 +1,9 @@
 extends SceneTree
 ## Loads the isolated Ara muscle-morph candidate in Godot, applies each imported
-## blend shape at runtime, and captures front/side comparison images.
+## blend shape at runtime, and compares it with the existing production body.
 
 const MODEL_PATH := "res://build/ara_person_body_anatomy_morphs.glb"
+const PRODUCTION_PATH := "res://art/characters/ara_runtime/ara_person_body_anatomy.glb"
 const OUTPUT_DIR := "res://build/ara-morph-renders"
 const VIEW_SIZE := Vector2i(640, 800)
 const MORPH_NAMES := ["body_muscle_low", "body_muscle_high"]
@@ -17,8 +18,9 @@ func _initialize() -> void:
 func _run() -> void:
     root.size = VIEW_SIZE
     var packed := load(MODEL_PATH) as PackedScene
-    if packed == null:
-        push_error("Could not load candidate GLB as a PackedScene: " + MODEL_PATH)
+    var production_packed := load(PRODUCTION_PATH) as PackedScene
+    if packed == null or production_packed == null:
+        push_error("Could not load candidate or production Ara body GLB")
         quit(1)
         return
 
@@ -26,14 +28,19 @@ func _run() -> void:
     stage.name = "MorphPreviewStage"
     root.add_child(stage)
 
-    var character := packed.instantiate() as Node3D
-    if character == null:
-        push_error("Candidate GLB did not instantiate as Node3D")
+    var candidate := packed.instantiate() as Node3D
+    var production := production_packed.instantiate() as Node3D
+    if candidate == null or production == null:
+        push_error("Candidate or production Ara GLB did not instantiate as Node3D")
         quit(1)
         return
-    stage.add_child(character)
-    _collect_meshes(character)
+    candidate.name = "AraMorphCandidate"
+    production.name = "AraProductionBaseline"
+    stage.add_child(candidate)
+    stage.add_child(production)
+    production.visible = false
 
+    _collect_meshes(candidate)
     for mesh_instance in mesh_instances:
         var mesh := mesh_instance.mesh
         for index in range(mesh.get_blend_shape_count()):
@@ -58,7 +65,9 @@ func _run() -> void:
     var output_absolute := ProjectSettings.globalize_path(OUTPUT_DIR)
     DirAccess.make_dir_recursive_absolute(output_absolute)
 
-    for state in ["neutral", "low", "high"]:
+    for state in ["production", "neutral", "low", "high"]:
+        production.visible = state == "production"
+        candidate.visible = state != "production"
         _set_all_morphs(0.0)
         if state == "low":
             _set_morph("body_muscle_low", 1.0)
@@ -83,7 +92,7 @@ func _run() -> void:
                 return
             print("GODOT_RENDER_OK state=%s view=%s path=%s" % [state, view, output_path])
 
-    print("GODOT_MORPH_TEST_OK imported=%s renders=6" % [str(morph_indices.keys())])
+    print("GODOT_MORPH_TEST_OK imported=%s renders=8" % [str(morph_indices.keys())])
     quit(0)
 
 func _collect_meshes(node: Node) -> void:
