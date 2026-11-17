@@ -1,70 +1,77 @@
-name: Build Ara body morph prototypes
+name: Probe Ara body morph topology
 
 on:
   push:
     branches: [dev_2]
     paths:
-      - "tools/blender/add_body_morphs.py"
+      - "tools/makehuman/compare_glb_topology.py"
       - ".github/workflows/build-ara-body-morphs.yml"
+      - "character-preview/wren-ara.json"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ara-body-morph-prototypes
+  group: ara-body-morph-topology
   cancel-in-progress: false
 
 jobs:
-  build:
+  probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
           ref: dev_2
 
-      - name: Validate morph builder syntax
-        run: python -m py_compile tools/blender/add_body_morphs.py
-
-      - name: Install Blender
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
-
-      - name: Build non-destructive female and male prototypes
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build/ara-body-morph-prototypes
-          blender --background --python-exit-code 1 \
-            --python tools/blender/add_body_morphs.py -- \
-            --input art/characters/ara_runtime/ara_person_body_anatomy.glb \
-            --output build/ara-body-morph-prototypes/ara_person_body_anatomy_prototype.glb
-          blender --background --python-exit-code 1 \
-            --python tools/blender/add_body_morphs.py -- \
-            --input art/characters/ara_runtime/ara_person_male_body.glb \
-            --output build/ara-body-morph-prototypes/ara_person_male_body_prototype.glb
-          test -s build/ara-body-morph-prototypes/ara_person_body_anatomy_prototype.glb
-          test -s build/ara-body-morph-prototypes/ara_person_male_body_prototype.glb
-
-      - name: Validate prototypes in Godot
-        uses: chickensoft-games/setup-godot@v2
+      - uses: actions/setup-node@v4
         with:
-          version: 4.7.2
-          use-dotnet: false
+          node-version: 20
 
-      - name: Import project and generated prototypes
+      - name: Prepare identical character profiles with different muscle values
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          source = json.loads(Path("character-preview/wren-ara.json").read_text())
+          for name, muscle in (("base", 0.20), ("muscle", 0.80)):
+              profile = json.loads(json.dumps(source))
+              profile["params"]["name"] = "Morph topology probe"
+              profile["params"]["muscle"] = muscle
+              profile["params"]["outfit"] = "none"
+              profile["params"]["top"] = "none"
+              profile["params"]["bottom"] = "none"
+              Path(f"build/morph-probe/{name}.json").parent.mkdir(parents=True, exist_ok=True)
+              Path(f"build/morph-probe/{name}.json").write_text(json.dumps(profile, indent=2) + "\n")
+          PY
+
+      - name: Export the base and muscle-variant characters at medium detail
         run: |
           set -euo pipefail
-          godot --headless --editor --path . --quit
-          test -s build/ara-body-morph-prototypes/ara_person_body_anatomy_prototype.glb.import
-          test -s build/ara-body-morph-prototypes/ara_person_male_body_prototype.glb.import
+          npx --yes ara3d@latest export --params build/morph-probe/base.json --detail medium --no-animations --formats glb --out build/morph-probe/base
+          npx --yes ara3d@latest export --params build/morph-probe/muscle.json --detail medium --no-animations --formats glb --out build/morph-probe/muscle
+          base="$(find build/morph-probe/base -maxdepth 1 -type f -name '*.glb' | head -n 1)"
+          muscle="$(find build/morph-probe/muscle -maxdepth 1 -type f -name '*.glb' | head -n 1)"
+          test -s "$base"
+          test -s "$muscle"
+          echo "$base" > build/morph-probe/base-path.txt
+          echo "$muscle" > build/morph-probe/muscle-path.txt
 
-      - name: Upload prototype GLBs
+      - name: Compare vertex and index topology
+        run: |
+          set -euo pipefail
+          base="$(cat build/morph-probe/base-path.txt)"
+          muscle="$(cat build/morph-probe/muscle-path.txt)"
+          python tools/makehuman/compare_glb_topology.py \
+            --base "$base" \
+            --variant "$muscle" \
+            --output build/morph-probe/topology-report.json
+
+      - name: Upload topology probe
         uses: actions/upload-artifact@v4
         with:
-          name: ara-body-morph-prototypes-${{ github.run_number }}
-          path: build/ara-body-morph-prototypes/
+          name: ara-body-morph-topology-${{ github.run_number }}
+          path: build/morph-probe/
           if-no-files-found: error
           retention-days: 30
