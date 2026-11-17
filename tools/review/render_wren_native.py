@@ -46,17 +46,19 @@ def bounds_for(objects):
 
 
 def setup_world(scene):
-    scene.render.engine = "BLENDER_EEVEE_NEXT"
+    engines = {item.identifier for item in scene.render.bl_rna.properties["engine"].enum_items}
+    scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in engines else "BLENDER_EEVEE"
     scene.render.resolution_x = 900
     scene.render.resolution_y = 1200
     scene.render.resolution_percentage = 100
     scene.render.image_settings.file_format = "PNG"
     scene.render.film_transparent = False
     scene.view_settings.view_transform = "AgX"
-    try:
-        scene.view_settings.look = "AgX - Medium High Contrast"
-    except TypeError:
-        pass
+    looks = {item.identifier for item in scene.view_settings.bl_rna.properties["look"].enum_items}
+    for candidate in ("AgX - Medium High Contrast", "Medium High Contrast"):
+        if candidate in looks:
+            scene.view_settings.look = candidate
+            break
     scene.view_settings.exposure = -0.35
     scene.view_settings.gamma = 1.0
     if scene.world is None:
