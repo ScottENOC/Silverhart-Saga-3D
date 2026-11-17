@@ -5,6 +5,7 @@ on:
     branches: [dev_2]
     paths:
       - "character-preview/wren.json"
+      - "art/characters/ara_runtime/ara_person_body_anatomy.glb"
       - "tools/review/export_character_glb.py"
       - ".github/workflows/export-wren-glb.yml"
   workflow_dispatch:
