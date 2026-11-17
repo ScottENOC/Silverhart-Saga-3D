@@ -26,6 +26,7 @@ def arguments():
     parser.add_argument("--profile", choices=("female", "none"), default=os.environ.get("ARA_PROFILE"), required=not bool(os.environ.get("ARA_PROFILE")))
     parser.add_argument("--adult", action="store_true", default=os.environ.get("ARA_ADULT") == "1")
     parser.add_argument("--fit-existing", action="store_true", help="Only expand lower garments around anatomy already present in the input GLB")
+    parser.add_argument("--preserve-topology", action="store_true", help="Skip adaptive face subdivision so separately morphed Ara profiles retain identical vertex topology")
     parser.add_argument("--deformation-scale", type=float, default=1.65, help="Scale the enhanced female anatomy relief targets")
     parser.add_argument("--method", choices=("integrated", "hybrid"), default="integrated", help="Compare the integrated skin sculpt with an additional buried, skin-material loft treatment")
     return parser.parse_args(raw)
@@ -433,7 +434,7 @@ def _female_displacement(t, x, P):
     return d
 
 
-def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scale=1.65, hipline_z=None):
+def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scale=1.65, hipline_z=None, preserve_topology=False):
     """Sculpt the existing skin mesh in place (UVs, material, weights and rig are kept)."""
     import bmesh
     P = dict(FEMALE_ANATOMY)
@@ -463,7 +464,7 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     # adaptive local refinement: split whole faces (not lone edges) so the region
     # stays a regular grid and the folds do not pick up sliver triangles
     target = P["target_edge"] * k
-    for _ in range(4):
+    for _ in range(0 if preserve_topology else 4):
         cand = []
         for f in bm.faces:
             c = mw @ f.calc_center_median()
@@ -908,7 +909,7 @@ def main():
 
     anatomy = None
     if args.profile == "female":
-        anatomy = integrate_anatomy_into_skin(skin, anatomy_z, width, height, args.deformation_scale)
+        anatomy = integrate_anatomy_into_skin(skin, anatomy_z, width, height, args.deformation_scale, preserve_topology=args.preserve_topology)
         apply_anatomy_pigmentation(skin, anatomy_z, width, height)
         skin_material = next((m for m in skin.data.materials if m and "skin" in m.name.lower()), None)
         wire_vertex_colour_to_skin_material(skin_material, "Color")
