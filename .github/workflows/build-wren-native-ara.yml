@@ -1,0 +1,45 @@
+name: Build Wren with native Ara generator
+
+on:
+  push:
+    branches: [dev_2]
+    paths:
+      - "character-preview/wren-ara.json"
+      - ".github/workflows/build-wren-native-ara.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-wren-native-ara
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev_2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build Wren from Ara's MakeHuman morph dataset
+        run: |
+          mkdir -p build/wren-native
+          npx --yes ara3d@latest export --params character-preview/wren-ara.json --detail high --no-animations --formats glb,zip --out build/wren-native
+          glb="$(find build/wren-native -maxdepth 1 -type f -name '*.glb' | head -n 1)"
+          test -n "$glb"
+          cp "$glb" build/wren-native/Wren.glb
+          test -s build/wren-native/Wren.glb
+          echo "=== Generated files ==="
+          ls -lh build/wren-native
+      - name: Upload native Ara Wren and regeneration bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: wren-native-ara-${{ github.run_number }}
+          path: build/wren-native/
+          if-no-files-found: error
+          retention-days: 30
