@@ -669,8 +669,9 @@ def add_hybrid_labial_forms(skin, surface_tree, armature, anatomy_z, width, heig
     vertices, faces, uv_values = [], [], []
     segments, rings = 32, 24
     forms = [
-        (width * 0.043, width * 0.028, height * 0.0060, 0.006, 0.054),
-        (width * 0.019, width * 0.012, height * 0.0034, 0.002, 0.041),
+        # Smaller, surface-conforming outer and inner labial folds.
+        (width * 0.020, width * 0.013, height * 0.0045, 0.004, 0.035),
+        (width * 0.010, width * 0.006, height * 0.0025, 0.002, 0.028),
     ]
     for side in (-1.0, 1.0):
         for form_index, (offset, radius_x, radius_y, top, span) in enumerate(forms):
@@ -688,9 +689,13 @@ def add_hybrid_labial_forms(skin, surface_tree, armature, anatomy_z, width, heig
                     sample = sample_skin(x, z)
                     if sample is None:
                         raise RuntimeError(f"Hybrid anatomy could not sample Ara skin at x={x:.4f}, z={z:.4f}")
-                    surface_y = sample[0].y
-                    y = surface_y - local_radius_y * (0.48 + 0.98 * math.sin(angle))
-                    vertices.append((x, y, z))
+                    surface_point = sample[0]
+                    normal = sample[1].normalized()
+                    if normal.y > 0.0:
+                        normal = -normal
+                    depth = local_radius_y * (0.48 + 0.98 * math.sin(angle))
+                    position = surface_point + normal * depth
+                    vertices.append(tuple(position))
                     uv_values.append((si / segments, t))
             for ri in range(rings):
                 for si in range(segments):
