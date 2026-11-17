@@ -100,8 +100,7 @@ var active_combat_kind: String = "ironbond"
 var active_enemy_ids: Array[String] = []
 var active_party_ids: Array[String] = []
 var active_combat_controlled_ids: Array[String] = []
-var nearby_interaction_panel: PanelContainer
-var nearby_interaction_box: VBoxContainer
+var nearby_interaction_panel: NearbyInteractionPanel
 var nearby_interaction_refresh: float = 0.0
 var farm_wolves_spawned: bool = false
 var farm_wolves_retry_armed: bool = false
@@ -990,14 +989,9 @@ func _create_hud() -> void:
     character_panel.configure(simulation, active_character_id)
     character_panel.equipment_changed.connect(_on_character_equipment_changed)
     _create_dialogue_panel(layer)
-    nearby_interaction_panel = PanelContainer.new()
+    nearby_interaction_panel = NearbyInteractionPanel.new()
     nearby_interaction_panel.name = "NearbyNPCInteractions"
-    nearby_interaction_panel.position = Vector2(22.0, 244.0)
-    nearby_interaction_panel.custom_minimum_size = Vector2(250.0, 0.0)
-    nearby_interaction_panel.visible = false
-    nearby_interaction_box = VBoxContainer.new()
-    nearby_interaction_box.add_theme_constant_override("separation", 4)
-    nearby_interaction_panel.add_child(nearby_interaction_box)
+    nearby_interaction_panel.character_selected.connect(_on_nearby_interaction_pressed)
     layer.add_child(nearby_interaction_panel)
 
     world_map_panel = WORLD_MAP_PANEL_SCRIPT.new() as CanvasLayer
@@ -1385,14 +1379,14 @@ func _interact_with_character(character_id: String) -> void:
     _show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), choices)
 
 func _refresh_nearby_interactions() -> void:
-    if nearby_interaction_panel == null or nearby_interaction_box == null or simulation == null:
+    if nearby_interaction_panel == null or simulation == null:
         return
     if dialogue_open or encounter_active or simulation.is_in_combat:
-        nearby_interaction_panel.visible = false
+        nearby_interaction_panel.dismiss()
         return
     var active_state := simulation.get_character(active_character_id)
     if active_state == null:
-        nearby_interaction_panel.visible = false
+        nearby_interaction_panel.dismiss()
         return
     var nearby: Array[Dictionary] = []
     for actor_id_value in actor_by_id.keys():
@@ -1413,24 +1407,8 @@ func _refresh_nearby_interactions() -> void:
             return String(a.name) < String(b.name)
         return int(a.distance) < int(b.distance)
     )
-    for child in nearby_interaction_box.get_children():
-        child.free()
-    if nearby.is_empty():
-        nearby_interaction_panel.visible = false
-        return
-    var heading := Label.new()
-    heading.text = "NEARBY PEOPLE"
-    heading.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
-    nearby_interaction_box.add_child(heading)
-    for index in range(mini(nearby.size(), 6)):
-        var entry: Dictionary = nearby[index]
-        var target_id := String(entry.id)
-        var talk_button := Button.new()
-        talk_button.text = ("Engage · " if bool(entry.hostile) else "Talk · ") + String(entry.name)
-        talk_button.custom_minimum_size = Vector2(225.0, 34.0)
-        talk_button.pressed.connect(_on_nearby_interaction_pressed.bind(target_id))
-        nearby_interaction_box.add_child(talk_button)
-    nearby_interaction_panel.visible = true
+    nearby_interaction_panel.present(nearby)
+
 
 func _on_nearby_interaction_pressed(character_id: String) -> void:
     _interact_with_character(character_id)
