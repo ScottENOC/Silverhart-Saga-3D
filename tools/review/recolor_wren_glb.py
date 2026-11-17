@@ -93,15 +93,15 @@ def recolor(path: Path, profile_path: Path, hair_gamma: float, grey_strands: boo
     # natural strand highlights to restrained silver-grey over a near-black base.
     red, green, blue, alpha = source_image.split()
     if grey_strands:
-        import numpy as np
-        rgb = np.asarray(source_image.convert("RGB"), dtype=np.float32)
-        luminance = rgb[..., 0] * 0.2126 + rgb[..., 1] * 0.7152 + rgb[..., 2] * 0.0722
         # Ara's texture carries fine strand variation. Keep most fibres black;
         # only the brighter strand detail transitions to charcoal/silver.
-        t = np.clip((luminance - 92.0) / 118.0, 0.0, 1.0)
-        t = t * t * (3.0 - 2.0 * t)
-        value = 18.0 + t * 112.0
-        grey = Image.fromarray(value.astype("uint8"), mode="L")
+        luminance = source_image.convert("L")
+        lut = []
+        for pixel in range(256):
+            t = max(0.0, min(1.0, (pixel - 92.0) / 118.0))
+            t = t * t * (3.0 - 2.0 * t)
+            lut.append(int(round(18.0 + t * 112.0)))
+        grey = luminance.point(lut)
         lifted = Image.merge("RGBA", (grey, grey, grey, alpha))
     else:
         lut = [
