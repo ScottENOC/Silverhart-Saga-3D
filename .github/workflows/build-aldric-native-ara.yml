@@ -41,7 +41,7 @@ jobs:
       - name: Install Ara export dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender python3-pil libegl1 libgl1-mesa-dri
+          sudo apt-get install -y blender python3-numpy python3-pil libegl1 libgl1-mesa-dri
 
       - name: Generate unclothed native Ara body and hair
         run: |
@@ -55,7 +55,7 @@ jobs:
           test -n "$raw_glb"
           test -s "$raw_glb"
           cp "$raw_glb" build/aldric-native/Aldric-ara-base.glb
-          blender --background --python-exit-code 1 \
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
             --python tools/blender/add_male_anatomy.py -- \
             --input build/aldric-native/Aldric-ara-base.glb \
             --output build/aldric-native/Aldric.glb \
