@@ -2,7 +2,7 @@ name: Export Wren GLB
 
 on:
   push:
-    branches: [dev_2]
+    branches: [dev]
     paths:
       - "character-preview/wren.json"
       - "character-preview/wren-ara.json"
@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: dev_2
+          ref: dev
       - name: Validate exporter and Wren profile
         run: |
           python -m py_compile tools/review/export_character_glb.py
@@ -56,7 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: dev_2
+          ref: dev
       - uses: actions/setup-node@v4
         with:
           node-version: 20
