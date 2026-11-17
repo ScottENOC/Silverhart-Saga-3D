@@ -47,9 +47,9 @@ func _run() -> void:
             var shape_name := String(mesh.get_blend_shape_name(index))
             if not morph_indices.has(shape_name):
                 morph_indices[shape_name] = []
-            morph_indices[shape_name].append({"mesh": mesh_instance, "name": StringName(shape_name)})
+            morph_indices[shape_name].append({"mesh": mesh_instance, "index": index})
             print("GODOT_MORPH_FOUND mesh=%s name=%s initial_value=%.3f" % [
-                mesh_instance.name, shape_name, mesh_instance.get_blend_shape_value(StringName(shape_name))
+                mesh_instance.name, shape_name, mesh_instance.get_blend_shape_value(index)
             ])
 
     for required_name in MORPH_NAMES:
@@ -108,7 +108,7 @@ func _set_all_morphs(value: float) -> void:
 func _set_morph(shape_name: String, value: float) -> void:
     for entry in morph_indices.get(shape_name, []):
         var mesh_instance: MeshInstance3D = entry["mesh"]
-        mesh_instance.set_blend_shape_value(StringName(entry["name"]), value)
+        mesh_instance.set_blend_shape_value(int(entry["index"]), value)
 
 func _create_lighting(stage: Node3D) -> void:
     var environment := Environment.new()
