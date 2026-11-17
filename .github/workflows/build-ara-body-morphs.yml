@@ -90,10 +90,7 @@ jobs:
           set -euo pipefail
           base="$(cat build/morph-probe/base-path.txt)"
           muscle="$(cat build/morph-probe/muscle-path.txt)"
-          python tools/makehuman/compare_glb_topology.py \\
-            --base "$base" \\
-            --variant "$muscle" \\
-            --output build/morph-probe/topology-report.json
+          python tools/makehuman/compare_glb_topology.py --base "$base" --variant "$muscle" --output build/morph-probe/topology-report.json
 
       - name: Upload topology probe
         uses: actions/upload-artifact@v4
