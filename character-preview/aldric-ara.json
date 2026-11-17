@@ -40,6 +40,13 @@
     "teeth": "teeth_base",
     "tongue": true,
     "ageYears": 40,
-    "seed": 1401
+    "seed": 1401,
+    "modifiers": {
+      "torso/torso-vshape": 0.25,
+      "torso/torso-muscle-dorsi": 0.15,
+      "armslegs/upperarm-shoulder-muscle": 0.3,
+      "armslegs/upperarm-scale-depth": 0.1,
+      "armslegs/upperarm-scale-vert": 0.1
+    }
   }
 }
