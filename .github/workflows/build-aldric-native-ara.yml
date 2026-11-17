@@ -1,0 +1,142 @@
+name: Build Aldric native Ara character
+
+on:
+  push:
+    branches: [dev_2]
+    paths:
+      - "character-preview/aldric-ara.json"
+      - ".github/workflows/build-aldric-native-ara.yml"
+      - "tools/review/aldric_native_preview.gd"
+      - "tools/review/recolor_wren_glb.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-aldric-native-ara
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev_2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate Aldric profile and preview script
+        run: |
+          set -euo pipefail
+          python -m json.tool character-preview/aldric-ara.json >/dev/null
+          python -m py_compile tools/review/recolor_wren_glb.py
+
+      - name: Install Ara export dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-pil libegl1 libgl1-mesa-dri
+
+      - name: Generate unclothed native Ara body and hair
+        run: |
+          set -euo pipefail
+          mkdir -p build/aldric-native/ara-export
+          npx --yes ara3d@latest export \
+            --params character-preview/aldric-ara.json \
+            --detail high --no-animations --formats glb,zip \
+            --out build/aldric-native/ara-export
+          raw_glb="$(find build/aldric-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$raw_glb"
+          test -s "$raw_glb"
+          cp "$raw_glb" build/aldric-native/Aldric.glb
+
+      - name: Apply Aldric skin and hair colours
+        run: |
+          set -euo pipefail
+          python tools/review/recolor_wren_glb.py \
+            --model build/aldric-native/Aldric.glb \
+            --profile character-preview/aldric-ara.json \
+            --hair-gamma 0.28
+          test -s build/aldric-native/Aldric.glb
+
+      - name: Assemble isolated Godot preview project
+        run: |
+          set -euo pipefail
+          preview=build/aldric-native-preview-project
+          mkdir -p "$preview/build/aldric-native" "$preview/tools/review"
+          cp build/aldric-native/Aldric.glb "$preview/build/aldric-native/Aldric.glb"
+          cp tools/review/aldric_native_preview.gd "$preview/tools/review/aldric_native_preview.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Aldric Native Ara Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Install virtual display and software OpenGL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+
+      - name: Import and render Aldric
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path build/aldric-native-preview-project --quit
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/aldric-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/aldric_native_preview.gd
+          for view in front side threequarter face pelvis; do
+            test -s "build/aldric-native-preview-project/build/aldric-native/preview/$view.png"
+          done
+          test -s build/aldric-native-preview-project/build/aldric-native/preview/render-report.json
+          cp -R build/aldric-native-preview-project/build/aldric-native/preview build/aldric-native/preview
+
+      - name: Package model and visual review
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          root = Path("build/aldric-native")
+          readme = """Ser Aldric Thorne — first-pass native Ara character.
+          Unclothed body and hair only; no outfit, underwear, shoes or accessories.
+          The model is generated from aldric-ara.json and retains Ara's game rig
+          and facial blend shapes. This is a visual first pass, not final approval.
+          Regenerate with the Build Aldric native Ara character workflow on dev_2.
+          """
+          with zipfile.ZipFile(root / "Aldric_native_Ara_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              archive.write(root / "Aldric.glb", "Aldric.glb")
+              archive.write(Path("character-preview/aldric-ara.json"), "aldric-ara.json")
+              archive.write(root / "preview/render-report.json", "preview/render-report.json")
+              for view in ("front", "side", "threequarter", "face", "pelvis"):
+                  archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
+              archive.writestr("README.txt", readme)
+          PY
+
+      - name: Upload Aldric model and visual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: aldric-native-ara-${{ github.run_number }}
+          path: |
+            build/aldric-native/Aldric.glb
+            build/aldric-native/Aldric_native_Ara_bundle.zip
+            build/aldric-native/preview/
+          if-no-files-found: error
+          retention-days: 30
