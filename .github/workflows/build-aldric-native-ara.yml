@@ -2,12 +2,13 @@ name: Build Aldric native Ara character
 
 on:
   push:
-    branches: [dev_2]
+    branches: [dev]
     paths:
       - "character-preview/aldric-ara.json"
       - ".github/workflows/build-aldric-native-ara.yml"
       - "tools/review/aldric_native_preview.gd"
       - "tools/review/recolor_wren_glb.py"
+      - "tools/blender/add_male_anatomy.py"
   workflow_dispatch:
 
 permissions:
@@ -24,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: dev_2
+          ref: dev
 
       - uses: actions/setup-node@v4
         with:
@@ -52,7 +53,13 @@ jobs:
           raw_glb="$(find build/aldric-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
           test -n "$raw_glb"
           test -s "$raw_glb"
-          cp "$raw_glb" build/aldric-native/Aldric.glb
+          cp "$raw_glb" build/aldric-native/Aldric-ara-base.glb
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_male_anatomy.py -- \
+            --input build/aldric-native/Aldric-ara-base.glb \
+            --output build/aldric-native/Aldric.glb \
+            --adult --profile-name "Ser Aldric Thorne"
+          test -s build/aldric-native/Aldric.glb
 
       - name: Apply Aldric skin and hair colours
         run: |
@@ -119,7 +126,7 @@ jobs:
           Unclothed body and hair only; no outfit, underwear, shoes or accessories.
           The model is generated from aldric-ara.json and retains Ara's game rig
           and facial blend shapes. This is a visual first pass, not final approval.
-          Regenerate with the Build Aldric native Ara character workflow on dev_2.
+          The model includes the Ara-derived adult male anatomy pass. Regenerate with the Build Aldric native Ara character workflow on dev.
           """
           with zipfile.ZipFile(root / "Aldric_native_Ara_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
               archive.write(root / "Aldric.glb", "Aldric.glb")
