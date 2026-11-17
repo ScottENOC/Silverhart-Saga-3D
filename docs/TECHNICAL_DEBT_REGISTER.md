@@ -1,22 +1,23 @@
 # Technical Debt Register
 
-**Baseline:** `dev_2` at `a8b5987ebdc12b016d99e2550349f17a8fd62645` (13 November 2026)
-**Working branch:** `tech-debt/register-and-test-split`
-**Integration target:** `dev_2`
-**Status:** Initial inventory; priorities are provisional until dependency and runtime audits are complete.
+**Baseline:** `dev` at `a48cde54028f5f1a2445538c58f267b3535970f1` (18 November 2026)
+**Stable branch:** `main`
+**Active development and test branch:** `dev`
+**Legacy branch:** `dev_2` (historical reference only; no new work)
+**Status:** Inventory updated to the current branch strategy; priorities remain subject to dependency and runtime audits.
 
 This register tracks structural improvements without treating file length alone as a defect. The objective is to make systems independently understandable, testable and reusable, while preserving gameplay behaviour.
 
 ## 1. Branch and validation baseline
 
-The branch promotion on 13 November 2026 established:
+The current branch strategy is:
 
-- `main`: historical development baseline.
-- `dev`: current script-tested candidate for the user's hands-on gameplay review.
-- `dev_2`: active technical-debt and refactoring line.
+- `main`: stable build; only promote changes after testing and review.
+- `dev`: active development and play-testing branch; all new work targets this branch.
+- `dev_2`: legacy historical reference; do not target it for new work.
 - `backup/*-before-promotion-2026-11-13`: exact pre-promotion refs.
 
-Do not merge this work into `dev` until the user has reviewed the candidate and the relevant changes have passed validation.
+Keep `main` stable until the user has reviewed the candidate and the relevant changes have passed validation. Do not create new work on `dev_2`.
 
 ### Automated baseline
 
@@ -50,7 +51,7 @@ Apply the same principle to `hollowmere_village.gd`: village-specific content sh
 | TD-002 | P0 | Simulation test organisation | `tests/test_simulation.gd` is 2,172 lines and contains broad campaign, character, movement, combat, reaction and animal/riding coverage | Split into cohesive domain suites; retain assertions and coverage; no gameplay changes | Planned |
 | TD-003 | P1 | Hollow Tankard location God Object | `scripts/world/hollow_tankard.gd` is 2,836 lines; it combines construction, actors, UI, input/camera, narrative, combat, resources and persistence responsibilities | Replace bespoke location implementation with reusable systems and location data; leave at most a thin composition entry point | Planned |
 | TD-004 | P1 | WorldSimulation cohesion | `scripts/simulation/world_simulation.gd` is 1,211 lines; owns broad registration, movement, combat/action, reactions, animal/riding and persistence coordination | Separate cohesive domain services while retaining one authoritative state/coordinator and stable action/event contracts | Planned |
-| TD-005 | P1 | Hollowmere village construction | `scripts/world/hollowmere_village.gd` is 645 lines and constructs environment, buildings, vegetation, fields/fences and creatures | Move reusable construction/presentation into generic builders; retain Hollowmere-specific layout/content as data | Planned |
+| TD-005 | P1 | Hollowmere village construction | `scripts/world/hollowmere_village.gd` constructs environment, buildings, vegetation, fields/fences and creatures | Move reusable construction/presentation into generic builders; retain Hollowmere-specific layout/content as data | In progress — vegetation placement shared with tavern grove |
 | TD-006 | P2 | Character presentation actor | `scripts/presentation/ara_character_actor.gd` is 26,429 bytes | Separate model/rig loading, equipment/appearance application, animation and actor lifecycle where boundaries are cohesive | Planned |
 | TD-007 | P2 | Character creator UI | `scripts/ui/player_character_creator.gd` is 26,234 bytes | Separate UI flow from character-creation rules, data validation and preview/presentation | Planned |
 | TD-008 | P2 | NPC skill spending | `scripts/simulation/npc_skill_spending.gd` is 28,884 bytes | Audit rule ownership, data inputs and decision boundaries; reduce duplicated progression logic | Planned |
@@ -114,12 +115,12 @@ Audit duplicated sources of truth, stale generated files, pipeline idempotency/c
 
 ## 5. Working rules
 
-- One focused PR/change set at a time, targeting `dev_2`.
-- Never force-push or rewrite the protected candidate branch.
+- One focused PR/change set at a time, targeting `dev`.
+- Never force-push or rewrite `main` or `dev`.
 - Preserve a known-good commit before each substantial refactor.
 - Run the narrow tests during development and the full Godot validation workflow before merging.
 - Do not merge a refactor merely because it compiles; inspect test coverage and relevant scene behaviour.
-- If the technical-debt line becomes unhealthy, create a fresh `dev_3` from the untouched `dev` candidate and recover only reviewed changes.
+- Keep `dev_2` as a historical branch; do not promote it or create new work from it.
 - Keep the parked fog/vision work out of the current sequence.
 - Character assembly work that depends on the finalised body model remains gated by that model; do not refactor it prematurely.
 
