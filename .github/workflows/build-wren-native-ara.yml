@@ -76,7 +76,7 @@ jobs:
           python tools/review/recolor_wren_glb.py \
             --model build/wren-native/Wren.glb \
             --profile character-preview/wren-ara.json \
-            --hair-gamma 0.28
+            --hair-gamma 0.18
           test -s build/wren-native/Wren.glb
 
       - name: Assemble an isolated Godot preview project
