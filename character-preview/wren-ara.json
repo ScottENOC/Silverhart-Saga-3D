@@ -38,7 +38,11 @@
       "chin/chin-prominent": 0.1,
       "chin/chin-width": -0.12,
       "head/head-oval": 0.16,
-      "head/head-fat": -0.08
+      "head/head-fat": -0.08,
+      "armslegs/upperarm-shoulder-muscle:decr|incr": 0.1,
+      "buttocks/buttocks-volume": 0.2,
+      "hip/hip-scale-horiz": 0.1,
+      "hip/hip-scale-depth": 0.1
     },
     "detail": "high",
     "rig": "game",
