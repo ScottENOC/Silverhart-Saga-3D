@@ -35,7 +35,7 @@ jobs:
       - name: Download isolated morph candidate
         env:
           GH_TOKEN: ${{ github.token }}
-          MORPH_RUN_ID: ${{ inputs.morph_run_id }}
+          MORPH_RUN_ID: ${{ inputs.morph_run_id || '44027585962' }}
         run: |
           set -euo pipefail
           mkdir -p build/ara-morph
