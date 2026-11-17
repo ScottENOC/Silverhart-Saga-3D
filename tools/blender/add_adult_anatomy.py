@@ -322,47 +322,59 @@ def _env(t, a, b, w):
 
 
 def _surface_midline(skin, hipline_z, k):
-    """Ordered (y, z) polyline of the front/underside midline surface, plus arc length."""
-    mw = skin.matrix_world
-    rot = mw.to_3x3()
+    """Sample the visible front/underside midline with rays, then arc-length resample it.
+
+    Vertex-only extraction could select interior vertices at x≈0, placing the
+    anatomy sculpt inside the pelvis. A front-to-back BVH ray at each z samples
+    the actual exterior skin surface instead.
+    """
+    tree = build_bvh(skin)
+    z_top = hipline_z + 0.10 * k
+    z_bottom = hipline_z - 0.14 * k
     pts = []
-    for v in skin.data.vertices:
-        p = mw @ v.co
-        if abs(p.x) > 0.002 * k or not (hipline_z - 0.14 * k < p.z < hipline_z + 0.10 * k):
-            continue
-        n = (rot @ v.normal).normalized()
-        # Keep only vertices whose normals face the front surface. The old
-        # permissive threshold admitted interior/side-facing vertices, placing
-        # the midline well inside the pelvis instead of on the visible skin.
-        if p.y > 0.0 or n.y > -0.15:
-            continue
-        pts.append((p.y, p.z))
+    samples = 240
+    for index in range(samples + 1):
+        z = z_top + (z_bottom - z_top) * index / samples
+        hit = front_hit_data(tree, 0.0, z)
+        if hit is not None:
+            pts.append((hit[0].y, hit[0].z))
+
     if len(pts) < 8:
-        raise RuntimeError("Could not extract the pelvic midline surface (%d points)" % len(pts))
-    cy, cz = -0.02 * k, hipline_z + 0.035 * k
-    pts.sort(key=lambda q: math.atan2(-(q[1] - cz), -(q[0] - cy)))
-    # light smoothing (1-2-1) to remove vertex jitter
-    for _ in range(4):
+        raise RuntimeError("Could not ray-sample the visible pelvic midline surface (%d points)" % len(pts))
+
+    # Rays are sampled from upper mons toward the perineum; sort by descending z
+    # so arc length increases toward the introitus.
+    pts.sort(key=lambda point: point[1], reverse=True)
+    deduplicated = []
+    for point in pts:
+        if not deduplicated or abs(point[1] - deduplicated[-1][1]) > 1e-6:
+            deduplicated.append(point)
+    pts = deduplicated
+
+    # Light smoothing (1-2-1) removes ray-sampling jitter without moving the line
+    # away from the exterior surface.
+    for _ in range(3):
         pts = [pts[0]] + [
             (0.25 * pts[i - 1][0] + 0.5 * pts[i][0] + 0.25 * pts[i + 1][0],
              0.25 * pts[i - 1][1] + 0.5 * pts[i][1] + 0.25 * pts[i + 1][1])
             for i in range(1, len(pts) - 1)] + [pts[-1]]
-    # resample uniformly (1.5 mm)
+
     seg = [0.0]
     for i in range(1, len(pts)):
         seg.append(seg[-1] + math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]))
     step = 0.0015 * k
-    out, s, j = [], 0.0, 0
-    while s <= seg[-1]:
-        while j < len(seg) - 2 and seg[j + 1] < s:
-            j += 1
-        f = (s - seg[j]) / max(seg[j + 1] - seg[j], 1e-9)
-        out.append((pts[j][0] + f * (pts[j + 1][0] - pts[j][0]),
-                    pts[j][1] + f * (pts[j + 1][1] - pts[j][1])))
-        s += step
-    arc = [i * step for i in range(len(out))]
+    out, distance, segment = [], 0.0, 0
+    while distance <= seg[-1]:
+        while segment < len(seg) - 2 and seg[segment + 1] < distance:
+            segment += 1
+        fraction = (distance - seg[segment]) / max(seg[segment + 1] - seg[segment], 1e-9)
+        out.append((
+            pts[segment][0] + fraction * (pts[segment + 1][0] - pts[segment][0]),
+            pts[segment][1] + fraction * (pts[segment + 1][1] - pts[segment][1]),
+        ))
+        distance += step
+    arc = [index * step for index in range(len(out))]
     return out, arc
-
 
 def _locate_introitus(line, arc, k):
     """The introitus sits where the front surface turns under: the foremost point of the underside."""
