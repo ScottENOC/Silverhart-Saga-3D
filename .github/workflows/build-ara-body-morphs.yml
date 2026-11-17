@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Prepare identical character profiles with different muscle values
+      - name: Prepare bare-body profiles with different muscle values
         run: |
           python - <<'PY'
           import json
@@ -37,20 +37,48 @@ jobs:
           source = json.loads(Path("character-preview/wren-ara.json").read_text())
           for name, muscle in (("base", 0.20), ("muscle", 0.80)):
               profile = json.loads(json.dumps(source))
-              profile["params"]["name"] = "Morph topology probe"
-              profile["params"]["muscle"] = muscle
-              profile["params"]["outfit"] = "none"
-              profile["params"]["top"] = "none"
-              profile["params"]["bottom"] = "none"
+              params = profile["params"]
+              params.update({
+                  "name": f"MorphProbe_{name}",
+                  "seed": 1,
+                  "gender": 0,
+                  "ageYears": 25,
+                  "muscle": muscle,
+                  "weight": 0.5,
+                  "height": 0.5,
+                  "proportions": 0.5,
+                  "breastSize": 0.5,
+                  "breastFirmness": 0.5,
+                  "hair": "none",
+                  "eyebrows": "none",
+                  "eyelashes": "none",
+                  "outfit": "none",
+                  "top": "none",
+                  "jacket": "none",
+                  "bottom": "none",
+                  "underwear": False,
+                  "shoes": "none",
+                  "hat": "none",
+                  "accessories": [],
+                  "tattoos": [],
+                  "earrings": "none",
+                  "rig": "none",
+                  "faceBones": False,
+                  "animations": False,
+                  "faceShapes": False,
+                  "speechShapes": False,
+                  "teeth": "none",
+                  "tongue": False,
+              })
               Path(f"build/morph-probe/{name}.json").parent.mkdir(parents=True, exist_ok=True)
-              Path(f"build/morph-probe/{name}.json").write_text(json.dumps(profile, indent=2) + "\n")
+              Path(f"build/morph-probe/{name}.json").write_text(json.dumps(profile, indent=2) + "\\n")
           PY
 
-      - name: Export the base and muscle-variant characters at medium detail
+      - name: Export bare base and muscle-variant bodies at medium detail
         run: |
           set -euo pipefail
-          npx --yes ara3d@latest export --params build/morph-probe/base.json --detail medium --no-animations --formats glb --out build/morph-probe/base
-          npx --yes ara3d@latest export --params build/morph-probe/muscle.json --detail medium --no-animations --formats glb --out build/morph-probe/muscle
+          npx --yes ara3d@latest export --params build/morph-probe/base.json --detail medium --no-animations --out build/morph-probe/base
+          npx --yes ara3d@latest export --params build/morph-probe/muscle.json --detail medium --no-animations --out build/morph-probe/muscle
           base="$(find build/morph-probe/base -maxdepth 1 -type f -name '*.glb' | head -n 1)"
           muscle="$(find build/morph-probe/muscle -maxdepth 1 -type f -name '*.glb' | head -n 1)"
           test -s "$base"
@@ -63,9 +91,9 @@ jobs:
           set -euo pipefail
           base="$(cat build/morph-probe/base-path.txt)"
           muscle="$(cat build/morph-probe/muscle-path.txt)"
-          python tools/makehuman/compare_glb_topology.py \
-            --base "$base" \
-            --variant "$muscle" \
+          python tools/makehuman/compare_glb_topology.py \\
+            --base "$base" \\
+            --variant "$muscle" \\
             --output build/morph-probe/topology-report.json
 
       - name: Upload topology probe
