@@ -17,6 +17,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#DDAE8D",
+        "eye_colour": "green",
+        "hair_colour": "#87452D",
+        "hair_style": "buzz",
+        "height": 0.52,
+        "muscle": 0.58,
+        "weight": 0.7,
+        "proportions": 0.62,
+        "breasts": 0,
+        "legs": 0.68
       }
     },
     {
@@ -30,6 +45,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#C99A75",
+        "eye_colour": "brown",
+        "hair_colour": "#38251D",
+        "hair_style": "bob01",
+        "height": 0.44,
+        "muscle": 0.38,
+        "weight": 0.34,
+        "proportions": 0.46,
+        "breasts": 0.43,
+        "legs": 0.43
       }
     },
     {
@@ -43,6 +73,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#B98260",
+        "eye_colour": "brownlight",
+        "hair_colour": "#4B2F24",
+        "hair_style": "buzz",
+        "height": 0.63,
+        "muscle": 0.6,
+        "weight": 0.54,
+        "proportions": 0.58,
+        "breasts": 0,
+        "legs": 0.64
       }
     },
     {
@@ -56,6 +101,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "short04",
+        "height": 0.43,
+        "muscle": 0.3,
+        "weight": 0.48,
+        "proportions": 0.44,
+        "breasts": 0,
+        "legs": 0.4
       }
     },
     {
@@ -69,6 +129,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "ponytail01",
+        "height": 0.76,
+        "muscle": 0.88,
+        "weight": 0.48,
+        "proportions": 0.72,
+        "breasts": 0,
+        "legs": 0.74
       }
     },
     {
@@ -82,6 +157,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "cornrows",
+        "height": 0.62,
+        "muscle": 0.64,
+        "weight": 0.44,
+        "proportions": 0.56,
+        "breasts": 0,
+        "legs": 0.6
       }
     },
     {
@@ -95,6 +185,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#B98260",
+        "eye_colour": "brownlight",
+        "hair_colour": "#4B2F24",
+        "hair_style": "box_braids",
+        "height": 0.58,
+        "muscle": 0.76,
+        "weight": 0.78,
+        "proportions": 0.62,
+        "breasts": 0,
+        "legs": 0.7
       }
     },
     {
@@ -108,6 +213,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "braid01",
+        "height": 0.52,
+        "muscle": 0.4,
+        "weight": 0.4,
+        "proportions": 0.48,
+        "breasts": 0.58,
+        "legs": 0.48
       }
     },
     {
@@ -121,6 +241,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#E8C5A5",
+        "eye_colour": "blue",
+        "hair_colour": "#C6A16B",
+        "hair_style": "bob01",
+        "height": 0.46,
+        "muscle": 0.36,
+        "weight": 0.58,
+        "proportions": 0.52,
+        "breasts": 0.66,
+        "legs": 0.58
       }
     },
     {
@@ -134,6 +269,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#C99A75",
+        "eye_colour": "brown",
+        "hair_colour": "#38251D",
+        "hair_style": "afro01",
+        "height": 0.85,
+        "muscle": 0.78,
+        "weight": 0.3,
+        "proportions": 0.66,
+        "breasts": 0,
+        "legs": 0.75
       }
     },
     {
@@ -142,11 +292,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "cornrows",
+        "height": 0.35,
+        "muscle": 0.53,
+        "weight": 0.29,
+        "proportions": 0.44,
+        "breasts": 0,
+        "legs": 0.67
       }
     },
     {
@@ -155,11 +320,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#E8C5A5",
+        "eye_colour": "blue",
+        "hair_colour": "#C6A16B",
+        "hair_style": "bob01",
+        "height": 0.6,
+        "muscle": 0.26,
+        "weight": 0.35,
+        "proportions": 0.51,
+        "breasts": 0.5,
+        "legs": 0.43
       }
     },
     {
@@ -173,6 +353,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#A87552",
+        "eye_colour": "hazel",
+        "hair_colour": "#241A16",
+        "hair_style": "short01",
+        "height": 0.68,
+        "muscle": 0.7,
+        "weight": 0.48,
+        "proportions": 0.62,
+        "breasts": 0,
+        "legs": 0.68
       }
     },
     {
@@ -181,11 +376,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "long01",
+        "height": 0.71,
+        "muscle": 0.59,
+        "weight": 0.7,
+        "proportions": 0.4,
+        "breasts": 0,
+        "legs": 0.68
       }
     },
     {
@@ -194,11 +404,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "braid01",
+        "height": 0.74,
+        "muscle": 0.77,
+        "weight": 0.71,
+        "proportions": 0.48,
+        "breasts": 0.68,
+        "legs": 0.7
       }
     },
     {
@@ -207,11 +432,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "buzz",
+        "height": 0.81,
+        "muscle": 0.32,
+        "weight": 0.76,
+        "proportions": 0.43,
+        "breasts": 0,
+        "legs": 0.4
       }
     },
     {
@@ -220,11 +460,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#DDAE8D",
+        "eye_colour": "green",
+        "hair_colour": "#87452D",
+        "hair_style": "box_braids",
+        "height": 0.6,
+        "muscle": 0.51,
+        "weight": 0.56,
+        "proportions": 0.66,
+        "breasts": 0,
+        "legs": 0.51
       }
     },
     {
@@ -233,11 +488,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#B98260",
+        "eye_colour": "brownlight",
+        "hair_colour": "#4B2F24",
+        "hair_style": "short03",
+        "height": 0.83,
+        "muscle": 0.35,
+        "weight": 0.61,
+        "proportions": 0.43,
+        "breasts": 0.44,
+        "legs": 0.65
       }
     },
     {
@@ -246,11 +516,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "short02",
+        "height": 0.73,
+        "muscle": 0.59,
+        "weight": 0.65,
+        "proportions": 0.5,
+        "breasts": 0,
+        "legs": 0.66
       }
     },
     {
@@ -259,11 +544,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#E0B99B",
+        "eye_colour": "grey",
+        "hair_colour": "#8A6A4C",
+        "hair_style": "bob02",
+        "height": 0.67,
+        "muscle": 0.39,
+        "weight": 0.51,
+        "proportions": 0.43,
+        "breasts": 0.66,
+        "legs": 0.53
       }
     },
     {
@@ -272,11 +572,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#9A6D50",
+        "eye_colour": "brown",
+        "hair_colour": "#756B60",
+        "hair_style": "short03",
+        "height": 0.68,
+        "muscle": 0.72,
+        "weight": 0.58,
+        "proportions": 0.5,
+        "breasts": 0,
+        "legs": 0.66
       }
     },
     {
@@ -285,11 +600,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#5A3426",
+        "eye_colour": "brown",
+        "hair_colour": "#17120F",
+        "hair_style": "braid01",
+        "height": 0.56,
+        "muscle": 0.78,
+        "weight": 0.25,
+        "proportions": 0.62,
+        "breasts": 0.2,
+        "legs": 0.7
       }
     },
     {
@@ -298,11 +628,26 @@
       "race": "elf",
       "gender": "female",
       "visual_archetype": "ara_elf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#B98260",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "long01",
+        "height": 0.58,
+        "muscle": 0.3,
+        "weight": 0.32,
+        "proportions": 0.5,
+        "breasts": 0.7,
+        "legs": 0.46
       }
     },
     {
@@ -311,11 +656,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#E0B99B",
+        "eye_colour": "hazel",
+        "hair_colour": "#87452D",
+        "hair_style": "short02",
+        "height": 0.6,
+        "muscle": 0.52,
+        "weight": 0.5,
+        "proportions": 0.5,
+        "breasts": 0,
+        "legs": 0.57
       }
     },
     {
@@ -324,11 +684,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "short03",
+        "height": 0.54,
+        "muscle": 0.84,
+        "weight": 0.33,
+        "proportions": 0.66,
+        "breasts": 0.66,
+        "legs": 0.78
       }
     },
     {
@@ -342,6 +717,21 @@
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#E0B99B",
+        "eye_colour": "grey",
+        "hair_colour": "#8A6A4C",
+        "hair_style": "bob01",
+        "height": 0.42,
+        "muscle": 0.28,
+        "weight": 0.48,
+        "proportions": 0.46,
+        "breasts": 0.4,
+        "legs": 0.42
       }
     },
     {
@@ -350,11 +740,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#B98260",
+        "eye_colour": "brownlight",
+        "hair_colour": "#4B2F24",
+        "hair_style": "braid01",
+        "height": 0.82,
+        "muscle": 0.7,
+        "weight": 0.74,
+        "proportions": 0.66,
+        "breasts": 0,
+        "legs": 0.6
       }
     },
     {
@@ -363,11 +768,26 @@
       "race": "dwarf",
       "gender": "female",
       "visual_archetype": "ara_dwarf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "long01",
+        "height": 0.73,
+        "muscle": 0.82,
+        "weight": 0.3,
+        "proportions": 0.51,
+        "breasts": 0.47,
+        "legs": 0.61
       }
     },
     {
@@ -376,11 +796,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#C99A75",
+        "eye_colour": "brown",
+        "hair_colour": "#38251D",
+        "hair_style": "short04",
+        "height": 0.52,
+        "muscle": 0.6,
+        "weight": 0.24,
+        "proportions": 0.56,
+        "breasts": 0,
+        "legs": 0.72
       }
     },
     {
@@ -389,11 +824,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#E0B99B",
+        "eye_colour": "grey",
+        "hair_colour": "#8A6A4C",
+        "hair_style": "bob02",
+        "height": 0.68,
+        "muscle": 0.57,
+        "weight": 0.47,
+        "proportions": 0.65,
+        "breasts": 0.21,
+        "legs": 0.48
       }
     },
     {
@@ -402,11 +852,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "short03",
+        "height": 0.63,
+        "muscle": 0.51,
+        "weight": 0.37,
+        "proportions": 0.45,
+        "breasts": 0,
+        "legs": 0.52
       }
     },
     {
@@ -415,11 +880,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#DDAE8D",
+        "eye_colour": "green",
+        "hair_colour": "#87452D",
+        "hair_style": "short02",
+        "height": 0.44,
+        "muscle": 0.65,
+        "weight": 0.76,
+        "proportions": 0.58,
+        "breasts": 0.22,
+        "legs": 0.67
       }
     },
     {
@@ -428,11 +908,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#E8C5A5",
+        "eye_colour": "blue",
+        "hair_colour": "#C6A16B",
+        "hair_style": "braid01",
+        "height": 0.72,
+        "muscle": 0.53,
+        "weight": 0.59,
+        "proportions": 0.67,
+        "breasts": 0,
+        "legs": 0.69
       }
     },
     {
@@ -441,11 +936,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#E8C5A5",
+        "eye_colour": "blue",
+        "hair_colour": "#C6A16B",
+        "hair_style": "short03",
+        "height": 0.79,
+        "muscle": 0.55,
+        "weight": 0.6,
+        "proportions": 0.38,
+        "breasts": 0.31,
+        "legs": 0.38
       }
     },
     {
@@ -454,11 +964,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "short03",
+        "height": 0.73,
+        "muscle": 0.7,
+        "weight": 0.37,
+        "proportions": 0.59,
+        "breasts": 0.52,
+        "legs": 0.63
       }
     },
     {
@@ -467,11 +992,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "short01",
+        "height": 0.87,
+        "muscle": 0.51,
+        "weight": 0.78,
+        "proportions": 0.56,
+        "breasts": 0,
+        "legs": 0.5
       }
     },
     {
@@ -480,11 +1020,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#DDAE8D",
+        "eye_colour": "green",
+        "hair_colour": "#87452D",
+        "hair_style": "ponytail01",
+        "height": 0.36,
+        "muscle": 0.63,
+        "weight": 0.65,
+        "proportions": 0.53,
+        "breasts": 0,
+        "legs": 0.55
       }
     },
     {
@@ -493,11 +1048,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "bob01",
+        "height": 0.78,
+        "muscle": 0.62,
+        "weight": 0.55,
+        "proportions": 0.46,
+        "breasts": 0.72,
+        "legs": 0.47
       }
     },
     {
@@ -506,11 +1076,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#C99A75",
+        "eye_colour": "brown",
+        "hair_colour": "#38251D",
+        "hair_style": "cornrows",
+        "height": 0.39,
+        "muscle": 0.38,
+        "weight": 0.72,
+        "proportions": 0.57,
+        "breasts": 0,
+        "legs": 0.41
       }
     },
     {
@@ -519,11 +1104,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#A87552",
+        "eye_colour": "hazel",
+        "hair_colour": "#241A16",
+        "hair_style": "afro01",
+        "height": 0.54,
+        "muscle": 0.29,
+        "weight": 0.51,
+        "proportions": 0.45,
+        "breasts": 0.71,
+        "legs": 0.7
       }
     },
     {
@@ -532,11 +1132,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#E0B99B",
+        "eye_colour": "grey",
+        "hair_colour": "#8A6A4C",
+        "hair_style": "short01",
+        "height": 0.74,
+        "muscle": 0.36,
+        "weight": 0.36,
+        "proportions": 0.66,
+        "breasts": 0,
+        "legs": 0.79
       }
     },
     {
@@ -545,11 +1160,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#B98260",
+        "eye_colour": "brownlight",
+        "hair_colour": "#4B2F24",
+        "hair_style": "bob02",
+        "height": 0.83,
+        "muscle": 0.38,
+        "weight": 0.56,
+        "proportions": 0.39,
+        "breasts": 0.45,
+        "legs": 0.45
       }
     },
     {
@@ -558,11 +1188,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#C99A75",
+        "eye_colour": "brown",
+        "hair_colour": "#38251D",
+        "hair_style": "short02",
+        "height": 0.67,
+        "muscle": 0.4,
+        "weight": 0.28,
+        "proportions": 0.64,
+        "breasts": 0,
+        "legs": 0.61
       }
     },
     {
@@ -571,11 +1216,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#A87552",
+        "eye_colour": "hazel",
+        "hair_colour": "#241A16",
+        "hair_style": "afro01",
+        "height": 0.71,
+        "muscle": 0.84,
+        "weight": 0.24,
+        "proportions": 0.56,
+        "breasts": 0.72,
+        "legs": 0.73
       }
     },
     {
@@ -584,11 +1244,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "short04",
+        "height": 0.6,
+        "muscle": 0.84,
+        "weight": 0.39,
+        "proportions": 0.49,
+        "breasts": 0,
+        "legs": 0.72
       }
     },
     {
@@ -597,11 +1272,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "bob02",
+        "height": 0.81,
+        "muscle": 0.27,
+        "weight": 0.71,
+        "proportions": 0.61,
+        "breasts": 0.59,
+        "legs": 0.48
       }
     },
     {
@@ -610,11 +1300,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "box_braids",
+        "height": 0.85,
+        "muscle": 0.42,
+        "weight": 0.4,
+        "proportions": 0.48,
+        "breasts": 0,
+        "legs": 0.76
       }
     },
     {
@@ -623,11 +1328,26 @@
       "race": "dwarf",
       "gender": "female",
       "visual_archetype": "ara_dwarf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#C18A68",
+        "eye_colour": "brown",
+        "hair_colour": "#A05A32",
+        "hair_style": "bob02",
+        "height": 0.65,
+        "muscle": 0.71,
+        "weight": 0.45,
+        "proportions": 0.62,
+        "breasts": 0.24,
+        "legs": 0.68
       }
     },
     {
@@ -636,11 +1356,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#DDAE8D",
+        "eye_colour": "green",
+        "hair_colour": "#87452D",
+        "hair_style": "short02",
+        "height": 0.81,
+        "muscle": 0.48,
+        "weight": 0.7,
+        "proportions": 0.5,
+        "breasts": 0.67,
+        "legs": 0.77
       }
     },
     {
@@ -649,11 +1384,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "buzz",
+        "height": 0.61,
+        "muscle": 0.64,
+        "weight": 0.43,
+        "proportions": 0.51,
+        "breasts": 0,
+        "legs": 0.57
       }
     },
     {
@@ -662,11 +1412,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#E8C5A5",
+        "eye_colour": "blue",
+        "hair_colour": "#C6A16B",
+        "hair_style": "braid01",
+        "height": 0.86,
+        "muscle": 0.57,
+        "weight": 0.23,
+        "proportions": 0.39,
+        "breasts": 0.31,
+        "legs": 0.51
       }
     },
     {
@@ -675,11 +1440,26 @@
       "race": "elf",
       "gender": "male",
       "visual_archetype": "ara_elf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "cornrows",
+        "height": 0.58,
+        "muscle": 0.5,
+        "weight": 0.55,
+        "proportions": 0.52,
+        "breasts": 0,
+        "legs": 0.46
       }
     },
     {
@@ -688,11 +1468,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#A87552",
+        "eye_colour": "hazel",
+        "hair_colour": "#241A16",
+        "hair_style": "short01",
+        "height": 0.52,
+        "muscle": 0.72,
+        "weight": 0.58,
+        "proportions": 0.58,
+        "breasts": 0,
+        "legs": 0.76
       }
     },
     {
@@ -701,11 +1496,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "afro01",
+        "height": 0.77,
+        "muscle": 0.72,
+        "weight": 0.73,
+        "proportions": 0.48,
+        "breasts": 0,
+        "legs": 0.74
       }
     },
     {
@@ -714,11 +1524,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "cornrows",
+        "height": 0.76,
+        "muscle": 0.41,
+        "weight": 0.58,
+        "proportions": 0.65,
+        "breasts": 0.39,
+        "legs": 0.69
       }
     },
     {
@@ -727,11 +1552,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#DDAE8D",
+        "eye_colour": "green",
+        "hair_colour": "#87452D",
+        "hair_style": "cornrows",
+        "height": 0.85,
+        "muscle": 0.71,
+        "weight": 0.27,
+        "proportions": 0.44,
+        "breasts": 0,
+        "legs": 0.65
       }
     },
     {
@@ -740,11 +1580,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "short04",
+        "height": 0.62,
+        "muscle": 0.68,
+        "weight": 0.42,
+        "proportions": 0.54,
+        "breasts": 0,
+        "legs": 0.41
       }
     },
     {
@@ -753,11 +1608,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "buzz",
+        "height": 0.68,
+        "muscle": 0.68,
+        "weight": 0.36,
+        "proportions": 0.57,
+        "breasts": 0,
+        "legs": 0.43
       }
     },
     {
@@ -766,11 +1636,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#E0B99B",
+        "eye_colour": "grey",
+        "hair_colour": "#8A6A4C",
+        "hair_style": "long01",
+        "height": 0.74,
+        "muscle": 0.63,
+        "weight": 0.66,
+        "proportions": 0.51,
+        "breasts": 0,
+        "legs": 0.55
       }
     },
     {
@@ -779,11 +1664,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "short03",
+        "height": 0.62,
+        "muscle": 0.38,
+        "weight": 0.32,
+        "proportions": 0.59,
+        "breasts": 0.26,
+        "legs": 0.46
       }
     },
     {
@@ -792,11 +1692,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "box_braids",
+        "height": 0.77,
+        "muscle": 0.39,
+        "weight": 0.27,
+        "proportions": 0.48,
+        "breasts": 0,
+        "legs": 0.48
       }
     },
     {
@@ -805,11 +1720,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#DDAE8D",
+        "eye_colour": "green",
+        "hair_colour": "#87452D",
+        "hair_style": "long01",
+        "height": 0.68,
+        "muscle": 0.65,
+        "weight": 0.41,
+        "proportions": 0.55,
+        "breasts": 0,
+        "legs": 0.71
       }
     },
     {
@@ -818,11 +1748,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#DDAE8D",
+        "eye_colour": "green",
+        "hair_colour": "#87452D",
+        "hair_style": "cornrows",
+        "height": 0.42,
+        "muscle": 0.36,
+        "weight": 0.31,
+        "proportions": 0.66,
+        "breasts": 0.42,
+        "legs": 0.78
       }
     },
     {
@@ -831,11 +1776,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "cornrows",
+        "height": 0.47,
+        "muscle": 0.49,
+        "weight": 0.62,
+        "proportions": 0.4,
+        "breasts": 0,
+        "legs": 0.37
       }
     },
     {
@@ -844,11 +1804,26 @@
       "race": "elf",
       "gender": "female",
       "visual_archetype": "ara_elf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#B98260",
+        "eye_colour": "brownlight",
+        "hair_colour": "#4B2F24",
+        "hair_style": "bob02",
+        "height": 0.69,
+        "muscle": 0.71,
+        "weight": 0.3,
+        "proportions": 0.62,
+        "breasts": 0.35,
+        "legs": 0.67
       }
     },
     {
@@ -857,11 +1832,26 @@
       "race": "elf",
       "gender": "male",
       "visual_archetype": "ara_elf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#B98260",
+        "eye_colour": "brownlight",
+        "hair_colour": "#4B2F24",
+        "hair_style": "box_braids",
+        "height": 0.35,
+        "muscle": 0.57,
+        "weight": 0.65,
+        "proportions": 0.54,
+        "breasts": 0,
+        "legs": 0.54
       }
     },
     {
@@ -870,11 +1860,26 @@
       "race": "dwarf",
       "gender": "male",
       "visual_archetype": "ara_dwarf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#C18A68",
+        "eye_colour": "green",
+        "hair_colour": "#6A3B24",
+        "hair_style": "long01",
+        "height": 0.75,
+        "muscle": 0.61,
+        "weight": 0.59,
+        "proportions": 0.48,
+        "breasts": 0,
+        "legs": 0.35
       }
     },
     {
@@ -883,11 +1888,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#A87552",
+        "eye_colour": "hazel",
+        "hair_colour": "#241A16",
+        "hair_style": "cornrows",
+        "height": 0.46,
+        "muscle": 0.83,
+        "weight": 0.37,
+        "proportions": 0.49,
+        "breasts": 0.51,
+        "legs": 0.69
       }
     },
     {
@@ -896,11 +1916,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "buzz",
+        "height": 0.42,
+        "muscle": 0.52,
+        "weight": 0.25,
+        "proportions": 0.53,
+        "breasts": 0,
+        "legs": 0.57
       }
     },
     {
@@ -909,11 +1944,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#E8C5A5",
+        "eye_colour": "blue",
+        "hair_colour": "#C6A16B",
+        "hair_style": "braid01",
+        "height": 0.59,
+        "muscle": 0.78,
+        "weight": 0.55,
+        "proportions": 0.5,
+        "breasts": 0,
+        "legs": 0.75
       }
     },
     {
@@ -922,11 +1972,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#E0B99B",
+        "eye_colour": "grey",
+        "hair_colour": "#8A6A4C",
+        "hair_style": "ponytail01",
+        "height": 0.82,
+        "muscle": 0.56,
+        "weight": 0.32,
+        "proportions": 0.49,
+        "breasts": 0,
+        "legs": 0.46
       }
     },
     {
@@ -935,11 +2000,26 @@
       "race": "dwarf",
       "gender": "female",
       "visual_archetype": "ara_dwarf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#C18A68",
+        "eye_colour": "hazel",
+        "hair_colour": "#38251D",
+        "hair_style": "afro01",
+        "height": 0.34,
+        "muscle": 0.69,
+        "weight": 0.64,
+        "proportions": 0.48,
+        "breasts": 0.21,
+        "legs": 0.52
       }
     },
     {
@@ -948,11 +2028,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#A87552",
+        "eye_colour": "hazel",
+        "hair_colour": "#241A16",
+        "hair_style": "afro01",
+        "height": 0.66,
+        "muscle": 0.5,
+        "weight": 0.49,
+        "proportions": 0.67,
+        "breasts": 0,
+        "legs": 0.43
       }
     },
     {
@@ -961,11 +2056,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#B98260",
+        "eye_colour": "brownlight",
+        "hair_colour": "#4B2F24",
+        "hair_style": "box_braids",
+        "height": 0.76,
+        "muscle": 0.79,
+        "weight": 0.35,
+        "proportions": 0.65,
+        "breasts": 0.38,
+        "legs": 0.34
       }
     },
     {
@@ -974,11 +2084,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "braid01",
+        "height": 0.74,
+        "muscle": 0.43,
+        "weight": 0.73,
+        "proportions": 0.66,
+        "breasts": 0,
+        "legs": 0.34
       }
     },
     {
@@ -987,11 +2112,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#DDAE8D",
+        "eye_colour": "green",
+        "hair_colour": "#87452D",
+        "hair_style": "afro01",
+        "height": 0.82,
+        "muscle": 0.37,
+        "weight": 0.24,
+        "proportions": 0.6,
+        "breasts": 0.72,
+        "legs": 0.33
       }
     },
     {
@@ -1000,11 +2140,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "braid01",
+        "height": 0.64,
+        "muscle": 0.83,
+        "weight": 0.44,
+        "proportions": 0.48,
+        "breasts": 0,
+        "legs": 0.71
       }
     },
     {
@@ -1013,11 +2168,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "short02",
+        "height": 0.73,
+        "muscle": 0.25,
+        "weight": 0.44,
+        "proportions": 0.5,
+        "breasts": 0.42,
+        "legs": 0.39
       }
     },
     {
@@ -1026,11 +2196,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#B98260",
+        "eye_colour": "brownlight",
+        "hair_colour": "#4B2F24",
+        "hair_style": "ponytail01",
+        "height": 0.6,
+        "muscle": 0.81,
+        "weight": 0.76,
+        "proportions": 0.48,
+        "breasts": 0.49,
+        "legs": 0.5
       }
     },
     {
@@ -1039,11 +2224,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#A87552",
+        "eye_colour": "hazel",
+        "hair_colour": "#241A16",
+        "hair_style": "afro01",
+        "height": 0.71,
+        "muscle": 0.41,
+        "weight": 0.55,
+        "proportions": 0.65,
+        "breasts": 0,
+        "legs": 0.64
       }
     },
     {
@@ -1052,11 +2252,26 @@
       "race": "elf",
       "gender": "female",
       "visual_archetype": "ara_elf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#70452F",
+        "eye_colour": "darkbrown",
+        "hair_colour": "#17120F",
+        "hair_style": "short03",
+        "height": 0.37,
+        "muscle": 0.56,
+        "weight": 0.69,
+        "proportions": 0.39,
+        "breasts": 0.25,
+        "legs": 0.45
       }
     },
     {
@@ -1065,11 +2280,26 @@
       "race": "dwarf",
       "gender": "male",
       "visual_archetype": "ara_dwarf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "short01",
+        "height": 0.8,
+        "muscle": 0.42,
+        "weight": 0.64,
+        "proportions": 0.54,
+        "breasts": 0,
+        "legs": 0.73
       }
     },
     {
@@ -1078,11 +2308,26 @@
       "race": "dwarf",
       "gender": "male",
       "visual_archetype": "ara_dwarf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "afro01",
+        "height": 0.41,
+        "muscle": 0.67,
+        "weight": 0.33,
+        "proportions": 0.44,
+        "breasts": 0,
+        "legs": 0.37
       }
     },
     {
@@ -1091,11 +2336,26 @@
       "race": "dwarf",
       "gender": "female",
       "visual_archetype": "ara_dwarf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#C18A68",
+        "eye_colour": "hazel",
+        "hair_colour": "#A05A32",
+        "hair_style": "bob02",
+        "height": 0.51,
+        "muscle": 0.78,
+        "weight": 0.46,
+        "proportions": 0.44,
+        "breasts": 0.25,
+        "legs": 0.74
       }
     },
     {
@@ -1104,11 +2364,26 @@
       "race": "dwarf",
       "gender": "male",
       "visual_archetype": "ara_dwarf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "buzz",
+        "height": 0.35,
+        "muscle": 0.31,
+        "weight": 0.68,
+        "proportions": 0.57,
+        "breasts": 0,
+        "legs": 0.36
       }
     },
     {
@@ -1117,11 +2392,26 @@
       "race": "dwarf",
       "gender": "female",
       "visual_archetype": "ara_dwarf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "ponytail01",
+        "height": 0.6,
+        "muscle": 0.53,
+        "weight": 0.52,
+        "proportions": 0.66,
+        "breasts": 0.51,
+        "legs": 0.65
       }
     },
     {
@@ -1130,11 +2420,26 @@
       "race": "dwarf",
       "gender": "male",
       "visual_archetype": "ara_dwarf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#C18A68",
+        "eye_colour": "brown",
+        "hair_colour": "#6A3B24",
+        "hair_style": "braid01",
+        "height": 0.38,
+        "muscle": 0.71,
+        "weight": 0.31,
+        "proportions": 0.67,
+        "breasts": 0,
+        "legs": 0.65
       }
     },
     {
@@ -1143,11 +2448,26 @@
       "race": "elf",
       "gender": "female",
       "visual_archetype": "ara_elf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#C99A75",
+        "eye_colour": "brown",
+        "hair_colour": "#38251D",
+        "hair_style": "short02",
+        "height": 0.49,
+        "muscle": 0.68,
+        "weight": 0.26,
+        "proportions": 0.51,
+        "breasts": 0.48,
+        "legs": 0.47
       }
     },
     {
@@ -1156,11 +2476,26 @@
       "race": "elf",
       "gender": "male",
       "visual_archetype": "ara_elf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#E3C7AE",
+        "eye_colour": "green",
+        "hair_colour": "#9B8A70",
+        "hair_style": "braid01",
+        "height": 0.69,
+        "muscle": 0.37,
+        "weight": 0.53,
+        "proportions": 0.59,
+        "breasts": 0,
+        "legs": 0.34
       }
     },
     {
@@ -1169,11 +2504,26 @@
       "race": "elf",
       "gender": "male",
       "visual_archetype": "ara_elf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#E3C7AE",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#4B382C",
+        "hair_style": "afro01",
+        "height": 0.47,
+        "muscle": 0.57,
+        "weight": 0.6,
+        "proportions": 0.63,
+        "breasts": 0,
+        "legs": 0.51
       }
     },
     {
@@ -1182,11 +2532,26 @@
       "race": "elf",
       "gender": "female",
       "visual_archetype": "ara_elf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#E3C7AE",
+        "eye_colour": "green",
+        "hair_colour": "#6D4938",
+        "hair_style": "braid01",
+        "height": 0.7,
+        "muscle": 0.27,
+        "weight": 0.77,
+        "proportions": 0.43,
+        "breasts": 0.58,
+        "legs": 0.54
       }
     },
     {
@@ -1195,11 +2560,26 @@
       "race": "elf",
       "gender": "female",
       "visual_archetype": "ara_elf",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "short02",
+        "height": 0.48,
+        "muscle": 0.37,
+        "weight": 0.71,
+        "proportions": 0.42,
+        "breasts": 0.22,
+        "legs": 0.38
       }
     },
     {
@@ -1208,11 +2588,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#C99A75",
+        "eye_colour": "brown",
+        "hair_colour": "#38251D",
+        "hair_style": "box_braids",
+        "height": 0.45,
+        "muscle": 0.48,
+        "weight": 0.6,
+        "proportions": 0.44,
+        "breasts": 0,
+        "legs": 0.72
       }
     },
     {
@@ -1221,11 +2616,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "cornrows",
+        "height": 0.63,
+        "muscle": 0.5,
+        "weight": 0.39,
+        "proportions": 0.5,
+        "breasts": 0.55,
+        "legs": 0.44
       }
     },
     {
@@ -1234,11 +2644,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "afro01",
+        "height": 0.35,
+        "muscle": 0.29,
+        "weight": 0.52,
+        "proportions": 0.5,
+        "breasts": 0,
+        "legs": 0.68
       }
     },
     {
@@ -1247,11 +2672,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#D0A17D",
+        "eye_colour": "bluegreen",
+        "hair_colour": "#5A3826",
+        "hair_style": "short01",
+        "height": 0.59,
+        "muscle": 0.29,
+        "weight": 0.6,
+        "proportions": 0.39,
+        "breasts": 0,
+        "legs": 0.67
       }
     },
     {
@@ -1260,11 +2700,26 @@
       "race": "human",
       "gender": "female",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "female",
+        "gender_presentation": "Feminine",
+        "pronouns": "she/her",
+        "skin_colour": "#E0B99B",
+        "eye_colour": "grey",
+        "hair_colour": "#8A6A4C",
+        "hair_style": "long01",
+        "height": 0.56,
+        "muscle": 0.31,
+        "weight": 0.29,
+        "proportions": 0.47,
+        "breasts": 0.54,
+        "legs": 0.38
       }
     },
     {
@@ -1273,11 +2728,26 @@
       "race": "human",
       "gender": "male",
       "visual_archetype": "ara_human",
-      "model_status": "appearance_profile_required",
+      "model_status": "appearance_profile_authored",
       "model_asset": null,
       "source": {
         "repository": "ScottENOC/Hex-crpg",
         "file": "campaign2Content.js"
+      },
+      "appearance": {
+        "body_variant": "male",
+        "gender_presentation": "Masculine",
+        "pronouns": "he/him",
+        "skin_colour": "#8F6045",
+        "eye_colour": "brown",
+        "hair_colour": "#2B1B16",
+        "hair_style": "ponytail01",
+        "height": 0.73,
+        "muscle": 0.29,
+        "weight": 0.43,
+        "proportions": 0.42,
+        "breasts": 0,
+        "legs": 0.65
       }
     }
   ]
