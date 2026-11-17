@@ -1,6 +1,11 @@
 name: Probe Reyna Ara hip and shoulder modifiers
 
 on:
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/probe-reyna-body-modifiers.yml"
+      - "tools/ara/probe_body_modifiers.py"
   workflow_dispatch:
 
 permissions:
