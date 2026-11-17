@@ -42,7 +42,6 @@ jobs:
                   "name": f"MorphProbe_{name}",
                   "seed": 1,
                   "gender": 0,
-                  "ageYears": 25,
                   "muscle": muscle,
                   "weight": 0.5,
                   "height": 0.5,
