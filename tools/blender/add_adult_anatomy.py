@@ -1,4 +1,3 @@
-# CI retrigger after fixing ignored-output staging in the workflow.
 """Sculpt adult female external anatomy directly into the existing Ara skin mesh.
 
 The mons, labial folds, clitoral structures, vestibule and external openings
@@ -283,7 +282,7 @@ def wire_vertex_colour_to_skin_material(material, attribute_name="Color"):
 FEMALE_ANATOMY = {
     # landmark positions along the midline (t axis)
     "t_hood": 0.062, "t_glans": 0.047, "t_meatus": 0.024,
-    "t_introitus": 0.0, "t_fourchette": -0.022, "t_mons": 0.098,
+    "t_introitus": 0.0, "t_fourchette": -0.022, "t_mons": 0.092,
     # labia majora (outer folds) and the cleft between them
     "majora_height": 0.0125, "majora_x": 0.0190, "majora_sigma": 0.0118,
     "cleft_depth": 0.0058, "cleft_sigma": 0.0060,
@@ -294,7 +293,7 @@ FEMALE_ANATOMY = {
     # clitoral complex and openings
     "hood_height": 0.0050, "glans_height": 0.0028,
     "meatus_depth": 0.0012, "introitus_depth": 0.0045,
-    "fourchette_height": 0.0030, "mons_height": 0.0080,
+    "fourchette_height": 0.0030, "mons_height": 0.0060,
     # local mesh density target (faces with longer edges are split)
     "target_edge": 0.0013,
     "posterior_floor": 0.03, "underside_ease": 0.0,   # keep relief out of the thigh gap
@@ -397,14 +396,18 @@ def _project_many(prep, ys, zs, chunk=4000):
     return np.concatenate(out_s), np.concatenate(out_d)
 
 
+def _female_mons(t, x, P):
+    """The broad mons mound. Separate from the fine vulval detail so it can fade out smoothly into the
+    abdomen and hips (a hard cutoff here showed up as a raised plateau with a step edge)."""
+    return P["mons_height"] * _g2(x, t - P["t_mons"], 0.050, 0.040)
+
+
 def _female_displacement(t, x, P):
     """Outward displacement (m, in k-normalised units) at surface coords (t, x)."""
     ax = abs(x)
     th, tg, tm, ti, tf, tmons = (P["t_hood"], P["t_glans"], P["t_meatus"],
                                  P["t_introitus"], P["t_fourchette"], P["t_mons"])
     d = 0.0
-    # mons pubis
-    d += P["mons_height"] * _g2(x, t - tmons, 0.045, 0.036)
     # labia majora: two rounded ridges that converge toward the mons and the fourchette
     xm = P["majora_x"] * (1.0 - 0.35 * _ss(th - 0.020, th + 0.012, t)) \
         * (1.0 - 0.45 * _ss(tf + 0.012, tf - 0.004, t))
@@ -449,7 +452,9 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     bm.normal_update()
     mw, inv, rot = skin.matrix_world, skin.matrix_world.inverted(), skin.matrix_world.to_3x3()
     z_lo, z_hi = hipline_z - 0.15 * k, hipline_z + 0.10 * k
-    t_lo, t_hi = P["t_fourchette"] - 0.025, P["t_mons"] + 0.045
+    t_lo = P["t_fourchette"] - 0.025
+    t_ref_hi = P["t_hood"] + 0.030        # refine only the vulva zone; the broad mons needs no extra vertices
+    t_top = P["t_mons"] + 0.055           # the mons fades to exactly zero here
 
     def coords_for(worlds):
         s_arr, dist = _project_many(prep, [w.y for w in worlds], [w.z for w in worlds])
@@ -462,13 +467,13 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         cand = []
         for f in bm.faces:
             c = mw @ f.calc_center_median()
-            if abs(c.x) <= 0.05 * k and z_lo <= c.z <= z_hi and c.y < 0.02 \
+            if abs(c.x) <= 0.042 * k and z_lo <= c.z <= z_hi and c.y < 0.02 \
                     and f.calc_perimeter() / len(f.verts) > target * 1.6:
                 cand.append((f, c))
         if not cand:
             break
         ts, ds = coords_for([c for _f, c in cand])
-        faces = [f for (f, _c), t, dd in zip(cand, ts, ds) if t_lo <= t <= t_hi and dd <= 0.016]
+        faces = [f for (f, _c), t, dd in zip(cand, ts, ds) if t_lo <= t <= t_ref_hi and dd <= 0.016]
         if not faces:
             break
         edges = list({e for f in faces for e in f.edges})
@@ -478,18 +483,21 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     sel = []
     for v in bm.verts:
         p = mw @ v.co
-        if abs(p.x) <= 0.06 * k and z_lo <= p.z <= z_hi and p.y < 0.02:
+        if abs(p.x) <= 0.065 * k and z_lo <= p.z <= z_hi and p.y < 0.02:
             sel.append((v, p))
     moved = 0
     touched = []
     if sel:
         ts, ds = coords_for([p for _v, p in sel])
         for (v, p), t, dist in zip(sel, ts, ds):
-            if not (t_lo <= t <= t_hi) or dist > 0.020:
+            if not (t_lo <= t <= t_top) or dist > 0.035:
                 continue
-            mask = 1.0 - _ss(0.006, 0.016, dist)      # stay on the skin surface, off inner thighs
-            d = _female_displacement(t, p.x / k, P) * k * mask * amp
-            if abs(d) < 1e-6:
+            w_t = _ss(t_lo, t_lo + 0.025, t) * (1.0 - _ss(t_top - 0.045, t_top, t))     # smooth window ends
+            fine = _female_displacement(t, p.x / k, P) * (1.0 - _ss(0.006, 0.016, dist))   # stay off the inner thighs
+            mons = _female_mons(t, p.x / k, P) * (1.0 - _ss(0.032, 0.060, abs(p.x) / k)) \
+                * (1.0 - _ss(0.010, 0.030, dist))
+            d = (fine + mons) * w_t * k * amp
+            if abs(d) < 1e-7:
                 continue
             n = (rot @ v.normal).normalized()
             if d > 0:
