@@ -23,12 +23,12 @@
         "weight": 0.42,
         "height": 0.55,
         "proportions": 0.58,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "brownlight",
+        "african": 0.35,
+        "asian": 0.35,
+        "caucasian": 0.3,
+        "eyes": "green",
         "hair": "braid01",
-        "hairTint": "#252b62",
+        "hairTint": "#38251D",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -73,8 +73,11 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#252b62",
-        "name": "Wren Talbot"
+        "hairColor": "#38251D",
+        "name": "Wren Talbot",
+        "skinTint": "#A77A55",
+        "breasts": 0.28,
+        "legs": 0.46
       }
     },
     {
@@ -97,12 +100,12 @@
         "weight": 0.7,
         "height": 0.52,
         "proportions": 0.62,
-        "african": 0.05,
+        "african": 0.08,
         "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "brown",
-        "hair": "short02",
-        "hairTint": "#776e61",
+        "caucasian": 0.87,
+        "eyes": "green",
+        "hair": "buzz",
+        "hairTint": "#87452D",
         "facialHair": "short_beard",
         "beardColor": "#665b50",
         "tattoos": [],
@@ -140,8 +143,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#776e61",
-        "name": "Garrick Holt"
+        "hairColor": "#87452D",
+        "name": "Garrick Holt",
+        "skinTint": "#DDAE8D",
+        "legs": 0.73
       }
     },
     {
@@ -164,12 +169,12 @@
         "weight": 0.34,
         "height": 0.44,
         "proportions": 0.46,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "green",
-        "hair": "long01",
-        "hairTint": "#704b32",
+        "african": 0.12,
+        "asian": 0.48,
+        "caucasian": 0.4,
+        "eyes": "brown",
+        "hair": "bob01",
+        "hairTint": "#38251D",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -206,8 +211,11 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#704b32",
-        "name": "Mira Ashbrook"
+        "hairColor": "#38251D",
+        "name": "Mira Ashbrook",
+        "skinTint": "#C99A75",
+        "breasts": 0.41,
+        "legs": 0.43
       }
     },
     {
@@ -230,12 +238,12 @@
         "weight": 0.54,
         "height": 0.63,
         "proportions": 0.58,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "grey",
-        "hair": "short04",
-        "hairTint": "#49372a",
+        "african": 0.38,
+        "asian": 0.4,
+        "caucasian": 0.22,
+        "eyes": "brownlight",
+        "hair": "buzz",
+        "hairTint": "#4B2F24",
         "facialHair": "stubble",
         "beardColor": "#49372a",
         "tattoos": [],
@@ -273,8 +281,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#49372a",
-        "name": "Oskar Vinn"
+        "hairColor": "#4B2F24",
+        "name": "Oskar Vinn",
+        "skinTint": "#B98260",
+        "legs": 0.68
       }
     },
     {
@@ -297,12 +307,12 @@
         "weight": 0.48,
         "height": 0.43,
         "proportions": 0.44,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "blue",
-        "hair": "buzz",
-        "hairTint": "#aaa49a",
+        "african": 0.88,
+        "asian": 0.08,
+        "caucasian": 0.04,
+        "eyes": "darkbrown",
+        "hair": "short04",
+        "hairTint": "#17120F",
         "facialHair": "full_beard",
         "beardColor": "#898176",
         "tattoos": [],
@@ -338,8 +348,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#aaa49a",
-        "name": "Wick Hallow"
+        "hairColor": "#17120F",
+        "name": "Wick Hallow",
+        "skinTint": "#70452F",
+        "legs": 0.7
       }
     },
     {
@@ -362,12 +374,12 @@
         "weight": 0.48,
         "height": 0.76,
         "proportions": 0.72,
-        "african": 0.92,
-        "asian": 0.03,
-        "caucasian": 0.05,
-        "eyes": "darkbrown",
-        "hair": "buzz",
-        "hairTint": "#211a16",
+        "african": 0.7,
+        "asian": 0.2,
+        "caucasian": 0.1,
+        "eyes": "brown",
+        "hair": "ponytail01",
+        "hairTint": "#2B1B16",
         "facialHair": "stubble",
         "beardColor": "#211a16",
         "tattoos": [
@@ -408,8 +420,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "determined",
-        "hairColor": "#211a16",
-        "name": "Dray Coltayne"
+        "hairColor": "#2B1B16",
+        "name": "Dray Coltayne",
+        "skinTint": "#8F6045",
+        "legs": 0.5
       }
     },
     {
@@ -432,12 +446,12 @@
         "weight": 0.44,
         "height": 0.62,
         "proportions": 0.56,
-        "african": 0.05,
-        "asian": 0.9,
-        "caucasian": 0.05,
-        "eyes": "darkbrown",
+        "african": 0.7,
+        "asian": 0.2,
+        "caucasian": 0.1,
+        "eyes": "brown",
         "hair": "cornrows",
-        "hairTint": "#171313",
+        "hairTint": "#2B1B16",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -474,8 +488,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#171313",
-        "name": "Tomlin Brask"
+        "hairColor": "#2B1B16",
+        "name": "Tomlin Brask",
+        "skinTint": "#8F6045",
+        "legs": 0.38
       }
     },
     {
@@ -498,12 +514,12 @@
         "weight": 0.78,
         "height": 0.58,
         "proportions": 0.62,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
+        "african": 0.38,
+        "asian": 0.4,
+        "caucasian": 0.22,
         "eyes": "brownlight",
-        "hair": "short03",
-        "hairTint": "#6e4d35",
+        "hair": "box_braids",
+        "hairTint": "#4B2F24",
         "facialHair": "full_beard",
         "beardColor": "#64462f",
         "tattoos": [
@@ -542,8 +558,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#6e4d35",
-        "name": "Hask Greel"
+        "hairColor": "#4B2F24",
+        "name": "Hask Greel",
+        "skinTint": "#B98260",
+        "legs": 0.76
       }
     },
     {
@@ -566,12 +584,12 @@
         "weight": 0.4,
         "height": 0.52,
         "proportions": 0.48,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
+        "african": 0.12,
+        "asian": 0.25,
+        "caucasian": 0.63,
         "eyes": "bluegreen",
-        "hair": "bob02",
-        "hairTint": "#4d3425",
+        "hair": "braid01",
+        "hairTint": "#5A3826",
         "facialHair": "none",
         "tattoos": [
           "armband_l"
@@ -611,8 +629,11 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#4d3425",
-        "name": "Yvette Marlow"
+        "hairColor": "#5A3826",
+        "name": "Yvette Marlow",
+        "skinTint": "#D0A17D",
+        "breasts": 0.39,
+        "legs": 0.38
       }
     },
     {
@@ -635,12 +656,12 @@
         "weight": 0.58,
         "height": 0.46,
         "proportions": 0.52,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "brownlight",
-        "hair": "box_braids",
-        "hairTint": "#554031",
+        "african": 0.02,
+        "asian": 0.03,
+        "caucasian": 0.95,
+        "eyes": "blue",
+        "hair": "bob01",
+        "hairTint": "#C6A16B",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -677,8 +698,11 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#554031",
-        "name": "Hendra Wells"
+        "hairColor": "#C6A16B",
+        "name": "Hendra Wells",
+        "skinTint": "#E8C5A5",
+        "breasts": 0.26,
+        "legs": 0.41
       }
     },
     {
@@ -701,12 +725,12 @@
         "weight": 0.46,
         "height": 0.5,
         "proportions": 0.5,
-        "african": 0.05,
-        "asian": 0.9,
-        "caucasian": 0.05,
-        "eyes": "darkbrown",
-        "hair": "short02",
-        "hairTint": "#29201b",
+        "african": 0.58,
+        "asian": 0.3,
+        "caucasian": 0.12,
+        "eyes": "hazel",
+        "hair": "box_braids",
+        "hairTint": "#241A16",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -741,8 +765,10 @@
         "faceShapes": false,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#29201b",
-        "name": "Bram Fenwick"
+        "hairColor": "#241A16",
+        "name": "Bram Fenwick",
+        "skinTint": "#A87552",
+        "legs": 0.49
       }
     },
     {
@@ -766,11 +792,11 @@
         "height": 0.42,
         "proportions": 0.46,
         "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
+        "asian": 0.12,
+        "caucasian": 0.83,
         "eyes": "grey",
-        "hair": "long01",
-        "hairTint": "#c1b9a8",
+        "hair": "bob01",
+        "hairTint": "#8A6A4C",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -807,8 +833,11 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#c1b9a8",
-        "name": "Elder Marta Wynfield"
+        "hairColor": "#8A6A4C",
+        "name": "Elder Marta Wynfield",
+        "skinTint": "#E0B99B",
+        "breasts": 0.39,
+        "legs": 0.74
       }
     },
     {
@@ -831,12 +860,12 @@
         "weight": 0.48,
         "height": 0.68,
         "proportions": 0.62,
-        "african": 0.05,
-        "asian": 0.05,
-        "caucasian": 0.9,
-        "eyes": "green",
-        "hair": "short03",
-        "hairTint": "#3c2d22",
+        "african": 0.58,
+        "asian": 0.3,
+        "caucasian": 0.12,
+        "eyes": "hazel",
+        "hair": "short01",
+        "hairTint": "#241A16",
         "facialHair": "short_beard",
         "beardColor": "#3c2d22",
         "tattoos": [
@@ -877,8 +906,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#3c2d22",
-        "name": "Rowan Fletcher"
+        "hairColor": "#241A16",
+        "name": "Rowan Fletcher",
+        "skinTint": "#A87552",
+        "legs": 0.49
       }
     },
     {
@@ -901,12 +932,12 @@
         "weight": 0.5,
         "height": 0.5,
         "proportions": 0.5,
-        "african": 0.34,
-        "asian": 0.33,
-        "caucasian": 0.33,
-        "eyes": "brown",
-        "hair": "short02",
-        "hairTint": "#49372a",
+        "african": 0.38,
+        "asian": 0.4,
+        "caucasian": 0.22,
+        "eyes": "brownlight",
+        "hair": "braid01",
+        "hairTint": "#4B2F24",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -941,8 +972,11 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#49372a",
-        "name": "Player Character"
+        "hairColor": "#4B2F24",
+        "name": "Player Character",
+        "skinTint": "#B98260",
+        "breasts": 0.61,
+        "legs": 0.55
       }
     }
   ]
