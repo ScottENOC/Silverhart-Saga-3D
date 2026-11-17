@@ -33,5 +33,5 @@ for name, modifiers in variants.items():
     profile["params"]["modifiers"] = modifiers
     out = root / name
     out.mkdir(parents=True, exist_ok=True)
-    (out / "profile.json").write_text(json.dumps(profile, indent=2) + "\\n")
+    (out / "profile.json").write_text(json.dumps(profile, indent=2) + "\n")
     print(f"{name}: {json.dumps(modifiers, sort_keys=True)}")
