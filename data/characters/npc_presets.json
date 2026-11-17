@@ -10,10 +10,10 @@
       "height": 0.55,
       "muscle": 0.62,
       "weight": 0.42,
-      "skin_palette": "warm_light",
+      "skin_palette": "warm_medium",
       "face_preset": "face_01",
       "hair": "braid01",
-      "hair_tint": "#252b62",
+      "hair_tint": "#38251D",
       "outfit": {
         "top": "fatigue_shirt",
         "bottom": "fatigue_pants",
