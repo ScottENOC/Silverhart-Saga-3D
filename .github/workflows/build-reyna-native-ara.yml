@@ -1,0 +1,142 @@
+name: Build Reyna native Ara character
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "character-preview/reyna-ara.json"
+      - ".github/workflows/build-reyna-native-ara.yml"
+      - "tools/review/reyna_native_preview.gd"
+      - "tools/review/recolor_wren_glb.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-reyna-native-ara
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate Reyna profile and preview script
+        run: |
+          set -euo pipefail
+          python -m json.tool character-preview/reyna-ara.json >/dev/null
+          python -m py_compile tools/review/recolor_wren_glb.py
+
+      - name: Install Ara export dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-pil libegl1 libgl1-mesa-dri
+
+      - name: Generate unclothed native Ara body and hair
+        run: |
+          set -euo pipefail
+          mkdir -p build/reyna-native/ara-export
+          npx --yes ara3d@latest export \
+            --params character-preview/reyna-ara.json \
+            --detail high --no-animations --formats glb,zip \
+            --out build/reyna-native/ara-export
+          raw_glb="$(find build/reyna-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$raw_glb"
+          test -s "$raw_glb"
+          cp "$raw_glb" build/reyna-native/Reyna.glb
+
+      - name: Apply Reyna skin and hair colours
+        run: |
+          set -euo pipefail
+          python tools/review/recolor_wren_glb.py \
+            --model build/reyna-native/Reyna.glb \
+            --profile character-preview/reyna-ara.json \
+            --hair-gamma 0.28
+          test -s build/reyna-native/Reyna.glb
+
+      - name: Assemble isolated Godot preview project
+        run: |
+          set -euo pipefail
+          preview=build/reyna-native-preview-project
+          mkdir -p "$preview/build/reyna-native" "$preview/tools/review"
+          cp build/reyna-native/Reyna.glb "$preview/build/reyna-native/Reyna.glb"
+          cp tools/review/reyna_native_preview.gd "$preview/tools/review/reyna_native_preview.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Reyna Native Ara Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Install virtual display and software OpenGL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+
+      - name: Import and render Reyna
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path build/reyna-native-preview-project --quit
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/reyna-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/reyna_native_preview.gd
+          for view in front side threequarter face pelvis; do
+            test -s "build/reyna-native-preview-project/build/reyna-native/preview/$view.png"
+          done
+          test -s build/reyna-native-preview-project/build/reyna-native/preview/render-report.json
+          cp -R build/reyna-native-preview-project/build/reyna-native/preview build/reyna-native/preview
+
+      - name: Package model and visual review
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          root = Path("build/reyna-native")
+          readme = """Ser Reyna Thorne — first-pass native Ara character.
+          Unclothed body and hair only; no outfit, underwear, shoes or accessories.
+          The model is generated from reyna-ara.json and retains Ara's game rig
+          and facial blend shapes. This is a visual first pass, not final approval.
+          Regenerate with the Build Reyna native Ara character workflow on dev.
+          """
+          with zipfile.ZipFile(root / "Reyna_native_Ara_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              archive.write(root / "Reyna.glb", "Reyna.glb")
+              archive.write(Path("character-preview/reyna-ara.json"), "reyna-ara.json")
+              archive.write(root / "preview/render-report.json", "preview/render-report.json")
+              for view in ("front", "side", "threequarter", "face", "pelvis"):
+                  archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
+              archive.writestr("README.txt", readme)
+          PY
+
+      - name: Upload Reyna model and visual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: reyna-native-ara-${{ github.run_number }}
+          path: |
+            build/reyna-native/Reyna.glb
+            build/reyna-native/Reyna_native_Ara_bundle.zip
+            build/reyna-native/preview/
+          if-no-files-found: error
+          retention-days: 30
