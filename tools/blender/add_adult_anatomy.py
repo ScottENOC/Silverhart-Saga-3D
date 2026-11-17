@@ -331,7 +331,10 @@ def _surface_midline(skin, hipline_z, k):
         if abs(p.x) > 0.002 * k or not (hipline_z - 0.14 * k < p.z < hipline_z + 0.10 * k):
             continue
         n = (rot @ v.normal).normalized()
-        if p.y > 0.0 or n.y > 0.35:
+        # Keep only vertices whose normals face the front surface. The old
+        # permissive threshold admitted interior/side-facing vertices, placing
+        # the midline well inside the pelvis instead of on the visible skin.
+        if p.y > 0.0 or n.y > -0.15:
             continue
         pts.append((p.y, p.z))
     if len(pts) < 8:
@@ -445,6 +448,8 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     line, arc = _surface_midline(skin, hipline_z, k)
     iA = _locate_introitus(line, arc, k)
     sA = arc[iA]
+    probe = min(line, key=lambda point: abs(point[1] - hipline_z))
+    print(f"Pelvic front midline check: y={probe[0]:.4f} z={probe[1]:.4f}")
     print(f"Female anatomy: midline {len(line)} samples, introitus at y={line[iA][0]:.4f} z={line[iA][1]:.4f}")
 
     prep = _prep_line(line, arc)
