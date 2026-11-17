@@ -31,7 +31,7 @@ jobs:
       - name: Install Blender and preview dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender python3-pil libegl1 libgl1-mesa-dri xvfb
+          sudo apt-get install -y blender python3-numpy python3-pil libegl1 libgl1-mesa-dri xvfb
       - name: Generate controlled profiles
         run: |
           python tools/ara/build_reyna_slider_variants.py
@@ -66,7 +66,7 @@ jobs:
             raw="$(find "$out/ara-export" -maxdepth 1 -type f -name '*.glb' -print -quit)"
             test -n "$raw"
             cp "$raw" "$out/Reyna-ara-base.glb"
-            blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- --input "$out/Reyna-ara-base.glb" --output "$out/Reyna.glb" --profile female --adult
+            PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- --input "$out/Reyna-ara-base.glb" --output "$out/Reyna.glb" --profile female --adult
             python tools/review/recolor_wren_glb.py --model "$out/Reyna.glb" --profile "$out/profile.json" --hair-gamma 0.28
             mkdir -p "$preview/build/reyna-slider-comparison/$variant/preview"
             cp "$out/Reyna.glb" "$preview/build/reyna-slider-comparison/$variant/Reyna.glb"
