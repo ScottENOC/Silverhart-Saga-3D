@@ -809,6 +809,8 @@ func _offer_counterspell_reaction(context: Dictionary, caster: CharacterState, t
                 prepared_counter = candidate
                 break
         if prepared_counter == null:
+            if reactor.side == "player":
+                continue
             prepared_counter = PreparedSpell.create("counterspell")
         var counter_variant := SpellRules.compute_variant("counterspell", prepared_counter.modifiers, reactor.skills)
         if not bool(counter_variant.get("ok", false)):
@@ -897,19 +899,18 @@ func _resume_pending_spell(choice_id: String, reason: String) -> void:
         if int(option.get("hp_cost", 0)) > 0:
             reactor.apply_damage(int(option.get("hp_cost", 0)))
         var caster := get_character(String(context.get("caster_id", "")))
-        if caster != null:
-            var caster_cost := int(context.get("total_mana_cost", 0))
-            var caster_affordability := SpellRules.cast_affordability(caster, caster_cost)
-            if bool(caster_affordability.get("ok", false)):
-                caster.current_mana -= int(caster_affordability.get("mana_to_spend", 0))
-                if int(caster_affordability.get("hp_cost", 0)) > 0:
-                    caster.apply_damage(int(caster_affordability.get("hp_cost", 0)))
         _resolve_countered_spell(context, reactor, caster, option)
         return
     _complete_spell_cast(context)
 
 
 func _resolve_countered_spell(context: Dictionary, reactor: CharacterState, caster: CharacterState, option: Dictionary) -> Dictionary:
+    if caster != null:
+        var caster_affordability := SpellRules.cast_affordability(caster, int(context.get("total_mana_cost", 0)))
+        if bool(caster_affordability.get("ok", false)):
+            caster.current_mana -= int(caster_affordability.get("mana_to_spend", 0))
+            if int(caster_affordability.get("hp_cost", 0)) > 0:
+                caster.apply_damage(int(caster_affordability.get("hp_cost", 0)))
     var payload := {
         "countered": true,
         "counterspell_reactor_id": reactor.id,
