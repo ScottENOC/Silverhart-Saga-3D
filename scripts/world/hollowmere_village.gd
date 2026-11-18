@@ -6,6 +6,7 @@ extends Node3D
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
 const GROUND_SIZE: float = 420.0
 const ORGANIC_FEATURES = preload("res://scripts/world/organic_world_features.gd")
+const WORLD_GEOMETRY_FACTORY = preload("res://scripts/world/world_geometry_factory.gd")
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 var grass_material: StandardMaterial3D
@@ -563,15 +564,7 @@ func _is_near_village_stream(hex: Vector2i, distance: float) -> bool:
 	return absf(float(hex.y) - HollowmereVillageData._river_centre_r(hex.x)) <= distance
 
 func _add_box(parent: Node3D, node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
-	var instance := MeshInstance3D.new()
-	instance.name = node_name
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	instance.mesh = mesh
-	instance.position = position
-	instance.material_override = material
-	parent.add_child(instance)
-	return instance
+	return WORLD_GEOMETRY_FACTORY.add_box(parent, node_name, position, size, material)
 
 func add_child_to(parent: Node3D, child: Node) -> void:
 	parent.add_child(child)
