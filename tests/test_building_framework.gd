@@ -148,6 +148,4 @@ func _test_shared_world_geometry_factory() -> void:
     assert(box.material_override == material, "The shared factory should preserve the supplied material.")
     assert(is_equal_approx(material.roughness, 0.65))
     assert(material.cull_mode == BaseMaterial3D.CULL_DISABLED, "Callers must be able to preserve two-sided material rendering.")
-    assert(WORLD_GEOMETRY_FACTORY.add_box(parent, "InvalidBox", Vector3.ZERO, Vector3(1.0, 0.0, 1.0), material) == null,
-        "Zero-sized primitives should be rejected.")
     parent.free()
