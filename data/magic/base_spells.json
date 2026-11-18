@@ -131,7 +131,8 @@
       "valid_tags": [],
       "exclude_tags": [],
       "summons": [],
-      "self_target": false
+      "self_target": false,
+      "base_time_points": 10
     },
     {
       "id": "curse",
@@ -149,7 +150,8 @@
       "valid_tags": [],
       "exclude_tags": [],
       "summons": [],
-      "self_target": false
+      "self_target": false,
+      "base_time_points": 8
     },
     {
       "id": "summon_animal",
