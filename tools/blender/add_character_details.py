@@ -11,7 +11,7 @@ import os
 import sys
 
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 from mathutils.kdtree import KDTree
 
 
@@ -77,7 +77,7 @@ def make_projection_trees(skin):
             raise RuntimeError(f"No {label}-facing skin vertices found for tattoo projection")
         tree = KDTree(len(items))
         for item_index, (point, _normal, _vertex_index) in enumerate(items):
-            tree.insert(Vector((point.x, point.y, 0.0)), item_index)
+            tree.insert(point, item_index)
         tree.balance()
         trees[label] = (tree, items)
     return trees
@@ -92,7 +92,7 @@ def project_path(points, back, trees, offset=0.0020):
         steps = max(2, int(math.ceil((b - a).length / 0.018)))
         for step in range(steps):
             p = a.lerp(b, step / steps)
-            _co, item_index, _distance = tree.find(Vector((p.x, p.y, 0.0)))
+            _co, item_index, _distance = tree.find(p)
             surface, normal, source_index = items[item_index]
             projected.append((surface + normal * offset, normal, source_index))
     p = points[-1]
