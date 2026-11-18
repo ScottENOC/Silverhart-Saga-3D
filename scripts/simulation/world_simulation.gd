@@ -761,6 +761,15 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     var is_offensive := spell_id in ["firebolt", "smite_evil", "divine_silence", "dragon_breath", "entangle", "temporal_rift"]
     if is_offensive and target != null:
         _apply_spell_protection_triggers(caster, target)
+    elif is_offensive:
+        var center := SpellEffectRules.target_hex_for(self, SimulationActionRequest.new(
+            SimulationActionRequest.ActionType.CAST_SPELL, caster.id, "", context.get("request_destination", Vector2i.ZERO), 0.0, context.get("request_options", {})
+        ), null)
+        var protection_radius := maxi(0, int(variant.get("radius", 0)))
+        for value in characters.values():
+            var protected_target := value as CharacterState
+            if protected_target != null and protected_target.side != caster.side and HexGrid.distance(center, protected_target.axial) <= protection_radius:
+                _apply_spell_protection_triggers(caster, protected_target)
     if is_offensive:
         caster.remove_spell_effect("sanctuary")
 
@@ -1354,6 +1363,7 @@ func _resolve_attack_action(attacker_id: String, target_id: String, options: Dic
     if bool(result.get("ok", false)):
         _apply_spell_protection_triggers(attacker, target)
         attacker.remove_spell_effect("sanctuary")
+        target.remove_spell_effect("calmed")
         var typed_result := SimulationActionResult.new("attack", true, "", attacker_id, target_id, result)
         var result_data := typed_result.to_dict()
         action_committed.emit(SimulationEvent.new("attack_resolved", attacker_id, target_id, result_data))
