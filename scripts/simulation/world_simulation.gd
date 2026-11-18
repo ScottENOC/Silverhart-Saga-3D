@@ -1167,7 +1167,7 @@ func _resolve_attack_action(attacker_id: String, target_id: String, options: Dic
     var fury := attacker.get_spell_effect("wild_fury")
     var resolved_options := options.duplicate(true)
     if not fury.is_empty() and not bool(resolved_options.get("has_weapon", false)):
-        resolved_options["spell_unarmed_damage_bonus"] = int(fury.get("magnitude", 0))
+        resolved_options["wild_fury_bonus"] = int(fury.get("magnitude", 0))
     var result := CombatRules.resolve_attack(attacker, target, resolved_options, rng)
     if bool(result.get("ok", false)):
         var typed_result := SimulationActionResult.new("attack", true, "", attacker_id, target_id, result)
