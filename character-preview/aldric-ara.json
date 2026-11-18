@@ -6,7 +6,7 @@
   "params": {
     "name": "Ser Aldric Thorne",
     "gender": 1,
-    "muscle": 0.72,
+    "muscle": 0.88,
     "weight": 0.58,
     "height": 0.61,
     "proportions": 0.5,
@@ -19,7 +19,7 @@
     "hair": "short02",
     "hairTint": "#08090A",
     "hairColor": "#08090A",
-    "facialHair": "none",
+    "facialHair": "stubble",
     "outfit": "none",
     "top": "none",
     "jacket": "none",
@@ -47,7 +47,8 @@
       "armslegs/upperarm-shoulder-muscle": 0.45,
       "armslegs/upperarm-scale-depth": 0.1,
       "armslegs/upperarm-scale-vert": 0.1,
-      "stomach/stomach-tone": 0.9
-    }
+      "stomach/stomach-tone": 1
+    },
+    "beardColor": "#08090A"
   }
 }
