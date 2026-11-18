@@ -61,58 +61,82 @@ def make_material(name, hex_colour, metallic=0.0, roughness=0.8):
 
 
 def make_projection_trees(skin):
+    """Build front/back BVHs from actual skin triangles, in world coordinates.
+
+    The old vertex KD-tree snapped each tattoo sample to an isolated nearest
+    vertex in the X/Z plane. That produced visibly kinked or detached strokes
+    on curved surfaces. Ray casting now intersects the continuous skin surface.
+    """
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = skin.evaluated_get(depsgraph)
+    mesh = evaluated.to_mesh()
     world = skin.matrix_world
     normal_matrix = world.to_3x3().inverted().transposed()
-    front_items, back_items = [], []
-    for vertex in skin.data.vertices:
-        point = world @ vertex.co
-        normal = (normal_matrix @ vertex.normal).normalized()
-        # Ara GLBs are Y-up on disk, but Blender's glTF importer converts
-        # them to Z-up with the character facing -Y. Front/back therefore use
-        # the Y normal, while tattoo paths live in the X/Z body plane.
+    vertices = [world @ vertex.co for vertex in mesh.vertices]
+    front_faces, back_faces = [], []
+    front_sources, back_sources = [], []
+    for polygon in mesh.polygons:
+        normal = (normal_matrix @ polygon.normal).normalized()
+        face = tuple(polygon.vertices)
         if normal.y < -0.12:
-            front_items.append((point, normal, vertex.index))
+            front_faces.append(face)
+            front_sources.append(face)
         if normal.y > 0.12:
-            back_items.append((point, normal, vertex.index))
-    trees = {}
-    for label, items in (("front", front_items), ("back", back_items)):
-        if not items:
-            raise RuntimeError(f"No {label}-facing skin vertices found for tattoo projection")
-        tree = KDTree(len(items))
-        for item_index, (point, _normal, _vertex_index) in enumerate(items):
-            # Tattoo design paths are authored in the body's X/Z plane.
-            # The front/back candidates are already separated by their Y normals,
-            # so the nearest-point query follows the projected skin footprint.
-            tree.insert(Vector((point.x, point.z, 0.0)), item_index)
-        tree.balance()
-        trees[label] = (tree, items)
-    return trees
+            back_faces.append(face)
+            back_sources.append(face)
+    evaluated.to_mesh_clear()
+
+    if not front_faces or not back_faces:
+        raise RuntimeError("Could not build front/back skin surface for tattoo projection")
+    front_tree = BVHTree.FromPolygons(vertices, front_faces, all_triangles=False)
+    back_tree = BVHTree.FromPolygons(vertices, back_faces, all_triangles=False)
+    lo, hi = world_bounds(skin)
+    return {
+        "front": (front_tree, front_sources, vertices, lo.y - 0.25, Vector((0.0, 1.0, 0.0))),
+        "back": (back_tree, back_sources, vertices, hi.y + 0.25, Vector((0.0, -1.0, 0.0))),
+    }
 
 
 def project_path(points, back, trees, offset=0.0020):
     label = "back" if back else "front"
-    tree, items = trees[label]
+    tree, faces, vertices, ray_y, direction = trees[label]
     projected = []
     for segment in range(len(points) - 1):
         a, b = points[segment], points[segment + 1]
-        steps = max(2, int(math.ceil((b - a).length / 0.018)))
+        steps = max(2, int(math.ceil((b - a).length / 0.008)))
         for step in range(steps):
             p = a.lerp(b, step / steps)
-            _co, item_index, distance = tree.find(Vector((p.x, p.z, 0.0)))
-            if distance > 0.06:
+            origin = Vector((p.x, ray_y, p.z))
+            location, normal, face_index, distance = tree.ray_cast(origin, direction, 5.0)
+            if location is None or face_index is None:
                 raise RuntimeError(
-                    f"tattoo path is {distance:.3f}m outside the {label} skin footprint"
+                    f"tattoo path has no {label} skin-surface intersection "
+                    f"at x={p.x:.3f}, z={p.z:.3f}"
                 )
-            surface, normal, source_index = items[item_index]
-            projected.append((surface + normal * offset, normal, source_index))
+            face_vertices = faces[face_index]
+            source_index = min(
+                face_vertices,
+                key=lambda index: (vertices[index] - location).length_squared,
+            )
+            if normal.y * direction.y < 0.0:
+                normal.negate()
+            projected.append((location + normal * offset, normal, source_index))
     p = points[-1]
-    _co, item_index, distance = tree.find(Vector((p.x, p.z, 0.0)))
-    if distance > 0.06:
+    origin = Vector((p.x, ray_y, p.z))
+    location, normal, face_index, distance = tree.ray_cast(origin, direction, 5.0)
+    if location is None or face_index is None:
         raise RuntimeError(
-            f"tattoo endpoint is {distance:.3f}m outside the {label} skin footprint"
+            f"tattoo endpoint has no {label} skin-surface intersection "
+            f"at x={p.x:.3f}, z={p.z:.3f}"
         )
-    surface, normal, source_index = items[item_index]
-    projected.append((surface + normal * offset, normal, source_index))
+    face_vertices = faces[face_index]
+    source_index = min(
+        face_vertices,
+        key=lambda index: (vertices[index] - location).length_squared,
+    )
+    if normal.y * direction.y < 0.0:
+        normal.negate()
+    projected.append((location + normal * offset, normal, source_index))
     return projected
 
 
