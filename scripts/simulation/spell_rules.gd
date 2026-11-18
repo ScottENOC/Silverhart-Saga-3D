@@ -240,7 +240,7 @@ static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool
     ]
     if not IMPLEMENTED_IDS.has(spell_id):
         return false
-    if int(variant.get("extra_targets", 0)) > 0:
+    if int(variant.get("extra_targets", 0)) > 0 and spell_id not in ["firebolt", "heal", "smite_evil"]:
         return false
     var modifiers: Dictionary = variant.get("modifiers", {})
     if bool(modifiers.get("burst", false)) and spell_id not in ["heal", "firebolt"]:
