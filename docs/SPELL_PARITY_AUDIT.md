@@ -161,6 +161,36 @@ The previous 15-entry catalogue is superseded. The authoritative player spell li
 
 Dragon Breath is excluded from the player spell list until dragon creatures and their innate abilities are implemented. Smite Evil, Divine Silence, Sanctuary and Temporal Rift are not part of the official catalogue. The old per-spell table above is retained as a historical 2D-to-3D baseline only; it must not be used as the current design specification.
 
+
+### Verified original Hex-crpg `spells.js` inventory
+
+The original `ScottENOC/Hex-crpg/spells.js` contains exactly these 15 registered base spells. This is the actual source inventory, distinct from later skills that mention additional spell-like abilities.
+
+| Original 2D base spell | Original school | 3D decision |
+|---|---|---|
+| Firebolt | Arcane | Official |
+| Counterspell | Arcane | Official |
+| Feather Fall | Arcane | Official |
+| Disguise Self | Arcane | Official |
+| Heal | Divine | Official |
+| Divine Protection | Divine | Official |
+| Smite Evil | Divine | Excluded from the initial 12; its narrow undead/demon damage niche may be reconsidered as a modifier or class feature |
+| Divine Silence | Divine | Excluded; it crosses the cleric/wizard boundary in the current design |
+| Sanctuary | Divine | Excluded from the initial 12 |
+| Summon Animal | Nature | Official |
+| Entangle | Nature | Official |
+| Calm Animal | Nature | Official |
+| Wild Fury | Nature | Official, with the 3D design tightened to allied animals only |
+| Dragon Breath | Arcane | Deferred as a dragon innate ability, not a player spell |
+| Temporal Rift | Arcane | Excluded from the initial 12; revisit only if the wizard time/matter design calls for it |
+
+Two further distinctions matter:
+
+- `learn_curse` exists in the original `skills.js` with the description that a target taking a hostile action within 20 ticks suffers 2 divine damage. However, `curse` is **not** a registered base spell in `spells.js`, and the original `gameEngine.js` has no Curse effect handler. Silverhart's Curse is therefore a new base spell built from an unfinished original skill concept.
+- `Divine Strength` is new to the agreed 3D catalogue; it is not a registered original 2D base spell or an original `learn_divine_strength` skill.
+
+The 12 official spells therefore comprise 10 existing 2D base spells plus the new Curse and Divine Strength. This distinction should remain explicit in future parity work.
+
 ### Current 3D implementation status on this feature branch
 
 - The shared spell action path, prepared-spell model, spell variant calculations, mana/Time Point costs, armour penalties, counterspell reaction flow, and effect ticking already exist on `dev`.
