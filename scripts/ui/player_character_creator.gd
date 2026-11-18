@@ -278,6 +278,11 @@ func _build_screen() -> void:
     else:
         start_button.pressed.connect(_finish)
     panel.add_child(start_button)
+    if disguise_mode:
+        var cancel_button := Button.new()
+        cancel_button.text = "CANCEL"
+        cancel_button.pressed.connect(queue_free)
+        panel.add_child(cancel_button)
     _update_mode_controls(game_mode_select.selected)
 
 func _configure_disguise_sections(panel: VBoxContainer) -> void:
