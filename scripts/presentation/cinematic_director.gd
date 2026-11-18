@@ -12,6 +12,8 @@ var _cinematic_layer: CanvasLayer
 var _subtitle_label: Label
 var _skipped: bool = false
 var _finished: bool = false
+var _gameplay_hud_was_visible: bool = true
+var _gameplay_camera_was_current: bool = true
 
 
 func begin(actors: Dictionary, gameplay_hud: CanvasLayer, gameplay_camera: Camera3D) -> void:
@@ -20,6 +22,8 @@ func begin(actors: Dictionary, gameplay_hud: CanvasLayer, gameplay_camera: Camer
     _gameplay_camera = gameplay_camera
     _skipped = false
     _finished = false
+    _gameplay_hud_was_visible = _gameplay_hud.visible if is_instance_valid(_gameplay_hud) else true
+    _gameplay_camera_was_current = _gameplay_camera.current if is_instance_valid(_gameplay_camera) else true
 
     if is_instance_valid(_gameplay_hud):
         _gameplay_hud.visible = false
@@ -118,9 +122,9 @@ func finish() -> void:
         _cinematic_camera.current = false
         _cinematic_camera.queue_free()
     if is_instance_valid(_gameplay_camera):
-        _gameplay_camera.current = true
+        _gameplay_camera.current = _gameplay_camera_was_current
     if is_instance_valid(_gameplay_hud):
-        _gameplay_hud.visible = true
+        _gameplay_hud.visible = _gameplay_hud_was_visible
 
 
 
