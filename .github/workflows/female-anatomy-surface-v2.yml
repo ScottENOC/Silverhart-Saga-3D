@@ -130,12 +130,25 @@ jobs:
             build/female-anatomy/anatomy-report.json
 
       - name: Render front, side, rear and three-quarter review views
+        id: render-review
         run: |
           set -euo pipefail
           blender --background --python-exit-code 1 \
             --python tools/blender/inspect_character.py -- \
             --input build/female-anatomy/ara_person_body_anatomy.glb \
             --output-dir build/female-anatomy/review
+
+      - name: Upload anatomy visual review before morph validation
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: female-anatomy-surface-v2-visual-review-${{ github.run_number }}
+          path: |
+            build/female-anatomy/ara_person_body_anatomy.glb
+            build/female-anatomy/anatomy-report.json
+            build/female-anatomy/review/
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Verify topology and build relative muscle shape keys
         run: |
