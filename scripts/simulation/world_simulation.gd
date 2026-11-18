@@ -1,6 +1,8 @@
 class_name WorldSimulation
 extends Node
 
+const SPELL_EFFECT_RULES_SCRIPT = preload("res://scripts/simulation/spell_effect_rules.gd")
+
 signal character_moved(character_id: String, from_hex: Vector2i, to_hex: Vector2i)
 signal world_tick(tick_index: int, world_seconds: float)
 signal combat_started
@@ -700,7 +702,7 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
         return {"ok": false, "reason": String(variant.get("reason", "invalid_spell_variant"))}
     if not SpellRules.supports_initial_cast(spell_id, variant):
         return {"ok": false, "reason": "spell_variant_effect_not_implemented"}
-    var target_validation := SpellEffectRules.validate(self, caster, target, prepared, variant, request)
+    var target_validation := SPELL_EFFECT_RULES_SCRIPT.validate(self, caster, target, prepared, variant, request)
     if not bool(target_validation.get("ok", false)):
         return {"ok": false, "reason": String(target_validation.get("reason", "invalid_spell_target"))}
     target = target_validation.get("target") as CharacterState
@@ -762,7 +764,7 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     if is_offensive and target != null:
         _apply_spell_protection_triggers(caster, target)
     elif is_offensive:
-        var center := SpellEffectRules.target_hex_for(self, SimulationActionRequest.new(
+        var center := SPELL_EFFECT_RULES_SCRIPT.target_hex_for(self, SimulationActionRequest.new(
             SimulationActionRequest.ActionType.CAST_SPELL, caster.id, "", context.get("request_destination", Vector2i.ZERO), 0.0, context.get("request_options", {})
         ), null)
         var protection_radius := maxi(0, int(variant.get("radius", 0)))
@@ -782,7 +784,7 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
         context.get("request_options", {})
     )
     var cast_id := "%s:%d:%s:%d" % [caster.id, clock.tick_index, spell_id, int(context.get("random_seed", 0))]
-    var effect_payload := SpellEffectRules.apply(self, caster, target, prepared, variant, request, cast_id)
+    var effect_payload := SPELL_EFFECT_RULES_SCRIPT.apply(self, caster, target, prepared, variant, request, cast_id)
     effect_payload["spell_id"] = spell_id
     effect_payload["spell_name"] = String(variant.get("name", spell_id))
     effect_payload["mana_cost"] = total_mana_cost
@@ -1434,7 +1436,7 @@ func resolve_fall_damage(character_id: String, damage: int) -> Dictionary:
     var state := get_character(character_id)
     if state == null or not state.alive or damage < 0:
         return {"ok": false, "reason": "invalid_fall"}
-    if SpellEffectRules.consume_feather_fall(state):
+    if SPELL_EFFECT_RULES_SCRIPT.consume_feather_fall(state):
         var prevented := {"ok": true, "prevented": true, "damage": 0, "character_id": character_id}
         action_committed.emit(SimulationEvent.new("fall_prevented", character_id, "", prevented))
         return prevented
