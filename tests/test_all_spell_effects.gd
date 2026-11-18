@@ -116,6 +116,7 @@ func _test_burst_heal() -> void:
     var setup := _new_sim()
     var sim: WorldSimulation = setup.sim
     var caster: CharacterState = setup.caster
+    caster.skills["divine_burst"] = 1
     var ally_a := CharacterState.new("healed_a", "Ally A", Vector2i(1, 0))
     var ally_b := CharacterState.new("healed_b", "Ally B", Vector2i(2, 0))
     ally_a.side = "player"
