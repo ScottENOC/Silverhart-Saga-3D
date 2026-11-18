@@ -36,4 +36,4 @@ Verbal/somatic grammar, spoken audio, hand gestures, casting animation and disgu
 
 ## Remaining verification
 
-The full spell suite covers each catalogue entry, but the complete Godot 4.7.2 headless workflow must pass before this branch is merged. Counterspell currently provides an explicit dispel action; a prompted, interrupt-style reaction is a follow-up integration with the existing reaction UI.
+The full spell suite covers each catalogue entry, but the complete Godot 4.7.2 headless workflow must pass before this branch is merged. Counterspell can also interrupt an opposing cast through the existing reaction request system. The defender spends 5 TP and the Counterspell mana cost; a countered caster spends the spell mana cost but does not pay the cast TP cost. NPC counterspell decisions use the source game’s 50% response chance.
