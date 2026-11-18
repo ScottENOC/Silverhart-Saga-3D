@@ -15,6 +15,7 @@ const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_d
 const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
 const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
+const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const TAVERN_BUILDING_ID := "hollow_tankard"
 const TAVERN_FRONT_DOOR_ID := "hollow_tankard_front_door"
@@ -47,6 +48,7 @@ const WALL_HEIGHT: float = 3.2
 const ROOF_RIDGE_HEIGHT: float = 5.8
 
 var simulation: WorldSimulation
+var spell_vfx: Node3D
 var save_load_menu: CanvasLayer
 var pending_save_data: Dictionary = {}
 var initial_character_baselines: Dictionary = {}
@@ -115,6 +117,9 @@ var enemy_turn_waiting_for_reaction: bool = false
 func _ready() -> void:
     _create_materials()
     _create_lighting()
+    spell_vfx = SPELL_VFX_SCRIPT.new() as Node3D
+    spell_vfx.name = "SpellVisualEffects"
+    add_child(spell_vfx)
     _configure_location_simulation()
     _create_ground_and_hexes()
     _create_wilderness_gatherable_grove()
@@ -187,6 +192,7 @@ func _configure_location_simulation() -> void:
         push_error("Campaign simulation was not configured before HollowTankard entered the scene tree.")
         return
     simulation.clock.ticked.connect(_on_world_clock_ticked)
+    simulation.action_committed.connect(_on_simulation_action_committed)
     # Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
     for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
         for r in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
@@ -247,6 +253,44 @@ func _configure_location_simulation() -> void:
     simulation.reaction_resolved.connect(_on_reaction_resolved)
     simulation.movement_reaction_resolved.connect(_on_movement_reaction_resolved)
     simulation.turn_scheduler.turn_started.connect(_on_combat_turn_started)
+
+
+func _on_simulation_action_committed(event: SimulationEvent) -> void:
+    if event == null or event.event_type != "spell_cast" or spell_vfx == null:
+        return
+    var payload := event.payload
+    var spell_id := String(payload.get("spell_id", ""))
+    if spell_id.is_empty():
+        return
+    var caster := actor_by_id.get(event.actor_id) as Node3D
+    var target := actor_by_id.get(event.target_id) as Node3D
+    var target_hex_value: Variant = payload.get("target_hex", Vector2i.ZERO)
+    var target_hex := Vector2i.ZERO
+    if target_hex_value is Vector2i:
+        target_hex = target_hex_value
+    elif target_hex_value is Dictionary:
+        target_hex = Vector2i(int(target_hex_value.get("q", 0)), int(target_hex_value.get("r", 0)))
+    var target_position := HexGrid.axial_to_world(target_hex, HEX_RADIUS)
+    if target != null:
+        target_position = target.global_position
+    elif caster != null and spell_id in ["disguise_self", "feather_fall", "wild_fury"]:
+        target_position = caster.global_position
+
+    var affected_actors: Array[Node3D] = []
+    var affected_ids: Variant = payload.get("affected_ids", [])
+    if affected_ids is Array:
+        for affected_id_value in affected_ids:
+            var affected_actor := actor_by_id.get(String(affected_id_value)) as Node3D
+            if affected_actor != null:
+                affected_actors.append(affected_actor)
+    (spell_vfx as SpellVfxController).play_spell(
+        spell_id,
+        caster,
+        target,
+        target_position,
+        payload,
+        affected_actors
+    )
 
 func _create_wilderness_gatherable_grove() -> void:
     # Kenney Nature Kit GLBs provide the base trees. These are a compact
