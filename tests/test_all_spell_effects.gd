@@ -9,6 +9,9 @@ func _initialize() -> void:
 
 func _run() -> void:
     _test_smite_evil()
+    _test_smite_tag_restriction()
+    _test_burst_heal()
+    _test_divine_silence_breaks_on_cast()
     _test_divine_silence()
     _test_sanctuary_and_divine_protection()
     _test_summon_animal()
@@ -16,11 +19,14 @@ func _run() -> void:
     _test_counterspell_reaction()
     _test_dragon_breath()
     _test_entangle()
+    _test_entangle_persists_until_dispelled()
     _test_wild_fury()
     _test_calm_animal()
+    _test_calm_animal_modes_and_break()
     _test_disguise_self()
     _test_temporal_rift()
     _test_feather_fall()
+    _test_feather_fall_expiry()
     if failures > 0:
         push_error("%d full spell effect test(s) failed." % failures)
         quit(1)
@@ -86,6 +92,61 @@ func _test_smite_evil() -> void:
     var result := _cast(sim, caster, undead, "smite_evil")
     _check(bool(result.get("ok", false)), "Smite Evil should cast")
     _check(undead.health == 22, "Smite Evil should deal its base 8 damage to undead")
+    sim.free()
+
+
+func _test_smite_tag_restriction() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    var ordinary := CharacterState.new("ordinary", "Bandit", Vector2i(2, 0))
+    ordinary.side = "enemy"
+    ordinary.health = 30
+    sim.register_character(ordinary)
+    var result := _cast(sim, caster, ordinary, "smite_evil")
+    _check(bool(result.get("ok", false)), "Smite Evil should resolve even when the target is not eligible")
+    _check(ordinary.health == 30, "Smite Evil should have no effect on targets without undead/demon tags")
+    _check(caster.current_mana == 97, "An in-range Smite Evil with an ineligible target should still pay its source-game cost")
+    sim.free()
+
+
+func _test_burst_heal() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    var ally_a := CharacterState.new("healed_a", "Ally A", Vector2i(2, 0))
+    var ally_b := CharacterState.new("healed_b", "Ally B", Vector2i(3, 0))
+    ally_a.side = "player"
+    ally_b.side = "player"
+    ally_a.health = 10
+    ally_b.health = 10
+    sim.register_character(ally_a)
+    sim.register_character(ally_b)
+    var result := _cast_at(sim, caster, Vector2i(2, 0), "heal", {"burst": true})
+    _check(bool(result.get("ok", false)), "Burst Heal should resolve as an area effect")
+    _check(ally_a.health == 15 and ally_b.health == 15, "Burst Heal should heal all allies in its radius")
+    _check(caster.current_mana == 86, "Burst Heal should pay base mana plus burst surcharge")
+    sim.free()
+
+
+func _test_divine_silence_breaks_on_cast() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    var enemy := CharacterState.new("silenced_caster", "Silenced Caster", Vector2i(2, 0))
+    enemy.side = "enemy"
+    enemy.current_mana = 20
+    enemy.max_mana = 20
+    enemy.time_points = 100.0
+    enemy.unlocked_base_spells = ["firebolt"]
+    var firebolt := PreparedSpell.create("firebolt")
+    enemy.prepared_spells.append(firebolt.to_dict())
+    sim.register_character(enemy)
+    var silence := _cast(sim, caster, enemy, "divine_silence")
+    _check(bool(silence.get("ok", false)) and enemy.has_spell_effect("divine_silence"), "Divine Silence should be active before the target casts")
+    var counter_cast := sim.submit_action(SimulationActionRequest.cast_spell(enemy.id, caster.id, firebolt), 4)
+    _check(bool(counter_cast.get("ok", false)), "A silenced character should still be able to cast")
+    _check(not enemy.has_spell_effect("divine_silence"), "Casting should break Divine Silence")
     sim.free()
 
 
@@ -217,6 +278,21 @@ func _test_entangle() -> void:
     sim.free()
 
 
+func _test_entangle_persists_until_dispelled() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    var target := CharacterState.new("long_entangled", "Long Entangled", Vector2i(2, 0))
+    target.side = "enemy"
+    sim.register_character(target)
+    var result := _cast_at(sim, caster, Vector2i(2, 0), "entangle")
+    _check(bool(result.get("ok", false)), "Entangle should cast")
+    for tick in range(25):
+        sim._advance_character_spell_effects(target, 0.0)
+    _check(target.has_spell_effect("entangled"), "Entangle should persist until dispelled rather than expiring on a guessed timer")
+    sim.free()
+
+
 func _test_wild_fury() -> void:
     var setup := _new_sim()
     var sim: WorldSimulation = setup.sim
@@ -247,6 +323,54 @@ func _test_calm_animal() -> void:
     sim.free()
 
 
+func _test_calm_animal_modes_and_break() -> void:
+    var come_setup := _new_sim()
+    var come_sim: WorldSimulation = come_setup.sim
+    var come_caster: CharacterState = come_setup.caster
+    var coming := CharacterState.new("coming_animal", "Coming Wolf", Vector2i(3, 0))
+    coming.side = "enemy"
+    coming.tags.append("animal")
+    come_sim.register_character(coming)
+    var come_result := _cast(come_sim, come_caster, coming, "calm_animal", {"calm_mode": "come"})
+    _check(bool(come_result.get("ok", false)), "Calm Animal come mode should cast")
+    come_sim.start_combat()
+    come_sim.turn_scheduler.current_character_id = coming.id
+    var enemy_ids: Array[String] = [coming.id]
+    var party_ids: Array[String] = [come_caster.id]
+    CombatAI.take_turn(come_sim, coming, enemy_ids, party_ids)
+    _check(coming.axial != Vector2i(3, 0), "Come mode should move the animal towards its caster")
+    come_sim.free()
+
+    var chase_setup := _new_sim()
+    var chase_sim: WorldSimulation = chase_setup.sim
+    var chase_caster: CharacterState = chase_setup.caster
+    var fleeing := CharacterState.new("chasing_animal", "Chasing Wolf", Vector2i(2, 0))
+    fleeing.side = "enemy"
+    fleeing.tags.append("animal")
+    chase_sim.register_character(fleeing)
+    var chase_result := _cast(chase_sim, chase_caster, fleeing, "calm_animal", {"calm_mode": "chase"})
+    _check(bool(chase_result.get("ok", false)), "Calm Animal chase mode should cast")
+    chase_sim.start_combat()
+    chase_sim.turn_scheduler.current_character_id = fleeing.id
+    var chase_enemy_ids: Array[String] = [fleeing.id]
+    var chase_party_ids: Array[String] = [chase_caster.id]
+    CombatAI.take_turn(chase_sim, fleeing, chase_enemy_ids, chase_party_ids)
+    _check(HexGrid.distance(fleeing.axial, chase_caster.axial) > 2, "Chase mode should move the animal away from its caster")
+    chase_sim.free()
+
+    var break_setup := _new_sim()
+    var break_sim: WorldSimulation = break_setup.sim
+    var break_caster: CharacterState = break_setup.caster
+    var attacked_animal := CharacterState.new("attacked_animal", "Attacked Wolf", Vector2i(1, 0))
+    attacked_animal.side = "enemy"
+    attacked_animal.tags.append("animal")
+    break_sim.register_character(attacked_animal)
+    _cast(break_sim, break_caster, attacked_animal, "calm_animal")
+    break_sim._resolve_attack_action(break_caster.id, attacked_animal.id, {}, 6)
+    _check(not attacked_animal.has_spell_effect("calmed"), "Being attacked should break Calm Animal")
+    break_sim.free()
+
+
 func _test_disguise_self() -> void:
     var setup := _new_sim()
     var sim: WorldSimulation = setup.sim
@@ -271,6 +395,17 @@ func _test_temporal_rift() -> void:
     var result := _cast(sim, caster, target, "temporal_rift")
     _check(bool(result.get("ok", false)), "Temporal Rift should cast on an opponent")
     _check(is_zero_approx(target.time_points), "Temporal Rift should drain the target's Time Points to zero")
+    sim.free()
+
+
+func _test_feather_fall_expiry() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    _cast(sim, caster, caster, "feather_fall")
+    for tick in range(30):
+        sim._advance_character_spell_effects(caster, 0.0)
+    _check(not caster.has_spell_effect("feather_fall"), "Feather Fall should expire after its 30-tick duration")
     sim.free()
 
 
