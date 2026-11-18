@@ -685,6 +685,8 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
     var variant := SpellRules.compute_variant(spell_id, prepared.modifiers, caster.skills)
     if not bool(variant.get("ok", false)):
         return {"ok": false, "reason": String(variant.get("reason", "invalid_spell_variant"))}
+    if not SpellRules.supports_initial_cast(spell_id, variant):
+        return {"ok": false, "reason": "spell_variant_effect_not_implemented"}
 
     var is_heal := spell_id == "heal"
     if is_heal and caster.side != target.side:
