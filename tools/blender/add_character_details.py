@@ -256,11 +256,22 @@ def parent_preserve(obj, parent, world_matrix):
     obj.matrix_world = world_matrix
 
 
-def add_hoop(socket, radius, material, name):
+def add_hoop(socket, radius, material, name, hang_down=False):
     socket_matrix = socket.matrix_world.copy()
     normal = (socket_matrix.to_3x3() @ Vector((0, 0, 1))).normalized()
     world = socket_matrix.copy()
-    world.translation = socket_matrix.translation + normal * 0.002
+    centre = socket_matrix.translation + normal * 0.0008
+    if hang_down:
+        # Keep the hoop in its socket-aligned plane, but move its centre below
+        # the piercing point so the upper arc enters the nipple and the lower
+        # arc hangs freely. Project world-down into that plane for a reliable
+        # result even if Ara's socket has a small local rotation.
+        down = Vector((0, -1, 0))
+        down -= normal * down.dot(normal)
+        if down.length_squared > 1e-8:
+            down.normalize()
+            centre += down * radius * 0.72
+    world.translation = centre
     bpy.ops.mesh.primitive_torus_add(major_segments=24, minor_segments=12,
                                      location=world.translation,
                                      major_radius=radius * 0.89,
@@ -317,7 +328,7 @@ def add_piercings(entries):
         elif entry == "nipple_left":
             socket = sockets.get("SOCKET_Nipple_L")
             if socket:
-                add_hoop(socket, 0.008, material, "Piercing_SOCKET_Nipple_L")
+                add_hoop(socket, 0.008, material, "Piercing_SOCKET_Nipple_L", hang_down=True)
                 count += 1
             else:
                 print("WARNING: Ara socket SOCKET_Nipple_L not found; piercing omitted")
