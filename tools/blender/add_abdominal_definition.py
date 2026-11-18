@@ -81,11 +81,11 @@ def main():
     # Ara's humanoid is Z-up in Blender and faces -Y. The abdomen lies below
     # the ribcage and above the pelvis; the mask excludes chest, hips and back.
     centre_z = lo.z + height * 0.525
-    row_spacing = height * 0.060
+    row_spacing = height * 0.065
     row_centres = (centre_z + row_spacing, centre_z, centre_z - row_spacing)
     pad_x = width * 0.070
-    sigma_x = width * 0.036
-    sigma_z = height * 0.027
+    sigma_x = width * 0.030
+    sigma_z = height * 0.022
     front_limit = width * 0.16
     top_z = lo.z + height * 0.64
     bottom_z = lo.z + height * 0.42
@@ -124,15 +124,15 @@ def main():
 
         # Narrow grooves: linea alba down the centre and two horizontal
         # tendinous intersections separating the three rows.
-        central = gaussian(p.x, width * 0.008)
-        central *= gaussian(p.z - centre_z, height * 0.090)
+        central = gaussian(p.x, width * 0.006)
+        central *= gaussian(p.z - centre_z, height * 0.095)
         horizontal = 0.0
         for groove_z in (centre_z + row_spacing * 0.5,
                          centre_z - row_spacing * 0.5):
             horizontal = max(
                 horizontal,
-                gaussian(p.z - groove_z, height * 0.0045)
-                * gaussian(p.x, width * 0.13),
+                gaussian(p.z - groove_z, height * 0.0035)
+                * gaussian(p.x, width * 0.14),
             )
 
         # A little lateral definition hints at the external obliques without
@@ -141,15 +141,15 @@ def main():
         for side in (-1.0, 1.0):
             oblique = max(
                 oblique,
-                gaussian(p.x - side * width * 0.125, width * 0.018)
+                gaussian(p.x - side * width * 0.125, width * 0.016)
                 * gaussian(p.z - centre_z, height * 0.075),
             )
 
         displacement = (
-            pads * 0.0070
-            + oblique * 0.0020
-            - central * 0.0018
-            - horizontal * 0.0015
+            pads * 0.0140
+            + oblique * 0.0035
+            - central * 0.0040
+            - horizontal * 0.0035
         ) * args.strength * frontness
 
         if abs(displacement) < 1e-6:
