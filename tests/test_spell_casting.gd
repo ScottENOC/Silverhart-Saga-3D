@@ -11,12 +11,128 @@ func _initialize() -> void:
     _test_armour_penalty_and_blood_magic()
     _test_combat_ai_casts_firebolt()
     _test_combat_ai_heals_ally()
+    _test_official_spell_catalogue_is_exactly_twelve()
+    _test_curse_triggers_on_hostile_action()
+    _test_divine_strength_buffs_ally_damage()
+    _test_disguise_self_adds_profile_effect()
+    _test_wild_fury_rejects_humans()
+    _test_summon_animal_creates_permanent_companion()
+    _test_feather_fall_prevents_fall_once()
     if _failures > 0:
         push_error("%d spell casting assertion(s) failed." % _failures)
         quit(1)
         return
     print("Spell casting and AI tests passed.")
     quit(0)
+
+
+
+func _test_official_spell_catalogue_is_exactly_twelve() -> void:
+    var expected := [
+        "firebolt", "counterspell", "feather_fall", "disguise_self",
+        "heal", "divine_protection", "divine_strength", "curse",
+        "summon_animal", "entangle", "calm_animal", "wild_fury"
+    ]
+    var catalogue := SpellRules.base_spells()
+    _check(catalogue.size() == 12, "Official spell catalogue should contain exactly twelve entries")
+    for spell_id in expected:
+        _check(catalogue.has(spell_id), "Official spell catalogue should contain %s" % spell_id)
+
+
+func _test_curse_triggers_on_hostile_action() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("curse_caster", "player", Vector2i.ZERO)
+    var target := _new_character("cursed_enemy", "enemy", Vector2i(2, 0))
+    caster.unlocked_base_spells.append("curse")
+    var prepared := PreparedSpell.create("curse")
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(target)
+    var cast_result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, target.id, prepared))
+    _check(bool(cast_result.get("ok", false)), "Curse should cast on an enemy")
+    _check(target.has_spell_effect("curse"), "Curse should mark its target")
+    var before := target.health
+    var attack := SimulationActionRequest.new(SimulationActionRequest.ActionType.ATTACK, target.id, caster.id, Vector2i.ZERO, 0.0, {})
+    var attack_result := simulation.submit_action(attack, 44)
+    _check(bool(attack_result.get("ok", false)), "Cursed target should still be able to take its hostile action")
+    _check(before - target.health == 2, "Curse should deal two damage when the target attacks")
+    _check(not target.has_spell_effect("curse"), "Curse should be consumed by the hostile action")
+
+
+func _test_divine_strength_buffs_ally_damage() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("cleric", "player", Vector2i.ZERO)
+    var ally := _new_character("blessed_ally", "player", Vector2i(1, 0))
+    var enemy := _new_character("strength_target", "enemy", Vector2i(2, 0))
+    ally.base_damage = 3
+    caster.unlocked_base_spells.append("divine_strength")
+    var prepared := PreparedSpell.create("divine_strength")
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(ally)
+    simulation.register_character(enemy)
+    var cast_result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, ally.id, prepared))
+    _check(bool(cast_result.get("ok", false)), "Divine Strength should cast on an ally")
+    _check(ally.has_spell_effect("divine_strength"), "Divine Strength should add its timed buff")
+    var attack := SimulationActionRequest.new(SimulationActionRequest.ActionType.ATTACK, ally.id, enemy.id, Vector2i.ZERO, 0.0, {})
+    var result := simulation.submit_action(attack, 99)
+    _check(bool(result.get("ok", false)), "Buffed ally should be able to attack")
+    _check(int(result.get("damage", 0)) >= 6, "Divine Strength should add three damage to the ally's attack")
+
+
+func _test_disguise_self_adds_profile_effect() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("disguised_mage", "player", Vector2i.ZERO)
+    caster.unlocked_base_spells.append("disguise_self")
+    var prepared := PreparedSpell.create("disguise_self")
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    var result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, caster.id, prepared))
+    _check(bool(result.get("ok", false)), "Disguise Self should cast on its caster")
+    _check(caster.has_spell_effect("disguise_self"), "Disguise Self should create a persistent appearance effect")
+
+
+func _test_wild_fury_rejects_humans() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("wild_druid", "player", Vector2i.ZERO)
+    var human_ally := _new_character("human_ally", "player", Vector2i(1, 0))
+    caster.unlocked_base_spells.append("wild_fury")
+    var prepared := PreparedSpell.create("wild_fury")
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(human_ally)
+    var result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, human_ally.id, prepared))
+    _check(not bool(result.get("ok", false)), "Wild Fury must reject human allies")
+    _check(String(result.get("reason", "")) == "wild_fury_requires_ally_animal", "Wild Fury rejection should identify the animal-only restriction")
+
+
+func _test_summon_animal_creates_permanent_companion() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("companion_druid", "player", Vector2i.ZERO)
+    caster.skills["animal_companion"] = 1
+    caster.unlocked_base_spells.append("summon_animal")
+    simulation.map_data.add_cell(Vector2i(1, 0))
+    var prepared := PreparedSpell.create("summon_animal", {"summon_id": "wolf"})
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    var result := simulation.submit_action(SimulationActionRequest.cast_spell_at_hex(caster.id, Vector2i(1, 0), prepared))
+    _check(bool(result.get("ok", false)), "Summon Animal should resolve on an available hex")
+    var summoned := simulation.get_character(String(result.get("summoned_id", "")))
+    _check(summoned != null and summoned.is_animal_companion, "Animal Companion skill should make the first summon permanent")
+
+
+func _test_feather_fall_prevents_fall_once() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("falling_mage", "player", Vector2i.ZERO)
+    caster.unlocked_base_spells.append("feather_fall")
+    var prepared := PreparedSpell.create("feather_fall")
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    var cast_result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, caster.id, prepared))
+    _check(bool(cast_result.get("ok", false)), "Feather Fall should cast on its caster")
+    var fall := simulation.resolve_fall_damage(caster.id, 5)
+    _check(bool(fall.get("prevented", false)), "Feather Fall should prevent one fall")
+    _check(not caster.has_spell_effect("feather_fall"), "Feather Fall should be consumed by the prevented fall")
 
 
 func _check(condition: bool, message: String) -> void:
