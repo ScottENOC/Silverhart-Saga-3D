@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bake restrained armpit and pubic hair into Ara's skin diffuse texture.
 
-This is an Aldric-only post-process. It uses the exported skin mesh's own UVs,
+This is shared by the native Ara companion builds. It uses the exported skin mesh's own UVs,
 so the markings follow the body and survive GLB import without extra geometry.
 The placement is intentionally sparse and is reported for review.
 """
@@ -77,7 +77,7 @@ def main():
         p = positions[tri]
         centre = p.mean(axis=0)
         x, y, z = centre
-        yn = y / height_m
+        yn = (y - float(positions[:, 1].min())) / height_m
         # Ara exports the face and chest toward +Z. Keep the hair on that side.
         if z <= 0:
             continue
