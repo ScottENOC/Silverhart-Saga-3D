@@ -87,11 +87,11 @@ def main():
 
     ear_z = lo.z + height * args.ear_height
     # Match the ear band already used by the project's earring-socket finder.
-    z_half_band = height * 0.050
-    inner_x = width * 0.115
-    outer_x = width * 0.305
+    z_half_band = height * 0.055
+    inner_x = width * 0.100
+    outer_x = width * 0.350
     centre_z = ear_z + height * 0.003
-    vertical_sigma = height * 0.030
+    vertical_sigma = height * 0.050
 
     world_matrix = skin.matrix_world
     normal_matrix = world_matrix.to_3x3()
@@ -145,13 +145,13 @@ def main():
     # whole side of the head. The slight upward component gives a natural,
     # swept-back fantasy-ear silhouette without changing the ear root.
     inv = world_matrix.inverted()
-    moved = {("L" if s > 0 else "R"): 0 for s in side_candidates}
+    moved = {("L" if s > 0 else "R"): 0 for s in side_candidates}\n    max_influence = 0.0
     for side, indices in side_candidates.items():
         for i in indices:
             p = world_positions[i]
             lateral = side * p.x
             u = (lateral - inner_x) / max(outer_x - inner_x, 1e-8)
-            outer_falloff = smoothstep(0.00, 0.78, u)
+            outer_falloff = smoothstep(0.00, 0.30, u)
             vertical = math.exp(
                 -0.5 * ((p.z - centre_z) / vertical_sigma) ** 2
             )
@@ -180,7 +180,7 @@ def main():
     print(
         f"Created {args.key_name}: length={args.length:.3f}m, "
         f"rise={args.rise:.3f}m, sweep={args.sweep:.3f}m, "
-        f"strength={key.value:.2f}, moved={moved}"
+        f"strength={key.value:.2f}, moved={moved}, max_influence={max_influence:.3f}"
     )
 
     armature = next(
