@@ -78,9 +78,13 @@
         "skinTint": "#A77A55",
         "breasts": 0.28,
         "legs": 0.46,
-        "piercings": [
-          "nipple_left"
-        ]
+        "character_details": {
+          "piercings": [
+            "nipple_left"
+          ],
+          "tattoos": [],
+          "tattoo_ink": "#28252D"
+        }
       }
     },
     {
