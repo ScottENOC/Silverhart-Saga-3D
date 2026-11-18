@@ -283,7 +283,7 @@ func _on_simulation_action_committed(event: SimulationEvent) -> void:
             var affected_actor := actor_by_id.get(String(affected_id_value)) as Node3D
             if affected_actor != null:
                 affected_actors.append(affected_actor)
-    (spell_vfx as SpellVfxController).play_spell(
+    spell_vfx.call("play_spell",
         spell_id,
         caster,
         target,
