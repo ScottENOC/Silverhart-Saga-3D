@@ -266,7 +266,7 @@ func _on_simulation_action_committed(event: SimulationEvent) -> void:
     # the active effect so it survives save/load and can be dispelled.
     if event.event_type == "spell_cast" and event.actor_id == "player" and String(event.payload.get("spell_id", "")) == "disguise_self":
         _open_disguise_creator()
-    elif event.event_type == "spell_countered" and event.target_id == "player":
+    elif event.event_type == "spell_countered" and not active_disguise_profile.is_empty():
         var player_state := simulation.get_character("player")
         if player_state == null or not player_state.has_spell_effect("disguise_self"):
             active_disguise_profile.clear()
