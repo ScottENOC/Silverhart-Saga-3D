@@ -34,7 +34,7 @@ static func validate(
     elif spell_id != "summon_animal" and spell_id != "counterspell" and not area_spell and target == null:
         return {"ok": false, "reason": "target_required"}
 
-    if spell_id in ["firebolt", "smite_evil", "divine_silence", "temporal_rift"] and target != null:
+    if spell_id in ["firebolt", "smite_evil", "divine_silence", "temporal_rift", "counterspell"] and target != null:
         if target.side == caster.side:
             return {"ok": false, "reason": "spell_requires_opponent"}
     if spell_id in ["heal", "sanctuary", "divine_protection"] and target != null:
@@ -50,14 +50,6 @@ static func validate(
         if animal == null:
             return {"ok": false, "reason": "target_not_calmable_animal"}
         target = animal
-    if spell_id == "smite_evil" and target != null:
-        var valid_tags: Array = base.get("valid_tags", [])
-        var tag_match := false
-        for tag in valid_tags:
-            if target.tags.has(String(tag)):
-                tag_match = true
-        if not tag_match:
-            return {"ok": true, "reason": "invalid_target_tag", "target": target, "target_hex": target_hex}
     if spell_id == "summon_animal":
         var summon_id := String(prepared.modifiers.get("summon_id", "wolf"))
         if summon_id == "unicorn":
@@ -79,6 +71,8 @@ static func validate(
             return {"ok": false, "reason": "target_out_of_range"}
 
     if spell_id == "counterspell" and target != null:
+        if target.side == caster.side:
+            return {"ok": false, "reason": "counterspell_requires_opponent"}
         if target.spell_effects.is_empty() and not target.is_summoned:
             return {"ok": false, "reason": "no_spell_effect_to_dispel"}
     return {"ok": true, "target": target, "target_hex": target_hex}
