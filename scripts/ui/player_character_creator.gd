@@ -244,7 +244,7 @@ func _build_screen() -> void:
     panel.add_child(clit_piercing_check)
     tattoo_style_select = _option_row(panel, "Tattoo design", ["None", "Arcane constellation", "Shoulder-back motif"])
     for control in [ear_piercing_check, nipple_piercing_check, clit_piercing_check]:
-        control.toggled.connect(_refresh_appearance_preview)
+        control.toggled.connect(func(_pressed: bool): _refresh_appearance_preview(0))
     tattoo_style_select.item_selected.connect(_refresh_appearance_preview)
 
     _section(panel, "STARTING EQUIPMENT")
