@@ -24,6 +24,7 @@ def arguments():
                         help="Rearward tip sweep in metres")
     parser.add_argument("--strength", type=float, default=1.0)
     parser.add_argument("--ear-height", type=float, default=0.875)
+    parser.add_argument("--ear-band", type=float, default=0.035, help="Half-height of strict ear selection band")
     parser.add_argument("--key-name", default="ElfEars")
     return parser.parse_args(raw)
 
@@ -65,10 +66,13 @@ def main():
     if height <= 0 or width <= 0:
         raise RuntimeError("Invalid skin mesh bounds")
     ear_y = lo.y + height * args.ear_height
-    y_half_band = height * 0.050
-    inner_x, outer_x = width * 0.115, width * 0.305
-    centre_y = ear_y + height * 0.003
-    vertical_sigma = height * 0.050
+    # Hard spatial gate: only the upper head/ear band can be modified.
+    # The previous broad mask also caught side-facing shoulders and limbs.
+    y_min = lo.y + height * 0.855
+    y_max = lo.y + height * 0.915
+    inner_x, outer_x = width * 0.105, width * 0.205
+    centre_y = ear_y
+    vertical_sigma = height * 0.018
 
     world_matrix = skin.matrix_world
     original = [v.co.copy() for v in skin.data.vertices]
@@ -82,7 +86,13 @@ def main():
             lateral = side * p.x
             if not (inner_x <= lateral <= outer_x):
                 continue
-            if abs(p.y - ear_y) > y_half_band or side * n.x < 0.28:
+            # Absolute limits prevent shoulders, torso, buttocks and legs
+            # from ever entering this shape key, regardless of normal.
+            if not (y_min <= p.y <= y_max):
+                continue
+            if abs(p.y - ear_y) > height * args.ear_band:
+                continue
+            if side * n.x < 0.42:
                 continue
             indices.append(i)
         side_candidates[side] = indices
