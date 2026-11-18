@@ -172,9 +172,8 @@ static func compute_variant(
     }
 
 
-## The first resolver slice supports only direct Firebolt damage and
-## single-target Heal. Do not silently treat unimplemented Burst/AoE or
-## extra-target variants as single-target casts.
+## Only the official 12-spell catalogue is eligible for player casting.
+## Do not silently treat unsupported Burst/AoE or extra-target variants as single-target casts.
 static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool:
     if not bool(variant.get("ok", false)):
         return false
