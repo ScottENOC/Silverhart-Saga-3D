@@ -81,11 +81,11 @@ def main():
     # Ara's humanoid is Z-up in Blender and faces -Y. The abdomen lies below
     # the ribcage and above the pelvis; the mask excludes chest, hips and back.
     centre_z = lo.z + height * 0.525
-    row_spacing = height * 0.065
+    row_spacing = height * 0.070
     row_centres = (centre_z + row_spacing, centre_z, centre_z - row_spacing)
     pad_x = width * 0.070
     sigma_x = width * 0.030
-    sigma_z = height * 0.022
+    sigma_z = height * 0.018
     front_limit = width * 0.16
     top_z = lo.z + height * 0.64
     bottom_z = lo.z + height * 0.42
@@ -146,10 +146,10 @@ def main():
             )
 
         displacement = (
-            pads * 0.0140
-            + oblique * 0.0035
-            - central * 0.0040
-            - horizontal * 0.0035
+            pads * 0.0220
+            + oblique * 0.0045
+            - central * 0.0060
+            - horizontal * 0.0050
         ) * args.strength * frontness
 
         if abs(displacement) < 1e-6:
