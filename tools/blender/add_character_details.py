@@ -268,12 +268,13 @@ def add_hoop(socket, radius, material, name, hang_down=False):
     world = socket_matrix.copy()
     centre = socket_matrix.translation + normal * 0.0008
     if hang_down:
-        # Explicitly orient the hoop in a vertical plane: outward and world-down
-        # are its two in-plane axes, independent of Ara's socket rotation.
-        down = Vector((0, -1, 0))
+        # Blender scene coordinates are Z-up. Ara's source GLB is Y-up, but the glTF
+        # importer converts it into Blender's Z-up world. Use world -Z here;
+        # using -Y makes the hoop tilt along the wrong axis.
+        down = Vector((0, 0, -1))
         down -= normal * down.dot(normal)
         if down.length_squared < 1e-8:
-            down = Vector((0, -1, 0))
+            down = Vector((0, 0, -1))
         down.normalize()
         outward = normal.normalized()
         plane_normal = outward.cross(down).normalized()
