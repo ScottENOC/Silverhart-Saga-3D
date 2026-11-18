@@ -54,8 +54,11 @@ func _test_curse_triggers_on_hostile_action() -> void:
     caster.prepared_spells.append(prepared.to_dict())
     simulation.register_character(caster)
     simulation.register_character(target)
+    var mana_before := caster.current_mana
+    var tp_before := caster.time_points
     var cast_result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, target.id, prepared))
     _check(bool(cast_result.get("ok", false)), "Curse should cast on an enemy")
+    _check(mana_before - caster.current_mana == 8 and is_equal_approx(tp_before - caster.time_points, 8.0), "Curse should cost 8 mana and 8 Time Points")
     _check(target.has_spell_effect("curse"), "Curse should mark its target")
     var before := target.health
     var attack := SimulationActionRequest.new(SimulationActionRequest.ActionType.ATTACK, target.id, caster.id, Vector2i.ZERO, 0.0, {})
