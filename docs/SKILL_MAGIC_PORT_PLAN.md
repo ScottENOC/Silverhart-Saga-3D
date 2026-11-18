@@ -117,3 +117,35 @@ Do not create a second parallel skills dictionary. Existing reads in `world_simu
 - **Reyna's first quest is now playable alongside the existing Old Mac wolf quest:** it reuses the current Hollowmere farmstead presentation (farmhouse, grain barn, pasture, roads and imported farm animals), stations Reyna at the farm, and adds a persistent grain-raiding bear encounter. The bear uses the shared turn scheduler, attack resolver and reaction system. Defeating it completes the journal objective and unlocks Reyna's recruitment. Combatants start at the source 100 TP baseline. The bear's current visual is a procedural blockout pending a proper creature asset.
 - Successful recruitment calls `WorldSimulation.recruit_companion`, preserving the authored NPC build and applying the one-time companion progression boundary. The companion joins the party and stops ambient NPC chatter.
 - Remaining companion quest locations/encounters still to port: goblin camp and Aldric rescue; Skarnak's Hold/troll; spider ruin; Emberwood herb patches; Northwatch siege; Star Fort. Their quest gates and dialogue exist, but these events must call the quest-completion helpers before recruitment becomes available.
+
+
+---
+
+## Spell catalogue and Disguise Self update — 18 November 2026
+
+The official 3D player spell list is now fixed at 12 entries:
+
+- Arcane: Firebolt, Counterspell, Feather Fall, Disguise Self.
+- Divine: Heal, Divine Protection, Divine Strength, Curse.
+- Nature: Summon Animal, Entangle, Calm Animal, Wild Fury.
+
+Do not port or add further player base spells without an explicit design decision. Dragon Breath is deferred as a future dragon ability. The former 15-spell 2D data catalogue is historical source material, not the 3D design target.
+
+### Disguise Self integration
+
+The existing first-run Ara character creator is reused in an appearance-only mode when Disguise Self resolves. The mode keeps the live character preview and supported appearance controls (body model, presentation, height/build, skin, eyes, hair, piercings and tattoos), while hiding campaign, race/class and starting-equipment setup. The chosen profile is attached to the active Disguise Self effect and reapplied after player profile setup.
+
+Still required:
+- persist and restore the active disguise profile through save/load, and reliably restore the underlying appearance when Counterspell removes the disguise;
+- expand disguise choices to the complete supported modular Ara wardrobe and morph set, rather than only the current creator controls;
+- port the 2D disguise consequences beyond appearance: NPC recognition, faction/social identity, dialogue and quest checks, equipment silhouette/compatibility, and any detection or duration rules;
+- verify disguise behaviour for companions/NPCs and non-player casters, not just the player avatar;
+- add an in-game spellbook/preparation/casting UI that submits the shared `SimulationActionRequest`, plus verbal/somatic components and gesture/animation presentation.
+
+### Spell and class integration still requiring verification
+
+Curse is a new official spell based on the original 2D `learn_curse` skill description, not a registered base spell in `spells.js`. Divine Strength is also a new official spell. Their base costs, magnitude and duration are provisional and require playtesting. The original cleric trigger skills were described around Divine Silence/Sanctuary; their intended triggers and status effects must be reconciled with Curse rather than silently retaining references to removed spells.
+
+Summon Animal retains the original companion progression: animal summon variants and the Animal Companion skill, including the special permanent Unicorn bond, need save/load and recruitment lifecycle acceptance. Druids' Wild Fury is restricted to allied mundane animals, never human allies.
+
+Entangle's current 3D status effect still needs the original terrain mutation/dispel behaviour. Calm Animal's Stay/Come/Chase state needs animal-AI parity tests. Spell effect expiry, counterspell interaction, AI spell choice and class-specific spell unlocks remain part of the acceptance suite.
