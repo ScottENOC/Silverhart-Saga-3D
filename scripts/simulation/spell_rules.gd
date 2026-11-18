@@ -179,10 +179,9 @@ static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool
     if not bool(variant.get("ok", false)):
         return false
     const IMPLEMENTED_IDS := [
-        "firebolt", "heal", "smite_evil", "divine_silence", "sanctuary",
-        "divine_protection", "summon_animal", "counterspell", "dragon_breath",
-        "entangle", "wild_fury", "calm_animal", "disguise_self",
-        "temporal_rift", "feather_fall"
+        "firebolt", "counterspell", "feather_fall", "disguise_self",
+        "heal", "divine_protection", "divine_strength", "curse",
+        "summon_animal", "entangle", "calm_animal", "wild_fury"
     ]
     if not IMPLEMENTED_IDS.has(spell_id):
         return false
