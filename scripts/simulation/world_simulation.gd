@@ -646,8 +646,169 @@ func submit_action(request: SimulationActionRequest, random_seed: int = 0) -> Di
             return _submit_feint(request, random_seed)
         SimulationActionRequest.ActionType.MOVE:
             return _submit_move(request)
+        SimulationActionRequest.ActionType.CAST_SPELL:
+            return _submit_spell_cast(request, random_seed)
         _:
             return {"ok": false, "reason": "unsupported_action_type"}
+
+## Both player controls and NPC decision-making submit this same action.
+## The resolver owns legality, range, resource payment and effect resolution.
+func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) -> Dictionary:
+    if not pending_reaction.is_empty():
+        return {"ok": false, "reason": "reaction_pending"}
+    if is_in_combat:
+        if not turn_scheduler.has_active_turn():
+            return {"ok": false, "reason": "no_active_combat_turn"}
+        if turn_scheduler.current_character_id != request.actor_id:
+            return {"ok": false, "reason": "not_actor_turn"}
+
+    var caster := get_character(request.actor_id)
+    var target := get_character(request.target_id)
+    if caster == null or not caster.can_act():
+        return {"ok": false, "reason": "caster_unavailable"}
+    if target == null or not target.can_be_targeted():
+        return {"ok": false, "reason": "target_unavailable"}
+
+    var saved_spell: Variant = request.options.get("prepared_spell", {})
+    if not saved_spell is Dictionary:
+        return {"ok": false, "reason": "missing_prepared_spell"}
+    var prepared := PreparedSpell.from_dict(saved_spell)
+    if prepared == null or not prepared.is_valid():
+        return {"ok": false, "reason": "invalid_prepared_spell"}
+
+    var spell_id := prepared.base_spell_id
+    if not caster.unlocked_base_spells.has(spell_id) and int(caster.skills.get("learn_%s" % spell_id, 0)) <= 0:
+        return {"ok": false, "reason": "spell_not_learned"}
+    if spell_id not in ["firebolt", "heal"]:
+        return {"ok": false, "reason": "spell_effect_not_implemented"}
+
+    var variant := SpellRules.compute_variant(spell_id, prepared.modifiers, caster.skills)
+    if not bool(variant.get("ok", false)):
+        return {"ok": false, "reason": String(variant.get("reason", "invalid_spell_variant"))}
+
+    var is_heal := spell_id == "heal"
+    if is_heal and caster.side != target.side:
+        return {"ok": false, "reason": "heal_requires_ally"}
+    if not is_heal and caster.side == target.side:
+        return {"ok": false, "reason": "damage_requires_opponent"}
+    if not is_heal and not target.can_be_targeted():
+        return {"ok": false, "reason": "target_unavailable"}
+
+    var spell_range := maxi(1, int(variant.get("range", 1)))
+    var distance := HexGrid.distance(caster.axial, target.axial)
+    if distance > spell_range:
+        return {"ok": false, "reason": "target_out_of_range"}
+
+    var magnitude_value: Variant = variant.get("magnitude", 0)
+    if not (magnitude_value is int or magnitude_value is float) or not is_finite(float(magnitude_value)) or float(magnitude_value) <= 0.0:
+        return {"ok": false, "reason": "invalid_spell_magnitude"}
+    var magnitude := maxi(1, roundi(float(magnitude_value)))
+    var tp_cost := float(variant.get("time_point_cost", 0))
+    if not is_finite(tp_cost) or tp_cost < 0.0 or not caster.can_spend_time_points(tp_cost):
+        return {"ok": false, "reason": "insufficient_time_points"}
+
+    var armour_penalty := SpellRules.armour_mana_penalty(caster, String(variant.get("school", "")))
+    var total_mana_cost := int(variant.get("mana_cost", 0)) + armour_penalty
+    var affordability := SpellRules.cast_affordability(caster, total_mana_cost)
+    if not bool(affordability.get("ok", false)):
+        return {"ok": false, "reason": String(affordability.get("reason", "insufficient_mana"))}
+
+    # All validation is complete. Resource payment and effect resolution now
+    # happen together; rejected casts never consume mana, HP or TP.
+    if not caster.spend_time_points(tp_cost):
+        return {"ok": false, "reason": "insufficient_time_points"}
+    caster.current_mana -= int(affordability.get("mana_to_spend", 0))
+    var blood_hp_cost := int(affordability.get("hp_cost", 0))
+    if blood_hp_cost > 0:
+        caster.apply_damage(blood_hp_cost)
+
+    var effect_payload: Dictionary = {}
+    if is_heal:
+        var health_before := target.health
+        var lifecycle := target.apply_healing(magnitude)
+        effect_payload = {
+            "effect": "heal",
+            "healing": target.health - health_before,
+            "magnitude": magnitude,
+            "target_lifecycle": lifecycle,
+            "target_health": target.health
+        }
+    else:
+        var base := SpellRules.get_base_spell(spell_id)
+        var valid_tags: Array = base.get("valid_tags", [])
+        if not valid_tags.is_empty():
+            var tag_match := false
+            for required_tag in valid_tags:
+                if target.tags.has(String(required_tag)):
+                    tag_match = true
+                    break
+            if not tag_match:
+                # The cast still resolves and costs resources, matching the
+                # source game's "no effect on this target" spell behaviour.
+                effect_payload = {
+                    "effect": "firebolt",
+                    "hit": false,
+                    "reason": "invalid_target_tag",
+                    "damage": 0,
+                    "magnitude": magnitude
+                }
+            else:
+                effect_payload = _resolve_firebolt_hit(caster, target, magnitude, random_seed)
+        else:
+            effect_payload = _resolve_firebolt_hit(caster, target, magnitude, random_seed)
+
+    effect_payload["spell_id"] = spell_id
+    effect_payload["spell_name"] = String(variant.get("name", spell_id))
+    effect_payload["mana_cost"] = total_mana_cost
+    effect_payload["base_mana_cost"] = int(variant.get("mana_cost", 0))
+    effect_payload["armour_mana_penalty"] = armour_penalty
+    effect_payload["blood_magic_hp_cost"] = blood_hp_cost
+    effect_payload["time_point_cost"] = tp_cost
+    effect_payload["core_mana_cost"] = int(variant.get("core_mana_cost", variant.get("mana_cost", 0)))
+    effect_payload["caster_mana_remaining"] = caster.current_mana
+    effect_payload["caster_health"] = caster.health
+
+    var result_data := SimulationActionResult.new("cast_spell", true, "", caster.id, target.id, effect_payload).to_dict()
+    action_committed.emit(SimulationEvent.new("spell_cast", caster.id, target.id, result_data))
+    combat_action_resolved.emit(result_data)
+    if is_in_combat and caster.should_end_turn():
+        try_end_current_turn()
+    return result_data
+
+
+func _resolve_firebolt_hit(caster: CharacterState, target: CharacterState, magnitude: int, random_seed: int) -> Dictionary:
+    var chance := clampf(50.0 + float(int(caster.skills.get("firebolt_hit", 0)) * 5) - target.passive_dodge, 0.0, 100.0)
+    var rng := RandomNumberGenerator.new()
+    if random_seed == 0:
+        rng.randomize()
+    else:
+        rng.seed = random_seed
+    var roll := rng.randi_range(0, 99)
+    if float(roll) >= chance:
+        return {
+            "effect": "firebolt",
+            "hit": false,
+            "roll": roll,
+            "hit_chance": chance,
+            "damage": 0,
+            "target_health": target.health
+        }
+
+    var reduction := maxi(0, target.base_reduction + target.armour_reduction + target.shield_reduction + target.helmet_reduction)
+    var damage := maxi(1, magnitude - reduction)
+    var lifecycle := target.apply_damage(damage)
+    return {
+        "effect": "firebolt",
+        "hit": true,
+        "roll": roll,
+        "hit_chance": chance,
+        "magnitude": magnitude,
+        "reduction": reduction,
+        "damage": damage,
+        "target_lifecycle": lifecycle,
+        "target_health": target.health
+    }
+
 
 func _submit_feint(request: SimulationActionRequest, random_seed: int) -> Dictionary:
     if not pending_reaction.is_empty():
