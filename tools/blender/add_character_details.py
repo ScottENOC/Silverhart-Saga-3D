@@ -262,24 +262,29 @@ def add_hoop(socket, radius, material, name, hang_down=False):
     world = socket_matrix.copy()
     centre = socket_matrix.translation + normal * 0.0008
     if hang_down:
-        # Keep the hoop in its socket-aligned plane, but move its centre below
-        # the piercing point so the upper arc enters the nipple and the lower
-        # arc hangs freely. Project world-down into that plane for a reliable
-        # result even if Ara's socket has a small local rotation.
+        # Explicitly orient the hoop in a vertical plane: outward and world-down
+        # are its two in-plane axes, independent of Ara's socket rotation.
         down = Vector((0, -1, 0))
         down -= normal * down.dot(normal)
-        if down.length_squared > 1e-8:
-            down.normalize()
-            centre += down * radius * 0.72
+        if down.length_squared < 1e-8:
+            down = Vector((0, -1, 0))
+        down.normalize()
+        outward = normal.normalized()
+        plane_normal = outward.cross(down).normalized()
+        orientation = Matrix((outward, down, plane_normal)).transposed().to_quaternion()
+        centre += down * radius * 0.89 + outward * 0.0012
+    else:
+        orientation = socket_matrix.to_quaternion()
+        centre += normal * 0.0012
     world.translation = centre
-    bpy.ops.mesh.primitive_torus_add(major_segments=24, minor_segments=12,
+    bpy.ops.mesh.primitive_torus_add(major_segments=32, minor_segments=12,
                                      location=world.translation,
                                      major_radius=radius * 0.89,
                                      minor_radius=radius * 0.11)
     obj = bpy.context.object
     obj.name = name
     obj.rotation_mode = "QUATERNION"
-    obj.rotation_quaternion = socket_matrix.to_quaternion()
+    obj.rotation_quaternion = orientation
     obj.data.materials.append(material)
     parent_preserve(obj, socket, obj.matrix_world.copy())
     obj["character_detail_type"] = "piercing"
