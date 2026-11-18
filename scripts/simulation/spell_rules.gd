@@ -128,7 +128,10 @@ static func compute_variant(
     if base_magnitude != null:
         magnitude = float(base_magnitude) * (1.0 + float(magnitude_bonus))
 
-    var radius := (1 if burst else int(base.get("base_radius", 0) or 0)) + radius_bonus
+    var base_radius := 0
+    if base.get("base_radius") != null:
+        base_radius = int(base.get("base_radius"))
+    var radius := (1 if burst else base_radius) + radius_bonus
     var effective_range := 1 if touch else base_range + range_bonus
     var effective_type := base_type
     if burst:
