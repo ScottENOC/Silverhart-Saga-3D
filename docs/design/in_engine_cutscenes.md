@@ -5,7 +5,7 @@
 The opening is split into two presentation components:
 
 - `CinematicDirector` owns the temporary cinematic camera, subtitles, skip control, actor framing and semantic animation requests.
-- `HollowmereOpeningSequence` owns the Hollowmere-specific table staging, Wren's opening exchange and the stand-and-face-the-Ironbond blocking.
+- `HollowmereOpeningSequence` owns the Hollowmere-specific table staging and stand-and-face-the-Ironbond blocking. Wren's opening exchange and the Ironbond dialogue are supplied by `HollowmereCampaignContent`.
 
 The sequence borrows the live actors from the location. It does not instantiate replacement character models or own campaign state.
 
