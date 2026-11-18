@@ -45,7 +45,10 @@ def find_skin():
 
 def make_material(name, hex_colour, metallic=0.0, roughness=0.8):
     colour = hex_colour.lstrip("#")
-    rgb = tuple(int(colour[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+    srgb = tuple(int(colour[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+    def linear(channel):
+        return channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4
+    rgb = tuple(linear(channel) for channel in srgb)
     mat = bpy.data.materials.new(name)
     mat.diffuse_color = (*rgb, 1.0)
     mat.use_nodes = True
