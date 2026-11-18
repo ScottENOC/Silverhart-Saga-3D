@@ -153,6 +153,8 @@ func _test_combat_ai_casts_firebolt() -> void:
     target.health = 30
     simulation.register_character(caster)
     simulation.register_character(target)
+    simulation.start_combat()
+    simulation.turn_scheduler.current_character_id = caster.id
 
     var enemy_ids: Array[String] = ["ai_mage"]
     var party_ids: Array[String] = ["player_target"]
@@ -172,6 +174,8 @@ func _test_combat_ai_heals_ally() -> void:
     simulation.register_character(caster)
     simulation.register_character(ally)
     simulation.register_character(target)
+    simulation.start_combat()
+    simulation.turn_scheduler.current_character_id = caster.id
 
     var enemy_ids: Array[String] = ["ai_healer", "ai_ally"]
     var party_ids: Array[String] = ["player_target_2"]
