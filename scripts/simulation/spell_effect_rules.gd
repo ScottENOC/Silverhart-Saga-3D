@@ -174,7 +174,7 @@ static func apply(
             for victim in affected:
                 if victim.side == caster.side:
                     continue
-                _add_effect(victim, "entangled", caster.id, {"ticks_remaining": 20.0})
+                _add_effect(victim, "entangled", caster.id)
                 entangled.append(victim.id)
             payload["affected_ids"] = entangled
             payload["radius"] = radius
