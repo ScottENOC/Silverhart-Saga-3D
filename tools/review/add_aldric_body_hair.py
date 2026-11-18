@@ -46,7 +46,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, type=Path)
     ap.add_argument("--seed", type=int, default=1401)
-    ap.add_argument("--coverage", choices=("restrained", "aldric"), default="restrained")
+    ap.add_argument("--coverage", choices=("restrained", "aldric", "wren", "reyna", "dagna"), default="restrained")
+    ap.add_argument("--hair-colour", default="", help="Hex RGB body-hair colour")
     args = ap.parse_args()
     doc, old_binary, chunks = parse_glb(args.model.read_bytes())
 
@@ -71,7 +72,14 @@ def main():
     height_m = float(bounds[1])
     rng = random.Random(args.seed)
 
-    names = ["armpits", "pubic"] + (["chest", "arms", "legs", "snail_trail", "scrotum"] if args.coverage == "aldric" else [])
+    if args.coverage == "wren":
+        names = ["landing_strip"]
+    elif args.coverage == "reyna":
+        names = ["armpits", "pubic"]
+    elif args.coverage == "dagna":
+        names = ["pubic"]
+    else:
+        names = ["armpits", "pubic"] + (["chest", "arms", "legs", "snail_trail", "scrotum"] if args.coverage == "aldric" else [])
     masks = {name: Image.new("L", (width, height), 0) for name in names}
     draws = {key: ImageDraw.Draw(mask) for key, mask in masks.items()}
     regions = {name: 0 for name in names}
@@ -92,23 +100,33 @@ def main():
         if args.coverage == "aldric" and front and 0.265 <= yn <= 0.405 and abs(x) <= 0.125:
             draws["scrotum"].polygon(polygon, fill=255)
             regions["scrotum"] += 1
-        if front and 0.67 <= yn <= 0.79 and 0.075 <= abs(x) <= 0.19:
-            region = "armpits"
-        if args.coverage == "aldric":
-            # Keep the snail trail as its own narrow central strip. It must be
-            # tested before pubic hair, otherwise the wider pubic mask consumes it.
-            if region is None and front and 0.38 <= yn <= 0.50 and abs(x) <= 0.018:
-                region = "snail_trail"
-            elif region is None and front and 0.36 <= yn <= 0.49 and abs(x) <= 0.075:
+        if args.coverage == "wren":
+            if front and 0.485 <= yn <= 0.555 and abs(x) <= 0.042:
+                region = "landing_strip"
+        elif args.coverage == "reyna":
+            if 0.66 <= yn <= 0.80 and 0.075 <= abs(x) <= 0.19 and abs(z) > 0.035:
+                region = "armpits"
+            elif front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
                 region = "pubic"
-            elif region is None and front and 0.57 <= yn <= 0.73 and abs(x) <= 0.075:
-                region = "chest"
-            elif region is None and 0.34 <= yn <= 0.73 and 0.16 <= abs(x) <= 0.30:
-                region = "arms"
-            elif region is None and 0.05 <= yn <= 0.36 and 0.055 <= abs(x) <= 0.145:
-                region = "legs"
-        elif region is None and front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
-            region = "pubic"
+        elif args.coverage == "dagna":
+            if front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
+                region = "pubic"
+        else:
+            if front and 0.67 <= yn <= 0.79 and 0.075 <= abs(x) <= 0.19:
+                region = "armpits"
+            if args.coverage == "aldric":
+                if region is None and front and 0.38 <= yn <= 0.50 and abs(x) <= 0.018:
+                    region = "snail_trail"
+                elif region is None and front and 0.36 <= yn <= 0.49 and abs(x) <= 0.075:
+                    region = "pubic"
+                elif region is None and front and 0.57 <= yn <= 0.73 and abs(x) <= 0.075:
+                    region = "chest"
+                elif region is None and 0.34 <= yn <= 0.73 and 0.16 <= abs(x) <= 0.30:
+                    region = "arms"
+                elif region is None and 0.05 <= yn <= 0.36 and 0.055 <= abs(x) <= 0.145:
+                    region = "legs"
+            elif region is None and front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
+                region = "pubic"
         if region is None:
             continue
         draws[region].polygon(polygon, fill=255)
@@ -124,8 +142,19 @@ def main():
     draw = ImageDraw.Draw(layer)
     counts = {name: 0 for name in required}
     densities = {"armpits": 170, "pubic": 520}
-    if args.coverage == "aldric":
+    if args.coverage == "wren":
+        densities = {"landing_strip": 1100}
+    elif args.coverage == "reyna":
+        densities = {"armpits": 1250, "pubic": 520}
+    elif args.coverage == "dagna":
+        densities = {"pubic": 1350}
+    elif args.coverage == "aldric":
         densities.update({"chest": 520, "arms": 720, "legs": 900, "snail_trail": 220, "scrotum": 420})
+    default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
+    colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
+    if len(colour_hex) != 6:
+        raise ValueError("--hair-colour must be a six-digit RGB hex value")
+    hair_rgb = tuple(int(colour_hex[i:i + 2], 16) for i in (0, 2, 4))
     for region, count in densities.items():
         mask = masks[region]
         pixels = mask.load()
@@ -138,9 +167,13 @@ def main():
             else:
                 continue
             length = rng.uniform(3.0, 8.0) if region == "armpits" else rng.uniform(4.0, 11.0)
-            angle = rng.uniform(-1.1, 1.1) if region == "armpits" else rng.uniform(-0.85, 0.85)
+            if region == "landing_strip":
+                length = rng.uniform(5.0, 10.0)
+                angle = rng.uniform(-0.22, 0.22)
+            else:
+                angle = rng.uniform(-1.1, 1.1) if region == "armpits" else rng.uniform(-0.85, 0.85)
             dx, dy = np.cos(angle) * length, np.sin(angle) * length
-            shade = rng.choice([(20, 15, 12, 175), (30, 21, 17, 205), (42, 29, 23, 185)])
+            shade = (*hair_rgb, rng.randint(175, 215))
             stroke_width = 2 if args.coverage == "aldric" and region != "armpits" else 1
             draw.line((x, y, x + dx, y + dy), fill=shade, width=stroke_width)
             counts[region] += 1
@@ -186,7 +219,7 @@ def main():
         out.extend(struct.pack("<I4s", len(payload), kind))
         out.extend(payload)
     args.model.write_bytes(out)
-    print(json.dumps({"ok": True, "coverage": args.coverage, "texture_only": True, "regions": regions, "strokes": counts, "texture": [width, height], "glb_bytes": len(out)}, indent=2))
+    print(json.dumps({"ok": True, "coverage": args.coverage, "hair_colour": "#" + colour_hex.upper(), "texture_only": True, "regions": regions, "strokes": counts, "texture": [width, height], "glb_bytes": len(out)}, indent=2))
 
 
 if __name__ == "__main__":

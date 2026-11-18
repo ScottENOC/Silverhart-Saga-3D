@@ -92,7 +92,7 @@ jobs:
       - name: Add restrained armpit and pubic hair detail
         run: |
           set -euo pipefail
-          python tools/review/add_aldric_body_hair.py --model build/wren-native/Wren.glb --seed 4404
+          python tools/review/add_aldric_body_hair.py --model build/wren-native/Wren.glb --seed 4404 --coverage wren --hair-colour "#287BFF"
           test -s build/wren-native/Wren.glb
 
       - name: Bake Wren's left nipple piercing into the exported GLB
