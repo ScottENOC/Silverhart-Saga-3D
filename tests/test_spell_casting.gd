@@ -23,6 +23,7 @@ func _initialize() -> void:
     _test_entangle_applies_to_enemies_in_area()
     _test_calm_animal_records_selected_mode()
     _test_wild_fury_buffs_allied_animal()
+    _test_spellbook_panel_opens_and_builds_known_spells()
     if _failures > 0:
         push_error("%d spell casting assertion(s) failed." % _failures)
         quit(1)
@@ -392,3 +393,21 @@ func _test_combat_ai_heals_ally() -> void:
     _check(ally.health == 45, "Combat AI should heal a nearby injured ally")
     _check(caster.current_mana == 14, "AI Heal must use the same mana payment")
     _check(is_equal_approx(caster.time_points, 80.0), "AI should end its turn after paying Heal costs")
+
+
+func _test_spellbook_panel_opens_and_builds_known_spells() -> void:
+    var simulation := WorldSimulation.new()
+    root.add_child(simulation)
+    var caster := _new_character("spellbook_player", "player", Vector2i.ZERO)
+    caster.unlocked_base_spells.append("firebolt")
+    simulation.register_character(caster)
+
+    var panel = load("res://scripts/ui/spellbook_panel.gd").new()
+    root.add_child(panel)
+    panel.configure(simulation, caster.id)
+    _check(not panel.visible, "Spellbook should start closed")
+    panel.open_for_character(caster.id)
+    _check(panel.visible, "Spellbook should open for the selected party member")
+    _check(panel.selected_spell_id.is_empty(), "Opening the spellbook should not silently select a spell")
+    panel.queue_free()
+    simulation.queue_free()
