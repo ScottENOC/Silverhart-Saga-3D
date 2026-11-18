@@ -6,7 +6,7 @@
     "file": "skills.js",
     "note": "Includes the 186 direct skill declarations plus 71 unique skills expanded by generateWeaponSkills() and generateMagicSkills(). Metadata only; behavioural functions and apply effects require explicit GDScript ports and tests."
   },
-  "count": 236,
+  "count": 258,
   "skills": [
     {
       "id": "acrobatics",
@@ -1420,6 +1420,32 @@
       "requires_runtime_port": true
     },
     {
+      "id": "learn_barkskin_spell",
+      "name": "Learn Barkskin (Spell)",
+      "description": "Not in the official 12-spell catalogue. Unlocks Barkskin spell: Target ally reduces all incoming damage by 1 for 30 ticks (10 mana, 8 TP).",
+      "tree": "nature",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_blink",
+      "name": "Learn Blink",
+      "description": "Not in the official 12-spell catalogue. Unlocks Blink: Teleport to any unoccupied hex within 4 hexes (10 mana, 8 TP). As a reaction when targeted by melee, costs +5 mana.",
+      "tree": "arcane",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
       "id": "learn_boar_summon",
       "name": "Boar Summoning",
       "description": "Allows you to summon a Boar instead of a Wolf (+8 mana).",
@@ -1432,6 +1458,19 @@
       "requires_runtime_port": true
     },
     {
+      "id": "learn_call_of_the_wild",
+      "name": "Learn Call of the Wild",
+      "description": "Not in the official 12-spell catalogue. Unlocks Call of the Wild: Empower your active summon with +2 attack damage and +6 HP for 20 ticks (12 mana, 10 TP).",
+      "tree": "nature",
+      "max_ranks": 1,
+      "prerequisite": "learn_summon_animal",
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
       "id": "learn_calm_animal",
       "name": "Learn Calm Animal",
       "description": "Unlocks the Calm Animal base spell.",
@@ -1442,6 +1481,58 @@
       "reaction": false,
       "dynamic_prerequisite": false,
       "requires_runtime_port": true
+    },
+    {
+      "id": "learn_camouflage",
+      "name": "Learn Camouflage",
+      "description": "Not in the official 12-spell catalogue. Unlocks Camouflage: Target ally gains +15 to stealth for 20 ticks (8 mana, 8 TP).",
+      "tree": "nature",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_chain_lightning",
+      "name": "Learn Chain Lightning",
+      "description": "Not in the official 12-spell catalogue. Unlocks Chain Lightning: Strike a target for 3 damage; arc to nearest enemy for 2, then 1 (12 mana, 10 TP).",
+      "tree": "arcane",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_command",
+      "name": "Learn Command",
+      "description": "Not in the official 12-spell catalogue. Unlocks Command: If the target attacks any ally in the next 10 ticks, they take 3 divine damage (10 mana, 10 TP).",
+      "tree": "divine",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_condemn",
+      "name": "Learn Condemn",
+      "description": "Not in the official 12-spell catalogue. Unlocks Condemn: If the target",
+      "tree": "divine",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_counterspell",
@@ -1503,6 +1594,32 @@
       "requires_runtime_port": true
     },
     {
+      "id": "learn_divine_silence",
+      "name": "Learn Divine Silence",
+      "description": "Not in the official 12-spell catalogue. Unlocks the Divine Silence base spell.",
+      "tree": "divine",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_divine_wrath",
+      "name": "Learn Divine Wrath",
+      "description": "Not in the official 12-spell catalogue. Unlocks Divine Wrath: Deal 1 damage now; if the target advances toward the caster within 15 ticks, deal 3 more (10 mana, 10 TP).",
+      "tree": "divine",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
       "id": "learn_eagle_summon",
       "name": "Eagle Summoning",
       "description": "Allows you to summon an Eagle instead of a Wolf (+5 mana).",
@@ -1515,6 +1632,19 @@
       "requires_runtime_port": true
     },
     {
+      "id": "learn_energy_shield",
+      "name": "Learn Energy Shield",
+      "description": "Not in the official 12-spell catalogue. Unlocks Energy Shield: Absorb the next 6 points of incoming damage for 20 ticks (10 mana, 8 TP).",
+      "tree": "arcane",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
       "id": "learn_entangle",
       "name": "Learn Entangle",
       "description": "Unlocks the Entangle base spell.",
@@ -1525,6 +1655,19 @@
       "reaction": false,
       "dynamic_prerequisite": false,
       "requires_runtime_port": true
+    },
+    {
+      "id": "learn_excommunicate",
+      "name": "Learn Excommunicate",
+      "description": "Not in the official 12-spell catalogue. Unlocks Excommunicate: The target",
+      "tree": "divine",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_feather_fall",
@@ -1551,6 +1694,45 @@
       "requires_runtime_port": true
     },
     {
+      "id": "learn_force_push",
+      "name": "Learn Force Push",
+      "description": "Not in the official 12-spell catalogue. Unlocks Force Push: Push a target 2 hexes in any direction with no damage (8 mana, 8 TP).",
+      "tree": "arcane",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_gravity_well",
+      "name": "Learn Gravity Well",
+      "description": "Not in the official 12-spell catalogue. Unlocks Gravity Well: Pull all entities within a 2-hex radius 1 hex toward a target hex (14 mana, 12 TP).",
+      "tree": "arcane",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_haste",
+      "name": "Learn Haste",
+      "description": "Not in the official 12-spell catalogue. Unlocks Haste: Target ally immediately gains 20 TP (15 mana, 10 TP).",
+      "tree": "arcane",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
       "id": "learn_heal",
       "name": "Learn Heal",
       "description": "Unlocks the Heal base spell.",
@@ -1563,6 +1745,97 @@
       "requires_runtime_port": true
     },
     {
+      "id": "learn_mark_of_guilt",
+      "name": "Learn Mark of Guilt",
+      "description": "Not in the official 12-spell catalogue. Unlocks Mark of Guilt: If the target attacks anyone other than the caster in 20 ticks, they take 2 divine damage (8 mana, 8 TP).",
+      "tree": "divine",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_natures_vigor",
+      "name": "Learn Nature",
+      "description": "Not in the official 12-spell catalogue. Unlocks Nature",
+      "tree": "nature",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_root",
+      "name": "Learn Root",
+      "description": "Not in the official 12-spell catalogue. Unlocks Root: Target cannot move for 5 TP ticks but can still act and cast (8 mana, 8 TP).",
+      "tree": "nature",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_sanctuary",
+      "name": "Learn Sanctuary",
+      "description": "Not in the official 12-spell catalogue. Unlocks the Sanctuary base spell.",
+      "tree": "divine",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_slow",
+      "name": "Learn Slow",
+      "description": "Not in the official 12-spell catalogue. Unlocks Slow: Halve a target",
+      "tree": "arcane",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_smite_evil",
+      "name": "Learn Smite Evil",
+      "description": "Not in the official 12-spell catalogue. Unlocks the Smite Evil base spell.",
+      "tree": "divine",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
+      "id": "learn_spore_cloud",
+      "name": "Learn Spore Cloud",
+      "description": "Not in the official 12-spell catalogue. Unlocks Spore Cloud: All enemies in a 2-hex radius have TP accumulation reduced by 25% for 10 ticks (10 mana, 10 TP).",
+      "tree": "nature",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
+    },
+    {
       "id": "learn_summon_animal",
       "name": "Learn Summon Animal",
       "description": "Unlocks the Summon Animal base spell.",
@@ -1573,6 +1846,19 @@
       "reaction": false,
       "dynamic_prerequisite": false,
       "requires_runtime_port": true
+    },
+    {
+      "id": "learn_temporal_rift",
+      "name": "Learn Temporal Rift",
+      "description": "Not in the official 12-spell catalogue. Unlocks Temporal Rift: Drains the target\\",
+      "tree": "arcane",
+      "max_ranks": 1,
+      "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_tiger_summon",
