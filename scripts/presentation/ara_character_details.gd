@@ -124,7 +124,7 @@ func _get_target_bounds() -> AABB:
             local_bounds.position + Vector3(0, local_bounds.size.y, local_bounds.size.z),
             local_bounds.end
         ]:
-            var point := transform * corner
+            var point: Vector3 = transform * Vector3(corner)
             if not has_bounds:
                 result = AABB(point, Vector3.ZERO)
                 has_bounds = true
@@ -169,18 +169,18 @@ func _add_mirabel_arcane(centre: Vector3, size: Vector3, back_z: float, front_z:
     _add_tube([Vector3(centre.x, shoulder_y, back), Vector3(centre.x - size.x * .08, shoulder_y - size.y * .035, back), Vector3(centre.x, mid_y, back), Vector3(centre.x + size.x * .08, shoulder_y - size.y * .035, back), Vector3(centre.x, shoulder_y, back)], size.y * .0018, ink)
     _add_tube([Vector3(centre.x, shoulder_y, back), Vector3(centre.x, centre.y - size.y * .02, back), Vector3(centre.x, centre.y - size.y * .13, back)], size.y * .0015, ink)
     for side in [-1.0, 1.0]:
-        var sx := centre.x + side * size.x * .19
+        var sx: float = centre.x + float(side) * size.x * .19
         _add_tube([Vector3(centre.x + side * size.x * .06, shoulder_y, back), Vector3(sx, shoulder_y - size.y * .025, back), Vector3(sx + side * size.x * .025, shoulder_y - size.y * .11, back)], size.y * .0017, ink)
         # A small star/astrolabe mark on each shoulder cap.
         _add_star(Vector3(centre.x + side * size.x * .245, shoulder_y - size.y * .025, back - 0.002), size.y * .018, ink)
         # Delicate forearm sigils, placed on the front-facing side.
-        var arm_x := centre.x + side * size.x * .255
+        var arm_x: float = centre.x + float(side) * size.x * .255
         var arm_y := centre.y - size.y * .015
         _add_tube([Vector3(arm_x, arm_y, front), Vector3(arm_x - side * size.x * .018, arm_y - size.y * .035, front), Vector3(arm_x, arm_y - size.y * .07, front)], size.y * .0015, ink)
         _add_star(Vector3(arm_x, arm_y - size.y * .09, front + 0.002), size.y * .012, ink)
     # Fine thigh markings, intentionally sparse and narrow.
     for side in [-1.0, 1.0]:
-        var thigh_x := centre.x + side * size.x * .105
+        var thigh_x: float = centre.x + float(side) * size.x * .105
         _add_tube([Vector3(thigh_x, centre.y - size.y * .23, front), Vector3(thigh_x + side * size.x * .018, centre.y - size.y * .29, front), Vector3(thigh_x, centre.y - size.y * .35, front)], size.y * .0015, ink)
 
 func _add_reyna_back(centre: Vector3, size: Vector3, back_z: float) -> void:
@@ -192,7 +192,7 @@ func _add_reyna_back(centre: Vector3, size: Vector3, back_z: float) -> void:
     for side in [-1.0, 1.0]:
         _add_tube([Vector3(centre.x, y - size.y * .015, z), Vector3(centre.x + side * size.x * .11, y + size.y * .025, z), Vector3(centre.x + side * size.x * .22, y + size.y * .005, z), Vector3(centre.x + side * size.x * .27, y - size.y * .055, z)], size.y * .0026, _ink_material)
         for feather in range(3):
-            var x := centre.x + side * size.x * (0.10 + feather * 0.055)
+            var x: float = centre.x + float(side) * size.x * (0.10 + float(feather) * 0.055)
             var yy := y + size.y * (0.012 - feather * 0.012)
             _add_tube([Vector3(x, yy, z), Vector3(x + side * size.x * .025, yy - size.y * .045, z), Vector3(x + side * size.x * .055, yy - size.y * .065, z)], size.y * .0018, _ink_material)
     _add_star(Vector3(centre.x, y + size.y * .035, z - 0.002), size.y * .014, _ink_material)
