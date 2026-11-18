@@ -59,7 +59,7 @@ static func validate(
                 return {"ok": false, "reason": "unicorn_summon_locked"}
             for value in simulation.characters.values():
                 var existing := value as CharacterState
-                if existing != null and existing.summoned_by_id == caster.id and existing.is_summoned:
+                if existing != null and existing.summoned_by_id == caster.id and existing.is_animal_companion:
                     return {"ok": false, "reason": "animal_companion_already_exists"}
         if not simulation.map_data.is_walkable(target_hex) or simulation.is_hex_occupied(target_hex):
             return {"ok": false, "reason": "summon_hex_unavailable"}
@@ -272,7 +272,15 @@ static func _create_summon(simulation: Variant, caster: CharacterState, prepared
     for tag in profile["tags"]:
         summon.tags.append(String(tag))
     summon.is_flying = bool(profile["flying"])
-    summon.is_summoned = true
+    var has_companion := false
+    for value in simulation.characters.values():
+        var existing := value as CharacterState
+        if existing != null and existing.summoned_by_id == caster.id and existing.is_animal_companion:
+            has_companion = true
+            break
+    var becomes_companion := int(caster.skills.get("animal_companion", 0)) > 0 and not has_companion
+    summon.is_animal_companion = becomes_companion
+    summon.is_summoned = not becomes_companion
     summon.summoned_by_id = caster.id
     summon.time_points = 100.0
     simulation.register_character(summon)
