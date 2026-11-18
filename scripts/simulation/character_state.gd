@@ -37,6 +37,14 @@ var companion_recruitment_budget_by_pool: Dictionary = {}
 var current_mana: int = 0
 var max_mana: int = 0
 var mana_regen_remainder: float = 0.0
+var base_damage_penalty: int = 0
+var healing_reduction_percent: int = 0
+var vision_penalty: int = 0
+var vision_penalty_stacks: int = 0
+var damage_penalty_stacks: int = 0
+var armistice_tp_debt: float = 0.0
+var divine_judgment_attacks_received: int = 0
+var divine_judgment_ready: bool = false
 ## Explicit opt-in, matching the original game's Blood Magic toggle.
 var blood_magic_active: bool = false
 var mana_caps: Dictionary = {"arcane": 10, "divine": 10, "nature": 10}
@@ -413,6 +421,14 @@ func to_dict() -> Dictionary:
         "current_mana": current_mana,
         "max_mana": max_mana,
         "mana_regen_remainder": mana_regen_remainder,
+        "base_damage_penalty": base_damage_penalty,
+        "healing_reduction_percent": healing_reduction_percent,
+        "vision_penalty": vision_penalty,
+        "vision_penalty_stacks": vision_penalty_stacks,
+        "damage_penalty_stacks": damage_penalty_stacks,
+        "armistice_tp_debt": armistice_tp_debt,
+        "divine_judgment_attacks_received": divine_judgment_attacks_received,
+        "divine_judgment_ready": divine_judgment_ready,
         "blood_magic_active": blood_magic_active,
         "mana_caps": mana_caps.duplicate(true),
         "max_spell_slots": max_spell_slots,
@@ -535,6 +551,14 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.current_mana = int(data.get("current_mana", 0))
     state.max_mana = int(data.get("max_mana", 0))
     state.mana_regen_remainder = maxf(0.0, float(data.get("mana_regen_remainder", 0.0)))
+    state.base_damage_penalty = maxi(0, int(data.get("base_damage_penalty", 0)))
+    state.healing_reduction_percent = clampi(int(data.get("healing_reduction_percent", 0)), 0, 100)
+    state.vision_penalty = maxi(0, int(data.get("vision_penalty", 0)))
+    state.vision_penalty_stacks = clampi(int(data.get("vision_penalty_stacks", 0)), 0, 3)
+    state.damage_penalty_stacks = clampi(int(data.get("damage_penalty_stacks", 0)), 0, 3)
+    state.armistice_tp_debt = maxf(0.0, float(data.get("armistice_tp_debt", 0.0)))
+    state.divine_judgment_attacks_received = maxi(0, int(data.get("divine_judgment_attacks_received", 0)))
+    state.divine_judgment_ready = bool(data.get("divine_judgment_ready", false))
     state.blood_magic_active = bool(data.get("blood_magic_active", false))
     state.mana_caps = data.get("mana_caps", {"arcane": 10, "divine": 10, "nature": 10}).duplicate(true)
     state.max_spell_slots = int(data.get("max_spell_slots", 8))
