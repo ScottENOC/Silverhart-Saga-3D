@@ -80,6 +80,8 @@ static func compute_variant(
         return {"ok": false, "reason": "subtle_damage_not_supported"}
     if touch and base_range <= 1:
         return {"ok": false, "reason": "touch_not_applicable"}
+    if touch and range_bonus > 0:
+        return {"ok": false, "reason": "touch_and_range_bonus_are_exclusive"}
 
     var school := String(base.get("school", ""))
     var efficiency_range := 0
