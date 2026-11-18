@@ -702,7 +702,11 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
         return {"ok": false, "reason": String(variant.get("reason", "invalid_spell_variant"))}
     if not SpellRules.supports_initial_cast(spell_id, variant):
         return {"ok": false, "reason": "spell_variant_effect_not_implemented"}
-    var target_validation := _spell_effect_rules.validate(self, caster, target, prepared, variant, request)
+    var school := String(variant.get("school", ""))
+    var school_mana_cap := 10 + 5 * maxi(0, int(caster.skills.get("%s_cap" % school, 0)))
+    if int(variant.get("mana_cost", 0)) > school_mana_cap:
+        return {"ok": false, "reason": "school_mana_cap_exceeded", "mana_cap": school_mana_cap}
+    var target_validation: Dictionary = _spell_effect_rules.validate(self, caster, target, prepared, variant, request)
     if not bool(target_validation.get("ok", false)):
         return {"ok": false, "reason": String(target_validation.get("reason", "invalid_spell_target"))}
     target = target_validation.get("target") as CharacterState
@@ -771,7 +775,7 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     if is_offensive and target != null:
         _apply_spell_protection_triggers(caster, target)
     elif is_offensive:
-        var center := _spell_effect_rules.target_hex_for(self, SimulationActionRequest.new(
+        var center: Vector2i = _spell_effect_rules.target_hex_for(self, SimulationActionRequest.new(
             SimulationActionRequest.ActionType.CAST_SPELL, caster.id, "", context.get("request_destination", Vector2i.ZERO), 0.0, context.get("request_options", {})
         ), null)
         var protection_radius := maxi(0, int(variant.get("radius", 0)))
@@ -791,7 +795,7 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
         context.get("request_options", {})
     )
     var cast_id := "%s:%d:%s:%d" % [caster.id, clock.tick_index, spell_id, int(context.get("random_seed", 0))]
-    var effect_payload := _spell_effect_rules.apply(self, caster, target, prepared, variant, request, cast_id)
+    var effect_payload: Dictionary = _spell_effect_rules.apply(self, caster, target, prepared, variant, request, cast_id)
     effect_payload["spell_id"] = spell_id
     effect_payload["spell_name"] = String(variant.get("name", spell_id))
     effect_payload["mana_cost"] = total_mana_cost
@@ -802,6 +806,9 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     effect_payload["core_mana_cost"] = int(variant.get("core_mana_cost", variant.get("mana_cost", 0)))
     effect_payload["caster_mana_remaining"] = caster.current_mana
     effect_payload["caster_health"] = caster.health
+    if is_offensive:
+        caster.divine_judgment_attacks_received = 0
+        caster.divine_judgment_ready = false
     var target_id := target.id if target != null else ""
     var result_data := SimulationActionResult.new("cast_spell", true, "", caster.id, target_id, effect_payload).to_dict()
     action_committed.emit(SimulationEvent.new("spell_cast", caster.id, target_id, result_data))
