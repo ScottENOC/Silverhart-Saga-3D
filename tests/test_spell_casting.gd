@@ -8,6 +8,7 @@ func _initialize() -> void:
     _test_heal_uses_shared_action_and_wakes_target()
     _test_rejected_cast_does_not_spend_resources()
     _test_burst_firebolt_uses_area_effect()
+    _test_divine_burst_smite_uses_area_effect()
     _test_school_mana_cap_rejects_over_budget_variant()
     _test_school_target_skill_casts_multiple_targets()
     _test_school_target_skill_casts_multiple_heals()
@@ -124,6 +125,33 @@ func _test_burst_firebolt_uses_area_effect() -> void:
     _check(target.health == 25 and nearby.health == 25, "Burst Firebolt should damage opponents in the radius")
     _check(caster.current_mana == 7, "Burst Firebolt should pay its increased mana cost")
     _check(is_equal_approx(caster.time_points, 90.0), "Burst Firebolt should pay its standard TP cost")
+
+
+func _test_divine_burst_smite_uses_area_effect() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("divine_burst_caster", "player", Vector2i.ZERO)
+    var undead := _new_character("divine_burst_undead", "enemy", Vector2i(2, 0))
+    var living := _new_character("divine_burst_living", "enemy", Vector2i(3, 0))
+    undead.tags.append("undead")
+    caster.unlocked_base_spells.append("smite_evil")
+    caster.skills["divine_burst"] = 1
+    simulation.map_data.add_cell(Vector2i(2, 0))
+    for hex in HexGrid.neighbors(Vector2i(2, 0)):
+        simulation.map_data.add_cell(hex)
+    simulation.register_character(caster)
+    simulation.register_character(undead)
+    simulation.register_character(living)
+
+    var burst_spell := PreparedSpell.create("smite_evil", {"burst": true})
+    caster.prepared_spells.append(burst_spell.to_dict())
+    var result := simulation.submit_action(
+        SimulationActionRequest.cast_spell_at_hex(caster.id, Vector2i(2, 0), burst_spell)
+    )
+    _check(bool(result.get("ok", false)), "Divine Burst should allow Smite Evil to resolve as an area spell")
+    _check(undead.health < undead.max_health, "Burst Smite Evil should damage undead targets in its radius")
+    _check(living.health == living.max_health, "Burst Smite Evil should not damage non-undead targets")
+    _check(caster.current_mana == 9, "Burst Smite Evil should pay its eight-mana burst surcharge")
+    simulation.free()
 
 
 func _test_school_mana_cap_rejects_over_budget_variant() -> void:
