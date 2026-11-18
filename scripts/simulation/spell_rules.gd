@@ -58,7 +58,20 @@ static func compute_variant(
     if base.is_empty():
         return {"ok": false, "reason": "unknown_base_spell"}
 
-    var speed := String(modifiers.get("speed", "default"))
+    var raw_speed: Variant = modifiers.get("speed", "default")
+    if not raw_speed is String or not ["default", "quickened", "slowed"].has(String(raw_speed)):
+        return {"ok": false, "reason": "invalid_casting_speed"}
+    for modifier_key in ["magnitude_bonus", "range_bonus", "radius_bonus", "target_bonus"]:
+        var raw_value: Variant = modifiers.get(modifier_key, 0)
+        if not (raw_value is int or raw_value is float):
+            return {"ok": false, "reason": "invalid_spell_modifier"}
+        if not is_finite(float(raw_value)) or float(raw_value) < 0.0 or float(raw_value) != floorf(float(raw_value)):
+            return {"ok": false, "reason": "invalid_spell_modifier"}
+    for boolean_key in ["burst", "subtle", "touch"]:
+        if not (modifiers.get(boolean_key, false) is bool):
+            return {"ok": false, "reason": "invalid_spell_modifier"}
+
+    var speed := String(raw_speed)
     var magnitude_bonus := int(modifiers.get("magnitude_bonus", 0))
     var range_bonus := int(modifiers.get("range_bonus", 0))
     var radius_bonus := int(modifiers.get("radius_bonus", 0))
@@ -66,11 +79,6 @@ static func compute_variant(
     var burst := bool(modifiers.get("burst", false))
     var subtle := bool(modifiers.get("subtle", false))
     var touch := bool(modifiers.get("touch", false))
-
-    if not ["default", "quickened", "slowed"].has(speed):
-        return {"ok": false, "reason": "invalid_casting_speed"}
-    if magnitude_bonus < 0 or range_bonus < 0 or radius_bonus < 0 or target_bonus < 0:
-        return {"ok": false, "reason": "negative_spell_modifier"}
 
     var base_type := String(base.get("type", ""))
     var base_range := int(base.get("base_range", 1)) if base.get("base_range") != null else 1
@@ -155,6 +163,54 @@ static func compute_variant(
         "subtle": subtle,
         "touch": touch,
         "modifiers": PreparedSpell._normalise_modifiers(modifiers)
+    }
+
+
+## Port of Hex-crpg's getArmorSpellPenalty(). The armour slot accepts either
+## the compact item ID or the richer equipped item dictionary.
+static func armour_mana_penalty(caster: CharacterState, school: String) -> int:
+    if caster == null:
+        return 0
+    var armour_value: Variant = caster.equipped_item_data.get("armour", caster.equipment.get("armour", caster.equipment.get("armor", "")))
+    var weight_class := ""
+    var armour_id := ""
+    if armour_value is Dictionary:
+        weight_class = String(armour_value.get("weight_class", armour_value.get("weightClass", ""))).to_lower()
+        armour_id = String(armour_value.get("id", "")).to_lower()
+    else:
+        armour_id = String(armour_value).to_lower()
+    var penalty := 0
+    if weight_class == "heavy" or armour_id == "heavy_armor" or armour_id == "heavy_armour":
+        penalty = 3
+    elif weight_class == "medium" or armour_id == "medium_armor" or armour_id == "medium_armour":
+        penalty = 2
+    elif weight_class == "light" or armour_id == "light_armor" or armour_id == "light_armour":
+        penalty = 1
+    if school == "divine":
+        penalty -= maxi(0, int(caster.skills.get("divine_armor_ease", 0)))
+    elif school == "nature":
+        penalty -= maxi(0, int(caster.skills.get("nature_armor_ease", 0)))
+    return maxi(0, penalty)
+
+
+## Source-compatible mana-first payment with optional Blood Magic conversion:
+## each missing mana costs 2 HP, and a caster must remain above 0 HP.
+static func cast_affordability(caster: CharacterState, total_cost: int) -> Dictionary:
+    if caster == null or total_cost < 0:
+        return {"ok": false, "reason": "invalid_mana_cost"}
+    var mana_available := maxi(0, caster.current_mana)
+    var mana_to_spend := mini(mana_available, total_cost)
+    var shortfall := total_cost - mana_to_spend
+    var hp_cost := shortfall * 2
+    if shortfall > 0:
+        if not caster.blood_magic_active or int(caster.skills.get("blood_magic", 0)) <= 0:
+            return {"ok": false, "reason": "insufficient_mana"}
+        if caster.health - hp_cost < 1:
+            return {"ok": false, "reason": "insufficient_blood_magic_health"}
+    return {
+        "ok": true,
+        "mana_to_spend": mana_to_spend,
+        "hp_cost": hp_cost
     }
 
 
