@@ -313,7 +313,7 @@ func _make_target_selector(state: CharacterState, spell_id: String) -> OptionBut
 
 func _target_candidates(caster: CharacterState, spell_id: String) -> Array[CharacterState]:
     var result: Array[CharacterState] = []
-    if simulation == null:
+    if spell_id == "summon_animal" or simulation == null:
         return result
     for value in simulation.characters.values():
         var candidate := value as CharacterState
