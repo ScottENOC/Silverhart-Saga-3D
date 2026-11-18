@@ -172,10 +172,10 @@ func _build_spell_builder(state: CharacterState) -> void:
         _set_modifiers(modifiers)
     )
 
-    _add_modifier_spin(state, "Potency", "magnitude_bonus", int(state.skills.get(school_prefix + "magnitude", 0)), modifiers)
-    _add_modifier_spin(state, "Range", "range_bonus", int(state.skills.get(school_prefix + "range", 0)), modifiers)
-    _add_modifier_spin(state, "Area radius", "radius_bonus", int(state.skills.get(school_prefix + "expand", 0)), modifiers)
-    _add_modifier_spin(state, "Additional targets", "target_bonus", int(state.skills.get(school_prefix + "targets", 0)), modifiers)
+    _add_modifier_spin("Potency", "magnitude_bonus", int(state.skills.get(school_prefix + "magnitude", 0)), modifiers)
+    _add_modifier_spin("Range", "range_bonus", int(state.skills.get(school_prefix + "range", 0)), modifiers, 5)
+    _add_modifier_spin("Area radius", "radius_bonus", int(state.skills.get(school_prefix + "expand", 0)), modifiers)
+    _add_modifier_spin("Additional targets", "target_bonus", int(state.skills.get(school_prefix + "targets", 0)), modifiers)
 
     if int(state.skills.get(school_prefix + "burst", 0)) > 0:
         var burst := CheckBox.new()
@@ -240,7 +240,7 @@ func _build_spell_builder(state: CharacterState) -> void:
     _content.add_child(prepare)
 
 
-func _add_modifier_spin(state: CharacterState, label_text: String, key: String, maximum: int, modifiers: Dictionary) -> void:
+func _add_modifier_spin(label_text: String, key: String, maximum: int, modifiers: Dictionary, multiplier: int = 1) -> void:
     if maximum <= 0:
         return
     var row := HBoxContainer.new()
@@ -253,9 +253,9 @@ func _add_modifier_spin(state: CharacterState, label_text: String, key: String, 
     spin.min_value = 0
     spin.max_value = maximum
     spin.step = 1
-    spin.value = int(modifiers.get(key, 0))
+    spin.value = int(modifiers.get(key, 0)) / maxi(1, multiplier)
     spin.value_changed.connect(func(value: float):
-        modifiers[key] = int(value)
+        modifiers[key] = int(value) * maxi(1, multiplier)
         _set_modifiers(modifiers)
     )
     row.add_child(spin)
