@@ -1,7 +1,7 @@
 class_name SpellEffectRules
 extends RefCounted
 
-## Executable effects for the complete 15-spell source catalogue.
+## Executable effects for the official 12-spell player catalogue.
 ## Validation is deliberately separate from application so failed casts never
 ## spend mana, health or Time Points.
 
