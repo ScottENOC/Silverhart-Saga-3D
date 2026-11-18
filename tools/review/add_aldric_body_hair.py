@@ -103,26 +103,30 @@ def main():
         if args.coverage == "wren":
             # The landing strip belongs on the pubic mound, not the lower
             # abdomen. Ara exports Y-up; this band maps to the pelvis.
-            if front and 0.35 <= yn <= 0.49 and abs(x) <= 0.050:
+            if front and 0.23 <= yn <= 0.33 and abs(x) <= 0.032:
                 region = "landing_strip"
         elif args.coverage == "reyna":
             if 0.66 <= yn <= 0.80 and 0.075 <= abs(x) <= 0.19 and abs(z) > 0.035:
                 region = "armpits"
-            elif front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
+            elif front and 0.22 <= yn <= 0.33 and abs(x) <= 0.10:
                 region = "pubic"
         elif args.coverage == "dagna":
-            if front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
+            if front and 0.22 <= yn <= 0.33 and abs(x) <= 0.10:
                 region = "pubic"
         else:
-            if front and 0.67 <= yn <= 0.79 and 0.075 <= abs(x) <= 0.19:
+            if front and 0.70 <= yn <= 0.76 and 0.105 <= abs(x) <= 0.155:
                 region = "armpits"
             if args.coverage == "aldric":
-                if region is None and front and 0.38 <= yn <= 0.50 and abs(x) <= 0.024:
+                if region is None and front and 0.33 <= yn <= 0.48 and abs(x) <= 0.010:
                     region = "snail_trail"
                 elif region is None and front and 0.34 <= yn <= 0.50 and abs(x) <= 0.095:
                     region = "pubic"
-                elif region is None and front and 0.57 <= yn <= 0.73 and abs(x) <= 0.095:
-                    region = "chest"
+                elif region is None and front:
+                    # A compact sternum diamond: broadest through the centre,
+                    # tapering symmetrically toward the collarbone and navel.
+                    diamond_half_width = 0.060 * max(0.0, 1.0 - abs(yn - 0.65) / 0.055)
+                    if 0.595 <= yn <= 0.705 and abs(x) <= diamond_half_width:
+                        region = "chest"
                 elif region is None and 0.34 <= yn <= 0.73 and 0.16 <= abs(x) <= 0.30:
                     region = "arms"
                 elif region is None and 0.05 <= yn <= 0.36 and 0.055 <= abs(x) <= 0.145:
@@ -145,16 +149,16 @@ def main():
     counts = {name: 0 for name in required}
     densities = {"armpits": 170, "pubic": 520}
     if args.coverage == "wren":
-        densities = {"landing_strip": 1100}
+        densities = {"landing_strip": 1800}
     elif args.coverage == "reyna":
         densities = {"armpits": 1250, "pubic": 520}
     elif args.coverage == "dagna":
-        densities = {"pubic": 1350}
+        densities = {"pubic": 2000}
     elif args.coverage == "aldric":
         # Bias density toward the front centreline so the chest, pubic patch,
         # and snail trail read as one continuous central pattern rather than
         # two lateral islands.
-        densities.update({"chest": 900, "arms": 720, "legs": 900, "snail_trail": 320, "scrotum": 420, "pubic": 900})
+        densities.update({"chest": 1100, "arms": 720, "legs": 900, "snail_trail": 420, "scrotum": 420, "pubic": 900})
     default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
     colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
     if len(colour_hex) != 6:
@@ -173,13 +177,13 @@ def main():
                 continue
             length = rng.uniform(3.0, 8.0) if region == "armpits" else rng.uniform(4.0, 11.0)
             if region == "landing_strip":
-                length = rng.uniform(5.0, 10.0)
-                angle = rng.uniform(-0.22, 0.22)
+                length = rng.uniform(3.5, 7.0)
+                angle = rng.uniform(-0.10, 0.10)
             else:
                 angle = rng.uniform(-1.1, 1.1) if region == "armpits" else rng.uniform(-0.85, 0.85)
             dx, dy = np.cos(angle) * length, np.sin(angle) * length
             shade = (*hair_rgb, rng.randint(175, 215))
-            stroke_width = 2 if args.coverage == "aldric" and region != "armpits" else 1
+            stroke_width = 2 if (args.coverage == "aldric" and region != "armpits") or region == "landing_strip" else 1
             draw.line((x, y, x + dx, y + dy), fill=shade, width=stroke_width)
             counts[region] += 1
 
