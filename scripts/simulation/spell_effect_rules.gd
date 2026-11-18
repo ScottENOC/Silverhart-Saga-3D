@@ -5,7 +5,7 @@ extends RefCounted
 ## Validation is deliberately separate from application so failed casts never
 ## spend mana, health or Time Points.
 
-static func target_hex_for(simulation: Variant, request: SimulationActionRequest, target: CharacterState) -> Vector2i:
+func target_hex_for(simulation: Variant, request: SimulationActionRequest, target: CharacterState) -> Vector2i:
     var saved: Variant = request.options.get("target_hex", {})
     if saved is Dictionary and saved.has("q") and saved.has("r"):
         return Vector2i(int(saved.get("q", 0)), int(saved.get("r", 0)))
@@ -14,7 +14,7 @@ static func target_hex_for(simulation: Variant, request: SimulationActionRequest
     return target.axial
 
 
-static func validate(
+func validate(
     simulation: Variant,
     caster: CharacterState,
     target: CharacterState,
@@ -80,7 +80,7 @@ static func validate(
     return {"ok": true, "target": target, "target_hex": target_hex}
 
 
-static func apply(
+func apply(
     simulation: Variant,
     caster: CharacterState,
     target: CharacterState,
@@ -201,7 +201,7 @@ static func apply(
     return payload
 
 
-static func _add_effect(target: CharacterState, effect_id: String, source_id: String, data: Dictionary = {}) -> void:
+func _add_effect(target: CharacterState, effect_id: String, source_id: String, data: Dictionary = {}) -> void:
     if target == null:
         return
     var effect := {"effect_id": effect_id, "source_id": source_id}
@@ -209,7 +209,7 @@ static func _add_effect(target: CharacterState, effect_id: String, source_id: St
     target.add_spell_effect(effect)
 
 
-static func _characters_in_radius(simulation: Variant, center: Vector2i, radius: int) -> Array[CharacterState]:
+func _characters_in_radius(simulation: Variant, center: Vector2i, radius: int) -> Array[CharacterState]:
     var result: Array[CharacterState] = []
     for value in simulation.characters.values():
         var state := value as CharacterState
@@ -218,14 +218,14 @@ static func _characters_in_radius(simulation: Variant, center: Vector2i, radius:
     return result
 
 
-static func _has_any_tag(target: CharacterState, tags: Array) -> bool:
+func _has_any_tag(target: CharacterState, tags: Array) -> bool:
     for tag in tags:
         if target.tags.has(String(tag)):
             return true
     return false
 
 
-static func _calm_animal_target(simulation: Variant, target: CharacterState) -> CharacterState:
+func _calm_animal_target(simulation: Variant, target: CharacterState) -> CharacterState:
     if target == null:
         return null
     if target.tags.has("animal") and not target.tags.has("fey") and not target.tags.has("dragon"):
@@ -237,7 +237,7 @@ static func _calm_animal_target(simulation: Variant, target: CharacterState) -> 
     return null
 
 
-static func _apply_spell_damage(target: CharacterState, magnitude: int) -> int:
+func _apply_spell_damage(target: CharacterState, magnitude: int) -> int:
     if target == null:
         return 0
     var reduction := maxi(0, target.base_reduction + target.armour_reduction + target.shield_reduction + target.helmet_reduction + target.temp_reduction)
@@ -246,12 +246,12 @@ static func _apply_spell_damage(target: CharacterState, magnitude: int) -> int:
     return damage
 
 
-static func _spell_hit_chance(caster: CharacterState, target: CharacterState, spell_id: String) -> float:
+func _spell_hit_chance(caster: CharacterState, target: CharacterState, spell_id: String) -> float:
     var bonus := int(caster.skills.get("%s_hit" % spell_id, 0)) * 5
     return clampf(50.0 + caster.to_hit_spell + float(bonus) - target.passive_dodge, 0.0, 100.0)
 
 
-static func _create_summon(simulation: Variant, caster: CharacterState, prepared: PreparedSpell, hex: Vector2i) -> CharacterState:
+func _create_summon(simulation: Variant, caster: CharacterState, prepared: PreparedSpell, hex: Vector2i) -> CharacterState:
     var kind := String(prepared.modifiers.get("summon_id", "wolf"))
     var profiles := {
         "wolf": {"health": 18, "damage": 4, "tags": ["animal"], "flying": false},
@@ -287,5 +287,5 @@ static func _create_summon(simulation: Variant, caster: CharacterState, prepared
     return summon
 
 
-static func consume_feather_fall(target: CharacterState) -> bool:
+func consume_feather_fall(target: CharacterState) -> bool:
     return target != null and target.remove_spell_effect("feather_fall")
