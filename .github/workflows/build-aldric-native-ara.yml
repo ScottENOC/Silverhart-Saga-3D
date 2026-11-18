@@ -81,7 +81,7 @@ jobs:
             --python tools/blender/add_abdominal_definition.py -- \
             --input build/aldric-native/Aldric.glb \
             --output build/aldric-native/Aldric-defined.glb \
-            --strength 0.8
+            --strength 0.95
           test -s build/aldric-native/Aldric-defined.glb
           mv build/aldric-native/Aldric-defined.glb build/aldric-native/Aldric.glb
 
