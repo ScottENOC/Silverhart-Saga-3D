@@ -195,12 +195,10 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
                      height * .0038, True)
                 star = Vector((centre.x + side * width * .18, back, shoulder_z - height * .018))
                 path(star_points(star, height * .012), height * .012 * .11, True)
-                arm_x, arm_z = centre.x + side * width * .255, centre.z - height * .015
-                path([Vector((arm_x, front, arm_z)),
-                      Vector((arm_x - side * width * .018, front, arm_z - height * .035)),
-                      Vector((arm_x, front, arm_z - height * .07))], height * .0015, False)
-                star = Vector((arm_x, front, arm_z - height * .09))
-                path(star_points(star, height * .012), height * .012 * .11, False)
+                # The fixed-coordinate front-arm strokes also fall outside
+                # Mirabel's exported front-skin footprint (0.098 m in the
+                # latest native build). Keep this motif on the verified back
+                # surface until arm paths can be authored from actual landmarks.
             # Omit the lower-thigh strokes from this motif. Their fixed
             # X/Z coordinates fall outside Mirabel's actual front-skin footprint;
             # the upper-body, back and arm sigils remain surface-projected.
