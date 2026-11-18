@@ -721,8 +721,8 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
             return {"ok": false, "reason": "multi_target_selection_required"}
         if String(raw_target_ids[0]) != request.target_id:
             return {"ok": false, "reason": "multi_target_primary_mismatch"}
-        if raw_target_ids.size() > extra_target_count + 1:
-            return {"ok": false, "reason": "too_many_spell_targets"}
+        if raw_target_ids.size() != extra_target_count + 1:
+            return {"ok": false, "reason": "spell_target_count_mismatch"}
         var seen_target_ids: Dictionary = {request.target_id: true}
         for index in range(1, raw_target_ids.size()):
             var extra_id := String(raw_target_ids[index])
