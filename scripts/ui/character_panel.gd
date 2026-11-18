@@ -4,12 +4,16 @@ extends Control
 signal equipment_changed(character_id: String)
 
 const ITEM_CATALOG = preload("res://scripts/simulation/item_catalog.gd")
+const SKILL_PROGRESSION = preload("res://scripts/simulation/skill_progression.gd")
+const SKILL_CATALOG = preload("res://scripts/simulation/skill_catalog.gd")
 ## Data-backed character sheet and inventory/equipment panel.
 ## It reads CharacterState directly; it does not maintain a parallel UI model.
 
 var simulation: WorldSimulation
 var character_id: String = "player"
 var active_tab: String = "character"
+var selected_skill_tree: String = ""
+var skill_feedback_message: String = ""
 var _body: VBoxContainer
 var _heading: Label
 var _panel: PanelContainer
@@ -46,7 +50,7 @@ func set_character(next_character_id: String) -> void:
 
 
 func set_tab(tab_id: String) -> void:
-    if tab_id != "character" and tab_id != "inventory":
+    if tab_id != "character" and tab_id != "skills" and tab_id != "inventory":
         return
     if active_tab == tab_id:
         return
@@ -85,6 +89,12 @@ func refresh(reset_scroll: bool = false) -> void:
     character_tab.disabled = active_tab == "character"
     character_tab.pressed.connect(set_tab.bind("character"))
     tabs.add_child(character_tab)
+    var skills_tab := Button.new()
+    skills_tab.text = "Skills"
+    skills_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    skills_tab.disabled = active_tab == "skills"
+    skills_tab.pressed.connect(set_tab.bind("skills"))
+    tabs.add_child(skills_tab)
     var inventory_tab := Button.new()
     inventory_tab.text = "Inventory"
     inventory_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -106,6 +116,8 @@ func refresh(reset_scroll: bool = false) -> void:
 
     if active_tab == "character":
         _build_character_tab(content, state)
+    elif active_tab == "skills":
+        _build_skills_tab(content, state)
     else:
         _build_inventory_tab(content, state)
 
@@ -169,6 +181,243 @@ func _build_character_tab(parent: VBoxContainer, state: CharacterState) -> void:
     _add_stat(parent, "Damage reduction", str(CombatRules.damage_reduction(state)))
     _add_stat(parent, "Parries remaining", str(state.parries_remaining))
     _add_stat(parent, "Sidesteps remaining", str(state.sidesteps_remaining))
+
+
+
+func _build_skills_tab(parent: VBoxContainer, state: CharacterState) -> void:
+    _add_section(parent, "SKILL DEVELOPMENT")
+    _add_label_to(parent, "Spend one point from an eligible attribute pool to raise a skill by one rank. Some legacy skill effects are still being ported; a purchased rank does not yet guarantee its gameplay effect is active.")
+
+    var party_ids: Array[String] = []
+    if simulation != null:
+        party_ids = simulation.get_party_member_ids()
+    if party_ids.size() > 1:
+        var character_row := HBoxContainer.new()
+        parent.add_child(character_row)
+        var character_label := Label.new()
+        character_label.text = "Character"
+        character_label.custom_minimum_size.x = 92.0
+        character_row.add_child(character_label)
+        var character_selector := OptionButton.new()
+        character_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        var selected_character_index := 0
+        for index in range(party_ids.size()):
+            var party_id := String(party_ids[index])
+            var party_state := simulation.get_character(party_id)
+            if party_state == null:
+                continue
+            character_selector.add_item("You" if party_id == "player" else party_state.display_name)
+            character_selector.set_item_metadata(character_selector.item_count - 1, party_id)
+            if party_id == character_id:
+                selected_character_index = character_selector.item_count - 1
+        character_selector.select(selected_character_index)
+        character_selector.item_selected.connect(_on_skill_character_selected.bind(character_selector))
+        character_row.add_child(character_selector)
+
+    if state.progression_mode != "player" and state.progression_mode != "companion":
+        _add_label_to(parent, "Skill spending is available for the player and recruited companions. This character is still managed by NPC progression.")
+        return
+
+    var accounting := SKILL_PROGRESSION.accounting_report(state)
+    _add_section(parent, "POINTS")
+    _add_stat(parent, "Unspent skill points", str(int(accounting.get("available_points", 0))))
+    var pools: Dictionary = accounting.get("pools", {})
+    var pool_names: Array = pools.keys()
+    pool_names.sort()
+    for pool_name in pool_names:
+        var pool_data: Dictionary = pools[pool_name]
+        var budget := int(pool_data.get("budget", 0))
+        var spent := int(pool_data.get("spent", 0))
+        var remaining := int(pool_data.get("remaining", 0))
+        if budget <= 0 and spent <= 0 and remaining <= 0:
+            continue
+        _add_stat(parent, String(pool_name).capitalize(), "%d left  ·  %d / %d spent" % [remaining, spent, budget])
+
+    _add_section(parent, "SKILL TREES")
+    var tree_selector := OptionButton.new()
+    tree_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    var tree_names: Array[String] = []
+    for skill_id in SKILL_CATALOG.all_skill_ids():
+        var definition := SKILL_CATALOG.get_skill(skill_id)
+        var tree_name := String(definition.get("tree", ""))
+        if tree_name.is_empty() or SKILL_PROGRESSION.NON_PURCHASABLE_TREES.has(tree_name):
+            continue
+        if not tree_names.has(tree_name):
+            tree_names.append(tree_name)
+    tree_names.sort()
+    if tree_names.is_empty():
+        _add_label_to(parent, "No purchasable skill trees were found in the catalogue.")
+        return
+    if not tree_names.has(selected_skill_tree):
+        selected_skill_tree = tree_names[0]
+    var selected_tree_index := 0
+    for index in range(tree_names.size()):
+        tree_selector.add_item(tree_names[index].capitalize())
+        tree_selector.set_item_metadata(index, tree_names[index])
+        if tree_names[index] == selected_skill_tree:
+            selected_tree_index = index
+    tree_selector.select(selected_tree_index)
+    tree_selector.item_selected.connect(_on_skill_tree_selected.bind(tree_selector))
+    parent.add_child(tree_selector)
+
+    if not skill_feedback_message.is_empty():
+        _add_label_to(parent, skill_feedback_message)
+
+    var found_skill := false
+    for skill_id in SKILL_CATALOG.all_skill_ids():
+        var skill := SKILL_CATALOG.get_skill(skill_id)
+        if String(skill.get("tree", "")) != selected_skill_tree:
+            continue
+        found_skill = true
+        _add_skill_card(parent, state, skill_id, skill)
+    if not found_skill:
+        _add_label_to(parent, "This tree currently has no skill definitions.")
+
+
+func _add_skill_card(parent: VBoxContainer, state: CharacterState, skill_id: String, skill: Dictionary) -> void:
+    var card := PanelContainer.new()
+    card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    parent.add_child(card)
+    var content := VBoxContainer.new()
+    content.add_theme_constant_override("separation", 5)
+    card.add_child(content)
+
+    var title_row := HBoxContainer.new()
+    content.add_child(title_row)
+    var title := Label.new()
+    title.text = String(skill.get("name", skill_id))
+    title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    title.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
+    title_row.add_child(title)
+
+    var rank := int(state.skills.get(skill_id, 0))
+    var maximum := int(skill.get("max_ranks", 0))
+    var rank_label := Label.new()
+    rank_label.text = "Rank %d / %s" % [rank, str(maximum) if maximum > 0 else "∞"]
+    rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+    title_row.add_child(rank_label)
+
+    var description := Label.new()
+    description.text = String(skill.get("description", "No description supplied."))
+    description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    content.add_child(description)
+
+    var prerequisite_value: Variant = skill.get("prerequisite", null)
+    if prerequisite_value != null and not String(prerequisite_value).is_empty():
+        var prerequisite := SKILL_CATALOG.get_skill(String(prerequisite_value))
+        var prerequisite_name := String(prerequisite.get("name", prerequisite_value))
+        var prerequisite_label := Label.new()
+        prerequisite_label.text = "Requires: " + prerequisite_name
+        prerequisite_label.add_theme_color_override("font_color", Color(0.72, 0.76, 0.82))
+        prerequisite_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+        content.add_child(prerequisite_label)
+
+    var eligibility := SKILL_PROGRESSION.can_purchase(state, skill_id)
+    if String(eligibility.get("reason", "")) == "funding_pool_choice_required":
+        var funding_row := HBoxContainer.new()
+        content.add_child(funding_row)
+        var funding_selector := OptionButton.new()
+        funding_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        var funding_pools: Array = eligibility.get("available_pools", [])
+        for pool in funding_pools:
+            funding_selector.add_item(String(pool).capitalize())
+            funding_selector.set_item_metadata(funding_selector.item_count - 1, String(pool))
+        funding_row.add_child(funding_selector)
+        var pool_purchase_button := Button.new()
+        pool_purchase_button.text = "Learn · 1 point"
+        pool_purchase_button.disabled = funding_pools.is_empty()
+        pool_purchase_button.pressed.connect(_purchase_skill_from_selector.bind(skill_id, funding_selector))
+        funding_row.add_child(pool_purchase_button)
+    elif bool(eligibility.get("ok", false)):
+        var direct_purchase_button := Button.new()
+        direct_purchase_button.text = "Learn · 1 %s point" % String(eligibility.get("funding_pool", "")).capitalize()
+        direct_purchase_button.pressed.connect(_purchase_skill.bind(skill_id, String(eligibility.get("funding_pool", ""))))
+        content.add_child(direct_purchase_button)
+    else:
+        var lock_label := Label.new()
+        lock_label.text = "Unavailable: " + _skill_lock_description(eligibility)
+        lock_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+        lock_label.add_theme_color_override("font_color", Color(0.82, 0.64, 0.58))
+        content.add_child(lock_label)
+
+
+func _skill_lock_description(result: Dictionary) -> String:
+    var reason := String(result.get("reason", "unknown"))
+    match reason:
+        "maximum_rank_reached":
+            return "Maximum rank reached."
+        "prerequisite_missing":
+            var prerequisite_id := String(result.get("prerequisite", ""))
+            var prerequisite := SKILL_CATALOG.get_skill(prerequisite_id)
+            return "Requires %s." % String(prerequisite.get("name", prerequisite_id))
+        "incompatible_skill_learned":
+            var incompatible_id := String(result.get("incompatible_skill", ""))
+            var incompatible := SKILL_CATALOG.get_skill(incompatible_id)
+            return "Incompatible with %s." % String(incompatible.get("name", incompatible_id))
+        "dynamic_prerequisite_missing":
+            return "A special prerequisite has not been met."
+        "insufficient_skill_points":
+            return "No points remain in an eligible pool."
+        "quest_granted_only":
+            return "Granted through a quest, not purchased."
+        "already_knows_riding":
+            return "Another riding skill is already known."
+        "skill_tree_not_player_purchasable":
+            return "This tree is reserved for NPC or special use."
+        "missing_character":
+            return "Character data is unavailable."
+        _:
+            return reason.replace("_", " ").capitalize() + "."
+
+
+func _on_skill_character_selected(index: int, selector: OptionButton) -> void:
+    if index < 0 or index >= selector.item_count:
+        return
+    var selected_id := String(selector.get_item_metadata(index))
+    if not selected_id.is_empty() and selected_id != character_id:
+        character_id = selected_id
+        skill_feedback_message = ""
+        refresh(true)
+
+
+func _on_skill_tree_selected(index: int, selector: OptionButton) -> void:
+    if index < 0 or index >= selector.item_count:
+        return
+    selected_skill_tree = String(selector.get_item_metadata(index))
+    skill_feedback_message = ""
+    refresh(true)
+
+
+func _purchase_skill_from_selector(skill_id: String, selector: OptionButton) -> void:
+    if selector == null or selector.item_count == 0 or selector.selected < 0:
+        return
+    _purchase_skill(skill_id, String(selector.get_item_metadata(selector.selected)))
+
+
+func _purchase_skill(skill_id: String, funding_pool: String = "") -> void:
+    var state := simulation.get_character(character_id) if simulation != null else null
+    if state == null:
+        skill_feedback_message = "Character data is unavailable; no points were spent."
+        refresh()
+        return
+    if state.progression_mode != "player" and state.progression_mode != "companion":
+        skill_feedback_message = "This character is not eligible for player-controlled skill spending."
+        refresh()
+        return
+    var result := SKILL_PROGRESSION.purchase(state, skill_id, funding_pool)
+    if bool(result.get("ok", false)):
+        var skill := SKILL_CATALOG.get_skill(skill_id)
+        skill_feedback_message = "Learned %s at rank %d using %s points." % [
+            String(skill.get("name", skill_id)),
+            int(result.get("rank", 0)),
+            String(result.get("funding_pool", funding_pool)).capitalize()
+        ]
+    else:
+        skill_feedback_message = "Purchase failed: " + _skill_lock_description(result)
+    refresh()
+
 
 
 
