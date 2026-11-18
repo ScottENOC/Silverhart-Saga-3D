@@ -18,6 +18,8 @@ func _run() -> void:
     _test_divine_judgment_free_cast()
     _test_armistice_next_attack_cost()
     _test_trigger_debuff_reduces_healing()
+    _test_nature_companion_and_ranger_skills()
+    _test_clouded_mind_vision_penalty()
     _test_summon_animal()
     _test_permanent_animal_companion()
     _test_counterspell()
@@ -286,6 +288,36 @@ func _test_trigger_debuff_reduces_healing() -> void:
     _check(bool(result.get("ok", false)), "Heal should still resolve against a target with healing reduction")
     _check(ally.health == 52, "A 50 percent healing penalty should halve a five-point Heal, rounding down")
     sim.free()
+
+
+func _test_nature_companion_and_ranger_skills() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    caster.skills["animal_companion"] = 1
+    caster.skills["venomous_summon"] = 1
+    var summoned := _cast_at(sim, caster, Vector2i(1, 0), "summon_animal", {"summon_id": "wolf"})
+    _check(bool(summoned.get("ok", false)), "A Nature companion should be summonable")
+    var companion := sim.get_character(String(summoned.get("summoned_id", "")))
+    _check(companion != null and companion.is_animal_companion, "Animal Companion should make the first summon permanent")
+    _check(companion != null and int(companion.skills.get("poison_bite", 0)) == 1, "Venomous Summon should grant Poison Bite to the permanent animal companion")
+
+    var ranger := CharacterState.new("nature_ranger", "Nature Ranger")
+    ranger.skills["nature_ranger"] = 1
+    var animal := CharacterState.new("ranger_target", "Animal", Vector2i(1, 0))
+    animal.tags.append("animal")
+    var humanoid := CharacterState.new("ranger_humanoid", "Humanoid", Vector2i(1, 0))
+    var animal_chance := CombatRules.hit_chance(ranger, animal)
+    var humanoid_chance := CombatRules.hit_chance(ranger, humanoid)
+    _check(is_equal_approx(animal_chance - humanoid_chance, 5.0), "Nature Ranger should add five percentage points against animal-tagged targets")
+    sim.free()
+
+
+func _test_clouded_mind_vision_penalty() -> void:
+    var observer := CharacterState.new("clouded_observer", "Clouded Observer")
+    var baseline := VisionRules.vision_range(observer)
+    observer.vision_penalty = 2
+    _check(VisionRules.vision_range(observer) == baseline - 2, "Clouded Mind should reduce actual vision range by its accumulated penalty")
 
 
 func _test_summon_animal() -> void:
