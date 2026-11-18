@@ -62,17 +62,24 @@ def main():
         raise RuntimeError("Could not identify Ara skin mesh")
 
     lo, hi = world_bounds(skin)
-    height, width = hi.y - lo.y, hi.x - lo.x
+    extents = [hi[i] - lo[i] for i in range(3)]
+    # Do not assume the imported Blender scene preserves GLB's Y-up axis.
+    # Choose the longest world-space body dimension as vertical, then use the
+    # remaining axes for left/right and front/back.
+    vertical_axis = max(range(3), key=lambda axis: extents[axis])
+    other_axes = [axis for axis in range(3) if axis != vertical_axis]
+    lateral_axis = max(other_axes, key=lambda axis: extents[axis])
+    depth_axis = next(axis for axis in other_axes if axis != lateral_axis)
+    height, width = extents[vertical_axis], extents[lateral_axis]
     if height <= 0 or width <= 0:
-        raise RuntimeError("Invalid skin mesh bounds")
-    ear_y = lo.y + height * args.ear_height
+        raise RuntimeError(f"Invalid skin mesh bounds: extents={extents}")
+    ear_height = lo[vertical_axis] + height * args.ear_height
     # Hard spatial gate: only the upper head/ear band can be modified.
-    # The previous broad mask also caught side-facing shoulders and limbs.
-    y_min = lo.y + height * 0.855
-    y_max = lo.y + height * 0.915
-    inner_x, outer_x = width * 0.105, width * 0.205
-    centre_y = ear_y
+    low_height = lo[vertical_axis] + height * 0.855
+    high_height = lo[vertical_axis] + height * 0.915
+    inner_lateral, outer_lateral = width * 0.105, width * 0.205
     vertical_sigma = height * 0.018
+    print(f"Elf-ear axis diagnostic: extents={extents}, vertical={vertical_axis}, lateral={lateral_axis}, depth={depth_axis}")
 
     world_matrix = skin.matrix_world
     original = [v.co.copy() for v in skin.data.vertices]
@@ -83,16 +90,17 @@ def main():
     for side in (-1.0, 1.0):
         indices = []
         for i, (p, n) in enumerate(zip(world_positions, world_normals)):
-            lateral = side * p.x
-            if not (inner_x <= lateral <= outer_x):
+            lateral = side * p[lateral_axis]
+            if not (inner_lateral <= lateral <= outer_lateral):
                 continue
             # Absolute limits prevent shoulders, torso, buttocks and legs
             # from ever entering this shape key, regardless of normal.
-            if not (y_min <= p.y <= y_max):
+            vertical = p[vertical_axis]
+            if not (low_height <= vertical <= high_height):
                 continue
-            if abs(p.y - ear_y) > height * args.ear_band:
+            if abs(vertical - ear_height) > height * args.ear_band:
                 continue
-            if side * n.x < 0.42:
+            if side * n[lateral_axis] < 0.42:
                 continue
             indices.append(i)
         side_candidates[side] = indices
@@ -115,14 +123,14 @@ def main():
     for side, indices in side_candidates.items():
         for i in indices:
             p = world_positions[i]
-            u = (side * p.x - inner_x) / max(outer_x - inner_x, 1e-8)
-            influence = smoothstep(0.0, 0.45, u) * math.exp(-0.5 * ((p.y - centre_y) / vertical_sigma) ** 2)
+            u = (side * p[lateral_axis] - inner_lateral) / max(outer_lateral - inner_lateral, 1e-8)
+            influence = smoothstep(0.0, 0.45, u) * math.exp(-0.5 * ((p[vertical_axis] - ear_height) / vertical_sigma) ** 2)
             if influence < 0.001:
                 continue
             q = p.copy()
-            q.x += side * args.length * influence
-            q.y += args.rise * influence
-            q.z -= args.sweep * influence
+            q[lateral_axis] += side * args.length * influence
+            q[vertical_axis] += args.rise * influence
+            q[depth_axis] -= args.sweep * influence
             key.data[i].co = inv @ q
             moved["L" if side > 0 else "R"] += 1
     if min(moved.values()) < 4:
@@ -133,7 +141,7 @@ def main():
     skin["elf_ears_rise_m"] = args.rise
     skin["elf_ears_sweep_m"] = args.sweep
     skin["elf_ears_strength"] = key.value
-    print(f"Created {args.key_name}: Y-up mask, moved={moved}, length={args.length:.3f}m")
+    print(f"Created {args.key_name}: vertical-axis={vertical_axis}, lateral-axis={lateral_axis}, depth-axis={depth_axis}, moved={moved}, length={args.length:.3f}m")
     armature = next((o for o in bpy.context.scene.objects if o.type == "ARMATURE"), None)
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
