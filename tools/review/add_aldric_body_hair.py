@@ -13,7 +13,7 @@ from io import BytesIO
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageChops
 
 
 def parse_glb(data):
@@ -119,9 +119,8 @@ def main():
             counts[region] += 1
 
     # Clip the marks to the actual skin UV triangles, then composite gently.
-    alpha = layer.getchannel("A")
-    for region, mask in masks.items():
-        alpha = Image.composite(alpha, Image.new("L", (width, height), 0), mask)
+    combined_mask = ImageChops.lighter(masks["armpits"], masks["pubic"])
+    alpha = ImageChops.multiply(layer.getchannel("A"), combined_mask)
     layer.putalpha(alpha)
     result = Image.alpha_composite(source.convert("RGBA"), layer).convert("RGB")
     output = BytesIO()
