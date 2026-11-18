@@ -94,17 +94,21 @@ def main():
             regions["scrotum"] += 1
         if front and 0.67 <= yn <= 0.79 and 0.075 <= abs(x) <= 0.19:
             region = "armpits"
-        elif front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
-            region = "pubic"
         if args.coverage == "aldric":
-            if region is None and front and 0.57 <= yn <= 0.73 and 0.025 <= abs(x) <= 0.155:
+            # Keep the snail trail as its own narrow central strip. It must be
+            # tested before pubic hair, otherwise the wider pubic mask consumes it.
+            if region is None and front and 0.38 <= yn <= 0.50 and abs(x) <= 0.018:
+                region = "snail_trail"
+            elif region is None and front and 0.36 <= yn <= 0.49 and abs(x) <= 0.075:
+                region = "pubic"
+            elif region is None and front and 0.57 <= yn <= 0.73 and abs(x) <= 0.075:
                 region = "chest"
             elif region is None and 0.34 <= yn <= 0.73 and 0.16 <= abs(x) <= 0.30:
                 region = "arms"
             elif region is None and 0.05 <= yn <= 0.36 and 0.055 <= abs(x) <= 0.145:
                 region = "legs"
-            elif region is None and front and 0.38 <= yn <= 0.50 and abs(x) <= 0.018:
-                region = "snail_trail"
+        elif region is None and front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
+            region = "pubic"
         if region is None:
             continue
         draws[region].polygon(polygon, fill=255)
