@@ -36,15 +36,15 @@ func validate(
     elif spell_id != "summon_animal" and not area_spell and target == null:
         return {"ok": false, "reason": "target_required"}
 
-    if spell_id in ["firebolt", "smite_evil", "divine_silence", "temporal_rift", "counterspell"] and target != null:
+    if spell_id in ["firebolt", "counterspell", "curse"] and target != null:
         if target.side == caster.side:
             return {"ok": false, "reason": "spell_requires_opponent"}
-    if spell_id in ["heal", "sanctuary", "divine_protection"] and target != null:
+    if spell_id in ["heal", "divine_protection", "divine_strength"] and target != null:
         if target.side != caster.side:
             return {"ok": false, "reason": "spell_requires_ally"}
     if spell_id == "wild_fury":
-        if target == null or (target != caster and target.summoned_by_id != caster.id):
-            return {"ok": false, "reason": "wild_fury_requires_self_or_own_companion"}
+        if target == null or target.side != caster.side or not target.tags.has("animal") or target.tags.has("fey") or target.tags.has("dragon"):
+            return {"ok": false, "reason": "wild_fury_requires_ally_animal"}
     if spell_id == "calm_animal":
         if target == null:
             return {"ok": false, "reason": "target_required"}
@@ -138,13 +138,18 @@ func apply(
                 payload["target_lifecycle"] = lifecycle
                 payload["target_health"] = target.health
             payload["magnitude"] = magnitude
-        "divine_silence":
-            _add_effect(target, "divine_silence", caster.id, {"magnitude": magnitude})
-            payload["magnitude"] = magnitude
-            payload["duration"] = "until the target casts a spell or the effect is dispelled"
-        "sanctuary", "divine_protection":
+        "divine_protection":
             _add_effect(target, spell_id, caster.id, {"magnitude": maxi(1, magnitude)})
             payload["magnitude"] = maxi(1, magnitude)
+        "divine_strength":
+            _add_effect(target, spell_id, caster.id, {"magnitude": magnitude, "ticks_remaining": 20.0})
+            payload["magnitude"] = magnitude
+            payload["duration_ticks"] = 20
+        "curse":
+            _add_effect(target, "curse", caster.id, {"magnitude": magnitude, "ticks_remaining": 20.0})
+            payload["magnitude"] = magnitude
+            payload["duration_ticks"] = 20
+            payload["trigger"] = "next hostile action by the target"
         "summon_animal":
             var summon := _create_summon(simulation, caster, prepared, target_hex)
             payload["summoned_id"] = summon.id if summon != null else ""
