@@ -8,6 +8,7 @@ func _initialize() -> void:
     _test_heal_uses_shared_action_and_wakes_target()
     _test_rejected_cast_does_not_spend_resources()
     _test_burst_firebolt_uses_area_effect()
+    _test_school_mana_cap_rejects_over_budget_variant()
     _test_armour_penalty_and_blood_magic()
     _test_combat_ai_casts_firebolt()
     _test_combat_ai_heals_ally()
@@ -121,6 +122,25 @@ func _test_burst_firebolt_uses_area_effect() -> void:
     _check(target.health == 25 and nearby.health == 25, "Burst Firebolt should damage opponents in the radius")
     _check(caster.current_mana == 7, "Burst Firebolt should pay its increased mana cost")
     _check(is_equal_approx(caster.time_points, 90.0), "Burst Firebolt should pay its standard TP cost")
+
+
+func _test_school_mana_cap_rejects_over_budget_variant() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("cap_caster", "player", Vector2i.ZERO)
+    var target := _new_character("cap_target", "enemy", Vector2i(2, 0))
+    caster.unlocked_base_spells.append("firebolt")
+    caster.skills["arcane_magnitude"] = 2
+    var over_budget := PreparedSpell.create("firebolt", {"magnitude_bonus": 2})
+    caster.prepared_spells.append(over_budget.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(target)
+
+    var result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, target.id, over_budget))
+    _check(not bool(result.get("ok", false)), "A spell variant above the school mana cap should be rejected")
+    _check(String(result.get("reason", "")) == "school_mana_cap_exceeded", "Over-cap variants should report the school mana cap")
+    _check(int(result.get("mana_cap", -1)) == 10, "Base school mana cap should be ten without Cap ranks")
+    _check(caster.current_mana == 20 and is_equal_approx(caster.time_points, 100.0), "Rejected over-cap spells must not spend mana or TP")
+    simulation.free()
 
 
 func _test_armour_penalty_and_blood_magic() -> void:
