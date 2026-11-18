@@ -16,6 +16,7 @@ const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_r
 const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
+const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_creator.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const TAVERN_BUILDING_ID := "hollow_tankard"
 const TAVERN_FRONT_DOOR_ID := "hollow_tankard_front_door"
@@ -49,6 +50,8 @@ const ROOF_RIDGE_HEIGHT: float = 5.8
 
 var simulation: WorldSimulation
 var spell_vfx: Node3D
+var disguise_creator: CanvasLayer
+var active_disguise_profile: Dictionary = {}
 var save_load_menu: CanvasLayer
 var pending_save_data: Dictionary = {}
 var initial_character_baselines: Dictionary = {}
@@ -256,7 +259,19 @@ func _configure_location_simulation() -> void:
 
 
 func _on_simulation_action_committed(event: SimulationEvent) -> void:
-    if event == null or spell_vfx == null:
+    if event == null:
+        return
+    # Disguise Self opens the same live Ara character editor used at first
+    # launch, but in appearance-only mode. The selected profile is stored on
+    # the active effect so it survives save/load and can be dispelled.
+    if event.event_type == "spell_cast" and String(event.payload.get("spell_id", "")) == "disguise_self":
+        _open_disguise_creator()
+    elif event.event_type == "spell_countered" and event.target_id == "player":
+        var player_state := simulation.get_character("player")
+        if player_state == null or not player_state.has_spell_effect("disguise_self"):
+            active_disguise_profile.clear()
+            apply_player_profile(player_profile)
+    if spell_vfx == null:
         return
     # A selected Counterspell reaction is emitted as spell_countered rather
     # than spell_cast, but it still needs the same visible counter-pulse.
@@ -295,6 +310,29 @@ func _on_simulation_action_committed(event: SimulationEvent) -> void:
         payload,
         affected_actors
     )
+
+func _open_disguise_creator() -> void:
+    if disguise_creator != null and is_instance_valid(disguise_creator):
+        return
+    disguise_creator = CHARACTER_CREATOR_SCRIPT.new() as CanvasLayer
+    disguise_creator.name = "DisguiseSelfCreator"
+    disguise_creator.configure_disguise(active_disguise_profile if not active_disguise_profile.is_empty() else player_profile)
+    disguise_creator.completed.connect(_on_disguise_profile_completed)
+    add_child(disguise_creator)
+
+
+func _on_disguise_profile_completed(profile: Dictionary) -> void:
+    active_disguise_profile = profile.duplicate(true)
+    var player_state := simulation.get_character("player") if simulation != null else null
+    if player_state != null:
+        var effect := player_state.get_spell_effect("disguise_self")
+        if not effect.is_empty():
+            effect["profile"] = active_disguise_profile.duplicate(true)
+            player_state.add_spell_effect(effect)
+    var actor := actor_by_id.get("player") as Node3D
+    if actor != null:
+        CampaignCharacterActorFactory.apply_player_profile(actor, active_disguise_profile)
+
 
 func _create_wilderness_gatherable_grove() -> void:
     # These authored trees use the same shared generator and committed Cosmo
@@ -2600,4 +2638,12 @@ func apply_player_profile(profile: Dictionary) -> void:
     var actor := actor_by_id.get("player") as Node3D
     if actor == null:
         return
-    CampaignCharacterActorFactory.apply_player_profile(actor, profile)
+    var effective_profile := profile.duplicate(true)
+    var player_state := simulation.get_character("player") if simulation != null else null
+    if player_state != null:
+        var disguise := player_state.get_spell_effect("disguise_self")
+        var saved_profile: Variant = disguise.get("profile", {})
+        if saved_profile is Dictionary and not saved_profile.is_empty():
+            active_disguise_profile = saved_profile.duplicate(true)
+            effective_profile.merge(active_disguise_profile, true)
+    CampaignCharacterActorFactory.apply_player_profile(actor, effective_profile)
