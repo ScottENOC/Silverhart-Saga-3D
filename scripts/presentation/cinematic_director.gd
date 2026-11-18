@@ -20,7 +20,6 @@ func begin(actors: Dictionary, gameplay_hud: CanvasLayer, gameplay_camera: Camer
     _gameplay_camera = gameplay_camera
     _skipped = false
     _finished = false
-    _original_actor_transforms.clear()
 
     if is_instance_valid(_gameplay_hud):
         _gameplay_hud.visible = false
