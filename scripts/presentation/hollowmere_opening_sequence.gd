@@ -21,12 +21,12 @@ func play(
 ) -> void:
     _actors = actors
     _save_actor_transforms()
-    _stage_table_conversation()
 
     _director = DIRECTOR_SCRIPT.new() as CinematicDirector
     _director.name = "CinematicDirector"
     add_child(_director)
     _director.begin(_actors, gameplay_hud, gameplay_camera)
+    _stage_table_conversation()
     _log_character_animation_catalogues()
 
     await get_tree().create_timer(2.0).timeout
