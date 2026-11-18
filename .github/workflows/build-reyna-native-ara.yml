@@ -9,6 +9,7 @@ on:
       - "tools/review/reyna_native_preview.gd"
       - "tools/review/recolor_wren_glb.py"
       - "tools/blender/add_adult_anatomy.py"
+      - "tools/blender/add_abdominal_definition.py"
   workflow_dispatch:
 
 permissions:
@@ -35,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m json.tool character-preview/reyna-ara.json >/dev/null
-          python -m py_compile tools/review/recolor_wren_glb.py
+          python -m py_compile tools/review/recolor_wren_glb.py tools/blender/add_abdominal_definition.py
 
       - name: Install Ara export dependencies
         run: |
@@ -73,6 +74,17 @@ jobs:
             --profile character-preview/reyna-ara.json \
             --hair-gamma 0.28
           test -s build/reyna-native/Reyna.glb
+
+      - name: Add moderate abdominal muscle definition
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_abdominal_definition.py -- \
+            --input build/reyna-native/Reyna.glb \
+            --output build/reyna-native/Reyna-defined.glb \
+            --strength 0.60
+          test -s build/reyna-native/Reyna-defined.glb
+          mv build/reyna-native/Reyna-defined.glb build/reyna-native/Reyna.glb
 
       - name: Assemble isolated Godot preview project
         run: |
