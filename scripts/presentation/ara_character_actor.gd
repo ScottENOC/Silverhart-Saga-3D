@@ -674,8 +674,9 @@ func _apply_appearance_details(profile: Dictionary) -> void:
     if appearance_details != null and is_instance_valid(appearance_details):
         appearance_details.free()
     appearance_details = null
-    var piercings: Array = profile.get("piercings", [])
-    var tattoos: Array = profile.get("tattoos", [])
+    var detail_profile: Dictionary = profile.get("character_details", profile)
+    var piercings: Array = detail_profile.get("piercings", [])
+    var tattoos: Array = detail_profile.get("tattoos", [])
     if model_root == null or (piercings.is_empty() and tattoos.is_empty()):
         return
     appearance_details = ARA_CHARACTER_DETAILS.new() as AraCharacterDetails
@@ -684,7 +685,7 @@ func _apply_appearance_details(profile: Dictionary) -> void:
     appearance_details.configure(model_root, {
         "piercings": piercings,
         "tattoos": tattoos,
-        "tattoo_ink": str(profile.get("tattoo_ink", "#28252d"))
+        "tattoo_ink": str(detail_profile.get("tattoo_ink", "#28252d"))
     })
 
 func apply_npc_parameters(params: Dictionary) -> void:
