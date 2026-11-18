@@ -184,9 +184,9 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
                   Vector((centre.x, back, mid_z)),
                   Vector((centre.x + width * .08, back, shoulder_z - height * .035)),
                   Vector((centre.x, back, shoulder_z))], height * .0040, True)
-            path([Vector((centre.x, back, shoulder_z)),
-                  Vector((centre.x, back, centre.z - height * .02)),
-                  Vector((centre.x, back, centre.z - height * .13))], height * .0035, True)
+            # Keep the back sigil on the shoulder-blade region; the old long
+            # spine stroke descended into the lower-back silhouette and read
+            # as a dangling string rather than part of the arcane motif.
             for side in (-1.0, 1.0):
                 sx = centre.x + side * width * .19
                 path([Vector((centre.x + side * width * .06, back, shoulder_z)),
