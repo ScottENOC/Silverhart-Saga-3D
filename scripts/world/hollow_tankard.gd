@@ -4,6 +4,7 @@ extends Node3D
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_timeline.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
+const SPELLBOOK_PANEL_SCRIPT = preload("res://scripts/ui/spellbook_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
@@ -59,6 +60,7 @@ var autosave_accumulator: float = 0.0
 var reaction_prompt: CanvasLayer
 var initiative_timeline: CombatInitiativeTimeline
 var character_panel: CharacterPanel
+var spellbook_panel: SpellbookPanel
 var world_map_panel: CanvasLayer
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
@@ -981,9 +983,19 @@ func _create_hud() -> void:
     inventory_panel_button.pressed.connect(_open_inventory_panel)
     layer.add_child(inventory_panel_button)
 
+    var spellbook_button := Button.new()
+    spellbook_button.text = "Spellbook  [M]"
+    spellbook_button.position = Vector2(690.0, 18.0)
+    spellbook_button.custom_minimum_size = Vector2(140.0, 42.0)
+    spellbook_button.pressed.connect(func():
+        if spellbook_panel != null:
+            spellbook_panel.toggle_for_character(active_character_id)
+    )
+    layer.add_child(spellbook_button)
+
     var world_map_button := Button.new()
     world_map_button.text = "World Map"
-    world_map_button.position = Vector2(690.0, 18.0)
+    world_map_button.position = Vector2(840.0, 18.0)
     world_map_button.custom_minimum_size = Vector2(140.0, 42.0)
     world_map_button.pressed.connect(_toggle_world_map)
     layer.add_child(world_map_button)
@@ -1068,6 +1080,11 @@ func _create_hud() -> void:
     layer.add_child(character_panel)
     character_panel.configure(simulation, active_character_id)
     character_panel.equipment_changed.connect(_on_character_equipment_changed)
+
+    spellbook_panel = SPELLBOOK_PANEL_SCRIPT.new() as SpellbookPanel
+    spellbook_panel.name = "SpellbookPanel"
+    add_child(spellbook_panel)
+    spellbook_panel.configure(simulation, active_character_id)
     _create_dialogue_panel(layer)
     nearby_interaction_panel = PanelContainer.new()
     nearby_interaction_panel.name = "NearbyNPCInteractions"
@@ -1320,6 +1337,8 @@ func _apply_save_data(data: Dictionary) -> void:
             camera_rig.rotation = camera_data["rotation"]
     if character_panel != null:
         character_panel.set_character(active_character_id)
+    if spellbook_panel != null:
+        spellbook_panel.set_character(active_character_id)
     _update_combat_ui()
     _refresh_resource_visuals()
 
@@ -2206,6 +2225,8 @@ func _switch_party_member() -> void:
     _refresh_tavern_floor_presentation()
     if character_panel != null:
         character_panel.set_character(active_character_id)
+    if spellbook_panel != null:
+        spellbook_panel.set_character(active_character_id)
 
 func _process(delta: float) -> void:
     if not simulation.is_in_combat and not simulation.has_pending_reaction() and not dialogue_open and not (shakedown_started and not shakedown_resolved):
