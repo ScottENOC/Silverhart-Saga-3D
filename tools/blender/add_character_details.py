@@ -202,7 +202,10 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
                 star = Vector((arm_x, arm_y - height * .09, front + .002))
                 path(star_points(star, height * .012), height * .012 * .11, False)
             for side in (-1.0, 1.0):
-                thigh_x = centre.x + side * width * .105
+                # Keep the paired thigh sigils on the anterior outer thighs.
+                # The previous inner-thigh placement crossed the gap between
+                # Mirabel's legs, leaving the front-skin projection footprint.
+                thigh_x = centre.x + side * width * .24
                 path([Vector((thigh_x, centre.y - height * .23, front)),
                       Vector((thigh_x + side * width * .018, centre.y - height * .29, front)),
                       Vector((thigh_x, centre.y - height * .35, front))], height * .0015, False)
