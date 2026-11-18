@@ -180,7 +180,7 @@ func _test_school_target_skill_casts_multiple_heals() -> void:
     var simulation := WorldSimulation.new()
     var caster := _new_character("multi_healer", "player", Vector2i.ZERO)
     var first := _new_character("heal_first", "player", Vector2i(1, 0))
-    var second := _new_character("heal_second", "player", Vector2i(2, 0))
+    var second := _new_character("heal_second", "player", Vector2i(1, -1))
     caster.unlocked_base_spells.append("heal")
     caster.skills["divine_targets"] = 1
     caster.skills["divine_cap"] = 3
