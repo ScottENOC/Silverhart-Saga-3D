@@ -56,6 +56,7 @@ def main():
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
         bpy.ops.object.mode_set(mode="OBJECT")
+        bpy.context.tool_settings.mesh_select_mode = (False, False, True)
         for polygon in obj.data.polygons:
             polygon.select = polygon.material_index in hair_slots
         face_count = sum(1 for polygon in obj.data.polygons if polygon.select)
