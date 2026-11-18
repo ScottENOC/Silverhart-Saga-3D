@@ -14,6 +14,7 @@ func _initialize() -> void:
     _test_status_effects_and_combat_debuffs()
     _test_downed_and_death_lifecycle()
     _test_unified_action_contract()
+    _test_shared_spell_casting()
     _test_attack_waits_for_parry_resolution()
     _test_feint_uses_parry_reaction_without_attacking()
     _test_protector_ally_parry()
@@ -410,6 +411,69 @@ func _test_unified_action_contract() -> void:
     _check(bool(attack_result.get("target_unconscious", false)))
     _check(String(attack_result.get("action_type", "")) == "attack")
     sim.free()
+
+func _test_shared_spell_casting() -> void:
+    var sim := WorldSimulation.new()
+    var caster := CharacterState.new("spell_caster", "Spell Caster", Vector2i.ZERO)
+    var enemy := CharacterState.new("spell_enemy", "Spell Enemy", Vector2i(3, 0))
+    caster.side = "player"
+    caster.current_mana = 20
+    caster.max_mana = 20
+    caster.time_points = 40.0
+    caster.to_hit_ranged = 100.0
+    caster.unlocked_base_spells = ["firebolt", "heal"]
+    var firebolt := PreparedSpell.create("firebolt")
+    var heal := PreparedSpell.create("heal")
+    caster.prepared_spells = [firebolt.to_dict(), heal.to_dict()]
+    enemy.side = "enemy"
+    enemy.health = 30
+    enemy.max_health = 30
+    sim.register_character(caster)
+    sim.register_character(enemy)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = caster.id
+
+    var fire_result := sim.submit_action(
+        SimulationActionRequest.cast_spell(caster.id, enemy.id, firebolt.to_dict()),
+        7
+    )
+    _check(bool(fire_result.get("ok", false)), "Firebolt should cast through the shared simulation action")
+    _check(String(fire_result.get("action_type", "")) == "cast_spell")
+    _check(int(fire_result.get("magnitude", 0)) == 5 and enemy.health == 25, "Firebolt applies its prepared magnitude")
+    _check(caster.current_mana == 15 and is_equal_approx(caster.time_points, 30.0), "Firebolt spends its computed mana and TP costs")
+    sim.try_end_current_turn(true)
+    caster.time_points = 40.0
+    caster.current_mana = 20
+    enemy.health = 2
+    enemy.apply_damage(5)
+    _check(enemy.unconscious and enemy.health == -3, "Test target should be unconscious before Heal")
+    sim.turn_scheduler.current_character_id = caster.id
+    var heal_result := sim.submit_action(
+        SimulationActionRequest.cast_spell(caster.id, caster.id, heal.to_dict())
+    )
+    _check(bool(heal_result.get("ok", false)), "Heal should use the same shared cast action")
+    _check(caster.health == caster.max_health, "Heal should restore the caster when self-targeted")
+
+    # An invalid target/range or an unaffordable cast must not consume resources.
+    sim.try_end_current_turn(true)
+    caster.time_points = 40.0
+    caster.current_mana = 1
+    sim.turn_scheduler.current_character_id = caster.id
+    var mana_rejected := sim.submit_action(
+        SimulationActionRequest.cast_spell(caster.id, enemy.id, firebolt.to_dict()),
+        7
+    )
+    _check(not bool(mana_rejected.get("ok", true)) and String(mana_rejected.get("reason", "")) == "insufficient_mana")
+    _check(caster.current_mana == 1 and is_equal_approx(caster.time_points, 40.0), "Rejected casts must not consume mana or TP")
+
+    var unprepared := PreparedSpell.create("firebolt", {"magnitude_bonus": 1})
+    var unprepared_result := sim.submit_action(
+        SimulationActionRequest.cast_spell(caster.id, enemy.id, unprepared.to_dict()),
+        7
+    )
+    _check(not bool(unprepared_result.get("ok", true)) and caster.current_mana == 1, "Unprepared variants must be rejected without cost")
+    sim.free()
+
 
 func _test_attack_waits_for_parry_resolution() -> void:
     var sim := WorldSimulation.new()
