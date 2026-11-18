@@ -188,13 +188,13 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
             # spine stroke descended into the lower-back silhouette and read
             # as a dangling string rather than part of the arcane motif.
             for side in (-1.0, 1.0):
-                sx = centre.x + side * width * .19
-                path([Vector((centre.x + side * width * .06, back, shoulder_z)),
-                      Vector((sx, back, shoulder_z - height * .025)),
-                      Vector((sx + side * width * .025, back, shoulder_z - height * .11))],
+                sx = centre.x + side * width * .14
+                path([Vector((centre.x + side * width * .05, back, shoulder_z)),
+                      Vector((sx, back, shoulder_z - height * .018)),
+                      Vector((sx + side * width * .012, back, shoulder_z - height * .07))],
                      height * .0038, True)
-                star = Vector((centre.x + side * width * .245, back, shoulder_z - height * .025))
-                path(star_points(star, height * .018), height * .018 * .11, True)
+                star = Vector((centre.x + side * width * .18, back, shoulder_z - height * .018))
+                path(star_points(star, height * .012), height * .012 * .11, True)
                 arm_x, arm_z = centre.x + side * width * .255, centre.z - height * .015
                 path([Vector((arm_x, front, arm_z)),
                       Vector((arm_x - side * width * .018, front, arm_z - height * .035)),
@@ -375,7 +375,7 @@ def add_nipple_barbell(socket, material):
         bead.data.materials.append(material)
         parent_preserve(bead, socket, bead.matrix_world.copy())
         bead["character_detail_type"] = "piercing"
-    print(f"BAKED_PIERCING straight nipple bar socket={socket.name}")
+    print(f"BAKED_PIERCING Piercing_SOCKET_Nipple_L straight bar socket={socket.name}")
 
 
 def add_piercings(entries):
