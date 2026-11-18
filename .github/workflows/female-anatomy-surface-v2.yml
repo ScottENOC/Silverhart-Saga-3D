@@ -1,19 +1,13 @@
 name: Female anatomy surface v2 preview
 
 on:
-  push:
-    branches: [feature/female-anatomy-surface-v2]
-    paths:
-      - "tools/blender/add_female_anatomy_surface.py"
-      - ".github/workflows/female-anatomy-surface-v2.yml"
-      - "tools/blender/build_ara_body_morphs.py"
-      - "character-preview/wren-ara.json"
   pull_request:
     branches: [dev_2]
     paths:
       - "tools/blender/add_female_anatomy_surface.py"
-      - ".github/workflows/female-anatomy-surface-v2.yml"
+      - "tools/blender/plan_female_anatomy_subdivision.py"
       - "tools/blender/build_ara_body_morphs.py"
+      - ".github/workflows/female-anatomy-surface-v2.yml"
       - "character-preview/wren-ara.json"
   workflow_dispatch:
 
@@ -22,12 +16,12 @@ permissions:
 
 concurrency:
   group: female-anatomy-surface-v2-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,34 +33,15 @@ jobs:
 
       - name: Validate Python syntax
         run: |
-          python -m py_compile tools/blender/add_female_anatomy_surface.py tools/blender/build_ara_body_morphs.py
+          python -m py_compile \
+            tools/blender/add_female_anatomy_surface.py \
+            tools/blender/plan_female_anatomy_subdivision.py \
+            tools/blender/build_ara_body_morphs.py
 
       - name: Install Blender
         run: |
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
-
-      - name: Build naked adult female Ara anatomy candidate
-        run: |
-          set -euo pipefail
-          mkdir -p build/female-anatomy
-          blender --background --python-exit-code 1 \
-            --python tools/blender/add_female_anatomy_surface.py -- \
-            --input art/characters/ara_runtime/ara_person_body.glb \
-            --output build/female-anatomy/ara_person_body_anatomy.glb \
-            --report build/female-anatomy/anatomy-report.json \
-            --adult --deformation-scale 1.65
-          test -s build/female-anatomy/ara_person_body_anatomy.glb
-          test "$(wc -c < build/female-anatomy/ara_person_body_anatomy.glb)" -gt 1000000
-          grep -q '"clothing_operations": "not run"' build/female-anatomy/anatomy-report.json
-
-      - name: Render front, side, rear and three-quarter review views
-        run: |
-          set -euo pipefail
-          blender --background --python-exit-code 1 \
-            --python tools/blender/inspect_character.py -- \
-            --input build/female-anatomy/ara_person_body_anatomy.glb \
-            --output-dir build/female-anatomy/review
 
       - name: Prepare low, neutral and high female body profiles
         run: |
@@ -113,7 +88,7 @@ jobs:
               (folder / "profile.json").write_text(json.dumps(profile, indent=2) + "\n")
           PY
 
-      - name: Export and sculpt low, neutral and high body states
+      - name: Export all three original Ara body states
         run: |
           set -euo pipefail
           for state in low neutral high; do
@@ -121,14 +96,46 @@ jobs:
             npx --yes ara3d@latest export --params "$folder/profile.json" --detail medium --no-animations --out "$folder/export"
             input="$(find "$folder/export" -maxdepth 1 -type f -name '*.glb' | head -n 1)"
             test -n "$input"
+            cp "$input" "$folder/original.glb"
+          done
+
+      - name: Create shared subdivision plan from neutral topology
+        run: |
+          set -euo pipefail
+          blender --background --python-exit-code 1 \
+            --python tools/blender/plan_female_anatomy_subdivision.py -- \
+            --input build/female-anatomy/morphs/neutral/original.glb \
+            --output build/female-anatomy/shared-subdivision-plan.json
+          test -s build/female-anatomy/shared-subdivision-plan.json
+
+      - name: Apply identical subdivision and anatomy to all three states
+        run: |
+          set -euo pipefail
+          for state in low neutral high; do
+            folder="build/female-anatomy/morphs/$state"
             blender --background --python-exit-code 1 \
               --python tools/blender/add_female_anatomy_surface.py -- \
-              --input "$input" \
+              --input "$folder/original.glb" \
               --output "$folder/anatomy.glb" \
               --report "$folder/anatomy-report.json" \
+              --subdivision-plan build/female-anatomy/shared-subdivision-plan.json \
               --adult --deformation-scale 1.65
             test -s "$folder/anatomy.glb"
+            grep -q '"clothing_operations": "not run"' "$folder/anatomy-report.json"
           done
+          mkdir -p build/female-anatomy
+          cp build/female-anatomy/morphs/neutral/anatomy.glb \
+            build/female-anatomy/ara_person_body_anatomy.glb
+          cp build/female-anatomy/morphs/neutral/anatomy-report.json \
+            build/female-anatomy/anatomy-report.json
+
+      - name: Render front, side, rear and three-quarter review views
+        run: |
+          set -euo pipefail
+          blender --background --python-exit-code 1 \
+            --python tools/blender/inspect_character.py -- \
+            --input build/female-anatomy/ara_person_body_anatomy.glb \
+            --output-dir build/female-anatomy/review
 
       - name: Verify topology and build relative muscle shape keys
         run: |
@@ -159,15 +166,17 @@ jobs:
           test -s art/characters/ara_runtime/ara_person_body_anatomy_candidate.glb.import
           test -s art/characters/ara_runtime/ara_person_body_anatomy_morphs_candidate.glb.import
 
-      - name: Upload anatomy candidates and visual review
+      - name: Upload anatomy candidates, shared plan and visual review
         uses: actions/upload-artifact@v4
         with:
           name: female-anatomy-surface-v2-review-${{ github.run_number }}
           path: |
             build/female-anatomy/ara_person_body_anatomy.glb
             build/female-anatomy/anatomy-report.json
+            build/female-anatomy/shared-subdivision-plan.json
             build/female-anatomy/review/
             build/female-anatomy/ara_person_body_anatomy_morphs.glb
             build/female-anatomy/morph-build-report.json
+            build/female-anatomy/morphs/*/anatomy-report.json
           if-no-files-found: error
           retention-days: 30
