@@ -1,7 +1,7 @@
 class_name WorldSimulation
 extends Node
 
-var _spell_effect_rules: SpellEffectRules = SpellEffectRules.new()
+var _spell_effect_rules = load("res://scripts/simulation/spell_effect_rules.gd").new()
 
 signal character_moved(character_id: String, from_hex: Vector2i, to_hex: Vector2i)
 signal world_tick(tick_index: int, world_seconds: float)
