@@ -36,9 +36,19 @@ var npc_unspent_skill_points: int = 0
 var companion_recruitment_budget_by_pool: Dictionary = {}
 var current_mana: int = 0
 var max_mana: int = 0
+## Explicit opt-in, matching the original game's Blood Magic toggle.
+var blood_magic_active: bool = false
 var mana_caps: Dictionary = {"arcane": 10, "divine": 10, "nature": 10}
 var max_spell_slots: int = 8
 var unlocked_base_spells: Array[String] = []
+## Serialised PreparedSpell dictionaries; derived costs are recalculated by SpellRules.
+var prepared_spells: Array[Dictionary] = []
+## Runtime/persistent magical effects; each entry has a stable effect ID and source spell.
+var spell_effects: Array[Dictionary] = []
+var summoned_by_id: String = ""
+var is_summoned: bool = false
+var is_animal_companion: bool = false
+var is_flying: bool = false
 var gold: int = 0
 var game_mode: String = "campaign"
 var campaign_id: String = "2"
@@ -55,6 +65,7 @@ var side: String = "neutral"
 var base_damage: int = 1
 var to_hit_melee: float = 0.0
 var to_hit_ranged: float = 0.0
+var to_hit_spell: float = 0.0
 var passive_dodge: float = 0.0
 var base_reduction: int = 0
 var armour_reduction: int = 0
@@ -284,6 +295,39 @@ func apply_poison_damage(amount: int) -> String:
         return "died"
     return "poisoned"
 
+func add_spell_effect(effect: Dictionary) -> void:
+    var effect_id := String(effect.get("effect_id", ""))
+    if effect_id.is_empty():
+        return
+    for index in range(spell_effects.size()):
+        if String(spell_effects[index].get("effect_id", "")) == effect_id:
+            spell_effects[index] = effect.duplicate(true)
+            return
+    spell_effects.append(effect.duplicate(true))
+
+
+func has_spell_effect(effect_id: String) -> bool:
+    for effect in spell_effects:
+        if String(effect.get("effect_id", "")) == effect_id:
+            return true
+    return false
+
+
+func get_spell_effect(effect_id: String) -> Dictionary:
+    for effect in spell_effects:
+        if String(effect.get("effect_id", "")) == effect_id:
+            return effect.duplicate(true)
+    return {}
+
+
+func remove_spell_effect(effect_id: String) -> bool:
+    for index in range(spell_effects.size() - 1, -1, -1):
+        if String(spell_effects[index].get("effect_id", "")) == effect_id:
+            spell_effects.remove_at(index)
+            return true
+    return false
+
+
 func can_start_combat_turn() -> bool:
     return ActionEconomy.can_start_combat_turn(
         time_points, alive, unconscious, is_rider, combat_dormant
@@ -338,9 +382,16 @@ func to_dict() -> Dictionary:
         "companion_recruitment_budget_by_pool": companion_recruitment_budget_by_pool.duplicate(true),
         "current_mana": current_mana,
         "max_mana": max_mana,
+        "blood_magic_active": blood_magic_active,
         "mana_caps": mana_caps.duplicate(true),
         "max_spell_slots": max_spell_slots,
         "unlocked_base_spells": unlocked_base_spells.duplicate(),
+        "prepared_spells": prepared_spells.duplicate(true),
+        "spell_effects": spell_effects.duplicate(true),
+        "summoned_by_id": summoned_by_id,
+        "is_summoned": is_summoned,
+        "is_animal_companion": is_animal_companion,
+        "is_flying": is_flying,
         "gold": gold,
         "game_mode": game_mode,
         "campaign_id": campaign_id,
@@ -357,6 +408,7 @@ func to_dict() -> Dictionary:
         "base_damage": base_damage,
         "to_hit_melee": to_hit_melee,
         "to_hit_ranged": to_hit_ranged,
+        "to_hit_spell": to_hit_spell,
         "passive_dodge": passive_dodge,
         "base_reduction": base_reduction,
         "armour_reduction": armour_reduction,
@@ -451,10 +503,26 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.companion_recruitment_budget_by_pool = data.get("companion_recruitment_budget_by_pool", {}).duplicate(true)
     state.current_mana = int(data.get("current_mana", 0))
     state.max_mana = int(data.get("max_mana", 0))
+    state.blood_magic_active = bool(data.get("blood_magic_active", false))
     state.mana_caps = data.get("mana_caps", {"arcane": 10, "divine": 10, "nature": 10}).duplicate(true)
     state.max_spell_slots = int(data.get("max_spell_slots", 8))
     for spell_id in data.get("unlocked_base_spells", []):
         state.unlocked_base_spells.append(String(spell_id))
+    var saved_spell_effects: Array = data.get("spell_effects", [])
+    for saved_effect in saved_spell_effects:
+        if saved_effect is Dictionary:
+            state.spell_effects.append(saved_effect.duplicate(true))
+    state.summoned_by_id = String(data.get("summoned_by_id", ""))
+    state.is_summoned = bool(data.get("is_summoned", false))
+    state.is_animal_companion = bool(data.get("is_animal_companion", false))
+    state.is_flying = bool(data.get("is_flying", false))
+    var saved_prepared_spells: Array = data.get("prepared_spells", [])
+    for saved_spell in saved_prepared_spells:
+        if not saved_spell is Dictionary:
+            continue
+        var prepared_spell := PreparedSpell.from_dict(saved_spell)
+        if prepared_spell != null:
+            state.prepared_spells.append(prepared_spell.to_dict())
     state.gold = int(data.get("gold", 0))
     state.game_mode = String(data.get("game_mode", "campaign"))
     state.campaign_id = String(data.get("campaign_id", "2"))
@@ -468,6 +536,7 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.base_damage = int(data.get("base_damage", 1))
     state.to_hit_melee = float(data.get("to_hit_melee", 0.0))
     state.to_hit_ranged = float(data.get("to_hit_ranged", 0.0))
+    state.to_hit_spell = float(data.get("to_hit_spell", 0.0))
     state.passive_dodge = float(data.get("passive_dodge", 0.0))
     state.base_reduction = int(data.get("base_reduction", 0))
     state.armour_reduction = int(data.get("armour_reduction", 0))

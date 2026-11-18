@@ -2,7 +2,7 @@ name: Godot validation
 
 on:
   pull_request:
-    branches: [dev, dev_2]
+    branches: [dev, dev_2, "feature/**"]
     paths:
       - "project.godot"
       - "export_presets.cfg"
@@ -71,6 +71,14 @@ jobs:
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
       - name: Run split character and progression tests
         run: godot --headless --path . --script res://tests/test_character_systems.gd
+      - name: Run spell construction and cost rules tests
+        run: godot --headless --path . --script res://tests/test_spell_rules.gd
+      - name: Run shared spell casting and combat AI tests
+        run: godot --headless --path . --script res://tests/test_spell_casting.gd
+      - name: Run complete 15-spell effect tests
+        run: godot --headless --path . --script res://tests/test_all_spell_effects.gd
+      - name: Run 15-spell visual effect tests
+        run: godot --headless --path . --script res://tests/test_spell_vfx.gd
       - name: Run skill purchase and persistence tests
         run: godot --headless --path . --script res://tests/test_skill_progression_ui.gd
       - name: Run player and companion skill tree UI tests
