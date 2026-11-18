@@ -41,6 +41,9 @@
     "teeth": "teeth_base",
     "tongue": true,
     "ageYears": 32,
-    "seed": 3217
+    "seed": 3217,
+    "modifiers": {
+      "stomach/stomach-tone": 0.4
+    }
   }
 }
