@@ -86,6 +86,8 @@ jobs:
       - name: Run split combat and reaction tests
         run: godot --headless --path . --script res://tests/test_combat_and_reactions.gd
       - name: Run shared spell casting tests
+        run: godot --headless --path . --script res://tests/test_spell_casting.gd
+      - name: Run shared spell casting tests
         run: godot --headless --path . --script res://tests/test_spell_rules.gd
       - name: Run split animal and riding tests
         run: godot --headless --path . --script res://tests/test_animals_and_riding.gd
