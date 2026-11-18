@@ -34,11 +34,6 @@ func _run() -> void:
     character.name = "Reyna"
     stage.add_child(character)
 
-    var details := AraCharacterDetails.new()
-    details.name = "AppearanceDetails"
-    stage.add_child(details)
-    details.configure(character, {"piercings": [], "tattoos": [{"design": "reyna_shoulder_back"}], "tattoo_ink": "#17120F"})
-
     _collect_meshes(character)
     _activate_abdominal_definition()
     if mesh_instances.is_empty():
