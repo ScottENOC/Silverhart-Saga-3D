@@ -193,6 +193,8 @@ static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool
         return false
     if int(variant.get("radius", 0)) > 0 and spell_id not in ["dragon_breath", "entangle", "heal", "firebolt"]:
         return false
+    if spell_id in ["heal", "firebolt"] and int(variant.get("radius", 0)) > 0 and not bool(modifiers.get("burst", false)):
+        return false
     return true
 
 
