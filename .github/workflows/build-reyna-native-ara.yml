@@ -13,6 +13,15 @@ on:
       - "tools/blender/add_abdominal_definition.py"
       - "tools/blender/add_character_details.py"
       - "tools/review/add_aldric_body_hair.py"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "character-preview/reyna-ara.json"
+      - "tools/blender/add_character_details.py"
+      - "tools/blender/add_adult_anatomy.py"
+      - "tools/review/recolor_wren_glb.py"
+      - ".github/workflows/build-reyna-native-ara.yml"
+
   workflow_dispatch:
 
 permissions:
