@@ -70,7 +70,11 @@ static func _prepared_spell_for(combatant: CharacterState, spell_id: String) -> 
         if SpellRules.supports_initial_cast(spell_id, prepared_variant):
             return prepared
     if combatant.unlocked_base_spells.has(spell_id) or int(combatant.skills.get("learn_%s" % spell_id, 0)) > 0:
-        return PreparedSpell.create(spell_id)
+        # NPCs receive a deterministic base preparation when their template
+        # grants the spell but has not authored a prepared variant yet.
+        var default_preparation := PreparedSpell.create(spell_id)
+        combatant.prepared_spells.append(default_preparation.to_dict())
+        return default_preparation
     return null
 
 
