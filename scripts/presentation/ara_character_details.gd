@@ -21,8 +21,9 @@ func configure(target: Node3D, details: Dictionary) -> void:
     _metal_material.roughness = 0.24
     _ink_material = StandardMaterial3D.new()
     _ink_material.albedo_color = Color.from_string(str(_details.get("tattoo_ink", "#28252d")), Color("#28252d"))
-    _ink_material.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+    _ink_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
     _ink_material.roughness = 1.0
+    _ink_material.cull_mode = BaseMaterial3D.CULL_DISABLED
     _add_piercings(_details.get("piercings", []))
     _add_tattoos(_details.get("tattoos", []))
 
@@ -159,21 +160,35 @@ func _add_fallback_barbell(socket_name: String) -> void:
         add_child(bead)
         bead.position = centre + Vector3(side * 0.008, 0.0, 0.0)
 
+func _body_mesh_vertex_threshold(meshes: Array[MeshInstance3D]) -> int:
+    var largest := 0
+    for instance in meshes:
+        if instance.mesh != null:
+            largest = maxi(largest, instance.mesh.get_faces().size() / 3)
+    return largest
+
+func _is_body_mesh(instance: MeshInstance3D, largest_vertex_count: int) -> bool:
+    if instance.mesh == null:
+        return false
+    var identity := (instance.name + " " + instance.mesh.resource_name).to_lower()
+    if identity.contains("body") or identity.contains("skin"):
+        return true
+    for surface in range(instance.mesh.get_surface_count()):
+        var material := instance.get_active_material(surface)
+        if material != null and material.resource_name.to_lower().contains("skin"):
+            return true
+    # Ara sometimes strips imported material resource names. Companion previews
+    # are unclothed, so the largest mesh is the reliable body-surface fallback.
+    return largest_vertex_count > 0 and instance.mesh.get_faces().size() / 3 >= largest_vertex_count
+
 func _get_target_bounds() -> AABB:
     var result := AABB()
     var has_bounds := false
     var meshes: Array[MeshInstance3D] = []
     _collect_meshes(_target, meshes)
+    var largest_vertex_count := _body_mesh_vertex_threshold(meshes)
     for mesh_instance in meshes:
-        if mesh_instance.mesh == null:
-            continue
-        var has_skin := false
-        for surface in range(mesh_instance.mesh.get_surface_count()):
-            var material := mesh_instance.get_active_material(surface)
-            if material != null and material.resource_name.to_lower().contains("skin"):
-                has_skin = true
-                break
-        if not has_skin:
+        if not _is_body_mesh(mesh_instance, largest_vertex_count):
             continue
         var local_bounds := mesh_instance.mesh.get_aabb()
         var transform := _target.global_transform.affine_inverse() * mesh_instance.global_transform
@@ -229,11 +244,11 @@ func _add_mirabel_arcane(centre: Vector3, size: Vector3, back_z: float, front_z:
     var shoulder_y := centre.y + size.y * 0.29
     var mid_y := centre.y + size.y * 0.12
     # Fine-line constellation and rune work across the shoulder blades and spine.
-    _add_tube([Vector3(centre.x, shoulder_y, back), Vector3(centre.x - size.x * .08, shoulder_y - size.y * .035, back), Vector3(centre.x, mid_y, back), Vector3(centre.x + size.x * .08, shoulder_y - size.y * .035, back), Vector3(centre.x, shoulder_y, back)], size.y * .0018, ink)
-    _add_tube([Vector3(centre.x, shoulder_y, back), Vector3(centre.x, centre.y - size.y * .02, back), Vector3(centre.x, centre.y - size.y * .13, back)], size.y * .0015, ink)
+    _add_tube([Vector3(centre.x, shoulder_y, back), Vector3(centre.x - size.x * .08, shoulder_y - size.y * .035, back), Vector3(centre.x, mid_y, back), Vector3(centre.x + size.x * .08, shoulder_y - size.y * .035, back), Vector3(centre.x, shoulder_y, back)], size.y * .0040, ink)
+    _add_tube([Vector3(centre.x, shoulder_y, back), Vector3(centre.x, centre.y - size.y * .02, back), Vector3(centre.x, centre.y - size.y * .13, back)], size.y * .0035, ink)
     for side in [-1.0, 1.0]:
         var sx: float = centre.x + float(side) * size.x * .19
-        _add_tube([Vector3(centre.x + side * size.x * .06, shoulder_y, back), Vector3(sx, shoulder_y - size.y * .025, back), Vector3(sx + side * size.x * .025, shoulder_y - size.y * .11, back)], size.y * .0017, ink)
+        _add_tube([Vector3(centre.x + side * size.x * .06, shoulder_y, back), Vector3(sx, shoulder_y - size.y * .025, back), Vector3(sx + side * size.x * .025, shoulder_y - size.y * .11, back)], size.y * .0038, ink)
         # A small star/astrolabe mark on each shoulder cap.
         _add_star(Vector3(centre.x + side * size.x * .245, shoulder_y - size.y * .025, back - 0.002), size.y * .018, ink)
         # Delicate forearm sigils, placed on the front-facing side.
@@ -253,11 +268,11 @@ func _add_reyna_back(centre: Vector3, size: Vector3, back_z: float) -> void:
     # mirrored feather-like arcs reaching over both shoulder blades.
     _add_tube([Vector3(centre.x, y + size.y * .025, z), Vector3(centre.x, y - size.y * .055, z), Vector3(centre.x, y - size.y * .16, z)], size.y * .0028, _ink_material)
     for side in [-1.0, 1.0]:
-        _add_tube([Vector3(centre.x, y - size.y * .015, z), Vector3(centre.x + side * size.x * .11, y + size.y * .025, z), Vector3(centre.x + side * size.x * .22, y + size.y * .005, z), Vector3(centre.x + side * size.x * .27, y - size.y * .055, z)], size.y * .0026, _ink_material)
+        _add_tube([Vector3(centre.x, y - size.y * .015, z), Vector3(centre.x + side * size.x * .11, y + size.y * .025, z), Vector3(centre.x + side * size.x * .22, y + size.y * .005, z), Vector3(centre.x + side * size.x * .27, y - size.y * .055, z)], size.y * .0045, _ink_material)
         for feather in range(3):
             var x: float = centre.x + float(side) * size.x * (0.10 + float(feather) * 0.055)
             var yy := y + size.y * (0.012 - feather * 0.012)
-            _add_tube([Vector3(x, yy, z), Vector3(x + side * size.x * .025, yy - size.y * .045, z), Vector3(x + side * size.x * .055, yy - size.y * .065, z)], size.y * .0018, _ink_material)
+            _add_tube([Vector3(x, yy, z), Vector3(x + side * size.x * .025, yy - size.y * .045, z), Vector3(x + side * size.x * .055, yy - size.y * .065, z)], size.y * .0035, _ink_material)
     _add_star(Vector3(centre.x, y + size.y * .035, z - 0.002), size.y * .014, _ink_material)
 
 func _add_star(centre: Vector3, radius: float, material: Material) -> void:
@@ -267,7 +282,7 @@ func _add_star(centre: Vector3, radius: float, material: Material) -> void:
         var r := radius if index % 2 == 0 else radius * 0.28
         points.append(centre + Vector3(cos(angle) * r, sin(angle) * r, 0))
     points.append(points[0])
-    _add_tube(points, radius * 0.075, material)
+    _add_tube(points, radius * 0.11, material)
 
 func _project_tattoo_point(point: Vector3, back: bool) -> Vector3:
     var best := point
@@ -275,14 +290,12 @@ func _project_tattoo_point(point: Vector3, back: bool) -> Vector3:
     var meshes: Array[MeshInstance3D] = []
     _collect_meshes(_target, meshes)
     var target_inverse := _target.global_transform.affine_inverse()
+    var largest_vertex_count := _body_mesh_vertex_threshold(meshes)
     for instance in meshes:
-        if instance.mesh == null:
+        if not _is_body_mesh(instance, largest_vertex_count):
             continue
         var mesh_to_target := target_inverse * instance.global_transform
         for surface in range(instance.mesh.get_surface_count()):
-            var material := instance.get_active_material(surface)
-            if material == null or not material.resource_name.to_lower().contains("skin"):
-                continue
             var arrays := instance.mesh.surface_get_arrays(surface)
             if arrays.size() <= Mesh.ARRAY_VERTEX:
                 continue
@@ -298,7 +311,7 @@ func _project_tattoo_point(point: Vector3, back: bool) -> Vector3:
                 var distance := Vector2(candidate.x - point.x, candidate.y - point.y).length_squared()
                 if distance < best_distance:
                     best_distance = distance
-                    best = candidate + normal * 0.0015
+                    best = candidate + normal * 0.0035
     return best
 
 func _project_tattoo_path(points: Array[Vector3]) -> Array[Vector3]:
