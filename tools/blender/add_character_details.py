@@ -80,12 +80,9 @@ def make_projection_trees(skin):
             raise RuntimeError(f"No {label}-facing skin vertices found for tattoo projection")
         tree = KDTree(len(items))
         for item_index, (point, _normal, _vertex_index) in enumerate(items):
-            # Tattoo design paths are authored in the body's X/Y plane. Their
-            # Z value is only a side hint, not a reliable surface depth: the
-            # old 3-D nearest-point query measured the entire torso depth and
-            # rejected valid shoulder/arm paths by ~0.14 m. Keep front/back
-            # candidates separated by their outward-facing normals, then find
-            # the nearest skin vertex in the projected X/Y footprint.
+            # Tattoo design paths are authored in the body's X/Z plane.
+            # The front/back candidates are already separated by their Y normals,
+            # so the nearest-point query follows the projected skin footprint.
             tree.insert(Vector((point.x, point.z, 0.0)), item_index)
         tree.balance()
         trees[label] = (tree, items)
