@@ -36,6 +36,7 @@ var npc_unspent_skill_points: int = 0
 var companion_recruitment_budget_by_pool: Dictionary = {}
 var current_mana: int = 0
 var max_mana: int = 0
+var mana_regen_remainder: float = 0.0
 ## Explicit opt-in, matching the original game's Blood Magic toggle.
 var blood_magic_active: bool = false
 var mana_caps: Dictionary = {"arcane": 10, "divine": 10, "nature": 10}
@@ -245,6 +246,35 @@ func sync_skill_effects() -> void:
     if rate_rank > 0:
         time_points_per_tick = 1.0 + 0.05 * float(rate_rank)
 
+    var total_spell_slots := 8
+    for school in ["arcane", "divine", "nature"]:
+        var mana_skill := "%s_mana" % school
+        var previous_mana_rank := maxi(0, int(skill_effect_ranks_applied.get(mana_skill, 0)))
+        var mana_rank := maxi(0, int(skills.get(mana_skill, 0)))
+        var mana_delta := mana_rank - previous_mana_rank
+        if mana_delta != 0:
+            max_mana = maxi(0, max_mana + mana_delta * 10)
+            current_mana = clampi(current_mana + mana_delta * 10, 0, max_mana)
+        skill_effect_ranks_applied[mana_skill] = mana_rank
+
+        var cap_skill := "%s_cap" % school
+        var cap_rank := maxi(0, int(skills.get(cap_skill, 0)))
+        mana_caps[school] = 10 + cap_rank * 5
+        skill_effect_ranks_applied[cap_skill] = cap_rank
+
+        var slots_skill := "%s_spell_slots" % school
+        var slots_rank := maxi(0, int(skills.get(slots_skill, 0)))
+        total_spell_slots += slots_rank * 2
+        skill_effect_ranks_applied[slots_skill] = slots_rank
+    max_spell_slots = total_spell_slots
+
+
+func mana_regeneration_per_time_point() -> float:
+    var rate := 0.1
+    for school in ["arcane", "divine", "nature"]:
+        rate += 0.1 * float(maxi(0, int(skills.get("%s_regen" % school, 0))))
+    return rate
+
 
 func health_regeneration_per_time_point() -> float:
     return 0.1 + 0.1 * float(maxi(0, int(skills.get("health_regen", 0))))
@@ -382,6 +412,7 @@ func to_dict() -> Dictionary:
         "companion_recruitment_budget_by_pool": companion_recruitment_budget_by_pool.duplicate(true),
         "current_mana": current_mana,
         "max_mana": max_mana,
+        "mana_regen_remainder": mana_regen_remainder,
         "blood_magic_active": blood_magic_active,
         "mana_caps": mana_caps.duplicate(true),
         "max_spell_slots": max_spell_slots,
@@ -503,6 +534,7 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.companion_recruitment_budget_by_pool = data.get("companion_recruitment_budget_by_pool", {}).duplicate(true)
     state.current_mana = int(data.get("current_mana", 0))
     state.max_mana = int(data.get("max_mana", 0))
+    state.mana_regen_remainder = maxf(0.0, float(data.get("mana_regen_remainder", 0.0)))
     state.blood_magic_active = bool(data.get("blood_magic_active", false))
     state.mana_caps = data.get("mana_caps", {"arcane": 10, "divine": 10, "nature": 10}).duplicate(true)
     state.max_spell_slots = int(data.get("max_spell_slots", 8))
