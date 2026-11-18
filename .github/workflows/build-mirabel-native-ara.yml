@@ -49,8 +49,21 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/mirabel-native/ara-export
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          source = Path("character-preview/mirabel-ara.json")
+          target = Path("build/mirabel-native/ara-export-profile.json")
+          data = json.loads(source.read_text())
+          params = data.setdefault("params", {})
+          # These are project-side metadata, not Ara generator parameters.
+          # Preserve them in the source profile; omit only from the Ara export copy.
+          for key in ("tattoo_ink", "piercings"):
+              params.pop(key, None)
+          target.write_text(json.dumps(data, indent=2) + "\\n")
+          PY
           npx --yes ara3d@latest export \
-            --params character-preview/mirabel-ara.json \
+            --params build/mirabel-native/ara-export-profile.json \
             --detail high --no-animations --formats glb,zip \
             --out build/mirabel-native/ara-export
           raw_glb="$(find build/mirabel-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
