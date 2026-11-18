@@ -188,7 +188,9 @@ func _build_skills_tab(parent: VBoxContainer, state: CharacterState) -> void:
     _add_section(parent, "SKILL DEVELOPMENT")
     _add_label_to(parent, "Spend one point from an eligible attribute pool to raise a skill by one rank. Some legacy skill effects are still being ported; a purchased rank does not yet guarantee its gameplay effect is active.")
 
-    var party_ids := simulation.get_party_member_ids() if simulation != null else []
+    var party_ids: Array[String] = []
+    if simulation != null:
+        party_ids = simulation.get_party_member_ids()
     if party_ids.size() > 1:
         var character_row := HBoxContainer.new()
         parent.add_child(character_row)
@@ -323,16 +325,16 @@ func _add_skill_card(parent: VBoxContainer, state: CharacterState, skill_id: Str
             funding_selector.add_item(String(pool).capitalize())
             funding_selector.set_item_metadata(funding_selector.item_count - 1, String(pool))
         funding_row.add_child(funding_selector)
-        var purchase_button := Button.new()
-        purchase_button.text = "Learn · 1 point"
-        purchase_button.disabled = funding_pools.is_empty()
-        purchase_button.pressed.connect(_purchase_skill_from_selector.bind(skill_id, funding_selector))
-        funding_row.add_child(purchase_button)
+        var pool_purchase_button := Button.new()
+        pool_purchase_button.text = "Learn · 1 point"
+        pool_purchase_button.disabled = funding_pools.is_empty()
+        pool_purchase_button.pressed.connect(_purchase_skill_from_selector.bind(skill_id, funding_selector))
+        funding_row.add_child(pool_purchase_button)
     elif bool(eligibility.get("ok", false)):
-        var purchase_button := Button.new()
-        purchase_button.text = "Learn · 1 %s point" % String(eligibility.get("funding_pool", "")).capitalize()
-        purchase_button.pressed.connect(_purchase_skill.bind(skill_id, String(eligibility.get("funding_pool", ""))))
-        content.add_child(purchase_button)
+        var direct_purchase_button := Button.new()
+        direct_purchase_button.text = "Learn · 1 %s point" % String(eligibility.get("funding_pool", "")).capitalize()
+        direct_purchase_button.pressed.connect(_purchase_skill.bind(skill_id, String(eligibility.get("funding_pool", ""))))
+        content.add_child(direct_purchase_button)
     else:
         var lock_label := Label.new()
         lock_label.text = "Unavailable: " + _skill_lock_description(eligibility)
