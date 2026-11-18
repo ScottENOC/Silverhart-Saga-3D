@@ -276,7 +276,7 @@ def _female_displacement(t, x, P):
     return d
 
 
-def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scale=1.65, hipline_z=None):
+def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scale=1.65, hipline_z=None, subdivision_plan_path=None):
     """Sculpt the existing skin mesh in place (UVs, material, weights and rig are kept)."""
     import bmesh
     P = dict(FEMALE_ANATOMY)
@@ -306,7 +306,9 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
     # Apply the deterministic shared subdivision plan generated once from the
     # neutral Ara export. The plan records exact edge-index operations and a
     # final topology signature; all body states must match it exactly.
-    with open(os.path.abspath(args.subdivision_plan), "r", encoding="utf-8") as handle:
+    if not subdivision_plan_path:
+        raise RuntimeError("A shared neutral subdivision plan is required")
+    with open(os.path.abspath(subdivision_plan_path), "r", encoding="utf-8") as handle:
         subdivision_plan = json.load(handle)
     original_signature = {
         "vertices": len(skin.data.vertices),
@@ -522,7 +524,8 @@ def main():
     anatomy_z = hipline_z - height * 0.035
 
     integrate_anatomy_into_skin(
-        skin, anatomy_z, width, height, args.deformation_scale, hipline_z=hipline_z
+        skin, anatomy_z, width, height, args.deformation_scale,
+        hipline_z=hipline_z, subdivision_plan_path=args.subdivision_plan
     )
     apply_anatomy_pigmentation(skin, anatomy_z, width, height)
     wire_vertex_colour_to_skin_material(skin_material, "Color")
@@ -547,6 +550,36 @@ def main():
     )
 
     colour = skin.data.color_attributes.get("Color")
+    original_colour_vertices = len(colour.data) if colour else 0
+    original_pigmented_vertices = skin.get("anatomy_pigmented_vertex_count", 0)
+
+    # Verify the actual GLB payload by importing it again. This catches a
+    # Blender-only colour layer that silently disappears during export.
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.object.delete(use_global=False)
+    bpy.ops.import_scene.gltf(filepath=output_path)
+    exported_meshes = [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
+    exported_skin = max(
+        (obj for obj in exported_meshes if "skin" in material_name(obj)),
+        key=lambda obj: len(obj.data.polygons), default=None,
+    )
+    if exported_skin is None:
+        raise RuntimeError("Exported GLB re-import contains no identifiable skin mesh")
+    exported_colour = next(
+        (attribute for attribute in exported_skin.data.color_attributes
+         if len(attribute.data) == len(exported_skin.data.vertices)),
+        None,
+    )
+    if exported_colour is None:
+        raise RuntimeError("Anatomy pigmentation did not survive GLB export/re-import")
+    exported_nonwhite = 0
+    for item in exported_colour.data:
+        rgba = item.color
+        if any(abs(float(rgba[channel]) - 1.0) > 1e-4 for channel in range(3)):
+            exported_nonwhite += 1
+    if exported_nonwhite == 0:
+        raise RuntimeError("Exported GLB contains a colour layer, but all values are white")
+
     report = {
         "input": os.path.abspath(args.input),
         "output": output_path,
@@ -557,7 +590,11 @@ def main():
         "skin_mesh": skin.name,
         "skin_vertices": len(skin.data.vertices),
         "skin_faces": len(skin.data.polygons),
-        "colour_attribute_vertices": len(colour.data) if colour else 0,
+        "colour_attribute_vertices": original_colour_vertices,
+        "exported_colour_attribute": exported_colour.name,
+        "exported_colour_vertices": len(exported_colour.data),
+        "exported_nonwhite_colour_vertices": exported_nonwhite,
+        "anatomy_pigmented_vertex_count": original_pigmented_vertices,
         "vertex_colour_export_mode": "ACTIVE",
         "anatomy_profile": skin.get("anatomy_profile", ""),
         "anatomy_method": skin.get("anatomy_method", ""),
