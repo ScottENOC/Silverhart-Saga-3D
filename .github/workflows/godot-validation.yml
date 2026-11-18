@@ -73,6 +73,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_character_systems.gd
       - name: Run skill purchase and persistence tests
         run: godot --headless --path . --script res://tests/test_skill_progression_ui.gd
+      - name: Run player and companion skill tree UI tests
+        run: godot --headless --path . --script res://tests/test_skill_tree_panel.gd
       - name: Run split campaign content tests
         run: godot --headless --path . --script res://tests/test_campaign_content.gd
       - name: Run split items and equipment tests
