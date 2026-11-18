@@ -15,6 +15,7 @@ func _run() -> void:
     _test_divine_silence()
     _test_sanctuary_and_divine_protection()
     _test_summon_animal()
+    _test_permanent_animal_companion()
     _test_counterspell()
     _test_counterspell_reaction()
     _test_dragon_breath()
@@ -198,6 +199,20 @@ func _test_summon_animal() -> void:
     var summon := sim.get_character(String(result.get("summoned_id", "")))
     _check(summon != null and summon.is_summoned and summon.summoned_by_id == caster.id, "Summoned animal should be registered with its summoner")
     _check(summon != null and summon.tags.has("animal"), "Summoned creature should carry the animal tag")
+    sim.free()
+
+
+func _test_permanent_animal_companion() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    caster.skills["animal_companion"] = 1
+    var result := _cast_at(sim, caster, Vector2i(1, 0), "summon_animal", {"summon_id": "wolf"})
+    _check(bool(result.get("ok", false)), "Animal Companion skill should make the first summon permanent")
+    var companion := sim.get_character(String(result.get("summoned_id", "")))
+    _check(companion != null and companion.is_animal_companion and not companion.is_summoned, "First animal should be stored as a permanent companion")
+    var second := _cast_at(sim, caster, Vector2i(2, 0), "summon_animal", {"summon_id": "unicorn"})
+    _check(not bool(second.get("ok", true)), "A second permanent unicorn companion should be rejected")
     sim.free()
 
 
