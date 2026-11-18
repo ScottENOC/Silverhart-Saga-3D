@@ -33,7 +33,7 @@ Status meanings:
 | Status effects and conditions | Not started | Inventory original effects, duration, stacking and removal rules. |
 | Skills and skill checks | Not started | Port the original catalogue and resolution rules. |
 | Character experience and levelling | Not started | Recover progression curve, attributes and unlocks. |
-| Magic and spellcasting | Not started | Inventory spells, costs, targets, effects and progression from legacy source. |
+| Magic and spellcasting | In progress | Shared prepared-spell model, variant/cost rules, action resolver, effect rules and spell VFX exist. Official catalogue is 12 spells; finish focused effects/UI/AI/gesture and save-load parity tests before acceptance. |
 | Inventory, loot and equipment | In progress | `CharacterState` persists inventory/equipment instance data and `item_catalog.gd` exists; audit full item catalogue, capacity, loot and equip parity. |
 | Crafting and gathering | In progress | `WildernessResourceSystem` and harvest actions exist; recipes, tools, crafting stations and full resource economy remain to port. |
 | Economy and trading | Not started | Port merchant inventories, prices, buying/selling and persistence. |
@@ -212,3 +212,20 @@ The current Godot strategic map's six entries (Silverhart, Millbrook, Emberlode,
 3. Audit and complete combat parity: facing/LOS/ranged, action validation, AI and encounter lifecycle.
 4. Expand the campaign strategic map from the verified Campaign 2 geography above; add data-driven links and hidden-site discovery.
 5. Continue inventory/progression/quests/social systems against the original source.
+
+
+## Magic and spellcasting — official scope (18 November 2026)
+
+The official player catalogue is Arcane (Firebolt, Counterspell, Feather Fall, Disguise Self), Divine (Heal, Divine Protection, Divine Strength, Curse), and Nature (Summon Animal, Entangle, Calm Animal, Wild Fury). Dragon Breath remains a future creature ability, not a player spell.
+
+| Area | Current status | Remaining work |
+|---|---|---|
+| Spell action, prepared variants, costs and effect resolver | Implemented / untested | Add complete effect-level regression coverage and validate resource/payment edge cases. |
+| Official 12-spell catalogue | Implemented / untested | Verify skill unlocks, class access, spell slots, preparation and NPC spellbooks use only the official IDs. |
+| Curse and Divine Strength | Implemented / untested | Balance values are provisional; verify hostile-action trigger timing and damage buff application. |
+| Disguise Self | In progress | Appearance-only Ara creator opens on cast and stores a profile. Expand supported disguise options, connect identity/perception/social recognition, equipment silhouette and save/load/revert behaviour. |
+| Summon Animal / permanent companion | In progress | Validate summon placement, permanent companion cap, save/load, departure/rejoin, AI, riding and companion progression. |
+| Entangle / Calm Animal / Wild Fury | In progress | Complete terrain mutation/dispel parity, Stay/Come/Chase AI behaviour, and animal-only buff validation. |
+| Spellbook, player casting UI and incantation/gesture grammar | Not started | Add spell preparation/casting UI and class-appropriate verbal/somatic components; ensure UI submits the shared simulation action. |
+| Spell visual effects | In progress | Verify each official spell's caster/target/area VFX and feedback in a playable encounter. |
+| Dragon Breath | Deferred | Reintroduce as a dragon innate ability when dragons are implemented. |
