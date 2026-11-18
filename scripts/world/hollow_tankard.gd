@@ -6,7 +6,7 @@ const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_t
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
-const SEASONAL_TREE_SCRIPT = preload("res://scripts/presentation/seasonal_tree_visual.gd")
+const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
@@ -249,23 +249,15 @@ func _configure_location_simulation() -> void:
     simulation.turn_scheduler.turn_started.connect(_on_combat_turn_started)
 
 func _create_wilderness_gatherable_grove() -> void:
-    # Kenney Nature Kit GLBs provide the base trees. These are a compact
-    # outdoor test grove immediately outside the tavern's playable footprint.
+    # These authored trees use the same shared generator and committed Cosmo
+    # catalogue as Hollowmere's surrounding forest.
     var decorative_trees: Array[Dictionary] = [
-        {"position": Vector3(-7.5, 0.0, -17.3), "evergreen": false, "seed": 21, "species": "oak"},
-        {"position": Vector3(7.5, 0.0, 17.3), "evergreen": false, "seed": 22, "species": "default"},
-        {"position": Vector3(-7.5, 0.0, 8.66), "evergreen": true, "seed": 23, "species": "default"},
-        {"position": Vector3(7.5, 0.0, -17.3), "evergreen": true, "seed": 24, "species": "default"},
+        {"name": "TavernGrove_Ash", "position": Vector3(-7.5, 0.0, -17.3), "family": "ash", "seed": 21, "scale": 0.92},
+        {"name": "TavernGrove_Cherry", "position": Vector3(7.5, 0.0, 17.3), "family": "cherry", "seed": 22, "scale": 0.98},
+        {"name": "TavernGrove_Pine", "position": Vector3(-7.5, 0.0, 8.66), "family": "pine", "seed": 23, "scale": 0.94},
+        {"name": "TavernGrove_Spruce", "position": Vector3(7.5, 0.0, -17.3), "family": "spruce", "seed": 24, "scale": 0.98}
     ]
-    for placement in decorative_trees:
-        var tree := SEASONAL_TREE_SCRIPT.new() as SeasonalTreeVisual
-        tree.evergreen = bool(placement["evergreen"])
-        tree.tree_seed = int(placement["seed"])
-        tree.tree_scale = 3.4
-        tree.species_variant = String(placement["species"])
-        tree.position = placement["position"]
-        add_child(tree)
-        tree.refresh_month(int(simulation.clock.calendar_date()["month_index"]))
+    WORLD_VEGETATION_SCRIPT.generate_authored_placements(self, decorative_trees)
 
     # Authored tutorial gatherables are deliberately close enough to test on
     # the first visit. Random wilderness spawning remains outside Hollowmere.
