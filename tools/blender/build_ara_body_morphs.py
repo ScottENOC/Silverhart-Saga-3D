@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 import bpy
+from mathutils.kdtree import KDTree
 
 
 def args():
@@ -46,43 +47,102 @@ def skin_meshes(objects):
     return sorted((obj for obj in objects if is_skin_mesh(obj)), key=lambda o: o.name)
 
 
-def topology_signature(mesh):
-    # GLB round-trips can reorder polygon records or reverse their winding
-    # without changing vertex correspondence. Shape keys require identical
-    # vertex indices and face connectivity, not identical polygon list order.
-    canonical_faces = tuple(sorted(
-        tuple(sorted(int(index) for index in poly.vertices))
-        for poly in mesh.polygons
-    ))
-    return (len(mesh.vertices), canonical_faces)
+def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
+    """Map GLB-reimported vertices by position, then prove face connectivity.
 
-
-def add_relative_key(base_obj, variant_obj, name, epsilon=1e-8):
-    if topology_signature(base_obj.data) != topology_signature(variant_obj.data):
+    Blender's glTF exporter can reorder vertices while preserving geometry.
+    Vertex-index equality is therefore not a safe assumption across exports.
+    We build a one-to-one spatial map and verify that every mapped face in the
+    variant exactly matches the base mesh's connectivity before creating keys.
+    """
+    base_vertices = base_obj.data.vertices
+    variant_vertices = variant_obj.data.vertices
+    if len(base_vertices) != len(variant_vertices):
         raise RuntimeError(
-            f"Topology mismatch for {base_obj.name} / {variant_obj.name}: "
-            f"base vertices={len(base_obj.data.vertices)}, "
-            f"variant vertices={len(variant_obj.data.vertices)}, "
-            f"base faces={len(base_obj.data.polygons)}, "
-            f"variant faces={len(variant_obj.data.polygons)}"
+            f"Vertex count mismatch for {base_obj.name} / {variant_obj.name}: "
+            f"base={len(base_vertices)}, variant={len(variant_vertices)}"
         )
+
+    tree = KDTree(len(variant_vertices))
+    variant_world = [
+        variant_obj.matrix_world @ vertex.co for vertex in variant_vertices
+    ]
+    for index, point in enumerate(variant_world):
+        tree.insert(point, index)
+    tree.balance()
+
+    mapping = []
+    used = set()
+    distances = []
+    for base_vertex in base_vertices:
+        point = base_obj.matrix_world @ base_vertex.co
+        candidates = tree.find_n(point, min(16, len(variant_vertices)))
+        match = next(
+            ((index, distance) for _co, index, distance in candidates if index not in used),
+            None,
+        )
+        if match is None:
+            raise RuntimeError("Could not create a one-to-one Ara vertex correspondence")
+        index, distance = match
+        if distance > max_distance:
+            raise RuntimeError(
+                f"Vertex correspondence too far apart: {distance:.4f}m "
+                f"(limit {max_distance:.4f}m)"
+            )
+        mapping.append(index)
+        used.add(index)
+        distances.append(distance)
+
+    inverse = [-1] * len(mapping)
+    for base_index, variant_index in enumerate(mapping):
+        inverse[variant_index] = base_index
+
+    base_faces = {
+        tuple(sorted(int(index) for index in polygon.vertices))
+        for polygon in base_obj.data.polygons
+    }
+    mapped_variant_faces = {
+        tuple(sorted(inverse[int(index)] for index in polygon.vertices))
+        for polygon in variant_obj.data.polygons
+    }
+    if base_faces != mapped_variant_faces:
+        missing = len(base_faces - mapped_variant_faces)
+        extra = len(mapped_variant_faces - base_faces)
+        raise RuntimeError(
+            "Spatial vertex map failed face-connectivity validation: "
+            f"{missing} base faces unmatched, {extra} variant faces unmatched"
+        )
+    return mapping, max(distances, default=0.0), sum(distances) / max(len(distances), 1)
+
+
+def add_relative_key(base_obj, variant_obj, name):
+    mapping, max_distance, mean_distance = map_variant_vertices(base_obj, variant_obj)
     if base_obj.data.shape_keys is None:
         base_obj.shape_key_add(name="Basis", from_mix=False)
     key = base_obj.shape_key_add(name=name, from_mix=False)
     base_inverse = base_obj.matrix_world.inverted()
+    variant_world = [
+        variant_obj.matrix_world @ vertex.co for vertex in variant_obj.data.vertices
+    ]
     moved = 0
     maximum = 0.0
     for index, base_vertex in enumerate(base_obj.data.vertices):
         base_world = base_obj.matrix_world @ base_vertex.co
-        variant_world = variant_obj.matrix_world @ variant_obj.data.vertices[index].co
-        delta = variant_world - base_world
+        target_world = variant_world[mapping[index]]
+        delta = target_world - base_world
         distance = delta.length
-        if distance > epsilon:
+        if distance > 1e-8:
             moved += 1
         maximum = max(maximum, distance)
-        key.data[index].co = base_inverse @ variant_world
-    return {"name": name, "vertices": len(base_obj.data.vertices),
-            "moved_vertices": moved, "max_delta_metres": maximum}
+        key.data[index].co = base_inverse @ target_world
+    return {
+        "name": name,
+        "vertices": len(base_obj.data.vertices),
+        "moved_vertices": moved,
+        "max_delta_metres": maximum,
+        "mapping_max_distance_metres": max_distance,
+        "mapping_mean_distance_metres": mean_distance,
+    }
 
 
 def main():
