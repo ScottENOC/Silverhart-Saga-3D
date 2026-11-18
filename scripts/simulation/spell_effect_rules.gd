@@ -128,12 +128,16 @@ func apply(
             if String(variant.get("type", "")) == "aoe_heal":
                 var healed: Array[String] = []
                 for ally in affected:
-                    if ally.side == caster.side and ally.apply_healing(magnitude) != "unchanged":
+                    if ally.side != caster.side:
+                        continue
+                    var heal_amount := _effective_healing_amount(ally, magnitude)
+                    if heal_amount > 0 and ally.apply_healing(heal_amount) != "unchanged":
                         healed.append(ally.id)
                 payload["affected_ids"] = healed
             elif target != null:
                 var before := target.health
-                var lifecycle := target.apply_healing(magnitude)
+                var heal_amount := _effective_healing_amount(target, magnitude)
+                var lifecycle := target.apply_healing(heal_amount)
                 payload["healing"] = target.health - before
                 payload["target_lifecycle"] = lifecycle
                 payload["target_health"] = target.health
@@ -146,9 +150,28 @@ func apply(
             payload["magnitude"] = magnitude
             payload["duration_ticks"] = 20
         "curse":
-            _add_effect(target, "curse", caster.id, {"magnitude": magnitude, "ticks_remaining": 20.0})
+            var duration := 20 + maxi(0, int(caster.skills.get("extended_sentence", 0))) * 2
+            var damage_reduction := mini(3, maxi(0, int(caster.skills.get("cleric_trigger_dmg_red", 0))))
+            var healing_reduction := mini(100, maxi(0, int(caster.skills.get("cleric_trigger_heal_red", 0))) * 50)
+            var vision_penalty := mini(3, maxi(0, int(caster.skills.get("cleric_trigger_vision", 0))))
+            _add_effect(target, "curse", caster.id, {
+                "magnitude": magnitude,
+                "ticks_remaining": float(duration),
+                "damage_reduction": damage_reduction,
+                "healing_reduction_percent": healing_reduction,
+                "vision_penalty": vision_penalty,
+                "armistice_next_attack_tp": 5 if int(caster.skills.get("armistice", 0)) > 0 else 0
+            })
+            var trigger_damage := maxi(0, int(caster.skills.get("cleric_trigger_damage", 0)))
+            if trigger_damage > 0:
+                payload["trigger_damage"] = _apply_spell_damage(target, trigger_damage)
+            var mana_drain := maxi(0, int(caster.skills.get("cleric_trigger_mana", 0)))
+            if mana_drain > 0:
+                var drained := mini(target.current_mana, mana_drain)
+                target.current_mana -= drained
+                payload["mana_drained"] = drained
             payload["magnitude"] = magnitude
-            payload["duration_ticks"] = 20
+            payload["duration_ticks"] = duration
             payload["trigger"] = "next hostile action by the target"
         "summon_animal":
             var summon := _create_summon(simulation, caster, prepared, target_hex)
@@ -204,6 +227,14 @@ func apply(
             _add_effect(caster, "feather_fall", caster.id, {"ticks_remaining": 30.0})
             payload["duration_ticks"] = 30
     return payload
+
+
+func _effective_healing_amount(target: CharacterState, base_amount: int) -> int:
+    if target == null:
+        return 0
+    var curse := target.get_spell_effect("curse")
+    var reduction := clampi(int(curse.get("healing_reduction_percent", 0)), 0, 100)
+    return maxi(0, floori(float(base_amount) * (1.0 - float(reduction) / 100.0)))
 
 
 func _add_effect(target: CharacterState, effect_id: String, source_id: String, data: Dictionary = {}) -> void:
