@@ -37,7 +37,7 @@ func _run() -> void:
     var details := AraCharacterDetails.new()
     details.name = "AppearanceDetails"
     stage.add_child(details)
-    details.configure(character, {"\piercings":["\nipple_left"],"\tattoos":[],"\tattoo_ink":"\#28252D"})
+    details.configure(character, {"piercings": ["nipple_left"], "tattoos": [], "tattoo_ink": "#28252D"})
 
     _collect_meshes(character)
     if mesh_instances.is_empty():
