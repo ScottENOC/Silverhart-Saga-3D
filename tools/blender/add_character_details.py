@@ -118,8 +118,6 @@ def project_path(points, back, trees, offset=0.0020):
                 face_vertices,
                 key=lambda index: (vertices[index] - location).length_squared,
             )
-            if normal.y * direction.y < 0.0:
-                normal.negate()
             projected.append((location + normal * offset, normal, source_index))
     p = points[-1]
     origin = Vector((p.x, ray_y, p.z))
@@ -134,8 +132,6 @@ def project_path(points, back, trees, offset=0.0020):
         face_vertices,
         key=lambda index: (vertices[index] - location).length_squared,
     )
-    if normal.y * direction.y < 0.0:
-        normal.negate()
     projected.append((location + normal * offset, normal, source_index))
     return projected
 
