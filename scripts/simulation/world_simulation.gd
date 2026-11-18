@@ -817,6 +817,10 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     var is_offensive := spell_id in ["firebolt", "smite_evil", "divine_silence", "dragon_breath", "entangle", "temporal_rift"]
     if is_offensive and target != null:
         _apply_spell_protection_triggers(caster, target)
+        for extra_id_value in context.get("extra_target_ids", []):
+            var protected_extra := get_character(String(extra_id_value))
+            if protected_extra != null:
+                _apply_spell_protection_triggers(caster, protected_extra)
     elif is_offensive:
         var center: Vector2i = _spell_effect_rules.target_hex_for(self, SimulationActionRequest.new(
             SimulationActionRequest.ActionType.CAST_SPELL, caster.id, "", context.get("request_destination", Vector2i.ZERO), 0.0, context.get("request_options", {})
