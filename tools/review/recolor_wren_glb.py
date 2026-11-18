@@ -166,6 +166,16 @@ def recolor(path: Path, profile_path: Path, hair_gamma: float, grey_strands: boo
         # Ara's source diffuse has no usable per-strand luminance variation.
         hair_rgb = tuple(int(round(channel * 255.0)) for channel in parse_hex(params.get("hairTint", "#08090A"))[:3])
         lifted = procedural_grey_strands(source_image, hair_rgb)
+    elif bake_hair_tint:
+        # Bake the profile tint into Ara's pale photo-based hair diffuse.
+        # This avoids relying on material multipliers behaving consistently
+        # across GLB importers.
+        tint = parse_hex(params.get("hairTint", "#FFFFFF"))[:3]
+        channels = [
+            channel.point(lambda value, factor=factor: int(round(value * factor)))
+            for channel, factor in zip((red, green, blue), tint)
+        ]
+        lifted = Image.merge("RGBA", (*channels, alpha))
     else:
         lut = [
             min(255, int(round(((value / 255.0) ** hair_gamma) * 255.0)))
