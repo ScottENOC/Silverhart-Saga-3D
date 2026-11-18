@@ -38,3 +38,15 @@ Run with Godot 4.7.2:
 ```sh
 godot --headless --path . --script res://tests/test_spell_rules.gd
 ```
+
+
+## Shared casting resolver
+
+`SimulationActionRequest.cast_spell()` is the common entry point for player and NPC casts. `WorldSimulation.submit_action()` enforces the active combat turn, then delegates spell validation, affordability and effect application to `SpellCastingRules`.
+
+The first supported effects are:
+
+- **Firebolt:** hostile target, computed spell range, ranged hit check and prepared magnitude damage.
+- **Heal:** friendly living target within one hex; can restore health and revive an unconscious character.
+
+A cast must be unlocked and present in the caster's saved prepared-spell list. The resolver validates target legality, range, mana and Time Points before paying either resource. Unsupported spell families and modifier variants are rejected without cost. NPC combat AI uses this same action for prepared Heal and Firebolt rather than implementing a second effect path.
