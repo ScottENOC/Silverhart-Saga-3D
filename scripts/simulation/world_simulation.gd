@@ -644,10 +644,47 @@ func submit_action(request: SimulationActionRequest, random_seed: int = 0) -> Di
             return _submit_attack(request, random_seed)
         SimulationActionRequest.ActionType.FEINT:
             return _submit_feint(request, random_seed)
+        SimulationActionRequest.ActionType.CAST_SPELL:
+            return _submit_spell_cast(request, random_seed)
         SimulationActionRequest.ActionType.MOVE:
             return _submit_move(request)
         _:
             return {"ok": false, "reason": "unsupported_action_type"}
+
+func _submit_spell_cast(request: SimulationActionRequest, random_seed: int) -> Dictionary:
+    if not pending_reaction.is_empty():
+        return {"ok": false, "reason": "reaction_pending", "action_type": "cast_spell"}
+    if not is_in_combat or not turn_scheduler.has_active_turn():
+        return {"ok": false, "reason": "no_active_combat_turn", "action_type": "cast_spell"}
+    if turn_scheduler.current_character_id != request.actor_id:
+        return {"ok": false, "reason": "not_actor_turn", "action_type": "cast_spell"}
+
+    var caster := get_character(request.actor_id)
+    var target := get_character(request.target_id)
+    var prepared_data: Variant = request.options.get("prepared_spell", {})
+    if not prepared_data is Dictionary:
+        return SimulationActionResult.new("cast_spell", false, "invalid_prepared_spell", request.actor_id, request.target_id).to_dict()
+
+    var result := SpellCastingRules.resolve_cast(caster, target, prepared_data, random_seed)
+    if not bool(result.get("ok", false)):
+        return SimulationActionResult.new(
+            "cast_spell",
+            false,
+            String(result.get("reason", "spell_cast_failed")),
+            request.actor_id,
+            request.target_id,
+            result
+        ).to_dict()
+
+    var result_data := SimulationActionResult.new(
+        "cast_spell", true, "", request.actor_id, request.target_id, result
+    ).to_dict()
+    action_committed.emit(SimulationEvent.new("spell_cast", request.actor_id, request.target_id, result_data))
+    combat_action_resolved.emit(result_data)
+    if caster != null and caster.should_end_turn():
+        try_end_current_turn()
+    return result_data
+
 
 func _submit_feint(request: SimulationActionRequest, random_seed: int) -> Dictionary:
     if not pending_reaction.is_empty():
