@@ -2349,6 +2349,11 @@ func _unhandled_input(event: InputEvent) -> void:
             _open_inventory_panel()
             get_viewport().set_input_as_handled()
             return
+        if key_event.keycode == KEY_M:
+            if spellbook_panel != null:
+                spellbook_panel.toggle_for_character(active_character_id)
+            get_viewport().set_input_as_handled()
+            return
         if key_event.keycode == KEY_V:
             roof_group.visible = not roof_group.visible
             return
