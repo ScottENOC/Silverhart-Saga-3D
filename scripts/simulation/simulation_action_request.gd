@@ -39,6 +39,24 @@ static func cast_spell(actor_id: String, target_id: String, prepared_spell: Prep
         {"prepared_spell": prepared_spell.to_dict()}
     )
 
+static func cast_spell_targets(actor_id: String, target_ids: Array[String], prepared_spell: PreparedSpell) -> SimulationActionRequest:
+    if prepared_spell == null or target_ids.is_empty():
+        return null
+    var unique_ids: Array[String] = []
+    for target_id in target_ids:
+        if target_id.is_empty() or unique_ids.has(target_id):
+            return null
+        unique_ids.append(target_id)
+    return SimulationActionRequest.new(
+        ActionType.CAST_SPELL,
+        actor_id,
+        unique_ids[0],
+        Vector2i.ZERO,
+        0.0,
+        {"prepared_spell": prepared_spell.to_dict(), "target_ids": unique_ids}
+    )
+
+
 static func cast_spell_at_hex(actor_id: String, target_hex: Vector2i, prepared_spell: PreparedSpell, target_id: String = "") -> SimulationActionRequest:
     if prepared_spell == null:
         return null
