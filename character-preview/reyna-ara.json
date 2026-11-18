@@ -29,11 +29,7 @@
     "accessories": [],
     "shoes": "none",
     "hat": "none",
-    "tattoos": [
-      {
-        "design": "reyna_shoulder_back"
-      }
-    ],
+    "tattoos": [],
     "detail": "high",
     "rig": "game",
     "faceBones": true,
@@ -49,6 +45,15 @@
     "modifiers": {
       "stomach/stomach-tone": 0.4
     },
+    "tattoo_ink": "#17120F"
+  },
+  "character_details": {
+    "piercings": [],
+    "tattoos": [
+      {
+        "design": "reyna_shoulder_back"
+      }
+    ],
     "tattoo_ink": "#17120F"
   }
 }
