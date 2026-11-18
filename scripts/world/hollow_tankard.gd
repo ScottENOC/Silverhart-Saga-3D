@@ -1558,6 +1558,7 @@ func _run_opening_sequence() -> void:
         actor_by_id,
         gameplay_hud_layer,
         gameplay_camera,
+        HollowmereCampaignContent.opening_conversation_lines(),
         HollowmereCampaignContent.opening_lines(),
         Callable(self, "_move_shakedown_soldiers_inside"),
         HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS
