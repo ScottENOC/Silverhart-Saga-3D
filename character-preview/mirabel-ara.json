@@ -27,11 +27,7 @@
     "accessories": [],
     "shoes": "none",
     "hat": "none",
-    "tattoos": [
-      {
-        "design": "mirabel_arcane"
-      }
-    ],
+    "tattoos": [],
     "detail": "high",
     "rig": "game",
     "faceBones": true,
@@ -54,6 +50,18 @@
     "piercings": [
       "earrings",
       "clit"
+    ],
+    "tattoo_ink": "#30283D"
+  },
+  "character_details": {
+    "piercings": [
+      "earrings",
+      "clit"
+    ],
+    "tattoos": [
+      {
+        "design": "mirabel_arcane"
+      }
     ],
     "tattoo_ink": "#30283D"
   }
