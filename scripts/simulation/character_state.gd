@@ -36,6 +36,8 @@ var npc_unspent_skill_points: int = 0
 var companion_recruitment_budget_by_pool: Dictionary = {}
 var current_mana: int = 0
 var max_mana: int = 0
+## Explicit opt-in, matching the original game's Blood Magic toggle.
+var blood_magic_active: bool = false
 var mana_caps: Dictionary = {"arcane": 10, "divine": 10, "nature": 10}
 var max_spell_slots: int = 8
 var unlocked_base_spells: Array[String] = []
@@ -340,6 +342,7 @@ func to_dict() -> Dictionary:
         "companion_recruitment_budget_by_pool": companion_recruitment_budget_by_pool.duplicate(true),
         "current_mana": current_mana,
         "max_mana": max_mana,
+        "blood_magic_active": blood_magic_active,
         "mana_caps": mana_caps.duplicate(true),
         "max_spell_slots": max_spell_slots,
         "unlocked_base_spells": unlocked_base_spells.duplicate(),
@@ -454,6 +457,7 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.companion_recruitment_budget_by_pool = data.get("companion_recruitment_budget_by_pool", {}).duplicate(true)
     state.current_mana = int(data.get("current_mana", 0))
     state.max_mana = int(data.get("max_mana", 0))
+    state.blood_magic_active = bool(data.get("blood_magic_active", false))
     state.mana_caps = data.get("mana_caps", {"arcane": 10, "divine": 10, "nature": 10}).duplicate(true)
     state.max_spell_slots = int(data.get("max_spell_slots", 8))
     for spell_id in data.get("unlocked_base_spells", []):
