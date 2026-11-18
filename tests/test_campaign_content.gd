@@ -91,6 +91,12 @@ func _test_hollowmere_campaign_content() -> void:
     _check(String(definition.get("id", "")) == HollowmereCampaignContent.QUEST_ID, "Hollowmere shakedown must have a stable quest ID")
     _check(definition.get("objectives", []).size() == 1, "Shakedown should have one required response objective")
 
+    var companion_opening := HollowmereCampaignContent.opening_conversation_lines()
+    _check(companion_opening.size() == 5, "Opening companion conversation should contain five lines")
+    _check(String(companion_opening[0].get("speaker_id", "")) == "companion_wren_talbot")
+    _check(String(companion_opening[1].get("speaker_id", "")) == "player")
+    _check(String(companion_opening[4].get("speaker_id", "")) == "companion_wren_talbot")
+
     var opening := HollowmereCampaignContent.opening_lines()
     _check(opening.size() == 4, "Opening should preserve narrator, Dray, Garrick and Dray's threat lines")
     _check(String(opening[1].get("speaker_id", "")) == "dray_coltayne")
