@@ -1,30 +1,29 @@
 # Technical Debt Register
 
-**Baseline:** `dev_2` at `a8b5987ebdc12b016d99e2550349f17a8fd62645` (13 November 2026)
-**Working branch:** `tech-debt/register-and-test-split`
-**Integration target:** `dev_2`
-**Status:** Initial inventory; priorities are provisional until dependency and runtime audits are complete.
+**Baseline:** `dev` at `91a14a17bfb3031e3360072ac8d663f80aee55eb` (18 November 2026)
+**Stable branch:** `main`
+**Active development and test branch:** `dev`
+**Legacy branch:** `dev_2` (historical reference only; no new work)
+**Status:** Refreshed against the current `dev` tree; remaining priorities are based on current file sizes, CI evidence and known unfinished refactors.
 
 This register tracks structural improvements without treating file length alone as a defect. The objective is to make systems independently understandable, testable and reusable, while preserving gameplay behaviour.
 
 ## 1. Branch and validation baseline
 
-The branch promotion on 13 November 2026 established:
+The current branch strategy is:
 
-- `main`: historical development baseline.
-- `dev`: current script-tested candidate for the user's hands-on gameplay review.
-- `dev_2`: active technical-debt and refactoring line.
+- `main`: stable build; promote only after review and validation.
+- `dev`: active development and play-testing branch; all new work targets this branch.
+- `dev_2`: legacy historical reference; do not target it for new work.
 - `backup/*-before-promotion-2026-11-13`: exact pre-promotion refs.
 
-Do not merge this work into `dev` until the user has reviewed the candidate and the relevant changes have passed validation.
+Do not change `main` or `dev_2` as part of routine development. Preserve `dev` history; use focused feature branches and PRs.
 
 ### Automated baseline
 
-The GitHub Actions workflow **Godot validation** completed successfully on commit `a8b5987ebdc12b016d99e2550349f17a8fd62645` (run [43310423179](https://github.com/ScottENOC/Silverhart-Saga-3D/actions/runs/43310423179), 12 November 2026).
+The current `dev` baseline is recorded above; a successful full validation run against this exact SHA has not yet been recorded. The main Godot workflow now runs the split character/progression, campaign, equipment, world/movement, combat/reaction and animal/riding suites, plus building, UI, save/restore, appearance, world and scene checks. A separate combat-preview workflow still referenced the retired monolithic `tests/test_simulation.gd`; that stale reference is being corrected in this refresh.
 
-The workflow currently covers Godot 4.7.2 import, the hex-grid and simulation suites, building/door tests, save/restore, tavern script loading, NPC pass-through, character/equipment appearance, seasonal trees, wilderness resources, Hollowmere, Campaign 2 geography/roads/settlement layouts, JSON validation and scene smoke tests.
-
-This is evidence that the automated pipeline passed at the baseline commit. It is not a substitute for a human playing the game, and it does not prove that every gameplay path or visual presentation is correct.
+A recent PR #151 validation run passed the hex-grid and split domain suites but failed when loading `hollow_tankard.gd` because the PR introduced mixed tabs/spaces at line 254. Its separate character pipeline job also failed on the pre-existing roster entry `tam_wells_human_male`. These are recorded as outstanding validation issues, not evidence that the current `dev` baseline itself failed.
 
 ## 2. Target architectural principles
 
@@ -46,14 +45,14 @@ Apply the same principle to `hollowmere_village.gd`: village-specific content sh
 
 | ID | Priority | Area | Baseline evidence | Intended outcome | Status |
 |---|---|---|---|---|---|
-| TD-001 | P0 | Baseline and validation | CI passed at baseline commit; user has not yet performed hands-on review of this candidate | Preserve baseline SHA, know which automated checks run, record any failures before each refactor | Recorded |
-| TD-002 | P0 | Simulation test organisation | `tests/test_simulation.gd` is 2,172 lines and contains broad campaign, character, movement, combat, reaction and animal/riding coverage | Split into cohesive domain suites; retain assertions and coverage; no gameplay changes | Planned |
-| TD-003 | P1 | Hollow Tankard location God Object | `scripts/world/hollow_tankard.gd` is 2,836 lines; it combines construction, actors, UI, input/camera, narrative, combat, resources and persistence responsibilities | Replace bespoke location implementation with reusable systems and location data; leave at most a thin composition entry point | Planned |
-| TD-004 | P1 | WorldSimulation cohesion | `scripts/simulation/world_simulation.gd` is 1,211 lines; owns broad registration, movement, combat/action, reactions, animal/riding and persistence coordination | Separate cohesive domain services while retaining one authoritative state/coordinator and stable action/event contracts | Planned |
-| TD-005 | P1 | Hollowmere village construction | `scripts/world/hollowmere_village.gd` is 645 lines and constructs environment, buildings, vegetation, fields/fences and creatures | Move reusable construction/presentation into generic builders; retain Hollowmere-specific layout/content as data | Planned |
-| TD-006 | P2 | Character presentation actor | `scripts/presentation/ara_character_actor.gd` is 26,429 bytes | Separate model/rig loading, equipment/appearance application, animation and actor lifecycle where boundaries are cohesive | Planned |
-| TD-007 | P2 | Character creator UI | `scripts/ui/player_character_creator.gd` is 26,234 bytes | Separate UI flow from character-creation rules, data validation and preview/presentation | Planned |
-| TD-008 | P2 | NPC skill spending | `scripts/simulation/npc_skill_spending.gd` is 28,884 bytes | Audit rule ownership, data inputs and decision boundaries; reduce duplicated progression logic | Planned |
+| TD-001 | P0 | Baseline and validation | Current `dev` SHA recorded; full validation against this exact SHA and hands-on review are not yet recorded | Preserve baseline SHA, run the correct current test suites and record failures before each refactor | In progress |
+| TD-002 | P0 | Simulation test organisation | The former monolithic suite has been split into independently runnable character/progression, campaign, equipment, world/movement, combat/reaction and animal/riding suites | Keep CI references aligned with the split suites; retain independent testability | Complete; CI reference cleanup in progress |
+| TD-003 | P1 | Hollow Tankard location God Object | `scripts/world/hollow_tankard.gd` is 2,552 lines / 123,261 bytes; it still combines construction, actors, UI, input/camera, narrative, combat, resources and persistence | Extract cohesive vertical slices into reusable systems and location data; leave a thin composition entry point | Planned |
+| TD-004 | P1 | WorldSimulation cohesion | `scripts/simulation/world_simulation.gd` is 1,332 lines / 68,079 bytes; coordinates registration, movement, combat/actions, reactions, animal/riding and lifecycle | Extract cohesive domain services while retaining one authoritative state/coordinator and stable action/event contracts | Planned |
+| TD-005 | P1 | Hollowmere village construction | `scripts/world/hollowmere_village.gd` is 644 lines / 31,999 bytes and constructs environment, buildings, vegetation, fields/fences and creatures | One shared world vegetation generator must own placement and asset selection across all locations; continue separating reusable construction from Hollowmere content | In progress — PR #151 is stale against current `dev` and requires reconciliation/validation |
+| TD-006 | P2 | Character presentation actor | `scripts/presentation/ara_character_actor.gd` is 714 lines / 33,276 bytes | Separate model/rig loading, equipment/appearance application, animation and actor lifecycle only at stable boundaries | Planned; defer until Ara pipeline stabilises |
+| TD-007 | P2 | Character creator UI | `scripts/ui/player_character_creator.gd` is 489 lines / 26,040 bytes | Separate UI flow from character-creation rules, data validation and preview/presentation | Planned |
+| TD-008 | P2 | NPC skill spending | `scripts/simulation/npc_skill_spending.gd` is 543 lines / 28,884 bytes | Audit rule ownership, data inputs and decision boundaries before deciding whether extraction is warranted | Audit needed |
 | TD-009 | P2 | Content/data ownership and generated outputs | Existing architecture uses canonical character/item data and generated pipeline outputs; prior work identified possible duplicated or stale generated configuration | Identify each source of truth; make generation deterministic/idempotent; validate outputs and avoid hand-editing generated files | Audit needed |
 | TD-010 | P2 | Asset/build pipeline reliability | Ara garment extraction/build pipeline has had identifier/slot mismatches and patch/cache idempotency concerns | Make stages reproducible, cache-safe, explicit about accepted identifiers and fail with actionable diagnostics | Audit needed |
 | TD-011 | P3 | Vision/fog systems | Previous fog/vision feature branch is stale relative to current architecture | Keep parked; later recover only the useful presentation/gameplay requirements, not the old implementation wholesale | Parked |
@@ -71,16 +70,7 @@ File sizes/line counts are measurements of the baseline snapshot, not automatic 
 
 ### Phase 1 — Split the simulation test suite
 
-First inspect the complete test inventory and dependencies. Group tests by cohesive domain (likely character/progression, campaign/dialogue, movement/world time, combat/actions/reactions, items/equipment, animals/riding and lifecycle/persistence). The final grouping must follow actual setup/helpers and shared fixtures, not this provisional list.
-
-Acceptance criteria:
-
-- Every existing test assertion is retained or explicitly justified.
-- Test cases remain independently runnable through Godot headless.
-- Shared fixtures/helpers have clear ownership and do not introduce order-dependent state.
-- CI runs the new suites and reports failures clearly.
-- The old monolithic runner is removed only after equivalent coverage is demonstrated.
-- No gameplay scripts or gameplay rules are changed in this phase.
+<text>Complete.</text> The monolithic simulation test file has been replaced by independently runnable domain suites covering character/progression, campaign content, items/equipment, world/movement, combat/reactions and animals/riding. The current Godot validation workflow invokes these suites individually. The remaining CI cleanup is to remove stale references to the deleted monolithic runner from secondary workflows.
 
 ### Phase 2 — Hollow Tankard decomposition
 
@@ -114,15 +104,21 @@ Audit duplicated sources of truth, stale generated files, pipeline idempotency/c
 
 ## 5. Working rules
 
-- One focused PR/change set at a time, targeting `dev_2`.
-- Never force-push or rewrite the protected candidate branch.
+- One focused PR/change set at a time, targeting `dev`.
+- Never force-push or rewrite `main` or `dev`.
 - Preserve a known-good commit before each substantial refactor.
 - Run the narrow tests during development and the full Godot validation workflow before merging.
 - Do not merge a refactor merely because it compiles; inspect test coverage and relevant scene behaviour.
-- If the technical-debt line becomes unhealthy, create a fresh `dev_3` from the untouched `dev` candidate and recover only reviewed changes.
+- Keep `dev_2` as a historical branch; do not promote it or create new work from it.
 - Keep the parked fog/vision work out of the current sequence.
 - Character assembly work that depends on the finalised body model remains gated by that model; do not refactor it prematurely.
 
-## 6. Immediate next task
+## 6. Immediate next tasks
 
-Start TD-002: inspect the complete `tests/test_simulation.gd` test/helper inventory, identify shared setup and order dependencies, then propose the exact file split. Do not edit or move test code until that inventory is complete. The first implementation PR should be test-only and behaviour-preserving.
+1. Reconcile the shared vegetation generator with the latest `dev` state, fix the mixed-indentation parse error, and ensure tavern resource placements remain intact.
+2. Update all CI workflows to invoke the split test suites; verify the full Godot workflow against the resulting feature head.
+3. Recover the useful nearby-interaction panel extraction from PR #149 onto a branch based on `dev`; do not merge its `dev_2`-based branch.
+4. Begin HollowTankard decomposition with one tested vertical slice at a time, then map WorldSimulation ownership before extracting services.
+5. Audit character-pipeline roster status and generation idempotency separately from the world refactors.
+
+Keep fog/vision parked. Defer Ara actor/creator decomposition until the current character-generation workflow stabilises.
