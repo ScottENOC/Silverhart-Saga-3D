@@ -55,11 +55,11 @@ func _test_deterministic_grid_generation() -> void:
 	var filter := Callable(self, "_accept_all_hexes")
 	var selector := Callable(self, "_select_ash")
 	var first_count := WorldVegetationGenerator.generate_hex_grid(
-		first, -2, 2, -2, 2, 2, HexGrid.DEFAULT_RADIUS,
+		first, -2, 2, -2, 2, 2, HexGrid.DEFAULT_RADIUS_M,
 		filter, Vector2i.ZERO, 0.0, selector, 0.9, 0.0, "GridTree"
 	)
 	var second_count := WorldVegetationGenerator.generate_hex_grid(
-		second, -2, 2, -2, 2, 2, HexGrid.DEFAULT_RADIUS,
+		second, -2, 2, -2, 2, 2, HexGrid.DEFAULT_RADIUS_M,
 		filter, Vector2i.ZERO, 0.0, selector, 0.9, 0.0, "GridTree"
 	)
 	_check(first_count == 9 and second_count == 9, "Grid generation should place every eligible candidate")
