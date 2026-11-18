@@ -124,14 +124,10 @@ Audit duplicated sources of truth, stale generated files, pipeline idempotency/c
 - Keep the parked fog/vision work out of the current sequence.
 - Character assembly work that depends on the finalised body model remains gated by that model; do not refactor it prematurely.
 
-## 6. Immediate next task
 
-Start TD-002: inspect the complete `tests/test_simulation.gd` test/helper inventory, identify shared setup and order dependencies, then propose the exact file split. Do not edit or move test code until that inventory is complete. The first implementation PR should be test-only and behaviour-preserving.
+## 6. Current immediate task
 
-
-## 6. Immediate next task
-
-Complete the ownership map for HollowTankard and the overlapping building-presentation implementations before extracting code. The test-suite split is already present on the current branch; do not recreate it.
+Continue the TD-012 shared building-visual contract in small, test-backed slices. The first primitive extraction is implemented on the current audit branch; the next step is to compare common wall/opening composition requirements without changing building appearance.
 
 ## 7. Current-branch audit — 18 November 2026
 
@@ -204,7 +200,7 @@ Current dev contains at least three independent procedural building-rendering pa
 
 BuildingRegistry and BuildingLayoutRegistrar currently own logical building/door registration and walkability, not the shared visual construction contract. They do not eliminate this presentation duplication.
 
-Add TD-012 (P1): define a reusable building-visual composition contract for common primitives (walls, openings, roofs, doors, foundations and material assignment), while allowing each location/settlement to supply authored geometry/layout data. Do not force unique tavern furniture or bespoke landmark details into a generic builder. First compare the three builders' inputs, outputs and scene assumptions; then extract only the common stable subset.
+Add TD-012 (P1): define a reusable building-visual composition contract for common primitives (walls, openings, roofs, doors, foundations and material assignment), while allowing each location/settlement to supply authored geometry/layout data. Do not force unique tavern furniture or bespoke landmark details into a generic builder. The common box/material primitive extraction is now implemented; compare the three builders' wall/opening inputs and scene assumptions before extracting a higher-level composition helper.
 
 Initial implementation on the current audit branch: `WorldGeometryFactory` now owns shared BoxMesh creation/attachment and StandardMaterial3D creation. HollowTankard, HollowmereVillage and Campaign2SettlementBuilder delegate their duplicated `_add_box()` helpers to it; HollowTankard and Campaign2SettlementBuilder also delegate material construction while preserving their distinct culling/roughness settings. Their building layouts, wall patterns, openings, roofs, furniture and landmark details remain local. `test_building_framework.gd` now verifies factory parenting, naming, dimensions, transform, material assignment and material settings. This is the first primitive-level extraction, not yet a shared house/wall composition system.
 
