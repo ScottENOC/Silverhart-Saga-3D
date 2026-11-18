@@ -1503,6 +1503,16 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
                         effect_event
                     ))
             _advance_character_spell_effects(state, gained_tp)
+            if gained_tp > 0.0 and previous_tp < 150.0 and state.current_mana < state.max_mana:
+                state.mana_regen_remainder += state.mana_regeneration_per_time_point() * gained_tp
+                var whole_mana := floori(state.mana_regen_remainder)
+                if whole_mana > 0:
+                    state.current_mana = mini(state.max_mana, state.current_mana + whole_mana)
+                    state.mana_regen_remainder -= float(whole_mana)
+                if state.current_mana >= state.max_mana:
+                    state.mana_regen_remainder = 0.0
+            elif state.current_mana >= state.max_mana:
+                state.mana_regen_remainder = 0.0
             if state.alive and gained_tp > 0.0 and state.health < state.max_health:
                 state.health_regen_remainder += state.health_regeneration_per_time_point() * gained_tp
                 var whole_healing := floori(state.health_regen_remainder)
