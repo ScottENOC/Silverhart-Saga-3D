@@ -43,8 +43,11 @@ jobs:
       - name: Run hex-grid tests
         run: godot --headless --path . --script res://tests/test_hex_grid.gd
 
-      - name: Run simulation tests
-        run: godot --headless --path . --script res://tests/test_simulation.gd
+      - name: Run combat and reaction tests
+        run: godot --headless --path . --script res://tests/test_combat_and_reactions.gd
+
+      - name: Run spell casting tests
+        run: godot --headless --path . --script res://tests/test_spell_casting.gd
 
       - name: Install virtual display
         run: |
