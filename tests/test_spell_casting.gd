@@ -82,9 +82,10 @@ func _test_divine_strength_buffs_ally_damage() -> void:
     _check(bool(cast_result.get("ok", false)), "Divine Strength should cast on an ally")
     _check(ally.has_spell_effect("divine_strength"), "Divine Strength should add its timed buff")
     var attack := SimulationActionRequest.new(SimulationActionRequest.ActionType.ATTACK, ally.id, enemy.id, Vector2i.ZERO, 0.0, {})
+    var enemy_health_before := enemy.health
     var result := simulation.submit_action(attack, 99)
     _check(bool(result.get("ok", false)), "Buffed ally should be able to attack")
-    _check(int(result.get("damage", 0)) >= 6, "Divine Strength should add three damage to the ally's attack")
+    _check(enemy_health_before - enemy.health >= 6, "Divine Strength should add three damage to the ally's attack")
 
 
 func _test_disguise_self_adds_profile_effect() -> void:
