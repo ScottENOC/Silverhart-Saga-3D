@@ -145,15 +145,18 @@ func _stage_confrontation() -> void:
     var wren := _actors.get("companion_wren_talbot") as Node3D
     var movement := create_tween()
     movement.set_parallel(true)
+    var has_movement := false
     if player != null and is_instance_valid(player):
         player.rotation.y = -PI / 2.0
         _play_actor_animation("player", ["Walk"], ["Idle"])
         movement.tween_property(player, "global_position", Vector3(1.38, 0.0, 1.55), 0.9)
+        has_movement = true
     if wren != null and is_instance_valid(wren):
         wren.rotation.y = PI / 2.0
         _play_actor_animation("companion_wren_talbot", ["Walk"], ["Idle"])
         movement.tween_property(wren, "global_position", Vector3(3.92, 0.0, -1.55), 0.9)
-    if movement.get_tweeners().size() > 0:
+        has_movement = true
+    if has_movement:
         await movement.finished
 
     if player != null and is_instance_valid(player):
