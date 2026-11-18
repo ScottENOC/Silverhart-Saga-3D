@@ -130,10 +130,14 @@ func _test_prepared_spell_round_trip() -> void:
 
     var character = CHARACTER_STATE.new("caster", "Caster")
     character.prepared_spells.append(spell.to_dict())
+    character.blood_magic_active = true
+    character.to_hit_spell = 12.5
     var restored_character = CHARACTER_STATE.from_dict(character.to_dict())
     _check(restored_character.prepared_spells.size() == 1, "Character save data should retain prepared spells")
     var restored_entry: Dictionary = restored_character.prepared_spells[0]
     _check(String(restored_entry.get("base_spell_id", "")) == "firebolt", "Character save data should retain the prepared spell base ID")
+    _check(restored_character.blood_magic_active, "Blood Magic stance should survive character save data")
+    _check(is_equal_approx(restored_character.to_hit_spell, 12.5), "Spell accuracy should survive character save data")
 
 
 func _check(condition: bool, message: String) -> void:
