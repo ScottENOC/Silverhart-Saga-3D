@@ -208,12 +208,12 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
             # spine stroke descended into the lower-back silhouette and read
             # as a dangling string rather than part of the arcane motif.
             for side in (-1.0, 1.0):
-                sx = centre.x + side * width * .14
-                path([Vector((centre.x + side * width * .05, back, shoulder_z)),
+                sx = centre.x + side * width * .07
+                path([Vector((centre.x + side * width * .035, back, shoulder_z)),
                       Vector((sx, back, shoulder_z - height * .018)),
-                      Vector((sx + side * width * .012, back, shoulder_z - height * .07))],
+                      Vector((sx + side * width * .009, back, shoulder_z - height * .07))],
                      height * .0038, True)
-                star = Vector((centre.x + side * width * .18, back, shoulder_z - height * .018))
+                star = Vector((centre.x + side * width * .13, back, shoulder_z - height * .018))
                 path(star_points(star, height * .012), height * .012 * .11, True)
                 # The fixed-coordinate front-arm strokes also fall outside
                 # Mirabel's exported front-skin footprint (0.098 m in the
@@ -230,16 +230,16 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
                   Vector((centre.x, back, shoulder_z - height * .16))], height * .0028, True)
             for side in (-1.0, 1.0):
                 path([Vector((centre.x, back, shoulder_z - height * .015)),
-                      Vector((centre.x + side * width * .11, back, shoulder_z + height * .025)),
-                      Vector((centre.x + side * width * .22, back, shoulder_z + height * .005)),
-                      Vector((centre.x + side * width * .27, back, shoulder_z - height * .055))],
+                      Vector((centre.x + side * width * .075, back, shoulder_z + height * .025)),
+                      Vector((centre.x + side * width * .13, back, shoulder_z + height * .005)),
+                      Vector((centre.x + side * width * .16, back, shoulder_z - height * .055))],
                      height * .0045, True)
                 for feather in range(3):
                     x = centre.x + side * width * (0.10 + feather * 0.055)
                     zz = shoulder_z + height * (0.012 - feather * 0.012)
                     path([Vector((x, back, zz)),
-                          Vector((x + side * width * .025, back, zz - height * .045)),
-                          Vector((x + side * width * .055, back, zz - height * .065))],
+                          Vector((x + side * width * .018, back, zz - height * .045)),
+                          Vector((x + side * width * .0355, back, zz - height * .065))],
                          height * .0035, True)
             star = Vector((centre.x, back, shoulder_z + height * .035))
             path(star_points(star, height * .014), height * .014 * .11, True)
