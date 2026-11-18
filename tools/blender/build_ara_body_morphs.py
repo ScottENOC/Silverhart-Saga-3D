@@ -85,17 +85,27 @@ def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
     mapping = []
     used = set()
     distances = []
+    spatial_fallbacks = []
     for base_index, base_vertex in enumerate(base_vertices):
         signature = base_uv[base_index]
         candidates = [
             index for index in variant_by_uv.get(signature, [])
             if index not in used
         ]
-        if not candidates:
-            raise RuntimeError(
-                f"No unused variant vertex shares UV signature for base vertex {base_index}"
-            )
         point = base_obj.matrix_world @ base_vertex.co
+
+        # Ara's GLB exporter can alter UV-loop grouping for a small number of
+        # vertices between otherwise topology-equivalent body profiles. Keep
+        # UV identity as the primary key, but for a missing signature use a
+        # one-to-one spatial match. The full face-connectivity proof below is
+        # still mandatory, so this cannot silently accept a bad correspondence.
+        if not candidates:
+            candidates = [
+                index for index in range(len(variant_vertices))
+                if index not in used
+            ]
+            spatial_fallbacks.append(base_index)
+
         variant_index = min(
             candidates,
             key=lambda index: (variant_world[index] - point).length_squared,
@@ -103,12 +113,18 @@ def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
         distance = (variant_world[variant_index] - point).length
         if distance > max_distance:
             raise RuntimeError(
-                f"UV-matched vertex too far apart: {distance:.4f}m "
-                f"(limit {max_distance:.4f}m)"
+                f"Matched vertex too far apart for base vertex {base_index}: "
+                f"{distance:.4f}m (limit {max_distance:.4f}m)"
             )
         mapping.append(variant_index)
         used.add(variant_index)
         distances.append(distance)
+
+    if spatial_fallbacks:
+        print(
+            f"Spatial fallback used for {len(spatial_fallbacks)} vertices: "
+            f"{spatial_fallbacks[:20]}"
+        )
 
     inverse = [-1] * len(mapping)
     for base_index, variant_index in enumerate(mapping):
