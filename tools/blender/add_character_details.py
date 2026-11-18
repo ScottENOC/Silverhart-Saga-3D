@@ -11,7 +11,7 @@ import os
 import sys
 
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 from mathutils.kdtree import KDTree
 
 
@@ -77,7 +77,7 @@ def make_projection_trees(skin):
             raise RuntimeError(f"No {label}-facing skin vertices found for tattoo projection")
         tree = KDTree(len(items))
         for item_index, (point, _normal, _vertex_index) in enumerate(items):
-            tree.insert(Vector((point.x, point.y, 0.0)), item_index)
+            tree.insert(point, item_index)
         tree.balance()
         trees[label] = (tree, items)
     return trees
@@ -92,11 +92,15 @@ def project_path(points, back, trees, offset=0.0020):
         steps = max(2, int(math.ceil((b - a).length / 0.018)))
         for step in range(steps):
             p = a.lerp(b, step / steps)
-            _co, item_index, _distance = tree.find(Vector((p.x, p.y, 0.0)))
+            _co, item_index, distance = tree.find(p)
+            if distance > 0.14:
+                raise RuntimeError(f"tattoo path is {distance:.3f}m from the {label} skin surface")
             surface, normal, source_index = items[item_index]
             projected.append((surface + normal * offset, normal, source_index))
     p = points[-1]
-    _co, item_index, _distance = tree.find(Vector((p.x, p.y, 0.0)))
+    _co, item_index, distance = tree.find(p)
+    if distance > 0.14:
+        raise RuntimeError(f"tattoo endpoint is {distance:.3f}m from the {label} skin surface")
     surface, normal, source_index = items[item_index]
     projected.append((surface + normal * offset, normal, source_index))
     return projected
@@ -262,24 +266,29 @@ def add_hoop(socket, radius, material, name, hang_down=False):
     world = socket_matrix.copy()
     centre = socket_matrix.translation + normal * 0.0008
     if hang_down:
-        # Keep the hoop in its socket-aligned plane, but move its centre below
-        # the piercing point so the upper arc enters the nipple and the lower
-        # arc hangs freely. Project world-down into that plane for a reliable
-        # result even if Ara's socket has a small local rotation.
+        # Explicitly orient the hoop in a vertical plane: outward and world-down
+        # are its two in-plane axes, independent of Ara's socket rotation.
         down = Vector((0, -1, 0))
         down -= normal * down.dot(normal)
-        if down.length_squared > 1e-8:
-            down.normalize()
-            centre += down * radius * 0.72
+        if down.length_squared < 1e-8:
+            down = Vector((0, -1, 0))
+        down.normalize()
+        outward = normal.normalized()
+        plane_normal = outward.cross(down).normalized()
+        orientation = Matrix((outward, down, plane_normal)).transposed().to_quaternion()
+        centre += down * radius * 0.89 + outward * 0.0012
+    else:
+        orientation = socket_matrix.to_quaternion()
+        centre += normal * 0.0012
     world.translation = centre
-    bpy.ops.mesh.primitive_torus_add(major_segments=24, minor_segments=12,
+    bpy.ops.mesh.primitive_torus_add(major_segments=32, minor_segments=12,
                                      location=world.translation,
                                      major_radius=radius * 0.89,
                                      minor_radius=radius * 0.11)
     obj = bpy.context.object
     obj.name = name
     obj.rotation_mode = "QUATERNION"
-    obj.rotation_quaternion = socket_matrix.to_quaternion()
+    obj.rotation_quaternion = orientation
     obj.data.materials.append(material)
     parent_preserve(obj, socket, obj.matrix_world.copy())
     obj["character_detail_type"] = "piercing"
@@ -291,8 +300,8 @@ def add_barbell(socket, material):
     centre = matrix.translation
     normal = (matrix.to_3x3() @ Vector((0, 0, 1))).normalized()
     tangent = (matrix.to_3x3() @ Vector((1, 0, 0))).normalized()
-    location = centre + normal * 0.002
-    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.0018, depth=0.014,
+    location = centre + normal * 0.007
+    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.0022, depth=0.016,
                                         location=location)
     bar = bpy.context.object
     bar.name = "Piercing_SOCKET_ClitoralHood_Bar"
@@ -303,7 +312,7 @@ def add_barbell(socket, material):
     bar["character_detail_type"] = "piercing"
     for side in (-1.0, 1.0):
         bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8,
-                                             radius=0.003, location=location + tangent * side * 0.008)
+                                             radius=0.0038, location=location + tangent * side * 0.009)
         bead = bpy.context.object
         bead.name = "Piercing_SOCKET_ClitoralHood_Bead"
         bead.data.materials.append(material)
@@ -321,7 +330,22 @@ def add_piercings(entries):
             for name in ("SOCKET_Earring_L", "SOCKET_Earring_R"):
                 socket = sockets.get(name)
                 if socket:
-                    add_hoop(socket, 0.012, material, "Piercing_" + name)
+                    lo, hi = world_bounds(find_skin())
+                    size = hi - lo
+                    centre = (lo + hi) * 0.5
+                    pos = socket.matrix_world.translation.copy()
+                    yn = (pos.y - lo.y) / max(size.y, 1e-6)
+                    xn = abs(pos.x - centre.x) / max(size.x, 1e-6)
+                    print(f"SOCKET_DIAGNOSTIC {name} world={tuple(round(v,4) for v in pos)} normalized_y={yn:.3f} normalized_x={xn:.3f}")
+                    # Ear sockets should be on the head, not down at shoulder height.
+                    if yn < 0.76 or yn > 0.99 or xn < 0.18 or xn > 0.48:
+                        side = -1.0 if name.endswith("_L") else 1.0
+                        fallback = Vector((centre.x + side * size.x * 0.34,
+                                           lo.y + size.y * 0.865,
+                                           centre.z + size.z * 0.02))
+                        print(f"WARNING: {name} outside head envelope; fallback={tuple(round(v,4) for v in fallback)}")
+                        socket.location = socket.parent.matrix_world.inverted() @ fallback if socket.parent else fallback
+                    add_hoop(socket, 0.010, material, "Piercing_" + name)
                     count += 1
                 else:
                     print(f"WARNING: Ara socket {name} not found; piercing omitted")

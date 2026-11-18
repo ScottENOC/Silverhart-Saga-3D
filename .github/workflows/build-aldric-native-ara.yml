@@ -82,10 +82,10 @@ jobs:
           test -s build/aldric-native/Aldric-defined.glb
           mv build/aldric-native/Aldric-defined.glb build/aldric-native/Aldric.glb
 
-      - name: Add restrained armpit and pubic hair detail
+      - name: Paint full texture-only body hair detail
         run: |
           set -euo pipefail
-          python tools/review/add_aldric_body_hair.py --model build/aldric-native/Aldric.glb --seed 1401
+          python tools/review/add_aldric_body_hair.py --model build/aldric-native/Aldric.glb --seed 1401 --coverage aldric
           test -s build/aldric-native/Aldric.glb
 
       - name: Bake tattoos and piercings into exported GLB

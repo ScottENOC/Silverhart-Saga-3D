@@ -46,6 +46,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, type=Path)
     ap.add_argument("--seed", type=int, default=1401)
+    ap.add_argument("--coverage", choices=("restrained", "aldric"), default="restrained")
     args = ap.parse_args()
     doc, old_binary, chunks = parse_glb(args.model.read_bytes())
 
@@ -70,22 +71,34 @@ def main():
     height_m = float(bounds[1])
     rng = random.Random(args.seed)
 
-    masks = {"armpits": Image.new("L", (width, height), 0), "pubic": Image.new("L", (width, height), 0)}
+    names = ["armpits", "pubic"] + (["chest", "arms", "legs", "snail_trail", "scrotum"] if args.coverage == "aldric" else [])
+    masks = {name: Image.new("L", (width, height), 0) for name in names}
     draws = {key: ImageDraw.Draw(mask) for key, mask in masks.items()}
-    regions = {"armpits": 0, "pubic": 0}
+    regions = {name: 0 for name in names}
     for tri in indices.reshape(-1, 3):
         p = positions[tri]
         centre = p.mean(axis=0)
         x, y, z = centre
         yn = (y - float(positions[:, 1].min())) / height_m
-        # Ara exports the face and chest toward +Z. Keep the hair on that side.
-        if z <= 0:
-            continue
+        # Front torso hair is restricted to +Z; arms and legs use both
+        # front and rear UV faces so the texture wraps around the limbs.
+        front = z > 0.035
         region = None
-        if 0.67 <= yn <= 0.79 and 0.075 <= abs(x) <= 0.19:
+        if front and 0.67 <= yn <= 0.79 and 0.075 <= abs(x) <= 0.19:
             region = "armpits"
-        elif 0.36 <= yn <= 0.49 and abs(x) <= 0.13 and z > 0.035:
+        elif front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
             region = "pubic"
+        if args.coverage == "aldric":
+            if region is None and front and 0.57 <= yn <= 0.73 and 0.025 <= abs(x) <= 0.155:
+                region = "chest"
+            elif region is None and 0.34 <= yn <= 0.73 and 0.16 <= abs(x) <= 0.30:
+                region = "arms"
+            elif region is None and 0.05 <= yn <= 0.36 and 0.055 <= abs(x) <= 0.145:
+                region = "legs"
+            elif region is None and front and 0.38 <= yn <= 0.50 and abs(x) <= 0.018:
+                region = "snail_trail"
+            elif region is None and front and 0.285 <= yn <= 0.385 and abs(x) <= 0.075:
+                region = "scrotum"
         if region is None:
             continue
         uv = uvs[tri]
@@ -93,14 +106,19 @@ def main():
         draws[region].polygon(polygon, fill=255)
         regions[region] += 1
 
-    if not regions["armpits"] or not regions["pubic"]:
-        raise RuntimeError(f"Hair placement found no suitable UV faces: {regions}; body bounds={bounds.tolist()}")
+    required = list(names)
+    missing = [name for name in required if not regions.get(name)]
+    if missing:
+        raise RuntimeError(f"Hair placement found no UV faces for {missing}: {regions}; body bounds={bounds.tolist()}")
 
-    # Draw short, low-contrast strokes and clip them to the selected skin faces.
+    # Texture-only hair: no extra meshes, curves, cards or particles.
     layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(layer)
-    counts = {"armpits": 0, "pubic": 0}
-    for region, count in (("armpits", 170), ("pubic", 520)):
+    counts = {name: 0 for name in required}
+    densities = {"armpits": 170, "pubic": 520}
+    if args.coverage == "aldric":
+        densities.update({"chest": 520, "arms": 720, "legs": 900, "snail_trail": 220, "scrotum": 420})
+    for region, count in densities.items():
         mask = masks[region]
         pixels = mask.load()
         for _ in range(count):
@@ -114,12 +132,15 @@ def main():
             length = rng.uniform(3.0, 8.0) if region == "armpits" else rng.uniform(4.0, 11.0)
             angle = rng.uniform(-1.1, 1.1) if region == "armpits" else rng.uniform(-0.85, 0.85)
             dx, dy = np.cos(angle) * length, np.sin(angle) * length
-            shade = rng.choice([(30, 23, 19, 95), (38, 28, 22, 115), (48, 35, 27, 90)])
-            draw.line((x, y, x + dx, y + dy), fill=shade, width=1)
+            shade = rng.choice([(20, 15, 12, 175), (30, 21, 17, 205), (42, 29, 23, 185)])
+            stroke_width = 2 if args.coverage == "aldric" and region != "armpits" else 1
+            draw.line((x, y, x + dx, y + dy), fill=shade, width=stroke_width)
             counts[region] += 1
 
     # Clip the marks to the actual skin UV triangles, then composite gently.
-    combined_mask = ImageChops.lighter(masks["armpits"], masks["pubic"])
+    combined_mask = Image.new("L", (width, height), 0)
+    for mask in masks.values():
+        combined_mask = ImageChops.lighter(combined_mask, mask)
     alpha = ImageChops.multiply(layer.getchannel("A"), combined_mask)
     layer.putalpha(alpha)
     result = Image.alpha_composite(source.convert("RGBA"), layer).convert("RGB")
@@ -157,7 +178,7 @@ def main():
         out.extend(struct.pack("<I4s", len(payload), kind))
         out.extend(payload)
     args.model.write_bytes(out)
-    print(json.dumps({"ok": True, "regions": regions, "strokes": counts, "texture": [width, height], "glb_bytes": len(out)}, indent=2))
+    print(json.dumps({"ok": True, "coverage": args.coverage, "texture_only": True, "regions": regions, "strokes": counts, "texture": [width, height], "glb_bytes": len(out)}, indent=2))
 
 
 if __name__ == "__main__":
