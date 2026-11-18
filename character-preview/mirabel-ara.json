@@ -27,7 +27,11 @@
     "accessories": [],
     "shoes": "none",
     "hat": "none",
-    "tattoos": [],
+    "tattoos": [
+      {
+        "design": "mirabel_arcane"
+      }
+    ],
     "detail": "high",
     "rig": "game",
     "faceBones": true,
@@ -46,6 +50,11 @@
       "armslegs/upperarm-shoulder-muscle:decr|incr": -0.15,
       "ears/ear-shape": -1
     },
-    "seed": 4517
+    "seed": 4517,
+    "piercings": [
+      "earrings",
+      "clit"
+    ],
+    "tattoo_ink": "#30283D"
   }
 }
