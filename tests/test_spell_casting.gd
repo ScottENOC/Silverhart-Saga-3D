@@ -47,7 +47,8 @@ func _test_official_spell_catalogue_is_exactly_twelve() -> void:
 func _test_curse_triggers_on_hostile_action() -> void:
     var simulation := WorldSimulation.new()
     var caster := _new_character("curse_caster", "player", Vector2i.ZERO)
-    var target := _new_character("cursed_enemy", "enemy", Vector2i(2, 0))
+    var target := _new_character("cursed_enemy", "enemy", Vector2i(1, 0))
+    target.to_hit_melee = 100
     caster.unlocked_base_spells.append("curse")
     var prepared := PreparedSpell.create("curse")
     caster.prepared_spells.append(prepared.to_dict())
@@ -68,6 +69,7 @@ func _test_divine_strength_buffs_ally_damage() -> void:
     var simulation := WorldSimulation.new()
     var caster := _new_character("cleric", "player", Vector2i.ZERO)
     var ally := _new_character("blessed_ally", "player", Vector2i(1, 0))
+    ally.to_hit_melee = 100
     var enemy := _new_character("strength_target", "enemy", Vector2i(2, 0))
     ally.base_damage = 3
     caster.unlocked_base_spells.append("divine_strength")
@@ -158,7 +160,7 @@ func _test_counterspell_dispels_active_effect() -> void:
 
 func _test_divine_protection_applies_guard_effect() -> void:
     var simulation := WorldSimulation.new()
-    var caster := _new_character("protective_cleric", "player", Vector2.ZERO)
+    var caster := _new_character("protective_cleric", "player", Vector2i.ZERO)
     var ally := _new_character("protected_ally", "player", Vector2i(1, 0))
     caster.unlocked_base_spells.append("divine_protection")
     var prepared := PreparedSpell.create("divine_protection")
@@ -172,7 +174,7 @@ func _test_divine_protection_applies_guard_effect() -> void:
 
 func _test_entangle_applies_to_enemies_in_area() -> void:
     var simulation := WorldSimulation.new()
-    var caster := _new_character("entangle_druid", "player", Vector2.ZERO)
+    var caster := _new_character("entangle_druid", "player", Vector2i.ZERO)
     var target := _new_character("entangled_enemy", "enemy", Vector2i(2, 0))
     caster.unlocked_base_spells.append("entangle")
     simulation.map_data.add_cell(Vector2i(2, 0))
@@ -189,7 +191,7 @@ func _test_entangle_applies_to_enemies_in_area() -> void:
 
 func _test_calm_animal_records_selected_mode() -> void:
     var simulation := WorldSimulation.new()
-    var caster := _new_character("calm_druid", "player", Vector2.ZERO)
+    var caster := _new_character("calm_druid", "player", Vector2i.ZERO)
     var animal := _new_character("wild_wolf", "neutral", Vector2i(2, 0))
     animal.tags.append("animal")
     caster.unlocked_base_spells.append("calm_animal")
@@ -204,7 +206,7 @@ func _test_calm_animal_records_selected_mode() -> void:
 
 func _test_wild_fury_buffs_allied_animal() -> void:
     var simulation := WorldSimulation.new()
-    var caster := _new_character("fury_druid", "player", Vector2.ZERO)
+    var caster := _new_character("fury_druid", "player", Vector2i.ZERO)
     var animal := _new_character("fury_wolf", "player", Vector2i(1, 0))
     animal.tags.append("animal")
     caster.unlocked_base_spells.append("wild_fury")
