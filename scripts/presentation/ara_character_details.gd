@@ -11,6 +11,7 @@ var _metal_material: StandardMaterial3D
 func configure(target: Node3D, details: Dictionary) -> void:
     clear()
     _target = target
+    global_transform = target.global_transform
     _details = details.duplicate(true)
     if _target == null or _details.is_empty():
         return
@@ -70,7 +71,7 @@ func _add_socket_hoop(socket_name: String, radius: float) -> void:
     hoop.material_override = _metal_material
     add_child(hoop)
     hoop.global_transform = socket.global_transform
-    hoop.position += socket.global_basis.z.normalized() * 0.002
+    hoop.global_position += socket.global_basis.z.normalized() * 0.002
 
 func _add_socket_barbell(socket_name: String) -> void:
     var socket := _find_named_node(_target, socket_name)
@@ -146,8 +147,8 @@ func _add_tattoos(tattoos: Array) -> void:
         return
     var centre := bounds.get_center()
     var size := bounds.size
-    var front_z := bounds.position.z + size.z * 0.53
-    var back_z := bounds.position.z + size.z * 0.47
+    var front_z := bounds.position.z + size.z * 1.02
+    var back_z := bounds.position.z - size.z * 0.02
     for tattoo_variant in tattoos:
         var tattoo: Dictionary = tattoo_variant if tattoo_variant is Dictionary else {"design": String(tattoo_variant)}
         match str(tattoo.get("design", "")):
