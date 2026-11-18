@@ -75,6 +75,8 @@ static func can_purchase(character: CharacterState, skill_id: String, context: D
     var skill := SkillCatalog.get_skill(skill_id)
     if skill.is_empty():
         return {"ok": false, "reason": "unknown_skill"}
+    if bool(skill.get("disabled", false)):
+        return {"ok": false, "reason": "skill_not_in_official_spell_catalogue"}
     var tree := String(skill.get("tree", ""))
     if NON_PURCHASABLE_TREES.has(tree):
         return {"ok": false, "reason": "skill_tree_not_player_purchasable"}
