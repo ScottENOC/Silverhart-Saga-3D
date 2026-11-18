@@ -663,11 +663,9 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
             return {"ok": false, "reason": "not_actor_turn"}
 
     var caster := get_character(request.actor_id)
-    var target := get_character(request.target_id)
+    var target := get_character(request.target_id) if not request.target_id.is_empty() else null
     if caster == null or not caster.can_act():
         return {"ok": false, "reason": "caster_unavailable"}
-    if target == null or not target.can_be_targeted():
-        return {"ok": false, "reason": "target_unavailable"}
 
     var saved_spell: Variant = request.options.get("prepared_spell", {})
     if not saved_spell is Dictionary:
@@ -690,8 +688,6 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
             break
     if not exact_variant_prepared:
         return {"ok": false, "reason": "spell_not_prepared"}
-    if spell_id not in ["firebolt", "heal"]:
-        return {"ok": false, "reason": "spell_effect_not_implemented"}
 
     var variant := SpellRules.compute_variant(spell_id, prepared.modifiers, caster.skills)
     if not bool(variant.get("ok", false)):
@@ -699,35 +695,21 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
     if not SpellRules.supports_initial_cast(spell_id, variant):
         return {"ok": false, "reason": "spell_variant_effect_not_implemented"}
 
-    var is_heal := spell_id == "heal"
-    if is_heal and caster.side != target.side:
-        return {"ok": false, "reason": "heal_requires_ally"}
-    if not is_heal and caster.side == target.side:
-        return {"ok": false, "reason": "damage_requires_opponent"}
-    if not is_heal and not target.can_be_targeted():
-        return {"ok": false, "reason": "target_unavailable"}
+    var target_validation := SpellEffectRules.validate(self, caster, target, prepared, variant, request)
+    if not bool(target_validation.get("ok", false)):
+        return {"ok": false, "reason": String(target_validation.get("reason", "invalid_spell_target"))}
+    target = target_validation.get("target") as CharacterState
 
-    var spell_range := maxi(1, int(variant.get("range", 1)))
-    var distance := HexGrid.distance(caster.axial, target.axial)
-    if distance > spell_range:
-        return {"ok": false, "reason": "target_out_of_range"}
-
-    var magnitude_value: Variant = variant.get("magnitude", 0)
-    if not (magnitude_value is int or magnitude_value is float) or not is_finite(float(magnitude_value)) or float(magnitude_value) <= 0.0:
-        return {"ok": false, "reason": "invalid_spell_magnitude"}
-    var magnitude := maxi(1, roundi(float(magnitude_value)))
     var tp_cost := float(variant.get("time_point_cost", 0))
     if not is_finite(tp_cost) or tp_cost < 0.0 or not caster.can_spend_time_points(tp_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
-
     var armour_penalty := SpellRules.armour_mana_penalty(caster, String(variant.get("school", "")))
     var total_mana_cost := int(variant.get("mana_cost", 0)) + armour_penalty
     var affordability := SpellRules.cast_affordability(caster, total_mana_cost)
     if not bool(affordability.get("ok", false)):
         return {"ok": false, "reason": String(affordability.get("reason", "insufficient_mana"))}
 
-    # All validation is complete. Resource payment and effect resolution now
-    # happen together; rejected casts never consume mana, HP or TP.
+    # All checks are complete. The following payment/effect phase cannot reject.
     if not caster.spend_time_points(tp_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
     caster.current_mana -= int(affordability.get("mana_to_spend", 0))
@@ -735,41 +717,16 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
     if blood_hp_cost > 0:
         caster.apply_damage(blood_hp_cost)
 
-    var effect_payload: Dictionary = {}
-    if is_heal:
-        var health_before := target.health
-        var lifecycle := target.apply_healing(magnitude)
-        effect_payload = {
-            "effect": "heal",
-            "healing": target.health - health_before,
-            "magnitude": magnitude,
-            "target_lifecycle": lifecycle,
-            "target_health": target.health
-        }
-    else:
-        var base := SpellRules.get_base_spell(spell_id)
-        var valid_tags: Array = base.get("valid_tags", [])
-        if not valid_tags.is_empty():
-            var tag_match := false
-            for required_tag in valid_tags:
-                if target.tags.has(String(required_tag)):
-                    tag_match = true
-                    break
-            if not tag_match:
-                # The cast still resolves and costs resources, matching the
-                # source game's "no effect on this target" spell behaviour.
-                effect_payload = {
-                    "effect": "firebolt",
-                    "hit": false,
-                    "reason": "invalid_target_tag",
-                    "damage": 0,
-                    "magnitude": magnitude
-                }
-            else:
-                effect_payload = _resolve_firebolt_hit(caster, target, magnitude, random_seed)
-        else:
-            effect_payload = _resolve_firebolt_hit(caster, target, magnitude, random_seed)
+    # Divine Silence ends when its target successfully begins another spell.
+    caster.remove_spell_effect("divine_silence")
+    var is_offensive := spell_id in ["firebolt", "smite_evil", "divine_silence", "dragon_breath", "entangle", "temporal_rift"]
+    if is_offensive and target != null:
+        _apply_spell_protection_triggers(caster, target)
+    if is_offensive:
+        caster.remove_spell_effect("sanctuary")
 
+    var cast_id := "%s:%d:%s" % [caster.id, clock.tick_index, spell_id]
+    var effect_payload := SpellEffectRules.apply(self, caster, target, prepared, variant, request, cast_id)
     effect_payload["spell_id"] = spell_id
     effect_payload["spell_name"] = String(variant.get("name", spell_id))
     effect_payload["mana_cost"] = total_mana_cost
@@ -781,12 +738,32 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
     effect_payload["caster_mana_remaining"] = caster.current_mana
     effect_payload["caster_health"] = caster.health
 
-    var result_data := SimulationActionResult.new("cast_spell", true, "", caster.id, target.id, effect_payload).to_dict()
-    action_committed.emit(SimulationEvent.new("spell_cast", caster.id, target.id, result_data))
+    var result_data := SimulationActionResult.new("cast_spell", true, "", caster.id, target.id if target != null else "", effect_payload).to_dict()
+    action_committed.emit(SimulationEvent.new("spell_cast", caster.id, target.id if target != null else "", result_data))
     combat_action_resolved.emit(result_data)
     if is_in_combat and caster.should_end_turn():
         try_end_current_turn()
     return result_data
+
+
+func _apply_spell_protection_triggers(attacker: CharacterState, target: CharacterState) -> void:
+    if attacker == null or target == null or attacker.side == target.side:
+        return
+    var sanctuary := target.get_spell_effect("sanctuary")
+    var protection := target.get_spell_effect("divine_protection")
+    for effect in [sanctuary, protection]:
+        if effect.is_empty():
+            continue
+        var penalty := maxi(1, int(effect.get("magnitude", 1)))
+        attacker.time_points = maxf(0.0, attacker.time_points - float(penalty))
+        var source := get_character(String(effect.get("source_id", "")))
+        if source != null:
+            var damage := maxi(0, int(source.skills.get("cleric_trigger_damage", 0)))
+            if damage > 0:
+                attacker.apply_damage(damage)
+            var mana_loss := maxi(0, int(source.skills.get("cleric_trigger_mana", 0)))
+            if mana_loss > 0:
+                attacker.current_mana = maxi(0, attacker.current_mana - mana_loss)
 
 
 func _resolve_firebolt_hit(caster: CharacterState, target: CharacterState, magnitude: int, random_seed: int) -> Dictionary:
@@ -1186,7 +1163,12 @@ func _resolve_attack_action(attacker_id: String, target_id: String, options: Dic
         rng.randomize()
     else:
         rng.seed = random_seed
-    var result := CombatRules.resolve_attack(attacker, target, options, rng)
+    _apply_spell_protection_triggers(attacker, target)
+    var fury := attacker.get_spell_effect("wild_fury")
+    var resolved_options := options.duplicate(true)
+    if not fury.is_empty() and not bool(resolved_options.get("has_weapon", false)):
+        resolved_options["spell_unarmed_damage_bonus"] = int(fury.get("magnitude", 0))
+    var result := CombatRules.resolve_attack(attacker, target, resolved_options, rng)
     if bool(result.get("ok", false)):
         var typed_result := SimulationActionResult.new("attack", true, "", attacker_id, target_id, result)
         var result_data := typed_result.to_dict()
