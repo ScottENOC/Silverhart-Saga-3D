@@ -107,7 +107,7 @@ static func compute_variant(
         efficiency_speed = maxi(0, int(skills.get("arcane_eff_speed", 0)))
 
     var mana_cost := int(base.get("base_mana", 0))
-    var time_point_cost := 10
+    var time_point_cost := int(base.get("base_time_points", 10))
     if speed == "quickened":
         time_point_cost = 5
         mana_cost += maxi(0, 5 - efficiency_speed)
@@ -172,17 +172,15 @@ static func compute_variant(
     }
 
 
-## The first resolver slice supports only direct Firebolt damage and
-## single-target Heal. Do not silently treat unimplemented Burst/AoE or
-## extra-target variants as single-target casts.
+## Only the official 12-spell catalogue is eligible for player casting.
+## Do not silently treat unsupported Burst/AoE or extra-target variants as single-target casts.
 static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool:
     if not bool(variant.get("ok", false)):
         return false
     const IMPLEMENTED_IDS := [
-        "firebolt", "heal", "smite_evil", "divine_silence", "sanctuary",
-        "divine_protection", "summon_animal", "counterspell", "dragon_breath",
-        "entangle", "wild_fury", "calm_animal", "disguise_self",
-        "temporal_rift", "feather_fall"
+        "firebolt", "counterspell", "feather_fall", "disguise_self",
+        "heal", "divine_protection", "divine_strength", "curse",
+        "summon_animal", "entangle", "calm_animal", "wild_fury"
     ]
     if not IMPLEMENTED_IDS.has(spell_id):
         return false

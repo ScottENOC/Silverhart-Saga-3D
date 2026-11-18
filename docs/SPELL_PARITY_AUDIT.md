@@ -145,3 +145,84 @@ One source comment in `spellPlanner.js` says that both Dragon Breath and
 Temporal Rift have no `learn_*` skill, but the current `skills.js` does
 contain `learn_temporal_rift`. Treat that comment as stale; Temporal Rift is
 one of the 15 registered spells and is not an orphan unlock.
+
+
+---
+
+## Official spell catalogue decision — 18 November 2026
+
+The previous 15-entry catalogue is superseded. The authoritative player spell list for Silverhart Saga 3D is **12 base spells**, four per magical tradition. This is a deliberate design decision, not a source-parity requirement to retain every spell that accumulated in the 2D prototype.
+
+| Tradition | Official spells |
+|---|---|
+| Arcane | Firebolt, Counterspell, Feather Fall, Disguise Self |
+| Divine | Heal, Divine Protection, Divine Strength, Curse |
+| Nature | Summon Animal, Entangle, Calm Animal, Wild Fury |
+
+Dragon Breath is excluded from the player spell list until dragon creatures and their innate abilities are implemented. Smite Evil, Divine Silence, Sanctuary and Temporal Rift are not part of the official catalogue. The old per-spell table above is retained as a historical 2D-to-3D baseline only; it must not be used as the current design specification.
+
+
+### Verified original Hex-crpg `spells.js` inventory
+
+The original `ScottENOC/Hex-crpg/spells.js` contains exactly these 15 registered base spells. This is the actual source inventory, distinct from later skills that mention additional spell-like abilities.
+
+| Original 2D base spell | Original school | 3D decision |
+|---|---|---|
+| Firebolt | Arcane | Official |
+| Counterspell | Arcane | Official |
+| Feather Fall | Arcane | Official |
+| Disguise Self | Arcane | Official |
+| Heal | Divine | Official |
+| Divine Protection | Divine | Official |
+| Smite Evil | Divine | Excluded from the initial 12; its narrow undead/demon damage niche may be reconsidered as a modifier or class feature |
+| Divine Silence | Divine | Excluded; it crosses the cleric/wizard boundary in the current design |
+| Sanctuary | Divine | Excluded from the initial 12 |
+| Summon Animal | Nature | Official |
+| Entangle | Nature | Official |
+| Calm Animal | Nature | Official |
+| Wild Fury | Nature | Official, with the 3D design tightened to allied animals only |
+| Dragon Breath | Arcane | Deferred as a dragon innate ability, not a player spell |
+| Temporal Rift | Arcane | Excluded from the initial 12; revisit only if the wizard time/matter design calls for it |
+
+Two further distinctions matter:
+
+- `learn_curse` exists in the original `skills.js` with the description that a target taking a hostile action within 20 ticks suffers 2 divine damage. However, `curse` is **not** a registered base spell in `spells.js`, and the original `gameEngine.js` has no Curse effect handler. Silverhart's Curse is therefore a new base spell built from an unfinished original skill concept.
+- `Divine Strength` is new to the agreed 3D catalogue; it is not a registered original 2D base spell or an original `learn_divine_strength` skill.
+
+The 12 official spells therefore comprise 10 existing 2D base spells plus the new Curse and Divine Strength. This distinction should remain explicit in future parity work.
+
+### Current 3D implementation status on this feature branch
+
+- The shared spell action path, prepared-spell model, spell variant calculations, mana/Time Point costs, armour penalties, counterspell reaction flow, and effect ticking already exist on `dev`.
+- The 12-spell JSON catalogue is now restricted to the official IDs.
+- Firebolt, Counterspell, Feather Fall, Disguise Self, Heal, Divine Protection, Summon Animal, Entangle, Calm Animal and Wild Fury retain their existing effect handlers.
+- Divine Strength adds a timed allied damage buff (+3 damage for 20 ticks at the current provisional balance values).
+- Curse adds a 20-tick enemy mark that deals 2 divine damage when the marked target next performs a hostile attack or offensive spell.
+- Wild Fury is restricted to allied mundane animals; it cannot be cast on human characters.
+- The Divine Strength learning skill has been added. Non-official spell unlock skills have been removed from the active 3D skill catalogue; animal summon variants and permanent-companion progression remain.
+
+### Known incomplete parity / acceptance work
+
+- Disguise Self now opens the shared Ara character creator in appearance-only mode and stores the selected appearance profile on the active spell effect. The current creator exposes supported appearance controls; it does not yet offer every possible Ara morph, hairstyle, clothing or equipment disguise.
+- The spell action API is implemented, but a complete in-game spellbook/preparation/casting panel and the verbal/somatic gesture grammar still need presentation/UI integration and player testing.
+- Entangle currently applies the movement-restricting status but does not yet reproduce the 2D terrain-to-swamp mutation and full dispel interaction.
+- Calm Animal stores Stay/Come/Chase mode, but animal AI must be checked for full mode-specific movement parity.
+- Summon Animal creates temporary summons and can create one permanent companion through the Animal Companion skill. Save/load, companion departure/rejoin, and companion attribute/skill progression need acceptance tests.
+- Curse is a new official base spell derived from the 2D `learn_curse` skill description; it was not a registered base spell in the original `spells.js`. Its balance and the interaction with cleric trigger skills remain to be tested.
+- Divine Strength is a new official spell and is not an original registered 2D base spell. Its duration, magnitude and class restrictions are provisional pending playtesting.
+- Automated tests currently cover only a subset of the spell catalogue. Add focused tests for all 12 spells, counterspell reactions, save/load of ongoing effects, and failure paths before marking the catalogue tested/accepted.
+
+
+## Player spellbook UI — first playable interface
+
+The player-facing spellbook is now implemented in `scripts/ui/spellbook_panel.gd` and connected to the Hollow Tankard HUD.
+
+- Open with the **Spellbook [M]** HUD button or the **M** keyboard shortcut.
+- The panel follows the currently active party member and lists only spells that character has learned.
+- The builder exposes the character's unlocked speed, potency, range, expansion, target-count, burst, subtle and touch options, plus Summon Animal and Calm Animal choices.
+- A live variant preview shows mana cost (including armour penalty), TP cost, range and radius.
+- Preparation enforces prepared-slot limits, school mana caps and duplicate-variant prevention. Prepared variants are stored in `CharacterState.prepared_spells`, which is already part of save/load.
+- Prepared spells can be removed or cast through `WorldSimulation.submit_action()`; the UI does not spend resources or apply effects itself.
+- Target choices are filtered by spell relationship and creature type. Disguise Self and Feather Fall self-target; Summon Animal selects the first available adjacent hex; Entangle uses the selected character's hex as its centre; Counterspell remains a reaction and is not directly cast from the spellbook.
+
+This is a first playable UI pass, not final presentation acceptance. In particular, precise map-hex targeting for Summon Animal and Entangle, visual review at the game's normal window sizes, and end-to-end player testing remain. The verbal/somatic incantation and gesture grammar is also still outstanding.

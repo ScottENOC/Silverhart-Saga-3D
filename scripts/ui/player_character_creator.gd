@@ -55,11 +55,20 @@ var ear_piercing_check: CheckBox
 var nipple_piercing_check: CheckBox
 var clit_piercing_check: CheckBox
 var tattoo_style_select: OptionButton
+var disguise_mode: bool = false
+var disguise_initial_profile: Dictionary = {}
+
+func configure_disguise(initial_profile: Dictionary) -> void:
+    disguise_mode = true
+    disguise_initial_profile = initial_profile.duplicate(true)
+
 
 func _ready() -> void:
     layer = 100
     _build_screen()
     _load_saved_profile()
+    if disguise_mode:
+        _apply_disguise_initial_profile()
     call_deferred("_refresh_appearance_preview", 0)
 
 func _build_screen() -> void:
@@ -87,13 +96,13 @@ func _build_screen() -> void:
     centre.add_child(panel)
 
     var title := Label.new()
-    title.text = "CREATE YOUR CHARACTER"
+    title.text = "CREATE YOUR DISGUISE" if disguise_mode else "CREATE YOUR CHARACTER"
     title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     title.add_theme_font_size_override("font_size", 30)
     panel.add_child(title)
 
     var intro := Label.new()
-    intro.text = "Choose who arrives in Hollowmere, the opening village of the Main Campaign. Identity, presentation and appearance are independent."
+    intro.text = "Choose the appearance your character presents to others. This changes appearance only; it does not change identity, skills, equipment or attributes." if disguise_mode else "Choose who arrives in Hollowmere, the opening village of the Main Campaign. Identity, presentation and appearance are independent."
     intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     intro.add_theme_color_override("font_color", Color(0.78, 0.79, 0.78))
@@ -261,11 +270,102 @@ func _build_screen() -> void:
     panel.add_child(note)
 
     start_button = Button.new()
-    start_button.text = "BEGIN MAIN CAMPAIGN"
+    start_button.text = "APPLY DISGUISE" if disguise_mode else "BEGIN MAIN CAMPAIGN"
     start_button.custom_minimum_size = Vector2(0, 52)
-    start_button.pressed.connect(_finish)
+    if disguise_mode:
+        start_button.pressed.connect(_finish_disguise)
+        _configure_disguise_sections(panel)
+    else:
+        start_button.pressed.connect(_finish)
     panel.add_child(start_button)
+    if disguise_mode:
+        var cancel_button := Button.new()
+        cancel_button.text = "CANCEL"
+        cancel_button.pressed.connect(queue_free)
+        panel.add_child(cancel_button)
     _update_mode_controls(game_mode_select.selected)
+
+func _configure_disguise_sections(panel: VBoxContainer) -> void:
+    _set_section_visible(panel, "GAME MODE", false)
+    _set_section_visible(panel, "IDENTITY & CHARACTER", false)
+    _set_section_visible(panel, "STARTING EQUIPMENT", false)
+    # Body model and presentation remain appearance choices even though the
+    # campaign identity/race/class controls are hidden.
+    body_variant_select.get_parent().visible = true
+    presentation_select.get_parent().visible = true
+    pronoun_select.get_parent().visible = true
+    custom_pronouns.get_parent().visible = true
+    start_button.visible = true
+
+
+func _set_section_visible(panel: VBoxContainer, section_name: String, visible_value: bool) -> void:
+    var section_names := ["LIVE CHARACTER PREVIEW", "GAME MODE", "IDENTITY & CHARACTER", "APPEARANCE", "PIERCINGS & TATTOOS", "STARTING EQUIPMENT"]
+    var in_section := false
+    for child in panel.get_children():
+        if child is Label and section_names.has(String(child.text)):
+            if in_section:
+                break
+            if String(child.text) == section_name:
+                in_section = true
+                child.visible = visible_value
+                continue
+        if in_section:
+            child.visible = visible_value
+
+
+func _apply_disguise_initial_profile() -> void:
+    var data := disguise_initial_profile
+    if data.is_empty():
+        return
+    _select_text(body_variant_select, "Male" if String(data.get("body_variant", "female")) == "male" else "Female")
+    _select_text(presentation_select, String(data.get("gender_presentation", "Masculine")))
+    _select_text(pronoun_select, String(data.get("pronoun_preset", "They / them")))
+    custom_pronouns.text = String(data.get("custom_pronouns", ""))
+    _select_text(skin_select, String(data.get("skin_tone", "Medium")))
+    _select_text(eye_select, String(data.get("eye_colour", "Brown")))
+    _select_text(hair_colour_select, String(data.get("hair_colour", "Dark brown")))
+    _select_text(hair_style_select, String(data.get("hair_style", "Short 2")))
+    _select_text(body_select, String(data.get("body_build", "Average")))
+    height_slider.value = clampf(float(data.get("height_scale", 1.0)), 0.90, 1.10)
+    var details: Dictionary = data.get("character_details", {})
+    var piercings: Array = details.get("piercings", [])
+    ear_piercing_check.button_pressed = piercings.has("earrings")
+    nipple_piercing_check.button_pressed = piercings.has("nipple_left")
+    clit_piercing_check.button_pressed = piercings.has("clit")
+    var tattoos: Array = details.get("tattoos", [])
+    var design := String(tattoos[0].get("design", "")) if not tattoos.is_empty() and tattoos[0] is Dictionary else ""
+    _select_text(tattoo_style_select, "Arcane constellation" if design == "mirabel_arcane" else ("Shoulder-back motif" if design == "reyna_shoulder_back" else "None"))
+
+
+func _finish_disguise() -> void:
+    var build_factors := {"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04, "Androgynous": 1.0}
+    var body_build := body_select.get_item_text(body_select.selected)
+    var pronoun_value := pronoun_select.get_item_text(pronoun_select.selected)
+    var custom_value := custom_pronouns.text.strip_edges()
+    var profile := {
+        "body_variant": "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female",
+        "height_scale": height_slider.value,
+        "height": inverse_lerp(0.90, 1.10, height_slider.value),
+        "build_scale": float(build_factors.get(body_build, 1.0)),
+        "muscle": float({"Lean": 0.42, "Average": 0.5, "Broad": 0.62, "Muscular": 0.88, "Soft": 0.3, "Androgynous": 0.5}.get(body_build, 0.5)),
+        "weight": float({"Lean": 0.28, "Average": 0.5, "Broad": 0.72, "Muscular": 0.38, "Soft": 0.82, "Androgynous": 0.5}.get(body_build, 0.5)),
+        "proportions": 0.5,
+        "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
+        "pronoun_preset": pronoun_value,
+        "pronouns": custom_value if pronoun_value == "Custom" else _pronouns_for(pronoun_value),
+        "custom_pronouns": custom_value,
+        "skin_tone": skin_select.get_item_text(skin_select.selected),
+        "skin_colour": SKIN_COLOURS[skin_select.selected],
+        "eye_colour": eye_select.get_item_text(eye_select.selected),
+        "hair_colour": hair_colour_select.get_item_text(hair_colour_select.selected),
+        "hair_style": hair_style_select.get_item_text(hair_style_select.selected),
+        "hair_style_id": String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02")),
+        "body_build": body_build
+    }
+    profile.merge(_appearance_detail_profile(), true)
+    completed.emit(profile)
+    queue_free()
+
 
 func _section(parent: VBoxContainer, text_value: String) -> void:
     var label := Label.new()
@@ -465,6 +565,11 @@ func _refresh_appearance_preview_value(_value: float) -> void:
     _refresh_appearance_preview(0)
 
 func _update_mode_controls(_index: int) -> void:
+    if disguise_mode:
+        if start_button != null:
+            start_button.text = "APPLY DISGUISE"
+            start_button.disabled = false
+        return
     if game_mode_select == null:
         return
     var arena := game_mode_select.get_item_text(game_mode_select.selected) == "Arena"

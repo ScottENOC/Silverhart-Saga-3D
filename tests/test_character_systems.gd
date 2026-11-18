@@ -72,8 +72,12 @@ func _test_character_round_trip() -> void:
 
 func _test_skill_catalogue_and_progression() -> void:
     var definitions := SkillCatalog.definitions()
-    _check(definitions.size() == 257, "The source skill catalogue should contain all 186 unique entries")
+    _check(definitions.size() == 258, "The source-derived skill catalogue plus Divine Strength unlock should contain 258 entries")
     _check(int(SkillCatalog.get_skill("health").get("max_ranks", -1)) == 0, "A zero rank cap means unlimited ranks")
+    _check(bool(SkillCatalog.get_skill("learn_divine_strength").size() > 0), "Divine Strength should have a learn skill")
+    _check(bool(SkillCatalog.get_skill("learn_smite_evil").get("disabled", false)), "Non-official legacy spell unlocks should remain archived but disabled")
+    var disabled_spell_skill := SkillProgression.can_purchase(CharacterState.new("disabled_skill_test", "Disabled Skill Test"), "learn_smite_evil")
+    _check(not bool(disabled_spell_skill.get("ok", true)) and String(disabled_spell_skill.get("reason", "")) == "skill_not_in_official_spell_catalogue", "Archived spell unlocks must not be purchasable")
 
     var character := CharacterState.new("skill_test", "Skill Test")
     character.attributes = {"endurance": 3, "strength": 0, "wildcard": 1, "nature": 1, "druid": 1, "elf": 1}
@@ -85,6 +89,13 @@ func _test_skill_catalogue_and_progression() -> void:
     _check(bool(SkillProgression.purchase(character, "health").get("ok", false)), "Wildcard points may also fund a standard tree")
     _check(int(character.skills.get("health", 0)) == 4)
     _check(String(SkillProgression.purchase(character, "health").get("reason", "")) == "insufficient_skill_points")
+
+    var divine_spell_character := CharacterState.new("divine_spell_test", "Divine Spell Test")
+    divine_spell_character.attributes = {"divine": 1}
+    SkillProgression.initialise(divine_spell_character)
+    var learned_divine_strength := SkillProgression.purchase(divine_spell_character, "learn_divine_strength")
+    _check(bool(learned_divine_strength.get("ok", false)), "A character should be able to purchase Learn Divine Strength")
+    _check(divine_spell_character.unlocked_base_spells.has("divine_strength"), "Purchasing a spell skill should unlock its official base spell")
 
     var prerequisite_character := CharacterState.new("prereq_test", "Prerequisite Test")
     prerequisite_character.attributes = {"strength": 2}

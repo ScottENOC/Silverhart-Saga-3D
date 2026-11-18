@@ -4,6 +4,7 @@ extends Node3D
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_timeline.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
+const SPELLBOOK_PANEL_SCRIPT = preload("res://scripts/ui/spellbook_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
@@ -16,6 +17,7 @@ const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_r
 const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
+const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_creator.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const TAVERN_BUILDING_ID := "hollow_tankard"
 const TAVERN_FRONT_DOOR_ID := "hollow_tankard_front_door"
@@ -49,6 +51,8 @@ const ROOF_RIDGE_HEIGHT: float = 5.8
 
 var simulation: WorldSimulation
 var spell_vfx: Node3D
+var disguise_creator: CanvasLayer
+var active_disguise_profile: Dictionary = {}
 var save_load_menu: CanvasLayer
 var pending_save_data: Dictionary = {}
 var initial_character_baselines: Dictionary = {}
@@ -56,6 +60,7 @@ var autosave_accumulator: float = 0.0
 var reaction_prompt: CanvasLayer
 var initiative_timeline: CombatInitiativeTimeline
 var character_panel: CharacterPanel
+var spellbook_panel: SpellbookPanel
 var world_map_panel: CanvasLayer
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
@@ -256,7 +261,19 @@ func _configure_location_simulation() -> void:
 
 
 func _on_simulation_action_committed(event: SimulationEvent) -> void:
-    if event == null or spell_vfx == null:
+    if event == null:
+        return
+    # Disguise Self opens the same live Ara character editor used at first
+    # launch, but in appearance-only mode. The selected profile is stored on
+    # the active effect so it survives save/load and can be dispelled.
+    if event.event_type == "spell_cast" and event.actor_id == "player" and String(event.payload.get("spell_id", "")) == "disguise_self":
+        _open_disguise_creator()
+    elif event.event_type == "spell_countered" and not active_disguise_profile.is_empty():
+        var player_state := simulation.get_character("player")
+        if player_state == null or not player_state.has_spell_effect("disguise_self"):
+            active_disguise_profile.clear()
+            apply_player_profile(player_profile)
+    if spell_vfx == null:
         return
     # A selected Counterspell reaction is emitted as spell_countered rather
     # than spell_cast, but it still needs the same visible counter-pulse.
@@ -295,6 +312,30 @@ func _on_simulation_action_committed(event: SimulationEvent) -> void:
         payload,
         affected_actors
     )
+
+func _open_disguise_creator() -> void:
+    if disguise_creator != null and is_instance_valid(disguise_creator):
+        return
+    disguise_creator = CHARACTER_CREATOR_SCRIPT.new() as CanvasLayer
+    disguise_creator.name = "DisguiseSelfCreator"
+    disguise_creator.configure_disguise(active_disguise_profile if not active_disguise_profile.is_empty() else player_profile)
+    disguise_creator.completed.connect(_on_disguise_profile_completed)
+    add_child(disguise_creator)
+
+
+func _on_disguise_profile_completed(profile: Dictionary) -> void:
+    disguise_creator = null
+    active_disguise_profile = profile.duplicate(true)
+    var player_state := simulation.get_character("player") if simulation != null else null
+    if player_state != null:
+        var effect := player_state.get_spell_effect("disguise_self")
+        if not effect.is_empty():
+            effect["profile"] = active_disguise_profile.duplicate(true)
+            player_state.add_spell_effect(effect)
+    var actor := actor_by_id.get("player") as Node3D
+    if actor != null:
+        CampaignCharacterActorFactory.apply_player_profile(actor, active_disguise_profile)
+
 
 func _create_wilderness_gatherable_grove() -> void:
     # These authored trees use the same shared generator and committed Cosmo
@@ -942,9 +983,19 @@ func _create_hud() -> void:
     inventory_panel_button.pressed.connect(_open_inventory_panel)
     layer.add_child(inventory_panel_button)
 
+    var spellbook_button := Button.new()
+    spellbook_button.text = "Spellbook  [M]"
+    spellbook_button.position = Vector2(690.0, 18.0)
+    spellbook_button.custom_minimum_size = Vector2(140.0, 42.0)
+    spellbook_button.pressed.connect(func():
+        if spellbook_panel != null:
+            spellbook_panel.toggle_for_character(active_character_id)
+    )
+    layer.add_child(spellbook_button)
+
     var world_map_button := Button.new()
     world_map_button.text = "World Map"
-    world_map_button.position = Vector2(690.0, 18.0)
+    world_map_button.position = Vector2(840.0, 18.0)
     world_map_button.custom_minimum_size = Vector2(140.0, 42.0)
     world_map_button.pressed.connect(_toggle_world_map)
     layer.add_child(world_map_button)
@@ -1029,6 +1080,11 @@ func _create_hud() -> void:
     layer.add_child(character_panel)
     character_panel.configure(simulation, active_character_id)
     character_panel.equipment_changed.connect(_on_character_equipment_changed)
+
+    spellbook_panel = SPELLBOOK_PANEL_SCRIPT.new() as SpellbookPanel
+    spellbook_panel.name = "SpellbookPanel"
+    add_child(spellbook_panel)
+    spellbook_panel.configure(simulation, active_character_id)
     _create_dialogue_panel(layer)
     nearby_interaction_panel = PanelContainer.new()
     nearby_interaction_panel.name = "NearbyNPCInteractions"
@@ -1281,6 +1337,8 @@ func _apply_save_data(data: Dictionary) -> void:
             camera_rig.rotation = camera_data["rotation"]
     if character_panel != null:
         character_panel.set_character(active_character_id)
+    if spellbook_panel != null:
+        spellbook_panel.set_character(active_character_id)
     _update_combat_ui()
     _refresh_resource_visuals()
 
@@ -2167,6 +2225,8 @@ func _switch_party_member() -> void:
     _refresh_tavern_floor_presentation()
     if character_panel != null:
         character_panel.set_character(active_character_id)
+    if spellbook_panel != null:
+        spellbook_panel.set_character(active_character_id)
 
 func _process(delta: float) -> void:
     if not simulation.is_in_combat and not simulation.has_pending_reaction() and not dialogue_open and not (shakedown_started and not shakedown_resolved):
@@ -2287,6 +2347,11 @@ func _unhandled_input(event: InputEvent) -> void:
             return
         if key_event.keycode == KEY_I:
             _open_inventory_panel()
+            get_viewport().set_input_as_handled()
+            return
+        if key_event.keycode == KEY_M:
+            if spellbook_panel != null:
+                spellbook_panel.toggle_for_character(active_character_id)
             get_viewport().set_input_as_handled()
             return
         if key_event.keycode == KEY_V:
@@ -2600,4 +2665,12 @@ func apply_player_profile(profile: Dictionary) -> void:
     var actor := actor_by_id.get("player") as Node3D
     if actor == null:
         return
-    CampaignCharacterActorFactory.apply_player_profile(actor, profile)
+    var effective_profile := profile.duplicate(true)
+    var player_state := simulation.get_character("player") if simulation != null else null
+    if player_state != null:
+        var disguise := player_state.get_spell_effect("disguise_self")
+        var saved_profile: Variant = disguise.get("profile", {})
+        if saved_profile is Dictionary and not saved_profile.is_empty():
+            active_disguise_profile = saved_profile.duplicate(true)
+            effective_profile.merge(active_disguise_profile, true)
+    CampaignCharacterActorFactory.apply_player_profile(actor, effective_profile)

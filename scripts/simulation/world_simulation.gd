@@ -760,7 +760,9 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
 
     caster.remove_spell_effect("divine_silence")
     var spell_id := prepared.base_spell_id
-    var is_offensive := spell_id in ["firebolt", "smite_evil", "divine_silence", "dragon_breath", "entangle", "temporal_rift"]
+    var is_offensive := spell_id in ["firebolt", "entangle", "curse"]
+    if is_offensive:
+        _trigger_curse_on_hostile_action(caster)
     if is_offensive and target != null:
         _apply_spell_protection_triggers(caster, target)
     elif is_offensive:
@@ -1357,12 +1359,16 @@ func _resolve_attack_action(attacker_id: String, target_id: String, options: Dic
     else:
         rng.seed = random_seed
     var fury := attacker.get_spell_effect("wild_fury")
+    var strength := attacker.get_spell_effect("divine_strength")
     var resolved_options := options.duplicate(true)
     var weapon_id := String(attacker.equipment.get("weapon", ""))
     if not fury.is_empty() and weapon_id.is_empty():
         resolved_options["wild_fury_bonus"] = int(fury.get("magnitude", 0))
+    if not strength.is_empty():
+        resolved_options["bonus_damage"] = int(resolved_options.get("bonus_damage", 0)) + int(strength.get("magnitude", 0))
     var result := CombatRules.resolve_attack(attacker, target, resolved_options, rng)
     if bool(result.get("ok", false)):
+        _trigger_curse_on_hostile_action(attacker)
         _apply_spell_protection_triggers(attacker, target)
         attacker.remove_spell_effect("sanctuary")
         target.remove_spell_effect("calmed")
@@ -1461,6 +1467,30 @@ func try_end_current_turn(forced: bool = false) -> bool:
         if mount != null:
             mount.time_points = minf(mount.time_points, float(ActionEconomy.TURN_END_TP))
     return ended
+func _trigger_curse_on_hostile_action(actor: CharacterState) -> void:
+    if actor == null:
+        return
+    var curses: Array[Dictionary] = []
+    for effect in actor.spell_effects:
+        if String(effect.get("effect_id", "")) == "curse":
+            curses.append(effect.duplicate(true))
+    for curse in curses:
+        var damage := maxi(1, int(curse.get("magnitude", 2)))
+        var source_id := String(curse.get("source_id", ""))
+        var lifecycle := actor.apply_damage(damage)
+        actor.remove_spell_effect("curse")
+        var payload := {
+            "effect": "curse",
+            "source_id": source_id,
+            "target_id": actor.id,
+            "damage": damage,
+            "lifecycle": lifecycle,
+            "health": actor.health
+        }
+        action_committed.emit(SimulationEvent.new("curse_triggered", actor.id, source_id, payload))
+        break
+
+
 func _advance_character_spell_effects(state: CharacterState, gained_tp: float) -> void:
     if state == null:
         return
