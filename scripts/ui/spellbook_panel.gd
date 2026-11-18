@@ -168,7 +168,7 @@ func _build_spell_builder(state: CharacterState) -> void:
         speed_options.append("slowed")
     var speed_selector := _option_row(_content, "Casting speed", speed_options, String(modifiers.get("speed", "default")))
     speed_selector.item_selected.connect(func(index: int):
-        modifiers["speed"] = speed_selector.get_item_text(index)
+        modifiers["speed"] = String(speed_selector.get_item_metadata(index))
         _set_modifiers(modifiers)
     )
 
@@ -208,13 +208,13 @@ func _build_spell_builder(state: CharacterState) -> void:
     if selected_spell_id == "summon_animal":
         var summon_selector := _option_row(_content, "Summon", ["wolf", "boar", "tiger", "eagle", "unicorn"], String(modifiers.get("summon_id", "wolf")))
         summon_selector.item_selected.connect(func(index: int):
-            modifiers["summon_id"] = summon_selector.get_item_text(index)
+            modifiers["summon_id"] = String(summon_selector.get_item_metadata(index))
             _set_modifiers(modifiers)
         )
     elif selected_spell_id == "calm_animal":
         var calm_selector := _option_row(_content, "Animal behaviour", ["stay", "come", "chase"], String(modifiers.get("calm_mode", "stay")))
         calm_selector.item_selected.connect(func(index: int):
-            modifiers["calm_mode"] = calm_selector.get_item_text(index)
+            modifiers["calm_mode"] = String(calm_selector.get_item_metadata(index))
             _set_modifiers(modifiers)
         )
 
@@ -469,6 +469,7 @@ func _option_row(parent: VBoxContainer, label_text: String, options: Array, sele
     var selector := OptionButton.new()
     for option in options:
         selector.add_item(String(option).capitalize())
+        selector.set_item_metadata(selector.item_count - 1, String(option))
     var selected_index := options.find(selected_value)
     selector.select(maxi(0, selected_index))
     row.add_child(selector)
