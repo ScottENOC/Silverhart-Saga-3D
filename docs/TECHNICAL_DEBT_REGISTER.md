@@ -140,7 +140,8 @@ This section supersedes stale status assumptions in the original 13 November inv
 - dev is a descendant of dev_2; the comparison at this audit found dev 265 commits ahead and zero commits behind dev_2.
 - The current audit branch was created from dev at commit 56d3e21a63fcdfae1a3ebbc8a1aa4902d8c0471b. Changes here remain isolated until reviewed.
 - The current Godot validation workflow explicitly runs the split character, campaign, items, movement, combat/reaction and animal/riding suites. It also runs the building framework, campaign UI, save/restore, character appearance, vegetation and world-content suites.
-- PR #164's validation run 44249820137 was cancelled before completion: the 15-spell visual-effect test was in progress and all later suites remained pending. Treat this as inconclusive; a fresh full run is required.
+- PR #164's Godot validation run 44249820137 was cancelled before completion: the 15-spell visual-effect test was in progress and all later suites remained pending. Treat this as inconclusive; a fresh full run is required.
+- The separate Combat initiative preview workflow failed because it still invoked the deleted `tests/test_simulation.gd`. Its workflow now invokes the six current split domain suites instead; confirm the new run reaches the screenshot step.
 - The most recent Godot validation run found for dev was cancelled (run [44237510473](https://github.com/ScottENOC/Silverhart-Saga-3D/actions/runs/44237510473), commit d20fa886). The current snapshot therefore needs a fresh successful Godot validation run before structural changes can be accepted. Character-pipeline jobs are separate and must not be treated as Godot validation.
 
 ### TD-002 — test split is already implemented
