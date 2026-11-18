@@ -92,11 +92,15 @@ def project_path(points, back, trees, offset=0.0020):
         steps = max(2, int(math.ceil((b - a).length / 0.018)))
         for step in range(steps):
             p = a.lerp(b, step / steps)
-            _co, item_index, _distance = tree.find(p)
+            _co, item_index, distance = tree.find(p)
+            if distance > 0.14:
+                raise RuntimeError(f"tattoo path is {distance:.3f}m from the {label} skin surface")
             surface, normal, source_index = items[item_index]
             projected.append((surface + normal * offset, normal, source_index))
     p = points[-1]
-    _co, item_index, _distance = tree.find(Vector((p.x, p.y, 0.0)))
+    _co, item_index, distance = tree.find(p)
+    if distance > 0.14:
+        raise RuntimeError(f"tattoo endpoint is {distance:.3f}m from the {label} skin surface")
     surface, normal, source_index = items[item_index]
     projected.append((surface + normal * offset, normal, source_index))
     return projected
