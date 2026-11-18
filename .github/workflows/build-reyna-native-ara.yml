@@ -11,6 +11,7 @@ on:
       - "tools/review/recolor_wren_glb.py"
       - "tools/blender/add_adult_anatomy.py"
       - "tools/blender/add_abdominal_definition.py"
+      - "tools/review/add_aldric_body_hair.py"
   workflow_dispatch:
 
 permissions:
@@ -97,9 +98,15 @@ jobs:
             --python tools/blender/add_abdominal_definition.py -- \
             --input build/reyna-native/Reyna.glb \
             --output build/reyna-native/Reyna-defined.glb \
-            --strength 0.60
+            --strength 0.20
           test -s build/reyna-native/Reyna-defined.glb
           mv build/reyna-native/Reyna-defined.glb build/reyna-native/Reyna.glb
+
+      - name: Add restrained armpit and pubic hair detail
+        run: |
+          set -euo pipefail
+          python tools/review/add_aldric_body_hair.py --model build/reyna-native/Reyna.glb --seed 2402
+          test -s build/reyna-native/Reyna.glb
 
       - name: Assemble isolated Godot preview project
         run: |

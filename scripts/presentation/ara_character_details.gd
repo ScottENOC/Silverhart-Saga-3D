@@ -58,7 +58,7 @@ func _find_named_node(root: Node, wanted: String) -> Node3D:
 func _add_socket_hoop(socket_name: String, radius: float) -> void:
     var socket := _find_named_node(_target, socket_name)
     if socket == null:
-        push_warning("Ara character detail socket is missing: " + socket_name)
+        _add_fallback_hoop(socket_name, radius)
         return
     var hoop := MeshInstance3D.new()
     hoop.name = "Piercing_" + socket_name
@@ -76,7 +76,7 @@ func _add_socket_hoop(socket_name: String, radius: float) -> void:
 func _add_socket_barbell(socket_name: String) -> void:
     var socket := _find_named_node(_target, socket_name)
     if socket == null:
-        push_warning("Ara character detail socket is missing: " + socket_name)
+        _add_fallback_barbell(socket_name)
         return
     var centre := socket.global_position
     var normal := socket.global_basis.z.normalized()
@@ -103,6 +103,59 @@ func _add_socket_barbell(socket_name: String) -> void:
         bead.material_override = _metal_material
         add_child(bead)
         bead.global_position = centre + normal * 0.002 + tangent * side * 0.008
+
+func _fallback_detail_position(socket_name: String) -> Vector3:
+    var bounds := _get_target_bounds()
+    var size := bounds.size
+    var centre := bounds.get_center()
+    var x := centre.x
+    var y := centre.y
+    if socket_name.begins_with("SOCKET_Earring"):
+        x += (-1.0 if socket_name.ends_with("_L") else 1.0) * size.x * 0.225
+        y = bounds.position.y + size.y * 0.875
+    elif socket_name == "SOCKET_Nipple_L":
+        x -= size.x * 0.085
+        y = bounds.position.y + size.y * 0.655
+    elif socket_name == "SOCKET_ClitoralHood":
+        y = bounds.position.y + size.y * 0.385
+    return _project_tattoo_point(Vector3(x, y, bounds.end.z), false)
+
+func _add_fallback_hoop(socket_name: String, radius: float) -> void:
+    var hoop := MeshInstance3D.new()
+    hoop.name = "Piercing_" + socket_name + "_fallback"
+    var torus := TorusMesh.new()
+    torus.inner_radius = radius * 0.78
+    torus.outer_radius = radius
+    torus.rings = 12
+    torus.ring_segments = 24
+    hoop.mesh = torus
+    hoop.material_override = _metal_material
+    add_child(hoop)
+    hoop.position = _fallback_detail_position(socket_name)
+
+func _add_fallback_barbell(socket_name: String) -> void:
+    var centre := _fallback_detail_position(socket_name)
+    var bar := MeshInstance3D.new()
+    bar.name = "Piercing_" + socket_name + "_fallback_bar"
+    var cylinder := CylinderMesh.new()
+    cylinder.top_radius = 0.0018
+    cylinder.bottom_radius = 0.0018
+    cylinder.height = 0.014
+    cylinder.radial_segments = 8
+    bar.mesh = cylinder
+    bar.material_override = _metal_material
+    add_child(bar)
+    bar.position = centre
+    for side in [-1.0, 1.0]:
+        var bead := MeshInstance3D.new()
+        bead.name = "Piercing_" + socket_name + "_fallback_bead"
+        var sphere := SphereMesh.new()
+        sphere.radius = 0.003
+        sphere.height = 0.006
+        bead.mesh = sphere
+        bead.material_override = _metal_material
+        add_child(bead)
+        bead.position = centre + Vector3(side * 0.008, 0.0, 0.0)
 
 func _get_target_bounds() -> AABB:
     var result := AABB()
@@ -206,9 +259,57 @@ func _add_star(centre: Vector3, radius: float, material: Material) -> void:
     points.append(points[0])
     _add_tube(points, radius * 0.075, material)
 
+func _project_tattoo_point(point: Vector3, back: bool) -> Vector3:
+    var best := point
+    var best_distance := INF
+    var meshes: Array[MeshInstance3D] = []
+    _collect_meshes(_target, meshes)
+    var target_inverse := _target.global_transform.affine_inverse()
+    for instance in meshes:
+        if instance.mesh == null:
+            continue
+        var mesh_to_target := target_inverse * instance.global_transform
+        for surface in range(instance.mesh.get_surface_count()):
+            var material := instance.get_active_material(surface)
+            if material != null and not material.resource_name.to_lower().contains("skin"):
+                continue
+            var arrays := instance.mesh.surface_get_arrays(surface)
+            if arrays.size() <= Mesh.ARRAY_VERTEX:
+                continue
+            var vertices := arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array
+            var normals := arrays[Mesh.ARRAY_NORMAL] as PackedVector3Array
+            if vertices.is_empty() or normals.size() != vertices.size():
+                continue
+            for index in range(vertices.size()):
+                var normal := (mesh_to_target.basis * normals[index]).normalized()
+                if (back and normal.z > -0.12) or (not back and normal.z < 0.12):
+                    continue
+                var candidate := mesh_to_target * vertices[index]
+                var distance := Vector2(candidate.x - point.x, candidate.y - point.y).length_squared()
+                if distance < best_distance:
+                    best_distance = distance
+                    best = candidate + normal * 0.0015
+    return best
+
+func _project_tattoo_path(points: Array[Vector3]) -> Array[Vector3]:
+    if points.size() < 2:
+        return points
+    var back := points[0].z < _get_target_bounds().get_center().z
+    var projected: Array[Vector3] = []
+    for segment in range(points.size() - 1):
+        var a := points[segment]
+        var b := points[segment + 1]
+        var steps := maxi(2, int(ceil(a.distance_to(b) / 0.018)))
+        for step in range(steps):
+            var t := float(step) / float(steps)
+            projected.append(_project_tattoo_point(a.lerp(b, t), back))
+    projected.append(_project_tattoo_point(points[-1], back))
+    return projected
+
 func _add_tube(points: Array[Vector3], radius: float, material: Material) -> void:
     if points.size() < 2 or radius <= 0.0:
         return
+    points = _project_tattoo_path(points)
     var surface := SurfaceTool.new()
     surface.begin(Mesh.PRIMITIVE_TRIANGLES)
     const SIDES := 6

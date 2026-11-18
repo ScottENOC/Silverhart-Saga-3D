@@ -10,6 +10,7 @@ on:
       - "tools/review/wren_native_preview.gd"
       - "scripts/presentation/ara_character_details.gd"
       - "tools/review/recolor_wren_glb.py"
+      - "tools/review/add_aldric_body_hair.py"
   workflow_dispatch:
 
 permissions:
@@ -85,6 +86,12 @@ jobs:
             --model build/wren-native/Wren.glb \
             --profile character-preview/wren-ara.json \
             --hair-gamma 0.18
+          test -s build/wren-native/Wren.glb
+
+      - name: Add restrained armpit and pubic hair detail
+        run: |
+          set -euo pipefail
+          python tools/review/add_aldric_body_hair.py --model build/wren-native/Wren.glb --seed 4404
           test -s build/wren-native/Wren.glb
 
       - name: Assemble an isolated Godot preview project
