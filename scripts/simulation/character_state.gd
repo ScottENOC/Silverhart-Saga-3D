@@ -59,6 +59,7 @@ var side: String = "neutral"
 var base_damage: int = 1
 var to_hit_melee: float = 0.0
 var to_hit_ranged: float = 0.0
+var to_hit_spell: float = 0.0
 var passive_dodge: float = 0.0
 var base_reduction: int = 0
 var armour_reduction: int = 0
@@ -363,6 +364,7 @@ func to_dict() -> Dictionary:
         "base_damage": base_damage,
         "to_hit_melee": to_hit_melee,
         "to_hit_ranged": to_hit_ranged,
+        "to_hit_spell": to_hit_spell,
         "passive_dodge": passive_dodge,
         "base_reduction": base_reduction,
         "armour_reduction": armour_reduction,
@@ -482,6 +484,7 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.base_damage = int(data.get("base_damage", 1))
     state.to_hit_melee = float(data.get("to_hit_melee", 0.0))
     state.to_hit_ranged = float(data.get("to_hit_ranged", 0.0))
+    state.to_hit_spell = float(data.get("to_hit_spell", 0.0))
     state.passive_dodge = float(data.get("passive_dodge", 0.0))
     state.base_reduction = int(data.get("base_reduction", 0))
     state.armour_reduction = int(data.get("armour_reduction", 0))
