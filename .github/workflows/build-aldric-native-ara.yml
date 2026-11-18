@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: dev
+          ref: ${{ github.ref }}
 
       - name: Validate Aldric profile and preview script
         run: |
