@@ -277,9 +277,18 @@ def add_hoop(socket, radius, material, name, hang_down=False):
             down = Vector((0, 0, -1))
         down.normalize()
         outward = normal.normalized()
-        plane_normal = outward.cross(down).normalized()
-        orientation = Matrix((outward, down, plane_normal)).transposed().to_quaternion()
-        centre += down * radius * 0.89 + outward * 0.0012
+        # The hoop's plane must be tangent to the chest and vertical: its
+        # local X axis runs sideways, local Y hangs down, and its normal faces
+        # outward. The previous basis used outward as an in-plane axis, which
+        # made the ring project away from the body instead of hanging flat.
+        tangent = down.cross(outward)
+        if tangent.length_squared < 1e-8:
+            tangent = Vector((1, 0, 0))
+            tangent -= outward * tangent.dot(outward)
+        tangent.normalize()
+        plane_normal = tangent.cross(down).normalized()
+        orientation = Matrix((tangent, down, plane_normal)).transposed().to_quaternion()
+        centre += down * radius * 0.89 + outward * 0.0005
     else:
         orientation = socket_matrix.to_quaternion()
         centre += normal * 0.0012
