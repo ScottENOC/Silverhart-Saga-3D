@@ -103,11 +103,11 @@ def main():
         if args.coverage == "wren":
             # The landing strip belongs on the pubic mound, not the lower
             # abdomen. Ara exports Y-up; this band maps to the pelvis.
-            # On the exported Ara body, the lower abdomen/pubic mound is
-            # at approximately 0.36-0.45 of the Y-up body height. The earlier
-            # 0.29-0.365 band sat below the skin UV faces on Wren and selected
-            # no triangles. Keep the strip narrow and centred on the front.
-            if front and 0.36 <= yn <= 0.45 and abs(x) <= 0.038:
+            # On Wren's exported Ara body, the pubic mound maps to the
+            # 0.55-0.62 Y-up height band. The 0.36-0.45 trial selected the
+            # lower abdomen beneath the breasts, so keep the strip down here.
+            # A 50 mm total width keeps the denser strokes tightly centred.
+            if front and 0.55 <= yn <= 0.62 and abs(x) <= 0.025:
                 region = "landing_strip"
         elif args.coverage == "reyna":
             if 0.66 <= yn <= 0.80 and 0.075 <= abs(x) <= 0.19 and abs(z) > 0.035:
