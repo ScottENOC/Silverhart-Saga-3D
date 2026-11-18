@@ -131,7 +131,7 @@ def main():
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
     with open(args.output, "w", encoding="utf-8") as handle:
         json.dump(plan, handle, indent=2)
-        handle.write("\\n")
+        handle.write("\n")
     print(json.dumps({
         "source_vertices": source_topology["vertices"],
         "source_faces": len(source_topology["faces"]),
