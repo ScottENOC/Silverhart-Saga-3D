@@ -9,8 +9,10 @@ import json
 import struct
 from io import BytesIO
 from pathlib import Path
+import math
+import random
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageDraw
 
 
 def parse_hex(value: str):
@@ -53,6 +55,73 @@ def material_by_name(document, name):
     raise ValueError(f"Could not find GLB material named {name!r}")
 
 
+def procedural_grey_strands(source_image, hair_rgb, seed=4821):
+    """Create sparse, fine grey fibres over Ara's otherwise flat hair-card texture.
+
+    The exported Ara short-hair diffuse has virtually no strand luminance detail:
+    almost every opaque texel is RGB 18, while the few bright texels are the
+    MakeHuman watermark. Do not mistake those pixels for strands. Preserve the
+    real hair-card alpha, discard watermark-coloured pixels, and draw restrained
+    curved fibres into the UV islands instead.
+    """
+    alpha = source_image.getchannel("A")
+    luminance = source_image.convert("L")
+    hair_mask = ImageChops.multiply(
+        alpha, luminance.point(lambda value: 255 if value < 80 else 0)
+    )
+    if hair_mask.getbbox() is None:
+        hair_mask = alpha
+
+    size = source_image.size
+    base = Image.new("RGB", size, hair_rgb)
+    strand_rgb = base.copy()
+    strand_mask = Image.new("L", size, 0)
+    colour_draw = ImageDraw.Draw(strand_rgb)
+    mask_draw = ImageDraw.Draw(strand_mask)
+    valid = hair_mask.load()
+    width, height = size
+    rng = random.Random(seed)
+
+    # Ara's two short-hair UV islands flow predominantly across the image.
+    # Long, gently curved strokes remain narrow after texture mipmapping.
+    strand_count = 170
+    for _ in range(strand_count):
+        for _attempt in range(120):
+            x = rng.randrange(width)
+            y = rng.randrange(height)
+            if valid[x, y] > 0:
+                break
+        else:
+            continue
+
+        angle = rng.uniform(-0.18, 0.18)
+        length = rng.uniform(130.0, 360.0)
+        bend = rng.uniform(-0.018, 0.018)
+        dx, dy = math.cos(angle), math.sin(angle)
+        points = []
+        for step in range(9):
+            t = step / 8.0
+            px = x + (t - 0.5) * length * dx
+            py = y + (t - 0.5) * length * dy + math.sin(t * math.pi) * bend * length
+            points.append((px, py))
+
+        tone = rng.random()
+        if tone < 0.62:
+            shade = (35, 38, 43)       # charcoal grey
+        elif tone < 0.93:
+            shade = (52, 56, 63)       # visible grey
+        else:
+            shade = (82, 87, 94)       # a few silver hairs
+        stroke_width = rng.choice((2, 3, 3, 4))
+        opacity = rng.randint(160, 220)
+        colour_draw.line(points, fill=shade, width=stroke_width)
+        mask_draw.line(points, fill=opacity, width=stroke_width)
+
+    clipped_mask = ImageChops.multiply(strand_mask, hair_mask)
+    result_rgb = Image.composite(strand_rgb, base, clipped_mask)
+    return Image.merge("RGBA", (*result_rgb.split(), hair_mask))
+
+
 def recolor(path: Path, profile_path: Path, hair_gamma: float, grey_strands: bool = False):
     profile = json.loads(profile_path.read_text())
     params = profile.get("params", {})
@@ -93,16 +162,10 @@ def recolor(path: Path, profile_path: Path, hair_gamma: float, grey_strands: boo
     # natural strand highlights to restrained silver-grey over a near-black base.
     red, green, blue, alpha = source_image.split()
     if grey_strands:
-        # Ara's texture carries fine strand variation. Keep most fibres black;
-        # only the brighter strand detail transitions to charcoal/silver.
-        luminance = source_image.convert("L")
-        lut = []
-        for pixel in range(256):
-            t = max(0.0, min(1.0, (pixel - 92.0) / 118.0))
-            t = t * t * (3.0 - 2.0 * t)
-            lut.append(int(round(18.0 + t * 112.0)))
-        grey = luminance.point(lut)
-        lifted = Image.merge("RGBA", (grey, grey, grey, alpha))
+        # Apply the requested base colour directly, then add synthetic fibres.
+        # Ara's source diffuse has no usable per-strand luminance variation.
+        hair_rgb = tuple(int(round(channel * 255.0)) for channel in parse_hex(params.get("hairTint", "#08090A"))[:3])
+        lifted = procedural_grey_strands(source_image, hair_rgb)
     else:
         lut = [
             min(255, int(round(((value / 255.0) ** hair_gamma) * 255.0)))
