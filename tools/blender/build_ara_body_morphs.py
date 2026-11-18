@@ -12,7 +12,6 @@ import sys
 from pathlib import Path
 
 import bpy
-from mathutils.kdtree import KDTree
 
 
 def args():
@@ -47,13 +46,24 @@ def skin_meshes(objects):
     return sorted((obj for obj in objects if is_skin_mesh(obj)), key=lambda o: o.name)
 
 
-def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
-    """Map GLB-reimported vertices by position, then prove face connectivity.
+def vertex_uv_signatures(mesh):
+    """Stable per-vertex UV identity, including seam duplicates."""
+    if not mesh.uv_layers:
+        raise RuntimeError(f"Mesh {mesh.name} has no UV layer for correspondence")
+    uv_layer = mesh.uv_layers.active
+    per_vertex = [[] for _ in mesh.vertices]
+    for loop in mesh.loops:
+        uv = uv_layer.data[loop.index].uv
+        per_vertex[loop.vertex_index].append((round(float(uv.x), 7), round(float(uv.y), 7)))
+    return [tuple(sorted(values)) for values in per_vertex]
 
-    Blender's glTF exporter can reorder vertices while preserving geometry.
-    Vertex-index equality is therefore not a safe assumption across exports.
-    We build a one-to-one spatial map and verify that every mapped face in the
-    variant exactly matches the base mesh's connectivity before creating keys.
+
+def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
+    """Map GLB-reimported vertices by UV identity, then prove face connectivity.
+
+    The exporter can reorder vertices, and UV seams can contain coincident
+    positions. A per-vertex UV signature distinguishes those seam copies;
+    spatial distance selects among any remaining duplicate signatures.
     """
     base_vertices = base_obj.data.vertices
     variant_vertices = variant_obj.data.vertices
@@ -63,34 +73,41 @@ def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
             f"base={len(base_vertices)}, variant={len(variant_vertices)}"
         )
 
-    tree = KDTree(len(variant_vertices))
+    base_uv = vertex_uv_signatures(base_obj.data)
+    variant_uv = vertex_uv_signatures(variant_obj.data)
+    variant_by_uv = {}
+    for index, signature in enumerate(variant_uv):
+        variant_by_uv.setdefault(signature, []).append(index)
+
     variant_world = [
         variant_obj.matrix_world @ vertex.co for vertex in variant_vertices
     ]
-    for index, point in enumerate(variant_world):
-        tree.insert(point, index)
-    tree.balance()
-
     mapping = []
     used = set()
     distances = []
-    for base_vertex in base_vertices:
+    for base_index, base_vertex in enumerate(base_vertices):
+        signature = base_uv[base_index]
+        candidates = [
+            index for index in variant_by_uv.get(signature, [])
+            if index not in used
+        ]
+        if not candidates:
+            raise RuntimeError(
+                f"No unused variant vertex shares UV signature for base vertex {base_index}"
+            )
         point = base_obj.matrix_world @ base_vertex.co
-        candidates = tree.find_n(point, min(16, len(variant_vertices)))
-        match = next(
-            ((index, distance) for _co, index, distance in candidates if index not in used),
-            None,
+        variant_index = min(
+            candidates,
+            key=lambda index: (variant_world[index] - point).length_squared,
         )
-        if match is None:
-            raise RuntimeError("Could not create a one-to-one Ara vertex correspondence")
-        index, distance = match
+        distance = (variant_world[variant_index] - point).length
         if distance > max_distance:
             raise RuntimeError(
-                f"Vertex correspondence too far apart: {distance:.4f}m "
+                f"UV-matched vertex too far apart: {distance:.4f}m "
                 f"(limit {max_distance:.4f}m)"
             )
-        mapping.append(index)
-        used.add(index)
+        mapping.append(variant_index)
+        used.add(variant_index)
         distances.append(distance)
 
     inverse = [-1] * len(mapping)
@@ -109,7 +126,7 @@ def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
         missing = len(base_faces - mapped_variant_faces)
         extra = len(mapped_variant_faces - base_faces)
         raise RuntimeError(
-            "Spatial vertex map failed face-connectivity validation: "
+            "UV vertex map failed face-connectivity validation: "
             f"{missing} base faces unmatched, {extra} variant faces unmatched"
         )
     return mapping, max(distances, default=0.0), sum(distances) / max(len(distances), 1)
