@@ -44,7 +44,7 @@
       "hip/hip-scale-horiz": 0.1,
       "hip/hip-scale-depth": 0.1,
       "armslegs/upperarm-shoulder-muscle:decr|incr": -0.15,
-      "ears/ear-shape-pointed": -1
+      "ears/ear-shape": -1
     },
     "seed": 4517
   }
