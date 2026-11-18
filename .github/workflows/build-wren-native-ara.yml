@@ -52,7 +52,7 @@ jobs:
           from pathlib import Path
           profile = json.loads(Path("character-preview/wren-ara.json").read_text())
           profile.pop("character_details", None)
-          Path("build/wren-native/ara-export-profile.json").write_text(json.dumps(profile, indent=2) + "\\n")
+          Path("build/wren-native/ara-export-profile.json").write_text(json.dumps(profile, indent=2) + "\n")
           PY
           npx --yes ara3d@latest export \
             --params build/wren-native/ara-export-profile.json \
