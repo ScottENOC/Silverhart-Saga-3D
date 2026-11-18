@@ -1,5 +1,7 @@
 class_name AraCharacterActor
 extends Node3D
+
+const ARA_CHARACTER_DETAILS = preload("res://scripts/presentation/ara_character_details.gd")
 ## Runtime wrapper for generated Ara GLBs. The selected body asset is supplied
 ## by the player profile so Workshop exports can be replaced without code edits.
 
@@ -10,6 +12,7 @@ var hair_instances: Array[MeshInstance3D] = []
 var garment_attachments: Dictionary = {}
 var equipment_attachments: Dictionary = {}
 var body_variant: String = "female"
+var appearance_details: AraCharacterDetails
 const GARMENT_ASSET_ROOT := "res://art/characters/ara_runtime/garments/"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
 const GARMENT_VISUALS := ["bra", "briefs", "long_tunic", "trousers", "tunic", "wrapper_long", "uniform_shirt", "fatigue_pants", "wrapper_knee", "tattered_shirt", "fatigue_shirt", "sandals", "combat_boots", "leather armor"]
@@ -372,6 +375,7 @@ func apply_player_profile(profile: Dictionary) -> void:
     set_meta("body_variant", body_variant)
     set_meta("gender_presentation", str(profile.get("gender_presentation", "Feminine")))
     set_meta("pronouns", str(profile.get("pronouns", "they/them")))
+    _apply_appearance_details(profile)
 
 ## Attach a standalone Ara hair GLB to this character's existing skeleton.
 ## Both exports must use the same pinned Ara rig and bone ordering.
@@ -665,6 +669,24 @@ func apply_body_parameters(profile: Dictionary) -> void:
     set_meta("body_morph_targets_applied", applied)
     set_meta("body_morph_parameters_applied", applied_parameters)
 
+
+func _apply_appearance_details(profile: Dictionary) -> void:
+    if appearance_details != null and is_instance_valid(appearance_details):
+        appearance_details.queue_free()
+    appearance_details = null
+    var piercings: Array = profile.get("piercings", [])
+    var tattoos: Array = profile.get("tattoos", [])
+    if model_root == null or (piercings.is_empty() and tattoos.is_empty()):
+        return
+    appearance_details = ARA_CHARACTER_DETAILS.new() as AraCharacterDetails
+    appearance_details.name = "CharacterAppearanceDetails"
+    add_child(appearance_details)
+    appearance_details.configure(model_root, {
+        "piercings": piercings,
+        "tattoos": tattoos,
+        "tattoo_ink": str(profile.get("tattoo_ink", "#28252d"))
+    })
+
 func apply_npc_parameters(params: Dictionary) -> void:
     if model_root == null:
         return
@@ -712,3 +734,4 @@ func apply_npc_parameters(params: Dictionary) -> void:
     print("[Ara appearance] NPC hair tint=%s base_surfaces=%d style=%s" % [
         hair_tint.to_html(false), hair_surfaces_tinted, str(params.get("hair", "short02"))
     ])
+    _apply_appearance_details(params)
