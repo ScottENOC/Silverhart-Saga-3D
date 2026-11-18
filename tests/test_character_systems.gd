@@ -90,6 +90,13 @@ func _test_skill_catalogue_and_progression() -> void:
     _check(int(character.skills.get("health", 0)) == 4)
     _check(String(SkillProgression.purchase(character, "health").get("reason", "")) == "insufficient_skill_points")
 
+    var divine_spell_character := CharacterState.new("divine_spell_test", "Divine Spell Test")
+    divine_spell_character.attributes = {"divine": 1}
+    SkillProgression.initialise(divine_spell_character)
+    var learned_divine_strength := SkillProgression.purchase(divine_spell_character, "learn_divine_strength")
+    _check(bool(learned_divine_strength.get("ok", false)), "A character should be able to purchase Learn Divine Strength")
+    _check(divine_spell_character.unlocked_base_spells.has("divine_strength"), "Purchasing a spell skill should unlock its official base spell")
+
     var prerequisite_character := CharacterState.new("prereq_test", "Prerequisite Test")
     prerequisite_character.attributes = {"strength": 2}
     SkillProgression.initialise(prerequisite_character)
