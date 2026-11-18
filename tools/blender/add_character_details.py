@@ -12,7 +12,7 @@ import sys
 
 import bpy
 from mathutils import Matrix, Vector
-from mathutils.kdtree import KDTree
+from mathutils.bvhtree import BVHTree
 
 
 def arguments():
