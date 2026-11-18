@@ -777,7 +777,7 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
 
 
 func _resolve_firebolt_hit(caster: CharacterState, target: CharacterState, magnitude: int, random_seed: int) -> Dictionary:
-    var chance := clampf(50.0 + float(int(caster.skills.get("firebolt_hit", 0)) * 5) - target.passive_dodge, 0.0, 100.0)
+    var chance := clampf(50.0 + caster.to_hit_spell + float(int(caster.skills.get("firebolt_hit", 0)) * 5) - target.passive_dodge, 0.0, 100.0)
     var rng := RandomNumberGenerator.new()
     if random_seed == 0:
         rng.randomize()
