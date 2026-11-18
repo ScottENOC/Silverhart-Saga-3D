@@ -173,6 +173,8 @@ Current scripts/world/hollow_tankard.gd is 2,604 lines. Its responsibilities inc
 
 Important boundary distinction: the tavern currently calls WorldSimulation for authoritative movement, attacks, harvesting and spell actions, and delegates enemy turns to CombatAI. This is not evidence that it duplicates all combat rules. The debt is that the location script still owns too much orchestration, input/presentation and scenario-specific spawning alongside scene construction.
 
+WorldRoot is already the campaign composition root: it creates and owns the shared WorldSimulation, registers initial campaign quest definitions, creates HollowmereVillage and HollowTankard, then registers village animal actors. Preserve this boundary. HollowTankard's location-specific map-cell and building-layout registration is legitimate location assembly; the reusable registration mechanics belong in the existing building framework.
+
 Candidate extraction order, after dependency tracing:
 
 - Player input and route-presentation controller (keep path legality and movement authority in WorldSimulation).
