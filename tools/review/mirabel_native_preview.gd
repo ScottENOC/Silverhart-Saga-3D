@@ -37,7 +37,7 @@ func _run() -> void:
     var details := AraCharacterDetails.new()
     details.name = "AppearanceDetails"
     stage.add_child(details)
-    details.configure(character, {"piercings": ["earrings", "clit"], "tattoos": [{"design": "mirabel_arcane"}], "tattoo_ink": "#30283D"})
+    details.configure(character, {"piercings": ["earrings", "clit"], "tattoos": [{"design": "mirabel_arcane"}], "tattoo_ink": "#30283D", "debug_size_scale": 30.0})
 
     _collect_meshes(character)
     _activate_elf_ears()
