@@ -27,6 +27,7 @@ var pending_reaction: Dictionary = {}
 var next_reaction_request_id: int = 1
 var pending_attack_context: Dictionary = {}
 var pending_move_context: Dictionary = {}
+var pending_spell_context: Dictionary = {}
 
 func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
@@ -571,6 +572,11 @@ func resolve_reaction(choice_id: String = "") -> Dictionary:
     if not state.spend_time_points(cost):
         return _finish_pending_reaction("", "insufficient_time_points")
     pending_reaction["selected_reactor_id"] = reactor_id
+    if not pending_spell_context.is_empty():
+        for option in pending_reaction.get("options", []):
+            if String(option.get("id", "")) == choice_id:
+                pending_spell_context["selected_counterspell"] = option.duplicate(true)
+                break
     return _finish_pending_reaction(choice_id, "selected")
 
 func cancel_pending_reaction(reason: String = "cancelled") -> Dictionary:
@@ -601,6 +607,8 @@ func _finish_pending_reaction(choice_id: String, reason: String) -> Dictionary:
         _resume_pending_attack(choice_id, reason)
     if not pending_move_context.is_empty():
         _resume_pending_move(choice_id, reason)
+    if not pending_spell_context.is_empty():
+        _resume_pending_spell(choice_id, reason)
     if is_in_combat and turn_scheduler.has_active_turn():
         var active := get_current_turn_character()
         if active == null or not active.can_act():
@@ -663,17 +671,15 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
             return {"ok": false, "reason": "not_actor_turn"}
 
     var caster := get_character(request.actor_id)
-    var target := get_character(request.target_id) if not request.target_id.is_empty() else null
+    var target: CharacterState = get_character(request.target_id) if not request.target_id.is_empty() else null
     if caster == null or not caster.can_act():
         return {"ok": false, "reason": "caster_unavailable"}
-
     var saved_spell: Variant = request.options.get("prepared_spell", {})
     if not saved_spell is Dictionary:
         return {"ok": false, "reason": "missing_prepared_spell"}
     var prepared := PreparedSpell.from_dict(saved_spell)
     if prepared == null or not prepared.is_valid():
         return {"ok": false, "reason": "invalid_prepared_spell"}
-
     var spell_id := prepared.base_spell_id
     if not caster.unlocked_base_spells.has(spell_id) and int(caster.skills.get("learn_%s" % spell_id, 0)) <= 0:
         return {"ok": false, "reason": "spell_not_learned"}
@@ -694,7 +700,6 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
         return {"ok": false, "reason": String(variant.get("reason", "invalid_spell_variant"))}
     if not SpellRules.supports_initial_cast(spell_id, variant):
         return {"ok": false, "reason": "spell_variant_effect_not_implemented"}
-
     var target_validation := SpellEffectRules.validate(self, caster, target, prepared, variant, request)
     if not bool(target_validation.get("ok", false)):
         return {"ok": false, "reason": String(target_validation.get("reason", "invalid_spell_target"))}
@@ -709,7 +714,41 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
     if not bool(affordability.get("ok", false)):
         return {"ok": false, "reason": String(affordability.get("reason", "insufficient_mana"))}
 
-    # All checks are complete. The following payment/effect phase cannot reject.
+    var context := {
+        "caster_id": caster.id,
+        "target_id": target.id if target != null else "",
+        "prepared_spell": prepared.to_dict(),
+        "variant": variant.duplicate(true),
+        "request_options": request.options.duplicate(true),
+        "request_destination": request.destination,
+        "random_seed": random_seed,
+        "time_point_cost": tp_cost,
+        "armour_penalty": armour_penalty,
+        "total_mana_cost": total_mana_cost,
+        "affordability": affordability.duplicate(true)
+    }
+    if is_in_combat and spell_id != "counterspell":
+        var counter_result := _offer_counterspell_reaction(context, caster, target)
+        if not counter_result.is_empty():
+            return counter_result
+    return _complete_spell_cast(context)
+
+
+func _complete_spell_cast(context: Dictionary) -> Dictionary:
+    var caster := get_character(String(context.get("caster_id", "")))
+    var target := get_character(String(context.get("target_id", "")))
+    if caster == null or not caster.can_act():
+        return {"ok": false, "reason": "caster_unavailable"}
+    var prepared := PreparedSpell.from_dict(context.get("prepared_spell", {}))
+    if prepared == null:
+        return {"ok": false, "reason": "invalid_prepared_spell"}
+    var variant: Dictionary = context.get("variant", {})
+    var tp_cost := float(context.get("time_point_cost", 0.0))
+    var armour_penalty := int(context.get("armour_penalty", 0))
+    var total_mana_cost := int(context.get("total_mana_cost", 0))
+    var affordability: Dictionary = context.get("affordability", {})
+    if not caster.can_spend_time_points(tp_cost) or not bool(SpellRules.cast_affordability(caster, total_mana_cost).get("ok", false)):
+        return {"ok": false, "reason": "resources_changed_before_cast"}
     if not caster.spend_time_points(tp_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
     caster.current_mana -= int(affordability.get("mana_to_spend", 0))
@@ -717,15 +756,23 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
     if blood_hp_cost > 0:
         caster.apply_damage(blood_hp_cost)
 
-    # Divine Silence ends when its target successfully begins another spell.
     caster.remove_spell_effect("divine_silence")
+    var spell_id := prepared.base_spell_id
     var is_offensive := spell_id in ["firebolt", "smite_evil", "divine_silence", "dragon_breath", "entangle", "temporal_rift"]
     if is_offensive and target != null:
         _apply_spell_protection_triggers(caster, target)
     if is_offensive:
         caster.remove_spell_effect("sanctuary")
 
-    var cast_id := "%s:%d:%s" % [caster.id, clock.tick_index, spell_id]
+    var request := SimulationActionRequest.new(
+        SimulationActionRequest.ActionType.CAST_SPELL,
+        caster.id,
+        target.id if target != null else "",
+        context.get("request_destination", Vector2i.ZERO),
+        0.0,
+        context.get("request_options", {})
+    )
+    var cast_id := "%s:%d:%s:%d" % [caster.id, clock.tick_index, spell_id, int(context.get("random_seed", 0))]
     var effect_payload := SpellEffectRules.apply(self, caster, target, prepared, variant, request, cast_id)
     effect_payload["spell_id"] = spell_id
     effect_payload["spell_name"] = String(variant.get("name", spell_id))
@@ -737,13 +784,147 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
     effect_payload["core_mana_cost"] = int(variant.get("core_mana_cost", variant.get("mana_cost", 0)))
     effect_payload["caster_mana_remaining"] = caster.current_mana
     effect_payload["caster_health"] = caster.health
-
-    var result_data := SimulationActionResult.new("cast_spell", true, "", caster.id, target.id if target != null else "", effect_payload).to_dict()
-    action_committed.emit(SimulationEvent.new("spell_cast", caster.id, target.id if target != null else "", result_data))
+    var target_id := target.id if target != null else ""
+    var result_data := SimulationActionResult.new("cast_spell", true, "", caster.id, target_id, effect_payload).to_dict()
+    action_committed.emit(SimulationEvent.new("spell_cast", caster.id, target_id, result_data))
     combat_action_resolved.emit(result_data)
     if is_in_combat and caster.should_end_turn():
         try_end_current_turn()
     return result_data
+
+
+func _offer_counterspell_reaction(context: Dictionary, caster: CharacterState, target: CharacterState) -> Dictionary:
+    var options: Array[Dictionary] = []
+    var player_options: Array[Dictionary] = []
+    for value in characters.values():
+        var reactor := value as CharacterState
+        if reactor == null or not reactor.can_act() or reactor.reaction_blocked or reactor.side == caster.side:
+            continue
+        if not reactor.unlocked_base_spells.has("counterspell") and int(reactor.skills.get("learn_counterspell", 0)) <= 0:
+            continue
+        var prepared_counter: PreparedSpell
+        for saved in reactor.prepared_spells:
+            var candidate := PreparedSpell.from_dict(saved)
+            if candidate != null and candidate.base_spell_id == "counterspell":
+                prepared_counter = candidate
+                break
+        if prepared_counter == null:
+            prepared_counter = PreparedSpell.create("counterspell")
+        var counter_variant := SpellRules.compute_variant("counterspell", prepared_counter.modifiers, reactor.skills)
+        if not bool(counter_variant.get("ok", false)):
+            continue
+        var counter_range := maxi(1, int(counter_variant.get("range", 1)))
+        var target_in_range := HexGrid.distance(reactor.axial, caster.axial) <= counter_range
+        if target != null:
+            target_in_range = target_in_range or HexGrid.distance(reactor.axial, target.axial) <= counter_range
+        if not target_in_range or not reactor.can_spend_time_points(5.0):
+            continue
+        var counter_penalty := SpellRules.armour_mana_penalty(reactor, "arcane")
+        var counter_cost := int(counter_variant.get("mana_cost", 10)) + counter_penalty
+        var counter_affordability := SpellRules.cast_affordability(reactor, counter_cost)
+        if not bool(counter_affordability.get("ok", false)):
+            continue
+        var option := {
+            "id": "counterspell_%s" % reactor.id,
+            "name": "Counterspell — %s" % reactor.display_name,
+            "tp_cost": 5.0,
+            "reactor_id": reactor.id,
+            "effect": "counterspell",
+            "prepared_spell": prepared_counter.to_dict(),
+            "mana_cost": counter_cost,
+            "mana_to_spend": int(counter_affordability.get("mana_to_spend", 0)),
+            "hp_cost": int(counter_affordability.get("hp_cost", 0))
+        }
+        options.append(option)
+        if reactor.side == "player":
+            player_options.append(option)
+
+    if caster.side == "player":
+        # Enemy counterspell decisions mirror the source game's 50% AI response.
+        var enemy_options: Array[Dictionary] = []
+        for option in options:
+            var reactor := get_character(String(option.get("reactor_id", "")))
+            if reactor != null and reactor.side != "player":
+                enemy_options.append(option)
+        if not enemy_options.is_empty():
+            var rng := RandomNumberGenerator.new()
+            rng.seed = int(context.get("random_seed", 0)) if int(context.get("random_seed", 0)) != 0 else int(caster.id.hash())
+            if rng.randf() < 0.5:
+                var selected: Dictionary = enemy_options[0]
+                var reactor := get_character(String(selected.get("reactor_id", "")))
+                if reactor != null and reactor.spend_time_points(5.0):
+                    reactor.current_mana -= int(selected.get("mana_to_spend", 0))
+                    if int(selected.get("hp_cost", 0)) > 0:
+                        reactor.apply_damage(int(selected.get("hp_cost", 0)))
+                    return _resolve_countered_spell(context, reactor, caster, selected)
+    elif not player_options.is_empty():
+        pending_spell_context = context.duplicate(true)
+        var first_reactor_id := String(player_options[0].get("reactor_id", ""))
+        var reaction_result := request_reaction(first_reactor_id, player_options, "spell:%s:%s" % [caster.id, prepared_spell_id(context)])
+        if bool(reaction_result.get("pending", false)):
+            return {"ok": true, "pending": true, "action_type": "cast_spell", "request_id": reaction_result.get("request_id", 0)}
+        pending_spell_context.clear()
+    return {}
+
+
+func prepared_spell_id(context: Dictionary) -> String:
+    var prepared := PreparedSpell.from_dict(context.get("prepared_spell", {}))
+    return prepared.base_spell_id if prepared != null else ""
+
+
+func _resume_pending_spell(choice_id: String, reason: String) -> void:
+    var context := pending_spell_context.duplicate(true)
+    pending_spell_context.clear()
+    if context.is_empty() or reason == "combat_ended":
+        return
+    if reason == "selected" and choice_id.begins_with("counterspell_"):
+        var reactor_id := choice_id.trim_prefix("counterspell_")
+        var reactor := get_character(reactor_id)
+        if reactor == null:
+            _complete_spell_cast(context)
+            return
+        var option: Dictionary = {}
+        for candidate in pending_reaction.get("options", []):
+            if String(candidate.get("id", "")) == choice_id:
+                option = candidate
+                break
+        # _finish_pending_reaction clears the request before resuming; the
+        # selected option is retained in this context by resolve_reaction.
+        option = context.get("selected_counterspell", option)
+        if option.is_empty():
+            return
+        reactor.current_mana -= int(option.get("mana_to_spend", 0))
+        if int(option.get("hp_cost", 0)) > 0:
+            reactor.apply_damage(int(option.get("hp_cost", 0)))
+        var caster := get_character(String(context.get("caster_id", "")))
+        if caster != null:
+            var caster_cost := int(context.get("total_mana_cost", 0))
+            var caster_affordability := SpellRules.cast_affordability(caster, caster_cost)
+            if bool(caster_affordability.get("ok", false)):
+                caster.current_mana -= int(caster_affordability.get("mana_to_spend", 0))
+                if int(caster_affordability.get("hp_cost", 0)) > 0:
+                    caster.apply_damage(int(caster_affordability.get("hp_cost", 0)))
+        _resolve_countered_spell(context, reactor, caster, option)
+        return
+    _complete_spell_cast(context)
+
+
+func _resolve_countered_spell(context: Dictionary, reactor: CharacterState, caster: CharacterState, option: Dictionary) -> Dictionary:
+    var payload := {
+        "countered": true,
+        "counterspell_reactor_id": reactor.id,
+        "counterspell_mana_cost": int(option.get("mana_cost", 0)),
+        "caster_mana_remaining": caster.current_mana if caster != null else 0
+    }
+    var result := SimulationActionResult.new(
+        "cast_spell", true, "countered", caster.id if caster != null else "",
+        "", payload
+    ).to_dict()
+    action_committed.emit(SimulationEvent.new("spell_countered", reactor.id, caster.id if caster != null else "", result))
+    combat_action_resolved.emit(result)
+    if is_in_combat and turn_scheduler.has_active_turn():
+        try_end_current_turn(true)
+    return result
 
 
 func _apply_spell_protection_triggers(attacker: CharacterState, target: CharacterState) -> void:
