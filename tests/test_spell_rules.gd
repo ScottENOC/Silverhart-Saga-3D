@@ -86,6 +86,7 @@ func _test_slowed_subtle_heal() -> void:
         "subtle": true
     }
     var skills := {
+        "divine_burst": 1,
         "divine_slowed": 1,
         "divine_magnitude": 2,
         "divine_expand": 1,
