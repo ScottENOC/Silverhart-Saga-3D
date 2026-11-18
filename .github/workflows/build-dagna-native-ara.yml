@@ -1,4 +1,5 @@
 name: Build Dagna native Ara character
+# Appearance-only preview: deliberately no elf-ear pass, dialogue, or quest integration.
 
 on:
   push:
