@@ -1198,6 +1198,8 @@ func _submit_move(request: SimulationActionRequest) -> Dictionary:
     var cost := request.time_point_cost
     if terrain_cost:
         cost = MovementRules.step_cost(map_data, movement_state.axial, request.destination, movement_state)
+    if state.has_spell_effect("entangled"):
+        cost += 5.0
     if not is_finite(cost) or cost < 0.0:
         return {"ok": false, "reason": "invalid_action_cost"}
     if not movement_state.can_spend_time_points(cost):
@@ -1248,23 +1250,19 @@ func try_end_current_turn(forced: bool = false) -> bool:
             mount.time_points = minf(mount.time_points, float(ActionEconomy.TURN_END_TP))
     return ended
 func _advance_character_spell_effects(state: CharacterState, gained_tp: float) -> void:
-    if state == null or gained_tp <= 0.0:
+    if state == null:
         return
     for index in range(state.spell_effects.size() - 1, -1, -1):
         var effect: Dictionary = state.spell_effects[index]
-        if String(effect.get("effect_id", "")) == "divine_silence":
-            var damage_per_tick := float(effect.get("magnitude", 6)) * 0.05 * gained_tp
-            var whole_damage := floori(damage_per_tick)
+        if String(effect.get("effect_id", "")) == "divine_silence" and gained_tp > 0.0:
+            var accumulated := float(effect.get("damage_remainder", 0.0)) + float(effect.get("magnitude", 6)) * 0.05 * gained_tp
+            var whole_damage := floori(accumulated)
             if whole_damage > 0:
                 state.apply_damage(whole_damage)
-                effect["damage_remainder"] = damage_per_tick - float(whole_damage)
-            else:
-                effect["damage_remainder"] = float(effect.get("damage_remainder", 0.0)) + damage_per_tick
-                if float(effect["damage_remainder"]) >= 1.0:
-                    state.apply_damage(floori(float(effect["damage_remainder"])))
-                    effect["damage_remainder"] = fposmod(float(effect["damage_remainder"]), 1.0)
+                accumulated -= float(whole_damage)
+            effect["damage_remainder"] = accumulated
         if effect.has("ticks_remaining"):
-            effect["ticks_remaining"] = float(effect.get("ticks_remaining", 0.0)) - gained_tp
+            effect["ticks_remaining"] = float(effect.get("ticks_remaining", 0.0)) - 1.0
             if float(effect["ticks_remaining"]) <= 0.0:
                 state.spell_effects.remove_at(index)
                 continue
