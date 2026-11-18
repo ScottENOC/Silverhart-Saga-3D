@@ -70,6 +70,8 @@ static func validate(
         if not simulation.map_data.is_walkable(target_hex) or simulation.is_hex_occupied(target_hex):
             return {"ok": false, "reason": "summon_hex_unavailable"}
     elif spell_id in ["dragon_breath", "entangle"] or area_spell:
+        if HexGrid.distance(caster.axial, target_hex) > maxi(1, int(variant.get("range", 1))):
+            return {"ok": false, "reason": "target_out_of_range"}
         if not simulation.map_data.is_walkable(target_hex):
             return {"ok": false, "reason": "area_hex_unavailable"}
     else:
@@ -250,6 +252,35 @@ static func _apply_spell_damage(target: CharacterState, magnitude: int) -> int:
 static func _spell_hit_chance(caster: CharacterState, target: CharacterState, spell_id: String) -> float:
     var bonus := int(caster.skills.get("%s_hit" % spell_id, 0)) * 5
     return clampf(50.0 + caster.to_hit_spell + float(bonus) - target.passive_dodge, 0.0, 100.0)
+
+
+static func _create_summon(simulation: WorldSimulation, caster: CharacterState, prepared: PreparedSpell, hex: Vector2i) -> CharacterState:
+    var kind := String(prepared.modifiers.get("summon_id", "wolf"))
+    var profiles := {
+        "wolf": {"health": 18, "damage": 4, "tags": ["animal"], "flying": false},
+        "boar": {"health": 24, "damage": 3, "tags": ["animal"], "flying": false},
+        "tiger": {"health": 22, "damage": 6, "tags": ["animal"], "flying": false},
+        "eagle": {"health": 14, "damage": 4, "tags": ["animal"], "flying": true},
+        "unicorn": {"health": 30, "damage": 7, "tags": ["animal", "fey"], "flying": false}
+    }
+    var profile: Dictionary = profiles.get(kind, profiles["wolf"])
+    var summon_id := "summon_%s_%d_%d" % [caster.id, simulation.clock.tick_index, simulation.characters.size()]
+    var summon := CharacterState.new(summon_id, "Summoned %s" % kind.capitalize(), hex)
+    summon.side = caster.side
+    summon.race = kind
+    summon.creature_kind = kind
+    summon.health = int(profile["health"])
+    summon.max_health = int(profile["health"])
+    summon.base_damage = int(profile["damage"])
+    summon.tags = []
+    for tag in profile["tags"]:
+        summon.tags.append(String(tag))
+    summon.is_flying = bool(profile["flying"])
+    summon.is_summoned = true
+    summon.summoned_by_id = caster.id
+    summon.time_points = 100.0
+    simulation.register_character(summon)
+    return summon
 
 
 static func consume_feather_fall(target: CharacterState) -> bool:
