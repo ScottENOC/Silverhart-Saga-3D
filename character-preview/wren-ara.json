@@ -54,9 +54,13 @@
     "expression": "neutral",
     "teeth": "teeth_base",
     "tongue": true,
-    "ageYears": 25,
+    "ageYears": 25
+  },
+  "character_details": {
     "piercings": [
       "nipple_left"
-    ]
+    ],
+    "tattoos": [],
+    "tattoo_ink": "#28252D"
   }
 }
