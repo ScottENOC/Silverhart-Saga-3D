@@ -777,6 +777,25 @@ func _test_combat_ai_decisions() -> void:
     _check(not COMBAT_AI.take_turn(spell_sim, caster, ai_heal_enemy_ids, ai_party_ids), "AI should finish its turn after a successful Heal")
     _check(wounded_ally.health == 2 and not wounded_ally.unconscious, "NPC AI should use the shared Heal resolver to revive an ally")
     _check(caster.current_mana == 14, "NPC Heal should pay the same shared mana cost as a player cast")
+
+    var bolt_caster := CharacterState.new("ai_bolt_caster", "AI Bolt Caster", Vector2i(10, 0))
+    var bolt_target := CharacterState.new("ai_bolt_target", "AI Bolt Target", Vector2i(12, 0))
+    bolt_caster.side = "enemy"
+    bolt_caster.current_mana = 10
+    bolt_caster.to_hit_ranged = 100.0
+    bolt_caster.unlocked_base_spells = ["firebolt"]
+    var npc_firebolt := PreparedSpell.create("firebolt")
+    bolt_caster.prepared_spells = [npc_firebolt.to_dict()]
+    bolt_target.side = "player"
+    bolt_target.health = 30
+    bolt_target.max_health = 30
+    spell_sim.register_character(bolt_caster)
+    spell_sim.register_character(bolt_target)
+    spell_sim.turn_scheduler.current_character_id = bolt_caster.id
+    var bolt_enemy_ids: Array[String] = [bolt_caster.id]
+    var bolt_party_ids: Array[String] = [bolt_target.id]
+    _check(not COMBAT_AI.take_turn(spell_sim, bolt_caster, bolt_enemy_ids, bolt_party_ids), "AI should finish its turn after a successful Firebolt")
+    _check(bolt_target.health == 25 and bolt_caster.current_mana == 5, "NPC Firebolt should use the shared damage and mana rules")
     spell_sim.free()
 
     var turn_sim := WorldSimulation.new()
