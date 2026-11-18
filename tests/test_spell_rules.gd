@@ -19,6 +19,7 @@ func _run() -> void:
     _test_touch_and_mana_floor()
     _test_invalid_combinations()
     _test_modifier_skills_are_required()
+    _test_summon_species_skills_and_costs()
     _test_prepared_spell_round_trip()
 
     if _failures > 0:
@@ -150,6 +151,28 @@ func _test_modifier_skills_are_required() -> void:
         {"arcane_quickened": 1, "arcane_burst": 1, "arcane_expand": 1, "arcane_magnitude": 1, "arcane_range": 1, "arcane_targets": 1}
     )
     _check(bool(unlocked.get("ok", false)), "A legal set of purchased Arcane skills should unlock the corresponding variant")
+
+    
+func _test_summon_species_skills_and_costs() -> void:
+    var locked_boar := SPELL_RULES.compute_variant("summon_animal", {"summon_id": "boar"})
+    _check(String(locked_boar.get("reason", "")) == "boar_summon_skill_required", "Boar summoning should require its dedicated skill")
+
+    var boar := SPELL_RULES.compute_variant("summon_animal", {"summon_id": "boar"}, {"learn_boar_summon": 1})
+    _check(bool(boar.get("ok", false)), "Boar summoning should unlock with Boar Summoning")
+    _check(int(boar.get("mana_cost", -1)) == 18, "Boar summoning should add its 8 mana surcharge")
+    _check(int(boar.get("core_mana_cost", -1)) == 18, "Summon surcharge should be included in core mana cost")
+
+    var tiger := SPELL_RULES.compute_variant("summon_animal", {"summon_id": "tiger"}, {"learn_tiger_summon": 1})
+    _check(int(tiger.get("mana_cost", -1)) == 25, "Tiger summoning should add its 15 mana surcharge")
+
+    var eagle := SPELL_RULES.compute_variant("summon_animal", {"summon_id": "eagle"}, {"learn_eagle_summon": 1})
+    _check(int(eagle.get("mana_cost", -1)) == 15, "Eagle summoning should add its 5 mana surcharge")
+
+    var unicorn := SPELL_RULES.compute_variant(
+        "summon_animal", {"summon_id": "unicorn"},
+        {"learn_unicorn_summon": 1, "animal_companion": 1}
+    )
+    _check(bool(unicorn.get("ok", false)), "Unicorn summoning should require and accept both earned bond skills")
 
     
 func _test_prepared_spell_round_trip() -> void:
