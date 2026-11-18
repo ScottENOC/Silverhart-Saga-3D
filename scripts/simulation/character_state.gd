@@ -47,6 +47,7 @@ var prepared_spells: Array[Dictionary] = []
 var spell_effects: Array[Dictionary] = []
 var summoned_by_id: String = ""
 var is_summoned: bool = false
+var is_animal_companion: bool = false
 var is_flying: bool = false
 var gold: int = 0
 var game_mode: String = "campaign"
@@ -389,6 +390,7 @@ func to_dict() -> Dictionary:
         "spell_effects": spell_effects.duplicate(true),
         "summoned_by_id": summoned_by_id,
         "is_summoned": is_summoned,
+        "is_animal_companion": is_animal_companion,
         "is_flying": is_flying,
         "gold": gold,
         "game_mode": game_mode,
@@ -512,6 +514,7 @@ static func from_dict(data: Dictionary) -> CharacterState:
             state.spell_effects.append(saved_effect.duplicate(true))
     state.summoned_by_id = String(data.get("summoned_by_id", ""))
     state.is_summoned = bool(data.get("is_summoned", false))
+    state.is_animal_companion = bool(data.get("is_animal_companion", false))
     state.is_flying = bool(data.get("is_flying", false))
     var saved_prepared_spells: Array = data.get("prepared_spells", [])
     for saved_spell in saved_prepared_spells:
