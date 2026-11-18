@@ -230,16 +230,16 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
                   Vector((centre.x, back, shoulder_z - height * .16))], height * .0028, True)
             for side in (-1.0, 1.0):
                 path([Vector((centre.x, back, shoulder_z - height * .015)),
-                      Vector((centre.x + side * width * .055, back, shoulder_z + height * .025)),
-                      Vector((centre.x + side * width * .090, back, shoulder_z + height * .005)),
-                      Vector((centre.x + side * width * .110, back, shoulder_z - height * .055))],
+                      Vector((centre.x + side * width * .045, back, shoulder_z + height * .025)),
+                      Vector((centre.x + side * width * .075, back, shoulder_z + height * .005)),
+                      Vector((centre.x + side * width * .085, back, shoulder_z - height * .055))],
                      height * .0045, True)
                 for feather in range(3):
-                    x = centre.x + side * width * (0.060 + feather * 0.032)
+                    x = centre.x + side * width * (0.035 + feather * 0.020)
                     zz = shoulder_z + height * (0.012 - feather * 0.012)
                     path([Vector((x, back, zz)),
-                          Vector((x + side * width * .014, back, zz - height * .045)),
-                          Vector((x + side * width * .020, back, zz - height * .065))],
+                          Vector((x + side * width * .008, back, zz - height * .045)),
+                          Vector((x + side * width * .012, back, zz - height * .065))],
                          height * .0035, True)
             star = Vector((centre.x, back, shoulder_z + height * .035))
             path(star_points(star, height * .014), height * .014 * .11, True)
