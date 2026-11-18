@@ -203,6 +203,20 @@ func _test_school_passive_skill_effects() -> void:
     _check(character.max_spell_slots == 12, "School Spell Mastery ranks should add two prepared slots each")
     _check(is_equal_approx(character.mana_regeneration_per_time_point(), 0.4), "Mana regeneration should stack at 0.1 per rank on top of the 0.1 base rate")
 
+    character.unlocked_base_spells = [
+        "firebolt", "heal", "smite_evil", "divine_silence", "sanctuary",
+        "divine_protection", "summon_animal", "counterspell", "dragon_breath",
+        "entangle", "wild_fury", "calm_animal", "disguise_self"
+    ]
+    for spell_id in character.unlocked_base_spells.slice(0, 12):
+        var prepared_result := character.prepare_spell(PREPARED_SPELL.create(String(spell_id)))
+        _check(bool(prepared_result.get("ok", false)), "Prepared spell slots should accept a known spell while capacity remains")
+    var full_result := character.prepare_spell(PREPARED_SPELL.create("disguise_self"))
+    _check(String(full_result.get("reason", "")) == "prepared_spell_slots_full", "Spell Mastery capacity should be enforced when preparing spells")
+    _check(character.unprepare_spell(PREPARED_SPELL.create("firebolt")), "A prepared spell should be removable to free a slot")
+    _check(bool(character.prepare_spell(PREPARED_SPELL.create("disguise_self")).get("ok", false)), "Removing a prepared spell should free a slot")
+
+
     var restored = CHARACTER_STATE.from_dict(character.to_dict())
     _check(restored.max_mana == 40 and restored.current_mana == 40, "School Mana effects should not be applied twice on load")
     _check(restored.max_spell_slots == 12, "Spell slot increases should survive save/load")
