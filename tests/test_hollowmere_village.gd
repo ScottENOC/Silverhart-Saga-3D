@@ -186,17 +186,17 @@ func _test_animal_actor_registration() -> void:
     simulation.free()
 
 func _test_village_uses_shared_vegetation_generator() -> void:
-	var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
-	village.call("_create_forest")
-	var canopy_count := 0
-	var understorey_count := 0
-	for child in village.get_children():
-		if String(child.name).begins_with("HollowmereTree_"):
-			canopy_count += 1
-		elif String(child.name).begins_with("HollowmereUnderstorey_"):
-			understorey_count += 1
-		if String(child.name).begins_with("HollowmereTree_") or String(child.name).begins_with("HollowmereUnderstorey_"):
-			assert(child.has_meta("vegetation_family"), "Generated vegetation must identify its shared catalogue family")
-	assert(canopy_count > 0, "The shared generator should populate Hollowmere's canopy")
-	assert(understorey_count > 0, "The shared generator should populate Hollowmere's understorey")
-	village.free()
+    var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
+    village.call("_create_forest")
+    var canopy_count := 0
+    var understorey_count := 0
+    for child in village.get_children():
+        if String(child.name).begins_with("HollowmereTree_"):
+            canopy_count += 1
+        elif String(child.name).begins_with("HollowmereUnderstorey_"):
+            understorey_count += 1
+        if String(child.name).begins_with("HollowmereTree_") or String(child.name).begins_with("HollowmereUnderstorey_"):
+            assert(child.has_meta("vegetation_family"), "Generated vegetation must identify its shared catalogue family")
+    assert(canopy_count > 0, "The shared generator should populate Hollowmere's canopy")
+    assert(understorey_count > 0, "The shared generator should populate Hollowmere's understorey")
+    village.free()
