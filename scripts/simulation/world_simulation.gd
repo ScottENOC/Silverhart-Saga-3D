@@ -790,6 +790,18 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     var affordability: Dictionary = context.get("affordability", {})
     if not caster.can_spend_time_points(tp_cost) or not bool(SpellRules.cast_affordability(caster, total_mana_cost).get("ok", false)):
         return {"ok": false, "reason": "resources_changed_before_cast"}
+    var extra_target_ids: Array = context.get("extra_target_ids", [])
+    for extra_id_value in extra_target_ids:
+        var extra_target := get_character(String(extra_id_value))
+        if extra_target == null or not extra_target.can_be_targeted():
+            return {"ok": false, "reason": "extra_target_unavailable"}
+        if prepared.base_spell_id == "heal":
+            if extra_target.side != caster.side:
+                return {"ok": false, "reason": "spell_requires_ally"}
+        elif extra_target.side == caster.side:
+            return {"ok": false, "reason": "spell_requires_opponent"}
+        if HexGrid.distance(caster.axial, extra_target.axial) > maxi(1, int(variant.get("range", 1))):
+            return {"ok": false, "reason": "target_out_of_range"}
     if not caster.spend_time_points(tp_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
     caster.current_mana -= int(affordability.get("mana_to_spend", 0))
@@ -828,12 +840,9 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     var cast_id := "%s:%d:%s:%d" % [caster.id, clock.tick_index, spell_id, int(context.get("random_seed", 0))]
     var effect_payload: Dictionary = _spell_effect_rules.apply(self, caster, target, prepared, variant, request, cast_id)
     var extra_target_results: Array[Dictionary] = []
-    var extra_target_ids: Array = context.get("extra_target_ids", [])
     for extra_id_value in extra_target_ids:
         var extra_id := String(extra_id_value)
-        var extra_target := get_character(extra_id)
-        if extra_target == null or not extra_target.can_be_targeted():
-            return {"ok": false, "reason": "extra_target_unavailable_before_resolution"}
+        var extra_target: CharacterState = get_character(extra_id)
         var extra_payload: Dictionary = _spell_effect_rules.apply(
             self, caster, extra_target, prepared, variant, request, "%s:%s" % [cast_id, extra_id]
         )
