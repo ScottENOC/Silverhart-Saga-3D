@@ -1,6 +1,13 @@
 name: Female anatomy surface v2 preview
 
 on:
+  push:
+    branches: [feature/female-anatomy-surface-v2]
+    paths:
+      - "tools/blender/add_female_anatomy_surface.py"
+      - ".github/workflows/female-anatomy-surface-v2.yml"
+      - "tools/blender/build_ara_body_morphs.py"
+      - "character-preview/wren-ara.json"
   pull_request:
     branches: [dev_2]
     paths:
