@@ -47,8 +47,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/wren-native/ara-export
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          profile = json.loads(Path("character-preview/wren-ara.json").read_text())
+          profile.pop("character_details", None)
+          Path("build/wren-native/ara-export-profile.json").write_text(json.dumps(profile, indent=2) + "\\n")
+          PY
           npx --yes ara3d@latest export \
-            --params character-preview/wren-ara.json \
+            --params build/wren-native/ara-export-profile.json \
             --detail high --no-animations --formats glb,zip \
             --out build/wren-native/ara-export
           raw_glb="$(find build/wren-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
