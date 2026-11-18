@@ -6,18 +6,18 @@
   "params": {
     "name": "Mirabel Quill",
     "gender": 0,
-    "muscle": 0.3,
-    "weight": 0.68,
-    "height": 0.42,
-    "proportions": 0.72,
-    "breastSize": 0.88,
-    "breastFirmness": 0.2,
+    "muscle": 0.18,
+    "weight": 0.25,
+    "height": 0.7,
+    "proportions": 0.52,
+    "breastSize": 0.5,
+    "breastFirmness": 0.45,
     "skin": "auto",
-    "skinTint": "#A66B50",
-    "eyes": "brown",
+    "skinTint": "#E8C9AE",
+    "eyes": "lightblue",
     "hair": "long01",
-    "hairTint": "#39221C",
-    "hairColor": "#39221C",
+    "hairTint": "#E8D59C",
+    "hairColor": "#E8D59C",
     "facialHair": "none",
     "outfit": "none",
     "top": "none",
@@ -40,9 +40,10 @@
     "tongue": true,
     "ageYears": 45,
     "modifiers": {
-      "buttocks/buttocks-volume": 0.55,
-      "hip/hip-scale-horiz": 0.42,
-      "hip/hip-scale-depth": 0.35
+      "buttocks/buttocks-volume": 0.18,
+      "hip/hip-scale-horiz": 0.1,
+      "hip/hip-scale-depth": 0.1,
+      "armslegs/upperarm-shoulder-muscle:decr|incr": -0.15
     },
     "seed": 4517
   }
