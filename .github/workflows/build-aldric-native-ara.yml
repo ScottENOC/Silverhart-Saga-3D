@@ -131,7 +131,7 @@ jobs:
             --rendering-method gl_compatibility \
             --rendering-driver opengl3 \
             --script res://tools/review/aldric_native_preview.gd
-          for view in front side threequarter face pelvis; do
+          for view in front side threequarter face pelvis abdomen; do
             test -s "build/aldric-native-preview-project/build/aldric-native/preview/$view.png"
           done
           test -s build/aldric-native-preview-project/build/aldric-native/preview/render-report.json
@@ -153,7 +153,7 @@ jobs:
               archive.write(root / "Aldric.glb", "Aldric.glb")
               archive.write(Path("character-preview/aldric-ara.json"), "aldric-ara.json")
               archive.write(root / "preview/render-report.json", "preview/render-report.json")
-              for view in ("front", "side", "threequarter", "face", "pelvis"):
+              for view in ("front", "side", "threequarter", "face", "pelvis", "abdomen"):
                   archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
               archive.writestr("README.txt", readme)
           PY
