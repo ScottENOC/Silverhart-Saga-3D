@@ -1,0 +1,164 @@
+name: Build Mirabel native Ara character
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "character-preview/mirabel-ara.json"
+      - ".github/workflows/build-mirabel-native-ara.yml"
+      - "tools/review/mirabel_native_preview.gd"
+      - "tools/review/recolor_wren_glb.py"
+      - "tools/blender/add_adult_anatomy.py"
+      - "tools/blender/add_elf_ears.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-mirabel-native-ara
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate Mirabel profile and preview script
+        run: |
+          set -euo pipefail
+          python -m json.tool character-preview/mirabel-ara.json >/dev/null
+          python -m py_compile tools/blender/add_adult_anatomy.py tools/blender/add_elf_ears.py tools/review/recolor_wren_glb.py
+
+      - name: Install Ara export dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-pil python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Generate unclothed native Ara body and hair
+        run: |
+          set -euo pipefail
+          mkdir -p build/mirabel-native/ara-export
+          npx --yes ara3d@latest export \
+            --params character-preview/mirabel-ara.json \
+            --detail high --no-animations --formats glb,zip \
+            --out build/mirabel-native/ara-export
+          raw_glb="$(find build/mirabel-native/ara-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$raw_glb"
+          test -s "$raw_glb"
+          cp "$raw_glb" build/mirabel-native/Mirabel-ara-base.glb
+
+      - name: Add female adult anatomy with the established Blender sculpt
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_adult_anatomy.py -- \
+            --input build/mirabel-native/Mirabel-ara-base.glb \
+            --output build/mirabel-native/Mirabel-anatomy.glb \
+            --profile female --adult
+          test -s build/mirabel-native/Mirabel-anatomy.glb
+
+      - name: Add reusable pointed elf ears
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_elf_ears.py -- \
+            --input build/mirabel-native/Mirabel-anatomy.glb \
+            --output build/mirabel-native/Mirabel.glb \
+            --length 0.050 --rise 0.012 --sweep 0.012 --strength 1.0
+          test -s build/mirabel-native/Mirabel.glb
+
+      - name: Apply Mirabel skin and hair colours
+        run: |
+          set -euo pipefail
+          python tools/review/recolor_wren_glb.py \
+            --model build/mirabel-native/Mirabel.glb \
+            --profile character-preview/mirabel-ara.json \
+            --hair-gamma 0.28
+          test -s build/mirabel-native/Mirabel.glb
+
+      - name: Assemble isolated Godot preview project
+        run: |
+          set -euo pipefail
+          preview=build/mirabel-native-preview-project
+          mkdir -p "$preview/build/mirabel-native" "$preview/tools/review"
+          cp build/mirabel-native/Mirabel.glb "$preview/build/mirabel-native/Mirabel.glb"
+          cp tools/review/mirabel_native_preview.gd "$preview/tools/review/mirabel_native_preview.gd"
+          cat > "$preview/project.godot" <<'EOF'
+          ; Isolated preview project: no game scenes, scripts, or autoloads.
+          config_version=5
+          [application]
+          config/name="Mirabel Native Ara Preview"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Install virtual display and software OpenGL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+
+      - name: Import and render Mirabel
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          godot --headless --editor --path build/mirabel-native-preview-project --quit
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/mirabel-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/mirabel_native_preview.gd
+          for view in front side threequarter face pelvis; do
+            test -s "build/mirabel-native-preview-project/build/mirabel-native/preview/$view.png"
+          done
+          test -s build/mirabel-native-preview-project/build/mirabel-native/preview/render-report.json
+          cp -R build/mirabel-native-preview-project/build/mirabel-native/preview build/mirabel-native/preview
+
+      - name: Package model and visual review
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          root = Path("build/mirabel-native")
+          readme = """Ser Mirabel Thorne — first-pass native Ara character.
+          Unclothed body and hair only; no outfit, underwear, shoes or accessories.
+          The model is generated from mirabel-ara.json and retains Ara's game rig
+          and facial blend shapes. This is a visual first pass, not final approval.
+          Regenerate with the Build Mirabel native Ara character workflow on dev.
+          """
+          with zipfile.ZipFile(root / "Mirabel_native_Ara_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              archive.write(root / "Mirabel.glb", "Mirabel.glb")
+              archive.write(Path("character-preview/mirabel-ara.json"), "mirabel-ara.json")
+              archive.write(root / "preview/render-report.json", "preview/render-report.json")
+              for view in ("front", "side", "threequarter", "face", "pelvis"):
+                  archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
+              archive.writestr("README.txt", readme)
+          PY
+
+      - name: Upload Mirabel model and visual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: mirabel-native-ara-${{ github.run_number }}
+          path: |
+            build/mirabel-native/Mirabel.glb
+            build/mirabel-native/Mirabel_native_Ara_bundle.zip
+            build/mirabel-native/preview/
+          if-no-files-found: error
+          retention-days: 30
