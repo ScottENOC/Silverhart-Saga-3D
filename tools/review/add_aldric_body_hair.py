@@ -108,10 +108,10 @@ def main():
         elif args.coverage == "reyna":
             if 0.66 <= yn <= 0.80 and 0.075 <= abs(x) <= 0.19 and abs(z) > 0.035:
                 region = "armpits"
-            elif front and 0.22 <= yn <= 0.33 and abs(x) <= 0.10:
+            elif front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
                 region = "pubic"
         elif args.coverage == "dagna":
-            if front and 0.22 <= yn <= 0.33 and abs(x) <= 0.10:
+            if front and 0.32 <= yn <= 0.40 and abs(x) <= 0.10:
                 region = "pubic"
         else:
             if front and 0.70 <= yn <= 0.76 and 0.105 <= abs(x) <= 0.155:
@@ -127,7 +127,7 @@ def main():
                     diamond_half_width = 0.060 * max(0.0, 1.0 - abs(yn - 0.65) / 0.055)
                     if 0.595 <= yn <= 0.705 and abs(x) <= diamond_half_width:
                         region = "chest"
-                if region is None and 0.34 <= yn <= 0.73 and 0.16 <= abs(x) <= 0.30:
+                if region is None and 0.34 <= yn <= 0.73 and 0.30 <= abs(x) <= 0.45:
                     region = "arms"
                 elif region is None and 0.05 <= yn <= 0.36 and 0.055 <= abs(x) <= 0.145:
                     region = "legs"
@@ -153,7 +153,7 @@ def main():
     elif args.coverage == "reyna":
         densities = {"armpits": 1250, "pubic": 520}
     elif args.coverage == "dagna":
-        densities = {"pubic": 2000}
+        densities = {"pubic": 2500}
     elif args.coverage == "aldric":
         # Bias density toward the front centreline so the chest, pubic patch,
         # and snail trail read as one continuous central pattern rather than
@@ -166,15 +166,15 @@ def main():
     hair_rgb = tuple(int(colour_hex[i:i + 2], 16) for i in (0, 2, 4))
     for region, count in densities.items():
         mask = masks[region]
-        pixels = mask.load()
+        # Sample directly from eligible UV pixels. Repeated random guesses over
+        # the entire 2048x2048 texture under-filled small regions (notably the
+        # narrow Aldric snail trail and Wren's landing strip).
+        valid_pixels = np.argwhere(np.asarray(mask) > 0)
+        if not len(valid_pixels):
+            raise RuntimeError(f"No eligible UV pixels remain for body-hair region {region!r}")
         for _ in range(count):
-            for _attempt in range(100):
-                x = rng.randrange(width)
-                y = rng.randrange(height)
-                if pixels[x, y] > 0:
-                    break
-            else:
-                continue
+            pixel_y, pixel_x = valid_pixels[rng.randrange(len(valid_pixels))]
+            x, y = int(pixel_x), int(pixel_y)
             length = rng.uniform(3.0, 8.0) if region == "armpits" else rng.uniform(4.0, 11.0)
             if region == "landing_strip":
                 length = rng.uniform(3.5, 7.0)
@@ -182,8 +182,12 @@ def main():
             else:
                 angle = rng.uniform(-1.1, 1.1) if region == "armpits" else rng.uniform(-0.85, 0.85)
             dx, dy = np.cos(angle) * length, np.sin(angle) * length
-            shade = (*hair_rgb, rng.randint(175, 215))
-            stroke_width = 2 if (args.coverage == "aldric" and region != "armpits") or region == "landing_strip" else 1
+            alpha_range = (210, 240) if args.coverage == "dagna" and region == "pubic" else (175, 215)
+            shade = (*hair_rgb, rng.randint(*alpha_range))
+            if region == "snail_trail":
+                stroke_width = 1
+            else:
+                stroke_width = 2 if (args.coverage == "aldric" and region != "armpits") or region == "landing_strip" or (args.coverage == "dagna" and region == "pubic") else 1
             draw.line((x, y, x + dx, y + dy), fill=shade, width=stroke_width)
             counts[region] += 1
 
