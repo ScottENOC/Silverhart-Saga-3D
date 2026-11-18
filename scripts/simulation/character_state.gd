@@ -336,6 +336,34 @@ func apply_poison_damage(amount: int) -> String:
         return "died"
     return "poisoned"
 
+func prepare_spell(prepared: PreparedSpell) -> Dictionary:
+    if prepared == null or not prepared.is_valid():
+        return {"ok": false, "reason": "invalid_prepared_spell"}
+    sync_skill_effects()
+    var spell_id := prepared.base_spell_id
+    if not unlocked_base_spells.has(spell_id) and int(skills.get("learn_%s" % spell_id, 0)) <= 0:
+        return {"ok": false, "reason": "spell_not_learned"}
+    for saved_value in prepared_spells:
+        var saved_spell := PreparedSpell.from_dict(saved_value)
+        if saved_spell != null and saved_spell.base_spell_id == prepared.base_spell_id and saved_spell.modifiers == prepared.modifiers:
+            return {"ok": false, "reason": "spell_already_prepared"}
+    if prepared_spells.size() >= max_spell_slots:
+        return {"ok": false, "reason": "prepared_spell_slots_full", "max_spell_slots": max_spell_slots}
+    prepared_spells.append(prepared.to_dict())
+    return {"ok": true, "reason": "prepared", "slots_used": prepared_spells.size(), "max_spell_slots": max_spell_slots}
+
+
+func unprepare_spell(prepared: PreparedSpell) -> bool:
+    if prepared == null:
+        return false
+    for index in range(prepared_spells.size()):
+        var saved_spell := PreparedSpell.from_dict(prepared_spells[index])
+        if saved_spell != null and saved_spell.base_spell_id == prepared.base_spell_id and saved_spell.modifiers == prepared.modifiers:
+            prepared_spells.remove_at(index)
+            return true
+    return false
+
+
 func add_spell_effect(effect: Dictionary) -> void:
     var effect_id := String(effect.get("effect_id", ""))
     if effect_id.is_empty():
