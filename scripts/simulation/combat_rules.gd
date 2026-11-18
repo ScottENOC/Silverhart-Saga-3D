@@ -117,8 +117,10 @@ static func raw_damage(attacker: CharacterState, options: Dictionary = {}) -> in
     return maxi(1, damage)
 
 static func damage_reduction(target: CharacterState) -> int:
+    var curse := target.get_spell_effect("curse")
+    var curse_reduction := maxi(0, int(curse.get("damage_reduction", 0)))
     if target.caught_off_guard:
-        return 0
+        return curse_reduction
     var reduction := target.base_reduction + target.armour_reduction
     var equipped_armour: Dictionary = target.equipped_item_data.get("armour", {})
     reduction += int(equipped_armour.get("reduction", 0))
@@ -134,8 +136,7 @@ static func damage_reduction(target: CharacterState) -> int:
     var equipped_helmet: Dictionary = target.equipped_item_data.get("helmet", {})
     reduction += target.helmet_reduction + int(equipped_helmet.get("reduction", 0)) + target.temp_reduction
     reduction += 2 * int(target.skills.get("spectral_form", 0) > 0)
-    var curse := target.get_spell_effect("curse")
-    reduction += maxi(0, int(curse.get("damage_reduction", 0)))
+    reduction += curse_reduction
     return maxi(0, reduction)
 
 static func resolve_attack(
