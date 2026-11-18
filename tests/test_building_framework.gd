@@ -5,6 +5,7 @@ const REGISTRY_SCRIPT = preload("res://scripts/world/building_registry.gd")
 const MAP_SCRIPT = preload("res://scripts/core/hex_map_data.gd")
 const WORLD_SIM_SCRIPT = preload("res://scripts/simulation/world_simulation.gd")
 const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
+const WORLD_GEOMETRY_FACTORY = preload("res://scripts/world/world_geometry_factory.gd")
 
 func _initialize() -> void:
     _test_door_lifecycle()
@@ -13,6 +14,7 @@ func _initialize() -> void:
     _test_world_simulation_save_round_trip()
     _test_character_floor_relocation()
     _test_building_layout_registration()
+    _test_shared_world_geometry_factory()
     print("Building framework tests passed.")
     quit()
 
@@ -127,3 +129,23 @@ func _test_building_layout_registration() -> void:
     assert(not missing_door_cell_simulation.building_registry.definitions.has("test_inn"), "Invalid layouts must not partially register buildings.")
     missing_door_cell_simulation.free()
     simulation.free()
+
+func _test_shared_world_geometry_factory() -> void:
+    var parent := Node3D.new()
+    var material := WORLD_GEOMETRY_FACTORY.make_material(Color(0.2, 0.3, 0.4), 0.65, BaseMaterial3D.CULL_DISABLED)
+    var box := WORLD_GEOMETRY_FACTORY.add_box(
+        parent,
+        "FactoryTestBox",
+        Vector3(1.0, 2.0, 3.0),
+        Vector3(4.0, 5.0, 6.0),
+        material
+    )
+    assert(box != null, "The shared factory should create a box mesh.")
+    assert(box.get_parent() == parent, "The shared factory should attach the box to its requested parent.")
+    assert(box.name == "FactoryTestBox")
+    assert(box.position == Vector3(1.0, 2.0, 3.0))
+    assert(box.mesh is BoxMesh and (box.mesh as BoxMesh).size == Vector3(4.0, 5.0, 6.0))
+    assert(box.material_override == material, "The shared factory should preserve the supplied material.")
+    assert(is_equal_approx(material.roughness, 0.65))
+    assert(material.cull_mode == BaseMaterial3D.CULL_DISABLED, "Callers must be able to preserve two-sided material rendering.")
+    parent.free()

@@ -2,6 +2,7 @@ class_name HollowTankard
 extends Node3D
 
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
+const WORLD_GEOMETRY_FACTORY = preload("res://scripts/world/world_geometry_factory.gd")
 const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_timeline.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
@@ -156,11 +157,7 @@ func _create_materials() -> void:
     path_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 
 func _material(colour: Color) -> StandardMaterial3D:
-    var result := StandardMaterial3D.new()
-    result.albedo_color = colour
-    result.roughness = 0.88
-    result.cull_mode = BaseMaterial3D.CULL_DISABLED
-    return result
+    return WORLD_GEOMETRY_FACTORY.make_material(colour, 0.88, BaseMaterial3D.CULL_DISABLED)
 
 func _create_lighting() -> void:
     var sun := DirectionalLight3D.new()
@@ -2585,15 +2582,7 @@ func _hex_world_position(hex: Vector2i) -> Vector3:
     return HexGrid.axial_to_world(hex, HEX_RADIUS, 0.12 if inside_room else 0.0)
 
 func _add_box(parent: Node3D, node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
-    var instance := MeshInstance3D.new()
-    instance.name = node_name
-    var box := BoxMesh.new()
-    box.size = size
-    instance.mesh = box
-    instance.position = position
-    instance.material_override = material
-    parent.add_child(instance)
-    return instance
+    return WORLD_GEOMETRY_FACTORY.add_box(parent, node_name, position, size, material)
 
 
 func apply_player_profile(profile: Dictionary) -> void:

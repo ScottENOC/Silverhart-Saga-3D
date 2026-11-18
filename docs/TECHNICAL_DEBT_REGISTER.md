@@ -1,9 +1,10 @@
 # Technical Debt Register
 
-**Baseline:** `dev_2` at `a8b5987ebdc12b016d99e2550349f17a8fd62645` (13 November 2026)
-**Working branch:** `tech-debt/register-and-test-split`
-**Integration target:** `dev_2`
-**Status:** Initial inventory; priorities are provisional until dependency and runtime audits are complete.
+**Historical baseline:** `dev_2` at `a8b5987ebdc12b016d99e2550349f17a8fd62645` (13 November 2026)
+**Current audit snapshot:** `dev` at `56d3e21a63fcdfae1a3ebbc8a1aa4902d8c0471b` (18 November 2026)
+**Working branch:** `tech-debt/current-ownership-audit`
+**Integration target:** `dev`
+**Status:** Updated after a current-branch ownership review; implementation priorities remain subject to runtime and dependency verification.
 
 This register tracks structural improvements without treating file length alone as a defect. The objective is to make systems independently understandable, testable and reusable, while preserving gameplay behaviour.
 
@@ -47,10 +48,10 @@ Apply the same principle to `hollowmere_village.gd`: village-specific content sh
 | ID | Priority | Area | Baseline evidence | Intended outcome | Status |
 |---|---|---|---|---|---|
 | TD-001 | P0 | Baseline and validation | CI passed at baseline commit; user has not yet performed hands-on review of this candidate | Preserve baseline SHA, know which automated checks run, record any failures before each refactor | Recorded |
-| TD-002 | P0 | Simulation test organisation | `tests/test_simulation.gd` is 2,172 lines and contains broad campaign, character, movement, combat, reaction and animal/riding coverage | Split into cohesive domain suites; retain assertions and coverage; no gameplay changes | Planned |
-| TD-003 | P1 | Hollow Tankard location God Object | `scripts/world/hollow_tankard.gd` is 2,836 lines; it combines construction, actors, UI, input/camera, narrative, combat, resources and persistence responsibilities | Replace bespoke location implementation with reusable systems and location data; leave at most a thin composition entry point | Planned |
-| TD-004 | P1 | WorldSimulation cohesion | `scripts/simulation/world_simulation.gd` is 1,211 lines; owns broad registration, movement, combat/action, reactions, animal/riding and persistence coordination | Separate cohesive domain services while retaining one authoritative state/coordinator and stable action/event contracts | Planned |
-| TD-005 | P1 | Hollowmere village construction | `scripts/world/hollowmere_village.gd` is 645 lines and constructs environment, buildings, vegetation, fields/fences and creatures | Move reusable construction/presentation into generic builders; retain Hollowmere-specific layout/content as data | Planned |
+| TD-002 | P0 | Simulation test organisation | The original 2,172-line `tests/test_simulation.gd` is absent from current `dev`; its domains now have separate suites and explicit CI steps | Confirm assertion parity and suite independence; retain the split suites | Implemented; parity audit pending |
+| TD-003 | P1 | Hollow Tankard location God Object | Current `scripts/world/hollow_tankard.gd` is 2,604 lines; it still combines building geometry, map registration, actor spawning, story/dialogue, encounter orchestration, HUD, camera/input, movement presentation, resources and persistence | Reduce to location composition and authored content; move reusable responsibilities to their owning systems | Active audit; extraction not started |
+| TD-004 | P1 | WorldSimulation cohesion | Current `scripts/simulation/world_simulation.gd` is 1,724 lines; one authoritative state owner coordinates character/party lifecycle, mounts, movement, combat/reactions, spell casting, resources, clock and persistence | Extract cohesive domain services without creating competing state owners or changing action/event contracts | Audit required; preserve single state owner |
+| TD-005 | P1 | Hollowmere village construction | Current `scripts/world/hollowmere_village.gd` is 579 lines; vegetation now delegates to `WorldVegetationGenerator`, but buildings, farm, fields/fences, creatures and biome selection remain in the location script | Keep Hollowmere layout/content local; extract genuinely reusable building/farm/creature presentation | Partially improved; building ownership audit required |
 | TD-006 | P2 | Character presentation actor | `scripts/presentation/ara_character_actor.gd` is 26,429 bytes | Separate model/rig loading, equipment/appearance application, animation and actor lifecycle where boundaries are cohesive | Planned |
 | TD-007 | P2 | Character creator UI | `scripts/ui/player_character_creator.gd` is 26,234 bytes | Separate UI flow from character-creation rules, data validation and preview/presentation | Planned |
 | TD-008 | P2 | NPC skill spending | `scripts/simulation/npc_skill_spending.gd` is 28,884 bytes | Audit rule ownership, data inputs and decision boundaries; reduce duplicated progression logic | Planned |
@@ -123,6 +124,116 @@ Audit duplicated sources of truth, stale generated files, pipeline idempotency/c
 - Keep the parked fog/vision work out of the current sequence.
 - Character assembly work that depends on the finalised body model remains gated by that model; do not refactor it prematurely.
 
-## 6. Immediate next task
 
-Start TD-002: inspect the complete `tests/test_simulation.gd` test/helper inventory, identify shared setup and order dependencies, then propose the exact file split. Do not edit or move test code until that inventory is complete. The first implementation PR should be test-only and behaviour-preserving.
+## 6. Current immediate task
+
+The low-level TD-012 primitive extraction is implemented. A comparative review of the three current building paths found no safe shared wall/opening/roof composition contract yet: the tavern uses segmented walls with window apertures, live hinged door presentation, upper-storey cutaway and bespoke stairs; Hollowmere cottages use cardinal-orientation variants with a common door-wall helper, while the farm barn is a separate authored structure; Campaign 2 uses a rotated, east-entry house with timber-trimmed walls and its own interior/porch details. These are similar visual concepts but not the same construction contract. Do not introduce a generic wall/roof builder just to remove superficial repetition. Keep those layouts local until a second concrete consumer needs the same defined composition.
+
+Next TD-003 slice is dependency mapping, not immediate extraction: isolate the input/movement-presentation cluster from the rest of HollowTankard and document its callbacks, state, and scene dependencies. The current input handler also dispatches combat, interaction, gathering, party/UI and save/load commands, so it must not be moved wholesale into a generic movement controller.
+
+### TD-003 — input and route movement dependency map
+
+The current input/presentation seam is more coupled than a simple keyboard handler:
+
+- `_unhandled_input()` routes mouse clicks to screen-to-hex projection and path selection; keyboard commands dispatch quick save/load, attack, end turn, gather, door/stair/NPC interaction, party switching, character/skill/inventory panels, roof visibility, facing rotation and six-direction movement.
+- `_screen_position_to_hex()` depends on the active viewport camera, ray-plane intersection, the current character's floor, tavern-specific upper-floor elevation/origin, `HexGrid` conversion and `simulation.map_data` bounds.
+- Route state is held by `active_path`, `path_markers` and `path_step_accumulator`; `_set_move_destination()` calls `simulation.find_path()`, while `_advance_path_step()` checks pause/reaction/combat-turn state, current character state and movement-point cost, then calls `simulation.try_move_character_step()` and replans if the route becomes invalid.
+- Marker presentation depends on the tavern's `tile_mesh`, `path_material`, scene-tree parent and `_hex_world_position()` callback. That callback itself contains the upper-floor coordinate transform.
+- `_process()` currently schedules route steps alongside autosave, ambient chatter, story proximity, quest spawning, combat updates and nearby-interaction refresh.
+
+Ownership conclusion: WorldSimulation remains the sole authority for pathfinding, movement cost, occupancy and committed movement. HollowTankard currently owns player command dispatch and the location-specific camera/floor projection. A future extraction should separate input dispatch from route execution and keep the upper-floor transform injectable; do not move combat, interaction or persistence commands into a movement controller. The first testable candidate is a route controller with explicit simulation and presentation dependencies, but it needs a focused scene-level test for click-to-move, route replanning, movement-point waiting and upper-floor transitions before extraction.
+
+## 7. Current-branch audit — 18 November 2026
+
+This section supersedes stale status assumptions in the original 13 November inventory. Measurements below are from the named current snapshot, not from the historical baseline.
+
+### Branch and validation position
+
+- dev is a descendant of dev_2; the comparison at this audit found dev 265 commits ahead and zero commits behind dev_2.
+- The current audit branch was created from dev at commit 56d3e21a63fcdfae1a3ebbc8a1aa4902d8c0471b. Changes here remain isolated until reviewed.
+- The current Godot validation workflow explicitly runs the split character, campaign, items, movement, combat/reaction and animal/riding suites. It also runs the building framework, campaign UI, save/restore, character appearance, vegetation and world-content suites.
+- PR #164's Godot validation run 44249820137 was cancelled before completion: the 15-spell visual-effect test was in progress and all later suites remained pending. Treat this as inconclusive; a fresh full run is required.
+- The separate Combat initiative preview workflow failed because it still invoked the deleted `tests/test_simulation.gd`. Its workflow now invokes the six current split domain suites instead; confirm the new run reaches the screenshot step.
+- The most recent Godot validation run found for dev was cancelled (run [44237510473](https://github.com/ScottENOC/Silverhart-Saga-3D/actions/runs/44237510473), commit d20fa886). The current snapshot therefore needs a fresh successful Godot validation run before structural changes can be accepted. Character-pipeline jobs are separate and must not be treated as Godot validation.
+
+### TD-002 — test split is already implemented
+
+The old tests/test_simulation.gd no longer exists on current dev. The current workflow invokes separate suites including:
+
+- tests/test_character_systems.gd
+- tests/test_campaign_content.gd
+- tests/test_items_and_equipment.gd
+- tests/test_world_movement.gd
+- tests/test_combat_and_reactions.gd
+- tests/test_animals_and_riding.gd
+
+The split is real and wired into CI. What remains unverified by this audit is exact assertion parity against the removed monolith and whether any shared fixtures rely on execution order. Do not re-split these suites without evidence of a cohesion or isolation problem.
+
+### TD-003 — HollowTankard responsibility map
+
+Current scripts/world/hollow_tankard.gd is 2,604 lines. Its responsibilities include:
+
+1. Location map-cell registration and building/door layout registration.
+2. Tavern building, upper floor, furniture, materials and primitive mesh construction.
+3. Authored grove and resource placement.
+4. Character and creature actor spawning and placement.
+5. Hollowmere story progression, dialogue, companion recruitment and ambient chatter.
+6. Encounter lifecycle and player-facing combat orchestration.
+7. HUD/panels, camera, keyboard/mouse input, path queue and movement presentation.
+8. Save/load snapshot creation and restoration.
+9. Resource visual refresh and spell visual-effect dispatch.
+
+Important boundary distinction: the tavern currently calls WorldSimulation for authoritative movement, attacks, harvesting and spell actions, and delegates enemy turns to CombatAI. This is not evidence that it duplicates all combat rules. The debt is that the location script still owns too much orchestration, input/presentation and scenario-specific spawning alongside scene construction.
+
+WorldRoot is already the campaign composition root: it creates and owns the shared WorldSimulation, registers initial campaign quest definitions, creates HollowmereVillage and HollowTankard, then registers village animal actors. Preserve this boundary. HollowTankard's location-specific map-cell and building-layout registration is legitimate location assembly; the reusable registration mechanics belong in the existing building framework.
+
+Candidate extraction order, after dependency tracing:
+
+- Player input and route-presentation controller (keep path legality and movement authority in WorldSimulation).
+- Location/encounter composition for wolf and shakedown scenarios (keep quest content and encounter rules in their existing simulation/content owners).
+- Save/load orchestration boundary (keep serialization ownership in SaveManager / persistence contracts).
+- Tavern visual construction into authored building data plus reusable presentation builders.
+
+Do not extract all of these in one PR. Each slice needs a named owner, explicit inputs/signals and a regression test.
+
+### TD-005 / vegetation — shared generator now exists
+
+Current scripts/world/world_vegetation_generator.gd is a 148-line shared generator. Both HollowTankard and HollowmereVillage use it:
+
+- HollowTankard passes four authored tree placements to generate_authored_placements().
+- HollowmereVillage passes local terrain/biome predicates and family-selection callbacks to generate_hex_grid().
+- Candidate filtering and biome choice remain location-specific; deterministic placement, asset catalogue loading and model instancing are shared.
+
+This resolves the previously identified duplicate tree-generation implementation on current dev. Preserve the useful separation: locations supply content rules, the generator owns reusable placement/instancing.
+
+### New finding — building presentation has three overlapping owners
+
+Current dev contains at least three independent procedural building-rendering paths:
+
+- scripts/world/hollow_tankard.gd: _create_building(), _create_upper_floor_rooms(), _create_furniture(), wall/window/box helpers.
+- scripts/world/hollowmere_village.gd: _create_cottage(), _create_farmstead(), door-wall and box helpers, farm buildings and fences.
+- scripts/world/campaign2_settlement_builder.gd: _build_building(), wall and box helpers for generated settlements.
+
+BuildingRegistry and BuildingLayoutRegistrar currently own logical building/door registration and walkability, not the shared visual construction contract. They do not eliminate this presentation duplication.
+
+Add TD-012 (P1): define a reusable building-visual composition contract for common primitives (walls, openings, roofs, doors, foundations and material assignment), while allowing each location/settlement to supply authored geometry/layout data. Do not force unique tavern furniture or bespoke landmark details into a generic builder. The common box/material primitive extraction is now implemented; compare the three builders' wall/opening inputs and scene assumptions before extracting a higher-level composition helper.
+
+Initial implementation on the current audit branch: `WorldGeometryFactory` now owns shared BoxMesh creation/attachment and StandardMaterial3D creation. HollowTankard, HollowmereVillage and Campaign2SettlementBuilder delegate their duplicated `_add_box()` helpers to it; HollowTankard and Campaign2SettlementBuilder also delegate material construction while preserving their distinct culling/roughness settings. Their building layouts, wall patterns, openings, roofs, furniture and landmark details remain local. `test_building_framework.gd` now verifies factory parenting, naming, dimensions, transform, material assignment and material settings. A follow-up comparison confirms that the three higher-level building systems do not currently share a sufficiently consistent wall/opening/roof contract for another abstraction to be justified. The primitive factory is the appropriate shared boundary for now.
+
+### Open work that must not be mistaken for completed work
+
+- PR [#149](https://github.com/ScottENOC/Silverhart-Saga-3D/pull/149), nearby interaction panel extraction, remains open and targets dev_2; its new panel file is not present on current dev. It is not counted as integrated.
+- PR #130 remains draft/in progress and must be left untouched.
+- PR #87 remains gated on acceptance of the final character model and must be left untouched.
+- Vision/fog remains parked.
+
+### Updated execution order
+
+1. Refresh and pass Godot validation on the current dev snapshot.
+2. Audit TD-002 assertion parity only; do not repeat the already completed split.
+3. Finish the TD-003 dependency/ownership map, including node ownership, external callers, signals and scene assumptions.
+4. Resolve TD-012's shared building-visual contract before extracting more location-specific mesh code.
+5. Extract one small HollowTankard vertical slice at a time, with behaviour-preserving tests.
+6. Revisit WorldSimulation domain extraction only after mapping its callers and preserving one authoritative state owner.
+
+Every extraction must be a separate focused change. Avoid combining feature work, character pipeline changes or gameplay-rule changes with structural refactors.
