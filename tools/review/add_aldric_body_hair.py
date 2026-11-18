@@ -84,6 +84,14 @@ def main():
         # front and rear UV faces so the texture wraps around the limbs.
         front = z > 0.035
         region = None
+        uv = uvs[tri]
+        polygon = [(float(u * (width - 1)), float((1.0 - v) * (height - 1))) for u, v in uv]
+        # The Ara export can combine the scrotal surface with the lower pubic
+        # UV island. Paint this sub-region independently before the broader
+        # pubic classification so it is not swallowed by that mask.
+        if args.coverage == "aldric" and front and 0.265 <= yn <= 0.405 and abs(x) <= 0.125:
+            draws["scrotum"].polygon(polygon, fill=255)
+            regions["scrotum"] += 1
         if front and 0.67 <= yn <= 0.79 and 0.075 <= abs(x) <= 0.19:
             region = "armpits"
         elif front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
@@ -97,12 +105,8 @@ def main():
                 region = "legs"
             elif region is None and front and 0.38 <= yn <= 0.50 and abs(x) <= 0.018:
                 region = "snail_trail"
-            elif region is None and front and 0.285 <= yn <= 0.385 and abs(x) <= 0.075:
-                region = "scrotum"
         if region is None:
             continue
-        uv = uvs[tri]
-        polygon = [(float(u * (width - 1)), float((1.0 - v) * (height - 1))) for u, v in uv]
         draws[region].polygon(polygon, fill=255)
         regions[region] += 1
 
