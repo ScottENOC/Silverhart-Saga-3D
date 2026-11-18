@@ -1,6 +1,6 @@
 # Technical Debt Register
 
-**Baseline:** `dev` at `91a14a17bfb3031e3360072ac8d663f80aee55eb` (18 November 2026)
+**Baseline:** `dev` at `ec72fed51f9c57f7682efff3ef6f7fffca13b95c` (18 November 2026)
 **Stable branch:** `main`
 **Active development and test branch:** `dev`
 **Legacy branch:** `dev_2` (historical reference only; no new work)
@@ -23,7 +23,7 @@ Do not change `main` or `dev_2` as part of routine development. Preserve `dev` h
 
 The current `dev` baseline is recorded above; a successful full validation run against this exact SHA has not yet been recorded. The main Godot workflow now runs the split character/progression, campaign, equipment, world/movement, combat/reaction and animal/riding suites, plus building, UI, save/restore, appearance, world and scene checks. A separate combat-preview workflow still referenced the retired monolithic `tests/test_simulation.gd`; that stale reference is being corrected in this refresh.
 
-A recent PR #151 validation run passed the hex-grid and split domain suites but failed when loading `hollow_tankard.gd` because the PR introduced mixed tabs/spaces at line 254. Its separate character pipeline job also failed on the pre-existing roster entry `tam_wells_human_male`. These are recorded as outstanding validation issues, not evidence that the current `dev` baseline itself failed.
+The superseded PR #151 validation exposed mixed indentation in the tavern script and a validator that rejected the valid `appearance_profile_authored` roster state. Both issues have been addressed in the current-dev vegetation branch; PR #155 is undergoing full Godot and character-pipeline validation. The current `dev` baseline itself has not been shown to fail on either issue.
 
 ## 2. Target architectural principles
 
@@ -46,10 +46,10 @@ Apply the same principle to `hollowmere_village.gd`: village-specific content sh
 | ID | Priority | Area | Baseline evidence | Intended outcome | Status |
 |---|---|---|---|---|---|
 | TD-001 | P0 | Baseline and validation | Current `dev` SHA recorded; full validation against this exact SHA and hands-on review are not yet recorded | Preserve baseline SHA, run the correct current test suites and record failures before each refactor | In progress |
-| TD-002 | P0 | Simulation test organisation | The former monolithic suite has been split into independently runnable character/progression, campaign, equipment, world/movement, combat/reaction and animal/riding suites | Keep CI references aligned with the split suites; retain independent testability | Complete; CI reference cleanup in progress |
+| TD-002 | P0 | Simulation test organisation | The former monolithic suite has been split into independently runnable character/progression, campaign, equipment, world/movement, combat/reaction and animal/riding suites | Keep CI references aligned with the split suites; retain independent testability | Complete; secondary CI workflow updated to use the split suites; validation pending |
 | TD-003 | P1 | Hollow Tankard location God Object | `scripts/world/hollow_tankard.gd` is 2,552 lines / 123,261 bytes; it still combines construction, actors, UI, input/camera, narrative, combat, resources and persistence | Extract cohesive vertical slices into reusable systems and location data; leave a thin composition entry point | Planned |
 | TD-004 | P1 | WorldSimulation cohesion | `scripts/simulation/world_simulation.gd` is 1,332 lines / 68,079 bytes; coordinates registration, movement, combat/actions, reactions, animal/riding and lifecycle | Extract cohesive domain services while retaining one authoritative state/coordinator and stable action/event contracts | Planned |
-| TD-005 | P1 | Hollowmere village construction | `scripts/world/hollowmere_village.gd` is 644 lines / 31,999 bytes and constructs environment, buildings, vegetation, fields/fences and creatures | One shared world vegetation generator must own placement and asset selection across all locations; continue separating reusable construction from Hollowmere content | In progress — PR #151 is stale against current `dev` and requires reconciliation/validation |
+| TD-005 | P1 | Hollowmere village construction | `scripts/world/hollowmere_village.gd` is 644 lines / 31,999 bytes and constructs environment, buildings, vegetation, fields/fences and creatures | One shared world vegetation generator must own placement and asset selection across all locations; continue separating reusable construction from Hollowmere content | In progress — current-dev implementation on PR #155; full validation pending |
 | TD-006 | P2 | Character presentation actor | `scripts/presentation/ara_character_actor.gd` is 714 lines / 33,276 bytes | Separate model/rig loading, equipment/appearance application, animation and actor lifecycle only at stable boundaries | Planned; defer until Ara pipeline stabilises |
 | TD-007 | P2 | Character creator UI | `scripts/ui/player_character_creator.gd` is 489 lines / 26,040 bytes | Separate UI flow from character-creation rules, data validation and preview/presentation | Planned |
 | TD-008 | P2 | NPC skill spending | `scripts/simulation/npc_skill_spending.gd` is 543 lines / 28,884 bytes | Audit rule ownership, data inputs and decision boundaries before deciding whether extraction is warranted | Audit needed |
@@ -115,10 +115,11 @@ Audit duplicated sources of truth, stale generated files, pipeline idempotency/c
 
 ## 6. Immediate next tasks
 
-1. Reconcile the shared vegetation generator with the latest `dev` state, fix the mixed-indentation parse error, and ensure tavern resource placements remain intact.
-2. Update all CI workflows to invoke the split test suites; verify the full Godot workflow against the resulting feature head.
-3. Recover the useful nearby-interaction panel extraction from PR #149 onto a branch based on `dev`; do not merge its `dev_2`-based branch.
-4. Begin HollowTankard decomposition with one tested vertical slice at a time, then map WorldSimulation ownership before extracting services.
-5. Audit character-pipeline roster status and generation idempotency separately from the world refactors.
+1. Complete full validation of PR #155 and merge it into `dev` only if all relevant checks pass; then close the superseded PR #151.
+2. Recover the useful nearby-interaction panel extraction from PR #149 onto a branch based on the then-current `dev`; do not merge its `dev_2`-based branch.
+3. Begin HollowTankard decomposition with one tested vertical slice at a time, then map WorldSimulation ownership before extracting services.
+4. Continue the character-pipeline reliability audit separately from world refactors.
+
+PR #153's register/CI changes are included as prerequisite commits in PR #155; close PR #153 as superseded once PR #155 is merged.
 
 Keep fog/vision parked. Defer Ara actor/creator decomposition until the current character-generation workflow stabilises.
