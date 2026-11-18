@@ -15,7 +15,6 @@ static func take_turn(
     var calm_effect := combatant.get_spell_effect("calmed")
     if not calm_effect.is_empty():
         var caster := simulation.get_character(String(calm_effect.get("source_id", "")))
-        var moved := false
         if combatant.time_points >= 10.0 and caster != null and caster.alive:
             var mode := String(calm_effect.get("mode", "stay"))
             var destination := INVALID_HEX
@@ -32,7 +31,7 @@ static func take_turn(
                         best_distance = candidate_distance
                         destination = candidate
             if destination != INVALID_HEX:
-                moved = simulation.relocate_character(combatant.id, destination)
+                simulation.relocate_character(combatant.id, destination)
             combatant.spend_time_points(10.0)
         else:
             combatant.time_points = 0.0
