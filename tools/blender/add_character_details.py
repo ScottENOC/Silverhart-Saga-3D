@@ -126,7 +126,7 @@ def append_tube(path, radius, back, trees, vertices, faces, sources, skin_invers
         b = a + sides
         for side in range(sides):
             nxt = (side + 1) % sides
-            faces.append((a + side, b + side, b + nxt, a + nxt))
+            faces.append((a + side, a + nxt, b + nxt, b + side))
 
 
 def star_points(centre, radius):
