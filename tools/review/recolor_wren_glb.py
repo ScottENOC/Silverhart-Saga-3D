@@ -219,7 +219,8 @@ def recolor(path: Path, profile_path: Path, hair_gamma: float, grey_strands: boo
         "skin_factor": skin_factor,
         "hair_factor": hair_factor,
         "hair_gamma": hair_gamma,
-        "grey_strands": grey_strands,\n        "bake_hair_tint": bake_hair_tint,
+        "grey_strands": grey_strands,
+        "bake_hair_tint": bake_hair_tint,
         "hair_texture_bytes_before": len(source_bytes),
         "hair_texture_bytes_after": len(hair_png),
         "glb_bytes": len(result),
@@ -231,6 +232,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", required=True, type=Path)
     parser.add_argument("--profile", required=True, type=Path)
     parser.add_argument("--hair-gamma", type=float, default=0.28)
-    parser.add_argument("--grey-strands", action="store_true")\n    parser.add_argument("--bake-hair-tint", action="store_true")
+    parser.add_argument("--grey-strands", action="store_true")
+    parser.add_argument("--bake-hair-tint", action="store_true")
     arguments = parser.parse_args()
     recolor(arguments.model, arguments.profile, arguments.hair_gamma, arguments.grey_strands, arguments.bake_hair_tint)
