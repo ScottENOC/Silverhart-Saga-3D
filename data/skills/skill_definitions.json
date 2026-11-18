@@ -6,7 +6,7 @@
     "file": "skills.js",
     "note": "Includes the 186 direct skill declarations plus 71 unique skills expanded by generateWeaponSkills() and generateMagicSkills(). Metadata only; behavioural functions and apply effects require explicit GDScript ports and tests."
   },
-  "count": 257,
+  "count": 258,
   "skills": [
     {
       "id": "acrobatics",
@@ -1570,6 +1570,17 @@
       "tree": "divine",
       "max_ranks": 1,
       "prerequisite": null,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true
+    },
+    {
+      "id": "learn_divine_strength",
+      "name": "Learn Divine Strength",
+      "description": "Unlocks Divine Strength: target ally gains +3 damage for 20 ticks (8 mana, 10 TP).",
+      "tree": "divine",
+      "max_ranks": 1,
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
