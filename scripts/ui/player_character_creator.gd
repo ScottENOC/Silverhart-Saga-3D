@@ -51,6 +51,10 @@ var height_slider: HSlider
 var preview_status: Label
 var preview_actor: AraCharacterActor
 var preview_variant_loaded: String = ""
+var ear_piercing_check: CheckBox
+var nipple_piercing_check: CheckBox
+var clit_piercing_check: CheckBox
+var tattoo_style_select: OptionButton
 
 func _ready() -> void:
     layer = 100
@@ -227,6 +231,22 @@ func _build_screen() -> void:
         selector.item_selected.connect(_refresh_appearance_preview)
     height_slider.value_changed.connect(_refresh_appearance_preview_value)
 
+
+    _section(panel, "PIERCINGS & TATTOOS")
+    ear_piercing_check = CheckBox.new()
+    ear_piercing_check.text = "Ear hoops / studs"
+    panel.add_child(ear_piercing_check)
+    nipple_piercing_check = CheckBox.new()
+    nipple_piercing_check.text = "Left nipple hoop"
+    panel.add_child(nipple_piercing_check)
+    clit_piercing_check = CheckBox.new()
+    clit_piercing_check.text = "Clitoral hood barbell"
+    panel.add_child(clit_piercing_check)
+    tattoo_style_select = _option_row(panel, "Tattoo design", ["None", "Arcane constellation", "Shoulder-back motif"])
+    for control in [ear_piercing_check, nipple_piercing_check, clit_piercing_check]:
+        control.toggled.connect(_refresh_appearance_preview)
+    tattoo_style_select.item_selected.connect(_refresh_appearance_preview)
+
     _section(panel, "STARTING EQUIPMENT")
     var equipment_note := Label.new()
     equipment_note.text = "Your selected class determines its starting inventory. Equipped armour, weapons and shields appear on the preview when their Workshop and prop assets are installed. You can change equipment later from the in-game Inventory screen."
@@ -309,6 +329,13 @@ func _load_saved_profile() -> void:
     _select_text(hair_style_select, str(data.get("hair_style", "Short 2")))
     _select_text(body_select, str(data.get("body_build", "Average")))
     height_slider.value = clampf(float(data.get("height_scale", 1.0)), 0.90, 1.10)
+    var saved_piercings: Array = data.get("piercings", [])
+    ear_piercing_check.button_pressed = saved_piercings.has("earrings")
+    nipple_piercing_check.button_pressed = saved_piercings.has("nipple_left")
+    clit_piercing_check.button_pressed = saved_piercings.has("clit")
+    var saved_tattoos: Array = data.get("tattoos", [])
+    var saved_design := str(saved_tattoos[0].get("design", "")) if not saved_tattoos.is_empty() and saved_tattoos[0] is Dictionary else ""
+    _select_text(tattoo_style_select, "Arcane constellation" if saved_design == "mirabel_arcane" else ("Shoulder-back motif" if saved_design == "reyna_shoulder_back" else "None"))
     _refresh_character_preview(0)
     _update_mode_controls(game_mode_select.selected)
 
@@ -356,6 +383,7 @@ func _refresh_appearance_preview(_index: int) -> void:
     }
     profile["height"] = inverse_lerp(0.90, 1.10, height_slider.value)
     profile["muscle"] = inverse_lerp(0.96, 1.055, float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)))
+    profile.merge(_appearance_detail_profile(), true)
     preview_actor.apply_player_profile(profile)
     preview_actor.apply_equipment_visuals(_preview_equipment_for_class())
     var hair_id := String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02"))
@@ -376,6 +404,24 @@ func _refresh_appearance_preview(_index: int) -> void:
         preview_status.text = "Loaded 1 of 2 assets · %s body ready. FAILED: hairstyle asset %s is missing or incompatible with the body skeleton." % [variant.capitalize(), hair_id]
     else:
         preview_status.text = "Loaded 1 of 1 assets · Legacy preview model ready. Install the Ara hair bundle to enable separate hairstyles."
+
+
+func _appearance_detail_profile() -> Dictionary:
+    var piercings: Array[String] = []
+    if ear_piercing_check != null and ear_piercing_check.button_pressed:
+        piercings.append("earrings")
+    if nipple_piercing_check != null and nipple_piercing_check.button_pressed:
+        piercings.append("nipple_left")
+    if clit_piercing_check != null and clit_piercing_check.button_pressed:
+        piercings.append("clit")
+    var tattoos: Array[Dictionary] = []
+    if tattoo_style_select != null:
+        match tattoo_style_select.get_item_text(tattoo_style_select.selected):
+            "Arcane constellation":
+                tattoos.append({"design": "mirabel_arcane"})
+            "Shoulder-back motif":
+                tattoos.append({"design": "reyna_shoulder_back"})
+    return {"piercings": piercings, "tattoos": tattoos, "tattoo_ink": "#30283D"}
 
 func _preview_equipment_for_class() -> Dictionary:
     # The creator is an appearance preview, not an equipment/loadout preview.
@@ -473,6 +519,7 @@ func _finish() -> void:
         "hair_style_id": String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02")),
         "body_build": body_select.get_item_text(body_select.selected)
     }
+    profile.merge(_appearance_detail_profile(), true)
     var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
     if file != null:
         file.store_string(JSON.stringify(profile, "\t"))
