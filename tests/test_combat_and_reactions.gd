@@ -751,6 +751,7 @@ func _test_combat_ai_decisions() -> void:
     _check(bool(attack_options.get("unarmed_skill_hit", false)), "Creature AI should enable its natural hit skill")
     _check(int(attack_options.get("unarmed_skill_damage", 0)) == 4, "Creature AI should pass its natural damage rank")
     # Prepared NPCs use the same simulation cast action as player requests.
+    var spell_sim := WorldSimulation.new()
     var caster := CharacterState.new("ai_caster", "AI Caster", Vector2i(0, 0))
     var wounded_ally := CharacterState.new("ai_wounded_ally", "Wounded Ally", Vector2i(1, 0))
     var player_target := CharacterState.new("ai_player_target", "Player Target", Vector2i(4, 0))
@@ -766,17 +767,17 @@ func _test_combat_ai_decisions() -> void:
     wounded_ally.health = 2
     wounded_ally.apply_damage(5)
     player_target.side = "player"
-    sim.register_character(caster)
-    sim.register_character(wounded_ally)
-    sim.register_character(player_target)
-    sim.start_combat()
-    sim.turn_scheduler.current_character_id = caster.id
+    spell_sim.register_character(caster)
+    spell_sim.register_character(wounded_ally)
+    spell_sim.register_character(player_target)
+    spell_sim.start_combat()
+    spell_sim.turn_scheduler.current_character_id = caster.id
     var ai_heal_enemy_ids: Array[String] = [caster.id, wounded_ally.id]
     var ai_party_ids: Array[String] = [player_target.id]
-    _check(not COMBAT_AI.take_turn(sim, caster, ai_heal_enemy_ids, ai_party_ids), "AI should finish its turn after a successful Heal")
+    _check(not COMBAT_AI.take_turn(spell_sim, caster, ai_heal_enemy_ids, ai_party_ids), "AI should finish its turn after a successful Heal")
     _check(wounded_ally.health == 2 and not wounded_ally.unconscious, "NPC AI should use the shared Heal resolver to revive an ally")
     _check(caster.current_mana == 14, "NPC Heal should pay the same shared mana cost as a player cast")
-    sim.free()
+    spell_sim.free()
 
     var turn_sim := WorldSimulation.new()
     var lone_enemy := CharacterState.new("lone_enemy", "Lone Enemy", Vector2i.ZERO)
