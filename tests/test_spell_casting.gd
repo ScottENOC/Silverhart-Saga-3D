@@ -10,6 +10,7 @@ func _initialize() -> void:
     _test_burst_firebolt_uses_area_effect()
     _test_school_mana_cap_rejects_over_budget_variant()
     _test_school_target_skill_casts_multiple_targets()
+    _test_school_target_skill_casts_multiple_heals()
     _test_armour_penalty_and_blood_magic()
     _test_combat_ai_casts_firebolt()
     _test_combat_ai_heals_ally()
@@ -172,6 +173,33 @@ func _test_school_target_skill_casts_multiple_targets() -> void:
     _check(caster.current_mana == 80, "Each additional target should add fifteen mana to the spell cost")
     _check(caster.health == 99, "Sanctuary on an additional target should trigger its Cleric Retribution skill")
     _check(result.get("affected_ids", []).size() == 2, "Multi-target results should report every affected target")
+    simulation.free()
+
+
+func _test_school_target_skill_casts_multiple_heals() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("multi_healer", "player", Vector2i.ZERO)
+    var first := _new_character("heal_first", "player", Vector2i(1, 0))
+    var second := _new_character("heal_second", "player", Vector2i(2, 0))
+    caster.unlocked_base_spells.append("heal")
+    caster.skills["divine_targets"] = 1
+    caster.skills["divine_cap"] = 3
+    caster.current_mana = 100
+    caster.max_mana = 100
+    first.health = 90
+    second.health = 90
+    var prepared := PreparedSpell.create("heal", {"target_bonus": 1})
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(first)
+    simulation.register_character(second)
+
+    var request := SimulationActionRequest.cast_spell_targets(caster.id, [first.id, second.id], prepared)
+    var result := simulation.submit_action(request, 203)
+    _check(bool(result.get("ok", false)), "Divine Presence should allow Heal to select one additional ally")
+    _check(first.health == 95 and second.health == 95, "Multi-target Heal should restore health to every selected ally")
+    _check(caster.current_mana == 79, "Multi-target Heal should pay the additional-target mana surcharge")
+    _check(result.get("affected_ids", []).size() == 2, "Multi-target Heal should report every healed ally")
     simulation.free()
 
 
