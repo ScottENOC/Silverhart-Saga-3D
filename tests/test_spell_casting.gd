@@ -103,6 +103,8 @@ func _test_burst_firebolt_uses_area_effect() -> void:
     var caster := _new_character("burst_caster", "player", Vector2i.ZERO)
     var target := _new_character("burst_target", "enemy", Vector2i(2, 0))
     var nearby := _new_character("burst_nearby", "enemy", Vector2i(3, 0))
+    target.health = 30
+    nearby.health = 30
     caster.unlocked_base_spells.append("firebolt")
     simulation.map_data.add_cell(Vector2i(2, 0))
     for hex in HexGrid.neighbors(Vector2i(2, 0)):
