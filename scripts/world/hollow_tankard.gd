@@ -1,7 +1,7 @@
 class_name HollowTankard
+extends Node3D
 
 const HOLLOWMERE_OPENING_SEQUENCE_SCRIPT = preload("res://scripts/presentation/hollowmere_opening_sequence.gd")
-extends Node3D
 
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_timeline.gd")
