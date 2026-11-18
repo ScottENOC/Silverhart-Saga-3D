@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m json.tool character-preview/dagna-ara.json >/dev/null
-          python -m py_compile tools/blender/add_adult_anatomy.py tools/blender/add_elf_ears.py tools/review/recolor_wren_glb.py
+          python -m py_compile tools/blender/add_adult_anatomy.py tools/review/recolor_wren_glb.py
 
       - name: Install Ara export dependencies
         run: |
@@ -137,7 +137,7 @@ jobs:
           import zipfile
           from pathlib import Path
           root = Path("build/dagna-native")
-          readme = """Dagna Quill — first-pass native Ara character.
+          readme = """Dagna Stoneward — first-pass native Ara character.
           Unclothed body and hair only; no outfit, underwear, shoes or accessories.
           The model is generated from dagna-ara.json and retains Ara's game rig
           and facial blend shapes. This is a visual first pass, not final approval.
