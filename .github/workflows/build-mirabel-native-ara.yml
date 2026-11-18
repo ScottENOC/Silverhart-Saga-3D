@@ -60,7 +60,7 @@ jobs:
           # Preserve them in the source profile; omit only from the Ara export copy.
           for key in ("tattoo_ink", "piercings"):
               params.pop(key, None)
-          target.write_text(json.dumps(data, indent=2) + "\\n")
+          target.write_text(json.dumps(data, indent=2) + "\n")
           PY
           npx --yes ara3d@latest export \
             --params build/mirabel-native/ara-export-profile.json \
