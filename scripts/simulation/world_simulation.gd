@@ -1265,6 +1265,30 @@ func try_end_current_turn(forced: bool = false) -> bool:
         if mount != null:
             mount.time_points = minf(mount.time_points, float(ActionEconomy.TURN_END_TP))
     return ended
+func _advance_character_spell_effects(state: CharacterState, gained_tp: float) -> void:
+    if state == null or gained_tp <= 0.0:
+        return
+    for index in range(state.spell_effects.size() - 1, -1, -1):
+        var effect: Dictionary = state.spell_effects[index]
+        if String(effect.get("effect_id", "")) == "divine_silence":
+            var damage_per_tick := float(effect.get("magnitude", 6)) * 0.05 * gained_tp
+            var whole_damage := floori(damage_per_tick)
+            if whole_damage > 0:
+                state.apply_damage(whole_damage)
+                effect["damage_remainder"] = damage_per_tick - float(whole_damage)
+            else:
+                effect["damage_remainder"] = float(effect.get("damage_remainder", 0.0)) + damage_per_tick
+                if float(effect["damage_remainder"]) >= 1.0:
+                    state.apply_damage(floori(float(effect["damage_remainder"])))
+                    effect["damage_remainder"] = fposmod(float(effect["damage_remainder"]), 1.0)
+        if effect.has("ticks_remaining"):
+            effect["ticks_remaining"] = float(effect.get("ticks_remaining", 0.0)) - gained_tp
+            if float(effect["ticks_remaining"]) <= 0.0:
+                state.spell_effects.remove_at(index)
+                continue
+        state.spell_effects[index] = effect
+
+
 func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
     # Guard direct/test-driven clock advancement as well as the normal
     # _process freeze: no TP or world tick work occurs during an active turn.
@@ -1286,6 +1310,7 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
                         String(effect_event.get("source_id", "")),
                         effect_event
                     ))
+            _advance_character_spell_effects(state, gained_tp)
             if state.alive and gained_tp > 0.0 and state.health < state.max_health:
                 state.health_regen_remainder += state.health_regeneration_per_time_point() * gained_tp
                 var whole_healing := floori(state.health_regen_remainder)
