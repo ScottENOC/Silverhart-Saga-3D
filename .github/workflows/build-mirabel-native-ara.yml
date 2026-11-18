@@ -57,6 +57,7 @@ jobs:
           target = Path("build/mirabel-native/ara-export-profile.json")
           data = json.loads(source.read_text())
           params = data.setdefault("params", {})
+          data.pop("character_details", None)
           # These are project-side metadata, not Ara generator parameters.
           data.pop("character_details", None)
           # Preserve them in the source profile; omit only from the Ara export copy.
