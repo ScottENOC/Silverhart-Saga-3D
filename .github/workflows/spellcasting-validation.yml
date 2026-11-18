@@ -1,6 +1,15 @@
 name: Spellcasting validation
 
 on:
+  push:
+    branches: ["feature/**"]
+    paths:
+      - "scripts/simulation/**"
+      - "data/magic/**"
+      - "tests/test_spell*.gd"
+      - "tests/test_all_spell_effects.gd"
+      - "tests/test_combat_and_reactions.gd"
+      - ".github/workflows/spellcasting-validation.yml"
   pull_request:
     branches: [dev, dev_2, "feature/**"]
     paths:
