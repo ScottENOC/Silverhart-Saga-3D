@@ -107,7 +107,7 @@ def main():
             # 0.55-0.62 Y-up height band. The 0.36-0.45 trial selected the
             # lower abdomen beneath the breasts, so keep the strip down here.
             # A 50 mm total width keeps the denser strokes tightly centred.
-            if front and 0.55 <= yn <= 0.62 and abs(x) <= 0.025:
+            if front and 0.575 <= yn <= 0.615 and abs(x) <= 0.016:
                 region = "landing_strip"
         elif args.coverage == "reyna":
             if 0.66 <= yn <= 0.80 and 0.075 <= abs(x) <= 0.19 and abs(z) > 0.035:
@@ -118,7 +118,13 @@ def main():
             if front and 0.32 <= yn <= 0.40 and abs(x) <= 0.10:
                 region = "pubic"
         else:
-            if front and 0.70 <= yn <= 0.76 and 0.105 <= abs(x) <= 0.155:
+            if args.coverage == "aldric":
+                # Keep Aldric's hair in the compact axillary band only. The
+                # lateral arms/legs masks below previously painted long strips
+                # down the flanks and around the back.
+                if 0.69 <= yn <= 0.77 and 0.105 <= abs(x) <= 0.155 and abs(z) > 0.035:
+                    region = "armpits"
+            elif front and 0.70 <= yn <= 0.76 and 0.105 <= abs(x) <= 0.155:
                 region = "armpits"
             if args.coverage == "aldric":
                 if region is None and front and 0.33 <= yn <= 0.48 and abs(x) <= 0.010:
@@ -128,13 +134,9 @@ def main():
                 elif region is None and front:
                     # A compact sternum diamond: broadest through the centre,
                     # tapering symmetrically toward the collarbone and navel.
-                    diamond_half_width = 0.060 * max(0.0, 1.0 - abs(yn - 0.65) / 0.055)
-                    if 0.595 <= yn <= 0.705 and abs(x) <= diamond_half_width:
+                    diamond_half_width = 0.028 * max(0.0, 1.0 - abs(yn - 0.65) / 0.050)
+                    if 0.60 <= yn <= 0.70 and abs(x) <= diamond_half_width:
                         region = "chest"
-                if region is None and 0.34 <= yn <= 0.73 and 0.30 <= abs(x) <= 0.45:
-                    region = "arms"
-                elif region is None and 0.05 <= yn <= 0.36 and 0.055 <= abs(x) <= 0.145:
-                    region = "legs"
             elif region is None and front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
                 region = "pubic"
         if region is None:
@@ -153,16 +155,15 @@ def main():
     counts = {name: 0 for name in required}
     densities = {"armpits": 170, "pubic": 520}
     if args.coverage == "wren":
-        densities = {"landing_strip": 2600}
+        densities = {"landing_strip": 1400}
     elif args.coverage == "reyna":
         densities = {"armpits": 1250, "pubic": 520}
     elif args.coverage == "dagna":
         densities = {"pubic": 2500}
     elif args.coverage == "aldric":
-        # Bias density toward the front centreline so the chest, pubic patch,
-        # and snail trail read as one continuous central pattern rather than
-        # two lateral islands.
-        densities.update({"chest": 1100, "arms": 720, "legs": 900, "snail_trail": 420, "scrotum": 420, "pubic": 900})
+        # Keep hair localised: compact axillae, a narrow sternum diamond,
+        # central snail trail and pubic/scrotal regions. No arm or leg masks.
+        densities.update({"chest": 520, "snail_trail": 420, "scrotum": 420, "pubic": 900})
     default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
     colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
     if len(colour_hex) != 6:
@@ -181,8 +182,8 @@ def main():
             x, y = int(pixel_x), int(pixel_y)
             length = rng.uniform(3.0, 8.0) if region == "armpits" else rng.uniform(4.0, 11.0)
             if region == "landing_strip":
-                length = rng.uniform(4.0, 8.0)
-                angle = rng.uniform(-0.10, 0.10)
+                length = rng.uniform(3.0, 6.0)
+                angle = rng.uniform(-0.08, 0.08)
             else:
                 angle = rng.uniform(-1.1, 1.1) if region == "armpits" else rng.uniform(-0.85, 0.85)
             dx, dy = np.cos(angle) * length, np.sin(angle) * length
@@ -191,7 +192,7 @@ def main():
             if region == "snail_trail":
                 stroke_width = 1
             else:
-                stroke_width = 3 if region == "landing_strip" else (2 if (args.coverage == "aldric" and region != "armpits") or (args.coverage == "dagna" and region == "pubic") else 1)
+                stroke_width = 2 if region == "landing_strip" else (2 if (args.coverage == "aldric" and region != "armpits") or (args.coverage == "dagna" and region == "pubic") else 1)
             draw.line((x, y, x + dx, y + dy), fill=shade, width=stroke_width)
             counts[region] += 1
 
