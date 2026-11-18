@@ -149,6 +149,9 @@ func _test_school_target_skill_casts_multiple_targets() -> void:
     var caster := _new_character("multi_caster", "player", Vector2i.ZERO)
     var first := _new_character("multi_first", "enemy", Vector2i(2, 0))
     var second := _new_character("multi_second", "enemy", Vector2i(3, 0))
+    var guardian := _new_character("multi_guardian", "enemy", Vector2i(4, 0))
+    guardian.skills["cleric_trigger_damage"] = 1
+    second.add_spell_effect({"effect_id": "sanctuary", "source_id": guardian.id, "magnitude": 1})
     caster.unlocked_base_spells.append("firebolt")
     caster.skills["firebolt_hit"] = 10
     caster.skills["arcane_targets"] = 1
@@ -160,12 +163,14 @@ func _test_school_target_skill_casts_multiple_targets() -> void:
     simulation.register_character(caster)
     simulation.register_character(first)
     simulation.register_character(second)
+    simulation.register_character(guardian)
 
     var request := SimulationActionRequest.cast_spell_targets(caster.id, [first.id, second.id], prepared)
     var result := simulation.submit_action(request, 202)
     _check(bool(result.get("ok", false)), "Arcane Fork should allow a Firebolt to select one additional target")
     _check(first.health == 95 and second.health == 95, "Multi-target Firebolt should resolve damage against both selected opponents")
     _check(caster.current_mana == 80, "Each additional target should add fifteen mana to the spell cost")
+    _check(caster.health == 99, "Sanctuary on an additional target should trigger its Cleric Retribution skill")
     _check(result.get("affected_ids", []).size() == 2, "Multi-target results should report every affected target")
     simulation.free()
 
