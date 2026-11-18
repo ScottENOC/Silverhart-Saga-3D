@@ -141,6 +141,11 @@ func _test_modifier_skills_are_required() -> void:
     )
     _check(String(insufficient_expansion.get("reason", "")) == "expansion_skill_rank_insufficient", "Expansion rank should cap the radius bonus")
 
+    var range_at_rank_limit := SPELL_RULES.compute_variant("firebolt", {"range_bonus": 5}, {"arcane_range": 1})
+    _check(bool(range_at_rank_limit.get("ok", false)), "Each Range rank should unlock five additional hexes")
+    var range_above_rank_limit := SPELL_RULES.compute_variant("firebolt", {"range_bonus": 6}, {"arcane_range": 1})
+    _check(String(range_above_rank_limit.get("reason", "")) == "range_skill_rank_insufficient", "Range dial should not exceed five hexes per purchased rank")
+
     var wrong_school := SPELL_RULES.compute_variant(
         "heal", {"speed": "quickened"}, {"arcane_quickened": 1}
     )
