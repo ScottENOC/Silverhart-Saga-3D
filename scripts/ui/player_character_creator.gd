@@ -560,6 +560,11 @@ func _refresh_appearance_preview_value(_value: float) -> void:
     _refresh_appearance_preview(0)
 
 func _update_mode_controls(_index: int) -> void:
+    if disguise_mode:
+        if start_button != null:
+            start_button.text = "APPLY DISGUISE"
+            start_button.disabled = false
+        return
     if game_mode_select == null:
         return
     var arena := game_mode_select.get_item_text(game_mode_select.selected) == "Arena"
