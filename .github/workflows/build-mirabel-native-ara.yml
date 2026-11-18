@@ -27,15 +27,13 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 60
+    env:
+      ARA3D_CACHE: ${{ github.workspace }}/.cache/ara3d
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: dev
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
+          ref: ${{ github.ref }}
 
       - name: Validate Mirabel profile and preview script
         run: |
@@ -43,10 +41,8 @@ jobs:
           python -m json.tool character-preview/mirabel-ara.json >/dev/null
           python -m py_compile tools/blender/add_adult_anatomy.py tools/blender/add_elf_ears.py tools/blender/make_hairless_preview.py tools/blender/add_character_details.py tools/review/recolor_wren_glb.py
 
-      - name: Install Ara export dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y blender python3-pil python3-numpy libegl1 libgl1-mesa-dri
+      - name: Prepare cached Ara and Blender toolchain
+        uses: ./.github/actions/character-build-setup
 
       - name: Generate unclothed native Ara body and hair
         run: |
@@ -66,7 +62,7 @@ jobs:
               params.pop(key, None)
           target.write_text(json.dumps(data, indent=2) + "\n")
           PY
-          npx --yes ara3d@latest export \
+          npx --yes ara3d@0.7.4 export \
             --params build/mirabel-native/ara-export-profile.json \
             --detail high --no-animations --formats glb,zip \
             --out build/mirabel-native/ara-export
@@ -156,11 +152,6 @@ jobs:
         with:
           version: 4.7.2
           use-dotnet: false
-
-      - name: Install virtual display and software OpenGL
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri
 
       - name: Import and render Mirabel
         env:

@@ -1,0 +1,38 @@
+name: Set up cached character build tools
+description: Install and cache the Ara data and Blender toolchain used by native character builds.
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: 20
+
+    - name: Cache Ara character data
+      uses: actions/cache@v4
+      with:
+        path: .cache/ara3d
+        key: ara3d-data-${{ runner.os }}-cli-0.7.4-v1
+
+    - name: Cache Ara CLI npm package
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm/_npx
+        key: ara3d-cli-${{ runner.os }}-0.7.4-v1
+
+    - name: Cache downloaded Ubuntu packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: character-apt-${{ runner.os }}-blender-xvfb-v1
+        restore-keys: |
+          character-apt-${{ runner.os }}-blender-xvfb-
+
+    - name: Install Blender and preview dependencies
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          blender python3-numpy python3-pil libegl1 libgl1-mesa-dri xvfb
