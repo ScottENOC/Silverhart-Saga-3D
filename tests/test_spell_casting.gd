@@ -7,6 +7,7 @@ func _initialize() -> void:
     _test_firebolt_uses_shared_action_and_pays_costs()
     _test_heal_uses_shared_action_and_wakes_target()
     _test_rejected_cast_does_not_spend_resources()
+    _test_unimplemented_burst_is_rejected_without_cost()
     _test_armour_penalty_and_blood_magic()
     _test_combat_ai_casts_firebolt()
     _test_combat_ai_heals_ally()
@@ -89,6 +90,24 @@ func _test_rejected_cast_does_not_spend_resources() -> void:
     _check(String(result.get("reason", "")) == "target_out_of_range", "Out-of-range rejection should be explicit")
     _check(caster.current_mana == 20, "Rejected cast must not spend mana")
     _check(is_equal_approx(caster.time_points, 100.0), "Rejected cast must not spend Time Points")
+
+
+func _test_unimplemented_burst_is_rejected_without_cost() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("burst_caster", "player", Vector2i.ZERO)
+    var target := _new_character("burst_target", "enemy", Vector2i(2, 0))
+    caster.unlocked_base_spells.append("firebolt")
+    simulation.register_character(caster)
+    simulation.register_character(target)
+
+    var burst_spell := PreparedSpell.create("firebolt", {"burst": true})
+    var result := simulation.submit_action(
+        SimulationActionRequest.cast_spell(caster.id, target.id, burst_spell)
+    )
+    _check(not bool(result.get("ok", false)), "Burst Firebolt must not be treated as a single-target cast")
+    _check(String(result.get("reason", "")) == "spell_variant_effect_not_implemented", "Unsupported spell variant should report its limitation")
+    _check(caster.current_mana == 20, "Unsupported spell variant must not spend mana")
+    _check(is_equal_approx(caster.time_points, 100.0), "Unsupported spell variant must not spend Time Points")
 
 
 func _test_armour_penalty_and_blood_magic() -> void:
