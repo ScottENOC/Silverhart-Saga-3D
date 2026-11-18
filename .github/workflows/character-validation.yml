@@ -39,7 +39,7 @@ jobs:
       - name: Lint GitHub Actions workflows (report legacy warnings without blocking tests)
         uses: reviewdog/action-actionlint@v1
         with:
-          fail_on_error: false
+          fail_level: none
       - name: Compile Ara and Blender Python tools
         run: python -m compileall -q tools/blender tools/ara
       - name: Test modular GLB assembly
