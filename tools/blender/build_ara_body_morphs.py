@@ -48,16 +48,30 @@ def skin_meshes(objects):
 
 def correspondence_signatures(mesh):
     """Read stable per-vertex IDs encoded in the dedicated TEXCOORD_1 layer."""
-    candidates = [layer for layer in mesh.uv_layers
-                  if layer.name == "CorrespondenceID" or layer.name.endswith("CorrespondenceID")]
-    if not candidates:
-        raise RuntimeError(f"Mesh {mesh.name} has no CorrespondenceID UV channel")
-    layer = candidates[0]
+    # glTF stores UV set names only by TEXCOORD_n; Blender's importer commonly
+    # renames TEXCOORD_1 to UVMap.001 rather than preserving the source layer
+    # name. The dedicated channel is therefore identified by its ordinal.
+    if len(mesh.uv_layers) < 2:
+        raise RuntimeError(
+            f"Mesh {mesh.name} has {len(mesh.uv_layers)} UV channels; "
+            "expected TEXCOORD_0 plus CorrespondenceID in TEXCOORD_1"
+        )
+    layer = mesh.uv_layers[1]
     per_vertex = [[] for _ in mesh.vertices]
     for loop in mesh.loops:
         uv = layer.data[loop.index].uv
         per_vertex[loop.vertex_index].append(round(float(uv.x), 7))
-    return [tuple(sorted(values)) for values in per_vertex]
+    signatures = []
+    for index, values in enumerate(per_vertex):
+        unique = set(values)
+        if not unique:
+            raise RuntimeError(f"Vertex {index} in {mesh.name} has no CorrespondenceID")
+        if len(unique) != 1:
+            raise RuntimeError(
+                f"Vertex {index} in {mesh.name} has inconsistent TEXCOORD_1 IDs: {sorted(unique)}"
+            )
+        signatures.append(next(iter(unique)))
+    return signatures
 
 
 def face_topology_signature(mesh):
