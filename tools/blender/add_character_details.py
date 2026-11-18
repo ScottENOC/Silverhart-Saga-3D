@@ -67,9 +67,12 @@ def make_projection_trees(skin):
     for vertex in skin.data.vertices:
         point = world @ vertex.co
         normal = (normal_matrix @ vertex.normal).normalized()
-        if normal.z > 0.12:
+        # Ara GLBs are Y-up on disk, but Blender's glTF importer converts
+        # them to Z-up with the character facing -Y. Front/back therefore use
+        # the Y normal, while tattoo paths live in the X/Z body plane.
+        if normal.y < -0.12:
             front_items.append((point, normal, vertex.index))
-        if normal.z < -0.12:
+        if normal.y > 0.12:
             back_items.append((point, normal, vertex.index))
     trees = {}
     for label, items in (("front", front_items), ("back", back_items)):
@@ -77,13 +80,10 @@ def make_projection_trees(skin):
             raise RuntimeError(f"No {label}-facing skin vertices found for tattoo projection")
         tree = KDTree(len(items))
         for item_index, (point, _normal, _vertex_index) in enumerate(items):
-            # Tattoo design paths are authored in the body's X/Y plane. Their
-            # Z value is only a side hint, not a reliable surface depth: the
-            # old 3-D nearest-point query measured the entire torso depth and
-            # rejected valid shoulder/arm paths by ~0.14 m. Keep front/back
-            # candidates separated by their outward-facing normals, then find
-            # the nearest skin vertex in the projected X/Y footprint.
-            tree.insert(Vector((point.x, point.y, 0.0)), item_index)
+            # Tattoo design paths are authored in the body's X/Z plane.
+            # The front/back candidates are already separated by their Y normals,
+            # so the nearest-point query follows the projected skin footprint.
+            tree.insert(Vector((point.x, point.z, 0.0)), item_index)
         tree.balance()
         trees[label] = (tree, items)
     return trees
@@ -98,7 +98,7 @@ def project_path(points, back, trees, offset=0.0020):
         steps = max(2, int(math.ceil((b - a).length / 0.018)))
         for step in range(steps):
             p = a.lerp(b, step / steps)
-            _co, item_index, distance = tree.find(Vector((p.x, p.y, 0.0)))
+            _co, item_index, distance = tree.find(Vector((p.x, p.z, 0.0)))
             if distance > 0.06:
                 raise RuntimeError(
                     f"tattoo path is {distance:.3f}m outside the {label} skin footprint"
@@ -106,7 +106,7 @@ def project_path(points, back, trees, offset=0.0020):
             surface, normal, source_index = items[item_index]
             projected.append((surface + normal * offset, normal, source_index))
     p = points[-1]
-    _co, item_index, distance = tree.find(Vector((p.x, p.y, 0.0)))
+    _co, item_index, distance = tree.find(Vector((p.x, p.z, 0.0)))
     if distance > 0.06:
         raise RuntimeError(
             f"tattoo endpoint is {distance:.3f}m outside the {label} skin footprint"
@@ -151,7 +151,7 @@ def star_points(centre, radius):
     for index in range(9):
         angle = math.tau * index / 8
         r = radius if index % 2 == 0 else radius * 0.28
-        points.append(centre + Vector((math.cos(angle) * r, math.sin(angle) * r, 0)))
+        points.append(centre + Vector((math.cos(angle) * r, 0, math.sin(angle) * r)))
     points.append(points[0])
     return points
 
@@ -160,11 +160,11 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
     if not tattoo_paths:
         return 0
     lo, hi = world_bounds(skin)
-    height, width = hi.y - lo.y, hi.x - lo.x
+    height, width = hi.z - lo.z, hi.x - lo.x
     centre = (lo + hi) * 0.5
-    # Use the body's mid-depth as the projection seed. Global z extrema
-    # include hands/feet and are not the back/front torso surface.
-    front_z = back_z = centre.z
+    # Blender's imported Ara scene is Z-up, facing -Y. Use the body's
+    # mid-depth only as a side hint; projection is performed in X/Z.
+    front_y, back_y = centre.y - 0.003, centre.y + 0.003
     trees = make_projection_trees(skin)
     vertices, faces, sources = [], [], []
     inverse = skin.matrix_world.inverted()
@@ -175,60 +175,57 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
     for design in tattoo_paths:
         name = str(design.get("design", "")) if isinstance(design, dict) else str(design)
         if name == "mirabel_arcane":
-            back = back_z - 0.003
-            front = front_z + 0.003
-            shoulder_y = centre.y + height * 0.29
-            mid_y = centre.y + height * 0.12
-            path([Vector((centre.x, shoulder_y, back)),
-                  Vector((centre.x - width * .08, shoulder_y - height * .035, back)),
-                  Vector((centre.x, mid_y, back)),
-                  Vector((centre.x + width * .08, shoulder_y - height * .035, back)),
-                  Vector((centre.x, shoulder_y, back))], height * .0040, True)
-            path([Vector((centre.x, shoulder_y, back)),
-                  Vector((centre.x, centre.y - height * .02, back)),
-                  Vector((centre.x, centre.y - height * .13, back))], height * .0035, True)
+            back = back_y
+            front = front_y
+            shoulder_z = centre.z + height * 0.29
+            mid_z = centre.z + height * 0.12
+            path([Vector((centre.x, back, shoulder_z)),
+                  Vector((centre.x - width * .08, back, shoulder_z - height * .035)),
+                  Vector((centre.x, back, mid_z)),
+                  Vector((centre.x + width * .08, back, shoulder_z - height * .035)),
+                  Vector((centre.x, back, shoulder_z))], height * .0040, True)
+            path([Vector((centre.x, back, shoulder_z)),
+                  Vector((centre.x, back, centre.z - height * .02)),
+                  Vector((centre.x, back, centre.z - height * .13))], height * .0035, True)
             for side in (-1.0, 1.0):
                 sx = centre.x + side * width * .19
-                path([Vector((centre.x + side * width * .06, shoulder_y, back)),
-                      Vector((sx, shoulder_y - height * .025, back)),
-                      Vector((sx + side * width * .025, shoulder_y - height * .11, back))],
+                path([Vector((centre.x + side * width * .06, back, shoulder_z)),
+                      Vector((sx, back, shoulder_z - height * .025)),
+                      Vector((sx + side * width * .025, back, shoulder_z - height * .11))],
                      height * .0038, True)
-                star = Vector((centre.x + side * width * .245, shoulder_y - height * .025, back - .002))
+                star = Vector((centre.x + side * width * .245, back, shoulder_z - height * .025))
                 path(star_points(star, height * .018), height * .018 * .11, True)
-                arm_x, arm_y = centre.x + side * width * .255, centre.y - height * .015
-                path([Vector((arm_x, arm_y, front)),
-                      Vector((arm_x - side * width * .018, arm_y - height * .035, front)),
-                      Vector((arm_x, arm_y - height * .07, front))], height * .0015, False)
-                star = Vector((arm_x, arm_y - height * .09, front + .002))
+                arm_x, arm_z = centre.x + side * width * .255, centre.z - height * .015
+                path([Vector((arm_x, front, arm_z)),
+                      Vector((arm_x - side * width * .018, front, arm_z - height * .035)),
+                      Vector((arm_x, front, arm_z - height * .07))], height * .0015, False)
+                star = Vector((arm_x, front, arm_z - height * .09))
                 path(star_points(star, height * .012), height * .012 * .11, False)
             for side in (-1.0, 1.0):
-                # Keep the paired thigh sigils on the anterior outer thighs.
-                # The previous inner-thigh placement crossed the gap between
-                # Mirabel's legs, leaving the front-skin projection footprint.
                 thigh_x = centre.x + side * width * .24
-                path([Vector((thigh_x, centre.y - height * .23, front)),
-                      Vector((thigh_x + side * width * .018, centre.y - height * .29, front)),
-                      Vector((thigh_x, centre.y - height * .35, front))], height * .0015, False)
+                path([Vector((thigh_x, front, centre.z - height * .23)),
+                      Vector((thigh_x + side * width * .018, front, centre.z - height * .29)),
+                      Vector((thigh_x, front, centre.z - height * .35))], height * .0015, False)
 
         elif name == "reyna_shoulder_back":
-            y, z = centre.y + height * .29, back_z - .003
-            path([Vector((centre.x, y + height * .025, z)),
-                  Vector((centre.x, y - height * .055, z)),
-                  Vector((centre.x, y - height * .16, z))], height * .0028, True)
+            shoulder_z, back = centre.z + height * .29, back_y
+            path([Vector((centre.x, back, shoulder_z + height * .025)),
+                  Vector((centre.x, back, shoulder_z - height * .055)),
+                  Vector((centre.x, back, shoulder_z - height * .16))], height * .0028, True)
             for side in (-1.0, 1.0):
-                path([Vector((centre.x, y - height * .015, z)),
-                      Vector((centre.x + side * width * .11, y + height * .025, z)),
-                      Vector((centre.x + side * width * .22, y + height * .005, z)),
-                      Vector((centre.x + side * width * .27, y - height * .055, z))],
+                path([Vector((centre.x, back, shoulder_z - height * .015)),
+                      Vector((centre.x + side * width * .11, back, shoulder_z + height * .025)),
+                      Vector((centre.x + side * width * .22, back, shoulder_z + height * .005)),
+                      Vector((centre.x + side * width * .27, back, shoulder_z - height * .055))],
                      height * .0045, True)
                 for feather in range(3):
                     x = centre.x + side * width * (0.10 + feather * 0.055)
-                    yy = y + height * (0.012 - feather * 0.012)
-                    path([Vector((x, yy, z)),
-                          Vector((x + side * width * .025, yy - height * .045, z)),
-                          Vector((x + side * width * .055, yy - height * .065, z))],
+                    zz = shoulder_z + height * (0.012 - feather * 0.012)
+                    path([Vector((x, back, zz)),
+                          Vector((x + side * width * .025, back, zz - height * .045)),
+                          Vector((x + side * width * .055, back, zz - height * .065))],
                          height * .0035, True)
-            star = Vector((centre.x, y + height * .035, z - .002))
+            star = Vector((centre.x, back, shoulder_z + height * .035))
             path(star_points(star, height * .014), height * .014 * .11, True)
         else:
             print(f"WARNING: Unknown tattoo design {name!r}; skipping")
@@ -346,6 +343,41 @@ def add_barbell(socket, material):
     print(f"BAKED_PIERCING clitoral barbell socket={socket.name}")
 
 
+def add_nipple_barbell(socket, material):
+    """Straight horizontal nipple bar, anchored at the original skin socket."""
+    matrix = socket.matrix_world.copy()
+    anchor = matrix.translation.copy()
+    normal = (matrix.to_3x3() @ Vector((0, 0, 1))).normalized()
+    tangent = Vector((1, 0, 0))
+    tangent -= normal * tangent.dot(normal)
+    if tangent.length_squared < 1e-8:
+        tangent = Vector((0, 1, 0))
+        tangent -= normal * tangent.dot(normal)
+    tangent.normalize()
+    # Keep the attachment at the socket; only a tiny outward clearance avoids
+    # z-fighting. Do not translate the bar along the chest or rotate the socket.
+    centre = anchor + normal * 0.0012
+    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.0018, depth=0.020,
+                                        location=centre)
+    bar = bpy.context.object
+    bar.name = "Piercing_SOCKET_Nipple_L_Bar"
+    bar.rotation_mode = "QUATERNION"
+    bar.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(tangent)
+    bar.data.materials.append(material)
+    parent_preserve(bar, socket, bar.matrix_world.copy())
+    bar["character_detail_type"] = "piercing"
+    for side in (-1.0, 1.0):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8,
+                                             radius=0.0032,
+                                             location=centre + tangent * side * 0.010)
+        bead = bpy.context.object
+        bead.name = "Piercing_SOCKET_Nipple_L_Bead"
+        bead.data.materials.append(material)
+        parent_preserve(bead, socket, bead.matrix_world.copy())
+        bead["character_detail_type"] = "piercing"
+    print(f"BAKED_PIERCING straight nipple bar socket={socket.name}")
+
+
 def add_piercings(entries):
     material = make_material("Ara_Piercing_Silver", "#C6CBD0", 0.82, 0.24)
     sockets = {obj.name: obj for obj in bpy.context.scene.objects}
@@ -377,7 +409,7 @@ def add_piercings(entries):
         elif entry == "nipple_left":
             socket = sockets.get("SOCKET_Nipple_L")
             if socket:
-                add_hoop(socket, 0.008, material, "Piercing_SOCKET_Nipple_L", hang_down=True)
+                add_nipple_barbell(socket, material)
                 count += 1
             else:
                 print("WARNING: Ara socket SOCKET_Nipple_L not found; piercing omitted")
