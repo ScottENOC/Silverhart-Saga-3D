@@ -166,6 +166,25 @@ static func compute_variant(
     }
 
 
+## The first resolver slice supports only direct Firebolt damage and
+## single-target Heal. Do not silently treat unimplemented Burst/AoE or
+## extra-target variants as single-target casts.
+static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool:
+    if not bool(variant.get("ok", false)):
+        return false
+    var expected_type := "damage" if spell_id == "firebolt" else "heal" if spell_id == "heal" else ""
+    if expected_type.is_empty() or String(variant.get("type", "")) != expected_type:
+        return false
+    if int(variant.get("radius", 0)) > 0 or int(variant.get("extra_targets", 0)) > 0:
+        return false
+    if bool(variant.get("subtle", false)) or bool(variant.get("burst", false)):
+        return false
+    var modifiers: Dictionary = variant.get("modifiers", {})
+    if bool(modifiers.get("burst", false)) or bool(modifiers.get("subtle", false)):
+        return false
+    return true
+
+
 ## Port of Hex-crpg's getArmorSpellPenalty(). The armour slot accepts either
 ## the compact item ID or the richer equipped item dictionary.
 static func armour_mana_penalty(caster: CharacterState, school: String) -> int:
