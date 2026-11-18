@@ -115,7 +115,7 @@ static func compute_variant(
         return {"ok": false, "reason": "expansion_skill_rank_insufficient"}
     if magnitude_bonus > _skill_rank(skills, String(required_skills["magnitude_bonus"])):
         return {"ok": false, "reason": "potency_skill_rank_insufficient"}
-    if range_bonus > _skill_rank(skills, String(required_skills["range_bonus"])):
+    if range_bonus > 5 * _skill_rank(skills, String(required_skills["range_bonus"])):
         return {"ok": false, "reason": "range_skill_rank_insufficient"}
     if target_bonus > _skill_rank(skills, String(required_skills["target_bonus"])):
         return {"ok": false, "reason": "target_skill_rank_insufficient"}
@@ -136,7 +136,26 @@ static func compute_variant(
         efficiency_magnitude = maxi(0, int(skills.get("arcane_eff_magnitude", 0)))
         efficiency_speed = maxi(0, int(skills.get("arcane_eff_speed", 0)))
 
-    var mana_cost := int(base.get("base_mana", 0))
+    var summon_surcharge := 0
+    if spell_id == "summon_animal":
+        match String(summon_id):
+            "boar":
+                if _skill_rank(skills, "learn_boar_summon") < 1:
+                    return {"ok": false, "reason": "boar_summon_skill_required"}
+                summon_surcharge = 8
+            "tiger":
+                if _skill_rank(skills, "learn_tiger_summon") < 1:
+                    return {"ok": false, "reason": "tiger_summon_skill_required"}
+                summon_surcharge = 15
+            "eagle":
+                if _skill_rank(skills, "learn_eagle_summon") < 1:
+                    return {"ok": false, "reason": "eagle_summon_skill_required"}
+                summon_surcharge = 5
+            "unicorn":
+                if _skill_rank(skills, "learn_unicorn_summon") < 1 or _skill_rank(skills, "animal_companion") < 1:
+                    return {"ok": false, "reason": "unicorn_summon_skill_required"}
+
+    var mana_cost := int(base.get("base_mana", 0)) + summon_surcharge
     var time_point_cost := 10
     if speed == "quickened":
         time_point_cost = 5
@@ -159,7 +178,7 @@ static func compute_variant(
     # Keep the source game's core cost separate from the actual cost. The
     # original formula excludes quickened's efficiency-adjusted surcharge
     # from coreManaCost, while including all other modifiers.
-    var core_mana_cost := int(base.get("base_mana", 0)) + range_cost
+    var core_mana_cost := int(base.get("base_mana", 0)) + summon_surcharge + range_cost
     core_mana_cost += magnitude_bonus * maxi(0, 5 - efficiency_magnitude)
     core_mana_cost += radius_bonus * 10
     core_mana_cost += target_bonus * 15
