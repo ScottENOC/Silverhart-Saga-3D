@@ -43,7 +43,8 @@
       "buttocks/buttocks-volume": 0.18,
       "hip/hip-scale-horiz": 0.1,
       "hip/hip-scale-depth": 0.1,
-      "armslegs/upperarm-shoulder-muscle:decr|incr": -0.15
+      "armslegs/upperarm-shoulder-muscle:decr|incr": -0.15,
+      "ears/ear-shape-pointed": -1
     },
     "seed": 4517
   }
