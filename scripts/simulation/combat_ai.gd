@@ -12,6 +12,9 @@ static func take_turn(
 ) -> bool:
     if simulation == null or combatant == null:
         return false
+    if combatant.has_spell_effect("calmed"):
+        simulation.try_end_current_turn(true)
+        return false
 
     # Healing is considered before choosing an offensive target. The AI
     # submits the same PreparedSpell action as the player; the simulation
