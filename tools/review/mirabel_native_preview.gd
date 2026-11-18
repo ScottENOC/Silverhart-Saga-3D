@@ -34,11 +34,6 @@ func _run() -> void:
     character.name = "Mirabel"
     stage.add_child(character)
 
-    var details := AraCharacterDetails.new()
-    details.name = "AppearanceDetails"
-    stage.add_child(details)
-    details.configure(character, {"piercings": ["earrings", "clit"], "tattoos": [{"design": "mirabel_arcane"}], "tattoo_ink": "#30283D"})
-
     _collect_meshes(character)
     _activate_elf_ears()
     if mesh_instances.is_empty():
