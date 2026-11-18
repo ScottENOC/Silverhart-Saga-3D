@@ -127,7 +127,9 @@ Audit duplicated sources of truth, stale generated files, pipeline idempotency/c
 
 ## 6. Current immediate task
 
-Continue the TD-012 shared building-visual contract in small, test-backed slices. The first primitive extraction is implemented on the current audit branch; the next step is to compare common wall/opening composition requirements without changing building appearance.
+The low-level TD-012 primitive extraction is implemented. A comparative review of the three current building paths found no safe shared wall/opening/roof composition contract yet: the tavern uses segmented walls with window apertures, live hinged door presentation, upper-storey cutaway and bespoke stairs; Hollowmere cottages use cardinal-orientation variants with a common door-wall helper, while the farm barn is a separate authored structure; Campaign 2 uses a rotated, east-entry house with timber-trimmed walls and its own interior/porch details. These are similar visual concepts but not the same construction contract. Do not introduce a generic wall/roof builder just to remove superficial repetition. Keep those layouts local until a second concrete consumer needs the same defined composition.
+
+Next TD-003 slice is dependency mapping, not immediate extraction: isolate the input/movement-presentation cluster from the rest of HollowTankard and document its callbacks, state, and scene dependencies. The current input handler also dispatches combat, interaction, gathering, party/UI and save/load commands, so it must not be moved wholesale into a generic movement controller.
 
 ## 7. Current-branch audit — 18 November 2026
 
@@ -138,6 +140,7 @@ This section supersedes stale status assumptions in the original 13 November inv
 - dev is a descendant of dev_2; the comparison at this audit found dev 265 commits ahead and zero commits behind dev_2.
 - The current audit branch was created from dev at commit 56d3e21a63fcdfae1a3ebbc8a1aa4902d8c0471b. Changes here remain isolated until reviewed.
 - The current Godot validation workflow explicitly runs the split character, campaign, items, movement, combat/reaction and animal/riding suites. It also runs the building framework, campaign UI, save/restore, character appearance, vegetation and world-content suites.
+- PR #164's validation run 44249820137 was cancelled before completion: the 15-spell visual-effect test was in progress and all later suites remained pending. Treat this as inconclusive; a fresh full run is required.
 - The most recent Godot validation run found for dev was cancelled (run [44237510473](https://github.com/ScottENOC/Silverhart-Saga-3D/actions/runs/44237510473), commit d20fa886). The current snapshot therefore needs a fresh successful Godot validation run before structural changes can be accepted. Character-pipeline jobs are separate and must not be treated as Godot validation.
 
 ### TD-002 — test split is already implemented
@@ -202,7 +205,7 @@ BuildingRegistry and BuildingLayoutRegistrar currently own logical building/door
 
 Add TD-012 (P1): define a reusable building-visual composition contract for common primitives (walls, openings, roofs, doors, foundations and material assignment), while allowing each location/settlement to supply authored geometry/layout data. Do not force unique tavern furniture or bespoke landmark details into a generic builder. The common box/material primitive extraction is now implemented; compare the three builders' wall/opening inputs and scene assumptions before extracting a higher-level composition helper.
 
-Initial implementation on the current audit branch: `WorldGeometryFactory` now owns shared BoxMesh creation/attachment and StandardMaterial3D creation. HollowTankard, HollowmereVillage and Campaign2SettlementBuilder delegate their duplicated `_add_box()` helpers to it; HollowTankard and Campaign2SettlementBuilder also delegate material construction while preserving their distinct culling/roughness settings. Their building layouts, wall patterns, openings, roofs, furniture and landmark details remain local. `test_building_framework.gd` now verifies factory parenting, naming, dimensions, transform, material assignment and material settings. This is the first primitive-level extraction, not yet a shared house/wall composition system.
+Initial implementation on the current audit branch: `WorldGeometryFactory` now owns shared BoxMesh creation/attachment and StandardMaterial3D creation. HollowTankard, HollowmereVillage and Campaign2SettlementBuilder delegate their duplicated `_add_box()` helpers to it; HollowTankard and Campaign2SettlementBuilder also delegate material construction while preserving their distinct culling/roughness settings. Their building layouts, wall patterns, openings, roofs, furniture and landmark details remain local. `test_building_framework.gd` now verifies factory parenting, naming, dimensions, transform, material assignment and material settings. A follow-up comparison confirms that the three higher-level building systems do not currently share a sufficiently consistent wall/opening/roof contract for another abstraction to be justified. The primitive factory is the appropriate shared boundary for now.
 
 ### Open work that must not be mistaken for completed work
 
