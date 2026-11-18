@@ -75,7 +75,7 @@ jobs:
             --python tools/blender/add_elf_ears.py -- \
             --input build/mirabel-native/Mirabel-anatomy.glb \
             --output build/mirabel-native/Mirabel.glb \
-            --length 0.140 --rise 0.025 --sweep 0.040 --strength 1.0
+            --length 0.220 --rise 0.045 --sweep 0.060 --strength 1.0
           test -s build/mirabel-native/Mirabel.glb
 
       - name: Apply Mirabel skin and hair colours
