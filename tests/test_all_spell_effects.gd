@@ -155,9 +155,10 @@ func _test_divine_strength() -> void:
     sim.register_character(ally)
     sim.register_character(enemy)
     var result := _cast(sim, caster, ally, "divine_strength")
+    var enemy_health_before := enemy.health
     var attack := sim.submit_action(SimulationActionRequest.new(SimulationActionRequest.ActionType.ATTACK, ally.id, enemy.id, Vector2i.ZERO, 0.0, {}), 77)
     _check(bool(result.get("ok", false)) and ally.has_spell_effect("divine_strength"), "Divine Strength should apply its timed ally buff")
-    _check(bool(attack.get("ok", false)) and int(attack.get("damage", 0)) >= 6, "Divine Strength should add three damage to an ally's attack")
+    _check(bool(attack.get("ok", false)) and enemy_health_before - enemy.health >= 6, "Divine Strength should add three damage to an ally's attack")
     sim.free()
 
 
