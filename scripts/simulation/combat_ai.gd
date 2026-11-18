@@ -13,10 +13,27 @@ static func take_turn(
     if simulation == null or combatant == null:
         return false
 
+    var heal_result := _try_cast_heal(simulation, combatant, enemy_ids, party_ids)
+    if bool(heal_result.get("ok", false)):
+        simulation.try_end_current_turn(true)
+        return false
+
     var target := nearest_opponent_target(simulation, combatant, enemy_ids, party_ids)
     if target == null:
         simulation.try_end_current_turn(true)
         return false
+
+    var firebolt := _prepared_spell_for(combatant, "firebolt")
+    if not firebolt.is_empty():
+        var spell_variant := SpellRules.compute_variant("firebolt", firebolt.get("modifiers", {}), combatant.skills)
+        if bool(spell_variant.get("ok", false)) and HexGrid.distance(combatant.axial, target.axial) <= int(spell_variant.get("range", 1)):
+            var spell_result := simulation.submit_action(
+                SimulationActionRequest.cast_spell(combatant.id, target.id, firebolt),
+                int(combatant.id.hash())
+            )
+            if bool(spell_result.get("ok", false)):
+                simulation.try_end_current_turn(true)
+                return false
 
     if HexGrid.distance(combatant.axial, target.axial) <= attack_range_for(combatant):
         var result := simulation.try_attack_character(
@@ -40,6 +57,46 @@ static func take_turn(
         return true
     simulation.try_end_current_turn(true)
     return false
+
+
+static func _prepared_spell_for(combatant: CharacterState, spell_id: String) -> Dictionary:
+    if combatant == null:
+        return {}
+    for value in combatant.prepared_spells:
+        if not value is Dictionary or String(value.get("base_spell_id", "")) != spell_id:
+            continue
+        return value.duplicate(true)
+    return {}
+
+
+static func _try_cast_heal(
+    simulation: WorldSimulation,
+    combatant: CharacterState,
+    enemy_ids: Array[String],
+    party_ids: Array[String]
+) -> Dictionary:
+    var prepared := _prepared_spell_for(combatant, "heal")
+    if prepared.is_empty():
+        return {"ok": false, "reason": "no_prepared_heal"}
+    var ally_ids: Array[String] = enemy_ids if combatant.side == "enemy" else party_ids
+    var best_ally: CharacterState
+    var best_health_ratio := 1.0
+    for ally_id in ally_ids:
+        var ally := simulation.get_character(ally_id)
+        if ally == null or not ally.alive or ally.side != combatant.side or ally.health >= ally.max_health:
+            continue
+        if HexGrid.distance(combatant.axial, ally.axial) > 1:
+            continue
+        var ratio := float(ally.health) / float(maxi(1, ally.max_health))
+        if best_ally == null or ratio < best_health_ratio:
+            best_ally = ally
+            best_health_ratio = ratio
+    if best_ally == null:
+        return {"ok": false, "reason": "no_injured_ally_in_range"}
+    return simulation.submit_action(
+        SimulationActionRequest.cast_spell(combatant.id, best_ally.id, prepared),
+        int(combatant.id.hash())
+    )
 
 
 static func nearest_opponent_target(
