@@ -446,7 +446,8 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
         mesh.color_attributes.remove(existing)
     colour = mesh.color_attributes.new(name="Color", type="FLOAT_COLOR", domain="POINT")
     mesh.color_attributes.active_color = colour
-    mesh.color_attributes.render_color_index = colour.index
+    # The glTF exporter is explicitly set to ACTIVE; Blender 5 FloatColorAttribute
+    # does not expose an .index property, so keep the collection's active layer.
     mw = skin.matrix_world
     worlds = [mw @ v.co for v in mesh.vertices]
     z_lo, z_hi = hipline_z - 0.15 * k, hipline_z + 0.10 * k
