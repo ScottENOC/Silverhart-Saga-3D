@@ -18,6 +18,7 @@ func _run() -> void:
     _test_slowed_subtle_heal()
     _test_touch_and_mana_floor()
     _test_invalid_combinations()
+    _test_modifier_skills_are_required()
     _test_prepared_spell_round_trip()
 
     if _failures > 0:
@@ -53,6 +54,12 @@ func _test_arcane_efficiency_and_modifiers() -> void:
         "burst": true
     }
     var skills := {
+        "arcane_burst": 1,
+        "arcane_expand": 1,
+        "arcane_magnitude": 1,
+        "arcane_range": 2,
+        "arcane_targets": 1,
+        "arcane_quickened": 1,
         "arcane_eff_range": 1,
         "arcane_eff_magnitude": 1,
         "arcane_eff_speed": 2
@@ -76,7 +83,14 @@ func _test_slowed_subtle_heal() -> void:
         "burst": true,
         "subtle": true
     }
-    var result: Dictionary = SPELL_RULES.compute_variant("heal", modifiers)
+    var skills := {
+        "divine_slowed": 1,
+        "divine_magnitude": 2,
+        "divine_expand": 1,
+        "divine_targets": 1,
+        "subtle_spell": 1
+    }
+    var result: Dictionary = SPELL_RULES.compute_variant("heal", modifiers, skills)
     _check(bool(result.get("ok", false)), "Subtle burst Heal should be calculable")
     _check(int(result.get("mana_cost", -1)) == 51, "Slowed subtle burst Heal should match the original mana formula")
     _check(int(result.get("core_mana_cost", -1)) == 55, "Core cost should exclude the slowed mana discount")
@@ -85,14 +99,15 @@ func _test_slowed_subtle_heal() -> void:
 
 
 func _test_touch_and_mana_floor() -> void:
-    var touch := SPELL_RULES.compute_variant("firebolt", {"touch": true})
+    var touch := SPELL_RULES.compute_variant("firebolt", {"touch": true}, {"arcane_touch": 1})
     _check(bool(touch.get("ok", false)), "Touch Firebolt should be calculable")
     _check(int(touch.get("mana_cost", -1)) == 2, "Touch should discount Firebolt by three mana")
     _check(int(touch.get("range", -1)) == 1, "Touch should cap spell range at one")
 
     var floor_result := SPELL_RULES.compute_variant(
         "firebolt",
-        {"speed": "slowed", "touch": true}
+        {"speed": "slowed", "touch": true},
+        {"arcane_slowed": 1, "arcane_touch": 1}
     )
     _check(int(floor_result.get("mana_cost", -1)) == 1, "Mana cost should never fall below one")
 
@@ -108,6 +123,35 @@ func _test_invalid_combinations() -> void:
     _check(not bool(invalid_touch.get("ok", true)), "Touch should reject spells without extended base range")
 
 
+func _test_modifier_skills_are_required() -> void:
+    var quickened_without_skill := SPELL_RULES.compute_variant("firebolt", {"speed": "quickened"})
+    _check(not bool(quickened_without_skill.get("ok", false)), "Quickened casting should require the matching school skill")
+    _check(String(quickened_without_skill.get("reason", "")) == "quickened_skill_required", "Missing quickened skill should report a clear reason")
+
+    var burst_without_skill := SPELL_RULES.compute_variant("firebolt", {"burst": true})
+    _check(String(burst_without_skill.get("reason", "")) == "burst_skill_required", "Burst should require the matching school skill")
+
+    var subtle_without_skill := SPELL_RULES.compute_variant("heal", {"subtle": true})
+    _check(String(subtle_without_skill.get("reason", "")) == "subtle_spell_skill_required", "Subtle casting should require Subtle Spell")
+
+    var insufficient_expansion := SPELL_RULES.compute_variant(
+        "firebolt", {"radius_bonus": 2}, {"arcane_expand": 1}
+    )
+    _check(String(insufficient_expansion.get("reason", "")) == "expansion_skill_rank_insufficient", "Expansion rank should cap the radius bonus")
+
+    var wrong_school := SPELL_RULES.compute_variant(
+        "heal", {"speed": "quickened"}, {"arcane_quickened": 1}
+    )
+    _check(String(wrong_school.get("reason", "")) == "quickened_skill_required", "A skill from another school must not unlock this school's casting speed")
+
+    var unlocked := SPELL_RULES.compute_variant(
+        "firebolt",
+        {"speed": "quickened", "burst": true, "radius_bonus": 1, "magnitude_bonus": 1, "range_bonus": 1, "target_bonus": 1},
+        {"arcane_quickened": 1, "arcane_burst": 1, "arcane_expand": 1, "arcane_magnitude": 1, "arcane_range": 1, "arcane_targets": 1}
+    )
+    _check(bool(unlocked.get("ok", false)), "A legal set of purchased Arcane skills should unlock the corresponding variant")
+
+    
 func _test_prepared_spell_round_trip() -> void:
     var spell = PREPARED_SPELL.create("firebolt", {
         "speed": "quickened",
