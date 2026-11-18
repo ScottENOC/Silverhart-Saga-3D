@@ -2,7 +2,7 @@ name: Female anatomy surface v2 preview
 
 on:
   pull_request:
-    branches: [dev_2]
+    branches: [dev]
     paths:
       - "tools/blender/add_female_anatomy_surface.py"
       - "tools/blender/plan_female_anatomy_subdivision.py"
