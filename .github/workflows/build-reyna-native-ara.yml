@@ -7,6 +7,7 @@ on:
       - "character-preview/reyna-ara.json"
       - ".github/workflows/build-reyna-native-ara.yml"
       - "tools/review/reyna_native_preview.gd"
+      - "scripts/presentation/ara_character_details.gd"
       - "tools/review/recolor_wren_glb.py"
       - "tools/blender/add_adult_anatomy.py"
       - "tools/blender/add_abdominal_definition.py"
@@ -103,9 +104,10 @@ jobs:
         run: |
           set -euo pipefail
           preview=build/reyna-native-preview-project
-          mkdir -p "$preview/build/reyna-native" "$preview/tools/review"
+          mkdir -p "$preview/scripts/presentation" "$preview/build/reyna-native" "$preview/tools/review"
           cp build/reyna-native/Reyna.glb "$preview/build/reyna-native/Reyna.glb"
           cp tools/review/reyna_native_preview.gd "$preview/tools/review/reyna_native_preview.gd"
+          cp scripts/presentation/ara_character_details.gd "$preview/scripts/presentation/ara_character_details.gd"
           cat > "$preview/project.godot" <<'EOF'
           ; Isolated preview project: no game scenes, scripts, or autoloads.
           config_version=5
