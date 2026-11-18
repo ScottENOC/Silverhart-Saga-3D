@@ -127,7 +127,7 @@ def main():
                     diamond_half_width = 0.060 * max(0.0, 1.0 - abs(yn - 0.65) / 0.055)
                     if 0.595 <= yn <= 0.705 and abs(x) <= diamond_half_width:
                         region = "chest"
-                elif region is None and 0.34 <= yn <= 0.73 and 0.16 <= abs(x) <= 0.30:
+                if region is None and 0.34 <= yn <= 0.73 and 0.16 <= abs(x) <= 0.30:
                     region = "arms"
                 elif region is None and 0.05 <= yn <= 0.36 and 0.055 <= abs(x) <= 0.145:
                     region = "legs"
