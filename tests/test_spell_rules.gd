@@ -18,6 +18,9 @@ func _run() -> void:
     _test_slowed_subtle_heal()
     _test_touch_and_mana_floor()
     _test_invalid_combinations()
+    _test_modifier_skills_are_required()
+    _test_summon_species_skills_and_costs()
+    _test_school_passive_skill_effects()
     _test_prepared_spell_round_trip()
 
     if _failures > 0:
@@ -53,6 +56,12 @@ func _test_arcane_efficiency_and_modifiers() -> void:
         "burst": true
     }
     var skills := {
+        "arcane_burst": 1,
+        "arcane_expand": 1,
+        "arcane_magnitude": 1,
+        "arcane_range": 2,
+        "arcane_targets": 1,
+        "arcane_quickened": 1,
         "arcane_eff_range": 1,
         "arcane_eff_magnitude": 1,
         "arcane_eff_speed": 2
@@ -76,7 +85,15 @@ func _test_slowed_subtle_heal() -> void:
         "burst": true,
         "subtle": true
     }
-    var result: Dictionary = SPELL_RULES.compute_variant("heal", modifiers)
+    var skills := {
+        "divine_burst": 1,
+        "divine_slowed": 1,
+        "divine_magnitude": 2,
+        "divine_expand": 1,
+        "divine_targets": 1,
+        "subtle_spell": 1
+    }
+    var result: Dictionary = SPELL_RULES.compute_variant("heal", modifiers, skills)
     _check(bool(result.get("ok", false)), "Subtle burst Heal should be calculable")
     _check(int(result.get("mana_cost", -1)) == 51, "Slowed subtle burst Heal should match the original mana formula")
     _check(int(result.get("core_mana_cost", -1)) == 55, "Core cost should exclude the slowed mana discount")
@@ -85,14 +102,15 @@ func _test_slowed_subtle_heal() -> void:
 
 
 func _test_touch_and_mana_floor() -> void:
-    var touch := SPELL_RULES.compute_variant("firebolt", {"touch": true})
+    var touch := SPELL_RULES.compute_variant("firebolt", {"touch": true}, {"arcane_touch": 1})
     _check(bool(touch.get("ok", false)), "Touch Firebolt should be calculable")
     _check(int(touch.get("mana_cost", -1)) == 2, "Touch should discount Firebolt by three mana")
     _check(int(touch.get("range", -1)) == 1, "Touch should cap spell range at one")
 
     var floor_result := SPELL_RULES.compute_variant(
         "firebolt",
-        {"speed": "slowed", "touch": true}
+        {"speed": "slowed", "touch": true},
+        {"arcane_slowed": 1, "arcane_touch": 1}
     )
     _check(int(floor_result.get("mana_cost", -1)) == 1, "Mana cost should never fall below one")
 
@@ -108,6 +126,103 @@ func _test_invalid_combinations() -> void:
     _check(not bool(invalid_touch.get("ok", true)), "Touch should reject spells without extended base range")
 
 
+func _test_modifier_skills_are_required() -> void:
+    var quickened_without_skill := SPELL_RULES.compute_variant("firebolt", {"speed": "quickened"})
+    _check(not bool(quickened_without_skill.get("ok", false)), "Quickened casting should require the matching school skill")
+    _check(String(quickened_without_skill.get("reason", "")) == "quickened_skill_required", "Missing quickened skill should report a clear reason")
+
+    var burst_without_skill := SPELL_RULES.compute_variant("firebolt", {"burst": true})
+    _check(String(burst_without_skill.get("reason", "")) == "burst_skill_required", "Burst should require the matching school skill")
+
+    var subtle_without_skill := SPELL_RULES.compute_variant("heal", {"subtle": true})
+    _check(String(subtle_without_skill.get("reason", "")) == "subtle_spell_skill_required", "Subtle casting should require Subtle Spell")
+
+    var insufficient_expansion := SPELL_RULES.compute_variant(
+        "firebolt", {"radius_bonus": 2}, {"arcane_expand": 1}
+    )
+    _check(String(insufficient_expansion.get("reason", "")) == "expansion_skill_rank_insufficient", "Expansion rank should cap the radius bonus")
+
+    var range_at_rank_limit := SPELL_RULES.compute_variant("firebolt", {"range_bonus": 5}, {"arcane_range": 1})
+    _check(bool(range_at_rank_limit.get("ok", false)), "Each Range rank should unlock five additional hexes")
+    var range_above_rank_limit := SPELL_RULES.compute_variant("firebolt", {"range_bonus": 6}, {"arcane_range": 1})
+    _check(String(range_above_rank_limit.get("reason", "")) == "range_skill_rank_insufficient", "Range dial should not exceed five hexes per purchased rank")
+
+    var wrong_school := SPELL_RULES.compute_variant(
+        "heal", {"speed": "quickened"}, {"arcane_quickened": 1}
+    )
+    _check(String(wrong_school.get("reason", "")) == "quickened_skill_required", "A skill from another school must not unlock this school's casting speed")
+
+    var unlocked := SPELL_RULES.compute_variant(
+        "firebolt",
+        {"speed": "quickened", "burst": true, "radius_bonus": 1, "magnitude_bonus": 1, "range_bonus": 1, "target_bonus": 1},
+        {"arcane_quickened": 1, "arcane_burst": 1, "arcane_expand": 1, "arcane_magnitude": 1, "arcane_range": 1, "arcane_targets": 1}
+    )
+    _check(bool(unlocked.get("ok", false)), "A legal set of purchased Arcane skills should unlock the corresponding variant")
+
+    
+func _test_summon_species_skills_and_costs() -> void:
+    var locked_boar := SPELL_RULES.compute_variant("summon_animal", {"summon_id": "boar"})
+    _check(String(locked_boar.get("reason", "")) == "boar_summon_skill_required", "Boar summoning should require its dedicated skill")
+
+    var boar := SPELL_RULES.compute_variant("summon_animal", {"summon_id": "boar"}, {"learn_boar_summon": 1})
+    _check(bool(boar.get("ok", false)), "Boar summoning should unlock with Boar Summoning")
+    _check(int(boar.get("mana_cost", -1)) == 18, "Boar summoning should add its 8 mana surcharge")
+    _check(int(boar.get("core_mana_cost", -1)) == 18, "Summon surcharge should be included in core mana cost")
+
+    var tiger := SPELL_RULES.compute_variant("summon_animal", {"summon_id": "tiger"}, {"learn_tiger_summon": 1})
+    _check(int(tiger.get("mana_cost", -1)) == 25, "Tiger summoning should add its 15 mana surcharge")
+
+    var eagle := SPELL_RULES.compute_variant("summon_animal", {"summon_id": "eagle"}, {"learn_eagle_summon": 1})
+    _check(int(eagle.get("mana_cost", -1)) == 15, "Eagle summoning should add its 5 mana surcharge")
+
+    var unicorn := SPELL_RULES.compute_variant(
+        "summon_animal", {"summon_id": "unicorn"},
+        {"learn_unicorn_summon": 1, "animal_companion": 1}
+    )
+    _check(bool(unicorn.get("ok", false)), "Unicorn summoning should require and accept both earned bond skills")
+
+    
+func _test_school_passive_skill_effects() -> void:
+    var character = CHARACTER_STATE.new("spell_skill_test", "Spell Skill Test")
+    character.skills = {
+        "arcane_mana": 2,
+        "divine_mana": 1,
+        "nature_mana": 1,
+        "arcane_cap": 2,
+        "divine_cap": 1,
+        "arcane_spell_slots": 1,
+        "nature_spell_slots": 1,
+        "arcane_regen": 2,
+        "divine_regen": 1
+    }
+    character.sync_skill_effects()
+    _check(character.max_mana == 40 and character.current_mana == 40, "School Mana ranks should each add 10 to max and current mana")
+    _check(int(character.mana_caps.get("arcane", 0)) == 20, "Arcane Cap should add 5 mana to the Arcane variant cap per rank")
+    _check(int(character.mana_caps.get("divine", 0)) == 15, "Divine Cap should add 5 mana to the Divine variant cap per rank")
+    _check(int(character.mana_caps.get("nature", 0)) == 10, "Unpurchased Nature Cap should retain its base value")
+    _check(character.max_spell_slots == 12, "School Spell Mastery ranks should add two prepared slots each")
+    _check(is_equal_approx(character.mana_regeneration_per_time_point(), 0.4), "Mana regeneration should stack at 0.1 per rank on top of the 0.1 base rate")
+
+    character.unlocked_base_spells = [
+        "firebolt", "heal", "smite_evil", "divine_silence", "sanctuary",
+        "divine_protection", "summon_animal", "counterspell", "dragon_breath",
+        "entangle", "wild_fury", "calm_animal", "disguise_self"
+    ]
+    for spell_id in character.unlocked_base_spells.slice(0, 12):
+        var prepared_result := character.prepare_spell(PREPARED_SPELL.create(String(spell_id)))
+        _check(bool(prepared_result.get("ok", false)), "Prepared spell slots should accept a known spell while capacity remains")
+    var full_result := character.prepare_spell(PREPARED_SPELL.create("disguise_self"))
+    _check(String(full_result.get("reason", "")) == "prepared_spell_slots_full", "Spell Mastery capacity should be enforced when preparing spells")
+    _check(character.unprepare_spell(PREPARED_SPELL.create("firebolt")), "A prepared spell should be removable to free a slot")
+    _check(bool(character.prepare_spell(PREPARED_SPELL.create("disguise_self")).get("ok", false)), "Removing a prepared spell should free a slot")
+
+
+    var restored = CHARACTER_STATE.from_dict(character.to_dict())
+    _check(restored.max_mana == 40 and restored.current_mana == 40, "School Mana effects should not be applied twice on load")
+    _check(restored.max_spell_slots == 12, "Spell slot increases should survive save/load")
+    _check(is_equal_approx(restored.mana_regeneration_per_time_point(), 0.4), "Mana regeneration ranks should survive save/load")
+
+    
 func _test_prepared_spell_round_trip() -> void:
     var spell = PREPARED_SPELL.create("firebolt", {
         "speed": "quickened",

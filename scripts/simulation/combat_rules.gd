@@ -84,6 +84,8 @@ static func hit_chance(attacker: CharacterState, target: CharacterState, options
         if unarmed_hit_rank == 0 and bool(options.get("unarmed_skill_hit", false)):
             chance += 5.0
     var animal_bonus := float(options.get("to_hit_vs_animal", 0.0))
+    if target.tags.has("animal"):
+        animal_bonus += 5.0 * float(maxi(0, int(attacker.skills.get("nature_ranger", 0))))
     if animal_bonus != 0.0 and target.tags.has("animal"):
         chance += animal_bonus
     if String(options.get("target_terrain", "")).to_lower() == "foliage":
@@ -114,6 +116,7 @@ static func raw_damage(attacker: CharacterState, options: Dictionary = {}) -> in
         damage += 3 * int(attacker.skills.get("goblin_opportunist", 0))
     damage += int(options.get("flank_bonus", 0))
     damage += int(options.get("sneak_attack_bonus", 0))
+    damage -= maxi(0, attacker.base_damage_penalty)
     return maxi(1, damage)
 
 static func damage_reduction(target: CharacterState) -> int:

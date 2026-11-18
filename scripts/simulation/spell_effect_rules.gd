@@ -134,7 +134,10 @@ func apply(
             elif target != null:
                 var before := target.health
                 var lifecycle := target.apply_healing(magnitude)
+                var effective_healing := floori(float(magnitude) * (1.0 - float(target.healing_reduction_percent) / 100.0))
                 payload["healing"] = target.health - before
+                payload["healing_reduction_percent"] = target.healing_reduction_percent
+                payload["effective_healing"] = effective_healing
                 payload["target_lifecycle"] = lifecycle
                 payload["target_health"] = target.health
             payload["magnitude"] = magnitude
@@ -231,7 +234,7 @@ func _calm_animal_target(simulation: Variant, target: CharacterState) -> Charact
     if target.tags.has("animal") and not target.tags.has("fey") and not target.tags.has("dragon"):
         return target
     if not target.mounted_animal_id.is_empty():
-        var mount := simulation.get_character(target.mounted_animal_id)
+        var mount: CharacterState = simulation.get_character(target.mounted_animal_id) as CharacterState
         if mount != null and mount.tags.has("animal") and not mount.tags.has("fey") and not mount.tags.has("dragon"):
             return mount
     return null
@@ -281,6 +284,17 @@ func _create_summon(simulation: Variant, caster: CharacterState, prepared: Prepa
     var becomes_companion := int(caster.skills.get("animal_companion", 0)) > 0 and not has_companion
     summon.is_animal_companion = becomes_companion
     summon.is_summoned = not becomes_companion
+    if becomes_companion:
+        if int(caster.skills.get("companion_str_end", 0)) > 0:
+            summon.base_damage += 1
+            summon.max_health += 10
+            summon.health += 10
+        if int(caster.skills.get("companion_agi_end", 0)) > 0:
+            summon.time_points_per_tick += 0.05
+            summon.max_health += 10
+            summon.health += 10
+        if int(caster.skills.get("venomous_summon", 0)) > 0:
+            summon.skills["poison_bite"] = 1
     summon.summoned_by_id = caster.id
     summon.time_points = 100.0
     simulation.register_character(summon)

@@ -8,6 +8,10 @@ func _initialize() -> void:
     _test_heal_uses_shared_action_and_wakes_target()
     _test_rejected_cast_does_not_spend_resources()
     _test_burst_firebolt_uses_area_effect()
+    _test_divine_burst_smite_uses_area_effect()
+    _test_school_mana_cap_rejects_over_budget_variant()
+    _test_school_target_skill_casts_multiple_targets()
+    _test_school_target_skill_casts_multiple_heals()
     _test_armour_penalty_and_blood_magic()
     _test_combat_ai_casts_firebolt()
     _test_combat_ai_heals_ally()
@@ -104,6 +108,7 @@ func _test_burst_firebolt_uses_area_effect() -> void:
     var target := _new_character("burst_target", "enemy", Vector2i(2, 0))
     var nearby := _new_character("burst_nearby", "enemy", Vector2i(3, 0))
     caster.unlocked_base_spells.append("firebolt")
+    caster.skills["arcane_burst"] = 1
     simulation.map_data.add_cell(Vector2i(2, 0))
     for hex in HexGrid.neighbors(Vector2i(2, 0)):
         simulation.map_data.add_cell(hex)
@@ -120,6 +125,116 @@ func _test_burst_firebolt_uses_area_effect() -> void:
     _check(target.health == 25 and nearby.health == 25, "Burst Firebolt should damage opponents in the radius")
     _check(caster.current_mana == 7, "Burst Firebolt should pay its increased mana cost")
     _check(is_equal_approx(caster.time_points, 90.0), "Burst Firebolt should pay its standard TP cost")
+
+
+func _test_divine_burst_smite_uses_area_effect() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("divine_burst_caster", "player", Vector2i.ZERO)
+    var undead := _new_character("divine_burst_undead", "enemy", Vector2i(2, 0))
+    var living := _new_character("divine_burst_living", "enemy", Vector2i(3, 0))
+    undead.tags.append("undead")
+    caster.unlocked_base_spells.append("smite_evil")
+    caster.skills["divine_burst"] = 1
+    simulation.map_data.add_cell(Vector2i(2, 0))
+    for hex in HexGrid.neighbors(Vector2i(2, 0)):
+        simulation.map_data.add_cell(hex)
+    simulation.register_character(caster)
+    simulation.register_character(undead)
+    simulation.register_character(living)
+
+    var burst_spell := PreparedSpell.create("smite_evil", {"burst": true})
+    caster.prepared_spells.append(burst_spell.to_dict())
+    var result := simulation.submit_action(
+        SimulationActionRequest.cast_spell_at_hex(caster.id, Vector2i(2, 0), burst_spell)
+    )
+    _check(bool(result.get("ok", false)), "Divine Burst should allow Smite Evil to resolve as an area spell")
+    _check(undead.health < undead.max_health, "Burst Smite Evil should damage undead targets in its radius")
+    _check(living.health == living.max_health, "Burst Smite Evil should not damage non-undead targets")
+    _check(caster.current_mana == 9, "Burst Smite Evil should pay its eight-mana burst surcharge")
+    simulation.free()
+
+
+func _test_school_mana_cap_rejects_over_budget_variant() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("cap_caster", "player", Vector2i.ZERO)
+    var target := _new_character("cap_target", "enemy", Vector2i(2, 0))
+    caster.unlocked_base_spells.append("firebolt")
+    caster.skills["arcane_magnitude"] = 2
+    var over_budget := PreparedSpell.create("firebolt", {"magnitude_bonus": 2})
+    caster.prepared_spells.append(over_budget.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(target)
+
+    var result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, target.id, over_budget))
+    _check(not bool(result.get("ok", false)), "A spell variant above the school mana cap should be rejected")
+    _check(String(result.get("reason", "")) == "school_mana_cap_exceeded", "Over-cap variants should report the school mana cap")
+    _check(int(result.get("mana_cap", -1)) == 10, "Base school mana cap should be ten without Cap ranks")
+    _check(caster.current_mana == 20 and is_equal_approx(caster.time_points, 100.0), "Rejected over-cap spells must not spend mana or TP")
+    simulation.free()
+
+
+func _test_school_target_skill_casts_multiple_targets() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("multi_caster", "player", Vector2i.ZERO)
+    var first := _new_character("multi_first", "enemy", Vector2i(2, 0))
+    var second := _new_character("multi_second", "enemy", Vector2i(3, 0))
+    var guardian := _new_character("multi_guardian", "enemy", Vector2i(4, 0))
+    guardian.skills["cleric_trigger_damage"] = 1
+    second.add_spell_effect({"effect_id": "sanctuary", "source_id": guardian.id, "magnitude": 1})
+    caster.unlocked_base_spells.append("firebolt")
+    caster.skills["firebolt_hit"] = 10
+    caster.skills["arcane_targets"] = 1
+    caster.skills["arcane_cap"] = 2
+    caster.current_mana = 100
+    caster.max_mana = 100
+    var prepared := PreparedSpell.create("firebolt", {"target_bonus": 1})
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(first)
+    simulation.register_character(second)
+    simulation.register_character(guardian)
+
+    var missing_selection := simulation.submit_action(
+        SimulationActionRequest.cast_spell(caster.id, first.id, prepared), 201
+    )
+    _check(String(missing_selection.get("reason", "")) == "multi_target_selection_required", "A multi-target variant must not silently degrade to one target")
+    _check(caster.current_mana == 100 and is_equal_approx(caster.time_points, 100.0), "A missing target selection must not spend resources")
+
+    var request := SimulationActionRequest.cast_spell_targets(caster.id, [first.id, second.id], prepared)
+    var result := simulation.submit_action(request, 202)
+    _check(bool(result.get("ok", false)), "Arcane Fork should allow a Firebolt to select one additional target")
+    _check(first.health == 95 and second.health == 95, "Multi-target Firebolt should resolve damage against both selected opponents")
+    _check(caster.current_mana == 80, "Each additional target should add fifteen mana to the spell cost")
+    _check(caster.health == 99, "Sanctuary on an additional target should trigger its Cleric Retribution skill")
+    _check(result.get("affected_ids", []).size() == 2, "Multi-target results should report every affected target")
+    simulation.free()
+
+
+func _test_school_target_skill_casts_multiple_heals() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("multi_healer", "player", Vector2i.ZERO)
+    var first := _new_character("heal_first", "player", Vector2i(1, 0))
+    var second := _new_character("heal_second", "player", Vector2i(1, -1))
+    caster.unlocked_base_spells.append("heal")
+    caster.skills["divine_targets"] = 1
+    caster.skills["divine_cap"] = 3
+    caster.current_mana = 100
+    caster.max_mana = 100
+    first.health = 90
+    second.health = 90
+    var prepared := PreparedSpell.create("heal", {"target_bonus": 1})
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(first)
+    simulation.register_character(second)
+
+    var request := SimulationActionRequest.cast_spell_targets(caster.id, [first.id, second.id], prepared)
+    var result := simulation.submit_action(request, 203)
+    _check(bool(result.get("ok", false)), "Divine Presence should allow Heal to select one additional ally")
+    _check(first.health == 95 and second.health == 95, "Multi-target Heal should restore health to every selected ally")
+    _check(caster.current_mana == 79, "Multi-target Heal should pay the additional-target mana surcharge")
+    _check(result.get("affected_ids", []).size() == 2, "Multi-target Heal should report every healed ally")
+    simulation.free()
 
 
 func _test_armour_penalty_and_blood_magic() -> void:

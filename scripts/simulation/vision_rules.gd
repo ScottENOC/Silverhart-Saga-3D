@@ -32,6 +32,7 @@ static func vision_range(
     result += 3 * _skill_rank(observer, "goblin_keen_senses")
     if indoors:
         result += 4 * _skill_rank(observer, "deep_sense")
+    result -= maxi(0, observer.vision_penalty)
 
     if low_light and not target_illuminated:
         var has_low_light_vision := (

@@ -98,6 +98,36 @@ static func compute_variant(
         return {"ok": false, "reason": "touch_and_range_bonus_are_exclusive"}
 
     var school := String(base.get("school", ""))
+    var school_prefix := school + "_"
+    var required_skills := {
+        "burst": school_prefix + "burst",
+        "radius_bonus": school_prefix + "expand",
+        "magnitude_bonus": school_prefix + "magnitude",
+        "range_bonus": school_prefix + "range",
+        "target_bonus": school_prefix + "targets",
+        "touch": school_prefix + "touch",
+        "quickened": school_prefix + "quickened",
+        "slowed": school_prefix + "slowed"
+    }
+    if burst and _skill_rank(skills, String(required_skills["burst"])) < 1:
+        return {"ok": false, "reason": "burst_skill_required"}
+    if radius_bonus > _skill_rank(skills, String(required_skills["radius_bonus"])):
+        return {"ok": false, "reason": "expansion_skill_rank_insufficient"}
+    if magnitude_bonus > _skill_rank(skills, String(required_skills["magnitude_bonus"])):
+        return {"ok": false, "reason": "potency_skill_rank_insufficient"}
+    if range_bonus > 5 * _skill_rank(skills, String(required_skills["range_bonus"])):
+        return {"ok": false, "reason": "range_skill_rank_insufficient"}
+    if target_bonus > _skill_rank(skills, String(required_skills["target_bonus"])):
+        return {"ok": false, "reason": "target_skill_rank_insufficient"}
+    if touch and _skill_rank(skills, String(required_skills["touch"])) < 1:
+        return {"ok": false, "reason": "touch_skill_required"}
+    if speed == "quickened" and _skill_rank(skills, String(required_skills["quickened"])) < 1:
+        return {"ok": false, "reason": "quickened_skill_required"}
+    if speed == "slowed" and _skill_rank(skills, String(required_skills["slowed"])) < 1:
+        return {"ok": false, "reason": "slowed_skill_required"}
+    if subtle and _skill_rank(skills, "subtle_spell") < 1:
+        return {"ok": false, "reason": "subtle_spell_skill_required"}
+
     var efficiency_range := 0
     var efficiency_magnitude := 0
     var efficiency_speed := 0
@@ -106,7 +136,26 @@ static func compute_variant(
         efficiency_magnitude = maxi(0, int(skills.get("arcane_eff_magnitude", 0)))
         efficiency_speed = maxi(0, int(skills.get("arcane_eff_speed", 0)))
 
-    var mana_cost := int(base.get("base_mana", 0))
+    var summon_surcharge := 0
+    if spell_id == "summon_animal":
+        match String(summon_id):
+            "boar":
+                if _skill_rank(skills, "learn_boar_summon") < 1:
+                    return {"ok": false, "reason": "boar_summon_skill_required"}
+                summon_surcharge = 8
+            "tiger":
+                if _skill_rank(skills, "learn_tiger_summon") < 1:
+                    return {"ok": false, "reason": "tiger_summon_skill_required"}
+                summon_surcharge = 15
+            "eagle":
+                if _skill_rank(skills, "learn_eagle_summon") < 1:
+                    return {"ok": false, "reason": "eagle_summon_skill_required"}
+                summon_surcharge = 5
+            "unicorn":
+                if _skill_rank(skills, "learn_unicorn_summon") < 1 or _skill_rank(skills, "animal_companion") < 1:
+                    return {"ok": false, "reason": "unicorn_summon_skill_required"}
+
+    var mana_cost := int(base.get("base_mana", 0)) + summon_surcharge
     var time_point_cost := 10
     if speed == "quickened":
         time_point_cost = 5
@@ -129,7 +178,7 @@ static func compute_variant(
     # Keep the source game's core cost separate from the actual cost. The
     # original formula excludes quickened's efficiency-adjusted surcharge
     # from coreManaCost, while including all other modifiers.
-    var core_mana_cost := int(base.get("base_mana", 0)) + range_cost
+    var core_mana_cost := int(base.get("base_mana", 0)) + summon_surcharge + range_cost
     core_mana_cost += magnitude_bonus * maxi(0, 5 - efficiency_magnitude)
     core_mana_cost += radius_bonus * 10
     core_mana_cost += target_bonus * 15
@@ -172,9 +221,14 @@ static func compute_variant(
     }
 
 
-## The first resolver slice supports only direct Firebolt damage and
-## single-target Heal. Do not silently treat unimplemented Burst/AoE or
-## extra-target variants as single-target casts.
+
+static func _skill_rank(skills: Dictionary, skill_id: String) -> int:
+    return maxi(0, int(skills.get(skill_id, 0)))
+
+
+## Runtime support is deliberately explicit. Direct Firebolt, Heal and Smite
+## can use selected extra targets; unsupported combinations are rejected
+## rather than silently degrading to single-target casts.
 static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool:
     if not bool(variant.get("ok", false)):
         return false
@@ -186,12 +240,12 @@ static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool
     ]
     if not IMPLEMENTED_IDS.has(spell_id):
         return false
-    if int(variant.get("extra_targets", 0)) > 0:
+    if int(variant.get("extra_targets", 0)) > 0 and spell_id not in ["firebolt", "heal", "smite_evil"]:
         return false
     var modifiers: Dictionary = variant.get("modifiers", {})
-    if bool(modifiers.get("burst", false)) and spell_id not in ["heal", "firebolt"]:
+    if bool(modifiers.get("burst", false)) and spell_id not in ["heal", "firebolt", "smite_evil"]:
         return false
-    if int(variant.get("radius", 0)) > 0 and spell_id not in ["dragon_breath", "entangle", "heal", "firebolt"]:
+    if int(variant.get("radius", 0)) > 0 and spell_id not in ["dragon_breath", "entangle", "heal", "firebolt", "smite_evil"]:
         return false
     if spell_id in ["heal", "firebolt"] and int(variant.get("radius", 0)) > 0 and not bool(modifiers.get("burst", false)):
         return false

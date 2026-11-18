@@ -702,16 +702,53 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
         return {"ok": false, "reason": String(variant.get("reason", "invalid_spell_variant"))}
     if not SpellRules.supports_initial_cast(spell_id, variant):
         return {"ok": false, "reason": "spell_variant_effect_not_implemented"}
-    var target_validation := _spell_effect_rules.validate(self, caster, target, prepared, variant, request)
+    var school := String(variant.get("school", ""))
+    var school_mana_cap := 10 + 5 * maxi(0, int(caster.skills.get("%s_cap" % school, 0)))
+    if int(variant.get("mana_cost", 0)) > school_mana_cap:
+        return {"ok": false, "reason": "school_mana_cap_exceeded", "mana_cap": school_mana_cap}
+    var target_validation: Dictionary = _spell_effect_rules.validate(self, caster, target, prepared, variant, request)
     if not bool(target_validation.get("ok", false)):
         return {"ok": false, "reason": String(target_validation.get("reason", "invalid_spell_target"))}
     target = target_validation.get("target") as CharacterState
+
+    var extra_target_ids: Array[String] = []
+    var extra_target_count := maxi(0, int(variant.get("extra_targets", 0)))
+    if extra_target_count > 0:
+        if spell_id not in ["firebolt", "heal", "smite_evil"]:
+            return {"ok": false, "reason": "multi_target_spell_not_supported"}
+        var raw_target_ids: Variant = request.options.get("target_ids", [])
+        if not raw_target_ids is Array or raw_target_ids.is_empty():
+            return {"ok": false, "reason": "multi_target_selection_required"}
+        if String(raw_target_ids[0]) != request.target_id:
+            return {"ok": false, "reason": "multi_target_primary_mismatch"}
+        if raw_target_ids.size() != extra_target_count + 1:
+            return {"ok": false, "reason": "spell_target_count_mismatch"}
+        var seen_target_ids: Dictionary = {request.target_id: true}
+        for index in range(1, raw_target_ids.size()):
+            var extra_id := String(raw_target_ids[index])
+            if extra_id.is_empty() or seen_target_ids.has(extra_id):
+                return {"ok": false, "reason": "duplicate_spell_target"}
+            seen_target_ids[extra_id] = true
+            var extra_target := get_character(extra_id)
+            if extra_target == null or not extra_target.can_be_targeted():
+                return {"ok": false, "reason": "extra_target_unavailable"}
+            if spell_id == "heal":
+                if extra_target.side != caster.side:
+                    return {"ok": false, "reason": "spell_requires_ally"}
+            elif extra_target.side == caster.side:
+                return {"ok": false, "reason": "spell_requires_opponent"}
+            if HexGrid.distance(caster.axial, extra_target.axial) > maxi(1, int(variant.get("range", 1))):
+                return {"ok": false, "reason": "target_out_of_range"}
+            extra_target_ids.append(extra_id)
 
     var tp_cost := float(variant.get("time_point_cost", 0))
     if not is_finite(tp_cost) or tp_cost < 0.0 or not caster.can_spend_time_points(tp_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
     var armour_penalty := SpellRules.armour_mana_penalty(caster, String(variant.get("school", "")))
     var total_mana_cost := int(variant.get("mana_cost", 0)) + armour_penalty
+    var divine_judgment_free := String(variant.get("school", "")) == "divine" and caster.divine_judgment_ready
+    if divine_judgment_free:
+        total_mana_cost = 0
     var affordability := SpellRules.cast_affordability(caster, total_mana_cost)
     if not bool(affordability.get("ok", false)):
         return {"ok": false, "reason": String(affordability.get("reason", "insufficient_mana"))}
@@ -719,6 +756,7 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
     var context := {
         "caster_id": caster.id,
         "target_id": target.id if target != null else "",
+        "extra_target_ids": extra_target_ids,
         "prepared_spell": prepared.to_dict(),
         "variant": variant.duplicate(true),
         "request_options": request.options.duplicate(true),
@@ -726,6 +764,7 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
         "random_seed": random_seed,
         "time_point_cost": tp_cost,
         "armour_penalty": armour_penalty,
+        "divine_judgment_free": divine_judgment_free,
         "total_mana_cost": total_mana_cost,
         "affordability": affordability.duplicate(true)
     }
@@ -751,9 +790,24 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     var affordability: Dictionary = context.get("affordability", {})
     if not caster.can_spend_time_points(tp_cost) or not bool(SpellRules.cast_affordability(caster, total_mana_cost).get("ok", false)):
         return {"ok": false, "reason": "resources_changed_before_cast"}
+    var extra_target_ids: Array = context.get("extra_target_ids", [])
+    for extra_id_value in extra_target_ids:
+        var extra_target := get_character(String(extra_id_value))
+        if extra_target == null or not extra_target.can_be_targeted():
+            return {"ok": false, "reason": "extra_target_unavailable"}
+        if prepared.base_spell_id == "heal":
+            if extra_target.side != caster.side:
+                return {"ok": false, "reason": "spell_requires_ally"}
+        elif extra_target.side == caster.side:
+            return {"ok": false, "reason": "spell_requires_opponent"}
+        if HexGrid.distance(caster.axial, extra_target.axial) > maxi(1, int(variant.get("range", 1))):
+            return {"ok": false, "reason": "target_out_of_range"}
     if not caster.spend_time_points(tp_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
     caster.current_mana -= int(affordability.get("mana_to_spend", 0))
+    if bool(context.get("divine_judgment_free", false)):
+        caster.divine_judgment_ready = false
+        caster.divine_judgment_attacks_received = 0
     var blood_hp_cost := int(affordability.get("hp_cost", 0))
     if blood_hp_cost > 0:
         caster.apply_damage(blood_hp_cost)
@@ -763,8 +817,12 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     var is_offensive := spell_id in ["firebolt", "smite_evil", "divine_silence", "dragon_breath", "entangle", "temporal_rift"]
     if is_offensive and target != null:
         _apply_spell_protection_triggers(caster, target)
+        for extra_id_value in context.get("extra_target_ids", []):
+            var protected_extra := get_character(String(extra_id_value))
+            if protected_extra != null:
+                _apply_spell_protection_triggers(caster, protected_extra)
     elif is_offensive:
-        var center := _spell_effect_rules.target_hex_for(self, SimulationActionRequest.new(
+        var center: Vector2i = _spell_effect_rules.target_hex_for(self, SimulationActionRequest.new(
             SimulationActionRequest.ActionType.CAST_SPELL, caster.id, "", context.get("request_destination", Vector2i.ZERO), 0.0, context.get("request_options", {})
         ), null)
         var protection_radius := maxi(0, int(variant.get("radius", 0)))
@@ -784,7 +842,21 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
         context.get("request_options", {})
     )
     var cast_id := "%s:%d:%s:%d" % [caster.id, clock.tick_index, spell_id, int(context.get("random_seed", 0))]
-    var effect_payload := _spell_effect_rules.apply(self, caster, target, prepared, variant, request, cast_id)
+    var effect_payload: Dictionary = _spell_effect_rules.apply(self, caster, target, prepared, variant, request, cast_id)
+    var extra_target_results: Array[Dictionary] = []
+    for extra_id_value in extra_target_ids:
+        var extra_id := String(extra_id_value)
+        var extra_target: CharacterState = get_character(extra_id)
+        var extra_payload: Dictionary = _spell_effect_rules.apply(
+            self, caster, extra_target, prepared, variant, request, "%s:%s" % [cast_id, extra_id]
+        )
+        extra_target_results.append({"target_id": extra_id, "result": extra_payload})
+    if not extra_target_results.is_empty():
+        effect_payload["extra_target_results"] = extra_target_results
+        var affected_ids: Array[String] = [target.id]
+        for extra_result in extra_target_results:
+            affected_ids.append(String(extra_result.get("target_id", "")))
+        effect_payload["affected_ids"] = affected_ids
     effect_payload["spell_id"] = spell_id
     effect_payload["spell_name"] = String(variant.get("name", spell_id))
     effect_payload["mana_cost"] = total_mana_cost
@@ -795,6 +867,9 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     effect_payload["core_mana_cost"] = int(variant.get("core_mana_cost", variant.get("mana_cost", 0)))
     effect_payload["caster_mana_remaining"] = caster.current_mana
     effect_payload["caster_health"] = caster.health
+    if is_offensive:
+        caster.divine_judgment_attacks_received = 0
+        caster.divine_judgment_ready = false
     var target_id := target.id if target != null else ""
     var result_data := SimulationActionResult.new("cast_spell", true, "", caster.id, target_id, effect_payload).to_dict()
     action_committed.emit(SimulationEvent.new("spell_cast", caster.id, target_id, result_data))
@@ -944,19 +1019,46 @@ func _apply_spell_protection_triggers(attacker: CharacterState, target: Characte
         return
     var sanctuary := target.get_spell_effect("sanctuary")
     var protection := target.get_spell_effect("divine_protection")
-    for effect in [sanctuary, protection]:
-        if effect.is_empty():
-            continue
-        var penalty := maxi(1, int(effect.get("magnitude", 1)))
-        attacker.time_points = maxf(0.0, attacker.time_points - float(penalty))
-        var source := get_character(String(effect.get("source_id", "")))
-        if source != null:
-            var damage := maxi(0, int(source.skills.get("cleric_trigger_damage", 0)))
-            if damage > 0:
-                attacker.apply_damage(damage)
-            var mana_loss := maxi(0, int(source.skills.get("cleric_trigger_mana", 0)))
-            if mana_loss > 0:
-                attacker.current_mana = maxi(0, attacker.current_mana - mana_loss)
+    if not sanctuary.is_empty():
+        _apply_one_protection_trigger(attacker, target, sanctuary, true)
+    if not protection.is_empty():
+        # Divine Protection applies its TP penalty, but the original trigger
+        # skill callback is specifically attached to Sanctuary.
+        _apply_one_protection_trigger(attacker, target, protection, false)
+
+
+func _apply_one_protection_trigger(attacker: CharacterState, target: CharacterState, effect: Dictionary, cleric_trigger: bool) -> void:
+    var penalty := maxi(1, int(effect.get("magnitude", 1)))
+    attacker.time_points = maxf(0.0, attacker.time_points - float(penalty))
+    if not cleric_trigger:
+        return
+    var source := get_character(String(effect.get("source_id", "")))
+    if source == null:
+        return
+
+    var damage := maxi(0, int(source.skills.get("cleric_trigger_damage", 0)))
+    if damage > 0:
+        attacker.apply_damage(damage)
+    var mana_loss := maxi(0, int(source.skills.get("cleric_trigger_mana", 0)))
+    if mana_loss > 0:
+        attacker.current_mana = maxi(0, attacker.current_mana - mana_loss)
+
+    var vision_rank := maxi(0, int(source.skills.get("cleric_trigger_vision", 0)))
+    if vision_rank > 0 and attacker.vision_penalty_stacks < 3:
+        attacker.vision_penalty_stacks += 1
+        attacker.vision_penalty += vision_rank
+
+    var damage_rank := maxi(0, int(source.skills.get("cleric_trigger_dmg_red", 0)))
+    if damage_rank > 0 and attacker.damage_penalty_stacks < 3:
+        attacker.damage_penalty_stacks += 1
+        attacker.base_damage_penalty += damage_rank
+
+    var healing_rank := maxi(0, int(source.skills.get("cleric_trigger_heal_red", 0)))
+    if healing_rank > 0:
+        attacker.healing_reduction_percent = mini(100, attacker.healing_reduction_percent + healing_rank * 50)
+
+    if int(source.skills.get("armistice", 0)) > 0:
+        attacker.armistice_tp_debt += 5.0
 
 
 func _resolve_firebolt_hit(caster: CharacterState, target: CharacterState, magnitude: int, random_seed: int) -> Dictionary:
@@ -1358,11 +1460,20 @@ func _resolve_attack_action(attacker_id: String, target_id: String, options: Dic
         rng.seed = random_seed
     var fury := attacker.get_spell_effect("wild_fury")
     var resolved_options := options.duplicate(true)
+    var armistice_cost := attacker.armistice_tp_debt
+    resolved_options["time_point_cost"] = float(resolved_options.get("time_point_cost", 0.0)) + armistice_cost
     var weapon_id := String(attacker.equipment.get("weapon", ""))
     if not fury.is_empty() and weapon_id.is_empty():
         resolved_options["wild_fury_bonus"] = int(fury.get("magnitude", 0))
     var result := CombatRules.resolve_attack(attacker, target, resolved_options, rng)
     if bool(result.get("ok", false)):
+        attacker.armistice_tp_debt = 0.0
+        attacker.divine_judgment_attacks_received = 0
+        attacker.divine_judgment_ready = false
+        if int(target.skills.get("divine_judgment", 0)) > 0:
+            target.divine_judgment_attacks_received += 1
+            if target.divine_judgment_attacks_received >= 3:
+                target.divine_judgment_ready = true
         _apply_spell_protection_triggers(attacker, target)
         attacker.remove_spell_effect("sanctuary")
         target.remove_spell_effect("calmed")
@@ -1503,6 +1614,16 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
                         effect_event
                     ))
             _advance_character_spell_effects(state, gained_tp)
+            if gained_tp > 0.0 and previous_tp < 150.0 and state.current_mana < state.max_mana:
+                state.mana_regen_remainder += state.mana_regeneration_per_time_point() * gained_tp
+                var whole_mana := floori(state.mana_regen_remainder)
+                if whole_mana > 0:
+                    state.current_mana = mini(state.max_mana, state.current_mana + whole_mana)
+                    state.mana_regen_remainder -= float(whole_mana)
+                if state.current_mana >= state.max_mana:
+                    state.mana_regen_remainder = 0.0
+            elif state.current_mana >= state.max_mana:
+                state.mana_regen_remainder = 0.0
             if state.alive and gained_tp > 0.0 and state.health < state.max_health:
                 state.health_regen_remainder += state.health_regeneration_per_time_point() * gained_tp
                 var whole_healing := floori(state.health_regen_remainder)
