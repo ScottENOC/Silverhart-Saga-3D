@@ -161,7 +161,7 @@ func _test_combat_ai_casts_firebolt() -> void:
     CombatAI.take_turn(simulation, caster, enemy_ids, party_ids)
     _check(target.health == 25, "Combat AI should use Firebolt against a target outside melee range")
     _check(caster.current_mana == 15, "AI Firebolt must use the same mana payment")
-    _check(is_equal_approx(caster.time_points, 90.0), "AI Firebolt must use the same Time Point payment")
+    _check(is_equal_approx(caster.time_points, 80.0), "AI should end its turn after paying Firebolt costs")
 
 
 func _test_combat_ai_heals_ally() -> void:
@@ -182,4 +182,4 @@ func _test_combat_ai_heals_ally() -> void:
     CombatAI.take_turn(simulation, caster, enemy_ids, party_ids)
     _check(ally.health == 45, "Combat AI should heal a nearby injured ally")
     _check(caster.current_mana == 14, "AI Heal must use the same mana payment")
-    _check(is_equal_approx(caster.time_points, 90.0), "AI Heal must use the same Time Point payment")
+    _check(is_equal_approx(caster.time_points, 80.0), "AI should end its turn after paying Heal costs")
