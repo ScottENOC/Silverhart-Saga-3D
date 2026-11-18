@@ -243,9 +243,9 @@ static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool
     if int(variant.get("extra_targets", 0)) > 0 and spell_id not in ["firebolt", "heal", "smite_evil"]:
         return false
     var modifiers: Dictionary = variant.get("modifiers", {})
-    if bool(modifiers.get("burst", false)) and spell_id not in ["heal", "firebolt"]:
+    if bool(modifiers.get("burst", false)) and spell_id not in ["heal", "firebolt", "smite_evil"]:
         return false
-    if int(variant.get("radius", 0)) > 0 and spell_id not in ["dragon_breath", "entangle", "heal", "firebolt"]:
+    if int(variant.get("radius", 0)) > 0 and spell_id not in ["dragon_breath", "entangle", "heal", "firebolt", "smite_evil"]:
         return false
     if spell_id in ["heal", "firebolt"] and int(variant.get("radius", 0)) > 0 and not bool(modifiers.get("burst", false)):
         return false
