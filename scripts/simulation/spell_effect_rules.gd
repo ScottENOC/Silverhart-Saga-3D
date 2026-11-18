@@ -33,7 +33,7 @@ static func validate(
         if target != null and target != caster:
             return {"ok": false, "reason": "spell_requires_self_target"}
         target = caster
-    elif spell_id != "summon_animal" and spell_id != "counterspell" and not area_spell and target == null:
+    elif spell_id != "summon_animal" and not area_spell and target == null:
         return {"ok": false, "reason": "target_required"}
 
     if spell_id in ["firebolt", "smite_evil", "divine_silence", "temporal_rift", "counterspell"] and target != null:
@@ -114,6 +114,7 @@ static func apply(
                 if spell_id == "smite_evil" and not _has_any_tag(target, ["undead", "demon"]):
                     payload["hit"] = false
                     payload["reason"] = "invalid_target_tag"
+                    payload["damage"] = 0
                 else:
                     var hit_chance := _spell_hit_chance(caster, target, spell_id)
                     var rng := RandomNumberGenerator.new()
