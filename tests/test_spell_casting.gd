@@ -104,6 +104,7 @@ func _test_burst_firebolt_uses_area_effect() -> void:
     var target := _new_character("burst_target", "enemy", Vector2i(2, 0))
     var nearby := _new_character("burst_nearby", "enemy", Vector2i(3, 0))
     caster.unlocked_base_spells.append("firebolt")
+    caster.skills["arcane_burst"] = 1
     simulation.map_data.add_cell(Vector2i(2, 0))
     for hex in HexGrid.neighbors(Vector2i(2, 0)):
         simulation.map_data.add_cell(hex)
