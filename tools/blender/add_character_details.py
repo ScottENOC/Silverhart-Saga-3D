@@ -326,7 +326,22 @@ def add_piercings(entries):
             for name in ("SOCKET_Earring_L", "SOCKET_Earring_R"):
                 socket = sockets.get(name)
                 if socket:
-                    add_hoop(socket, 0.012, material, "Piercing_" + name)
+                    lo, hi = world_bounds(find_skin())
+                    size = hi - lo
+                    centre = (lo + hi) * 0.5
+                    pos = socket.matrix_world.translation.copy()
+                    yn = (pos.y - lo.y) / max(size.y, 1e-6)
+                    xn = abs(pos.x - centre.x) / max(size.x, 1e-6)
+                    print(f"SOCKET_DIAGNOSTIC {name} world={tuple(round(v,4) for v in pos)} normalized_y={yn:.3f} normalized_x={xn:.3f}")
+                    # Ear sockets should be on the head, not down at shoulder height.
+                    if yn < 0.76 or yn > 0.99 or xn < 0.18 or xn > 0.48:
+                        side = -1.0 if name.endswith("_L") else 1.0
+                        fallback = Vector((centre.x + side * size.x * 0.34,
+                                           lo.y + size.y * 0.865,
+                                           centre.z + size.z * 0.02))
+                        print(f"WARNING: {name} outside head envelope; fallback={tuple(round(v,4) for v in fallback)}")
+                        socket.location = socket.parent.matrix_world.inverted() @ fallback if socket.parent else fallback
+                    add_hoop(socket, 0.010, material, "Piercing_" + name)
                     count += 1
                 else:
                     print(f"WARNING: Ara socket {name} not found; piercing omitted")
