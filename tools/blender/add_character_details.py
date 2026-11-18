@@ -201,11 +201,9 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
                       Vector((arm_x, front, arm_z - height * .07))], height * .0015, False)
                 star = Vector((arm_x, front, arm_z - height * .09))
                 path(star_points(star, height * .012), height * .012 * .11, False)
-            for side in (-1.0, 1.0):
-                thigh_x = centre.x + side * width * .24
-                path([Vector((thigh_x, front, centre.z - height * .23)),
-                      Vector((thigh_x + side * width * .018, front, centre.z - height * .29)),
-                      Vector((thigh_x, front, centre.z - height * .35))], height * .0015, False)
+            # Omit the lower-thigh strokes from this motif. Their fixed
+            # X/Z coordinates fall outside Mirabel's actual front-skin footprint;
+            # the upper-body, back and arm sigils remain surface-projected.
 
         elif name == "reyna_shoulder_back":
             shoulder_z, back = centre.z + height * .29, back_y
