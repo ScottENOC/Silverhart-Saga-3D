@@ -314,7 +314,10 @@ func apply_damage(amount: int) -> String:
 func apply_healing(amount: int) -> String:
     if not alive or amount <= 0:
         return "unchanged"
-    health = mini(max_health, health + amount)
+    var effective_amount := floori(float(amount) * (1.0 - float(healing_reduction_percent) / 100.0))
+    if effective_amount <= 0:
+        return "unchanged"
+    health = mini(max_health, health + effective_amount)
     if unconscious and health > 0:
         unconscious = false
         lifecycle_changed.emit(id, "revived")
