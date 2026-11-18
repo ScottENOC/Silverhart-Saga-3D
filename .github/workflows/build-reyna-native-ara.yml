@@ -126,7 +126,7 @@ jobs:
             --rendering-method gl_compatibility \
             --rendering-driver opengl3 \
             --script res://tools/review/reyna_native_preview.gd
-          for view in front side threequarter face pelvis; do
+          for view in front side threequarter face pelvis abdomen; do
             test -s "build/reyna-native-preview-project/build/reyna-native/preview/$view.png"
           done
           test -s build/reyna-native-preview-project/build/reyna-native/preview/render-report.json
@@ -148,7 +148,7 @@ jobs:
               archive.write(root / "Reyna.glb", "Reyna.glb")
               archive.write(Path("character-preview/reyna-ara.json"), "reyna-ara.json")
               archive.write(root / "preview/render-report.json", "preview/render-report.json")
-              for view in ("front", "side", "threequarter", "face", "pelvis"):
+              for view in ("front", "side", "threequarter", "face", "pelvis", "abdomen"):
                   archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
               archive.writestr("README.txt", readme)
           PY
