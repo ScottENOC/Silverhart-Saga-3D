@@ -76,6 +76,8 @@ func _test_skill_catalogue_and_progression() -> void:
     _check(int(SkillCatalog.get_skill("health").get("max_ranks", -1)) == 0, "A zero rank cap means unlimited ranks")
     _check(bool(SkillCatalog.get_skill("learn_divine_strength").size() > 0), "Divine Strength should have a learn skill")
     _check(bool(SkillCatalog.get_skill("learn_smite_evil").get("disabled", false)), "Non-official legacy spell unlocks should remain archived but disabled")
+    var disabled_spell_skill := SkillProgression.can_purchase(CharacterState.new("disabled_skill_test", "Disabled Skill Test"), "learn_smite_evil")
+    _check(not bool(disabled_spell_skill.get("ok", true)) and String(disabled_spell_skill.get("reason", "")) == "skill_not_in_official_spell_catalogue", "Archived spell unlocks must not be purchasable")
 
     var character := CharacterState.new("skill_test", "Skill Test")
     character.attributes = {"endurance": 3, "strength": 0, "wildcard": 1, "nature": 1, "druid": 1, "elf": 1}
