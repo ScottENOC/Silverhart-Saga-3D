@@ -8,6 +8,7 @@ on:
       - ".github/workflows/build-wren-native-ara.yml"
       - "tools/blender/add_adult_anatomy.py"
       - "tools/review/wren_native_preview.gd"
+      - "scripts/presentation/ara_character_details.gd"
       - "tools/review/recolor_wren_glb.py"
   workflow_dispatch:
 
@@ -83,9 +84,10 @@ jobs:
         run: |
           set -euo pipefail
           preview=build/wren-native-preview-project
-          mkdir -p "$preview/build/wren-native" "$preview/tools/review"
+          mkdir -p "$preview/scripts/presentation" "$preview/build/wren-native" "$preview/tools/review"
           cp build/wren-native/Wren.glb "$preview/build/wren-native/Wren.glb"
           cp tools/review/wren_native_preview.gd "$preview/tools/review/wren_native_preview.gd"
+          cp scripts/presentation/ara_character_details.gd "$preview/scripts/presentation/ara_character_details.gd"
           cat > "$preview/project.godot" <<'EOF'
           ; Isolated preview project: no game scenes, scripts, or autoloads.
           config_version=5
