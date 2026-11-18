@@ -16,6 +16,7 @@ func _run() -> void:
     _test_sanctuary_and_divine_protection()
     _test_cleric_trigger_skill_effects()
     _test_divine_judgment_free_cast()
+    _test_divine_judgment_resets_after_offensive_spell()
     _test_armistice_next_attack_cost()
     _test_trigger_debuff_reduces_healing()
     _test_nature_companion_and_ranger_skills()
@@ -220,7 +221,8 @@ func _test_cleric_trigger_skill_effects() -> void:
     sim.register_character(attacker)
     var sanctuary := _cast(sim, caster, ally, "sanctuary")
     _check(bool(sanctuary.get("ok", false)), "Sanctuary should cast before testing cleric triggers")
-    sim._apply_spell_protection_triggers(attacker, ally)
+    var trigger_attack := sim._resolve_attack_action(attacker.id, ally.id, {"time_point_cost": 0.0}, 314)
+    _check(bool(trigger_attack.get("ok", false)), "Attacking a Sanctuary-protected ally should activate the cleric trigger skills")
     _check(attacker.health == 28, "Divine Retribution should deal one damage per rank")
     _check(attacker.current_mana == 8, "Divine Drain should remove one mana per rank")
     _check(attacker.vision_penalty == 2 and attacker.vision_penalty_stacks == 1, "Clouded Mind should apply one stack with rank-scaled vision loss")
@@ -256,6 +258,33 @@ func _test_divine_judgment_free_cast() -> void:
     _check(bool(cast.get("ok", false)), "Divine Judgment should permit the next prepared Divine spell")
     _check(caster.current_mana == mana_before, "Divine Judgment should make the next Divine spell cost zero mana")
     _check(not caster.divine_judgment_ready and caster.divine_judgment_attacks_received == 0, "A completed free Divine cast should consume Divine Judgment")
+    sim.free()
+
+
+func _test_divine_judgment_resets_after_offensive_spell() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    caster.skills["divine_judgment"] = 1
+    caster.skills["firebolt_hit"] = 10
+    caster.unlocked_base_spells.append("firebolt")
+    var heal := PreparedSpell.create("heal")
+    var firebolt := PreparedSpell.create("firebolt")
+    caster.prepared_spells.append(heal.to_dict())
+    caster.prepared_spells.append(firebolt.to_dict())
+    var enemy := CharacterState.new("judgment_retaliation_target", "Enemy", Vector2i(2, 0))
+    enemy.side = "enemy"
+    sim.register_character(enemy)
+    for index in range(3):
+        sim._resolve_attack_action(enemy.id, caster.id, {"time_point_cost": 0.0}, 400 + index)
+    _check(caster.divine_judgment_ready, "Three attacks should ready Divine Judgment")
+    var fire_result := sim.submit_action(SimulationActionRequest.cast_spell(caster.id, enemy.id, firebolt), 88)
+    _check(bool(fire_result.get("ok", false)), "An offensive Arcane spell should resolve as a retaliation")
+    _check(not caster.divine_judgment_ready and caster.divine_judgment_attacks_received == 0, "An offensive spell should reset the consecutive-attacks-without-retaliation counter")
+    var mana_before_heal := caster.current_mana
+    var heal_result := sim.submit_action(SimulationActionRequest.cast_spell(caster.id, caster.id, heal), 89)
+    _check(bool(heal_result.get("ok", false)), "A subsequent Divine spell should still resolve")
+    _check(caster.current_mana == mana_before_heal - 6, "Divine Judgment should no longer make the next Divine spell free after retaliation")
     sim.free()
 
 
