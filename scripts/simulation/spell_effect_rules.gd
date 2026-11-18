@@ -25,6 +25,8 @@ static func validate(
     var spell_id := prepared.base_spell_id
     var base := SpellRules.get_base_spell(spell_id)
     var target_hex := target_hex_for(simulation, request, target)
+    if target != null and not target.can_be_targeted():
+        return {"ok": false, "reason": "target_unavailable"}
     var self_target := spell_id in ["disguise_self", "feather_fall"]
     var area_spell := String(variant.get("type", "")) in ["aoe_damage", "aoe_heal", "aoe_debuff"]
     if self_target:
