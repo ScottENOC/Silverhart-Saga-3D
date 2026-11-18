@@ -134,6 +134,8 @@ static func damage_reduction(target: CharacterState) -> int:
     var equipped_helmet: Dictionary = target.equipped_item_data.get("helmet", {})
     reduction += target.helmet_reduction + int(equipped_helmet.get("reduction", 0)) + target.temp_reduction
     reduction += 2 * int(target.skills.get("spectral_form", 0) > 0)
+    var curse := target.get_spell_effect("curse")
+    reduction += maxi(0, int(curse.get("damage_reduction", 0)))
     return maxi(0, reduction)
 
 static func resolve_attack(
