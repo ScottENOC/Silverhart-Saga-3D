@@ -679,6 +679,17 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
     var spell_id := prepared.base_spell_id
     if not caster.unlocked_base_spells.has(spell_id) and int(caster.skills.get("learn_%s" % spell_id, 0)) <= 0:
         return {"ok": false, "reason": "spell_not_learned"}
+    var exact_variant_prepared := false
+    for saved_value in caster.prepared_spells:
+        if not saved_value is Dictionary:
+            continue
+        var saved_prepared := PreparedSpell.from_dict(saved_value)
+        if saved_prepared != null and saved_prepared.base_spell_id == prepared.base_spell_id \
+        and saved_prepared.modifiers == prepared.modifiers:
+            exact_variant_prepared = true
+            break
+    if not exact_variant_prepared:
+        return {"ok": false, "reason": "spell_not_prepared"}
     if spell_id not in ["firebolt", "heal"]:
         return {"ok": false, "reason": "spell_effect_not_implemented"}
 
