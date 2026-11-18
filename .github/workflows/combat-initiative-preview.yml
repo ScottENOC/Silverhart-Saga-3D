@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out PR branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Godot 4.7.2 (standard)
         uses: chickensoft-games/setup-godot@v2
@@ -61,7 +61,7 @@ jobs:
 
       - name: Upload test report and screenshot
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: combat-initiative-preview
           path: |
