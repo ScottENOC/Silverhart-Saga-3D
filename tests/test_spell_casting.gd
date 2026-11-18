@@ -18,6 +18,11 @@ func _initialize() -> void:
     _test_wild_fury_rejects_humans()
     _test_summon_animal_creates_permanent_companion()
     _test_feather_fall_prevents_fall_once()
+    _test_counterspell_dispels_active_effect()
+    _test_divine_protection_applies_guard_effect()
+    _test_entangle_applies_to_enemies_in_area()
+    _test_calm_animal_records_selected_mode()
+    _test_wild_fury_buffs_allied_animal()
     if _failures > 0:
         push_error("%d spell casting assertion(s) failed." % _failures)
         quit(1)
@@ -133,6 +138,83 @@ func _test_feather_fall_prevents_fall_once() -> void:
     var fall := simulation.resolve_fall_damage(caster.id, 5)
     _check(bool(fall.get("prevented", false)), "Feather Fall should prevent one fall")
     _check(not caster.has_spell_effect("feather_fall"), "Feather Fall should be consumed by the prevented fall")
+
+
+
+func _test_counterspell_dispels_active_effect() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("counter_mage", "player", Vector2i.ZERO)
+    var target := _new_character("enemy_mage", "enemy", Vector2i(2, 0))
+    caster.unlocked_base_spells.append("counterspell")
+    target.add_spell_effect({"effect_id": "divine_protection", "source_id": target.id})
+    var prepared := PreparedSpell.create("counterspell")
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(target)
+    var result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, target.id, prepared))
+    _check(bool(result.get("ok", false)), "Counterspell should resolve against an enemy with an active effect")
+    _check(not target.has_spell_effect("divine_protection"), "Counterspell should remove the target's active spell effect")
+
+
+func _test_divine_protection_applies_guard_effect() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("protective_cleric", "player", Vector2.ZERO)
+    var ally := _new_character("protected_ally", "player", Vector2i(1, 0))
+    caster.unlocked_base_spells.append("divine_protection")
+    var prepared := PreparedSpell.create("divine_protection")
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(ally)
+    var result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, ally.id, prepared))
+    _check(bool(result.get("ok", false)), "Divine Protection should cast on an ally")
+    _check(ally.has_spell_effect("divine_protection"), "Divine Protection should add its defensive trigger")
+
+
+func _test_entangle_applies_to_enemies_in_area() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("entangle_druid", "player", Vector2.ZERO)
+    var target := _new_character("entangled_enemy", "enemy", Vector2i(2, 0))
+    caster.unlocked_base_spells.append("entangle")
+    simulation.map_data.add_cell(Vector2i(2, 0))
+    for hex in HexGrid.neighbors(Vector2i(2, 0)):
+        simulation.map_data.add_cell(hex)
+    var prepared := PreparedSpell.create("entangle")
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(target)
+    var result := simulation.submit_action(SimulationActionRequest.cast_spell_at_hex(caster.id, Vector2i(2, 0), prepared))
+    _check(bool(result.get("ok", false)), "Entangle should resolve at a valid hex")
+    _check(target.has_spell_effect("entangled"), "Entangle should restrict enemies in its area")
+
+
+func _test_calm_animal_records_selected_mode() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("calm_druid", "player", Vector2.ZERO)
+    var animal := _new_character("wild_wolf", "neutral", Vector2i(2, 0))
+    animal.tags.append("animal")
+    caster.unlocked_base_spells.append("calm_animal")
+    var prepared := PreparedSpell.create("calm_animal", {"calm_mode": "come"})
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(animal)
+    var result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, animal.id, prepared))
+    _check(bool(result.get("ok", false)), "Calm Animal should affect a mundane animal")
+    _check(String(animal.get_spell_effect("calmed").get("mode", "")) == "come", "Calm Animal should preserve the selected mode")
+
+
+func _test_wild_fury_buffs_allied_animal() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("fury_druid", "player", Vector2.ZERO)
+    var animal := _new_character("fury_wolf", "player", Vector2i(1, 0))
+    animal.tags.append("animal")
+    caster.unlocked_base_spells.append("wild_fury")
+    var prepared := PreparedSpell.create("wild_fury")
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(animal)
+    var result := simulation.submit_action(SimulationActionRequest.cast_spell(caster.id, animal.id, prepared))
+    _check(bool(result.get("ok", false)), "Wild Fury should buff an allied animal")
+    _check(animal.has_spell_effect("wild_fury"), "Wild Fury should add its timed animal buff")
 
 
 func _check(condition: bool, message: String) -> void:
