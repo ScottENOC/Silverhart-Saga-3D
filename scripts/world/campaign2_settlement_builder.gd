@@ -5,6 +5,7 @@ extends RefCounted
 
 const HEX_RADIUS := HexGrid.DEFAULT_RADIUS_M
 const CHARACTER_ACTOR_FACTORY = preload("res://scripts/presentation/campaign_character_actor_factory.gd")
+const WORLD_GEOMETRY_FACTORY = preload("res://scripts/world/world_geometry_factory.gd")
 
 var settlements: Array = []
 
@@ -89,21 +90,10 @@ func _add_wall(parent: Node3D, node_name: String, position: Vector3, size: Vecto
 	_add_box(parent, node_name + "_BottomBeam", position - Vector3(0.0, size.y * 0.5 - beam_height * 0.5, 0.0), Vector3(size.x, beam_height, size.z + 0.04), timber)
 
 func _add_box(parent: Node3D, node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
-	var instance := MeshInstance3D.new()
-	instance.name = node_name
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	instance.mesh = mesh
-	instance.position = position
-	instance.material_override = material
-	parent.add_child(instance)
-	return instance
+	return WORLD_GEOMETRY_FACTORY.add_box(parent, node_name, position, size, material)
 
 func _material(colour: Color, roughness: float = 0.88) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = colour
-	material.roughness = roughness
-	return material
+	return WORLD_GEOMETRY_FACTORY.make_material(colour, roughness)
 
 func _add_npc(parent: Node3D, npc: Dictionary) -> void:
 	var hex := _read_hex(npc.get("position", {}))
