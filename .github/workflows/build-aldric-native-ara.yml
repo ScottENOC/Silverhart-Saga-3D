@@ -11,6 +11,8 @@ on:
       - "tools/review/recolor_wren_glb.py"
       - "tools/blender/add_male_anatomy.py"
       - "tools/blender/add_abdominal_definition.py"
+      - "tools/review/add_aldric_body_hair.py"
+      - "tools/blender/add_abdominal_definition.py"
   workflow_dispatch:
 
 permissions:
@@ -82,6 +84,12 @@ jobs:
             --strength 1.35
           test -s build/aldric-native/Aldric-defined.glb
           mv build/aldric-native/Aldric-defined.glb build/aldric-native/Aldric.glb
+
+      - name: Add restrained armpit and pubic hair detail
+        run: |
+          set -euo pipefail
+          python tools/review/add_aldric_body_hair.py --model build/aldric-native/Aldric.glb --seed 1401
+          test -s build/aldric-native/Aldric.glb
 
       - name: Assemble isolated Godot preview project
         run: |
