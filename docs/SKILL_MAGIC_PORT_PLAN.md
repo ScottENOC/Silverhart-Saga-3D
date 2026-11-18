@@ -137,6 +137,7 @@ The existing first-run Ara character creator is reused in an appearance-only mod
 
 Still required:
 - persist and restore the active disguise profile through save/load, and reliably restore the underlying appearance when Counterspell removes the disguise;
+- restore both original 2D disguise modes: (a) copy the appearance of a previously encountered character, and (b) construct a custom appearance. The current 3D screen implements the custom-appearance path only;
 - expand disguise choices to the complete supported modular Ara wardrobe and morph set, rather than only the current creator controls;
 - port the 2D disguise consequences beyond appearance: NPC recognition, faction/social identity, dialogue and quest checks, equipment silhouette/compatibility, and any detection or duration rules;
 - verify disguise behaviour for companions/NPCs and non-player casters, not just the player avatar;
