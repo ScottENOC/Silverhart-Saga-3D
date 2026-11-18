@@ -47,11 +47,12 @@ func is_valid() -> bool:
         return false
     for key in ["magnitude_bonus", "range_bonus", "radius_bonus", "target_bonus"]:
         var value: Variant = modifiers.get(key, 0)
-        if not (value is int or value is float) or float(value) < 0.0:
+        if not (value is int or value is float) or not is_finite(float(value)) or float(value) < 0.0:
             return false
         if float(value) != floorf(float(value)):
             return false
-    if not ["default", "quickened", "slowed"].has(String(modifiers.get("speed", "default"))):
+    var speed: Variant = modifiers.get("speed", "default")
+    if not speed is String or not ["default", "quickened", "slowed"].has(String(speed)):
         return false
     for key in ["burst", "subtle", "touch"]:
         if not (modifiers.get(key, false) is bool):
@@ -77,14 +78,14 @@ func to_dict() -> Dictionary:
 
 static func _normalise_modifiers(source: Dictionary) -> Dictionary:
     return {
-        "speed": String(source.get("speed", "default")),
-        "magnitude_bonus": int(source.get("magnitude_bonus", 0)),
-        "range_bonus": int(source.get("range_bonus", 0)),
-        "radius_bonus": int(source.get("radius_bonus", 0)),
-        "target_bonus": int(source.get("target_bonus", 0)),
-        "burst": bool(source.get("burst", false)),
-        "subtle": bool(source.get("subtle", false)),
-        "touch": bool(source.get("touch", false))
+        "speed": source.get("speed", "default"),
+        "magnitude_bonus": source.get("magnitude_bonus", 0),
+        "range_bonus": source.get("range_bonus", 0),
+        "radius_bonus": source.get("radius_bonus", 0),
+        "target_bonus": source.get("target_bonus", 0),
+        "burst": source.get("burst", false),
+        "subtle": source.get("subtle", false),
+        "touch": source.get("touch", false)
     }
 
 
