@@ -153,6 +153,8 @@ func _test_school_target_skill_casts_multiple_targets() -> void:
     caster.skills["firebolt_hit"] = 10
     caster.skills["arcane_targets"] = 1
     caster.skills["arcane_cap"] = 2
+    caster.current_mana = 100
+    caster.max_mana = 100
     var prepared := PreparedSpell.create("firebolt", {"target_bonus": 1})
     caster.prepared_spells.append(prepared.to_dict())
     simulation.register_character(caster)
