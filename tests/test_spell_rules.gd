@@ -30,7 +30,7 @@ func _run() -> void:
 
 func _test_catalogue_loads() -> void:
     var catalogue := SPELL_RULES.base_spells()
-    _check(catalogue.size() == 15, "The source-derived base spell catalogue should load all 15 spells")
+    _check(catalogue.size() == 12, "The official player spell catalogue should load all 12 spells")
 
 
 func _test_default_variant() -> void:
@@ -38,7 +38,11 @@ func _test_default_variant() -> void:
     _check(bool(result.get("ok", false)), "Default Firebolt should be calculable")
     _check(int(result.get("mana_cost", -1)) == 5, "Default Firebolt should cost 5 mana")
     _check(int(result.get("core_mana_cost", -1)) == 5, "Default Firebolt core cost should be 5")
-    _check(int(result.get("time_point_cost", -1)) == 10, "Default spell should cost 10 TP")
+    _check(int(result.get("time_point_cost", -1)) == 10, "Default Firebolt should cost 10 TP")
+    var curse: Dictionary = SPELL_RULES.compute_variant("curse")
+    var divine_strength: Dictionary = SPELL_RULES.compute_variant("divine_strength")
+    _check(int(curse.get("time_point_cost", -1)) == 8, "Curse should retain its source-derived 8 TP cost")
+    _check(int(divine_strength.get("time_point_cost", -1)) == 10, "Divine Strength should cost 10 TP")
     _check(float(result.get("magnitude", 0.0)) == 5.0, "Default Firebolt magnitude should be 5")
     _check(int(result.get("range", -1)) == 8, "Default Firebolt range should be 8")
 
@@ -100,7 +104,7 @@ func _test_touch_and_mana_floor() -> void:
 func _test_invalid_combinations() -> void:
     var unknown := SPELL_RULES.compute_variant("not_a_spell")
     _check(not bool(unknown.get("ok", true)), "Unknown base spell should be rejected")
-    var invalid_burst := SPELL_RULES.compute_variant("sanctuary", {"burst": true})
+    var invalid_burst := SPELL_RULES.compute_variant("divine_protection", {"burst": true})
     _check(not bool(invalid_burst.get("ok", true)), "Burst should reject unsupported base spell types")
     var invalid_subtle := SPELL_RULES.compute_variant("firebolt", {"subtle": true})
     _check(not bool(invalid_subtle.get("ok", true)), "Subtle direct damage should be rejected")
