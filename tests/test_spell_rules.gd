@@ -2,6 +2,7 @@ extends SceneTree
 
 const SPELL_RULES = preload("res://scripts/simulation/spell_rules.gd")
 const PREPARED_SPELL = preload("res://scripts/simulation/prepared_spell.gd")
+const CHARACTER_STATE = preload("res://scripts/simulation/character_state.gd")
 
 var _failures := 0
 
@@ -126,6 +127,13 @@ func _test_prepared_spell_round_trip() -> void:
     _check(int(restored.modifiers.get("magnitude_bonus", 0)) == 2, "Prepared spell should retain its modifier choices")
     _check(restored.presentation.get("verbal_component_ids", []).size() == 2, "Prepared spell should retain future verbal component IDs")
     _check(restored.presentation.get("somatic_component_ids", []).size() == 1, "Prepared spell should retain future gesture component IDs")
+
+    var character = CHARACTER_STATE.new("caster", "Caster")
+    character.prepared_spells.append(spell.to_dict())
+    var restored_character = CHARACTER_STATE.from_dict(character.to_dict())
+    _check(restored_character.prepared_spells.size() == 1, "Character save data should retain prepared spells")
+    var restored_entry: Dictionary = restored_character.prepared_spells[0]
+    _check(String(restored_entry.get("base_spell_id", "")) == "firebolt", "Character save data should retain the prepared spell base ID")
 
 
 func _check(condition: bool, message: String) -> void:
