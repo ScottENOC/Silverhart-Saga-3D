@@ -174,10 +174,10 @@ func _build_spell_builder(state: CharacterState) -> void:
 
     _add_modifier_spin("Potency", "magnitude_bonus", int(state.skills.get(school_prefix + "magnitude", 0)), modifiers)
     _add_modifier_spin("Range", "range_bonus", int(state.skills.get(school_prefix + "range", 0)), modifiers, 5)
-    _add_modifier_spin("Area radius", "radius_bonus", int(state.skills.get(school_prefix + "expand", 0)), modifiers)
-    _add_modifier_spin("Additional targets", "target_bonus", int(state.skills.get(school_prefix + "targets", 0)), modifiers)
+    if selected_spell_id == "entangle" or (bool(modifiers.get("burst", false)) and int(state.skills.get(school_prefix + "burst", 0)) > 0):
+        _add_modifier_spin("Area radius", "radius_bonus", int(state.skills.get(school_prefix + "expand", 0)), modifiers)
 
-    if int(state.skills.get(school_prefix + "burst", 0)) > 0:
+    if int(state.skills.get(school_prefix + "burst", 0)) > 0 and String(definition.get("type", "")) in ["damage", "heal"]:
         var burst := CheckBox.new()
         burst.text = "Burst (area cast)"
         burst.button_pressed = bool(modifiers.get("burst", false))
