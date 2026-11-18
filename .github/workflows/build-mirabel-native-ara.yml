@@ -62,7 +62,7 @@ jobs:
               params.pop(key, None)
           target.write_text(json.dumps(data, indent=2) + "\n")
           PY
-          npx --yes ara3d@0.3.2 export \
+          npx --yes ara3d@0.7.4 export \
             --params build/mirabel-native/ara-export-profile.json \
             --detail high --no-animations --formats glb,zip \
             --out build/mirabel-native/ara-export
