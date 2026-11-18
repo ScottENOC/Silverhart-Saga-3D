@@ -87,11 +87,11 @@ def main():
 
     ear_z = lo.z + height * args.ear_height
     # Match the ear band already used by the project's earring-socket finder.
-    z_half_band = height * 0.035
+    z_half_band = height * 0.050
     inner_x = width * 0.115
     outer_x = width * 0.305
     centre_z = ear_z + height * 0.003
-    vertical_sigma = height * 0.017
+    vertical_sigma = height * 0.030
 
     world_matrix = skin.matrix_world
     normal_matrix = world_matrix.to_3x3()
@@ -151,12 +151,12 @@ def main():
             p = world_positions[i]
             lateral = side * p.x
             u = (lateral - inner_x) / max(outer_x - inner_x, 1e-8)
-            outer_falloff = smoothstep(0.10, 0.92, u)
+            outer_falloff = smoothstep(0.00, 0.78, u)
             vertical = math.exp(
                 -0.5 * ((p.z - centre_z) / vertical_sigma) ** 2
             )
             influence = outer_falloff * vertical
-            if influence < 0.015:
+            if influence < 0.001:
                 continue
             q = p.copy()
             q.x += side * args.length * influence
