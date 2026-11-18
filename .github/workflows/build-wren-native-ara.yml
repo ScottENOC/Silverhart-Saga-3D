@@ -25,11 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: dev
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
 
@@ -173,7 +173,7 @@ jobs:
           rm -rf build/wren-native/ara-export build/wren-native/Wren_Ara_raw.glb
 
       - name: Upload Wren model and visual review
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wren-native-ara-${{ github.run_number }}
           path: |
