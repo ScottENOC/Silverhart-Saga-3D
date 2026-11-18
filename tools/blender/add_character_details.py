@@ -296,8 +296,8 @@ def add_barbell(socket, material):
     centre = matrix.translation
     normal = (matrix.to_3x3() @ Vector((0, 0, 1))).normalized()
     tangent = (matrix.to_3x3() @ Vector((1, 0, 0))).normalized()
-    location = centre + normal * 0.002
-    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.0018, depth=0.014,
+    location = centre + normal * 0.007
+    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.0022, depth=0.016,
                                         location=location)
     bar = bpy.context.object
     bar.name = "Piercing_SOCKET_ClitoralHood_Bar"
@@ -308,7 +308,7 @@ def add_barbell(socket, material):
     bar["character_detail_type"] = "piercing"
     for side in (-1.0, 1.0):
         bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8,
-                                             radius=0.003, location=location + tangent * side * 0.008)
+                                             radius=0.0038, location=location + tangent * side * 0.009)
         bead = bpy.context.object
         bead.name = "Piercing_SOCKET_ClitoralHood_Bead"
         bead.data.materials.append(material)
