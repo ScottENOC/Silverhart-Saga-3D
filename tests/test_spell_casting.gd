@@ -42,10 +42,12 @@ func _test_firebolt_uses_shared_action_and_pays_costs() -> void:
     caster.unlocked_base_spells.append("firebolt")
     caster.skills["firebolt_hit"] = 10
     target.health = 30
+    var prepared_firebolt := PreparedSpell.create("firebolt")
+    caster.prepared_spells.append(prepared_firebolt.to_dict())
     simulation.register_character(caster)
     simulation.register_character(target)
 
-    var request := SimulationActionRequest.cast_spell(caster.id, target.id, PreparedSpell.create("firebolt"))
+    var request := SimulationActionRequest.cast_spell(caster.id, target.id, prepared_firebolt)
     var result := simulation.submit_action(request, 1234)
     _check(bool(result.get("ok", false)), "Firebolt should resolve through submit_action")
     _check(bool(result.get("hit", false)), "Firebolt with maximum hit skill should hit")
@@ -62,10 +64,12 @@ func _test_heal_uses_shared_action_and_wakes_target() -> void:
     caster.unlocked_base_spells.append("heal")
     target.health = 0
     target.unconscious = true
+    var prepared_heal := PreparedSpell.create("heal")
+    caster.prepared_spells.append(prepared_heal.to_dict())
     simulation.register_character(caster)
     simulation.register_character(target)
 
-    var request := SimulationActionRequest.cast_spell(caster.id, target.id, PreparedSpell.create("heal"))
+    var request := SimulationActionRequest.cast_spell(caster.id, target.id, prepared_heal)
     var result := simulation.submit_action(request)
     _check(bool(result.get("ok", false)), "Heal should resolve through submit_action")
     _check(target.health == 5, "Heal should restore its base magnitude")
@@ -80,11 +84,13 @@ func _test_rejected_cast_does_not_spend_resources() -> void:
     var distant_target := _new_character("distant_target", "enemy", Vector2i(9, 0))
     caster.unlocked_base_spells.append("firebolt")
     caster.skills["firebolt_hit"] = 10
+    var prepared_firebolt := PreparedSpell.create("firebolt")
+    caster.prepared_spells.append(prepared_firebolt.to_dict())
     simulation.register_character(caster)
     simulation.register_character(distant_target)
 
     var result := simulation.submit_action(
-        SimulationActionRequest.cast_spell(caster.id, distant_target.id, PreparedSpell.create("firebolt"))
+        SimulationActionRequest.cast_spell(caster.id, distant_target.id, prepared_firebolt)
     )
     _check(not bool(result.get("ok", false)), "Firebolt beyond range should be rejected")
     _check(String(result.get("reason", "")) == "target_out_of_range", "Out-of-range rejection should be explicit")
@@ -101,6 +107,7 @@ func _test_unimplemented_burst_is_rejected_without_cost() -> void:
     simulation.register_character(target)
 
     var burst_spell := PreparedSpell.create("firebolt", {"burst": true})
+    caster.prepared_spells.append(burst_spell.to_dict())
     var result := simulation.submit_action(
         SimulationActionRequest.cast_spell(caster.id, target.id, burst_spell)
     )
@@ -121,11 +128,13 @@ func _test_armour_penalty_and_blood_magic() -> void:
     caster.current_mana = 2
     caster.health = 20
     caster.equipment["armour"] = "light_armor"
+    var prepared_firebolt := PreparedSpell.create("firebolt")
+    caster.prepared_spells.append(prepared_firebolt.to_dict())
     simulation.register_character(caster)
     simulation.register_character(target)
 
     var result := simulation.submit_action(
-        SimulationActionRequest.cast_spell(caster.id, target.id, PreparedSpell.create("firebolt")),
+        SimulationActionRequest.cast_spell(caster.id, target.id, prepared_firebolt),
         77
     )
     _check(bool(result.get("ok", false)), "Blood Magic should cover a valid mana shortfall")
