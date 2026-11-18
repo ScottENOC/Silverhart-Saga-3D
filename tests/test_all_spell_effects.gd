@@ -13,6 +13,7 @@ func _run() -> void:
     _test_sanctuary_and_divine_protection()
     _test_summon_animal()
     _test_counterspell()
+    _test_counterspell_reaction()
     _test_dragon_breath()
     _test_entangle()
     _test_wild_fury()
@@ -152,6 +153,39 @@ func _test_counterspell() -> void:
     sim.free()
 
 
+func _test_counterspell_reaction() -> void:
+    var sim := WorldSimulation.new()
+    var caster := CharacterState.new("enemy_caster", "Enemy Caster", Vector2i(0, 0))
+    var player := CharacterState.new("player_reactor", "Player Reactor", Vector2i(3, 0))
+    caster.side = "enemy"
+    caster.current_mana = 20
+    caster.max_mana = 20
+    caster.time_points = 50.0
+    caster.unlocked_base_spells = ["firebolt"]
+    var firebolt := PreparedSpell.create("firebolt")
+    caster.prepared_spells.append(firebolt.to_dict())
+    player.side = "player"
+    player.current_mana = 20
+    player.max_mana = 20
+    player.time_points = 50.0
+    player.unlocked_base_spells = ["counterspell"]
+    var counterspell := PreparedSpell.create("counterspell")
+    player.prepared_spells.append(counterspell.to_dict())
+    sim.register_character(caster)
+    sim.register_character(player)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = caster.id
+    var result := sim.submit_action(SimulationActionRequest.cast_spell(caster.id, player.id, firebolt), 91)
+    _check(bool(result.get("pending", false)), "Enemy casting should pause for the player's Counterspell reaction")
+    _check(not sim.pending_reaction.is_empty(), "Counterspell should use the shared reaction request system")
+    var reaction := sim.resolve_reaction("counterspell_player_reactor")
+    _check(bool(reaction.get("ok", false)), "The player should be able to select Counterspell")
+    _check(player.current_mana == 10 and is_equal_approx(player.time_points, 45.0), "Counterspell should spend its own mana and five TP")
+    _check(caster.current_mana == 15 and is_equal_approx(caster.time_points, 50.0), "A countered spell should cost caster mana but not cast TP")
+    _check(player.health == player.max_health, "Counterspell should prevent the incoming spell effect")
+    sim.free()
+
+
 func _test_dragon_breath() -> void:
     var setup := _new_sim()
     var sim: WorldSimulation = setup.sim
@@ -246,6 +280,7 @@ func _test_feather_fall() -> void:
     var caster: CharacterState = setup.caster
     var result := _cast(sim, caster, caster, "feather_fall")
     _check(bool(result.get("ok", false)) and caster.has_spell_effect("feather_fall"), "Feather Fall should grant a timed self-protection effect")
-    _check(SpellEffectRules.consume_feather_fall(caster), "Feather Fall should be consumable by the fall resolver")
+    var fall := sim.resolve_fall_damage(caster.id, 12)
+    _check(bool(fall.get("prevented", false)) and int(fall.get("damage", -1)) == 0, "Feather Fall should prevent the next fall damage event")
     _check(not caster.has_spell_effect("feather_fall"), "Feather Fall should only prevent one fall")
     sim.free()
