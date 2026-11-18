@@ -702,7 +702,7 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
         return {"ok": false, "reason": String(variant.get("reason", "invalid_spell_variant"))}
     if not SpellRules.supports_initial_cast(spell_id, variant):
         return {"ok": false, "reason": "spell_variant_effect_not_implemented"}
-    var target_validation := _spell_effect_rules.validate(self, caster, target, prepared, variant, request)
+    var target_validation: Dictionary = _spell_effect_rules.validate(self, caster, target, prepared, variant, request)
     if not bool(target_validation.get("ok", false)):
         return {"ok": false, "reason": String(target_validation.get("reason", "invalid_spell_target"))}
     target = target_validation.get("target") as CharacterState
@@ -764,7 +764,7 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     if is_offensive and target != null:
         _apply_spell_protection_triggers(caster, target)
     elif is_offensive:
-        var center := _spell_effect_rules.target_hex_for(self, SimulationActionRequest.new(
+        var center: Vector2i = _spell_effect_rules.target_hex_for(self, SimulationActionRequest.new(
             SimulationActionRequest.ActionType.CAST_SPELL, caster.id, "", context.get("request_destination", Vector2i.ZERO), 0.0, context.get("request_options", {})
         ), null)
         var protection_radius := maxi(0, int(variant.get("radius", 0)))
@@ -784,7 +784,7 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
         context.get("request_options", {})
     )
     var cast_id := "%s:%d:%s:%d" % [caster.id, clock.tick_index, spell_id, int(context.get("random_seed", 0))]
-    var effect_payload := _spell_effect_rules.apply(self, caster, target, prepared, variant, request, cast_id)
+    var effect_payload: Dictionary = _spell_effect_rules.apply(self, caster, target, prepared, variant, request, cast_id)
     effect_payload["spell_id"] = spell_id
     effect_payload["spell_name"] = String(variant.get("name", spell_id))
     effect_payload["mana_cost"] = total_mana_cost
