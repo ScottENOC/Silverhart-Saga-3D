@@ -14,6 +14,10 @@ func _run() -> void:
     _test_divine_silence_breaks_on_cast()
     _test_divine_silence()
     _test_sanctuary_and_divine_protection()
+    _test_cleric_trigger_skill_effects()
+    _test_divine_judgment_free_cast()
+    _test_armistice_next_attack_cost()
+    _test_trigger_debuff_reduces_healing()
     _test_summon_animal()
     _test_permanent_animal_companion()
     _test_counterspell()
@@ -188,6 +192,99 @@ func _test_sanctuary_and_divine_protection() -> void:
     enemy.time_points = 50.0
     sim._apply_spell_protection_triggers(enemy, ally)
     _check(is_equal_approx(enemy.time_points, 48.0), "Both divine protections should apply their TP penalties")
+    sim.free()
+
+
+func _test_cleric_trigger_skill_effects() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    caster.skills["cleric_trigger_damage"] = 2
+    caster.skills["cleric_trigger_mana"] = 2
+    caster.skills["cleric_trigger_vision"] = 2
+    caster.skills["cleric_trigger_dmg_red"] = 2
+    caster.skills["cleric_trigger_heal_red"] = 2
+    caster.skills["armistice"] = 1
+    var ally := CharacterState.new("protected", "Protected Ally", Vector2i(1, 0))
+    ally.side = "player"
+    var attacker := CharacterState.new("triggered_attacker", "Triggered Attacker", Vector2i(2, 0))
+    attacker.side = "enemy"
+    attacker.health = 30
+    attacker.current_mana = 10
+    attacker.max_mana = 10
+    attacker.base_damage = 8
+    attacker.time_points = 50.0
+    sim.register_character(ally)
+    sim.register_character(attacker)
+    var sanctuary := _cast(sim, caster, ally, "sanctuary")
+    _check(bool(sanctuary.get("ok", false)), "Sanctuary should cast before testing cleric triggers")
+    sim._apply_spell_protection_triggers(attacker, ally)
+    _check(attacker.health == 28, "Divine Retribution should deal one damage per rank")
+    _check(attacker.current_mana == 8, "Divine Drain should remove one mana per rank")
+    _check(attacker.vision_penalty == 2 and attacker.vision_penalty_stacks == 1, "Clouded Mind should apply one stack with rank-scaled vision loss")
+    _check(attacker.base_damage_penalty == 2 and attacker.damage_penalty_stacks == 1, "Feeble Strike should apply one rank-scaled damage penalty stack")
+    _check(attacker.healing_reduction_percent == 100, "Severed Grace should add 50 percent healing reduction per rank, capped at 100")
+    _check(is_equal_approx(attacker.armistice_tp_debt, 5.0), "Armistice should add five TP to the attacker's next attack")
+    sim._apply_spell_protection_triggers(attacker, ally)
+    sim._apply_spell_protection_triggers(attacker, ally)
+    sim._apply_spell_protection_triggers(attacker, ally)
+    _check(attacker.vision_penalty_stacks == 3 and attacker.vision_penalty == 6, "Clouded Mind should stop stacking after three activations")
+    _check(attacker.damage_penalty_stacks == 3 and attacker.base_damage_penalty == 6, "Feeble Strike should stop stacking after three activations")
+    _check(attacker.healing_reduction_percent == 100, "Severed Grace should never exceed complete healing suppression")
+    var restored := CharacterState.from_dict(attacker.to_dict())
+    _check(restored.base_damage_penalty == 6 and restored.healing_reduction_percent == 100, "Cleric trigger penalties should survive save/load")
+    _check(is_equal_approx(restored.armistice_tp_debt, 20.0), "Unspent Armistice TP debt should survive save/load")
+    sim.free()
+
+
+func _test_divine_judgment_free_cast() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    caster.skills["divine_judgment"] = 1
+    caster.prepared_spells.append(PreparedSpell.create("heal").to_dict())
+    var enemy := CharacterState.new("judgment_enemy", "Enemy", Vector2i(1, 0))
+    enemy.side = "enemy"
+    sim.register_character(enemy)
+    for index in range(3):
+        sim._resolve_attack_action(enemy.id, caster.id, {"time_point_cost": 0.0}, 100 + index)
+    _check(caster.divine_judgment_ready and caster.divine_judgment_attacks_received == 3, "Three attacks without retaliation should ready Divine Judgment")
+    var mana_before := caster.current_mana
+    var cast := sim.submit_action(SimulationActionRequest.cast_spell(caster.id, caster.id, PreparedSpell.create("heal")), 77)
+    _check(bool(cast.get("ok", false)), "Divine Judgment should permit the next prepared Divine spell")
+    _check(caster.current_mana == mana_before, "Divine Judgment should make the next Divine spell cost zero mana")
+    _check(not caster.divine_judgment_ready and caster.divine_judgment_attacks_received == 0, "A completed free Divine cast should consume Divine Judgment")
+    sim.free()
+
+
+func _test_armistice_next_attack_cost() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var attacker: CharacterState = setup.caster
+    var target := CharacterState.new("armistice_target", "Target", Vector2i(1, 0))
+    target.side = "enemy"
+    attacker.time_points = 50.0
+    attacker.armistice_tp_debt = 5.0
+    sim.register_character(target)
+    var result := sim._resolve_attack_action(attacker.id, target.id, {"time_point_cost": 10.0}, 5)
+    _check(bool(result.get("ok", false)), "Attack with Armistice surcharge should resolve when sufficient TP is available")
+    _check(is_equal_approx(attacker.time_points, 35.0), "Armistice should add five TP to the normal attack cost")
+    _check(is_equal_approx(attacker.armistice_tp_debt, 0.0), "Armistice debt should be consumed by the next accepted attack")
+    sim.free()
+
+
+func _test_trigger_debuff_reduces_healing() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    var ally := CharacterState.new("reduced_heal", "Reduced Heal", Vector2i(1, 0))
+    ally.side = "player"
+    ally.health = 50
+    ally.healing_reduction_percent = 50
+    sim.register_character(ally)
+    var result := _cast(sim, caster, ally, "heal")
+    _check(bool(result.get("ok", false)), "Heal should still resolve against a target with healing reduction")
+    _check(ally.health == 52, "A 50 percent healing penalty should halve a five-point Heal, rounding down")
     sim.free()
 
 
