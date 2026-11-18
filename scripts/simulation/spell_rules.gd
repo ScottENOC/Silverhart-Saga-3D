@@ -107,7 +107,7 @@ static func compute_variant(
         efficiency_speed = maxi(0, int(skills.get("arcane_eff_speed", 0)))
 
     var mana_cost := int(base.get("base_mana", 0))
-    var time_point_cost := 10
+    var time_point_cost := int(base.get("base_time_points", 10))
     if speed == "quickened":
         time_point_cost = 5
         mana_cost += maxi(0, 5 - efficiency_speed)
