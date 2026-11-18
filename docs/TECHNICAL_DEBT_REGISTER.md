@@ -206,6 +206,8 @@ BuildingRegistry and BuildingLayoutRegistrar currently own logical building/door
 
 Add TD-012 (P1): define a reusable building-visual composition contract for common primitives (walls, openings, roofs, doors, foundations and material assignment), while allowing each location/settlement to supply authored geometry/layout data. Do not force unique tavern furniture or bespoke landmark details into a generic builder. First compare the three builders' inputs, outputs and scene assumptions; then extract only the common stable subset.
 
+Initial implementation on the current audit branch: `WorldGeometryFactory` now owns shared BoxMesh creation/attachment and StandardMaterial3D creation. HollowTankard, HollowmereVillage and Campaign2SettlementBuilder delegate their duplicated `_add_box()` helpers to it; HollowTankard and Campaign2SettlementBuilder also delegate material construction while preserving their distinct culling/roughness settings. Their building layouts, wall patterns, openings, roofs, furniture and landmark details remain local. `test_building_framework.gd` now verifies factory parenting, naming, dimensions, transform, material assignment and material settings. This is the first primitive-level extraction, not yet a shared house/wall composition system.
+
 ### Open work that must not be mistaken for completed work
 
 - PR [#149](https://github.com/ScottENOC/Silverhart-Saga-3D/pull/149), nearby interaction panel extraction, remains open and targets dev_2; its new panel file is not present on current dev. It is not counted as integrated.
