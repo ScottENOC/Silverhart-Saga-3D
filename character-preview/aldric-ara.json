@@ -17,8 +17,8 @@
     "skinTint": "#8B6248",
     "eyes": "brown",
     "hair": "short02",
-    "hairTint": "#171514",
-    "hairColor": "#171514",
+    "hairTint": "#08090A",
+    "hairColor": "#08090A",
     "facialHair": "none",
     "outfit": "none",
     "top": "none",
@@ -44,7 +44,7 @@
     "modifiers": {
       "torso/torso-vshape": 0.25,
       "torso/torso-muscle-dorsi": 0.15,
-      "armslegs/upperarm-shoulder-muscle": 0.3,
+      "armslegs/upperarm-shoulder-muscle": 0.45,
       "armslegs/upperarm-scale-depth": 0.1,
       "armslegs/upperarm-scale-vert": 0.1
     }
