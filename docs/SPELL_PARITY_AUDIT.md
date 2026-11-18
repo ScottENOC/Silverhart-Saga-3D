@@ -211,3 +211,18 @@ The 12 official spells therefore comprise 10 existing 2D base spells plus the ne
 - Curse is a new official base spell derived from the 2D `learn_curse` skill description; it was not a registered base spell in the original `spells.js`. Its balance and the interaction with cleric trigger skills remain to be tested.
 - Divine Strength is a new official spell and is not an original registered 2D base spell. Its duration, magnitude and class restrictions are provisional pending playtesting.
 - Automated tests currently cover only a subset of the spell catalogue. Add focused tests for all 12 spells, counterspell reactions, save/load of ongoing effects, and failure paths before marking the catalogue tested/accepted.
+
+
+## Player spellbook UI — first playable interface
+
+The player-facing spellbook is now implemented in `scripts/ui/spellbook_panel.gd` and connected to the Hollow Tankard HUD.
+
+- Open with the **Spellbook [M]** HUD button or the **M** keyboard shortcut.
+- The panel follows the currently active party member and lists only spells that character has learned.
+- The builder exposes the character's unlocked speed, potency, range, expansion, target-count, burst, subtle and touch options, plus Summon Animal and Calm Animal choices.
+- A live variant preview shows mana cost (including armour penalty), TP cost, range and radius.
+- Preparation enforces prepared-slot limits, school mana caps and duplicate-variant prevention. Prepared variants are stored in `CharacterState.prepared_spells`, which is already part of save/load.
+- Prepared spells can be removed or cast through `WorldSimulation.submit_action()`; the UI does not spend resources or apply effects itself.
+- Target choices are filtered by spell relationship and creature type. Disguise Self and Feather Fall self-target; Summon Animal selects the first available adjacent hex; Entangle uses the selected character's hex as its centre; Counterspell remains a reaction and is not directly cast from the spellbook.
+
+This is a first playable UI pass, not final presentation acceptance. In particular, precise map-hex targeting for Summon Animal and Entangle, visual review at the game's normal window sizes, and end-to-end player testing remain. The verbal/somatic incantation and gesture grammar is also still outstanding.
