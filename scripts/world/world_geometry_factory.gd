@@ -29,8 +29,13 @@ static func add_box(
 	return instance
 
 
-static func make_material(colour: Color, roughness: float = 0.88) -> StandardMaterial3D:
+static func make_material(
+	colour: Color,
+	roughness: float = 0.88,
+	cull_mode: BaseMaterial3D.CullMode = BaseMaterial3D.CULL_BACK
+) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = colour
 	material.roughness = roughness
+	material.cull_mode = cull_mode
 	return material
