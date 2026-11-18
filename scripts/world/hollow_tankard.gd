@@ -264,7 +264,7 @@ func _on_simulation_action_committed(event: SimulationEvent) -> void:
     # Disguise Self opens the same live Ara character editor used at first
     # launch, but in appearance-only mode. The selected profile is stored on
     # the active effect so it survives save/load and can be dispelled.
-    if event.event_type == "spell_cast" and String(event.payload.get("spell_id", "")) == "disguise_self":
+    if event.event_type == "spell_cast" and event.actor_id == "player" and String(event.payload.get("spell_id", "")) == "disguise_self":
         _open_disguise_creator()
     elif event.event_type == "spell_countered" and event.target_id == "player":
         var player_state := simulation.get_character("player")
@@ -322,6 +322,7 @@ func _open_disguise_creator() -> void:
 
 
 func _on_disguise_profile_completed(profile: Dictionary) -> void:
+    disguise_creator = null
     active_disguise_profile = profile.duplicate(true)
     var player_state := simulation.get_character("player") if simulation != null else null
     if player_state != null:
