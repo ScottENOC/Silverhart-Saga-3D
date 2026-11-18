@@ -54,6 +54,9 @@
     "expression": "neutral",
     "teeth": "teeth_base",
     "tongue": true,
-    "ageYears": 25
+    "ageYears": 25,
+    "piercings": [
+      "nipple_left"
+    ]
   }
 }
