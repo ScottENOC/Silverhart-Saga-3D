@@ -118,7 +118,7 @@ func _fallback_detail_position(socket_name: String) -> Vector3:
         y = bounds.position.y + size.y * 0.655
     elif socket_name == "SOCKET_ClitoralHood":
         y = bounds.position.y + size.y * 0.385
-    return Vector3(x, y, bounds.end.z + 0.002)
+    return _project_tattoo_point(Vector3(x, y, bounds.end.z), false)
 
 func _add_fallback_hoop(socket_name: String, radius: float) -> void:
     var hoop := MeshInstance3D.new()
