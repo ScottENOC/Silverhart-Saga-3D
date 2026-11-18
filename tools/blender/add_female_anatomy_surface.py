@@ -552,6 +552,11 @@ def main():
     colour = skin.data.color_attributes.get("Color")
     original_colour_vertices = len(colour.data) if colour else 0
     original_pigmented_vertices = skin.get("anatomy_pigmented_vertex_count", 0)
+    original_skin_name = skin.name
+    original_skin_vertices = len(skin.data.vertices)
+    original_skin_faces = len(skin.data.polygons)
+    original_anatomy_profile = skin.get("anatomy_profile", "")
+    original_anatomy_method = skin.get("anatomy_method", "")
 
     # Verify the actual GLB payload by importing it again. This catches a
     # Blender-only colour layer that silently disappears during export.
@@ -567,7 +572,7 @@ def main():
         raise RuntimeError("Exported GLB re-import contains no identifiable skin mesh")
     exported_colour = next(
         (attribute for attribute in exported_skin.data.color_attributes
-         if len(attribute.data) == len(exported_skin.data.vertices)),
+         if len(attribute.data) in (len(exported_skin.data.vertices), len(exported_skin.data.loops))),
         None,
     )
     if exported_colour is None:
@@ -587,18 +592,18 @@ def main():
         "hipline_z": hipline_z,
         "anatomy_z": anatomy_z,
         "deformation_scale": args.deformation_scale,
-        "skin_mesh": skin.name,
-        "skin_vertices": len(skin.data.vertices),
-        "skin_faces": len(skin.data.polygons),
+        "skin_mesh": original_skin_name,
+        "skin_vertices": original_skin_vertices,
+        "skin_faces": original_skin_faces,
         "colour_attribute_vertices": original_colour_vertices,
         "exported_colour_attribute": exported_colour.name,
         "exported_colour_vertices": len(exported_colour.data),
         "exported_nonwhite_colour_vertices": exported_nonwhite,
         "anatomy_pigmented_vertex_count": original_pigmented_vertices,
         "vertex_colour_export_mode": "ACTIVE",
-        "anatomy_profile": skin.get("anatomy_profile", ""),
-        "anatomy_method": skin.get("anatomy_method", ""),
-        "anatomy_pigmented_vertex_count": skin.get("anatomy_pigmented_vertex_count", 0),
+        "anatomy_profile": original_anatomy_profile,
+        "anatomy_method": original_anatomy_method,
+        "anatomy_pigmented_vertex_count": original_pigmented_vertices,
         "clothing_operations": "not run",
     }
     if args.report:
