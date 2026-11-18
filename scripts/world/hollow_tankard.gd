@@ -157,11 +157,7 @@ func _create_materials() -> void:
     path_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 
 func _material(colour: Color) -> StandardMaterial3D:
-    var result := StandardMaterial3D.new()
-    result.albedo_color = colour
-    result.roughness = 0.88
-    result.cull_mode = BaseMaterial3D.CULL_DISABLED
-    return result
+    return WORLD_GEOMETRY_FACTORY.make_material(colour, 0.88, BaseMaterial3D.CULL_DISABLED)
 
 func _create_lighting() -> void:
     var sun := DirectionalLight3D.new()
