@@ -88,6 +88,7 @@ func _test_smite_evil() -> void:
     undead.side = "enemy"
     undead.tags.append("undead")
     undead.health = 30
+    caster.to_hit_spell = 100.0
     sim.register_character(undead)
     var result := _cast(sim, caster, undead, "smite_evil")
     _check(bool(result.get("ok", false)), "Smite Evil should cast")
