@@ -10,6 +10,8 @@ on:
       - "tools/review/recolor_wren_glb.py"
       - "tools/blender/add_adult_anatomy.py"
       - "tools/blender/add_elf_ears.py"
+      - "tools/blender/make_hairless_preview.py"
+      - "tools/review/mirabel_ears_preview.gd"
   workflow_dispatch:
 
 permissions:
@@ -85,13 +87,24 @@ jobs:
             --hair-gamma 0.28
           test -s build/mirabel-native/Mirabel.glb
 
+      - name: Create temporary hairless elf-ear inspection model
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/make_hairless_preview.py -- \
+            --input build/mirabel-native/Mirabel.glb \
+            --output build/mirabel-native/Mirabel_ears_preview.glb
+          test -s build/mirabel-native/Mirabel_ears_preview.glb
+
       - name: Assemble isolated Godot preview project
         run: |
           set -euo pipefail
           preview=build/mirabel-native-preview-project
           mkdir -p "$preview/build/mirabel-native" "$preview/tools/review"
           cp build/mirabel-native/Mirabel.glb "$preview/build/mirabel-native/Mirabel.glb"
+          cp build/mirabel-native/Mirabel_ears_preview.glb "$preview/build/mirabel-native/Mirabel_ears_preview.glb"
           cp tools/review/mirabel_native_preview.gd "$preview/tools/review/mirabel_native_preview.gd"
+          cp tools/review/mirabel_ears_preview.gd "$preview/tools/review/mirabel_ears_preview.gd"
           cat > "$preview/project.godot" <<'EOF'
           ; Isolated preview project: no game scenes, scripts, or autoloads.
           config_version=5
@@ -130,6 +143,15 @@ jobs:
           done
           test -s build/mirabel-native-preview-project/build/mirabel-native/preview/render-report.json
           cp -R build/mirabel-native-preview-project/build/mirabel-native/preview build/mirabel-native/preview
+          xvfb-run -a -s "-screen 0 1280x1024x24" \
+            godot --path build/mirabel-native-preview-project \
+            --rendering-method gl_compatibility \
+            --rendering-driver opengl3 \
+            --script res://tools/review/mirabel_ears_preview.gd
+          for view in front side threequarter face pelvis; do
+            test -s "build/mirabel-native-preview-project/build/mirabel-native/preview/ears-bald/$view.png"
+          done
+          cp -R build/mirabel-native-preview-project/build/mirabel-native/preview/ears-bald build/mirabel-native/preview/ears-bald
 
       - name: Package model and visual review
         run: |
@@ -145,11 +167,14 @@ jobs:
           """
           with zipfile.ZipFile(root / "Mirabel_native_Ara_bundle.zip", "w", zipfile.ZIP_DEFLATED) as archive:
               archive.write(root / "Mirabel.glb", "Mirabel.glb")
+              archive.write(root / "Mirabel_ears_preview.glb", "inspection-only/Mirabel_ears_preview.glb")
               archive.write(Path("character-preview/mirabel-ara.json"), "mirabel-ara.json")
               archive.write(root / "preview/render-report.json", "preview/render-report.json")
               for view in ("front", "side", "threequarter", "face", "pelvis"):
                   archive.write(root / "preview" / f"{view}.png", f"preview/{view}.png")
-              archive.writestr("README.txt", readme)
+              for view in ("front", "side", "threequarter", "face", "pelvis"):
+                  archive.write(root / "preview" / "ears-bald" / f"{view}.png", f"preview/ears-bald/{view}.png")
+              archive.writestr("README.txt", readme + "\\nThe bald ear-inspection model is temporary and is NOT the deployment model.\\n")
           PY
 
       - name: Upload Mirabel model and visual review
