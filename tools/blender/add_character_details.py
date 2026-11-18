@@ -152,7 +152,9 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
     lo, hi = world_bounds(skin)
     height, width = hi.y - lo.y, hi.x - lo.x
     centre = (lo + hi) * 0.5
-    front_z, back_z = hi.z + 0.02, lo.z - 0.02
+    # Use the body's mid-depth as the projection seed. Global z extrema
+    # include hands/feet and are not the back/front torso surface.
+    front_z = back_z = centre.z
     trees = make_projection_trees(skin)
     vertices, faces, sources = [], [], []
     inverse = skin.matrix_world.inverted()
