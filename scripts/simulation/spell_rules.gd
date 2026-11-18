@@ -98,6 +98,36 @@ static func compute_variant(
         return {"ok": false, "reason": "touch_and_range_bonus_are_exclusive"}
 
     var school := String(base.get("school", ""))
+    var school_prefix := school + "_"
+    var required_skills := {
+        "burst": school_prefix + "burst",
+        "radius_bonus": school_prefix + "expand",
+        "magnitude_bonus": school_prefix + "magnitude",
+        "range_bonus": school_prefix + "range",
+        "target_bonus": school_prefix + "targets",
+        "touch": school_prefix + "touch",
+        "quickened": school_prefix + "quickened",
+        "slowed": school_prefix + "slowed"
+    }
+    if burst and _skill_rank(skills, String(required_skills["burst"])) < 1:
+        return {"ok": false, "reason": "burst_skill_required"}
+    if radius_bonus > _skill_rank(skills, String(required_skills["radius_bonus"])):
+        return {"ok": false, "reason": "expansion_skill_rank_insufficient"}
+    if magnitude_bonus > _skill_rank(skills, String(required_skills["magnitude_bonus"])):
+        return {"ok": false, "reason": "potency_skill_rank_insufficient"}
+    if range_bonus > _skill_rank(skills, String(required_skills["range_bonus"])):
+        return {"ok": false, "reason": "range_skill_rank_insufficient"}
+    if target_bonus > _skill_rank(skills, String(required_skills["target_bonus"])):
+        return {"ok": false, "reason": "target_skill_rank_insufficient"}
+    if touch and _skill_rank(skills, String(required_skills["touch"])) < 1:
+        return {"ok": false, "reason": "touch_skill_required"}
+    if speed == "quickened" and _skill_rank(skills, String(required_skills["quickened"])) < 1:
+        return {"ok": false, "reason": "quickened_skill_required"}
+    if speed == "slowed" and _skill_rank(skills, String(required_skills["slowed"])) < 1:
+        return {"ok": false, "reason": "slowed_skill_required"}
+    if subtle and _skill_rank(skills, "subtle_spell") < 1:
+        return {"ok": false, "reason": "subtle_spell_skill_required"}
+
     var efficiency_range := 0
     var efficiency_magnitude := 0
     var efficiency_speed := 0
@@ -170,6 +200,11 @@ static func compute_variant(
         "touch": touch,
         "modifiers": PreparedSpell._normalise_modifiers(modifiers)
     }
+
+
+
+static func _skill_rank(skills: Dictionary, skill_id: String) -> int:
+    return maxi(0, int(skills.get(skill_id, 0)))
 
 
 ## The first resolver slice supports only direct Firebolt damage and
