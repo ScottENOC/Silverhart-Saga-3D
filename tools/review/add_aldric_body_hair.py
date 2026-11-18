@@ -103,7 +103,7 @@ def main():
         if args.coverage == "wren":
             # The landing strip belongs on the pubic mound, not the lower
             # abdomen. Ara exports Y-up; this band maps to the pelvis.
-            if front and 0.32 <= yn <= 0.40 and abs(x) <= 0.050:
+            if front and 0.29 <= yn <= 0.365 and abs(x) <= 0.038:
                 region = "landing_strip"
         elif args.coverage == "reyna":
             if 0.66 <= yn <= 0.80 and 0.075 <= abs(x) <= 0.19 and abs(z) > 0.035:
@@ -149,7 +149,7 @@ def main():
     counts = {name: 0 for name in required}
     densities = {"armpits": 170, "pubic": 520}
     if args.coverage == "wren":
-        densities = {"landing_strip": 1800}
+        densities = {"landing_strip": 2600}
     elif args.coverage == "reyna":
         densities = {"armpits": 1250, "pubic": 520}
     elif args.coverage == "dagna":
@@ -177,7 +177,7 @@ def main():
             x, y = int(pixel_x), int(pixel_y)
             length = rng.uniform(3.0, 8.0) if region == "armpits" else rng.uniform(4.0, 11.0)
             if region == "landing_strip":
-                length = rng.uniform(3.5, 7.0)
+                length = rng.uniform(4.0, 8.0)
                 angle = rng.uniform(-0.10, 0.10)
             else:
                 angle = rng.uniform(-1.1, 1.1) if region == "armpits" else rng.uniform(-0.85, 0.85)
@@ -187,7 +187,7 @@ def main():
             if region == "snail_trail":
                 stroke_width = 1
             else:
-                stroke_width = 2 if (args.coverage == "aldric" and region != "armpits") or region == "landing_strip" or (args.coverage == "dagna" and region == "pubic") else 1
+                stroke_width = 3 if region == "landing_strip" else (2 if (args.coverage == "aldric" and region != "armpits") or (args.coverage == "dagna" and region == "pubic") else 1)
             draw.line((x, y, x + dx, y + dy), fill=shade, width=stroke_width)
             counts[region] += 1
 
