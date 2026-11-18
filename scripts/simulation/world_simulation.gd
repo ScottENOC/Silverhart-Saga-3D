@@ -711,6 +711,36 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
         return {"ok": false, "reason": String(target_validation.get("reason", "invalid_spell_target"))}
     target = target_validation.get("target") as CharacterState
 
+    var extra_target_ids: Array[String] = []
+    var extra_target_count := maxi(0, int(variant.get("extra_targets", 0)))
+    if extra_target_count > 0:
+        if spell_id not in ["firebolt", "heal", "smite_evil"]:
+            return {"ok": false, "reason": "multi_target_spell_not_supported"}
+        var raw_target_ids: Variant = request.options.get("target_ids", [])
+        if not raw_target_ids is Array or raw_target_ids.is_empty():
+            return {"ok": false, "reason": "multi_target_selection_required"}
+        if String(raw_target_ids[0]) != request.target_id:
+            return {"ok": false, "reason": "multi_target_primary_mismatch"}
+        if raw_target_ids.size() > extra_target_count + 1:
+            return {"ok": false, "reason": "too_many_spell_targets"}
+        var seen_target_ids: Dictionary = {request.target_id: true}
+        for index in range(1, raw_target_ids.size()):
+            var extra_id := String(raw_target_ids[index])
+            if extra_id.is_empty() or seen_target_ids.has(extra_id):
+                return {"ok": false, "reason": "duplicate_spell_target"}
+            seen_target_ids[extra_id] = true
+            var extra_target := get_character(extra_id)
+            if extra_target == null or not extra_target.can_be_targeted():
+                return {"ok": false, "reason": "extra_target_unavailable"}
+            if spell_id == "heal":
+                if extra_target.side != caster.side:
+                    return {"ok": false, "reason": "spell_requires_ally"}
+            elif extra_target.side == caster.side:
+                return {"ok": false, "reason": "spell_requires_opponent"}
+            if HexGrid.distance(caster.axial, extra_target.axial) > maxi(1, int(variant.get("range", 1))):
+                return {"ok": false, "reason": "target_out_of_range"}
+            extra_target_ids.append(extra_id)
+
     var tp_cost := float(variant.get("time_point_cost", 0))
     if not is_finite(tp_cost) or tp_cost < 0.0 or not caster.can_spend_time_points(tp_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
@@ -726,6 +756,7 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
     var context := {
         "caster_id": caster.id,
         "target_id": target.id if target != null else "",
+        "extra_target_ids": extra_target_ids,
         "prepared_spell": prepared.to_dict(),
         "variant": variant.duplicate(true),
         "request_options": request.options.duplicate(true),
@@ -796,6 +827,23 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     )
     var cast_id := "%s:%d:%s:%d" % [caster.id, clock.tick_index, spell_id, int(context.get("random_seed", 0))]
     var effect_payload: Dictionary = _spell_effect_rules.apply(self, caster, target, prepared, variant, request, cast_id)
+    var extra_target_results: Array[Dictionary] = []
+    var extra_target_ids: Array = context.get("extra_target_ids", [])
+    for extra_id_value in extra_target_ids:
+        var extra_id := String(extra_id_value)
+        var extra_target := get_character(extra_id)
+        if extra_target == null or not extra_target.can_be_targeted():
+            return {"ok": false, "reason": "extra_target_unavailable_before_resolution"}
+        var extra_payload: Dictionary = _spell_effect_rules.apply(
+            self, caster, extra_target, prepared, variant, request, "%s:%s" % [cast_id, extra_id]
+        )
+        extra_target_results.append({"target_id": extra_id, "result": extra_payload})
+    if not extra_target_results.is_empty():
+        effect_payload["extra_target_results"] = extra_target_results
+        var affected_ids: Array[String] = [target.id]
+        for extra_result in extra_target_results:
+            affected_ids.append(String(extra_result.get("target_id", "")))
+        effect_payload["affected_ids"] = affected_ids
     effect_payload["spell_id"] = spell_id
     effect_payload["spell_name"] = String(variant.get("name", spell_id))
     effect_payload["mana_cost"] = total_mana_cost
