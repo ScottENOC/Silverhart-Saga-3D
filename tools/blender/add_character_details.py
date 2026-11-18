@@ -1,0 +1,364 @@
+"""Bake profile tattoos and socket-mounted piercings into an Ara GLB.
+
+Tattoo tubes are projected onto the skin surface and receive the skin mesh's
+vertex-group weights, so they deform with the same armature. Piercings are
+real mesh objects parented to Ara's exported socket nodes.
+"""
+import argparse
+import json
+import math
+import os
+import sys
+
+import bpy
+from mathutils import Vector
+from mathutils.kdtree import KDTree
+
+
+def arguments():
+    raw = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--profile", required=True)
+    return parser.parse_args(raw)
+
+
+def material_name(obj):
+    return " ".join(slot.material.name.lower() for slot in obj.material_slots if slot.material)
+
+
+def world_bounds(obj):
+    points = [obj.matrix_world @ Vector(corner) for corner in obj.bound_box]
+    return (Vector(tuple(min(p[i] for p in points) for i in range(3))),
+            Vector(tuple(max(p[i] for p in points) for i in range(3))))
+
+
+def find_skin():
+    meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    skin = max((o for o in meshes if "skin" in material_name(o)),
+               key=lambda o: len(o.data.polygons), default=None)
+    if skin is None:
+        raise RuntimeError("Could not identify Ara skin mesh for character details")
+    return skin
+
+
+def make_material(name, hex_colour, metallic=0.0, roughness=0.8):
+    colour = hex_colour.lstrip("#")
+    rgb = tuple(int(colour[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+    mat = bpy.data.materials.new(name)
+    mat.diffuse_color = (*rgb, 1.0)
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes.get("Principled BSDF")
+    if bsdf:
+        bsdf.inputs["Base Color"].default_value = (*rgb, 1.0)
+        bsdf.inputs["Metallic"].default_value = metallic
+        bsdf.inputs["Roughness"].default_value = roughness
+    return mat
+
+
+def make_projection_trees(skin):
+    world = skin.matrix_world
+    normal_matrix = world.to_3x3().inverted().transposed()
+    front_items, back_items = [], []
+    for vertex in skin.data.vertices:
+        point = world @ vertex.co
+        normal = (normal_matrix @ vertex.normal).normalized()
+        if normal.z > 0.12:
+            front_items.append((point, normal, vertex.index))
+        if normal.z < -0.12:
+            back_items.append((point, normal, vertex.index))
+    trees = {}
+    for label, items in (("front", front_items), ("back", back_items)):
+        if not items:
+            raise RuntimeError(f"No {label}-facing skin vertices found for tattoo projection")
+        tree = KDTree(len(items))
+        for item_index, (point, _normal, _vertex_index) in enumerate(items):
+            tree.insert(Vector((point.x, point.y, 0.0)), item_index)
+        tree.balance()
+        trees[label] = (tree, items)
+    return trees
+
+
+def project_path(points, back, trees, offset=0.0020):
+    label = "back" if back else "front"
+    tree, items = trees[label]
+    projected = []
+    for segment in range(len(points) - 1):
+        a, b = points[segment], points[segment + 1]
+        steps = max(2, int(math.ceil((b - a).length / 0.018)))
+        for step in range(steps):
+            p = a.lerp(b, step / steps)
+            _co, item_index, _distance = tree.find(Vector((p.x, p.y, 0.0)))
+            surface, normal, source_index = items[item_index]
+            projected.append((surface + normal * offset, normal, source_index))
+    p = points[-1]
+    _co, item_index, _distance = tree.find(Vector((p.x, p.y, 0.0)))
+    surface, normal, source_index = items[item_index]
+    projected.append((surface + normal * offset, normal, source_index))
+    return projected
+
+
+def append_tube(path, radius, back, trees, vertices, faces, sources, skin_inverse):
+    if len(path) < 2 or radius <= 0:
+        return
+    projected = project_path(path, back, trees)
+    sides = 8
+    first = len(vertices)
+    for index, (point, surface_normal, source_index) in enumerate(projected):
+        before = projected[max(0, index - 1)][0]
+        after = projected[min(len(projected) - 1, index + 1)][0]
+        tangent = (after - before).normalized()
+        axis = tangent.cross(surface_normal)
+        if axis.length_squared < 1e-8:
+            axis = tangent.cross(Vector((0, 1, 0)))
+        if axis.length_squared < 1e-8:
+            axis = tangent.cross(Vector((1, 0, 0)))
+        axis.normalize()
+        other = tangent.cross(axis).normalized()
+        for side in range(sides):
+            angle = math.tau * side / sides
+            world_point = point + (axis * math.cos(angle) + other * math.sin(angle)) * radius
+            vertices.append(skin_inverse @ world_point)
+            sources.append(source_index)
+    for ring in range(len(projected) - 1):
+        a = first + ring * sides
+        b = a + sides
+        for side in range(sides):
+            nxt = (side + 1) % sides
+            faces.append((a + side, b + side, b + nxt, a + nxt))
+
+
+def star_points(centre, radius):
+    points = []
+    for index in range(9):
+        angle = math.tau * index / 8
+        r = radius if index % 2 == 0 else radius * 0.28
+        points.append(centre + Vector((math.cos(angle) * r, math.sin(angle) * r, 0)))
+    points.append(points[0])
+    return points
+
+
+def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
+    if not tattoo_paths:
+        return 0
+    lo, hi = world_bounds(skin)
+    height, width = hi.y - lo.y, hi.x - lo.x
+    centre = (lo + hi) * 0.5
+    front_z, back_z = hi.z + 0.02, lo.z - 0.02
+    trees = make_projection_trees(skin)
+    vertices, faces, sources = [], [], []
+    inverse = skin.matrix_world.inverted()
+
+    def path(points, radius, back=False):
+        append_tube(points, radius, back, trees, vertices, faces, sources, inverse)
+
+    for design in tattoo_paths:
+        name = str(design.get("design", "")) if isinstance(design, dict) else str(design)
+        if name == "mirabel_arcane":
+            back = back_z - 0.003
+            front = front_z + 0.003
+            shoulder_y = centre.y + height * 0.29
+            mid_y = centre.y + height * 0.12
+            path([Vector((centre.x, shoulder_y, back)),
+                  Vector((centre.x - width * .08, shoulder_y - height * .035, back)),
+                  Vector((centre.x, mid_y, back)),
+                  Vector((centre.x + width * .08, shoulder_y - height * .035, back)),
+                  Vector((centre.x, shoulder_y, back))], height * .0040, True)
+            path([Vector((centre.x, shoulder_y, back)),
+                  Vector((centre.x, centre.y - height * .02, back)),
+                  Vector((centre.x, centre.y - height * .13, back))], height * .0035, True)
+            for side in (-1.0, 1.0):
+                sx = centre.x + side * width * .19
+                path([Vector((centre.x + side * width * .06, shoulder_y, back)),
+                      Vector((sx, shoulder_y - height * .025, back)),
+                      Vector((sx + side * width * .025, shoulder_y - height * .11, back))],
+                     height * .0038, True)
+                star = Vector((centre.x + side * width * .245, shoulder_y - height * .025, back - .002))
+                path(star_points(star, height * .018), height * .018 * .11, True)
+                arm_x, arm_y = centre.x + side * width * .255, centre.y - height * .015
+                path([Vector((arm_x, arm_y, front)),
+                      Vector((arm_x - side * width * .018, arm_y - height * .035, front)),
+                      Vector((arm_x, arm_y - height * .07, front))], height * .0015, False)
+                star = Vector((arm_x, arm_y - height * .09, front + .002))
+                path(star_points(star, height * .012), height * .012 * .11, False)
+            for side in (-1.0, 1.0):
+                thigh_x = centre.x + side * width * .105
+                path([Vector((thigh_x, centre.y - height * .23, front)),
+                      Vector((thigh_x + side * width * .018, centre.y - height * .29, front)),
+                      Vector((thigh_x, centre.y - height * .35, front))], height * .0015, False)
+
+        elif name == "reyna_shoulder_back":
+            y, z = centre.y + height * .29, back_z - .003
+            path([Vector((centre.x, y + height * .025, z)),
+                  Vector((centre.x, y - height * .055, z)),
+                  Vector((centre.x, y - height * .16, z))], height * .0028, True)
+            for side in (-1.0, 1.0):
+                path([Vector((centre.x, y - height * .015, z)),
+                      Vector((centre.x + side * width * .11, y + height * .025, z)),
+                      Vector((centre.x + side * width * .22, y + height * .005, z)),
+                      Vector((centre.x + side * width * .27, y - height * .055, z))],
+                     height * .0045, True)
+                for feather in range(3):
+                    x = centre.x + side * width * (0.10 + feather * 0.055)
+                    yy = y + height * (0.012 - feather * 0.012)
+                    path([Vector((x, yy, z)),
+                          Vector((x + side * width * .025, yy - height * .045, z)),
+                          Vector((x + side * width * .055, yy - height * .065, z))],
+                         height * .0035, True)
+            star = Vector((centre.x, y + height * .035, z - .002))
+            path(star_points(star, height * .014), height * .014 * .11, True)
+        else:
+            print(f"WARNING: Unknown tattoo design {name!r}; skipping")
+
+    if not vertices or not faces:
+        return 0
+    mesh = bpy.data.meshes.new("Ara_Tattoo_Details_Mesh")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.update()
+    obj = bpy.data.objects.new("Ara_Tattoo_Details", mesh)
+    bpy.context.collection.objects.link(obj)
+    obj.parent = skin.parent
+    obj.matrix_world = skin.matrix_world.copy()
+    mesh.materials.append(make_material("Ara_Tattoo_Ink", ink_hex, 0.0, 1.0))
+
+    # Transfer nearest-skin-vertex weights for armature deformation.
+    group_map = {g.index: obj.vertex_groups.new(name=g.name) for g in skin.vertex_groups}
+    for new_index, source_index in enumerate(sources):
+        for assignment in skin.data.vertices[source_index].groups:
+            group = group_map.get(assignment.group)
+            if group is not None and assignment.weight > 0:
+                group.add([new_index], assignment.weight, "REPLACE")
+
+    armature = next((m.object for m in skin.modifiers if m.type == "ARMATURE" and m.object), None)
+    if armature is None:
+        armature = next((o for o in bpy.context.scene.objects if o.type == "ARMATURE"), None)
+    if armature:
+        modifier = obj.modifiers.new("Ara Tattoo Armature", "ARMATURE")
+        modifier.object = armature
+        source_modifier = next((m for m in skin.modifiers if m.type == "ARMATURE"), None)
+        if source_modifier:
+            modifier.use_vertex_groups = source_modifier.use_vertex_groups
+            modifier.use_bone_envelopes = source_modifier.use_bone_envelopes
+            modifier.use_deform_preserve_volume = source_modifier.use_deform_preserve_volume
+    obj["character_detail_type"] = "tattoo"
+    obj["tattoo_designs"] = ",".join(str(d.get("design", "")) if isinstance(d, dict) else str(d)
+                                      for d in tattoo_paths)
+    print(f"BAKED_TATTOOS vertices={len(vertices)} faces={len(faces)} weighted={bool(armature)}")
+    return len(vertices)
+
+
+def parent_preserve(obj, parent, world_matrix):
+    obj.parent = parent
+    obj.matrix_world = world_matrix
+
+
+def add_hoop(socket, radius, material, name):
+    socket_matrix = socket.matrix_world.copy()
+    normal = (socket_matrix.to_3x3() @ Vector((0, 0, 1))).normalized()
+    world = socket_matrix.copy()
+    world.translation = socket_matrix.translation + normal * 0.002
+    bpy.ops.mesh.primitive_torus_add(major_segments=24, minor_segments=12,
+                                     location=world.translation,
+                                     major_radius=radius * 0.89,
+                                     minor_radius=radius * 0.11)
+    obj = bpy.context.object
+    obj.name = name
+    obj.rotation_mode = "QUATERNION"
+    obj.rotation_quaternion = socket_matrix.to_quaternion()
+    obj.data.materials.append(material)
+    parent_preserve(obj, socket, obj.matrix_world.copy())
+    obj["character_detail_type"] = "piercing"
+    print(f"BAKED_PIERCING {name} socket={socket.name}")
+
+
+def add_barbell(socket, material):
+    matrix = socket.matrix_world.copy()
+    centre = matrix.translation
+    normal = (matrix.to_3x3() @ Vector((0, 0, 1))).normalized()
+    tangent = (matrix.to_3x3() @ Vector((1, 0, 0))).normalized()
+    location = centre + normal * 0.002
+    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.0018, depth=0.014,
+                                        location=location)
+    bar = bpy.context.object
+    bar.name = "Piercing_SOCKET_ClitoralHood_Bar"
+    bar.rotation_mode = "QUATERNION"
+    bar.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(tangent)
+    bar.data.materials.append(material)
+    parent_preserve(bar, socket, bar.matrix_world.copy())
+    bar["character_detail_type"] = "piercing"
+    for side in (-1.0, 1.0):
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8,
+                                             radius=0.003, location=location + tangent * side * 0.008)
+        bead = bpy.context.object
+        bead.name = "Piercing_SOCKET_ClitoralHood_Bead"
+        bead.data.materials.append(material)
+        parent_preserve(bead, socket, bead.matrix_world.copy())
+        bead["character_detail_type"] = "piercing"
+    print(f"BAKED_PIERCING clitoral barbell socket={socket.name}")
+
+
+def add_piercings(entries):
+    material = make_material("Ara_Piercing_Silver", "#C6CBD0", 0.82, 0.24)
+    sockets = {obj.name: obj for obj in bpy.context.scene.objects}
+    count = 0
+    for entry in entries:
+        if entry == "earrings":
+            for name in ("SOCKET_Earring_L", "SOCKET_Earring_R"):
+                socket = sockets.get(name)
+                if socket:
+                    add_hoop(socket, 0.012, material, "Piercing_" + name)
+                    count += 1
+                else:
+                    print(f"WARNING: Ara socket {name} not found; piercing omitted")
+        elif entry == "nipple_left":
+            socket = sockets.get("SOCKET_Nipple_L")
+            if socket:
+                add_hoop(socket, 0.008, material, "Piercing_SOCKET_Nipple_L")
+                count += 1
+            else:
+                print("WARNING: Ara socket SOCKET_Nipple_L not found; piercing omitted")
+        elif entry == "clit":
+            socket = sockets.get("SOCKET_ClitoralHood")
+            if socket:
+                add_barbell(socket, material)
+                count += 1
+            else:
+                print("WARNING: Ara socket SOCKET_ClitoralHood not found; piercing omitted")
+        else:
+            print(f"WARNING: Unknown piercing profile entry {entry!r}")
+    return count
+
+
+def main():
+    args = arguments()
+    with open(args.profile, "r", encoding="utf-8") as handle:
+        profile = json.load(handle)
+    details = profile.get("character_details", {})
+    params = profile.get("params", {})
+    piercings = details.get("piercings", params.get("piercings", []))
+    tattoos = details.get("tattoos", [])
+    ink = details.get("tattoo_ink", params.get("tattoo_ink", "#28252D"))
+
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.object.delete(use_global=False)
+    bpy.ops.import_scene.gltf(filepath=os.path.abspath(args.input))
+    skin = find_skin()
+    piercing_count = add_piercings(piercings)
+    tattoo_vertices = add_tattoo_mesh(skin, tattoos, ink)
+
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in bpy.context.scene.objects:
+        if obj.type in {"MESH", "ARMATURE", "EMPTY"}:
+            obj.select_set(True)
+    armature = next((o for o in bpy.context.scene.objects if o.type == "ARMATURE"), None)
+    if armature:
+        bpy.context.view_layer.objects.active = armature
+    os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
+    bpy.ops.export_scene.gltf(filepath=os.path.abspath(args.output), export_format="GLB",
+                              use_selection=True, export_apply=False, export_animations=True)
+    print(f"EXPORTED_CHARACTER_DETAILS piercings={piercing_count} tattoo_vertices={tattoo_vertices}")
+
+
+if __name__ == "__main__":
+    main()
