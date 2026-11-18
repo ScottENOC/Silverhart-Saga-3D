@@ -15,6 +15,7 @@ func play(
     actors: Dictionary,
     gameplay_hud: CanvasLayer,
     gameplay_camera: Camera3D,
+    opening_conversation_lines: Array,
     opening_lines: Array,
     move_enforcers: Callable,
     enforcer_ids: Array[String]
@@ -30,31 +31,10 @@ func play(
     _log_character_animation_catalogues()
 
     await get_tree().create_timer(2.0).timeout
-    await _director.present_line({
-        "speaker_id": "companion_wren_talbot",
-        "speaker": "Wren",
-        "text": "Well, here we are then. Try not to get us both killed, yeah?"
-    }, 4.0)
-    await _director.present_line({
-        "speaker_id": "player",
-        "speaker": "You",
-        "text": "You always introduce a place like that?"
-    }, 2.8)
-    await _director.present_line({
-        "speaker_id": "companion_wren_talbot",
-        "speaker": "Wren",
-        "text": "Only the places where I reckon trouble's already waiting."
-    }, 3.2)
-    await _director.present_line({
-        "speaker_id": "player",
-        "speaker": "You",
-        "text": "And you reckon that here?"
-    }, 2.5)
-    await _director.present_line({
-        "speaker_id": "companion_wren_talbot",
-        "speaker": "Wren",
-        "text": "I reckon you have a talent for finding it."
-    }, 3.0)
+    # Dialogue text belongs to campaign content; this component only presents it.
+    for conversation_line_variant in opening_conversation_lines:
+        var conversation_line: Dictionary = conversation_line_variant
+        await _director.present_line(conversation_line, 3.2)
 
     var enforcers_entered := false
     for line_variant in opening_lines:
