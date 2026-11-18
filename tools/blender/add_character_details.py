@@ -364,16 +364,15 @@ def add_nipple_barbell(socket, material):
     matrix = socket.matrix_world.copy()
     anchor = matrix.translation.copy()
     normal = (matrix.to_3x3() @ Vector((0, 0, 1))).normalized()
+    # Ara is Z-up in Blender after GLB import. Use the character's horizontal
+    # left-right axis directly; projecting it off the socket normal tilted the
+    # bar when the socket normal itself had a strong lateral component.
     tangent = Vector((1, 0, 0))
-    tangent -= normal * tangent.dot(normal)
-    if tangent.length_squared < 1e-8:
-        tangent = Vector((0, 1, 0))
-        tangent -= normal * tangent.dot(normal)
-    tangent.normalize()
-    # Keep the attachment at the socket; only a tiny outward clearance avoids
-    # z-fighting. Do not translate the bar along the chest or rotate the socket.
+    # Keep the attachment at the original socket. A small outward clearance
+    # prevents z-fighting; the bar and end beads overlap slightly so they read
+    # as one continuous barbell rather than three disconnected pieces.
     centre = anchor + normal * 0.0012
-    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.0018, depth=0.020,
+    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=0.0018, depth=0.022,
                                         location=centre)
     bar = bpy.context.object
     bar.name = "Piercing_SOCKET_Nipple_L_Bar"
@@ -384,8 +383,8 @@ def add_nipple_barbell(socket, material):
     bar["character_detail_type"] = "piercing"
     for side in (-1.0, 1.0):
         bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8,
-                                             radius=0.0032,
-                                             location=centre + tangent * side * 0.010)
+                                             radius=0.0035,
+                                             location=centre + tangent * side * 0.0105)
         bead = bpy.context.object
         bead.name = "Piercing_SOCKET_Nipple_L_Bead"
         bead.data.materials.append(material)
@@ -407,17 +406,22 @@ def add_piercings(entries):
                     size = hi - lo
                     centre = (lo + hi) * 0.5
                     pos = socket.matrix_world.translation.copy()
-                    yn = (pos.y - lo.y) / max(size.y, 1e-6)
+                    # Ara's imported Blender scene is Z-up and faces -Y.
+                    # The old check used Y (depth) as height and consequently
+                    # classified valid ear sockets as shoulder-level.
+                    zn = (pos.z - lo.z) / max(size.z, 1e-6)
                     xn = abs(pos.x - centre.x) / max(size.x, 1e-6)
-                    print(f"SOCKET_DIAGNOSTIC {name} world={tuple(round(v,4) for v in pos)} normalized_y={yn:.3f} normalized_x={xn:.3f}")
-                    # Ear sockets should be on the head, not down at shoulder height.
-                    if yn < 0.76 or yn > 0.99 or xn < 0.18 or xn > 0.48:
+                    print(f"SOCKET_DIAGNOSTIC {name} world={tuple(round(v,4) for v in pos)} normalized_z={zn:.3f} normalized_x={xn:.3f}")
+                    # Ear sockets belong high on the head, lateral to the face.
+                    if zn < 0.82 or zn > 0.99 or xn < 0.18 or xn > 0.48:
                         side = -1.0 if name.endswith("_L") else 1.0
                         fallback = Vector((centre.x + side * size.x * 0.34,
-                                           lo.y + size.y * 0.865,
-                                           centre.z + size.z * 0.02))
+                                           lo.y + size.y * 0.16,
+                                           lo.z + size.z * 0.885))
                         print(f"WARNING: {name} outside head envelope; fallback={tuple(round(v,4) for v in fallback)}")
-                        socket.location = socket.parent.matrix_world.inverted() @ fallback if socket.parent else fallback
+                        socket_world = socket.matrix_world.copy()
+                        socket_world.translation = fallback
+                        socket.matrix_world = socket_world
                     add_hoop(socket, 0.010, material, "Piercing_" + name)
                     count += 1
                 else:
