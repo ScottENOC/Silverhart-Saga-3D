@@ -129,7 +129,7 @@ The official 3D player spell list is now fixed at 12 entries:
 - Divine: Heal, Divine Protection, Divine Strength, Curse.
 - Nature: Summon Animal, Entangle, Calm Animal, Wild Fury.
 
-Do not port or add further player base spells without an explicit design decision. Dragon Breath is deferred as a future dragon ability. The former 15-spell 2D data catalogue is historical source material, not the 3D design target.
+Do not port or add further player base spells without an explicit design decision. Legacy spell unlock skills are retained for source parity but flagged disabled, so they cannot be purchased or unlock non-official spells. Dragon Breath is deferred as a future dragon ability. The former 15-spell 2D data catalogue is historical source material, not the 3D design target.
 
 ### Disguise Self integration
 
