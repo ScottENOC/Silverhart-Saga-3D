@@ -263,7 +263,7 @@
     {
       "id": "armistice",
       "name": "Armistice",
-      "description": "Passive: When Curse activates, the target must spend 5 extra TP before their next attack (once per activation).",
+      "description": "Passive: When Curse activates, the target must spend 5 extra TP before their next attack (once per activation). This TP-cost hook is not yet ported.",
       "tree": "cleric",
       "max_ranks": 1,
       "prerequisite": "cleric_trigger_damage",
@@ -492,7 +492,7 @@
     {
       "id": "cleric_trigger_vision",
       "name": "Clouded Mind",
-      "description": "Whenever Curse is cast, reduce the target's vision range by 1 hex per rank (stacks 3x).",
+      "description": "Whenever Curse is cast, reduce the target's vision range by 1 hex per rank (stacks 3x). The vision-system hook is not yet ported.",
       "tree": "cleric",
       "max_ranks": 2,
       "prerequisite": null,
