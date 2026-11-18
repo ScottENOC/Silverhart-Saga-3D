@@ -131,6 +131,18 @@ The low-level TD-012 primitive extraction is implemented. A comparative review o
 
 Next TD-003 slice is dependency mapping, not immediate extraction: isolate the input/movement-presentation cluster from the rest of HollowTankard and document its callbacks, state, and scene dependencies. The current input handler also dispatches combat, interaction, gathering, party/UI and save/load commands, so it must not be moved wholesale into a generic movement controller.
 
+### TD-003 — input and route movement dependency map
+
+The current input/presentation seam is more coupled than a simple keyboard handler:
+
+- `_unhandled_input()` routes mouse clicks to screen-to-hex projection and path selection; keyboard commands dispatch quick save/load, attack, end turn, gather, door/stair/NPC interaction, party switching, character/skill/inventory panels, roof visibility, facing rotation and six-direction movement.
+- `_screen_position_to_hex()` depends on the active viewport camera, ray-plane intersection, the current character's floor, tavern-specific upper-floor elevation/origin, `HexGrid` conversion and `simulation.map_data` bounds.
+- Route state is held by `active_path`, `path_markers` and `path_step_accumulator`; `_set_move_destination()` calls `simulation.find_path()`, while `_advance_path_step()` checks pause/reaction/combat-turn state, current character state and movement-point cost, then calls `simulation.try_move_character_step()` and replans if the route becomes invalid.
+- Marker presentation depends on the tavern's `tile_mesh`, `path_material`, scene-tree parent and `_hex_world_position()` callback. That callback itself contains the upper-floor coordinate transform.
+- `_process()` currently schedules route steps alongside autosave, ambient chatter, story proximity, quest spawning, combat updates and nearby-interaction refresh.
+
+Ownership conclusion: WorldSimulation remains the sole authority for pathfinding, movement cost, occupancy and committed movement. HollowTankard currently owns player command dispatch and the location-specific camera/floor projection. A future extraction should separate input dispatch from route execution and keep the upper-floor transform injectable; do not move combat, interaction or persistence commands into a movement controller. The first testable candidate is a route controller with explicit simulation and presentation dependencies, but it needs a focused scene-level test for click-to-move, route replanning, movement-point waiting and upper-floor transitions before extraction.
+
 ## 7. Current-branch audit — 18 November 2026
 
 This section supersedes stale status assumptions in the original 13 November inventory. Measurements below are from the named current snapshot, not from the historical baseline.
