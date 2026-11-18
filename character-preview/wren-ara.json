@@ -13,7 +13,7 @@
     "african": 0.12,
     "asian": 0.08,
     "caucasian": 0.8,
-    "breastSize": 0.76,
+    "breastSize": 0.86,
     "breastFirmness": 0.6,
     "skin": "auto",
     "skinTint": "#AEBB7C",
@@ -39,10 +39,10 @@
       "chin/chin-width": -0.12,
       "head/head-oval": 0.16,
       "head/head-fat": -0.08,
-      "armslegs/upperarm-shoulder-muscle:decr|incr": 0.1,
+      "armslegs/upperarm-shoulder-muscle:decr|incr": 0,
       "buttocks/buttocks-volume": 0.2,
-      "hip/hip-scale-horiz": 0.1,
-      "hip/hip-scale-depth": 0.1
+      "hip/hip-scale-horiz": 0.2,
+      "hip/hip-scale-depth": 0.2
     },
     "detail": "high",
     "rig": "game",
