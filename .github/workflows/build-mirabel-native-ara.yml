@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m json.tool character-preview/mirabel-ara.json >/dev/null
-          python -m py_compile tools/blender/add_adult_anatomy.py tools/blender/add_elf_ears.py tools/review/recolor_wren_glb.py
+          python -m py_compile tools/blender/add_adult_anatomy.py tools/blender/add_elf_ears.py tools/blender/make_hairless_preview.py tools/review/recolor_wren_glb.py
 
       - name: Install Ara export dependencies
         run: |
