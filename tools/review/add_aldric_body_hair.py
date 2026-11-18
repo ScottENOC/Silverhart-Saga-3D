@@ -103,7 +103,7 @@ def main():
         if args.coverage == "wren":
             # The landing strip belongs on the pubic mound, not the lower
             # abdomen. Ara exports Y-up; this band maps to the pelvis.
-            if front and 0.23 <= yn <= 0.33 and abs(x) <= 0.032:
+            if front and 0.32 <= yn <= 0.40 and abs(x) <= 0.050:
                 region = "landing_strip"
         elif args.coverage == "reyna":
             if 0.66 <= yn <= 0.80 and 0.075 <= abs(x) <= 0.19 and abs(z) > 0.035:
