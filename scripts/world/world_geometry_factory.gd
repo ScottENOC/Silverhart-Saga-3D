@@ -32,7 +32,7 @@ static func add_box(
 static func make_material(
 	colour: Color,
 	roughness: float = 0.88,
-	cull_mode: BaseMaterial3D.CullMode = BaseMaterial3D.CULL_BACK
+	cull_mode: int = BaseMaterial3D.CULL_BACK
 ) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = colour
