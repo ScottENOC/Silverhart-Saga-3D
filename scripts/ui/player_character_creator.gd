@@ -329,11 +329,12 @@ func _load_saved_profile() -> void:
     _select_text(hair_style_select, str(data.get("hair_style", "Short 2")))
     _select_text(body_select, str(data.get("body_build", "Average")))
     height_slider.value = clampf(float(data.get("height_scale", 1.0)), 0.90, 1.10)
-    var saved_piercings: Array = data.get("piercings", [])
+    var saved_details: Dictionary = data.get("character_details", {})
+    var saved_piercings: Array = saved_details.get("piercings", [])
     ear_piercing_check.button_pressed = saved_piercings.has("earrings")
     nipple_piercing_check.button_pressed = saved_piercings.has("nipple_left")
     clit_piercing_check.button_pressed = saved_piercings.has("clit")
-    var saved_tattoos: Array = data.get("tattoos", [])
+    var saved_tattoos: Array = saved_details.get("tattoos", [])
     var saved_design := str(saved_tattoos[0].get("design", "")) if not saved_tattoos.is_empty() and saved_tattoos[0] is Dictionary else ""
     _select_text(tattoo_style_select, "Arcane constellation" if saved_design == "mirabel_arcane" else ("Shoulder-back motif" if saved_design == "reyna_shoulder_back" else "None"))
     _refresh_character_preview(0)
@@ -421,7 +422,7 @@ func _appearance_detail_profile() -> Dictionary:
                 tattoos.append({"design": "mirabel_arcane"})
             "Shoulder-back motif":
                 tattoos.append({"design": "reyna_shoulder_back"})
-    return {"piercings": piercings, "tattoos": tattoos, "tattoo_ink": "#30283D"}
+    return {"character_details": {"piercings": piercings, "tattoos": tattoos, "tattoo_ink": "#30283D"}}
 
 func _preview_equipment_for_class() -> Dictionary:
     # The creator is an appearance preview, not an equipment/loadout preview.
