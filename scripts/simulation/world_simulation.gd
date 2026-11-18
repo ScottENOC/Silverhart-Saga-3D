@@ -1163,13 +1163,15 @@ func _resolve_attack_action(attacker_id: String, target_id: String, options: Dic
         rng.randomize()
     else:
         rng.seed = random_seed
-    _apply_spell_protection_triggers(attacker, target)
     var fury := attacker.get_spell_effect("wild_fury")
     var resolved_options := options.duplicate(true)
-    if not fury.is_empty() and not bool(resolved_options.get("has_weapon", false)):
+    var weapon_id := String(attacker.equipment.get("weapon", ""))
+    if not fury.is_empty() and weapon_id.is_empty():
         resolved_options["wild_fury_bonus"] = int(fury.get("magnitude", 0))
     var result := CombatRules.resolve_attack(attacker, target, resolved_options, rng)
     if bool(result.get("ok", false)):
+        _apply_spell_protection_triggers(attacker, target)
+        attacker.remove_spell_effect("sanctuary")
         var typed_result := SimulationActionResult.new("attack", true, "", attacker_id, target_id, result)
         var result_data := typed_result.to_dict()
         action_committed.emit(SimulationEvent.new("attack_resolved", attacker_id, target_id, result_data))
@@ -1234,6 +1236,22 @@ func _submit_move(request: SimulationActionRequest) -> Dictionary:
     if is_in_combat and state.should_end_turn():
         try_end_current_turn()
     return result_data
+## Shared landing hook for elevation/fall systems. Feather Fall prevents one
+## fall event and is consumed; otherwise normal damage/lifecycle rules apply.
+func resolve_fall_damage(character_id: String, damage: int) -> Dictionary:
+    var state := get_character(character_id)
+    if state == null or not state.alive or damage < 0:
+        return {"ok": false, "reason": "invalid_fall"}
+    if SpellEffectRules.consume_feather_fall(state):
+        var prevented := {"ok": true, "prevented": true, "damage": 0, "character_id": character_id}
+        action_committed.emit(SimulationEvent.new("fall_prevented", character_id, "", prevented))
+        return prevented
+    var lifecycle := state.apply_damage(damage)
+    var result := {"ok": true, "prevented": false, "damage": damage, "lifecycle": lifecycle, "health": state.health}
+    action_committed.emit(SimulationEvent.new("fall_resolved", character_id, "", result))
+    return result
+
+
 func get_current_turn_character() -> CharacterState:
     if not turn_scheduler.has_active_turn():
         return null
