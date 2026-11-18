@@ -114,8 +114,10 @@ func _fallback_detail_position(socket_name: String) -> Vector3:
         x += (-1.0 if socket_name.ends_with("_L") else 1.0) * size.x * 0.225
         y = bounds.position.y + size.y * 0.875
     elif socket_name == "SOCKET_Nipple_L":
-        x -= size.x * 0.085
-        y = bounds.position.y + size.y * 0.655
+        # Place on the actual left breast surface, not the torso centre.
+        # This lateral offset accounts for Wren's fuller breast setting.
+        x -= size.x * 0.145
+        y = bounds.position.y + size.y * 0.665
     elif socket_name == "SOCKET_ClitoralHood":
         y = bounds.position.y + size.y * 0.385
     return _project_tattoo_point(Vector3(x, y, bounds.end.z), false)
@@ -164,6 +166,14 @@ func _get_target_bounds() -> AABB:
     _collect_meshes(_target, meshes)
     for mesh_instance in meshes:
         if mesh_instance.mesh == null:
+            continue
+        var has_skin := false
+        for surface in range(mesh_instance.mesh.get_surface_count()):
+            var material := mesh_instance.get_active_material(surface)
+            if material != null and material.resource_name.to_lower().contains("skin"):
+                has_skin = true
+                break
+        if not has_skin:
             continue
         var local_bounds := mesh_instance.mesh.get_aabb()
         var transform := _target.global_transform.affine_inverse() * mesh_instance.global_transform
@@ -271,7 +281,7 @@ func _project_tattoo_point(point: Vector3, back: bool) -> Vector3:
         var mesh_to_target := target_inverse * instance.global_transform
         for surface in range(instance.mesh.get_surface_count()):
             var material := instance.get_active_material(surface)
-            if material != null and not material.resource_name.to_lower().contains("skin"):
+            if material == null or not material.resource_name.to_lower().contains("skin"):
                 continue
             var arrays := instance.mesh.surface_get_arrays(surface)
             if arrays.size() <= Mesh.ARRAY_VERTEX:
