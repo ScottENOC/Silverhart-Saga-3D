@@ -145,7 +145,8 @@ def main():
     # whole side of the head. The slight upward component gives a natural,
     # swept-back fantasy-ear silhouette without changing the ear root.
     inv = world_matrix.inverted()
-    moved = {("L" if s > 0 else "R"): 0 for s in side_candidates}\n    max_influence = 0.0
+    moved = {("L" if s > 0 else "R"): 0 for s in side_candidates}
+    max_influence = 0.0
     for side, indices in side_candidates.items():
         for i in indices:
             p = world_positions[i]
