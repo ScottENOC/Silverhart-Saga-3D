@@ -47,10 +47,14 @@ def skin_meshes(objects):
 
 
 def topology_signature(mesh):
-    return (
-        len(mesh.vertices),
-        tuple(tuple(poly.vertices) for poly in mesh.polygons),
-    )
+    # GLB round-trips can reorder polygon records or reverse their winding
+    # without changing vertex correspondence. Shape keys require identical
+    # vertex indices and face connectivity, not identical polygon list order.
+    canonical_faces = tuple(sorted(
+        tuple(sorted(int(index) for index in poly.vertices))
+        for poly in mesh.polygons
+    ))
+    return (len(mesh.vertices), canonical_faces)
 
 
 def add_relative_key(base_obj, variant_obj, name, epsilon=1e-8):
