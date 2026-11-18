@@ -25,6 +25,8 @@ def arguments():
                         help="Maximum outward ear-tip extension in metres")
     parser.add_argument("--rise", type=float, default=0.012,
                         help="Additional upward tip angle in metres")
+    parser.add_argument("--sweep", type=float, default=0.012,
+                        help="Sweep the tip backwards (+Y) in metres")
     parser.add_argument("--strength", type=float, default=1.0)
     parser.add_argument("--ear-height", type=float, default=0.875,
                         help="Ear centre as a fraction of whole-character height")
@@ -158,6 +160,7 @@ def main():
                 continue
             q = p.copy()
             q.x += side * args.length * influence
+            q.y += args.sweep * influence
             q.z += args.rise * influence
             key.data[i].co = inv @ q
             moved["L" if side > 0 else "R"] += 1
@@ -172,10 +175,12 @@ def main():
     skin["elf_ears_shape_key"] = args.key_name
     skin["elf_ears_length_m"] = args.length
     skin["elf_ears_rise_m"] = args.rise
+    skin["elf_ears_sweep_m"] = args.sweep
     skin["elf_ears_strength"] = key.value
     print(
         f"Created {args.key_name}: length={args.length:.3f}m, "
-        f"rise={args.rise:.3f}m, strength={key.value:.2f}, moved={moved}"
+        f"rise={args.rise:.3f}m, sweep={args.sweep:.3f}m, "
+        f"strength={key.value:.2f}, moved={moved}"
     )
 
     armature = next(
