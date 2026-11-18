@@ -166,6 +166,12 @@ func _test_school_target_skill_casts_multiple_targets() -> void:
     simulation.register_character(second)
     simulation.register_character(guardian)
 
+    var missing_selection := simulation.submit_action(
+        SimulationActionRequest.cast_spell(caster.id, first.id, prepared), 201
+    )
+    _check(String(missing_selection.get("reason", "")) == "multi_target_selection_required", "A multi-target variant must not silently degrade to one target")
+    _check(caster.current_mana == 100 and is_equal_approx(caster.time_points, 100.0), "A missing target selection must not spend resources")
+
     var request := SimulationActionRequest.cast_spell_targets(caster.id, [first.id, second.id], prepared)
     var result := simulation.submit_action(request, 202)
     _check(bool(result.get("ok", false)), "Arcane Fork should allow a Firebolt to select one additional target")
