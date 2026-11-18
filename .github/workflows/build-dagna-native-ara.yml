@@ -78,7 +78,7 @@ jobs:
           python tools/review/recolor_wren_glb.py \
             --model build/dagna-native/Dagna.glb \
             --profile character-preview/dagna-ara.json \
-            --hair-gamma 0.28
+            --hair-gamma 0.28 --bake-hair-tint
           test -s build/dagna-native/Dagna.glb
 
       - name: Assemble isolated Godot preview project
