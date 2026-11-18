@@ -672,7 +672,7 @@ func apply_body_parameters(profile: Dictionary) -> void:
 
 func _apply_appearance_details(profile: Dictionary) -> void:
     if appearance_details != null and is_instance_valid(appearance_details):
-        appearance_details.queue_free()
+        appearance_details.free()
     appearance_details = null
     var piercings: Array = profile.get("piercings", [])
     var tattoos: Array = profile.get("tattoos", [])
