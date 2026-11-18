@@ -70,7 +70,7 @@ File sizes/line counts are measurements of the baseline snapshot, not automatic 
 
 ### Phase 1 — Split the simulation test suite
 
-<text>Complete.</text> The monolithic simulation test file has been replaced by independently runnable domain suites covering character/progression, campaign content, items/equipment, world/movement, combat/reactions and animals/riding. The current Godot validation workflow invokes these suites individually. The remaining CI cleanup is to remove stale references to the deleted monolithic runner from secondary workflows.
+**Complete.** The monolithic simulation test file has been replaced by independently runnable domain suites covering character/progression, campaign content, items/equipment, world/movement, combat/reactions and animals/riding. The current Godot validation workflow invokes these suites individually. The remaining CI cleanup is to remove stale references to the deleted monolithic runner from secondary workflows.
 
 ### Phase 2 — Hollow Tankard decomposition
 
