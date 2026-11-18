@@ -712,6 +712,9 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
         return {"ok": false, "reason": "insufficient_time_points"}
     var armour_penalty := SpellRules.armour_mana_penalty(caster, String(variant.get("school", "")))
     var total_mana_cost := int(variant.get("mana_cost", 0)) + armour_penalty
+    var divine_judgment_free := String(variant.get("school", "")) == "divine" and caster.divine_judgment_ready
+    if divine_judgment_free:
+        total_mana_cost = 0
     var affordability := SpellRules.cast_affordability(caster, total_mana_cost)
     if not bool(affordability.get("ok", false)):
         return {"ok": false, "reason": String(affordability.get("reason", "insufficient_mana"))}
@@ -726,6 +729,7 @@ func _submit_spell_cast(request: SimulationActionRequest, random_seed: int = 0) 
         "random_seed": random_seed,
         "time_point_cost": tp_cost,
         "armour_penalty": armour_penalty,
+        "divine_judgment_free": divine_judgment_free,
         "total_mana_cost": total_mana_cost,
         "affordability": affordability.duplicate(true)
     }
@@ -754,6 +758,9 @@ func _complete_spell_cast(context: Dictionary) -> Dictionary:
     if not caster.spend_time_points(tp_cost):
         return {"ok": false, "reason": "insufficient_time_points"}
     caster.current_mana -= int(affordability.get("mana_to_spend", 0))
+    if bool(context.get("divine_judgment_free", false)):
+        caster.divine_judgment_ready = false
+        caster.divine_judgment_attacks_received = 0
     var blood_hp_cost := int(affordability.get("hp_cost", 0))
     if blood_hp_cost > 0:
         caster.apply_damage(blood_hp_cost)
@@ -944,19 +951,46 @@ func _apply_spell_protection_triggers(attacker: CharacterState, target: Characte
         return
     var sanctuary := target.get_spell_effect("sanctuary")
     var protection := target.get_spell_effect("divine_protection")
-    for effect in [sanctuary, protection]:
-        if effect.is_empty():
-            continue
-        var penalty := maxi(1, int(effect.get("magnitude", 1)))
-        attacker.time_points = maxf(0.0, attacker.time_points - float(penalty))
-        var source := get_character(String(effect.get("source_id", "")))
-        if source != null:
-            var damage := maxi(0, int(source.skills.get("cleric_trigger_damage", 0)))
-            if damage > 0:
-                attacker.apply_damage(damage)
-            var mana_loss := maxi(0, int(source.skills.get("cleric_trigger_mana", 0)))
-            if mana_loss > 0:
-                attacker.current_mana = maxi(0, attacker.current_mana - mana_loss)
+    if not sanctuary.is_empty():
+        _apply_one_protection_trigger(attacker, target, sanctuary, true)
+    if not protection.is_empty():
+        # Divine Protection applies its TP penalty, but the original trigger
+        # skill callback is specifically attached to Sanctuary.
+        _apply_one_protection_trigger(attacker, target, protection, false)
+
+
+func _apply_one_protection_trigger(attacker: CharacterState, target: CharacterState, effect: Dictionary, cleric_trigger: bool) -> void:
+    var penalty := maxi(1, int(effect.get("magnitude", 1)))
+    attacker.time_points = maxf(0.0, attacker.time_points - float(penalty))
+    if not cleric_trigger:
+        return
+    var source := get_character(String(effect.get("source_id", "")))
+    if source == null:
+        return
+
+    var damage := maxi(0, int(source.skills.get("cleric_trigger_damage", 0)))
+    if damage > 0:
+        attacker.apply_damage(damage)
+    var mana_loss := maxi(0, int(source.skills.get("cleric_trigger_mana", 0)))
+    if mana_loss > 0:
+        attacker.current_mana = maxi(0, attacker.current_mana - mana_loss)
+
+    var vision_rank := maxi(0, int(source.skills.get("cleric_trigger_vision", 0)))
+    if vision_rank > 0 and attacker.vision_penalty_stacks < 3:
+        attacker.vision_penalty_stacks += 1
+        attacker.vision_penalty += vision_rank
+
+    var damage_rank := maxi(0, int(source.skills.get("cleric_trigger_dmg_red", 0)))
+    if damage_rank > 0 and attacker.damage_penalty_stacks < 3:
+        attacker.damage_penalty_stacks += 1
+        attacker.base_damage_penalty += damage_rank
+
+    var healing_rank := maxi(0, int(source.skills.get("cleric_trigger_heal_red", 0)))
+    if healing_rank > 0:
+        attacker.healing_reduction_percent = mini(100, attacker.healing_reduction_percent + healing_rank * 50)
+
+    if int(source.skills.get("armistice", 0)) > 0:
+        attacker.armistice_tp_debt += 5.0
 
 
 func _resolve_firebolt_hit(caster: CharacterState, target: CharacterState, magnitude: int, random_seed: int) -> Dictionary:
@@ -1358,11 +1392,20 @@ func _resolve_attack_action(attacker_id: String, target_id: String, options: Dic
         rng.seed = random_seed
     var fury := attacker.get_spell_effect("wild_fury")
     var resolved_options := options.duplicate(true)
+    var armistice_cost := attacker.armistice_tp_debt
+    resolved_options["time_point_cost"] = float(resolved_options.get("time_point_cost", 0.0)) + armistice_cost
     var weapon_id := String(attacker.equipment.get("weapon", ""))
     if not fury.is_empty() and weapon_id.is_empty():
         resolved_options["wild_fury_bonus"] = int(fury.get("magnitude", 0))
     var result := CombatRules.resolve_attack(attacker, target, resolved_options, rng)
     if bool(result.get("ok", false)):
+        attacker.armistice_tp_debt = 0.0
+        attacker.divine_judgment_attacks_received = 0
+        attacker.divine_judgment_ready = false
+        if int(target.skills.get("divine_judgment", 0)) > 0:
+            target.divine_judgment_attacks_received += 1
+            if target.divine_judgment_attacks_received >= 3:
+                target.divine_judgment_ready = true
         _apply_spell_protection_triggers(attacker, target)
         attacker.remove_spell_effect("sanctuary")
         target.remove_spell_effect("calmed")
