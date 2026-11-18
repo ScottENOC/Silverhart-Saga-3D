@@ -325,11 +325,16 @@ func _test_nature_companion_and_ranger_skills() -> void:
     var caster: CharacterState = setup.caster
     caster.skills["animal_companion"] = 1
     caster.skills["venomous_summon"] = 1
+    caster.skills["companion_str_end"] = 1
+    caster.skills["companion_agi_end"] = 1
     var summoned := _cast_at(sim, caster, Vector2i(1, 0), "summon_animal", {"summon_id": "wolf"})
     _check(bool(summoned.get("ok", false)), "A Nature companion should be summonable")
     var companion := sim.get_character(String(summoned.get("summoned_id", "")))
     _check(companion != null and companion.is_animal_companion, "Animal Companion should make the first summon permanent")
     _check(companion != null and int(companion.skills.get("poison_bite", 0)) == 1, "Venomous Summon should grant Poison Bite to the permanent animal companion")
+    _check(companion != null and companion.base_damage == 5, "Companion Brawn should add one base damage to the permanent companion")
+    _check(companion != null and companion.max_health == 38 and companion.health == 38, "Companion Brawn and Grace should each add ten maximum and current health")
+    _check(companion != null and is_equal_approx(companion.time_points_per_tick, 1.05), "Companion Grace should increase the permanent companion's TP accumulation by five percent")
 
     var ranger := CharacterState.new("nature_ranger", "Nature Ranger")
     ranger.skills["nature_ranger"] = 1
