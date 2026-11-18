@@ -58,12 +58,22 @@ def vertex_uv_signatures(mesh):
     return [tuple(sorted(values)) for values in per_vertex]
 
 
-def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
-    """Map GLB-reimported vertices by UV identity, then prove face connectivity.
+def face_topology_signature(mesh):
+    """Return ordered, winding-independent polygon connectivity by vertex index."""
+    return tuple(sorted(
+        tuple(sorted(int(index) for index in polygon.vertices))
+        for polygon in mesh.polygons
+    ))
 
-    The exporter can reorder vertices, and UV seams can contain coincident
-    positions. A per-vertex UV signature distinguishes those seam copies;
-    spatial distance selects among any remaining duplicate signatures.
+
+def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
+    """Map vertices, preferring the shared-subdivision index correspondence.
+
+    All three Ara profiles receive the same subdivision plan. If the GLB
+    round-trip preserves that ordered vertex topology, index identity is the
+    strongest possible correspondence and must be used directly. UV remapping
+    is retained only for exporters that genuinely reorder vertices; it must
+    still prove full face connectivity and may not guess globally by distance.
     """
     base_vertices = base_obj.data.vertices
     variant_vertices = variant_obj.data.vertices
@@ -73,6 +83,31 @@ def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
             f"base={len(base_vertices)}, variant={len(variant_vertices)}"
         )
 
+    base_topology = face_topology_signature(base_obj.data)
+    variant_topology = face_topology_signature(variant_obj.data)
+    if base_topology == variant_topology:
+        # Shared subdivision preserved vertex indices across the GLB exports.
+        # No UV or spatial inference is necessary (or desirable).
+        mapping = list(range(len(base_vertices)))
+        base_world = [base_obj.matrix_world @ v.co for v in base_vertices]
+        variant_world = [variant_obj.matrix_world @ v.co for v in variant_vertices]
+        distances = [(variant_world[i] - base_world[i]).length
+                     for i in range(len(mapping))]
+        maximum = max(distances, default=0.0)
+        if maximum > max_distance:
+            raise RuntimeError(
+                "Identical vertex topology but corresponding profile vertices "
+                f"exceed the expected deformation envelope: {maximum:.4f}m "
+                f"(limit {max_distance:.4f}m)"
+            )
+        print(
+            f"Using verified same-index correspondence for {base_obj.name}: "
+            f"{len(mapping)} vertices, {len(base_topology)} faces"
+        )
+        return mapping, maximum, sum(distances) / max(len(distances), 1)
+
+    # The exporter has genuinely changed vertex ordering. Fall back to UV
+    # identity, but never use an unconstrained nearest-unused vertex guess.
     base_uv = vertex_uv_signatures(base_obj.data)
     variant_uv = vertex_uv_signatures(variant_obj.data)
     variant_by_uv = {}
@@ -85,27 +120,19 @@ def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
     mapping = []
     used = set()
     distances = []
-    spatial_fallbacks = []
     for base_index, base_vertex in enumerate(base_vertices):
         signature = base_uv[base_index]
         candidates = [
             index for index in variant_by_uv.get(signature, [])
             if index not in used
         ]
-        point = base_obj.matrix_world @ base_vertex.co
-
-        # Ara's GLB exporter can alter UV-loop grouping for a small number of
-        # vertices between otherwise topology-equivalent body profiles. Keep
-        # UV identity as the primary key, but for a missing signature use a
-        # one-to-one spatial match. The full face-connectivity proof below is
-        # still mandatory, so this cannot silently accept a bad correspondence.
         if not candidates:
-            candidates = [
-                index for index in range(len(variant_vertices))
-                if index not in used
-            ]
-            spatial_fallbacks.append(base_index)
-
+            raise RuntimeError(
+                "Shared-subdivision topology was reordered by GLB export and "
+                f"UV correspondence is missing for base vertex {base_index}; "
+                "refusing an unconstrained spatial guess"
+            )
+        point = base_obj.matrix_world @ base_vertex.co
         variant_index = min(
             candidates,
             key=lambda index: (variant_world[index] - point).length_squared,
@@ -120,24 +147,15 @@ def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
         used.add(variant_index)
         distances.append(distance)
 
-    if spatial_fallbacks:
-        print(
-            f"Spatial fallback used for {len(spatial_fallbacks)} vertices: "
-            f"{spatial_fallbacks[:20]}"
-        )
-
     inverse = [-1] * len(mapping)
     for base_index, variant_index in enumerate(mapping):
         inverse[variant_index] = base_index
 
-    base_faces = {
-        tuple(sorted(int(index) for index in polygon.vertices))
-        for polygon in base_obj.data.polygons
-    }
     mapped_variant_faces = {
         tuple(sorted(inverse[int(index)] for index in polygon.vertices))
         for polygon in variant_obj.data.polygons
     }
+    base_faces = set(base_topology)
     if base_faces != mapped_variant_faces:
         missing = len(base_faces - mapped_variant_faces)
         extra = len(mapped_variant_faces - base_faces)
