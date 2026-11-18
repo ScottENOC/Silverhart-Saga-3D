@@ -9,6 +9,7 @@ func _initialize() -> void:
     _test_rejected_cast_does_not_spend_resources()
     _test_burst_firebolt_uses_area_effect()
     _test_school_mana_cap_rejects_over_budget_variant()
+    _test_school_target_skill_casts_multiple_targets()
     _test_armour_penalty_and_blood_magic()
     _test_combat_ai_casts_firebolt()
     _test_combat_ai_heals_ally()
@@ -140,6 +141,30 @@ func _test_school_mana_cap_rejects_over_budget_variant() -> void:
     _check(String(result.get("reason", "")) == "school_mana_cap_exceeded", "Over-cap variants should report the school mana cap")
     _check(int(result.get("mana_cap", -1)) == 10, "Base school mana cap should be ten without Cap ranks")
     _check(caster.current_mana == 20 and is_equal_approx(caster.time_points, 100.0), "Rejected over-cap spells must not spend mana or TP")
+    simulation.free()
+
+
+func _test_school_target_skill_casts_multiple_targets() -> void:
+    var simulation := WorldSimulation.new()
+    var caster := _new_character("multi_caster", "player", Vector2i.ZERO)
+    var first := _new_character("multi_first", "enemy", Vector2i(2, 0))
+    var second := _new_character("multi_second", "enemy", Vector2i(3, 0))
+    caster.unlocked_base_spells.append("firebolt")
+    caster.skills["firebolt_hit"] = 10
+    caster.skills["arcane_targets"] = 1
+    caster.skills["arcane_cap"] = 2
+    var prepared := PreparedSpell.create("firebolt", {"target_bonus": 1})
+    caster.prepared_spells.append(prepared.to_dict())
+    simulation.register_character(caster)
+    simulation.register_character(first)
+    simulation.register_character(second)
+
+    var request := SimulationActionRequest.cast_spell_targets(caster.id, [first.id, second.id], prepared)
+    var result := simulation.submit_action(request, 202)
+    _check(bool(result.get("ok", false)), "Arcane Fork should allow a Firebolt to select one additional target")
+    _check(first.health == 95 and second.health == 95, "Multi-target Firebolt should resolve damage against both selected opponents")
+    _check(caster.current_mana == 80, "Each additional target should add fifteen mana to the spell cost")
+    _check(result.get("affected_ids", []).size() == 2, "Multi-target results should report every affected target")
     simulation.free()
 
 
