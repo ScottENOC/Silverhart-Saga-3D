@@ -66,14 +66,10 @@ jobs:
             --profile female --adult
           test -s build/dagna-native/Dagna-anatomy.glb
 
-      - name: Add reusable pointed elf ears
+      - name: Keep Dagna free of elf-ear modifications
         run: |
           set -euo pipefail
-          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
-            --python tools/blender/add_elf_ears.py -- \
-            --input build/dagna-native/Dagna-anatomy.glb \
-            --output build/dagna-native/Dagna.glb \
-            --length 0.050 --rise 0.012 --sweep 0.012 --strength 1.0
+          cp build/dagna-native/Dagna-anatomy.glb build/dagna-native/Dagna.glb
           test -s build/dagna-native/Dagna.glb
 
       - name: Apply Dagna skin and hair colours
