@@ -207,6 +207,7 @@ func _test_permanent_animal_companion() -> void:
     var sim: WorldSimulation = setup.sim
     var caster: CharacterState = setup.caster
     caster.skills["animal_companion"] = 1
+    caster.skills["learn_unicorn_summon"] = 1
     var result := _cast_at(sim, caster, Vector2i(1, 0), "summon_animal", {"summon_id": "wolf"})
     _check(bool(result.get("ok", false)), "Animal Companion skill should make the first summon permanent")
     var companion := sim.get_character(String(result.get("summoned_id", "")))
