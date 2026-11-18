@@ -226,9 +226,9 @@ static func _skill_rank(skills: Dictionary, skill_id: String) -> int:
     return maxi(0, int(skills.get(skill_id, 0)))
 
 
-## The first resolver slice supports only direct Firebolt damage and
-## single-target Heal. Do not silently treat unimplemented Burst/AoE or
-## extra-target variants as single-target casts.
+## Runtime support is deliberately explicit. Direct Firebolt, Heal and Smite
+## can use selected extra targets; unsupported combinations are rejected
+## rather than silently degrading to single-target casts.
 static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool:
     if not bool(variant.get("ok", false)):
         return false
