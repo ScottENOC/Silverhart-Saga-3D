@@ -54,6 +54,12 @@ func is_valid() -> bool:
     var speed: Variant = modifiers.get("speed", "default")
     if not speed is String or not ["default", "quickened", "slowed"].has(String(speed)):
         return false
+    var summon_id: Variant = modifiers.get("summon_id", "wolf")
+    if not summon_id is String or not ["wolf", "boar", "tiger", "eagle", "unicorn"].has(String(summon_id)):
+        return false
+    var calm_mode: Variant = modifiers.get("calm_mode", "stay")
+    if not calm_mode is String or not ["stay", "come", "chase"].has(String(calm_mode)):
+        return false
     for key in ["burst", "subtle", "touch"]:
         if not (modifiers.get(key, false) is bool):
             return false
@@ -85,7 +91,9 @@ static func _normalise_modifiers(source: Dictionary) -> Dictionary:
         "target_bonus": source.get("target_bonus", 0),
         "burst": source.get("burst", false),
         "subtle": source.get("subtle", false),
-        "touch": source.get("touch", false)
+        "touch": source.get("touch", false),
+        "summon_id": source.get("summon_id", "wolf"),
+        "calm_mode": source.get("calm_mode", "stay")
     }
 
 
