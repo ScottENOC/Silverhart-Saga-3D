@@ -172,15 +172,20 @@ static func compute_variant(
 static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool:
     if not bool(variant.get("ok", false)):
         return false
-    var expected_type := "damage" if spell_id == "firebolt" else "heal" if spell_id == "heal" else ""
-    if expected_type.is_empty() or String(variant.get("type", "")) != expected_type:
+    const IMPLEMENTED_IDS := [
+        "firebolt", "heal", "smite_evil", "divine_silence", "sanctuary",
+        "divine_protection", "summon_animal", "counterspell", "dragon_breath",
+        "entangle", "wild_fury", "calm_animal", "disguise_self",
+        "temporal_rift", "feather_fall"
+    ]
+    if not IMPLEMENTED_IDS.has(spell_id):
         return false
-    if int(variant.get("radius", 0)) > 0 or int(variant.get("extra_targets", 0)) > 0:
-        return false
-    if bool(variant.get("subtle", false)) or bool(variant.get("burst", false)):
+    if int(variant.get("extra_targets", 0)) > 0:
         return false
     var modifiers: Dictionary = variant.get("modifiers", {})
-    if bool(modifiers.get("burst", false)) or bool(modifiers.get("subtle", false)):
+    if bool(modifiers.get("burst", false)) and spell_id not in ["heal", "firebolt"]:
+        return false
+    if int(variant.get("radius", 0)) > 0 and spell_id not in ["dragon_breath", "entangle", "heal", "firebolt"]:
         return false
     return true
 
