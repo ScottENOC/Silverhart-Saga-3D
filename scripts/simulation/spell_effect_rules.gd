@@ -231,7 +231,7 @@ func _calm_animal_target(simulation: Variant, target: CharacterState) -> Charact
     if target.tags.has("animal") and not target.tags.has("fey") and not target.tags.has("dragon"):
         return target
     if not target.mounted_animal_id.is_empty():
-        var mount := simulation.get_character(target.mounted_animal_id)
+        var mount: CharacterState = simulation.get_character(target.mounted_animal_id)
         if mount != null and mount.tags.has("animal") and not mount.tags.has("fey") and not mount.tags.has("dragon"):
             return mount
     return null

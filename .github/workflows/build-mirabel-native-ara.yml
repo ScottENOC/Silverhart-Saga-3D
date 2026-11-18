@@ -100,11 +100,7 @@ jobs:
             --hair-gamma 0.28
           test -s build/mirabel-native/Mirabel.glb
 
-      - name: Add restrained armpit and pubic hair detail
-        run: |
-          set -euo pipefail
-          python tools/review/add_aldric_body_hair.py --model build/mirabel-native/Mirabel.glb --seed 3403
-          test -s build/mirabel-native/Mirabel.glb
+      # Mirabel intentionally has no body-hair texture pass.
 
       - name: Bake tattoos and piercings into exported GLB
         run: |

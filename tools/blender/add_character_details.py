@@ -77,7 +77,13 @@ def make_projection_trees(skin):
             raise RuntimeError(f"No {label}-facing skin vertices found for tattoo projection")
         tree = KDTree(len(items))
         for item_index, (point, _normal, _vertex_index) in enumerate(items):
-            tree.insert(point, item_index)
+            # Tattoo design paths are authored in the body's X/Y plane. Their
+            # Z value is only a side hint, not a reliable surface depth: the
+            # old 3-D nearest-point query measured the entire torso depth and
+            # rejected valid shoulder/arm paths by ~0.14 m. Keep front/back
+            # candidates separated by their outward-facing normals, then find
+            # the nearest skin vertex in the projected X/Y footprint.
+            tree.insert(Vector((point.x, point.y, 0.0)), item_index)
         tree.balance()
         trees[label] = (tree, items)
     return trees
@@ -92,15 +98,19 @@ def project_path(points, back, trees, offset=0.0020):
         steps = max(2, int(math.ceil((b - a).length / 0.018)))
         for step in range(steps):
             p = a.lerp(b, step / steps)
-            _co, item_index, distance = tree.find(p)
-            if distance > 0.14:
-                raise RuntimeError(f"tattoo path is {distance:.3f}m from the {label} skin surface")
+            _co, item_index, distance = tree.find(Vector((p.x, p.y, 0.0)))
+            if distance > 0.06:
+                raise RuntimeError(
+                    f"tattoo path is {distance:.3f}m outside the {label} skin footprint"
+                )
             surface, normal, source_index = items[item_index]
             projected.append((surface + normal * offset, normal, source_index))
     p = points[-1]
-    _co, item_index, distance = tree.find(p)
-    if distance > 0.14:
-        raise RuntimeError(f"tattoo endpoint is {distance:.3f}m from the {label} skin surface")
+    _co, item_index, distance = tree.find(Vector((p.x, p.y, 0.0)))
+    if distance > 0.06:
+        raise RuntimeError(
+            f"tattoo endpoint is {distance:.3f}m outside the {label} skin footprint"
+        )
     surface, normal, source_index = items[item_index]
     projected.append((surface + normal * offset, normal, source_index))
     return projected
@@ -268,17 +278,27 @@ def add_hoop(socket, radius, material, name, hang_down=False):
     world = socket_matrix.copy()
     centre = socket_matrix.translation + normal * 0.0008
     if hang_down:
-        # Explicitly orient the hoop in a vertical plane: outward and world-down
-        # are its two in-plane axes, independent of Ara's socket rotation.
-        down = Vector((0, -1, 0))
+        # Blender scene coordinates are Z-up. Ara's source GLB is Y-up, but the glTF
+        # importer converts it into Blender's Z-up world. Use world -Z here;
+        # using -Y makes the hoop tilt along the wrong axis.
+        down = Vector((0, 0, -1))
         down -= normal * down.dot(normal)
         if down.length_squared < 1e-8:
-            down = Vector((0, -1, 0))
+            down = Vector((0, 0, -1))
         down.normalize()
         outward = normal.normalized()
-        plane_normal = outward.cross(down).normalized()
-        orientation = Matrix((outward, down, plane_normal)).transposed().to_quaternion()
-        centre += down * radius * 0.89 + outward * 0.0012
+        # The hoop's plane must be tangent to the chest and vertical: its
+        # local X axis runs sideways, local Y hangs down, and its normal faces
+        # outward. The previous basis used outward as an in-plane axis, which
+        # made the ring project away from the body instead of hanging flat.
+        tangent = down.cross(outward)
+        if tangent.length_squared < 1e-8:
+            tangent = Vector((1, 0, 0))
+            tangent -= outward * tangent.dot(outward)
+        tangent.normalize()
+        plane_normal = tangent.cross(down).normalized()
+        orientation = Matrix((tangent, down, plane_normal)).transposed().to_quaternion()
+        centre += down * radius * 0.89 + outward * 0.0005
     else:
         orientation = socket_matrix.to_quaternion()
         centre += normal * 0.0012

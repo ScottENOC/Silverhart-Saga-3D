@@ -1,5 +1,12 @@
 extends SceneTree
 
+const WORLD_SIMULATION_SCRIPT = preload("res://scripts/simulation/world_simulation.gd")
+const CHARACTER_STATE_SCRIPT = preload("res://scripts/simulation/character_state.gd")
+const HEX_GRID_SCRIPT = preload("res://scripts/core/hex_grid.gd")
+const PREPARED_SPELL_SCRIPT = preload("res://scripts/simulation/prepared_spell.gd")
+const ACTION_REQUEST_SCRIPT = preload("res://scripts/simulation/simulation_action_request.gd")
+const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
+
 var failures := 0
 
 
@@ -32,7 +39,7 @@ func _run() -> void:
         push_error("%d full spell effect test(s) failed." % failures)
         quit(1)
         return
-    print("All 15 spell effect tests passed.")
+    print("All spell effect assertions passed.")
     quit(0)
 
 
@@ -44,8 +51,8 @@ func _check(condition: bool, message: String) -> void:
 
 
 func _new_sim() -> Dictionary:
-    var sim := WorldSimulation.new()
-    var caster := CharacterState.new("caster", "Caster", Vector2i.ZERO)
+    var sim := WORLD_SIMULATION_SCRIPT.new()
+    var caster := CHARACTER_STATE_SCRIPT.new("caster", "Caster", Vector2i.ZERO)
     caster.side = "player"
     caster.current_mana = 100
     caster.max_mana = 100
@@ -57,35 +64,35 @@ func _new_sim() -> Dictionary:
         "temporal_rift", "feather_fall"
     ]
     sim.map_data.add_cell(Vector2i.ZERO)
-    for hex in HexGrid.neighbors(Vector2i.ZERO):
+    for hex in HEX_GRID_SCRIPT.neighbors(Vector2i.ZERO):
         sim.map_data.add_cell(hex)
     for q in range(-5, 6):
         for r in range(-5, 6):
             var hex := Vector2i(q, r)
-            if HexGrid.distance(Vector2i.ZERO, hex) <= 5:
+            if HEX_GRID_SCRIPT.distance(Vector2i.ZERO, hex) <= 5:
                 sim.map_data.add_cell(hex)
     sim.register_character(caster)
     return {"sim": sim, "caster": caster}
 
 
 func _cast(sim: WorldSimulation, caster: CharacterState, target: CharacterState, spell_id: String, modifiers: Dictionary = {}) -> Dictionary:
-    var prepared := PreparedSpell.create(spell_id, modifiers)
+    var prepared := PREPARED_SPELL_SCRIPT.create(spell_id, modifiers)
     caster.prepared_spells.append(prepared.to_dict())
-    var request := SimulationActionRequest.cast_spell(caster.id, target.id if target != null else "", prepared)
+    var request := ACTION_REQUEST_SCRIPT.cast_spell(caster.id, target.id if target != null else "", prepared)
     return sim.submit_action(request, 42)
 
 
 func _cast_at(sim: WorldSimulation, caster: CharacterState, hex: Vector2i, spell_id: String, modifiers: Dictionary = {}) -> Dictionary:
-    var prepared := PreparedSpell.create(spell_id, modifiers)
+    var prepared := PREPARED_SPELL_SCRIPT.create(spell_id, modifiers)
     caster.prepared_spells.append(prepared.to_dict())
-    return sim.submit_action(SimulationActionRequest.cast_spell_at_hex(caster.id, hex, prepared), 42)
+    return sim.submit_action(ACTION_REQUEST_SCRIPT.cast_spell_at_hex(caster.id, hex, prepared), 42)
 
 
 func _test_smite_evil() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var undead := CharacterState.new("undead", "Skeleton", Vector2i(2, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var undead := CHARACTER_STATE_SCRIPT.new("undead", "Skeleton", Vector2i(2, 0))
     undead.side = "enemy"
     undead.tags.append("undead")
     undead.health = 30
@@ -99,9 +106,9 @@ func _test_smite_evil() -> void:
 
 func _test_smite_tag_restriction() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var ordinary := CharacterState.new("ordinary", "Bandit", Vector2i(2, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var ordinary := CHARACTER_STATE_SCRIPT.new("ordinary", "Bandit", Vector2i(2, 0))
     ordinary.side = "enemy"
     ordinary.health = 30
     sim.register_character(ordinary)
@@ -114,10 +121,10 @@ func _test_smite_tag_restriction() -> void:
 
 func _test_burst_heal() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var ally_a := CharacterState.new("healed_a", "Ally A", Vector2i(1, 0))
-    var ally_b := CharacterState.new("healed_b", "Ally B", Vector2i(2, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var ally_a := CHARACTER_STATE_SCRIPT.new("healed_a", "Ally A", Vector2i(1, 0))
+    var ally_b := CHARACTER_STATE_SCRIPT.new("healed_b", "Ally B", Vector2i(2, 0))
     ally_a.side = "player"
     ally_b.side = "player"
     ally_a.health = 10
@@ -133,20 +140,20 @@ func _test_burst_heal() -> void:
 
 func _test_divine_silence_breaks_on_cast() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var enemy := CharacterState.new("silenced_caster", "Silenced Caster", Vector2i(2, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var enemy := CHARACTER_STATE_SCRIPT.new("silenced_caster", "Silenced Caster", Vector2i(2, 0))
     enemy.side = "enemy"
     enemy.current_mana = 20
     enemy.max_mana = 20
     enemy.time_points = 100.0
     enemy.unlocked_base_spells = ["firebolt"]
-    var firebolt := PreparedSpell.create("firebolt")
+    var firebolt := PREPARED_SPELL_SCRIPT.create("firebolt")
     enemy.prepared_spells.append(firebolt.to_dict())
     sim.register_character(enemy)
     var silence := _cast(sim, caster, enemy, "divine_silence")
     _check(bool(silence.get("ok", false)) and enemy.has_spell_effect("divine_silence"), "Divine Silence should be active before the target casts")
-    var counter_cast := sim.submit_action(SimulationActionRequest.cast_spell(enemy.id, caster.id, firebolt), 4)
+    var counter_cast: Dictionary = sim.submit_action(ACTION_REQUEST_SCRIPT.cast_spell(enemy.id, caster.id, firebolt), 4)
     _check(bool(counter_cast.get("ok", false)), "A silenced character should still be able to cast")
     _check(not enemy.has_spell_effect("divine_silence"), "Casting should break Divine Silence")
     sim.free()
@@ -154,9 +161,9 @@ func _test_divine_silence_breaks_on_cast() -> void:
 
 func _test_divine_silence() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var target := CharacterState.new("silenced", "Enemy Mage", Vector2i(2, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var target := CHARACTER_STATE_SCRIPT.new("silenced", "Enemy Mage", Vector2i(2, 0))
     target.side = "enemy"
     sim.register_character(target)
     var result := _cast(sim, caster, target, "divine_silence")
@@ -169,11 +176,11 @@ func _test_divine_silence() -> void:
 
 func _test_sanctuary_and_divine_protection() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var ally := CharacterState.new("ally", "Ally", Vector2i(1, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var ally := CHARACTER_STATE_SCRIPT.new("ally", "Ally", Vector2i(1, 0))
     ally.side = "player"
-    var enemy := CharacterState.new("enemy", "Enemy", Vector2i(2, 0))
+    var enemy := CHARACTER_STATE_SCRIPT.new("enemy", "Enemy", Vector2i(2, 0))
     enemy.side = "enemy"
     enemy.time_points = 50.0
     sim.register_character(ally)
@@ -192,11 +199,11 @@ func _test_sanctuary_and_divine_protection() -> void:
 
 func _test_summon_animal() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
+    var sim = setup["sim"]
+    var caster = setup["caster"]
     var result := _cast_at(sim, caster, Vector2i(1, 0), "summon_animal", {"summon_id": "wolf"})
     _check(bool(result.get("ok", false)), "Summon Animal should create a summon at a valid empty hex")
-    var summon := sim.get_character(String(result.get("summoned_id", "")))
+    var summon: CharacterState = sim.get_character(String(result.get("summoned_id", "")))
     _check(summon != null and summon.is_summoned and summon.summoned_by_id == caster.id, "Summoned animal should be registered with its summoner")
     _check(summon != null and summon.tags.has("animal"), "Summoned creature should carry the animal tag")
     sim.free()
@@ -204,13 +211,13 @@ func _test_summon_animal() -> void:
 
 func _test_permanent_animal_companion() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
+    var sim = setup["sim"]
+    var caster = setup["caster"]
     caster.skills["animal_companion"] = 1
     caster.skills["learn_unicorn_summon"] = 1
     var result := _cast_at(sim, caster, Vector2i(1, 0), "summon_animal", {"summon_id": "wolf"})
     _check(bool(result.get("ok", false)), "Animal Companion skill should make the first summon permanent")
-    var companion := sim.get_character(String(result.get("summoned_id", "")))
+    var companion: CharacterState = sim.get_character(String(result.get("summoned_id", "")))
     _check(companion != null and companion.is_animal_companion and not companion.is_summoned, "First animal should be stored as a permanent companion")
     var second := _cast_at(sim, caster, Vector2i(2, 0), "summon_animal", {"summon_id": "unicorn"})
     _check(not bool(second.get("ok", true)), "A second permanent unicorn companion should be rejected")
@@ -219,9 +226,9 @@ func _test_permanent_animal_companion() -> void:
 
 func _test_counterspell() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var enemy := CharacterState.new("enemy_mage", "Enemy Mage", Vector2i(2, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var enemy := CHARACTER_STATE_SCRIPT.new("enemy_mage", "Enemy Mage", Vector2i(2, 0))
     enemy.side = "enemy"
     enemy.add_spell_effect({"effect_id": "sanctuary", "source_id": enemy.id, "magnitude": 1})
     sim.register_character(enemy)
@@ -232,28 +239,28 @@ func _test_counterspell() -> void:
 
 
 func _test_counterspell_reaction() -> void:
-    var sim := WorldSimulation.new()
-    var caster := CharacterState.new("enemy_caster", "Enemy Caster", Vector2i(0, 0))
-    var player := CharacterState.new("player_reactor", "Player Reactor", Vector2i(3, 0))
+    var sim := WORLD_SIMULATION_SCRIPT.new()
+    var caster := CHARACTER_STATE_SCRIPT.new("enemy_caster", "Enemy Caster", Vector2i(0, 0))
+    var player := CHARACTER_STATE_SCRIPT.new("player_reactor", "Player Reactor", Vector2i(3, 0))
     caster.side = "enemy"
     caster.current_mana = 20
     caster.max_mana = 20
     caster.time_points = 50.0
     caster.unlocked_base_spells = ["firebolt"]
-    var firebolt := PreparedSpell.create("firebolt")
+    var firebolt := PREPARED_SPELL_SCRIPT.create("firebolt")
     caster.prepared_spells.append(firebolt.to_dict())
     player.side = "player"
     player.current_mana = 20
     player.max_mana = 20
     player.time_points = 50.0
     player.unlocked_base_spells = ["counterspell"]
-    var counterspell := PreparedSpell.create("counterspell")
+    var counterspell := PREPARED_SPELL_SCRIPT.create("counterspell")
     player.prepared_spells.append(counterspell.to_dict())
     sim.register_character(caster)
     sim.register_character(player)
     sim.start_combat()
     sim.turn_scheduler.current_character_id = caster.id
-    var result := sim.submit_action(SimulationActionRequest.cast_spell(caster.id, player.id, firebolt), 91)
+    var result := sim.submit_action(ACTION_REQUEST_SCRIPT.cast_spell(caster.id, player.id, firebolt), 91)
     _check(bool(result.get("pending", false)), "Enemy casting should pause for the player's Counterspell reaction")
     _check(not sim.pending_reaction.is_empty(), "Counterspell should use the shared reaction request system")
     var reaction := sim.resolve_reaction("counterspell_player_reactor")
@@ -266,10 +273,10 @@ func _test_counterspell_reaction() -> void:
 
 func _test_dragon_breath() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var first := CharacterState.new("first", "First", Vector2i(2, 0))
-    var second := CharacterState.new("second", "Second", Vector2i(3, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var first := CHARACTER_STATE_SCRIPT.new("first", "First", Vector2i(2, 0))
+    var second := CHARACTER_STATE_SCRIPT.new("second", "Second", Vector2i(3, 0))
     first.side = "enemy"
     second.side = "enemy"
     first.health = 40
@@ -284,9 +291,9 @@ func _test_dragon_breath() -> void:
 
 func _test_entangle() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var target := CharacterState.new("entangled", "Entangled Enemy", Vector2i(2, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var target := CHARACTER_STATE_SCRIPT.new("entangled", "Entangled Enemy", Vector2i(2, 0))
     target.side = "enemy"
     sim.register_character(target)
     var result := _cast_at(sim, caster, Vector2i(2, 0), "entangle")
@@ -297,9 +304,9 @@ func _test_entangle() -> void:
 
 func _test_entangle_persists_until_dispelled() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var target := CharacterState.new("long_entangled", "Long Entangled", Vector2i(2, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var target := CHARACTER_STATE_SCRIPT.new("long_entangled", "Long Entangled", Vector2i(2, 0))
     target.side = "enemy"
     sim.register_character(target)
     var result := _cast_at(sim, caster, Vector2i(2, 0), "entangle")
@@ -312,8 +319,8 @@ func _test_entangle_persists_until_dispelled() -> void:
 
 func _test_wild_fury() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
+    var sim = setup["sim"]
+    var caster = setup["caster"]
     var result := _cast(sim, caster, caster, "wild_fury")
     _check(bool(result.get("ok", false)) and caster.has_spell_effect("wild_fury"), "Wild Fury should apply to its caster")
     _check(int(caster.get_spell_effect("wild_fury").get("magnitude", 0)) == 3, "Wild Fury should preserve its unarmed damage bonus")
@@ -322,15 +329,15 @@ func _test_wild_fury() -> void:
 
 func _test_calm_animal() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var animal := CharacterState.new("animal", "Wolf", Vector2i(2, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var animal := CHARACTER_STATE_SCRIPT.new("animal", "Wolf", Vector2i(2, 0))
     animal.side = "enemy"
     animal.tags.append("animal")
     sim.register_character(animal)
     var result := _cast(sim, caster, animal, "calm_animal", {"calm_mode": "stay"})
     _check(bool(result.get("ok", false)) and animal.has_spell_effect("calmed"), "Calm Animal should affect eligible animals")
-    var fey := CharacterState.new("fey", "Unicorn", Vector2i(3, 0))
+    var fey := CHARACTER_STATE_SCRIPT.new("fey", "Unicorn", Vector2i(3, 0))
     fey.side = "enemy"
     fey.tags.append("animal")
     fey.tags.append("fey")
@@ -342,9 +349,9 @@ func _test_calm_animal() -> void:
 
 func _test_calm_animal_modes_and_break() -> void:
     var come_setup := _new_sim()
-    var come_sim: WorldSimulation = come_setup.sim
-    var come_caster: CharacterState = come_setup.caster
-    var coming := CharacterState.new("coming_animal", "Coming Wolf", Vector2i(3, 0))
+    var come_sim = come_setup["sim"]
+    var come_caster = come_setup["caster"]
+    var coming := CHARACTER_STATE_SCRIPT.new("coming_animal", "Coming Wolf", Vector2i(3, 0))
     coming.side = "enemy"
     coming.tags.append("animal")
     come_sim.register_character(coming)
@@ -354,14 +361,14 @@ func _test_calm_animal_modes_and_break() -> void:
     come_sim.turn_scheduler.current_character_id = coming.id
     var enemy_ids: Array[String] = [coming.id]
     var party_ids: Array[String] = [come_caster.id]
-    CombatAI.take_turn(come_sim, coming, enemy_ids, party_ids)
+    COMBAT_AI_SCRIPT.take_turn(come_sim, coming, enemy_ids, party_ids)
     _check(coming.axial != Vector2i(3, 0), "Come mode should move the animal towards its caster")
     come_sim.free()
 
     var chase_setup := _new_sim()
-    var chase_sim: WorldSimulation = chase_setup.sim
-    var chase_caster: CharacterState = chase_setup.caster
-    var fleeing := CharacterState.new("chasing_animal", "Chasing Wolf", Vector2i(2, 0))
+    var chase_sim = chase_setup["sim"]
+    var chase_caster = chase_setup["caster"]
+    var fleeing := CHARACTER_STATE_SCRIPT.new("chasing_animal", "Chasing Wolf", Vector2i(2, 0))
     fleeing.side = "enemy"
     fleeing.tags.append("animal")
     chase_sim.register_character(fleeing)
@@ -371,14 +378,14 @@ func _test_calm_animal_modes_and_break() -> void:
     chase_sim.turn_scheduler.current_character_id = fleeing.id
     var chase_enemy_ids: Array[String] = [fleeing.id]
     var chase_party_ids: Array[String] = [chase_caster.id]
-    CombatAI.take_turn(chase_sim, fleeing, chase_enemy_ids, chase_party_ids)
-    _check(HexGrid.distance(fleeing.axial, chase_caster.axial) > 2, "Chase mode should move the animal away from its caster")
+    COMBAT_AI_SCRIPT.take_turn(chase_sim, fleeing, chase_enemy_ids, chase_party_ids)
+    _check(HEX_GRID_SCRIPT.distance(fleeing.axial, chase_caster.axial) > 2, "Chase mode should move the animal away from its caster")
     chase_sim.free()
 
     var break_setup := _new_sim()
-    var break_sim: WorldSimulation = break_setup.sim
-    var break_caster: CharacterState = break_setup.caster
-    var attacked_animal := CharacterState.new("attacked_animal", "Attacked Wolf", Vector2i(1, 0))
+    var break_sim = break_setup["sim"]
+    var break_caster = break_setup["caster"]
+    var attacked_animal := CHARACTER_STATE_SCRIPT.new("attacked_animal", "Attacked Wolf", Vector2i(1, 0))
     attacked_animal.side = "enemy"
     attacked_animal.tags.append("animal")
     break_sim.register_character(attacked_animal)
@@ -390,11 +397,11 @@ func _test_calm_animal_modes_and_break() -> void:
 
 func _test_disguise_self() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var prepared := PreparedSpell.new("disguise_self", {}, {"profile_id": "merchant"})
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var prepared := PREPARED_SPELL_SCRIPT.new("disguise_self", {}, {"profile_id": "merchant"})
     caster.prepared_spells.append(prepared.to_dict())
-    var result := sim.submit_action(SimulationActionRequest.cast_spell(caster.id, caster.id, prepared))
+    var result: Dictionary = sim.submit_action(ACTION_REQUEST_SCRIPT.cast_spell(caster.id, caster.id, prepared))
     _check(bool(result.get("ok", false)), "Disguise Self should cast on the caster")
     _check(caster.has_spell_effect("disguise_self"), "Disguise Self should store its active disguise profile")
     _check(String(caster.get_spell_effect("disguise_self").get("profile_id", "")) == "merchant", "Disguise Self should preserve its selected profile")
@@ -403,9 +410,9 @@ func _test_disguise_self() -> void:
 
 func _test_temporal_rift() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
-    var target := CharacterState.new("rift_target", "Rift Target", Vector2i(3, 0))
+    var sim = setup["sim"]
+    var caster = setup["caster"]
+    var target := CHARACTER_STATE_SCRIPT.new("rift_target", "Rift Target", Vector2i(3, 0))
     target.side = "enemy"
     target.time_points = 88.0
     sim.register_character(target)
@@ -417,8 +424,8 @@ func _test_temporal_rift() -> void:
 
 func _test_feather_fall_expiry() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
+    var sim = setup["sim"]
+    var caster = setup["caster"]
     _cast(sim, caster, caster, "feather_fall")
     for tick in range(30):
         sim._advance_character_spell_effects(caster, 0.0)
@@ -428,11 +435,11 @@ func _test_feather_fall_expiry() -> void:
 
 func _test_feather_fall() -> void:
     var setup := _new_sim()
-    var sim: WorldSimulation = setup.sim
-    var caster: CharacterState = setup.caster
+    var sim = setup["sim"]
+    var caster = setup["caster"]
     var result := _cast(sim, caster, caster, "feather_fall")
     _check(bool(result.get("ok", false)) and caster.has_spell_effect("feather_fall"), "Feather Fall should grant a timed self-protection effect")
-    var fall := sim.resolve_fall_damage(caster.id, 12)
+    var fall: Dictionary = sim.resolve_fall_damage(caster.id, 12)
     _check(bool(fall.get("prevented", false)) and int(fall.get("damage", -1)) == 0, "Feather Fall should prevent the next fall damage event")
     _check(not caster.has_spell_effect("feather_fall"), "Feather Fall should only prevent one fall")
     sim.free()

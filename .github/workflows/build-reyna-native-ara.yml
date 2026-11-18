@@ -102,7 +102,7 @@ jobs:
       - name: Add restrained armpit and pubic hair detail
         run: |
           set -euo pipefail
-          python tools/review/add_aldric_body_hair.py --model build/reyna-native/Reyna.glb --seed 2402
+          python tools/review/add_aldric_body_hair.py --model build/reyna-native/Reyna.glb --seed 2402 --coverage reyna --hair-colour "#17120F"
           test -s build/reyna-native/Reyna.glb
 
       - name: Bake tattoos and piercings into exported GLB

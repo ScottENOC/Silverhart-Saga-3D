@@ -6,6 +6,7 @@ on:
     branches: [dev]
     paths:
       - "character-preview/dagna-ara.json"
+      - "tools/review/add_aldric_body_hair.py"
       - ".github/workflows/build-dagna-native-ara.yml"
       - "tools/review/dagna_native_preview.gd"
       - "tools/review/recolor_wren_glb.py"
@@ -79,6 +80,14 @@ jobs:
             --model build/dagna-native/Dagna.glb \
             --profile character-preview/dagna-ara.json \
             --hair-gamma 0.28 --bake-hair-tint
+          test -s build/dagna-native/Dagna.glb
+
+      - name: Paint thick texture-only pubic hair matching Dagna's head hair
+        run: |
+          set -euo pipefail
+          hair_colour="$(python -c 'import json; print(json.load(open("character-preview/dagna-ara.json"))["params"]["hairTint"])')"
+          echo "Matching Dagna body hair to profile head-hair colour: $hair_colour"
+          python tools/review/add_aldric_body_hair.py --model build/dagna-native/Dagna.glb --seed 6382 --coverage dagna --hair-colour "$hair_colour"
           test -s build/dagna-native/Dagna.glb
 
       - name: Assemble isolated Godot preview project

@@ -55,6 +55,9 @@ var ear_piercing_check: CheckBox
 var nipple_piercing_check: CheckBox
 var clit_piercing_check: CheckBox
 var tattoo_style_select: OptionButton
+var body_hair_checks: Dictionary = {}
+var body_hair_density_sliders: Dictionary = {}
+var body_hair_style_select: OptionButton
 
 func _ready() -> void:
     layer = 100
@@ -232,6 +235,35 @@ func _build_screen() -> void:
     height_slider.value_changed.connect(_refresh_appearance_preview_value)
 
 
+    _section(panel, "BODY HAIR")
+    var body_hair_note := Label.new()
+    body_hair_note.text = "Choose areas, density and pubic style. Settings are saved in your character profile; the current preview does not yet regenerate the skin texture live."
+    body_hair_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    body_hair_note.add_theme_color_override("font_color", Color(0.78, 0.82, 0.76))
+    panel.add_child(body_hair_note)
+    for area in ["armpits", "chest", "arms", "legs", "pubic"]:
+        var hair_row := HBoxContainer.new()
+        panel.add_child(hair_row)
+        var hair_check := CheckBox.new()
+        hair_check.text = area.capitalize()
+        hair_check.custom_minimum_size.x = 135
+        hair_row.add_child(hair_check)
+        var density_slider := HSlider.new()
+        density_slider.min_value = 0.0
+        density_slider.max_value = 1.0
+        density_slider.step = 0.05
+        density_slider.value = 0.5
+        density_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        density_slider.disabled = true
+        hair_row.add_child(density_slider)
+        body_hair_checks[area] = hair_check
+        body_hair_density_sliders[area] = density_slider
+        hair_check.toggled.connect(func(enabled: bool): density_slider.disabled = not enabled)
+        hair_check.toggled.connect(func(_enabled: bool): _refresh_appearance_preview(0))
+        density_slider.value_changed.connect(_refresh_appearance_preview_value)
+    body_hair_style_select = _option_row(panel, "Pubic style", ["Natural", "Trimmed", "Landing strip", "Triangle", "Full"])
+    body_hair_style_select.item_selected.connect(_refresh_appearance_preview)
+
     _section(panel, "PIERCINGS & TATTOOS")
     ear_piercing_check = CheckBox.new()
     ear_piercing_check.text = "Ear hoops / studs"
@@ -337,6 +369,17 @@ func _load_saved_profile() -> void:
     var saved_tattoos: Array = saved_details.get("tattoos", [])
     var saved_design := str(saved_tattoos[0].get("design", "")) if not saved_tattoos.is_empty() and saved_tattoos[0] is Dictionary else ""
     _select_text(tattoo_style_select, "Arcane constellation" if saved_design == "mirabel_arcane" else ("Shoulder-back motif" if saved_design == "reyna_shoulder_back" else "None"))
+    var saved_body_hair: Dictionary = data.get("body_hair", {})
+    var saved_areas: Dictionary = saved_body_hair.get("areas", {})
+    for area in body_hair_checks:
+        var area_settings: Dictionary = saved_areas.get(area, {})
+        var enabled := bool(area_settings.get("enabled", false))
+        var hair_check := body_hair_checks[area] as CheckBox
+        var density_slider := body_hair_density_sliders[area] as HSlider
+        hair_check.button_pressed = enabled
+        density_slider.value = clampf(float(area_settings.get("density", 0.5)), 0.0, 1.0)
+        density_slider.disabled = not enabled
+    _select_text(body_hair_style_select, str(saved_body_hair.get("pubic_style", "Natural")))
     _refresh_character_preview(0)
     _update_mode_controls(game_mode_select.selected)
 
@@ -385,6 +428,7 @@ func _refresh_appearance_preview(_index: int) -> void:
     profile["height"] = inverse_lerp(0.90, 1.10, height_slider.value)
     profile["muscle"] = inverse_lerp(0.96, 1.055, float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)))
     profile.merge(_appearance_detail_profile(), true)
+    profile["body_hair"] = _body_hair_profile()
     preview_actor.apply_player_profile(profile)
     preview_actor.apply_equipment_visuals(_preview_equipment_for_class())
     var hair_id := String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02"))
@@ -423,6 +467,22 @@ func _appearance_detail_profile() -> Dictionary:
             "Shoulder-back motif":
                 tattoos.append({"design": "reyna_shoulder_back"})
     return {"character_details": {"piercings": piercings, "tattoos": tattoos, "tattoo_ink": "#30283D"}}
+
+func _body_hair_profile() -> Dictionary:
+    var areas: Dictionary = {}
+    for area in body_hair_checks:
+        var hair_check := body_hair_checks[area] as CheckBox
+        var density_slider := body_hair_density_sliders[area] as HSlider
+        areas[area] = {
+            "enabled": hair_check.button_pressed,
+            "density": density_slider.value
+        }
+    return {
+        "areas": areas,
+        "pubic_style": body_hair_style_select.get_item_text(body_hair_style_select.selected),
+        "colour_mode": "head_hair"
+    }
+
 
 func _preview_equipment_for_class() -> Dictionary:
     # The creator is an appearance preview, not an equipment/loadout preview.
@@ -521,6 +581,7 @@ func _finish() -> void:
         "body_build": body_select.get_item_text(body_select.selected)
     }
     profile.merge(_appearance_detail_profile(), true)
+    profile["body_hair"] = _body_hair_profile()
     var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
     if file != null:
         file.store_string(JSON.stringify(profile, "\t"))

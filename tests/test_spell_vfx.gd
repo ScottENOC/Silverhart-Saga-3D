@@ -34,8 +34,9 @@ func _run() -> void:
         "entangle", "wild_fury", "calm_animal", "disguise_self",
         "temporal_rift", "feather_fall"
     ]
+    var affected_actors: Array[Node3D] = [target, ally]
     for spell_id in spell_ids:
-        controller.call("play_spell", spell_id, caster, target, target.global_position, {}, [target, ally])
+        controller.call("play_spell", spell_id, caster, target, target.global_position, {}, affected_actors)
 
     await process_frame
     _check(controller.get_child_count() > 0, "Casting spells should create visible 3D effect nodes.")
@@ -44,7 +45,7 @@ func _run() -> void:
         push_error("%d spell VFX test(s) failed." % failures)
         quit(1)
         return
-    print("All 15 spell VFX handlers created their presentation nodes.")
+    print("All spell VFX handlers created their presentation nodes.")
     quit(0)
 
 
