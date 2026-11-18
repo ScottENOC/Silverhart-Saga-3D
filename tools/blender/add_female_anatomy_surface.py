@@ -21,6 +21,7 @@ def arguments():
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--report", default="")
+    parser.add_argument("--subdivision-plan", required=True)
     parser.add_argument("--adult", action="store_true")
     parser.add_argument("--deformation-scale", type=float, default=1.65)
     return parser.parse_args(raw)
@@ -302,25 +303,57 @@ def integrate_anatomy_into_skin(skin, anatomy_z, width, height, deformation_scal
         s_arr, dist = _project_many(prep, [w.y for w in worlds], [w.z for w in worlds])
         return (sA - s_arr) / k, dist / k
 
-    # adaptive local refinement: split whole faces (not lone edges) so the region
-    # stays a regular grid and the folds do not pick up sliver triangles
-    target = P["target_edge"] * k
-    for _ in range(4):
-        cand = []
-        for f in bm.faces:
-            c = mw @ f.calc_center_median()
-            if abs(c.x) <= 0.042 * k and z_lo <= c.z <= z_hi and c.y < 0.02 \
-                    and f.calc_perimeter() / len(f.verts) > target * 1.6:
-                cand.append((f, c))
-        if not cand:
-            break
-        ts, ds = coords_for([c for _f, c in cand])
-        faces = [f for (f, _c), t, dd in zip(cand, ts, ds) if t_lo <= t <= t_ref_hi and dd <= 0.016]
-        if not faces:
-            break
-        edges = list({e for f in faces for e in f.edges})
-        bmesh.ops.subdivide_edges(bm, edges=edges, cuts=1, use_grid_fill=True)
-        bm.normal_update()
+    # Apply the deterministic shared subdivision plan generated once from the
+    # neutral Ara export. The plan records exact edge-index operations and a
+    # final topology signature; all body states must match it exactly.
+    with open(os.path.abspath(args.subdivision_plan), "r", encoding="utf-8") as handle:
+        subdivision_plan = json.load(handle)
+    original_signature = {
+        "vertices": len(skin.data.vertices),
+        "faces": [list(poly.vertices) for poly in skin.data.polygons],
+    }
+    if original_signature != subdivision_plan["source_topology"]:
+        raise RuntimeError(
+            "Ara source topology differs from the neutral subdivision reference; "
+            "refusing to apply an unsafe shared subdivision plan"
+        )
+    bm.verts.ensure_lookup_table()
+    bm.verts.index_update()
+    for pass_index, edge_pairs in enumerate(subdivision_plan["passes"]):
+        edge_lookup = {
+            tuple(sorted((edge.verts[0].index, edge.verts[1].index))): edge
+            for edge in bm.edges
+        }
+        missing = [tuple(pair) for pair in edge_pairs if tuple(pair) not in edge_lookup]
+        if missing:
+            raise RuntimeError(
+                f"Shared subdivision pass {pass_index + 1}: "
+                f"{len(missing)} planned edges are missing"
+            )
+        edges = [edge_lookup[tuple(pair)] for pair in edge_pairs]
+        if edges:
+            bmesh.ops.subdivide_edges(
+                bm, edges=edges, cuts=1, use_grid_fill=True
+            )
+            bm.verts.ensure_lookup_table()
+            bm.verts.index_update()
+            bm.edges.ensure_lookup_table()
+            bm.faces.ensure_lookup_table()
+            bm.normal_update()
+    actual_topology = {
+        "vertices": len(bm.verts),
+        "faces": [list(face.verts[i].index for i in range(len(face.verts))) for face in bm.faces],
+    }
+    if actual_topology != subdivision_plan["subdivided_topology"]:
+        raise RuntimeError(
+            "Shared subdivision did not reproduce the neutral topology exactly; "
+            "refusing to sculpt a morph-incompatible mesh"
+        )
+    print(
+        "Applied shared subdivision plan: "
+        f"{len(subdivision_plan['passes'])} passes, "
+        f"{len(bm.verts)} vertices, {len(bm.faces)} faces"
+    )
 
     sel = []
     for v in bm.verts:
@@ -411,6 +444,7 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
         mesh.color_attributes.remove(existing)
     colour = mesh.color_attributes.new(name="Color", type="FLOAT_COLOR", domain="POINT")
     mesh.color_attributes.active_color = colour
+    mesh.color_attributes.render_color_index = colour.index
     mw = skin.matrix_world
     worlds = [mw @ v.co for v in mesh.vertices]
     z_lo, z_hi = hipline_z - 0.15 * k, hipline_z + 0.10 * k
@@ -509,6 +543,7 @@ def main():
         export_morph=True,
         export_animations=True,
         export_apply=False,
+        export_vertex_color="ACTIVE",
     )
 
     colour = skin.data.color_attributes.get("Color")
@@ -523,6 +558,7 @@ def main():
         "skin_vertices": len(skin.data.vertices),
         "skin_faces": len(skin.data.polygons),
         "colour_attribute_vertices": len(colour.data) if colour else 0,
+        "vertex_colour_export_mode": "ACTIVE",
         "anatomy_profile": skin.get("anatomy_profile", ""),
         "anatomy_method": skin.get("anatomy_method", ""),
         "anatomy_pigmented_vertex_count": skin.get("anatomy_pigmented_vertex_count", 0),
