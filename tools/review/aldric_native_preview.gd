@@ -35,11 +35,13 @@ func _run() -> void:
     stage.add_child(character)
 
     _collect_meshes(character)
-    _activate_abdominal_definition()
     if mesh_instances.is_empty():
         push_error("Aldric GLB contains no MeshInstance3D nodes")
         quit(1)
         return
+
+    await process_frame
+    _activate_abdominal_definition()
 
     var report := _build_mesh_report()
     print("ALDRIC_GODOT_MESH_REPORT " + JSON.stringify(report))
@@ -107,6 +109,7 @@ func _activate_abdominal_definition() -> void:
         for index in range(mesh.get_blend_shape_count()):
             if String(mesh.get_blend_shape_name(index)) == "AbdominalDefinition":
                 instance.set_blend_shape_value(index, 1.0)
+                print("_ACTIVATE_ABDOMINAL_DEFINITION_VALUE=" + str(instance.get_blend_shape_value(index)))
                 activated += 1
     print("ABDOMINAL_DEFINITION_ACTIVATED meshes=%d" % activated)
 
