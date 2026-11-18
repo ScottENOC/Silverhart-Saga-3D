@@ -115,15 +115,15 @@ func _test_burst_heal() -> void:
     var setup := _new_sim()
     var sim: WorldSimulation = setup.sim
     var caster: CharacterState = setup.caster
-    var ally_a := CharacterState.new("healed_a", "Ally A", Vector2i(2, 0))
-    var ally_b := CharacterState.new("healed_b", "Ally B", Vector2i(3, 0))
+    var ally_a := CharacterState.new("healed_a", "Ally A", Vector2i(1, 0))
+    var ally_b := CharacterState.new("healed_b", "Ally B", Vector2i(2, 0))
     ally_a.side = "player"
     ally_b.side = "player"
     ally_a.health = 10
     ally_b.health = 10
     sim.register_character(ally_a)
     sim.register_character(ally_b)
-    var result := _cast_at(sim, caster, Vector2i(2, 0), "heal", {"burst": true})
+    var result := _cast_at(sim, caster, Vector2i(1, 0), "heal", {"burst": true})
     _check(bool(result.get("ok", false)), "Burst Heal should resolve as an area effect")
     _check(ally_a.health == 15 and ally_b.health == 15, "Burst Heal should heal all allies in its radius")
     _check(caster.current_mana == 86, "Burst Heal should pay base mana plus burst surcharge")
