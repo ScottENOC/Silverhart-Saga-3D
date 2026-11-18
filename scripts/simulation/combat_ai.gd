@@ -64,7 +64,10 @@ static func _prepared_spell_for(combatant: CharacterState, spell_id: String) -> 
         return null
     for saved_spell in combatant.prepared_spells:
         var prepared := PreparedSpell.from_dict(saved_spell)
-        if prepared != null and prepared.base_spell_id == spell_id:
+        if prepared == null or prepared.base_spell_id != spell_id:
+            continue
+        var prepared_variant := SpellRules.compute_variant(spell_id, prepared.modifiers, combatant.skills)
+        if SpellRules.supports_initial_cast(spell_id, prepared_variant):
             return prepared
     if combatant.unlocked_base_spells.has(spell_id) or int(combatant.skills.get("learn_%s" % spell_id, 0)) > 0:
         return PreparedSpell.create(spell_id)
@@ -75,7 +78,7 @@ static func _can_afford_spell(combatant: CharacterState, prepared: PreparedSpell
     if combatant == null or prepared == null:
         return false
     var variant := SpellRules.compute_variant(prepared.base_spell_id, prepared.modifiers, combatant.skills)
-    if not bool(variant.get("ok", false)):
+    if not SpellRules.supports_initial_cast(prepared.base_spell_id, variant):
         return false
     var total_cost := int(variant.get("mana_cost", 0)) + SpellRules.armour_mana_penalty(combatant, String(variant.get("school", "")))
     return bool(SpellRules.cast_affordability(combatant, total_cost).get("ok", false)) \
