@@ -134,7 +134,10 @@ func apply(
             elif target != null:
                 var before := target.health
                 var lifecycle := target.apply_healing(magnitude)
+                var effective_healing := floori(float(magnitude) * (1.0 - float(target.healing_reduction_percent) / 100.0))
                 payload["healing"] = target.health - before
+                payload["healing_reduction_percent"] = target.healing_reduction_percent
+                payload["effective_healing"] = effective_healing
                 payload["target_lifecycle"] = lifecycle
                 payload["target_health"] = target.health
             payload["magnitude"] = magnitude
