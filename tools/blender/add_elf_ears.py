@@ -157,6 +157,7 @@ def main():
                 -0.5 * ((p.z - centre_z) / vertical_sigma) ** 2
             )
             influence = outer_falloff * vertical
+            max_influence = max(max_influence, influence)
             if influence < 0.001:
                 continue
             q = p.copy()
