@@ -409,5 +409,7 @@ func _test_spellbook_panel_opens_and_builds_known_spells() -> void:
     panel.open_for_character(caster.id)
     _check(panel.visible, "Spellbook should open for the selected party member")
     _check(panel.selected_spell_id.is_empty(), "Opening the spellbook should not silently select a spell")
+    panel._select_spell("firebolt")
+    _check(panel.selected_spell_id == "firebolt", "Spellbook should build the selected learned spell")
     panel.queue_free()
     simulation.queue_free()
