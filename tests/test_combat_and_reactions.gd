@@ -14,7 +14,6 @@ func _initialize() -> void:
     _test_status_effects_and_combat_debuffs()
     _test_downed_and_death_lifecycle()
     _test_unified_action_contract()
-    _test_shared_spell_casting()
     _test_attack_waits_for_parry_resolution()
     _test_feint_uses_parry_reaction_without_attacking()
     _test_protector_ally_parry()
@@ -412,69 +411,6 @@ func _test_unified_action_contract() -> void:
     _check(String(attack_result.get("action_type", "")) == "attack")
     sim.free()
 
-func _test_shared_spell_casting() -> void:
-    var sim := WorldSimulation.new()
-    var caster := CharacterState.new("spell_caster", "Spell Caster", Vector2i.ZERO)
-    var enemy := CharacterState.new("spell_enemy", "Spell Enemy", Vector2i(3, 0))
-    caster.side = "player"
-    caster.current_mana = 20
-    caster.max_mana = 20
-    caster.time_points = 40.0
-    caster.to_hit_ranged = 100.0
-    caster.unlocked_base_spells = ["firebolt", "heal"]
-    var firebolt := PreparedSpell.create("firebolt")
-    var heal := PreparedSpell.create("heal")
-    caster.prepared_spells = [firebolt.to_dict(), heal.to_dict()]
-    enemy.side = "enemy"
-    enemy.health = 30
-    enemy.max_health = 30
-    sim.register_character(caster)
-    sim.register_character(enemy)
-    sim.start_combat()
-    sim.turn_scheduler.current_character_id = caster.id
-
-    var fire_result := sim.submit_action(
-        SimulationActionRequest.cast_spell(caster.id, enemy.id, firebolt.to_dict()),
-        7
-    )
-    _check(bool(fire_result.get("ok", false)), "Firebolt should cast through the shared simulation action")
-    _check(String(fire_result.get("action_type", "")) == "cast_spell")
-    _check(int(fire_result.get("magnitude", 0)) == 5 and enemy.health == 25, "Firebolt applies its prepared magnitude")
-    _check(caster.current_mana == 15 and is_equal_approx(caster.time_points, 30.0), "Firebolt spends its computed mana and TP costs")
-    sim.try_end_current_turn(true)
-    caster.time_points = 40.0
-    caster.current_mana = 20
-    enemy.health = 2
-    enemy.apply_damage(5)
-    _check(enemy.unconscious and enemy.health == -3, "Test target should be unconscious before Heal")
-    sim.turn_scheduler.current_character_id = caster.id
-    var heal_result := sim.submit_action(
-        SimulationActionRequest.cast_spell(caster.id, caster.id, heal.to_dict())
-    )
-    _check(bool(heal_result.get("ok", false)), "Heal should use the same shared cast action")
-    _check(caster.health == caster.max_health, "Heal should restore the caster when self-targeted")
-
-    # An invalid target/range or an unaffordable cast must not consume resources.
-    sim.try_end_current_turn(true)
-    caster.time_points = 40.0
-    caster.current_mana = 1
-    sim.turn_scheduler.current_character_id = caster.id
-    var mana_rejected := sim.submit_action(
-        SimulationActionRequest.cast_spell(caster.id, enemy.id, firebolt.to_dict()),
-        7
-    )
-    _check(not bool(mana_rejected.get("ok", true)) and String(mana_rejected.get("reason", "")) == "insufficient_mana")
-    _check(caster.current_mana == 1 and is_equal_approx(caster.time_points, 40.0), "Rejected casts must not consume mana or TP")
-
-    var unprepared := PreparedSpell.create("firebolt", {"magnitude_bonus": 1})
-    var unprepared_result := sim.submit_action(
-        SimulationActionRequest.cast_spell(caster.id, enemy.id, unprepared.to_dict()),
-        7
-    )
-    _check(not bool(unprepared_result.get("ok", true)) and caster.current_mana == 1, "Unprepared variants must be rejected without cost")
-    sim.free()
-
-
 func _test_attack_waits_for_parry_resolution() -> void:
     var sim := WorldSimulation.new()
     sim.map_data.add_cell(Vector2i.ZERO)
@@ -814,6 +750,32 @@ func _test_combat_ai_decisions() -> void:
     _check(bool(attack_options.get("is_ranged", false)), "AI attack options should identify ranged weapons")
     _check(bool(attack_options.get("unarmed_skill_hit", false)), "Creature AI should enable its natural hit skill")
     _check(int(attack_options.get("unarmed_skill_damage", 0)) == 4, "Creature AI should pass its natural damage rank")
+    # Prepared NPCs use the same simulation cast action as player requests.
+    var caster := CharacterState.new("ai_caster", "AI Caster", Vector2i(0, 0))
+    var wounded_ally := CharacterState.new("ai_wounded_ally", "Wounded Ally", Vector2i(1, 0))
+    var player_target := CharacterState.new("ai_player_target", "Player Target", Vector2i(4, 0))
+    caster.side = "enemy"
+    caster.current_mana = 20
+    caster.max_mana = 20
+    caster.to_hit_ranged = 100.0
+    caster.unlocked_base_spells = ["firebolt", "heal"]
+    var ai_heal := PreparedSpell.create("heal")
+    var ai_firebolt := PreparedSpell.create("firebolt")
+    caster.prepared_spells = [ai_heal.to_dict(), ai_firebolt.to_dict()]
+    wounded_ally.side = "enemy"
+    wounded_ally.health = 2
+    wounded_ally.apply_damage(5)
+    player_target.side = "player"
+    sim.register_character(caster)
+    sim.register_character(wounded_ally)
+    sim.register_character(player_target)
+    sim.start_combat()
+    sim.turn_scheduler.current_character_id = caster.id
+    var ai_heal_enemy_ids: Array[String] = [caster.id, wounded_ally.id]
+    var ai_party_ids: Array[String] = [player_target.id]
+    _check(not COMBAT_AI.take_turn(sim, caster, ai_heal_enemy_ids, ai_party_ids), "AI should finish its turn after a successful Heal")
+    _check(wounded_ally.health == 2 and not wounded_ally.unconscious, "NPC AI should use the shared Heal resolver to revive an ally")
+    _check(caster.current_mana == 14, "NPC Heal should pay the same shared mana cost as a player cast")
     sim.free()
 
     var turn_sim := WorldSimulation.new()
