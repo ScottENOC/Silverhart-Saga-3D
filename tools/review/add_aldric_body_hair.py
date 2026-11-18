@@ -101,7 +101,9 @@ def main():
             draws["scrotum"].polygon(polygon, fill=255)
             regions["scrotum"] += 1
         if args.coverage == "wren":
-            if front and 0.485 <= yn <= 0.555 and abs(x) <= 0.042:
+            # The landing strip belongs on the pubic mound, not the lower
+            # abdomen. Ara exports Y-up; this band maps to the pelvis.
+            if front and 0.35 <= yn <= 0.49 and abs(x) <= 0.050:
                 region = "landing_strip"
         elif args.coverage == "reyna":
             if 0.66 <= yn <= 0.80 and 0.075 <= abs(x) <= 0.19 and abs(z) > 0.035:
@@ -115,11 +117,11 @@ def main():
             if front and 0.67 <= yn <= 0.79 and 0.075 <= abs(x) <= 0.19:
                 region = "armpits"
             if args.coverage == "aldric":
-                if region is None and front and 0.38 <= yn <= 0.50 and abs(x) <= 0.018:
+                if region is None and front and 0.38 <= yn <= 0.50 and abs(x) <= 0.024:
                     region = "snail_trail"
-                elif region is None and front and 0.36 <= yn <= 0.49 and abs(x) <= 0.075:
+                elif region is None and front and 0.34 <= yn <= 0.50 and abs(x) <= 0.095:
                     region = "pubic"
-                elif region is None and front and 0.57 <= yn <= 0.73 and abs(x) <= 0.075:
+                elif region is None and front and 0.57 <= yn <= 0.73 and abs(x) <= 0.095:
                     region = "chest"
                 elif region is None and 0.34 <= yn <= 0.73 and 0.16 <= abs(x) <= 0.30:
                     region = "arms"
@@ -149,7 +151,10 @@ def main():
     elif args.coverage == "dagna":
         densities = {"pubic": 1350}
     elif args.coverage == "aldric":
-        densities.update({"chest": 520, "arms": 720, "legs": 900, "snail_trail": 220, "scrotum": 420})
+        # Bias density toward the front centreline so the chest, pubic patch,
+        # and snail trail read as one continuous central pattern rather than
+        # two lateral islands.
+        densities.update({"chest": 900, "arms": 720, "legs": 900, "snail_trail": 320, "scrotum": 420, "pubic": 900})
     default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
     colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
     if len(colour_hex) != 6:
