@@ -39,6 +39,8 @@ var max_mana: int = 0
 var mana_caps: Dictionary = {"arcane": 10, "divine": 10, "nature": 10}
 var max_spell_slots: int = 8
 var unlocked_base_spells: Array[String] = []
+## Serialised PreparedSpell dictionaries; derived costs are recalculated by SpellRules.
+var prepared_spells: Array[Dictionary] = []
 var gold: int = 0
 var game_mode: String = "campaign"
 var campaign_id: String = "2"
@@ -341,6 +343,7 @@ func to_dict() -> Dictionary:
         "mana_caps": mana_caps.duplicate(true),
         "max_spell_slots": max_spell_slots,
         "unlocked_base_spells": unlocked_base_spells.duplicate(),
+        "prepared_spells": prepared_spells.duplicate(true),
         "gold": gold,
         "game_mode": game_mode,
         "campaign_id": campaign_id,
@@ -455,6 +458,13 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.max_spell_slots = int(data.get("max_spell_slots", 8))
     for spell_id in data.get("unlocked_base_spells", []):
         state.unlocked_base_spells.append(String(spell_id))
+    var saved_prepared_spells: Array = data.get("prepared_spells", [])
+    for saved_spell in saved_prepared_spells:
+        if not saved_spell is Dictionary:
+            continue
+        var prepared_spell := PreparedSpell.from_dict(saved_spell)
+        if prepared_spell != null:
+            state.prepared_spells.append(prepared_spell.to_dict())
     state.gold = int(data.get("gold", 0))
     state.game_mode = String(data.get("game_mode", "campaign"))
     state.campaign_id = String(data.get("campaign_id", "2"))
