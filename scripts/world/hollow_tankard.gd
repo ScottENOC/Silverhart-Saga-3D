@@ -861,7 +861,7 @@ func _create_hud() -> void:
     var controls_dialog := AcceptDialog.new()
     controls_dialog.name = "ControlsDialog"
     controls_dialog.title = "Hollow Tankard — Controls"
-    controls_dialog.dialog_text = "MOVE\\nW / A / S / D / Q / E — move one hex\\nClick a walkable hex — plot a path\\n[ and ] — turn active character\\n\\nINTERACT\\nF — use nearby door/stairs or talk to nearest person\\nG — gather nearby resource\\nTab — switch active party member\\nC — character sheet\\nI — inventory and equipment\\n\\nCOMBAT\\nSpace — attack\\nEnter — end turn\\n\\nWORLD\\nV — toggle roof"
+    controls_dialog.dialog_text = "MOVE\\nW / A / S / D / Q / E — move one hex\\nClick a walkable hex — plot a path\\n[ and ] — turn active character\\n\\nINTERACT\\nF — use nearby door/stairs or talk to nearest person\\nG — gather nearby resource\\nTab — switch active party member\\nC — character sheet\\nK — skill trees and skill points\\nI — inventory and equipment\\n\\nCOMBAT\\nSpace — attack\\nEnter — end turn\\n\\nWORLD\\nV — toggle roof"
     controls_dialog.dialog_text = "MOVE\nW / A / S / D / Q / E — move one hex\nClick a walkable hex — plot a path\n[ and ] — turn active character\n\nINTERACT\nChoose a specific person from the Nearby panel, or press F for the nearest person\nG — gather nearby resource\nTab — switch active party member\nC — character sheet\nI — inventory and equipment\n\nCOMBAT\nSpace — attack\nEnter — end turn\n\nWORLD\nF5 — quick save\nF9 — quick load\nV — toggle roof"
     controls_dialog.min_size = Vector2i(420, 430)
     layer.add_child(controls_dialog)
@@ -2044,6 +2044,13 @@ func _open_character_panel() -> void:
         if not character_panel.visible:
             character_panel.toggle_panel()
 
+func _open_skill_panel() -> void:
+    if character_panel != null:
+        character_panel.set_character(active_character_id)
+        character_panel.set_tab("skills")
+        if not character_panel.visible:
+            character_panel.toggle_panel()
+
 func _open_inventory_panel() -> void:
     if character_panel != null:
         character_panel.set_tab("inventory")
@@ -2232,6 +2239,10 @@ func _unhandled_input(event: InputEvent) -> void:
             return
         if key_event.keycode == KEY_C:
             _toggle_character_panel()
+            get_viewport().set_input_as_handled()
+            return
+        if key_event.keycode == KEY_K:
+            _open_skill_panel()
             get_viewport().set_input_as_handled()
             return
         if key_event.keycode == KEY_I:
