@@ -284,8 +284,17 @@ func _create_summon(simulation: Variant, caster: CharacterState, prepared: Prepa
     var becomes_companion := int(caster.skills.get("animal_companion", 0)) > 0 and not has_companion
     summon.is_animal_companion = becomes_companion
     summon.is_summoned = not becomes_companion
-    if becomes_companion and int(caster.skills.get("venomous_summon", 0)) > 0:
-        summon.skills["poison_bite"] = 1
+    if becomes_companion:
+        if int(caster.skills.get("companion_str_end", 0)) > 0:
+            summon.base_damage += 1
+            summon.max_health += 10
+            summon.health += 10
+        if int(caster.skills.get("companion_agi_end", 0)) > 0:
+            summon.time_points_per_tick += 0.05
+            summon.max_health += 10
+            summon.health += 10
+        if int(caster.skills.get("venomous_summon", 0)) > 0:
+            summon.skills["poison_bite"] = 1
     summon.summoned_by_id = caster.id
     summon.time_points = 100.0
     simulation.register_character(summon)
