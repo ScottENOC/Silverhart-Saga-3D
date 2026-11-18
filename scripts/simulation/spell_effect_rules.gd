@@ -5,7 +5,7 @@ extends RefCounted
 ## Validation is deliberately separate from application so failed casts never
 ## spend mana, health or Time Points.
 
-static func target_hex_for(simulation: WorldSimulation, request: SimulationActionRequest, target: CharacterState) -> Vector2i:
+static func target_hex_for(simulation: Variant, request: SimulationActionRequest, target: CharacterState) -> Vector2i:
     var saved: Variant = request.options.get("target_hex", {})
     if saved is Dictionary and saved.has("q") and saved.has("r"):
         return Vector2i(int(saved.get("q", 0)), int(saved.get("r", 0)))
@@ -15,7 +15,7 @@ static func target_hex_for(simulation: WorldSimulation, request: SimulationActio
 
 
 static func validate(
-    simulation: WorldSimulation,
+    simulation: Variant,
     caster: CharacterState,
     target: CharacterState,
     prepared: PreparedSpell,
@@ -79,7 +79,7 @@ static func validate(
 
 
 static func apply(
-    simulation: WorldSimulation,
+    simulation: Variant,
     caster: CharacterState,
     target: CharacterState,
     prepared: PreparedSpell,
@@ -206,7 +206,7 @@ static func _add_effect(target: CharacterState, effect_id: String, source_id: St
     target.add_spell_effect(effect)
 
 
-static func _characters_in_radius(simulation: WorldSimulation, center: Vector2i, radius: int) -> Array[CharacterState]:
+static func _characters_in_radius(simulation: Variant, center: Vector2i, radius: int) -> Array[CharacterState]:
     var result: Array[CharacterState] = []
     for value in simulation.characters.values():
         var state := value as CharacterState
@@ -222,7 +222,7 @@ static func _has_any_tag(target: CharacterState, tags: Array) -> bool:
     return false
 
 
-static func _calm_animal_target(simulation: WorldSimulation, target: CharacterState) -> CharacterState:
+static func _calm_animal_target(simulation: Variant, target: CharacterState) -> CharacterState:
     if target == null:
         return null
     if target.tags.has("animal") and not target.tags.has("fey") and not target.tags.has("dragon"):
@@ -248,7 +248,7 @@ static func _spell_hit_chance(caster: CharacterState, target: CharacterState, sp
     return clampf(50.0 + caster.to_hit_spell + float(bonus) - target.passive_dodge, 0.0, 100.0)
 
 
-static func _create_summon(simulation: WorldSimulation, caster: CharacterState, prepared: PreparedSpell, hex: Vector2i) -> CharacterState:
+static func _create_summon(simulation: Variant, caster: CharacterState, prepared: PreparedSpell, hex: Vector2i) -> CharacterState:
     var kind := String(prepared.modifiers.get("summon_id", "wolf"))
     var profiles := {
         "wolf": {"health": 18, "damage": 4, "tags": ["animal"], "flying": false},
@@ -266,7 +266,6 @@ static func _create_summon(simulation: WorldSimulation, caster: CharacterState, 
     summon.health = int(profile["health"])
     summon.max_health = int(profile["health"])
     summon.base_damage = int(profile["damage"])
-    summon.tags = []
     for tag in profile["tags"]:
         summon.tags.append(String(tag))
     summon.is_flying = bool(profile["flying"])
