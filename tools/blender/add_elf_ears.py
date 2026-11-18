@@ -87,9 +87,9 @@ def main():
 
     ear_z = lo.z + height * args.ear_height
     # Match the ear band already used by the project's earring-socket finder.
-    z_half_band = height * 0.055
-    inner_x = width * 0.100
-    outer_x = width * 0.350
+    z_half_band = height * 0.050
+    inner_x = width * 0.115
+    outer_x = width * 0.305
     centre_z = ear_z + height * 0.003
     vertical_sigma = height * 0.050
 
@@ -152,7 +152,7 @@ def main():
             p = world_positions[i]
             lateral = side * p.x
             u = (lateral - inner_x) / max(outer_x - inner_x, 1e-8)
-            outer_falloff = smoothstep(0.00, 0.30, u)
+            outer_falloff = smoothstep(0.00, 0.45, u)
             vertical = math.exp(
                 -0.5 * ((p.z - centre_z) / vertical_sigma) ** 2
             )
