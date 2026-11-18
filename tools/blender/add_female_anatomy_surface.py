@@ -477,6 +477,26 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
     print(f"Anatomy pigmentation assigned to {painted} skin vertices")
     return colour
 
+def add_correspondence_uv_layer(mesh, name="CorrespondenceID"):
+    """Encode each pre-export vertex index in a dedicated UV channel.
+
+    GLB exporters may split/reorder vertices at UV/material seams. TEXCOORD_1
+    carries a stable identity shared by every loop belonging to one Blender
+    vertex, allowing the morph builder to recover exact correspondence.
+    """
+    layer = mesh.uv_layers.get(name)
+    if layer is not None:
+        mesh.uv_layers.remove(layer)
+    layer = mesh.uv_layers.new(name=name)
+    count = max(len(mesh.vertices), 1)
+    for loop in mesh.loops:
+        vertex_id = int(loop.vertex_index)
+        layer.data[loop.index].uv = ((vertex_id + 0.5) / count, 0.375)
+    mesh.update()
+    mesh["correspondence_uv_layer"] = name
+    print(f"Added {name} TEXCOORD identity for {len(mesh.vertices)} source vertices")
+
+
 def main():
     args = arguments()
     if not args.adult:
@@ -530,6 +550,8 @@ def main():
     )
     apply_anatomy_pigmentation(skin, anatomy_z, width, height)
     wire_vertex_colour_to_skin_material(skin_material, "Color")
+    # Preserve shared-subdivision vertex identity through GLB indexed export.
+    add_correspondence_uv_layer(skin.data)
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
