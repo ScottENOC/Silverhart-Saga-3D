@@ -72,8 +72,10 @@ func _test_character_round_trip() -> void:
 
 func _test_skill_catalogue_and_progression() -> void:
     var definitions := SkillCatalog.definitions()
-    _check(definitions.size() == 257, "The source skill catalogue should contain all 186 unique entries")
+    _check(definitions.size() == 258, "The source-derived skill catalogue plus Divine Strength unlock should contain 258 entries")
     _check(int(SkillCatalog.get_skill("health").get("max_ranks", -1)) == 0, "A zero rank cap means unlimited ranks")
+    _check(bool(SkillCatalog.get_skill("learn_divine_strength").size() > 0), "Divine Strength should have a learn skill")
+    _check(bool(SkillCatalog.get_skill("learn_smite_evil").get("disabled", false)), "Non-official legacy spell unlocks should remain archived but disabled")
 
     var character := CharacterState.new("skill_test", "Skill Test")
     character.attributes = {"endurance": 3, "strength": 0, "wildcard": 1, "nature": 1, "druid": 1, "elf": 1}
