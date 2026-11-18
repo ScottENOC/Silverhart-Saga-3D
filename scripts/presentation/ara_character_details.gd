@@ -7,12 +7,14 @@ var _target: Node3D
 var _details: Dictionary = {}
 var _ink_material: StandardMaterial3D
 var _metal_material: StandardMaterial3D
+var _debug_size_scale: float = 1.0
 
 func configure(target: Node3D, details: Dictionary) -> void:
     clear()
     _target = target
     global_transform = target.global_transform
     _details = details.duplicate(true)
+    _debug_size_scale = maxf(1.0, float(_details.get("debug_size_scale", 1.0)))
     if _target == null or _details.is_empty():
         return
     _metal_material = StandardMaterial3D.new()
@@ -64,6 +66,7 @@ func _add_socket_hoop(socket_name: String, radius: float) -> void:
     var hoop := MeshInstance3D.new()
     hoop.name = "Piercing_" + socket_name
     var torus := TorusMesh.new()
+    radius *= _debug_size_scale
     torus.inner_radius = radius * 0.78
     torus.outer_radius = radius
     torus.rings = 12
@@ -85,9 +88,9 @@ func _add_socket_barbell(socket_name: String) -> void:
     var bar := MeshInstance3D.new()
     bar.name = "Piercing_" + socket_name + "_bar"
     var cylinder := CylinderMesh.new()
-    cylinder.top_radius = 0.0018
-    cylinder.bottom_radius = 0.0018
-    cylinder.height = 0.014
+    cylinder.top_radius = 0.0018 * _debug_size_scale
+    cylinder.bottom_radius = 0.0018 * _debug_size_scale
+    cylinder.height = 0.014 * _debug_size_scale
     cylinder.radial_segments = 8
     bar.mesh = cylinder
     bar.material_override = _metal_material
@@ -98,8 +101,8 @@ func _add_socket_barbell(socket_name: String) -> void:
         var bead := MeshInstance3D.new()
         bead.name = "Piercing_" + socket_name + "_bead"
         var sphere := SphereMesh.new()
-        sphere.radius = 0.003
-        sphere.height = 0.006
+        sphere.radius = 0.003 * _debug_size_scale
+        sphere.height = 0.006 * _debug_size_scale
         bead.mesh = sphere
         bead.material_override = _metal_material
         add_child(bead)
@@ -282,7 +285,7 @@ func _add_star(centre: Vector3, radius: float, material: Material) -> void:
         var r := radius if index % 2 == 0 else radius * 0.28
         points.append(centre + Vector3(cos(angle) * r, sin(angle) * r, 0))
     points.append(points[0])
-    _add_tube(points, radius * 0.11, material)
+    _add_tube(points, radius * 0.11 * _debug_size_scale, material)
 
 func _project_tattoo_point(point: Vector3, back: bool) -> Vector3:
     var best := point
