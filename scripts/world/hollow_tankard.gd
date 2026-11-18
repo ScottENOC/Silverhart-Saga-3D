@@ -256,10 +256,14 @@ func _configure_location_simulation() -> void:
 
 
 func _on_simulation_action_committed(event: SimulationEvent) -> void:
-    if event == null or event.event_type != "spell_cast" or spell_vfx == null:
+    if event == null or spell_vfx == null:
+        return
+    # A selected Counterspell reaction is emitted as spell_countered rather
+    # than spell_cast, but it still needs the same visible counter-pulse.
+    if event.event_type not in ["spell_cast", "spell_countered"]:
         return
     var payload := event.payload
-    var spell_id := String(payload.get("spell_id", ""))
+    var spell_id := "counterspell" if event.event_type == "spell_countered" else String(payload.get("spell_id", ""))
     if spell_id.is_empty():
         return
     var caster := actor_by_id.get(event.actor_id) as Node3D
