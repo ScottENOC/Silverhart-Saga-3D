@@ -647,7 +647,7 @@ func apply_body_parameters(profile: Dictionary) -> void:
                         # Body shape keys are authored around the neutral
                         # midpoint (0.5); Godot's relative blend-shape values
                         # therefore run from -0.5 to +0.5.
-                        var shape_value := values[parameter] - 0.5 if shape_name.begins_with("body") else values[parameter]
+                        var shape_value: float = float(values[parameter]) - 0.5 if shape_name.begins_with("body") else float(values[parameter])
                         mesh_instance.set_blend_shape_value(shape_index, shape_value)
                         applied += 1
                         applied_parameters[parameter] = true
