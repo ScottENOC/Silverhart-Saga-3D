@@ -46,15 +46,17 @@ def skin_meshes(objects):
     return sorted((obj for obj in objects if is_skin_mesh(obj)), key=lambda o: o.name)
 
 
-def vertex_uv_signatures(mesh):
-    """Stable per-vertex UV identity, including seam duplicates."""
-    if not mesh.uv_layers:
-        raise RuntimeError(f"Mesh {mesh.name} has no UV layer for correspondence")
-    uv_layer = mesh.uv_layers.active
+def correspondence_signatures(mesh):
+    """Read stable per-vertex IDs encoded in the dedicated TEXCOORD_1 layer."""
+    candidates = [layer for layer in mesh.uv_layers
+                  if layer.name == "CorrespondenceID" or layer.name.endswith("CorrespondenceID")]
+    if not candidates:
+        raise RuntimeError(f"Mesh {mesh.name} has no CorrespondenceID UV channel")
+    layer = candidates[0]
     per_vertex = [[] for _ in mesh.vertices]
     for loop in mesh.loops:
-        uv = uv_layer.data[loop.index].uv
-        per_vertex[loop.vertex_index].append((round(float(uv.x), 7), round(float(uv.y), 7)))
+        uv = layer.data[loop.index].uv
+        per_vertex[loop.vertex_index].append(round(float(uv.x), 7))
     return [tuple(sorted(values)) for values in per_vertex]
 
 
@@ -108,11 +110,11 @@ def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
 
     # The exporter has genuinely changed vertex ordering. Fall back to UV
     # identity, but never use an unconstrained nearest-unused vertex guess.
-    base_uv = vertex_uv_signatures(base_obj.data)
-    variant_uv = vertex_uv_signatures(variant_obj.data)
-    variant_by_uv = {}
-    for index, signature in enumerate(variant_uv):
-        variant_by_uv.setdefault(signature, []).append(index)
+    base_ids = correspondence_signatures(base_obj.data)
+    variant_ids = correspondence_signatures(variant_obj.data)
+    variant_by_id = {}
+    for index, signature in enumerate(variant_ids):
+        variant_by_id.setdefault(signature, []).append(index)
 
     variant_world = [
         variant_obj.matrix_world @ vertex.co for vertex in variant_vertices
@@ -121,15 +123,15 @@ def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
     used = set()
     distances = []
     for base_index, base_vertex in enumerate(base_vertices):
-        signature = base_uv[base_index]
+        signature = base_ids[base_index]
         candidates = [
-            index for index in variant_by_uv.get(signature, [])
+            index for index in variant_by_id.get(signature, [])
             if index not in used
         ]
         if not candidates:
             raise RuntimeError(
                 "Shared-subdivision topology was reordered by GLB export and "
-                f"UV correspondence is missing for base vertex {base_index}; "
+                f"CorrespondenceID is missing for base vertex {base_index}; "
                 "refusing an unconstrained spatial guess"
             )
         point = base_obj.matrix_world @ base_vertex.co
@@ -160,7 +162,7 @@ def map_variant_vertices(base_obj, variant_obj, max_distance=0.15):
         missing = len(base_faces - mapped_variant_faces)
         extra = len(mapped_variant_faces - base_faces)
         raise RuntimeError(
-            "UV vertex map failed face-connectivity validation: "
+            "CorrespondenceID vertex map failed face-connectivity validation: "
             f"{missing} base faces unmatched, {extra} variant faces unmatched"
         )
     return mapping, max(distances, default=0.0), sum(distances) / max(len(distances), 1)
