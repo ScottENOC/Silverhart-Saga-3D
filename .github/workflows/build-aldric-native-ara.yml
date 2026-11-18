@@ -11,6 +11,7 @@ on:
       - "tools/review/recolor_wren_glb.py"
       - "tools/blender/add_male_anatomy.py"
       - "tools/blender/add_abdominal_definition.py"
+      - "tools/blender/add_character_details.py"
       - "tools/review/add_aldric_body_hair.py"
       - "tools/blender/add_abdominal_definition.py"
   workflow_dispatch:
@@ -39,7 +40,7 @@ jobs:
         run: |
           set -euo pipefail
           python -m json.tool character-preview/aldric-ara.json >/dev/null
-          python -m py_compile tools/review/recolor_wren_glb.py tools/blender/add_abdominal_definition.py
+          python -m py_compile tools/review/recolor_wren_glb.py tools/blender/add_abdominal_definition.py tools/blender/add_character_details.py
 
       - name: Install Ara export dependencies
         run: |
@@ -90,6 +91,17 @@ jobs:
           set -euo pipefail
           python tools/review/add_aldric_body_hair.py --model build/aldric-native/Aldric.glb --seed 1401
           test -s build/aldric-native/Aldric.glb
+
+      - name: Bake tattoos and piercings into exported GLB
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_character_details.py -- \
+            --input build/aldric-native/Aldric.glb \
+            --output build/aldric-native/Aldric-details.glb \
+            --profile character-preview/aldric-ara.json
+          test -s build/aldric-native/Aldric-details.glb
+          mv build/aldric-native/Aldric-details.glb build/aldric-native/Aldric.glb
 
       - name: Assemble isolated Godot preview project
         run: |
