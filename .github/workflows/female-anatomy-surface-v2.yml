@@ -83,7 +83,7 @@ jobs:
                   "teeth": "none",
                   "tongue": False,
               })
-              folder = Path(f"build/female-anatomy/morphs/{name}")
+              folder = Path(f"build/female-anatomy/morphs/{name.removeprefix('AraAnatomy_')}")
               folder.mkdir(parents=True, exist_ok=True)
               (folder / "profile.json").write_text(json.dumps(profile, indent=2) + "\n")
           PY
