@@ -153,7 +153,7 @@ func _test_divine_silence_breaks_on_cast() -> void:
     sim.register_character(enemy)
     var silence := _cast(sim, caster, enemy, "divine_silence")
     _check(bool(silence.get("ok", false)) and enemy.has_spell_effect("divine_silence"), "Divine Silence should be active before the target casts")
-    var counter_cast := sim.submit_action(ACTION_REQUEST_SCRIPT.cast_spell(enemy.id, caster.id, firebolt), 4)
+    var counter_cast: Dictionary = sim.submit_action(ACTION_REQUEST_SCRIPT.cast_spell(enemy.id, caster.id, firebolt), 4)
     _check(bool(counter_cast.get("ok", false)), "A silenced character should still be able to cast")
     _check(not enemy.has_spell_effect("divine_silence"), "Casting should break Divine Silence")
     sim.free()
@@ -203,7 +203,7 @@ func _test_summon_animal() -> void:
     var caster = setup["caster"]
     var result := _cast_at(sim, caster, Vector2i(1, 0), "summon_animal", {"summon_id": "wolf"})
     _check(bool(result.get("ok", false)), "Summon Animal should create a summon at a valid empty hex")
-    var summon := sim.get_character(String(result.get("summoned_id", "")))
+    var summon: CharacterState = sim.get_character(String(result.get("summoned_id", "")))
     _check(summon != null and summon.is_summoned and summon.summoned_by_id == caster.id, "Summoned animal should be registered with its summoner")
     _check(summon != null and summon.tags.has("animal"), "Summoned creature should carry the animal tag")
     sim.free()
@@ -217,7 +217,7 @@ func _test_permanent_animal_companion() -> void:
     caster.skills["learn_unicorn_summon"] = 1
     var result := _cast_at(sim, caster, Vector2i(1, 0), "summon_animal", {"summon_id": "wolf"})
     _check(bool(result.get("ok", false)), "Animal Companion skill should make the first summon permanent")
-    var companion := sim.get_character(String(result.get("summoned_id", "")))
+    var companion: CharacterState = sim.get_character(String(result.get("summoned_id", "")))
     _check(companion != null and companion.is_animal_companion and not companion.is_summoned, "First animal should be stored as a permanent companion")
     var second := _cast_at(sim, caster, Vector2i(2, 0), "summon_animal", {"summon_id": "unicorn"})
     _check(not bool(second.get("ok", true)), "A second permanent unicorn companion should be rejected")
@@ -401,7 +401,7 @@ func _test_disguise_self() -> void:
     var caster = setup["caster"]
     var prepared := PREPARED_SPELL_SCRIPT.new("disguise_self", {}, {"profile_id": "merchant"})
     caster.prepared_spells.append(prepared.to_dict())
-    var result := sim.submit_action(ACTION_REQUEST_SCRIPT.cast_spell(caster.id, caster.id, prepared))
+    var result: Dictionary = sim.submit_action(ACTION_REQUEST_SCRIPT.cast_spell(caster.id, caster.id, prepared))
     _check(bool(result.get("ok", false)), "Disguise Self should cast on the caster")
     _check(caster.has_spell_effect("disguise_self"), "Disguise Self should store its active disguise profile")
     _check(String(caster.get_spell_effect("disguise_self").get("profile_id", "")) == "merchant", "Disguise Self should preserve its selected profile")
@@ -439,7 +439,7 @@ func _test_feather_fall() -> void:
     var caster = setup["caster"]
     var result := _cast(sim, caster, caster, "feather_fall")
     _check(bool(result.get("ok", false)) and caster.has_spell_effect("feather_fall"), "Feather Fall should grant a timed self-protection effect")
-    var fall := sim.resolve_fall_damage(caster.id, 12)
+    var fall: Dictionary = sim.resolve_fall_damage(caster.id, 12)
     _check(bool(fall.get("prevented", false)) and int(fall.get("damage", -1)) == 0, "Feather Fall should prevent the next fall damage event")
     _check(not caster.has_spell_effect("feather_fall"), "Feather Fall should only prevent one fall")
     sim.free()
