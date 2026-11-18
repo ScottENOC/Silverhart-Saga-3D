@@ -79,7 +79,7 @@ def main():
     elif args.coverage == "dagna":
         names = ["pubic"]
     else:
-        names = ["armpits", "pubic"] + (["chest", "arms", "legs", "snail_trail", "scrotum"] if args.coverage == "aldric" else [])
+        names = ["armpits", "pubic"] + (["chest", "snail_trail", "scrotum"] if args.coverage == "aldric" else [])
     masks = {name: Image.new("L", (width, height), 0) for name in names}
     draws = {key: ImageDraw.Draw(mask) for key, mask in masks.items()}
     regions = {name: 0 for name in names}
