@@ -2,7 +2,7 @@ extends SceneTree
 ## Isolated Godot preview of the final native-Ara Mirabel ear inspection GLB.
 ## This project does not load the game scenes or modify gameplay.
 
-const MODEL_PATH := "res://build/mirabel-native/Mirabel ear inspection.glb"
+const MODEL_PATH := "res://build/mirabel-native/Mirabel_ears_preview.glb"
 const OUTPUT_DIR := "res://build/mirabel-native/preview/ears-bald"
 const VIEW_SIZE := Vector2i(720, 960)
 
@@ -23,7 +23,7 @@ func _run() -> void:
         return
 
     var stage := Node3D.new()
-    stage.name = "Mirabel ear inspectionPreviewStage"
+    stage.name = "MirabelEarInspectionPreviewStage"
     root.add_child(stage)
 
     var character := packed.instantiate() as Node3D
