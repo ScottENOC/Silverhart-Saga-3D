@@ -7,6 +7,7 @@ on:
       - "character-preview/mirabel-ara.json"
       - ".github/workflows/build-mirabel-native-ara.yml"
       - "tools/review/mirabel_native_preview.gd"
+      - "scripts/presentation/ara_character_details.gd"
       - "tools/review/recolor_wren_glb.py"
       - "tools/blender/add_adult_anatomy.py"
       - "tools/blender/add_elf_ears.py"
@@ -113,10 +114,11 @@ jobs:
         run: |
           set -euo pipefail
           preview=build/mirabel-native-preview-project
-          mkdir -p "$preview/build/mirabel-native" "$preview/tools/review"
+          mkdir -p "$preview/scripts/presentation" "$preview/build/mirabel-native" "$preview/tools/review"
           cp build/mirabel-native/Mirabel.glb "$preview/build/mirabel-native/Mirabel.glb"
           cp build/mirabel-native/Mirabel_ears_preview.glb "$preview/build/mirabel-native/Mirabel_ears_preview.glb"
           cp tools/review/mirabel_native_preview.gd "$preview/tools/review/mirabel_native_preview.gd"
+          cp scripts/presentation/ara_character_details.gd "$preview/scripts/presentation/ara_character_details.gd"
           cp tools/review/mirabel_ears_preview.gd "$preview/tools/review/mirabel_ears_preview.gd"
           cat > "$preview/project.godot" <<'EOF'
           ; Isolated preview project: no game scenes, scripts, or autoloads.
