@@ -20,6 +20,7 @@ func _run() -> void:
     _test_invalid_combinations()
     _test_modifier_skills_are_required()
     _test_summon_species_skills_and_costs()
+    _test_school_passive_skill_effects()
     _test_prepared_spell_round_trip()
 
     if _failures > 0:
@@ -173,6 +174,33 @@ func _test_summon_species_skills_and_costs() -> void:
         {"learn_unicorn_summon": 1, "animal_companion": 1}
     )
     _check(bool(unicorn.get("ok", false)), "Unicorn summoning should require and accept both earned bond skills")
+
+    
+func _test_school_passive_skill_effects() -> void:
+    var character = CHARACTER_STATE.new("spell_skill_test", "Spell Skill Test")
+    character.skills = {
+        "arcane_mana": 2,
+        "divine_mana": 1,
+        "nature_mana": 1,
+        "arcane_cap": 2,
+        "divine_cap": 1,
+        "arcane_spell_slots": 1,
+        "nature_spell_slots": 1,
+        "arcane_regen": 2,
+        "divine_regen": 1
+    }
+    character.sync_skill_effects()
+    _check(character.max_mana == 40 and character.current_mana == 40, "School Mana ranks should each add 10 to max and current mana")
+    _check(int(character.mana_caps.get("arcane", 0)) == 20, "Arcane Cap should add 5 mana to the Arcane variant cap per rank")
+    _check(int(character.mana_caps.get("divine", 0)) == 15, "Divine Cap should add 5 mana to the Divine variant cap per rank")
+    _check(int(character.mana_caps.get("nature", 0)) == 10, "Unpurchased Nature Cap should retain its base value")
+    _check(character.max_spell_slots == 12, "School Spell Mastery ranks should add two prepared slots each")
+    _check(is_equal_approx(character.mana_regeneration_per_time_point(), 0.4), "Mana regeneration should stack at 0.1 per rank on top of the 0.1 base rate")
+
+    var restored = CHARACTER_STATE.from_dict(character.to_dict())
+    _check(restored.max_mana == 40 and restored.current_mana == 40, "School Mana effects should not be applied twice on load")
+    _check(restored.max_spell_slots == 12, "Spell slot increases should survive save/load")
+    _check(is_equal_approx(restored.mana_regeneration_per_time_point(), 0.4), "Mana regeneration ranks should survive save/load")
 
     
 func _test_prepared_spell_round_trip() -> void:
