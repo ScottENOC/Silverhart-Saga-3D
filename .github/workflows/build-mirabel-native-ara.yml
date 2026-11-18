@@ -137,7 +137,7 @@ jobs:
           import zipfile
           from pathlib import Path
           root = Path("build/mirabel-native")
-          readme = """Ser Mirabel Thorne — first-pass native Ara character.
+          readme = """Mirabel Quill — first-pass native Ara character.
           Unclothed body and hair only; no outfit, underwear, shoes or accessories.
           The model is generated from mirabel-ara.json and retains Ara's game rig
           and facial blend shapes. This is a visual first pass, not final approval.
