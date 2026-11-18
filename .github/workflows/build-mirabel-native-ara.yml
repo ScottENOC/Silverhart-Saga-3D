@@ -109,6 +109,17 @@ jobs:
           python tools/review/add_aldric_body_hair.py --model build/mirabel-native/Mirabel.glb --seed 3403
           test -s build/mirabel-native/Mirabel.glb
 
+      - name: Bake tattoos and piercings into exported GLB
+        run: |
+          set -euo pipefail
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_character_details.py -- \
+            --input build/mirabel-native/Mirabel.glb \
+            --output build/mirabel-native/Mirabel-details.glb \
+            --profile character-preview/mirabel-ara.json
+          test -s build/mirabel-native/Mirabel-details.glb
+          mv build/mirabel-native/Mirabel-details.glb build/mirabel-native/Mirabel.glb
+
       - name: Create temporary hairless elf-ear inspection model
         run: |
           set -euo pipefail
