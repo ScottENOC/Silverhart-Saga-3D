@@ -56,6 +56,7 @@ jobs:
           data = json.loads(source.read_text())
           params = data.setdefault("params", {})
           # These are project-side metadata, not Ara generator parameters.
+          data.pop("character_details", None)
           # Preserve them in the source profile; omit only from the Ara export copy.
           for key in ("tattoo_ink", "piercings"):
               params.pop(key, None)
