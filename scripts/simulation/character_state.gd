@@ -43,6 +43,12 @@ var max_spell_slots: int = 8
 var unlocked_base_spells: Array[String] = []
 ## Serialised PreparedSpell dictionaries; derived costs are recalculated by SpellRules.
 var prepared_spells: Array[Dictionary] = []
+## Runtime/persistent magical effects; each entry has a stable effect ID and source spell.
+var spell_effects: Array[Dictionary] = []
+var summoned_by_id: String = ""
+var is_summoned: bool = false
+var is_animal_companion: bool = false
+var is_flying: bool = false
 var gold: int = 0
 var game_mode: String = "campaign"
 var campaign_id: String = "2"
@@ -289,6 +295,39 @@ func apply_poison_damage(amount: int) -> String:
         return "died"
     return "poisoned"
 
+func add_spell_effect(effect: Dictionary) -> void:
+    var effect_id := String(effect.get("effect_id", ""))
+    if effect_id.is_empty():
+        return
+    for index in range(spell_effects.size()):
+        if String(spell_effects[index].get("effect_id", "")) == effect_id:
+            spell_effects[index] = effect.duplicate(true)
+            return
+    spell_effects.append(effect.duplicate(true))
+
+
+func has_spell_effect(effect_id: String) -> bool:
+    for effect in spell_effects:
+        if String(effect.get("effect_id", "")) == effect_id:
+            return true
+    return false
+
+
+func get_spell_effect(effect_id: String) -> Dictionary:
+    for effect in spell_effects:
+        if String(effect.get("effect_id", "")) == effect_id:
+            return effect.duplicate(true)
+    return {}
+
+
+func remove_spell_effect(effect_id: String) -> bool:
+    for index in range(spell_effects.size() - 1, -1, -1):
+        if String(spell_effects[index].get("effect_id", "")) == effect_id:
+            spell_effects.remove_at(index)
+            return true
+    return false
+
+
 func can_start_combat_turn() -> bool:
     return ActionEconomy.can_start_combat_turn(
         time_points, alive, unconscious, is_rider, combat_dormant
@@ -348,6 +387,11 @@ func to_dict() -> Dictionary:
         "max_spell_slots": max_spell_slots,
         "unlocked_base_spells": unlocked_base_spells.duplicate(),
         "prepared_spells": prepared_spells.duplicate(true),
+        "spell_effects": spell_effects.duplicate(true),
+        "summoned_by_id": summoned_by_id,
+        "is_summoned": is_summoned,
+        "is_animal_companion": is_animal_companion,
+        "is_flying": is_flying,
         "gold": gold,
         "game_mode": game_mode,
         "campaign_id": campaign_id,
@@ -464,6 +508,14 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.max_spell_slots = int(data.get("max_spell_slots", 8))
     for spell_id in data.get("unlocked_base_spells", []):
         state.unlocked_base_spells.append(String(spell_id))
+    var saved_spell_effects: Array = data.get("spell_effects", [])
+    for saved_effect in saved_spell_effects:
+        if saved_effect is Dictionary:
+            state.spell_effects.append(saved_effect.duplicate(true))
+    state.summoned_by_id = String(data.get("summoned_by_id", ""))
+    state.is_summoned = bool(data.get("is_summoned", false))
+    state.is_animal_companion = bool(data.get("is_animal_companion", false))
+    state.is_flying = bool(data.get("is_flying", false))
     var saved_prepared_spells: Array = data.get("prepared_spells", [])
     for saved_spell in saved_prepared_spells:
         if not saved_spell is Dictionary:
