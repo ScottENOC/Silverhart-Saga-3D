@@ -114,6 +114,7 @@ static func raw_damage(attacker: CharacterState, options: Dictionary = {}) -> in
         damage += 3 * int(attacker.skills.get("goblin_opportunist", 0))
     damage += int(options.get("flank_bonus", 0))
     damage += int(options.get("sneak_attack_bonus", 0))
+    damage -= maxi(0, attacker.base_damage_penalty)
     return maxi(1, damage)
 
 static func damage_reduction(target: CharacterState) -> int:
