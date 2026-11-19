@@ -186,7 +186,7 @@ def main():
                                                      side * 0.075 if side < 0 else 0.19, front=True))
                 paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
                                                      side * 0.075 if side < 0 else 0.19, front=False))
-            # Ara anatomical surface topology leaves a narrow midline seam at the pelvis.\n            # A 45 mm half-width misses both sides of that seam; 85 mm captures\n            # the actual front-skin UV faces while the z/front constraint stays intact.\n            paint_clipped("pubic", tri, band(0.28, 0.37, -pubic_half_width, pubic_half_width))
+            # Adapt the mask width to the exported pelvic topology; retain front-depth clipping.\n            paint_clipped("pubic", tri, band(0.28, 0.37, -pubic_half_width, pubic_half_width))
         elif args.coverage == "dagna":
             paint_clipped("pubic", tri, band(0.28, 0.37, -0.055, 0.055))
         elif args.coverage == "aldric":
