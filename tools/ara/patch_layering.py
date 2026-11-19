@@ -64,12 +64,16 @@ edit("src/core/garments/index.ts", [
 edit("src/core/garments/catalog.ts", [
     ("  // ---------------- Tops\n", """  // ---------------- Tops
   {
-    id: 'bra', label: 'Sports bra (under layer)', slot: 'top', patterns: ['solid'], color: '#34343a', color2: '#111114',
-    build: (g, st) => shellPart(g, {
-      // Close-fitting front and side chest band; thinner than the outer shirt.
-      covers: (v) => isTrunk(v) && v.tt > 0.52 && v.tt < 0.79 && Math.abs(v.tth) < 1.62,
-      offset: cm(0.48), tile: 0.2, relax: 3,
-    }, cloth(g, 'Bra', st)),
+    id: 'bra', label: 'Standard bra', slot: 'top', patterns: ['solid'], color: '#34343a', color2: '#111114',
+    build: (g, st) => {
+      const sx = g.body.L.shoulderX;
+      // Cropped Ara tank-top shell: full chest/back band and broad shoulder straps.
+      return shellPart(g, {
+        covers: (v) => isUpper(v) && v.tt >= 0.50 &&
+          (v.tt < 0.76 || Math.abs(v.ax - 0.6 * sx) < 0.2 * sx),
+        offset: cm(0.55), tile: 0.2, relax: 4,
+      }, cloth(g, 'Bra', st));
+    },
   },
 """),
 ])
@@ -200,8 +204,8 @@ print("Ara underTop, separate lace/fishnet halters, backless side-slit dress and
 
 # Fishnet is a separate open diamond mesh, not the corded floral/scroll lace weave.
 edit("src/core/garments/textures.ts", [
-    ("  | 'solid' | 'camo'", "  | 'solid' | 'fishnet' | 'camo'"),
-    ("  'solid', 'khaki',", "  'solid', 'fishnet', 'khaki',"),
+    ("  | 'solid' | 'camo'", "  | 'solid' | 'fishnet' | 'fishnet_coarse' | 'camo'"),
+    ("  'solid', 'khaki',", "  'solid', 'fishnet', 'fishnet_coarse', 'khaki',"),
     ("    case 'lace': {", """    case 'fishnet': {
       const N = 28;
       return render(S, (u, v) => {
@@ -211,6 +215,16 @@ edit("src/core/garments/textures.ts", [
         const w = weave(u, v, 220);
         return { c: mul(A, 0.88 + 0.12 * w), a: thread ? 1 : 0, h: thread ? 0.7 : 0 };
       }, true, 1.8);
+    case 'fishnet_coarse': {
+      const N = 18;
+      return render(S, (u, v) => {
+        const a = frac((u + v) * N), b = frac((u - v) * N);
+        const da = Math.min(a, 1 - a), db = Math.min(b, 1 - b);
+        const thread = Math.min(da, db) < 0.14;
+        const w = weave(u, v, 180);
+        return { c: mul(A, 0.88 + 0.12 * w), a: thread ? 1 : 0, h: thread ? 0.85 : 0 };
+      }, true, 1.8);
+    }
     }
     case 'lace': {""")
 ]);
@@ -222,11 +236,11 @@ edit("src/core/garments/catalog.ts", [
     ("id: 'fatigue_shirt', label: 'Fatigue shirt', slot: 'top', patterns: ['camo', 'solid', 'khaki']",
      "id: 'fatigue_shirt', label: 'Fatigue shirt', slot: 'top', patterns: ['camo', 'solid', 'khaki', 'lace', 'fishnet']"),
     ("id: 'briefs', label: 'Briefs', slot: 'bottom', patterns: ['solid']",
-     "id: 'briefs', label: 'Briefs', slot: 'bottom', patterns: ['solid', 'lace', 'fishnet']"),
+     "id: 'briefs', label: 'Briefs', slot: 'bottom', patterns: ['solid', 'lace', 'fishnet', 'fishnet_coarse']"),
     ("id: 'fatigue_pants', label: 'Fatigue pants', slot: 'bottom', patterns: ['camo', 'khaki', 'solid']",
      "id: 'fatigue_pants', label: 'Fatigue pants', slot: 'bottom', patterns: ['camo', 'khaki', 'solid', 'lace', 'fishnet']"),
 ])
 edit("src/core/garments/swimwear.ts", [
     ("id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard']",
-     "id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard', 'lace', 'fishnet']"),
+     "id: 'bikini_bottom', label: 'Bikini bottom (string)', slot: 'bottom', patterns: ['foil', 'solid', 'ankara', 'leopard', 'lace', 'fishnet', 'fishnet_coarse']"),
 ])
