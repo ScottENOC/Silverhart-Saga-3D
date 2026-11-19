@@ -171,9 +171,7 @@ def main():
         return maximum
 
     pubic_half_width = None
-    if args.coverage == "reyna":
-        pubic_half_width = adaptive_pubic_half_width(0.49, 0.52)
-    elif args.coverage == "aldric":
+    if args.coverage == "aldric":
         pubic_half_width = adaptive_pubic_half_width(0.44, 0.51)
 
     def band(y0, y1, x0, x1, front=True):
@@ -207,16 +205,27 @@ def main():
             ]
             paint_clipped("landing_strip", tri, constraints)
         elif args.coverage == "reyna":
-            # Separate left/right axillae; keep the markings on the lateral
-            # upper torso rather than allowing a broad triangle to reach the
-            # chest or flank.
+            # The previous 0.75-0.82 band sat too high on Reyna's collarbones.
+            # Move the two axillary patches down and keep them lateral, on both
+            # front and back surfaces of the underarm rather than the shoulder.
             for side in (-1, 1):
-                paint_clipped("armpits", tri, band(0.75, 0.82, side * 0.22 if side < 0 else 0.14,
-                                                     side * 0.14 if side < 0 else 0.22, front=True))
-                paint_clipped("armpits", tri, band(0.75, 0.82, side * 0.22 if side < 0 else 0.14,
-                                                     side * 0.14 if side < 0 else 0.22, front=False))
-            # Widen and lower the mask slightly, but keep the centreline clear of the vulva.
-            paint_clipped("pubic", tri, band(0.47, 0.53, -pubic_half_width, pubic_half_width))
+                x0, x1 = ((-0.22, -0.14) if side < 0 else (0.14, 0.22))
+                paint_clipped("armpits", tri, band(0.69, 0.77, x0, x1, front=True))
+                paint_clipped("armpits", tri, band(0.69, 0.77, x0, x1, front=False))
+
+            # Reuse Dagna's accepted tapered mons mask: narrow at the lower
+            # point, broad over the upper mound, with the shared vulva exclusion.
+            y0, y1 = 0.44, 0.52
+            lower_half_width, upper_half_width = 0.018, 0.070
+            slope = (upper_half_width - lower_half_width) / (y1 - y0)
+            constraints = [
+                lambda p: y0 - yn_of(p),
+                lambda p: yn_of(p) - y1,
+                lambda p: p[0] - (centre_x + lower_half_width + slope * (yn_of(p) - y0)),
+                lambda p: (centre_x - lower_half_width - slope * (yn_of(p) - y0)) - p[0],
+                lambda p: 0.035 - p[2],
+            ]
+            paint_clipped("pubic", tri, constraints)
         elif args.coverage == "dagna":
             # Keep Dagna's hair on the central pubic mound, not the inner thighs.
             # The narrow lower point tapers toward the clitoral region; the upper
@@ -308,7 +317,7 @@ def main():
             if region == "snail_trail":
                 stroke_width = 1
             else:
-                stroke_width = 2 if region == "landing_strip" else (2 if (args.coverage == "aldric" and region != "armpits") or (args.coverage == "dagna" and region == "pubic") else 1)
+                stroke_width = 2 if region == "landing_strip" else (2 if (args.coverage == "aldric" and region != "armpits") or (args.coverage in {"dagna", "reyna"} and region == "pubic") else 1)
             draw.line((x, y, x + dx, y + dy), fill=shade, width=stroke_width)
             counts[region] += 1
 
@@ -316,7 +325,7 @@ def main():
     combined_mask = Image.new("L", (width, height), 0)
     for mask in masks.values():
         combined_mask = ImageChops.lighter(combined_mask, mask)
-    if args.coverage == "dagna":
+    if args.coverage in {"dagna", "reyna"}:
         # Break the hard geometric edge into a softer, naturally irregular boundary.
         combined_mask = combined_mask.filter(ImageFilter.GaussianBlur(radius=4.5))
 
