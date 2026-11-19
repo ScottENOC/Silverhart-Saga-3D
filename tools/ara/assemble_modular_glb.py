@@ -169,8 +169,8 @@ def add(target,buf,source_path,selector):
     # as the garment primitive. Accessor indices are document-local: they must
     # never be copied verbatim from the source GLB into the destination GLB.
     source_targets=p.get('targets', [])
-    if len(source_targets) != target_count:
-        raise ValueError(f'{selector}: expected {target_count} morph targets, found {len(source_targets)}')
+    if len(source_targets) != source_count:
+        raise ValueError(f'{selector}: expected {source_count} source morph targets, found {len(source_targets)}')
     remapped_targets=[]
     for target_attrs in source_targets:
         remapped={}
