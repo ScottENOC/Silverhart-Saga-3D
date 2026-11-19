@@ -197,8 +197,22 @@ def add_tattoo_mesh(skin, tattoo_paths, ink_hex):
         if name == "mirabel_arcane":
             back = back_y
             front = front_y
-            shoulder_z = centre.z + height * 0.29
-            mid_z = centre.z + height * 0.12
+            # Keep the back sigil below the long-hair curtain and add a matching
+            # chest-side mark where it is visibly on skin rather than hair.
+            shoulder_z = centre.z + height * 0.17
+            mid_z = centre.z + height * 0.05
+            chest_z = centre.z + height * 0.20
+            path([Vector((centre.x, front, chest_z + height * .035)),
+                  Vector((centre.x - width * .045, front, chest_z)),
+                  Vector((centre.x, front, chest_z - height * .040)),
+                  Vector((centre.x + width * .045, front, chest_z)),
+                  Vector((centre.x, front, chest_z + height * .035))],
+                 height * .0038, False)
+            for side in (-1.0, 1.0):
+                path([Vector((centre.x + side * width * .045, front, chest_z)),
+                      Vector((centre.x + side * width * .075, front, chest_z + height * .020)),
+                      Vector((centre.x + side * width * .095, front, chest_z - height * .015))],
+                     height * .0030, False)
             path([Vector((centre.x, back, shoulder_z)),
                   Vector((centre.x - width * .08, back, shoulder_z - height * .035)),
                   Vector((centre.x, back, mid_z)),
@@ -321,9 +335,7 @@ def add_hoop(socket, radius, material, name, hang_down=False):
     # The socket is on the ear surface. Move the hoop laterally outward just
     # enough for its outer half to clear the lobe, with only a tiny front offset.
     # This keeps the piercing attached to the earlobe instead of floating in front.
-    if name.startswith("Piercing_SOCKET_Earring_"):
-        side = 1.0 if name.endswith("_L") else -1.0
-        centre += Vector((side * 0.010, -0.003, 0.0))
+    # Earring sockets are already surface-anchored; do not add a second lateral offset.
     world.translation = centre
     bpy.ops.mesh.primitive_torus_add(major_segments=32, minor_segments=12,
                                      location=world.translation,
@@ -432,21 +444,39 @@ def add_nipple_barbell(socket, material):
 def add_piercings(entries, skin):
     material = make_material("Ara_Piercing_Silver", "#C6CBD0", 0.82, 0.24)
     sockets = {obj.name: obj for obj in bpy.context.scene.objects}
-    surface_tree = make_skin_surface_tree(skin) if "clit" in entries else None
+    surface_tree = make_skin_surface_tree(skin) if any(entry in entries for entry in ("clit", "earrings")) else None
     count = 0
     for entry in entries:
         if entry == "earrings":
             for name in ("SOCKET_Earring_L", "SOCKET_Earring_R"):
                 socket = sockets.get(name)
                 if socket:
-                    pos = socket.matrix_world.translation.copy()
+                    lo, hi = world_bounds(skin)
+                    size = hi - lo
+                    centre = (lo + hi) * 0.5
+                    side = 1.0 if name.endswith("_L") else -1.0
+                    # The exported socket's local offset is far outside the ear
+                    # after the Head-bone transform. Re-anchor it by ray-casting
+                    # onto the actual skin at ear height, using Blender Z-up.
+                    target_x = centre.x + side * size.x * 0.080
+                    target_z = lo.z + size.z * 0.895
+                    hit, normal, _face, _distance = surface_tree.ray_cast(
+                        Vector((target_x, lo.y - 0.5, target_z)),
+                        Vector((0.0, 1.0, 0.0)),
+                        5.0,
+                    )
+                    if hit is None:
+                        raise RuntimeError(
+                            f"Could not anchor {name} to the ear skin surface "
+                            f"at x={target_x:.3f}, z={target_z:.3f}"
+                        )
+                    socket_world = socket.matrix_world.copy()
+                    socket_world.translation = hit + normal * 0.002
+                    socket.matrix_world = socket_world
                     print(
                         f"EAR_SOCKET_SURFACE_ANCHOR {name} "
-                        f"world={tuple(round(v,4) for v in pos)}"
+                        f"world={tuple(round(v,4) for v in socket.matrix_world.translation)}"
                     )
-                    # The anatomy builder already places these sockets on the
-                    # lateral ear contour. Preserve that attachment; do not
-                    # replace it with a front-of-face fallback coordinate.
                     add_hoop(socket, 0.016, material, "Piercing_" + name, hang_down=True)
                     count += 1
                 else:
