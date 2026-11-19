@@ -81,7 +81,7 @@ def main():
     elif args.coverage == "dagna":
         names = ["pubic"]
     else:
-        names = ["armpits", "pubic"] + (["chest", "snail_trail", "scrotum"] if args.coverage == "aldric" else [])
+        names = ["armpits", "pubic"] + (["chest", "snail_trail"] if args.coverage == "aldric" else [])
     masks = {name: Image.new("L", (width, height), 0) for name in names}
     draws = {key: ImageDraw.Draw(mask) for key, mask in masks.items()}
     regions = {name: 0 for name in names}
@@ -216,12 +216,13 @@ def main():
             # Restore the earlier front-facing axilla placement that produced
             # the best result: compact lateral underside patches, not posterior
             # shoulder/lat coverage. This is the 0.76-0.83 band from the #86 pass.
-            paint_clipped("armpits", tri, band(0.74, 0.81,
-                                                centre_x - 0.24, centre_x - 0.16,
-                                                front=True))
-            paint_clipped("armpits", tri, band(0.74, 0.81,
-                                                centre_x + 0.16, centre_x + 0.24,
-                                                front=True))
+            # Keep the axillae on the side/underside transition, not the front
+            # pectorals. A narrow Z band shifts the markings slightly rearward.
+            for x0, x1 in ((centre_x - 0.27, centre_x - 0.19),
+                           (centre_x + 0.19, centre_x + 0.27)):
+                axilla = band(0.72, 0.79, x0, x1, front=None)
+                axilla.extend((lambda p: p[2] - 0.055, lambda p: -p[2]))
+                paint_clipped("armpits", tri, axilla)
             # Keep the central trail slender overall, but let its lower end
             # broaden slightly where it meets the pubic hair.
             trail_y0, trail_y1 = 0.39, 0.56
@@ -238,7 +239,7 @@ def main():
             # Raise the whole pubic region by 8 cm. A rounded-rectangle signed
             # distance keeps the four corners soft instead of making a hard box.
             pubic_y0, pubic_y1 = 0.43 + 0.08 / height_m, 0.50 + 0.08 / height_m
-            pubic_half_width, pubic_corner = 0.070, 0.018
+            pubic_half_width, pubic_corner = 0.070, 0.025
             pubic_mid_y = (pubic_y0 + pubic_y1) * 0.5
             pubic_half_height = (pubic_y1 - pubic_y0) * 0.5
             def rounded_pubic(p):
@@ -250,9 +251,6 @@ def main():
                 rounded_pubic,
                 lambda p: 0.035 - p[2],
             ])
-            paint_clipped("scrotum", tri, band(0.38, 0.44,
-                                                  centre_x - 0.055,
-                                                  centre_x + 0.055))
             # Chest centre rises another 2 cm from the previous 4 cm lift.
             # The upper edge fans out; the sides are softened after UV clipping.
             chest_lift = 0.06 / height_m
@@ -301,7 +299,7 @@ def main():
     elif args.coverage == "aldric":
         # Keep hair localised: compact axillae, a narrow sternum diamond,
         # central snail trail and pubic/scrotal regions. No arm or leg masks.
-        densities.update({"armpits": 300, "chest": 280, "snail_trail": 300, "scrotum": 200, "pubic": 500})
+        densities.update({"armpits": 240, "chest": 280, "snail_trail": 300, "pubic": 500})
     default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
     colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
     if len(colour_hex) != 6:
