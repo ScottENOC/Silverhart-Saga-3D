@@ -714,7 +714,7 @@ def expand_lower_garments(objects, pelvis_z, body_front_y, width):
                 continue
             material = obj.material_slots[poly.material_index].material
             label = material.name.lower() if material else ""
-            is_bikini_lower = "bikini bottom" in label or "bikini string" in label
+            is_bikini_lower = "bikini bottom" in label or "bikini string" in label or "g-string" in label
             if "brief" in label or "underwear" in label or is_bikini_lower:
                 briefs_vertices.update(poly.vertices)
             elif any(k in label for k in ("pants", "trouser", "breech")):
