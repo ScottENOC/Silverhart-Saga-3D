@@ -7,6 +7,7 @@ The placement is intentionally sparse and is reported for review.
 """
 import argparse
 import json
+import math
 import random
 import struct
 from io import BytesIO
