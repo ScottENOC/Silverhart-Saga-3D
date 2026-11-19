@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Compile anatomy, clothing and review tools
-        run: python -m py_compile tools/ara/patch_layering.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
+        run: python -m py_compile tools/ara/patch_layering.py tools/ara/patch_halter_bra.py tools/ara/patch_g_string.py tools/ara/extract_selected_garments.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
       - name: Validate Wren Workshop JavaScript
         run: |
           python - <<'PY'
@@ -372,6 +372,7 @@ jobs:
             --output-dir art/characters/ara_runtime/garments \
             --only standard_bra standard_briefs triangle_bikini_top string_bikini_bottom g_string lace_briefs fishnet_briefs
           find art/characters/ara_runtime/garments -maxdepth 1 -type f -name '*.glb' -size +0c | sort
+          test "$(find art/characters/ara_runtime/garments -maxdepth 1 -type f -name '*.glb' -size +0c | wc -l)" -eq 7
       - name: Collect integrated models and review renders
         uses: actions/download-artifact@v8
         with:
