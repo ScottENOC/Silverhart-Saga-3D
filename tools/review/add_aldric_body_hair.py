@@ -181,7 +181,7 @@ def main():
         return maximum, 0
 
     aldric_pubic_width, aldric_pubic_faces = (
-        adaptive_pubic_half_width(0.28, 0.38)
+        adaptive_pubic_half_width(0.34, 0.42)
         if args.coverage == "aldric" else (None, None)
     )
 
@@ -224,7 +224,7 @@ def main():
                                                 front=True))
             # A very fine vertical trail runs from the navel down towards the
             # pubic mound.
-            paint_clipped("snail_trail", tri, band(0.38, 0.48,
+            paint_clipped("snail_trail", tri, band(0.42, 0.54,
                                                     centre_x - 0.004, centre_x + 0.004))
             # Preserve Aldric's original lower pubic-hair position; adapt only
             # the width and horizontal centre to the actual body mesh.
