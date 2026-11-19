@@ -19,6 +19,8 @@ on:
     paths:
       - "character-preview/reyna-ara.json"
       - "tools/blender/add_character_details.py"
+      - "tools/blender/add_abdominal_definition.py"
+      - "tools/review/add_aldric_body_hair.py"
       - "tools/review/recolor_wren_glb.py"
       - ".github/workflows/build-reyna-native-ara.yml"
 
@@ -104,14 +106,15 @@ jobs:
             --hair-gamma 0.28
           test -s build/reyna-native/Reyna.glb
 
-      - name: Add moderate abdominal muscle definition
+      - name: Add subtle, shortened abdominal muscle definition
         run: |
           set -euo pipefail
           PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
             --python tools/blender/add_abdominal_definition.py -- \
             --input build/reyna-native/Reyna.glb \
             --output build/reyna-native/Reyna-defined.glb \
-            --strength 0.85
+            --strength 0.35 \
+            --vertical-offset-m 0.05
           test -s build/reyna-native/Reyna-defined.glb
           mv build/reyna-native/Reyna-defined.glb build/reyna-native/Reyna.glb
 
