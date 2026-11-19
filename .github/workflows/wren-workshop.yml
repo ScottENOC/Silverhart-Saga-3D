@@ -364,6 +364,14 @@ jobs:
           # The body-only export is consumed as the base skin in the Workshop.
           cp /tmp/ara-generated/ara_person_benchmark.glb art/characters/ara/
           cp /tmp/ara-generated/ara_person_mobile.glb art/characters/ara/
+      - name: Extract standalone underwear garment GLBs
+        run: |
+          set -euo pipefail
+          python tools/ara/extract_selected_garments.py \
+            --source-dir /tmp/ara-generated \
+            --output-dir art/characters/ara_runtime/garments \
+            --only standard_bra standard_briefs triangle_bikini_top string_bikini_bottom g_string lace_briefs fishnet_briefs
+          find art/characters/ara_runtime/garments -maxdepth 1 -type f -name '*.glb' -size +0c | sort
       - name: Collect integrated models and review renders
         uses: actions/download-artifact@v8
         with:
@@ -521,6 +529,7 @@ jobs:
           path: |
             art/characters/ara/*.glb
             art/characters/ara/*.params.json
+            art/characters/ara_runtime/garments/*.glb
             art/characters/ara/review/**
           if-no-files-found: error
           retention-days: 14
@@ -543,6 +552,8 @@ jobs:
           set -euo pipefail
           PACKAGE_DIR="$GITHUB_WORKSPACE/art/characters/ara_runtime_package"
           mkdir -p "$PACKAGE_DIR"
+          mkdir -p "$PACKAGE_DIR/garments"
+          cp art/characters/ara_runtime/garments/*.glb "$PACKAGE_DIR/garments/"
           for asset in ara_person_benchmark.glb ara_person_body.glb ara_person_modular.glb ara_person_modular_underwear.glb ara_person_male_body.glb; do
             source="art/characters/ara/$asset"
             test -s "$source"
@@ -554,9 +565,9 @@ jobs:
           from pathlib import Path
           package = Path(os.environ["PACKAGE_DIR"])
           assets = {}
-          for path in sorted(package.glob("*.glb")):
+          for path in sorted(package.glob("**/*.glb")):
               payload = path.read_bytes()
-              assets[path.name] = {"size_bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
+              assets[str(path.relative_to(package))] = {"size_bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
           manifest = {
               "schema_version": 1,
               "package_version": os.environ["GITHUB_SHA"],
