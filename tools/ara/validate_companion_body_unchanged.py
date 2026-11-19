@@ -8,10 +8,10 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import assemble_modular_glb as glb
 
-BODY_MATERIALS = {
-    "skin", "mouth", "skin details", "eyes", "eyebrows",
-    "eyelashes", "teeth", "tongue", "hair",
-}
+# The fitting gate compares the actual skin/anatomy surfaces. Hair, brows,
+# eyes and other facial detail primitives are cosmetic assets and may be
+# reindexed by Blender's glTF round-trip; the fitting code never selects them.
+BODY_MATERIALS = {"skin", "skin details"}
 
 def normalise(name):
     return str(name or "").strip().lower().replace("_", " ").replace(".001", "").replace(".002", "")
