@@ -48,14 +48,14 @@
     },
     "seed": 4517,
     "piercings": [
-      "earrings",
       "clit"
     ],
-    "tattoo_ink": "#30283D"
+    "tattoo_ink": "#30283D",
+    "earrings": "small_hoops",
+    "earringMetal": "silver"
   },
   "character_details": {
     "piercings": [
-      "earrings",
       "clit"
     ],
     "tattoos": [
