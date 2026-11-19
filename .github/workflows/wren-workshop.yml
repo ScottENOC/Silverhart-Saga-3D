@@ -254,6 +254,7 @@ jobs:
           retention-days: 2
 
   integrate:
+    if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
     needs: generate
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -312,6 +313,7 @@ jobs:
           retention-days: 2
 
   integrate-male:
+    if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
     needs: generate
     runs-on: ubuntu-latest
     timeout-minutes: 30
