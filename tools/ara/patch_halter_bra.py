@@ -21,11 +21,11 @@ text = text.replace(old_import, new_import, 1)
 
 # Replace the previous lace lattice with Ara's distinct corded guipure texture.
 start_marker = "    } else if (mode === 'lace') {"
-end_marker = "\\n    }\\n  }\\n  const skin = upperSkin(b);"
+end_marker = "\n    }\n  }\n  const skin = upperSkin(b);"
 if text.count(start_marker) != 1 or text.count(end_marker) != 1:
     raise SystemExit("Expected exactly one halter lace branch; refusing to patch.")
 start = text.index(start_marker)
-end = text.index(end_marker, start) + len("\\n    }")
+end = text.index(end_marker, start) + len("\n    }")
 replacement = """    } else if (mode === 'lace') {
       const laceMaterial = swimMat(g, 'Halter lace bra cups', { ...st, pattern: 'lace' });
       parts.push({
@@ -80,7 +80,7 @@ text = text[:block_start] + panel + text[block_end:]
 signature = "function bikiniTop(g: GCtx, st: GarmentStyle, mode: 'lace' | 'fishnet' | null = null): GPart[] {"
 if text.count(signature) != 1:
     raise SystemExit("Expected one bikiniTop signature; refusing to patch.")
-text = text.replace(signature, signature + "\\n  // " + marker, 1)
+text = text.replace(signature, signature + "\n  // " + marker, 1)
 
 source.write_text(text, encoding="utf-8")
 print("Built distinct lace cups and broad fishnet/lace panels over the back, shoulders and rear neck.")
