@@ -122,7 +122,7 @@ def main():
         "--only",
         nargs="*",
         choices=sorted(ASSETS),
-        help="optional subset; defaults to the nine selected garments",
+        help="optional subset; defaults to all configured garment exports",
     )
     parser.add_argument(
         "--dry-run",
