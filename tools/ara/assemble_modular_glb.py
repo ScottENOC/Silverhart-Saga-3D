@@ -158,9 +158,19 @@ def add(target,buf,source_path,selector):
     target_lo, target_hi = body_bounds(target, buf)
     source_size = [source_hi[i] - source_lo[i] for i in range(3)]
     target_size = [target_hi[i] - target_lo[i] for i in range(3)]
-    if any(value <= 1e-6 for value in source_size):
-        raise ValueError(f"Invalid source body bounds in {source_path}: {source_size}")
-    fit_scale = [target_size[i] / source_size[i] for i in range(3)]
+    fit_scale = []
+    for axis, (source_extent, target_extent) in enumerate(zip(source_size, target_size)):
+        if source_extent <= 1e-6:
+            if target_extent <= 1e-6:
+                # Small synthetic fixtures can be planar. Preserve that axis
+                # rather than rejecting an otherwise valid morph-target test.
+                fit_scale.append(1.0)
+                continue
+            raise ValueError(
+                f"Invalid source body bounds in {source_path}: "
+                f"axis {axis} has source extent {source_extent} but target extent {target_extent}"
+            )
+        fit_scale.append(target_extent / source_extent)
     source_centre = [(source_lo[i] + source_hi[i]) * 0.5 for i in range(3)]
     target_centre = [(target_lo[i] + target_hi[i]) * 0.5 for i in range(3)]
     target_mesh=target['meshes'][tn['mesh']]
