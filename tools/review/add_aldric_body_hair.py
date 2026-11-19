@@ -230,12 +230,12 @@ def main():
             # Preserve Aldric's original lower pubic-hair position; adapt only
             # the width and horizontal centre to the actual body mesh.
             # Broaden and raise the pubic region; avoid an empty adaptive mask.
-            paint_clipped("pubic", tri, band(0.30, 0.44,
-                                                centre_x - aldric_pubic_width,
-                                                centre_x + aldric_pubic_width))
-            paint_clipped("scrotum", tri, band(0.24, 0.32,
-                                                  centre_x - 0.065,
-                                                  centre_x + 0.065))
+            paint_clipped("pubic", tri, band(0.43, 0.50,
+                                                centre_x - 0.070,
+                                                centre_x + 0.070))
+            paint_clipped("scrotum", tri, band(0.38, 0.44,
+                                                  centre_x - 0.055,
+                                                  centre_x + 0.055))
             # Compact upper-chest diamond centred on the sternum, at nipple height.
             # Its widest point is around the nipple line and it tapers both upward
             # and downward; keep it well clear of the navel and upper abdomen.
