@@ -2301,6 +2301,11 @@ func _unhandled_input(event: InputEvent) -> void:
         var mouse_event := event as InputEventMouseButton
         if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
             var clicked_hex: Vector2i = _screen_position_to_hex(mouse_event.position)
+            if spellbook_panel != null and spellbook_panel.is_awaiting_hex_target():
+                if clicked_hex != INVALID_HEX:
+                    spellbook_panel.handle_hex_click(clicked_hex)
+                get_viewport().set_input_as_handled()
+                return
             if clicked_hex != INVALID_HEX:
                 _set_move_destination(clicked_hex)
                 get_viewport().set_input_as_handled()
@@ -2308,6 +2313,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
     if event is InputEventKey and event.pressed and not event.echo:
         var key_event := event as InputEventKey
+        if key_event.keycode == KEY_ESCAPE and spellbook_panel != null and spellbook_panel.is_awaiting_hex_target():
+            spellbook_panel.cancel_hex_targeting()
+            get_viewport().set_input_as_handled()
+            return
         if key_event.keycode == KEY_F5:
             _quick_save()
             get_viewport().set_input_as_handled()

@@ -17,6 +17,8 @@ func _run() -> void:
     _test_divine_strength()
     _test_curse()
     _test_summon_animal_and_companion()
+    _test_summon_uses_animal_catalog_and_mount_profile()
+    _test_multi_target_heal()
     _test_entangle()
     _test_calm_animal()
     _test_wild_fury()
@@ -196,6 +198,45 @@ func _test_summon_animal_and_companion() -> void:
     var companion := companion_sim.get_character(String(permanent.get("summoned_id", "")))
     _check(bool(permanent.get("ok", false)) and companion != null and companion.is_animal_companion, "Animal Companion should make the first summon permanent")
     companion_sim.free()
+
+
+func _test_summon_uses_animal_catalog_and_mount_profile() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    var result := _cast_at(sim, caster, Vector2i(1, 0), "summon_animal", {"summon_id": "horse"})
+    var horse := sim.get_character(String(result.get("summoned_id", "")))
+    _check(bool(result.get("ok", false)) and horse != null, "Summon Animal should create a horse from AnimalCatalog")
+    _check(horse != null and horse.race == "animal" and horse.creature_kind == "horse", "Summoned horse should use the shared animal identity")
+    _check(horse != null and horse.mountable and horse.mount_size >= 2, "Summoned horse should retain its mount profile")
+    if horse != null:
+        caster.skills["riding"] = 1
+        _check(bool(sim.can_ride(caster.id, horse.id).get("ok", false)), "A summoned horse should use shared riding eligibility")
+        _check(bool(sim.mount_animal(caster.id, horse.id).get("ok", false)), "A summoned horse should be mountable through WorldSimulation")
+    sim.free()
+
+
+func _test_multi_target_heal() -> void:
+    var setup := _new_sim()
+    var sim: WorldSimulation = setup.sim
+    var caster: CharacterState = setup.caster
+    caster.skills["divine_targets"] = 1
+    var first := CharacterState.new("heal_first", "First Ally", Vector2i(1, 0))
+    var second := CharacterState.new("heal_second", "Second Ally", Vector2i(2, 0))
+    first.side = "player"
+    second.side = "player"
+    first.health = 10
+    second.health = 10
+    sim.register_character(first)
+    sim.register_character(second)
+    var prepared := PreparedSpell.create("heal", {"target_bonus": 1})
+    caster.prepared_spells.append(prepared.to_dict())
+    var request := SimulationActionRequest.cast_spell(caster.id, first.id, prepared)
+    request.options["target_ids"] = [first.id, second.id]
+    var result := sim.submit_action(request, 55)
+    _check(bool(result.get("ok", false)), "Heal should accept a selected multi-target list")
+    _check(first.health == 15 and second.health == 15, "Multi-target Heal should resolve on every selected ally")
+    sim.free()
 
 
 func _test_entangle() -> void:

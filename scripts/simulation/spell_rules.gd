@@ -72,7 +72,7 @@ static func compute_variant(
             return {"ok": false, "reason": "invalid_spell_modifier"}
 
     var summon_id: Variant = modifiers.get("summon_id", "wolf")
-    if not summon_id is String or not ["wolf", "boar", "tiger", "eagle", "unicorn"].has(String(summon_id)):
+    if not summon_id is String or not ["wolf", "boar", "tiger", "eagle", "unicorn", "horse"].has(String(summon_id)):
         return {"ok": false, "reason": "invalid_summon_choice"}
     var calm_mode: Variant = modifiers.get("calm_mode", "stay")
     if not calm_mode is String or not ["stay", "come", "chase"].has(String(calm_mode)):
@@ -184,7 +184,7 @@ static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool
     ]
     if not IMPLEMENTED_IDS.has(spell_id):
         return false
-    if int(variant.get("extra_targets", 0)) > 0:
+    if int(variant.get("extra_targets", 0)) > 0 and spell_id in ["summon_animal", "entangle", "calm_animal", "disguise_self", "feather_fall", "counterspell"]:
         return false
     var modifiers: Dictionary = variant.get("modifiers", {})
     if bool(modifiers.get("burst", false)) and spell_id not in ["heal", "firebolt"]:

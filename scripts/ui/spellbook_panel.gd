@@ -20,6 +20,8 @@ var feedback_message: String = ""
 var _panel: PanelContainer
 var _body: VBoxContainer
 var _content: VBoxContainer
+var pending_target_spell: PreparedSpell
+var pending_target_mode: String = ""
 
 
 func _ready() -> void:
@@ -37,6 +39,8 @@ func configure(world_simulation: WorldSimulation, initial_character_id: String =
 
 
 func set_character(next_character_id: String) -> void:
+    if character_id != next_character_id and is_awaiting_hex_target():
+        cancel_hex_targeting()
     character_id = next_character_id
     selected_spell_id = ""
     feedback_message = ""
@@ -51,6 +55,8 @@ func open_for_character(next_character_id: String = "player") -> void:
 
 func toggle_for_character(next_character_id: String = "player") -> void:
     if visible:
+        if is_awaiting_hex_target():
+            cancel_hex_targeting()
         visible = false
     else:
         open_for_character(next_character_id)
@@ -77,7 +83,11 @@ func refresh() -> void:
     header.add_child(heading)
     var close := Button.new()
     close.text = "×"
-    close.pressed.connect(func(): visible = false)
+    close.pressed.connect(func():
+        if is_awaiting_hex_target():
+            cancel_hex_targeting()
+        visible = false
+    )
     header.add_child(close)
 
     _add_label(_content, "Mana  %d / %d     Time Points  %.0f / %.0f" % [
@@ -174,6 +184,8 @@ func _build_spell_builder(state: CharacterState) -> void:
 
     _add_modifier_spin("Potency", "magnitude_bonus", int(state.skills.get(school_prefix + "magnitude", 0)), modifiers)
     _add_modifier_spin("Range", "range_bonus", int(state.skills.get(school_prefix + "range", 0)), modifiers, 5)
+    if String(definition.get("type", "")) not in ["summon", "aoe_debuff"] and selected_spell_id not in ["disguise_self", "feather_fall"]:
+        _add_modifier_spin("Additional targets", "target_bonus", int(state.skills.get(school_prefix + "targets", 0)), modifiers)
     if selected_spell_id == "entangle" or (bool(modifiers.get("burst", false)) and int(state.skills.get(school_prefix + "burst", 0)) > 0):
         _add_modifier_spin("Area radius", "radius_bonus", int(state.skills.get(school_prefix + "expand", 0)), modifiers)
 
@@ -206,7 +218,7 @@ func _build_spell_builder(state: CharacterState) -> void:
         _content.add_child(touch)
 
     if selected_spell_id == "summon_animal":
-        var summon_selector := _option_row(_content, "Summon", ["wolf", "boar", "tiger", "eagle", "unicorn"], String(modifiers.get("summon_id", "wolf")))
+        var summon_selector := _option_row(_content, "Summon", ["wolf", "boar", "tiger", "eagle", "unicorn", "horse"], String(modifiers.get("summon_id", "wolf")))
         summon_selector.item_selected.connect(func(index: int):
             modifiers["summon_id"] = String(summon_selector.get_item_metadata(index))
             _set_modifiers(modifiers)
@@ -281,15 +293,43 @@ func _build_prepared_row(state: CharacterState, prepared: PreparedSpell, index: 
 
     var row := HBoxContainer.new()
     stack.add_child(row)
-    var target_selector := _make_target_selector(state, prepared.base_spell_id)
-    target_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-    row.add_child(target_selector)
+    var target_selector: OptionButton
+    var selected_target_ids: Array[String] = []
+    var multi_target := int(variant.get("extra_targets", 0)) > 0
+    if multi_target:
+        var target_list := VBoxContainer.new()
+        target_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        stack.add_child(target_list)
+        _add_label(target_list, "Select up to %d targets:" % (int(variant.get("extra_targets", 0)) + 1))
+        for candidate in _target_candidates(state, prepared.base_spell_id):
+            var check := CheckBox.new()
+            check.text = candidate.display_name
+            check.toggled.connect(func(checked: bool):
+                if checked:
+                    if selected_target_ids.size() >= int(variant.get("extra_targets", 0)) + 1:
+                        check.set_pressed_no_signal(false)
+                        feedback_message = "This variant allows %d targets." % (int(variant.get("extra_targets", 0)) + 1)
+                        return
+                    selected_target_ids.append(candidate.id)
+                else:
+                    selected_target_ids.erase(candidate.id)
+            )
+            target_list.add_child(check)
+    else:
+        target_selector = _make_target_selector(state, prepared.base_spell_id)
+        target_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        row.add_child(target_selector)
 
     var cast := Button.new()
-    cast.text = "Cast"
+    cast.text = "Choose hex" if prepared.base_spell_id in ["summon_animal", "entangle"] else "Cast"
     cast.disabled = not bool(variant.get("ok", false)) or prepared.base_spell_id == "counterspell"
     cast.tooltip_text = "Counterspell is offered as a reaction to an enemy spell."
-    cast.pressed.connect(_cast_prepared.bind(prepared, target_selector))
+    if prepared.base_spell_id in ["summon_animal", "entangle"]:
+        cast.pressed.connect(_begin_hex_targeting.bind(prepared))
+    elif multi_target:
+        cast.pressed.connect(_cast_prepared_multi.bind(prepared, selected_target_ids))
+    else:
+        cast.pressed.connect(_cast_prepared.bind(prepared, target_selector))
     row.add_child(cast)
 
     var remove := Button.new()
@@ -348,21 +388,10 @@ func _cast_prepared(prepared: PreparedSpell, selector: OptionButton) -> void:
     if prepared.base_spell_id in ["disguise_self", "feather_fall"]:
         target_id = caster.id
 
-    var request: SimulationActionRequest
-    if prepared.base_spell_id == "summon_animal":
-        var summon_hex := _find_summon_hex(caster)
-        if summon_hex == Vector2i(2147483647, 2147483647):
-            feedback_message = "No free adjacent hex is available for the summon."
-            refresh()
-            return
-        request = ACTION_REQUEST.cast_spell_at_hex(caster.id, summon_hex, prepared)
-    elif prepared.base_spell_id == "entangle":
-        var target := simulation.get_character(target_id)
-        var centre := target.axial if target != null else caster.axial
-        request = ACTION_REQUEST.cast_spell_at_hex(caster.id, centre, prepared, target_id)
-    else:
-        request = ACTION_REQUEST.cast_spell(caster.id, target_id, prepared)
-
+    if prepared.base_spell_id in ["summon_animal", "entangle"]:
+        _begin_hex_targeting(prepared)
+        return
+    var request := ACTION_REQUEST.cast_spell(caster.id, target_id, prepared)
     var result := simulation.submit_action(request)
     if bool(result.get("ok", false)):
         feedback_message = "Cast submitted: " + String(SPELL_RULES.get_base_spell(prepared.base_spell_id).get("name", prepared.base_spell_id))
@@ -371,12 +400,72 @@ func _cast_prepared(prepared: PreparedSpell, selector: OptionButton) -> void:
     refresh()
 
 
-func _find_summon_hex(caster: CharacterState) -> Vector2i:
-    for direction in HEX_DIRECTIONS:
-        var candidate: Vector2i = caster.axial + direction
-        if simulation.map_data.is_walkable(candidate) and not simulation.is_hex_occupied(candidate):
-            return candidate
-    return Vector2i(2147483647, 2147483647)
+func _begin_hex_targeting(prepared: PreparedSpell) -> void:
+    if simulation == null or prepared == null:
+        return
+    pending_target_spell = prepared
+    pending_target_mode = "summon" if prepared.base_spell_id == "summon_animal" else "area"
+    feedback_message = "Click an unoccupied walkable hex to summon." if pending_target_mode == "summon" else "Click the centre hex for Entangle. Press Escape to cancel."
+    refresh()
+
+
+func is_awaiting_hex_target() -> bool:
+    return pending_target_spell != null
+
+
+func cancel_hex_targeting() -> void:
+    pending_target_spell = null
+    pending_target_mode = ""
+    feedback_message = "Spell targeting cancelled; no resources spent."
+    refresh()
+
+
+func handle_hex_click(target_hex: Vector2i) -> bool:
+    if pending_target_spell == null or simulation == null:
+        return false
+    var caster := simulation.get_character(character_id)
+    if caster == null:
+        cancel_hex_targeting()
+        return true
+    if not simulation.map_data.is_walkable(target_hex):
+        feedback_message = "That hex is not a valid target."
+        refresh()
+        return true
+    if pending_target_mode == "summon" and simulation.is_hex_occupied(target_hex):
+        feedback_message = "That hex is occupied. Choose another hex."
+        refresh()
+        return true
+    var prepared := pending_target_spell
+    pending_target_spell = null
+    pending_target_mode = ""
+    var request := ACTION_REQUEST.cast_spell_at_hex(caster.id, target_hex, prepared)
+    var result := simulation.submit_action(request)
+    if bool(result.get("ok", false)):
+        feedback_message = "Cast submitted at hex %s, %s." % [target_hex.x, target_hex.y]
+    else:
+        feedback_message = "Cast failed: " + String(result.get("reason", "unknown")).replace("_", " ")
+    refresh()
+    return true
+
+
+func _cast_prepared_multi(prepared: PreparedSpell, selected_target_ids: Array[String]) -> void:
+    var caster := simulation.get_character(character_id) if simulation != null else null
+    if caster == null:
+        feedback_message = "Caster unavailable."
+        refresh()
+        return
+    if selected_target_ids.is_empty():
+        feedback_message = "Select at least one target."
+        refresh()
+        return
+    var request := ACTION_REQUEST.cast_spell(caster.id, selected_target_ids[0], prepared)
+    request.options["target_ids"] = selected_target_ids.duplicate()
+    var result := simulation.submit_action(request)
+    if bool(result.get("ok", false)):
+        feedback_message = "Cast submitted against %d targets." % selected_target_ids.size()
+    else:
+        feedback_message = "Cast failed: " + String(result.get("reason", "unknown")).replace("_", " ")
+    refresh()
 
 
 func _prepare_spell(modifiers: Dictionary) -> void:
@@ -495,5 +584,5 @@ func _add_label(parent: VBoxContainer, message: String) -> void:
 func _on_action_committed(event: SimulationEvent) -> void:
     if event == null:
         return
-    if visible and event.event_type in ["spell_cast", "spell_countered", "character_moved", "character_damaged"]:
+    if visible and event.event_type in ["spell_cast", "spell_countered", "character_moved", "character_damaged", "animal_mounted", "animal_dismounted"]:
         refresh()

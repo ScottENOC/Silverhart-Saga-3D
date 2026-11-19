@@ -2,8 +2,8 @@ class_name AnimalCatalog
 extends RefCounted
 ## Gameplay profiles for every animal model currently shipped in art/creatures.
 ## Values for horse, wolf and deer preserve the original Hex-crpg template
-## health/skills where those templates exist. Other profiles are explicit
-## first-pass 3D baselines, not claimed conversions from the 2D game.
+## health/skills where those templates exist. Legacy summon creatures use
+## their existing summon baselines; other profiles are first-pass 3D baselines.
 
 const PROFILES: Dictionary = {
     "cow": {
@@ -26,6 +26,34 @@ const PROFILES: Dictionary = {
         "vision": 0, "scent": 1, "size": 3, "mount_size": 3, "mountable": true,
         "carry_capacity": 4, "movement_mode": "ground", "temperament": "domestic",
         "skills": {"health": 4, "fastMovement": 2}
+    },
+    "boar": {
+        "display_name": "Boar", "health": 24, "strength": 5, "endurance": 6, "agility": 3,
+        "damage": 3, "to_hit": 0.0, "dodge": 0.0, "tp_rate": 1.0, "fast_movement": 0,
+        "vision": 0, "scent": 2, "size": 2, "mount_size": 0, "mountable": false,
+        "carry_capacity": 0, "movement_mode": "ground", "temperament": "aggressive",
+        "skills": {}
+    },
+    "tiger": {
+        "display_name": "Tiger", "health": 22, "strength": 7, "endurance": 5, "agility": 7,
+        "damage": 6, "to_hit": 5.0, "dodge": 5.0, "tp_rate": 1.0, "fast_movement": 1,
+        "vision": 5, "scent": 2, "size": 3, "mount_size": 0, "mountable": false,
+        "carry_capacity": 0, "movement_mode": "ground", "temperament": "predator",
+        "skills": {"fastMovement": 1}
+    },
+    "eagle": {
+        "display_name": "Eagle", "health": 14, "strength": 3, "endurance": 3, "agility": 9,
+        "damage": 4, "to_hit": 5.0, "dodge": 10.0, "tp_rate": 1.0, "fast_movement": 1,
+        "vision": 10, "scent": 0, "size": 1, "mount_size": 0, "mountable": false,
+        "carry_capacity": 0, "movement_mode": "flying", "flying": true, "temperament": "predator",
+        "skills": {"fastMovement": 1}
+    },
+    "unicorn": {
+        "display_name": "Unicorn", "health": 30, "strength": 7, "endurance": 7, "agility": 7,
+        "damage": 7, "to_hit": 5.0, "dodge": 5.0, "tp_rate": 1.0, "fast_movement": 1,
+        "vision": 5, "scent": 2, "size": 3, "mount_size": 3, "mountable": true,
+        "carry_capacity": 3, "movement_mode": "ground", "fey": true, "temperament": "fey",
+        "skills": {"fastMovement": 1}
     },
     "donkey": {
         "display_name": "Donkey", "health": 35, "strength": 4, "endurance": 7, "agility": 3,
@@ -123,6 +151,9 @@ static func create_state(
     state.character_class = "creature"
     state.creature_kind = kind
     state.tags = ["animal", kind]
+    if bool(profile.get("fey", false)):
+        state.tags.append("fey")
+    state.is_flying = bool(profile.get("flying", false))
     state.animal_attributes = {
         "strength": int(profile["strength"]),
         "endurance": int(profile["endurance"]),
