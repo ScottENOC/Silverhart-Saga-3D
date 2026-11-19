@@ -31,7 +31,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: build-mirabel-native-ara
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
