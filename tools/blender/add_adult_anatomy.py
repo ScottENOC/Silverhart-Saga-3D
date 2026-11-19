@@ -789,12 +789,12 @@ def fit_female_clothing(objects, skin):
     # fold without making the clothing visibly float away from the chest.
     lower = fit_garment_clearance(
         objects, skin,
-        ("brief", "bikini bottom", "bikini strings", "pants", "trouser", "breech"),
+        ("brief", "bikini bottom", "bikini strings", "g-string", "pants", "trouser", "breech"),
         clearance=0.006,
     )
     upper = fit_garment_clearance(
         objects, skin,
-        ("bra", "halter", "fatigue shirt", "tank top", "shirt", "dress"),
+        ("bra", "halter", "bikini top", "fatigue shirt", "tank top", "shirt", "dress"),
         clearance=0.0045,
     )
     print(f"Female garment fitting complete: {lower} lower-body and {upper} upper-body vertices adjusted")
