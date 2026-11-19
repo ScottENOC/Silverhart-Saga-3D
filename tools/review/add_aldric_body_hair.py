@@ -14,7 +14,7 @@ from io import BytesIO
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageChops
+from PIL import Image, ImageDraw, ImageChops, ImageFilter
 
 
 def parse_glb(data):
@@ -174,7 +174,7 @@ def main():
     if args.coverage == "reyna":
         pubic_half_width = adaptive_pubic_half_width(0.49, 0.52)
     elif args.coverage == "aldric":
-        pubic_half_width = adaptive_pubic_half_width(0.36, 0.43)
+        pubic_half_width = adaptive_pubic_half_width(0.44, 0.51)
 
     def band(y0, y1, x0, x1, front=True):
         constraints = [
@@ -211,12 +211,12 @@ def main():
             # upper torso rather than allowing a broad triangle to reach the
             # chest or flank.
             for side in (-1, 1):
-                paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
-                                                     side * 0.075 if side < 0 else 0.19, front=True))
-                paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
-                                                     side * 0.075 if side < 0 else 0.19, front=False))
-            # Adapt the mask width to the exported pelvic topology; retain front-depth clipping.
-            paint_clipped("pubic", tri, band(0.49, 0.52, -pubic_half_width, pubic_half_width))
+                paint_clipped("armpits", tri, band(0.75, 0.82, side * 0.22 if side < 0 else 0.14,
+                                                     side * 0.14 if side < 0 else 0.22, front=True))
+                paint_clipped("armpits", tri, band(0.75, 0.82, side * 0.22 if side < 0 else 0.14,
+                                                     side * 0.14 if side < 0 else 0.22, front=False))
+            # Widen and lower the mask slightly, but keep the centreline clear of the vulva.
+            paint_clipped("pubic", tri, band(0.47, 0.53, -pubic_half_width, pubic_half_width))
         elif args.coverage == "dagna":
             # Keep Dagna's hair on the central pubic mound, not the inner thighs.
             # The narrow lower point tapers toward the clitoral region; the upper
@@ -236,13 +236,13 @@ def main():
             # Keep axillary hair high and lateral. The previous 0.75-0.82
             # band selected the lower pectoral/rib area, not the armpit.
             # Place axillary hair on the lateral underside of the upper torso, not the shoulder caps.
-            paint_clipped("armpits", tri, band(0.76, 0.83, centre_x - 0.18, centre_x - 0.11, front=True))
-            paint_clipped("armpits", tri, band(0.76, 0.83, centre_x + 0.11, centre_x + 0.18, front=True))
-            # Keep the snail trail on the front centreline; its strokes are drawn vertically below.
-            paint_clipped("snail_trail", tri, band(0.34, 0.48, centre_x - 0.006, centre_x + 0.006))
-            # Re-centre the pubic mask on the actual exported body's X midpoint.
-            paint_clipped("pubic", tri, band(0.36, 0.43, centre_x - pubic_half_width, centre_x + pubic_half_width))
-            paint_clipped("scrotum", tri, band(0.24, 0.34, -0.080, 0.080))
+            paint_clipped("armpits", tri, band(0.74, 0.81, centre_x - 0.24, centre_x - 0.16, front=True))
+            paint_clipped("armpits", tri, band(0.74, 0.81, centre_x + 0.16, centre_x + 0.24, front=True))
+            # Vertical centreline begins above the pubic mound and runs toward the navel.
+            paint_clipped("snail_trail", tri, band(0.50, 0.57, centre_x - 0.006, centre_x + 0.006))
+            # The earlier 0.36-0.43 band selected inner-thigh skin; use the lower abdomen/pubic mound.
+            paint_clipped("pubic", tri, band(0.44, 0.51, centre_x - pubic_half_width, centre_x + pubic_half_width))
+            paint_clipped("scrotum", tri, band(0.34, 0.40, centre_x - 0.065, centre_x + 0.065))
             # A true narrow diamond, clipped as two linear wedges.
             lower = [lambda p: 0.60 - yn_of(p), lambda p: yn_of(p) - 0.65,
                      lambda p: p[0] - 0.56 * p[1] + 0.336,
@@ -316,6 +316,9 @@ def main():
     combined_mask = Image.new("L", (width, height), 0)
     for mask in masks.values():
         combined_mask = ImageChops.lighter(combined_mask, mask)
+    if args.coverage == "dagna":
+        # Break the hard geometric edge into a softer, naturally irregular boundary.
+        combined_mask = ImageFilter.GaussianBlur(combined_mask, radius=4.5)
 
     # Female companions share a clean no-hair zone immediately around the vulva.
     # Build it from the same front-skin triangles and UV interpolation as the
