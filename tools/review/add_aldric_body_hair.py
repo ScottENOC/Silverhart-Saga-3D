@@ -70,6 +70,7 @@ def main():
     if vertical_axis != 1:
         raise RuntimeError(f"Expected Ara's exported Y-up body, found vertical axis {vertical_axis}")
     height_m = float(bounds[1])
+    centre_x = float((positions[:, 0].min() + positions[:, 0].max()) * 0.5)
     rng = random.Random(args.seed)
 
     if args.coverage == "wren":
@@ -191,7 +192,8 @@ def main():
         if args.coverage == "wren":
             # Keep the lower edge at the existing clitoral-hood start, shorten
             # the strip by 40%, and flare only the upper edge by 75%.
-            y0, y1 = 0.49, 0.52
+            # Shift the complete strip upward so its lower edge meets the old upper edge.
+            y0, y1 = 0.52, 0.55
             base_half_width = 0.0065
             top_half_width = base_half_width * 1.75
             slope = (top_half_width - base_half_width) / (y1 - y0)
@@ -215,7 +217,20 @@ def main():
             # Adapt the mask width to the exported pelvic topology; retain front-depth clipping.
             paint_clipped("pubic", tri, band(0.36, 0.43, -pubic_half_width, pubic_half_width))
         elif args.coverage == "dagna":
-            paint_clipped("pubic", tri, band(0.28, 0.37, -0.055, 0.055))
+            # Keep Dagna's hair on the central pubic mound, not the inner thighs.
+            # The narrow lower point tapers toward the clitoral region; the upper
+            # edge broadens over the mons. Centre on the exported body's own bounds.
+            y0, y1 = 0.44, 0.52
+            lower_half_width, upper_half_width = 0.018, 0.070
+            slope = (upper_half_width - lower_half_width) / (y1 - y0)
+            constraints = [
+                lambda p: y0 - yn_of(p),
+                lambda p: yn_of(p) - y1,
+                lambda p: p[0] - (centre_x + lower_half_width + slope * (yn_of(p) - y0)),
+                lambda p: (centre_x - lower_half_width - slope * (yn_of(p) - y0)) - p[0],
+                lambda p: 0.035 - p[2],
+            ]
+            paint_clipped("pubic", tri, constraints)
         elif args.coverage == "aldric":
             # Keep axillary hair high and lateral. The previous 0.75-0.82
             # band selected the lower pectoral/rib area, not the armpit.
