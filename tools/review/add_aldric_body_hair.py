@@ -180,7 +180,7 @@ def main():
         return maximum, 0
 
     aldric_pubic_width, aldric_pubic_faces = (
-        adaptive_pubic_half_width(0.44, 0.51)
+        adaptive_pubic_half_width(0.28, 0.38)
         if args.coverage == "aldric" else (None, None)
     )
 
@@ -213,25 +213,34 @@ def main():
         elif args.coverage == "dagna":
             paint_clipped("pubic", tri, band(0.28, 0.37, -0.055, 0.055))
         elif args.coverage == "aldric":
-            # Keep axillary hair high and lateral. The previous 0.75-0.82
-            # band selected the lower pectoral/rib area, not the armpit.
-            paint_clipped("armpits", tri, band(0.82, 0.89, -0.23, -0.16, front=True))
-            paint_clipped("armpits", tri, band(0.82, 0.89, 0.16, 0.23, front=True))
-            paint_clipped("snail_trail", tri, band(0.38, 0.48, -0.004, 0.004))
-            paint_clipped("pubic", tri, band(0.44, 0.51,
+            # Axillary hair belongs on the lateral underside of the upper torso,
+            # not the shoulder caps.
+            paint_clipped("armpits", tri, band(0.74, 0.81,
+                                                centre_x - 0.24, centre_x - 0.16,
+                                                front=True))
+            paint_clipped("armpits", tri, band(0.74, 0.81,
+                                                centre_x + 0.16, centre_x + 0.24,
+                                                front=True))
+            # A very fine vertical trail runs from the navel down towards the
+            # pubic mound.
+            paint_clipped("snail_trail", tri, band(0.38, 0.48,
+                                                    centre_x - 0.004, centre_x + 0.004))
+            # Preserve Aldric's original lower pubic-hair position; adapt only
+            # the width and horizontal centre to the actual body mesh.
+            paint_clipped("pubic", tri, band(0.28, 0.38,
                                                 centre_x - aldric_pubic_width,
                                                 centre_x + aldric_pubic_width))
-            paint_clipped("scrotum", tri, band(0.34, 0.40,
-                                                  centre_x - 0.065,
-                                                  centre_x + 0.065))
-            # A true narrow diamond, clipped as two linear wedges.
+            paint_clipped("scrotum", tri, band(0.24, 0.34,
+                                                  centre_x - 0.080,
+                                                  centre_x + 0.080))
+            # A narrow chest diamond centred on the sternum, not two long strips.
             lower = [lambda p: 0.60 - yn_of(p), lambda p: yn_of(p) - 0.65,
-                     lambda p: p[0] - 0.56 * p[1] + 0.336,
-                     lambda p: -p[0] - 0.56 * p[1] + 0.336,
+                     lambda p: (p[0] - centre_x) - 0.56 * p[1] + 0.336,
+                     lambda p: -(p[0] - centre_x) - 0.56 * p[1] + 0.336,
                      lambda p: 0.035 - p[2]]
             upper = [lambda p: 0.65 - yn_of(p), lambda p: yn_of(p) - 0.70,
-                     lambda p: p[0] + 0.56 * p[1] - 0.392,
-                     lambda p: -p[0] + 0.56 * p[1] - 0.392,
+                     lambda p: (p[0] - centre_x) + 0.56 * p[1] - 0.392,
+                     lambda p: -(p[0] - centre_x) + 0.56 * p[1] - 0.392,
                      lambda p: 0.035 - p[2]]
             paint_clipped("chest", tri, lower)
             paint_clipped("chest", tri, upper)
@@ -280,12 +289,14 @@ def main():
         for _ in range(count):
             pixel_y, pixel_x = valid_pixels[rng.randrange(len(valid_pixels))]
             x, y = int(pixel_x), int(pixel_y)
-            length = rng.uniform(3.0, 8.0) if region == "armpits" else rng.uniform(4.0, 11.0)
+            length = (rng.uniform(3.0, 8.0) if region == "armpits" else
+                      (rng.uniform(3.0, 5.0) if region == "snail_trail" else rng.uniform(4.0, 11.0)))
             if region == "landing_strip":
                 length = rng.uniform(3.0, 6.0)
                 angle = rng.uniform(-0.08, 0.08)
             else:
-                angle = rng.uniform(-1.1, 1.1) if region == "armpits" else rng.uniform(-0.85, 0.85)
+                angle = (rng.uniform(-1.1, 1.1) if region == "armpits" else
+                         (math.pi / 2 if region == "snail_trail" else rng.uniform(-0.85, 0.85)))
             dx, dy = np.cos(angle) * length, np.sin(angle) * length
             alpha_range = (210, 240) if args.coverage == "dagna" and region == "pubic" else (175, 215)
             shade = (*hair_rgb, rng.randint(*alpha_range))
