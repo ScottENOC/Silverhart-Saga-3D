@@ -505,7 +505,7 @@ jobs:
           # Run one outfit per Blender process. Repeated glTF imports/renders in a
           # single Blender 5.x process can accumulate renderer state and segfault
           # during shutdown after all PNGs have been written (exit 139).
-          for outfit in g_string lace_bra fishnet_bra lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants; do
+          for outfit in standard_bra standard_briefs triangle_bikini_top string_bikini_bottom g_string lace_bra fishnet_bra lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants; do
             echo "Reviewing $outfit in an isolated Blender process"
             set +e
             blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
