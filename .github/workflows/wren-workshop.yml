@@ -451,12 +451,24 @@ jobs:
               mirabel) source=/tmp/companions/mirabel/Mirabel.glb ;;
             esac
             raw="$ROOT/$character/${character}_modular_raw.glb"
+            fitted_full="$ROOT/$character/${character}_modular_fitted_full.glb"
+            garments="$ROOT/$character/${character}_fitted_garments.glb"
             fitted="$ROOT/$character/${character}_modular.glb"
             python tools/ara/build_companion_underwear_previews.py --character "$character" --base-glb "$source" --generated-dir /tmp/ara-generated --output "$raw"
+            # Blender fits garment vertices against the companion skin. Its full
+            # GLB re-export is only an intermediate; never use its body mesh.
             blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- \
-              --input "$raw" --output "$fitted" --profile none --adult --fit-existing
+              --input "$raw" --output "$fitted_full" --profile none --adult --fit-existing
+            # Extract only fitted garment primitives, then attach them to the
+            # untouched original companion GLB.
+            python tools/ara/extract_garment_glb.py --strip-input "$fitted_full" --output "$garments" \
+              --keep-material "triangle bikini" --keep-material "string bikini" \
+              --keep-material "g-string" --keep-material "bra" --keep-material "briefs" \
+              --keep-material "lace briefs" --keep-material "fishnet briefs" \
+              --keep-material "halter lace bra" --keep-material "halter fishnet bra"
+            python tools/ara/assemble_modular_glb.py "$source" "$fitted" "$garments" "*"
             python tools/ara/validate_companion_body_unchanged.py "$source" "$fitted"
-            rm -f "$raw"
+            rm -f "$raw" "$fitted_full" "$garments"
             for outfit in standard_bra standard_briefs triangle_bikini_top string_bikini_bottom g_string lace_bra fishnet_bra lace_briefs fishnet_briefs; do
               phone=0
               case "$character:$outfit" in
