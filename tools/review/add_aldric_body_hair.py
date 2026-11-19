@@ -318,7 +318,7 @@ def main():
         combined_mask = ImageChops.lighter(combined_mask, mask)
     if args.coverage == "dagna":
         # Break the hard geometric edge into a softer, naturally irregular boundary.
-        combined_mask = ImageFilter.GaussianBlur(combined_mask, radius=4.5)
+        combined_mask = combined_mask.filter(ImageFilter.GaussianBlur(radius=4.5))
 
     # Female companions share a clean no-hair zone immediately around the vulva.
     # Build it from the same front-skin triangles and UV interpolation as the
