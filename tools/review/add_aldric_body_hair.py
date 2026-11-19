@@ -123,24 +123,50 @@ def main():
     def yn_of(p):
         return (p[1] - y_min) / height_m
 
-    def adaptive_pubic_half_width(y0, y1, minimum=0.085, maximum=0.18):
-        """Expand past the actual pelvic mesh seam, based on exported topology."""
+    def adaptive_pubic_half_width(y0, y1, minimum=0.085, maximum=0.22):
+        """Find the narrowest pelvic mask width that actually clips enough front-skin UV faces."""
         triangles = positions[indices.reshape(-1, 3)]
         tri_y = (triangles[:, :, 1] - y_min) / height_m
         tri_x = triangles[:, :, 0]
         tri_z = triangles[:, :, 2]
-        candidates = (
+        y_front_candidates = (
             (tri_y.max(axis=1) >= y0)
             & (tri_y.min(axis=1) <= y1)
             & (tri_z.max(axis=1) >= 0.035)
         )
-        if not np.any(candidates):
+        candidate_ids = np.flatnonzero(y_front_candidates)
+        if not len(candidate_ids):
             return maximum
         x_min = tri_x.min(axis=1)
         x_max = tri_x.max(axis=1)
-        distance_from_midline = np.maximum(0.0, np.maximum(x_min, -x_max))
-        nearest = float(distance_from_midline[candidates].min())
-        return min(maximum, max(minimum, nearest + 0.02))
+        for half_width in np.arange(minimum, maximum + 0.0001, 0.01):
+            possible = candidate_ids[
+                (x_max[candidate_ids] >= -half_width)
+                & (x_min[candidate_ids] <= half_width)
+            ]
+            clipped_faces = 0
+            for triangle_id in possible:
+                poly = []
+                for vertex in indices.reshape(-1, 3)[triangle_id]:
+                    p = positions[vertex]
+                    uv = uvs[vertex]
+                    poly.append((float(p[0]), float(p[1]), float(p[2]), float(uv[0]), float(uv[1])))
+                constraints = [
+                    lambda p, y0=y0: y0 - yn_of(p),
+                    lambda p, y1=y1: yn_of(p) - y1,
+                    lambda p, w=half_width: -w - p[0],
+                    lambda p, w=half_width: p[0] - w,
+                    lambda p: 0.035 - p[2],
+                ]
+                for constraint in constraints:
+                    poly = clip_polygon(poly, constraint)
+                    if len(poly) < 3:
+                        break
+                if len(poly) >= 3:
+                    clipped_faces += 1
+            if clipped_faces >= 8:
+                return round(float(half_width), 3)
+        return maximum
 
     pubic_half_width = None
     if args.coverage == "reyna":
@@ -216,7 +242,7 @@ def main():
     required = list(names)
     missing = [name for name in required if not regions.get(name)]
     if missing:
-        raise RuntimeError(f"Hair placement found no UV faces for {missing}: {regions}; body bounds={bounds.tolist()}")
+        raise RuntimeError(f"Hair placement found no UV faces for {missing}: {regions}; pubic half-width={pubic_half_width}; body bounds={bounds.tolist()}")
 
     # Texture-only hair: no extra meshes, curves, cards or particles.
     layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
