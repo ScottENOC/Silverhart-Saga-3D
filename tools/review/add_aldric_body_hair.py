@@ -301,7 +301,7 @@ def main():
     elif args.coverage == "aldric":
         # Keep hair localised: compact axillae, a narrow sternum diamond,
         # central snail trail and pubic/scrotal regions. No arm or leg masks.
-        densities.update({"armpits": 300, "chest": 260, "snail_trail": 350, "scrotum": 260, "pubic": 650})
+        densities.update({"armpits": 300, "chest": 420, "snail_trail": 350, "scrotum": 260, "pubic": 650})
     default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
     colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
     if len(colour_hex) != 6:
@@ -338,7 +338,11 @@ def main():
 
     # Clip the marks to the actual skin UV triangles, then composite gently.
     combined_mask = Image.new("L", (width, height), 0)
-    for mask in masks.values():
+    for region, mask in masks.items():
+        # Feather only the chest boundary: denser strokes remain visible in the
+        # sternum area but dissolve naturally towards the pectoral sides.
+        if region == "chest":
+            mask = mask.filter(ImageFilter.GaussianBlur(radius=7.0))
         combined_mask = ImageChops.lighter(combined_mask, mask)
     alpha = ImageChops.multiply(layer.getchannel("A"), combined_mask)
     layer.putalpha(alpha)
