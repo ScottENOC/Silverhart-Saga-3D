@@ -17,7 +17,7 @@ def normalise(name):
     return str(name or "").strip().lower().replace("_", " ").replace(".001", "").replace(".002", "")
 
 def rounded(row):
-    return tuple(round(float(x), 6) for x in row)
+    return tuple(round(float(x), 5) for x in row)
 
 def primitive_signature(doc, binary, primitive, target_names, joint_names):
     attrs = primitive.get("attributes", {})
@@ -31,10 +31,24 @@ def primitive_signature(doc, binary, primitive, target_names, joint_names):
     if any(int(index) >= len(joint_names) for row in joints for index in row):
         raise ValueError("Body vertex references an invalid joint index")
     base = [
-        (rounded(p), tuple(sorted((joint_names[int(index)], round(float(weight), 6)) for index, weight in zip(j, w))))
+        (rounded(p), tuple(sorted((joint_names[int(index)], round(float(weight), 5)) for index, weight in zip(j, w))))
         for p, j, w in zip(positions, joints, weights)
     ]
-    base_sorted = tuple(sorted(base))
+    # Compare unique vertex attributes rather than raw vertex order/count:
+    # Blender's glTF round-trip may split identical vertices at UV/material seams.
+    base_set = tuple(sorted(set(base)))
+
+    # Compare the actual triangle surface as well, using coordinates rather
+    # than indices so harmless vertex reindexing does not look like a body edit.
+    triangle_set = ()
+    if "indices" in primitive and primitive.get("mode", 4) == 4:
+        indices = [int(row[0]) for row in glb.accessor_rows(doc, binary, primitive["indices"])]
+        if len(indices) % 3:
+            raise ValueError("Body triangle index count is not divisible by three")
+        triangles = []
+        for offset in range(0, len(indices), 3):
+            triangles.append(tuple(sorted(rounded(positions[i]) for i in indices[offset:offset + 3])))
+        triangle_set = tuple(sorted(set(triangles)))
 
     targets = primitive.get("targets", [])
     if len(targets) != len(target_names):
@@ -46,8 +60,8 @@ def primitive_signature(doc, binary, primitive, target_names, joint_names):
             delta = [(0.0, 0.0, 0.0)] * len(positions)
         else:
             delta = [rounded(x) for x in glb.accessor_rows(doc, binary, target["POSITION"])]
-        morph[name] = tuple(sorted((rounded(p), d) for p, d in zip(positions, delta)))
-    return len(positions), base_sorted, morph
+        morph[name] = tuple(sorted(set((base_row, d) for base_row, d in zip(base, delta))))
+    return base_set, triangle_set, morph
 
 def body_signature(path):
     doc, binary = glb.read(path)
