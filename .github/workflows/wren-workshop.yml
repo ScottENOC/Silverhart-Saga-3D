@@ -35,7 +35,7 @@ permissions:
   pages: write
   id-token: write
 concurrency:
-  group: wren-workshop-${{ github.ref_name }}
+  group: ${{ startsWith(github.ref_name, 'feature/modular-underwear-') && format('modular-underwear-review-{0}', github.ref_name) || format('wren-workshop-{0}', github.ref_name) }}
   # Queue newer pushes instead of interrupting an active model build or publish.
   # Feature-only review branches cancel stale builds; dev/integration builds remain queued.
   cancel-in-progress: ${{ startsWith(github.ref_name, 'feature/modular-underwear-') }}
