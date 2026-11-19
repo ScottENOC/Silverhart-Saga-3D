@@ -44,6 +44,50 @@ def body_node(d):
         raise ValueError(f"Expected one skinned body mesh with a Skin/Skin_* material, got {len(hits)}")
     return hits[0]
 
+
+def body_bounds(doc, binary):
+    node = body_node(doc)
+    positions = []
+    for primitive in doc['meshes'][node['mesh']]['primitives']:
+        material_index = primitive.get('material')
+        if material_index is None:
+            continue
+        name = str(doc.get('materials', [])[material_index].get('name', '')).strip().lower()
+        if name == 'skin' or name.startswith('skin_') or name.startswith('skin '):
+            rows = accessor_rows(doc, binary, primitive['attributes']['POSITION'])
+            positions.extend(rows)
+    if not positions:
+        raise ValueError("Could not calculate skinned body bounds")
+    lo = [min(row[i] for row in positions) for i in range(3)]
+    hi = [max(row[i] for row in positions) for i in range(3)]
+    return lo, hi
+
+
+def transform_vec3_accessor(doc, binary, accessor_index, scale, centre_from=None, centre_to=None, inverse_normal=False):
+    accessor = doc['accessors'][accessor_index]
+    if accessor['componentType'] != 5126 or accessor['type'] != 'VEC3':
+        raise ValueError("Garment fitting expects float VEC3 accessors")
+    view = doc['bufferViews'][accessor['bufferView']]
+    stride = view.get('byteStride', 12)
+    start = view.get('byteOffset', 0) + accessor.get('byteOffset', 0)
+    for index in range(accessor['count']):
+        offset = start + index * stride
+        x, y, z = struct.unpack_from('<3f', binary, offset)
+        values = [x, y, z]
+        if inverse_normal:
+            values = [values[i] / max(scale[i], 1e-8) for i in range(3)]
+            length = sum(v*v for v in values) ** 0.5 or 1.0
+            values = [v / length for v in values]
+        else:
+            values = [values[i] * scale[i] for i in range(3)]
+            if centre_from is not None and centre_to is not None:
+                values = [centre_to[i] + (values[i] - centre_from[i] * scale[i]) for i in range(3)]
+        struct.pack_into('<3f', binary, offset, *values)
+    if not inverse_normal and centre_from is not None and centre_to is not None:
+        rows = accessor_rows(doc, binary, accessor_index)
+        accessor['min'] = [min(row[i] for row in rows) for i in range(3)]
+        accessor['max'] = [max(row[i] for row in rows) for i in range(3)]
+
 def append_bytes(target,buf,data,target_type=None):
     buf+=b'\0'*(-len(buf)%4); off=len(buf)
     view={'buffer':0,'byteOffset':off,'byteLength':len(data)}
@@ -104,6 +148,20 @@ def add(target,buf,source_path,selector):
     if set(tj)!=set(sj): raise ValueError(f'Skeleton bones differ in {source_path}')
     joint_map=[tj.index(name) for name in sj]
     tn=body_node(target); sn=body_node(src)
+    # Ara garment catalogue meshes are authored against a standard-height
+    # body. Companion bodies can have different height/width/depth. Refit
+    # garment bind-pose vertices to the target body's local bounds before
+    # appending them; otherwise short characters (notably Dagna) get garments
+    # positioned around the source model's chest/head rather than their own.
+    source_lo, source_hi = body_bounds(src, sbuf)
+    target_lo, target_hi = body_bounds(target, buf)
+    source_size = [source_hi[i] - source_lo[i] for i in range(3)]
+    target_size = [target_hi[i] - target_lo[i] for i in range(3)]
+    if any(value <= 1e-6 for value in source_size):
+        raise ValueError(f"Invalid source body bounds in {source_path}: {source_size}")
+    fit_scale = [target_size[i] / source_size[i] for i in range(3)]
+    source_centre = [(source_lo[i] + source_hi[i]) * 0.5 for i in range(3)]
+    target_centre = [(target_lo[i] + target_hi[i]) * 0.5 for i in range(3)]
     target_mesh=target['meshes'][tn['mesh']]
     source_mesh=src['meshes'][sn['mesh']]
     for k in ('translation','rotation','scale','matrix'):
@@ -147,6 +205,10 @@ def add(target,buf,source_path,selector):
     for attr,old_ai in p.get('attributes',{}).items():
         target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices,joint_map if attr.startswith('JOINTS_') else None)
         amap[old_ai]=new_ai
+        if attr == 'POSITION':
+            transform_vec3_accessor(target, buf, new_ai, fit_scale, source_centre, target_centre)
+        elif attr == 'NORMAL':
+            transform_vec3_accessor(target, buf, new_ai, fit_scale, inverse_normal=True)
     new_indices=[remap[x] for x in original]; index_data=struct.pack('<'+ifmt*len(new_indices),*new_indices)
     target,buf,ivi=append_bytes(target,buf,index_data,34963)
     ia2=copy.deepcopy(ia); ia2['bufferView']=ivi; ia2.pop('byteOffset',None); ia2['min']=[min(new_indices)]; ia2['max']=[max(new_indices)]
@@ -164,6 +226,10 @@ def add(target,buf,source_path,selector):
         remapped={}
         for attr,old_ai in target_attrs.items():
             target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
+            if attr == 'POSITION':
+                transform_vec3_accessor(target, buf, new_ai, fit_scale)
+            elif attr == 'NORMAL':
+                transform_vec3_accessor(target, buf, new_ai, fit_scale, inverse_normal=True)
             remapped[attr]=new_ai
         remapped_targets.append(remapped)
     if source_targets:
