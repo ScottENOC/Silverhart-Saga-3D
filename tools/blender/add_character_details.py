@@ -486,12 +486,21 @@ def make_ear_surface_trees(skin):
             if polygon.material_index not in allowed_materials:
                 continue
             face = tuple(polygon.vertices)
-            if len(face) < 3 or not all(index in indices for index in face):
+            if len(face) < 3 or not any(index in indices for index in face):
                 continue
             centre = sum((evaluated_positions[index] for index in face), Vector()) / len(face)
-            if not (low_height <= centre[vertical_axis] <= high_height):
+            # The elf-ear shape key selects a narrow band of vertices, but
+            # Ara's head topology has triangles that bridge those vertices to
+            # adjacent cheek/temple vertices. Requiring every triangle vertex
+            # to be in the mask therefore produces no surface at all. Admit
+            # only triangles touching the strict ear mask whose centroid stays
+            # inside a slightly padded ear band and whose face normal points
+            # outward. The spatial gate still excludes the shoulder.
+            if not (low_height - height * 0.018 <= centre[vertical_axis]
+                    <= high_height + height * 0.018):
                 continue
-            if side * centre[lateral_axis] < inner_lateral:
+            lateral = side * centre[lateral_axis]
+            if not (inner_lateral * 0.82 <= lateral <= outer_lateral * 1.18):
                 continue
             normal = (world.to_3x3().inverted().transposed() @ polygon.normal).normalized()
             if side * normal[lateral_axis] < 0.20:
