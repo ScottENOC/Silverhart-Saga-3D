@@ -16,6 +16,8 @@ on:
       - "tools/ara/patch_g_string.py"
       - "tools/ara/extract_selected_garments.py"
       - "character-preview/outfits.json"
+      - "character-preview/companion-models.json"
+      - "tools/ara/build_companion_underwear_previews.py"
       - "tools/ara/assemble_modular_glb.py"
       - "tools/blender/add_adult_anatomy.py"
       - "tools/blender/add_male_anatomy.py"
@@ -42,7 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Compile anatomy, clothing and review tools
-        run: python -m py_compile tools/ara/patch_layering.py tools/ara/patch_halter_bra.py tools/ara/patch_g_string.py tools/ara/extract_selected_garments.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
+        run: python -m py_compile tools/ara/patch_layering.py tools/ara/patch_halter_bra.py tools/ara/patch_g_string.py tools/ara/extract_selected_garments.py tools/ara/assemble_modular_glb.py tools/ara/build_companion_underwear_previews.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
       - name: Validate Wren Workshop JavaScript
         run: |
           python - <<'PY'
@@ -344,6 +346,96 @@ jobs:
           path: |
             art/characters/ara/ara_person_male_body.glb
             art/characters/ara/review/male/*.png
+          if-no-files-found: error
+          retention-days: 14
+
+  fit-companion-underwear:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download Ara garment source models
+        uses: actions/download-artifact@v8
+        with:
+          name: ara-generated-models
+          path: /tmp/ara-generated
+      - name: Download pinned companion body GLBs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/companions/{wren,dagna,reyna,mirabel,aldric}
+          gh run download 44465749713 --repo "$GITHUB_REPOSITORY" --name wren-native-ara-103 --dir /tmp/companions/wren
+          gh run download 44489910404 --repo "$GITHUB_REPOSITORY" --name dagna-native-ara-56 --dir /tmp/companions/dagna
+          gh run download 44485376522 --repo "$GITHUB_REPOSITORY" --name reyna-native-ara-103 --dir /tmp/companions/reyna
+          gh run download 44465749857 --repo "$GITHUB_REPOSITORY" --name mirabel-native-ara-96 --dir /tmp/companions/mirabel
+          gh run download 44485376380 --repo "$GITHUB_REPOSITORY" --name aldric-native-ara-90 --dir /tmp/companions/aldric
+          for pair in "wren Wren" "dagna Dagna" "reyna Reyna" "mirabel Mirabel" "aldric Aldric"; do
+            set -- $pair
+            test -s "/tmp/companions/$1/$2.glb"
+          done
+      - name: Install Blender for companion garment fitting
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+      - name: Assemble, fit and render on the actual companions
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          ROOT=art/characters/ara_runtime/companion_review
+          mkdir -p "$ROOT"
+          render_one() {
+            character="$1"; model="$2"; outfit="$3"
+            out="$ROOT/$character/outfits"
+            mkdir -p "$out"
+            set +e
+            blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- "$model" "$out" "$outfit"
+            status=$?
+            set -e
+            for view in front side rear; do test -s "$out/$outfit/$view.png"; done
+            test -s "$out/$outfit/report.json"
+            if [ "$status" -ne 0 ] && [ "$status" -ne 139 ]; then
+              echo "::error::Render failed for $character/$outfit (exit $status)"
+              exit "$status"
+            fi
+          }
+          for character in wren dagna reyna mirabel; do
+            case "$character" in
+              wren) source=/tmp/companions/wren/Wren.glb ;;
+              dagna) source=/tmp/companions/dagna/Dagna.glb ;;
+              reyna) source=/tmp/companions/reyna/Reyna.glb ;;
+              mirabel) source=/tmp/companions/mirabel/Mirabel.glb ;;
+            esac
+            raw="$ROOT/$character/${character}_modular_raw.glb"
+            fitted="$ROOT/$character/${character}_modular.glb"
+            python tools/ara/build_companion_underwear_previews.py --character "$character" --base-glb "$source" --generated-dir /tmp/ara-generated --output "$raw"
+            blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- \
+              --input "$raw" --output "$fitted" --profile none --adult --fit-existing
+            for outfit in standard_bra standard_briefs triangle_bikini_top string_bikini_bottom g_string lace_bra fishnet_bra lace_briefs fishnet_briefs; do
+              render_one "$character" "$fitted" "$outfit"
+            done
+            if [ "$character" = "wren" ]; then
+              render_one "$character" "$fitted" wren_starting_outfit
+            fi
+          done
+          # Aldric is male: verify the 69-to-72 bone and 34-to-36 morph mapping
+          # with a neutral shirt primitive, but do not fit female underwear to him.
+          python tools/ara/build_companion_underwear_previews.py --character aldric --base-glb /tmp/companions/aldric/Aldric.glb --generated-dir /tmp/ara-generated --output "$ROOT/aldric/aldric_modular.glb"
+          render_one aldric "$ROOT/aldric/aldric_modular.glb" fatigue_shirt
+          test -s "$ROOT/wren/wren_modular.glb"
+          test -s "$ROOT/dagna/dagna_modular.glb"
+          test -s "$ROOT/reyna/reyna_modular.glb"
+          test -s "$ROOT/mirabel/mirabel_modular.glb"
+          test -s "$ROOT/aldric/aldric_modular.glb"
+      - name: Upload companion modular garment review
+        uses: actions/upload-artifact@v7
+        with:
+          name: companion-modular-underwear-review
+          path: art/characters/ara_runtime/companion_review/**
           if-no-files-found: error
           retention-days: 14
 
