@@ -14,7 +14,7 @@ BODY_MATERIALS = {
 }
 
 def normalise(name):
-    return str(name or "").strip().lower().replace(".001", "").replace(".002", "")
+    return str(name or "").strip().lower().replace("_", " ").replace(".001", "").replace(".002", "")
 
 def rounded(row):
     return tuple(round(float(x), 6) for x in row)
