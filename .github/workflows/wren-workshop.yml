@@ -399,6 +399,7 @@ jobs:
             set -e
             for view in front side rear; do test -s "$out/$outfit/$view.png"; done
             test -s "$out/$outfit/report.json"
+            test -s "$out/$outfit/$outfit.glb"
             if [ "$status" -ne 0 ] && [ "$status" -ne 139 ]; then
               echo "::error::Render failed for $character/$outfit (exit $status)"
               exit "$status"
