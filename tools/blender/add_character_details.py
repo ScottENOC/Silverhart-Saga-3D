@@ -422,7 +422,7 @@ def add_piercings(entries):
                         socket_world = socket.matrix_world.copy()
                         socket_world.translation = fallback
                         socket.matrix_world = socket_world
-                    add_hoop(socket, 0.010, material, "Piercing_" + name)
+                    add_hoop(socket, 0.012, material, "Piercing_" + name, hang_down=True)
                     count += 1
                 else:
                     print(f"WARNING: Ara socket {name} not found; piercing omitted")
