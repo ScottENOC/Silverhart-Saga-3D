@@ -43,6 +43,24 @@ def find_skin():
     return skin
 
 
+def skin_material_indices(skin):
+    """Return only material slots explicitly named as skin.
+
+    Ara can combine skin, hair and other surfaces into one mesh object. Object
+    selection alone is not a skin-only guarantee: every projection BVH must
+    filter polygons by their assigned skin material.
+    """
+    indices = {
+        index for index, slot in enumerate(skin.material_slots)
+        if slot.material and "skin" in slot.material.name.lower()
+    }
+    if not indices:
+        raise RuntimeError(
+            f"No skin material slots found on {skin.name!r}; refusing to project details"
+        )
+    return indices
+
+
 def make_material(name, hex_colour, metallic=0.0, roughness=0.8):
     colour = hex_colour.lstrip("#")
     srgb = tuple(int(colour[i:i+2], 16) / 255.0 for i in (0, 2, 4))
@@ -75,7 +93,12 @@ def make_projection_trees(skin):
     vertices = [world @ vertex.co for vertex in mesh.vertices]
     front_faces, back_faces = [], []
     front_sources, back_sources = [], []
+    allowed_materials = skin_material_indices(skin)
     for polygon in mesh.polygons:
+        # Critical: a combined Ara mesh may contain hair/clothing polygons.
+        # Never let those surfaces participate in tattoo projection.
+        if polygon.material_index not in allowed_materials:
+            continue
         normal = (normal_matrix @ polygon.normal).normalized()
         face = tuple(polygon.vertices)
         if normal.y < -0.12:
@@ -357,7 +380,16 @@ def make_skin_surface_tree(skin):
     evaluated = skin.evaluated_get(depsgraph)
     mesh = evaluated.to_mesh()
     vertices = [skin.matrix_world @ vertex.co for vertex in mesh.vertices]
-    polygons = [list(poly.vertices) for poly in mesh.polygons]
+    allowed_materials = skin_material_indices(skin)
+    polygons = [
+        list(poly.vertices) for poly in mesh.polygons
+        if poly.material_index in allowed_materials
+    ]
+    if not polygons:
+        evaluated.to_mesh_clear()
+        raise RuntimeError(
+            f"No skin-material polygons available for surface anchoring on {skin.name!r}"
+        )
     tree = BVHTree.FromPolygons(vertices, polygons, all_triangles=False)
     evaluated.to_mesh_clear()
     return tree
