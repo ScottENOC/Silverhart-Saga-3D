@@ -198,6 +198,10 @@ jobs:
               "tank_top": {"top":"tank_top", "underTop":"none", "underBottom":"none", "bottom":"none"},
               "standard_bra": {"top":"none", "underTop":"bra", "underBottom":"none", "bottom":"none"},
               "standard_briefs": {"top":"none", "underTop":"none", "underBottom":"briefs", "bottom":"none"},
+              "wren_starting_top": {"top":"none", "underTop":"bikini_top", "underBottom":"none", "bottom":"none",
+                                    "garmentStyles":{"bikini_top":{"pattern":"solid","color":"#000000","color2":"#000000","opacity":0.5}}},
+              "wren_starting_bottom": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none",
+                                       "garmentStyles":{"bikini_bottom":{"pattern":"solid","color":"#000000","color2":"#000000","opacity":0.5}}},
               "g_string": {"top":"none", "underTop":"none", "underBottom":"g_string", "bottom":"none"},
               "halter_bra_lace": {"top":"none", "underTop":"halter_bra_lace", "underBottom":"none", "bottom":"none",
                                   "garmentStyles":{"halter_bra_lace":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
@@ -227,7 +231,7 @@ jobs:
               p.update(updates)
               json.dump(p, open('/tmp/ara-person-'+key+'.params.json','w'), indent=2)
           PY
-          for variant in tank_top standard_bra standard_briefs g_string halter_bra_lace halter_bra_fishnet triangle_bikini_top string_bikini_bottom lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants backless_slit_dress leather_armor; do
+          for variant in tank_top standard_bra standard_briefs wren_starting_top wren_starting_bottom g_string halter_bra_lace halter_bra_fishnet triangle_bikini_top string_bikini_bottom lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants backless_slit_dress leather_armor; do
             mkdir -p "/tmp/ara-$variant-out"
             npm run export -- --params "/tmp/ara-person-$variant.params.json" --detail high --formats glb --out "/tmp/ara-$variant-out"
             VARIANT_GLB="$(find "/tmp/ara-$variant-out" -maxdepth 1 -type f -name '*.glb' -print -quit)"
@@ -374,9 +378,9 @@ jobs:
           python tools/ara/extract_selected_garments.py \
             --source-dir /tmp/ara-generated \
             --output-dir art/characters/ara_runtime/garments \
-            --only standard_bra standard_briefs triangle_bikini_top string_bikini_bottom g_string lace_briefs fishnet_briefs halter_bra_lace halter_bra_fishnet
+            --only standard_bra standard_briefs wren_starting_top wren_starting_bottom triangle_bikini_top string_bikini_bottom g_string lace_briefs fishnet_briefs halter_bra_lace halter_bra_fishnet
           find art/characters/ara_runtime/garments -maxdepth 1 -type f -name '*.glb' -size +0c | sort
-          test "$(find art/characters/ara_runtime/garments -maxdepth 1 -type f -name '*.glb' -size +0c | wc -l)" -eq 9
+          test "$(find art/characters/ara_runtime/garments -maxdepth 1 -type f -name '*.glb' -size +0c | wc -l)" -eq 11
       - name: Collect integrated models and review renders
         uses: actions/download-artifact@v8
         with:
