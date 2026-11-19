@@ -87,7 +87,7 @@ jobs:
           for character in Wren Dagna; do
             blender --background --python-exit-code 1 \
               --python tools/review/fit_modular_garments_to_skin.py -- \
-              "build/approved-underwear/${character}-assembled.glb" \
+              --input "build/approved-underwear/${character}-assembled.glb" \
               --output "build/approved-underwear/${character}-surface-fitted.glb" \
               --report "build/approved-underwear/review/${character}-garment-fit-report.json"
           done
