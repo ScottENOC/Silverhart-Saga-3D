@@ -187,10 +187,16 @@ def add(target,buf,source_path,selector):
     source_names=source_mesh.get('extras',{}).get('targetNames')
     target_count=len(target_mesh.get('weights', target_names or []))
     source_count=len(source_mesh.get('weights', source_names or []))
-    if source_count != target_count:
-        raise ValueError(f'Morph target count differs in {source_path}: source={source_count}, target={target_count}')
-    if target_names is not None and source_names is not None and source_names != target_names:
-        raise ValueError(f'Morph target names differ in {source_path}')
+    if source_count != target_count or (target_names is not None and source_names is not None and source_names != target_names):
+        if not isinstance(target_names, list) or not isinstance(source_names, list):
+            raise ValueError(f'Morph target mismatch in {source_path}; targetNames metadata is required for safe alignment')
+        if len(target_names) != target_count or len(source_names) != source_count:
+            raise ValueError('Morph target name metadata does not match mesh target counts')
+        if len(set(target_names)) != len(target_names) or len(set(source_names)) != len(source_names):
+            raise ValueError('Morph target names must be unique to align garment targets safely')
+        unknown=sorted(set(source_names)-set(target_names))
+        if unknown:
+            raise ValueError(f'Garment has morph targets absent from body: {unknown}')
     target_name=None
     if '=' in selector: selector,target_name=selector.split('=',1)
     if selector.endswith('*'):
@@ -230,19 +236,27 @@ def add(target,buf,source_path,selector):
     # as the garment primitive. Accessor indices are document-local: they must
     # never be copied verbatim from the source GLB into the destination GLB.
     source_targets=p.get('targets', [])
-    if len(source_targets) != target_count:
-        raise ValueError(f'{selector}: expected {target_count} morph targets, found {len(source_targets)}')
-    remapped_targets=[]
-    for target_attrs in source_targets:
-        remapped={}
-        for attr,old_ai in target_attrs.items():
-            target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
-            if attr == 'POSITION':
-                transform_vec3_accessor(target, buf, new_ai, fit_scale)
-            elif attr == 'NORMAL':
-                transform_vec3_accessor(target, buf, new_ai, fit_scale, inverse_normal=True)
-            remapped[attr]=new_ai
-        remapped_targets.append(remapped)
+    if len(source_targets) != source_count:
+        raise ValueError(f'{selector}: expected {source_count} source morph targets, found {len(source_targets)}')
+    remapped_targets=[{} for _ in range(target_count)]
+    if source_count:
+        if source_names is None or target_names is None:
+            if source_count != target_count:
+                raise ValueError('Cannot align different morph target counts without targetNames metadata')
+            target_indices=list(range(source_count))
+        else:
+            target_lookup={name:index for index,name in enumerate(target_names)}
+            target_indices=[target_lookup[name] for name in source_names]
+        for source_index,target_attrs in enumerate(source_targets):
+            remapped={}
+            for attr,old_ai in target_attrs.items():
+                target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
+                if attr == 'POSITION':
+                    transform_vec3_accessor(target, buf, new_ai, fit_scale)
+                elif attr == 'NORMAL':
+                    transform_vec3_accessor(target, buf, new_ai, fit_scale, inverse_normal=True)
+                remapped[attr]=new_ai
+            remapped_targets[target_indices[source_index]]=remapped
     if source_targets:
         p['targets']=remapped_targets
 
