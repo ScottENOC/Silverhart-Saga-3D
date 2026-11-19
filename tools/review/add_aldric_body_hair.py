@@ -218,33 +218,37 @@ def main():
             # not the shoulder caps.
             paint_clipped("armpits", tri, band(0.74, 0.81,
                                                 centre_x - 0.24, centre_x - 0.16,
-                                                front=True))
+                                                front=False))
             paint_clipped("armpits", tri, band(0.74, 0.81,
                                                 centre_x + 0.16, centre_x + 0.24,
-                                                front=True))
+                                                front=False))
             # A very fine vertical trail runs from the navel down towards the
             # pubic mound.
-            paint_clipped("snail_trail", tri, band(0.42, 0.54,
+            paint_clipped("snail_trail", tri, band(0.39, 0.56,
                                                     centre_x - 0.004, centre_x + 0.004))
             # Preserve Aldric's original lower pubic-hair position; adapt only
             # the width and horizontal centre to the actual body mesh.
-            paint_clipped("pubic", tri, band(0.28, 0.38,
+            paint_clipped("pubic", tri, band(0.34, 0.42,
                                                 centre_x - aldric_pubic_width,
                                                 centre_x + aldric_pubic_width))
             paint_clipped("scrotum", tri, band(0.24, 0.34,
                                                   centre_x - 0.080,
                                                   centre_x + 0.080))
-            # A narrow chest diamond centred on the sternum, not two long strips.
-            lower = [lambda p: 0.60 - yn_of(p), lambda p: yn_of(p) - 0.65,
-                     lambda p: (p[0] - centre_x) - 0.56 * p[1] + 0.336,
-                     lambda p: -(p[0] - centre_x) - 0.56 * p[1] + 0.336,
-                     lambda p: 0.035 - p[2]]
-            upper = [lambda p: 0.65 - yn_of(p), lambda p: yn_of(p) - 0.70,
-                     lambda p: (p[0] - centre_x) + 0.56 * p[1] - 0.392,
-                     lambda p: -(p[0] - centre_x) + 0.56 * p[1] - 0.392,
-                     lambda p: 0.035 - p[2]]
-            paint_clipped("chest", tri, lower)
-            paint_clipped("chest", tri, upper)
+            # Compact upper-chest diamond centred on the sternum, at nipple height.
+            # Its widest point is around the nipple line and it tapers both upward
+            # and downward; keep it well clear of the navel and upper abdomen.
+            chest_bottom, chest_top = 0.69, 0.78
+            chest_mid = 0.735
+            half_width = 0.040
+            diamond = [
+                lambda p: chest_bottom - yn_of(p),
+                lambda p: yn_of(p) - chest_top,
+                lambda p: abs(p[0] - centre_x) - half_width * (
+                    1.0 - abs(yn_of(p) - chest_mid) / ((chest_top - chest_bottom) * 0.5)
+                ),
+                lambda p: 0.035 - p[2],
+            ]
+            paint_clipped("chest", tri, diamond)
         else:
             paint_clipped("armpits", tri, band(0.70, 0.76, -0.155, -0.105, front=True))
             paint_clipped("armpits", tri, band(0.70, 0.76, 0.105, 0.155, front=True))
