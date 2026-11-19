@@ -213,45 +213,66 @@ def main():
         elif args.coverage == "dagna":
             paint_clipped("pubic", tri, band(0.28, 0.37, -0.055, 0.055))
         elif args.coverage == "aldric":
-            # Axillary hair belongs on the lateral underside of the upper torso,
-            # not the shoulder caps.
-            # Return 70% of the previous 0.08-height displacement:
-            # 0.74-0.81 -> 0.796-0.866, retaining the lateral underside surface.
-            paint_clipped("armpits", tri, band(0.796, 0.866,
-                                                centre_x - 0.24, centre_x - 0.16,
-                                                front=False))
-            paint_clipped("armpits", tri, band(0.796, 0.866,
-                                                centre_x + 0.16, centre_x + 0.24,
-                                                front=False))
-            # A very fine vertical trail runs from the navel down towards the
-            # pubic mound.
-            paint_clipped("snail_trail", tri, band(0.39, 0.56,
-                                                    centre_x - 0.004, centre_x + 0.004))
-            # Preserve Aldric's original lower pubic-hair position; adapt only
-            # the width and horizontal centre to the actual body mesh.
-            # Broaden and raise the pubic region; avoid an empty adaptive mask.
-            paint_clipped("pubic", tri, band(0.43, 0.50,
-                                                centre_x - 0.070,
-                                                centre_x + 0.070))
+            # Restore the earlier front-facing axilla placement that produced
+            # the best result: compact lateral underside patches, not posterior
+            # shoulder/lat coverage. This is the 0.76-0.83 band from the #86 pass.
+            paint_clipped("armpits", tri, band(0.76, 0.83,
+                                                centre_x - 0.18, centre_x - 0.11,
+                                                front=True))
+            paint_clipped("armpits", tri, band(0.76, 0.83,
+                                                centre_x + 0.11, centre_x + 0.18,
+                                                front=True))
+            # Keep the central trail slender overall, but let its lower end
+            # broaden slightly where it meets the pubic hair.
+            trail_y0, trail_y1 = 0.39, 0.56
+            trail_half_width_bottom, trail_half_width_top = 0.007, 0.004
+            trail_width_slope = (trail_half_width_top - trail_half_width_bottom) / (trail_y1 - trail_y0)
+            trail = [
+                lambda p: trail_y0 - yn_of(p),
+                lambda p: yn_of(p) - trail_y1,
+                lambda p: abs(p[0] - centre_x) - (
+                    trail_half_width_bottom + trail_width_slope * (yn_of(p) - trail_y0)
+                ),
+            ]
+            paint_clipped("snail_trail", tri, trail)
+            # Raise the whole pubic region by 8 cm. A rounded-rectangle signed
+            # distance keeps the four corners soft instead of making a hard box.
+            pubic_y0, pubic_y1 = 0.43 + 0.08 / height_m, 0.50 + 0.08 / height_m
+            pubic_half_width, pubic_corner = 0.070, 0.018
+            pubic_mid_y = (pubic_y0 + pubic_y1) * 0.5
+            pubic_half_height = (pubic_y1 - pubic_y0) * 0.5
+            def rounded_pubic(p):
+                qx = abs(p[0] - centre_x) - (pubic_half_width - pubic_corner)
+                qy = abs(yn_of(p) - pubic_mid_y) - (pubic_half_height - pubic_corner)
+                outside = math.hypot(max(qx, 0.0), max(qy, 0.0))
+                return outside + min(max(qx, qy), 0.0) - pubic_corner
+            paint_clipped("pubic", tri, [
+                rounded_pubic,
+                lambda p: 0.035 - p[2],
+            ])
             paint_clipped("scrotum", tri, band(0.38, 0.44,
                                                   centre_x - 0.055,
                                                   centre_x + 0.055))
-            # Compact upper-chest diamond centred on the sternum, at nipple height.
-            # Its widest point is around the nipple line and it tapers both upward
-            # and downward; keep it well clear of the navel and upper abdomen.
-            chest_lift = 0.04 / height_m
+            # Chest centre rises another 2 cm from the previous 4 cm lift.
+            # The upper edge fans out; the sides are softened after UV clipping.
+            chest_lift = 0.06 / height_m
             chest_bottom, chest_top = 0.69 + chest_lift, 0.78 + chest_lift
             chest_mid = 0.735 + chest_lift
-            half_width = 0.040
-            diamond = [
+            chest_bottom_width, chest_mid_width, chest_top_width = 0.012, 0.052, 0.072
+            def chest_half_width(p):
+                y = yn_of(p)
+                if y <= chest_mid:
+                    t = (y - chest_bottom) / max(chest_mid - chest_bottom, 1e-6)
+                    return chest_bottom_width + (chest_mid_width - chest_bottom_width) * max(0.0, min(1.0, t))
+                t = (y - chest_mid) / max(chest_top - chest_mid, 1e-6)
+                return chest_mid_width + (chest_top_width - chest_mid_width) * max(0.0, min(1.0, t))
+            chest = [
                 lambda p: chest_bottom - yn_of(p),
                 lambda p: yn_of(p) - chest_top,
-                lambda p: abs(p[0] - centre_x) - half_width * (
-                    1.0 - abs(yn_of(p) - chest_mid) / ((chest_top - chest_bottom) * 0.5)
-                ),
+                lambda p: abs(p[0] - centre_x) - chest_half_width(p),
                 lambda p: 0.035 - p[2],
             ]
-            paint_clipped("chest", tri, diamond)
+            paint_clipped("chest", tri, chest)
         else:
             paint_clipped("armpits", tri, band(0.70, 0.76, -0.155, -0.105, front=True))
             paint_clipped("armpits", tri, band(0.70, 0.76, 0.105, 0.155, front=True))
