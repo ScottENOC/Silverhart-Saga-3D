@@ -391,16 +391,16 @@ jobs:
           ROOT=art/characters/ara_runtime/companion_review
           mkdir -p "$ROOT"
           render_one() {
-            character="$1"; model="$2"; outfit="$3"
+            character="$1"; model="$2"; outfit="$3"; phone_glb="${4:-0}"
             out="$ROOT/$character/outfits"
             mkdir -p "$out"
             set +e
-            blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- "$model" "$out" "$outfit"
+            EXPORT_PHONE_GLB="$phone_glb" blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- "$model" "$out" "$outfit"
             status=$?
             set -e
             for view in front side rear; do test -s "$out/$outfit/$view.png"; done
             test -s "$out/$outfit/report.json"
-            test -s "$out/$outfit/$outfit.glb"
+            if [ "$phone_glb" = "1" ]; then test -s "$out/$outfit/$outfit.glb"; fi
             if [ "$status" -ne 0 ] && [ "$status" -ne 139 ]; then
               echo "::error::Render failed for $character/$outfit (exit $status)"
               exit "$status"
@@ -420,17 +420,21 @@ jobs:
               --input "$raw" --output "$fitted" --profile none --adult --fit-existing
             python tools/ara/validate_companion_body_unchanged.py "$source" "$fitted"
             for outfit in standard_bra standard_briefs triangle_bikini_top string_bikini_bottom g_string lace_bra fishnet_bra lace_briefs fishnet_briefs; do
-              render_one "$character" "$fitted" "$outfit"
+              phone=0
+              case "$character:$outfit" in
+                dagna:g_string|reyna:triangle_bikini_top|mirabel:fishnet_bra) phone=1 ;;
+              esac
+              render_one "$character" "$fitted" "$outfit" "$phone"
             done
             if [ "$character" = "wren" ]; then
-              render_one "$character" "$fitted" wren_starting_outfit
+              render_one "$character" "$fitted" wren_starting_outfit 1
             fi
           done
           # Aldric is male: verify the 69-to-72 bone and 34-to-36 morph mapping
           # with a neutral shirt primitive, but do not fit female underwear to him.
           python tools/ara/build_companion_underwear_previews.py --character aldric --base-glb /tmp/companions/aldric/Aldric.glb --generated-dir /tmp/ara-generated --output "$ROOT/aldric/aldric_modular.glb"
           python tools/ara/validate_companion_body_unchanged.py /tmp/companions/aldric/Aldric.glb "$ROOT/aldric/aldric_modular.glb"
-          render_one aldric "$ROOT/aldric/aldric_modular.glb" fatigue_shirt
+          render_one aldric "$ROOT/aldric/aldric_modular.glb" fatigue_shirt 1
           test -s "$ROOT/wren/wren_modular.glb"
           test -s "$ROOT/dagna/dagna_modular.glb"
           test -s "$ROOT/reyna/reyna_modular.glb"
