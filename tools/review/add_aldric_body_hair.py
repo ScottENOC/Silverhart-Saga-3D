@@ -148,17 +148,17 @@ def main():
                                                      side * 0.075 if side < 0 else 0.19, front=True))
                 paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
                                                      side * 0.075 if side < 0 else 0.19, front=False))
-            paint_clipped("pubic", tri, band(0.27, 0.35, -0.075, 0.075))
+            paint_clipped("pubic", tri, band(0.36, 0.49, -0.075, 0.075))
         elif args.coverage == "dagna":
-            paint_clipped("pubic", tri, band(0.27, 0.35, -0.065, 0.065))
+            paint_clipped("pubic", tri, band(0.43, 0.50, -0.065, 0.065))
         elif args.coverage == "aldric":
             # Keep axillary hair high and lateral. The previous 0.75-0.82
             # band selected the lower pectoral/rib area, not the armpit.
             paint_clipped("armpits", tri, band(0.83, 0.90, -0.23, -0.14, front=True))
             paint_clipped("armpits", tri, band(0.83, 0.90, 0.14, 0.23, front=True))
-            paint_clipped("snail_trail", tri, band(0.34, 0.43, -0.006, 0.006))
-            paint_clipped("pubic", tri, band(0.27, 0.38, -0.060, 0.060))
-            paint_clipped("scrotum", tri, band(0.22, 0.33, -0.125, 0.125))
+            paint_clipped("snail_trail", tri, band(0.40, 0.49, -0.006, 0.006))
+            paint_clipped("pubic", tri, band(0.34, 0.49, -0.060, 0.060))
+            paint_clipped("scrotum", tri, band(0.265, 0.405, -0.125, 0.125))
             # A true narrow diamond, clipped as two linear wedges.
             lower = [lambda p: 0.60 - yn_of(p), lambda p: yn_of(p) - 0.65,
                      lambda p: p[0] - 0.56 * p[1] + 0.336,
