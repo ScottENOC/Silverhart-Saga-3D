@@ -10,7 +10,6 @@ on:
       - "scripts/presentation/ara_character_details.gd"
       - "tools/review/recolor_wren_glb.py"
       - "tools/blender/add_female_anatomy_surface.py"
-      - "tools/blender/add_female_anatomy_surface.py"
       - "tools/blender/plan_female_anatomy_subdivision.py"
       - "tools/blender/add_abdominal_definition.py"
       - "tools/blender/add_character_details.py"
@@ -20,7 +19,6 @@ on:
     paths:
       - "character-preview/reyna-ara.json"
       - "tools/blender/add_character_details.py"
-      - "tools/blender/add_female_anatomy_surface.py"
       - "tools/review/recolor_wren_glb.py"
       - ".github/workflows/build-reyna-native-ara.yml"
 
@@ -84,16 +82,16 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          blender --background --python-exit-code 1 \\
-            --python tools/blender/plan_female_anatomy_subdivision.py -- \\
-            --input build/reyna-native/Reyna-ara-base.glb \\
+          blender --background --python-exit-code 1 \
+            --python tools/blender/plan_female_anatomy_subdivision.py -- \
+            --input build/reyna-native/Reyna-ara-base.glb \
             --output build/reyna-native/female-anatomy-subdivision-plan.json
           test -s build/reyna-native/female-anatomy-subdivision-plan.json
-          blender --background --python-exit-code 1 \\
-            --python tools/blender/add_female_anatomy_surface.py -- \\
-            --input build/reyna-native/Reyna-ara-base.glb \\
-            --output build/reyna-native/Reyna.glb \\
-            --report build/reyna-native/female-anatomy-report.json \\
+          blender --background --python-exit-code 1 \
+            --python tools/blender/add_female_anatomy_surface.py -- \
+            --input build/reyna-native/Reyna-ara-base.glb \
+            --output build/reyna-native/Reyna.glb \
+            --report build/reyna-native/female-anatomy-report.json \
             --subdivision-plan build/reyna-native/female-anatomy-subdivision-plan.json --adult --deformation-scale 1.65
           test -s build/reyna-native/Reyna.glb
           grep -q '"clothing_operations": "not run"' build/reyna-native/female-anatomy-report.json
