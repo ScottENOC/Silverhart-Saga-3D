@@ -367,16 +367,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p /tmp/companions/{wren,dagna,reyna,mirabel,aldric}
-          gh run download 44465749713 --repo "$GITHUB_REPOSITORY" --name wren-native-ara-103 --dir /tmp/companions/wren
-          gh run download 44489910404 --repo "$GITHUB_REPOSITORY" --name dagna-native-ara-56 --dir /tmp/companions/dagna
-          gh run download 44485376522 --repo "$GITHUB_REPOSITORY" --name reyna-native-ara-103 --dir /tmp/companions/reyna
-          gh run download 44465749857 --repo "$GITHUB_REPOSITORY" --name mirabel-native-ara-96 --dir /tmp/companions/mirabel
-          gh run download 44485376380 --repo "$GITHUB_REPOSITORY" --name aldric-native-ara-90 --dir /tmp/companions/aldric
-          for pair in "wren Wren" "dagna Dagna" "reyna Reyna" "mirabel Mirabel" "aldric Aldric"; do
-            set -- $pair
-            test -s "/tmp/companions/$1/$2.glb"
-          done
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          manifest = json.loads(Path("character-preview/companion-models.json").read_text())
+          root = Path("/tmp/companions")
+          for character, model in manifest["models"].items():
+              destination = root / character
+              destination.mkdir(parents=True, exist_ok=True)
+              subprocess.run([
+                  "gh", "run", "download", str(model["run_id"]),
+                  "--repo", os.environ["GITHUB_REPOSITORY"],
+                  "--name", model["artifact"],
+                  "--dir", str(destination),
+              ], check=True)
+              glb = destination / model["filename"]
+              if not glb.is_file() or glb.stat().st_size == 0:
+                  raise SystemExit(f"Missing companion source GLB: {glb}")
+              print(character, "build", model["build"], "->", glb)
+          PY
       - name: Install Blender for companion garment fitting
         run: |
           sudo apt-get update
