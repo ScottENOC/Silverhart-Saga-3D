@@ -1,8 +1,8 @@
-"""Bake profile tattoos and socket-mounted piercings into an Ara GLB.
+"""Bake project-specific tattoos and piercings into an Ara GLB.
 
-Tattoo tubes are projected onto the skin surface and receive the skin mesh's
-vertex-group weights, so they deform with the same armature. Piercings are
-real mesh objects parented to Ara's exported socket nodes.
+Ara-native earrings are generated during the character build from its own
+morphed earlobe landmarks. This script handles only project-specific piercings
+and tattoo tubes that need to deform with the skin mesh.
 """
 import argparse
 import json
@@ -11,7 +11,7 @@ import os
 import sys
 
 import bpy
-from mathutils import Matrix, Vector
+from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 
