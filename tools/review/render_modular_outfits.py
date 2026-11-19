@@ -12,7 +12,7 @@ from mathutils import Vector
 
 GARMENTS = {
     "Fatigue pants", "Fatigue pants.001",
-    "Backless slit dress", "Pencil skirt",
+    "Backless slit dress", "Pencil skirt", "Backless slit dress v2", "Pencil skirt v2",
     "Halter lace bra cups", "Halter lace bra straps", "Halter lace bra piping", "Halter fishnet bra cups", "Halter fishnet bra straps",
     "Shoes", "Boot shafts", "Fatigue shirt", "Lace shirt", "Lace pants", "Lace briefs", "Lace briefs ties", "Fishnet briefs", "Fishnet briefs ties", "Bra", "Briefs",
     "Tank top", "Triangle bikini top", "Triangle bikini strings", "Fishnet shirt", "Fishnet pants",
@@ -23,6 +23,7 @@ OUTFITS = {
     "lace_bra": {"Halter lace bra cups", "Halter lace bra straps", "Halter lace bra piping"},
     "fishnet_bra": {"Halter fishnet bra cups", "Halter fishnet bra straps"},
     "dress": {"Backless slit dress", "Pencil skirt"},
+    "dress_v2": {"Backless slit dress v2", "Pencil skirt v2"},
     "armor": {"Leather armor"},
     "backless_shirt": {"Backless slit dress", "Pencil skirt"},
     "pants": {"Fatigue pants", "Fatigue pants.001"},
