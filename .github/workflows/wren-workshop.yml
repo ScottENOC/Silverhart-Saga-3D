@@ -428,6 +428,7 @@ jobs:
             blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- \
               --input "$raw" --output "$fitted" --profile none --adult --fit-existing
             python tools/ara/validate_companion_body_unchanged.py "$source" "$fitted"
+            rm -f "$raw"
             for outfit in standard_bra standard_briefs triangle_bikini_top string_bikini_bottom g_string lace_bra fishnet_bra lace_briefs fishnet_briefs; do
               phone=0
               case "$character:$outfit" in
