@@ -18,6 +18,7 @@ on:
       - "character-preview/outfits.json"
       - "character-preview/companion-models.json"
       - "tools/ara/build_companion_underwear_previews.py"
+      - "tools/ara/validate_companion_body_unchanged.py"
       - "tools/ara/assemble_modular_glb.py"
       - "tools/blender/add_adult_anatomy.py"
       - "tools/blender/add_male_anatomy.py"
@@ -44,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Compile anatomy, clothing and review tools
-        run: python -m py_compile tools/ara/patch_layering.py tools/ara/patch_halter_bra.py tools/ara/patch_g_string.py tools/ara/extract_selected_garments.py tools/ara/assemble_modular_glb.py tools/ara/build_companion_underwear_previews.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
+        run: python -m py_compile tools/ara/patch_layering.py tools/ara/patch_halter_bra.py tools/ara/patch_g_string.py tools/ara/extract_selected_garments.py tools/ara/assemble_modular_glb.py tools/ara/build_companion_underwear_previews.py tools/ara/validate_companion_body_unchanged.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
       - name: Validate Wren Workshop JavaScript
         run: |
           python - <<'PY'
@@ -415,6 +416,7 @@ jobs:
             python tools/ara/build_companion_underwear_previews.py --character "$character" --base-glb "$source" --generated-dir /tmp/ara-generated --output "$raw"
             blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- \
               --input "$raw" --output "$fitted" --profile none --adult --fit-existing
+            python tools/ara/validate_companion_body_unchanged.py "$source" "$fitted"
             for outfit in standard_bra standard_briefs triangle_bikini_top string_bikini_bottom g_string lace_bra fishnet_bra lace_briefs fishnet_briefs; do
               render_one "$character" "$fitted" "$outfit"
             done
@@ -425,6 +427,7 @@ jobs:
           # Aldric is male: verify the 69-to-72 bone and 34-to-36 morph mapping
           # with a neutral shirt primitive, but do not fit female underwear to him.
           python tools/ara/build_companion_underwear_previews.py --character aldric --base-glb /tmp/companions/aldric/Aldric.glb --generated-dir /tmp/ara-generated --output "$ROOT/aldric/aldric_modular.glb"
+          python tools/ara/validate_companion_body_unchanged.py /tmp/companions/aldric/Aldric.glb "$ROOT/aldric/aldric_modular.glb"
           render_one aldric "$ROOT/aldric/aldric_modular.glb" fatigue_shirt
           test -s "$ROOT/wren/wren_modular.glb"
           test -s "$ROOT/dagna/dagna_modular.glb"
