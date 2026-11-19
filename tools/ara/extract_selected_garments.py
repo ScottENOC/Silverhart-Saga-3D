@@ -17,6 +17,8 @@ import extract_garment_glb as extractor
 
 
 ASSETS = {
+    "wren_starting_top": "ara_person_wren_starting_top.glb",
+    "wren_starting_bottom": "ara_person_wren_starting_bottom.glb",
     "standard_bra": "ara_person_standard_bra.glb",
     "standard_briefs": "ara_person_standard_briefs.glb",
     "triangle_bikini_top": "ara_person_triangle_bikini_top.glb",
