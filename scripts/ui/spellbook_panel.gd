@@ -184,7 +184,7 @@ func _build_spell_builder(state: CharacterState) -> void:
 
     _add_modifier_spin("Potency", "magnitude_bonus", int(state.skills.get(school_prefix + "magnitude", 0)), modifiers)
     _add_modifier_spin("Range", "range_bonus", int(state.skills.get(school_prefix + "range", 0)), modifiers, 5)
-    if String(definition.get("type", "")) not in ["summon", "aoe_debuff"] and selected_spell_id not in ["disguise_self", "feather_fall"]:
+    if String(definition.get("type", "")) not in ["summon", "aoe_debuff"] and selected_spell_id not in ["disguise_self", "feather_fall", "calm_animal", "counterspell"]:
         _add_modifier_spin("Additional targets", "target_bonus", int(state.skills.get(school_prefix + "targets", 0)), modifiers)
     if selected_spell_id == "entangle" or (bool(modifiers.get("burst", false)) and int(state.skills.get(school_prefix + "burst", 0)) > 0):
         _add_modifier_spin("Area radius", "radius_bonus", int(state.skills.get(school_prefix + "expand", 0)), modifiers)
@@ -295,6 +295,7 @@ func _build_prepared_row(state: CharacterState, prepared: PreparedSpell, index: 
     stack.add_child(row)
     var target_selector: OptionButton
     var selected_target_ids: Array[String] = []
+    var needs_hex_target := prepared.base_spell_id in ["summon_animal", "entangle"]
     var multi_target := int(variant.get("extra_targets", 0)) > 0
     if multi_target:
         var target_list := VBoxContainer.new()
@@ -315,16 +316,16 @@ func _build_prepared_row(state: CharacterState, prepared: PreparedSpell, index: 
                     selected_target_ids.erase(candidate.id)
             )
             target_list.add_child(check)
-    else:
+    elif not needs_hex_target:
         target_selector = _make_target_selector(state, prepared.base_spell_id)
         target_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
         row.add_child(target_selector)
 
     var cast := Button.new()
-    cast.text = "Choose hex" if prepared.base_spell_id in ["summon_animal", "entangle"] else "Cast"
+    cast.text = "Choose hex" if needs_hex_target else "Cast"
     cast.disabled = not bool(variant.get("ok", false)) or prepared.base_spell_id == "counterspell"
     cast.tooltip_text = "Counterspell is offered as a reaction to an enemy spell."
-    if prepared.base_spell_id in ["summon_animal", "entangle"]:
+    if needs_hex_target:
         cast.pressed.connect(_begin_hex_targeting.bind(prepared))
     elif multi_target:
         cast.pressed.connect(_cast_prepared_multi.bind(prepared, selected_target_ids))
