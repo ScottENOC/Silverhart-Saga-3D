@@ -17,6 +17,7 @@ def read(path):
     return doc,binary
 
 def write(path,doc,binary):
+    binary = bytes(binary)
     doc['buffers'][0]['byteLength']=len(binary)
     j=json.dumps(doc,separators=(',',':'),ensure_ascii=False).encode(); j+=b' '*((-len(j))%4); binary+=b'\0'*(-len(binary)%4)
     total=12+8+len(j)+8+len(binary)
@@ -303,7 +304,7 @@ def validate_morph_targets(doc):
 
 if __name__=='__main__':
     if len(sys.argv)<3 or (len(sys.argv)-3)%2: raise SystemExit('usage: script BODY.glb OUT.glb SOURCE.glb MATERIAL [SOURCE MATERIAL]...')
-    d,b=read(sys.argv[1]); b=b[:d['buffers'][0]['byteLength']]
+    d,b=read(sys.argv[1]); b=bytearray(b[:d['buffers'][0]['byteLength']])
     for i in range(3,len(sys.argv),2): d,b=add(d,b,sys.argv[i],sys.argv[i+1])
     validate_morph_targets(d)
     write(sys.argv[2],d,b)
