@@ -123,6 +123,31 @@ def main():
     def yn_of(p):
         return (p[1] - y_min) / height_m
 
+    def adaptive_pubic_half_width(y0, y1, minimum=0.085, maximum=0.18):
+        """Expand past the actual pelvic mesh seam, based on exported topology."""
+        triangles = positions[indices.reshape(-1, 3)]
+        tri_y = (triangles[:, :, 1] - y_min) / height_m
+        tri_x = triangles[:, :, 0]
+        tri_z = triangles[:, :, 2]
+        candidates = (
+            (tri_y.max(axis=1) >= y0)
+            & (tri_y.min(axis=1) <= y1)
+            & (tri_z.max(axis=1) >= 0.035)
+        )
+        if not np.any(candidates):
+            return maximum
+        x_min = tri_x.min(axis=1)
+        x_max = tri_x.max(axis=1)
+        distance_from_midline = np.maximum(0.0, np.maximum(x_min, -x_max))
+        nearest = float(distance_from_midline[candidates].min())
+        return min(maximum, max(minimum, nearest + 0.02))
+
+    pubic_half_width = None
+    if args.coverage == "reyna":
+        pubic_half_width = adaptive_pubic_half_width(0.28, 0.37)
+    elif args.coverage == "aldric":
+        pubic_half_width = adaptive_pubic_half_width(0.28, 0.38)
+
     def band(y0, y1, x0, x1, front=True):
         constraints = [
             lambda p, y0=y0: y0 - yn_of(p),
@@ -161,7 +186,7 @@ def main():
                                                      side * 0.075 if side < 0 else 0.19, front=True))
                 paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
                                                      side * 0.075 if side < 0 else 0.19, front=False))
-            # Ara anatomical surface topology leaves a narrow midline seam at the pelvis.\n            # A 45 mm half-width misses both sides of that seam; 85 mm captures\n            # the actual front-skin UV faces while the z/front constraint stays intact.\n            paint_clipped("pubic", tri, band(0.28, 0.37, -0.085, 0.085))
+            # Ara anatomical surface topology leaves a narrow midline seam at the pelvis.\n            # A 45 mm half-width misses both sides of that seam; 85 mm captures\n            # the actual front-skin UV faces while the z/front constraint stays intact.\n            paint_clipped("pubic", tri, band(0.28, 0.37, -pubic_half_width, pubic_half_width))
         elif args.coverage == "dagna":
             paint_clipped("pubic", tri, band(0.28, 0.37, -0.055, 0.055))
         elif args.coverage == "aldric":
@@ -170,7 +195,7 @@ def main():
             paint_clipped("armpits", tri, band(0.82, 0.89, -0.23, -0.16, front=True))
             paint_clipped("armpits", tri, band(0.82, 0.89, 0.16, 0.23, front=True))
             paint_clipped("snail_trail", tri, band(0.38, 0.48, -0.004, 0.004))
-            # Match the wider pelvic UV footprint used for the female companion builds.\n            paint_clipped("pubic", tri, band(0.28, 0.38, -0.085, 0.085))
+            # Match the wider pelvic UV footprint used for the female companion builds.\n            paint_clipped("pubic", tri, band(0.28, 0.38, -pubic_half_width, pubic_half_width))
             paint_clipped("scrotum", tri, band(0.24, 0.34, -0.080, 0.080))
             # A true narrow diamond, clipped as two linear wedges.
             lower = [lambda p: 0.60 - yn_of(p), lambda p: yn_of(p) - 0.65,
@@ -281,7 +306,7 @@ def main():
         out.extend(struct.pack("<I4s", len(payload), kind))
         out.extend(payload)
     args.model.write_bytes(out)
-    print(json.dumps({"ok": True, "coverage": args.coverage, "hair_colour": "#" + colour_hex.upper(), "texture_only": True, "regions": regions, "strokes": counts, "texture": [width, height], "glb_bytes": len(out)}, indent=2))
+    print(json.dumps({"ok": True, "coverage": args.coverage, "hair_colour": "#" + colour_hex.upper(), "texture_only": True, "regions": regions, "strokes": counts, "pubic_half_width_m": pubic_half_width, "texture": [width, height], "glb_bytes": len(out)}, indent=2))
 
 
 if __name__ == "__main__":
