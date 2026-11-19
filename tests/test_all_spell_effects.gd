@@ -188,6 +188,9 @@ func _test_summon_animal_and_companion() -> void:
     var temporary := _cast_at(sim, caster, Vector2i(1, 0), "summon_animal", {"summon_id": "wolf"})
     var temporary_animal := sim.get_character(String(temporary.get("summoned_id", "")))
     _check(bool(temporary.get("ok", false)) and temporary_animal != null and temporary_animal.is_summoned, "Summon Animal should create a temporary summon")
+    sim.start_combat()
+    sim.end_combat()
+    _check(sim.get_character(String(temporary.get("summoned_id", ""))) == null, "Temporary summons should expire when combat ends")
     sim.free()
 
     var companion_setup := _new_sim()
@@ -198,6 +201,9 @@ func _test_summon_animal_and_companion() -> void:
     var companion := companion_sim.get_character(String(permanent.get("summoned_id", "")))
     _check(bool(permanent.get("ok", false)) and companion != null and companion.is_animal_companion, "Animal Companion should make the first summon permanent")
     _check(companion != null and companion_sim.get_party_member_ids().has(companion.id), "A permanent animal companion should join the party roster")
+    companion_sim.start_combat()
+    companion_sim.end_combat()
+    _check(companion_sim.get_character(companion.id) != null, "Permanent animal companions should survive combat ending")
     if companion != null:
         var restored_companion := CharacterState.from_dict(companion.to_dict())
         _check(restored_companion != null and restored_companion.is_animal_companion and restored_companion.summoned_by_id == druid.id, "Animal companion ownership should survive character save/load serialization")

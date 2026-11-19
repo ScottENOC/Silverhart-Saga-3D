@@ -464,6 +464,30 @@ func end_combat() -> void:
         _finish_pending_reaction("", "combat_ended")
     turn_scheduler.clear()
     is_in_combat = false
+    # Temporary spell summons end with the encounter. Permanent animal
+    # companions are ordinary party members and are deliberately retained.
+    var expired_summon_ids: Array[String] = []
+    for value in characters.values():
+        var state := value as CharacterState
+        if state != null and state.is_summoned:
+            if not state.mounted_by_id.is_empty():
+                var rider := get_character(state.mounted_by_id)
+                if rider != null:
+                    _force_dismount_pair(rider, state, "summon_expired")
+            elif not state.mounted_animal_id.is_empty():
+                var mount := get_character(state.mounted_animal_id)
+                if mount != null:
+                    _force_dismount_pair(state, mount, "summon_expired")
+            expired_summon_ids.append(state.id)
+    for summon_id in expired_summon_ids:
+        var summon := get_character(summon_id)
+        if summon == null:
+            continue
+        action_committed.emit(SimulationEvent.new("summon_expired", summon.id, summon.summoned_by_id, {
+            "summoned_id": summon.id,
+            "summoned_by_id": summon.summoned_by_id
+        }))
+        unregister_character(summon_id)
     combat_ended.emit()
 
 ## Request a reaction without coupling simulation rules to a UI modal.

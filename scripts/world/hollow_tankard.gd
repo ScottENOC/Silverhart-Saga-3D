@@ -263,7 +263,12 @@ func _configure_location_simulation() -> void:
 func _on_simulation_action_committed(event: SimulationEvent) -> void:
     if event == null:
         return
-    if event.event_type == "spell_cast" and String(event.payload.get("spell_id", "")) == "summon_animal":
+    if event.event_type == "summon_expired":
+        var expired_actor := actor_by_id.get(event.actor_id) as Node3D
+        if is_instance_valid(expired_actor):
+            expired_actor.queue_free()
+        actor_by_id.erase(event.actor_id)
+    elif event.event_type == "spell_cast" and String(event.payload.get("spell_id", "")) == "summon_animal":
         var summoned_id := String(event.payload.get("summoned_id", ""))
         if not summoned_id.is_empty():
             _ensure_summoned_animal_actor(simulation.get_character(summoned_id))
@@ -357,6 +362,7 @@ func _ensure_summoned_animal_actor(state: CharacterState) -> void:
     body_mesh.radius = 0.34 if kind != "eagle" else 0.22
     body_mesh.height = 0.95 if kind != "eagle" else 0.62
     body.mesh = body_mesh
+    body.rotation.x = PI * 0.5
     body.position.y = 0.58
     var material := StandardMaterial3D.new()
     match kind:

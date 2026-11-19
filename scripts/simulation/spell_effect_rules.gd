@@ -61,6 +61,8 @@ func validate(
                 var existing := value as CharacterState
                 if existing != null and existing.summoned_by_id == caster.id and existing.is_animal_companion:
                     return {"ok": false, "reason": "animal_companion_already_exists"}
+        if HexGrid.distance(caster.axial, target_hex) > maxi(1, int(variant.get("range", 1))):
+            return {"ok": false, "reason": "target_out_of_range"}
         if not simulation.map_data.is_walkable(target_hex) or simulation.is_hex_occupied(target_hex):
             return {"ok": false, "reason": "summon_hex_unavailable"}
     elif spell_id in ["dragon_breath", "entangle"] or area_spell:
