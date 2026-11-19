@@ -36,12 +36,12 @@ replace_once(
 )
 replace_once(
     "  const hwFront = (v: number) => cm(1.8) + cm(9.5) * v ** 1.25;",
-    "  const hwFront = (v: number) => mode === 'g_string' ? cm(1.5) + cm(5.8) * v ** 1.25 : cm(1.8) + cm(9.5) * v ** 1.25;",
+    "  const hwFront = (v: number) => mode === 'g_string' ? cm(1.2) + cm(4.8) * v ** 1.25 : cm(1.8) + cm(9.5) * v ** 1.25;",
     "front panel width"
 )
 replace_once(
     "  const hwBack = (v: number) => cm(2) + cm(11) * v ** 0.7;",
-    "  const hwBack = (v: number) => mode === 'g_string' ? cm(0.9) + cm(1.1) * v ** 0.7 : cm(2) + cm(11) * v ** 0.7;",
+    "  const hwBack = (v: number) => mode === 'g_string' ? cm(0.6) + cm(0.4) * v ** 0.7 : cm(2) + cm(11) * v ** 0.7;",
     "rear panel width"
 )
 start = text.index("function bikiniBottom(")
