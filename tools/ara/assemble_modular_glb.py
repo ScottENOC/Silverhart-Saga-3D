@@ -23,12 +23,25 @@ def write(path,doc,binary):
     Path(path).write_bytes(struct.pack('<4sII',b'glTF',2,total)+struct.pack('<I4s',len(j),b'JSON')+j+struct.pack('<I4s',len(binary),b'BIN\0')+binary)
 
 def body_node(d):
+    """Find the single skinned actor mesh by its skin/anatomy material family.
+
+    Ara body exports use names such as Skin_Anatomy while older modular
+    catalogue exports use Skin. Match the family rather than one exact label.
+    """
     hits=[]
     for n in d['nodes']:
         if 'mesh' not in n or 'skin' not in n: continue
-        names=[d['materials'][p.get('material',0)].get('name') for p in d['meshes'][n['mesh']]['primitives']]
-        if 'Skin' in names: hits.append(n)
-    if len(hits)!=1: raise ValueError(f'Expected one skinned body mesh, got {len(hits)}')
+        names=[]
+        for primitive in d['meshes'][n['mesh']]['primitives']:
+            material_index=primitive.get('material')
+            if material_index is None: continue
+            if material_index < 0 or material_index >= len(d.get('materials', [])):
+                raise ValueError(f"Node {n.get('name', '<unnamed>')} references invalid material {material_index}")
+            names.append(str(d['materials'][material_index].get('name', '')).strip().lower())
+        if any(name == 'skin' or name.startswith('skin_') or name.startswith('skin ') for name in names):
+            hits.append(n)
+    if len(hits)!=1:
+        raise ValueError(f"Expected one skinned body mesh with a Skin/Skin_* material, got {len(hits)}")
     return hits[0]
 
 def append_bytes(target,buf,data,target_type=None):
