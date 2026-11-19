@@ -83,66 +83,93 @@ def main():
     masks = {name: Image.new("L", (width, height), 0) for name in names}
     draws = {key: ImageDraw.Draw(mask) for key, mask in masks.items()}
     regions = {name: 0 for name in names}
-    for tri in indices.reshape(-1, 3):
-        p = positions[tri]
-        centre = p.mean(axis=0)
-        x, y, z = centre
-        yn = (y - float(positions[:, 1].min())) / height_m
-        # Front torso hair is restricted to +Z; arms and legs use both
-        # front and rear UV faces so the texture wraps around the limbs.
-        front = z > 0.035
-        region = None
-        uv = uvs[tri]
-        polygon = [(float(u * (width - 1)), float((1.0 - v) * (height - 1))) for u, v in uv]
-        # The Ara export can combine the scrotal surface with the lower pubic
-        # UV island. Paint this sub-region independently before the broader
-        # pubic classification so it is not swallowed by that mask.
-        if args.coverage == "aldric" and front and 0.265 <= yn <= 0.405 and abs(x) <= 0.125:
-            draws["scrotum"].polygon(polygon, fill=255)
-            regions["scrotum"] += 1
-        if args.coverage == "wren":
-            # The landing strip belongs on the pubic mound, not the lower
-            # abdomen. Ara exports Y-up; this band maps to the pelvis.
-            # On Wren's exported Ara body, the pubic mound maps to the
-            # 0.55-0.62 Y-up height band. The 0.36-0.45 trial selected the
-            # lower abdomen beneath the breasts, so keep the strip down here.
-            # A 50 mm total width keeps the denser strokes tightly centred.
-            if front and 0.565 <= yn <= 0.605 and abs(x) <= 0.009:
-                region = "landing_strip"
-        elif args.coverage == "reyna":
-            if 0.66 <= yn <= 0.80 and 0.075 <= abs(x) <= 0.19 and abs(z) > 0.035:
-                region = "armpits"
-            elif front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
-                region = "pubic"
-        elif args.coverage == "dagna":
-            if front and 0.43 <= yn <= 0.50 and abs(x) <= 0.075:
-                region = "pubic"
-        else:
-            if args.coverage == "aldric":
-                # Keep Aldric's hair in the compact axillary band only. The
-                # lateral arms/legs masks below previously painted long strips
-                # down the flanks and around the back.
-                if 0.75 <= yn <= 0.82 and 0.14 <= abs(x) <= 0.23 and z > 0.0:
-                    region = "armpits"
-            elif front and 0.70 <= yn <= 0.76 and 0.105 <= abs(x) <= 0.155:
-                region = "armpits"
-            if args.coverage == "aldric":
-                if region is None and front and 0.40 <= yn <= 0.56 and abs(x) <= 0.008:
-                    region = "snail_trail"
-                elif region is None and front and 0.34 <= yn <= 0.49 and abs(x) <= 0.060:
-                    region = "pubic"
-                elif region is None and front:
-                    # A compact sternum diamond: broadest through the centre,
-                    # tapering symmetrically toward the collarbone and navel.
-                    diamond_half_width = 0.028 * max(0.0, 1.0 - abs(yn - 0.65) / 0.050)
-                    if 0.60 <= yn <= 0.70 and abs(x) <= diamond_half_width:
-                        region = "chest"
-            elif region is None and front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
-                region = "pubic"
-        if region is None:
-            continue
-        draws[region].polygon(polygon, fill=255)
+    def clip_polygon(poly, signed_distance):
+        """Clip an interpolated (x,y,z,u,v) polygon to signed_distance <= 0."""
+        if not poly:
+            return []
+        result = []
+        previous = poly[-1]
+        previous_d = signed_distance(previous)
+        for current in poly:
+            current_d = signed_distance(current)
+            if (previous_d <= 0) != (current_d <= 0):
+                denom = previous_d - current_d
+                t = previous_d / denom if abs(denom) > 1e-12 else 0.0
+                result.append(tuple(previous[i] + t * (current[i] - previous[i]) for i in range(5)))
+            if current_d <= 0:
+                result.append(current)
+            previous, previous_d = current, current_d
+        return result
+
+    def paint_clipped(region, tri, constraints):
+        # Clip the actual UV triangle against the requested 3D body-space
+        # region. Painting whole UV triangles based on their centroid caused
+        # large stray patches on adjacent abdomen, chest and thigh surfaces.
+        poly = []
+        for vertex in tri:
+            p = positions[vertex]
+            uv = uvs[vertex]
+            poly.append((float(p[0]), float(p[1]), float(p[2]), float(uv[0]), float(uv[1])))
+        for constraint in constraints:
+            poly = clip_polygon(poly, constraint)
+            if len(poly) < 3:
+                return False
+        uv_polygon = [(v[3] * (width - 1), (1.0 - v[4]) * (height - 1)) for v in poly]
+        draws[region].polygon(uv_polygon, fill=255)
         regions[region] += 1
+        return True
+
+    def band(y0, y1, x0, x1, front=True):
+        constraints = [
+            lambda p, y0=y0: y0 - p[1],
+            lambda p, y1=y1: p[1] - y1,
+            lambda p, x0=x0: x0 - p[0],
+            lambda p, x1=x1: p[0] - x1,
+        ]
+        if front is True:
+            constraints.append(lambda p: 0.035 - p[2])
+        elif front is False:
+            constraints.append(lambda p: p[2] + 0.035)
+        return constraints
+
+    for tri in indices.reshape(-1, 3):
+        if args.coverage == "wren":
+            paint_clipped("landing_strip", tri, band(0.545, 0.585, -0.0065, 0.0065))
+        elif args.coverage == "reyna":
+            # Separate left/right axillae; keep the markings on the lateral
+            # upper torso rather than allowing a broad triangle to reach the
+            # chest or flank.
+            for side in (-1, 1):
+                paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
+                                                     side * 0.075 if side < 0 else 0.19, front=True))
+                paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
+                                                     side * 0.075 if side < 0 else 0.19, front=False))
+            paint_clipped("pubic", tri, band(0.27, 0.35, -0.075, 0.075))
+        elif args.coverage == "dagna":
+            paint_clipped("pubic", tri, band(0.27, 0.35, -0.065, 0.065))
+        elif args.coverage == "aldric":
+            # Keep axillary hair high and lateral. The previous 0.75-0.82
+            # band selected the lower pectoral/rib area, not the armpit.
+            paint_clipped("armpits", tri, band(0.83, 0.90, -0.23, -0.14, front=True))
+            paint_clipped("armpits", tri, band(0.83, 0.90, 0.14, 0.23, front=True))
+            paint_clipped("snail_trail", tri, band(0.34, 0.43, -0.006, 0.006))
+            paint_clipped("pubic", tri, band(0.27, 0.38, -0.060, 0.060))
+            paint_clipped("scrotum", tri, band(0.22, 0.33, -0.125, 0.125))
+            # A true narrow diamond, clipped as two linear wedges.
+            lower = [lambda p: 0.60 - p[1], lambda p: p[1] - 0.65,
+                     lambda p: p[0] - 0.56 * p[1] + 0.336,
+                     lambda p: -p[0] - 0.56 * p[1] + 0.336,
+                     lambda p: 0.035 - p[2]]
+            upper = [lambda p: 0.65 - p[1], lambda p: p[1] - 0.70,
+                     lambda p: p[0] + 0.56 * p[1] - 0.392,
+                     lambda p: -p[0] + 0.56 * p[1] - 0.392,
+                     lambda p: 0.035 - p[2]]
+            paint_clipped("chest", tri, lower)
+            paint_clipped("chest", tri, upper)
+        else:
+            paint_clipped("armpits", tri, band(0.70, 0.76, -0.155, -0.105, front=True))
+            paint_clipped("armpits", tri, band(0.70, 0.76, 0.105, 0.155, front=True))
+            paint_clipped("pubic", tri, band(0.27, 0.35, -0.13, 0.13))
 
     required = list(names)
     missing = [name for name in required if not regions.get(name)]
@@ -155,15 +182,15 @@ def main():
     counts = {name: 0 for name in required}
     densities = {"armpits": 170, "pubic": 520}
     if args.coverage == "wren":
-        densities = {"landing_strip": 1300}
+        densities = {"landing_strip": 1500}
     elif args.coverage == "reyna":
-        densities = {"armpits": 1250, "pubic": 520}
+        densities = {"armpits": 700, "pubic": 650}
     elif args.coverage == "dagna":
-        densities = {"pubic": 2200}
+        densities = {"pubic": 1800}
     elif args.coverage == "aldric":
         # Keep hair localised: compact axillae, a narrow sternum diamond,
         # central snail trail and pubic/scrotal regions. No arm or leg masks.
-        densities.update({"armpits": 250, "chest": 300, "snail_trail": 500, "scrotum": 320, "pubic": 650})
+        densities.update({"armpits": 300, "chest": 260, "snail_trail": 350, "scrotum": 260, "pubic": 650})
     default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
     colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
     if len(colour_hex) != 6:
