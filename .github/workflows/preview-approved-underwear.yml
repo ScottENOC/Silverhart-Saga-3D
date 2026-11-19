@@ -8,6 +8,7 @@ on:
       - "tools/ara/apply_outfit_materials.py"
       - "tools/ara/assemble_modular_glb.py"
       - "tools/review/render_modular_outfits.py"
+      - "tools/review/fit_modular_garments_to_skin.py"
   workflow_dispatch:
 
 permissions:
@@ -52,7 +53,7 @@ jobs:
           cp "$WREN" build/approved-underwear/Wren-body-approved-111.glb
           cp "$DAGNA" build/approved-underwear/Dagna-body-approved-56.glb
 
-      - name: Assemble outfits from independent Ara garment primitives
+      - name: Assemble independent Ara garment primitives
         shell: bash
         run: |
           set -euo pipefail
@@ -64,28 +65,50 @@ jobs:
             "$SOURCE" "Triangle bikini strings" \
             "$SOURCE" "String bikini bottom" \
             "$SOURCE" "String bikini strings"
-          python tools/ara/apply_outfit_materials.py \
-            --input build/approved-underwear/Wren-assembled.glb \
-            --output build/approved-underwear/Wren-underwear-preview.glb \
-            --materials "Triangle bikini top" "Triangle bikini strings" "String bikini bottom" "String bikini strings" \
-            --colour "#171717" --alpha 0.5
           python tools/ara/assemble_modular_glb.py \
             build/approved-underwear/Dagna-body-approved-56.glb \
             build/approved-underwear/Dagna-assembled.glb \
             "$SOURCE" "Bra" \
             "$SOURCE" "Briefs"
+          test -s build/approved-underwear/Wren-assembled.glb
+          test -s build/approved-underwear/Dagna-assembled.glb
+
+      - name: Install Blender and render outfit reviews
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+      - name: Fit garment surfaces to the accepted body meshes
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          for character in Wren Dagna; do
+            blender --background --python-exit-code 1 \
+              --python tools/review/fit_modular_garments_to_skin.py -- \
+              "build/approved-underwear/${character}-assembled.glb" \
+              --output "build/approved-underwear/${character}-surface-fitted.glb" \
+              --report "build/approved-underwear/review/${character}-garment-fit-report.json"
+          done
+
+      - name: Apply review-only garment colours
+        shell: bash
+        run: |
+          set -euo pipefail
           python tools/ara/apply_outfit_materials.py \
-            --input build/approved-underwear/Dagna-assembled.glb \
+            --input build/approved-underwear/Wren-surface-fitted.glb \
+            --output build/approved-underwear/Wren-underwear-preview.glb \
+            --materials "Triangle bikini top" "Triangle bikini strings" "String bikini bottom" "String bikini strings" \
+            --colour "#171717" --alpha 0.5
+          python tools/ara/apply_outfit_materials.py \
+            --input build/approved-underwear/Dagna-surface-fitted.glb \
             --output build/approved-underwear/Dagna-underwear-preview.glb \
             --materials "Bra" "Briefs" \
             --colour "#788578" --alpha 1.0
           test -s build/approved-underwear/Wren-underwear-preview.glb
           test -s build/approved-underwear/Dagna-underwear-preview.glb
 
-      - name: Install Blender and render outfit reviews
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
       - name: Render front, side and rear views for both outfits
         shell: bash
         run: |
