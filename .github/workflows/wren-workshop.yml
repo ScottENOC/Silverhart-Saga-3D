@@ -374,9 +374,9 @@ jobs:
           python tools/ara/extract_selected_garments.py \
             --source-dir /tmp/ara-generated \
             --output-dir art/characters/ara_runtime/garments \
-            --only standard_bra standard_briefs triangle_bikini_top string_bikini_bottom g_string lace_briefs fishnet_briefs
+            --only standard_bra standard_briefs triangle_bikini_top string_bikini_bottom g_string lace_briefs fishnet_briefs halter_bra_lace halter_bra_fishnet
           find art/characters/ara_runtime/garments -maxdepth 1 -type f -name '*.glb' -size +0c | sort
-          test "$(find art/characters/ara_runtime/garments -maxdepth 1 -type f -name '*.glb' -size +0c | wc -l)" -eq 7
+          test "$(find art/characters/ara_runtime/garments -maxdepth 1 -type f -name '*.glb' -size +0c | wc -l)" -eq 9
       - name: Collect integrated models and review renders
         uses: actions/download-artifact@v8
         with:
