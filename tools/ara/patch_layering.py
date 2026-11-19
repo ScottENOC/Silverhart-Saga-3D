@@ -226,7 +226,6 @@ edit("src/core/garments/textures.ts", [
         return { c: mul(A, 0.88 + 0.12 * w), a: thread ? 1 : 0, h: thread ? 0.85 : 0 };
       }, true, 1.8);
     }
-    }
     case 'lace': {""")
 ]);
 
