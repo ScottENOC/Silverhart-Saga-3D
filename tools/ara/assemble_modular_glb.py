@@ -118,10 +118,22 @@ def add(target,buf,source_path,selector):
     source_names=source_mesh.get('extras',{}).get('targetNames')
     target_count=len(target_mesh.get('weights', target_names or []))
     source_count=len(source_mesh.get('weights', source_names or []))
-    if source_count != target_count:
+    # Mirabel adds an ElfEars morph to the accepted body. Ara's shared garment
+    # catalogue has the standard 34 facial morphs but no ear deformation; append
+    # a zero-delta target for ElfEars so garment morph indices remain aligned.
+    missing_targets = []
+    if target_names is not None and source_names is not None:
+        if source_names == target_names:
+            pass
+        elif (target_names[:len(source_names)] == source_names
+              and all(name == "ElfEars" for name in target_names[len(source_names):])):
+            missing_targets = target_names[len(source_names):]
+        else:
+            raise ValueError(f'Morph target names differ in {source_path}: source={source_names}, target={target_names}')
+    if source_count != target_count and not missing_targets:
         raise ValueError(f'Morph target count differs in {source_path}: source={source_count}, target={target_count}')
-    if target_names is not None and source_names is not None and source_names != target_names:
-        raise ValueError(f'Morph target names differ in {source_path}')
+    if source_count + len(missing_targets) != target_count:
+        raise ValueError(f'Cannot align morph targets in {source_path}: source={source_count}, padding={len(missing_targets)}, target={target_count}')
     target_name=None
     if '=' in selector: selector,target_name=selector.split('=',1)
     if selector.endswith('*'):
@@ -166,7 +178,9 @@ def add(target,buf,source_path,selector):
             target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
             remapped[attr]=new_ai
         remapped_targets.append(remapped)
-    if source_targets:
+    if missing_targets:
+        remapped_targets.extend({} for _ in missing_targets)
+    if source_targets or missing_targets:
         p['targets']=remapped_targets
 
     # Reuse a previously appended material for other primitives that form the
