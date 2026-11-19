@@ -419,15 +419,18 @@ def add_piercings(entries):
                     xn = abs(pos.x - centre.x) / max(size.x, 1e-6)
                     print(f"SOCKET_DIAGNOSTIC {name} world={tuple(round(v,4) for v in pos)} normalized_z={zn:.3f} normalized_x={xn:.3f}")
                     # Ear sockets belong high on the head, lateral to the face.
-                    if zn < 0.82 or zn > 0.99 or xn < 0.18 or xn > 0.48:
-                        side = -1.0 if name.endswith("_L") else 1.0
-                        fallback = Vector((centre.x + side * size.x * 0.34,
-                                           lo.y + size.y * 0.16,
-                                           lo.z + size.z * 0.885))
-                        print(f"WARNING: {name} outside head envelope; fallback={tuple(round(v,4) for v in fallback)}")
-                        socket_world = socket.matrix_world.copy()
-                        socket_world.translation = fallback
-                        socket.matrix_world = socket_world
+                    # The exported Ara ear sockets are misplaced at shoulder height
+                    # in this profile (the old envelope test accepted them because
+                    # their normalised height happened to look plausible). Always
+                    # anchor the hoops to the visible ear-lobe envelope instead.
+                    side = -1.0 if name.endswith("_L") else 1.0
+                    fallback = Vector((centre.x + side * size.x * 0.10,
+                                       lo.y + size.y * 0.10,
+                                       lo.z + size.z * 0.88))
+                    print(f"EAR_SOCKET_REPOSITION {name} from={tuple(round(v,4) for v in pos)} to={tuple(round(v,4) for v in fallback)}")
+                    socket_world = socket.matrix_world.copy()
+                    socket_world.translation = fallback
+                    socket.matrix_world = socket_world
                     add_hoop(socket, 0.016, material, "Piercing_" + name, hang_down=True)
                     count += 1
                 else:
