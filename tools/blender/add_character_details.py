@@ -322,7 +322,8 @@ def add_hoop(socket, radius, material, name, hang_down=False):
     # slightly forward (the imported Blender scene faces -Y) so it remains
     # visible without moving the attachment away from the earlobe.
     if name.startswith("Piercing_SOCKET_Earring_"):
-        centre += Vector((0.0, -0.018, 0.0))
+        side = -1.0 if name.endswith("_L") else 1.0
+        centre += Vector((side * 0.022, -0.035, -0.006))
     world.translation = centre
     bpy.ops.mesh.primitive_torus_add(major_segments=32, minor_segments=12,
                                      location=world.translation,
@@ -427,7 +428,7 @@ def add_piercings(entries):
                         socket_world = socket.matrix_world.copy()
                         socket_world.translation = fallback
                         socket.matrix_world = socket_world
-                    add_hoop(socket, 0.014, material, "Piercing_" + name, hang_down=True)
+                    add_hoop(socket, 0.016, material, "Piercing_" + name, hang_down=True)
                     count += 1
                 else:
                     print(f"WARNING: Ara socket {name} not found; piercing omitted")

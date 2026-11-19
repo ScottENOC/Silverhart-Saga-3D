@@ -138,7 +138,7 @@ def main():
 
     for tri in indices.reshape(-1, 3):
         if args.coverage == "wren":
-            paint_clipped("landing_strip", tri, band(0.545, 0.585, -0.0065, 0.0065))
+            paint_clipped("landing_strip", tri, band(0.49, 0.54, -0.0065, 0.0065))
         elif args.coverage == "reyna":
             # Separate left/right axillae; keep the markings on the lateral
             # upper torso rather than allowing a broad triangle to reach the
