@@ -590,5 +590,5 @@ func _add_label(parent: VBoxContainer, message: String) -> void:
 func _on_action_committed(event: SimulationEvent) -> void:
     if event == null:
         return
-    if visible and event.event_type in ["spell_cast", "spell_countered", "character_moved", "character_damaged", "animal_mounted", "animal_dismounted"]:
+    if visible and event.event_type in ["spell_cast", "spell_countered", "character_moved", "character_damaged", "animal_mounted", "animal_dismounted", "summon_expired"]:
         refresh()
