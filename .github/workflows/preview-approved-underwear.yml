@@ -1,0 +1,166 @@
+name: Preview approved Wren and Dagna underwear outfits
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - ".github/workflows/preview-approved-underwear.yml"
+      - "tools/ara/apply_outfit_materials.py"
+      - "tools/ara/assemble_modular_glb.py"
+      - "tools/review/render_modular_outfits.py"
+      - "tools/review/fit_modular_garments_to_skin.py"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download accepted Wren #111 body artifact
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: 44489910457
+          artifact-ids: 14512795917
+          path: /tmp/approved/wren
+
+      - name: Download accepted Dagna #56 body artifact
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: 44489910404
+          artifact-ids: 14512189420
+          path: /tmp/approved/dagna
+
+      - name: Download accepted Reyna #118 body artifact
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: 44599425919
+          artifact-ids: 14567073077
+          path: /tmp/approved/reyna
+
+      - name: Locate accepted body GLBs and validate source garment catalogue
+        shell: bash
+        run: |
+          set -euo pipefail
+          WREN="$(find /tmp/approved/wren -type f -name 'Wren.glb' -print -quit)"
+          DAGNA="$(find /tmp/approved/dagna -type f -name 'Dagna.glb' -print -quit)"
+          REYNA="$(find /tmp/approved/reyna -type f -name 'Reyna.glb' -print -quit)"
+          test -n "$WREN" && test -s "$WREN"
+          test -n "$DAGNA" && test -s "$DAGNA"
+          test -n "$REYNA" && test -s "$REYNA"
+          test -s art/characters/ara_runtime/ara_person_modular_underwear.glb
+          mkdir -p build/approved-underwear
+          cp "$WREN" build/approved-underwear/Wren-body-approved-111.glb
+          cp "$DAGNA" build/approved-underwear/Dagna-body-approved-56.glb
+          cp "$REYNA" build/approved-underwear/Reyna-body-approved-118.glb
+
+      - name: Assemble independent Ara garment primitives
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE=art/characters/ara_runtime/ara_person_modular_underwear.glb
+          python tools/ara/assemble_modular_glb.py \
+            build/approved-underwear/Wren-body-approved-111.glb \
+            build/approved-underwear/Wren-assembled.glb \
+            "$SOURCE" "Triangle bikini top" \
+            "$SOURCE" "Triangle bikini strings" \
+            "$SOURCE" "String bikini bottom" \
+            "$SOURCE" "String bikini strings"
+          python tools/ara/assemble_modular_glb.py \
+            build/approved-underwear/Dagna-body-approved-56.glb \
+            build/approved-underwear/Dagna-assembled.glb \
+            "$SOURCE" "Bra" \
+            "$SOURCE" "Briefs"
+          test -s build/approved-underwear/Wren-assembled.glb
+          python tools/ara/assemble_modular_glb.py \
+            build/approved-underwear/Reyna-body-approved-118.glb \
+            build/approved-underwear/Reyna-assembled.glb \
+            "$SOURCE" "Halter lace bra cups" \
+            "$SOURCE" "Halter lace bra straps" \
+            "$SOURCE" "Halter lace bra piping" \
+            "$SOURCE" "Lace briefs" \
+            "$SOURCE" "Lace briefs ties"
+          test -s build/approved-underwear/Dagna-assembled.glb
+          test -s build/approved-underwear/Reyna-assembled.glb
+
+      - name: Install Blender and render outfit reviews
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+      - name: Fit garment surfaces to the accepted body meshes
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          for character in Wren Dagna Reyna; do
+            blender --background --python-exit-code 1 \
+              --python tools/review/fit_modular_garments_to_skin.py -- \
+              --input "build/approved-underwear/${character}-assembled.glb" \
+              --output "build/approved-underwear/${character}-surface-fitted.glb" \
+              --report "build/approved-underwear/review/${character}-garment-fit-report.json"
+          done
+
+      - name: Apply review-only garment colours
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ara/apply_outfit_materials.py \
+            --input build/approved-underwear/Wren-surface-fitted.glb \
+            --output build/approved-underwear/Wren-underwear-preview.glb \
+            --materials "Triangle bikini top" "Triangle bikini strings" "String bikini bottom" "String bikini strings" \
+            --colour "#171717" --alpha 0.5
+          python tools/ara/apply_outfit_materials.py \
+            --input build/approved-underwear/Dagna-surface-fitted.glb \
+            --output build/approved-underwear/Dagna-underwear-preview.glb \
+            --materials "Bra" "Briefs" \
+            --colour "#788578" --alpha 1.0
+          test -s build/approved-underwear/Wren-underwear-preview.glb
+          python tools/ara/apply_outfit_materials.py \
+            --input build/approved-underwear/Reyna-surface-fitted.glb \
+            --output build/approved-underwear/Reyna-underwear-preview.glb \
+            --materials "Halter lace bra cups" "Halter lace bra straps" "Halter lace bra piping" "Lace briefs" "Lace briefs ties" \
+            --colour "#FFFFFF" --alpha 1.0
+          test -s build/approved-underwear/Dagna-underwear-preview.glb
+          test -s build/approved-underwear/Reyna-underwear-preview.glb
+
+      - name: Render front, side and rear views for both outfits
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          mkdir -p build/approved-underwear/review
+          for entry in "Wren-underwear-preview.glb:wren_starting" "Dagna-underwear-preview.glb:dagna_starting" "Reyna-underwear-preview.glb:reyna_lace_starting"; do
+            file="${entry%%:*}"
+            preset="${entry##*:}"
+            blender --background --python-exit-code 1 \
+              --python tools/review/render_modular_outfits.py -- \
+              "build/approved-underwear/$file" \
+              build/approved-underwear/review "$preset"
+            for view in front side rear; do
+              test -s "build/approved-underwear/review/$preset/$view.png"
+            done
+            test -s "build/approved-underwear/review/$preset/report.json"
+          done
+
+      - name: Upload approved-body outfit previews
+        uses: actions/upload-artifact@v7
+        with:
+          name: approved-wren-dagna-underwear-previews
+          path: build/approved-underwear/
+          if-no-files-found: error
+          retention-days: 30
