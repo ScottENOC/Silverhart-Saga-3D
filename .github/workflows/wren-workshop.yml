@@ -9,7 +9,7 @@ on:
         type: string
         default: ""
   push:
-    branches: [dev, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates]
+    branches: [dev, feature/modular-underwear-catalogue, integration/wren-modular-clothing, fix/wren-lace-fishnet-and-anatomy, fix/modular-outfit-review-material-duplicates]
     paths:
       - "tools/ara/patch_layering.py"
       - "tools/ara/assemble_modular_glb.py"
@@ -66,6 +66,8 @@ jobs:
           pnpm install --no-frozen-lockfile
           npm run setup-assets
           python "$GITHUB_WORKSPACE/tools/ara/patch_layering.py"
+          python "$GITHUB_WORKSPACE/tools/ara/patch_halter_bra.py"
+          python "$GITHUB_WORKSPACE/tools/ara/patch_g_string.py"
           cat > /tmp/ara-person.params.json <<'JSON'
           {
             "name": "Ara Base Person - dressed preview",
@@ -190,6 +192,9 @@ jobs:
           base = json.load(open('/tmp/ara-person.params.json'))
           variants = {
               "tank_top": {"top":"tank_top", "underTop":"none", "underBottom":"none", "bottom":"none"},
+              "standard_bra": {"top":"none", "underTop":"bra", "underBottom":"none", "bottom":"none"},
+              "standard_briefs": {"top":"none", "underTop":"none", "underBottom":"briefs", "bottom":"none"},
+              "g_string": {"top":"none", "underTop":"none", "underBottom":"g_string", "bottom":"none"},
               "halter_bra_lace": {"top":"none", "underTop":"halter_bra_lace", "underBottom":"none", "bottom":"none",
                                   "garmentStyles":{"halter_bra_lace":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
               "halter_bra_fishnet": {"top":"none", "underTop":"halter_bra_fishnet", "underBottom":"none", "bottom":"none",
@@ -218,7 +223,7 @@ jobs:
               p.update(updates)
               json.dump(p, open('/tmp/ara-person-'+key+'.params.json','w'), indent=2)
           PY
-          for variant in tank_top halter_bra_lace halter_bra_fishnet triangle_bikini_top string_bikini_bottom lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants backless_slit_dress leather_armor; do
+          for variant in tank_top standard_bra standard_briefs g_string halter_bra_lace halter_bra_fishnet triangle_bikini_top string_bikini_bottom lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants backless_slit_dress leather_armor; do
             mkdir -p "/tmp/ara-$variant-out"
             npm run export -- --params "/tmp/ara-person-$variant.params.json" --detail high --formats glb --out "/tmp/ara-$variant-out"
             VARIANT_GLB="$(find "/tmp/ara-$variant-out" -maxdepth 1 -type f -name '*.glb' -print -quit)"
@@ -389,6 +394,8 @@ jobs:
             /tmp/ara-generated/ara_person_triangle_bikini_top.glb "Bikini strings*=Triangle bikini strings" \
             /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini bottom=String bikini bottom" \
             /tmp/ara-generated/ara_person_string_bikini_bottom.glb "Bikini strings*=String bikini strings" \
+            /tmp/ara-generated/ara_person_g_string.glb "G-string bottom" \
+            /tmp/ara-generated/ara_person_g_string.glb "G-string strings*" \
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini bottom=Lace briefs" \
             /tmp/ara-generated/ara_person_lace_briefs.glb "Bikini strings*=Lace briefs ties" \
             /tmp/ara-generated/ara_person_fishnet_briefs.glb "Bikini bottom=Fishnet briefs" \
@@ -483,7 +490,7 @@ jobs:
           # Run one outfit per Blender process. Repeated glTF imports/renders in a
           # single Blender 5.x process can accumulate renderer state and segfault
           # during shutdown after all PNGs have been written (exit 139).
-          for outfit in lace_bra fishnet_bra lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants; do
+          for outfit in g_string lace_bra fishnet_bra lace_briefs fishnet_briefs lace_shirt fishnet_shirt lace_pants fishnet_pants; do
             echo "Reviewing $outfit in an isolated Blender process"
             set +e
             blender --background --python-exit-code 1 --python tools/review/render_modular_outfits.py -- \
