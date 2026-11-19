@@ -351,6 +351,34 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  extract-standalone-garments:
+    needs: generate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download generated Ara garment variants
+        uses: actions/download-artifact@v8
+        with:
+          name: ara-generated-models
+          path: /tmp/ara-generated
+      - name: Extract independent garment GLBs
+        run: |
+          set -euo pipefail
+          python tools/ara/extract_selected_garments.py \
+            --source-dir /tmp/ara-generated \
+            --output-dir art/characters/ara_runtime/garments \
+            --only standard_bra standard_briefs wren_starting_top wren_starting_bottom triangle_bikini_top string_bikini_bottom g_string lace_briefs fishnet_briefs halter_bra_lace halter_bra_fishnet
+          count="$(find art/characters/ara_runtime/garments -maxdepth 1 -type f -name '*.glb' | wc -l)"
+          test "$count" -eq 11
+          find art/characters/ara_runtime/garments -maxdepth 1 -type f -name '*.glb' -printf '%f %s bytes\n' | sort
+      - name: Upload independent garment catalogue
+        uses: actions/upload-artifact@v7
+        with:
+          name: ara-standalone-garments
+          path: art/characters/ara_runtime/garments/*.glb
+          if-no-files-found: error
+          retention-days: 14
+
   fit-companion-underwear:
     needs: generate
     runs-on: ubuntu-latest
