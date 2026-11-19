@@ -53,6 +53,7 @@ jobs:
           import json
           from pathlib import Path
           source = json.loads(Path("character-preview/wren-ara.json").read_text())
+          source.pop("character_details", None)
           for name, muscle in (("low", 0.20), ("neutral", 0.50), ("high", 0.80)):
               profile = json.loads(json.dumps(source))
               params = profile["params"]
