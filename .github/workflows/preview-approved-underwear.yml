@@ -1,4 +1,4 @@
-name: Preview approved Wren and Dagna underwear outfits
+name: Preview approved companion underwear outfits
 
 on:
   pull_request:
@@ -39,18 +39,31 @@ jobs:
           artifact-ids: 14512189420
           path: /tmp/approved/dagna
 
+
+      - name: Download accepted Mirabel #114 body artifact
+        uses: actions/download-artifact@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          run-id: 44620790936
+          artifact-ids: 14575603958
+          path: /tmp/approved/mirabel
+
       - name: Locate accepted body GLBs and validate source garment catalogue
         shell: bash
         run: |
           set -euo pipefail
           WREN="$(find /tmp/approved/wren -type f -name 'Wren.glb' -print -quit)"
           DAGNA="$(find /tmp/approved/dagna -type f -name 'Dagna.glb' -print -quit)"
+          MIRABEL="$(find /tmp/approved/mirabel -type f -name 'Mirabel.glb' -print -quit)"
           test -n "$WREN" && test -s "$WREN"
           test -n "$DAGNA" && test -s "$DAGNA"
+          test -n "$MIRABEL" && test -s "$MIRABEL"
           test -s art/characters/ara_runtime/ara_person_modular_underwear.glb
           mkdir -p build/approved-underwear
           cp "$WREN" build/approved-underwear/Wren-body-approved-111.glb
           cp "$DAGNA" build/approved-underwear/Dagna-body-approved-56.glb
+          cp "$MIRABEL" build/approved-underwear/Mirabel-body-approved-114.glb
 
       - name: Assemble outfits from independent Ara garment primitives
         shell: bash
@@ -79,6 +92,18 @@ jobs:
             --output build/approved-underwear/Dagna-underwear-preview.glb \
             --materials "Bra" "Briefs" \
             --colour "#788578" --alpha 1.0
+          python tools/ara/assemble_modular_glb.py \
+            build/approved-underwear/Mirabel-body-approved-114.glb \
+            build/approved-underwear/Mirabel-assembled.glb \
+            "$SOURCE" "Bra" \
+            "$SOURCE" "String bikini bottom" \
+            "$SOURCE" "String bikini strings"
+          python tools/ara/apply_outfit_materials.py \
+            --input build/approved-underwear/Mirabel-assembled.glb \
+            --output build/approved-underwear/Mirabel-underwear-preview.glb \
+            --materials "Bra" "String bikini bottom" "String bikini strings" \
+            --colour "#0F52BA" --alpha 1.0
+          test -s build/approved-underwear/Mirabel-underwear-preview.glb
           test -s build/approved-underwear/Wren-underwear-preview.glb
           test -s build/approved-underwear/Dagna-underwear-preview.glb
 
@@ -94,7 +119,7 @@ jobs:
           export EGL_PLATFORM=surfaceless
           export LIBGL_ALWAYS_SOFTWARE=1
           mkdir -p build/approved-underwear/review
-          for entry in "Wren-underwear-preview.glb:wren_starting" "Dagna-underwear-preview.glb:dagna_starting"; do
+          for entry in "Wren-underwear-preview.glb:wren_starting" "Dagna-underwear-preview.glb:dagna_starting" "Mirabel-underwear-preview.glb:mirabel_underwear"; do
             file="${entry%%:*}"
             preset="${entry##*:}"
             blender --background --python-exit-code 1 \
@@ -110,7 +135,7 @@ jobs:
       - name: Upload approved-body outfit previews
         uses: actions/upload-artifact@v7
         with:
-          name: approved-wren-dagna-underwear-previews
+          name: approved-companion-underwear-previews
           path: build/approved-underwear/
           if-no-files-found: error
           retention-days: 30
