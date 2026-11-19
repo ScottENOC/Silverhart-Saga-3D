@@ -170,9 +170,9 @@ def main():
 
     pubic_half_width = None
     if args.coverage == "reyna":
-        pubic_half_width = adaptive_pubic_half_width(0.28, 0.37)
+        pubic_half_width = adaptive_pubic_half_width(0.36, 0.43)
     elif args.coverage == "aldric":
-        pubic_half_width = adaptive_pubic_half_width(0.28, 0.38)
+        pubic_half_width = adaptive_pubic_half_width(0.36, 0.43)
 
     def band(y0, y1, x0, x1, front=True):
         constraints = [
@@ -213,7 +213,7 @@ def main():
                 paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
                                                      side * 0.075 if side < 0 else 0.19, front=False))
             # Adapt the mask width to the exported pelvic topology; retain front-depth clipping.
-            paint_clipped("pubic", tri, band(0.28, 0.37, -pubic_half_width, pubic_half_width))
+            paint_clipped("pubic", tri, band(0.36, 0.43, -pubic_half_width, pubic_half_width))
         elif args.coverage == "dagna":
             paint_clipped("pubic", tri, band(0.28, 0.37, -0.055, 0.055))
         elif args.coverage == "aldric":
@@ -223,7 +223,7 @@ def main():
             paint_clipped("armpits", tri, band(0.82, 0.89, 0.16, 0.23, front=True))
             paint_clipped("snail_trail", tri, band(0.38, 0.48, -0.004, 0.004))
             # Match the wider pelvic UV footprint used for the female companion builds.
-            paint_clipped("pubic", tri, band(0.28, 0.38, -pubic_half_width, pubic_half_width))
+            paint_clipped("pubic", tri, band(0.36, 0.43, -pubic_half_width, pubic_half_width))
             paint_clipped("scrotum", tri, band(0.24, 0.34, -0.080, 0.080))
             # A true narrow diamond, clipped as two linear wedges.
             lower = [lambda p: 0.60 - yn_of(p), lambda p: yn_of(p) - 0.65,
