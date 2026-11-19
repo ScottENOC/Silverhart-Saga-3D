@@ -20,6 +20,8 @@ def arguments():
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--strength", type=float, default=0.55)
+    parser.add_argument("--vertical-offset-m", type=float, default=0.0,
+                        help="Move the entire abdominal definition vertically in metres")
     parser.add_argument("--key-name", default="AbdominalDefinition")
     return parser.parse_args(raw)
 
@@ -78,15 +80,16 @@ def main():
     positions = [world_matrix @ v.co for v in skin.data.vertices]
     normals = [(normal_matrix @ v.normal).normalized() for v in skin.data.vertices]
 
-    centre_y = vertical_min + height * 0.555
+    vertical_offset = args.vertical_offset_m
+    centre_y = vertical_min + height * 0.555 + vertical_offset
     row_spacing = height * 0.052
     row_centres = (centre_y + row_spacing, centre_y, centre_y - row_spacing)
     pad_x = width * 0.066
     sigma_x = width * 0.024
     sigma_y = height * 0.017
     front_limit = width * 0.155
-    top_y = vertical_min + height * 0.655
-    bottom_y = vertical_min + height * 0.455
+    top_y = vertical_min + height * 0.655 + vertical_offset
+    bottom_y = vertical_min + height * 0.455 + vertical_offset
 
     if skin.data.shape_keys is None:
         skin.shape_key_add(name="Basis", from_mix=False)
@@ -139,10 +142,10 @@ def main():
     skin.data.update()
     skin["abdominal_definition_key"] = args.key_name
     skin["abdominal_definition_strength"] = args.strength
-    skin["abdominal_definition_region"] = f"vertical axis {vertical_axis}; 45.5%-65.5%; centre 55.5%"
+    skin["abdominal_definition_region"] = f"vertical axis {vertical_axis}; 45.5%-65.5%; centre 55.5%; offset {vertical_offset:+.3f}m"
     print(f"Created {args.key_name}: vertical_axis={vertical_axis}, front_axis={front_axis}, "
-          f"strength={args.strength:.2f}, moved={moved}, max_offset={max_offset:.4f}m, "
-          "region=45.5%-65.5%")
+          f"strength={args.strength:.2f}, vertical_offset={vertical_offset:+.3f}m, "
+          f"moved={moved}, max_offset={max_offset:.4f}m, region=45.5%-65.5%")
 
     armature = next((o for o in bpy.context.scene.objects if o.type == "ARMATURE"), None)
     bpy.ops.object.select_all(action="DESELECT")
