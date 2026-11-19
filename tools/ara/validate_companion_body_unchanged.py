@@ -19,7 +19,7 @@ def normalise(name):
 def rounded(row):
     return tuple(round(float(x), 6) for x in row)
 
-def primitive_signature(doc, binary, primitive, target_names):
+def primitive_signature(doc, binary, primitive, target_names, joint_names):
     attrs = primitive.get("attributes", {})
     if "POSITION" not in attrs:
         raise ValueError("Body primitive has no POSITION accessor")
@@ -28,7 +28,12 @@ def primitive_signature(doc, binary, primitive, target_names):
     weights = glb.accessor_rows(doc, binary, attrs["WEIGHTS_0"]) if "WEIGHTS_0" in attrs else [()] * len(positions)
     if not (len(positions) == len(joints) == len(weights)):
         raise ValueError("Body vertex attribute counts differ")
-    base = [(rounded(p), tuple(int(x) for x in j), rounded(w)) for p, j, w in zip(positions, joints, weights)]
+    if any(int(index) >= len(joint_names) for row in joints for index in row):
+        raise ValueError("Body vertex references an invalid joint index")
+    base = [
+        (rounded(p), tuple(sorted((joint_names[int(index)], round(float(weight), 6)) for index, weight in zip(j, w))))
+        for p, j, w in zip(positions, joints, weights)
+    ]
     base_sorted = tuple(sorted(base))
 
     targets = primitive.get("targets", [])
@@ -48,6 +53,7 @@ def body_signature(path):
     doc, binary = glb.read(path)
     node = glb.body_node(doc)
     mesh = doc["meshes"][node["mesh"]]
+    joint_names = [doc["nodes"][i].get("name", f"joint_{i}") for i in doc["skins"][0]["joints"]]
     names = mesh.get("extras", {}).get("targetNames", [])
     result = {}
     for primitive in mesh.get("primitives", []):
@@ -60,10 +66,10 @@ def body_signature(path):
             continue
         if key in result:
             raise ValueError(f"Duplicate body material primitive in {path}: {material}")
-        result[key] = primitive_signature(doc, binary, primitive, names)
+        result[key] = primitive_signature(doc, binary, primitive, names, joint_names)
     if "skin" not in result and not any(k.startswith("skin ") for k in result):
         raise ValueError(f"No skin primitive found in {path}")
-    return result, [doc["nodes"][i].get("name") for i in doc["skins"][0]["joints"]]
+    return result, set(joint_names)
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
