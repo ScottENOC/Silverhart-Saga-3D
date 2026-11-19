@@ -88,7 +88,13 @@ def add(target,buf,source_path,selector):
     src,sbuf=read(source_path)
     tj=[target['nodes'][i].get('name') for i in target['skins'][0]['joints']]
     sj=[src['nodes'][i].get('name') for i in src['skins'][0]['joints']]
-    if set(tj)!=set(sj): raise ValueError(f'Skeleton bones differ in {source_path}')
+    # A garment may use a subset of the target rig (e.g. a female garment
+    # attached to a male companion with additional anatomy bones). Every
+    # source joint must exist in the destination; extra destination joints are
+    # harmless and remain untouched.
+    if not set(sj).issubset(set(tj)):
+        missing=sorted(set(sj)-set(tj))
+        raise ValueError(f'Source skeleton has joints absent from {source_path}: {missing}')
     joint_map=[tj.index(name) for name in sj]
     tn=body_node(target); sn=body_node(src)
     target_mesh=target['meshes'][tn['mesh']]
@@ -96,19 +102,39 @@ def add(target,buf,source_path,selector):
     for k in ('translation','rotation','scale','matrix'):
         if tn.get(k)!=sn.get(k): raise ValueError(f'Rigged mesh {k} mismatch in {source_path}')
 
-    # Garment primitives must carry the same morph-target contract as the body.
-    # Ara exports facial blend shapes on every skinned primitive. Leaving the
-    # source target accessor indices untouched makes them point at unrelated
-    # accessors in the destination GLB (often scalar indices), which Blender
-    # then rejects while importing the assembled character.
+    # Morph targets are matched by name, not by array position. Companion
+    # bodies can have extra character-specific targets (ElfEars, abdominal
+    # definition or male anatomy). Garments inherit the shared targets and get
+    # zero-delta entries for destination-only targets.
     target_names=target_mesh.get('extras',{}).get('targetNames')
     source_names=source_mesh.get('extras',{}).get('targetNames')
     target_count=len(target_mesh.get('weights', target_names or []))
     source_count=len(source_mesh.get('weights', source_names or []))
-    if source_count != target_count:
-        raise ValueError(f'Morph target count differs in {source_path}: source={source_count}, target={target_count}')
-    if target_names is not None and source_names is not None and source_names != target_names:
-        raise ValueError(f'Morph target names differ in {source_path}')
+    if (target_names is None) != (source_names is None):
+        raise ValueError(f'Morph target names missing on one rig in {source_path}')
+    if target_names is None:
+        if source_count != target_count:
+            raise ValueError(f'Morph target count differs without names in {source_path}: source={source_count}, target={target_count}')
+        morph_map=list(range(target_count))
+    else:
+        if len(target_names) != target_count or len(source_names) != source_count:
+            raise ValueError(f'Morph target name/count mismatch in {source_path}')
+        if len(set(target_names)) != len(target_names) or len(set(source_names)) != len(source_names):
+            raise ValueError(f'Duplicate morph target names in {source_path}')
+        missing=sorted(set(source_names)-set(target_names))
+        if missing:
+            raise ValueError(f'Source morph targets absent from destination in {source_path}: {missing}')
+        source_index={name:i for i,name in enumerate(source_names)}
+        morph_map=[source_index.get(name) for name in target_names]
+
+    def zero_morph_accessor(vertex_count):
+        data=bytes(vertex_count*12)  # FLOAT VEC3, zero displacement
+        nonlocal target,buf
+        target,buf,view_index=append_bytes(target,buf,data,34962)
+        accessor={'bufferView':view_index,'componentType':5126,'count':vertex_count,'type':'VEC3','min':[0,0,0],'max':[0,0,0]}
+        index=len(target.setdefault('accessors',[]))
+        target['accessors'].append(accessor)
+        return index
     target_name=None
     if '=' in selector: selector,target_name=selector.split('=',1)
     if selector.endswith('*'):
@@ -144,16 +170,22 @@ def add(target,buf,source_path,selector):
     # as the garment primitive. Accessor indices are document-local: they must
     # never be copied verbatim from the source GLB into the destination GLB.
     source_targets=p.get('targets', [])
-    if len(source_targets) != target_count:
-        raise ValueError(f'{selector}: expected {target_count} morph targets, found {len(source_targets)}')
+    if len(source_targets) != source_count:
+        raise ValueError(f'{selector}: expected {source_count} source morph targets, found {len(source_targets)}')
+    source_semantics=sorted({attr for target_attrs in source_targets for attr in target_attrs})
+    if source_count and not source_semantics:
+        raise ValueError(f'{selector}: source morph targets have no attributes')
     remapped_targets=[]
-    for target_attrs in source_targets:
-        remapped={}
-        for attr,old_ai in target_attrs.items():
-            target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
-            remapped[attr]=new_ai
+    for source_index in morph_map:
+        if source_index is None:
+            remapped={attr:zero_morph_accessor(len(vertices)) for attr in source_semantics}
+        else:
+            remapped={}
+            for attr,old_ai in source_targets[source_index].items():
+                target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
+                remapped[attr]=new_ai
         remapped_targets.append(remapped)
-    if source_targets:
+    if target_count:
         p['targets']=remapped_targets
 
     # Reuse a previously appended material for other primitives that form the
