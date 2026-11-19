@@ -4,6 +4,7 @@ on:
   push:
     branches: [dev]
     paths:
+      - ".github/actions/character-build-setup/action.yml"
       - "character-preview/mirabel-ara.json"
       - ".github/workflows/build-mirabel-native-ara.yml"
       - "tools/review/mirabel_native_preview.gd"
