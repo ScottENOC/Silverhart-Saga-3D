@@ -370,56 +370,6 @@ def parent_preserve(obj, parent, world_matrix):
     obj.matrix_world = world_matrix
 
 
-def add_hoop(socket, radius, material, name, hang_down=False, surface_normal=None):
-    socket_matrix = socket.matrix_world.copy()
-    normal = (surface_normal.normalized() if surface_normal is not None else
-              (socket_matrix.to_3x3() @ Vector((0, 0, 1))).normalized())
-    world = socket_matrix.copy()
-    centre = socket_matrix.translation + normal * 0.0008
-    if hang_down:
-        # Blender scene coordinates are Z-up. Ara's source GLB is Y-up, but the glTF
-        # importer converts it into Blender's Z-up world. Use world -Z here;
-        # using -Y makes the hoop tilt along the wrong axis.
-        down = Vector((0, 0, -1))
-        down -= normal * down.dot(normal)
-        if down.length_squared < 1e-8:
-            down = Vector((0, 0, -1))
-        down.normalize()
-        outward = normal.normalized()
-        # The hoop's plane must be tangent to the chest and vertical: its
-        # local X axis runs sideways, local Y hangs down, and its normal faces
-        # outward. The previous basis used outward as an in-plane axis, which
-        # made the ring project away from the body instead of hanging flat.
-        tangent = down.cross(outward)
-        if tangent.length_squared < 1e-8:
-            tangent = Vector((1, 0, 0))
-            tangent -= outward * tangent.dot(outward)
-        tangent.normalize()
-        plane_normal = tangent.cross(down).normalized()
-        orientation = Matrix((tangent, down, plane_normal)).transposed().to_quaternion()
-        centre += down * radius * 0.89 + outward * 0.0005
-    else:
-        orientation = socket_matrix.to_quaternion()
-        centre += normal * 0.0012
-    # The socket is on the ear surface. Move the hoop laterally outward just
-    # enough for its outer half to clear the lobe, with only a tiny front offset.
-    # This keeps the piercing attached to the earlobe instead of floating in front.
-    # Earring sockets are already surface-anchored; do not add a second lateral offset.
-    world.translation = centre
-    bpy.ops.mesh.primitive_torus_add(major_segments=32, minor_segments=12,
-                                     location=world.translation,
-                                     major_radius=radius * 0.89,
-                                     minor_radius=radius * 0.11)
-    obj = bpy.context.object
-    obj.name = name
-    obj.rotation_mode = "QUATERNION"
-    obj.rotation_quaternion = orientation
-    obj.data.materials.append(material)
-    parent_preserve(obj, socket, obj.matrix_world.copy())
-    obj["character_detail_type"] = "piercing"
-    print(f"BAKED_PIERCING {name} socket={socket.name} outward={tuple(round(v, 3) for v in normal)}")
-
-
 def make_skin_surface_tree(skin):
     """Build a world-space BVH of the final sculpted skin for surface-anchored piercings."""
     depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -439,90 +389,6 @@ def make_skin_surface_tree(skin):
     tree = BVHTree.FromPolygons(vertices, polygons, all_triangles=False)
     evaluated.to_mesh_clear()
     return tree
-
-
-def make_ear_surface_trees(skin):
-    """Build separate BVHs from the same strict head-side mask used by add_elf_ears.py.
-
-    The mask is evaluated from the undeformed skin vertex positions, matching
-    the elf-ear generator's anatomical selection. Only polygons whose vertices
-    all belong to one ear mask are admitted; shoulders and torso can therefore
-    never win an earring's nearest-surface query.
-    """
-    lo, hi = world_bounds(skin)
-    extents = [hi[i] - lo[i] for i in range(3)]
-    vertical_axis = max(range(3), key=lambda axis: extents[axis])
-    other_axes = [axis for axis in range(3) if axis != vertical_axis]
-    lateral_axis = max(other_axes, key=lambda axis: extents[axis])
-    height, width = extents[vertical_axis], extents[lateral_axis]
-    low_height = lo[vertical_axis] + height * 0.855
-    high_height = lo[vertical_axis] + height * 0.915
-    inner_lateral, outer_lateral = width * 0.105, width * 0.205
-
-    world = skin.matrix_world
-    base_positions = [world @ vertex.co for vertex in skin.data.vertices]
-    base_normals = [
-        (world.to_3x3().inverted().transposed() @ vertex.normal).normalized()
-        for vertex in skin.data.vertices
-    ]
-    side_vertices = {}
-    for side in (-1.0, 1.0):
-        side_vertices[side] = {
-            index for index, (point, normal) in enumerate(zip(base_positions, base_normals))
-            if inner_lateral <= side * point[lateral_axis] <= outer_lateral
-            and low_height <= point[vertical_axis] <= high_height
-            and side * normal[lateral_axis] >= 0.42
-        }
-
-    depsgraph = bpy.context.evaluated_depsgraph_get()
-    evaluated = skin.evaluated_get(depsgraph)
-    mesh = evaluated.to_mesh()
-    evaluated_positions = [world @ vertex.co for vertex in mesh.vertices]
-    allowed_materials = skin_material_indices(skin)
-    trees = {}
-    for side, indices in side_vertices.items():
-        faces = []
-        for polygon in mesh.polygons:
-            if polygon.material_index not in allowed_materials:
-                continue
-            face = tuple(polygon.vertices)
-            if len(face) < 3 or not any(index in indices for index in face):
-                continue
-            centre = sum((evaluated_positions[index] for index in face), Vector()) / len(face)
-            # The elf-ear shape key selects a narrow band of vertices, but
-            # Ara's head topology has triangles that bridge those vertices to
-            # adjacent cheek/temple vertices. Requiring every triangle vertex
-            # to be in the mask therefore produces no surface at all. Admit
-            # only triangles touching the strict ear mask whose centroid stays
-            # inside a slightly padded ear band and whose face normal points
-            # outward. The spatial gate still excludes the shoulder.
-            if not (low_height - height * 0.018 <= centre[vertical_axis]
-                    <= high_height + height * 0.018):
-                continue
-            lateral = side * centre[lateral_axis]
-            if not (inner_lateral * 0.82 <= lateral <= outer_lateral * 1.18):
-                continue
-            normal = (world.to_3x3().inverted().transposed() @ polygon.normal).normalized()
-            if side * normal[lateral_axis] < 0.20:
-                continue
-            faces.append(face)
-        label = "L" if side > 0 else "R"
-        if len(faces) < 3:
-            evaluated.to_mesh_clear()
-            raise RuntimeError(
-                f"Could not build an ear-only surface for {label}: "
-                f"candidate_vertices={len(indices)}, candidate_faces={len(faces)}, "
-                f"axes=(vertical {vertical_axis}, lateral {lateral_axis})"
-            )
-        trees[side] = (BVHTree.FromPolygons(
-            evaluated_positions, faces, all_triangles=False
-        ), len(indices), len(faces))
-        print(
-            f"EAR_ONLY_SURFACE {label} candidate_vertices={len(indices)} "
-            f"candidate_faces={len(faces)}"
-        )
-    evaluated.to_mesh_clear()
-    return trees, lateral_axis
 
 
 def add_barbell(socket, material, surface_tree):
@@ -604,46 +470,20 @@ def add_nipple_barbell(socket, material):
     print(f"BAKED_PIERCING Piercing_SOCKET_Nipple_L horizontal barbell socket={socket.name}")
 
 def add_piercings(entries, skin):
+    """Bake project-specific piercings Ara does not provide natively.
+
+    Earrings are deliberately absent here: Ara generates and skins them from
+    its own morphed earlobe landmarks via the character params (earrings and
+    earringMetal). Keeping a second Blender earring path caused the old
+    shoulder-placement/socket/BVH failures.
+    """
+    custom_entries = [entry for entry in entries if entry != "earrings"]
     material = make_material("Ara_Piercing_Silver", "#C6CBD0", 0.82, 0.24)
     sockets = {obj.name: obj for obj in bpy.context.scene.objects}
-    surface_tree = make_skin_surface_tree(skin) if any(entry in entries for entry in ("clit", "earrings")) else None
-    ear_trees = None
-    ear_lateral_axis = None
-    if "earrings" in entries:
-        ear_trees, ear_lateral_axis = make_ear_surface_trees(skin)
+    surface_tree = make_skin_surface_tree(skin) if "clit" in custom_entries else None
     count = 0
-    for entry in entries:
-        if entry == "earrings":
-            for name in ("SOCKET_Earring_L", "SOCKET_Earring_R"):
-                socket = sockets.get(name)
-                if socket:
-                    socket_origin = socket.matrix_world.translation.copy()
-                    side = 1.0 if socket_origin[ear_lateral_axis] >= 0 else -1.0
-                    tree, vertex_count, face_count = ear_trees[side]
-                    hit, normal, _face, distance = tree.find_nearest(socket_origin, 0.08)
-                    if hit is None or distance > 0.06:
-                        raise RuntimeError(
-                            f"Could not anchor {name} to its ear-only surface: "
-                            f"side={'L' if side > 0 else 'R'}, "
-                            f"socket={tuple(round(v,4) for v in socket_origin)}, "
-                            f"nearest={tuple(round(v,4) for v in hit) if hit else None}, "
-                            f"distance={distance:.3f}; ear-only surface required within 0.06m "
-                            f"(vertices={vertex_count}, faces={face_count})"
-                        )
-                    socket_world = socket.matrix_world.copy()
-                    socket_world.translation = hit + normal * 0.0015
-                    socket.matrix_world = socket_world
-                    print(
-                        f"EAR_SOCKET_EAR_ONLY_ANCHOR {name} "
-                        f"side={'L' if side > 0 else 'R'} "
-                        f"distance={distance:.4f} "
-                        f"world={tuple(round(v,4) for v in socket.matrix_world.translation)}"
-                    )
-                    add_hoop(socket, 0.016, material, "Piercing_" + name, hang_down=True, surface_normal=normal)
-                    count += 1
-                else:
-                    print(f"WARNING: Ara socket {name} not found; piercing omitted")
-        elif entry == "nipple_left":
+    for entry in custom_entries:
+        if entry == "nipple_left":
             socket = sockets.get("SOCKET_Nipple_L")
             if socket:
                 add_nipple_barbell(socket, material)
@@ -658,9 +498,10 @@ def add_piercings(entries, skin):
             else:
                 print("WARNING: Ara socket SOCKET_ClitoralHood not found; piercing omitted")
         else:
-            print(f"WARNING: Unknown piercing profile entry {entry!r}")
+            print(f"WARNING: Unknown custom piercing profile entry {entry!r}")
+    if "earrings" in entries:
+        print("NATIVE_ARA_EARRINGS: generated by Ara from params; no Blender socket pass")
     return count
-
 
 def main():
     args = arguments()
