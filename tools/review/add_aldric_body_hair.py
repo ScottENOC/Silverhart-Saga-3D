@@ -320,15 +320,16 @@ def main():
         # Break the hard geometric edge into a softer, naturally irregular boundary.
         combined_mask = combined_mask.filter(ImageFilter.GaussianBlur(radius=4.5))
 
-    # Female companions share a clean no-hair zone immediately around the vulva.
-    # Build it from the same front-skin triangles and UV interpolation as the
-    # hair mask, so the exclusion follows the exported body topology rather
-    # than cutting an arbitrary rectangle into the texture atlas.
+    # Female companions share a clean no-hair zone around the vulva and
+    # down the perineal midline. Build it from the same front-skin triangles
+    # and UV interpolation as the hair mask, so it follows body topology.
+    # The lower extension removes the stray Dagna hairs visible between the
+    # vulva and perineum while retaining the surrounding mons hair.
     if args.coverage in {"wren", "reyna", "dagna"}:
         exclusion = Image.new("L", (width, height), 0)
         exclusion_draw = ImageDraw.Draw(exclusion)
-        ex_x0, ex_x1 = centre_x - 0.035, centre_x + 0.035
-        ex_y0, ex_y1 = 0.455, 0.510
+        ex_x0, ex_x1 = centre_x - 0.040, centre_x + 0.040
+        ex_y0, ex_y1 = 0.425, 0.515
         for tri in indices.reshape(-1, 3):
             poly = []
             for vertex in tri:
