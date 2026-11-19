@@ -316,6 +316,40 @@ def main():
     combined_mask = Image.new("L", (width, height), 0)
     for mask in masks.values():
         combined_mask = ImageChops.lighter(combined_mask, mask)
+
+    # Female companions share a clean no-hair zone immediately around the vulva.
+    # Build it from the same front-skin triangles and UV interpolation as the
+    # hair mask, so the exclusion follows the exported body topology rather
+    # than cutting an arbitrary rectangle into the texture atlas.
+    if args.coverage in {"wren", "reyna", "dagna"}:
+        exclusion = Image.new("L", (width, height), 0)
+        exclusion_draw = ImageDraw.Draw(exclusion)
+        ex_x0, ex_x1 = centre_x - 0.035, centre_x + 0.035
+        ex_y0, ex_y1 = 0.455, 0.510
+        for tri in indices.reshape(-1, 3):
+            poly = []
+            for vertex in tri:
+                p = positions[vertex]
+                uv = uvs[vertex]
+                poly.append((float(p[0]), float(p[1]), float(p[2]),
+                             float(uv[0]), float(uv[1])))
+            constraints = [
+                lambda p: ex_y0 - yn_of(p),
+                lambda p: yn_of(p) - ex_y1,
+                lambda p: ex_x0 - p[0],
+                lambda p: p[0] - ex_x1,
+                lambda p: 0.035 - p[2],
+            ]
+            for constraint in constraints:
+                poly = clip_polygon(poly, constraint)
+                if len(poly) < 3:
+                    break
+            if len(poly) >= 3:
+                uv_polygon = [(v[3] * (width - 1), v[4] * (height - 1))
+                              for v in poly]
+                exclusion_draw.polygon(uv_polygon, fill=255)
+        combined_mask = ImageChops.subtract(combined_mask, exclusion)
+
     alpha = ImageChops.multiply(layer.getchannel("A"), combined_mask)
     layer.putalpha(alpha)
     result = Image.alpha_composite(source.convert("RGBA"), layer).convert("RGB")
