@@ -51,7 +51,7 @@ def main():
     args = ap.parse_args()
     doc, old_binary, chunks = parse_glb(args.model.read_bytes())
 
-    skin_material = next(i for i, m in enumerate(doc["materials"]) if m.get("name", "").lower() == "skin")
+    skin_material = next(i for i, m in enumerate(doc["materials"]) if m.get("name", "").strip().lower() == "skin" or m.get("name", "").strip().lower().startswith("skin_anatomy"))
     texture_index = doc["materials"][skin_material]["pbrMetallicRoughness"]["baseColorTexture"]["index"]
     image_index = doc["textures"][texture_index]["source"]
     image = doc["images"][image_index]

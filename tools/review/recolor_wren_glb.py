@@ -49,8 +49,17 @@ def parse_glb(data: bytes):
 
 
 def material_by_name(document, name):
-    for material in document.get("materials", []):
-        if material.get("name", "").strip().lower() == name.lower():
+    materials = document.get("materials", [])
+    target = name.strip().lower()
+    for material in materials:
+        if material.get("name", "").strip().lower() == target:
+            return material
+    # The surface-following anatomy workflow isolates the skin shader as
+    # Skin_Anatomy so it cannot mutate shared materials. Treat that as the
+    # same logical skin material for downstream recolouring.
+    for material in materials:
+        actual = material.get("name", "").strip().lower()
+        if target == "skin" and actual.startswith("skin_anatomy"):
             return material
     raise ValueError(f"Could not find GLB material named {name!r}")
 
