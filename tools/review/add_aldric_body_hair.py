@@ -119,10 +119,14 @@ def main():
         regions[region] += 1
         return True
 
+    y_min = float(positions[:, 1].min())
+    def yn_of(p):
+        return (p[1] - y_min) / height_m
+
     def band(y0, y1, x0, x1, front=True):
         constraints = [
-            lambda p, y0=y0: y0 - p[1],
-            lambda p, y1=y1: p[1] - y1,
+            lambda p, y0=y0: y0 - yn_of(p),
+            lambda p, y1=y1: yn_of(p) - y1,
             lambda p, x0=x0: x0 - p[0],
             lambda p, x1=x1: p[0] - x1,
         ]
@@ -156,11 +160,11 @@ def main():
             paint_clipped("pubic", tri, band(0.27, 0.38, -0.060, 0.060))
             paint_clipped("scrotum", tri, band(0.22, 0.33, -0.125, 0.125))
             # A true narrow diamond, clipped as two linear wedges.
-            lower = [lambda p: 0.60 - p[1], lambda p: p[1] - 0.65,
+            lower = [lambda p: 0.60 - yn_of(p), lambda p: yn_of(p) - 0.65,
                      lambda p: p[0] - 0.56 * p[1] + 0.336,
                      lambda p: -p[0] - 0.56 * p[1] + 0.336,
                      lambda p: 0.035 - p[2]]
-            upper = [lambda p: 0.65 - p[1], lambda p: p[1] - 0.70,
+            upper = [lambda p: 0.65 - yn_of(p), lambda p: yn_of(p) - 0.70,
                      lambda p: p[0] + 0.56 * p[1] - 0.392,
                      lambda p: -p[0] + 0.56 * p[1] - 0.392,
                      lambda p: 0.035 - p[2]]
