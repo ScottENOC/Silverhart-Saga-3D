@@ -148,9 +148,9 @@ def main():
                                                      side * 0.075 if side < 0 else 0.19, front=True))
                 paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
                                                      side * 0.075 if side < 0 else 0.19, front=False))
-            paint_clipped("pubic", tri, band(0.36, 0.49, -0.075, 0.075))
+            paint_clipped("pubic", tri, band(0.44, 0.53, -0.075, 0.075))
         elif args.coverage == "dagna":
-            paint_clipped("pubic", tri, band(0.43, 0.50, -0.065, 0.065))
+            paint_clipped("pubic", tri, band(0.36, 0.43, -0.065, 0.065))
         elif args.coverage == "aldric":
             # Keep axillary hair high and lateral. The previous 0.75-0.82
             # band selected the lower pectoral/rib area, not the armpit.
