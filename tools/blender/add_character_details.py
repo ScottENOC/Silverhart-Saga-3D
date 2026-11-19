@@ -483,26 +483,22 @@ def add_piercings(entries, skin):
             for name in ("SOCKET_Earring_L", "SOCKET_Earring_R"):
                 socket = sockets.get(name)
                 if socket:
-                    lo, hi = world_bounds(skin)
-                    size = hi - lo
-                    # Use Ara's own earring socket as the landmark, then snap it
-                    # to the nearest skin-material surface. The previous fixed
-                    # X/Z guess could fall outside Mirabel's head entirely.
-                    # The BVH contains skin polygons only, so hair cannot become
-                    # the anchor even when it shares the same mesh object.
+                    # Ara's named earring socket is the anatomical landmark.
+                    # Snap only to the nearest skin-material polygon; do not use
+                    # a percentage-of-body-height gate, which rejected valid ear
+                    # skin on Mirabel because her ear sits below that guessed
+                    # threshold. A tight distance limit prevents a shoulder or
+                    # other remote skin surface from being accepted instead.
                     socket_origin = socket.matrix_world.translation.copy()
                     hit, normal, _face, distance = surface_tree.find_nearest(
-                        socket_origin, 0.20
+                        socket_origin, 0.05
                     )
-                    minimum_ear_height = lo.z + size.z * 0.82
-                    if (hit is None or distance > 0.12
-                            or hit.z < minimum_ear_height):
+                    if hit is None or distance > 0.03:
                         raise RuntimeError(
                             f"Could not anchor {name} to nearby ear skin: "
                             f"socket={tuple(round(v,4) for v in socket_origin)}, "
                             f"nearest={tuple(round(v,4) for v in hit) if hit else None}, "
-                            f"distance={distance:.3f}, "
-                            f"minimum_z={minimum_ear_height:.3f}"
+                            f"distance={distance:.3f}; expected within 0.03m"
                         )
                     socket_world = socket.matrix_world.copy()
                     socket_world.translation = hit + normal * 0.002
