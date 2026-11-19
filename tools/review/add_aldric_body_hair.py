@@ -153,15 +153,23 @@ def main():
             ]
             paint_clipped("landing_strip", tri, constraints)
         elif args.coverage == "reyna":
-            # Separate left/right axillae; keep the markings on the lateral
-            # upper torso rather than allowing a broad triangle to reach the
-            # chest or flank.
+            # Lower the axillary masks away from the collarbones and onto the underarm.
             for side in (-1, 1):
-                paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
-                                                     side * 0.075 if side < 0 else 0.19, front=True))
-                paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
-                                                     side * 0.075 if side < 0 else 0.19, front=False))
-            paint_clipped("pubic", tri, band(0.28, 0.37, -0.045, 0.045))
+                x0, x1 = ((-0.22, -0.14) if side < 0 else (0.14, 0.22))
+                paint_clipped("armpits", tri, band(0.69, 0.77, x0, x1, front=True))
+                paint_clipped("armpits", tri, band(0.69, 0.77, x0, x1, front=False))
+            # Dagna's accepted tapered mons mask: narrow lower point, broad upper mound.
+            y0, y1 = 0.44, 0.52
+            lower_half_width, upper_half_width = 0.018, 0.070
+            slope = (upper_half_width - lower_half_width) / (y1 - y0)
+            constraints = [
+                lambda p: y0 - yn_of(p),
+                lambda p: yn_of(p) - y1,
+                lambda p: p[0] - (centre_x + lower_half_width + slope * (yn_of(p) - y0)),
+                lambda p: (centre_x - lower_half_width - slope * (yn_of(p) - y0)) - p[0],
+                lambda p: 0.035 - p[2],
+            ]
+            paint_clipped("pubic", tri, constraints)
         elif args.coverage == "dagna":
             paint_clipped("pubic", tri, band(0.28, 0.37, -0.055, 0.055))
         elif args.coverage == "aldric":
@@ -236,7 +244,7 @@ def main():
             if region == "snail_trail":
                 stroke_width = 1
             else:
-                stroke_width = 2 if region == "landing_strip" else (2 if (args.coverage == "aldric" and region != "armpits") or (args.coverage == "dagna" and region == "pubic") else 1)
+                stroke_width = 2 if region == "landing_strip" else (2 if (args.coverage == "aldric" and region != "armpits") or (args.coverage in {"dagna", "reyna"} and region == "pubic") else 1)
             draw.line((x, y, x + dx, y + dy), fill=shade, width=stroke_width)
             counts[region] += 1
 
