@@ -124,7 +124,7 @@ def main():
     def yn_of(p):
         return (p[1] - y_min) / height_m
 
-    def adaptive_pubic_half_width(y0, y1, minimum=0.085, maximum=0.22):
+    def adaptive_pubic_half_width(y0, y1, minimum=0.04, maximum=0.10):
         """Find the narrowest pelvic mask width that actually clips enough front-skin UV faces."""
         triangles = positions[indices.reshape(-1, 3)]
         tri_y = (triangles[:, :, 1] - y_min) / height_m
@@ -171,7 +171,7 @@ def main():
 
     pubic_half_width = None
     if args.coverage == "reyna":
-        pubic_half_width = adaptive_pubic_half_width(0.36, 0.43)
+        pubic_half_width = adaptive_pubic_half_width(0.42, 0.46)
     elif args.coverage == "aldric":
         pubic_half_width = adaptive_pubic_half_width(0.36, 0.43)
 
@@ -215,7 +215,7 @@ def main():
                 paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
                                                      side * 0.075 if side < 0 else 0.19, front=False))
             # Adapt the mask width to the exported pelvic topology; retain front-depth clipping.
-            paint_clipped("pubic", tri, band(0.36, 0.43, -pubic_half_width, pubic_half_width))
+            paint_clipped("pubic", tri, band(0.42, 0.46, -pubic_half_width, pubic_half_width))
         elif args.coverage == "dagna":
             # Keep Dagna's hair on the central pubic mound, not the inner thighs.
             # The narrow lower point tapers toward the clitoral region; the upper
