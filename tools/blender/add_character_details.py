@@ -441,6 +441,81 @@ def make_skin_surface_tree(skin):
     return tree
 
 
+def make_ear_surface_trees(skin):
+    """Build separate BVHs from the same strict head-side mask used by add_elf_ears.py.
+
+    The mask is evaluated from the undeformed skin vertex positions, matching
+    the elf-ear generator's anatomical selection. Only polygons whose vertices
+    all belong to one ear mask are admitted; shoulders and torso can therefore
+    never win an earring's nearest-surface query.
+    """
+    lo, hi = world_bounds(skin)
+    extents = [hi[i] - lo[i] for i in range(3)]
+    vertical_axis = max(range(3), key=lambda axis: extents[axis])
+    other_axes = [axis for axis in range(3) if axis != vertical_axis]
+    lateral_axis = max(other_axes, key=lambda axis: extents[axis])
+    height, width = extents[vertical_axis], extents[lateral_axis]
+    low_height = lo[vertical_axis] + height * 0.855
+    high_height = lo[vertical_axis] + height * 0.915
+    inner_lateral, outer_lateral = width * 0.105, width * 0.205
+
+    world = skin.matrix_world
+    base_positions = [world @ vertex.co for vertex in skin.data.vertices]
+    base_normals = [
+        (world.to_3x3().inverted().transposed() @ vertex.normal).normalized()
+        for vertex in skin.data.vertices
+    ]
+    side_vertices = {}
+    for side in (-1.0, 1.0):
+        side_vertices[side] = {
+            index for index, (point, normal) in enumerate(zip(base_positions, base_normals))
+            if inner_lateral <= side * point[lateral_axis] <= outer_lateral
+            and low_height <= point[vertical_axis] <= high_height
+            and side * normal[lateral_axis] >= 0.42
+        }
+
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = skin.evaluated_get(depsgraph)
+    mesh = evaluated.to_mesh()
+    evaluated_positions = [world @ vertex.co for vertex in mesh.vertices]
+    allowed_materials = skin_material_indices(skin)
+    trees = {}
+    for side, indices in side_vertices.items():
+        faces = []
+        for polygon in mesh.polygons:
+            if polygon.material_index not in allowed_materials:
+                continue
+            face = tuple(polygon.vertices)
+            if len(face) < 3 or not all(index in indices for index in face):
+                continue
+            centre = sum((evaluated_positions[index] for index in face), Vector()) / len(face)
+            if not (low_height <= centre[vertical_axis] <= high_height):
+                continue
+            if side * centre[lateral_axis] < inner_lateral:
+                continue
+            normal = (world.to_3x3().inverted().transposed() @ polygon.normal).normalized()
+            if side * normal[lateral_axis] < 0.20:
+                continue
+            faces.append(face)
+        label = "L" if side > 0 else "R"
+        if len(faces) < 3:
+            evaluated.to_mesh_clear()
+            raise RuntimeError(
+                f"Could not build an ear-only surface for {label}: "
+                f"candidate_vertices={len(indices)}, candidate_faces={len(faces)}, "
+                f"axes=(vertical {vertical_axis}, lateral {lateral_axis})"
+            )
+        trees[side] = (BVHTree.FromPolygons(
+            evaluated_positions, faces, all_triangles=False
+        ), len(indices), len(faces))
+        print(
+            f"EAR_ONLY_SURFACE {label} candidate_vertices={len(indices)} "
+            f"candidate_faces={len(faces)}"
+        )
+    evaluated.to_mesh_clear()
+    return trees, lateral_axis
+
+
 def add_barbell(socket, material, surface_tree):
     """Place the clitoral barbell on the visible front skin, not inside the sculpt."""
     socket_position = socket.matrix_world.translation.copy()
@@ -523,34 +598,36 @@ def add_piercings(entries, skin):
     material = make_material("Ara_Piercing_Silver", "#C6CBD0", 0.82, 0.24)
     sockets = {obj.name: obj for obj in bpy.context.scene.objects}
     surface_tree = make_skin_surface_tree(skin) if any(entry in entries for entry in ("clit", "earrings")) else None
+    ear_trees = None
+    ear_lateral_axis = None
+    if "earrings" in entries:
+        ear_trees, ear_lateral_axis = make_ear_surface_trees(skin)
     count = 0
     for entry in entries:
         if entry == "earrings":
             for name in ("SOCKET_Earring_L", "SOCKET_Earring_R"):
                 socket = sockets.get(name)
                 if socket:
-                    # Ara's named earring socket is the anatomical landmark.
-                    # Snap only to the nearest skin-material polygon; do not use
-                    # a percentage-of-body-height gate, which rejected valid ear
-                    # skin on Mirabel because her ear sits below that guessed
-                    # threshold. A tight distance limit prevents a shoulder or
-                    # other remote skin surface from being accepted instead.
                     socket_origin = socket.matrix_world.translation.copy()
-                    hit, normal, _face, distance = surface_tree.find_nearest(
-                        socket_origin, 0.05
-                    )
-                    if hit is None or distance > 0.03:
+                    side = 1.0 if socket_origin[ear_lateral_axis] >= 0 else -1.0
+                    tree, vertex_count, face_count = ear_trees[side]
+                    hit, normal, _face, distance = tree.find_nearest(socket_origin, 0.08)
+                    if hit is None or distance > 0.06:
                         raise RuntimeError(
-                            f"Could not anchor {name} to nearby ear skin: "
+                            f"Could not anchor {name} to its ear-only surface: "
+                            f"side={'L' if side > 0 else 'R'}, "
                             f"socket={tuple(round(v,4) for v in socket_origin)}, "
                             f"nearest={tuple(round(v,4) for v in hit) if hit else None}, "
-                            f"distance={distance:.3f}; expected within 0.03m"
+                            f"distance={distance:.3f}; ear-only surface required within 0.06m "
+                            f"(vertices={vertex_count}, faces={face_count})"
                         )
                     socket_world = socket.matrix_world.copy()
-                    socket_world.translation = hit + normal * 0.002
+                    socket_world.translation = hit + normal * 0.0015
                     socket.matrix_world = socket_world
                     print(
-                        f"EAR_SOCKET_SURFACE_ANCHOR {name} "
+                        f"EAR_SOCKET_EAR_ONLY_ANCHOR {name} "
+                        f"side={'L' if side > 0 else 'R'} "
+                        f"distance={distance:.4f} "
                         f"world={tuple(round(v,4) for v in socket.matrix_world.translation)}"
                     )
                     add_hoop(socket, 0.016, material, "Piercing_" + name, hang_down=True, surface_normal=normal)
