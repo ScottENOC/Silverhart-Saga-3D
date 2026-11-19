@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "source_branch": "fix/pubic-hair-uv-region",
+  "purpose": "Pinned source GLBs for modular garment fit review. These are inputs only; this workflow does not regenerate or edit their body/anatomy meshes.",
+  "models": {
+    "wren": {
+      "build": 103,
+      "run_id": 44465749713,
+      "artifact": "wren-native-ara-103",
+      "filename": "Wren.glb",
+      "approval": "approved_locked"
+    },
+    "dagna": {
+      "build": 56,
+      "run_id": 44489910404,
+      "artifact": "dagna-native-ara-56",
+      "filename": "Dagna.glb",
+      "approval": "latest_successful_pending_visual_review"
+    },
+    "reyna": {
+      "build": 103,
+      "run_id": 44485376522,
+      "artifact": "reyna-native-ara-103",
+      "filename": "Reyna.glb",
+      "approval": "latest_successful_pending_visual_review"
+    },
+    "aldric": {
+      "build": 90,
+      "run_id": 44485376380,
+      "artifact": "aldric-native-ara-90",
+      "filename": "Aldric.glb",
+      "approval": "latest_successful_pending_visual_review"
+    },
+    "mirabel": {
+      "build": 96,
+      "run_id": 44465749857,
+      "artifact": "mirabel-native-ara-96",
+      "filename": "Mirabel.glb",
+      "approval": "latest_successful_pending_visual_review"
+    }
+  }
+}
