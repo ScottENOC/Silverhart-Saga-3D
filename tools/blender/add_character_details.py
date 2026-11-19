@@ -370,9 +370,10 @@ def parent_preserve(obj, parent, world_matrix):
     obj.matrix_world = world_matrix
 
 
-def add_hoop(socket, radius, material, name, hang_down=False):
+def add_hoop(socket, radius, material, name, hang_down=False, surface_normal=None):
     socket_matrix = socket.matrix_world.copy()
-    normal = (socket_matrix.to_3x3() @ Vector((0, 0, 1))).normalized()
+    normal = (surface_normal.normalized() if surface_normal is not None else
+              (socket_matrix.to_3x3() @ Vector((0, 0, 1))).normalized())
     world = socket_matrix.copy()
     centre = socket_matrix.translation + normal * 0.0008
     if hang_down:
@@ -416,7 +417,7 @@ def add_hoop(socket, radius, material, name, hang_down=False):
     obj.data.materials.append(material)
     parent_preserve(obj, socket, obj.matrix_world.copy())
     obj["character_detail_type"] = "piercing"
-    print(f"BAKED_PIERCING {name} socket={socket.name}")
+    print(f"BAKED_PIERCING {name} socket={socket.name} outward={tuple(round(v, 3) for v in normal)}")
 
 
 def make_skin_surface_tree(skin):
@@ -552,7 +553,7 @@ def add_piercings(entries, skin):
                         f"EAR_SOCKET_SURFACE_ANCHOR {name} "
                         f"world={tuple(round(v,4) for v in socket.matrix_world.translation)}"
                     )
-                    add_hoop(socket, 0.016, material, "Piercing_" + name, hang_down=True)
+                    add_hoop(socket, 0.016, material, "Piercing_" + name, hang_down=True, surface_normal=normal)
                     count += 1
                 else:
                     print(f"WARNING: Ara socket {name} not found; piercing omitted")
