@@ -78,15 +78,17 @@ def main():
     positions = [world_matrix @ v.co for v in skin.data.vertices]
     normals = [(normal_matrix @ v.normal).normalized() for v in skin.data.vertices]
 
-    centre_y = vertical_min + height * 0.555
+    # Raise the accepted six-pack profile by exactly 4 cm in body space.
+    lift = 0.04
+    centre_y = vertical_min + height * 0.555 + lift
     row_spacing = height * 0.052
     row_centres = (centre_y + row_spacing, centre_y, centre_y - row_spacing)
     pad_x = width * 0.066
     sigma_x = width * 0.024
     sigma_y = height * 0.017
     front_limit = width * 0.155
-    top_y = vertical_min + height * 0.655
-    bottom_y = vertical_min + height * 0.455
+    top_y = vertical_min + height * 0.655 + lift
+    bottom_y = vertical_min + height * 0.455 + lift
 
     if skin.data.shape_keys is None:
         skin.shape_key_add(name="Basis", from_mix=False)
@@ -139,9 +141,9 @@ def main():
     skin.data.update()
     skin["abdominal_definition_key"] = args.key_name
     skin["abdominal_definition_strength"] = args.strength
-    skin["abdominal_definition_region"] = f"vertical axis {vertical_axis}; 45.5%-65.5%; centre 55.5%"
+    skin["abdominal_definition_region"] = f"vertical axis {vertical_axis}; raised 0.04m; 45.5%-65.5%; centre 55.5%"
     print(f"Created {args.key_name}: vertical_axis={vertical_axis}, front_axis={front_axis}, "
-          f"strength={args.strength:.2f}, moved={moved}, max_offset={max_offset:.4f}m, "
+          f"strength={args.strength:.2f}, lift=0.0400m, moved={moved}, max_offset={max_offset:.4f}m, "
           "region=45.5%-65.5%")
 
     armature = next((o for o in bpy.context.scene.objects if o.type == "ARMATURE"), None)
