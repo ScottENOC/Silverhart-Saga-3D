@@ -51,7 +51,7 @@ def main():
     args = ap.parse_args()
     doc, old_binary, chunks = parse_glb(args.model.read_bytes())
 
-    skin_material = next(i for i, m in enumerate(doc["materials"]) if m.get("name", "").lower() == "skin")
+    skin_material = next(i for i, m in enumerate(doc["materials"]) if m.get("name", "").strip().lower() == "skin" or m.get("name", "").strip().lower().startswith("skin_anatomy"))
     texture_index = doc["materials"][skin_material]["pbrMetallicRoughness"]["baseColorTexture"]["index"]
     image_index = doc["textures"][texture_index]["source"]
     image = doc["images"][image_index]
@@ -107,7 +107,7 @@ def main():
             # 0.55-0.62 Y-up height band. The 0.36-0.45 trial selected the
             # lower abdomen beneath the breasts, so keep the strip down here.
             # A 50 mm total width keeps the denser strokes tightly centred.
-            if front and 0.575 <= yn <= 0.615 and abs(x) <= 0.016:
+            if front and 0.565 <= yn <= 0.605 and abs(x) <= 0.009:
                 region = "landing_strip"
         elif args.coverage == "reyna":
             if 0.66 <= yn <= 0.80 and 0.075 <= abs(x) <= 0.19 and abs(z) > 0.035:
@@ -115,21 +115,21 @@ def main():
             elif front and 0.36 <= yn <= 0.49 and abs(x) <= 0.13:
                 region = "pubic"
         elif args.coverage == "dagna":
-            if front and 0.32 <= yn <= 0.40 and abs(x) <= 0.10:
+            if front and 0.43 <= yn <= 0.50 and abs(x) <= 0.075:
                 region = "pubic"
         else:
             if args.coverage == "aldric":
                 # Keep Aldric's hair in the compact axillary band only. The
                 # lateral arms/legs masks below previously painted long strips
                 # down the flanks and around the back.
-                if 0.69 <= yn <= 0.77 and 0.105 <= abs(x) <= 0.155 and abs(z) > 0.035:
+                if 0.75 <= yn <= 0.82 and 0.14 <= abs(x) <= 0.23 and z > 0.0:
                     region = "armpits"
             elif front and 0.70 <= yn <= 0.76 and 0.105 <= abs(x) <= 0.155:
                 region = "armpits"
             if args.coverage == "aldric":
-                if region is None and front and 0.33 <= yn <= 0.48 and abs(x) <= 0.010:
+                if region is None and front and 0.40 <= yn <= 0.56 and abs(x) <= 0.008:
                     region = "snail_trail"
-                elif region is None and front and 0.34 <= yn <= 0.50 and abs(x) <= 0.095:
+                elif region is None and front and 0.34 <= yn <= 0.49 and abs(x) <= 0.060:
                     region = "pubic"
                 elif region is None and front:
                     # A compact sternum diamond: broadest through the centre,
@@ -155,15 +155,15 @@ def main():
     counts = {name: 0 for name in required}
     densities = {"armpits": 170, "pubic": 520}
     if args.coverage == "wren":
-        densities = {"landing_strip": 1400}
+        densities = {"landing_strip": 1300}
     elif args.coverage == "reyna":
         densities = {"armpits": 1250, "pubic": 520}
     elif args.coverage == "dagna":
-        densities = {"pubic": 2500}
+        densities = {"pubic": 2200}
     elif args.coverage == "aldric":
         # Keep hair localised: compact axillae, a narrow sternum diamond,
         # central snail trail and pubic/scrotal regions. No arm or leg masks.
-        densities.update({"chest": 520, "snail_trail": 420, "scrotum": 420, "pubic": 900})
+        densities.update({"armpits": 250, "chest": 300, "snail_trail": 500, "scrotum": 320, "pubic": 650})
     default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
     colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
     if len(colour_hex) != 6:

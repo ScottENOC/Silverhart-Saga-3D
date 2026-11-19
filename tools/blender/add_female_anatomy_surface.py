@@ -1,8 +1,8 @@
 """Surface-following female anatomy sculpt for the Ara adult base body.
 
-This is deliberately anatomy-only: no garment expansion, clothing fitting,
-hybrid add-on meshes, or accessory socket changes are performed here.
-The original skin mesh, UVs, material, vertex groups and armature are retained.
+This is deliberately anatomy-only: no garment expansion or clothing fitting.
+The original skin mesh, UVs, material, vertex groups and armature are retained;
+surface-derived accessory sockets are recreated for downstream character details.
 Review the generated adult model from multiple angles before production use.
 """
 import argparse
@@ -12,7 +12,8 @@ import sys
 import math
 
 import bpy
-from mathutils import Vector
+from mathutils import Vector, Matrix
+from mathutils.bvhtree import BVHTree
 
 
 def arguments():
@@ -497,6 +498,143 @@ def add_correspondence_uv_layer(mesh, name="CorrespondenceID"):
     print(f"Added {name} TEXCOORD identity for {len(mesh.vertices)} source vertices")
 
 
+def build_bvh(obj):
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = obj.evaluated_get(depsgraph)
+    mesh = evaluated.to_mesh()
+    verts = [obj.matrix_world @ v.co for v in mesh.vertices]
+    polys = [list(p.vertices) for p in mesh.polygons]
+    tree = BVHTree.FromPolygons(verts, polys, all_triangles=False)
+    evaluated.to_mesh_clear()
+    return tree
+
+
+def front_hit_data(tree, x, z):
+    location, normal, _index, _distance = tree.ray_cast(
+        Vector((x, -2.0, z)), Vector((0.0, 1.0, 0.0)), 4.0
+    )
+    if location is None:
+        return None
+    return location, normal
+
+
+def front_hit(tree, x, z):
+    hit = front_hit_data(tree, x, z)
+    return hit[0] if hit else None
+
+
+def create_socket(armature, name, location, normal, bone_name):
+    empty = bpy.data.objects.new(name, None)
+    empty.empty_display_type = "SPHERE"
+    empty.empty_display_size = 0.007
+    bpy.context.collection.objects.link(empty)
+    empty.parent = armature
+    empty.parent_type = "BONE"
+    empty.parent_bone = bone_name
+    orientation = Vector((0.0, 0.0, 1.0)).rotation_difference(normal.normalized())
+    empty.matrix_world = Matrix.Translation(location) @ orientation.to_matrix().to_4x4()
+    empty["socket_type"] = name.replace("SOCKET_", "").lower()
+    empty["review_anchor"] = "surface-derived"
+    return empty
+
+
+def bone_world_span(armature, names, fallback=None):
+    for bone in armature.data.bones:
+        if bone.name.lower() in names:
+            a = armature.matrix_world @ bone.head_local
+            b = armature.matrix_world @ bone.tail_local
+            return min(a.z, b.z), max(a.z, b.z), bone.name
+    if fallback:
+        return fallback
+    raise RuntimeError("Required anatomical rig landmark not found: " + "/".join(sorted(names)))
+
+
+def frontmost_vertex_anchor(obj, x_min, x_max, z_min, z_max):
+    # Pick an actual evaluated skin vertex in a tightly bounded anatomical region.
+    # The vertex normal gives a stable surface orientation for the accessory.
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = obj.evaluated_get(depsgraph)
+    mesh = evaluated.to_mesh()
+    best = None
+    for v in mesh.vertices:
+        p = obj.matrix_world @ v.co
+        if not (x_min <= p.x <= x_max and z_min <= p.z <= z_max):
+            continue
+        n = (obj.matrix_world.to_3x3() @ v.normal).normalized()
+        if n.y > -0.12:
+            continue
+        score = p.y
+        if best is None or score < best[0]:
+            best = (score, p.copy(), n.copy())
+    evaluated.to_mesh_clear()
+    return (best[1], best[2]) if best else None
+
+
+def create_piercing_sockets(armature, skin, surface_tree, minimum, height, width, pelvis_z, body_front_y):
+    bones = list(armature.data.bones)
+    def find_bone(names, fallback):
+        return next((b.name for b in bones if b.name.lower() in names), fallback)
+
+    head_bone = find_bone({"head", "head01"}, find_bone({"neck"}, "Hips"))
+    chest_bone = find_bone({"spine2", "spine_2", "chest"}, find_bone({"spine1", "spine_1"}, "Hips"))
+
+    # Ear sockets are selected from the lateral ear contour, not a front-view
+    # point on the cheek. Require a side-facing normal and the lower head band.
+    ear_z = minimum.z + height * 0.875
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = skin.evaluated_get(depsgraph)
+    mesh_eval = evaluated.to_mesh()
+    for side, label in ((1.0, "L"), (-1.0, "R")):
+        best = None
+        for v in mesh_eval.vertices:
+            p = skin.matrix_world @ v.co
+            n = (skin.matrix_world.to_3x3() @ v.normal).normalized()
+            if side*p.x < width*0.13 or side*p.x > width*0.29:
+                continue
+            if abs(p.z-ear_z) > height*0.035 or side*n.x < 0.22:
+                continue
+            score = side*n.x*2.0 - abs(p.z-ear_z)/max(height*0.035, 1e-5)
+            if best is None or score > best[0]:
+                best = (score, p.copy(), n.copy())
+        if best:
+            # Move the earring anchor just clear of the ear surface and slightly
+            # forward of the hairline so hoops remain visible in the Workshop.
+            earring_location = best[1] + best[2] * 0.003 + Vector((0.0, -0.005, 0.0))
+            create_socket(armature, "SOCKET_Earring_" + label, earring_location, best[2], head_bone)
+    evaluated.to_mesh_clear()
+
+    # Nose ring sits 1 cm below the former anchor, with a fresh surface raycast
+    # at that lower height so the socket remains flush to the nose.
+    head_lo, head_hi, _ = bone_world_span(armature, {"head", "head01"},
+                                          (minimum.z + height*.84, minimum.z + height*.96, head_bone))
+    nose = frontmost_vertex_anchor(skin, -width*.055, width*.055,
+                                   head_lo + (head_hi-head_lo)*.34,
+                                   head_lo + (head_hi-head_lo)*.78)
+    if nose:
+        lowered = front_hit_data(surface_tree, nose[0].x, nose[0].z - 0.010)
+        if lowered:
+            create_socket(armature, "SOCKET_NoseRing", lowered[0], lowered[1], head_bone)
+
+    necklace_hit = front_hit_data(surface_tree, 0.0, minimum.z + height * 0.82)
+    if necklace_hit:
+        create_socket(armature, "SOCKET_Necklace", necklace_hit[0], necklace_hit[1], chest_bone)
+
+    # Use the actual breast-height band of the body. Do not derive this from
+    # Spine1: on this Ara rig that bone can span the upper abdomen.
+    # Use the skin mesh bounds rather than all character meshes (hair and
+    # footwear distort whole-character height ratios). The earlier band sat too
+    # low on this Ara body; keep the search above the navel and within the bust.
+    skin_min, skin_max = mesh_world_bounds(skin)
+    skin_height = skin_max.z - skin_min.z
+    nipple_z0 = skin_min.z + skin_height * 0.69
+    nipple_z1 = skin_min.z + skin_height * 0.84
+    for side, label in ((1.0, "L"), (-1.0, "R")):
+        x0, x1 = ((width*.055, width*.30) if side > 0 else (-width*.30, -width*.055))
+        hit = frontmost_vertex_anchor(skin, x0, x1, nipple_z0, nipple_z1)
+        if hit:
+            create_socket(armature, "SOCKET_Nipple_" + label, hit[0], hit[1], chest_bone)
+
+
 def main():
     args = arguments()
     if not args.adult:
@@ -550,6 +688,20 @@ def main():
     )
     apply_anatomy_pigmentation(skin, anatomy_z, width, height)
     wire_vertex_colour_to_skin_material(skin_material, "Color")
+
+    # Recreate surface-derived accessory sockets used by downstream character
+    # details. These are rig anchors, not garment or clothing operations.
+    surface_tree = build_bvh(skin)
+    create_piercing_sockets(armature, skin, surface_tree, minimum, height,
+                            width, anatomy_z, None)
+    hood_anchor = skin.get("anatomy_hood_anchor")
+    if hood_anchor:
+        hood_normal = Vector((hood_anchor[3], hood_anchor[4], hood_anchor[5])).normalized()
+        hood_location = Vector((hood_anchor[0], hood_anchor[1], hood_anchor[2])) + hood_normal * 0.0015
+        hip_name = next((b.name for b in armature.data.bones
+                         if b.name.lower() in ("hips", "hip", "pelvis")), "Hips")
+        create_socket(armature, "SOCKET_ClitoralHood", hood_location, hood_normal, hip_name)
+
     # Preserve shared-subdivision vertex identity through GLB indexed export.
     add_correspondence_uv_layer(skin.data)
 

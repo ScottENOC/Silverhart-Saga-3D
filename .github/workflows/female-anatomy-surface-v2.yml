@@ -9,6 +9,10 @@ on:
       - "tools/blender/build_ara_body_morphs.py"
       - ".github/workflows/female-anatomy-surface-v2.yml"
       - "character-preview/wren-ara.json"
+      - ".github/workflows/build-wren-native-ara.yml"
+      - ".github/workflows/build-reyna-native-ara.yml"
+      - ".github/workflows/build-mirabel-native-ara.yml"
+      - ".github/workflows/build-dagna-native-ara.yml"
   workflow_dispatch:
 
 permissions:
@@ -49,6 +53,7 @@ jobs:
           import json
           from pathlib import Path
           source = json.loads(Path("character-preview/wren-ara.json").read_text())
+          source.pop("character_details", None)
           for name, muscle in (("low", 0.20), ("neutral", 0.50), ("high", 0.80)):
               profile = json.loads(json.dumps(source))
               params = profile["params"]
