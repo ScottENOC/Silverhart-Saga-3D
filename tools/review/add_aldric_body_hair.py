@@ -216,11 +216,11 @@ def main():
             # Restore the earlier front-facing axilla placement that produced
             # the best result: compact lateral underside patches, not posterior
             # shoulder/lat coverage. This is the 0.76-0.83 band from the #86 pass.
-            paint_clipped("armpits", tri, band(0.76, 0.83,
-                                                centre_x - 0.18, centre_x - 0.11,
+            paint_clipped("armpits", tri, band(0.74, 0.81,
+                                                centre_x - 0.24, centre_x - 0.16,
                                                 front=True))
-            paint_clipped("armpits", tri, band(0.76, 0.83,
-                                                centre_x + 0.11, centre_x + 0.18,
+            paint_clipped("armpits", tri, band(0.74, 0.81,
+                                                centre_x + 0.16, centre_x + 0.24,
                                                 front=True))
             # Keep the central trail slender overall, but let its lower end
             # broaden slightly where it meets the pubic hair.
@@ -301,7 +301,7 @@ def main():
     elif args.coverage == "aldric":
         # Keep hair localised: compact axillae, a narrow sternum diamond,
         # central snail trail and pubic/scrotal regions. No arm or leg masks.
-        densities.update({"armpits": 300, "chest": 420, "snail_trail": 350, "scrotum": 260, "pubic": 650})
+        densities.update({"armpits": 300, "chest": 280, "snail_trail": 300, "scrotum": 200, "pubic": 500})
     default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
     colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
     if len(colour_hex) != 6:
@@ -319,7 +319,7 @@ def main():
             pixel_y, pixel_x = valid_pixels[rng.randrange(len(valid_pixels))]
             x, y = int(pixel_x), int(pixel_y)
             length = (rng.uniform(3.0, 8.0) if region == "armpits" else
-                      (rng.uniform(3.0, 5.0) if region == "snail_trail" else rng.uniform(4.0, 11.0)))
+                      (rng.uniform(3.0, 5.0) if region == "snail_trail" else rng.uniform(3.0, 7.0)))
             if region == "landing_strip":
                 length = rng.uniform(3.0, 6.0)
                 angle = rng.uniform(-0.08, 0.08)
@@ -332,7 +332,7 @@ def main():
             if region == "snail_trail":
                 stroke_width = 1
             else:
-                stroke_width = 2 if region == "landing_strip" else (2 if (args.coverage == "aldric" and region != "armpits") or (args.coverage == "dagna" and region == "pubic") else 1)
+                stroke_width = 2 if region == "landing_strip" else (2 if (args.coverage == "dagna" and region == "pubic") else 1)
             draw.line((x, y, x + dx, y + dy), fill=shade, width=stroke_width)
             counts[region] += 1
 
