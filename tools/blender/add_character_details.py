@@ -120,42 +120,83 @@ def make_projection_trees(skin):
     }
 
 
-def project_path(points, back, trees, offset=0.0020):
+def project_path(points, back, trees, offset=0.0020, max_surface_drift=0.025):
+    """Project a tattoo stroke onto skin, tolerating tiny landmark/outline errors.
+
+    A fixed X/Z ray can miss at the edge of a character's silhouette even when
+    the authored stroke is only a few millimetres outside the skin. Search a
+    small, bounded X/Z neighbourhood before declaring that sample unprojectable.
+    The bound prevents a stroke from being pulled around an arm/torso onto an
+    unrelated surface.
+    """
     label = "back" if back else "front"
     tree, faces, vertices, ray_y, direction = trees[label]
+
+    def cast_near(point):
+        origin = Vector((point.x, ray_y, point.z))
+        location, normal, face_index, distance = tree.ray_cast(origin, direction, 5.0)
+        if location is not None and face_index is not None:
+            return location, normal, face_index, 0.0
+
+        # Search concentric X/Z offsets, preferring the smallest displacement.
+        # 5 mm increments are fine enough to follow the skin silhouette without
+        # allowing a tattoo stroke to jump to a neighbouring body region.
+        step = 0.005
+        rings = int(max_surface_drift / step)
+        candidates = []
+        for ring in range(1, rings + 1):
+            radius = ring * step
+            count = max(8, int(math.ceil(math.tau * ring * 4)))
+            for sample in range(count):
+                angle = math.tau * sample / count
+                x = point.x + math.cos(angle) * radius
+                z = point.z + math.sin(angle) * radius
+                origin = Vector((x, ray_y, z))
+                hit, hit_normal, hit_face, hit_distance = tree.ray_cast(
+                    origin, direction, 5.0
+                )
+                if hit is not None and hit_face is not None:
+                    drift = math.hypot(x - point.x, z - point.z)
+                    candidates.append((drift, hit, hit_normal, hit_face))
+            if candidates:
+                break
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: item[0])
+        drift, hit, hit_normal, hit_face = candidates[0]
+        return hit, hit_normal, hit_face, drift
+
     projected = []
+    samples = []
     for segment in range(len(points) - 1):
         a, b = points[segment], points[segment + 1]
         steps = max(2, int(math.ceil((b - a).length / 0.008)))
-        for step in range(steps):
-            p = a.lerp(b, step / steps)
-            origin = Vector((p.x, ray_y, p.z))
-            location, normal, face_index, distance = tree.ray_cast(origin, direction, 5.0)
-            if location is None or face_index is None:
-                raise RuntimeError(
-                    f"tattoo path has no {label} skin-surface intersection "
-                    f"at x={p.x:.3f}, z={p.z:.3f}"
-                )
-            face_vertices = faces[face_index]
-            source_index = min(
-                face_vertices,
-                key=lambda index: (vertices[index] - location).length_squared,
+        samples.extend(a.lerp(b, step / steps) for step in range(steps))
+    samples.append(points[-1])
+
+    max_drift_used = 0.0
+    for sample_index, point in enumerate(samples):
+        result = cast_near(point)
+        if result is None:
+            print(
+                f"WARNING: skipping {label} tattoo stroke; no skin within "
+                f"{max_surface_drift:.3f}m of x={point.x:.3f}, z={point.z:.3f}"
             )
-            projected.append((location + normal * offset, normal, source_index))
-    p = points[-1]
-    origin = Vector((p.x, ray_y, p.z))
-    location, normal, face_index, distance = tree.ray_cast(origin, direction, 5.0)
-    if location is None or face_index is None:
-        raise RuntimeError(
-            f"tattoo endpoint has no {label} skin-surface intersection "
-            f"at x={p.x:.3f}, z={p.z:.3f}"
+            return None
+        location, normal, face_index, drift = result
+        max_drift_used = max(max_drift_used, drift)
+        face_vertices = faces[face_index]
+        source_index = min(
+            face_vertices,
+            key=lambda index: (vertices[index] - location).length_squared,
         )
-    face_vertices = faces[face_index]
-    source_index = min(
-        face_vertices,
-        key=lambda index: (vertices[index] - location).length_squared,
-    )
-    projected.append((location + normal * offset, normal, source_index))
+        projected.append((location + normal * offset, normal, source_index))
+
+    if max_drift_used > 0:
+        print(
+            f"TATTOO_SURFACE_EDGE_ADJUST {label} "
+            f"max_xz_drift={max_drift_used:.3f}m"
+        )
     return projected
 
 
@@ -163,6 +204,10 @@ def append_tube(path, radius, back, trees, vertices, faces, sources, skin_invers
     if len(path) < 2 or radius <= 0:
         return
     projected = project_path(path, back, trees)
+    if projected is None:
+        # A single decorative stroke outside the skin silhouette should not
+        # abort the entire character export or suppress otherwise valid tattoos.
+        return
     sides = 8
     first = len(vertices)
     for index, (point, surface_normal, source_index) in enumerate(projected):
