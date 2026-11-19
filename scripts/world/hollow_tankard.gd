@@ -263,6 +263,10 @@ func _configure_location_simulation() -> void:
 func _on_simulation_action_committed(event: SimulationEvent) -> void:
     if event == null:
         return
+    if event.event_type == "spell_cast" and String(event.payload.get("spell_id", "")) == "summon_animal":
+        var summoned_id := String(event.payload.get("summoned_id", ""))
+        if not summoned_id.is_empty():
+            _ensure_summoned_animal_actor(simulation.get_character(summoned_id))
     # Disguise Self opens the same live Ara character editor used at first
     # launch, but in appearance-only mode. The selected profile is stored on
     # the active effect so it survives save/load and can be dispelled.
@@ -312,6 +316,78 @@ func _on_simulation_action_committed(event: SimulationEvent) -> void:
         payload,
         affected_actors
     )
+
+func _ensure_summoned_animal_actor(state: CharacterState) -> void:
+    if state == null or (not state.is_summoned and not state.is_animal_companion) or actor_by_id.has(state.id):
+        return
+    var kind := state.creature_kind.to_lower()
+    var model_path := ""
+    var actor_kind := kind
+    if kind == "wolf":
+        model_path = "res://art/creatures/quaternius/Wolf.gltf"
+    elif kind == "horse":
+        model_path = "res://art/creatures/quaternius/Horse.gltf"
+    elif kind == "unicorn":
+        model_path = "res://art/creatures/quaternius/Horse_White.gltf"
+        actor_kind = "horse"
+    if not model_path.is_empty() and ResourceLoader.exists(model_path):
+        var creature := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+        creature.name = state.id
+        creature.creature_kind = actor_kind
+        creature.behaviour = "mount" if state.mountable else "predator"
+        creature.model_path = model_path
+        creature.model_scale = 0.9 if kind == "horse" or kind == "unicorn" else 0.82
+        creature.position = _hex_world_position(state.axial)
+        creature.set_meta("character_id", state.id)
+        creature.set_meta("summoned_kind", kind)
+        add_child(creature)
+        actor_by_id[state.id] = creature
+        return
+
+    # No Quaternius models are currently bundled for boar, tiger or eagle.
+    # Give those combatants a visible, labelled placeholder rather than
+    # silently leaving an initiative entry with no world representation.
+    var placeholder := Node3D.new()
+    placeholder.name = state.id
+    placeholder.position = _hex_world_position(state.axial)
+    placeholder.set_meta("character_id", state.id)
+    placeholder.set_meta("summoned_kind", kind)
+    var body := MeshInstance3D.new()
+    var body_mesh := CapsuleMesh.new()
+    body_mesh.radius = 0.34 if kind != "eagle" else 0.22
+    body_mesh.height = 0.95 if kind != "eagle" else 0.62
+    body.mesh = body_mesh
+    body.position.y = 0.58
+    var material := StandardMaterial3D.new()
+    match kind:
+        "boar":
+            material.albedo_color = Color(0.34, 0.20, 0.12)
+        "tiger":
+            material.albedo_color = Color(0.88, 0.43, 0.12)
+        "eagle":
+            material.albedo_color = Color(0.40, 0.29, 0.16)
+        _:
+            material.albedo_color = Color(0.48, 0.48, 0.48)
+    body.material_override = material
+    placeholder.add_child(body)
+    var head := MeshInstance3D.new()
+    var head_mesh := SphereMesh.new()
+    head_mesh.radius = 0.23
+    head_mesh.height = 0.46
+    head.mesh = head_mesh
+    head.position = Vector3(0.0, 0.82, -0.38)
+    head.material_override = material
+    placeholder.add_child(head)
+    var label := Label3D.new()
+    label.text = state.display_name
+    label.position.y = 1.35
+    label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    label.font_size = 22
+    label.outline_size = 4
+    placeholder.add_child(label)
+    add_child(placeholder)
+    actor_by_id[state.id] = placeholder
+
 
 func _open_disguise_creator() -> void:
     if disguise_creator != null and is_instance_valid(disguise_creator):
@@ -1252,6 +1328,9 @@ func _apply_save_data(data: Dictionary) -> void:
     if not simulation.restore_character_states(restored_states):
         push_error("Saved character states could not be restored without invalid occupancy or mount links.")
         return
+    for restored_state in restored_states:
+        if restored_state != null and (restored_state.is_summoned or restored_state.is_animal_companion):
+            _ensure_summoned_animal_actor(restored_state)
     var appearance_diffs: Variant = data.get("appearance_diffs", {})
     if appearance_diffs is Dictionary:
         for actor_id_variant in appearance_diffs.keys():
@@ -2529,6 +2608,9 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
             tween.tween_callback(creature.play_idle)
         elif actor is HexActorPresentation:
             (actor as HexActorPresentation).present_move_to(destination)
+        else:
+            var tween := create_tween()
+            tween.tween_property(actor, "global_position", destination, 0.24)
     if character_id == active_character_id:
         _refresh_tavern_floor_presentation()
     if character_id == "player":

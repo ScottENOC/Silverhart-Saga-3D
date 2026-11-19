@@ -197,6 +197,12 @@ func _test_summon_animal_and_companion() -> void:
     var permanent := _cast_at(companion_sim, druid, Vector2i(1, 0), "summon_animal", {"summon_id": "wolf"})
     var companion := companion_sim.get_character(String(permanent.get("summoned_id", "")))
     _check(bool(permanent.get("ok", false)) and companion != null and companion.is_animal_companion, "Animal Companion should make the first summon permanent")
+    _check(companion != null and companion_sim.get_party_member_ids().has(companion.id), "A permanent animal companion should join the party roster")
+    if companion != null:
+        var restored_companion := CharacterState.from_dict(companion.to_dict())
+        _check(restored_companion != null and restored_companion.is_animal_companion and restored_companion.summoned_by_id == druid.id, "Animal companion ownership should survive character save/load serialization")
+        var initiative := CombatInitiativeModel.build_entries([companion])
+        _check(initiative.size() == 1 and String(initiative[0].get("id", "")) == companion.id, "A permanent animal companion should appear in initiative")
     companion_sim.free()
 
 
