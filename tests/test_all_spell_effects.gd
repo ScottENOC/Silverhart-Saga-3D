@@ -234,7 +234,7 @@ func _test_multi_target_heal() -> void:
     var caster: CharacterState = setup.caster
     caster.skills["divine_targets"] = 1
     var first := CharacterState.new("heal_first", "First Ally", Vector2i(1, 0))
-    var second := CharacterState.new("heal_second", "Second Ally", Vector2i(2, 0))
+    var second := CharacterState.new("heal_second", "Second Ally", Vector2i(0, 1))
     first.side = "player"
     second.side = "player"
     first.health = 10

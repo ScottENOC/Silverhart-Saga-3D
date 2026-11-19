@@ -305,16 +305,9 @@ func _build_prepared_row(state: CharacterState, prepared: PreparedSpell, index: 
         for candidate in _target_candidates(state, prepared.base_spell_id):
             var check := CheckBox.new()
             check.text = candidate.display_name
-            check.toggled.connect(func(checked: bool):
-                if checked:
-                    if selected_target_ids.size() >= int(variant.get("extra_targets", 0)) + 1:
-                        check.set_pressed_no_signal(false)
-                        feedback_message = "This variant allows %d targets." % (int(variant.get("extra_targets", 0)) + 1)
-                        return
-                    selected_target_ids.append(candidate.id)
-                else:
-                    selected_target_ids.erase(candidate.id)
-            )
+            check.toggled.connect(_on_multi_target_toggled.bind(
+                candidate.id, selected_target_ids, int(variant.get("extra_targets", 0)) + 1, check
+            ))
             target_list.add_child(check)
     elif not needs_hex_target:
         target_selector = _make_target_selector(state, prepared.base_spell_id)
@@ -447,6 +440,18 @@ func handle_hex_click(target_hex: Vector2i) -> bool:
         feedback_message = "Cast failed: " + String(result.get("reason", "unknown")).replace("_", " ")
     refresh()
     return true
+
+
+func _on_multi_target_toggled(checked: bool, candidate_id: String, selected_target_ids: Array[String], maximum: int, checkbox: CheckBox) -> void:
+    if checked:
+        if selected_target_ids.size() >= maximum:
+            checkbox.set_pressed_no_signal(false)
+            feedback_message = "This variant allows %d targets." % maximum
+            return
+        if not selected_target_ids.has(candidate_id):
+            selected_target_ids.append(candidate_id)
+    else:
+        selected_target_ids.erase(candidate_id)
 
 
 func _cast_prepared_multi(prepared: PreparedSpell, selected_target_ids: Array[String]) -> void:
