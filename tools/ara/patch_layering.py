@@ -215,6 +215,7 @@ edit("src/core/garments/textures.ts", [
         const w = weave(u, v, 220);
         return { c: mul(A, 0.88 + 0.12 * w), a: thread ? 1 : 0, h: thread ? 0.7 : 0 };
       }, true, 1.8);
+    }
     case 'fishnet_coarse': {
       const N = 18;
       return render(S, (u, v) => {
