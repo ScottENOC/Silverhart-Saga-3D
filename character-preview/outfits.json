@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "description": "Per-character equipped clothing configuration. Kept separate from Ara body profiles and anatomy settings.",
+  "characters": {
+    "wren": {
+      "slots": {
+        "underTop": {
+          "garmentId": "bikini_top",
+          "material": "Triangle bikini top",
+          "pattern": "solid",
+          "color": "#000000",
+          "opacity": 0.5
+        },
+        "underBottom": {
+          "garmentId": "bikini_bottom",
+          "material": "String bikini bottom",
+          "pattern": "solid",
+          "color": "#000000",
+          "opacity": 0.5
+        }
+      }
+    }
+  }
+}
