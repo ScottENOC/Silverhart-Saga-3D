@@ -37,7 +37,8 @@ permissions:
 concurrency:
   group: wren-workshop-${{ github.ref_name }}
   # Queue newer pushes instead of interrupting an active model build or publish.
-  cancel-in-progress: false
+  # Feature-only review branches cancel stale builds; dev/integration builds remain queued.
+  cancel-in-progress: ${{ startsWith(github.ref_name, 'feature/modular-underwear-') }}
 jobs:
   generate:
     runs-on: ubuntu-latest
