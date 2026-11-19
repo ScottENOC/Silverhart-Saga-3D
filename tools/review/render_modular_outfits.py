@@ -16,12 +16,13 @@ GARMENTS = {
     "Halter lace bra cups", "Halter lace bra straps", "Halter lace bra piping", "Halter fishnet bra cups", "Halter fishnet bra straps",
     "Shoes", "Boot shafts", "Fatigue shirt", "Lace shirt", "Lace pants", "Lace briefs", "Lace briefs ties", "Fishnet briefs", "Fishnet briefs ties", "Bra", "Briefs",
     "Tank top", "Triangle bikini top", "Triangle bikini strings", "Fishnet shirt", "Fishnet pants",
-    "String bikini bottom", "String bikini strings", "Leather armor",
+    "String bikini bottom", "String bikini strings", "G-string bottom", "G-string strings", "Leather armor",
 }
 OUTFITS = {
     "skin": set(),
     "lace_bra": {"Halter lace bra cups", "Halter lace bra straps", "Halter lace bra piping"},
     "fishnet_bra": {"Halter fishnet bra cups", "Halter fishnet bra straps"},
+    "g_string": {"G-string bottom", "G-string strings"},
     "dress": {"Backless slit dress", "Pencil skirt"},
     "armor": {"Leather armor"},
     "backless_shirt": {"Backless slit dress", "Pencil skirt"},
