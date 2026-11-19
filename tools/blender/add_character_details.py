@@ -318,6 +318,11 @@ def add_hoop(socket, radius, material, name, hang_down=False):
     else:
         orientation = socket_matrix.to_quaternion()
         centre += normal * 0.0012
+    # Ara long hair can cover the ear socket from the front. Place the hoop
+    # slightly forward (the imported Blender scene faces -Y) so it remains
+    # visible without moving the attachment away from the earlobe.
+    if name.startswith("Piercing_SOCKET_Earring_"):
+        centre += Vector((0.0, -0.018, 0.0))
     world.translation = centre
     bpy.ops.mesh.primitive_torus_add(major_segments=32, minor_segments=12,
                                      location=world.translation,
@@ -422,7 +427,7 @@ def add_piercings(entries):
                         socket_world = socket.matrix_world.copy()
                         socket_world.translation = fallback
                         socket.matrix_world = socket_world
-                    add_hoop(socket, 0.012, material, "Piercing_" + name, hang_down=True)
+                    add_hoop(socket, 0.014, material, "Piercing_" + name, hang_down=True)
                     count += 1
                 else:
                     print(f"WARNING: Ara socket {name} not found; piercing omitted")
