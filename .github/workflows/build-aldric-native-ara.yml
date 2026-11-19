@@ -4,6 +4,7 @@ on:
   push:
     branches: [dev]
     paths:
+      - ".github/actions/character-build-setup/action.yml"
       - "character-preview/aldric-ara.json"
       - "data/characters/hollowmere_npcs.json"
       - ".github/workflows/build-aldric-native-ara.yml"
