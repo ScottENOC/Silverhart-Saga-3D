@@ -19,6 +19,8 @@ on:
     paths:
       - "character-preview/reyna-ara.json"
       - "tools/blender/add_character_details.py"
+      - "tools/blender/add_abdominal_definition.py"
+      - "tools/review/add_aldric_body_hair.py"
       - "tools/review/recolor_wren_glb.py"
       - ".github/workflows/build-reyna-native-ara.yml"
 
