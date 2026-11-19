@@ -216,7 +216,7 @@ jobs:
               "lace_briefs": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none",
                               "garmentStyles":{"bikini_bottom":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
               "fishnet_briefs": {"top":"none", "underTop":"none", "underBottom":"bikini_bottom", "bottom":"none",
-                                 "garmentStyles":{"bikini_bottom":{"pattern":"fishnet","color":"#29242d","color2":"#987b91"}}},
+                                 "garmentStyles":{"bikini_bottom":{"pattern":"fishnet_coarse","color":"#29242d","color2":"#987b91"}}},
               "lace_shirt": {"top":"fatigue_shirt", "underTop":"none", "underBottom":"none", "bottom":"none",
                              "garmentStyles":{"fatigue_shirt":{"pattern":"lace","color":"#29242d","color2":"#987b91"}}},
               "fishnet_shirt": {"top":"fatigue_shirt", "underTop":"none", "underBottom":"none", "bottom":"none",
