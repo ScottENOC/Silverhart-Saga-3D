@@ -70,6 +70,7 @@ def main():
     if vertical_axis != 1:
         raise RuntimeError(f"Expected Ara's exported Y-up body, found vertical axis {vertical_axis}")
     height_m = float(bounds[1])
+    centre_x = float((positions[:, 0].min() + positions[:, 0].max()) * 0.5)
     rng = random.Random(args.seed)
 
     if args.coverage == "wren":
@@ -136,6 +137,53 @@ def main():
             constraints.append(lambda p: p[2] + 0.035)
         return constraints
 
+    def adaptive_pubic_half_width(y0, y1, minimum=0.035, maximum=0.080):
+        """Choose the narrowest centred mons mask that clips enough front-skin UV faces."""
+        triangles = positions[indices.reshape(-1, 3)]
+        tri_y = (triangles[:, :, 1] - y_min) / height_m
+        tri_x = triangles[:, :, 0]
+        tri_z = triangles[:, :, 2]
+        candidates = np.flatnonzero(
+            (tri_y.max(axis=1) >= y0)
+            & (tri_y.min(axis=1) <= y1)
+            & (tri_z.max(axis=1) >= 0.035)
+        )
+        x_min, x_max = tri_x.min(axis=1), tri_x.max(axis=1)
+        for half_width in np.arange(minimum, maximum + 0.0001, 0.01):
+            possible = candidates[
+                (x_max[candidates] >= centre_x - half_width)
+                & (x_min[candidates] <= centre_x + half_width)
+            ]
+            clipped = 0
+            for triangle_id in possible:
+                tri = indices.reshape(-1, 3)[triangle_id]
+                poly = []
+                for vertex in tri:
+                    p, uv = positions[vertex], uvs[vertex]
+                    poly.append((float(p[0]), float(p[1]), float(p[2]),
+                                 float(uv[0]), float(uv[1])))
+                constraints = [
+                    lambda p, y0=y0: y0 - yn_of(p),
+                    lambda p, y1=y1: yn_of(p) - y1,
+                    lambda p, w=half_width: centre_x - w - p[0],
+                    lambda p, w=half_width: p[0] - (centre_x + w),
+                    lambda p: 0.035 - p[2],
+                ]
+                for constraint in constraints:
+                    poly = clip_polygon(poly, constraint)
+                    if len(poly) < 3:
+                        break
+                if len(poly) >= 3:
+                    clipped += 1
+            if clipped >= 8:
+                return round(float(half_width), 3), clipped
+        return maximum, 0
+
+    aldric_pubic_width, aldric_pubic_faces = (
+        adaptive_pubic_half_width(0.44, 0.51)
+        if args.coverage == "aldric" else (None, None)
+    )
+
     for tri in indices.reshape(-1, 3):
         if args.coverage == "wren":
             # Keep the lower edge at the existing clitoral-hood start, shorten
@@ -170,8 +218,12 @@ def main():
             paint_clipped("armpits", tri, band(0.82, 0.89, -0.23, -0.16, front=True))
             paint_clipped("armpits", tri, band(0.82, 0.89, 0.16, 0.23, front=True))
             paint_clipped("snail_trail", tri, band(0.38, 0.48, -0.004, 0.004))
-            paint_clipped("pubic", tri, band(0.28, 0.38, -0.045, 0.045))
-            paint_clipped("scrotum", tri, band(0.24, 0.34, -0.080, 0.080))
+            paint_clipped("pubic", tri, band(0.44, 0.51,
+                                                centre_x - aldric_pubic_width,
+                                                centre_x + aldric_pubic_width))
+            paint_clipped("scrotum", tri, band(0.34, 0.40,
+                                                  centre_x - 0.065,
+                                                  centre_x + 0.065))
             # A true narrow diamond, clipped as two linear wedges.
             lower = [lambda p: 0.60 - yn_of(p), lambda p: yn_of(p) - 0.65,
                      lambda p: p[0] - 0.56 * p[1] + 0.336,
@@ -191,7 +243,11 @@ def main():
     required = list(names)
     missing = [name for name in required if not regions.get(name)]
     if missing:
-        raise RuntimeError(f"Hair placement found no UV faces for {missing}: {regions}; body bounds={bounds.tolist()}")
+        raise RuntimeError(
+            f"Hair placement found no UV faces for {missing}: {regions}; "
+            f"centre_x={centre_x:.4f}; pubic_half_width={aldric_pubic_width}; "
+            f"pubic_candidate_faces={aldric_pubic_faces}; body bounds={bounds.tolist()}"
+        )
 
     # Texture-only hair: no extra meshes, curves, cards or particles.
     layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
@@ -281,7 +337,9 @@ def main():
         out.extend(struct.pack("<I4s", len(payload), kind))
         out.extend(payload)
     args.model.write_bytes(out)
-    print(json.dumps({"ok": True, "coverage": args.coverage, "hair_colour": "#" + colour_hex.upper(), "texture_only": True, "regions": regions, "strokes": counts, "texture": [width, height], "glb_bytes": len(out)}, indent=2))
+    print(json.dumps({"ok": True, "coverage": args.coverage, "hair_colour": "#" + colour_hex.upper(), "texture_only": True, "regions": regions, "strokes": counts, "pubic_half_width_m": aldric_pubic_width,
+                      "pubic_candidate_faces": aldric_pubic_faces, "centre_x": centre_x,
+                      "texture": [width, height], "glb_bytes": len(out)}, indent=2))
 
 
 if __name__ == "__main__":
