@@ -1,6 +1,8 @@
 class_name HollowTankard
 extends Node3D
 
+const HOLLOWMERE_OPENING_SEQUENCE_SCRIPT = preload("res://scripts/presentation/hollowmere_opening_sequence.gd")
+
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_timeline.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
@@ -58,6 +60,8 @@ var initiative_timeline: CombatInitiativeTimeline
 var character_panel: CharacterPanel
 var world_map_panel: CanvasLayer
 var camera_rig: OrbitCameraRig
+var gameplay_hud_layer: CanvasLayer
+var opening_sequence: HollowmereOpeningSequence
 var roof_group: Node3D
 var actor_by_id: Dictionary = {}
 var starting_loadouts: Dictionary = {}
@@ -865,7 +869,8 @@ func _create_camera() -> void:
     camera_rig.follow_target = actor_by_id["player"]
 
 func _create_hud() -> void:
-    var layer := CanvasLayer.new()
+    gameplay_hud_layer = CanvasLayer.new()
+    var layer := gameplay_hud_layer
     location_label = Label.new()
     location_label.position = Vector2(22.0, 68.0)
     location_label.text = "LOCATION  /  HOLLOW TANKARD"
@@ -1538,27 +1543,28 @@ func _resolve_shakedown(choice_id: String) -> void:
 
 func _run_opening_sequence() -> void:
     var player_state := simulation.get_character("player")
-    if player_state == null or player_state.race in ["goblin", "orc"]:
+    if player_state == null or player_state.race in ["goblin", "orc"] or shakedown_started:
         return
     simulation.campaign_journal.start_quest(HollowmereCampaignContent.QUEST_ID)
-    await get_tree().create_timer(2.0).timeout
+    shakedown_started = true
+
+    # The location retains campaign state and the existing choice handler.
+    # Presentation and character staging live in a dedicated sequence component.
+    opening_sequence = HOLLOWMERE_OPENING_SEQUENCE_SCRIPT.new() as HollowmereOpeningSequence
+    opening_sequence.name = "HollowmereOpeningSequence"
+    add_child(opening_sequence)
+    var gameplay_camera := camera_rig.get_node_or_null("PitchPivot/Camera3D") as Camera3D
+    await opening_sequence.play(
+        actor_by_id,
+        gameplay_hud_layer,
+        gameplay_camera,
+        HollowmereCampaignContent.opening_conversation_lines(),
+        HollowmereCampaignContent.opening_lines(),
+        Callable(self, "_move_shakedown_soldiers_inside"),
+        HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS
+    )
     if not is_instance_valid(self):
         return
-    _show_speech_bubble("companion_wren_talbot", "Well, here we are then. Try not to get us both killed, yeah?")
-    await get_tree().create_timer(6.0).timeout
-    if not is_instance_valid(self) or shakedown_started:
-        return
-    shakedown_started = true
-    var opening_lines := HollowmereCampaignContent.opening_lines()
-    for index in range(opening_lines.size()):
-        var line: Dictionary = opening_lines[index]
-        var speaker_id := String(line.get("speaker_id", "dray_coltayne"))
-        if speaker_id == "narrator":
-            _show_world_narration(String(line.get("text", "")))
-            await _move_shakedown_soldiers_inside()
-        else:
-            _show_speech_bubble(speaker_id, String(line.get("text", "")))
-        await get_tree().create_timer(2.25).timeout
     if not shakedown_resolved:
         _show_dialogue("Dray Coltayne", "What do you do?", HollowmereCampaignContent.shakedown_choices())
 

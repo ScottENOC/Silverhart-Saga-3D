@@ -95,6 +95,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_animals_and_riding.gd
       - name: Run reusable building and door tests
         run: godot --headless --path . --script res://tests/test_building_framework.gd
+      - name: Run cinematic animation matching tests
+        run: godot --headless --path . --script res://tests/test_cinematic_animation_matching.gd
       # Keep presentation-component tests isolated from campaign simulation suites.
       - name: Run campaign UI tests
         run: godot --headless --path . --script res://tests/test_campaign_ui.gd

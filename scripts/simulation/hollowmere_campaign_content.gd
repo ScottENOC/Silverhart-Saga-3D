@@ -24,6 +24,16 @@ static func opening_lines() -> Array[Dictionary]:
         {"speaker_id": "dray_coltayne", "speaker": "Dray Coltayne", "text": "It can't. Pay up, or this place finds out what an 'accident' looks like."}
     ]
 
+static func opening_conversation_lines() -> Array[Dictionary]:
+    return [
+        {"speaker_id": "companion_wren_talbot", "speaker": "Wren", "text": "Well, here we are then. Try not to get us both killed, yeah?"},
+        {"speaker_id": "player", "speaker": "You", "text": "You always introduce a place like that?"},
+        {"speaker_id": "companion_wren_talbot", "speaker": "Wren", "text": "Only the places where I reckon trouble's already waiting."},
+        {"speaker_id": "player", "speaker": "You", "text": "And you reckon that here?"},
+        {"speaker_id": "companion_wren_talbot", "speaker": "Wren", "text": "I reckon you have a talent for finding it."}
+    ]
+
+
 
 static func shakedown_choices() -> Array[Dictionary]:
     return [
