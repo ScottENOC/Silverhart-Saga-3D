@@ -16,8 +16,13 @@ def replace_once(old, new, label):
 
 replace_once(
     "const stringMat = (st: GarmentStyle): Material => mat('Bikini strings', null, { color: st.color, roughness: 0.35, metalness: st.pattern === 'foil' ? 0.6 : 0 });",
-    "const stringMat = (st: GarmentStyle, name = 'Bikini strings'): Material => mat(name, null, { color: st.color, roughness: 0.35, metalness: st.pattern === 'foil' ? 0.6 : 0 });",
+    "const stringMat = (st: GarmentStyle, name = 'Bikini strings'): Material => { const opacity = Math.max(0, Math.min(1, st.opacity ?? 1)); return mat(name, null, { color: st.color, roughness: 0.35, metalness: st.pattern === 'foil' ? 0.6 : 0, ...(opacity < 0.999 ? { alpha: 'blend' as const, opacity } : {}) }); };",
     "string material helper"
+)
+replace_once(
+    "  return mat(name, tex, { roughness: foil ? 0.32 : 0.45, metalness: foil ? 0.7 : 0 });",
+    "  const opacity = Math.max(0, Math.min(1, st.opacity ?? 1));\n  return mat(name, tex, { roughness: foil ? 0.32 : 0.45, metalness: foil ? 0.7 : 0, ...(opacity < 0.999 ? { alpha: 'blend' as const, opacity } : {}) });",
+    "swimwear material opacity"
 )
 replace_once(
     "function bikiniBottom(g: GCtx, st: GarmentStyle): GPart[] {",
