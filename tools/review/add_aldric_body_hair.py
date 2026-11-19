@@ -103,7 +103,7 @@ def main():
 
     def paint_clipped(region, tri, constraints):
         # Clip the actual UV triangle against the requested 3D body-space
-        # region. Painting whole UV triangles based on their centroid caused
+        # region. glTF UVs use the image top-left origin; do not invert V.\n        # Painting whole UV triangles based on their centroid caused
         # large stray patches on adjacent abdomen, chest and thigh surfaces.
         poly = []
         for vertex in tri:
@@ -114,7 +114,7 @@ def main():
             poly = clip_polygon(poly, constraint)
             if len(poly) < 3:
                 return False
-        uv_polygon = [(v[3] * (width - 1), (1.0 - v[4]) * (height - 1)) for v in poly]
+        uv_polygon = [(v[3] * (width - 1), v[4] * (height - 1)) for v in poly]
         draws[region].polygon(uv_polygon, fill=255)
         regions[region] += 1
         return True
