@@ -166,8 +166,9 @@ def render_outfit(input_path, output_root, outfit, keep):
         "mesh_objects": sum(o.type == "MESH" for o in scene.objects),
         "remaining_polygons": sum(len(o.data.polygons) for o in scene.objects if o.type == "MESH"),
     }
+    export_phone_glb = os.environ.get("EXPORT_PHONE_GLB", "0") == "1"
     phone_glb = output / (outfit + ".glb")
-    report["phone_review_glb"] = phone_glb.name
+    report["phone_review_glb"] = phone_glb.name if export_phone_glb else None
     (output / "report.json").write_text(json.dumps(report, indent=2))
     for view in ("front", "side", "rear"):
         camera = camera_for_view(view, centre, radius)
@@ -176,22 +177,23 @@ def render_outfit(input_path, output_root, outfit, keep):
         bpy.ops.render.render(write_still=True)
         bpy.data.objects.remove(camera, do_unlink=True)
 
-    # Export a phone-viewable companion GLB containing the unchanged body and
-    # only the selected independent garment combination.
-    bpy.ops.object.select_all(action="DESELECT")
-    exportable = [obj for obj in scene.objects if obj.type in {"MESH", "ARMATURE", "EMPTY"}]
-    for obj in exportable:
-        obj.select_set(True)
-    if exportable:
-        bpy.context.view_layer.objects.active = next((obj for obj in exportable if obj.type == "ARMATURE"), exportable[0])
-    bpy.ops.export_scene.gltf(
-        filepath=str(phone_glb),
-        export_format="GLB",
-        use_selection=True,
-        export_apply=False,
-    )
-    if not phone_glb.is_file() or phone_glb.stat().st_size == 0:
-        raise RuntimeError(f"Phone review GLB was not written: {phone_glb}")
+    if export_phone_glb:
+        # Export a phone-viewable companion GLB containing the unchanged body
+        # and only the selected independent garment combination.
+        bpy.ops.object.select_all(action="DESELECT")
+        exportable = [obj for obj in scene.objects if obj.type in {"MESH", "ARMATURE", "EMPTY"}]
+        for obj in exportable:
+            obj.select_set(True)
+        if exportable:
+            bpy.context.view_layer.objects.active = next((obj for obj in exportable if obj.type == "ARMATURE"), exportable[0])
+        bpy.ops.export_scene.gltf(
+            filepath=str(phone_glb),
+            export_format="GLB",
+            use_selection=True,
+            export_apply=False,
+        )
+        if not phone_glb.is_file() or phone_glb.stat().st_size == 0:
+            raise RuntimeError(f"Phone review GLB was not written: {phone_glb}")
 
 def main():
     if len(sys.argv) < 3:
