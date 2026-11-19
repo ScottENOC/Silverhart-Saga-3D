@@ -181,8 +181,7 @@ def main():
         return maximum, 0
 
     aldric_pubic_width, aldric_pubic_faces = (
-        adaptive_pubic_half_width(0.34, 0.42)
-        if args.coverage == "aldric" else (None, None)
+        (0.080, None) if args.coverage == "aldric" else (None, None)
     )
 
     for tri in indices.reshape(-1, 3):
@@ -216,10 +215,12 @@ def main():
         elif args.coverage == "aldric":
             # Axillary hair belongs on the lateral underside of the upper torso,
             # not the shoulder caps.
-            paint_clipped("armpits", tri, band(0.74, 0.81,
+            # Return 70% of the previous 0.08-height displacement:
+            # 0.74-0.81 -> 0.796-0.866, retaining the lateral underside surface.
+            paint_clipped("armpits", tri, band(0.796, 0.866,
                                                 centre_x - 0.24, centre_x - 0.16,
                                                 front=False))
-            paint_clipped("armpits", tri, band(0.74, 0.81,
+            paint_clipped("armpits", tri, band(0.796, 0.866,
                                                 centre_x + 0.16, centre_x + 0.24,
                                                 front=False))
             # A very fine vertical trail runs from the navel down towards the
@@ -228,17 +229,19 @@ def main():
                                                     centre_x - 0.004, centre_x + 0.004))
             # Preserve Aldric's original lower pubic-hair position; adapt only
             # the width and horizontal centre to the actual body mesh.
-            paint_clipped("pubic", tri, band(0.34, 0.42,
+            # Broaden and raise the pubic region; avoid an empty adaptive mask.
+            paint_clipped("pubic", tri, band(0.30, 0.44,
                                                 centre_x - aldric_pubic_width,
                                                 centre_x + aldric_pubic_width))
-            paint_clipped("scrotum", tri, band(0.24, 0.34,
-                                                  centre_x - 0.080,
-                                                  centre_x + 0.080))
+            paint_clipped("scrotum", tri, band(0.24, 0.32,
+                                                  centre_x - 0.065,
+                                                  centre_x + 0.065))
             # Compact upper-chest diamond centred on the sternum, at nipple height.
             # Its widest point is around the nipple line and it tapers both upward
             # and downward; keep it well clear of the navel and upper abdomen.
-            chest_bottom, chest_top = 0.69, 0.78
-            chest_mid = 0.735
+            chest_lift = 0.04 / height_m
+            chest_bottom, chest_top = 0.69 + chest_lift, 0.78 + chest_lift
+            chest_mid = 0.735 + chest_lift
             half_width = 0.040
             diamond = [
                 lambda p: chest_bottom - yn_of(p),
