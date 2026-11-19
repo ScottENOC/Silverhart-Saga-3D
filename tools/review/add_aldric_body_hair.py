@@ -7,13 +7,14 @@ The placement is intentionally sparse and is reported for review.
 """
 import argparse
 import json
+import math
 import random
 import struct
 from io import BytesIO
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageChops
+from PIL import Image, ImageDraw, ImageChops, ImageFilter
 
 
 def parse_glb(data):
@@ -70,6 +71,7 @@ def main():
     if vertical_axis != 1:
         raise RuntimeError(f"Expected Ara's exported Y-up body, found vertical axis {vertical_axis}")
     height_m = float(bounds[1])
+    centre_x = float((positions[:, 0].min() + positions[:, 0].max()) * 0.5)
     rng = random.Random(args.seed)
 
     if args.coverage == "wren":
@@ -79,7 +81,7 @@ def main():
     elif args.coverage == "dagna":
         names = ["pubic"]
     else:
-        names = ["armpits", "pubic"] + (["chest", "snail_trail", "scrotum"] if args.coverage == "aldric" else [])
+        names = ["armpits", "pubic"] + (["chest", "snail_trail"] if args.coverage == "aldric" else [])
     masks = {name: Image.new("L", (width, height), 0) for name in names}
     draws = {key: ImageDraw.Draw(mask) for key, mask in masks.items()}
     regions = {name: 0 for name in names}
@@ -136,6 +138,52 @@ def main():
             constraints.append(lambda p: p[2] + 0.035)
         return constraints
 
+    def adaptive_pubic_half_width(y0, y1, minimum=0.035, maximum=0.080):
+        """Choose the narrowest centred mons mask that clips enough front-skin UV faces."""
+        triangles = positions[indices.reshape(-1, 3)]
+        tri_y = (triangles[:, :, 1] - y_min) / height_m
+        tri_x = triangles[:, :, 0]
+        tri_z = triangles[:, :, 2]
+        candidates = np.flatnonzero(
+            (tri_y.max(axis=1) >= y0)
+            & (tri_y.min(axis=1) <= y1)
+            & (tri_z.max(axis=1) >= 0.035)
+        )
+        x_min, x_max = tri_x.min(axis=1), tri_x.max(axis=1)
+        for half_width in np.arange(minimum, maximum + 0.0001, 0.01):
+            possible = candidates[
+                (x_max[candidates] >= centre_x - half_width)
+                & (x_min[candidates] <= centre_x + half_width)
+            ]
+            clipped = 0
+            for triangle_id in possible:
+                tri = indices.reshape(-1, 3)[triangle_id]
+                poly = []
+                for vertex in tri:
+                    p, uv = positions[vertex], uvs[vertex]
+                    poly.append((float(p[0]), float(p[1]), float(p[2]),
+                                 float(uv[0]), float(uv[1])))
+                constraints = [
+                    lambda p, y0=y0: y0 - yn_of(p),
+                    lambda p, y1=y1: yn_of(p) - y1,
+                    lambda p, w=half_width: centre_x - w - p[0],
+                    lambda p, w=half_width: p[0] - (centre_x + w),
+                    lambda p: 0.035 - p[2],
+                ]
+                for constraint in constraints:
+                    poly = clip_polygon(poly, constraint)
+                    if len(poly) < 3:
+                        break
+                if len(poly) >= 3:
+                    clipped += 1
+            if clipped >= 8:
+                return round(float(half_width), 3), clipped
+        return maximum, 0
+
+    aldric_pubic_width, aldric_pubic_faces = (
+        (0.080, None) if args.coverage == "aldric" else (None, None)
+    )
+
     for tri in indices.reshape(-1, 3):
         if args.coverage == "wren":
             # Keep the lower edge at the existing clitoral-hood start, shorten
@@ -165,24 +213,64 @@ def main():
         elif args.coverage == "dagna":
             paint_clipped("pubic", tri, band(0.28, 0.37, -0.055, 0.055))
         elif args.coverage == "aldric":
-            # Keep axillary hair high and lateral. The previous 0.75-0.82
-            # band selected the lower pectoral/rib area, not the armpit.
-            paint_clipped("armpits", tri, band(0.82, 0.89, -0.23, -0.16, front=True))
-            paint_clipped("armpits", tri, band(0.82, 0.89, 0.16, 0.23, front=True))
-            paint_clipped("snail_trail", tri, band(0.38, 0.48, -0.004, 0.004))
-            paint_clipped("pubic", tri, band(0.28, 0.38, -0.045, 0.045))
-            paint_clipped("scrotum", tri, band(0.24, 0.34, -0.080, 0.080))
-            # A true narrow diamond, clipped as two linear wedges.
-            lower = [lambda p: 0.60 - yn_of(p), lambda p: yn_of(p) - 0.65,
-                     lambda p: p[0] - 0.56 * p[1] + 0.336,
-                     lambda p: -p[0] - 0.56 * p[1] + 0.336,
-                     lambda p: 0.035 - p[2]]
-            upper = [lambda p: 0.65 - yn_of(p), lambda p: yn_of(p) - 0.70,
-                     lambda p: p[0] + 0.56 * p[1] - 0.392,
-                     lambda p: -p[0] + 0.56 * p[1] - 0.392,
-                     lambda p: 0.035 - p[2]]
-            paint_clipped("chest", tri, lower)
-            paint_clipped("chest", tri, upper)
+            # Restore the earlier front-facing axilla placement that produced
+            # the best result: compact lateral underside patches, not posterior
+            # shoulder/lat coverage. This is the 0.76-0.83 band from the #86 pass.
+            # Keep the axillae on the side/underside transition, not the front
+            # pectorals. A narrow Z band shifts the markings slightly rearward.
+            for x0, x1 in ((centre_x - 0.27, centre_x - 0.19),
+                           (centre_x + 0.19, centre_x + 0.27)):
+                axilla = band(0.72, 0.79, x0, x1, front=None)
+                axilla.extend((lambda p: p[2] - 0.055, lambda p: -p[2]))
+                paint_clipped("armpits", tri, axilla)
+            # Keep the central trail slender overall, but let its lower end
+            # broaden slightly where it meets the pubic hair.
+            trail_y0, trail_y1 = 0.39, 0.56
+            trail_half_width_bottom, trail_half_width_top = 0.007, 0.004
+            trail_width_slope = (trail_half_width_top - trail_half_width_bottom) / (trail_y1 - trail_y0)
+            trail = [
+                lambda p: trail_y0 - yn_of(p),
+                lambda p: yn_of(p) - trail_y1,
+                lambda p: abs(p[0] - centre_x) - (
+                    trail_half_width_bottom + trail_width_slope * (yn_of(p) - trail_y0)
+                ),
+            ]
+            paint_clipped("snail_trail", tri, trail)
+            # Raise the whole pubic region by 8 cm. A rounded-rectangle signed
+            # distance keeps the four corners soft instead of making a hard box.
+            pubic_y0, pubic_y1 = 0.43 + 0.08 / height_m, 0.50 + 0.08 / height_m
+            pubic_half_width, pubic_corner = 0.070, 0.025
+            pubic_mid_y = (pubic_y0 + pubic_y1) * 0.5
+            pubic_half_height = (pubic_y1 - pubic_y0) * 0.5
+            def rounded_pubic(p):
+                qx = abs(p[0] - centre_x) - (pubic_half_width - pubic_corner)
+                qy = abs(yn_of(p) - pubic_mid_y) - (pubic_half_height - pubic_corner)
+                outside = math.hypot(max(qx, 0.0), max(qy, 0.0))
+                return outside + min(max(qx, qy), 0.0) - pubic_corner
+            paint_clipped("pubic", tri, [
+                rounded_pubic,
+                lambda p: 0.035 - p[2],
+            ])
+            # Chest centre rises another 2 cm from the previous 4 cm lift.
+            # The upper edge fans out; the sides are softened after UV clipping.
+            chest_lift = 0.06 / height_m
+            chest_bottom, chest_top = 0.69 + chest_lift, 0.78 + chest_lift
+            chest_mid = 0.735 + chest_lift
+            chest_bottom_width, chest_mid_width, chest_top_width = 0.012, 0.052, 0.072
+            def chest_half_width(p):
+                y = yn_of(p)
+                if y <= chest_mid:
+                    t = (y - chest_bottom) / max(chest_mid - chest_bottom, 1e-6)
+                    return chest_bottom_width + (chest_mid_width - chest_bottom_width) * max(0.0, min(1.0, t))
+                t = (y - chest_mid) / max(chest_top - chest_mid, 1e-6)
+                return chest_mid_width + (chest_top_width - chest_mid_width) * max(0.0, min(1.0, t))
+            chest = [
+                lambda p: chest_bottom - yn_of(p),
+                lambda p: yn_of(p) - chest_top,
+                lambda p: abs(p[0] - centre_x) - chest_half_width(p),
+                lambda p: 0.035 - p[2],
+            ]
+            paint_clipped("chest", tri, chest)
         else:
             paint_clipped("armpits", tri, band(0.70, 0.76, -0.155, -0.105, front=True))
             paint_clipped("armpits", tri, band(0.70, 0.76, 0.105, 0.155, front=True))
@@ -191,7 +279,11 @@ def main():
     required = list(names)
     missing = [name for name in required if not regions.get(name)]
     if missing:
-        raise RuntimeError(f"Hair placement found no UV faces for {missing}: {regions}; body bounds={bounds.tolist()}")
+        raise RuntimeError(
+            f"Hair placement found no UV faces for {missing}: {regions}; "
+            f"centre_x={centre_x:.4f}; pubic_half_width={aldric_pubic_width}; "
+            f"pubic_candidate_faces={aldric_pubic_faces}; body bounds={bounds.tolist()}"
+        )
 
     # Texture-only hair: no extra meshes, curves, cards or particles.
     layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
@@ -207,7 +299,7 @@ def main():
     elif args.coverage == "aldric":
         # Keep hair localised: compact axillae, a narrow sternum diamond,
         # central snail trail and pubic/scrotal regions. No arm or leg masks.
-        densities.update({"armpits": 300, "chest": 260, "snail_trail": 350, "scrotum": 260, "pubic": 650})
+        densities.update({"armpits": 240, "chest": 280, "snail_trail": 300, "pubic": 500})
     default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
     colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
     if len(colour_hex) != 6:
@@ -224,25 +316,31 @@ def main():
         for _ in range(count):
             pixel_y, pixel_x = valid_pixels[rng.randrange(len(valid_pixels))]
             x, y = int(pixel_x), int(pixel_y)
-            length = rng.uniform(3.0, 8.0) if region == "armpits" else rng.uniform(4.0, 11.0)
+            length = (rng.uniform(3.0, 8.0) if region == "armpits" else
+                      (rng.uniform(3.0, 5.0) if region == "snail_trail" else rng.uniform(3.0, 7.0)))
             if region == "landing_strip":
                 length = rng.uniform(3.0, 6.0)
                 angle = rng.uniform(-0.08, 0.08)
             else:
-                angle = rng.uniform(-1.1, 1.1) if region == "armpits" else rng.uniform(-0.85, 0.85)
+                angle = (rng.uniform(-1.1, 1.1) if region == "armpits" else
+                         (math.pi / 2 if region == "snail_trail" else rng.uniform(-0.85, 0.85)))
             dx, dy = np.cos(angle) * length, np.sin(angle) * length
             alpha_range = (210, 240) if args.coverage == "dagna" and region == "pubic" else (175, 215)
             shade = (*hair_rgb, rng.randint(*alpha_range))
             if region == "snail_trail":
                 stroke_width = 1
             else:
-                stroke_width = 2 if region == "landing_strip" else (2 if (args.coverage == "aldric" and region != "armpits") or (args.coverage == "dagna" and region == "pubic") else 1)
+                stroke_width = 2 if region == "landing_strip" else (2 if (args.coverage == "dagna" and region == "pubic") else 1)
             draw.line((x, y, x + dx, y + dy), fill=shade, width=stroke_width)
             counts[region] += 1
 
     # Clip the marks to the actual skin UV triangles, then composite gently.
     combined_mask = Image.new("L", (width, height), 0)
-    for mask in masks.values():
+    for region, mask in masks.items():
+        # Feather only the chest boundary: denser strokes remain visible in the
+        # sternum area but dissolve naturally towards the pectoral sides.
+        if region == "chest":
+            mask = mask.filter(ImageFilter.GaussianBlur(radius=7.0))
         combined_mask = ImageChops.lighter(combined_mask, mask)
     alpha = ImageChops.multiply(layer.getchannel("A"), combined_mask)
     layer.putalpha(alpha)
@@ -281,7 +379,9 @@ def main():
         out.extend(struct.pack("<I4s", len(payload), kind))
         out.extend(payload)
     args.model.write_bytes(out)
-    print(json.dumps({"ok": True, "coverage": args.coverage, "hair_colour": "#" + colour_hex.upper(), "texture_only": True, "regions": regions, "strokes": counts, "texture": [width, height], "glb_bytes": len(out)}, indent=2))
+    print(json.dumps({"ok": True, "coverage": args.coverage, "hair_colour": "#" + colour_hex.upper(), "texture_only": True, "regions": regions, "strokes": counts, "pubic_half_width_m": aldric_pubic_width,
+                      "pubic_candidate_faces": aldric_pubic_faces, "centre_x": centre_x,
+                      "texture": [width, height], "glb_bytes": len(out)}, indent=2))
 
 
 if __name__ == "__main__":

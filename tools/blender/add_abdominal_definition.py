@@ -57,26 +57,38 @@ def main():
         raise RuntimeError("Could not identify Ara skin mesh")
 
     lo, hi = world_bounds(skin)
-    height, width = hi.y - lo.y, hi.x - lo.x
-    if height <= 0 or width <= 0:
-        raise RuntimeError("Invalid skin mesh bounds")
+    extents = [hi[i] - lo[i] for i in range(3)]
+    if min(extents) <= 0:
+        raise RuntimeError(f"Invalid skin mesh bounds: {extents}")
+    # Blender's glTF importer places Ara's Y-up GLB into Blender's Z-up world.
+    # The old code treated world Y as height and world Z as the front direction,
+    # selecting chest-facing surfaces. Infer axes from the actual world bounds.
+    vertical_axis = max(range(3), key=lambda axis: extents[axis])
+    remaining = [axis for axis in range(3) if axis != vertical_axis]
+    front_axis = min(remaining, key=lambda axis: extents[axis])
+    horizontal_axis = next(axis for axis in remaining if axis != front_axis)
+    front_sign = -1.0  # Ara faces -Y in Blender world space.
+    height, width = extents[vertical_axis], extents[horizontal_axis]
+    vertical_min = lo[vertical_axis]
+    horizontal_centre = (lo[horizontal_axis] + hi[horizontal_axis]) * 0.5
+
     world_matrix = skin.matrix_world
     normal_matrix = world_matrix.to_3x3().inverted().transposed()
     inverse = world_matrix.inverted()
     positions = [world_matrix @ v.co for v in skin.data.vertices]
     normals = [(normal_matrix @ v.normal).normalized() for v in skin.data.vertices]
 
-    # Raise the six-pack centre and tighten its vertical footprint. The lowest
-    # muscle belly is now above the hip/pelvis transition.
-    centre_y = lo.y + height * 0.555
+    # Raise the accepted six-pack profile by exactly 4 cm in body space.
+    lift = 0.04
+    centre_y = vertical_min + height * 0.555 + lift
     row_spacing = height * 0.052
     row_centres = (centre_y + row_spacing, centre_y, centre_y - row_spacing)
     pad_x = width * 0.066
     sigma_x = width * 0.024
     sigma_y = height * 0.017
     front_limit = width * 0.155
-    top_y = lo.y + height * 0.655
-    bottom_y = lo.y + height * 0.455
+    top_y = vertical_min + height * 0.655 + lift
+    bottom_y = vertical_min + height * 0.455 + lift
 
     if skin.data.shape_keys is None:
         skin.shape_key_add(name="Basis", from_mix=False)
@@ -87,38 +99,37 @@ def main():
 
     moved, max_offset = 0, 0.0
     for index, (p, normal) in enumerate(zip(positions, normals)):
-        if p.y < bottom_y or p.y > top_y or abs(p.x) > front_limit:
+        vertical = p[vertical_axis]
+        horizontal = p[horizontal_axis] - horizontal_centre
+        frontness = max(0.0, min(1.0, normal[front_axis] * front_sign))
+        if vertical < bottom_y or vertical > top_y or abs(horizontal) > front_limit:
             continue
-        frontness = max(0.0, min(1.0, normal.z))
         if frontness < 0.45:
             continue
-
-        vertical_gate = smoothstep(bottom_y, bottom_y + height * 0.025, p.y)
-        vertical_gate *= 1.0 - smoothstep(top_y - height * 0.025, top_y, p.y)
-        lateral_gate = 1.0 - smoothstep(front_limit * 0.82, front_limit, abs(p.x))
+        vertical_gate = smoothstep(bottom_y, bottom_y + height * 0.025, vertical)
+        vertical_gate *= 1.0 - smoothstep(top_y - height * 0.025, top_y, vertical)
+        lateral_gate = 1.0 - smoothstep(front_limit * 0.82, front_limit, abs(horizontal))
         mask = vertical_gate * lateral_gate * frontness
 
         pads = 0.0
         for row_y in row_centres:
-            vertical = gaussian(p.y - row_y, sigma_y)
+            row_position = gaussian(vertical - row_y, sigma_y)
             for side in (-1.0, 1.0):
-                pads = max(pads, vertical * gaussian(p.x - side * pad_x, sigma_x))
-
-        central = gaussian(p.x, width * 0.0045) * gaussian(p.y - centre_y, height * 0.088)
-        horizontal = 0.0
+                pads = max(pads, row_position * gaussian(horizontal - side * pad_x, sigma_x))
+        central = gaussian(horizontal, width * 0.0045) * gaussian(vertical - centre_y, height * 0.088)
+        horizontal_groove = 0.0
         for groove_y in (centre_y + row_spacing * 0.5, centre_y - row_spacing * 0.5):
-            horizontal = max(horizontal,
-                             gaussian(p.y - groove_y, height * 0.0027)
-                             * gaussian(p.x, width * 0.135))
-
+            horizontal_groove = max(horizontal_groove,
+                                    gaussian(vertical - groove_y, height * 0.0027)
+                                    * gaussian(horizontal, width * 0.135))
         oblique = 0.0
         for side in (-1.0, 1.0):
             oblique = max(oblique,
-                          gaussian(p.x - side * width * 0.124, width * 0.016)
-                          * gaussian(p.y - centre_y, height * 0.070))
+                          gaussian(horizontal - side * width * 0.124, width * 0.016)
+                          * gaussian(vertical - centre_y, height * 0.070))
 
         displacement = (pads * 0.0200 + oblique * 0.0032
-                        - central * 0.0080 - horizontal * 0.0070) * args.strength * mask
+                        - central * 0.0080 - horizontal_groove * 0.0070) * args.strength * mask
         if abs(displacement) < 1e-6:
             continue
         key.data[index].co = inverse @ (p + normal * displacement)
@@ -130,9 +141,10 @@ def main():
     skin.data.update()
     skin["abdominal_definition_key"] = args.key_name
     skin["abdominal_definition_strength"] = args.strength
-    skin["abdominal_definition_region"] = "Y 45.5%-65.5%; six-pack centre 55.5%"
-    print(f"Created {args.key_name}: Y-up strength={args.strength:.2f}, moved={moved}, "
-          f"max_offset={max_offset:.4f}m, region=45.5%-65.5%")
+    skin["abdominal_definition_region"] = f"vertical axis {vertical_axis}; raised 0.04m; 45.5%-65.5%; centre 55.5%"
+    print(f"Created {args.key_name}: vertical_axis={vertical_axis}, front_axis={front_axis}, "
+          f"strength={args.strength:.2f}, lift=0.0400m, moved={moved}, max_offset={max_offset:.4f}m, "
+          "region=45.5%-65.5%")
 
     armature = next((o for o in bpy.context.scene.objects if o.type == "ARMATURE"), None)
     bpy.ops.object.select_all(action="DESELECT")
