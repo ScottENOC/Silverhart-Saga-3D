@@ -7,6 +7,7 @@ The placement is intentionally sparse and is reported for review.
 """
 import argparse
 import json
+import math
 import random
 import struct
 from io import BytesIO
@@ -142,8 +143,8 @@ def main():
         x_max = tri_x.max(axis=1)
         for half_width in np.arange(minimum, maximum + 0.0001, 0.01):
             possible = candidate_ids[
-                (x_max[candidate_ids] >= -half_width)
-                & (x_min[candidate_ids] <= half_width)
+                (x_max[candidate_ids] >= centre_x - half_width)
+                & (x_min[candidate_ids] <= centre_x + half_width)
             ]
             clipped_faces = 0
             for triangle_id in possible:
@@ -155,8 +156,8 @@ def main():
                 constraints = [
                     lambda p, y0=y0: y0 - yn_of(p),
                     lambda p, y1=y1: yn_of(p) - y1,
-                    lambda p, w=half_width: -w - p[0],
-                    lambda p, w=half_width: p[0] - w,
+                    lambda p, w=half_width: centre_x - w - p[0],
+                    lambda p, w=half_width: p[0] - (centre_x + w),
                     lambda p: 0.035 - p[2],
                 ]
                 for constraint in constraints:
@@ -193,7 +194,7 @@ def main():
             # Keep the lower edge at the existing clitoral-hood start, shorten
             # the strip by 40%, and flare only the upper edge by 75%.
             # Shift the complete strip upward so its lower edge meets the old upper edge.
-            y0, y1 = 0.52, 0.55
+            y0, y1 = 0.526, 0.556
             base_half_width = 0.0065
             top_half_width = base_half_width * 1.75
             slope = (top_half_width - base_half_width) / (y1 - y0)
@@ -234,11 +235,13 @@ def main():
         elif args.coverage == "aldric":
             # Keep axillary hair high and lateral. The previous 0.75-0.82
             # band selected the lower pectoral/rib area, not the armpit.
-            paint_clipped("armpits", tri, band(0.82, 0.89, -0.23, -0.16, front=True))
-            paint_clipped("armpits", tri, band(0.82, 0.89, 0.16, 0.23, front=True))
-            paint_clipped("snail_trail", tri, band(0.38, 0.48, -0.004, 0.004))
-            # Match the wider pelvic UV footprint used for the female companion builds.
-            paint_clipped("pubic", tri, band(0.36, 0.43, -pubic_half_width, pubic_half_width))
+            # Place axillary hair on the lateral underside of the upper torso, not the shoulder caps.
+            paint_clipped("armpits", tri, band(0.76, 0.83, centre_x - 0.18, centre_x - 0.11, front=True))
+            paint_clipped("armpits", tri, band(0.76, 0.83, centre_x + 0.11, centre_x + 0.18, front=True))
+            # Keep the snail trail on the front centreline; its strokes are drawn vertically below.
+            paint_clipped("snail_trail", tri, band(0.34, 0.48, centre_x - 0.006, centre_x + 0.006))
+            # Re-centre the pubic mask on the actual exported body's X midpoint.
+            paint_clipped("pubic", tri, band(0.36, 0.43, centre_x - pubic_half_width, centre_x + pubic_half_width))
             paint_clipped("scrotum", tri, band(0.24, 0.34, -0.080, 0.080))
             # A true narrow diamond, clipped as two linear wedges.
             lower = [lambda p: 0.60 - yn_of(p), lambda p: yn_of(p) - 0.65,
@@ -297,7 +300,8 @@ def main():
                 length = rng.uniform(3.0, 6.0)
                 angle = rng.uniform(-0.08, 0.08)
             else:
-                angle = rng.uniform(-1.1, 1.1) if region == "armpits" else rng.uniform(-0.85, 0.85)
+                angle = (rng.uniform(-1.1, 1.1) if region == "armpits" else
+                     (math.pi / 2 if region == "snail_trail" else rng.uniform(-0.85, 0.85)))
             dx, dy = np.cos(angle) * length, np.sin(angle) * length
             alpha_range = (210, 240) if args.coverage == "dagna" and region == "pubic" else (175, 215)
             shade = (*hair_rgb, rng.randint(*alpha_range))
