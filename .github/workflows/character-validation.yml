@@ -38,6 +38,7 @@ jobs:
       - uses: actions/checkout@v7
       - name: Lint GitHub Actions workflows (report legacy warnings without blocking tests)
         uses: reviewdog/action-actionlint@v1
+        continue-on-error: true
         with:
           fail_level: none
       - name: Compile Ara and Blender Python tools

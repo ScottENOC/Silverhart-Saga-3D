@@ -40,7 +40,10 @@ jobs:
           npm run setup-assets
 
       - name: Apply Silverhart garment-layer contract
-        run: python tools/ara/patch_layering.py
+        run: |
+          set -euo pipefail
+          cd /tmp/ara-3d-gen
+          python "$GITHUB_WORKSPACE/tools/ara/patch_layering.py"
 
       - name: Validate and generate all village characters
         shell: bash
