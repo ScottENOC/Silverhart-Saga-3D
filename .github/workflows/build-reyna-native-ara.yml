@@ -111,7 +111,7 @@ jobs:
             --python tools/blender/add_abdominal_definition.py -- \
             --input build/reyna-native/Reyna.glb \
             --output build/reyna-native/Reyna-defined.glb \
-            --strength 0.55
+            --strength 0.85
           test -s build/reyna-native/Reyna-defined.glb
           mv build/reyna-native/Reyna-defined.glb build/reyna-native/Reyna.glb
 

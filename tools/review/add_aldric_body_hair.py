@@ -138,7 +138,20 @@ def main():
 
     for tri in indices.reshape(-1, 3):
         if args.coverage == "wren":
-            paint_clipped("landing_strip", tri, band(0.49, 0.54, -0.0065, 0.0065))
+            # Keep the lower edge at the existing clitoral-hood start, shorten
+            # the strip by 40%, and flare only the upper edge by 75%.
+            y0, y1 = 0.49, 0.52
+            base_half_width = 0.0065
+            top_half_width = base_half_width * 1.75
+            slope = (top_half_width - base_half_width) / (y1 - y0)
+            constraints = [
+                lambda p: y0 - yn_of(p),
+                lambda p: yn_of(p) - y1,
+                lambda p: p[0] - (base_half_width + slope * (yn_of(p) - y0)),
+                lambda p: -p[0] - (base_half_width + slope * (yn_of(p) - y0)),
+                lambda p: 0.035 - p[2],
+            ]
+            paint_clipped("landing_strip", tri, constraints)
         elif args.coverage == "reyna":
             # Separate left/right axillae; keep the markings on the lateral
             # upper torso rather than allowing a broad triangle to reach the
@@ -148,7 +161,7 @@ def main():
                                                      side * 0.075 if side < 0 else 0.19, front=True))
                 paint_clipped("armpits", tri, band(0.82, 0.89, side * 0.19 if side < 0 else 0.075,
                                                      side * 0.075 if side < 0 else 0.19, front=False))
-            paint_clipped("pubic", tri, band(0.44, 0.53, -0.075, 0.075))
+            paint_clipped("pubic", tri, band(0.28, 0.37, -0.060, 0.060))
         elif args.coverage == "dagna":
             paint_clipped("pubic", tri, band(0.36, 0.43, -0.065, 0.065))
         elif args.coverage == "aldric":

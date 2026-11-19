@@ -366,38 +366,37 @@ def add_barbell(socket, material):
 
 
 def add_nipple_barbell(socket, material):
-    """Straight horizontal nipple bar, anchored at the original skin socket."""
+    """Horizontal two-ball barbell, anchored at Ara's original nipple socket.
+
+    Build the connecting shaft as a sphere stretched along world X rather than
+    a rotated cylinder. This avoids the Blender/glTF axis conversion that made
+    the exported shaft appear vertical while its end beads stayed horizontal.
+    """
     matrix = socket.matrix_world.copy()
     anchor = matrix.translation.copy()
     normal = (matrix.to_3x3() @ Vector((0, 0, 1))).normalized()
-    # Ara is Z-up in Blender after GLB import. Use the character's horizontal
-    # left-right axis directly; projecting it off the socket normal tilted the
-    # bar when the socket normal itself had a strong lateral component.
-    tangent = Vector((1, 0, 0))
-    # Keep the attachment at the original socket. A small outward clearance
-    # prevents z-fighting; the bar and end beads overlap slightly so they read
-    # as one continuous barbell rather than three disconnected pieces.
     centre = anchor + normal * 0.0012
-    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=0.0018, depth=0.022,
-                                        location=centre)
+
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12,
+                                         radius=0.0018, location=centre)
     bar = bpy.context.object
     bar.name = "Piercing_SOCKET_Nipple_L_Bar"
-    bar.rotation_mode = "QUATERNION"
-    bar.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(tangent)
+    bar.scale = (6.0, 1.0, 1.0)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bar.data.materials.append(material)
     parent_preserve(bar, socket, bar.matrix_world.copy())
     bar["character_detail_type"] = "piercing"
+
     for side in (-1.0, 1.0):
-        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8,
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=20, ring_count=10,
                                              radius=0.0035,
-                                             location=centre + tangent * side * 0.0105)
+                                             location=centre + Vector((side * 0.0105, 0.0, 0.0)))
         bead = bpy.context.object
         bead.name = "Piercing_SOCKET_Nipple_L_Bead"
         bead.data.materials.append(material)
         parent_preserve(bead, socket, bead.matrix_world.copy())
         bead["character_detail_type"] = "piercing"
-    print(f"BAKED_PIERCING Piercing_SOCKET_Nipple_L straight bar socket={socket.name}")
-
+    print(f"BAKED_PIERCING Piercing_SOCKET_Nipple_L horizontal barbell socket={socket.name}")
 
 def add_piercings(entries):
     material = make_material("Ara_Piercing_Silver", "#C6CBD0", 0.82, 0.24)
