@@ -318,9 +318,12 @@ def add_hoop(socket, radius, material, name, hang_down=False):
     else:
         orientation = socket_matrix.to_quaternion()
         centre += normal * 0.0012
-    # Keep the hoop centred on Ara's surface-derived earlobe socket.
-    # Do not translate it toward the face: that made earrings float in front
-    # of the head instead of being embedded at the lobe.
+    # The socket is on the ear surface. Move the hoop laterally outward just
+    # enough for its outer half to clear the lobe, with only a tiny front offset.
+    # This keeps the piercing attached to the earlobe instead of floating in front.
+    if name.startswith("Piercing_SOCKET_Earring_"):
+        side = 1.0 if name.endswith("_L") else -1.0
+        centre += Vector((side * 0.010, -0.003, 0.0))
     world.translation = centre
     bpy.ops.mesh.primitive_torus_add(major_segments=32, minor_segments=12,
                                      location=world.translation,
@@ -366,12 +369,15 @@ def add_barbell(socket, material, surface_tree):
     front = Vector((0.0, -1.0, 0.0))
     tangent = Vector((1.0, 0.0, 0.0))
     location = hit + front * 0.003
-    bpy.ops.mesh.primitive_cylinder_add(vertices=16, radius=0.0022, depth=0.016,
-                                        location=location)
+    # As with the nipple barbell, use an X-stretched sphere for the shaft.
+    # A rotated cylinder exported with Ara's rig axes appeared vertical despite
+    # its two end beads being horizontally aligned.
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12,
+                                         radius=0.0018, location=location)
     bar = bpy.context.object
     bar.name = "Piercing_SOCKET_ClitoralHood_Bar"
-    bar.rotation_mode = "QUATERNION"
-    bar.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(tangent)
+    bar.scale = (6.0, 1.0, 1.0)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bar.data.materials.append(material)
     parent_preserve(bar, socket, bar.matrix_world.copy())
     bar["character_detail_type"] = "piercing"
