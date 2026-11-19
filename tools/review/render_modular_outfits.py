@@ -22,6 +22,7 @@ OUTFITS = {
     "skin": set(),
     "wren_starting": {"Triangle bikini top", "Triangle bikini strings", "String bikini bottom", "String bikini strings"},
     "dagna_starting": {"Bra", "Briefs"},
+    "mirabel_underwear": {"Bra", "String bikini bottom", "String bikini strings"},
     "lace_bra": {"Halter lace bra cups", "Halter lace bra straps", "Halter lace bra piping"},
     "fishnet_bra": {"Halter fishnet bra cups", "Halter fishnet bra straps"},
     "dress": {"Backless slit dress", "Pencil skirt"},
