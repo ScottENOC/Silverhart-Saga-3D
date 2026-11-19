@@ -24,12 +24,18 @@ def write(path,doc,binary):
 
 def body_node(d):
     hits=[]
+    skinned=[]
     for n in d['nodes']:
         if 'mesh' not in n or 'skin' not in n: continue
+        skinned.append(n)
         names=[d['materials'][p.get('material',0)].get('name', '') for p in d['meshes'][n['mesh']]['primitives']]
         if any('skin' in str(name).lower() for name in names): hits.append(n)
-    if len(hits)!=1: raise ValueError(f'Expected one skinned body mesh, got {len(hits)}')
-    return hits[0]
+    if len(hits)==1: return hits[0]
+    if len(hits)>1: raise ValueError(f'Expected one skinned body mesh, got {len(hits)}')
+    # A garment-only GLB deliberately has no skin material primitive. Its
+    # single skinned mesh node is still the rigged source for attachment.
+    if len(skinned)==1: return skinned[0]
+    raise ValueError(f'Expected one skinned body/garment mesh, found {len(skinned)}')
 
 def append_bytes(target,buf,data,target_type=None):
     buf+=b'\0'*(-len(buf)%4); off=len(buf)
@@ -137,6 +143,17 @@ def add(target,buf,source_path,selector):
         return index
     target_name=None
     if '=' in selector: selector,target_name=selector.split('=',1)
+    if selector == '*':
+        occurrences={}
+        for primitive in src['meshes'][sn['mesh']]['primitives']:
+            if primitive.get('material') is None: continue
+            material_name=src['materials'][primitive['material']].get('name','')
+            occurrences[material_name]=occurrences.get(material_name,0)+1
+        if not occurrences: raise ValueError(f'{selector}: no garment primitives in {source_path}')
+        for material_name,count in occurrences.items():
+            for occurrence in range(1,count+1):
+                target,buf=add(target,buf,source_path,f'{material_name}#{occurrence}')
+        return target,buf
     if selector.endswith('*'):
         name=selector[:-1]
         matches=[p for p in src['meshes'][sn['mesh']]['primitives'] if p.get('material') is not None and src['materials'][p['material']].get('name')==name]
