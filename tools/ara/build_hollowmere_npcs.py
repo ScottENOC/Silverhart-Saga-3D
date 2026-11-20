@@ -17,6 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_FILE = ROOT / "data" / "characters" / "hollowmere_npcs.json"
+POPULATION_FILE = ROOT / "data" / "characters" / "hollowmere_population.json"
 ARA_ROOT = Path.cwd()
 
 KNOWN_HAIR = {
@@ -68,6 +69,11 @@ def validate_profiles(profiles: dict) -> None:
             raise SystemExit(f"Missing or duplicate character id: {character_id!r}")
         seen.add(character_id)
         params = profile.get("params", {})
+        if profile.get("body_base") not in {"male", "female"}:
+            raise SystemExit(f"{character_id}: body_base must explicitly be male or female")
+        expected_body_base = "male" if int(params.get("gender", 0)) == 1 else "female"
+        if profile["body_base"] != expected_body_base:
+            raise SystemExit(f"{character_id}: body_base conflicts with the authored Ara gender slider")
         for key in ("gender", "age", "muscle", "weight", "height", "proportions", "african", "asian", "caucasian"):
             value = params.get(key)
             if not isinstance(value, (int, float)) or not 0.0 <= float(value) <= 1.0:
@@ -110,6 +116,19 @@ def main() -> None:
         raise SystemExit(f"Missing character profile file: {PROFILE_FILE}")
 
     manifest = json.loads(PROFILE_FILE.read_text())
+    if not POPULATION_FILE.exists():
+        raise SystemExit(f"Missing world population file: {POPULATION_FILE}")
+    population = json.loads(POPULATION_FILE.read_text())
+    placements = {}
+    for placement in population.get("placements", []):
+        character_id = placement.get("character_id", "")
+        if not character_id or character_id in placements:
+            raise SystemExit(f"Missing or duplicate population character_id: {character_id!r}")
+        placements[character_id] = placement.get("position", {})
+    for profile in manifest.get("characters", []):
+        game_id = profile.get("game_id", "")
+        if game_id not in placements:
+            raise SystemExit(f"{profile.get('id')}: missing world placement for {game_id}")
     validate_profiles(manifest)
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -161,7 +180,7 @@ def main() -> None:
             "name": profile["name"],
             "role": profile["role"],
             "dialogue_id": profile.get("dialogue_id", ""),
-            "hex": profile["hex"],
+            "hex": [int(placements[profile["game_id"]]["q"]), int(placements[profile["game_id"]]["r"])],
             "detail": detail,
             "model": f"{character_id}.glb",
             "params": params,
