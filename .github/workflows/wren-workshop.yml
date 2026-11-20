@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Compile anatomy, clothing and review tools
-        run: python -m py_compile tools/ara/patch_layering.py tools/ara/patch_halter_bra.py tools/ara/patch_g_string.py tools/ara/extract_selected_garments.py tools/ara/extract_garment_glb.py tools/ara/assemble_modular_glb.py tools/ara/build_companion_underwear_previews.py tools/ara/validate_companion_body_unchanged.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
+        run: python -m py_compile tools/ara/patch_layering.py tools/ara/patch_halter_bra.py tools/ara/patch_g_string.py tools/ara/extract_selected_garments.py tools/ara/extract_garment_glb.py tools/ara/assemble_modular_glb.py tools/ara/build_companion_underwear_previews.py tools/ara/validate_companion_body_unchanged.py tools/ara/garment_fit.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
       - name: Test shared garment fit policy
         run: python tests/test_garment_fit.py
       - name: Validate Wren Workshop JavaScript
