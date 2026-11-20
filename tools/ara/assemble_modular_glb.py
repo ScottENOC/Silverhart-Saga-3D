@@ -23,12 +23,25 @@ def write(path,doc,binary):
     Path(path).write_bytes(struct.pack('<4sII',b'glTF',2,total)+struct.pack('<I4s',len(j),b'JSON')+j+struct.pack('<I4s',len(binary),b'BIN\0')+binary)
 
 def body_node(d):
+    """Find the single skinned actor mesh by its skin/anatomy material family.
+
+    Ara body exports use names such as Skin_Anatomy while older modular
+    catalogue exports use Skin. Match the family rather than one exact label.
+    """
     hits=[]
     for n in d['nodes']:
         if 'mesh' not in n or 'skin' not in n: continue
-        names=[d['materials'][p.get('material',0)].get('name') for p in d['meshes'][n['mesh']]['primitives']]
-        if 'Skin' in names: hits.append(n)
-    if len(hits)!=1: raise ValueError(f'Expected one skinned body mesh, got {len(hits)}')
+        names=[]
+        for primitive in d['meshes'][n['mesh']]['primitives']:
+            material_index=primitive.get('material')
+            if material_index is None: continue
+            if material_index < 0 or material_index >= len(d.get('materials', [])):
+                raise ValueError(f"Node {n.get('name', '<unnamed>')} references invalid material {material_index}")
+            names.append(str(d['materials'][material_index].get('name', '')).strip().lower())
+        if any(name == 'skin' or name.startswith('skin_') or name.startswith('skin ') for name in names):
+            hits.append(n)
+    if len(hits)!=1:
+        raise ValueError(f"Expected one skinned body mesh with a Skin/Skin_* material, got {len(hits)}")
     return hits[0]
 
 def append_bytes(target,buf,data,target_type=None):
@@ -105,10 +118,27 @@ def add(target,buf,source_path,selector):
     source_names=source_mesh.get('extras',{}).get('targetNames')
     target_count=len(target_mesh.get('weights', target_names or []))
     source_count=len(source_mesh.get('weights', source_names or []))
-    if source_count != target_count:
+    # Mirabel adds an ElfEars morph to the accepted body. Ara's shared garment
+    # catalogue has the standard 34 facial morphs but no ear deformation; append
+    # a zero-delta target for ElfEars so garment morph indices remain aligned.
+    missing_targets = []
+    if target_names is not None and source_names is not None:
+        if source_names == target_names:
+            pass
+        elif (target_names[:len(source_names)] == source_names
+              and all(name == "ElfEars" or name.startswith("viseme_")
+                      for name in target_names[len(source_names):])):
+            # Character exports may add viseme and custom ear morphs that are
+            # absent from a garment-source export. These deformations do not
+            # affect garment fit, so pad them with zero-delta targets while
+            # preserving the exact shared facial morph prefix.
+            missing_targets = target_names[len(source_names):]
+        else:
+            raise ValueError(f'Morph target names differ in {source_path}: source={source_names}, target={target_names}')
+    if source_count != target_count and not missing_targets:
         raise ValueError(f'Morph target count differs in {source_path}: source={source_count}, target={target_count}')
-    if target_names is not None and source_names is not None and source_names != target_names:
-        raise ValueError(f'Morph target names differ in {source_path}')
+    if source_count + len(missing_targets) != target_count:
+        raise ValueError(f'Cannot align morph targets in {source_path}: source={source_count}, padding={len(missing_targets)}, target={target_count}')
     target_name=None
     if '=' in selector: selector,target_name=selector.split('=',1)
     if selector.endswith('*'):
@@ -144,8 +174,8 @@ def add(target,buf,source_path,selector):
     # as the garment primitive. Accessor indices are document-local: they must
     # never be copied verbatim from the source GLB into the destination GLB.
     source_targets=p.get('targets', [])
-    if len(source_targets) != target_count:
-        raise ValueError(f'{selector}: expected {target_count} morph targets, found {len(source_targets)}')
+    if len(source_targets) != source_count:
+        raise ValueError(f'{selector}: expected {source_count} source morph targets, found {len(source_targets)}')
     remapped_targets=[]
     for target_attrs in source_targets:
         remapped={}
@@ -153,7 +183,9 @@ def add(target,buf,source_path,selector):
             target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)
             remapped[attr]=new_ai
         remapped_targets.append(remapped)
-    if source_targets:
+    if missing_targets:
+        remapped_targets.extend({} for _ in missing_targets)
+    if source_targets or missing_targets:
         p['targets']=remapped_targets
 
     # Reuse a previously appended material for other primitives that form the
