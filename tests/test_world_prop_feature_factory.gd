@@ -43,7 +43,8 @@ func _test_authored_prop_assemblies() -> void:
 	assert(parent.get_node_or_null("BloodTrailPresentation/BloodTrail_00") != null and parent.get_node_or_null("BloodTrailPresentation/BloodTrail_06") != null, "All blood trail marks should be assembled under a stable root")
 	var blood_first := parent.get_node("BloodTrailPresentation/BloodTrail_00") as MeshInstance3D
 	var expected_first := HexGrid.axial_to_world(Vector2i(1, 67), HexGrid.DEFAULT_RADIUS_M, 0.015)
-	assert(blood_first.global_position.distance_to(expected_first) < 0.001, "Blood trail should retain authored axial placement")
+	var assembly_origin := HexGrid.axial_to_world(Vector2i(1, 67), HexGrid.DEFAULT_RADIUS_M, 0.015)
+	assert(blood_first.position.distance_to(expected_first - assembly_origin) < 0.001, "Blood trail should retain authored axial placement relative to its assembly anchor")
 	result = FACTORY.render_features(parent, VILLAGE_DATA.WAYFINDING_PROPS, materials, HexGrid.DEFAULT_RADIUS_M)
 	assert(result, "Crossroads wayfinding prop should render")
 	var signpost := parent.get_node_or_null("CrossroadsSignpost") as Node3D
