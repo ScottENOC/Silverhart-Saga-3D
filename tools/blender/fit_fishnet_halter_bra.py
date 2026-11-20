@@ -77,17 +77,129 @@ def bone_head_world(armature, name):
     return armature.matrix_world @ bone.head_local
 
 
-def nipple_socket_world(armature, side):
-    """Read the existing surface-derived breast reference socket."""
-    name = f"SOCKET_Nipple_{side}"
-    socket = next((obj for obj in bpy.context.scene.objects
-                   if obj.parent == armature and obj.name.split(".")[0] == name), None)
-    if socket is None:
-        raise RuntimeError(
-            f"Character is missing {name}; refusing to guess bra height from torso bones"
-        )
-    point = socket.matrix_world.translation.copy()
-    return point
+def paired_bone_point(armature, aliases):
+    wanted = {name.lower().replace(" ", "").replace("-", "_") for name in aliases}
+    bone = next((b for b in armature.data.bones
+                 if b.name.lower().replace(" ", "").replace("-", "_") in wanted), None)
+    return armature.matrix_world @ bone.head_local if bone else None
+
+
+def paired_leg_root_height(armature):
+    left = paired_bone_point(armature, {
+        "LeftUpLeg", "LeftUpperLeg", "UpperLeg_L", "thigh_l", "LeftThigh", "thigh.L"
+    })
+    right = paired_bone_point(armature, {
+        "RightUpLeg", "RightUpperLeg", "UpperLeg_R", "thigh_r", "RightThigh", "thigh.R"
+    })
+    if left is None or right is None:
+        raise RuntimeError("Cannot establish torso lower boundary from paired upper-leg roots")
+    return (left.z + right.z) * 0.5
+
+
+def detect_breast_surface_anchors(skin, armature):
+    """Find bilateral breast-surface prominence peaks from the evaluated skin mesh.
+
+    This is a geometry-based landmark estimate, not a nipple locator. It uses
+    the paired shoulder/leg-root rig landmarks only to delimit the torso, then
+    searches for two front-surface protrusions relative to the sternum and
+    lateral ribcage at matching heights. It fails closed when the surface does
+    not contain two sufficiently distinct peaks.
+    """
+    left_shoulder = paired_bone_point(armature, {
+        "LeftShoulder", "Shoulder_L", "clavicle_l", "LeftClavicle"
+    })
+    right_shoulder = paired_bone_point(armature, {
+        "RightShoulder", "Shoulder_R", "clavicle_r", "RightClavicle"
+    })
+    if left_shoulder is None or right_shoulder is None:
+        raise RuntimeError("Cannot establish torso upper boundary from paired shoulder bones")
+
+    pelvis_z = paired_leg_root_height(armature)
+    shoulder_z = (left_shoulder.z + right_shoulder.z) * 0.5
+    torso_span = shoulder_z - pelvis_z
+    if torso_span <= 0.05:
+        raise RuntimeError("Invalid torso landmark span for breast-surface detection")
+
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    evaluated = skin.evaluated_get(depsgraph)
+    mesh = evaluated.to_mesh()
+    width = mesh_world_bounds(skin)[1].x - mesh_world_bounds(skin)[0].x
+    # Delimit the upper torso relative to the actual rig, not whole-body height.
+    z_low = pelvis_z + torso_span * 0.36
+    z_high = shoulder_z - torso_span * 0.10
+    bin_size = max(0.006, torso_span * 0.018)
+    bins = {}
+
+    for vertex in mesh.vertices:
+        p = skin.matrix_world @ vertex.co
+        n = (skin.matrix_world.to_3x3() @ vertex.normal).normalized()
+        if n.y > -0.25 or not (z_low <= p.z <= z_high):
+            continue
+        side = "L" if p.x > 0 else "R"
+        ax = abs(p.x)
+        if ax < width * 0.035 or ax > width * 0.43:
+            continue
+        zbin = round((p.z - z_low) / bin_size)
+        bins.setdefault(zbin, {"centre": [], "outer": [], "left": [], "right": []})
+        bucket = bins[zbin]
+        if ax <= width * 0.055:
+            bucket["centre"].append(p.y)
+        elif ax >= width * 0.31:
+            bucket["outer"].append(p.y)
+        elif side == "L":
+            bucket["left"].append((p.copy(), n.copy()))
+        else:
+            bucket["right"].append((p.copy(), n.copy()))
+
+    evaluated.to_mesh_clear()
+    candidates = {"L": [], "R": []}
+    for zbin, bucket in bins.items():
+        if not bucket["centre"] or not bucket["outer"]:
+            continue
+        # Ara faces -Y: a more prominent breast surface has a lower Y value
+        # than both the sternum and the lateral ribcage at the same height.
+        centre_y = sorted(bucket["centre"])[len(bucket["centre"]) // 2]
+        outer_y = sorted(bucket["outer"])[len(bucket["outer"]) // 2]
+        baseline_y = (centre_y + outer_y) * 0.5
+        for side in ("L", "R"):
+            points = bucket[side.lower()]
+            if not points:
+                continue
+            point, normal = min(points, key=lambda item: item[0].y)
+            prominence = baseline_y - point.y
+            candidates[side].append((prominence, point, normal, zbin))
+
+    anchors = {}
+    diagnostics = {}
+    for side in ("L", "R"):
+        if not candidates[side]:
+            raise RuntimeError(f"No front-surface breast candidates found on {side} side")
+        prominence, point, normal, zbin = max(candidates[side], key=lambda item: item[0])
+        diagnostics[side] = {
+            "prominence_m": round(float(prominence), 5),
+            "surface_point_world": [round(float(v), 6) for v in point],
+            "surface_normal_world": [round(float(v), 5) for v in normal],
+            "z_bin": int(zbin),
+        }
+        if prominence < 0.004:
+            raise RuntimeError(
+                f"Breast-surface prominence on {side} side is too weak "
+                f"({prominence:.4f}m); refusing to guess a cup location"
+            )
+        anchors[side] = point.copy()
+
+    if abs(anchors["L"].z - anchors["R"].z) > torso_span * 0.12:
+        raise RuntimeError("Detected breast-surface peaks are vertically asymmetric; refusing fit")
+    return anchors, {
+        "method": "bilateral_surface_prominence",
+        "torso_landmarks": {
+            "pelvis_z": round(float(pelvis_z), 6),
+            "shoulder_z": round(float(shoulder_z), 6),
+            "torso_span": round(float(torso_span), 6),
+        },
+        "candidate_diagnostics": diagnostics,
+        "note": "Surface prominence relative to sternum and lateral ribcage; not nipple detection or a cloth simulation.",
+    }
 
 
 def cup_centres(selected):
@@ -112,7 +224,7 @@ def cup_centres(selected):
     )
 
 
-def align_garment_to_character(selected, reference_path):
+def align_garment_to_character(selected, reference_path, skin, target_armature):
     """Place this one bra from bilateral surface-derived nipple reference sockets.
 
     The socket generator is a bounded surface-vertex heuristic, not semantic
@@ -121,17 +233,9 @@ def align_garment_to_character(selected, reference_path):
     target sockets; the complete garment follows that translation and horizontal
     spacing adjustment. No body vertices or anatomy profiles are changed.
     """
-    target_armature = next(
-        (obj for obj in bpy.context.scene.objects if obj.type == "ARMATURE"),
-        None,
-    )
     if target_armature is None:
         raise RuntimeError("Target companion GLB has no armature")
-
-    target_points = {
-        "L": nipple_socket_world(target_armature, "L"),
-        "R": nipple_socket_world(target_armature, "R"),
-    }
+    target_points, anatomy_report = detect_breast_surface_anchors(skin, target_armature)
     existing = set(bpy.context.scene.objects)
     bpy.ops.import_scene.gltf(filepath=os.path.abspath(reference_path))
     imported = [obj for obj in bpy.context.scene.objects if obj not in existing]
@@ -167,7 +271,7 @@ def align_garment_to_character(selected, reference_path):
             obj.data.update()
 
         report = {
-            "method": "bilateral_surface_socket_bra_placement",
+            "method": "bilateral_surface_prominence_bra_placement",
             "reference": os.path.abspath(reference_path),
             "source_cup_centres_world": [
                 [round(float(v), 6) for v in p] for p in source_cups
@@ -178,7 +282,7 @@ def align_garment_to_character(selected, reference_path):
             "horizontal_spacing_scale": round(horizontal_scale, 6),
             "garment_vertices_warped": moved,
             "body_geometry_modified": False,
-            "anatomy_detection": "uses existing bilateral surface-derived nipple sockets; these are heuristic surface anchors, not breast-volume recognition",
+            "anatomy_detection": "bilateral front-surface prominence relative to sternum and lateral ribcage; heuristic geometry landmarks, not semantic anatomical segmentation",
             "scope": "fishnet halter bra cups and straps only",
         }
         print("BRA BREAST-REFERENCE PLACEMENT", json.dumps(report, indent=2), flush=True)
@@ -212,7 +316,7 @@ def main():
     if not selected:
         raise RuntimeError("Fishnet halter bra material regions were not found")
 
-    anchor_report = align_garment_to_character(selected, args.reference_rig)
+    anchor_report = align_garment_to_character(selected, args.reference_rig, skin, armature)
     tree = make_skin_bvh(skin)
     totals = {
         "vertices": 0, "penetrating": 0, "small_gaps": 0,
@@ -305,7 +409,7 @@ def main():
         "metrics": totals,
         "limitations": [
             "No full cloth simulation",
-            "Nipple sockets are heuristic front-surface anchors, not semantic breast-volume detection",
+            "Breast anchors are geometric prominence estimates, not semantic anatomical segmentation",
             "Cup placement does not yet infer underbust contours or perform garment-specific cup shaping",
             "Large placement errors require authored landmark repositioning or re-patterning",
             "Edge strain is a diagnostic approximation",
