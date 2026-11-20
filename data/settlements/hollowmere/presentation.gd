@@ -31,7 +31,8 @@ const PALETTE := {
 	"field": Color(0.30, 0.32, 0.17),
 	"crop": Color(0.48, 0.43, 0.22),
 	"pasture": Color(0.24, 0.34, 0.19),
-	"fence": Color(0.28, 0.17, 0.09)
+	"fence": Color(0.28, 0.17, 0.09),
+	"blood": Color(0.22, 0.045, 0.025)
 }
 
 const FEATURE_DATA := {
