@@ -2,11 +2,13 @@ extends SceneTree
 
 const MAIN_CAMPAIGN_MAP = preload("res://scripts/world/main_campaign_world_map_data.gd")
 const HOLLOWMERE_VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
+const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
 func _initialize() -> void:
     _test_village_uses_shared_vegetation_generator()
     _test_village_bounds_and_terrain()
     _test_road_network_connectivity()
     _test_building_thresholds()
+    _test_building_definitions_use_shared_factory()
     _test_hollowmere_character_manifest()
     _test_animal_actor_registration()
     print("Hollowmere village tests passed.")
@@ -67,6 +69,32 @@ func _test_road_network_connectivity() -> void:
     ]:
         assert(visited.has(destination), "Village road does not connect to %s" % destination)
 
+func _test_building_definitions_use_shared_factory() -> void:
+    var ids: Dictionary = {}
+    var parent := Node3D.new()
+    var constructed := 0
+    for definition in HollowmereVillageData.BUILDINGS:
+        var building_id := String(definition.get("id", ""))
+        assert(not building_id.is_empty() and not ids.has(building_id), "Hollowmere building IDs must be unique")
+        ids[building_id] = true
+        assert(definition.has("center") and definition.has("half_q") and definition.has("half_r"), "%s must keep its logical footprint in the authored definition" % building_id)
+        if building_id == "old_mac_barn":
+            continue
+        assert(definition.has("dimensions") and definition.has("door_side"), "%s must define its visual geometry and entrance" % building_id)
+        var node := WORLD_BUILDING_FACTORY.create_building(parent, {"id": "hollowmere"}, definition)
+        assert(node != null, "%s should be constructible through the shared factory" % building_id)
+        assert(node.name == String(definition.get("node_name", building_id)), "The authored scene name should be preserved")
+        constructed += 1
+    assert(constructed == 6, "All five village buildings and the farmhouse should use the shared factory")
+    assert(parent.get_child_count() == constructed, "Each authored definition should create exactly one building root")
+    parent.free()
+
+    var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
+    village.call("_create_buildings")
+    assert(village.get_node_or_null("GeneralStore") != null, "The general store should be factory-built")
+    assert(village.get_node_or_null("GeneralStore/StoreSign") != null, "The store sign should remain a separate add-on feature")
+    assert(village.get_node_or_null("Chapel/BellTower") != null, "The chapel bell tower should remain a separate add-on feature")
+    village.free()
 func _test_building_thresholds() -> void:
     assert(HollowmereVillageData.is_blocked(Vector2i(0, 18)), "General-store footprint should block movement")
     assert(HollowmereVillageData.is_blocked(Vector2i(-14, 0)), "Chapel footprint should block movement")
