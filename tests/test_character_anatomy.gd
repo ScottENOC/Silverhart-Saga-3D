@@ -5,6 +5,11 @@ const ANATOMY_SCRIPT = preload("res://scripts/characters/character_anatomy.gd")
 var _failures := 0
 
 func _initialize() -> void:
+    call_deferred("_run_tests")
+
+
+func _run_tests() -> void:
+    await process_frame
     _test_semantic_bone_resolution()
     _test_missing_landmarks_are_not_fabricated()
     if _failures > 0:
