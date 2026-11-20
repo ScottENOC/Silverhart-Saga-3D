@@ -72,6 +72,16 @@ morphs and runtime modifications. A region query should provide surface samples 
 position, normal and stable region identity, and should support closest-point/projection
 queries for fitting.
 
+### Authored fine-mask resource contract
+
+Fine labels are stored separately from the GLB's vertex colours and skin weights in `CharacterSurfaceRegionMask` resources. A resource targets exactly one body asset, relative mesh-node path and mesh surface. It stores one `PackedFloat32Array` per semantic region, with one weight in the inclusive 0–1 range for every source vertex.
+
+The resource records the source vertex count, surface name and a SHA-256 signature over the imported rest-pose vertex data, index data and surface name. Runtime loading rejects a mask if the body asset, mesh path, surface index/name, vertex count or signature differs. This is deliberately strict: a changed GLB export must trigger mask re-authoring rather than applying old labels to a new vertex order.
+
+The initial fine vocabulary is `breast_left`, `breast_right`, `underbust`, `waist`, `hip_left`, `hip_right`, `buttock_left`, `buttock_right` and `groin`. A body may supply only the regions that make sense for that base. `CharacterSurfaceRegions` accepts an optional array of validated mask resources and exposes their weights through the same deformation-aware sample API as broad regions.
+
+The contract test uses a deliberately synthetic one-vertex mask on each canonical body to verify loading, source-vertex identity, deformation-aware querying and rejection of stale metadata. These are plumbing tests only: **no production fine anatomy masks have been authored yet**, and the synthetic test mask must not be used for garment fitting. Actual labels still need to be painted/authored against the canonical meshes, visually inspected, and checked against Reyna and Dagna.
+
 ## Required spatial volumes
 
 Volumes should be generated or updated from the same semantic landmarks and surface
