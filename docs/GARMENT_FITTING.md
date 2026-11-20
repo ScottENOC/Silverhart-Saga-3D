@@ -62,7 +62,7 @@ The first vertical slice is in place:
 - Fabric behaviour and garment construction are separate axes. For example,
   fishnet halter bras retain open-mesh texture behaviour while exposing
   structured cup/underbust/strap constraints.
-- A Blender-independent landmark correspondence module maps garment points to nearby body anchors with normalised weights, transfers body-shape landmark deltas to garment points, and rejects implausibly distant matches.
+- A Blender-independent landmark correspondence module maps garment points to nearby body anchors with normalised weights, transfers body-shape landmark deltas to garment points, rejects implausibly distant matches, and can restrict correspondence to a semantic body region to prevent cross-region influence.
 - Profiles define bounded strain, compression, clearance, coverage and texture
   response policies.
 - The existing Blender anatomy fitting pass now uses profile-specific body
