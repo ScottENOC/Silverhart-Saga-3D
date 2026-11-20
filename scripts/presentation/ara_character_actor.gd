@@ -5,6 +5,7 @@ const ARA_CHARACTER_DETAILS = preload("res://scripts/presentation/ara_character_
 const CHARACTER_ANATOMY_SCRIPT = preload("res://scripts/characters/character_anatomy.gd")
 const CHARACTER_SURFACE_REGIONS_SCRIPT = preload("res://scripts/characters/character_surface_regions.gd")
 const CHARACTER_SURFACE_REGION_MASK_LIBRARY_SCRIPT = preload("res://scripts/characters/character_surface_region_mask_library.gd")
+const CHARACTER_GARMENT_GUIDE_LIBRARY_SCRIPT = preload("res://scripts/characters/character_garment_guide_library.gd")
 ## Runtime wrapper for generated Ara GLBs. The selected body asset is supplied
 ## by the player profile so Workshop exports can be replaced without code edits.
 
@@ -18,6 +19,8 @@ var body_variant: String = "female"
 var appearance_details: AraCharacterDetails
 var anatomy: CharacterAnatomy
 var surface_regions: CharacterSurfaceRegions
+var garment_guide_curves: Array[Resource] = []
+var _garment_guides_loaded := false
 const GARMENT_ASSET_ROOT := "res://art/characters/ara_runtime/garments/"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
 const GARMENT_VISUALS := ["bra", "briefs", "long_tunic", "trousers", "tunic", "wrapper_long", "uniform_shirt", "fatigue_pants", "wrapper_knee", "tattered_shirt", "fatigue_shirt", "sandals", "combat_boots", "leather armor"]
@@ -31,6 +34,8 @@ func configure(glb_path: String) -> bool:
     animation_player = null
     anatomy = null
     surface_regions = null
+    garment_guide_curves.clear()
+    _garment_guides_loaded = false
     hair_instances.clear()
     _clear_garment_attachments()
     loaded_asset_path = ""
@@ -78,6 +83,17 @@ func get_surface_regions() -> CharacterSurfaceRegions:
             surface_regions = null
             return null
     return surface_regions
+
+
+## Shared surface-attached garment construction guides for this canonical body.
+## An empty result is expected until production guides have been authored.
+func get_garment_guide_curves() -> Array[Resource]:
+    if model_root == null or not is_instance_valid(model_root):
+        return []
+    if not _garment_guides_loaded:
+        garment_guide_curves = CHARACTER_GARMENT_GUIDE_LIBRARY_SCRIPT.load_for_body(loaded_asset_path)
+        _garment_guides_loaded = true
+    return garment_guide_curves.duplicate()
 
 
 func _dump_garment_surface_report() -> void:
