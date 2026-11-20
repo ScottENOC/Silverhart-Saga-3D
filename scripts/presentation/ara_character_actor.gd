@@ -2,6 +2,7 @@ class_name AraCharacterActor
 extends Node3D
 
 const ARA_CHARACTER_DETAILS = preload("res://scripts/presentation/ara_character_details.gd")
+const CHARACTER_ANATOMY_SCRIPT = preload("res://scripts/characters/character_anatomy.gd")
 ## Runtime wrapper for generated Ara GLBs. The selected body asset is supplied
 ## by the player profile so Workshop exports can be replaced without code edits.
 
@@ -13,6 +14,7 @@ var garment_attachments: Dictionary = {}
 var equipment_attachments: Dictionary = {}
 var body_variant: String = "female"
 var appearance_details: AraCharacterDetails
+var anatomy: CharacterAnatomy
 const GARMENT_ASSET_ROOT := "res://art/characters/ara_runtime/garments/"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
 const GARMENT_VISUALS := ["bra", "briefs", "long_tunic", "trousers", "tunic", "wrapper_long", "uniform_shirt", "fatigue_pants", "wrapper_knee", "tattered_shirt", "fatigue_shirt", "sandals", "combat_boots", "leather armor"]
@@ -24,6 +26,7 @@ func configure(glb_path: String) -> bool:
         model_root.queue_free()
     model_root = null
     animation_player = null
+    anatomy = null
     hair_instances.clear()
     _clear_garment_attachments()
     loaded_asset_path = ""
@@ -40,6 +43,10 @@ func configure(glb_path: String) -> bool:
         return false
     model_root.name = "AraModel"
     add_child(model_root)
+    anatomy = CHARACTER_ANATOMY_SCRIPT.new() as CharacterAnatomy
+    if not anatomy.configure(self, model_root):
+        push_warning("Ara character has no compatible skeleton for shared anatomy queries: " + glb_path)
+        anatomy = null
     loaded_asset_path = glb_path
     animation_player = _find_animation_player(model_root)
     call_deferred("_play_idle_if_available")
@@ -47,6 +54,11 @@ func configure(glb_path: String) -> bool:
     # modular-clothing export is available or successfully attached.
     call_deferred("_dump_garment_surface_report")
     return true
+
+## Shared semantic anatomy API for animation, fitting and gameplay consumers.
+func get_anatomy() -> CharacterAnatomy:
+    return anatomy
+
 
 func _dump_garment_surface_report() -> void:
     if has_meta("ara_garment_surface_reported"):
