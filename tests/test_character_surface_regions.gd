@@ -24,7 +24,7 @@ func _run() -> void:
     await process_frame
     for asset_path in BODY_ASSETS:
         await _test_body(asset_path)
-    print("ARA_SURFACE_REGION_POC: PASS (engine-baked positions and normals verified)")
+    print("ARA_SURFACE_REGION_POC: TEST SCRIPT FINISHED; CI log checker determines success")
     quit(0)
 
 
@@ -55,6 +55,7 @@ func _test_body(asset_path: String) -> void:
 
     for mesh_instance in skinned_meshes:
         var skin_reference := mesh_instance.get_skin_reference()
+        print("ARA_SKIN_BIND mesh=%s inside_tree=%s skeleton_path=%s resolved=%s skeleton_inside_tree=%s skin_resource=%s skin_ref=%s skin_rid_valid=%s bone_count=%d" % [mesh_instance.get_path(), mesh_instance.is_inside_tree(), mesh_instance.get_skeleton_path(), mesh_instance.get_node_or_null(mesh_instance.get_skeleton_path()), skeleton.is_inside_tree(), mesh_instance.skin, skin_reference, skin_reference.get_skeleton().is_valid() if skin_reference != null else false, skeleton.get_bone_count()])
         assert(skin_reference != null, "%s has no registered SkinReference on %s (skeleton path: %s)" % [
             asset_path, mesh_instance.name, mesh_instance.skeleton
         ])
