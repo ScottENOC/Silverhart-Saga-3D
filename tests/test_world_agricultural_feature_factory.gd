@@ -81,6 +81,7 @@ func _test_hollowmere_delegates_to_shared_factory() -> void:
 		assert(village.get_node_or_null(String(row["id"])) != null, "Hollowmere should render each crop row through the shared factory")
 	for fence in VILLAGE_DATA.FARM_FENCES:
 		assert(village.get_node_or_null(String(fence["id"])) != null, "Hollowmere should render each fence through the shared factory")
-	assert(village.get_node_or_null("BrokenPastureFence") != null, "Quest-specific broken fence dressing should remain present")
-	assert(village.get_node_or_null("BloodTrail_00") != null, "Quest-specific blood trail dressing should remain present")
+	village.call("_create_quest_props")
+	assert(village.get_node_or_null("BrokenPastureFence/BrokenRailA") != null, "Quest-specific broken fence dressing should remain present")
+	assert(village.get_node_or_null("BloodTrailPresentation/BloodTrail_00") != null, "Quest-specific blood trail dressing should remain present")
 	village.free()
