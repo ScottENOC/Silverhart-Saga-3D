@@ -61,6 +61,14 @@ func _test_invalid_definitions_are_rejected_atomically() -> void:
 	result = FACTORY.render_features(parent, [], invalid_row, [], materials, HexGrid.DEFAULT_RADIUS_M)
 	assert(not bool(result.get("ok", true)), "Crop rows with non-positive widths should be rejected")
 	assert(parent.get_child_count() == 0, "Invalid crop rows must not leave partial nodes")
+	var invalid_fence: Array = [{"id": "BadFence", "points": [Vector2i.ZERO, Vector2i.ONE], "material": "fence", "post_spacing": 0.0}]
+	result = FACTORY.render_features(parent, [], [], invalid_fence, materials, HexGrid.DEFAULT_RADIUS_M)
+	assert(not bool(result.get("ok", true)), "Fences with non-positive post spacing should be rejected")
+	assert(parent.get_child_count() == 0, "Invalid fences must not leave partial nodes")
+	var missing_material: Array = [{"id": "BadMaterialField", "corners": [Vector2i.ZERO, Vector2i.RIGHT, Vector2i.DOWN], "material": "missing"}]
+	result = FACTORY.render_features(parent, missing_material, [], [], materials, HexGrid.DEFAULT_RADIUS_M)
+	assert(not bool(result.get("ok", true)), "Agricultural features with unresolved materials should be rejected")
+	assert(parent.get_child_count() == 0, "Missing materials must be rejected before rendering")
 	parent.free()
 
 func _test_hollowmere_delegates_to_shared_factory() -> void:
