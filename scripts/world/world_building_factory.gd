@@ -111,12 +111,12 @@ static func archetype_ids() -> Array[String]:
 	return result
 
 static func _resolve_archetype(definition: Dictionary) -> String:
-	var explicit := String(definition.get("archetype", definition.get("style", ""))).to_lower()
-	if explicit in ["timber_cottage", "stone_cottage"]:
-		return "cottage"
-	if ARCHETYPES.has(explicit):
-		return explicit
-	var kind := String(definition.get("kind", "house")).to_lower()
+	var explicit := String(definition.get("archetype", definition.get("style", ""))).to_lower().strip_edges()
+	if not explicit.is_empty():
+		if explicit in ["timber_cottage", "stone_cottage"]:
+			return "cottage"
+		return explicit if ARCHETYPES.has(explicit) else ""
+	var kind := String(definition.get("kind", "house")).to_lower().strip_edges()
 	return String(KIND_TO_ARCHETYPE.get(kind, ""))
 
 static func _build_shell(root: Node3D, config: Dictionary, definition: Dictionary) -> void:
