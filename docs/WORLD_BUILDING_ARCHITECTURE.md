@@ -97,7 +97,7 @@ The factory resolves an archetype and configurable parameters. It must reject un
 
 Archetypes share construction routines. Variations are data (dimensions, materials, roof, openings, windows and optional features), not branches named after individual buildings.
 
-The first implementation adds `WorldBuildingFactory` with reusable cottage, shop, chapel, barn and manor presets. `Campaign2SettlementBuilder` delegates to it and retains only chunk orchestration and actor placement. This is an initial construction primitive, not completion of the full building system. Hollowmere's five village buildings, farmhouse and barn now use the same factory; the barn uses a reusable double-door feature. Store signage and the chapel bell tower remain separate presentation add-ons.
+The first implementation adds `WorldBuildingFactory` with reusable cottage, shop, chapel, barn and manor presets. `Campaign2SettlementBuilder` delegates to it and retains only chunk orchestration and actor placement. This is an initial construction primitive, not completion of the full building system. Hollowmere's five village buildings, farmhouse and barn now use the same factory; the barn uses a reusable double-door feature. Store signage and the chapel bell tower remain separate presentation add-ons. The river, banks, main roads, village lane, ring road and house spurs are now authored in `HollowmereVillageData.PRESENTATION_ROUTES` and rendered by `WorldPolylineFeatureFactory`; this does not replace or generate logical path cells.
 
 ## Required invariants
 
@@ -137,10 +137,11 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 - [x] Reusable building factory introduced.
 - [x] Settlement builder delegates building construction to the factory.
 - [x] Isolated factory tests added to the Godot validation workflow.
-- [ ] Run Godot 4.7.2 import and test suite on the feature branch.
+- [x] Run Godot 4.7.2 import and test suite on the feature branch (building-factory slice passed; polyline extraction validation pending).
 - [ ] Review generated building appearance in the regional preview.
 - [x] Migrate Hollowmere village houses, farmhouse and barn to shared factory definitions.
 - [x] Keep store signage and chapel bell tower as separate add-on presentation features.
-- [ ] Migrate Hollowmere roads, watercourse, bridge, fields, fences, vegetation and remaining props.
+- [x] Move Hollowmere stream, banks, main roads, village lane, ring road and house spurs into authored presentation route data and a shared polyline renderer.
+- [ ] Migrate Hollowmere bridge, farmyard lane, fields, fences and remaining props.
 - [ ] Consolidate streaming and world composition.
 - [ ] Complete source-world feature inventory and regional migration.
