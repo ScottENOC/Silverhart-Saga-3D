@@ -181,14 +181,17 @@ def main():
     (out/"character-spatial-audit.json").write_text(json.dumps(result,indent=2)+"\n")
     rig_rows=result["rig_comparison"]["comparisons"]
     md=["# Character spatial foundation audit","",f"Audited {len(reports)} committed Ara runtime and Hollowmere GLBs.","",
-        "## Rig compatibility","","| Asset | Bones | Same bone names | Same hierarchy | Local rest translation delta | World position delta |",
-        "|---|---:|---|---|---:|---:|"]
+        "## Rig compatibility","","| Asset | Bones | Same bone names | Same hierarchy | Local rest translation delta | Local basis delta | Missing bones |",
+        "|---|---:|---|---|---:|---:|---|"]
     for r in rig_rows:
-        md.append(f"| {Path(r['file']).name} | {r.get('bone_count','—')} | {r.get('same_bone_name_set','—')} | {r.get('same_parent_hierarchy_by_name','—')} | {r.get('max_local_rest_translation_delta_m','—')} | {r.get('max_world_rest_position_delta_m','—')} |")
+        md.append(f"| {Path(r['file']).name} | {r.get('bone_count','—')} | {r.get('same_bone_name_set','—')} | {r.get('same_parent_hierarchy_by_name','—')} | {r.get('max_local_rest_translation_delta_m','—')} | {r.get('max_local_rest_basis_component_delta','—')} | {', '.join(r.get('missing_bones',[]))} |")
     md += ["","World-space rest positions also reflect each character's root transform and stature. Compare local rest transforms and hierarchy for rig compatibility. Skin joint-array order is reported separately in JSON.","",
         "## Skin geometry compared with Ara female body baseline","","| Asset | Same face indices | Same used positions | Vertex buffer count | Used skin vertices |","|---|---|---|---:|---:|"]
     for r in result["rig_comparison"]["skin_geometry_vs_baseline"]:
-        md.append(f"| {Path(r['file']).name} | {r['same_skin_face_index_data']} | {r['same_used_skin_positions']} | {r.get('skin_vertex_buffer_count','—')} | {r.get('skin_used_vertex_count','—')} |")
+        md.append(f"| {Path(r['file']).name} | {r['same_skin_face_index_data']} | {r['same_used_skin_positions']} | {r.get('max_used_vertex_position_delta_m','—')} | {r.get('skin_vertex_buffer_count','—')} | {r.get('skin_used_vertex_count','—')} |")
+    md += ["","## Animation data","","| Asset | Clips | Same clip names | Identical curve data |","|---|---:|---|---:|"]
+    for r in result["rig_comparison"]["animation_curves_vs_baseline"]:
+        md.append(f"| {Path(r['file']).name} | {r['clip_count']} | {r['same_clip_names']} | {r['identical_animation_curve_hashes']}/{r['compared_clip_count']} |")
     md += ["","## Per-asset summary","","| Asset | Mesh nodes | Skin rigs | Animations | Spatial markers |","|---|---:|---:|---:|---:|"]
     for r in reports:
         md.append(f"| {Path(r['file']).name} | {len(r['mesh_nodes'])} | {len(r['skins'])} | {r['animation_count']} | {len(r['spatial_markers'])} |")
