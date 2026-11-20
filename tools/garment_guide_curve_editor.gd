@@ -176,6 +176,7 @@ func _build_interface() -> void:
     _body_option = OptionButton.new()
     for body_name in BODY_OPTIONS:
         _body_option.add_item(body_name)
+    _body_option.select(0)
     _body_option.item_selected.connect(func(index: int): _load_body(_body_option.get_item_text(index)))
     column.add_child(_body_option)
 
@@ -189,6 +190,7 @@ func _build_interface() -> void:
     for guide_id in GUIDE_LABELS:
         _guide_option.add_item(GUIDE_LABELS[guide_id])
         _guide_option.set_item_metadata(_guide_option.get_item_count() - 1, guide_id)
+    _guide_option.select(0)
     _guide_option.item_selected.connect(_on_guide_selected)
     column.add_child(_guide_option)
 
