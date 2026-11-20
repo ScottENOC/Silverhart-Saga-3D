@@ -4,6 +4,7 @@ extends Node3D
 const ARA_CHARACTER_DETAILS = preload("res://scripts/presentation/ara_character_details.gd")
 const CHARACTER_ANATOMY_SCRIPT = preload("res://scripts/characters/character_anatomy.gd")
 const CHARACTER_SURFACE_REGIONS_SCRIPT = preload("res://scripts/characters/character_surface_regions.gd")
+const CHARACTER_SURFACE_REGION_MASK_LIBRARY_SCRIPT = preload("res://scripts/characters/character_surface_region_mask_library.gd")
 ## Runtime wrapper for generated Ara GLBs. The selected body asset is supplied
 ## by the player profile so Workshop exports can be replaced without code edits.
 
@@ -71,7 +72,8 @@ func get_surface_regions() -> CharacterSurfaceRegions:
     if surface_regions == null or model_root == null or not is_instance_valid(model_root):
         return null
     if not surface_regions.is_configured():
-        if not surface_regions.configure(self, model_root):
+        var fine_masks: Array[Resource] = CHARACTER_SURFACE_REGION_MASK_LIBRARY_SCRIPT.load_for_body(loaded_asset_path)
+        if not surface_regions.configure(self, model_root, fine_masks, loaded_asset_path):
             push_warning("Ara character surface-region queries are unavailable: " + surface_regions.get_configuration_error())
             surface_regions = null
             return null
