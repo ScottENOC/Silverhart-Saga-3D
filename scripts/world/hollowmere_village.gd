@@ -9,9 +9,11 @@ const ORGANIC_FEATURES = preload("res://scripts/world/organic_world_features.gd"
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
+const POLYLINE_FEATURE_FACTORY = preload("res://scripts/world/world_polyline_feature_factory.gd")
 var grass_material: StandardMaterial3D
 var path_material: StandardMaterial3D
 var water_material: StandardMaterial3D
+var riverbank_material: StandardMaterial3D
 var stone_material: StandardMaterial3D
 var plaster_material: StandardMaterial3D
 var timber_material: StandardMaterial3D
@@ -48,6 +50,7 @@ func _create_materials() -> void:
 	grass_material = _material(Color(0.27, 0.36, 0.23))
 	path_material = _material(Color(0.43, 0.34, 0.23))
 	water_material = _material(Color(0.16, 0.31, 0.36), 0.22)
+	riverbank_material = _material(Color(0.22, 0.25, 0.17))
 	stone_material = _material(Color(0.38, 0.37, 0.33))
 	plaster_material = _material(Color(0.61, 0.53, 0.40))
 	timber_material = _material(Color(0.31, 0.18, 0.10))
@@ -76,71 +79,14 @@ func _create_ground() -> void:
 	add_child(ground)
 
 func _create_paths_and_stream() -> void:
-	# The hex map still owns movement and water occupancy. These continuous
-	# ribbons are a visual treatment: the visible riverbanks and roads are not
-	# forced to follow the six-sided cell outlines.
-	var river_points: Array[Vector3] = []
-	var river_qr: Array[Vector2i] = [
-		Vector2i(-30, -22), Vector2i(-24, -24), Vector2i(-18, -22),
-		Vector2i(-12, -24), Vector2i(-6, -27), Vector2i(0, -24),
-		Vector2i(5, -24), Vector2i(8, -25), Vector2i(12, -27),
-		Vector2i(18, -25), Vector2i(24, -28), Vector2i(30, -25)
-	]
-	for hex in river_qr:
-		river_points.append(HexGrid.axial_to_world(hex, HEX_RADIUS, -0.055))
-	var river_widths := PackedFloat32Array([3.0, 3.8, 4.5, 3.2, 4.2, 3.5, 2.7, 2.0, 3.1, 4.3, 3.6, 2.8])
-	add_child(ORGANIC_FEATURES.make_ribbon("VillageStream", river_points, river_widths, water_material, 0.0, 10))
-
-	# A slightly wider, darker strip beneath the water gives the banks a
-	# natural transition rather than a hard hexagonal edge.
-	var bank_material := _material(Color(0.22, 0.25, 0.17))
-	var bank_widths := PackedFloat32Array()
-	for width in river_widths:
-		bank_widths.append(width + 1.25)
-	add_child(ORGANIC_FEATURES.make_ribbon("StreamBanks", river_points, bank_widths, bank_material, -0.035, 10))
-
-	# Main roads wander gently between authored destinations. The logical
-	# route cells remain the existing axial paths used by movement/pathfinding.
-	var north_south: Array[Vector3] = []
-	for hex in [Vector2i(8, -40), Vector2i(9, -32), Vector2i(8, -25), Vector2i(7, -17), Vector2i(8, -9), Vector2i(7, -2), Vector2i(8, 7), Vector2i(8, 16), Vector2i(8, 24), Vector2i(11, 28), Vector2i(16, 32), Vector2i(14, 38), Vector2i(11, 44), Vector2i(12, 50), Vector2i(12, 54), HollowmereVillageData.FARMHOUSE_DOOR]:
-		north_south.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.025))
-	var road_widths := PackedFloat32Array([2.5, 2.8, 2.6, 2.4, 2.5, 2.8, 2.5, 2.6, 3.1, 2.8, 2.4, 2.6, 2.4, 2.6, 2.8, 2.5])
-	add_child(ORGANIC_FEATURES.make_ribbon("NorthSouthRoad", north_south, road_widths, path_material, 0.0, 8))
-
-	var east_west: Array[Vector3] = []
-	for hex in [Vector2i(-40, 24), Vector2i(-30, 23), Vector2i(-20, 25), Vector2i(-10, 24), Vector2i(0, 23), Vector2i(8, 24), Vector2i(16, 25), Vector2i(26, 23), Vector2i(36, 24)]:
-		east_west.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.025))
-	var crossroad_widths := PackedFloat32Array([2.2, 2.4, 2.6, 2.3, 2.5, 3.1, 2.6, 2.4, 2.2])
-	add_child(ORGANIC_FEATURES.make_ribbon("EastWestRoad", east_west, crossroad_widths, path_material, 0.0, 8))
-
-	# Short village lanes connect the tavern and homes to the main route.
-	var village_lane: Array[Vector3] = []
-	for hex in [Vector2i(8, 16), Vector2i(5, 12), Vector2i(2, 8), Vector2i(0, 5), Vector2i(0, 0), Vector2i(1, -5), Vector2i(8, -9)]:
-		village_lane.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.03))
-	var lane_widths := PackedFloat32Array([2.1, 2.0, 2.0, 2.4, 2.2, 2.0, 2.2])
-	add_child(ORGANIC_FEATURES.make_ribbon("TavernVillageLane", village_lane, lane_widths, path_material, 0.0, 8))
-
-	# Retain the village's ring road and individual building spurs, but soften
-	# their visible geometry so the roads no longer read as hex-cell borders.
-	var ring_points: Array[Vector3] = []
-	for hex in [Vector2i(-8, -6), Vector2i(0, -6), Vector2i(8, -6), Vector2i(8, 0), Vector2i(8, 6), Vector2i(0, 6), Vector2i(-8, 6), Vector2i(-8, 0), Vector2i(-8, -6)]:
-		ring_points.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.028))
-	var ring_widths := PackedFloat32Array([1.9, 2.0, 2.1, 2.0, 2.1, 2.0, 2.1, 2.0, 1.9])
-	add_child(ORGANIC_FEATURES.make_ribbon("TavernRingRoad", ring_points, ring_widths, path_material, 0.0, 6))
-
-	var spurs: Array = [
-		{"name": "StoreLane", "points": [Vector2i(0, 6), Vector2i(0, 10), Vector2i(0, 15)]},
-		{"name": "ChapelLane", "points": [Vector2i(-8, 0), Vector2i(-10, 0), Vector2i(-11, 0)]},
-		{"name": "ElderLane", "points": [Vector2i(0, -6), Vector2i(0, -8), Vector2i(0, -10)]},
-		{"name": "MiraLane", "points": [Vector2i(8, 6), Vector2i(9, 8), Vector2i(10, 9)]},
-		{"name": "OskarLane", "points": [Vector2i(-4, 6), Vector2i(-4, 8), Vector2i(-4, 9)]}
-	]
-	for spur in spurs:
-		var points: Array[Vector3] = []
-		for hex in spur["points"]:
-			points.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.032))
-		var widths := PackedFloat32Array([1.8, 1.7, 1.6])
-		add_child(ORGANIC_FEATURES.make_ribbon(String(spur["name"]), points, widths, path_material, 0.0, 8))
+	# Route definitions live with Hollowmere's authored data. The shared renderer
+	# creates only presentation ribbons; axial path occupancy remains authoritative.
+	POLYLINE_FEATURE_FACTORY.render_features(
+		self,
+		HollowmereVillageData.PRESENTATION_ROUTES,
+		{"path": path_material, "water": water_material, "bank": riverbank_material},
+		HEX_RADIUS
+	)
 
 func _add_hex_surface(node_name: String, cells: Array[Vector2i], material: Material, elevation: float) -> void:
 	var surface := SurfaceTool.new()
