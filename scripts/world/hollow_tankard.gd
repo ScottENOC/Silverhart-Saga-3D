@@ -1496,10 +1496,9 @@ func _run_opening_sequence() -> void:
 
 
 func _move_shakedown_soldiers_outside() -> void:
-	var wait_hexes: Array[Vector2i] = [Vector2i(-1, 6), Vector2i(0, 6), Vector2i(1, 6)]
 	for index in range(HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.size()):
 		var character_id := HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS[index]
-		var destination := wait_hexes[index]
+		var destination: Vector2i = HOLLOWMERE_PLACEMENTS.SHAKEDOWN_SOLDIER_WAIT_HEXES[index]
 		var path := simulation.find_path(character_id, destination)
 		for step_index in range(1, path.size()):
 			if not simulation.try_move_character_step(character_id, path[step_index]):
@@ -1510,13 +1509,11 @@ func _move_shakedown_soldiers_outside() -> void:
 
 
 func _move_shakedown_soldiers_inside() -> void:
-	var preferred_destinations: Array[Vector2i] = [Vector2i(0, 3), Vector2i(-2, 3), Vector2i(2, 3)]
-	var fallback_destinations: Array[Vector2i] = [Vector2i(-1, 3), Vector2i(1, 3), Vector2i(0, 2), Vector2i(2, 2), Vector2i(-2, 2)]
 	for index in range(HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS.size()):
 		var character_id := HOLLOWMERE_ENCOUNTER_SCRIPT.ENEMY_IDS[index]
 		var best_path: Array[Vector2i] = []
-		var destinations: Array[Vector2i] = [preferred_destinations[index]]
-		destinations.append_array(fallback_destinations)
+		var destinations: Array[Vector2i] = [HOLLOWMERE_PLACEMENTS.SHAKEDOWN_SOLDIER_INTERIOR_PREFERRED_HEXES[index]]
+		destinations.append_array(HOLLOWMERE_PLACEMENTS.SHAKEDOWN_SOLDIER_INTERIOR_FALLBACK_HEXES)
 		for destination in destinations:
 			if not simulation.map_data.is_walkable(destination) or simulation.is_hex_occupied(destination):
 				continue
@@ -1815,8 +1812,7 @@ func _check_farm_wolf_proximity() -> void:
 	if player == null:
 		return
 	# The den is deliberately well beyond the farm and the village sightline.
-	var den := Vector2i(-42, 72)
-	var distance_to_den := HexGrid.distance(player.axial, den)
+	var distance_to_den := HexGrid.distance(player.axial, HOLLOWMERE_PLACEMENTS.FARM_WOLF_DEN_HEX)
 	if distance_to_den > 8:
 		if farm_wolves_spawned:
 			farm_wolves_retry_armed = true
@@ -1830,11 +1826,9 @@ func _start_farm_wolf_encounter() -> void:
 		return
 	if not farm_wolves_spawned:
 		farm_wolves_spawned = true
-		var den := Vector2i(-42, 72)
-		var offsets: Array[Vector2i] = [Vector2i(-1, -1), Vector2i(1, 0), Vector2i(0, 1)]
 		for index in range(FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS.size()):
 			var wolf_id := FARM_WOLVES_QUEST_SCRIPT.WOLF_IDS[index]
-			var preferred := den + offsets[index]
+			var preferred: Vector2i = HOLLOWMERE_PLACEMENTS.FARM_WOLF_DEN_HEX + HOLLOWMERE_PLACEMENTS.FARM_WOLF_SPAWN_OFFSETS[index]
 			var spawn_hex := _find_valid_spawn_hex(preferred)
 			var wolf := CharacterState.new(wolf_id, "Wolf", spawn_hex)
 			wolf.side = "enemy"
