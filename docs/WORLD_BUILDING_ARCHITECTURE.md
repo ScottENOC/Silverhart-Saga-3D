@@ -97,7 +97,7 @@ The factory resolves an archetype and configurable parameters. It must reject un
 
 Archetypes share construction routines. Variations are data (dimensions, materials, roof, openings, windows and optional features), not branches named after individual buildings.
 
-The first implementation adds `WorldBuildingFactory` with reusable cottage, shop, chapel, barn and manor presets. `Campaign2SettlementBuilder` delegates to it and retains only chunk orchestration and actor placement. This is an initial construction primitive, not completion of the full building system. Hollowmere's five village buildings, farmhouse and barn now use the same factory; the barn uses a reusable double-door feature. Store signage and the chapel bell tower remain separate presentation add-ons. The river, banks, main roads, village lane, ring road, house spurs and farmyard lane are now authored in `HollowmereVillageData.PRESENTATION_ROUTES` and rendered by `WorldPolylineFeatureFactory`; this does not replace or generate logical path cells. The river crossing is separately authored in `HollowmereVillageData.BRIDGE_PRESENTATION` and assembled by `WorldBridgeFeatureFactory`, with the original deck, rails, posts, placement and rotation preserved.
+The first implementation adds `WorldBuildingFactory` with reusable cottage, shop, chapel, barn and manor presets. `Campaign2SettlementBuilder` delegates to it and retains only chunk orchestration and actor placement. This is an initial construction primitive, not completion of the full building system. Hollowmere's five village buildings, farmhouse and barn now use the same factory; the barn uses a reusable double-door feature. Store signage and the chapel bell tower remain separate presentation add-ons. The river, banks, main roads, village lane, ring road, house spurs and farmyard lane are now authored in `HollowmereVillageData.PRESENTATION_ROUTES` and rendered by `WorldPolylineFeatureFactory`; this does not replace or generate logical path cells. The river crossing is separately authored in `HollowmereVillageData.BRIDGE_PRESENTATION` and assembled by `WorldBridgeFeatureFactory`, with the original deck, rails, posts, placement and rotation preserved. Farm field polygons, 17 crop rows and two fence runs are now authored in `HollowmereVillageData` and rendered by `WorldAgriculturalFeatureFactory`; the logical farm-land query and animal/simulation placement remain independent.
 
 ## Required invariants
 
@@ -143,6 +143,6 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 - [x] Keep store signage and chapel bell tower as separate add-on presentation features.
 - [x] Move Hollowmere stream, banks, main roads, village lane, ring road and house spurs into authored presentation route data and a shared polyline renderer.
 - [x] Move Hollowmere bridge placement and component geometry into authored data and a shared bridge assembly factory.
-- [ ] Migrate Hollowmere fields, fences and remaining props.
+- [x] Move Hollowmere field polygons, crop rows and fence runs into authored data and a shared agricultural renderer.\n- [ ] Migrate remaining bespoke props (including the broken-fence/blood-trail quest dressing).
 - [ ] Consolidate streaming and world composition.
 - [ ] Complete source-world feature inventory and regional migration.
