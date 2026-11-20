@@ -19,7 +19,7 @@ from mathutils.bvhtree import BVHTree
 
 # Shared material-aware fit policy; kept outside Blender so it can be unit-tested.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ara")))
-from garment_fit import (\n    profile_for_material, estimate_correction_strain, classify_strain,\n)
+from garment_fit import (\n    FIT_PROFILES, profile_for_material, estimate_correction_strain, classify_strain,\n)
 
 
 def arguments():
@@ -778,6 +778,8 @@ def fit_garment_clearance(objects, skin, material_tokens):
             continue
 
         inv = obj.matrix_world.inverted()
+        object_corrections = {}
+        object_positions = {}
         for index, profile in vertex_profiles.items():
             vert = obj.data.vertices[index]
             world = obj.matrix_world @ vert.co
@@ -801,24 +803,19 @@ def fit_garment_clearance(objects, skin, material_tokens):
                 bucket["max_displacement_m"] = max(
                     bucket["max_displacement_m"], displacement
                 )
-                bucket.setdefault("corrections", {})[index] = tuple(correction)
-                bucket.setdefault("original_positions", {})[index] = tuple(
-                    obj.matrix_world @ (vert.co - inv.to_3x3() @ correction)
-                )
+                object_corrections.setdefault(profile["name"], {})[index] = tuple(correction)
+                object_positions.setdefault(profile["name"], {})[index] = tuple(world - correction)
                 moved_total += 1
         obj.data.update()
 
-        # Estimate strain introduced by the clearance pass from differential
-        # vertex corrections along the original garment edges.
-        for name, bucket in stats.items():
-            corrections = bucket.get("corrections", {})
-            if not corrections:
-                continue
-            positions = bucket.get("original_positions", {})
+        # Estimate strain per mesh and material profile. Keeping these maps
+        # local to this object avoids vertex-index collisions between meshes.
+        for name, corrections in object_corrections.items():
+            positions = object_positions[name]
             edges = [tuple(edge.vertices) for edge in obj.data.edges
                      if edge.vertices[0] in corrections and edge.vertices[1] in corrections]
-            # Positions are world-space and were captured before this pass.
             estimate = estimate_correction_strain(edges, positions, corrections)
+            bucket = stats[name]
             bucket["sampled_edges"] = bucket.get("sampled_edges", 0) + estimate["sampled_edges"]
             bucket["max_estimated_strain"] = max(
                 bucket.get("max_estimated_strain", 0.0),
@@ -828,7 +825,7 @@ def fit_garment_clearance(objects, skin, material_tokens):
     for name, bucket in sorted(stats.items()):
         count = len(bucket["vertices"])
         average = bucket["total_displacement_m"] / max(bucket["moved"], 1)
-        profile = profile_for_material(name)
+        profile = {"name": name, **FIT_PROFILES[name]}
         strain = bucket.get("max_estimated_strain", 0.0)
         classification = classify_strain(strain, profile)
         status = "RE-PATTERN" if classification["overstretched"] else (
