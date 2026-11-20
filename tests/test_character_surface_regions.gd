@@ -50,23 +50,36 @@ func _test_body(asset_path: String) -> void:
             assert(position.is_finite(), "%s %s has non-finite position" % [asset_path, region_id])
             assert(normal.is_finite() and normal.length() > 0.5, "%s %s has invalid normal" % [asset_path, region_id])
 
-    # Prove that the same semantic surface samples respond to an Ara morph.
+    # The male Ara GLB currently has body morphs; the female GLB currently has
+    # facial morphs only. Do not invent female body morph support in this test.
     var main_mesh := _largest_skinned_mesh(body_root)
     assert(main_mesh != null, "No skinned mesh found in " + asset_path)
-    var morph_index := _find_morph(main_mesh.mesh, ["body_muscle_high", "body_muscle_low"])
-    assert(morph_index >= 0, "No known body proportion morph found in " + asset_path)
-    var before_morph := regions.get_region_surface_samples("chest", 0.55, 1)
-    assert(not before_morph.is_empty(), "No chest sample before morph")
-    var before_position: Vector3 = before_morph[0]["position"]
-    main_mesh.set_blend_shape_value(morph_index, 1.0)
-    await process_frame
-    var after_morph := regions.get_region_surface_samples("chest", 0.55, 1)
-    assert(not after_morph.is_empty(), "No chest sample after morph")
-    var morph_delta: float = before_position.distance_to(after_morph[0]["position"])
-    assert(morph_delta > 0.00001, "%s chest surface did not respond to %s" % [
-        asset_path, main_mesh.mesh.get_blend_shape_name(morph_index)
-    ])
-    main_mesh.set_blend_shape_value(morph_index, 0.0)
+    var morph_index := _find_morph(main_mesh.mesh, ["body_muscle", "body_proportions", "body_weight"])
+    var morph_delta := 0.0
+    if morph_index >= 0:
+        var before_morph := regions.get_region_surface_samples("chest", 0.35, 32)
+        assert(not before_morph.is_empty(), "No chest sample before morph")
+        main_mesh.set_blend_shape_value(morph_index, 0.5)
+        await process_frame
+        var after_morph := regions.get_region_surface_samples("chest", 0.35, 32)
+        morph_delta = _maximum_sample_delta(before_morph, after_morph)
+        assert(morph_delta > 0.00001, "%s chest surface did not respond to %s" % [
+            asset_path, main_mesh.mesh.get_blend_shape_name(morph_index)
+        ])
+        main_mesh.set_blend_shape_value(morph_index, 0.0)
+        print("ARA_SURFACE_REGION_MORPH asset=%s shape=%s delta=%.6f" % [
+            asset_path, main_mesh.mesh.get_blend_shape_name(morph_index), morph_delta
+        ])
+    else:
+        assert(asset_path.contains("ara_person_body_anatomy"), "Unexpected absence of body morphs in " + asset_path)
+        var before_scale := regions.get_region_surface_samples("chest", 0.35, 32)
+        body_root.scale.y *= 1.05
+        await process_frame
+        var after_scale := regions.get_region_surface_samples("chest", 0.35, 32)
+        morph_delta = _maximum_sample_delta(before_scale, after_scale)
+        assert(morph_delta > 0.00001, "Female chest surface did not respond to body-root stature scaling")
+        body_root.scale.y /= 1.05
+        print("ARA_SURFACE_REGION_NO_BODY_MORPHS asset=%s stature_scale_delta=%.6f" % [asset_path, morph_delta])
     await process_frame
 
     # Prove that samples follow a changed joint pose, not a static rest-pose cache.
@@ -102,7 +115,7 @@ func _largest_skinned_mesh(node: Node) -> MeshInstance3D:
     var best: MeshInstance3D
     var best_vertices := -1
     for candidate in candidates:
-        var count := candidate.mesh.surface_get_array_len(0) if candidate.mesh.get_surface_count() > 0 else 0
+        var count: int = candidate.mesh.surface_get_array_len(0) if candidate.mesh.get_surface_count() > 0 else 0
         if count > best_vertices:
             best_vertices = count
             best = candidate
@@ -124,3 +137,19 @@ func _collect_skinned_meshes(node: Node, output: Array[MeshInstance3D]) -> void:
             output.append(mesh_instance)
     for child in node.get_children():
         _collect_skinned_meshes(child, output)
+
+
+func _maximum_sample_delta(before: Array[Dictionary], after: Array[Dictionary]) -> float:
+    var after_by_vertex: Dictionary = {}
+    for sample in after:
+        var key := "%d:%d:%d" % [sample["mesh_instance"].get_instance_id(), sample["surface_index"], sample["vertex_index"]]
+        after_by_vertex[key] = sample["position"]
+    var maximum := 0.0
+    for sample in before:
+        var key := "%d:%d:%d" % [sample["mesh_instance"].get_instance_id(), sample["surface_index"], sample["vertex_index"]]
+        if not after_by_vertex.has(key):
+            continue
+        var before_position: Vector3 = sample["position"]
+        var after_position: Vector3 = after_by_vertex[key]
+        maximum = maxf(maximum, before_position.distance_to(after_position))
+    return maximum
