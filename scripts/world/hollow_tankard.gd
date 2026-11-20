@@ -16,6 +16,7 @@ const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_r
 const INTERIOR_FEATURE_FACTORY = preload("res://scripts/world/world_interior_feature_factory.gd")
 const HOLLOW_TANKARD_TAPROOM = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_taproom.gd")
 const HOLLOW_TANKARD_UPPER_ROOMS = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_upper_rooms.gd")
+const HOLLOW_TANKARD_STRUCTURE = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_structure.gd")
 const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
@@ -429,73 +430,37 @@ func _create_hex_tile_mesh() -> ArrayMesh:
 	return surface.commit()
 
 func _create_building() -> void:
-	var building := Node3D.new()
-	building.name = "HollowTankardBuilding"
-	add_child(building)
+	var materials := {
+		"stone": stone_material,
+		"plaster": plaster_material,
+		"timber": timber_material,
+		"dark_wood": dark_wood_material,
+		"glass": glass_material,
+		"roof": roof_material
+	}
+	var building := INTERIOR_FEATURE_FACTORY.present(self, HOLLOW_TANKARD_STRUCTURE.BUILDING_SHELL, materials)
+	if building == null:
+		push_error("Could not present Hollow Tankard authored building shell.")
+		return
 
-	# Stone plinth and timber-framed plaster walls.
-	_add_box(building, "StoneFloorFoundation", Vector3(0.0, -0.08, 0.0), Vector3(16.7, 0.16, 11.7), stone_material)
-
-	# North wall is split around two actual window openings.
-	_add_wall_segment(building, Vector3(-5.3, 1.8, -5.5), Vector3(1.4, WALL_HEIGHT, 0.35))
-	_add_wall_segment(building, Vector3(-0.5, 1.8, -5.5), Vector3(5.8, WALL_HEIGHT, 0.35))
-	_add_wall_segment(building, Vector3(5.8, 1.8, -5.5), Vector3(4.4, WALL_HEIGHT, 0.35))
-	_add_window(building, Vector3(-4.0, 1.95, -5.5), Vector2(1.2, 1.0))
-	_add_window(building, Vector3(3.0, 1.95, -5.5), Vector2(1.2, 1.0))
-
-	# South wall leaves a centred 1.6m entrance.
-	_add_wall_segment(building, Vector3(-4.4, 1.8, 5.5), Vector3(7.2, WALL_HEIGHT, 0.35))
-	_add_wall_segment(building, Vector3(4.4, 1.8, 5.5), Vector3(7.2, WALL_HEIGHT, 0.35))
-	_add_box(building, "DoorLintel", Vector3(0.0, 3.0, 5.5), Vector3(1.95, 0.35, 0.48), timber_material)
-	_add_box(building, "DoorJambLeft", Vector3(-0.95, 1.55, 5.5), Vector3(0.22, 3.1, 0.48), timber_material)
-	_add_box(building, "DoorJambRight", Vector3(0.95, 1.55, 5.5), Vector3(0.22, 3.1, 0.48), timber_material)
+	# The door is kept as a live campaign object: its hinge animation is driven
+	# by BuildingRegistry rather than by static authored geometry.
 	tavern_door_pivot = Node3D.new()
 	tavern_door_pivot.name = "FrontDoorHinge"
 	tavern_door_pivot.position = Vector3(-0.8, 0.0, 5.5)
 	building.add_child(tavern_door_pivot)
-	tavern_door_leaf = _add_box(tavern_door_pivot, "FrontDoorLeaf", Vector3(0.65, 1.25, 0.0), Vector3(1.3, 2.5, 0.16), dark_wood_material)
+	tavern_door_leaf = _add_box(
+		tavern_door_pivot, "FrontDoorLeaf",
+		Vector3(0.65, 1.25, 0.0), Vector3(1.3, 2.5, 0.16), dark_wood_material
+	)
 	_refresh_tavern_door_presentation()
 
-	# East and west walls, each with a window opening.
-	_add_wall_segment(building, Vector3(8.0, 1.8, -3.45), Vector3(0.35, WALL_HEIGHT, 4.1))
-	_add_wall_segment(building, Vector3(8.0, 1.8, 3.45), Vector3(0.35, WALL_HEIGHT, 4.1))
-	_add_window(building, Vector3(8.0, 1.95, 0.0), Vector2(1.2, 1.0), true)
-	_add_wall_segment(building, Vector3(-8.0, 1.8, -3.45), Vector3(0.35, WALL_HEIGHT, 4.1))
-	_add_wall_segment(building, Vector3(-8.0, 1.8, 3.45), Vector3(0.35, WALL_HEIGHT, 4.1))
-	_add_window(building, Vector3(-8.0, 1.95, 0.0), Vector2(1.2, 1.0), true)
+	upper_shell_group = INTERIOR_FEATURE_FACTORY.present(self, HOLLOW_TANKARD_STRUCTURE.UPPER_EXTERIOR, materials)
+	upper_floor_group = INTERIOR_FEATURE_FACTORY.present(self, HOLLOW_TANKARD_STRUCTURE.UPPER_FLOOR, materials)
+	if upper_shell_group == null or upper_floor_group == null:
+		push_error("Could not present Hollow Tankard upper-storey structure.")
+		return
 
-	# Exposed posts and roof beams give the hall a readable timber structure.
-	for x in [-7.7, -4.0, 0.0, 4.0, 7.7]:
-		for z in [-5.2, 5.2]:
-			_add_box(building, "TimberPost", Vector3(x, 1.65, z), Vector3(0.22, 3.3, 0.22), timber_material)
-	_add_box(building, "NorthTieBeam", Vector3(0.0, 3.0, -5.05), Vector3(16.0, 0.22, 0.22), dark_wood_material)
-	_add_box(building, "SouthTieBeam", Vector3(0.0, 3.0, 5.05), Vector3(16.0, 0.22, 0.22), dark_wood_material)
-
-	# Second storey: the upper shell reads as a real two-storey inn from
-	# outside. Its floor and interior furnishings are shown when the player
-	# climbs up; the shell is cut away while upstairs so the rooms stay legible.
-	upper_shell_group = Node3D.new()
-	upper_shell_group.name = "UpperStoreyExterior"
-	add_child(upper_shell_group)
-	_add_box(upper_shell_group, "UpperNorthWall", Vector3(0.0, 5.0, -5.5), Vector3(16.0, 3.2, 0.35), plaster_material)
-	_add_box(upper_shell_group, "UpperSouthWallLeft", Vector3(-4.4, 5.0, 5.5), Vector3(7.2, 3.2, 0.35), plaster_material)
-	_add_box(upper_shell_group, "UpperSouthWallRight", Vector3(4.4, 5.0, 5.5), Vector3(7.2, 3.2, 0.35), plaster_material)
-	_add_box(upper_shell_group, "UpperEastWall", Vector3(8.0, 5.0, 0.0), Vector3(0.35, 3.2, 11.0), plaster_material)
-	_add_box(upper_shell_group, "UpperWestWall", Vector3(-8.0, 5.0, 0.0), Vector3(0.35, 3.2, 11.0), plaster_material)
-	for x in [-7.7, -4.0, 0.0, 4.0, 7.7]:
-		for z in [-5.2, 5.2]:
-			_add_box(upper_shell_group, "UpperTimberPost", Vector3(x, 4.95, z), Vector3(0.22, 3.3, 0.22), timber_material)
-	_add_box(upper_shell_group, "UpperNorthTieBeam", Vector3(0.0, 6.55, -5.05), Vector3(16.0, 0.22, 0.22), dark_wood_material)
-	_add_box(upper_shell_group, "UpperSouthTieBeam", Vector3(0.0, 6.55, 5.05), Vector3(16.0, 0.22, 0.22), dark_wood_material)
-	_add_window(upper_shell_group, Vector3(-4.0, 5.1, -5.5), Vector2(1.2, 1.0))
-	_add_window(upper_shell_group, Vector3(3.0, 5.1, -5.5), Vector2(1.2, 1.0))
-	_add_window(upper_shell_group, Vector3(8.0, 5.1, 0.0), Vector2(1.2, 1.0), true)
-	_add_window(upper_shell_group, Vector3(-8.0, 5.1, 0.0), Vector2(1.2, 1.0), true)
-
-	upper_floor_group = Node3D.new()
-	upper_floor_group.name = "UpperFloorPresentation"
-	add_child(upper_floor_group)
-	_add_box(upper_floor_group, "UpperFloorDeck", Vector3(0.0, 3.22, 0.0), Vector3(16.2, 0.24, 11.2), timber_material)
 	upper_floor_tiles = Node3D.new()
 	upper_floor_tiles.name = "UpperHexFloor"
 	upper_floor_group.add_child(upper_floor_tiles)
@@ -515,30 +480,12 @@ func _create_building() -> void:
 	upper_floor_group.add_child(upper_interior_group)
 	_create_upper_floor_rooms(upper_interior_group)
 
-	# Staircase rises along the east side from the taproom to the landing.
-	for step in range(10):
-		var progress := float(step) / 9.0
-		var stair := _add_box(building, "StairStep_%02d" % step,
-			Vector3(6.05, 0.18 + progress * 3.0, 4.15 - progress * 3.7),
-			Vector3(1.35, 0.22, 0.58), timber_material)
-		stair.rotation_degrees.x = -38.0
-	_add_box(building, "StairStringerLeft", Vector3(5.38, 1.7, 2.3), Vector3(0.16, 3.6, 4.0), dark_wood_material)
-	_add_box(building, "StairStringerRight", Vector3(6.72, 1.7, 2.3), Vector3(0.16, 3.6, 4.0), dark_wood_material)
+	roof_group = INTERIOR_FEATURE_FACTORY.present(self, HOLLOW_TANKARD_STRUCTURE.ROOF, materials)
+	if roof_group == null:
+		push_error("Could not present Hollow Tankard roof.")
+	else:
+		roof_group.visible = false
 	_refresh_tavern_floor_presentation()
-
-	# The pitched roof now sits above the bedrooms. V toggles this cutaway.
-	roof_group = Node3D.new()
-	roof_group.name = "RoofCutaway"
-	add_child(roof_group)
-	var roof_width: float = sqrt(5.5 * 5.5 + 2.6 * 2.6)
-	var roof_angle: float = rad_to_deg(atan2(2.6, 5.5))
-	var north_roof := _add_box(roof_group, "NorthRoofSlope", Vector3(0.0, 7.75, -2.75), Vector3(16.9, 0.22, roof_width), roof_material)
-	north_roof.rotation_degrees.x = -roof_angle
-	var south_roof := _add_box(roof_group, "SouthRoofSlope", Vector3(0.0, 7.75, 2.75), Vector3(16.9, 0.22, roof_width), roof_material)
-	south_roof.rotation_degrees.x = roof_angle
-	_add_box(roof_group, "RidgeBeam", Vector3(0.0, 9.03, 0.0), Vector3(17.0, 0.25, 0.3), dark_wood_material)
-	_add_box(roof_group, "Chimney", Vector3(-6.0, 8.0, -1.0), Vector3(0.9, 3.8, 0.9), stone_material)
-	roof_group.visible = false
 
 func _create_upper_floor_rooms(parent: Node3D) -> void:
 	var result := INTERIOR_FEATURE_FACTORY.present(
