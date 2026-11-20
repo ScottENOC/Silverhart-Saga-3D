@@ -368,7 +368,7 @@ func apply_player_profile(profile: Dictionary) -> void:
     _tint_attached_hair(current_hair_colour)
 
     apply_body_parameters(profile)
-    var next_body_variant := str(profile.get("body_variant", "female"))
+    var next_body_variant := str(profile.get("body_base", profile.get("body_variant", "female")))
     if next_body_variant != body_variant:
         _clear_garment_attachments()
     body_variant = next_body_variant
@@ -725,7 +725,7 @@ func apply_npc_parameters(params: Dictionary) -> void:
         "proportions": float(params.get("proportions", 0.5)),
         "breasts": float(params.get("breasts", 0.5)),
         "legs": float(params.get("legs", 0.5)),
-        "body_variant": "male" if gender == 1 else "female",
+        "body_variant": str(params.get("body_base", "male" if gender == 1 else "female")),
         "gender_presentation": "Masculine" if gender == 1 else "Feminine",
         "pronouns": "they/them"
     }
