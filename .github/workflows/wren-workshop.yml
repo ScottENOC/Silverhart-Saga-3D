@@ -21,6 +21,7 @@ on:
       - "tools/ara/validate_companion_body_unchanged.py"
       - "tools/ara/garment_fit.py"
       - "tools/ara/garment_correspondence.py"
+      - "tools/blender/inspect_garment_surface_correspondence.py"
       - "tests/test_garment_fit.py"
       - "tests/test_garment_correspondence.py"
       - "tools/ara/assemble_modular_glb.py"
@@ -50,7 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Compile anatomy, clothing and review tools
-        run: python -m py_compile tools/ara/patch_layering.py tools/ara/patch_halter_bra.py tools/ara/patch_g_string.py tools/ara/extract_selected_garments.py tools/ara/extract_garment_glb.py tools/ara/assemble_modular_glb.py tools/ara/build_companion_underwear_previews.py tools/ara/validate_companion_body_unchanged.py tools/ara/garment_fit.py tools/ara/garment_correspondence.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
+        run: python -m py_compile tools/ara/patch_layering.py tools/ara/patch_halter_bra.py tools/ara/patch_g_string.py tools/ara/extract_selected_garments.py tools/ara/extract_garment_glb.py tools/ara/assemble_modular_glb.py tools/ara/build_companion_underwear_previews.py tools/ara/validate_companion_body_unchanged.py tools/ara/garment_fit.py tools/ara/garment_correspondence.py tools/blender/inspect_garment_surface_correspondence.py tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py tools/blender/create_full_coverage_armor.py tools/review/render_modular_outfits.py
       - name: Test shared garment fit policy
         run: python -m unittest discover -s tests -p "test_garment_*.py"
       - name: Validate Wren Workshop JavaScript
@@ -463,6 +464,11 @@ jobs:
             garments="$ROOT/$character/${character}_fitted_garments.glb"
             fitted="$ROOT/$character/${character}_modular.glb"
             python tools/ara/build_companion_underwear_previews.py --character "$character" --base-glb "$source" --generated-dir /tmp/ara-generated --output "$raw"
+            # Record real garment-to-skin triangle correspondence before any
+            # clearance correction. This is diagnostic data only; it never
+            # modifies the source companion or garment geometry.
+            blender --background --python-exit-code 1 --python tools/blender/inspect_garment_surface_correspondence.py -- \
+              --input "$raw" --output "$ROOT/$character/correspondence.json"
             # Blender fits garment vertices against the companion skin. Its full
             # GLB re-export is only an intermediate; never use its body mesh.
             blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- \
