@@ -112,13 +112,14 @@ func _test_location_loader_instantiates_data_components() -> void:
 	var definition := {
 		"id": "test_location",
 		"components": [
-			{"role": "settlement", "node_name": "TestSettlement", "script": LOCATION_COMPONENT},
+			{"role": "settlement", "node_name": "TestSettlement", "script": LOCATION_COMPONENT, "configure_location": true, "location_data": {"settlement_id": "test_settlement"}},
 			{"role": "interior_controller", "node_name": "TestInterior", "script": LOCATION_COMPONENT, "configure_campaign": true}
 		]
 	}
 	var result: Dictionary = LOCATION_LOADER.load_location(parent, definition, simulation, profile, save_data)
 	assert(bool(result.get("ok", false)), "The generic location loader should instantiate configured component scripts")
 	assert(parent.get_node_or_null("TestSettlement") != null)
+	assert(parent.get_node("TestSettlement").get("received_location_data") == {"settlement_id": "test_settlement"})
 	var controller := parent.get_node("TestInterior")
 	assert(controller.get("received_simulation") == simulation)
 	assert(controller.get("received_profile") == profile)
