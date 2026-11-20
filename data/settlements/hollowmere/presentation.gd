@@ -49,16 +49,16 @@ const FEATURE_DATA := {
 
 const VEGETATION := {
 	"forest": {
-		"candidate_filter": Callable(VILLAGE_QUERIES, "is_forest_candidate"),
-		"family_selector": Callable(HOLLOWMERE_PRESENTATION_RULES, "select_tree_family"),
+		"candidate_script": VILLAGE_QUERIES, "candidate_method": "is_forest_candidate",
+		"selector_script": HOLLOWMERE_PRESENTATION_RULES, "selector_method": "select_tree_family",
 		"min_q": -96, "max_q": 96, "min_r": -96, "max_r": 96,
 		"spacing": 4, "density_offset": HEARTLAND_BIOMES.FOREST_DENSITY_OFFSET,
 		"density_threshold": HEARTLAND_BIOMES.FOREST_DENSITY_THRESHOLD,
 		"scale_min": 0.78, "scale_range": 0.46, "node_prefix": "HollowmereTree"
 	},
 	"understorey": {
-		"candidate_filter": Callable(HOLLOWMERE_PRESENTATION_RULES, "is_understorey_candidate"),
-		"family_selector": Callable(HOLLOWMERE_PRESENTATION_RULES, "select_understorey_family"),
+		"candidate_script": HOLLOWMERE_PRESENTATION_RULES, "candidate_method": "is_understorey_candidate",
+		"selector_script": HOLLOWMERE_PRESENTATION_RULES, "selector_method": "select_understorey_family",
 		"min_q": -96, "max_q": 96, "min_r": -96, "max_r": 96,
 		"spacing": 8, "density_offset": HEARTLAND_BIOMES.UNDERSTOREY_DENSITY_OFFSET,
 		"density_threshold": HEARTLAND_BIOMES.UNDERSTOREY_DENSITY_THRESHOLD,
