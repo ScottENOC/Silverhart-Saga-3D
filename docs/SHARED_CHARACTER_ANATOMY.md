@@ -84,6 +84,59 @@ Runtime discovery is handled by `CharacterSurfaceRegionMaskLibrary`: when an Ara
 
 The contract test uses a deliberately synthetic one-vertex mask on each canonical body to verify loading, source-vertex identity, deformation-aware querying and rejection of stale metadata. These are plumbing tests only: **no production fine anatomy masks have been authored yet**, and the synthetic test mask must not be used for garment fitting. Actual labels still need to be painted/authored against the canonical meshes, visually inspected, and checked against Reyna and Dagna.
 
+### Full semantic label plan
+
+The authoring vocabulary is divided by purpose. A surface mask says *where* a feature is on the skinned surface; it does not, by itself, define a joint, garment seam, hitbox, animation target or interaction permission.
+
+#### 1. Surface regions (the painter's current vocabulary)
+
+The Godot painter now exposes 65 fine-region IDs, grouped in its selector:
+
+- **Head and neck:** face, lips/mouth contact, left/right ears, front/back/left/right neck.
+- **Torso and chest:** left/right clavicles, breasts, areolae and nipples; underbust; back; upper/lower abdomen; general/front/back/left/right waist; left/right flanks.
+- **Pelvis and external anatomy:** front/back pelvis, left/right hips and buttocks, groin, perineum, anal/perianal surface, and base-specific external vulvar, penile and scrotal regions. A body only receives labels that are anatomically present.
+- **Arms and hands:** left/right shoulders, elbows, forearms, wrists, palms and backs of hands.
+- **Legs and feet:** left/right inner and outer thighs, knees, calves, ankles, tops of feet and soles.
+
+These labels are deliberately anatomical and body-surface based. The male and female meshes are authored independently; a region such as breast_left can be meaningful on both, but its painted boundary is not assumed to be identical. The mirrored paint option is only a starting aid and must be visually checked.
+
+#### 2. Garment-fit guides (a separate curve/anchor layer still to build)
+
+A garment needs boundary loops and construction guides, not just coloured patches. The next authoring layer should provide named surface curves/landmarks for:
+
+- neckline and collar circumference;
+- left/right shoulder seams and armholes;
+- bust/chest line, left/right cup apex and underbust circumference;
+- natural waist and high/full-hip circumferences;
+- seat and crotch front/back junctions;
+- left/right inseams and outseams;
+- left/right elbow, wrist, knee and ankle openings;
+- foot opening and heel/toe alignment.
+
+Each guide should be a sequence of surface-attached points with tangent/normal frames, stable vertex/triangle correspondence and optional left/right pairing. Garment fitting can then use the guides for initial placement, measure clearance and compression against the surface regions, and solve elastic versus rigid material behaviour. We should not pretend a broad chest or hip mask is a bra cup, waistband or armhole.
+
+#### 3. Animation and rig landmarks
+
+The existing rig layer remains the source of animated joint transforms. Its eventual semantic coverage should include pelvis and spine levels; sternum/chest; neck and head; jaw and facial landmarks; clavicles and shoulders; elbows, wrists, palms and finger chains; hip joints, knees, ankles, heels and toes. Each landmark resolves to a bone when one exists, with explicit optional/unavailable status where the Ara rig lacks it. Surface anchors must be added for skin contact; a bone origin is not a skin contact point.
+
+#### 4. Contact and cutscene targets
+
+Contact targets should be named semantic anchors or patches that reference the surface regions above, with a stable local frame and an approach direction. Initial targets include hands/palms, face/lips, neck, shoulders, upper/lower back, chest, waist, hips, thighs and (where present) external intimate anatomy. They support hand placement, embraces, hand-holding, kisses, carrying, combat grapples and authored intimacy choreography without each animation inventing its own offsets.
+
+A target's existence is not permission to use it. Relationship state, consent, scene rating/content settings, character boundaries and choreography eligibility belong to the interaction/cutscene system, not to anatomical labels. Intimacy scenes should query the same validated targets and clothing/coverage state as other cinematics, while respecting those separate gates.
+
+#### 5. Spatial volumes for combat and proximity
+
+Volumes should be derived from the rig and surface data: head, torso, pelvis, upper/lower arms, hands, thighs, calves and feet as the initial combat set; finer volumes can cover face, hands, breast/chest, groin and other gameplay-relevant targets. They need pose-aware updates, collision filtering, stable hit-region IDs and tests for weapon reach, occlusion and self-intersection. Surface masks should not be used as a substitute for efficient collision volumes.
+
+#### Authoring order
+
+1. Paint and review the core body surface regions on both canonical Ara GLBs.
+2. Add the garment guide curves and validate them on Reyna and Dagna before enabling clothing fit.
+3. Add/complete rig landmark aliases and contact anchors, then build pose-aware volumes.
+4. Connect combat, social and intimacy choreography to those shared contracts; do not duplicate hard-coded offsets in individual animations.
+
+The current painter implements only item 1's mask authoring mechanism. It does not automatically classify anatomy, author garment guide curves, or create contact anchors and volumes. No production labels should be treated as complete until visually reviewed on both bodies and then checked against the extreme named NPC body presets.
 ## Required spatial volumes
 
 Volumes should be generated or updated from the same semantic landmarks and surface
