@@ -47,13 +47,40 @@ func _test_body(asset_path: String) -> void:
             var arrays := mesh.mesh.surface_get_arrays(surface_index)
             var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
             var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+            var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
+            var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
+            if bones.is_empty() or weights.is_empty() or vertices.is_empty():
+                continue
+            var influences_per_vertex := bones.size() / vertices.size()
+            var candidates: Array[PackedInt32Array] = []
             if indices.size() >= 3:
-                triangle = PackedInt32Array([indices[0], indices[1], indices[2]])
-            elif vertices.size() >= 3:
-                triangle = PackedInt32Array([0, 1, 2])
-            if triangle.size() == 3:
+                for offset in range(0, indices.size() - 2, 3):
+                    candidates.append(PackedInt32Array([indices[offset], indices[offset + 1], indices[offset + 2]]))
+            else:
+                for offset in range(0, vertices.size() - 2, 3):
+                    candidates.append(PackedInt32Array([offset, offset + 1, offset + 2]))
+            for candidate in candidates:
+                var valid := true
+                for vertex_index in candidate:
+                    if vertex_index < 0 or vertex_index >= vertices.size():
+                        valid = false
+                        break
+                    var total_weight := 0.0
+                    for influence in range(influences_per_vertex):
+                        total_weight += weights[vertex_index * influences_per_vertex + influence]
+                    if total_weight <= 0.00001:
+                        valid = false
+                        break
+                if not valid:
+                    continue
+                var area := (vertices[candidate[1]] - vertices[candidate[0]]).cross(vertices[candidate[2]] - vertices[candidate[0]]).length()
+                if area <= 0.000001:
+                    continue
+                triangle = candidate
                 target_mesh = mesh
                 target_surface = surface_index
+                break
+            if target_mesh != null:
                 break
         if target_mesh != null:
             break
@@ -81,12 +108,18 @@ func _test_body(asset_path: String) -> void:
     var evaluated := curve.evaluate(regions)
     assert(evaluated.size() == 3, "Expected three evaluated guide points for " + asset_path)
     for point in evaluated:
-        assert((point["position"] as Vector3).is_finite(), "Guide point position is non-finite")
-        assert((point["normal"] as Vector3).length() > 0.5, "Guide point normal is invalid")
-        assert((point["tangent"] as Vector3).length() > 0.5, "Guide point tangent is invalid")
-        assert((point["binormal"] as Vector3).length() > 0.5, "Guide point binormal is invalid")
+        var position: Vector3 = point["position"]
+        var normal: Vector3 = point["normal"]
+        var tangent: Vector3 = point["tangent"]
+        var binormal: Vector3 = point["binormal"]
+        assert(position.is_finite(), "Guide point position is non-finite")
+        assert(normal.is_finite() and normal.length() > 0.5, "Guide point normal is invalid")
+        assert(tangent.is_finite() and tangent.length() > 0.5, "Guide point tangent is invalid")
+        assert(binormal.is_finite() and binormal.length() > 0.5, "Guide point binormal is invalid")
         var frame: Transform3D = point["frame"]
-        assert(frame.basis.is_finite(), "Guide frame basis is non-finite")
+        assert(frame.origin.is_finite(), "Guide frame origin is non-finite")
+        assert(frame.basis.x.is_finite() and frame.basis.y.is_finite() and frame.basis.z.is_finite(),
+            "Guide frame basis is non-finite")
 
     var stale := curve.duplicate() as CharacterGarmentGuideCurve
     stale.surface_signature = "stale-topology"
