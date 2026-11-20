@@ -81,7 +81,7 @@ static func create_building(parent: Node3D, settlement: Dictionary, definition: 
 
 	var centre := _read_hex(definition.get("center", {}))
 	var root := Node3D.new()
-	root.name = building_id
+	root.name = String(definition.get("node_name", building_id))
 	root.position = HexGrid.axial_to_world(centre, HEX_RADIUS)
 	root.rotation.y = deg_to_rad(float(definition.get("rotation_degrees", -30.0)))
 	parent.add_child(root)
