@@ -77,11 +77,12 @@ func _test_building_definitions_use_shared_factory() -> void:
         var building_id := String(definition.get("id", ""))
         assert(not building_id.is_empty() and not ids.has(building_id), "Hollowmere building IDs must be unique")
         ids[building_id] = true
-        assert(definition.has("center") and definition.has("half_q") and definition.has("half_r"), "%s must keep its logical footprint in the authored definition" % building_id)
+        assert(definition.has("center") and definition.has("half_q") and definition.has("half_r") and definition.has("door"), "%s must keep its logical footprint and entrance in the authored definition" % building_id)
         assert(definition.has("dimensions") and definition.has("door_side"), "%s must define its visual geometry and entrance" % building_id)
         var node := WORLD_BUILDING_FACTORY.create_building(parent, {"id": "hollowmere"}, definition)
         assert(node != null, "%s should be constructible through the shared factory" % building_id)
         assert(node.name == String(definition.get("node_name", building_id)), "The authored scene name should be preserved")
+        assert(node.get_meta("source_door_hex") == definition.get("door"), "The logical entrance must match the shared building definition")
         if building_id == "old_mac_barn":
             assert(node.find_child("DoorLeaf_Left", true, false) != null and node.find_child("DoorLeaf_Right", true, false) != null, "The barn should use the shared double-door feature")
         constructed += 1
