@@ -100,8 +100,9 @@ explicit follow-on work; they are not claimed to be implemented by this layer.
 
 `CharacterSurfaceRegions` is the first runtime implementation of broad surface regions.
 It derives per-vertex region influence from the canonical Ara skin's existing bone weights,
-then evaluates each selected vertex using the mesh's active relative blend-shape deltas,
-the current `Skeleton3D` bone poses and the `Skin` inverse-bind transforms.
+then evaluates each selected vertex using the mesh's active blend shapes (both Godot
+normalised and relative modes), the current `Skeleton3D` bone poses and the `Skin`
+inverse-bind transforms.
 
 The first shared vocabulary is deliberately broad:
 
@@ -124,6 +125,16 @@ attribute.
 The current query is CPU-evaluated and intended for validation and low-frequency fitting
 queries, not yet as a per-frame full-mesh operation. A later pass should add caching and
 a purpose-built sparse sample set after correctness and performance have been measured.
+
+### Current body-morph asymmetry
+
+The imported female runtime body currently exposes 34 facial blend shapes but no body
+shape blend shapes. Its existing runtime body-parameter path therefore falls back to
+stature scaling; muscle, weight, breast and leg parameters do not currently deform that
+female mesh. The male runtime body exposes six body shape blend shapes in addition to
+the facial shapes. The surface query supports the available morphs on either asset, but
+it cannot create missing female morph targets. This is a separate body-customisation
+gap that should be addressed before claiming equivalent male/female body-shape controls.
 
 ### Validation
 
