@@ -123,8 +123,7 @@ def compare(reports):
     for r in reports:
         if not r["skins"]:out.append({"file":r["file"],"compatible":False,"reason":"no skin"});continue
         jj=r["skins"][0]["joints"]; jmap={b["name"]:b for b in jj}
-        same_set=set(bmap)==set(jmap)
-        same_order=[b["name"] for b in bj]==[b["name"] for b in jj]
+        same_set=set(bmap)==set(jmap); same_order=[b["name"] for b in bj]==[b["name"] for b in jj]
         same_hierarchy=same_set and all(bmap[n]["parent"]==jmap[n]["parent"] for n in bmap)
         local_t=max((math.dist(bmap[n]["local_translation"],jmap[n]["local_translation"]) for n in bmap if n in jmap),default=None) if same_set else None
         local_basis=max((max(abs(bmap[n]["local_matrix"][i][j]-jmap[n]["local_matrix"][i][j]) for i in range(3) for j in range(3)) for n in bmap if n in jmap),default=None) if same_set else None
@@ -135,20 +134,38 @@ def compare(reports):
             "max_local_rest_translation_delta_m":round(local_t,6) if local_t is not None else None,
             "max_local_rest_basis_component_delta":round(local_basis,7) if local_basis is not None else None,
             "max_world_rest_position_delta_m":round(world_delta,6) if world_delta is not None else None})
-    geometry=[]
-    def skin_primitive(report):
-        for mesh in report["mesh_nodes"]:
-            for primitive in mesh["primitives"]:
-                if (primitive["material"] or "").lower()=="skin": return primitive
-        return None
-    bp=skin_primitive(base)
+    def skin_data(report):
+        doc,bin=read_glb(Path(report["file"]))
+        for node in doc.get("nodes",[]):
+            if "mesh" not in node:continue
+            mesh=doc["meshes"][node["mesh"]]
+            for p in mesh.get("primitives",[]):
+                mi=p.get("material")
+                if mi is None or doc["materials"][mi].get("name","").lower()!="skin":continue
+                indices=[v[0] for v in accessor(doc,bin,p["indices"])]
+                positions=accessor(doc,bin,p["attributes"]["POSITION"])
+                used=sorted(set(indices))
+                return indices,{i:positions[i][:3] for i in used}
+        return None,None
+    base_indices,base_positions=skin_data(base); geometry=[]
     for r in reports:
-        p=skin_primitive(r)
-        geometry.append({"file":r["file"],"same_skin_face_index_data":bool(bp and p and bp["index_topology_sha256"]==p["index_topology_sha256"]),
-            "same_used_skin_positions":bool(bp and p and bp["used_position_sha256"]==p["used_position_sha256"]),
-            "base_skin_vertex_buffer_count":bp["vertices"] if bp else None,"skin_vertex_buffer_count":p["vertices"] if p else None,
-            "base_skin_used_vertex_count":bp["used_vertex_count"] if bp else None,"skin_used_vertex_count":p["used_vertex_count"] if p else None})
-    return {"baseline":base["file"],"comparisons":out,"skin_geometry_vs_baseline":geometry}
+        indices,positions=skin_data(r)
+        same_indices=bool(base_indices is not None and indices==base_indices)
+        deltas=[math.dist(base_positions[i],positions[i]) for i in base_positions if i in positions] if same_indices else []
+        geometry.append({"file":r["file"],"same_skin_face_index_data":same_indices,
+            "same_used_skin_positions":bool(same_indices and not any(d>1e-8 for d in deltas)),
+            "max_used_vertex_position_delta_m":round(max(deltas),7) if deltas else (0.0 if same_indices else None),
+            "mean_used_vertex_position_delta_m":round(sum(deltas)/len(deltas),7) if deltas else (0.0 if same_indices else None),
+            "base_skin_vertex_buffer_count":next((p["vertices"] for m in base["mesh_nodes"] for p in m["primitives"] if p["material"]=="Skin"),None),
+            "skin_vertex_buffer_count":next((p["vertices"] for m in r["mesh_nodes"] for p in m["primitives"] if p["material"]=="Skin"),None),
+            "base_skin_used_vertex_count":len(base_positions) if base_positions else 0,"skin_used_vertex_count":len(positions) if positions else 0})
+    base_clips={a["name"]:a["data_sha256"] for a in base["animations"]}; anim=[]
+    for r in reports:
+        clips={a["name"]:a["data_sha256"] for a in r["animations"]}
+        common=set(base_clips)&set(clips)
+        anim.append({"file":r["file"],"clip_count":len(clips),"same_clip_names":set(base_clips)==set(clips),
+            "identical_animation_curve_hashes":sum(base_clips[n]==clips[n] for n in common),"compared_clip_count":len(common)})
+    return {"baseline":base["file"],"comparisons":out,"skin_geometry_vs_baseline":geometry,"animation_curves_vs_baseline":anim}
 
 def main():
     ap=argparse.ArgumentParser()
