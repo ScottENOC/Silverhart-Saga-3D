@@ -24,11 +24,16 @@ tested in ordinary Python.
 | `rigid` | plate armour, rigid accessories | Essentially no stretch or body compression |
 | `loose_drape` | dresses, skirts, cloaks | Low material strain; preserve drape and openings |
 
-Each profile defines a comfortable strain, a hard maximum strain, a compression
-limit, body clearance, a maximum unintended gap, a coverage policy and a
-texture-response policy. Exceeding a hard limit must eventually fail fit
-validation or request another size/pattern; it must not silently stretch
-without limit.
+Each fabric profile defines comfortable and hard strain limits, a compression
+limit, body clearance, maximum unintended gap and texture response. Construction
+is resolved independently. This matters for a lace or fishnet bra: it is still
+open mesh (so its holes and texture must survive), but its cup perimeter,
+underbust band and straps are constrained support features. The system must not
+force that garment into either a generic lace profile or a generic solid-bra
+profile and lose the other half of its behaviour.
+
+Exceeding a hard strain limit must eventually fail fit validation or request
+another size/pattern; it must not silently stretch without limit.
 
 ## Fitting stages
 
@@ -53,7 +58,10 @@ without limit.
 
 The first vertical slice is in place:
 
-- Material names resolve to shared, explicit fit profiles.
+- Material names resolve to shared, explicit fabric profiles.
+- Fabric behaviour and garment construction are separate axes. For example,
+  fishnet halter bras retain open-mesh texture behaviour while exposing
+  structured cup/underbust/strap constraints.
 - A Blender-independent landmark correspondence module maps garment points to nearby body anchors with normalised weights, transfers body-shape landmark deltas to garment points, and rejects implausibly distant matches.
 - Profiles define bounded strain, compression, clearance, coverage and texture
   response policies.
