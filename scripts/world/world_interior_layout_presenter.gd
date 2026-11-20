@@ -125,7 +125,7 @@ static func present(
 	for bed_definition in definition.get("beds", []):
 		if not bed_definition is Dictionary or not bed_definition.get("hex") is Vector2i or not bed_definition.get("blanket") is Color:
 			return {"ok": false, "reason": "invalid_bed_definition"}
-		_present_bed(upper_interior, bed_definition, hex_radius, upper_floor_y)
+		_present_bed(upper_interior, bed_definition, materials, hex_radius, upper_floor_y)
 
 	var taproom := FEATURE_FACTORY.present(parent, taproom_definition, materials)
 	if taproom == null:
