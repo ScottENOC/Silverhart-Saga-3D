@@ -3,6 +3,7 @@ extends SceneTree
 const MAIN_CAMPAIGN_MAP = preload("res://scripts/world/main_campaign_world_map_data.gd")
 const HOLLOWMERE_VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
 const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
+const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 func _initialize() -> void:
     _test_village_uses_shared_vegetation_generator()
     _test_village_bounds_and_terrain()
@@ -93,7 +94,7 @@ func _test_building_definitions_use_shared_factory() -> void:
 
     var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
     village.call("_create_materials")
-    village.call("_create_buildings")
+    village.call("_present_authored_settlement")
     assert(village.get_node_or_null("GeneralStore") != null, "The general store should be factory-built")
     assert(village.get_node_or_null("GeneralStore/StoreSignPresentation/StoreSign") != null, "The store sign should remain a separate add-on feature")
     assert(village.get_node_or_null("Chapel/ChapelBellTowerPresentation/BellTower") != null, "The chapel bell tower should remain a separate add-on feature")
@@ -111,7 +112,7 @@ func _test_hollowmere_character_manifest() -> void:
     var manifest: Variant = JSON.parse_string(file.get_as_text())
     assert(manifest is Dictionary, "Hollowmere character manifest must be valid JSON")
     var characters: Array = manifest.get("characters", [])
-    assert(characters.size() == 21, "Expected 13 village profiles plus eight canonical campaign companions")
+    assert(characters.size() == 22, "Expected 13 village profiles, the player profile and eight canonical campaign companions")
     var ids: Dictionary = {}
     for profile in characters:
         assert(profile.has("id") and profile.has("game_id") and profile.has("params"))
@@ -121,10 +122,12 @@ func _test_hollowmere_character_manifest() -> void:
         for slider in ["gender", "age", "muscle", "weight", "height", "proportions"]:
             assert(params.has(slider), "%s is missing Ara slider %s" % [profile["id"], slider])
             assert(float(params[slider]) >= 0.0 and float(params[slider]) <= 1.0)
-        var coordinates: Array = profile["hex"]
-        var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
-        assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
-        assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % profile["id"])
+        if String(profile["role"]) == "player avatar":
+			continue
+		assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.has(String(profile["id"])), "%s must have one authored settlement start" % profile["id"])
+		var spawn: Vector2i = HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS[String(profile["id"])]
+		assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
+		assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % profile["id"])
     var companion_names := ["Ser Aldric Thorne", "Nix Sharpear", "Warlord Grukk Ironhide", "Reyna Fletcher", "Mirabel Quill", "Fenn Oakheart", "Brother Alden", "Snik Fangtooth"]
     var companion_count := 0
     for profile in characters:
@@ -150,7 +153,8 @@ func _test_main_campaign_world_map() -> void:
     for row in grid:
         assert(row.size() == 16, "Every strategic map row must have 16 cells")
 
-    assert(grid[0][0]["terrain"] == "ocean", "The western edge should be ocean")
+    for row in grid:
+        assert(row[0]["terrain"] == "ocean", "The western edge should be ocean")
     assert(grid[6][6]["faction"] == "humans", "Hollowmere should be in human lands")
     assert(grid[15][5]["faction"] == "elves", "The southern forest belt should be elven territory")
     assert(grid[1][14]["faction"] == "dwarves", "The north-east mountain block should be dwarven")
