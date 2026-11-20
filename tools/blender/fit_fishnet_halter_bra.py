@@ -27,6 +27,7 @@ def parse_args():
     raw = raw[raw.index("--") + 1:] if "--" in raw else []
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True)
+    parser.add_argument("--reference-rig", required=True, help="Original Ara garment GLB used to provide the reference skeleton anchors")
     parser.add_argument("--output", required=True)
     parser.add_argument("--report", required=True)
     parser.add_argument("--clearance", type=float, default=0.0035)
@@ -69,6 +70,95 @@ def make_skin_bvh(skin):
     return tree
 
 
+def bone_head_world(armature, name):
+    bone = armature.data.bones.get(name)
+    if bone is None:
+        raise RuntimeError(f"Required fit anchor bone is missing: {name}")
+    return armature.matrix_world @ bone.head_local
+
+
+def align_garment_to_character(selected, reference_path):
+    """Warp this exemplar from Ara's authored rig proportions to the target rig.
+
+    This is deliberately a per-garment anchor recipe, not a universal clothing
+    fitter. Spine2 is the chest placement anchor; shoulder span controls width
+    and the Spine2-to-Neck distance controls upper-torso height.
+    """
+    target_armature = next(
+        (obj for obj in bpy.context.scene.objects if obj.type == "ARMATURE"),
+        None,
+    )
+    if target_armature is None:
+        raise RuntimeError("Target companion GLB has no armature for bra anchors")
+
+    existing = set(bpy.context.scene.objects)
+    bpy.ops.import_scene.gltf(filepath=os.path.abspath(reference_path))
+    imported = [obj for obj in bpy.context.scene.objects if obj not in existing]
+    source_armature = next(
+        (obj for obj in imported if obj.type == "ARMATURE"),
+        None,
+    )
+    if source_armature is None:
+        raise RuntimeError("Reference Ara garment GLB has no armature")
+
+    try:
+        names = ("Spine2", "Neck", "LeftShoulder", "RightShoulder")
+        source = {name: bone_head_world(source_armature, name) for name in names}
+        target = {name: bone_head_world(target_armature, name) for name in names}
+
+        source_shoulder_span = (
+            source["LeftShoulder"] - source["RightShoulder"]
+        ).length
+        target_shoulder_span = (
+            target["LeftShoulder"] - target["RightShoulder"]
+        ).length
+        source_upper_torso = source["Neck"].z - source["Spine2"].z
+        target_upper_torso = target["Neck"].z - target["Spine2"].z
+        if min(source_shoulder_span, target_shoulder_span,
+               source_upper_torso, target_upper_torso) <= 1e-5:
+            raise RuntimeError("Bra anchor measurements are degenerate")
+
+        horizontal_scale = target_shoulder_span / source_shoulder_span
+        vertical_scale = target_upper_torso / source_upper_torso
+        source_anchor = source["Spine2"]
+        target_anchor = target["Spine2"]
+        scales = Vector((horizontal_scale, horizontal_scale, vertical_scale))
+
+        moved = 0
+        for obj, indices in selected.items():
+            inverse = obj.matrix_world.inverted()
+            for index in indices:
+                world = obj.matrix_world @ obj.data.vertices[index].co
+                relative = world - source_anchor
+                adapted = target_anchor + Vector((
+                    relative.x * scales.x,
+                    relative.y * scales.y,
+                    relative.z * scales.z,
+                ))
+                obj.data.vertices[index].co = inverse @ adapted
+                moved += 1
+            obj.data.update()
+
+        report = {
+            "method": "fishnet_halter_bra_authored_anchor_warp",
+            "reference": os.path.abspath(reference_path),
+            "anchor_bone": "Spine2",
+            "size_anchors": ["LeftShoulder", "RightShoulder", "Neck"],
+            "source_anchor_world": [round(float(v), 6) for v in source_anchor],
+            "target_anchor_world": [round(float(v), 6) for v in target_anchor],
+            "horizontal_scale": round(horizontal_scale, 6),
+            "vertical_scale": round(vertical_scale, 6),
+            "garment_vertices_warped": moved,
+            "body_geometry_modified": False,
+            "scope": "fishnet halter bra cups and straps only",
+        }
+        print("BRA ANCHOR ADAPTATION", json.dumps(report, indent=2), flush=True)
+        return report
+    finally:
+        for obj in imported:
+            bpy.data.objects.remove(obj, do_unlink=True)
+
+
 def main():
     args = parse_args()
     bpy.ops.object.select_all(action="SELECT")
@@ -90,6 +180,7 @@ def main():
     if not selected:
         raise RuntimeError("Fishnet halter bra material regions were not found")
 
+    anchor_report = align_garment_to_character(selected, args.reference_rig)
     tree = make_skin_bvh(skin)
     totals = {
         "vertices": 0, "penetrating": 0, "small_gaps": 0,
@@ -166,7 +257,8 @@ def main():
         "input": args.input,
         "output": args.output,
         "modified_materials": sorted(MATERIALS),
-        "starting_position": "authored Ara rest placement; no global repositioning",
+        "starting_position": "authored Ara placement adapted to target Spine2, shoulder-span and upper-torso anchors",
+        "anchor_adaptation": anchor_report,
         "correction_policy": {
             "clearance_m": args.clearance,
             "small_gap_limit_m": args.max_gap,
