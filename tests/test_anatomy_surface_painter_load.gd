@@ -14,6 +14,16 @@ func _run() -> void:
         assert(painter_labels.has(region_id), "Mask region %s is missing from the painter selector" % region_id)
     assert(painter_labels.size() == CharacterSurfaceRegionMask.REGION_IDS.size(),
         "Painter and runtime mask vocabularies contain different region counts")
+    var grouped_regions: Array = painter_constants.get("REGION_GROUPS", [])
+    var grouped_ids := PackedStringArray()
+    for group in grouped_regions:
+        for region_id in group["ids"]:
+            assert(not grouped_ids.has(String(region_id)), "Painter region appears in multiple groups: " + String(region_id))
+            grouped_ids.append(String(region_id))
+    assert(grouped_ids.size() == CharacterSurfaceRegionMask.REGION_IDS.size(),
+        "Painter selector groups do not cover every runtime region")
+    for region_id in CharacterSurfaceRegionMask.REGION_IDS:
+        assert(grouped_ids.has(region_id), "Painter selector group is missing " + region_id)
     var painter_scene := load("res://tools/anatomy_surface_painter.tscn") as PackedScene
     assert(painter_scene != null, "Anatomy surface painter scene failed to load")
     var input_router := load("res://tools/anatomy_surface_painter_input.gd") as Script
