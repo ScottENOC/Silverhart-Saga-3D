@@ -14,6 +14,13 @@ const POLYLINE_FEATURE_FACTORY = preload("res://scripts/world/world_polyline_fea
 const BRIDGE_FEATURE_FACTORY = preload("res://scripts/world/world_bridge_feature_factory.gd")
 const AGRICULTURAL_FEATURE_FACTORY = preload("res://scripts/world/world_agricultural_feature_factory.gd")
 const PROP_FEATURE_FACTORY = preload("res://scripts/world/world_prop_feature_factory.gd")
+const AUTHORED_SETTLEMENT_PRESENTER = preload("res://scripts/world/authored_settlement_presenter.gd")
+const HOLLOWMERE_SETTLEMENT = preload("res://data/settlements/hollowmere/settlement_definition.gd")
+const HOLLOWMERE_BUILDINGS = preload("res://data/settlements/hollowmere/buildings.gd")
+const HOLLOWMERE_ROUTES = preload("res://data/settlements/hollowmere/routes.gd")
+const HOLLOWMERE_BRIDGES = preload("res://data/settlements/hollowmere/bridges.gd")
+const HOLLOWMERE_AGRICULTURE = preload("res://data/settlements/hollowmere/agriculture.gd")
+const HOLLOWMERE_PROPS = preload("res://data/settlements/hollowmere/props.gd")
 var grass_material: StandardMaterial3D
 var path_material: StandardMaterial3D
 var water_material: StandardMaterial3D
@@ -33,13 +40,9 @@ var fence_material: StandardMaterial3D
 func _ready() -> void:
 	_create_materials()
 	_create_ground()
-	_create_paths_and_stream()
-	_create_buildings()
-	_create_farmstead()
+	_present_authored_settlement()
 	_create_farm_animals()
 	_create_wilderness_animals()
-	_create_bridge()
-	_create_signpost()
 	_create_forest()
 
 func _material(colour: Color, roughness: float = 0.9, metallic: float = 0.0) -> StandardMaterial3D:
@@ -81,225 +84,4 @@ func _create_ground() -> void:
 	ground.position.y = -0.22
 	ground.material_override = grass_material
 	add_child(ground)
-
-func _create_paths_and_stream() -> void:
-	# Route definitions live with Hollowmere's authored data. The shared renderer
-	# creates only presentation ribbons; axial path occupancy remains authoritative.
-	POLYLINE_FEATURE_FACTORY.render_features(
-		self,
-		HollowmereVillageData.PRESENTATION_ROUTES,
-		{"path": path_material, "water": water_material, "bank": riverbank_material},
-		HEX_RADIUS
-	)
-
-func _add_hex_surface(node_name: String, cells: Array[Vector2i], material: Material, elevation: float) -> void:
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var corners := HexGrid.corner_offsets(HEX_RADIUS * 1.005)
-	for hex in cells:
-		var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
-		for i in range(HexGrid.SIDE_COUNT):
-			var next_i := (i + 1) % HexGrid.SIDE_COUNT
-			surface.set_normal(Vector3.UP)
-			surface.add_vertex(centre)
-			surface.add_vertex(centre + Vector3(corners[next_i].x, 0.0, corners[next_i].y))
-			surface.add_vertex(centre + Vector3(corners[i].x, 0.0, corners[i].y))
-	var mesh := surface.commit()
-	if mesh == null:
-		return
-	var instance := MeshInstance3D.new()
-	instance.name = node_name
-	instance.mesh = mesh
-	instance.material_override = material
-	add_child(instance)
-
-func _create_buildings() -> void:
-	# The authored settlement definitions own both footprints and presentation.
-	for definition in HollowmereVillageData.BUILDINGS:
-		var building_id := String(definition.get("id", ""))
-		if building_id in ["old_mac_farmhouse", "old_mac_barn"]:
-			continue
-		_create_authored_building(definition)
-	_create_landmark_props()
-
-func _create_authored_building(definition: Dictionary) -> Node3D:
-	return WORLD_BUILDING_FACTORY.create_building(self, {"id": "hollowmere"}, definition)
-
-func _create_farmstead() -> void:
-	# The southern signposted road reaches Old Mac's working farm.
-	for definition in HollowmereVillageData.BUILDINGS:
-		if String(definition.get("id", "")) == "old_mac_farmhouse":
-			_create_authored_building(definition)
-			break
-	for definition in HollowmereVillageData.BUILDINGS:
-		if String(definition.get("id", "")) == "old_mac_barn":
-			_create_authored_building(definition)
-			break
-
-	# Agricultural presentation is driven by authored data and a shared renderer.
-	AGRICULTURAL_FEATURE_FACTORY.render_features(
-		self,
-		HollowmereVillageData.FARM_FIELDS,
-		HollowmereVillageData.FARM_CROP_ROWS,
-		HollowmereVillageData.FARM_FENCES,
-		{"field": field_material, "pasture": pasture_material, "crop": crop_material, "fence": fence_material},
-		HEX_RADIUS
-	)
-	_create_quest_props()
-
-func _create_farm_animals() -> void:
-	# Old Mac's surviving herd occupies the fenced southern pasture.
-	_spawn_creature("FarmCowA", "cow", "farm", Vector2i(5, 66), 0.82)
-	_spawn_creature("FarmCowB", "cow", "farm", Vector2i(10, 69), 0.82)
-	_spawn_creature("FarmCowC", "cow", "farm", Vector2i(13, 64), 0.82)
-	# A farm horse is present as a visible future mount candidate.
-	_spawn_creature("FarmHorse", "horse", "mount", Vector2i(24, 57), 0.82)
-	# A second coat variant and a small farm dog use their own original glTF scenes.
-	_spawn_creature("FarmWhiteHorse", "horse", "mount", Vector2i(27, 61), 0.82, "Horse_White.gltf")
-	_spawn_creature("FarmShiba", "shiba_inu", "farm", Vector2i(19, 60), 0.48, "ShibaInu.gltf")
-
-func _create_wilderness_animals() -> void:
-	# Ambient wildlife is placed in the outer forest belt, away from the
-	# settlement, farm and roads. These are presentation actors; encounter
-	# spawning and combat ownership remain with the world simulation.
-	_spawn_creature("WildernessDeer", "deer", "passive_wildlife", Vector2i(-34, 18), 0.78)
-	_spawn_creature("WildernessStag", "stag", "passive_wildlife", Vector2i(37, -12), 0.82)
-	_spawn_creature("WildernessFox", "fox", "passive_wildlife", Vector2i(-29, -30), 0.72)
-	_spawn_creature("WildernessWolf", "wolf", "predator", Vector2i(39, 39), 0.76)
-
-## Registers the existing exterior animal actors in the campaign simulation.
-## They remain neutral and dormant until an encounter explicitly activates them.
-func register_animals_with_simulation(simulation: WorldSimulation) -> Dictionary:
-	if simulation == null:
-		return {"ok": false, "reason": "missing_simulation", "registered_ids": []}
-	var registered_ids: Array[String] = []
-	var skipped: Array[Dictionary] = []
-	for child in get_children():
-		var actor := child as CreatureActor
-		if actor == null:
-			continue
-		var animal_id := "animal_" + actor.name.to_lower()
-		var existing_state := simulation.get_character(animal_id)
-		if existing_state != null:
-			if existing_state.race != "animal" or existing_state.creature_kind != actor.creature_kind:
-				skipped.append({"actor": actor.name, "reason": "existing_state_profile_mismatch"})
-				continue
-			# Save restoration may have registered this animal before WorldRoot
-			# reconnects the exterior presentation actor. Bind to the restored
-			# state and restore its saved position/facing without resetting status.
-			actor.simulation_state = existing_state
-			actor.axial_hex = existing_state.axial
-			actor.position = HexGrid.axial_to_world(existing_state.axial, HEX_RADIUS, 0.0)
-			actor.rotation.y = deg_to_rad(float(2 - existing_state.facing_direction) * 60.0)
-			registered_ids.append(existing_state.id)
-			continue
-		var state := actor.create_simulation_state(animal_id, actor.name, actor.axial_hex)
-		if state == null:
-			skipped.append({"actor": actor.name, "reason": "missing_animal_profile"})
-			continue
-		state.side = "neutral"
-		state.combat_dormant = true
-		if not state.tags.has("ambient_animal"):
-			state.tags.append("ambient_animal")
-		var result := simulation.register_animal(state)
-		if not bool(result.get("ok", false)):
-			skipped.append({"actor": actor.name, "reason": String(result.get("reason", "registration_failed"))})
-			continue
-		actor.simulation_state = state
-		registered_ids.append(state.id)
-	return {"ok": skipped.is_empty(), "registered_ids": registered_ids, "skipped": skipped}
-
-func _spawn_creature(actor_name: String, kind: String, behaviour_name: String, hex: Vector2i, scale_factor: float, asset_filename: String = "") -> void:
-	var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
-	actor.name = actor_name
-	actor.creature_kind = kind
-	actor.behaviour = behaviour_name
-	actor.axial_hex = hex
-	actor.add_to_group("creature_actors")
-	actor.model_scale = scale_factor
-	var filename := asset_filename if not asset_filename.is_empty() else "%s.gltf" % kind.capitalize()
-	actor.model_path = "res://art/creatures/quaternius/%s" % filename
-	actor.position = HexGrid.axial_to_world(hex, HEX_RADIUS, 0.0)
-	actor.rotation.y = deg_to_rad(float(posmod(hex.x * 37 + hex.y * 19, 360)))
-	add_child(actor)
-
-func _create_bridge() -> void:
-	BRIDGE_FEATURE_FACTORY.create_bridge(
-		self,
-		HollowmereVillageData.BRIDGE_PRESENTATION,
-		{"timber": timber_material, "dark_wood": dark_wood_material},
-		HEX_RADIUS
-	)
-
-func _create_landmark_props() -> void:
-	PROP_FEATURE_FACTORY.render_features(
-		self, HollowmereVillageData.LANDMARK_PROPS,
-		{"dark_wood": dark_wood_material, "stone": stone_material, "timber": timber_material},
-		HEX_RADIUS
-	)
-
-func _create_quest_props() -> void:
-	PROP_FEATURE_FACTORY.render_features(
-		self, HollowmereVillageData.QUEST_PROPS,
-		{"fence": fence_material, "dark_wood": dark_wood_material, "blood": _material(Color(0.22, 0.045, 0.025))},
-		HEX_RADIUS
-	)
-
-func _create_signpost() -> void:
-	PROP_FEATURE_FACTORY.render_features(
-		self, HollowmereVillageData.WAYFINDING_PROPS,
-		{"dark_wood": dark_wood_material, "timber": timber_material},
-		HEX_RADIUS
-	)
-
-func _create_forest() -> void:
-	# Hollowmere supplies local terrain/biome rules; the shared world generator
-	# owns candidate placement, deterministic variation and model instancing.
-	WORLD_VEGETATION_SCRIPT.generate_hex_grid(
-		self, -96, 96, -96, 96, 4, HEX_RADIUS,
-		Callable(self, "_is_forest_candidate"),
-		HEARTLAND_BIOMES.FOREST_DENSITY_OFFSET, HEARTLAND_BIOMES.FOREST_DENSITY_THRESHOLD,
-		Callable(self, "_select_cosmo_tree_family"),
-		0.78, 0.46, "HollowmereTree"
-	)
-
-	# Understorey uses the same generator and catalogue, with a sparser pass.
-	WORLD_VEGETATION_SCRIPT.generate_hex_grid(
-		self, -96, 96, -96, 96, 8, HEX_RADIUS,
-		Callable(self, "_is_understorey_candidate"),
-		HEARTLAND_BIOMES.UNDERSTOREY_DENSITY_OFFSET, HEARTLAND_BIOMES.UNDERSTOREY_DENSITY_THRESHOLD,
-		Callable(self, "_select_understorey_family"),
-		0.68, 0.48, "HollowmereUnderstorey", true
-	)
-
-func _is_forest_candidate(hex: Vector2i) -> bool:
-	return HollowmereVillageData.is_forest_candidate(hex)
-
-func _is_understorey_candidate(hex: Vector2i) -> bool:
-	return HollowmereVillageData.is_forest_candidate(hex) and not HollowmereVillageData.has_tree(hex)
-
-func _select_understorey_family(hex: Vector2i, density_roll: float) -> String:
-	return HEARTLAND_BIOMES.select_understorey_family(_is_near_village_stream(hex, 7.0), density_roll)
-
-func _select_cosmo_tree_family(hex: Vector2i, _density_roll: float = 0.0) -> String:
-	return HEARTLAND_BIOMES.select_tree_family(hex, _is_near_village_stream(hex, 7.0))
-
-func _is_near_village_stream(hex: Vector2i, distance: float) -> bool:
-	return HEARTLAND_BIOMES.is_near_stream(
-		hex, distance, HollowmereVillageData._river_centre_r(hex.x)
-	)
-
-func _add_box(parent: Node3D, node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
-	var instance := MeshInstance3D.new()
-	instance.name = node_name
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	instance.mesh = mesh
-	instance.position = position
-	instance.material_override = material
-	parent.add_child(instance)
-	return instance
-
-func add_child_to(parent: Node3D, child: Node) -> void:
-	parent.add_child(child)
 
