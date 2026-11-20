@@ -67,8 +67,8 @@ func configure(character_root: Node3D, body_root: Node3D) -> bool:
             _configuration_error = "Expected ArrayMesh on %s" % mesh_instance.name
             _surfaces.clear()
             return false
-        if array_mesh.blend_shape_mode != Mesh.BLEND_SHAPE_MODE_RELATIVE:
-            _configuration_error = "Unsupported blend-shape mode on %s; expected RELATIVE" % mesh_instance.name
+        if array_mesh.blend_shape_mode not in [Mesh.BLEND_SHAPE_MODE_NORMALIZED, Mesh.BLEND_SHAPE_MODE_RELATIVE]:
+            _configuration_error = "Unsupported blend-shape mode on %s" % mesh_instance.name
             _surfaces.clear()
             return false
         var skin := mesh_instance.skin
@@ -248,10 +248,16 @@ func _evaluate_vertex(surface: Dictionary, vertex_index: int) -> Dictionary:
         var shape_arrays: Array = blend_arrays[shape_index]
         var position_deltas: PackedVector3Array = shape_arrays[Mesh.ARRAY_VERTEX]
         if position_deltas.size() == vertices.size():
-            local_position += position_deltas[vertex_index] * shape_weight
+            if (mesh_instance.mesh as ArrayMesh).blend_shape_mode == Mesh.BLEND_SHAPE_MODE_NORMALIZED:
+                local_position += (position_deltas[vertex_index] - vertices[vertex_index]) * shape_weight
+            else:
+                local_position += position_deltas[vertex_index] * shape_weight
         var normal_deltas: PackedVector3Array = shape_arrays[Mesh.ARRAY_NORMAL]
         if normal_deltas.size() == normals.size():
-            local_normal += normal_deltas[vertex_index] * shape_weight
+            if (mesh_instance.mesh as ArrayMesh).blend_shape_mode == Mesh.BLEND_SHAPE_MODE_NORMALIZED:
+                local_normal += (normal_deltas[vertex_index] - normals[vertex_index]) * shape_weight
+            else:
+                local_normal += normal_deltas[vertex_index] * shape_weight
 
     var character_position := Vector3.ZERO
     var character_normal := Vector3.ZERO
