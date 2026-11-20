@@ -220,7 +220,7 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 		"name": "Rurik",
 		"body_base": "male",
 		"appearance": {
-			"gender_presentation": "Masculine",
+			"gender_presentation": "Feminine",
 			"height_scale": 1.03,
 			"build_scale": 1.045,
 			"hair_style": "short02"
