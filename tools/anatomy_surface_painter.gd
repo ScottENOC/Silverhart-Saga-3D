@@ -25,6 +25,7 @@ const REGION_PAIRS := {
     "buttock_left": "buttock_right", "buttock_right": "buttock_left"
 }
 const MASK_DIRECTORY := "res://data/characters/anatomy_masks"
+const MASK_MANIFEST_PATH := "res://data/characters/anatomy_masks/manifest.tres"
 
 var _viewport_container: SubViewportContainer
 var _viewport: SubViewport
@@ -630,9 +631,34 @@ func _save_mask() -> void:
     if save_error != OK:
         _set_status("ResourceSaver failed (error %d)" % save_error)
         return
+    if not _register_saved_mask(path, mask):
+        _set_status("Mask saved, but manifest registration failed. Check manifest.tres before using it in-game.")
+        return
     _weights_by_region = nonempty
     descriptor["weights"] = _weights_by_region
     _set_status("Saved and validated %s (%d semantic regions)" % [path, nonempty.size()])
+
+
+func _register_saved_mask(mask_path: String, saved_mask: CharacterSurfaceRegionMask) -> bool:
+    var manifest := load(MASK_MANIFEST_PATH) as CharacterSurfaceRegionMaskManifest
+    if manifest == null:
+        _set_status("Could not load anatomy mask manifest: " + MASK_MANIFEST_PATH)
+        return false
+    var updated_masks: Array[Resource] = []
+    for existing_resource in manifest.masks:
+        if existing_resource is CharacterSurfaceRegionMask:
+            var existing_mask := existing_resource as CharacterSurfaceRegionMask
+            if existing_mask.body_asset_path == saved_mask.body_asset_path \
+                    and existing_mask.mesh_node_path == saved_mask.mesh_node_path \
+                    and existing_mask.surface_index == saved_mask.surface_index:
+                continue
+        updated_masks.append(existing_resource)
+    var registered_mask := load(mask_path) as CharacterSurfaceRegionMask
+    if registered_mask == null:
+        return false
+    updated_masks.append(registered_mask)
+    manifest.masks = updated_masks
+    return ResourceSaver.save(manifest, MASK_MANIFEST_PATH) == OK
 
 
 func _frame_body() -> void:
