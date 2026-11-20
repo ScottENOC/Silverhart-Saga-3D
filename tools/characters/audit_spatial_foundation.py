@@ -56,8 +56,10 @@ def audit(path):
         joints=[]
         for ji in s.get("joints",[]):
             n=nodes[ji]; p=parents.get(ji); wm=world(ji)
+            lm=local_matrix(n)
             joints.append({"name":n.get("name",f"node_{ji}"),"parent":nodes[p].get("name") if p is not None else None,
-                "local_translation":n.get("translation",[0,0,0]),"rest_world_position":[round(wm[k][3],6) for k in range(3)]})
+                "local_translation":n.get("translation",[0,0,0]),"local_matrix":lm,
+                "rest_world_position":[round(wm[k][3],6) for k in range(3)]})
         skins.append({"name":s.get("name",f"skin_{si}"),"joint_count":len(joints),"joints":joints})
     meshes=[]
     for ni,n in enumerate(nodes):
@@ -65,12 +67,18 @@ def audit(path):
         m=doc["meshes"][n["mesh"]]; prims=[]
         for pi,p in enumerate(m.get("primitives",[])):
             a=p.get("attributes",{}); vc=doc["accessors"][a["POSITION"]]["count"] if "POSITION" in a else 0
-            ih=None; ic=0
+            ih=None; ic=0; used=[]; pos_hash=None
             if "indices" in p:
                 rows=accessor(doc,bin,p["indices"]); ic=len(rows)
                 ih=hashlib.sha256(b"".join(struct.pack("<I",v[0]) for v in rows)).hexdigest()
+                used=sorted(set(v[0] for v in rows))
+                if "POSITION" in a:
+                    positions=accessor(doc,bin,a["POSITION"])
+                    pos_hash=hashlib.sha256(b"".join(struct.pack("<fff",*positions[i][:3]) for i in used)).hexdigest()
             mi=p.get("material"); mat=doc.get("materials",[])[mi].get("name") if mi is not None else None
             prims.append({"primitive":pi,"material":mat,"vertices":vc,"indices":ic,"index_topology_sha256":ih,
+                "used_vertex_count":len(used),"max_used_vertex_index":max(used) if used else None,
+                "used_position_sha256":pos_hash,
                 "joint_attributes":{k:doc["accessors"][v]["count"] for k,v in a.items() if k.startswith("JOINTS_")},
                 "weight_attributes":{k:doc["accessors"][v]["count"] for k,v in a.items() if k.startswith("WEIGHTS_")},
                 "morph_target_count":len(p.get("targets",[]))})
@@ -97,18 +105,38 @@ def audit(path):
         "animations":animations,"animation_count":len(animations)}
 
 def compare(reports):
-    base=next((r for r in reports if r["skins"]),None)
+    base=next((r for r in reports if Path(r["file"]).name=="ara_person_body.glb"),None)
+    if base is None: base=next((r for r in reports if r["skins"]),None)
     if not base:return {"baseline":None,"comparisons":[]}
-    bj=base["skins"][0]["joints"]; out=[]
+    bj=base["skins"][0]["joints"]; bmap={b["name"]:b for b in bj}; out=[]
     for r in reports:
         if not r["skins"]:out.append({"file":r["file"],"compatible":False,"reason":"no skin"});continue
-        jj=r["skins"][0]["joints"]; names=[b["name"] for b in bj]==[b["name"] for b in jj]
-        parents=[b["parent"] for b in bj]==[b["parent"] for b in jj]
-        delta=max((math.dist(a["rest_world_position"],b["rest_world_position"]) for a,b in zip(bj,jj)),default=0) if names else None
-        out.append({"file":r["file"],"bone_count":len(jj),"same_bone_names_and_order":names,
-            "same_parent_hierarchy":parents,"max_world_rest_position_delta_m":round(delta,6) if delta is not None else None,
-            "within_25mm":delta<=.025 if delta is not None else False})
-    return {"baseline":base["file"],"comparisons":out}
+        jj=r["skins"][0]["joints"]; jmap={b["name"]:b for b in jj}
+        same_set=set(bmap)==set(jmap)
+        same_order=[b["name"] for b in bj]==[b["name"] for b in jj]
+        same_hierarchy=same_set and all(bmap[n]["parent"]==jmap[n]["parent"] for n in bmap)
+        local_t=max((math.dist(bmap[n]["local_translation"],jmap[n]["local_translation"]) for n in bmap if n in jmap),default=None) if same_set else None
+        local_basis=max((max(abs(bmap[n]["local_matrix"][i][j]-jmap[n]["local_matrix"][i][j]) for i in range(3) for j in range(3)) for n in bmap if n in jmap),default=None) if same_set else None
+        world_delta=max((math.dist(bmap[n]["rest_world_position"],jmap[n]["rest_world_position"]) for n in bmap if n in jmap),default=None) if same_set else None
+        out.append({"file":r["file"],"bone_count":len(jj),"same_bone_name_set":same_set,
+            "same_skin_joint_order":same_order,"same_parent_hierarchy_by_name":same_hierarchy,
+            "max_local_rest_translation_delta_m":round(local_t,6) if local_t is not None else None,
+            "max_local_rest_basis_component_delta":round(local_basis,7) if local_basis is not None else None,
+            "max_world_rest_position_delta_m":round(world_delta,6) if world_delta is not None else None})
+    geometry=[]
+    def skin_primitive(report):
+        for mesh in report["mesh_nodes"]:
+            for primitive in mesh["primitives"]:
+                if (primitive["material"] or "").lower()=="skin": return primitive
+        return None
+    bp=skin_primitive(base)
+    for r in reports:
+        p=skin_primitive(r)
+        geometry.append({"file":r["file"],"same_skin_face_index_data":bool(bp and p and bp["index_topology_sha256"]==p["index_topology_sha256"]),
+            "same_used_skin_positions":bool(bp and p and bp["used_position_sha256"]==p["used_position_sha256"]),
+            "base_skin_vertex_buffer_count":bp["vertices"] if bp else None,"skin_vertex_buffer_count":p["vertices"] if p else None,
+            "base_skin_used_vertex_count":bp["used_vertex_count"] if bp else None,"skin_used_vertex_count":p["used_vertex_count"] if p else None})
+    return {"baseline":base["file"],"comparisons":out,"skin_geometry_vs_baseline":geometry}
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument("--root",default="art/characters");ap.add_argument("--output",default="character-spatial-audit");a=ap.parse_args()
