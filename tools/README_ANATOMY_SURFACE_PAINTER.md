@@ -34,7 +34,7 @@ Saved resources are discovered automatically by `CharacterSurfaceRegionMaskLibra
 ## Current limitations
 
 - The tool paints the canonical imported rest-pose mesh. It does not author dynamic morph-specific masks or pose-specific masks.
-- The first version paints vertices by a 3D Euclidean brush radius, not by geodesic distance over the surface. On thin or closely opposed body surfaces, inspect the far side for unintended paint.
+- The first version paints vertices by a 3D Euclidean brush radius, not by geodesic distance over the surface. A surface-normal hemisphere filter suppresses most opposite-facing hits, but closely folded or adjacent surfaces can still be affected; inspect the far side for unintended paint.
 - Mirror matching is geometric nearest-neighbour matching, not a guaranteed topological correspondence. Check the reported match count and visually inspect both sides.
 - The marker overlay is a vertex point cloud, not a continuous heatmap. Use multiple viewing angles and small brushes for boundaries.
 - It does not automatically infer anatomical labels. Production labels require human visual judgement and review, including checks against Reyna and Dagna.
