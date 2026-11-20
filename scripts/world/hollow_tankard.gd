@@ -17,6 +17,7 @@ const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
+const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const TAVERN_BUILDING_ID := "hollow_tankard"
 const TAVERN_FRONT_DOOR_ID := "hollow_tankard_front_door"
 const TAVERN_DOOR_HEX := Vector2i(0, 3)
@@ -52,6 +53,9 @@ var spell_vfx: Node3D
 var save_load_menu: CanvasLayer
 var pending_save_data: Dictionary = {}
 var initial_character_baselines: Dictionary = {}
+
+func _save_manager_service() -> Node:
+	return get_node_or_null("/root/SaveManager")
 var autosave_accumulator: float = 0.0
 var reaction_prompt: CanvasLayer
 var initiative_timeline: CombatInitiativeTimeline
@@ -138,7 +142,9 @@ func _ready() -> void:
         if not shakedown_started:
             _run_opening_sequence()
     else:
-        SaveManager.save_autosave(_build_save_snapshot())
+        var save_manager := _save_manager_service()
+        if save_manager != null:
+            save_manager.call("save_autosave", _build_save_snapshot())
         _run_opening_sequence()
 
 func _create_materials() -> void:
@@ -1083,15 +1089,23 @@ func _quick_save() -> void:
     if simulation.is_in_combat or simulation.has_pending_reaction() or dialogue_open or (shakedown_started and not shakedown_resolved):
         _show_save_notice("Quick save unavailable during combat, dialogue or the opening confrontation.")
         return
-    var result := SaveManager.save_quick(_build_save_snapshot())
+    var save_manager := _save_manager_service()
+    if save_manager == null:
+        _show_save_notice("Save service is unavailable.")
+        return
+    var result: Dictionary = save_manager.call("save_quick", _build_save_snapshot())
     _show_save_notice("Quick save complete." if bool(result.get("ok", false)) else "Quick save failed: %s" % String(result.get("reason", "unknown error")))
 
 func _quick_load() -> void:
-    var result := SaveManager.load_snapshot(SaveManager.QUICK_SLOT)
+    var save_manager := _save_manager_service()
+    if save_manager == null:
+        _show_save_notice("Save service is unavailable.")
+        return
+    var result: Dictionary = save_manager.call("load_snapshot", SAVE_MANAGER_SCRIPT.QUICK_SLOT)
     if not bool(result.get("ok", false)):
         _show_save_notice("No usable quick save: %s" % String(result.get("reason", "unknown error")))
         return
-    SaveManager.set_pending_load(result["snapshot"])
+    save_manager.call("set_pending_load", result["snapshot"])
     get_tree().change_scene_to_file("res://scenes/main.tscn")
 
 func _show_save_notice(message: String) -> void:
@@ -2173,7 +2187,9 @@ func _process(delta: float) -> void:
         autosave_accumulator += delta
         if autosave_accumulator >= 300.0:
             autosave_accumulator = 0.0
-            SaveManager.save_autosave(_build_save_snapshot())
+            var save_manager := _save_manager_service()
+            if save_manager != null:
+                save_manager.call("save_autosave", _build_save_snapshot())
     _update_ambient_chatter(delta)
     _check_reyna_story_proximity()
     _check_farm_wolf_proximity()
