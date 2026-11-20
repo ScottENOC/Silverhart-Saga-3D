@@ -16,8 +16,8 @@ func _ready() -> void:
 		_spawn_variant(variant)
 
 func _spawn_variant(variant: Dictionary) -> void:
-	var creature := CREATURE_FACTORY.create_creature(
-		"ashwing_drake_lite",
+	var creature := CREATURE_FACTORY.create_species(
+		"dragon",
 		{
 			"instance_name": String(variant["name"]).replace(" ", ""),
 			"size": variant["size"],
