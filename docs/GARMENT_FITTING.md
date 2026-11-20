@@ -54,21 +54,24 @@ without limit.
 The first vertical slice is in place:
 
 - Material names resolve to shared, explicit fit profiles.
+- A Blender-independent landmark correspondence module maps garment points to nearby body anchors with normalised weights, transfers body-shape landmark deltas to garment points, and rejects implausibly distant matches.
 - Profiles define bounded strain, compression, clearance, coverage and texture
   response policies.
 - The existing Blender anatomy fitting pass now uses profile-specific body
   clearance rather than one hard-coded upper/lower clearance value.
 - The pass logs the number of affected vertices, initial penetrations and
   correction distances for each material profile.
-- Pure-Python unit tests cover material resolution, profile isolation and
-  basic fit classification.
+- Pure-Python unit tests cover material resolution, profile isolation, strain estimation, threshold classification and landmark correspondence.
 - The existing body-unchanged validator remains a mandatory gate after
   modular garment assembly.
 
 This is intentionally not yet full cloth simulation. The current geometry
-adapter still performs a conservative surface-clearance correction; it does
-not yet solve panel stretch, pattern deformation, gap filling or body
-compression. Those are subsequent stages, and must be introduced with
+adapter still performs a conservative surface-clearance correction and reports
+an approximate local strain induced by that correction. The correspondence
+module is currently a tested primitive; the Ara Blender adapter does not yet
+supply live landmark positions or apply those weights to garment meshes. The
+pipeline does not yet solve panel stretch, pattern deformation, gap filling or
+body compression. Those are subsequent stages, and must be introduced with
 measurable acceptance tests rather than hidden inside a generic offset.
 
 ## Required test matrix
