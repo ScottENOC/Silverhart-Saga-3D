@@ -162,7 +162,7 @@ func _test_world_clock() -> void:
     _check(restored.tick_index == clock.tick_index)
     _check(is_equal_approx(restored.world_seconds, clock.world_seconds))
 
-func _test_wilderness_resources_and_chunk_streaming() -> void:
+func _test_wilderness_resources() -> void:
     var simulation := WorldSimulation.new()
     var player := CharacterState.new("gatherer", "Gatherer", Vector2i(0, 0))
     var pickaxe := ItemCatalog.create_instance("pickaxe", "test_pickaxe")
