@@ -58,7 +58,7 @@ func _test_semantic_bone_resolution() -> void:
     ]:
         _check(anatomy.has_landmark(landmark_id), "Semantic landmark did not resolve: " + landmark_id)
     var head_transform: Transform3D = anatomy.get_landmark_transform("head")
-    _check(head_transform is Transform3D, "Landmark query should return a Transform3D")
+    _check(head_transform.origin == Vector3.ZERO, "Synthetic head landmark should resolve in character-local coordinates")
     character_root.free()
 
 
