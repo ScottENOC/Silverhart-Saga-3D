@@ -13,6 +13,7 @@ const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_ca
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
+const WORLD_CELL_LOADER_SCRIPT = preload("res://scripts/world/campaign2_world_cell_loader.gd")
 const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
 const INTERIOR_FEATURE_FACTORY = preload("res://scripts/world/world_interior_feature_factory.gd")
 const HOLLOW_TANKARD_TAPROOM = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_taproom.gd")
@@ -52,6 +53,7 @@ const ROOM_HALF_WIDTH: float = 8.0
 const ROOM_HALF_DEPTH: float = 5.5
 
 var simulation: WorldSimulation
+var world_cell_loader: Campaign2WorldCellLoader
 var spell_vfx: Node3D
 var save_load_menu: CanvasLayer
 var pending_save_data: Dictionary = {}
@@ -205,7 +207,12 @@ func _configure_location_simulation() -> void:
 		return
 	simulation.clock.ticked.connect(_on_world_clock_ticked)
 	simulation.action_committed.connect(_on_simulation_action_committed)
-	# Hollowmere, its outlying homes, stream crossing and crossroads share one continuous axial grid.
+	# Materialise the opening area through the same world provider used by the
+	# regional preview. Hollowmere is no longer a bypassed special-case radius.
+	world_cell_loader = WORLD_CELL_LOADER_SCRIPT.new() as Campaign2WorldCellLoader
+	world_cell_loader.load_around(simulation.map_data, Vector2i.ZERO, 4)
+	# Apply tavern-specific interior walls/furniture as local gameplay overlays;
+	# terrain, paths, water, buildings and vegetation come from the world provider.
 	for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
 		for r in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
 			var hex := Vector2i(q, r)
@@ -214,8 +221,10 @@ func _configure_location_simulation() -> void:
 			var world := HexGrid.axial_to_world(hex, HEX_RADIUS)
 			var inside_room: bool = absf(world.x) < ROOM_HALF_WIDTH - 0.2 and absf(world.z) < ROOM_HALF_DEPTH - 0.2
 			var blocked: bool = _is_wall_cell_blocked(world) or (inside_room and _is_furniture_cell_blocked(world)) or HollowmereVillageData.is_blocked(hex)
-			var terrain_id := "timber_floor" if inside_room else HollowmereVillageData.terrain_id_at(hex)
-			simulation.map_data.add_cell(hex, 0.0, not blocked, terrain_id)
+			if inside_room:
+				simulation.map_data.add_cell(hex, 0.0, not blocked, "timber_floor")
+			else:
+				simulation.map_data.set_walkable(hex, not blocked)
 
 	# Keep this location's authored building and floor geometry here, but
 	# delegate registration and map-cell creation to the reusable framework.
