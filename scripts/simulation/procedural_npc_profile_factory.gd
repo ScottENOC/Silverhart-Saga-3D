@@ -22,8 +22,10 @@ static func create_profile(character_id: String, display_name: String, context: 
         facial_hair = ["stubble", "mustache", "goatee", "short_beard"][rng.randi_range(0, 3)]
     var tattoos: Array[Dictionary] = []
     if age >= 0.34375 and rng.randf() < 0.07:
-        tattoos.append({"design": "mirabel_arcane"})
+        tattoos.append({"design": "mirabel_arcane" if rng.randf() < 0.5 else "reyna_shoulder_back"})
     var piercings: Array[String] = []
+    if rng.randf() < 0.10:
+        piercings.append("earrings")
     if age >= 0.34375 and rng.randf() < 0.004:
         piercings.append("nipple_left")
     if age >= 0.34375 and rng.randf() < 0.001:
@@ -36,7 +38,7 @@ static func create_profile(character_id: String, display_name: String, context: 
     var bottom := bottom_options[rng.randi_range(0, bottom_options.size() - 1)]
     var top_colour := _earth_tone(rng)
     var bottom_colour := _earth_tone(rng)
-    var hair_styles := ["short02", "short03", "short04", "long01", "bob02", "buzz", "cornrows", "box_braids", "mohawk", "braid01"]
+    var hair_styles := ["afro01", "bob01", "bob02", "braid01", "short01", "short02", "short03", "short04", "long01", "ponytail01", "buzz", "cornrows", "box_braids", "mohawk"]
     var params := {
         "seed": int(hash(character_id)),
         "gender": gender,
