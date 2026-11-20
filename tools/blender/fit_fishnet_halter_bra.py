@@ -163,7 +163,7 @@ def detect_breast_surface_anchors(skin, armature):
         outer_y = sorted(bucket["outer"])[len(bucket["outer"]) // 2]
         baseline_y = (centre_y + outer_y) * 0.5
         for side in ("L", "R"):
-            points = bucket[side.lower()]
+            points = bucket["left" if side == "L" else "right"]
             if not points:
                 continue
             point, normal = min(points, key=lambda item: item[0].y)
