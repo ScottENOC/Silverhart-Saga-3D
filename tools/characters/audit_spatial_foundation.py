@@ -58,7 +58,7 @@ def audit(path):
             n=nodes[ji]; p=parents.get(ji); wm=world(ji)
             lm=local_matrix(n)
             joints.append({"name":n.get("name",f"node_{ji}"),"parent":nodes[p].get("name") if p is not None else None,
-                "local_translation":n.get("translation",[0,0,0]),"local_matrix":lm,
+                "local_translation":[lm[k][3] for k in range(3)],"local_matrix":lm,
                 "rest_world_position":[round(wm[k][3],6) for k in range(3)]})
         skins.append({"name":s.get("name",f"skin_{si}"),"joint_count":len(joints),"joints":joints})
     meshes=[]
@@ -91,7 +91,18 @@ def audit(path):
         for c in a.get("channels",[]):
             t=c.get("target",{}); ni=t.get("node")
             targets.append({"node":nodes[ni].get("name") if ni is not None else None,"path":t.get("path")})
-        animations.append({"name":a.get("name","unnamed"),"channel_count":len(targets),"targets":targets})
+        signature_rows=[]
+        for channel in a.get("channels",[]):
+            sampler=a.get("samplers",[])[channel["sampler"]]
+            inp=accessor(doc,bin,sampler["input"])
+            output=accessor(doc,bin,sampler["output"])
+            target=channel.get("target",{}); ni=target.get("node")
+            signature_rows.append({"node":nodes[ni].get("name") if ni is not None else None,
+                "path":target.get("path"),"interpolation":sampler.get("interpolation","LINEAR"),
+                "input":inp,"output":output})
+        signature_rows.sort(key=lambda row:(row["node"] or "",row["path"] or ""))
+        data_hash=hashlib.sha256(json.dumps(signature_rows,separators=(",",":"),sort_keys=True).encode()).hexdigest()
+        animations.append({"name":a.get("name","unnamed"),"channel_count":len(targets),"targets":targets,"data_sha256":data_hash})
     markers=[]
     for i,n in enumerate(nodes):
         name=n.get("name",""); low=name.lower()
@@ -118,8 +129,9 @@ def compare(reports):
         local_t=max((math.dist(bmap[n]["local_translation"],jmap[n]["local_translation"]) for n in bmap if n in jmap),default=None) if same_set else None
         local_basis=max((max(abs(bmap[n]["local_matrix"][i][j]-jmap[n]["local_matrix"][i][j]) for i in range(3) for j in range(3)) for n in bmap if n in jmap),default=None) if same_set else None
         world_delta=max((math.dist(bmap[n]["rest_world_position"],jmap[n]["rest_world_position"]) for n in bmap if n in jmap),default=None) if same_set else None
+        missing=sorted(set(bmap)-set(jmap)); extra=sorted(set(jmap)-set(bmap))
         out.append({"file":r["file"],"bone_count":len(jj),"same_bone_name_set":same_set,
-            "same_skin_joint_order":same_order,"same_parent_hierarchy_by_name":same_hierarchy,
+            "missing_bones":missing,"extra_bones":extra,"same_skin_joint_order":same_order,"same_parent_hierarchy_by_name":same_hierarchy,
             "max_local_rest_translation_delta_m":round(local_t,6) if local_t is not None else None,
             "max_local_rest_basis_component_delta":round(local_basis,7) if local_basis is not None else None,
             "max_world_rest_position_delta_m":round(world_delta,6) if world_delta is not None else None})
