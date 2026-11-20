@@ -7,6 +7,7 @@ const ROUTES = preload("res://data/settlements/hollowmere/routes.gd")
 const BRIDGES = preload("res://data/settlements/hollowmere/bridges.gd")
 const PROPS = preload("res://data/settlements/hollowmere/props.gd")
 const AGRICULTURE = preload("res://data/settlements/hollowmere/agriculture.gd")
+const PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 
 func _initialize() -> void:
 	assert(SETTLEMENT.SETTLEMENT_ID == "hollowmere")
@@ -30,6 +31,30 @@ func _initialize() -> void:
 	assert(BRIDGES.BRIDGE_PRESENTATION.parts.size() == 9)
 	assert(PROPS.LANDMARK_PROPS.size() == 2 and PROPS.QUEST_PROPS.size() == 2 and PROPS.WAYFINDING_PROPS.size() == 1)
 	assert(AGRICULTURE.FARM_FIELDS.size() == 3 and AGRICULTURE.FARM_CROP_ROWS.size() == 17 and AGRICULTURE.FARM_FENCES.size() == 2)
+
+	# Only characters who actually belong in the opening settlement receive
+	# Hollowmere starts. Other companions wait for their recruitment regions.
+	assert(PLACEMENTS.CHARACTER_STARTS.has("wren_talbot"), "Starting party member Wren must be present")
+	assert(PLACEMENTS.CHARACTER_STARTS.has("reyna_fletcher"), "Reyna's Hollowmere quest placement must be present")
+	assert(not PLACEMENTS.CHARACTER_STARTS.has("ser_aldric_thorne"))
+	assert(not PLACEMENTS.CHARACTER_STARTS.has("nix_sharpear"))
+	assert(not PLACEMENTS.CHARACTER_STARTS.has("warlord_grukk_ironhide"))
+	assert(not PLACEMENTS.CHARACTER_STARTS.has("fenn_oakheart"))
+	assert(not PLACEMENTS.CHARACTER_STARTS.has("brother_alden"))
+	assert(not PLACEMENTS.CHARACTER_STARTS.has("snik_fangtooth"))
+	assert(PLACEMENTS.DEFERRED_COMPANIONS.size() == 6, "Unbuilt recruitment regions must not be assigned fabricated local starts")
+	var manifest_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
+	assert(manifest_file != null, "Hollowmere character manifest must be readable")
+	var manifest: Dictionary = JSON.parse_string(manifest_file.get_as_text())
+	for profile_value in manifest.get("characters", []):
+		var profile: Dictionary = profile_value
+		if String(profile.get("role", "")) == "player avatar":
+			continue
+		var model_id := String(profile.get("id", ""))
+		assert(PLACEMENTS.CHARACTER_STARTS.has(model_id) or PLACEMENTS.DEFERRED_COMPANIONS.has(model_id),
+			"Every manifested character must be explicitly placed locally or deferred: " + model_id)
+	for companion_id in PLACEMENTS.DEFERRED_COMPANIONS:
+		assert(not PLACEMENTS.CHARACTER_STARTS.has(companion_id), "Deferred companions cannot also have local coordinates")
 
 	# Existing callers continue using HollowmereVillageData while authored data is independently organised.
 	assert(DATA.BUILDINGS.size() == BUILDINGS.BUILDINGS.size())
