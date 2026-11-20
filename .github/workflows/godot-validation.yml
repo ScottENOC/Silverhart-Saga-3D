@@ -106,6 +106,8 @@ jobs:
         run: timeout 180s godot --headless --path . res://tests/save_restore_boot.tscn
       - name: Run NPC pass-through tests
         run: godot --headless --path . --script res://tests/test_npc_pass_through.gd
+      - name: Run shared character anatomy tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_anatomy.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
       - name: Run equipment appearance and heraldry tests
