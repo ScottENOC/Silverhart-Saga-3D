@@ -118,7 +118,7 @@ def align_garment_to_character(selected, reference_path):
     The socket generator is a bounded surface-vertex heuristic, not semantic
     breast recognition. We use it as an explicit placement reference only.
     The authored cup centroids are mapped to the corresponding left/right
-    sockets; the complete garment follows that translation and horizontal
+    target sockets; the complete garment follows that translation and horizontal
     spacing adjustment. No body vertices or anatomy profiles are changed.
     """
     target_armature = next(
@@ -139,17 +139,16 @@ def align_garment_to_character(selected, reference_path):
     if source_armature is None:
         raise RuntimeError("Reference Ara garment GLB has no armature")
     try:
-        source_points = {
-            "L": nipple_socket_world(source_armature, "L"),
-            "R": nipple_socket_world(source_armature, "R"),
-        }
+        # The authored garment asset has no nipple sockets. Its cup centroids
+        # provide the source references; only the target character supplies
+        # anatomical surface sockets.
         source_cups = cup_centres(selected)
-        source_mid = (source_points["L"] + source_points["R"]) * 0.5
+        source_mid = (source_cups[0] + source_cups[1]) * 0.5
         target_mid = (target_points["L"] + target_points["R"]) * 0.5
-        source_span = (source_points["L"] - source_points["R"]).length
+        source_span = (source_cups[0] - source_cups[1]).length
         target_span = (target_points["L"] - target_points["R"]).length
         if min(source_span, target_span) < 1e-4:
-            raise RuntimeError("Bilateral breast reference sockets are coincident")
+            raise RuntimeError("Authored cup centres or target breast sockets are coincident")
         horizontal_scale = target_span / source_span
 
         moved = 0
@@ -170,13 +169,12 @@ def align_garment_to_character(selected, reference_path):
         report = {
             "method": "bilateral_surface_socket_bra_placement",
             "reference": os.path.abspath(reference_path),
-            "source_socket_L_world": [round(float(v), 6) for v in source_points["L"]],
-            "source_socket_R_world": [round(float(v), 6) for v in source_points["R"]],
-            "target_socket_L_world": [round(float(v), 6) for v in target_points["L"]],
-            "target_socket_R_world": [round(float(v), 6) for v in target_points["R"]],
-            "source_authored_cup_centres_world": [
+            "source_cup_centres_world": [
                 [round(float(v), 6) for v in p] for p in source_cups
             ],
+            "target_socket_L_world": [round(float(v), 6) for v in target_points["L"]],
+            "target_socket_R_world": [round(float(v), 6) for v in target_points["R"]],
+            
             "horizontal_spacing_scale": round(horizontal_scale, 6),
             "garment_vertices_warped": moved,
             "body_geometry_modified": False,
