@@ -260,7 +260,9 @@ func _evaluate_vertex(surface: Dictionary, vertex_index: int) -> Dictionary:
             else:
                 local_normal += normal_deltas[vertex_index] * shape_weight
 
-    var blended_basis := Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO)
+    var blended_x := Vector3.ZERO
+    var blended_y := Vector3.ZERO
+    var blended_z := Vector3.ZERO
     var blended_origin := Vector3.ZERO
     var total_weight := 0.0
     var character_from_skeleton := _character_root.global_transform.affine_inverse() * _skeleton.global_transform
@@ -281,17 +283,19 @@ func _evaluate_vertex(surface: Dictionary, vertex_index: int) -> Dictionary:
             * _skeleton.get_bone_global_pose(bone_index)
             * skin.get_bind_pose(bind_index)
         )
-        blended_basis += skin_transform.basis * influence_weight
+        blended_x += skin_transform.basis.x * influence_weight
+        blended_y += skin_transform.basis.y * influence_weight
+        blended_z += skin_transform.basis.z * influence_weight
         blended_origin += skin_transform.origin * influence_weight
         total_weight += influence_weight
 
     if total_weight <= 0.00001:
         return {"valid": false}
     var inverse_total_weight := 1.0 / total_weight
-    blended_basis = Basis(
-        blended_basis.x * inverse_total_weight,
-        blended_basis.y * inverse_total_weight,
-        blended_basis.z * inverse_total_weight
+    var blended_basis := Basis(
+        blended_x * inverse_total_weight,
+        blended_y * inverse_total_weight,
+        blended_z * inverse_total_weight
     )
     blended_origin *= inverse_total_weight
     var blended_skin_transform := Transform3D(blended_basis, blended_origin)
