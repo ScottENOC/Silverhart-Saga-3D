@@ -2,7 +2,8 @@ extends SceneTree
 
 const FACTORY = preload("res://scripts/world/world_bridge_feature_factory.gd")
 const VILLAGE_DATA = preload("res://scripts/world/hollowmere_village_data.gd")
-const VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
+const SETTLEMENT_PRESENTER = preload("res://scripts/world/world_settlement_presenter.gd")
+const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
 
 func _initialize() -> void:
 	_test_bridge_assembly_from_authored_definition()
@@ -56,9 +57,10 @@ func _test_invalid_bridge_is_rejected_atomically() -> void:
 	parent.free()
 
 func _test_hollowmere_bridge_integration() -> void:
-	var village := VILLAGE_SCRIPT.new() as Node3D
-	village.call("_create_materials")
-	village.call("_present_authored_settlement")
+	var village := SETTLEMENT_PRESENTER.new() as Node3D
+	village.call("configure_location", HOLLOWMERE_PRESENTATION.DEFINITION)
+	village.call("_create_materials", HOLLOWMERE_PRESENTATION.DEFINITION.palette)
+	village.call("_present_authored_features", HOLLOWMERE_PRESENTATION.DEFINITION.features, HexGrid.DEFAULT_RADIUS_M)
 	var bridge := village.get_node_or_null("NarrowRiverBridge") as Node3D
 	assert(bridge != null, "Hollowmere should delegate its authored bridge to the shared factory")
 	assert(bridge.get_child_count() == VILLAGE_DATA.BRIDGE_PRESENTATION.parts.size(), "Hollowmere bridge should render every authored part")
