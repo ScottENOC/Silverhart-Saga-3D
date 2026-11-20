@@ -22,21 +22,21 @@ func _materials() -> Dictionary:
 
 func _test_authored_prop_assemblies() -> void:
 	var parent := Node3D.new()
-	var store := Node3D.new()
-	store.name = "GeneralStore"
-	parent.add_child(store)
-	var chapel := Node3D.new()
-	chapel.name = "Chapel"
-	parent.add_child(chapel)
+	var store_parent := Node3D.new()
+	store_parent.name = "GeneralStore"
+	parent.add_child(store_parent)
+	var chapel_parent := Node3D.new()
+	chapel_parent.name = "Chapel"
+	parent.add_child(chapel_parent)
 	var materials := _materials()
 	var result := FACTORY.render_features(parent, VILLAGE_DATA.LANDMARK_PROPS, materials, HexGrid.DEFAULT_RADIUS_M)
 	assert(result, "Store and chapel landmark props should render")
-	var store := parent.get_node_or_null("GeneralStore/StoreSignPresentation") as Node3D
-	assert(store != null, "Store sign assembly should attach to the authored store building")
-	assert(store.get_node_or_null("StoreSignBoard") != null and store.get_node_or_null("StoreSign") is Label3D, "Store sign should preserve its board and label")
-	var chapel := parent.get_node_or_null("Chapel/ChapelBellTowerPresentation") as Node3D
-	assert(chapel != null, "Chapel tower assembly should attach to the authored chapel")
-	assert(chapel.get_node_or_null("BellTower") != null and chapel.get_node_or_null("ChapelCrossBar") != null, "Chapel tower parts should preserve their authored names")
+	var store_assembly := parent.get_node_or_null("GeneralStore/StoreSignPresentation") as Node3D
+	assert(store_assembly != null, "Store sign assembly should attach to the authored store building")
+	assert(store_assembly.get_node_or_null("StoreSignBoard") != null and store_assembly.get_node_or_null("StoreSign") is Label3D, "Store sign should preserve its board and label")
+	var chapel_assembly := parent.get_node_or_null("Chapel/ChapelBellTowerPresentation") as Node3D
+	assert(chapel_assembly != null, "Chapel tower assembly should attach to the authored chapel")
+	assert(chapel_assembly.get_node_or_null("BellTower") != null and chapel_assembly.get_node_or_null("ChapelCrossBar") != null, "Chapel tower parts should preserve their authored names")
 	result = FACTORY.render_features(parent, VILLAGE_DATA.QUEST_PROPS, materials, HexGrid.DEFAULT_RADIUS_M)
 	assert(result, "Broken fence and blood trail should render as quest dressing")
 	assert(parent.get_node_or_null("BrokenPastureFence/BrokenRailA") != null, "Broken fence rails should remain separate visual parts")
