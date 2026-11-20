@@ -205,7 +205,7 @@ func _build_screen() -> void:
     rules_preview.add_theme_color_override("font_color", Color(0.82, 0.82, 0.78))
     panel.add_child(rules_preview)
     _refresh_character_preview(0)
-    body_variant_select = _option_row(panel, "Body model", ["Female", "Male"])
+    body_variant_select = _option_row(panel, "Body base", ["Female", "Male"])
     body_variant_select.item_selected.connect(_refresh_appearance_preview)
     presentation_select = _option_row(panel, "Gender presentation", PRESENTATIONS)
     pronoun_select = _option_row(panel, "Pronouns", PRONOUN_SETS)
