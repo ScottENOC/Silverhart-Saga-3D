@@ -9,10 +9,6 @@
       "game_id": "companion_wren_talbot",
       "name": "Wren Talbot",
       "role": "companion",
-      "hex": [
-        -2,
-        1
-      ],
       "detail": "high",
       "params": {
         "seed": 218,
@@ -87,10 +83,6 @@
       "game_id": "garrick_holt",
       "name": "Garrick Holt",
       "role": "tavern keeper",
-      "hex": [
-        -3,
-        -2
-      ],
       "detail": "medium",
       "params": {
         "seed": 731,
@@ -154,10 +146,6 @@
       "game_id": "mira_ashbrook",
       "name": "Mira Ashbrook",
       "role": "villager",
-      "hex": [
-        2,
-        -2
-      ],
       "detail": "medium",
       "params": {
         "seed": 842,
@@ -221,10 +209,6 @@
       "game_id": "oskar_vinn",
       "name": "Oskar Vinn",
       "role": "villager",
-      "hex": [
-        3,
-        -2
-      ],
       "detail": "medium",
       "params": {
         "seed": 953,
@@ -288,10 +272,6 @@
       "game_id": "wick_hallow",
       "name": "Wick Hallow",
       "role": "general store keeper",
-      "hex": [
-        0,
-        15
-      ],
       "detail": "medium",
       "params": {
         "seed": 1064,
@@ -353,10 +333,6 @@
       "game_id": "dray_coltayne",
       "name": "Dray Coltayne",
       "role": "ironbond soldier",
-      "hex": [
-        -1,
-        6
-      ],
       "detail": "medium",
       "params": {
         "seed": 1175,
@@ -423,10 +399,6 @@
       "game_id": "tomlin_brask",
       "name": "Tomlin Brask",
       "role": "ironbond soldier",
-      "hex": [
-        0,
-        6
-      ],
       "detail": "medium",
       "params": {
         "seed": 1286,
@@ -489,10 +461,6 @@
       "game_id": "hask_greel",
       "name": "Hask Greel",
       "role": "ironbond soldier",
-      "hex": [
-        1,
-        6
-      ],
       "detail": "medium",
       "params": {
         "seed": 1397,
@@ -557,10 +525,6 @@
       "game_id": "yvette_marlow",
       "name": "Yvette Marlow",
       "role": "villager",
-      "hex": [
-        -2,
-        2
-      ],
       "detail": "medium",
       "params": {
         "seed": 1508,
@@ -627,10 +591,6 @@
       "game_id": "hendra_wells",
       "name": "Hendra Wells",
       "role": "villager",
-      "hex": [
-        -3,
-        2
-      ],
       "detail": "medium",
       "params": {
         "seed": 1619,
@@ -694,10 +654,6 @@
       "game_id": "tavern_patron",
       "name": "Bram Fenwick",
       "role": "background patron",
-      "hex": [
-        3,
-        -2
-      ],
       "detail": "low",
       "params": {
         "seed": 1730,
@@ -757,10 +713,6 @@
       "game_id": "marta_wynfield",
       "name": "Elder Marta Wynfield",
       "role": "village elder",
-      "hex": [
-        0,
-        -9
-      ],
       "detail": "medium",
       "params": {
         "seed": 1841,
@@ -824,10 +776,6 @@
       "game_id": "rowan_fletcher",
       "name": "Rowan Fletcher",
       "role": "wandering hunter",
-      "hex": [
-        12,
-        26
-      ],
       "detail": "medium",
       "params": {
         "seed": 1952,
@@ -894,10 +842,6 @@
       "game_id": "player",
       "name": "Player Character",
       "role": "player avatar",
-      "hex": [
-        -1,
-        2
-      ],
       "detail": "high",
       "params": {
         "seed": 2468,
@@ -958,10 +902,6 @@
       "game_id": "companion_ser_aldric_thorne",
       "name": "Ser Aldric Thorne",
       "role": "companion",
-      "hex": [
-        -11,
-        -5
-      ],
       "detail": "runtime",
       "progression": {
         "race": "human",
@@ -1019,10 +959,6 @@
       "game_id": "companion_nix_sharpear",
       "name": "Nix Sharpear",
       "role": "companion",
-      "hex": [
-        -16,
-        9
-      ],
       "detail": "runtime",
       "progression": {
         "race": "goblin",
@@ -1085,10 +1021,6 @@
       "game_id": "companion_warlord_grukk",
       "name": "Warlord Grukk Ironhide",
       "role": "companion",
-      "hex": [
-        16,
-        17
-      ],
       "detail": "runtime",
       "progression": {
         "race": "orc",
@@ -1151,10 +1083,6 @@
       "game_id": "companion_reyna_fletcher",
       "name": "Reyna Fletcher",
       "role": "companion",
-      "hex": [
-        -18,
-        -12
-      ],
       "detail": "runtime",
       "progression": {
         "race": "human",
@@ -1213,10 +1141,6 @@
       "game_id": "companion_mirabel_quill",
       "name": "Mirabel Quill",
       "role": "companion",
-      "hex": [
-        17,
-        -11
-      ],
       "detail": "runtime",
       "progression": {
         "race": "elf",
@@ -1274,10 +1198,6 @@
       "game_id": "companion_fenn_oakheart",
       "name": "Fenn Oakheart",
       "role": "companion",
-      "hex": [
-        -17,
-        17
-      ],
       "detail": "runtime",
       "progression": {
         "race": "human",
@@ -1333,10 +1253,6 @@
       "game_id": "companion_brother_alden",
       "name": "Brother Alden",
       "role": "companion",
-      "hex": [
-        5,
-        -16
-      ],
       "detail": "runtime",
       "progression": {
         "race": "human",
@@ -1392,10 +1308,6 @@
       "game_id": "companion_snik_fangtooth",
       "name": "Snik Fangtooth",
       "role": "companion",
-      "hex": [
-        -19,
-        -2
-      ],
       "detail": "runtime",
       "progression": {
         "race": "goblin",
