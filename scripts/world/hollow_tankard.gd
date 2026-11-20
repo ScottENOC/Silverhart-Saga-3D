@@ -26,7 +26,7 @@ const TAVERN_BUILDING_ID := "hollow_tankard"
 const TAVERN_FRONT_DOOR_ID := "hollow_tankard_front_door"
 const TAVERN_DOOR_HEX := Vector2i(0, 3)
 const UPPER_FLOOR_ORIGIN := Vector2i(100, 100)
-const UPPER_FLOOR_Y := 3.38
+const UPPER_FLOOR_Y: float = HOLLOW_TANKARD_LAYOUT.UPPER_FLOOR_Y
 const TAVERN_STAIR_GROUND_HEX := Vector2i(3, 0)
 const TAVERN_STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + Vector2i(3, -1)
 const UPPER_BED_HEXES = [
@@ -46,9 +46,8 @@ var tavern_door_leaf: MeshInstance3D
 # First authored location: the Hollow Tankard and its immediate approach.
 # Logical movement remains hex-based; this scene only presents that state.
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
-const TILE_THICKNESS: float = 0.12
-const ROOM_HALF_WIDTH: float = 8.0
-const ROOM_HALF_DEPTH: float = 5.5
+const ROOM_HALF_WIDTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_WIDTH
+const ROOM_HALF_DEPTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_DEPTH
 
 var simulation: WorldSimulation
 var world_cell_loader: Campaign2WorldCellLoader
