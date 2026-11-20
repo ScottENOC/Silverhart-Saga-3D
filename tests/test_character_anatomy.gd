@@ -47,7 +47,7 @@ func _test_semantic_bone_resolution() -> void:
     skeleton.add_bone("RightLeg")
     skeleton.add_bone("RightFoot")
 
-    var anatomy = ANATOMY_SCRIPT.new()
+    var anatomy: CharacterAnatomy = ANATOMY_SCRIPT.new() as CharacterAnatomy
     _check(anatomy.configure(character_root, body_root), "Anatomy interface should bind to a body skeleton")
     for landmark_id in [
         "pelvis", "spine_lower", "spine_mid", "chest", "neck", "head",
@@ -57,7 +57,8 @@ func _test_semantic_bone_resolution() -> void:
         "hip_right", "knee_right", "ankle_right"
     ]:
         _check(anatomy.has_landmark(landmark_id), "Semantic landmark did not resolve: " + landmark_id)
-    _check(anatomy.get_landmark_transform("head") is Transform3D, "Landmark query should return a Transform3D")
+    var head_transform: Transform3D = anatomy.get_landmark_transform("head")
+    _check(head_transform is Transform3D, "Landmark query should return a Transform3D")
     character_root.free()
 
 
