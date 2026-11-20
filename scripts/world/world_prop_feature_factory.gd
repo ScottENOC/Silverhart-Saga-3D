@@ -29,7 +29,7 @@ static func _validate_definition(parent: Node3D, definition: Variant, materials:
 		var target := parent.get_node_or_null(parent_node)
 		if not target is Node3D:
 			return false
-	elif not definition.get("anchor") is Vector2i:
+	elif not (definition.get("anchor") is Vector2i):
 		return false
 	var names: Dictionary = {}
 	for part in parts:
@@ -44,7 +44,7 @@ static func _validate_definition(parent: Node3D, definition: Variant, materials:
 			return false
 		var material_key := String(part.get("material", ""))
 		if part_type != "label3d":
-			if not materials.has(material_key) or not materials[material_key] is Material or materials[material_key] == null:
+			if not materials.has(material_key) or not (materials[material_key] is Material) or materials[material_key] == null:
 				return false
 		var position: Variant = part.get("position", Vector3.ZERO)
 		if not position is Vector3:
