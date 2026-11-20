@@ -3,6 +3,7 @@ extends SceneTree
 const FACTORY = preload("res://scripts/world/world_interior_feature_factory.gd")
 const TAPROOM = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_taproom.gd")
 const UPPER_ROOMS = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_upper_rooms.gd")
+const STRUCTURE = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_structure.gd")
 const TAVERN = preload("res://scripts/world/hollow_tankard.gd")
 
 func _initialize() -> void:
@@ -10,6 +11,7 @@ func _initialize() -> void:
 	_test_invalid_interior_is_atomic()
 	_test_tavern_delegates_furniture()
 	_test_upper_rooms_use_authored_data()
+	_test_building_structure_uses_authored_data()
 	print("World interior feature tests passed.")
 	quit(0)
 
@@ -64,3 +66,27 @@ func _test_upper_rooms_use_authored_data() -> void:
 	assert(parent.get_node_or_null("LandingTable") == null)
 	parent.free()
 	tavern.free()
+
+func _test_building_structure_uses_authored_data() -> void:
+	var parent := Node3D.new()
+	var materials := _materials()
+	materials["plaster"] = StandardMaterial3D.new()
+	materials["glass"] = StandardMaterial3D.new()
+	materials["roof"] = StandardMaterial3D.new()
+	var shell := FACTORY.present(parent, STRUCTURE.BUILDING_SHELL, materials)
+	var upper := FACTORY.present(parent, STRUCTURE.UPPER_EXTERIOR, materials)
+	var floor := FACTORY.present(parent, STRUCTURE.UPPER_FLOOR, materials)
+	var roof := FACTORY.present(parent, STRUCTURE.ROOF, materials)
+	assert(shell != null and shell.name == "HollowTankardBuilding")
+	assert(upper != null and upper.name == "UpperStoreyExterior")
+	assert(floor != null and floor.name == "UpperFloorPresentation")
+	assert(roof != null and roof.name == "RoofCutaway")
+	assert(shell.get_node_or_null("StoneFloorFoundation") != null)
+	assert(shell.get_node_or_null("StairStep_00") != null)
+	assert(shell.get_node_or_null("StairStep_09") != null)
+	assert(shell.get_node_or_null("DoorLintel") != null)
+	assert(upper.get_node_or_null("UpperNorthWall") != null)
+	assert(roof.get_node_or_null("NorthRoofSlope") != null)
+	var foundation := shell.get_node("StoneFloorFoundation") as MeshInstance3D
+	assert((foundation.mesh as BoxMesh).size == Vector3(16.7, 0.16, 11.7))
+	parent.free()
