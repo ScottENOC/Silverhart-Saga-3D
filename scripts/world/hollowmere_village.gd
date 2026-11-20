@@ -11,6 +11,7 @@ const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor
 const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
 const POLYLINE_FEATURE_FACTORY = preload("res://scripts/world/world_polyline_feature_factory.gd")
 const BRIDGE_FEATURE_FACTORY = preload("res://scripts/world/world_bridge_feature_factory.gd")
+const AGRICULTURAL_FEATURE_FACTORY = preload("res://scripts/world/world_agricultural_feature_factory.gd")
 var grass_material: StandardMaterial3D
 var path_material: StandardMaterial3D
 var water_material: StandardMaterial3D
@@ -134,13 +135,15 @@ func _create_farmstead() -> void:
 			_create_authored_building(definition)
 			break
 
-	# Irregular fields sit beside the farm track; crop rows are separate reusable ribbons.
-	_add_farm_field("NorthwestField", [Vector2i(0, 42), Vector2i(13, 40), Vector2i(19, 52), Vector2i(4, 58)], field_material)
-	_add_farm_field("EasternCropField", [Vector2i(19, 42), Vector2i(34, 40), Vector2i(38, 55), Vector2i(23, 60)], field_material)
-	_add_farm_field("SouthernPasture", [Vector2i(1, 61), Vector2i(15, 62), Vector2i(17, 74), Vector2i(2, 73)], pasture_material)
-	_add_crop_rows()
-	_add_farm_fence("FarmyardFence", [Vector2i(5, 50), Vector2i(8, 47), Vector2i(18, 47), Vector2i(26, 51), Vector2i(24, 59), Vector2i(15, 61), Vector2i(7, 58), Vector2i(5, 50)])
-	_add_farm_fence("PastureFence", [Vector2i(1, 61), Vector2i(15, 62), Vector2i(17, 74), Vector2i(2, 73), Vector2i(1, 61)])
+	# Agricultural presentation is driven by authored data and a shared renderer.
+	AGRICULTURAL_FEATURE_FACTORY.render_features(
+		self,
+		HollowmereVillageData.FARM_FIELDS,
+		HollowmereVillageData.FARM_CROP_ROWS,
+		HollowmereVillageData.FARM_FENCES,
+		{"field": field_material, "pasture": pasture_material, "crop": crop_material, "fence": fence_material},
+		HEX_RADIUS
+	)
 	_add_broken_fence_and_blood_trail()
 
 func _create_farm_animals() -> void:
@@ -245,68 +248,6 @@ func _spawn_creature(actor_name: String, kind: String, behaviour_name: String, h
 	actor.position = HexGrid.axial_to_world(hex, HEX_RADIUS, 0.0)
 	actor.rotation.y = deg_to_rad(float(posmod(hex.x * 37 + hex.y * 19, 360)))
 	add_child(actor)
-
-func _add_farm_field(node_name: String, corners: Array[Vector2i], material: Material) -> void:
-	var points: Array[Vector3] = []
-	var centre := Vector3.ZERO
-	for hex in corners:
-		var point := HexGrid.axial_to_world(hex, HEX_RADIUS, -0.16)
-		points.append(point)
-		centre += point
-	centre /= float(points.size())
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for index in range(points.size()):
-		surface.set_normal(Vector3.UP)
-		surface.add_vertex(centre)
-		surface.add_vertex(points[index])
-		surface.add_vertex(points[(index + 1) % points.size()])
-	var instance := MeshInstance3D.new()
-	instance.name = node_name
-	instance.mesh = surface.commit()
-	instance.material_override = material
-	add_child(instance)
-
-func _add_crop_rows() -> void:
-	for row in range(8):
-		var q := 3 + row
-		var start := HexGrid.axial_to_world(Vector2i(q, 43), HEX_RADIUS, -0.10)
-		var finish := HexGrid.axial_to_world(Vector2i(q + 9, 53), HEX_RADIUS, -0.10)
-		add_child(ORGANIC_FEATURES.make_ribbon("CropRowNorthwest%d" % row, [start, (start + finish) * 0.5 + Vector3(0.0, 0.0, 0.8), finish], PackedFloat32Array([0.16, 0.20, 0.16]), crop_material, 0.0, 4))
-	for row in range(9):
-		var q := 22 + row
-		var start := HexGrid.axial_to_world(Vector2i(q, 43), HEX_RADIUS, -0.10)
-		var finish := HexGrid.axial_to_world(Vector2i(q - 1, 57), HEX_RADIUS, -0.10)
-		add_child(ORGANIC_FEATURES.make_ribbon("CropRowEast%d" % row, [start, finish], PackedFloat32Array([0.16, 0.16]), crop_material, 0.0, 4))
-
-func _add_farm_fence(node_name: String, points: Array[Vector2i]) -> void:
-	var root := Node3D.new()
-	root.name = node_name
-	add_child(root)
-	var post_mesh := CylinderMesh.new()
-	post_mesh.top_radius = 0.07
-	post_mesh.bottom_radius = 0.11
-	post_mesh.height = 1.25
-	post_mesh.radial_segments = 6
-	for index in range(points.size() - 1):
-		var a := HexGrid.axial_to_world(points[index], HEX_RADIUS, 0.0)
-		var b := HexGrid.axial_to_world(points[index + 1], HEX_RADIUS, 0.0)
-		var distance := a.distance_to(b)
-		var segments := maxi(1, ceili(distance / 2.5))
-		for step in range(segments + 1):
-			var t := float(step) / float(segments)
-			var position := a.lerp(b, t)
-			var post := MeshInstance3D.new()
-			post.mesh = post_mesh
-			post.position = position + Vector3.UP * 0.62
-			post.material_override = fence_material
-			root.add_child(post)
-		var midpoint := (a + b) * 0.5
-		var direction := b - a
-		var rail := _add_box(root, "FenceRail", midpoint + Vector3.UP * 0.42, Vector3(0.12, 0.12, distance), fence_material)
-		rail.rotation.y = atan2(direction.x, direction.z)
-		var upper := _add_box(root, "FenceRailUpper", midpoint + Vector3.UP * 0.82, Vector3(0.12, 0.12, distance), fence_material)
-		upper.rotation.y = atan2(direction.x, direction.z)
 
 func _add_store_sign() -> void:
 	var root := get_node_or_null("GeneralStore") as Node3D
