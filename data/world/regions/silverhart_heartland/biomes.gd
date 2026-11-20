@@ -7,6 +7,8 @@ const FOREST_DENSITY_THRESHOLD := 0.56
 const UNDERSTOREY_DENSITY_OFFSET := Vector2i(977, -337)
 const UNDERSTOREY_DENSITY_THRESHOLD := 0.70
 const TREE_OCCUPANCY_THRESHOLD := 0.56
+const REGIONAL_TREE_SEED_OFFSET := 317
+const REGIONAL_TREE_DENSITY_THRESHOLD := 0.34
 const FOREST_CLEARING_RADIUS := 17
 const STREAM_INFLUENCE_Q_RADIUS := 34
 
@@ -29,6 +31,9 @@ static func has_tree(hex: Vector2i, is_candidate: bool) -> bool:
 	if not is_candidate or posmod(hex.x, 4) != 0 or posmod(hex.y, 4) != 0:
 		return false
 	return stable_noise(hex.x + 17, hex.y - 9) >= TREE_OCCUPANCY_THRESHOLD
+
+static func has_regional_tree(terrain: String, density_roll: float) -> bool:
+	return terrain == "forest" and density_roll < REGIONAL_TREE_DENSITY_THRESHOLD
 
 static func is_near_stream(hex: Vector2i, distance: float, stream_centre_r: float) -> bool:
 	if absi(hex.x) > STREAM_INFLUENCE_Q_RADIUS:

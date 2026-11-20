@@ -8,7 +8,8 @@ const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
 const ROAD_PATHS_PATH := "res://data/world/campaign2_road_paths.json"
 const SETTLEMENT_LAYOUTS_PATH := "res://data/world/campaign2_settlement_layouts.json"
 const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
-const SEED := 2047
+const REGIONAL_TERRAIN = preload("res://data/world/regions/silverhart_heartland/terrain.gd")
+const REGIONAL_BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
 const AUTHORED_VILLAGE_RADIUS := 96
 
 var strategic_grid: Array = []
@@ -107,50 +108,17 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var source_cell: Dictionary = strategic_grid[strategic_cell.y][strategic_cell.x]
 	var base_terrain := String(source_cell.get("terrain", "grass"))
 	var faction := String(source_cell.get("faction", ""))
-	var roll := _stable_roll(hex, SEED)
-	match base_terrain:
-		"ocean":
-			return "water"
-		"mountain":
-			return "mountain"
-		"forest":
-			return "forest"
-		"hills":
-			return "hills"
-		_:
-			if faction == "orcs":
-				return "badlands" if roll < 0.30 else ("hills" if roll < 0.58 else "grass")
-			if roll < 0.11:
-				return "forest"
-			if roll < 0.22:
-				return "hills"
-			return "grass"
+	return REGIONAL_TERRAIN.terrain_for_hex(hex, base_terrain, faction)
 
 func elevation_for_hex(hex: Vector2i) -> float:
-	var terrain := terrain_for_hex(hex)
-	if terrain in ["water", "path", "authored", "void"]:
-		return 0.0
-	var broad_hex := Vector2i(floori(float(hex.x) / 7.0), floori(float(hex.y) / 7.0))
-	var broad := _stable_roll(broad_hex, SEED + 71)
-	var detail := _stable_roll(hex, SEED + 193)
-	match terrain:
-		"mountain":
-			return 2.8 + broad * 3.8 + detail * 0.5
-		"hills":
-			return 0.45 + broad * 1.1 + detail * 0.25
-		"badlands":
-			return 0.25 + broad * 0.7
-		"forest":
-			return broad * 0.28
-		_:
-			return broad * 0.18
+	return REGIONAL_TERRAIN.elevation_for_hex(hex, terrain_for_hex(hex))
 
 func has_tree(hex: Vector2i) -> bool:
-	return terrain_for_hex(hex) == "forest" and _stable_roll(hex, SEED + 317) < 0.34
+	var density_roll := REGIONAL_TERRAIN.stable_roll(hex, REGIONAL_TERRAIN.SEED + REGIONAL_BIOMES.REGIONAL_TREE_SEED_OFFSET)
+	return REGIONAL_BIOMES.has_regional_tree(terrain_for_hex(hex), density_roll)
 
 func has_rock_outcrop(hex: Vector2i) -> bool:
-	var terrain := terrain_for_hex(hex)
-	return terrain in ["hills", "badlands"] and _stable_roll(hex, SEED + 431) < 0.18
+	return REGIONAL_TERRAIN.has_rock_outcrop(hex, terrain_for_hex(hex))
 
 func location_at(hex: Vector2i) -> Dictionary:
 	return (locations_by_hex.get(_hex_key(hex), {}) as Dictionary).duplicate(true)
@@ -181,10 +149,6 @@ func _distance_to_segment(point: Vector3, start: Vector3, finish: Vector3) -> fl
 func _inside_strategic_map(cell: Vector2i) -> bool:
 	var dimensions := MainCampaignWorldMapData.strategic_grid_size()
 	return cell.x >= 0 and cell.x < dimensions.x and cell.y >= 0 and cell.y < dimensions.y
-
-static func _stable_roll(hex: Vector2i, seed_value: int) -> float:
-	var value := posmod(hex.x * 92837111 + hex.y * 689287499 + seed_value * 104729 + 1013904223, 2147483647)
-	return float(value) / 2147483647.0
 
 static func _hex_key(hex: Vector2i) -> String:
 	return "%d,%d" % [hex.x, hex.y]
