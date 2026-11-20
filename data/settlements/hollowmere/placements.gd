@@ -18,14 +18,20 @@ const CHARACTER_STARTS := {
 	"tavern_patron": Vector2i(3, -2),
 	"elder_marta": Vector2i(0, -9),
 	"rowan_fletcher": Vector2i(12, 26),
-	"ser_aldric_thorne": Vector2i(-11, -5),
-	"nix_sharpear": Vector2i(-16, 9),
-	"warlord_grukk_ironhide": Vector2i(16, 17),
 	"reyna_fletcher": Vector2i(17, 57),
-	"mirabel_quill": Vector2i(17, -11),
-	"fenn_oakheart": Vector2i(-17, 17),
-	"brother_alden": Vector2i(5, -16),
-	"snik_fangtooth": Vector2i(-19, -2)
+	"mirabel_quill": Vector2i(17, -11)
+}
+
+## These companions have recruitment arcs, but their home/recruitment regions are
+## not part of the opening world yet. They must not be staged at arbitrary
+## Hollowmere coordinates; their actual placements will be authored with those regions.
+const DEFERRED_COMPANIONS := {
+	"ser_aldric_thorne": "awaiting_recruitment_region",
+	"nix_sharpear": "awaiting_recruitment_region",
+	"warlord_grukk_ironhide": "awaiting_recruitment_region",
+	"fenn_oakheart": "awaiting_recruitment_region",
+	"brother_alden": "awaiting_recruitment_region",
+	"snik_fangtooth": "awaiting_recruitment_region"
 }
 const OLD_MAC_START_HEX := Vector2i(12, 58)
 const MISSING_CHILD_START_HEX := Vector2i(27, 62)
