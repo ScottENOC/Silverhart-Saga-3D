@@ -61,3 +61,13 @@ The separate runtime contract is `CharacterGarmentGuideCurve`. A guide point is 
 The first supported guide IDs cover neckline/collar, shoulder seams, armholes, chest line/cup apexes, underbust, waist/hip loops, seat/crotch junctions, inseams/outseams, limb openings and foot alignment. `CharacterGarmentGuideLibrary` supplies body-specific resources to Ara actors.
 
 The guide manifest is currently empty. The test fixture is synthetic and must not be used for fitting. Production curves still need to be traced and visually reviewed on both canonical bodies. A dedicated visual curve editor is the next authoring-tool task; the existing vertex painter does not author curves.
+
+## Launch the garment guide curve editor
+
+1. Open the project in Godot 4.7.2.
+2. Open `res://tools/garment_guide_curve_editor.tscn` and run it (F6).
+3. Select Female Ara or Male Ara, then the exact mesh surface and guide type.
+4. Left-click sequentially on the skin to trace the curve. Right-drag to orbit and use the wheel to zoom. Use Undo/Clear while refining the line.
+5. Enable Closed loop for circumferences, inspect the line from several angles, then save the validated resource. Saving also registers it in `data/characters/garment_guides/manifest.tres`.
+
+Each click is stored as a source triangle plus barycentric coordinates. The editor's collision surface is a rest-pose picking proxy; the saved attachment is subsequently evaluated by the runtime skinning/blend-shape evaluator. Trace male and female guides independently. Start with major loops (neckline, underbust, natural waist, high/full hip) before adding armholes, crotch junctions and limb openings. These are construction guides, not garment meshes or finished fit solutions.
