@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tools.ara.garment_fit import (
     FIT_PROFILES, classify_strain, estimate_correction_strain, evaluate_fit,
-    profile_for_material, profile_name_for_material,
+    construction_for_material, profile_for_material, profile_name_for_material,
 )
 
 
@@ -32,10 +32,16 @@ class GarmentFitPolicyTests(unittest.TestCase):
         self.assertTrue(result["needs_clearance"])
         self.assertTrue(result["overstretched"])
 
-    def test_intentional_open_mesh_is_not_a_different_coverage_mode(self):
+    def test_fabric_and_garment_construction_are_independent_axes(self):
         profile = profile_for_material("Fishnet Halter Bra")
-        self.assertEqual(profile["coverage_mode"], "pattern_preserving")
+        self.assertEqual(profile["name"], "open_mesh")
+        self.assertEqual(profile["construction"], "structured_support")
+        self.assertEqual(profile["coverage_mode"], "edge_constrained")
         self.assertEqual(profile["texture_response"], "preserve_openings")
+        self.assertEqual(profile["support_mode"], "distributed_tension")
+        self.assertIn("neck_strap", profile["constrained_features"])
+        self.assertEqual(construction_for_material("Lace briefs"), "flexible_panel")
+        self.assertEqual(construction_for_material("Standard Bra"), "structured_support")
 
     def test_all_profiles_have_finite_material_limits(self):
         for profile in FIT_PROFILES.values():
