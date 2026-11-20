@@ -17,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_FILE = ROOT / "data" / "characters" / "hollowmere_npcs.json"
-POPULATION_FILE = ROOT / "data" / "characters" / "hollowmere_population.json"
+POPULATION_FILE = ROOT / "data" / "world" / "hollowmere_population.json"
 ARA_ROOT = Path.cwd()
 
 KNOWN_HAIR = {
