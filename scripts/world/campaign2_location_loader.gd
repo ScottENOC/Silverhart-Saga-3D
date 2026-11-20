@@ -1,7 +1,7 @@
 class_name Campaign2LocationLoader
 extends RefCounted
-## Instantiates the authored presentation/controller components for a location.
-## Component scripts and their roles are supplied by location data, not WorldRoot.
+## Instantiates authored location components from data.
+## Component scripts and roles are supplied by location definitions, not WorldRoot.
 
 static func load_location(
 	parent: Node,
@@ -15,6 +15,7 @@ static func load_location(
 	var components: Variant = definition.get("components", [])
 	if not components is Array or components.is_empty():
 		return {"ok": false, "reason": "location_has_no_components"}
+	var roles: Dictionary = {}
 	for component in components:
 		if not component is Dictionary:
 			return {"ok": false, "reason": "invalid_location_component"}
@@ -23,26 +24,34 @@ static func load_location(
 		var node_name := String(component.get("node_name", "")).strip_edges()
 		if not script is Script or role.is_empty() or node_name.is_empty():
 			return {"ok": false, "reason": "component_missing_script_role_or_name"}
-		if component.get("configure_campaign", false) and not script.can_instantiate():
+		if not script.can_instantiate():
 			return {"ok": false, "reason": "component_script_cannot_be_instantiated"}
+		if roles.has(role):
+			return {"ok": false, "reason": "duplicate_component_role_%s" % role}
+		roles[role] = true
 
+	var staged_nodes: Array[Node] = []
 	var instances: Dictionary = {}
 	for component in components:
 		var role := String(component["role"])
-		if instances.has(role):
-			return {"ok": false, "reason": "duplicate_component_role_%s" % role}
-		var instance := (component["script"] as Script).new()
-		if not instance is Node:
+		var node := (component["script"] as Script).new() as Node
+		if node == null:
+			for staged in staged_nodes:
+				staged.free()
 			return {"ok": false, "reason": "component_is_not_a_node_%s" % role}
-		var node := instance as Node
 		node.name = String(component["node_name"])
 		if bool(component.get("configure_campaign", false)):
 			if not node.has_method("configure_campaign"):
 				node.free()
+				for staged in staged_nodes:
+					staged.free()
 				return {"ok": false, "reason": "component_missing_campaign_configuration_%s" % role}
 			node.call("configure_campaign", simulation, profile, save_data)
-		parent.add_child(node)
+		staged_nodes.append(node)
 		instances[role] = node
+
+	for node in staged_nodes:
+		parent.add_child(node)
 	return {
 		"ok": true,
 		"location_id": String(definition.get("id", "")),
