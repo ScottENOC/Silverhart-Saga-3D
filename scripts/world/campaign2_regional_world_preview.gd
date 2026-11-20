@@ -4,7 +4,8 @@ extends Node3D
 
 const TERRAIN_DATA_SCRIPT = preload("res://scripts/world/campaign2_world_terrain_data.gd")
 const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
-const VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
+const SETTLEMENT_PRESENTER = preload("res://scripts/world/world_settlement_presenter.gd")
+const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
 const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
@@ -95,11 +96,12 @@ func _create_camera() -> void:
 	_update_camera()
 
 func _add_authored_hollowmere() -> void:
-	# Reuse the actual starting-village scene instead of drawing a second,
-	# approximate village over it. Its authored map occupies radius 96.
-	var village := VILLAGE_SCRIPT.new() as Node3D
-	village.name = "AuthoredHollowmereVillage"
-	add_child(village)
+	# The regional preview and campaign opening use the same generic presenter
+	# and the same authored settlement definition.
+	var settlement := SETTLEMENT_PRESENTER.new() as Node3D
+	settlement.name = "AuthoredHollowmere"
+	settlement.configure_location(HOLLOWMERE_PRESENTATION.DEFINITION)
+	add_child(settlement)
 
 func _build_interface() -> void:
 	var layer := CanvasLayer.new()
