@@ -31,7 +31,7 @@ const ASSETS: Dictionary = {
 		"species": "dragon",
 		"variant": "ashwing_drake_lite",
 		"display_name": "Ashwing Drake",
-		"model_path": "res://art/creatures/dragons/ashwing_drake_lite.glb",
+		"model_path": "res://art/creatures/dragons/Ashwing_Drake_Lite.glb",
 		"source_file": "Ashwing_Drake_Lite.glb",
 		"source_license": "unverified — record the source licence before distribution",
 		"default_scale": 1.0,
