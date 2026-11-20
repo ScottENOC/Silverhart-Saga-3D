@@ -105,6 +105,8 @@ def validate_profiles(profiles: dict) -> None:
 
 
 def main() -> None:
+    raise SystemExit("Deprecated: runtime characters use the shared male/female Ara bases; do not generate per-NPC GLBs.")
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--detail", choices=("low", "medium", "high"), default=None)
