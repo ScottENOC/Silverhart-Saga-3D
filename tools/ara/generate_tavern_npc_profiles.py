@@ -25,7 +25,7 @@ UNNATURAL_HAIR = ["#287BFF", "#7446A8", "#2C9B70"]
 SKIN_TINTS = ["#70452F", "#8F6045", "#A87552", "#B98260", "#C99A75", "#DDAE8D", "#E0B99B"]
 EARTH_TONES = ["#66513B", "#8B6843", "#48525B", "#4D5140", "#554D40", "#6B604B", "#39332E", "#766D59"]
 HAIR_STYLES = ["braid01", "short02", "short03", "short04", "long01", "bob02", "buzz", "cornrows", "box_braids", "mohawk"]
-EYES_FALLBACK = ["blackbrown", "darkbrown", "brown", "brownlight", "green", "bluegreen", "grey", "blue", "lightblue", "deepblue", "ice", "hazel"]
+EYES_FALLBACK = ["blackbrown", "darkbrown", "brown", "brownlight", "green", "bluegreen", "grey", "blue", "lightblue", "deepblue", "ice"]
 TATTOOS_FALLBACK = ["armband_l", "sleeve_r", "forearm_l", "chest", "back", "face_marks"]
 
 
@@ -37,9 +37,16 @@ def ids_from(root: Path, relative: str, pattern: str, fallback: list[str]) -> li
     return found or fallback
 
 
+def garment_ids(ara_root: Path) -> set[str]:
+    root = ara_root / "src/core/garments"
+    found: set[str] = set()
+    for path in root.glob("*.ts"):
+        found.update(re.findall(r"\bid:\s*'([^']+)'", path.read_text()))
+    return found
+
+
 def generate(count: int, seed: int, ara_root: Path) -> dict:
-    rng = random.Random(seed)
-    garments = set(ids_from(ara_root, "src/core/garments/catalog.ts", r"\bid:\s*'([^']+)'", []))
+    garments = garment_ids(ara_root)
     garments.update({"none", "bra"})
     eyes = ids_from(ara_root, "src/app/ui/quick-data.ts", r"\['([^']+)',\s*'[^']+',\s*'#[0-9a-fA-F]{6}'\]", EYES_FALLBACK)
     tattoos = ids_from(ara_root, "src/core/looks/tattoos.ts", r"'(armband_l|sleeve_r|forearm_l|chest|back|face_marks)'", TATTOOS_FALLBACK)
@@ -50,7 +57,7 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
 
     # Rare styles are enabled only when the pinned Ara catalogue actually has them.
     rare_under_bottoms = [x for x in ["bikini_bottom", "g_string", "g-string", "string_bikini_bottom", "lace_briefs", "fishnet_briefs"] if x in garments]
-    rare_under_tops = [x for x in ["lace_bra", "fishnet_bra", "halter_bra_lace", "halter_bra_fishnet"] if x in garments]
+    rare_under_tops = [x for x in ["bikini_top", "lace_bra", "fishnet_bra", "halter_bra_lace", "halter_bra_fishnet"] if x in garments]
     rare_tops = [x for x in ["lace_shirt", "fishnet_shirt"] if x in garments]
     rare_bottoms = [x for x in ["lace_pants", "fishnet_pants"] if x in garments]
     characters = []
@@ -157,7 +164,7 @@ def main() -> None:
     args.out.write_text(json.dumps(manifest, indent=2) + "\n")
     print(f"Generated {args.count} deterministic tavern NPC profiles (seed={args.seed}).")
     print("Available rare underwear IDs: " + ", ".join(
-        sorted(set(["g_string", "g-string", "string_bikini_bottom", "lace_briefs", "fishnet_briefs", "lace_bra", "fishnet_bra"]) & set(ids_from(ara_root, "src/core/garments/catalog.ts", r"\bid:\s*'([^']+)'", [])))
+        sorted(set(["bikini_bottom", "bikini_top", "g_string", "g-string", "string_bikini_bottom", "lace_briefs", "fishnet_briefs", "lace_bra", "fishnet_bra"]) & garment_ids(ara_root))
     ))
 
 
