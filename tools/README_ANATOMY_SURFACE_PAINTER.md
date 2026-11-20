@@ -29,7 +29,7 @@ Central regions (underbust, waist, groin) mirror to themselves. Mirroring is opt
 
 Each saved resource targets one body asset, mesh-node path and surface index. It includes the imported surface's vertex count, name and SHA-256 signature plus one packed weight array per authored semantic region. Saving runs the same strict validation used at runtime. If the GLB topology changes, the old resource is rejected and must be re-authored.
 
-Saved resources are discovered automatically by `CharacterSurfaceRegionMaskLibrary` when an Ara actor first requests `get_surface_regions()`. The library loads only `.tres` resources whose `body_asset_path` exactly matches that actor's loaded GLB. Keep all authored surface resources in this directory; the actor passes the collected resources into `CharacterSurfaceRegions.configure(...)`. Do not use the synthetic one-vertex mask from the contract test.
+Saved resources are registered in `data/characters/anatomy_masks/manifest.tres`. That manifest explicitly references every mask so Godot includes them in exported builds. `CharacterSurfaceRegionMaskLibrary` loads only entries whose `body_asset_path` exactly matches the actor's loaded GLB when the actor first requests `get_surface_regions()`. The painter updates the manifest whenever a mask is saved. Do not use the synthetic one-vertex mask from the contract test.
 
 ## Current limitations
 
