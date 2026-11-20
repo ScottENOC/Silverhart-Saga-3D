@@ -89,7 +89,13 @@ static func generate_grid() -> Array:
 	for row in range(dimensions.y):
 		var cells: Array = []
 		for column in range(dimensions.x):
-			var is_ocean := ocean_columns.has(column)
+			# JSON numeric values may be decoded as floats; compare the authored
+			# column indices numerically rather than relying on Variant type equality.
+			var is_ocean := false
+			for ocean_column in ocean_columns:
+				if int(ocean_column) == column:
+					is_ocean = true
+					break
 			var is_orc_lands := _inside_range(column, row, orc_lands)
 			var is_mountain_range := _inside_range(column, row, mountain_range)
 			var is_forest := not is_ocean and _inside_range(column, row, forest_range)
