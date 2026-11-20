@@ -43,7 +43,10 @@ def source_ids(path: str, pattern: str) -> set[str]:
 
 
 def validate_profiles(profiles: dict) -> None:
-    garments = source_ids("src/core/garments/catalog.ts", r"\bid:\s*'([^']+)'")
+    garments: set[str] = set()
+    garment_root = ARA_ROOT / "src" / "core" / "garments"
+    for garment_file in garment_root.glob("*.ts"):
+        garments.update(re.findall(r"\bid:\s*'([^']+)'", garment_file.read_text()))
     garments.add("none")
     # The Silverhart patch adds this exact under-layer ID to Ara's catalogue.
     garments.add("bra")
