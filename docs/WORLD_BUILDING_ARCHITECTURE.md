@@ -23,7 +23,7 @@ The following components already exist and should be evolved rather than duplica
 |---|---|---|
 | `MainCampaignWorldMapData` | Runtime adapter that builds the 16×16 strategic index | Derive dimensions, coordinate transform, regional bands, faction overrides, river path and marker selection from `campaign2_geography.json` |
 | `Campaign2WorldTerrainData` | Loads geography, roads and settlement layouts; resolves authored feature precedence and delegates procedural terrain | Keep as the local-world adapter; regional classification, elevation and geological rules live in the heartland region module |
-| `HexWorldChunkStreamer` / regional preview streamer | Chunk membership and streamed terrain presentation | Consolidate overlapping streaming responsibilities; preserve simulation state on unload |
+| `Campaign2WorldCellLoader` / regional preview streamer | Logical-cell materialisation and streamed terrain presentation | Both query `Campaign2WorldTerrainData`; logical cells persist, while presentation remains disposable |
 | `BuildingRegistry` | Stable building definitions and persistent door state | Keep as authoritative logical registry |
 | `BuildingLayoutRegistrar` | Registers building, entrance, doors and interior floor cells | Keep logical registration separate from 3D construction |
 | `Campaign2SettlementBuilder` | Chunk-scoped settlement presentation and NPC actors | Limit to orchestration; delegate building construction to shared factory |
@@ -122,7 +122,7 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 2. **World/region authority:** establish which existing manifests and transforms are authoritative; make the strategic map a coarse index into the continuous world, not a competing playable coordinate system. Add explicit validated transforms where local authoring remains useful.
 3. **Hollowmere feature decomposition:** buildings, roads, bridge, agriculture and props use shared factories; authored definitions are now split into domain files under `data/settlements/hollowmere/`. Keep the compatibility/query facade thin, then separate settlement logical rules from regional terrain, hydrology and biome ownership. Preserve all existing world coordinates and gameplay behaviour.
 4. **Building and interior convergence:** make Hollowmere buildings use the same definitions, logical registry, doors, entrances and reusable interior/floor composition. Keep the tavern playable; do not duplicate its behaviour into another system.
-5. **Streaming consolidation:** map actual runtime call sites for `HexWorldChunkStreamer` and the regional preview's streamer before choosing a single production owner. Separate generated data, logical state and disposable presentation; prove cross-chunk continuity and state restoration before retiring either implementation.
+5. **Streaming consolidation:** the legacy `HexWorldChunkStreamer` has been removed. Its logical-cell materialisation responsibility is now handled by `Campaign2WorldCellLoader`, which queries `Campaign2WorldTerrainData` and retains explored cells. The regional preview's presentation streamer remains preview-only; generalise and promote that renderer only after chunk-boundary, load-order and campaign-state tests prove equivalence.
 6. **Source inventory and regional migration:** systematically inspect Hex-crpg Campaign 2 source and produce complete inventories for geography, settlements, structures, routes and landmarks. Retain source IDs/provenance and validate every local-to-world transform and travel connection.
 7. **Fidelity audit:** compare every migrated source feature against the source inventory; record faithful reproduction, 3D adaptation or not-yet-ported status.
 
@@ -154,5 +154,6 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 - [x] Move the Silverhart heartland stream rule into region-owned hydrology data with direct boundary/width tests.
 - [x] Move heartland woodland eligibility and species-selection rules into region-owned biome data, leaving settlement geometry as supplied exclusion context.
 - [x] Move shared Campaign 2 local terrain classification, elevation profiles, forest density and geological outcrop rules into a world-terrain module with direct threshold tests.
-- [ ] Consolidate streaming and world composition.
+- [x] Replace the duplicate seeded logical exploration terrain generator with `Campaign2WorldCellLoader` backed by `Campaign2WorldTerrainData`; preserve authored cells and explored logical state.
+- [ ] Consolidate presentation streaming and world composition.
 - [ ] Complete source-world feature inventory and regional migration.
