@@ -9,6 +9,9 @@ const PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.g
 const TAVERN = preload("res://scripts/world/hollow_tankard.gd")
 const LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
 const LOCATION_COMPONENT = preload("res://tests/fixtures/test_location_component.gd")
+const LOGICAL_INTERIOR_REGISTRAR = preload("res://scripts/world/world_interior_layout_registrar.gd")
+const TAVERN_LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
+const WORLD_CELL_LOADER = preload("res://scripts/world/campaign2_world_cell_loader.gd")
 
 func _initialize() -> void:
 	_test_authored_taproom_features()
@@ -18,6 +21,7 @@ func _initialize() -> void:
 	_test_building_structure_uses_authored_data()
 	_test_tavern_building_assembly_keeps_live_door_and_floor_groups()
 	_test_location_loader_instantiates_data_components()
+	_test_authored_logical_interior_registration()
 	print("World interior feature tests passed.")
 	quit(0)
 
@@ -128,6 +132,25 @@ func _test_location_loader_instantiates_data_components() -> void:
 	assert(not bool(invalid.get("ok", false)), "Duplicate component roles should be rejected before presentation")
 	assert(parent.get_child_count() == 2, "Invalid location definitions must not partially add components")
 	parent.free()
+	simulation.free()
+
+func _test_authored_logical_interior_registration() -> void:
+	var simulation := WorldSimulation.new()
+	var cell_loader := WORLD_CELL_LOADER.new() as Campaign2WorldCellLoader
+	cell_loader.load_around(simulation.map_data, Vector2i.ZERO, 4)
+	var registered := LOGICAL_INTERIOR_REGISTRAR.register_layout(simulation, TAVERN_LAYOUT.LOGICAL_DEFINITION, HexGrid.DEFAULT_RADIUS_M)
+	assert(registered, "The shared logical registrar should register the authored tavern layout")
+	assert(simulation.building_registry.definitions.has(TAVERN_LAYOUT.BUILDING_ID))
+	assert(simulation.building_registry.doors.has(TAVERN_LAYOUT.FRONT_DOOR_ID))
+	var upper_floor := TAVERN_LAYOUT.UPPER_FLOOR_ORIGIN
+	var floor_count := 0
+	for q in range(-4, 5):
+		var row_shift := -floori(float(q) / 2.0)
+		for row in range(-2, 3):
+			var local_hex := Vector2i(q, row + row_shift)
+			assert(simulation.map_data.has_cell(upper_floor + local_hex), "Every authored upper-floor cell must be registered")
+			floor_count += 1
+	assert(floor_count == 45, "The upper floor must retain its 45-cell footprint")
 	simulation.free()
 
 func _test_tavern_building_assembly_keeps_live_door_and_floor_groups() -> void:
