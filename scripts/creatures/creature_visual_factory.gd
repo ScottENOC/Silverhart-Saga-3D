@@ -5,6 +5,13 @@ extends RefCounted
 
 const ASSET_CATALOG = preload("res://scripts/creatures/creature_asset_catalog.gd")
 
+static func create_species(species_name: String, options: Dictionary = {}) -> Node3D:
+	var asset_id := String(options.get("asset_id", ASSET_CATALOG.default_asset_for_species(species_name)))
+	if asset_id.is_empty():
+		push_error("No creature source asset is registered for species: %s" % species_name)
+		return null
+	return create_creature(asset_id, options)
+
 static func create_creature(asset_id: String, options: Dictionary = {}) -> Node3D:
 	var definition := ASSET_CATALOG.get_definition(asset_id)
 	if definition.is_empty():
