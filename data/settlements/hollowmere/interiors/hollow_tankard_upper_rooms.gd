@@ -1,6 +1,6 @@
 extends RefCounted
 ## Authored partitions, room labels and shared furnishings for the Hollow Tankard upper floor.
-## Bed placement remains a small axial helper because its location is defined in the hex map.
+## Bed anchors are authored axial placements and are rendered by the shared interior presenter.
 
 const DEFINITION := {
 	"id": "UpperRoomPresentation",
@@ -20,3 +20,12 @@ const DEFINITION := {
 		{"name":"LandingTableLeg","position":Vector3(0.8,3.48,1.7),"size":Vector3(0.12,0.6,0.12),"material":"dark_wood"}
 	]
 }
+
+const BEDS := [
+	{"name":"GarrickBed","hex":Vector2i(-3, 0),"blanket":Color(0.38, 0.16, 0.12)},
+	{"name":"GarrickSpareBed","hex":Vector2i(-3, 2),"blanket":Color(0.34, 0.24, 0.16)},
+	{"name":"NorthGuestBedA","hex":Vector2i(2, -2),"blanket":Color(0.24, 0.28, 0.38)},
+	{"name":"NorthGuestBedB","hex":Vector2i(3, -2),"blanket":Color(0.24, 0.28, 0.38)},
+	{"name":"SouthGuestBedA","hex":Vector2i(2, 0),"blanket":Color(0.24, 0.28, 0.38)},
+	{"name":"SouthGuestBedB","hex":Vector2i(3, 0),"blanket":Color(0.24, 0.28, 0.38)}
+]
