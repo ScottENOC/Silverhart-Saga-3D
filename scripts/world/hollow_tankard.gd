@@ -15,6 +15,7 @@ const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_d
 const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
 const INTERIOR_FEATURE_FACTORY = preload("res://scripts/world/world_interior_feature_factory.gd")
 const HOLLOW_TANKARD_TAPROOM = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_taproom.gd")
+const HOLLOW_TANKARD_UPPER_ROOMS = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_upper_rooms.gd")
 const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
@@ -540,28 +541,21 @@ func _create_building() -> void:
 	roof_group.visible = false
 
 func _create_upper_floor_rooms(parent: Node3D) -> void:
-	# The west suite is reserved for Garrick; the east wing contains guest
-	# rooms reached from the central landing. Six beds provide modest lodging.
-	_add_box(parent, "WestPartitionNorth", Vector3(0.0, 4.85, -3.15), Vector3(0.22, 2.9, 4.7), timber_material)
-	_add_box(parent, "WestPartitionSouth", Vector3(0.0, 4.85, 3.15), Vector3(0.22, 2.9, 4.7), timber_material)
-	_add_box(parent, "EastPartitionNorth", Vector3(2.95, 4.85, 0.0), Vector3(2.9, 2.9, 0.22), timber_material)
-	_add_box(parent, "EastPartitionSouth", Vector3(7.4, 4.85, 0.0), Vector3(1.2, 2.9, 0.22), timber_material)
-
-	_add_room_label(parent, "GARRICK'S ROOM", Vector3(-4.0, 6.35, -4.0))
-	_add_room_label(parent, "GUEST ROOM", Vector3(3.8, 6.35, -4.0))
-	_add_room_label(parent, "GUEST ROOM", Vector3(3.8, 6.35, 3.8))
-
+	var result := INTERIOR_FEATURE_FACTORY.present(
+		parent,
+		HOLLOW_TANKARD_UPPER_ROOMS.DEFINITION,
+		{"timber": timber_material, "dark_wood": dark_wood_material}
+	)
+	if result == null:
+		push_error("Could not present Hollow Tankard upper-room authored features.")
+	# Bed anchors remain axial placements, so they stay aligned with the
+	# logical upper-floor hex layout rather than duplicating world coordinates.
 	_create_bed_at_hex(parent, "GarrickBed", Vector2i(-3, 0), Color(0.38, 0.16, 0.12))
 	_create_bed_at_hex(parent, "GarrickSpareBed", Vector2i(-3, 2), Color(0.34, 0.24, 0.16))
 	_create_bed_at_hex(parent, "NorthGuestBedA", Vector2i(2, -2), Color(0.24, 0.28, 0.38))
 	_create_bed_at_hex(parent, "NorthGuestBedB", Vector2i(3, -2), Color(0.24, 0.28, 0.38))
 	_create_bed_at_hex(parent, "SouthGuestBedA", Vector2i(2, 0), Color(0.24, 0.28, 0.38))
 	_create_bed_at_hex(parent, "SouthGuestBedB", Vector2i(3, 0), Color(0.24, 0.28, 0.38))
-
-	for x in [-6.5, -2.8, 1.0, 6.8]:
-		_add_box(parent, "BedroomChest", Vector3(x, 3.78, -4.7 if x > 0.0 else 4.6), Vector3(0.9, 0.55, 0.55), dark_wood_material)
-	_add_box(parent, "LandingTable", Vector3(0.8, 3.78, 1.7), Vector3(1.2, 0.12, 0.65), timber_material)
-	_add_box(parent, "LandingTableLeg", Vector3(0.8, 3.48, 1.7), Vector3(0.12, 0.6, 0.12), dark_wood_material)
 
 func _create_bed_at_hex(parent: Node3D, bed_name: String, local_hex: Vector2i, blanket_colour: Color) -> void:
 	var bed_world_position := HexGrid.axial_to_world(local_hex, HEX_RADIUS, UPPER_FLOOR_Y + 0.17)
