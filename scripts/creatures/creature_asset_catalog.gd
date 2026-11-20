@@ -63,3 +63,11 @@ static func scale_for(asset_id: String, size_name: String) -> float:
 
 static func colour_for(colour_name: String) -> Color:
 	return COLOUR_PALETTE.get(colour_name.to_lower(), Color.WHITE)
+
+static func default_asset_for_species(species_name: String) -> String:
+	var normalized_species := species_name.to_lower()
+	for asset_id in ASSETS:
+		var definition: Dictionary = ASSETS[asset_id]
+		if String(definition.get("species", "")).to_lower() == normalized_species:
+			return String(asset_id)
+	return ""
