@@ -23,6 +23,24 @@ class GarmentCorrespondenceTests(unittest.TestCase):
         self.assertAlmostEqual(sum(result.values()), 1.0)
         self.assertNotIn("far", result)
 
+    def test_panel_region_prevents_cross_body_correspondence(self):
+        landmarks = {
+            "sternum": (0.0, 0.0, 0.0),
+            "left_underbust": (-0.1, 0.0, 0.0),
+            "left_hip": (0.0, 0.0, -0.01),
+        }
+        result = build_landmark_weights(
+            [(0.0, 0.0, 0.0)], landmarks, neighbours=3, region="chest",
+        )[0]
+        self.assertIn("sternum", result)
+        self.assertNotIn("left_hip", result)
+
+    def test_unknown_or_empty_panel_region_fails_closed(self):
+        with self.assertRaises(ValueError):
+            build_landmark_weights([(0.0, 0.0, 0.0)], {"left_hip": (0.0, 0.0, 0.0)}, region="chest")
+        with self.assertRaises(ValueError):
+            build_landmark_weights([(0.0, 0.0, 0.0)], {"left_hip": (0.0, 0.0, 0.0)}, region="abdomen")
+
     def test_landmark_motion_transfers_to_garment_point(self):
         result = transfer_landmark_deltas(
             {"left": 0.75, "right": 0.25},
