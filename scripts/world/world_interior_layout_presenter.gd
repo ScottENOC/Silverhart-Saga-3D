@@ -19,10 +19,18 @@ static func present(
 	var floor_definition: Variant = definition.get("hex_floor", {})
 	var door_definition: Variant = definition.get("door", {})
 	var upper_tiles_definition: Variant = definition.get("upper_floor_tiles", {})
+	var building_shell_definition: Dictionary = definition.get("building_shell", {})
+	var upper_exterior_definition: Dictionary = definition.get("upper_exterior", {})
+	var upper_floor_definition: Dictionary = definition.get("upper_floor", {})
+	var upper_rooms_definition: Dictionary = definition.get("upper_rooms", {})
+	var taproom_definition: Dictionary = definition.get("taproom", {})
+	var roof_definition: Dictionary = definition.get("roof", {})
 	if not ground_definition is Dictionary or not floor_definition is Dictionary:
 		return {"ok": false, "reason": "invalid_ground_or_hex_floor_definition"}
 	if not door_definition is Dictionary or not upper_tiles_definition is Dictionary:
 		return {"ok": false, "reason": "invalid_door_or_upper_floor_definition"}
+	if not materials.has("dark_wood") or not materials.has("timber"):
+		return {"ok": false, "reason": "missing_bed_materials"}
 	for material_key in [
 		String(ground_definition.get("material", "")),
 		String(floor_definition.get("walkable_material", "")),
@@ -37,7 +45,8 @@ static func present(
 	var ground := MeshInstance3D.new()
 	ground.name = String(ground_definition.get("name", "InteriorGround"))
 	var ground_mesh := PlaneMesh.new()
-	ground_mesh.size = ground_definition.get("size", Vector2.ZERO)
+	var ground_size: Vector2 = ground_definition.get("size", Vector2.ZERO)
+	ground_mesh.size = ground_size
 	if ground_mesh.size.x <= 0.0 or ground_mesh.size.y <= 0.0:
 		return {"ok": false, "reason": "invalid_ground_size"}
 	ground.mesh = ground_mesh
@@ -72,7 +81,7 @@ static func present(
 			parent.add_child(tile)
 			lower_tiles += 1
 
-	var shell := FEATURE_FACTORY.present(parent, definition.get("building_shell", {}), materials)
+	var shell := FEATURE_FACTORY.present(parent, building_shell_definition, materials)
 	if shell == null:
 		return {"ok": false, "reason": "building_shell_presentation_failed"}
 	var door_pivot := Node3D.new()
@@ -87,8 +96,8 @@ static func present(
 		materials[String(door_definition.get("leaf_material", "dark_wood"))]
 	)
 
-	var upper_exterior := FEATURE_FACTORY.present(parent, definition.get("upper_exterior", {}), materials)
-	var upper_floor := FEATURE_FACTORY.present(parent, definition.get("upper_floor", {}), materials)
+	var upper_exterior := FEATURE_FACTORY.present(parent, upper_exterior_definition, materials)
+	var upper_floor := FEATURE_FACTORY.present(parent, upper_floor_definition, materials)
 	if upper_exterior == null or upper_floor == null:
 		return {"ok": false, "reason": "upper_storey_presentation_failed"}
 	var upper_tiles := Node3D.new()
@@ -110,7 +119,7 @@ static func present(
 	var upper_interior := Node3D.new()
 	upper_interior.name = "UpperBedrooms"
 	upper_floor.add_child(upper_interior)
-	var upper_rooms := FEATURE_FACTORY.present(upper_interior, definition.get("upper_rooms", {}), materials)
+	var upper_rooms := FEATURE_FACTORY.present(upper_interior, upper_rooms_definition, materials)
 	if upper_rooms == null:
 		return {"ok": false, "reason": "upper_room_presentation_failed"}
 	for bed_definition in definition.get("beds", []):
@@ -118,10 +127,10 @@ static func present(
 			return {"ok": false, "reason": "invalid_bed_definition"}
 		_present_bed(upper_interior, bed_definition, hex_radius, upper_floor_y)
 
-	var taproom := FEATURE_FACTORY.present(parent, definition.get("taproom", {}), materials)
+	var taproom := FEATURE_FACTORY.present(parent, taproom_definition, materials)
 	if taproom == null:
 		return {"ok": false, "reason": "taproom_presentation_failed"}
-	var roof := FEATURE_FACTORY.present(parent, definition.get("roof", {}), materials)
+	var roof := FEATURE_FACTORY.present(parent, roof_definition, materials)
 	if roof == null:
 		return {"ok": false, "reason": "roof_presentation_failed"}
 	roof.visible = false
