@@ -55,6 +55,8 @@ Version-controlled, stable-ID records describe:
 
 Definitions describe *what exists*, not the sequence of scene-node operations used to construct it.
 
+Hollowmere authored data is now separated under `data/settlements/hollowmere/` by ownership: `settlement_definition.gd` (identity and coordinate reference), `buildings.gd`, `routes.gd`, `bridges.gd`, `agriculture.gd` and `props.gd`. `HollowmereVillageData` remains a compatibility/query facade for existing callers; it no longer owns duplicate authored arrays. This is an incremental GDScript-resource migration, not a new coordinate frame: all authored axial points remain in `campaign2_local_axial_qr`, with the Hollowmere crossroads reference at `(8, 24)`. Logical navigation queries remain in the facade for now and are a separate next extraction.
+
 ### 2. World data provider
 
 Loads and validates manifests, resolves references, applies authored-feature precedence and supplies deterministic queries to renderers and simulation systems.
@@ -118,7 +120,7 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 
 1. **Architecture decision and current-world audit (current slice):** accepted in [ADR 0001](adr/0001-continuous-world-and-streamed-presentation.md). Map the existing coordinate frames, geography sources, feature precedence, streamer call sites and simulation-state ownership before changing runtime architecture.
 2. **World/region authority:** establish which existing manifests and transforms are authoritative; make the strategic map a coarse index into the continuous world, not a competing playable coordinate system. Add explicit validated transforms where local authoring remains useful.
-3. **Hollowmere feature decomposition:** buildings, roads, bridge, agriculture and props now use shared factories. Next separate authored settlement details by coherent data domains while moving regional terrain, hydrology and biome rules to regional/world ownership. Preserve all existing world coordinates and gameplay behaviour.
+3. **Hollowmere feature decomposition:** buildings, roads, bridge, agriculture and props use shared factories; authored definitions are now split into domain files under `data/settlements/hollowmere/`. Keep the compatibility/query facade thin, then separate settlement logical rules from regional terrain, hydrology and biome ownership. Preserve all existing world coordinates and gameplay behaviour.
 4. **Building and interior convergence:** make Hollowmere buildings use the same definitions, logical registry, doors, entrances and reusable interior/floor composition. Keep the tavern playable; do not duplicate its behaviour into another system.
 5. **Streaming consolidation:** map actual runtime call sites for `HexWorldChunkStreamer` and the regional preview's streamer before choosing a single production owner. Separate generated data, logical state and disposable presentation; prove cross-chunk continuity and state restoration before retiring either implementation.
 6. **Source inventory and regional migration:** systematically inspect Hex-crpg Campaign 2 source and produce complete inventories for geography, settlements, structures, routes and landmarks. Retain source IDs/provenance and validate every local-to-world transform and travel connection.
@@ -147,5 +149,7 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 - [x] Move Hollowmere bridge placement and component geometry into authored data and a shared bridge assembly factory.
 - [x] Move Hollowmere field polygons, crop rows and fence runs into authored data and a shared agricultural renderer.
 - [x] Move store signage, chapel bell tower, crossroads signpost and broken-fence/blood-trail quest dressing into authored prop assemblies and a shared renderer.
+- [x] Split Hollowmere authored building, route, bridge, agriculture and prop definitions into domain files with a compatibility facade and CI coverage.
+- [ ] Move regional terrain, hydrology and biome rules out of settlement-specific logic.
 - [ ] Consolidate streaming and world composition.
 - [ ] Complete source-world feature inventory and regional migration.
