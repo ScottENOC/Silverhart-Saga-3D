@@ -109,6 +109,17 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var faction := String(source_cell.get("faction", ""))
 	return LOCAL_TERRAIN_RULES.terrain_for_hex(hex, base_terrain, faction)
 
+## Gameplay terrain distinguishes authored settlement footprints from the wilderness.
+## Hollowmere's full local map is supplied by its authored location data and is not
+## overwritten by procedural region loading.
+func gameplay_terrain_for_hex(hex: Vector2i) -> String:
+	if HexGrid.distance(Vector2i.ZERO, hex) <= AUTHORED_VILLAGE_RADIUS:
+		return "authored"
+	if settlement_building_cells.has(_hex_key(hex)):
+		return "building"
+	var terrain := terrain_for_hex(hex)
+	return "building" if terrain == "authored" else terrain
+
 func elevation_for_hex(hex: Vector2i) -> float:
 	return LOCAL_TERRAIN_RULES.elevation_for_hex(hex, terrain_for_hex(hex))
 
