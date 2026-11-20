@@ -1,0 +1,30 @@
+name: Character spatial foundation audit
+
+on:
+  push:
+    branches: [audit/character-spatial-foundation]
+    paths:
+      - "tools/characters/audit_spatial_foundation.py"
+      - ".github/workflows/character-spatial-foundation-audit.yml"
+      - "art/characters/ara_runtime/**"
+      - "art/characters/hollowmere/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit committed character GLBs
+        run: python tools/characters/audit_spatial_foundation.py --root art/characters --output character-spatial-audit
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: character-spatial-foundation-audit
+          path: character-spatial-audit/
+          if-no-files-found: error
+          retention-days: 30
