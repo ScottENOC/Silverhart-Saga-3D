@@ -13,6 +13,8 @@ const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_ca
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
+const INTERIOR_FEATURE_FACTORY = preload("res://scripts/world/world_interior_feature_factory.gd")
+const HOLLOW_TANKARD_TAPROOM = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_taproom.gd")
 const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
@@ -87,6 +89,7 @@ var dark_wood_material: StandardMaterial3D
 var plaster_material: StandardMaterial3D
 var roof_material: StandardMaterial3D
 var glass_material: StandardMaterial3D
+var bottle_green_material: StandardMaterial3D
 var ambient_chatter: AmbientChatter
 var ambient_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var ambient_accumulator: float = 0.0
@@ -159,6 +162,7 @@ func _create_materials() -> void:
 	roof_material = _material(Color(0.19, 0.22, 0.23))
 	glass_material = _material(Color(0.28, 0.42, 0.48, 0.68))
 	glass_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	bottle_green_material = _material(Color(0.22, 0.34, 0.20))
 	path_material = _material(Color(0.95, 0.72, 0.20, 0.48))
 	path_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 
@@ -597,36 +601,18 @@ func _add_window(parent: Node3D, position: Vector3, dimensions: Vector2, on_side
 		_add_box(parent, "WindowSill", position + Vector3(0.0, -dimensions.y * 0.5, 0.0), Vector3(dimensions.x + 0.2, 0.12, 0.18), timber_material)
 
 func _create_furniture() -> void:
-	var furniture := Node3D.new()
-	furniture.name = "TavernFurniture"
-	add_child(furniture)
-
-	# North-wall bar and shelving.
-	_add_box(furniture, "BarFront", Vector3(2.5, 0.62, -4.45), Vector3(5.2, 1.15, 0.85), dark_wood_material)
-	_add_box(furniture, "BarTop", Vector3(2.5, 1.25, -4.45), Vector3(5.45, 0.16, 1.0), timber_material)
-	_add_box(furniture, "BackBarShelf", Vector3(2.5, 1.75, -5.0), Vector3(4.5, 0.18, 0.3), timber_material)
-	for i in range(5):
-		_add_box(furniture, "Bottle", Vector3(0.8 + float(i) * 0.8, 1.98, -5.0), Vector3(0.18, 0.34, 0.18), _material(Color(0.22, 0.34, 0.20)))
-
-	# Hearth against the west wall.
-	_add_box(furniture, "FireplaceStone", Vector3(-7.15, 0.75, -1.0), Vector3(1.35, 1.5, 2.0), stone_material)
-	_add_box(furniture, "FireplaceOpening", Vector3(-6.42, 0.62, -1.0), Vector3(0.08, 0.85, 1.05), dark_wood_material)
-	_add_box(furniture, "HearthStone", Vector3(-6.4, 0.12, -1.0), Vector3(1.6, 0.22, 2.2), stone_material)
-	_add_box(furniture, "ChimneyBreast", Vector3(-7.2, 2.55, -1.0), Vector3(1.1, 2.1, 1.4), stone_material)
-
-	# Two tables with benches; the middle aisle stays open.
-	for table_x in [-2.65, 2.65]:
-		_add_box(furniture, "TableTop", Vector3(table_x, 0.88, 0.0), Vector3(2.0, 0.16, 1.0), timber_material)
-		for leg_x in [-0.82, 0.82]:
-			for leg_z in [-0.32, 0.32]:
-				_add_box(furniture, "TableLeg", Vector3(table_x + leg_x, 0.43, leg_z), Vector3(0.14, 0.86, 0.14), dark_wood_material)
-		_add_box(furniture, "Bench", Vector3(table_x, 0.48, -1.45), Vector3(2.0, 0.18, 0.42), timber_material)
-		_add_box(furniture, "Bench", Vector3(table_x, 0.48, 1.45), Vector3(2.0, 0.18, 0.42), timber_material)
-
-	# A few grounded details, not a fully dressed prop set.
-	_add_box(furniture, "StorageChest", Vector3(6.7, 0.48, -3.2), Vector3(1.0, 0.9, 0.8), dark_wood_material)
-	_add_box(furniture, "Stool", Vector3(5.9, 0.42, -2.2), Vector3(0.65, 0.8, 0.65), timber_material)
-	_add_box(furniture, "StoolSeat", Vector3(5.9, 0.85, -2.2), Vector3(0.7, 0.12, 0.7), dark_wood_material)
+	var result := INTERIOR_FEATURE_FACTORY.present(
+		self,
+		HOLLOW_TANKARD_TAPROOM.DEFINITION,
+		{
+			"dark_wood": dark_wood_material,
+			"timber": timber_material,
+			"stone": stone_material,
+			"bottle_green": bottle_green_material
+		}
+	)
+	if result == null:
+		push_error("Could not present Hollow Tankard authored taproom furnishings.")
 
 func _create_characters() -> void:
 	starting_loadouts = _load_starting_loadouts()
