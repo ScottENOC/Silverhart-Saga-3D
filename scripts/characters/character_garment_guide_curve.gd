@@ -29,6 +29,8 @@ const VALID_GUIDE_IDS := [
 ## "barycentric": PackedFloat32Array([wa,wb,wc]) }.
 @export var points: Array[Dictionary] = []
 
+var last_evaluation_error: String = ""
+
 
 func validate_for_mesh(mesh_instance: MeshInstance3D, body_root: Node3D, expected_body_asset_path: String) -> String:
     if mesh_instance == null or body_root == null or mesh_instance.mesh == null:
@@ -79,7 +81,9 @@ func validate_for_mesh(mesh_instance: MeshInstance3D, body_root: Node3D, expecte
 
 func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
     var result: Array[Dictionary] = []
+    last_evaluation_error = ""
     if surface_regions == null:
+        last_evaluation_error = "Surface-region evaluator is null"
         return result
     for point_index in range(points.size()):
         var point: Dictionary = points[point_index]
@@ -90,10 +94,14 @@ func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
         for corner in range(3):
             var sample := surface_regions.get_surface_vertex_sample(mesh_node_path, surface_index, triangle[corner])
             if sample.is_empty():
+                last_evaluation_error = "Surface sample unavailable at point %d, triangle corner %d (mesh=%s surface=%d vertex=%d)" % [
+                    point_index, corner, mesh_node_path, surface_index, triangle[corner]
+                ]
                 return []
             position += sample["position"] * barycentric[corner]
             normal += sample["normal"] * barycentric[corner]
         if normal.length_squared() < 0.000001:
+            last_evaluation_error = "Interpolated normal is degenerate at guide point %d" % point_index
             return []
         result.append({
             "position": position,
@@ -114,6 +122,7 @@ func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
         var normal: Vector3 = result[point_index]["normal"]
         tangent -= normal * tangent.dot(normal)
         if tangent.length_squared() < 0.000001:
+            last_evaluation_error = "Tangent is degenerate at guide point %d (closed_loop=%s)" % [point_index, closed_loop]
             return []
         tangent = tangent.normalized()
         var binormal := tangent.cross(normal).normalized()
