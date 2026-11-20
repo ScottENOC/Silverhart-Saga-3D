@@ -140,6 +140,12 @@ gap that should be addressed before claiming equivalent male/female body-shape c
 
 `tests/test_character_surface_regions.gd` loads both canonical GLBs and checks that
 the common broad regions return finite surface positions and normals, then verifies
-that chest samples respond to a body morph and upper-arm samples respond to a changed
-joint pose. The Godot CI run is the acceptance gate; no garment-fitting consumer should
-depend on this proof of concept until the test passes.
+that chest samples respond to a body morph and that upper-arm samples respond to a
+changed joint pose. The test explicitly binds each imported MeshInstance3D to its
+Skeleton3D (important because Godot 4.6 changed the default skeleton path), checks
+that a valid SkinReference is registered, and compares multiple evaluated positions
+and normals against MeshInstance3D.bake_mesh_from_current_skeleton_pose() output.
+The bake API ignores blend shapes, so this engine comparison is performed with morph
+weights reset and a changed joint pose. The Godot CI run is the acceptance gate; no
+garment-fitting consumer should depend on this proof of concept until that comparison
+passes for both canonical bodies.
