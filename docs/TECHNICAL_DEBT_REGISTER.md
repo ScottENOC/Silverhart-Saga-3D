@@ -8,9 +8,9 @@
 
 This register tracks structural improvements without treating file length alone as a defect. The objective is to make systems independently understandable, testable and reusable, while preserving gameplay behaviour.
 
-## 1. Branch and validation baseline
+## 1. Historical branch and validation baseline (13 November 2026)
 
-The branch promotion on 13 November 2026 established:
+The branch promotion on 13 November 2026 historically established the following. These branch roles have since changed; Section 7 is the current source of truth:
 
 - `main`: historical development baseline.
 - `dev`: current script-tested candidate for the user's hands-on gameplay review.
@@ -113,20 +113,20 @@ Refactor each independently. Prefer data-driven world/building content and clear
 
 Audit duplicated sources of truth, stale generated files, pipeline idempotency/cache invalidation, error handling and implicit dependencies. Address only issues demonstrated by the audit.
 
-## 5. Working rules
+## 5. Historical working rules (superseded by Section 7)
 
-- One focused PR/change set at a time, targeting `dev_2`.
+- One focused PR/change set at a time, targeting the current `dev` branch.
 - Never force-push or rewrite the protected candidate branch.
 - Preserve a known-good commit before each substantial refactor.
 - Run the narrow tests during development and the full Godot validation workflow before merging.
 - Do not merge a refactor merely because it compiles; inspect test coverage and relevant scene behaviour.
-- If the technical-debt line becomes unhealthy, create a fresh `dev_3` from the untouched `dev` candidate and recover only reviewed changes.
+- Do not revive the old `dev_2` / `dev_3` branching plan without a fresh branch comparison; recover only reviewed changes onto current `dev`.
 - Keep the parked fog/vision work out of the current sequence.
 - Character assembly work that depends on the finalised body model remains gated by that model; do not refactor it prematurely.
 
-## 6. Immediate next task
+## 6. Historical immediate task (superseded)
 
-Start TD-002: inspect the complete `tests/test_simulation.gd` test/helper inventory, identify shared setup and order dependencies, then propose the exact file split. Do not edit or move test code until that inventory is complete. The first implementation PR should be test-only and behaviour-preserving.
+The original instruction to split `tests/test_simulation.gd` is complete on current `dev`; the monolithic runner has been replaced by domain-specific suites. Do not restart that task without evidence of missing assertions or suite coupling. The current technical-debt work is the ownership audit and execution sequence in Section 7.
 
 
 ## 7. Current `dev` ownership audit — 20 November 2026
