@@ -38,7 +38,7 @@ func load_around(map_data: HexMapData, centre: Vector2i, radius: int = DEFAULT_L
                     var terrain_id := terrain_data.gameplay_terrain_for_hex(hex)
                     if terrain_id in ["authored", "void"]:
                         continue
-                    var walkable := terrain_id != "water" and terrain_id != "building"
+                    var walkable := terrain_data.is_walkable_for_hex(hex)
                     map_data.add_cell(hex, terrain_data.elevation_for_hex(hex), walkable, terrain_id)
             loaded_chunks[key] = chunk
     return loaded_chunks.size()
