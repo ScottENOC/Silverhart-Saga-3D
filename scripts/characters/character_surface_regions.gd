@@ -95,8 +95,9 @@ func configure(character_root: Node3D, body_root: Node3D) -> bool:
 
             var region_weights: Dictionary = {}
             for region_id in REGION_BONE_ALIASES:
-                region_weights[region_id] = PackedFloat32Array()
-                (region_weights[region_id] as PackedFloat32Array).resize(vertices.size())
+                var empty_region_weights := PackedFloat32Array()
+                empty_region_weights.resize(vertices.size())
+                region_weights[region_id] = empty_region_weights
 
             for vertex_index in range(vertices.size()):
                 for influence_index in range(influences_per_vertex):
@@ -259,8 +260,8 @@ func _evaluate_vertex(surface: Dictionary, vertex_index: int) -> Dictionary:
             else:
                 local_normal += normal_deltas[vertex_index] * shape_weight
 
-    var character_position := Vector3.ZERO
-    var character_normal := Vector3.ZERO
+    var blended_basis := Basis(Vector3.ZERO, Vector3.ZERO, Vector3.ZERO)
+    var blended_origin := Vector3.ZERO
     var total_weight := 0.0
     var character_from_skeleton := _character_root.global_transform.affine_inverse() * _skeleton.global_transform
 
@@ -280,15 +281,22 @@ func _evaluate_vertex(surface: Dictionary, vertex_index: int) -> Dictionary:
             * _skeleton.get_bone_global_pose(bone_index)
             * skin.get_bind_pose(bind_index)
         )
-        character_position += (skin_transform * local_position) * influence_weight
-        var normal_basis := skin_transform.basis.inverse().transposed()
-        character_normal += (normal_basis * local_normal) * influence_weight
+        blended_basis += skin_transform.basis * influence_weight
+        blended_origin += skin_transform.origin * influence_weight
         total_weight += influence_weight
 
     if total_weight <= 0.00001:
         return {"valid": false}
-    character_position /= total_weight
-    character_normal = (character_normal / total_weight).normalized()
+    var inverse_total_weight := 1.0 / total_weight
+    blended_basis = Basis(
+        blended_basis.x * inverse_total_weight,
+        blended_basis.y * inverse_total_weight,
+        blended_basis.z * inverse_total_weight
+    )
+    blended_origin *= inverse_total_weight
+    var blended_skin_transform := Transform3D(blended_basis, blended_origin)
+    var character_position := blended_skin_transform * local_position
+    var character_normal := (blended_skin_transform.basis.inverse().transposed() * local_normal).normalized()
     return {"valid": true, "position": character_position, "normal": character_normal}
 
 
