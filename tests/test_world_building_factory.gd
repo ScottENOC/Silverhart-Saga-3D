@@ -49,6 +49,7 @@ func _test_data_driven_dimensions_and_metadata() -> void:
 	assert(node.get_meta("source_door_hex") == Vector2i(0, 7))
 	assert(node.find_child("FireplaceHearth", true, false) != null, "Optional features should be data-controlled")
 	assert(node.find_child("DoorLeaf", true, false) != null, "The selected entrance should be constructed")
+	assert(node.find_child("EastWall_DoorLintel", true, false) != null or node.find_child("NorthWall_DoorLintel", true, false) != null, "The entrance opening must be closed above the door")
 	parent.free()
 
 func _test_invalid_definitions_are_rejected() -> void:
