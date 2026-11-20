@@ -30,10 +30,10 @@ static func create_profile(character_id: String, display_name: String, context: 
         piercings.append("nipple_left")
     if age >= 0.34375 and rng.randf() < 0.001:
         piercings.append("clit")
-    var top_options := ["long_tunic", "tunic", "tattered_shirt"]
+    var top_options := ["long_tunic", "tunic", "tattered_shirt", "fatigue_shirt"]
     if context in ["guard", "soldier"]:
         top_options.append("uniform_shirt")
-    var bottom_options := ["trousers", "wrapper_long"]
+    var bottom_options := ["trousers", "wrapper_long", "wrapper_knee", "fatigue_pants"]
     var top := top_options[rng.randi_range(0, top_options.size() - 1)]
     var bottom := bottom_options[rng.randi_range(0, bottom_options.size() - 1)]
     var top_colour := _earth_tone(rng)
