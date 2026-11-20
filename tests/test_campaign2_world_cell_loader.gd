@@ -1,0 +1,68 @@
+extends SceneTree
+
+const CELL_LOADER = preload("res://scripts/world/campaign2_world_cell_loader.gd")
+
+var failures: int = 0
+
+func _initialize() -> void:
+    _test_authored_hollowmere_cells_are_not_overwritten()
+    _test_settlement_footprints_and_paths_are_logical_cells()
+    _test_generation_is_stable_across_chunk_load_order()
+    _test_negative_chunk_coordinates()
+    if failures > 0:
+        push_error("%d Campaign 2 world cell loader test(s) failed." % failures)
+        quit(1)
+        return
+    print("Campaign 2 world cell loader tests passed.")
+    quit(0)
+
+func _test_authored_hollowmere_cells_are_not_overwritten() -> void:
+    var map_data := HexMapData.new()
+    map_data.add_cell(Vector2i(8, 24), 0.25, true, "authored_path")
+    var loader = CELL_LOADER.new()
+    loader.load_around(map_data, Vector2i(8, 24), 0)
+    _check(map_data.terrain_id_at(Vector2i(8, 24)) == "authored_path", "The authored Hollowmere map must remain authoritative")
+    _check(map_data.elevation_at(Vector2i(8, 24)) == 0.25, "Authored Hollowmere elevation must not be overwritten")
+    map_data.free()
+    loader.free()
+
+func _test_settlement_footprints_and_paths_are_logical_cells() -> void:
+    var map_data := HexMapData.new()
+    var loader = CELL_LOADER.new()
+    loader.load_around(map_data, Vector2i(1, -366), 0)
+    _check(map_data.has_cell(Vector2i(1, -366)), "The Millbrook building footprint should be materialised")
+    _check(map_data.terrain_id_at(Vector2i(1, -366)) == "building", "The Millbrook building footprint should retain authored building terrain")
+    _check(not map_data.is_walkable(Vector2i(1, -366)), "The Millbrook building footprint should be blocked")
+    _check(map_data.terrain_id_at(Vector2i(5, -366)) == "path", "The Millbrook entrance path should be materialised from settlement data")
+    _check(map_data.is_walkable(Vector2i(5, -366)), "The Millbrook entrance path should be walkable")
+    map_data.free()
+    loader.free()
+
+func _test_generation_is_stable_across_chunk_load_order() -> void:
+    var first_map := HexMapData.new()
+    var second_map := HexMapData.new()
+    var first_loader = CELL_LOADER.new()
+    var second_loader = CELL_LOADER.new()
+    first_loader.load_around(first_map, Vector2i(120, -100), 0)
+    first_loader.load_around(first_map, Vector2i(216, -100), 0)
+    second_loader.load_around(second_map, Vector2i(216, -100), 0)
+    second_loader.load_around(second_map, Vector2i(120, -100), 0)
+    for hex in [Vector2i(120, -100), Vector2i(216, -100), Vector2i(121, -99), Vector2i(217, -99)]:
+        _check(first_map.terrain_id_at(hex) == second_map.terrain_id_at(hex), "Terrain must not depend on chunk load order at %s" % hex)
+        _check(is_equal_approx(first_map.elevation_at(hex), second_map.elevation_at(hex)), "Elevation must not depend on chunk load order at %s" % hex)
+    first_map.free()
+    second_map.free()
+    first_loader.free()
+    second_loader.free()
+
+func _test_negative_chunk_coordinates() -> void:
+    var loader = CELL_LOADER.new()
+    _check(loader.terrain_data.chunk_for_hex(Vector2i(-1, -1), CELL_LOADER.CHUNK_SIZE) == Vector2i(-1, -1), "Negative coordinates must use floor-based chunk ownership")
+    _check(loader.terrain_data.chunk_for_hex(Vector2i(-24, -24), CELL_LOADER.CHUNK_SIZE) == Vector2i(-1, -1), "Negative chunk boundaries must be stable")
+    _check(loader.terrain_data.chunk_for_hex(Vector2i(-25, -25), CELL_LOADER.CHUNK_SIZE) == Vector2i(-2, -2), "Negative coordinates below the boundary must enter the preceding chunk")
+    loader.free()
+
+func _check(condition: bool, message: String) -> void:
+    if not condition:
+        failures += 1
+        push_error(message)
