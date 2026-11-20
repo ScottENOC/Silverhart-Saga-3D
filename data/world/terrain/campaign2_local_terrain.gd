@@ -5,6 +5,8 @@ extends RefCounted
 const SEED := 2047
 const ROCK_OUTCROP_SEED_OFFSET := 431
 const ROCK_OUTCROP_THRESHOLD := 0.18
+const TREE_DENSITY_SEED_OFFSET := 317
+const TREE_DENSITY_THRESHOLD := 0.34
 
 static func terrain_for_hex(hex: Vector2i, base_terrain: String, faction: String) -> String:
 	return terrain_from_roll(base_terrain, faction, stable_roll(hex, SEED))
@@ -48,6 +50,12 @@ static func elevation_from_rolls(terrain: String, broad: float, detail: float) -
 			return broad * 0.28
 		_:
 			return broad * 0.18
+
+static func has_tree(hex: Vector2i, terrain: String) -> bool:
+	return has_tree_from_roll(terrain, stable_roll(hex, SEED + TREE_DENSITY_SEED_OFFSET))
+
+static func has_tree_from_roll(terrain: String, density_roll: float) -> bool:
+	return terrain == "forest" and density_roll < TREE_DENSITY_THRESHOLD
 
 static func has_rock_outcrop(hex: Vector2i, terrain: String) -> bool:
 	return rock_outcrop_from_roll(terrain, stable_roll(hex, SEED + ROCK_OUTCROP_SEED_OFFSET))

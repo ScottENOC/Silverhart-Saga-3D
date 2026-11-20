@@ -138,8 +138,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_terrain.gd
       - name: Run Campaign 2 regional hydrology tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_regional_hydrology.gd
-      - name: Run Silverhart heartland regional terrain tests
-        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_heartland_terrain.gd
+      - name: Run Campaign 2 local terrain rule tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_local_terrain.gd
       - name: Run Silverhart heartland biome tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_heartland_biomes.gd
       - name: Run Campaign 2 settlement layout tests

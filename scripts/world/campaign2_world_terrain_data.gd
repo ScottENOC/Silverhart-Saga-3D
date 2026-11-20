@@ -8,8 +8,7 @@ const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
 const ROAD_PATHS_PATH := "res://data/world/campaign2_road_paths.json"
 const SETTLEMENT_LAYOUTS_PATH := "res://data/world/campaign2_settlement_layouts.json"
 const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
-const REGIONAL_TERRAIN = preload("res://data/world/regions/silverhart_heartland/terrain.gd")
-const REGIONAL_BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
+const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
 const AUTHORED_VILLAGE_RADIUS := 96
 
 var strategic_grid: Array = []
@@ -108,17 +107,16 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var source_cell: Dictionary = strategic_grid[strategic_cell.y][strategic_cell.x]
 	var base_terrain := String(source_cell.get("terrain", "grass"))
 	var faction := String(source_cell.get("faction", ""))
-	return REGIONAL_TERRAIN.terrain_for_hex(hex, base_terrain, faction)
+	return LOCAL_TERRAIN_RULES.terrain_for_hex(hex, base_terrain, faction)
 
 func elevation_for_hex(hex: Vector2i) -> float:
-	return REGIONAL_TERRAIN.elevation_for_hex(hex, terrain_for_hex(hex))
+	return LOCAL_TERRAIN_RULES.elevation_for_hex(hex, terrain_for_hex(hex))
 
 func has_tree(hex: Vector2i) -> bool:
-	var density_roll := REGIONAL_TERRAIN.stable_roll(hex, REGIONAL_TERRAIN.SEED + REGIONAL_BIOMES.REGIONAL_TREE_SEED_OFFSET)
-	return REGIONAL_BIOMES.has_regional_tree(terrain_for_hex(hex), density_roll)
+	return LOCAL_TERRAIN_RULES.has_tree(hex, terrain_for_hex(hex))
 
 func has_rock_outcrop(hex: Vector2i) -> bool:
-	return REGIONAL_TERRAIN.has_rock_outcrop(hex, terrain_for_hex(hex))
+	return LOCAL_TERRAIN_RULES.has_rock_outcrop(hex, terrain_for_hex(hex))
 
 func location_at(hex: Vector2i) -> Dictionary:
 	return (locations_by_hex.get(_hex_key(hex), {}) as Dictionary).duplicate(true)

@@ -1,7 +1,6 @@
 extends SceneTree
 
-const TERRAIN = preload("res://data/world/regions/silverhart_heartland/terrain.gd")
-const BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
+const TERRAIN = preload("res://data/world/terrain/campaign2_local_terrain.gd")
 
 func _initialize() -> void:
 	assert(TERRAIN.terrain_from_roll("ocean", "orcs", 0.99) == "water")
@@ -27,9 +26,9 @@ func _initialize() -> void:
 	assert(TERRAIN.rock_outcrop_from_roll("badlands", 0.17))
 	assert(not TERRAIN.rock_outcrop_from_roll("hills", 0.18))
 	assert(not TERRAIN.rock_outcrop_from_roll("grass", 0.01))
-	assert(BIOMES.has_regional_tree("forest", 0.33))
-	assert(not BIOMES.has_regional_tree("forest", 0.34))
-	assert(not BIOMES.has_regional_tree("hills", 0.01))
+	assert(TERRAIN.has_tree_from_roll("forest", 0.33))
+	assert(not TERRAIN.has_tree_from_roll("forest", 0.34))
+	assert(not TERRAIN.has_tree_from_roll("hills", 0.01))
 
 	var sample := Vector2i(-187, 263)
 	assert(TERRAIN.stable_roll(sample, TERRAIN.SEED) == TERRAIN.stable_roll(sample, TERRAIN.SEED))

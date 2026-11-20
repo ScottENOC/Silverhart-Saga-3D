@@ -3,7 +3,7 @@ extends Node3D
 ## Hollowmere uses its authored exterior; surrounding local-hex terrain is streamed in chunks.
 
 const TERRAIN_DATA_SCRIPT = preload("res://scripts/world/campaign2_world_terrain_data.gd")
-const REGIONAL_TERRAIN = preload("res://data/world/regions/silverhart_heartland/terrain.gd")
+const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
 const VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
 const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
@@ -255,7 +255,7 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 			_add_hex_to_surface(tools[terrain] as SurfaceTool, hex, elevation)
 			if terrain_data.has_tree(hex):
 				var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
-				var size_roll := REGIONAL_TERRAIN.stable_roll(hex, 2909)
+				var size_roll := LOCAL_TERRAIN_RULES.stable_roll(hex, 2909)
 				var scale := 0.72 + size_roll * 0.5
 				var rotation := size_roll * TAU
 				var basis := Basis(Vector3.UP, rotation).scaled(Vector3(scale, scale, scale))
