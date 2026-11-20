@@ -113,12 +113,8 @@ func _add_npc(parent: Node3D, placement: Dictionary) -> void:
 	)
 	if actor == null:
 		return
-	actor.set_meta("settlement_id", String(_settlement_id_for_placement(placement)))
 	actor.set_meta("settlement_hex", hex)
 	parent.add_child(actor)
-
-func _settlement_id_for_placement(_placement: Dictionary) -> String:
-	return ""
 
 func _contains_chunk(hex: Vector2i, chunk_min: Vector2i, chunk_size: int) -> bool:
 	return hex.x >= chunk_min.x and hex.x < chunk_min.x + chunk_size and hex.y >= chunk_min.y and hex.y < chunk_min.y + chunk_size
