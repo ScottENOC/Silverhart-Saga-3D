@@ -62,7 +62,7 @@ static func _valid_crop_row_definition(definition: Variant, materials: Dictionar
 	if not _valid_axial_points(points, 2):
 		return false
 	var widths: Variant = definition.get("widths")
-	var expected_widths := points.size() + (1 if definition.has("midpoint_offset") and points.size() == 2 else 0)
+	var expected_widths: int = points.size() + (1 if definition.has("midpoint_offset") and points.size() == 2 else 0)
 	if not widths is Array or widths.size() != expected_widths:
 		return false
 	for width in widths:
