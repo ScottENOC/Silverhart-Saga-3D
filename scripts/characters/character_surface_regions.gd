@@ -4,7 +4,9 @@ extends RefCounted
 ##
 ## Region membership is derived from the mesh's skin-weight influences. Vertex positions
 ## are evaluated from the active blend-shape deltas and current skeleton pose. This is a
-## first proof of concept: broad rig-driven regions, not hand-authored fine anatomy masks.
+## broad rig-driven regions are supplemented by optional topology-validated authored masks.
+
+const FINE_MASK_SCRIPT = preload("res://scripts/characters/character_surface_region_mask.gd")
 
 const REGION_BONE_ALIASES := {
     "head": ["head", "headtop_end"],
@@ -37,7 +39,12 @@ var _configured := false
 var _configuration_error := ""
 
 
-func configure(character_root: Node3D, body_root: Node3D) -> bool:
+func configure(
+    character_root: Node3D,
+    body_root: Node3D,
+    fine_region_masks: Array[Resource] = [],
+    body_asset_path: String = ""
+) -> bool:
     _character_root = character_root
     _body_root = body_root
     _skeleton = _find_skeleton(body_root) if body_root != null else null
@@ -122,6 +129,7 @@ func configure(character_root: Node3D, body_root: Node3D) -> bool:
                 "weights": weights,
                 "influences_per_vertex": influences_per_vertex,
                 "region_weights": region_weights,
+                "fine_region_weights": {},
                 "blend_shape_arrays": array_mesh.surface_get_blend_shape_arrays(surface_index),
                 "skin": skin
             })
@@ -129,6 +137,37 @@ func configure(character_root: Node3D, body_root: Node3D) -> bool:
     if _surfaces.is_empty():
         _configuration_error = "No surfaces contain vertices, normals and valid skin weights"
         return false
+
+    # Fine masks are optional, but every supplied mask is strict: a stale or
+    # mismatched mask invalidates configuration rather than silently fitting to
+    # the wrong vertex order or body export.
+    for mask_resource in fine_region_masks:
+        if not mask_resource is CharacterSurfaceRegionMask:
+            _configuration_error = "Fine surface masks must use CharacterSurfaceRegionMask resources"
+            _surfaces.clear()
+            return false
+        var mask := mask_resource as CharacterSurfaceRegionMask
+        var mesh_instance := _body_root.get_node_or_null(mask.mesh_node_path) as MeshInstance3D
+        if mesh_instance == null:
+            _configuration_error = "Fine surface mask mesh path does not resolve: %s" % mask.mesh_node_path
+            _surfaces.clear()
+            return false
+        var mask_error := mask.validate_for_mesh(mesh_instance, _body_root, body_asset_path)
+        if not mask_error.is_empty():
+            _configuration_error = mask_error
+            _surfaces.clear()
+            return false
+        var matched_surface := false
+        for surface in _surfaces:
+            if surface["mesh_instance"] == mesh_instance and int(surface["surface_index"]) == mask.surface_index:
+                surface["fine_region_weights"] = mask.region_weights.duplicate(true)
+                matched_surface = true
+                break
+        if not matched_surface:
+            _configuration_error = "Fine surface mask targets a surface without valid skin weights"
+            _surfaces.clear()
+            return false
+
     _configured = true
     return true
 
@@ -146,10 +185,10 @@ func get_skeleton() -> Skeleton3D:
 
 
 func has_region(region_id: String, minimum_weight: float = 0.25) -> bool:
-    if not is_configured() or not REGION_BONE_ALIASES.has(region_id):
+    if not is_configured() or not _is_known_region(region_id):
         return false
     for surface in _surfaces:
-        var values: PackedFloat32Array = surface["region_weights"][region_id]
+        var values := _get_region_weights(surface, region_id)
         for weight in values:
             if weight >= minimum_weight:
                 return true
@@ -160,6 +199,9 @@ func available_regions(minimum_weight: float = 0.25) -> PackedStringArray:
     var result := PackedStringArray()
     for region_id in REGION_BONE_ALIASES:
         if has_region(region_id, minimum_weight):
+            result.append(region_id)
+    for region_id in CharacterSurfaceRegionMask.REGION_IDS:
+        if has_region(region_id, minimum_weight) and not result.has(region_id):
             result.append(region_id)
     return result
 
@@ -172,11 +214,13 @@ func get_region_surface_samples(
     max_samples: int = 0
 ) -> Array[Dictionary]:
     var result: Array[Dictionary] = []
-    if not is_configured() or not REGION_BONE_ALIASES.has(region_id):
+    if not is_configured() or not _is_known_region(region_id):
         return result
 
     for surface in _surfaces:
-        var region_values: PackedFloat32Array = surface["region_weights"][region_id]
+        var region_values := _get_region_weights(surface, region_id)
+        if region_values.is_empty():
+            continue
         var qualifying: Array[int] = []
         for vertex_index in range(region_values.size()):
             if region_values[vertex_index] >= minimum_weight:
@@ -228,6 +272,19 @@ func get_region_bone_indices(region_id: String) -> PackedInt32Array:
     for bone_index in _region_bone_indices[region_id].values():
         result.append(int(bone_index))
     return result
+
+
+func _is_known_region(region_id: String) -> bool:
+    return REGION_BONE_ALIASES.has(region_id) or CharacterSurfaceRegionMask.REGION_IDS.has(region_id)
+
+
+func _get_region_weights(surface: Dictionary, region_id: String) -> PackedFloat32Array:
+    if surface["region_weights"].has(region_id):
+        return surface["region_weights"][region_id] as PackedFloat32Array
+    var fine_weights: Dictionary = surface.get("fine_region_weights", {})
+    if fine_weights.has(region_id):
+        return fine_weights[region_id] as PackedFloat32Array
+    return PackedFloat32Array()
 
 
 func _evaluate_vertex(surface: Dictionary, vertex_index: int) -> Dictionary:
