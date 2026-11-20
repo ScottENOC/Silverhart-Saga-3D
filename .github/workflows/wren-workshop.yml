@@ -22,6 +22,7 @@ on:
       - "tools/ara/garment_fit.py"
       - "tools/ara/garment_correspondence.py"
       - "tests/test_garment_fit.py"
+      - "tests/test_garment_correspondence.py"
       - "tools/ara/assemble_modular_glb.py"
       - "tools/blender/add_adult_anatomy.py"
       - "tools/blender/add_male_anatomy.py"
