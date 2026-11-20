@@ -10,6 +10,7 @@ const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_ge
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
 const POLYLINE_FEATURE_FACTORY = preload("res://scripts/world/world_polyline_feature_factory.gd")
+const BRIDGE_FEATURE_FACTORY = preload("res://scripts/world/world_bridge_feature_factory.gd")
 var grass_material: StandardMaterial3D
 var path_material: StandardMaterial3D
 var water_material: StandardMaterial3D
@@ -332,19 +333,12 @@ func _add_chapel_bell_tower() -> void:
 	_add_box(root, "ChapelCrossBar", Vector3(0.0, 5.85, -1.4), Vector3(0.65, 0.14, 0.14), timber_material)
 
 func _create_bridge() -> void:
-	var centre := HexGrid.axial_to_world(HollowmereVillageData.BRIDGE, HEX_RADIUS, 0.0)
-	var bridge := Node3D.new()
-	bridge.name = "NarrowRiverBridge"
-	bridge.position = centre
-	# The river follows the q-axis direction; rotate the bridge so its deck
-	# meets the channel at a convincing crossing angle.
-	bridge.rotation.y = deg_to_rad(-5.0)
-	add_child(bridge)
-	_add_box(bridge, "StreamBridgeDeck", Vector3(0.0, 0.18, 0.0), Vector3(2.8, 0.24, 4.8), timber_material)
-	for side in [-1.0, 1.0]:
-		_add_box(bridge, "BridgeRail", Vector3(side * 1.22, 0.62, 0.0), Vector3(0.16, 0.72, 4.6), dark_wood_material)
-		for z in [-2.0, 0.0, 2.0]:
-			_add_box(bridge, "BridgePost", Vector3(side * 1.22, 0.55, z), Vector3(0.2, 0.95, 0.2), timber_material)
+	BRIDGE_FEATURE_FACTORY.create_bridge(
+		self,
+		HollowmereVillageData.BRIDGE_PRESENTATION,
+		{"timber": timber_material, "dark_wood": dark_wood_material},
+		HEX_RADIUS
+	)
 
 func _create_signpost() -> void:
 	var centre := HexGrid.axial_to_world(HollowmereVillageData.CROSSROADS, HEX_RADIUS, 0.0)
