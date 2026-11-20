@@ -2,7 +2,7 @@ name: Fishnet Halter Bra Fit Experiment
 
 on:
   push:
-    branches: [experiment/fishnet-halter-bra-fit]
+    branches: [experiment/fishnet-halter-bra-anchors]
     paths:
       - .github/workflows/fishnet-halter-bra-fit-experiment.yml
       - tools/blender/fit_fishnet_halter_bra.py
