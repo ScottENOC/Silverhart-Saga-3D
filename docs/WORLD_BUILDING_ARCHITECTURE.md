@@ -97,7 +97,7 @@ The factory resolves an archetype and configurable parameters. It must reject un
 
 Archetypes share construction routines. Variations are data (dimensions, materials, roof, openings, windows and optional features), not branches named after individual buildings.
 
-The first implementation adds `WorldBuildingFactory` with reusable cottage, shop, chapel, barn and manor presets. `Campaign2SettlementBuilder` delegates to it and retains only chunk orchestration and actor placement. This is an initial construction primitive, not completion of Hollowmere migration or the full building system.
+The first implementation adds `WorldBuildingFactory` with reusable cottage, shop, chapel, barn and manor presets. `Campaign2SettlementBuilder` delegates to it and retains only chunk orchestration and actor placement. This is an initial construction primitive, not completion of the full building system. Hollowmere's five village buildings, farmhouse and barn now use the same factory; the barn uses a reusable double-door feature. Store signage and the chapel bell tower remain separate presentation add-ons.
 
 ## Required invariants
 
@@ -115,7 +115,7 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 ## Incremental migration sequence
 
 1. **Building factory (current slice):** extract the Millbrook hardcoded house into a shared factory; define supported archetypes and data-driven parameters; add isolated tests and CI validation.
-2. **Hollowmere feature decomposition:** inventory and move its roads, watercourse, bridge, farm, vegetation, props and buildings into reusable feature definitions/factories. Preserve current visuals and gameplay while each feature is migrated. Keep the tavern playable.
+2. **Hollowmere feature decomposition:** buildings are now driven by `HollowmereVillageData.BUILDINGS` for both footprints and factory construction. Continue with roads, watercourse, bridge, fields, fences, vegetation and reusable props. Preserve gameplay while each feature is migrated. Keep the tavern playable.
 3. **Building and interior convergence:** make all Hollowmere buildings use the same building definitions, logical registry, doors, entrances and reusable interior/floor composition. Do not treat the tavern as a reason to duplicate the system.
 4. **Streaming consolidation:** decide the single authoritative streamer and separate data generation, logical world state and disposable presentation. Verify cross-chunk roads, rivers, terrain edges, actors and state restoration.
 5. **Source inventory extraction:** systematically inspect Hex-crpg Campaign 2 source and produce complete inventories for settlements, structures, routes, landmarks and authored geography. Keep source IDs and provenance.
@@ -139,6 +139,8 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 - [x] Isolated factory tests added to the Godot validation workflow.
 - [ ] Run Godot 4.7.2 import and test suite on the feature branch.
 - [ ] Review generated building appearance in the regional preview.
-- [ ] Migrate Hollowmere exterior buildings and features.
+- [x] Migrate Hollowmere village houses, farmhouse and barn to shared factory definitions.
+- [x] Keep store signage and chapel bell tower as separate add-on presentation features.
+- [ ] Migrate Hollowmere roads, watercourse, bridge, fields, fences, vegetation and remaining props.
 - [ ] Consolidate streaming and world composition.
 - [ ] Complete source-world feature inventory and regional migration.
