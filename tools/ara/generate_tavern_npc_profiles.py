@@ -50,8 +50,9 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
     garments.update({"none", "bra"})
     eyes = ids_from(ara_root, "src/app/ui/quick-data.ts", r"\['([^']+)',\s*'[^']+',\s*'#[0-9a-fA-F]{6}'\]", EYES_FALLBACK)
     tattoos = ids_from(ara_root, "src/core/looks/tattoos.ts", r"'(armband_l|sleeve_r|forearm_l|chest|back|face_marks)'", TATTOOS_FALLBACK)
-    tops = [x for x in ["long_tunic", "tunic", "tattered_shirt", "fatigue_shirt", "uniform_shirt"] if x in garments]
-    bottoms = [x for x in ["trousers", "wrapper_long", "fatigue_pants", "wrapper_knee"] if x in garments]
+    tops = [x for x in ["long_tunic", "tunic", "tattered_shirt", "fatigue_shirt", "uniform_shirt", "uniform_shirt_long", "tank_top", "silk_blouse", "camp_shirt", "clerical_shirt"] if x in garments]
+    bottoms = [x for x in ["trousers", "wrapper_long", "wrapper_knee", "fatigue_pants", "cargo_shorts", "uniform_trousers", "tattered_pants", "hide_aprons", "loincloth"] if x in garments]
+    accessory_options = [x for x in ["belt", "utility_belt", "waist_sash", "shoulder_drape", "bead_necklace", "cowrie_necklace", "amulets", "arm_cuffs", "bead_armbands", "feather_headband", "bead_headband"] if x in garments]
     if not tops or not bottoms:
         raise SystemExit(f"Cannot generate tavern outfits: catalogue tops={tops}, bottoms={bottoms}")
 
@@ -101,6 +102,13 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
             under_top = person.choice(rare_under_tops)
         top_colour = person.choice(EARTH_TONES)
         bottom_colour = person.choice(EARTH_TONES)
+        accessories = []
+        if accessory_options and person.random() < 0.28:
+            accessories.append(person.choice(accessory_options))
+        if accessory_options and person.random() < 0.05:
+            extra_accessory = person.choice(accessory_options)
+            if extra_accessory not in accessories:
+                accessories.append(extra_accessory)
         params = {
             "seed": person_seed, "gender": gender, "age": round(age, 3),
             "muscle": round(person.uniform(0.22, 0.76), 3),
@@ -115,7 +123,7 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
             "outfit": "none", "top": top, "underTop": under_top,
             "underBottom": under_bottom, "jacket": "none", "bottom": bottom,
             "underwear": True, "shoes": person.choice(["sandals", "combat_boots"]),
-            "hat": "none", "weapon": "none", "carry": "none", "accessories": [],
+            "hat": "none", "weapon": "none", "carry": "none", "accessories": accessories,
             "garmentStyles": {
                 top: {"pattern": "solid", "color": top_colour, "color2": top_colour},
                 bottom: {"pattern": "solid", "color": bottom_colour, "color2": bottom_colour},
