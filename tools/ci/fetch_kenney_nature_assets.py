@@ -73,7 +73,7 @@ def download(source_path: str, expected_blob_sha: str) -> bytes:
             )
             time.sleep(delay)
 
-    git_blob = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\\0" + data).hexdigest()
+    git_blob = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
     if git_blob != expected_blob_sha:
         raise SystemExit(f"Asset verification failed for {source_path}: {git_blob}")
     return data
@@ -100,7 +100,7 @@ def main() -> None:
         "Only the selected models used by Silverhart are downloaded. Each file is",
         "verified against its Git blob SHA-1 from the pinned source commit.",
     ]
-    (OUTPUT / "ASSET_SOURCE.md").write_text("\\n".join(manifest) + "\\n", encoding="utf-8")
+    (OUTPUT / "ASSET_SOURCE.md").write_text("\n".join(manifest) + "\n", encoding="utf-8")
     print(f"Installed and verified {len(ASSETS)} Kenney Nature Kit models into {OUTPUT}")
 
 
