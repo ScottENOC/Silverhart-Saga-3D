@@ -126,8 +126,10 @@ func _generate_vegetation(vegetation: Dictionary, hex_radius: float) -> void:
 func _generate_vegetation_pass(pass_definition: Dictionary, hex_radius: float) -> void:
 	if pass_definition.is_empty():
 		return
-	var candidate_filter: Callable = pass_definition.get("candidate_filter", Callable())
-	var family_selector: Callable = pass_definition.get("family_selector", Callable())
+	var candidate_script: Variant = pass_definition.get("candidate_script")
+	var selector_script: Variant = pass_definition.get("selector_script")
+	var candidate_filter := Callable(candidate_script, String(pass_definition.get("candidate_method", "")))
+	var family_selector := Callable(selector_script, String(pass_definition.get("selector_method", "")))
 	WORLD_VEGETATION.generate_hex_grid(
 		self,
 		int(pass_definition.get("min_q", -96)),
