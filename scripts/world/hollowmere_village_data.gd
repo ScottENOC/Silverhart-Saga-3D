@@ -63,7 +63,8 @@ const BUILDINGS := [
 		"center": FARM_BARN, "half_q": 4, "half_r": 3,
 		"dimensions": {"width": 13.0, "depth": 9.0, "wall_height": 4.0, "roof_rise": 1.7},
 		"door_side": "north", "door_width": 3.1, "windows_per_side": 0,
-		"rotation_degrees": 0.0, "features": ["double_door"]
+		"rotation_degrees": 0.0, "features": ["double_door"],
+		"materials": {"wall_colour": "#8c6846", "timber_colour": "#54351f", "door_colour": "#382719", "roof_colour": "#48443a", "foundation_colour": "#716b5c", "floor_colour": "#493323"}
 	}
 ]
 
