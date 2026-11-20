@@ -250,7 +250,7 @@ func _build_interface() -> void:
         _region_option.get_popup().add_separator(String(group["label"]))
         for region_id in group["ids"]:
             _region_option.add_item(REGION_LABELS[region_id])
-            _region_option.set_item_metadata(_region_option.item_count - 1, region_id)
+            _region_option.set_item_metadata(_region_option.get_item_count() - 1, region_id)
     _region_option.select(1)
     _region_option.item_selected.connect(_on_region_selected)
     column.add_child(_region_option)
@@ -433,7 +433,7 @@ func _on_surface_selected(index: int) -> void:
 
 
 func _on_region_selected(index: int) -> void:
-    if index < 0 or index >= _region_option.item_count:
+    if index < 0 or index >= _region_option.get_item_count():
         return
     var selected_id: Variant = _region_option.get_item_metadata(index)
     if selected_id == null:
