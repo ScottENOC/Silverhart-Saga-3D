@@ -8,6 +8,8 @@ const BRIDGES = preload("res://data/settlements/hollowmere/bridges.gd")
 const PROPS = preload("res://data/settlements/hollowmere/props.gd")
 const AGRICULTURE = preload("res://data/settlements/hollowmere/agriculture.gd")
 const PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
+const ENCOUNTER = preload("res://scripts/simulation/hollowmere_encounter.gd")
+const FARM_WOLVES = preload("res://scripts/simulation/farm_wolves_quest.gd")
 
 func _initialize() -> void:
 	assert(SETTLEMENT.SETTLEMENT_ID == "hollowmere")
@@ -49,6 +51,18 @@ func _initialize() -> void:
 	assert(PLACEMENTS.SHAKEDOWN_SOLDIER_WAIT_HEXES.size() == 3)
 	assert(PLACEMENTS.SHAKEDOWN_SOLDIER_INTERIOR_PREFERRED_HEXES.size() == 3)
 	assert(PLACEMENTS.SHAKEDOWN_SOLDIER_INTERIOR_FALLBACK_HEXES.size() == 5)
+	assert(PLACEMENTS.SHAKEDOWN_SOLDIER_WAIT_HEXES.size() == ENCOUNTER.ENEMY_IDS.size(),
+		"Every shakedown soldier needs an authored outside destination")
+	assert(PLACEMENTS.SHAKEDOWN_SOLDIER_INTERIOR_PREFERRED_HEXES.size() == ENCOUNTER.ENEMY_IDS.size(),
+		"Every shakedown soldier needs an authored preferred interior destination")
+	assert(PLACEMENTS.FARM_WOLF_SPAWN_OFFSETS.size() == FARM_WOLVES.WOLF_IDS.size(),
+		"Every farm-quest wolf needs an authored formation offset")
+	var animal_ids: Dictionary = {}
+	for animal_placement in PLACEMENTS.FARM_ANIMALS + PLACEMENTS.WILDERNESS_ANIMALS:
+		var animal_id := String(animal_placement.get("id", ""))
+		assert(not animal_id.is_empty() and not animal_ids.has(animal_id), "Authored animal IDs must be unique")
+		assert(animal_placement.get("hex") is Vector2i, "Every authored animal must have an axial placement")
+		animal_ids[animal_id] = true
 	assert(not PLACEMENTS.CHARACTER_STARTS.has("ser_aldric_thorne"))
 	assert(not PLACEMENTS.CHARACTER_STARTS.has("nix_sharpear"))
 	assert(not PLACEMENTS.CHARACTER_STARTS.has("warlord_grukk_ironhide"))
