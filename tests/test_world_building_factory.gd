@@ -18,7 +18,7 @@ func _test_supported_archetypes() -> void:
 		{"id": "cottage_01", "kind": "house", "center": {"q": 1, "r": 2}, "door": {"q": 4, "r": 2}, "features": ["fireplace"]},
 		{"id": "shop_01", "archetype": "shop", "center": {"q": 5, "r": 2}},
 		{"id": "chapel_01", "archetype": "chapel", "center": {"q": 9, "r": 2}},
-		{"id": "barn_01", "kind": "barn", "center": {"q": 13, "r": 2}},
+		{"id": "barn_01", "kind": "barn", "center": {"q": 13, "r": 2}, "features": ["double_door"], "door_side": "north", "door_width": 3.1},
 		{"id": "manor_01", "archetype": "manor", "center": {"q": 17, "r": 2}}
 	]
 	for definition in definitions:
@@ -27,6 +27,9 @@ func _test_supported_archetypes() -> void:
 		assert(node != null, "Factory should construct %s" % definition.id)
 		assert(node.get_meta("settlement_id") == "factory_test_settlement")
 		assert(node.get_meta("building_id") == definition.id)
+		if definition.id == "barn_01":
+			assert(node.find_child("DoorLeaf_Left", true, false) != null)
+			assert(node.find_child("DoorLeaf_Right", true, false) != null)
 	assert(parent.get_child_count() == definitions.size(), "Each definition should create exactly one building root")
 	parent.free()
 
