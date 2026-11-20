@@ -280,10 +280,12 @@ func _is_known_region(region_id: String) -> bool:
 
 func _get_region_weights(surface: Dictionary, region_id: String) -> PackedFloat32Array:
     if surface["region_weights"].has(region_id):
-        return surface["region_weights"][region_id] as PackedFloat32Array
+        var broad_values: PackedFloat32Array = surface["region_weights"][region_id]
+        return broad_values
     var fine_weights: Dictionary = surface.get("fine_region_weights", {})
     if fine_weights.has(region_id):
-        return fine_weights[region_id] as PackedFloat32Array
+        var authored_values: PackedFloat32Array = fine_weights[region_id]
+        return authored_values
     return PackedFloat32Array()
 
 
