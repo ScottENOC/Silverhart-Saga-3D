@@ -6,9 +6,22 @@ func _initialize() -> void:
     var first := PROFILE_FACTORY.create_profile("tavern_test_001", "Test Patron", "tavern patron")
     var repeat := PROFILE_FACTORY.create_profile("tavern_test_001", "Test Patron", "tavern patron")
     var different := PROFILE_FACTORY.create_profile("tavern_test_002", "Other Patron", "tavern patron")
+    var named_female := PROFILE_FACTORY.create_profile("mira_ashbrook", "Mira Ashbrook", "villager")
+    var named_male := PROFILE_FACTORY.create_profile("garrick_holt", "Garrick Holt", "tavern keeper")
     var first_params: Dictionary = first.get("params", {})
     var repeat_params: Dictionary = repeat.get("params", {})
     var other_params: Dictionary = different.get("params", {})
+    var named_female_params: Dictionary = named_female.get("params", {})
+    var named_male_params: Dictionary = named_male.get("params", {})
+    if int(named_female_params.get("gender", -1)) != 0:
+        _fail("Authored female NPC identity was not respected")
+        return
+    if int(named_male_params.get("gender", -1)) != 1:
+        _fail("Authored male NPC identity was not respected")
+        return
+    if String(named_female_params.get("hair", "")) != "bob01":
+        _fail("Authored female NPC hair profile was not reused")
+        return
     var stable_keys := ["gender", "age", "muscle", "weight", "height", "proportions", "african", "asian", "caucasian", "eyes", "hair", "hairTint", "top", "bottom", "underTop", "underBottom", "shoes", "tattoos", "piercings"]
     for key in stable_keys:
         if first_params.get(key) != repeat_params.get(key):
