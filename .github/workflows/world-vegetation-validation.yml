@@ -44,6 +44,6 @@ jobs:
       - name: Import project
         run: godot --headless --editor --path . --quit
       - name: Test shared vegetation generator and tavern grove
-        run: godot --headless --path . --script res://tests/test_world_vegetation.gd
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_vegetation.gd
       - name: Test Hollowmere vegetation integration
-        run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_hollowmere_village.gd
