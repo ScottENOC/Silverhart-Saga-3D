@@ -12,6 +12,10 @@ func _run() -> void:
     assert(painter_scene != null, "Anatomy surface painter scene failed to load")
     var input_router := load("res://tools/anatomy_surface_painter_input.gd") as Script
     assert(input_router != null, "Anatomy surface painter input router failed to load")
+    var manifest := load("res://data/characters/anatomy_masks/manifest.tres") as CharacterSurfaceRegionMaskManifest
+    assert(manifest != null, "Authored anatomy mask manifest failed to load")
+    for resource in manifest.masks:
+        assert(resource is CharacterSurfaceRegionMask, "Manifest contains a non-mask resource")
     var female_masks: Array[Resource] = CharacterSurfaceRegionMaskLibrary.load_for_body(
         "res://art/characters/ara_runtime/ara_person_body_anatomy.glb"
     )
