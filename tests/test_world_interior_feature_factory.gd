@@ -7,6 +7,8 @@ const STRUCTURE = preload("res://data/settlements/hollowmere/interiors/hollow_ta
 const LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
 const PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
 const TAVERN = preload("res://scripts/world/hollow_tankard.gd")
+const LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
+const LOCATION_COMPONENT = preload("res://tests/fixtures/test_location_component.gd")
 
 func _initialize() -> void:
 	_test_authored_taproom_features()
@@ -15,6 +17,7 @@ func _initialize() -> void:
 	_test_upper_rooms_use_authored_data()
 	_test_building_structure_uses_authored_data()
 	_test_tavern_building_assembly_keeps_live_door_and_floor_groups()
+	_test_location_loader_instantiates_data_components()
 	print("World interior feature tests passed.")
 	quit(0)
 
@@ -100,6 +103,31 @@ func _test_building_structure_uses_authored_data() -> void:
 	var foundation := shell.get_node("StoneFloorFoundation") as MeshInstance3D
 	assert((foundation.mesh as BoxMesh).size == Vector3(16.7, 0.16, 11.7))
 	parent.free()
+
+func _test_location_loader_instantiates_data_components() -> void:
+	var parent := Node3D.new()
+	var simulation := WorldSimulation.new()
+	var profile := {"name": "Test Adventurer"}
+	var save_data := {"campaign_tick": 42}
+	var definition := {
+		"id": "test_location",
+		"components": [
+			{"role": "settlement", "node_name": "TestSettlement", "script": LOCATION_COMPONENT},
+			{"role": "interior_controller", "node_name": "TestInterior", "script": LOCATION_COMPONENT, "configure_campaign": true}
+		]
+	}
+	var result: Dictionary = LOCATION_LOADER.load_location(parent, definition, simulation, profile, save_data)
+	assert(bool(result.get("ok", false)), "The generic location loader should instantiate configured component scripts")
+	assert(parent.get_node_or_null("TestSettlement") != null)
+	var controller := parent.get_node("TestInterior")
+	assert(controller.received_simulation == simulation)
+	assert(controller.received_profile == profile)
+	assert(controller.received_save_data == save_data)
+	var invalid := LOCATION_LOADER.load_location(parent, {"components": [{"role": "duplicate", "node_name": "A", "script": LOCATION_COMPONENT}, {"role": "duplicate", "node_name": "B", "script": LOCATION_COMPONENT}]}, simulation, profile, save_data)
+	assert(not bool(invalid.get("ok", false)), "Duplicate component roles should be rejected before presentation")
+	assert(parent.get_child_count() == 2, "Invalid location definitions must not partially add components")
+	parent.free()
+	simulation.free()
 
 func _test_tavern_building_assembly_keeps_live_door_and_floor_groups() -> void:
 	var tavern := TAVERN.new() as Node3D
