@@ -27,14 +27,14 @@ The following components already exist and should be evolved rather than duplica
 | `BuildingRegistry` | Stable building definitions and persistent door state | Keep as authoritative logical registry |
 | `BuildingLayoutRegistrar` | Registers building, entrance, doors and interior floor cells | Keep logical registration separate from 3D construction |
 | `Campaign2SettlementBuilder` | Chunk-scoped settlement presentation and NPC actors | Limit to orchestration; delegate building construction to shared factory |
-| `HollowmereVillage` | Currently builds Hollowmere terrain, roads, stream, buildings, bridge, farm and vegetation | Incrementally replace with data-driven feature presentation |
+| `WorldSettlementPresenter` | Composes authored settlement features, ground, vegetation and creature actors | Generic presenter configured entirely by settlement data; used by both campaign and regional preview |
 | `HollowTankard` | Starting tavern controller, interior interaction and campaign integration | Keep runtime door/floor/interaction behaviour; static interior geometry is now composed by the shared `WorldInteriorLayoutPresenter` from authored layout data |
 | `WorldRoot` | Campaign composition and simulation lifecycle | Select a location definition and delegate component creation to `Campaign2LocationLoader`; keep campaign-wide quest/simulation setup here |
 
 ### Confirmed debt and gaps
 
 1. `Campaign2SettlementBuilder._build_building()` contained a complete hardcoded timber-house construction routine, including dimensions, wall positions, door, windows, roof, chimney and fireplace. It was not a generic building factory and did not support non-house building kinds.
-2. `HollowmereVillage` owns substantial location-specific geometry and feature data. Copying this script for other settlements would multiply maintenance.
+2. The former `HollowmereVillage` scene script mixed authored features, environment presentation and animal actors. It has been removed; the generic `WorldSettlementPresenter` now consumes a location-supplied definition. Hollowmere-specific logical terrain/navigation queries still live in a compatibility facade and remain to be separated.
 3. The starting tavern is a large location-specific presentation/controller. Its gameplay behaviour is valuable and should not be rewritten wholesale as part of the first building-factory change.
 4. Logical building registration exists, but it is not a reusable 3D building construction system.
 5. The geography and settlement manifests are partial inventories. A first-pass list of strategic destinations is not evidence that every source location, building, route, landmark or feature has been migrated.
@@ -59,7 +59,7 @@ Hollowmere authored data is now separated under `data/settlements/hollowmere/` b
 
 The Hollow Tankard static interior is now described by `data/settlements/hollowmere/interiors/hollow_tankard_layout.gd`, which composes its structural shell, upper storey, roof, taproom, partitions, room labels, axial bed anchors and floor presentation settings. `WorldInteriorLayoutPresenter` builds those definitions through the reusable interior feature factory. `HollowTankard` now calls that presenter once and retains only live references for door animation, floor visibility, roof cutaway and gameplay interaction; the previous per-feature construction methods have been removed from the controller. Its logical floor/building registration and wall/furniture collision rules remain controller-side for the next separation pass.\n\n`WorldRoot` now selects `data/world/locations/hollowmere.gd` and delegates component instantiation to `Campaign2LocationLoader`. The location manifest identifies the settlement presentation and interior controller by role; the loader validates and stages all components before adding them to the scene tree. This removes Hollowmere-specific node construction from the global campaign root and provides the same composition contract for later locations. It is a composition step, not yet the final elimination of the Hollowmere presentation adapter.
 
-### 2. World data provider
+The former `HollowmereVillage` script has now been removed. `WorldSettlementPresenter` receives a location definition and composes its ground plane, shared building/polyline/bridge/agriculture/prop factories, authored creature actors and deterministic vegetation. `data/settlements/hollowmere/presentation.gd` supplies the original palette, feature data, animal placements and vegetation parameters; `presentation_rules.gd` adapts Hollowmere terrain exclusions to the region-owned heartland biome rules. Both the campaign location loader and regional preview now use this same presenter and data definition. This removes a Hollowmere-specific exterior construction script without changing the authored coordinates or the shared animal-state registration contract. The remaining `HollowmereVillageData` facade is logical terrain/navigation authority, not a presentation builder.\n\n### 2. World data provider
 
 Loads and validates manifests, resolves references, applies authored-feature precedence and supplies deterministic queries to renderers and simulation systems.
 
@@ -148,6 +148,8 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 - [x] Migrate Hollowmere village houses, farmhouse and barn to shared factory definitions.
 - [x] Keep store signage and chapel bell tower as separate add-on presentation features.
 - [x] Add a data-driven Campaign 2 location loader and move opening-location component composition out of `WorldRoot`.
+- [x] Replace the Hollowmere-specific exterior scene script with a shared settlement presenter driven by authored palette, feature, animal and vegetation data; use it in both campaign and regional preview.
+
 - [x] Move Hollow Tankard static shell, upper storey, roof, taproom furnishings, room partitions, labels and beds into authored layout data presented by a shared interior presenter.
 - [x] Move Hollowmere stream, banks, main roads, village lane, ring road and house spurs into authored presentation route data and a shared polyline renderer.
 - [x] Move Hollowmere bridge placement and component geometry into authored data and a shared bridge assembly factory.
