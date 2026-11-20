@@ -20,6 +20,7 @@ NAMES = [
     ("Ketta", "Brask"), ("Odel", "Wick"), ("Brynn", "Hearth"), ("Cadan", "Marlow"),
     ("Edda", "Thorne"), ("Rafe", "Greel"),
 ]
+FEMALE_FIRST_NAMES = {"Mara", "Elin", "Nessa", "Sella", "Tilda", "Anwen", "Lysa", "Ivara", "Mina", "Ketta", "Brynn", "Edda", "Vessa"}
 NATURAL_HAIR = ["#17120F", "#30251B", "#49372A", "#75452D", "#87452D", "#A87552", "#8A6A4C", "#898176", "#D0B47A"]
 UNNATURAL_HAIR = ["#287BFF", "#7446A8", "#2C9B70"]
 SKIN_TINTS = ["#70452F", "#8F6045", "#A87552", "#B98260", "#C99A75", "#DDAE8D", "#E0B99B"]
@@ -69,7 +70,7 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
         character_id = f"tavern_generated_{index + 1:03d}"
         person_seed = seed + index * 7919
         person = random.Random(person_seed)
-        gender = person.randrange(2)
+        # Names in this curated sample are gender-authored; do not randomise a\n        # body variant independently of the identity we assigned.\n        gender = 0 if first in FEMALE_FIRST_NAMES else 1
         age = person.uniform(0.36, 0.88)
         complexion = [person.uniform(0.02, 0.92) for _ in range(3)]
         total = sum(complexion)
