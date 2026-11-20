@@ -1,6 +1,10 @@
 extends RefCounted
 
-## Stable world anchor and extent for Hollowmere's authored local detail.
+## Settlement identity and reference point in the campaign-wide axial coordinate frame.
+const SETTLEMENT_ID := "hollowmere"
+const DISPLAY_NAME := "Hollowmere"
+const COORDINATE_SYSTEM := "campaign2_local_axial_qr"
+const WORLD_REFERENCE_HEX := Vector2i(8, 24)
 
 
 
