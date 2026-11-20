@@ -76,9 +76,7 @@ func _test_invalid_prop_data_is_rejected_atomically() -> void:
 func _test_hollowmere_integration() -> void:
 	var village := VILLAGE_SCRIPT.new() as Node3D
 	village.call("_create_materials")
-	village.call("_create_buildings")
-	village.call("_create_farmstead")
-	village.call("_create_signpost")
+	village.call("_present_authored_settlement")
 	assert(village.get_node_or_null("GeneralStore/StoreSignPresentation/StoreSign") is Label3D, "Hollowmere should render its store sign through the shared factory")
 	assert(village.get_node_or_null("Chapel/ChapelBellTowerPresentation/BellTower") != null, "Hollowmere should render its chapel tower through the shared factory")
 	assert(village.get_node_or_null("BrokenPastureFence/BrokenRailA") != null, "Hollowmere should render its quest fence through the shared factory")
