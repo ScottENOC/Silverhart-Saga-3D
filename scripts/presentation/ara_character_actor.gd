@@ -50,10 +50,9 @@ func configure(glb_path: String) -> bool:
     if not anatomy.configure(self, model_root):
         push_warning("Ara character has no compatible skeleton for shared anatomy queries: " + glb_path)
         anatomy = null
+    # Region weights are prepared lazily: most NPCs never need a full surface
+    # query, and eagerly building per-vertex masks for every spawned actor is wasteful.
     surface_regions = CHARACTER_SURFACE_REGIONS_SCRIPT.new() as CharacterSurfaceRegions
-    if not surface_regions.configure(self, model_root):
-        push_warning("Ara character surface-region queries are unavailable: " + surface_regions.get_configuration_error())
-        surface_regions = null
     loaded_asset_path = glb_path
     animation_player = _find_animation_player(model_root)
     call_deferred("_play_idle_if_available")
@@ -69,6 +68,13 @@ func get_anatomy() -> CharacterAnatomy:
 
 ## Shared deformation-aware broad surface-region API for fitting and gameplay consumers.
 func get_surface_regions() -> CharacterSurfaceRegions:
+    if surface_regions == null or model_root == null or not is_instance_valid(model_root):
+        return null
+    if not surface_regions.is_configured():
+        if not surface_regions.configure(self, model_root):
+            push_warning("Ara character surface-region queries are unavailable: " + surface_regions.get_configuration_error())
+            surface_regions = null
+            return null
     return surface_regions
 
 
