@@ -29,14 +29,14 @@ static func present(
 			"landmark_props", "quest_props", "wayfinding_props"]:
 		if not data.get(key, []) is Array:
 			return {"ok": false, "reason": "invalid_%s" % key}
-	var building_definitions: Array = building_definitions
-	var route_definitions: Array = route_definitions
-	var field_definitions: Array = field_definitions
-	var crop_row_definitions: Array = crop_row_definitions
-	var fence_definitions: Array = fence_definitions
-	var landmark_definitions: Array = landmark_definitions
-	var quest_definitions: Array = quest_definitions
-	var wayfinding_definitions: Array = wayfinding_definitions
+	var building_definitions: Array = data.get("buildings", [])
+	var route_definitions: Array = data.get("routes", [])
+	var field_definitions: Array = data.get("fields", [])
+	var crop_row_definitions: Array = data.get("crop_rows", [])
+	var fence_definitions: Array = data.get("fences", [])
+	var landmark_definitions: Array = data.get("landmark_props", [])
+	var quest_definitions: Array = data.get("quest_props", [])
+	var wayfinding_definitions: Array = data.get("wayfinding_props", [])
 	var bridge_definition: Variant = data.get("bridge", {})
 	if not bridge_definition is Dictionary:
 		return {"ok": false, "reason": "invalid_bridge_definition"}
