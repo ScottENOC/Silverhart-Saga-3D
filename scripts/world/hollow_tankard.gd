@@ -12,6 +12,7 @@ const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
+const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
 const INTERIOR_FEATURE_FACTORY = preload("res://scripts/world/world_interior_feature_factory.gd")
 const HOLLOW_TANKARD_TAPROOM = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_taproom.gd")
@@ -535,7 +536,7 @@ func _create_furniture() -> void:
 func _create_characters() -> void:
 	starting_loadouts = _load_starting_loadouts()
 	# Player and NPCs use the shared gendered Ara base mesh.
-	_spawn_character("player", String(player_profile.get("name", "Adventurer")), Vector2i(-1, 2), true)
+	_spawn_character("player", String(player_profile.get("name", "Adventurer")), HOLLOWMERE_PLACEMENTS.PLAYER_START_HEX, true)
 
 	var profile_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
 	if profile_file == null:
@@ -551,22 +552,18 @@ func _create_characters() -> void:
 		var profile: Dictionary = profile_variant
 		if str(profile.get("role", "")) == "player avatar":
 			continue
-		var coordinates: Array = profile.get("hex", [0, 0])
-		if coordinates.size() < 2:
-			continue
-		var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
 		var actor_id := str(profile.get("game_id", profile.get("id", "")))
-		if actor_id == "companion_reyna_fletcher":
-			spawn = Vector2i(17, 57) # Reyna is stationed beside Old Mac's grain store.
 		var model_id := str(profile.get("id", ""))
 		var display_name := str(profile.get("name", actor_id))
-		if actor_id.is_empty() or model_id.is_empty():
+		if actor_id.is_empty() or model_id.is_empty() or not HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.has(model_id):
+			push_error("Missing authored Hollowmere start placement for character profile: " + model_id)
 			continue
+		var spawn: Vector2i = HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS[model_id]
 		_spawn_character(actor_id, display_name, spawn, false, model_id, profile)
 
 	# Old Mac lives at his farmstead on the same continuous axial world grid.
-	_spawn_character("old_mac", "Old Mac", Vector2i(12, 58), false, "", {"params": {"gender": 1}})
-	var wolf_result := FARMSTEAD_DIRE_WOLF_SCRIPT.create_dire_wolf(simulation, Vector2i(30, 58))
+	_spawn_character("old_mac", "Old Mac", HOLLOWMERE_PLACEMENTS.OLD_MAC_START_HEX, false, "", {"params": {"gender": 1}})
+	var wolf_result := FARMSTEAD_DIRE_WOLF_SCRIPT.create_dire_wolf(simulation, HOLLOWMERE_PLACEMENTS.FARMSTEAD_DIRE_WOLF_HEX)
 	if bool(wolf_result.get("ok", false)):
 		_spawn_farmstead_dire_wolf()
 	_refresh_tavern_floor_presentation()
@@ -575,7 +572,7 @@ func _create_characters() -> void:
 func _create_reyna_shelter() -> void:
 	var shelter := Node3D.new()
 	shelter.name = "AbandonedShepherdShelter"
-	shelter.position = _hex_world_position(Vector2i(27, 62))
+	shelter.position = _hex_world_position(HOLLOWMERE_PLACEMENTS.REYNA_SHELTER_HEX)
 	_add_box(shelter, "ShelterStoneFooting", Vector3(0.0, 0.12, 0.0), Vector3(2.8, 0.24, 2.2), stone_material)
 	_add_box(shelter, "ShelterRearWall", Vector3(0.0, 0.92, -0.92), Vector3(2.65, 1.55, 0.22), stone_material)
 	_add_box(shelter, "ShelterLeftWall", Vector3(-1.22, 0.68, 0.0), Vector3(0.22, 1.1, 1.95), stone_material)
@@ -594,7 +591,7 @@ func _spawn_farmstead_dire_wolf() -> void:
 	actor.model_path = "res://art/creatures/quaternius/Wolf.gltf"
 	actor.model_scale = 1.65
 	actor.name = FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID
-	actor.position = _hex_world_position(Vector2i(30, 58))
+	actor.position = _hex_world_position(HOLLOWMERE_PLACEMENTS.FARMSTEAD_DIRE_WOLF_HEX)
 	actor.set_meta("character_id", FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID)
 	actor.set_meta("ambient_enabled", false)
 	actor.set_meta("dire_wolf_actor", true)
@@ -620,7 +617,7 @@ func _ensure_reyna_clue_visual() -> void:
 		return
 	var root := Node3D.new()
 	root.name = "ReynaMissingChildTrailClue"
-	root.position = _hex_world_position(Vector2i(22, 61))
+	root.position = _hex_world_position(HOLLOWMERE_PLACEMENTS.REYNA_CLUE_HEX)
 	var cloth := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
 	mesh.size = Vector3(0.62, 0.055, 0.34)
@@ -646,7 +643,7 @@ func _spawn_missing_child() -> void:
 	if actor_by_id.has("missing_child_tessa"):
 		return
 	var existing := simulation.get_character("missing_child_tessa")
-	var spawn_hex := Vector2i(27, 62)
+	var spawn_hex: Vector2i = HOLLOWMERE_PLACEMENTS.MISSING_CHILD_START_HEX
 	if existing != null:
 		spawn_hex = existing.axial
 		if not simulation.unregister_character("missing_child_tessa"):
@@ -672,7 +669,7 @@ func _check_reyna_story_proximity() -> void:
 	if not _reyna_objective_done("trail_found"):
 		_ensure_reyna_clue_visual()
 		var active_state := simulation.get_character(active_character_id)
-		if active_state != null and HexGrid.distance(active_state.axial, Vector2i(22, 61)) <= 2:
+		if active_state != null and HexGrid.distance(active_state.axial, HOLLOWMERE_PLACEMENTS.REYNA_CLUE_HEX) <= 2:
 			_set_reyna_objective("trail_found")
 			if is_instance_valid(reyna_clue_visual):
 				reyna_clue_visual.queue_free()
@@ -681,7 +678,7 @@ func _check_reyna_story_proximity() -> void:
 		return
 	if not _reyna_objective_done("child_rescued") and not actor_by_id.has("missing_child_tessa"):
 		var active_state_at_shelter := simulation.get_character(active_character_id)
-		if active_state_at_shelter != null and HexGrid.distance(active_state_at_shelter.axial, Vector2i(27, 62)) <= 2:
+		if active_state_at_shelter != null and HexGrid.distance(active_state_at_shelter.axial, HOLLOWMERE_PLACEMENTS.REYNA_SHELTER_HEX) <= 2:
 			_spawn_missing_child()
 			_show_speech_bubble("companion_reyna_fletcher", "Tessa? It's Reyna. Stay where you are — we're getting you out.")
 			_show_dialogue("Reyna Fletcher", "The shelter door is hanging open. There's a child inside. I can hear her. The dire wolf is circling outside, waiting. Get close and speak softly; don't frighten her.", [{"id":"continue","label":"I'll get her out","text":""}])
@@ -694,7 +691,7 @@ func _rescue_missing_child() -> void:
 		_show_dialogue("Reyna Fletcher", "Tessa isn't here. We need to find the shelter.", [{"id":"continue","label":"Continue","text":""}])
 		return
 	_show_speech_bubble("companion_reyna_fletcher", "I'll draw it away from the door. Get Tessa to Old Mac — don't look back!")
-	var path := simulation.find_path("missing_child_tessa", Vector2i(13, 58))
+	var path := simulation.find_path("missing_child_tessa", HOLLOWMERE_PLACEMENTS.OLD_MAC_RESCUE_DESTINATION_HEX)
 	if path.size() > 1:
 		for index in range(1, path.size()):
 			if not simulation.try_move_character_step("missing_child_tessa", path[index]):
