@@ -7,6 +7,9 @@ on:
       - ".github/workflows/preview-approved-underwear.yml"
       - "tools/ara/apply_outfit_materials.py"
       - "tools/ara/assemble_modular_glb.py"
+      - "tools/ara/build_character_outfit_source.py"
+      - "tools/ara/patch_layering.py"
+      - "character-preview/mirabel-ara.json"
       - "tools/review/render_modular_outfits.py"
   workflow_dispatch:
 
@@ -17,7 +20,7 @@ permissions:
 jobs:
   preview:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v6
 
@@ -65,6 +68,26 @@ jobs:
           cp "$DAGNA" build/approved-underwear/Dagna-body-approved-56.glb
           cp "$MIRABEL" build/approved-underwear/Mirabel-body-approved-114.glb
 
+      - name: Build Mirabel underwear against her accepted Ara body profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
+          git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
+          cd /tmp/ara-3d-gen
+          corepack enable
+          pnpm install --no-frozen-lockfile
+          npm run setup-assets
+          python "$GITHUB_WORKSPACE/tools/ara/patch_layering.py"
+          python -m py_compile "$GITHUB_WORKSPACE/tools/ara/build_character_outfit_source.py"
+          python "$GITHUB_WORKSPACE/tools/ara/build_character_outfit_source.py" \
+            --profile "$GITHUB_WORKSPACE/character-preview/mirabel-ara.json" \
+            --output "$GITHUB_WORKSPACE/build/approved-underwear/Mirabel-underwear-fit-source.glb" \
+            --under-top bra \
+            --under-bottom bikini_bottom \
+            --colour "#0F52BA" \
+            --detail high
+
       - name: Assemble outfits from independent Ara garment primitives
         shell: bash
         run: |
@@ -92,16 +115,18 @@ jobs:
             --output build/approved-underwear/Dagna-underwear-preview.glb \
             --materials "Bra" "Briefs" \
             --colour "#788578" --alpha 1.0
+          MIRABEL_SOURCE=build/approved-underwear/Mirabel-underwear-fit-source.glb
+          test -s "$MIRABEL_SOURCE"
           python tools/ara/assemble_modular_glb.py \
             build/approved-underwear/Mirabel-body-approved-114.glb \
             build/approved-underwear/Mirabel-assembled.glb \
-            "$SOURCE" "Bra" \
-            "$SOURCE" "String bikini bottom" \
-            "$SOURCE" "String bikini strings"
+            "$MIRABEL_SOURCE" "Bra" \
+            "$MIRABEL_SOURCE" "Bikini bottom" \
+            "$MIRABEL_SOURCE" "Bikini strings"
           python tools/ara/apply_outfit_materials.py \
             --input build/approved-underwear/Mirabel-assembled.glb \
             --output build/approved-underwear/Mirabel-underwear-preview.glb \
-            --materials "Bra" "String bikini bottom" "String bikini strings" \
+            --materials "Bra" "Bikini bottom" "Bikini strings" \
             --colour "#0F52BA" --alpha 1.0
           test -s build/approved-underwear/Mirabel-underwear-preview.glb
           test -s build/approved-underwear/Wren-underwear-preview.glb
