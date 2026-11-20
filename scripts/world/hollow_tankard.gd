@@ -661,11 +661,10 @@ func _create_characters() -> void:
             continue
         var position: Dictionary = placement.get("position", {})
         var spawn := Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))
-        var model_id := String(profile.get("id", ""))
         var display_name := String(profile.get("name", actor_id))
-        if actor_id.is_empty() or model_id.is_empty():
+        if actor_id.is_empty():
             continue
-        _spawn_character(actor_id, display_name, spawn, false, model_id, profile)
+        _spawn_character(actor_id, display_name, spawn, false, profile)
     var wolf_result := FARMSTEAD_DIRE_WOLF_SCRIPT.create_dire_wolf(simulation, Vector2i(30, 58))
     if bool(wolf_result.get("ok", false)):
         _spawn_farmstead_dire_wolf()
@@ -752,7 +751,7 @@ func _spawn_missing_child() -> void:
         if not simulation.unregister_character("missing_child_tessa"):
             push_warning("Could not replace the existing Tessa character state safely.")
             return
-    _spawn_character("missing_child_tessa", "Tessa", spawn_hex, false, "", {"body_base":"female","params":{"gender":0,"hair":"short02"}})
+    _spawn_character("missing_child_tessa", "Tessa", spawn_hex, false, {"body_base":"female","params":{"gender":0,"hair":"short02"}})
     var actor := actor_by_id.get("missing_child_tessa") as Node3D
     if actor != null:
         actor.scale = Vector3(0.72, 0.72, 0.72)
@@ -838,7 +837,7 @@ func _load_starting_loadouts() -> Dictionary:
     return CampaignCharacterFactory.load_starting_loadouts()
 
 
-func _spawn_character(id: String, display_name: String, hex: Vector2i, is_player: bool = false, ara_model_id: String = "", npc_profile: Dictionary = {}) -> void:
+func _spawn_character(id: String, display_name: String, hex: Vector2i, is_player: bool = false, npc_profile: Dictionary = {}) -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
     CampaignCharacterSpawner.spawn_character(
         simulation,
@@ -851,7 +850,6 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, is_player
         spawn_hex,
         _hex_world_position(spawn_hex),
         is_player,
-        ara_model_id,
         npc_profile,
         _ambient_role_for_id(id)
     )
