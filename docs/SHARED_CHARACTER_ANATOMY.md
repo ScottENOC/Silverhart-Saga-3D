@@ -80,6 +80,8 @@ The resource records the source vertex count, surface name and a SHA-256 signatu
 
 The initial fine vocabulary is `breast_left`, `breast_right`, `underbust`, `waist`, `hip_left`, `hip_right`, `buttock_left`, `buttock_right` and `groin`. A body may supply only the regions that make sense for that base. `CharacterSurfaceRegions` accepts an optional array of validated mask resources and exposes their weights through the same deformation-aware sample API as broad regions.
 
+Runtime discovery is handled by `CharacterSurfaceRegionMaskLibrary`: when an Ara actor first requests surface regions, it scans `res://data/characters/anatomy_masks/` and loads only resources whose `body_asset_path` exactly matches the actor's loaded GLB. This keeps fine masks lazy and body-specific; unrelated actors do not load them.
+
 The contract test uses a deliberately synthetic one-vertex mask on each canonical body to verify loading, source-vertex identity, deformation-aware querying and rejection of stale metadata. These are plumbing tests only: **no production fine anatomy masks have been authored yet**, and the synthetic test mask must not be used for garment fitting. Actual labels still need to be painted/authored against the canonical meshes, visually inspected, and checked against Reyna and Dagna.
 
 ## Required spatial volumes
