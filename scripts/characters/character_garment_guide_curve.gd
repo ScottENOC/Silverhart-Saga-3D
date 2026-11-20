@@ -118,11 +118,22 @@ func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
         else:
             previous_index = maxi(previous_index, 0)
             next_index = mini(next_index, result.size() - 1)
-        var tangent: Vector3 = result[next_index]["position"] - result[previous_index]["position"]
         var normal: Vector3 = result[point_index]["normal"]
-        tangent -= normal * tangent.dot(normal)
+        # Prefer the centred difference, but it can collapse when its chord
+        # happens to align with the local surface normal (especially on short
+        # closed-loop guides). Fall back to either adjacent forward segment.
+        var tangent: Vector3 = result[next_index]["position"] - result[previous_index]["position"]
+        tangent = _project_to_surface(tangent, normal)
         if tangent.length_squared() < 0.000001:
-            last_evaluation_error = "Tangent is degenerate at guide point %d (closed_loop=%s)" % [point_index, closed_loop]
+            tangent = _project_to_surface(
+                result[next_index]["position"] - result[point_index]["position"], normal
+            )
+        if tangent.length_squared() < 0.000001:
+            tangent = _project_to_surface(
+                result[point_index]["position"] - result[previous_index]["position"], normal
+            )
+        if tangent.length_squared() < 0.000001:
+            last_evaluation_error = "No usable adjacent tangent at guide point %d (closed_loop=%s)" % [point_index, closed_loop]
             return []
         tangent = tangent.normalized()
         var binormal := tangent.cross(normal).normalized()
@@ -155,3 +166,7 @@ func _same_triangle(a: PackedInt32Array, b: PackedInt32Array) -> bool:
     sorted_a.sort()
     sorted_b.sort()
     return sorted_a == sorted_b
+
+func _project_to_surface(vector: Vector3, surface_normal: Vector3) -> Vector3:
+    return vector - surface_normal * vector.dot(surface_normal)
+
