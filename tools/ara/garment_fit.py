@@ -130,3 +130,43 @@ def validate_profile(profile: dict[str, Any]) -> None:
 
 for _profile in FIT_PROFILES.values():
     validate_profile(_profile)
+
+
+def estimate_correction_strain(edge_pairs: list[tuple[int, int]],
+                               original_positions: dict[int, tuple[float, float, float]],
+                               corrections: dict[int, tuple[float, float, float]]) -> dict[str, float | int]:
+    """Estimate local strain introduced by clearance corrections.
+
+    For each original mesh edge, compare the correction vectors at its ends.
+    Their differential divided by original edge length estimates the local
+    deformation gradient contributed by the clearance pass. It is a diagnostic
+    approximation, not a full cloth strain tensor.
+    """
+    max_strain = 0.0
+    overstretched_edges = 0
+    sampled_edges = 0
+    for a, b in edge_pairs:
+        if a not in corrections or b not in corrections:
+            continue
+        pa, pb = original_positions[a], original_positions[b]
+        da, db = corrections[a], corrections[b]
+        edge_length = sum((pa[i] - pb[i]) ** 2 for i in range(3)) ** 0.5
+        if edge_length <= 1e-9:
+            continue
+        differential = sum((da[i] - db[i]) ** 2 for i in range(3)) ** 0.5
+        strain = differential / edge_length
+        sampled_edges += 1
+        max_strain = max(max_strain, strain)
+    return {
+        "sampled_edges": sampled_edges,
+        "max_estimated_strain": max_strain,
+    }
+
+
+def classify_strain(strain: float, profile: dict[str, Any]) -> dict[str, Any]:
+    """Report comfort-limit and hard-limit violations separately."""
+    return {
+        "above_comfort_strain": strain > float(profile["comfort_strain"]),
+        "overstretched": strain > float(profile["max_strain"]),
+        "strain_ratio": strain / max(float(profile["max_strain"]), 1e-9),
+    }
