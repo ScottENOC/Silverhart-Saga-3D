@@ -13,6 +13,8 @@ The world must be extended through data and reusable systems. Adding a settlemen
 
 NPC generation and migration are explicitly outside this workstream. World data may retain stable NPC references and spawn anchors, but this project does not generate, redesign or bulk-import NPC bodies, hair, clothing, dialogue or behaviour.
 
+**Accepted project-wide decision:** [ADR 0001 — Continuous world, modular authored data, streamed presentation](adr/0001-continuous-world-and-streamed-presentation.md). This decision is authoritative for the migration plan below. In particular, strategic maps are regional-scale references, not separate playable worlds; settlement-local authoring must map explicitly into the continuous axial world frame.
+
 ## Current codebase findings
 
 The following components already exist and should be evolved rather than duplicated:
@@ -114,12 +116,12 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 
 ## Incremental migration sequence
 
-1. **Building factory (current slice):** extract the Millbrook hardcoded house into a shared factory; define supported archetypes and data-driven parameters; add isolated tests and CI validation.
-2. **Hollowmere feature decomposition:** buildings are now driven by `HollowmereVillageData.BUILDINGS` for both footprints and factory construction. Continue with vegetation and then move to building/interior convergence. Preserve gameplay while each feature is migrated. Keep the tavern playable.
-3. **Building and interior convergence:** make all Hollowmere buildings use the same building definitions, logical registry, doors, entrances and reusable interior/floor composition. Do not treat the tavern as a reason to duplicate the system.
-4. **Streaming consolidation:** decide the single authoritative streamer and separate data generation, logical world state and disposable presentation. Verify cross-chunk roads, rivers, terrain edges, actors and state restoration.
-5. **Source inventory extraction:** systematically inspect Hex-crpg Campaign 2 source and produce complete inventories for settlements, structures, routes, landmarks and authored geography. Keep source IDs and provenance.
-6. **Regional migration:** migrate each source location using data and existing factories; validate coordinate transforms and travel connections.
+1. **Architecture decision and current-world audit (current slice):** accepted in [ADR 0001](adr/0001-continuous-world-and-streamed-presentation.md). Map the existing coordinate frames, geography sources, feature precedence, streamer call sites and simulation-state ownership before changing runtime architecture.
+2. **World/region authority:** establish which existing manifests and transforms are authoritative; make the strategic map a coarse index into the continuous world, not a competing playable coordinate system. Add explicit validated transforms where local authoring remains useful.
+3. **Hollowmere feature decomposition:** buildings, roads, bridge, agriculture and props now use shared factories. Next separate authored settlement details by coherent data domains while moving regional terrain, hydrology and biome rules to regional/world ownership. Preserve all existing world coordinates and gameplay behaviour.
+4. **Building and interior convergence:** make Hollowmere buildings use the same definitions, logical registry, doors, entrances and reusable interior/floor composition. Keep the tavern playable; do not duplicate its behaviour into another system.
+5. **Streaming consolidation:** map actual runtime call sites for `HexWorldChunkStreamer` and the regional preview's streamer before choosing a single production owner. Separate generated data, logical state and disposable presentation; prove cross-chunk continuity and state restoration before retiring either implementation.
+6. **Source inventory and regional migration:** systematically inspect Hex-crpg Campaign 2 source and produce complete inventories for geography, settlements, structures, routes and landmarks. Retain source IDs/provenance and validate every local-to-world transform and travel connection.
 7. **Fidelity audit:** compare every migrated source feature against the source inventory; record faithful reproduction, 3D adaptation or not-yet-ported status.
 
 ## Acceptance tests
