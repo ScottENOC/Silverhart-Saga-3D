@@ -7,6 +7,7 @@ const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
 const GROUND_SIZE: float = 420.0
 const ORGANIC_FEATURES = preload("res://scripts/world/organic_world_features.gd")
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
+const HEARTLAND_BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
 const POLYLINE_FEATURE_FACTORY = preload("res://scripts/world/world_polyline_feature_factory.gd")
@@ -257,7 +258,7 @@ func _create_forest() -> void:
 	WORLD_VEGETATION_SCRIPT.generate_hex_grid(
 		self, -96, 96, -96, 96, 4, HEX_RADIUS,
 		Callable(self, "_is_forest_candidate"),
-		Vector2i(17, -9), 0.56,
+		HEARTLAND_BIOMES.FOREST_DENSITY_OFFSET, HEARTLAND_BIOMES.FOREST_DENSITY_THRESHOLD,
 		Callable(self, "_select_cosmo_tree_family"),
 		0.78, 0.46, "HollowmereTree"
 	)
@@ -266,7 +267,7 @@ func _create_forest() -> void:
 	WORLD_VEGETATION_SCRIPT.generate_hex_grid(
 		self, -96, 96, -96, 96, 8, HEX_RADIUS,
 		Callable(self, "_is_understorey_candidate"),
-		Vector2i(977, -337), 0.70,
+		HEARTLAND_BIOMES.UNDERSTOREY_DENSITY_OFFSET, HEARTLAND_BIOMES.UNDERSTOREY_DENSITY_THRESHOLD,
 		Callable(self, "_select_understorey_family"),
 		0.68, 0.48, "HollowmereUnderstorey", true
 	)
@@ -278,43 +279,15 @@ func _is_understorey_candidate(hex: Vector2i) -> bool:
 	return HollowmereVillageData.is_forest_candidate(hex) and not HollowmereVillageData.has_tree(hex)
 
 func _select_understorey_family(hex: Vector2i, density_roll: float) -> String:
-	var near_stream := _is_near_village_stream(hex, 7.0)
-	if near_stream and density_roll < 0.84:
-		return "tree_fern"
-	if density_roll > 0.91:
-		return "low_poly_bush"
-	return "bush"
+	return HEARTLAND_BIOMES.select_understorey_family(_is_near_village_stream(hex, 7.0), density_roll)
 
 func _select_cosmo_tree_family(hex: Vector2i, _density_roll: float = 0.0) -> String:
-	var roll := HollowmereVillageData._stable_noise(hex.x + 401, hex.y - 719)
-	if _is_near_village_stream(hex, 7.0):
-		if roll < 0.48:
-			return "willow"
-		if roll < 0.66:
-			return "ash"
-		if roll < 0.82:
-			return "laurel"
-		if roll < 0.94:
-			return "cherry"
-		return "spruce"
-	if roll < 0.18:
-		return "ash"
-	if roll < 0.33:
-		return "cherry"
-	if roll < 0.46:
-		return "laurel"
-	if roll < 0.64:
-		return "pine"
-	if roll < 0.80:
-		return "spruce"
-	if roll < 0.92:
-		return "winter_oak"
-	return "low_poly_tree"
+	return HEARTLAND_BIOMES.select_tree_family(hex, _is_near_village_stream(hex, 7.0))
 
 func _is_near_village_stream(hex: Vector2i, distance: float) -> bool:
-	if absi(hex.x) > 34:
-		return false
-	return absf(float(hex.y) - HollowmereVillageData._river_centre_r(hex.x)) <= distance
+	return HEARTLAND_BIOMES.is_near_stream(
+		hex, distance, HollowmereVillageData._river_centre_r(hex.x)
+	)
 
 func _add_box(parent: Node3D, node_name: String, position: Vector3, size: Vector3, material: Material) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()

@@ -6,6 +6,7 @@ const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_facto
 func _initialize() -> void:
     _test_village_uses_shared_vegetation_generator()
     _test_village_bounds_and_terrain()
+    _test_main_campaign_world_map()
     _test_road_network_connectivity()
     _test_building_thresholds()
     _test_building_definitions_use_shared_factory()

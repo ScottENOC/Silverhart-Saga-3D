@@ -9,6 +9,7 @@ const ROUTE_DATA = preload("res://data/settlements/hollowmere/routes.gd")
 const BRIDGE_DATA = preload("res://data/settlements/hollowmere/bridges.gd")
 const PROP_DATA = preload("res://data/settlements/hollowmere/props.gd")
 const AGRICULTURE_DATA = preload("res://data/settlements/hollowmere/agriculture.gd")
+const HEARTLAND_BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
 
 # Preserve the existing public API while making each authored domain independently editable.
 const MAP_RADIUS: int = SETTLEMENT_DATA.MAP_RADIUS
@@ -204,22 +205,18 @@ static func is_farm_land(hex: Vector2i) -> bool:
 	return hex.x >= -2 and hex.x <= 40 and hex.y >= 39 and hex.y <= 76
 
 static func is_forest_candidate(hex: Vector2i) -> bool:
-	if not is_in_bounds(hex):
-		return false
-	if is_farm_land(hex):
-		return false
-	if HexGrid.distance(Vector2i.ZERO, hex) < 17:
-		return false
-	if is_water(hex) or is_building(hex) or is_path(hex):
-		return false
-	return _stable_noise(hex.x, hex.y) > 0.18
+	var settlement_context := {
+		"in_bounds": is_in_bounds(hex),
+		"farm_land": is_farm_land(hex),
+		"distance_from_centre": HexGrid.distance(Vector2i.ZERO, hex),
+		"water": is_water(hex),
+		"building": is_building(hex),
+		"path": is_path(hex)
+	}
+	return HEARTLAND_BIOMES.is_forest_candidate(hex, settlement_context)
 
 static func has_tree(hex: Vector2i) -> bool:
-	if posmod(hex.x, 4) != 0 or posmod(hex.y, 4) != 0:
-		return false
-	if not is_forest_candidate(hex):
-		return false
-	return _stable_noise(hex.x + 17, hex.y - 9) >= 0.56
+	return HEARTLAND_BIOMES.has_tree(hex, is_forest_candidate(hex))
 
 static func _append_unique(cells: Array[Vector2i], seen: Dictionary, hex: Vector2i) -> void:
 	if seen.has(hex):
@@ -228,5 +225,4 @@ static func _append_unique(cells: Array[Vector2i], seen: Dictionary, hex: Vector
 	cells.append(hex)
 
 static func _stable_noise(q: int, r: int) -> float:
-	var value: int = posmod(q * 92837111 + r * 689287499 + 1013904223, 2147483647)
-	return float(value) / 2147483647.0
+	return HEARTLAND_BIOMES.stable_noise(q, r)
