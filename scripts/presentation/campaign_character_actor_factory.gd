@@ -118,7 +118,7 @@ static func apply_player_profile(actor: Node3D, profile: Dictionary) -> void:
         return
     actor.set_meta("player_profile", profile.duplicate(true))
     actor.set_meta("appearance_profile", profile.duplicate(true))
-    actor.set_meta("body_variant", String(profile.get("body_variant", "female")))
+    actor.set_meta("body_variant", String(profile.get("body_base", profile.get("body_variant", "female"))))
     actor.set_meta("gender_presentation", String(profile.get("gender_presentation", "Androgynous")))
     actor.set_meta("pronouns", String(profile.get("pronouns", "they/them")))
     var name_label := actor.get_node_or_null("PlayerNameLabel") as Label3D
