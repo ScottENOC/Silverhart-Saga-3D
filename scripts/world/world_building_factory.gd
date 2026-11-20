@@ -182,10 +182,10 @@ static func _build_entrance(root: Node3D, config: Dictionary, definition: Dictio
 	var leaf_offset := offset + outward * 0.13 + Vector3.UP * 1.48
 	if _has_feature(definition, "double_door"):
 		var tangent := Vector3.FORWARD if side in ["east", "west"] else Vector3.RIGHT
-		var leaf_width := frame_width * 0.39
+		var leaf_width := frame_width * 0.48
 		for index in range(2):
 			var direction := -1.0 if index == 0 else 1.0
-			var leaf_centre := leaf_offset + tangent * direction * frame_width * 0.205
+			var leaf_centre := leaf_offset + tangent * direction * frame_width * 0.25
 			var leaf_size := Vector3(0.12, 3.45, leaf_width) if side in ["east", "west"] else Vector3(leaf_width, 3.45, 0.12)
 			_add_box(root, "DoorLeaf_%s" % ("Left" if index == 0 else "Right"), leaf_centre, leaf_size, door)
 	else:
