@@ -147,9 +147,9 @@ def main():
     (out/"character-spatial-audit.json").write_text(json.dumps(result,indent=2)+"\n")
     rows=result["rig_comparison"]["comparisons"]
     md=["# Character spatial foundation audit","",f"Audited {len(reports)} committed Ara runtime and Hollowmere GLBs.","",
-        "## Rig compatibility","","| Asset | Bones | Names/order | Hierarchy | Max rest-position delta |","|---|---:|---|---|---:|"]
-    for r in rows:md.append(f"| {Path(r['file']).name} | {r.get('bone_count','—')} | {r.get('same_bone_names_and_order','—')} | {r.get('same_parent_hierarchy','—')} | {r.get('max_world_rest_position_delta_m','—')} |")
-    md += ["","## Per-asset summary","","| Asset | Mesh nodes | Skin rigs | Animations | Spatial markers |","|---|---:|---:|---:|---:|"]
+        "## Rig compatibility","","| Asset | Bones | Same bone names | Same hierarchy | Local rest translation delta | World position delta |","|---|---:|---|---|---:|---:|"]
+    for r in rows:md.append(f"| {Path(r['file']).name} | {r.get('bone_count','—')} | {r.get('same_bone_name_set','—')} | {r.get('same_parent_hierarchy_by_name','—')} | {r.get('max_local_rest_translation_delta_m','—')} | {r.get('max_world_rest_position_delta_m','—')} |")
+    for r in result["rig_comparison"]["skin_geometry_vs_baseline"]:md.append(f"| {Path(r['file']).name} | {r['same_skin_face_index_data']} | {r['same_used_skin_positions']} | {r.get('skin_vertex_buffer_count','—')} | {r.get('skin_used_vertex_count','—')} |"),"","| Asset | Mesh nodes | Skin rigs | Animations | Spatial markers |","|---|---:|---:|---:|---:|"]
     for r in reports:md.append(f"| {Path(r['file']).name} | {len(r['mesh_nodes'])} | {len(r['skins'])} | {r['animation_count']} | {len(r['spatial_markers'])} |")
     md += ["","Detailed primitive, vertex-count, topology-hash, morph-target, joint, landmark-candidate and animation-channel data is in character-spatial-audit.json.","",
         "Read-only structural audit; does not establish visual deformation quality or semantic correctness of anatomical landmarks."]
