@@ -8,6 +8,7 @@ const GROUND_SIZE: float = 420.0
 const ORGANIC_FEATURES = preload("res://scripts/world/organic_world_features.gd")
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
+const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
 var grass_material: StandardMaterial3D
 var path_material: StandardMaterial3D
 var water_material: StandardMaterial3D
@@ -163,18 +164,24 @@ func _add_hex_surface(node_name: String, cells: Array[Vector2i], material: Mater
 	add_child(instance)
 
 func _create_buildings() -> void:
-	# Positions and entrances follow Campaign 2's Hollowmere layout.
-	_create_cottage("GeneralStore", Vector2i(0, 18), 8.5, 6.5, 2.9, 1.8, "north")
-	_create_cottage("Chapel", Vector2i(-14, 0), 6.8, 7.2, 3.2, 2.0, "east")
-	_create_cottage("EldersHouse", Vector2i(0, -12), 6.0, 5.4, 2.65, 1.55, "south")
-	_create_cottage("MiraHouse", Vector2i(12, 9), 5.5, 5.0, 2.5, 1.45, "west")
-	_create_cottage("OskarHouse", Vector2i(-6, 9), 5.5, 5.0, 2.5, 1.45, "east")
+	# The authored settlement definitions own both footprints and presentation.
+	for definition in HollowmereVillageData.BUILDINGS:
+		var building_id := String(definition.get("id", ""))
+		if building_id in ["old_mac_farmhouse", "old_mac_barn"]:
+			continue
+		_create_authored_building(definition)
 	_add_store_sign()
 	_add_chapel_bell_tower()
 
+func _create_authored_building(definition: Dictionary) -> Node3D:
+	return WORLD_BUILDING_FACTORY.create_building(self, {"id": "hollowmere"}, definition)
+
 func _create_farmstead() -> void:
 	# The southern signposted road reaches Old Mac's working farm.
-	_create_cottage("OldMacFarmhouse", HollowmereVillageData.FARMHOUSE, 8.0, 6.4, 2.9, 1.8, "south")
+	for definition in HollowmereVillageData.BUILDINGS:
+		if String(definition.get("id", "")) == "old_mac_farmhouse":
+			_create_authored_building(definition)
+			break
 	var barn_centre := HexGrid.axial_to_world(HollowmereVillageData.FARM_BARN, HEX_RADIUS)
 	var barn := Node3D.new()
 	barn.name = "OldMacBarn"
@@ -371,62 +378,6 @@ func _add_farm_fence(node_name: String, points: Array[Vector2i]) -> void:
 		rail.rotation.y = atan2(direction.x, direction.z)
 		var upper := _add_box(root, "FenceRailUpper", midpoint + Vector3.UP * 0.82, Vector3(0.12, 0.12, distance), fence_material)
 		upper.rotation.y = atan2(direction.x, direction.z)
-
-func _create_cottage(id: String, centre_hex: Vector2i, width: float, depth: float, wall_height: float, roof_rise: float, door_side: String) -> void:
-	var root := Node3D.new()
-	root.name = id
-	root.position = HexGrid.axial_to_world(centre_hex, HEX_RADIUS)
-	add_child(root)
-
-	var wall_thickness := 0.24
-	var wall_y := 0.22 + wall_height * 0.5
-	_add_box(root, "StoneFoundation", Vector3(0.0, 0.10, 0.0), Vector3(width + 0.35, 0.20, depth + 0.35), stone_material)
-
-	if door_side == "north" or door_side == "south":
-		_add_box(root, "WestWall", Vector3(-width * 0.5, wall_y, 0.0), Vector3(wall_thickness, wall_height, depth), plaster_material)
-		_add_box(root, "EastWall", Vector3(width * 0.5, wall_y, 0.0), Vector3(wall_thickness, wall_height, depth), plaster_material)
-		var back_z := depth * 0.5 if door_side == "north" else -depth * 0.5
-		_add_box(root, "BackWall", Vector3(0.0, wall_y, back_z), Vector3(width, wall_height, wall_thickness), plaster_material)
-		var front_z := -depth * 0.5 if door_side == "north" else depth * 0.5
-		_add_door_wall(root, front_z, width, wall_height, wall_thickness, false)
-		_add_box(root, "FrontDoor", Vector3(0.0, 1.18, front_z), Vector3(1.02, 2.05, 0.12), dark_wood_material)
-	else:
-		_add_box(root, "NorthWall", Vector3(0.0, wall_y, -depth * 0.5), Vector3(width, wall_height, wall_thickness), plaster_material)
-		_add_box(root, "SouthWall", Vector3(0.0, wall_y, depth * 0.5), Vector3(width, wall_height, wall_thickness), plaster_material)
-		var back_x := -width * 0.5 if door_side == "east" else width * 0.5
-		_add_box(root, "BackWall", Vector3(back_x, wall_y, 0.0), Vector3(wall_thickness, wall_height, depth), plaster_material)
-		var front_x := width * 0.5 if door_side == "east" else -width * 0.5
-		_add_door_wall(root, front_x, depth, wall_height, wall_thickness, true)
-		_add_box(root, "FrontDoor", Vector3(front_x, 1.18, 0.0), Vector3(0.12, 2.05, 1.02), dark_wood_material)
-
-	# Timber framing and a simple pitched roof give the buildings a coherent village silhouette.
-	for x in [-width * 0.5 + 0.12, 0.0, width * 0.5 - 0.12]:
-		for z in [-depth * 0.5 + 0.12, depth * 0.5 - 0.12]:
-			_add_box(root, "TimberPost", Vector3(x, wall_y, z), Vector3(0.16, wall_height + 0.08, 0.16), timber_material)
-	var slope_length := sqrt(pow(depth * 0.5, 2.0) + pow(roof_rise, 2.0))
-	var roof_angle := rad_to_deg(atan2(roof_rise, depth * 0.5))
-	var north_roof := _add_box(root, "NorthRoofSlope", Vector3(0.0, 0.22 + wall_height + roof_rise * 0.5, -depth * 0.25), Vector3(width + 0.65, 0.20, slope_length), roof_material)
-	north_roof.rotation_degrees.x = -roof_angle
-	var south_roof := _add_box(root, "SouthRoofSlope", Vector3(0.0, 0.22 + wall_height + roof_rise * 0.5, depth * 0.25), Vector3(width + 0.65, 0.20, slope_length), roof_material)
-	south_roof.rotation_degrees.x = roof_angle
-	_add_box(root, "RoofRidge", Vector3(0.0, 0.22 + wall_height + roof_rise, 0.0), Vector3(width + 0.75, 0.18, 0.22), dark_wood_material)
-	_add_box(root, "SideWindow", Vector3(width * 0.5 + 0.02, 1.75, 0.55), Vector3(0.08, 0.72, 0.82), glass_material)
-	_add_box(root, "WindowSill", Vector3(width * 0.5 + 0.10, 1.36, 0.55), Vector3(0.16, 0.12, 1.0), timber_material)
-	_add_box(root, "Chimney", Vector3(-width * 0.28, wall_height + 0.75, -depth * 0.22), Vector3(0.55, 1.8, 0.58), stone_material)
-
-func _add_door_wall(parent: Node3D, front: float, length: float, wall_height: float, thickness: float, side_wall: bool) -> void:
-	var door_width := 1.15
-	var segment := maxf(0.5, (length - door_width) * 0.5)
-	var wall_y := 0.22 + wall_height * 0.5
-	var lintel_y := 0.22 + wall_height - 0.32
-	if side_wall:
-		_add_box(parent, "DoorWallA", Vector3(front, wall_y, -(door_width * 0.5 + segment * 0.5)), Vector3(thickness, wall_height, segment), plaster_material)
-		_add_box(parent, "DoorWallB", Vector3(front, wall_y, door_width * 0.5 + segment * 0.5), Vector3(thickness, wall_height, segment), plaster_material)
-		_add_box(parent, "DoorLintel", Vector3(front, lintel_y, 0.0), Vector3(thickness, 0.64, door_width), plaster_material)
-	else:
-		_add_box(parent, "DoorWallA", Vector3(-(door_width * 0.5 + segment * 0.5), wall_y, front), Vector3(segment, wall_height, thickness), plaster_material)
-		_add_box(parent, "DoorWallB", Vector3(door_width * 0.5 + segment * 0.5, wall_y, front), Vector3(segment, wall_height, thickness), plaster_material)
-		_add_box(parent, "DoorLintel", Vector3(0.0, lintel_y, front), Vector3(door_width, 0.64, thickness), plaster_material)
 
 func _add_store_sign() -> void:
 	var root := get_node_or_null("GeneralStore") as Node3D
