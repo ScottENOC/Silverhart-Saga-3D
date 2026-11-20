@@ -15,10 +15,8 @@ const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_d
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 const WORLD_CELL_LOADER_SCRIPT = preload("res://scripts/world/campaign2_world_cell_loader.gd")
 const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
-const INTERIOR_FEATURE_FACTORY = preload("res://scripts/world/world_interior_feature_factory.gd")
-const HOLLOW_TANKARD_TAPROOM = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_taproom.gd")
-const HOLLOW_TANKARD_UPPER_ROOMS = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_upper_rooms.gd")
-const HOLLOW_TANKARD_STRUCTURE = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_structure.gd")
+const INTERIOR_LAYOUT_PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
+const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
 const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
@@ -132,10 +130,8 @@ func _ready() -> void:
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
 	_configure_location_simulation()
-	_create_ground_and_hexes()
+	_present_interior_layout()
 	_create_wilderness_gatherable_grove()
-	_create_building()
-	_create_furniture()
 	_create_characters()
 	_create_reyna_shelter()
 	_capture_initial_character_baselines()
@@ -379,168 +375,41 @@ func _is_furniture_cell_blocked(world: Vector3) -> bool:
 		return true # benches
 	return false
 
-func _create_ground_and_hexes() -> void:
-	var ground := MeshInstance3D.new()
-	var ground_mesh := PlaneMesh.new()
-	ground_mesh.size = Vector2(34.0, 30.0)
-	ground.mesh = ground_mesh
-	ground.position.y = -0.18
-	ground.material_override = grass_material
-	add_child(ground)
-
-	tile_mesh = _create_hex_tile_mesh()
-	for q in range(-7, 8):
-		for r in range(-7, 8):
-			var hex := Vector2i(q, r)
-			if not simulation.map_data.has_cell(hex):
-				continue
-			var center := HexGrid.axial_to_world(hex, HEX_RADIUS)
-			var inside_room: bool = absf(center.x) < ROOM_HALF_WIDTH - 0.2 and absf(center.z) < ROOM_HALF_DEPTH - 0.2
-			var cell_world := HexGrid.axial_to_world(hex, HEX_RADIUS, 0.06 if inside_room else -0.07)
-			var tile := MeshInstance3D.new()
-			tile.mesh = tile_mesh
-			tile.position = cell_world
-			if not simulation.map_data.is_walkable(hex):
-				tile.material_override = blocked_material
-			else:
-				tile.material_override = floor_material if inside_room else grass_material
-			add_child(tile)
-
-func _create_hex_tile_mesh() -> ArrayMesh:
-	var surface := SurfaceTool.new()
-	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var corners := HexGrid.corner_offsets(HEX_RADIUS)
-	var half_height: float = TILE_THICKNESS * 0.5
-
-	for i in range(HexGrid.SIDE_COUNT):
-		var next_i: int = (i + 1) % HexGrid.SIDE_COUNT
-		surface.set_normal(Vector3.UP)
-		surface.add_vertex(Vector3(0.0, half_height, 0.0))
-		surface.add_vertex(Vector3(corners[next_i].x, half_height, corners[next_i].y))
-		surface.add_vertex(Vector3(corners[i].x, half_height, corners[i].y))
-
-	for i in range(HexGrid.SIDE_COUNT):
-		var next_i: int = (i + 1) % HexGrid.SIDE_COUNT
-		var a := Vector3(corners[i].x, half_height, corners[i].y)
-		var b := Vector3(corners[next_i].x, half_height, corners[next_i].y)
-		var c := Vector3(corners[next_i].x, -half_height, corners[next_i].y)
-		var d := Vector3(corners[i].x, -half_height, corners[i].y)
-		var angle := deg_to_rad(60.0 * (float(i) + 0.5))
-		var normal := Vector3(cos(angle), 0.0, sin(angle))
-		surface.set_normal(normal)
-		surface.add_vertex(a)
-		surface.add_vertex(b)
-		surface.add_vertex(c)
-		surface.set_normal(normal)
-		surface.add_vertex(a)
-		surface.add_vertex(c)
-		surface.add_vertex(d)
-	return surface.commit()
-
-func _create_building() -> void:
-	var materials := {
-		"stone": stone_material,
-		"plaster": plaster_material,
-		"timber": timber_material,
-		"dark_wood": dark_wood_material,
-		"glass": glass_material,
-		"roof": roof_material
-	}
-	var building := INTERIOR_FEATURE_FACTORY.present(self, HOLLOW_TANKARD_STRUCTURE.BUILDING_SHELL, materials)
-	if building == null:
-		push_error("Could not present Hollow Tankard authored building shell.")
-		return
-
-	# The door is kept as a live campaign object: its hinge animation is driven
-	# by BuildingRegistry rather than by static authored geometry.
-	tavern_door_pivot = Node3D.new()
-	tavern_door_pivot.name = "FrontDoorHinge"
-	tavern_door_pivot.position = Vector3(-0.8, 0.0, 5.5)
-	building.add_child(tavern_door_pivot)
-	tavern_door_leaf = _add_box(
-		tavern_door_pivot, "FrontDoorLeaf",
-		Vector3(0.65, 1.25, 0.0), Vector3(1.3, 2.5, 0.16), dark_wood_material
-	)
-	_refresh_tavern_door_presentation()
-
-	upper_shell_group = INTERIOR_FEATURE_FACTORY.present(self, HOLLOW_TANKARD_STRUCTURE.UPPER_EXTERIOR, materials)
-	upper_floor_group = INTERIOR_FEATURE_FACTORY.present(self, HOLLOW_TANKARD_STRUCTURE.UPPER_FLOOR, materials)
-	if upper_shell_group == null or upper_floor_group == null:
-		push_error("Could not present Hollow Tankard upper-storey structure.")
-		return
-
-	upper_floor_tiles = Node3D.new()
-	upper_floor_tiles.name = "UpperHexFloor"
-	upper_floor_group.add_child(upper_floor_tiles)
-	for q in range(-4, 5):
-		var row_shift := -floori(float(q) / 2.0)
-		for row in range(-2, 3):
-			var local_hex := Vector2i(q, row + row_shift)
-			var local_world := HexGrid.axial_to_world(local_hex, HEX_RADIUS)
-			var tile := MeshInstance3D.new()
-			tile.mesh = tile_mesh
-			tile.position = Vector3(local_world.x, UPPER_FLOOR_Y, local_world.z)
-			tile.material_override = floor_material
-			upper_floor_tiles.add_child(tile)
-
-	upper_interior_group = Node3D.new()
-	upper_interior_group.name = "UpperBedrooms"
-	upper_floor_group.add_child(upper_interior_group)
-	_create_upper_floor_rooms(upper_interior_group)
-
-	roof_group = INTERIOR_FEATURE_FACTORY.present(self, HOLLOW_TANKARD_STRUCTURE.ROOF, materials)
-	if roof_group == null:
-		push_error("Could not present Hollow Tankard roof.")
-	else:
-		roof_group.visible = false
-	_refresh_tavern_floor_presentation()
-
-func _create_upper_floor_rooms(parent: Node3D) -> void:
-	var result := INTERIOR_FEATURE_FACTORY.present(
-		parent,
-		HOLLOW_TANKARD_UPPER_ROOMS.DEFINITION,
-		{"timber": timber_material, "dark_wood": dark_wood_material}
-	)
-	if result == null:
-		push_error("Could not present Hollow Tankard upper-room authored features.")
-	# Bed anchors remain axial placements, so they stay aligned with the
-	# logical upper-floor hex layout rather than duplicating world coordinates.
-	_create_bed_at_hex(parent, "GarrickBed", Vector2i(-3, 0), Color(0.38, 0.16, 0.12))
-	_create_bed_at_hex(parent, "GarrickSpareBed", Vector2i(-3, 2), Color(0.34, 0.24, 0.16))
-	_create_bed_at_hex(parent, "NorthGuestBedA", Vector2i(2, -2), Color(0.24, 0.28, 0.38))
-	_create_bed_at_hex(parent, "NorthGuestBedB", Vector2i(3, -2), Color(0.24, 0.28, 0.38))
-	_create_bed_at_hex(parent, "SouthGuestBedA", Vector2i(2, 0), Color(0.24, 0.28, 0.38))
-	_create_bed_at_hex(parent, "SouthGuestBedB", Vector2i(3, 0), Color(0.24, 0.28, 0.38))
-
-func _create_bed_at_hex(parent: Node3D, bed_name: String, local_hex: Vector2i, blanket_colour: Color) -> void:
-	var bed_world_position := HexGrid.axial_to_world(local_hex, HEX_RADIUS, UPPER_FLOOR_Y + 0.17)
-	_create_bed(parent, bed_name, bed_world_position, blanket_colour)
-
-func _create_bed(parent: Node3D, bed_name: String, bed_position: Vector3, blanket_colour: Color) -> void:
-	var bed := Node3D.new()
-	bed.name = bed_name
-	bed.position = bed_position
-	parent.add_child(bed)
-	_add_box(bed, "BedFrame", Vector3.ZERO, Vector3(1.25, 0.38, 2.15), dark_wood_material)
-	_add_box(bed, "Mattress", Vector3(0.0, 0.22, 0.0), Vector3(1.15, 0.18, 2.0), _material(Color(0.78, 0.72, 0.58)))
-	_add_box(bed, "Blanket", Vector3(0.0, 0.34, 0.28), Vector3(1.12, 0.12, 1.35), _material(blanket_colour))
-	_add_box(bed, "Pillow", Vector3(0.0, 0.36, -0.78), Vector3(0.82, 0.12, 0.38), _material(Color(0.82, 0.79, 0.68)))
-	_add_box(bed, "Headboard", Vector3(0.0, 0.55, -1.0), Vector3(1.3, 0.95, 0.12), timber_material)
-
-
-func _create_furniture() -> void:
-	var result := INTERIOR_FEATURE_FACTORY.present(
+func _present_interior_layout() -> void:
+	# Static interior geometry is authored in a location data manifest and
+	# interpreted by the shared presenter. This controller retains only the
+	# live references needed for door animation, floor visibility and cutaway.
+	var result: Dictionary = INTERIOR_LAYOUT_PRESENTER.present(
 		self,
-		HOLLOW_TANKARD_TAPROOM.DEFINITION,
+		HOLLOW_TANKARD_LAYOUT.DEFINITION,
 		{
-			"dark_wood": dark_wood_material,
-			"timber": timber_material,
+			"grass": grass_material,
+			"floor": floor_material,
+			"blocked": blocked_material,
 			"stone": stone_material,
+			"timber": timber_material,
+			"dark_wood": dark_wood_material,
+			"plaster": plaster_material,
+			"roof": roof_material,
+			"glass": glass_material,
 			"bottle_green": bottle_green_material
-		}
+		},
+		simulation.map_data,
+		HEX_RADIUS
 	)
-	if result == null:
-		push_error("Could not present Hollow Tankard authored taproom furnishings.")
+	if not bool(result.get("ok", false)):
+		push_error("Could not present Hollow Tankard authored interior: %s" % result)
+		return
+	tile_mesh = result.get("tile_mesh") as ArrayMesh
+	tavern_door_pivot = result.get("door_pivot") as Node3D
+	tavern_door_leaf = result.get("door_leaf") as MeshInstance3D
+	upper_shell_group = result.get("upper_exterior") as Node3D
+	upper_floor_group = result.get("upper_floor") as Node3D
+	upper_floor_tiles = result.get("upper_tiles") as Node3D
+	upper_interior_group = result.get("upper_interior") as Node3D
+	roof_group = result.get("roof") as Node3D
+	_refresh_tavern_door_presentation()
+	_refresh_tavern_floor_presentation()
 
 func _create_characters() -> void:
 	starting_loadouts = _load_starting_loadouts()
