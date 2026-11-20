@@ -766,16 +766,20 @@ def fit_garment_clearance(objects, skin, material_tokens):
             profile = profile_for_material(label)
             profile_name = profile["name"]
             bucket = stats.setdefault(profile_name, {
-                "vertices": set(), "moved": 0, "penetrating": 0,
+                "vertex_count": 0, "moved": 0, "penetrating": 0,
                 "max_displacement_m": 0.0, "total_displacement_m": 0.0,
             })
-            bucket["vertices"].update(poly.vertices)
             for index in poly.vertices:
                 previous = vertex_profiles.get(index)
                 if previous is None or profile["clearance_m"] > previous["clearance_m"]:
                     vertex_profiles[index] = profile
         if not vertex_profiles:
             continue
+
+        for name in {profile["name"] for profile in vertex_profiles.values()}:
+            stats[name]["vertex_count"] += sum(
+                1 for profile in vertex_profiles.values() if profile["name"] == name
+            )
 
         inv = obj.matrix_world.inverted()
         object_corrections = {}
@@ -824,7 +828,7 @@ def fit_garment_clearance(objects, skin, material_tokens):
             )
 
     for name, bucket in sorted(stats.items()):
-        count = len(bucket["vertices"])
+        count = bucket["vertex_count"]
         average = bucket["total_displacement_m"] / max(bucket["moved"], 1)
         profile = {"name": name, **FIT_PROFILES[name]}
         strain = bucket.get("max_estimated_strain", 0.0)
