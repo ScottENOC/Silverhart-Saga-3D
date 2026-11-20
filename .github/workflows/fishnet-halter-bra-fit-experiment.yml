@@ -1,0 +1,105 @@
+name: Fishnet Halter Bra Fit Experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Successful Ara generation run containing ara_person_halter_bra_fishnet.glb"
+        required: true
+        type: string
+        default: "44671002809"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  fit-one-garment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download the single authored fishnet halter bra
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/ara-generated
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name ara-generated-models --dir /tmp/ara-generated
+          test -s /tmp/ara-generated/ara_person_halter_bra_fishnet.glb
+          echo "Using one authored garment: halter fishnet bra"
+
+      - name: Download two pinned companion bodies
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          manifest = json.loads(Path("character-preview/companion-models.json").read_text())
+          for character in ("dagna", "mirabel"):
+              model = manifest["models"][character]
+              dest = Path("/tmp/companions") / character
+              dest.mkdir(parents=True, exist_ok=True)
+              subprocess.run([
+                  "gh", "run", "download", str(model["run_id"]),
+                  "--repo", os.environ["GITHUB_REPOSITORY"],
+                  "--name", model["artifact"], "--dir", str(dest)
+              ], check=True)
+              source = dest / model["filename"]
+              if not source.is_file() or source.stat().st_size == 0:
+                  raise SystemExit(f"Missing pinned body: {source}")
+              print(f"{character}: pinned build {model['build']} ({source.stat().st_size} bytes)", flush=True)
+          PY
+
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Assemble, fit and render only the fishnet halter bra
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          ROOT=art/characters/ara_runtime/fishnet_bra_fit_experiment
+          mkdir -p "$ROOT"
+          for character in dagna mirabel; do
+            echo "::group::${character} — assemble one garment"
+            if [ "$character" = "dagna" ]; then filename="Dagna.glb"; else filename="Mirabel.glb"; fi
+            source="/tmp/companions/$character/$filename"
+            raw="$ROOT/$character_raw.glb"
+            fitted="$ROOT/$character_fishnet_bra_fitted.glb"
+            report="$ROOT/$character_fit_report.json"
+            python tools/ara/assemble_modular_glb.py "$source" "$raw" \
+              /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra cups" \
+              /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra straps"
+            echo "::endgroup::"
+
+            echo "::group::${character} — bounded bidirectional fit"
+            blender --background --python-exit-code 1 \
+              --python tools/blender/fit_fishnet_halter_bra.py -- \
+              --input "$raw" --output "$fitted" --report "$report"
+            echo "::endgroup::"
+
+            echo "::group::${character} — three-view visual review"
+            EXPORT_PHONE_GLB=1 blender --background --python-exit-code 1 \
+              --python tools/review/render_modular_outfits.py -- "$fitted" "$ROOT/$character" fishnet_bra
+            echo "::endgroup::"
+            test -s "$report"
+            for view in front side rear; do test -s "$ROOT/$character/fishnet_bra/$view.png"; done
+            rm -f "$raw"
+          done
+
+      - name: Upload two-body fishnet bra experiment
+        uses: actions/upload-artifact@v7
+        with:
+          name: fishnet-halter-bra-fit-experiment
+          path: art/characters/ara_runtime/fishnet_bra_fit_experiment/**
+          if-no-files-found: error
+          retention-days: 14
