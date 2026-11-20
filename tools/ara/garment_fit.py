@@ -87,10 +87,47 @@ def profile_name_for_material(material_name: str) -> str:
     return "stretch_fabric"
 
 
+def construction_for_material(material_name: str) -> str:
+    """Resolve garment construction independently from its fabric behaviour."""
+    name = normalise_material_name(material_name)
+    if any(token in name for token in ("bra", "halter", "bustier", "corset")):
+        return "structured_support"
+    if any(token in name for token in ("strap", "tie", "piping", "band")):
+        return "edge_or_seam"
+    if any(token in name for token in ("armor", "armour", "plate", "mail")):
+        return "rigid_shell"
+    if any(token in name for token in ("dress", "skirt", "cloak", "cape", "robe")):
+        return "draped_panel"
+    return "flexible_panel"
+
+
 def profile_for_material(material_name: str) -> dict[str, Any]:
-    """Return a fresh profile dictionary so callers cannot mutate global policy."""
+    """Combine fabric response with garment construction constraints.
+
+    Fabric and construction are separate axes: a lace/fishnet bra must retain
+    open-mesh behaviour while its cups, underbust band and straps remain
+    structurally constrained. A single mutually-exclusive profile cannot
+    represent both without losing one of those requirements.
+    """
     name = profile_name_for_material(material_name)
-    return {"name": name, **FIT_PROFILES[name]}
+    profile = {"name": name, **FIT_PROFILES[name]}
+    construction = construction_for_material(material_name)
+    profile["construction"] = construction
+    if construction == "structured_support":
+        profile["coverage_mode"] = "edge_constrained"
+        profile["constrained_features"] = (
+            "cup_perimeter", "underbust_band", "neck_strap", "back_band",
+        )
+        profile["support_mode"] = "distributed_tension"
+    elif construction == "edge_or_seam":
+        profile["coverage_mode"] = "edge_constrained"
+        profile["constrained_features"] = ("seam", "strap", "tie")
+    elif construction == "rigid_shell":
+        profile["coverage_mode"] = "surface_shell"
+        profile["constrained_features"] = ("panel_boundary", "fastener")
+    else:
+        profile["constrained_features"] = ()
+    return profile
 
 
 def evaluate_fit(*, signed_distance_m: float, strain: float,
