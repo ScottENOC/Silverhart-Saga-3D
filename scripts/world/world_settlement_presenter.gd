@@ -52,7 +52,7 @@ func _create_materials(palette: Dictionary) -> void:
 				float(entry.get("metallic", 0.0))
 			)
 	var required := ["grass", "path", "water", "bank", "stone", "plaster", "timber",
-		"dark_wood", "roof", "glass", "field", "crop", "pasture", "fence"]
+		"dark_wood", "roof", "glass", "field", "crop", "pasture", "fence", "blood"]
 	for key in required:
 		if not materials.has(key):
 			push_error("Settlement %s is missing palette material '%s'." % [String(definition.get("id", "")), key])
@@ -73,11 +73,27 @@ func _present_authored_features(features: Dictionary, hex_radius: float) -> void
 		self,
 		features.get("identity", {}),
 		features.get("data", {}),
-		features.get("materials", {}),
+		_resolve_material_bindings(features.get("materials", {})),
 		hex_radius
 	)
 	if not bool(result.get("ok", false)):
 		push_error("Authored settlement presentation failed: %s" % result)
+
+
+func _resolve_material_bindings(value: Variant) -> Variant:
+	if value is Dictionary:
+		var resolved: Dictionary = {}
+		for key in value:
+			resolved[key] = _resolve_material_bindings(value[key])
+		return resolved
+	if value is Array:
+		var resolved: Array = []
+		for item in value:
+			resolved.append(_resolve_material_bindings(item))
+		return resolved
+	if value is String and materials.has(value):
+		return materials[value]
+	return value
 
 func _spawn_authored_creatures(placements: Array, hex_radius: float) -> void:
 	for placement in placements:
