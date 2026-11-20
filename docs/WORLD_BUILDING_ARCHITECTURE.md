@@ -147,6 +147,7 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 - [ ] Review generated building appearance in the regional preview.
 - [x] Migrate Hollowmere village houses, farmhouse and barn to shared factory definitions.
 - [x] Keep store signage and chapel bell tower as separate add-on presentation features.
+- [x] Add a data-driven Campaign 2 location loader and move opening-location component composition out of `WorldRoot`.
 - [x] Move Hollow Tankard static shell, upper storey, roof, taproom furnishings, room partitions, labels and beds into authored layout data presented by a shared interior presenter.
 - [x] Move Hollowmere stream, banks, main roads, village lane, ring road and house spurs into authored presentation route data and a shared polyline renderer.
 - [x] Move Hollowmere bridge placement and component geometry into authored data and a shared bridge assembly factory.
