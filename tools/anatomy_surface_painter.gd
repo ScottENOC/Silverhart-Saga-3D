@@ -648,9 +648,10 @@ func _register_saved_mask(mask_path: String, saved_mask: CharacterSurfaceRegionM
     for existing_resource in manifest.masks:
         if existing_resource is CharacterSurfaceRegionMask:
             var existing_mask := existing_resource as CharacterSurfaceRegionMask
-            if existing_mask.body_asset_path == saved_mask.body_asset_path \
-                    and existing_mask.mesh_node_path == saved_mask.mesh_node_path \
-                    and existing_mask.surface_index == saved_mask.surface_index:
+            var same_target := existing_mask.body_asset_path == saved_mask.body_asset_path \
+                and existing_mask.mesh_node_path == saved_mask.mesh_node_path \
+                and existing_mask.surface_index == saved_mask.surface_index
+            if same_target:
                 continue
         updated_masks.append(existing_resource)
     var registered_mask := load(mask_path) as CharacterSurfaceRegionMask
