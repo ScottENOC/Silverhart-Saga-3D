@@ -260,10 +260,8 @@ func _evaluate_vertex(surface: Dictionary, vertex_index: int) -> Dictionary:
             else:
                 local_normal += normal_deltas[vertex_index] * shape_weight
 
-    var blended_x := Vector3.ZERO
-    var blended_y := Vector3.ZERO
-    var blended_z := Vector3.ZERO
-    var blended_origin := Vector3.ZERO
+    var character_position := local_position
+    var character_normal := local_normal
     var total_weight := 0.0
     var character_from_skeleton := _character_root.global_transform.affine_inverse() * _skeleton.global_transform
 
@@ -283,24 +281,16 @@ func _evaluate_vertex(surface: Dictionary, vertex_index: int) -> Dictionary:
             * _skeleton.get_bone_global_pose(bone_index)
             * skin.get_bind_pose(bind_index)
         )
-        blended_x += skin_transform.basis.x * influence_weight
-        blended_y += skin_transform.basis.y * influence_weight
-        blended_z += skin_transform.basis.z * influence_weight
-        blended_origin += skin_transform.origin * influence_weight
+        # Match Godot's own MeshInstance3D skeleton-bake calculation: blend each
+        # influence's transformed vertex and orthonormalized normal by its weight.
+        character_position += (skin_transform * local_position - local_position) * influence_weight
+        var bone_normal := skin_transform.basis.orthonormalized() * local_normal
+        character_normal += (bone_normal - local_normal) * influence_weight
         total_weight += influence_weight
 
     if total_weight <= 0.00001:
         return {"valid": false}
-    var inverse_total_weight := 1.0 / total_weight
-    var blended_basis := Basis(
-        blended_x * inverse_total_weight,
-        blended_y * inverse_total_weight,
-        blended_z * inverse_total_weight
-    )
-    blended_origin *= inverse_total_weight
-    var blended_skin_transform := Transform3D(blended_basis, blended_origin)
-    var character_position := blended_skin_transform * local_position
-    var character_normal := (blended_skin_transform.basis.inverse().transposed() * local_normal).normalized()
+    character_normal = character_normal.normalized()
     return {"valid": true, "position": character_position, "normal": character_normal}
 
 
