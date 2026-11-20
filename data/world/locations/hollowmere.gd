@@ -14,7 +14,7 @@ const DEFINITION := {
 	"components": [
 		{
 			"role": "settlement",
-			"node_name": "HollowmereVillage",
+			"node_name": "SettlementPresentation",
 			"script": SETTLEMENT_PRESENTATION,
 			"configure_location": true,
 			"location_data": SETTLEMENT_PRESENTATION_DATA.DEFINITION
