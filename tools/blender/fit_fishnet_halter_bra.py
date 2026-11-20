@@ -77,82 +77,112 @@ def bone_head_world(armature, name):
     return armature.matrix_world @ bone.head_local
 
 
-def align_garment_to_character(selected, reference_path):
-    """Warp this exemplar from Ara's authored rig proportions to the target rig.
+def nipple_socket_world(armature, side):
+    """Read the existing surface-derived breast reference socket."""
+    name = f"SOCKET_Nipple_{side}"
+    socket = bpy.data.objects.get(name)
+    if socket is None:
+        raise RuntimeError(
+            f"Character is missing {name}; refusing to guess bra height from torso bones"
+        )
+    point = socket.matrix_world.translation.copy()
+    return point
 
-    This is deliberately a per-garment anchor recipe, not a universal clothing
-    fitter. Spine2 is the chest placement anchor; shoulder span controls width
-    and the Spine2-to-Neck distance controls upper-torso height.
+
+def cup_centres(selected):
+    """Find authored left/right cup centroids from the cup material vertices."""
+    points = []
+    for obj, indices in selected.items():
+        for polygon in obj.data.polygons:
+            if material_names(obj, polygon) != "Halter fishnet bra cups":
+                continue
+            for index in polygon.vertices:
+                points.append(obj.matrix_world @ obj.data.vertices[index].co)
+    if len(points) < 4:
+        raise RuntimeError("Could not identify enough vertices in the authored bra cups")
+    midpoint_x = sorted(p.x for p in points)[len(points) // 2]
+    left = [p for p in points if p.x >= midpoint_x]
+    right = [p for p in points if p.x < midpoint_x]
+    if not left or not right:
+        raise RuntimeError("Could not separate the two authored bra cups")
+    return (
+        sum(left, Vector()) / len(left),
+        sum(right, Vector()) / len(right),
+    )
+
+
+def align_garment_to_character(selected, reference_path):
+    """Place this one bra from bilateral surface-derived nipple reference sockets.
+
+    The socket generator is a bounded surface-vertex heuristic, not semantic
+    breast recognition. We use it as an explicit placement reference only.
+    The authored cup centroids are mapped to the corresponding left/right
+    sockets; the complete garment follows that translation and horizontal
+    spacing adjustment. No body vertices or anatomy profiles are changed.
     """
     target_armature = next(
         (obj for obj in bpy.context.scene.objects if obj.type == "ARMATURE"),
         None,
     )
     if target_armature is None:
-        raise RuntimeError("Target companion GLB has no armature for bra anchors")
+        raise RuntimeError("Target companion GLB has no armature")
 
+    target_points = {
+        "L": nipple_socket_world(target_armature, "L"),
+        "R": nipple_socket_world(target_armature, "R"),
+    }
     existing = set(bpy.context.scene.objects)
     bpy.ops.import_scene.gltf(filepath=os.path.abspath(reference_path))
     imported = [obj for obj in bpy.context.scene.objects if obj not in existing]
-    source_armature = next(
-        (obj for obj in imported if obj.type == "ARMATURE"),
-        None,
-    )
+    source_armature = next((obj for obj in imported if obj.type == "ARMATURE"), None)
     if source_armature is None:
         raise RuntimeError("Reference Ara garment GLB has no armature")
-
     try:
-        names = ("Spine2", "Neck", "LeftShoulder", "RightShoulder")
-        source = {name: bone_head_world(source_armature, name) for name in names}
-        target = {name: bone_head_world(target_armature, name) for name in names}
-
-        source_shoulder_span = (
-            source["LeftShoulder"] - source["RightShoulder"]
-        ).length
-        target_shoulder_span = (
-            target["LeftShoulder"] - target["RightShoulder"]
-        ).length
-        source_upper_torso = source["Neck"].z - source["Spine2"].z
-        target_upper_torso = target["Neck"].z - target["Spine2"].z
-        if min(source_shoulder_span, target_shoulder_span,
-               source_upper_torso, target_upper_torso) <= 1e-5:
-            raise RuntimeError("Bra anchor measurements are degenerate")
-
-        horizontal_scale = target_shoulder_span / source_shoulder_span
-        vertical_scale = target_upper_torso / source_upper_torso
-        source_anchor = source["Spine2"]
-        target_anchor = target["Spine2"]
-        scales = Vector((horizontal_scale, horizontal_scale, vertical_scale))
+        source_points = {
+            "L": nipple_socket_world(source_armature, "L"),
+            "R": nipple_socket_world(source_armature, "R"),
+        }
+        source_cups = cup_centres(selected)
+        source_mid = (source_points["L"] + source_points["R"]) * 0.5
+        target_mid = (target_points["L"] + target_points["R"]) * 0.5
+        source_span = (source_points["L"] - source_points["R"]).length
+        target_span = (target_points["L"] - target_points["R"]).length
+        if min(source_span, target_span) < 1e-4:
+            raise RuntimeError("Bilateral breast reference sockets are coincident")
+        horizontal_scale = target_span / source_span
 
         moved = 0
         for obj, indices in selected.items():
             inverse = obj.matrix_world.inverted()
             for index in indices:
                 world = obj.matrix_world @ obj.data.vertices[index].co
-                relative = world - source_anchor
-                adapted = target_anchor + Vector((
-                    relative.x * scales.x,
-                    relative.y * scales.y,
-                    relative.z * scales.z,
+                relative = world - source_mid
+                adapted = target_mid + Vector((
+                    relative.x * horizontal_scale,
+                    relative.y,
+                    relative.z,
                 ))
                 obj.data.vertices[index].co = inverse @ adapted
                 moved += 1
             obj.data.update()
 
         report = {
-            "method": "fishnet_halter_bra_authored_anchor_warp",
+            "method": "bilateral_surface_socket_bra_placement",
             "reference": os.path.abspath(reference_path),
-            "anchor_bone": "Spine2",
-            "size_anchors": ["LeftShoulder", "RightShoulder", "Neck"],
-            "source_anchor_world": [round(float(v), 6) for v in source_anchor],
-            "target_anchor_world": [round(float(v), 6) for v in target_anchor],
-            "horizontal_scale": round(horizontal_scale, 6),
-            "vertical_scale": round(vertical_scale, 6),
+            "source_socket_L_world": [round(float(v), 6) for v in source_points["L"]],
+            "source_socket_R_world": [round(float(v), 6) for v in source_points["R"]],
+            "target_socket_L_world": [round(float(v), 6) for v in target_points["L"]],
+            "target_socket_R_world": [round(float(v), 6) for v in target_points["R"]],
+            "source_authored_cup_centres_world": [
+                [round(float(v), 6) for v in p] for p in source_cups
+            ],
+            "horizontal_spacing_scale": round(horizontal_scale, 6),
             "garment_vertices_warped": moved,
             "body_geometry_modified": False,
+            "anatomy_detection": "uses existing bilateral surface-derived nipple sockets; these are heuristic surface anchors, not breast-volume recognition",
             "scope": "fishnet halter bra cups and straps only",
         }
-        print("BRA ANCHOR ADAPTATION", json.dumps(report, indent=2), flush=True)
+        print("BRA BREAST-REFERENCE PLACEMENT", json.dumps(report, indent=2), flush=True)
         return report
     finally:
         for obj in imported:
@@ -261,7 +291,7 @@ def main():
         "input": args.input,
         "output": args.output,
         "modified_materials": sorted(MATERIALS),
-        "starting_position": "authored Ara placement adapted to target Spine2, shoulder-span and upper-torso anchors",
+        "starting_position": "authored Ara placement mapped to target bilateral surface-derived nipple reference sockets",
         "anchor_adaptation": anchor_report,
         "correction_policy": {
             "clearance_m": args.clearance,
@@ -276,7 +306,8 @@ def main():
         "metrics": totals,
         "limitations": [
             "No full cloth simulation",
-            "Nearest-surface mapping is not yet anatomically region-constrained",
+            "Nipple sockets are heuristic front-surface anchors, not semantic breast-volume detection",
+            "Cup placement does not yet infer underbust contours or perform garment-specific cup shaping",
             "Large placement errors require authored landmark repositioning or re-patterning",
             "Edge strain is a diagnostic approximation",
         ],
