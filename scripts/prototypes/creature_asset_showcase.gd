@@ -68,7 +68,7 @@ func _create_lighting() -> void:
 
 	var camera := Camera3D.new()
 	camera.position = Vector3(0.0, 4.0, 10.5)
-	camera.rotation_degrees = Vector3(-18.0, 0.0, 0.0)
+	camera.rotation_degrees = Vector3(18.0, 0.0, 0.0)
 	camera.current = true
 	camera.fov = 48.0
 	add_child(camera)
