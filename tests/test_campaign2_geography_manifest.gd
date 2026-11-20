@@ -1,12 +1,18 @@
 extends SceneTree
 
 const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
+const MAP_DATA = preload("res://scripts/world/main_campaign_world_map_data.gd")
 
 func _initialize() -> void:
 	var parsed = JSON.parse_string(FileAccess.get_file_as_string(MANIFEST_PATH))
 	assert(parsed is Dictionary, "Campaign 2 geography manifest must parse as an object")
 	assert(int(parsed.get("campaign_id", 0)) == 2, "Manifest must target Campaign 2")
-	assert(int(parsed.get("coordinate_system", {}).get("local_hexes_per_strategic_cell", 0)) == 130)
+	var coordinates: Dictionary = parsed.get("coordinate_system", {})
+	assert(int(coordinates.get("local_hexes_per_strategic_cell", 0)) == 130)
+	assert(coordinates.get("strategic_grid_dimensions", {}) == {"columns": 16, "rows": 16},
+		"Strategic grid dimensions must be authored in the manifest")
+	assert(coordinates.get("origin", {}).get("local_q", -1) == 8)
+	assert(coordinates.get("origin", {}).get("local_r", -1) == 24)
 
 	var locations: Array = parsed.get("locations", [])
 	assert(locations.size() == 24, "The current first-pass geography inventory should contain 24 destinations")
@@ -22,10 +28,9 @@ func _initialize() -> void:
 		ids[id] = true
 		location_by_id[id] = location
 		assert(location.has("q") and location.has("r"), "Every location needs source local axial coordinates: " + id)
-		var column := 6.0 + float(location["q"] - 8) / 130.0
-		var row := 6.0 + float(location["r"] - 24) / 130.0
-		assert(column >= -0.5 and column <= 15.5, "Location falls outside strategic map horizontally: " + id)
-		assert(row >= -0.5 and row <= 15.5, "Location falls outside strategic map vertically: " + id)
+		var cell := MAP_DATA.world_cell_from_local_hex(Vector2i(int(location["q"]), int(location["r"])))
+		assert(cell.x >= -0.5 and cell.x <= 15.5, "Location falls outside strategic map horizontally: " + id)
+		assert(cell.y >= -0.5 and cell.y <= 15.5, "Location falls outside strategic map vertically: " + id)
 
 	for required_id in [
 		"hollowmere", "millbrook", "silverhart", "emberlode", "reddale",
@@ -50,5 +55,24 @@ func _initialize() -> void:
 
 	var river: Array = parsed.get("geography", {}).get("river_path", [])
 	assert(river.size() == 15, "Campaign 2 strategic river should retain its 15 source cells")
+	assert(MAP_DATA.strategic_river_path().size() == 15, "Runtime river must be derived from the manifest")
+	assert(MAP_DATA.strategic_grid_size() == Vector2i(16, 16))
+	assert(MAP_DATA.hollowmere_origin_cell() == Vector2i(6, 6))
+	assert(MAP_DATA.hollowmere_local_reference() == Vector2i(8, 24))
+	assert(MAP_DATA.world_cell_from_local_hex(Vector2i(8, 24)) == Vector2i(6, 6))
+	assert(MAP_DATA.world_cell_from_local_hex(Vector2i(8, -496)) == Vector2i(6, 2))
+	assert(MAP_DATA.world_cell_from_local_hex(Vector2i(1, -366)) == Vector2i(6, 3))
+	assert(MAP_DATA.world_cell_from_local_hex(Vector2i(-256, 22)) == Vector2i(4, 6))
+
+	var markers: Array = MAP_DATA.strategic_locations()
+	assert(markers.size() == 6, "Strategic marker selection must be manifest-authored")
+	var grid: Array = MAP_DATA.generate_grid()
+	assert(grid.size() == 16 and grid[0].size() == 16, "Strategic grid dimensions must come from the manifest")
+	assert(grid[0][0]["terrain"] == "ocean")
+	assert(grid[13][2]["terrain"] == "forest" and grid[13][2]["faction"] == "elves")
+	assert(grid[0][10]["faction"] == "dwarves", "North-east faction border override must be retained")
+	assert(grid[4][12]["faction"] == "orcs", "South edge of the dwarf/orc border must be retained")
+	assert(grid[6][6]["poi"].get("id", "") == "hollowmere")
+
 	print("Campaign 2 geography manifest: %d locations, %d connections, %d river cells — OK" % [locations.size(), connections.size(), river.size()])
-	quit()
+	quit(0)

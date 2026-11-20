@@ -7,10 +7,8 @@ extends RefCounted
 const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
 const ROAD_PATHS_PATH := "res://data/world/campaign2_road_paths.json"
 const SETTLEMENT_LAYOUTS_PATH := "res://data/world/campaign2_settlement_layouts.json"
+const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
 const SEED := 2047
-const LOCAL_STREAM_BRIDGE := Vector2i(8, -25)
-const LOCAL_STREAM_Q_MIN := -90
-const LOCAL_STREAM_Q_MAX := 220
 const AUTHORED_VILLAGE_RADIUS := 96
 
 var strategic_grid: Array = []
@@ -84,9 +82,12 @@ func _load_settlement_layouts() -> void:
 				settlement_path_cells[_hex_key(cell)] = true
 
 func _build_strategic_river() -> void:
-	for cell in MainCampaignWorldMapData.RIVER_PATH:
-		var local_q := 8 + (cell.x - 6) * MainCampaignWorldMapData.WORLD_HEX_SIZE
-		var local_r := 24 + (cell.y - 6) * MainCampaignWorldMapData.WORLD_HEX_SIZE
+	var origin_cell := MainCampaignWorldMapData.hollowmere_origin_cell()
+	var origin_hex := MainCampaignWorldMapData.hollowmere_local_reference()
+	var scale := MainCampaignWorldMapData.local_hexes_per_strategic_cell()
+	for cell in MainCampaignWorldMapData.strategic_river_path():
+		var local_q := origin_hex.x + (cell.x - origin_cell.x) * scale
+		var local_r := origin_hex.y + (cell.y - origin_cell.y) * scale
 		river_points.append(HexGrid.axial_to_world(Vector2i(local_q, local_r), HexGrid.DEFAULT_RADIUS_M))
 
 func terrain_for_hex(hex: Vector2i) -> String:
@@ -95,8 +96,6 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "authored"
 	if settlement_path_cells.has(_hex_key(hex)):
-		return "path"
-	if hex == LOCAL_STREAM_BRIDGE:
 		return "path"
 	if _is_local_stream(hex) or _is_strategic_river(hex):
 		return "water"
@@ -160,11 +159,7 @@ func chunk_for_hex(hex: Vector2i, chunk_size: int = 24) -> Vector2i:
 	return Vector2i(floori(float(hex.x) / float(chunk_size)), floori(float(hex.y) / float(chunk_size)))
 
 func _is_local_stream(hex: Vector2i) -> bool:
-	if hex.x < LOCAL_STREAM_Q_MIN or hex.x > LOCAL_STREAM_Q_MAX:
-		return false
-	var q := float(hex.x)
-	var centre_r := -25.0 + sin(q * 0.045) * 1.8 + sin(q * 0.11) * 0.7
-	return absf(float(hex.y) - centre_r) <= 1.5
+	return REGIONAL_HYDROLOGY.is_stream_hex(hex)
 
 func _is_strategic_river(hex: Vector2i) -> bool:
 	if river_points.size() < 2:
@@ -184,7 +179,8 @@ func _distance_to_segment(point: Vector3, start: Vector3, finish: Vector3) -> fl
 	return point.distance_to(start + segment * t)
 
 func _inside_strategic_map(cell: Vector2i) -> bool:
-	return cell.x >= 0 and cell.x < MainCampaignWorldMapData.WORLD_SIZE and cell.y >= 0 and cell.y < MainCampaignWorldMapData.WORLD_SIZE
+	var dimensions := MainCampaignWorldMapData.strategic_grid_size()
+	return cell.x >= 0 and cell.x < dimensions.x and cell.y >= 0 and cell.y < dimensions.y
 
 static func _stable_roll(hex: Vector2i, seed_value: int) -> float:
 	var value := posmod(hex.x * 92837111 + hex.y * 689287499 + seed_value * 104729 + 1013904223, 2147483647)

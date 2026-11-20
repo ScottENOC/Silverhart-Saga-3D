@@ -136,6 +136,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_geography_manifest.gd
       - name: Run Campaign 2 world terrain tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_terrain.gd
+      - name: Run Campaign 2 regional hydrology tests
+        run: godot --headless --path . --script tests/test_campaign2_regional_hydrology.gd
       - name: Run Campaign 2 settlement layout tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
       - name: Validate Hollowmere and item data JSON

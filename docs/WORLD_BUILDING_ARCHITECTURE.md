@@ -21,7 +21,7 @@ The following components already exist and should be evolved rather than duplica
 
 | Component | Current responsibility | Required direction |
 |---|---|---|
-| `MainCampaignWorldMapData` | 16×16 strategic map | Keep as strategic geography source, reconcile against extracted source manifest |
+| `MainCampaignWorldMapData` | Runtime adapter that builds the 16×16 strategic index | Derive dimensions, coordinate transform, regional bands, faction overrides, river path and marker selection from `campaign2_geography.json` |
 | `Campaign2WorldTerrainData` | Loads geography, roads and settlement layouts; resolves deterministic local terrain | Keep as the local-world data provider; separate authored feature precedence from procedural terrain |
 | `HexWorldChunkStreamer` / regional preview streamer | Chunk membership and streamed terrain presentation | Consolidate overlapping streaming responsibilities; preserve simulation state on unload |
 | `BuildingRegistry` | Stable building definitions and persistent door state | Keep as authoritative logical registry |
@@ -55,7 +55,7 @@ Version-controlled, stable-ID records describe:
 
 Definitions describe *what exists*, not the sequence of scene-node operations used to construct it.
 
-Hollowmere authored data is now separated under `data/settlements/hollowmere/` by ownership: `settlement_definition.gd` (identity and coordinate reference), `buildings.gd`, `routes.gd`, `bridges.gd`, `agriculture.gd` and `props.gd`. `HollowmereVillageData` remains a compatibility/query facade for existing callers; it no longer owns duplicate authored arrays. This is an incremental GDScript-resource migration, not a new coordinate frame: all authored axial points remain in `campaign2_local_axial_qr`, with the Hollowmere crossroads reference at `(8, 24)`. Logical navigation queries remain in the facade for now and are a separate next extraction.
+Hollowmere authored data is now separated under `data/settlements/hollowmere/` by ownership: `settlement_definition.gd` (identity and coordinate reference), `buildings.gd`, `routes.gd`, `bridges.gd`, `agriculture.gd` and `props.gd`. `HollowmereVillageData` remains a compatibility/query facade for existing callers; it no longer owns duplicate authored arrays. This is an incremental GDScript-resource migration, not a new coordinate frame: all authored axial points remain in `campaign2_local_axial_qr`, with the Hollowmere crossroads reference at `(8, 24)`. Logical navigation queries remain in the facade for now and are a separate next extraction. The strategic geography manifest is now authoritative for the strategic grid dimensions, the local-axial/strategic transform, region bands, the dwarf/orc border overrides, the strategic river and the selected macro-map markers; `MainCampaignWorldMapData` is only the runtime adapter. The Silverhart heartland stream centreline is regional hydrology data under `data/world/regions/silverhart_heartland/`, not settlement-owned data.
 
 ### 2. World data provider
 
@@ -150,6 +150,8 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 - [x] Move Hollowmere field polygons, crop rows and fence runs into authored data and a shared agricultural renderer.
 - [x] Move store signage, chapel bell tower, crossroads signpost and broken-fence/blood-trail quest dressing into authored prop assemblies and a shared renderer.
 - [x] Split Hollowmere authored building, route, bridge, agriculture and prop definitions into domain files with a compatibility facade and CI coverage.
-- [ ] Move regional terrain, hydrology and biome rules out of settlement-specific logic.
+- [x] Make the Campaign 2 geography manifest authoritative for strategic dimensions, transforms, regional bands, faction border overrides, river path and macro-map marker selection.
+- [x] Move the Silverhart heartland stream rule into region-owned hydrology data with direct boundary/width tests.
+- [ ] Move remaining regional terrain/biome rules into region-owned definitions where they are still duplicated or settlement-coupled.
 - [ ] Consolidate streaming and world composition.
 - [ ] Complete source-world feature inventory and regional migration.
