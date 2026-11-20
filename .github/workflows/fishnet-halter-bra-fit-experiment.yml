@@ -89,7 +89,8 @@ jobs:
             echo "::group::${character} — bounded bidirectional fit"
             blender --background --python-exit-code 1 \
               --python tools/blender/fit_fishnet_halter_bra.py -- \
-              --input "$raw" --reference-rig /tmp/ara-generated/ara_person_halter_bra_fishnet.glb \\\n              --output "$fitted" --report "$report" \
+              --input "$raw" --reference-rig /tmp/ara-generated/ara_person_halter_bra_fishnet.glb \
+              --output "$fitted" --report "$report"
             echo "::endgroup::"
 
             echo "::group::${character} — three-view visual review"
