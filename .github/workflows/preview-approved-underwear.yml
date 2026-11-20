@@ -123,7 +123,7 @@ jobs:
             build/approved-underwear/Mirabel-assembled.glb \
             "$MIRABEL_SOURCE" "Bra" \
             "$MIRABEL_SOURCE" "Bikini bottom" \
-            "$MIRABEL_SOURCE" "Bikini strings"
+            "$MIRABEL_SOURCE" "Bikini strings*=Bikini strings"
           python tools/ara/apply_outfit_materials.py \
             --input build/approved-underwear/Mirabel-assembled.glb \
             --output build/approved-underwear/Mirabel-underwear-preview.glb \
