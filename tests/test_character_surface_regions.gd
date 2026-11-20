@@ -124,6 +124,12 @@ func _test_body(asset_path: String) -> void:
             mesh_instance.set_blend_shape_value(shape_index, 0.0)
     await process_frame
 
+    var baked_meshes: Dictionary = {}
+    for mesh_instance in skinned_meshes:
+        var baked := mesh_instance.bake_mesh_from_current_skeleton_pose()
+        assert(baked != null, "%s Godot bake returned null for %s" % [asset_path, mesh_instance.name])
+        baked_meshes[mesh_instance.get_instance_id()] = baked
+
     var total_position_checks := 0
     var worst_position_error := 0.0
     var minimum_normal_dot := 1.0
@@ -133,8 +139,7 @@ func _test_body(asset_path: String) -> void:
             var mesh_instance: MeshInstance3D = sample["mesh_instance"]
             var surface_index: int = sample["surface_index"]
             var vertex_index: int = sample["vertex_index"]
-            var baked := mesh_instance.bake_mesh_from_current_skeleton_pose()
-            assert(baked != null, "%s Godot bake returned null for %s" % [asset_path, mesh_instance.name])
+            var baked: ArrayMesh = baked_meshes[mesh_instance.get_instance_id()]
             assert(surface_index < baked.get_surface_count(), "Baked surface missing: %s surface %d" % [mesh_instance.name, surface_index])
             var baked_arrays := baked.surface_get_arrays(surface_index)
             var baked_vertices: PackedVector3Array = baked_arrays[Mesh.ARRAY_VERTEX]
@@ -165,9 +170,9 @@ func _test_body(asset_path: String) -> void:
                 asset_path, region_id, surface_index, vertex_index, normal_dot
             ])
             total_position_checks += 1
-            baked = null
 
     assert(total_position_checks >= 20, "%s had too few engine-bake comparison points: %d" % [asset_path, total_position_checks])
+    baked_meshes.clear()
     skeleton.set_bone_pose(arm_bone_index, original_pose)
     await process_frame
 
