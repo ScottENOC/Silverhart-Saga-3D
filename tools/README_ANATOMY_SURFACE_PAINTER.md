@@ -15,7 +15,7 @@ The first run may take a little longer while Godot imports the GLB and creates s
 
 ## Semantic label groups
 
-The selector groups the 65 supported fine surface IDs into:
+The selector groups the 73 supported fine surface IDs into:
 
 - Head and neck: face, lips, ears and neck surfaces.
 - Torso and chest: clavicles, breasts, areolae, nipples, underbust, back, abdomen, waist and flanks.
