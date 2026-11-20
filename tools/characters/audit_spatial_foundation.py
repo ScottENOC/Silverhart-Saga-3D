@@ -139,20 +139,32 @@ def compare(reports):
     return {"baseline":base["file"],"comparisons":out,"skin_geometry_vs_baseline":geometry}
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument("--root",default="art/characters");ap.add_argument("--output",default="character-spatial-audit");a=ap.parse_args()
-    root=Path(a.root); files=sorted(list((root/"ara_runtime").glob("*.glb"))+list((root/"hollowmere").glob("*.glb")))
+    ap=argparse.ArgumentParser()
+    ap.add_argument("--root",default="art/characters")
+    ap.add_argument("--output",default="character-spatial-audit")
+    a=ap.parse_args()
+    root=Path(a.root)
+    files=sorted(list((root/"ara_runtime").glob("*.glb"))+list((root/"hollowmere").glob("*.glb")))
     if not files:raise SystemExit(f"No GLBs under {root}")
-    reports=[audit(p) for p in files]; result={"schema_version":1,"asset_count":len(reports),"assets":reports,"rig_comparison":compare(reports)}
+    reports=[audit(p) for p in files]
+    result={"schema_version":1,"asset_count":len(reports),"assets":reports,"rig_comparison":compare(reports)}
     out=Path(a.output);out.mkdir(parents=True,exist_ok=True)
-    (out/"character-spatial-audit.json").write_text(json.dumps(result,indent=2)+"\n")
-    rows=result["rig_comparison"]["comparisons"]
+    (out/"character-spatial-audit.json").write_text(json.dumps(result,indent=2)+"\\n")
+    rig_rows=result["rig_comparison"]["comparisons"]
     md=["# Character spatial foundation audit","",f"Audited {len(reports)} committed Ara runtime and Hollowmere GLBs.","",
-        "## Rig compatibility","","| Asset | Bones | Same bone names | Same hierarchy | Local rest translation delta | World position delta |","|---|---:|---|---|---:|---:|"]
-    for r in rows:md.append(f"| {Path(r['file']).name} | {r.get('bone_count','—')} | {r.get('same_bone_name_set','—')} | {r.get('same_parent_hierarchy_by_name','—')} | {r.get('max_local_rest_translation_delta_m','—')} | {r.get('max_world_rest_position_delta_m','—')} |")
-    for r in result["rig_comparison"]["skin_geometry_vs_baseline"]:md.append(f"| {Path(r['file']).name} | {r['same_skin_face_index_data']} | {r['same_used_skin_positions']} | {r.get('skin_vertex_buffer_count','—')} | {r.get('skin_used_vertex_count','—')} |"),"","| Asset | Mesh nodes | Skin rigs | Animations | Spatial markers |","|---|---:|---:|---:|---:|"]
-    for r in reports:md.append(f"| {Path(r['file']).name} | {len(r['mesh_nodes'])} | {len(r['skins'])} | {r['animation_count']} | {len(r['spatial_markers'])} |")
+        "## Rig compatibility","","| Asset | Bones | Same bone names | Same hierarchy | Local rest translation delta | World position delta |",
+        "|---|---:|---|---|---:|---:|"]
+    for r in rig_rows:
+        md.append(f"| {Path(r['file']).name} | {r.get('bone_count','—')} | {r.get('same_bone_name_set','—')} | {r.get('same_parent_hierarchy_by_name','—')} | {r.get('max_local_rest_translation_delta_m','—')} | {r.get('max_world_rest_position_delta_m','—')} |")
+    md += ["","World-space rest positions also reflect each character's root transform and stature. Compare local rest transforms and hierarchy for rig compatibility. Skin joint-array order is reported separately in JSON.","",
+        "## Skin geometry compared with Ara female body baseline","","| Asset | Same face indices | Same used positions | Vertex buffer count | Used skin vertices |","|---|---|---|---:|---:|"]
+    for r in result["rig_comparison"]["skin_geometry_vs_baseline"]:
+        md.append(f"| {Path(r['file']).name} | {r['same_skin_face_index_data']} | {r['same_used_skin_positions']} | {r.get('skin_vertex_buffer_count','—')} | {r.get('skin_used_vertex_count','—')} |")
+    md += ["","## Per-asset summary","","| Asset | Mesh nodes | Skin rigs | Animations | Spatial markers |","|---|---:|---:|---:|---:|"]
+    for r in reports:
+        md.append(f"| {Path(r['file']).name} | {len(r['mesh_nodes'])} | {len(r['skins'])} | {r['animation_count']} | {len(r['spatial_markers'])} |")
     md += ["","Detailed primitive, vertex-count, topology-hash, morph-target, joint, landmark-candidate and animation-channel data is in character-spatial-audit.json.","",
         "Read-only structural audit; does not establish visual deformation quality or semantic correctness of anatomical landmarks."]
-    (out/"character-spatial-audit.md").write_text("\n".join(md)+"\n")
+    (out/"character-spatial-audit.md").write_text("\\n".join(md)+"\\n")
     print(json.dumps({"asset_count":len(reports),"rig_comparison":result["rig_comparison"],"report":str(out/"character-spatial-audit.md")},indent=2))
 if __name__=="__main__":main()
