@@ -165,6 +165,9 @@ def main():
     bpy.ops.object.delete(use_global=False)
     bpy.ops.import_scene.gltf(filepath=os.path.abspath(args.input))
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    armature = next((o for o in bpy.context.scene.objects if o.type == "ARMATURE"), None)
+    if armature is None:
+        raise RuntimeError("Could not identify the target companion armature")
     skin = max((o for o in meshes if any(
         s.material and "skin" in s.material.name.lower() for s in o.material_slots
     )), key=lambda o: len(o.data.polygons), default=None)
@@ -246,9 +249,10 @@ def main():
 
     # Preserve the body exactly: only selected bra vertices were written.
     bpy.ops.object.select_all(action="DESELECT")
-    for obj in meshes:
-        obj.select_set(True)
-    bpy.context.view_layer.objects.active = skin
+    for obj in bpy.context.scene.objects:
+        if obj.type in {"MESH", "ARMATURE", "EMPTY"}:
+            obj.select_set(True)
+    bpy.context.view_layer.objects.active = armature
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.export_scene.gltf(filepath=os.path.abspath(args.output), export_format="GLB",
                               use_selection=True, export_apply=False)
