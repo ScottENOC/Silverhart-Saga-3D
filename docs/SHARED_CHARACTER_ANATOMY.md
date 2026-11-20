@@ -55,9 +55,11 @@ The current Ara anatomy exports contain only a small set of explicit surface soc
 (ear, nose, necklace and anatomy-specific points). They do not yet contain the general
 surface-region data required for robust clothing fit or combat volumes.
 
-## Required next layer: surface regions
+## Surface regions: implementation and next requirements
 
-Author a common region vocabulary for both body bases, including at least:
+The first broad region layer is implemented by `CharacterSurfaceRegions` and validated against Godot's skinned-mesh bake for both canonical bodies. The next work is to extend the vocabulary with authored fine regions, not to replace the working broad rig-weight layer.
+
+The complete region vocabulary should include:
 
 - head, neck, chest, abdomen, waist, pelvis
 - left/right shoulder, upper arm, elbow, forearm, wrist, hand
