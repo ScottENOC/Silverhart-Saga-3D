@@ -624,7 +624,7 @@ func _create_furniture() -> void:
 func _create_characters() -> void:
     starting_loadouts = _load_starting_loadouts()
     var profile_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
-    var population_file := FileAccess.open("res://data/characters/hollowmere_population.json", FileAccess.READ)
+    var population_file := FileAccess.open("res://data/world/hollowmere_population.json", FileAccess.READ)
     if profile_file == null or population_file == null:
         push_error("Hollowmere character definitions or world population placements are missing.")
         return
