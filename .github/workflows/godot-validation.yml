@@ -109,6 +109,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_hollowmere_data_modules.gd
       - name: Run generic authored settlement presentation tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_authored_settlement_presenter.gd
+      - name: Run generic interior feature factory tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_interior_feature_factory.gd
       # Keep presentation-component tests isolated from campaign simulation suites.
       - name: Run campaign UI tests
         run: godot --headless --path . --script res://tests/test_campaign_ui.gd
