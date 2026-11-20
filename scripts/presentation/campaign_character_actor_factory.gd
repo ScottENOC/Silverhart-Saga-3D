@@ -30,7 +30,11 @@ static func create_actor(
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
 
     var hair_id := String(player_profile.get("hair_style_id", "short02")) if is_player else String(npc_profile.get("params", {}).get("hair", "short02"))
-    var appearance := player_profile if is_player else npc_profile
+    var appearance: Dictionary = player_profile if is_player else npc_profile.duplicate(true)
+    if not is_player:
+        var npc_params: Dictionary = appearance.get("params", {}).duplicate(true)
+        npc_params["body_base"] = body_variant
+        appearance["params"] = npc_params
     return _create_actor_presentation(
         state.id,
         state.display_name,
