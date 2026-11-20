@@ -14,7 +14,6 @@ static func spawn_character(
     spawn_hex: Vector2i,
     world_position: Vector3,
     is_player: bool = false,
-    ara_model_id: String = "",
     npc_profile: Dictionary = {},
     ambient_role: String = ""
 ) -> Node3D:
@@ -38,7 +37,6 @@ static func spawn_character(
         is_player,
         player_profile,
         npc_profile,
-        ara_model_id,
         ambient_role
     )
     if actor == null:
