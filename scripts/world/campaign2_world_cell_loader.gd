@@ -12,7 +12,10 @@ var terrain_data: Campaign2WorldTerrainData
 var loaded_chunks: Dictionary = {}
 
 func _init(source: Campaign2WorldTerrainData = null) -> void:
-    terrain_data = source if source != null else TERRAIN_DATA_SCRIPT.new() as Campaign2WorldTerrainData
+    if source == null:
+        terrain_data = TERRAIN_DATA_SCRIPT.new() as Campaign2WorldTerrainData
+    else:
+        terrain_data = source
 
 ## Load a square neighbourhood of global axial chunks around a world coordinate.
 ## Already materialised cells are never replaced, preserving runtime mutations.
