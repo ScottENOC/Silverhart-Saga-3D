@@ -6,6 +6,7 @@ var failures: int = 0
 
 func _initialize() -> void:
     _test_authored_hollowmere_cells_are_not_overwritten()
+    _test_hollowmere_cells_are_loaded_from_settlement_data()
     _test_settlement_footprints_and_paths_are_logical_cells()
     _test_generation_is_stable_across_chunk_load_order()
     _test_negative_chunk_coordinates()
@@ -23,6 +24,24 @@ func _test_authored_hollowmere_cells_are_not_overwritten() -> void:
     loader.load_around(map_data, Vector2i(8, 24), 0)
     _check(map_data.terrain_id_at(Vector2i(8, 24)) == "authored_path", "The authored Hollowmere map must remain authoritative")
     _check(map_data.elevation_at(Vector2i(8, 24)) == 0.25, "Authored Hollowmere elevation must not be overwritten")
+    map_data.free()
+    loader.free()
+
+func _test_hollowmere_cells_are_loaded_from_settlement_data() -> void:
+    var map_data := HexMapData.new()
+    var loader = CELL_LOADER.new()
+    loader.load_around(map_data, Vector2i.ZERO, 4)
+    var crossroads := Vector2i(8, 24)
+    var elder_house := Vector2i(0, -12)
+    var stream := Vector2i(8, -25)
+    _check(map_data.has_cell(crossroads), "The Hollowmere crossroads must be materialised by the shared world loader")
+    _check(map_data.terrain_id_at(crossroads) == "path", "The Hollowmere crossroads must come from settlement path data")
+    _check(map_data.is_walkable(crossroads), "The Hollowmere crossroads must remain traversable")
+    _check(map_data.has_cell(elder_house), "The Hollowmere elder-house footprint must be materialised")
+    _check(map_data.terrain_id_at(elder_house) == "building" and not map_data.is_walkable(elder_house), "The elder-house footprint must retain blocked building terrain")
+    _check(map_data.has_cell(stream) and map_data.terrain_id_at(stream) == "water" and not map_data.is_walkable(stream), "The Hollowmere stream must be materialised as blocked water")
+    _check(map_data.has_cell(Vector2i(110, 110)), "The same loaded area must continue into regional terrain beyond the settlement boundary")
+    _check(loader.loaded_chunk_count() == 81, "The opening world should be materialised as a 9x9 neighbourhood of shared world chunks")
     map_data.free()
     loader.free()
 
