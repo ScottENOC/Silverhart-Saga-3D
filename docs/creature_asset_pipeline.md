@@ -31,9 +31,9 @@ Never commit an LFS pointer without its corresponding uploaded LFS object.
 
 ## First registered asset: Ashwing Drake Lite
 
-Copy the supplied `Ashwing_Drake_Lite.glb` to:
+The supplied file is stored unchanged at:
 
-`res://art/creatures/dragons/ashwing_drake_lite.glb`
+`res://art/creatures/dragons/Ashwing_Drake_Lite.glb`
 
 The original model inspection found one skinned mesh, a 61-joint skin, and
 embedded base-colour, normal and metallic/roughness textures. Its six clips are:
@@ -65,7 +65,12 @@ var large_gold := CreatureVisualFactory.create_species(
 )
 ```
 
-`create_species("dragon", options)` selects the registered default dragon asset, so callers can request a creature by species without hardcoding its source filename. Use `create_creature(asset_id, options)` when a specific model variant is required.\n\nSupported size names are tiny, small, medium, large, huge and ancient.
+`create_species("dragon", options)` selects the registered default dragon asset,
+so callers can request a creature by species without hardcoding its source
+filename. Use `create_creature(asset_id, options)` when a specific model
+variant is required.
+
+Supported size names are tiny, small, medium, large, huge and ancient.
 The initial multipliers are relative to the source model: 0.35, 0.65, 1.0,
 1.55, 2.2 and 3.0. They are starting presentation values, not measured
 in-world heights. A caller may supply an explicit positive `scale` override.
@@ -77,12 +82,11 @@ rather than destructively replacing asset-specific shader behaviour.
 
 ## Testing
 
-1. Put the source GLB at the path above.
-2. Open `project.godot` in Godot 4.7.2.
-3. Open `scenes/prototypes/creature_asset_showcase.tscn` and run it with F6.
-4. Confirm the small red, medium natural and large gold variants load, retain
+1. Open `project.godot` in Godot 4.7.2.
+2. Open `scenes/prototypes/creature_asset_showcase.tscn` and run it with F6.
+3. Confirm the small red, medium natural and large gold variants load, retain
    texture detail, and play their idle clips.
-5. Run `godot --headless --path . --script res://tests/test_creature_asset_catalog.gd`.
+4. Run `godot --headless --path . --script res://tests/test_creature_asset_catalog.gd`.
 
 This first showcase validates visual instancing only. It does not yet register
 dragons as combatants or place them in the campaign world.
