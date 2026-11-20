@@ -70,8 +70,9 @@ edit("src/core/garments/catalog.ts", [
       // Cropped Ara tank-top shell: full chest/back band and broad shoulder straps.
       return shellPart(g, {
         covers: (v) => isUpper(v) && v.tt >= 0.50 &&
-          (v.tt < 0.76 || Math.abs(v.ax - 0.6 * sx) < 0.2 * sx),
-        offset: cm(0.55), tile: 0.2, relax: 4,
+          // Narrower under-bust/back band, with slimmer shoulder straps.
+          (v.tt < 0.66 || Math.abs(v.ax - 0.6 * sx) < 0.15 * sx),
+        offset: cm(0.55), tile: 0.16, relax: 6,
       }, cloth(g, 'Bra', st));
     },
   },
