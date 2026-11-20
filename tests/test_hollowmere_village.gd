@@ -1,7 +1,8 @@
 extends SceneTree
 
 const MAIN_CAMPAIGN_MAP = preload("res://scripts/world/main_campaign_world_map_data.gd")
-const HOLLOWMERE_VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
+const WORLD_SETTLEMENT_PRESENTER = preload("res://scripts/world/world_settlement_presenter.gd")
+const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
 const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 func _initialize() -> void:
@@ -92,9 +93,10 @@ func _test_building_definitions_use_shared_factory() -> void:
     assert(parent.get_child_count() == constructed, "Each authored definition should create exactly one building root")
     parent.free()
 
-    var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
-    village.call("_create_materials")
-    village.call("_present_authored_settlement")
+    var village := WORLD_SETTLEMENT_PRESENTER.new() as Node3D
+    village.call("configure_location", HOLLOWMERE_PRESENTATION.DEFINITION)
+    village.call("_create_materials", HOLLOWMERE_PRESENTATION.DEFINITION.palette)
+    village.call("_present_authored_features", HOLLOWMERE_PRESENTATION.DEFINITION.features, HexGrid.DEFAULT_RADIUS_M)
     assert(village.get_node_or_null("GeneralStore") != null, "The general store should be factory-built")
     assert(village.get_node_or_null("GeneralStore/StoreSignPresentation/StoreSign") != null, "The store sign should remain a separate add-on feature")
     assert(village.get_node_or_null("Chapel/ChapelBellTowerPresentation/BellTower") != null, "The chapel bell tower should remain a separate add-on feature")
@@ -183,9 +185,9 @@ func _test_main_campaign_world_map() -> void:
     assert(MAIN_CAMPAIGN_MAP.world_cell_from_local_hex(Vector2i(8, 24)) == Vector2i(6, 6), "The local crossroads must map to Hollowmere's world cell")
 
 func _test_animal_actor_registration() -> void:
-    var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
-    village.call("_create_farm_animals")
-    village.call("_create_wilderness_animals")
+    var village := WORLD_SETTLEMENT_PRESENTER.new() as Node3D
+    village.call("configure_location", HOLLOWMERE_PRESENTATION.DEFINITION)
+    village.call("_spawn_authored_creatures", HOLLOWMERE_PRESENTATION.DEFINITION.creatures, HexGrid.DEFAULT_RADIUS_M)
     var simulation := WorldSimulation.new()
     # Simulate a saved animal already restored into WorldSimulation before
     # WorldRoot reconnects the exterior presentation actors.
@@ -231,8 +233,9 @@ func _test_animal_actor_registration() -> void:
     simulation.free()
 
 func _test_village_uses_shared_vegetation_generator() -> void:
-    var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
-    village.call("_create_forest")
+    var village := WORLD_SETTLEMENT_PRESENTER.new() as Node3D
+    village.call("configure_location", HOLLOWMERE_PRESENTATION.DEFINITION)
+    village.call("_generate_vegetation", HOLLOWMERE_PRESENTATION.DEFINITION.vegetation, HexGrid.DEFAULT_RADIUS_M)
     var canopy_count := 0
     var understorey_count := 0
     for child in village.get_children():
