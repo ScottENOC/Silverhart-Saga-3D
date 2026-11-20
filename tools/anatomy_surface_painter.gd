@@ -152,6 +152,7 @@ func _build_interface() -> void:
     _body_option = OptionButton.new()
     for body_name in BODY_OPTIONS:
         _body_option.add_item(body_name)
+    _body_option.select(0)
     _body_option.item_selected.connect(_on_body_selected)
     column.add_child(_body_option)
 
@@ -164,6 +165,7 @@ func _build_interface() -> void:
     _region_option = OptionButton.new()
     for region_id in REGION_LABELS:
         _region_option.add_item(REGION_LABELS[region_id])
+    _region_option.select(0)
     _region_option.item_selected.connect(_on_region_selected)
     column.add_child(_region_option)
 
