@@ -50,7 +50,9 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
 
     # Rare styles are enabled only when the pinned Ara catalogue actually has them.
     rare_under_bottoms = [x for x in ["g_string", "g-string", "string_bikini_bottom", "lace_briefs", "fishnet_briefs"] if x in garments]
-    rare_under_tops = [x for x in ["lace_bra", "fishnet_bra"] if x in garments]
+    rare_under_tops = [x for x in ["lace_bra", "fishnet_bra", "halter_bra_lace", "halter_bra_fishnet"] if x in garments]
+    rare_tops = [x for x in ["lace_shirt", "fishnet_shirt"] if x in garments]
+    rare_bottoms = [x for x in ["lace_pants", "fishnet_pants"] if x in garments]
     characters = []
     for index in range(count):
         first, last = NAMES[index % len(NAMES)]
@@ -75,6 +77,10 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
             tattoo_list = [person.choice(tattoos)]
         top = person.choice(tops)
         bottom = person.choice(bottoms)
+        if rare_tops and person.random() < 0.005:
+            top = person.choice(rare_tops)
+        if rare_bottoms and person.random() < 0.005:
+            bottom = person.choice(rare_bottoms)
         under_top = "bra" if gender == 0 and "bra" in garments else "none"
         under_bottom = "briefs" if "briefs" in garments else "none"
         if rare_under_bottoms and person.random() < 0.003:
@@ -121,7 +127,8 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
         "rarity_policy": {
             "unnatural_hair": 0.015, "tattoos": 0.07,
             "rare_underwear_bottom": 0.003, "rare_underwear_top": 0.005,
-            "note": "Rare garment probabilities activate only when those exact IDs exist in the pinned Ara catalogue. Piercings and transparent fabrics remain disabled until their runtime/asset support is validated."
+            "transparent_or_open_weave_shirt": 0.005, "transparent_or_open_weave_pants": 0.005,
+            "note": "Rare garment probabilities activate only when those exact IDs exist in the pinned Ara catalogue. Piercings are handled by the runtime appearance-details layer; transparency is represented only by supported lace/fishnet catalogue garments."
         },
         "characters": characters,
     }
