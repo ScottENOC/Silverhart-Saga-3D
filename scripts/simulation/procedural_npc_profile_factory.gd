@@ -154,10 +154,10 @@ static func _index_character_file(path: String, collection_key: String, hollowme
                 "hair_style": params.get("hair", ""),
                 "skin_colour": params.get("skinTint", "")
             }
-        var gender_text := String(gender_value).to_lower()
-        var gender_index := 0 if gender_text in ["female", "feminine", "0"] else 1
         if gender_value == null:
             continue
+        var gender_text := str(gender_value).to_lower()
+        var gender_index := 0 if gender_text in ["female", "feminine", "0"] else 1
         var record := {"gender": gender_index, "appearance": appearance}
         for key in ["id", "game_id", "name", "display_name"]:
             var identity := String(entry.get(key, ""))
