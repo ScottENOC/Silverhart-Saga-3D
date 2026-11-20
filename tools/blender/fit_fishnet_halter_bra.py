@@ -49,11 +49,21 @@ def make_skin_bvh(skin):
     mesh = evaluated.to_mesh()
     mesh.calc_loop_triangles()
     matrix = skin.matrix_world
+    skin_slots = {
+        i for i, slot in enumerate(skin.material_slots)
+        if slot.material and "skin" in slot.material.name.lower()
+    }
     verts = [matrix @ v.co for v in mesh.vertices]
-    polys = [tuple(t.vertices) for t in mesh.loop_triangles]
+    # The imported GLB may combine skin and garment primitives into one mesh.
+    # Build the BVH from skin-material triangles only, never from the bra itself.
+    polys = [
+        tuple(triangle.vertices)
+        for triangle in mesh.loop_triangles
+        if mesh.polygons[triangle.polygon_index].material_index in skin_slots
+    ]
     if not verts or not polys:
         evaluated.to_mesh_clear()
-        raise RuntimeError("Skin mesh has no triangles")
+        raise RuntimeError("Skin mesh has no skin-material triangles")
     tree = BVHTree.FromPolygons(verts, polys, all_triangles=True)
     evaluated.to_mesh_clear()
     return tree
