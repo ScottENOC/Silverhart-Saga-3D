@@ -126,7 +126,12 @@ def add(target,buf,source_path,selector):
         if source_names == target_names:
             pass
         elif (target_names[:len(source_names)] == source_names
-              and all(name == "ElfEars" for name in target_names[len(source_names):])):
+              and all(name == "ElfEars" or name.startswith("viseme_")
+                      for name in target_names[len(source_names):])):
+            # Character exports may add viseme and custom ear morphs that are
+            # absent from a garment-source export. These deformations do not
+            # affect garment fit, so pad them with zero-delta targets while
+            # preserving the exact shared facial morph prefix.
             missing_targets = target_names[len(source_names):]
         else:
             raise ValueError(f'Morph target names differ in {source_path}: source={source_names}, target={target_names}')
