@@ -3,6 +3,8 @@ extends Node3D
 
 const ARA_CHARACTER_DETAILS = preload("res://scripts/presentation/ara_character_details.gd")
 const CHARACTER_ANATOMY_SCRIPT = preload("res://scripts/characters/character_anatomy.gd")
+const CHARACTER_SURFACE_REGIONS_SCRIPT = preload("res://scripts/characters/character_surface_regions.gd")
+const CHARACTER_SURFACE_REGION_MASK_LIBRARY_SCRIPT = preload("res://scripts/characters/character_surface_region_mask_library.gd")
 ## Runtime wrapper for generated Ara GLBs. The selected body asset is supplied
 ## by the player profile so Workshop exports can be replaced without code edits.
 
@@ -15,6 +17,7 @@ var equipment_attachments: Dictionary = {}
 var body_variant: String = "female"
 var appearance_details: AraCharacterDetails
 var anatomy: CharacterAnatomy
+var surface_regions: CharacterSurfaceRegions
 const GARMENT_ASSET_ROOT := "res://art/characters/ara_runtime/garments/"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
 const GARMENT_VISUALS := ["bra", "briefs", "long_tunic", "trousers", "tunic", "wrapper_long", "uniform_shirt", "fatigue_pants", "wrapper_knee", "tattered_shirt", "fatigue_shirt", "sandals", "combat_boots", "leather armor"]
@@ -27,6 +30,7 @@ func configure(glb_path: String) -> bool:
     model_root = null
     animation_player = null
     anatomy = null
+    surface_regions = null
     hair_instances.clear()
     _clear_garment_attachments()
     loaded_asset_path = ""
@@ -47,6 +51,9 @@ func configure(glb_path: String) -> bool:
     if not anatomy.configure(self, model_root):
         push_warning("Ara character has no compatible skeleton for shared anatomy queries: " + glb_path)
         anatomy = null
+    # Region weights are prepared lazily: most NPCs never need a full surface
+    # query, and eagerly building per-vertex masks for every spawned actor is wasteful.
+    surface_regions = CHARACTER_SURFACE_REGIONS_SCRIPT.new() as CharacterSurfaceRegions
     loaded_asset_path = glb_path
     animation_player = _find_animation_player(model_root)
     call_deferred("_play_idle_if_available")
@@ -58,6 +65,19 @@ func configure(glb_path: String) -> bool:
 ## Shared semantic anatomy API for animation, fitting and gameplay consumers.
 func get_anatomy() -> CharacterAnatomy:
     return anatomy
+
+
+## Shared deformation-aware broad surface-region API for fitting and gameplay consumers.
+func get_surface_regions() -> CharacterSurfaceRegions:
+    if surface_regions == null or model_root == null or not is_instance_valid(model_root):
+        return null
+    if not surface_regions.is_configured():
+        var fine_masks: Array[Resource] = CHARACTER_SURFACE_REGION_MASK_LIBRARY_SCRIPT.load_for_body(loaded_asset_path)
+        if not surface_regions.configure(self, model_root, fine_masks, loaded_asset_path):
+            push_warning("Ara character surface-region queries are unavailable: " + surface_regions.get_configuration_error())
+            surface_regions = null
+            return null
+    return surface_regions
 
 
 func _dump_garment_surface_report() -> void:

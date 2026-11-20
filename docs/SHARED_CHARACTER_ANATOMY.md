@@ -55,9 +55,11 @@ The current Ara anatomy exports contain only a small set of explicit surface soc
 (ear, nose, necklace and anatomy-specific points). They do not yet contain the general
 surface-region data required for robust clothing fit or combat volumes.
 
-## Required next layer: surface regions
+## Surface regions: implementation and next requirements
 
-Author a common region vocabulary for both body bases, including at least:
+The first broad region layer is implemented by `CharacterSurfaceRegions` and validated against Godot's skinned-mesh bake for both canonical bodies. The next work is to extend the vocabulary with authored fine regions, not to replace the working broad rig-weight layer.
+
+The complete region vocabulary should include:
 
 - head, neck, chest, abdomen, waist, pelvis
 - left/right shoulder, upper arm, elbow, forearm, wrist, hand
@@ -70,6 +72,71 @@ morphs and runtime modifications. A region query should provide surface samples 
 position, normal and stable region identity, and should support closest-point/projection
 queries for fitting.
 
+### Authored fine-mask resource contract
+
+Fine labels are stored separately from the GLB's vertex colours and skin weights in `CharacterSurfaceRegionMask` resources. A resource targets exactly one body asset, relative mesh-node path and mesh surface. It stores one `PackedFloat32Array` per semantic region, with one weight in the inclusive 0–1 range for every source vertex.
+
+The resource records the source vertex count, surface name and a SHA-256 signature over the imported rest-pose vertex data, index data and surface name. Runtime loading rejects a mask if the body asset, mesh path, surface index/name, vertex count or signature differs. This is deliberately strict: a changed GLB export must trigger mask re-authoring rather than applying old labels to a new vertex order.
+
+The initial fine vocabulary is `breast_left`, `breast_right`, `underbust`, `waist`, `hip_left`, `hip_right`, `buttock_left`, `buttock_right` and `groin`. A body may supply only the regions that make sense for that base. `CharacterSurfaceRegions` accepts an optional array of validated mask resources and exposes their weights through the same deformation-aware sample API as broad regions.
+
+Runtime discovery is handled by `CharacterSurfaceRegionMaskLibrary`: when an Ara actor first requests surface regions, it loads `res://data/characters/anatomy_masks/manifest.tres` and selects only resources whose `body_asset_path` exactly matches the actor's loaded GLB. The manifest explicitly references every mask so Godot retains the resources in exported builds. This keeps fine masks lazy and body-specific; unrelated actors do not load them.
+
+The contract test uses a deliberately synthetic one-vertex mask on each canonical body to verify loading, source-vertex identity, deformation-aware querying and rejection of stale metadata. These are plumbing tests only: **no production fine anatomy masks have been authored yet**, and the synthetic test mask must not be used for garment fitting. Actual labels still need to be painted/authored against the canonical meshes, visually inspected, and checked against Reyna and Dagna.
+
+### Full semantic label plan
+
+The authoring vocabulary is divided by purpose. A surface mask says *where* a feature is on the skinned surface; it does not, by itself, define a joint, garment seam, hitbox, animation target or interaction permission.
+
+#### 1. Surface regions (the painter's current vocabulary)
+
+The Godot painter now exposes 73 fine-region IDs, grouped in its selector:
+
+- **Head and neck:** face, lips/mouth contact, left/right ears, front/back/left/right neck.
+- **Torso and chest:** left/right clavicles, front chest, pectorals, ribcage, sternum, breasts, areolae and nipples; underbust; upper/lower back; upper/lower abdomen; general/front/back/left/right waist; left/right flanks.
+- **Pelvis and external anatomy:** front/back pelvis, left/right hips and buttocks, groin, perineum, anal/perianal surface, and base-specific external vulvar, penile and scrotal regions. A body only receives labels that are anatomically present.
+- **Arms and hands:** left/right shoulders, elbows, forearms, wrists, palms and backs of hands.
+- **Legs and feet:** left/right inner and outer thighs, knees, calves, ankles, tops of feet and soles.
+
+These labels are deliberately anatomical and body-surface based. The male and female meshes are authored independently; a region such as breast_left can be meaningful on both, but its painted boundary is not assumed to be identical. The mirrored paint option is only a starting aid and must be visually checked.
+
+#### 2. Garment-fit guides (a separate curve/anchor layer still to build)
+
+A garment needs boundary loops and construction guides, not just coloured patches. The next authoring layer should provide named surface curves/landmarks for:
+
+- neckline and collar circumference;
+- left/right shoulder seams and armholes;
+- bust/chest line, left/right cup apex and underbust circumference;
+- natural waist and high/full-hip circumferences;
+- seat and crotch front/back junctions;
+- left/right inseams and outseams;
+- left/right elbow, wrist, knee and ankle openings;
+- foot opening and heel/toe alignment.
+
+Each guide should be a sequence of surface-attached points with tangent/normal frames, stable vertex/triangle correspondence and optional left/right pairing. Garment fitting can then use the guides for initial placement, measure clearance and compression against the surface regions, and solve elastic versus rigid material behaviour. We should not pretend a broad chest or hip mask is a bra cup, waistband or armhole.
+
+#### 3. Animation and rig landmarks
+
+The existing rig layer remains the source of animated joint transforms. Its eventual semantic coverage should include pelvis and spine levels; sternum/chest; neck and head; jaw and facial landmarks; clavicles and shoulders; elbows, wrists, palms and finger chains; hip joints, knees, ankles, heels and toes. Each landmark resolves to a bone when one exists, with explicit optional/unavailable status where the Ara rig lacks it. Surface anchors must be added for skin contact; a bone origin is not a skin contact point.
+
+#### 4. Contact and cutscene targets
+
+Contact targets should be named semantic anchors or patches that reference the surface regions above, with a stable local frame and an approach direction. Initial targets include hands/palms, face/lips, neck, shoulders, upper/lower back, chest, waist, hips, thighs and (where present) external intimate anatomy. They support hand placement, embraces, hand-holding, kisses, carrying, combat grapples and authored intimacy choreography without each animation inventing its own offsets.
+
+A target's existence is not permission to use it. Relationship state, consent, scene rating/content settings, character boundaries and choreography eligibility belong to the interaction/cutscene system, not to anatomical labels. Intimacy scenes should query the same validated targets and clothing/coverage state as other cinematics, while respecting those separate gates.
+
+#### 5. Spatial volumes for combat and proximity
+
+Volumes should be derived from the rig and surface data: head, torso, pelvis, upper/lower arms, hands, thighs, calves and feet as the initial combat set; finer volumes can cover face, hands, breast/chest, groin and other gameplay-relevant targets. They need pose-aware updates, collision filtering, stable hit-region IDs and tests for weapon reach, occlusion and self-intersection. Surface masks should not be used as a substitute for efficient collision volumes.
+
+#### Authoring order
+
+1. Paint and review the core body surface regions on both canonical Ara GLBs.
+2. Add the garment guide curves and validate them on Reyna and Dagna before enabling clothing fit.
+3. Add/complete rig landmark aliases and contact anchors, then build pose-aware volumes.
+4. Connect combat, social and intimacy choreography to those shared contracts; do not duplicate hard-coded offsets in individual animations.
+
+The current painter implements only item 1's mask authoring mechanism. It does not automatically classify anatomy, author garment guide curves, or create contact anchors and volumes. No production labels should be treated as complete until visually reviewed on both bodies and then checked against the extreme named NPC body presets.
 ## Required spatial volumes
 
 Volumes should be generated or updated from the same semantic landmarks and surface
@@ -92,6 +159,74 @@ regions added where gameplay needs them.
 
 ## Current implementation boundary
 
-The first runtime layer implements rig landmarks and resolves existing surface anchors.
-Surface-region segmentation, deformation-aware sampling and spatial volumes remain
-explicit follow-on work; they are not claimed to be implemented by this layer.
+The shared runtime now implements rig landmarks, existing surface anchors and a validated broad surface-region query layer. Fine anatomical masks, authored surface anchors beyond the existing sockets, and spatial volumes remain follow-on work.
+
+## Surface-region proof of concept
+
+`CharacterSurfaceRegions` is the first runtime implementation of broad surface regions.
+It derives per-vertex region influence from the canonical Ara skin's existing bone weights,
+then evaluates each selected vertex using the mesh's active blend shapes (both Godot
+normalised and relative modes), the current `Skeleton3D` bone poses and the `Skin`
+inverse-bind transforms.
+
+The first shared vocabulary is deliberately broad:
+
+- head, neck, chest, abdomen and pelvis
+- left/right shoulder, upper arm, forearm, hand, thigh, calf and foot
+
+A region query returns character-root-local positions, normals, influence weights and
+stable source vertex identifiers. It also supports nearest-sample lookup. These samples
+are evaluated when queried; they are not cached in rest-pose world coordinates.
+
+### Important limits
+
+This is a proof of concept for rig-driven broad regions. Skin weights are useful for
+limbs and large torso divisions, but they do not encode every anatomical boundary.
+They cannot, by themselves, reliably separate breast tissue from the chest, underbust
+from abdomen, or buttocks from pelvis. Those require explicit authorable surface labels
+or region masks, which must be added without repurposing the existing skin-colour vertex
+attribute.
+
+The current query is CPU-evaluated and intended for validation and low-frequency fitting
+queries, not yet as a per-frame full-mesh operation. A later pass should add caching and
+a purpose-built sparse sample set after correctness and performance have been measured.
+
+### Current body-morph asymmetry
+
+The imported female runtime body currently exposes 34 facial blend shapes but no body
+shape blend shapes. Its existing runtime body-parameter path therefore falls back to
+stature scaling; muscle, weight, breast and leg parameters do not currently deform that
+female mesh. The male runtime body exposes six body shape blend shapes in addition to
+the facial shapes. The surface query supports the available morphs on either asset, but
+it cannot create missing female morph targets. This is a separate body-customisation
+gap that should be addressed before claiming equivalent male/female body-shape controls.
+
+### Validation
+
+`tests/test_character_surface_regions.gd` loads both canonical GLBs and checks that
+the common broad regions return finite surface positions and normals, then verifies
+that chest samples respond to a body morph and that upper-arm samples respond to a
+changed joint pose. The test explicitly binds each imported MeshInstance3D to its
+Skeleton3D (important because Godot 4.6 changed the default skeleton path), checks
+that a valid SkinReference is registered, and compares multiple evaluated positions
+and normals against MeshInstance3D.bake_mesh_from_current_skeleton_pose() output.
+The bake API ignores blend shapes, so this engine comparison is performed with morph
+weights reset and a changed joint pose. The Godot CI run is the acceptance gate; no
+garment-fitting consumer should depend on this proof of concept until that comparison
+passes for both canonical bodies.
+
+### Next step: fine anatomical surface masks
+
+The broad rig-weight regions are now validated as a deformation evaluator. Do not stretch
+those broad labels into fine anatomy by simply adding more bone aliases. The next layer
+needs authored, per-body semantic masks (for example left/right breast, underbust, waist,
+hip, buttock and groin regions) with stable mesh/surface/vertex correspondence. Masks
+must remain separate from the existing female skin-colour vertex channel and must be
+evaluated through the same morph-and-skin deformation path.
+
+`tests/audit_ara_fine_surface_geometry.gd` records the current chest, abdomen and pelvis
+sample bounds, centroids and normal directions for both canonical bodies. This is a
+geometry-orientation audit to inform mask authoring, not an automatic anatomical
+classifier and not evidence that the fine masks already exist. Extreme body presets
+such as Reyna and Dagna still need to be validated after the masks and the missing female
+body morph support are addressed.

@@ -8,6 +8,8 @@ placing it in the project.
 from __future__ import annotations
 
 import hashlib
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -15,6 +17,8 @@ SOURCE_REPOSITORY = "Hidencod/tge-assets"
 SOURCE_COMMIT = "ea2f2aa1ca8da0898330c97df8a5489976b051d0"
 SOURCE_BASE = f"https://raw.githubusercontent.com/{SOURCE_REPOSITORY}/{SOURCE_COMMIT}/"
 OUTPUT = Path("art/environment/kenney_nature")
+MAX_ATTEMPTS = 6
+RETRYABLE_HTTP_CODES = {429, 500, 502, 503, 504}
 
 # output filename: source path and GitHub Git blob SHA-1 at SOURCE_COMMIT.
 ASSETS = {
@@ -36,12 +40,39 @@ LICENSE_BLOB_SHA = "87fde4aced091c6e191fc86388dc59d570e2562d"
 
 
 def download(source_path: str, expected_blob_sha: str) -> bytes:
+    url = SOURCE_BASE + source_path
     request = urllib.request.Request(
-        SOURCE_BASE + source_path,
+        url,
         headers={"User-Agent": "SilverhartSagaAssetBootstrap/1.0"},
     )
-    with urllib.request.urlopen(request, timeout=60) as response:
-        data = response.read()
+
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                data = response.read()
+            break
+        except urllib.error.HTTPError as error:
+            if error.code not in RETRYABLE_HTTP_CODES or attempt == MAX_ATTEMPTS:
+                raise
+            retry_after = error.headers.get("Retry-After")
+            delay = min(30, int(retry_after)) if retry_after and retry_after.isdigit() else min(30, 2 ** attempt)
+            print(
+                f"Temporary HTTP {error.code} fetching {source_path}; "
+                f"retrying in {delay}s (attempt {attempt + 1}/{MAX_ATTEMPTS})",
+                flush=True,
+            )
+            time.sleep(delay)
+        except (urllib.error.URLError, TimeoutError) as error:
+            if attempt == MAX_ATTEMPTS:
+                raise
+            delay = min(30, 2 ** attempt)
+            print(
+                f"Temporary network error fetching {source_path}: {error}; "
+                f"retrying in {delay}s (attempt {attempt + 1}/{MAX_ATTEMPTS})",
+                flush=True,
+            )
+            time.sleep(delay)
+
     git_blob = hashlib.sha1(b"blob " + str(len(data)).encode("ascii") + b"\0" + data).hexdigest()
     if git_blob != expected_blob_sha:
         raise SystemExit(f"Asset verification failed for {source_path}: {git_blob}")
