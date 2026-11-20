@@ -441,6 +441,7 @@ func set_hairstyle(glb_path: String) -> bool:
             push_warning("Cannot attach Ara hair: its skin references bones absent from the character skeleton")
             return false
         instance.name = "Swappable_" + source_mesh.name
+        instance.transform = _transform_from_scene_root(source_mesh, source_root)
         model_root.add_child(instance)
         instance.skeleton = instance.get_path_to(target_skeleton)
         hair_instances.append(instance)
