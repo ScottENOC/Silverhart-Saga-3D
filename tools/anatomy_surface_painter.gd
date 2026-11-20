@@ -19,6 +19,14 @@ const REGION_LABELS := {
     "neck_right": "Neck — right",
     "clavicle_left": "Clavicle — left",
     "clavicle_right": "Clavicle — right",
+    "chest_front_left": "Chest front — left",
+    "chest_front_right": "Chest front — right",
+    "pectoral_left": "Pectoral — left",
+    "pectoral_right": "Pectoral — right",
+    "sternum": "Sternum / centre chest",
+    "ribcage_left": "Ribcage — left",
+    "ribcage_right": "Ribcage — right",
+    "lower_back": "Lower back",
     "breast_left": "Breast — left",
     "breast_right": "Breast — right",
     "areola_left": "Areola — left",
@@ -77,7 +85,7 @@ const REGION_LABELS := {
 }
 const REGION_GROUPS := [
     {"label": "HEAD AND NECK", "ids": ["face_front", "lips", "ear_left", "ear_right", "neck_front", "neck_back", "neck_left", "neck_right"]},
-    {"label": "TORSO AND CHEST", "ids": ["clavicle_left", "clavicle_right", "breast_left", "breast_right", "areola_left", "areola_right", "nipple_left", "nipple_right", "underbust", "chest_back", "abdomen_upper", "abdomen_lower", "waist", "waist_front", "waist_back", "waist_left", "waist_right", "flank_left", "flank_right"]},
+    {"label": "TORSO AND CHEST", "ids": ["clavicle_left", "clavicle_right", "chest_front_left", "chest_front_right", "pectoral_left", "pectoral_right", "sternum", "ribcage_left", "ribcage_right", "lower_back", "breast_left", "breast_right", "areola_left", "areola_right", "nipple_left", "nipple_right", "underbust", "chest_back", "abdomen_upper", "abdomen_lower", "waist", "waist_front", "waist_back", "waist_left", "waist_right", "flank_left", "flank_right"]},
     {"label": "PELVIS AND EXTERNAL ANATOMY", "ids": ["pelvis_front", "pelvis_back", "hip_left", "hip_right", "buttock_left", "buttock_right", "groin", "perineum", "anal_region", "vulva_external", "penis_external", "scrotum"]},
     {"label": "ARMS AND HANDS", "ids": ["shoulder_left", "shoulder_right", "elbow_left", "elbow_right", "forearm_left", "forearm_right", "wrist_left", "wrist_right", "palm_left", "palm_right", "hand_back_left", "hand_back_right"]},
     {"label": "LEGS AND FEET", "ids": ["thigh_inner_left", "thigh_inner_right", "thigh_outer_left", "thigh_outer_right", "knee_left", "knee_right", "calf_left", "calf_right", "ankle_left", "ankle_right", "foot_top_left", "foot_top_right", "foot_sole_left", "foot_sole_right"]}
@@ -89,6 +97,9 @@ const REGION_PAIRS := {
     "ear_left": "ear_right", "ear_right": "ear_left",
     "neck_left": "neck_right", "neck_right": "neck_left",
     "clavicle_left": "clavicle_right", "clavicle_right": "clavicle_left",
+    "chest_front_left": "chest_front_right", "chest_front_right": "chest_front_left",
+    "pectoral_left": "pectoral_right", "pectoral_right": "pectoral_left",
+    "ribcage_left": "ribcage_right", "ribcage_right": "ribcage_left",
     "hip_left": "hip_right", "hip_right": "hip_left",
     "buttock_left": "buttock_right", "buttock_right": "buttock_left",
     "flank_left": "flank_right", "flank_right": "flank_left",
