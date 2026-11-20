@@ -171,7 +171,7 @@ static func _create_hex_tile_mesh(hex_radius: float, tile_thickness: float) -> A
 		surface.add_vertex(d)
 	return surface.commit()
 
-static func _present_bed(parent: Node3D, definition: Dictionary, hex_radius: float, floor_y: float) -> void:
+static func _present_bed(parent: Node3D, definition: Dictionary, materials: Dictionary, hex_radius: float, floor_y: float) -> void:
 	var bed := Node3D.new()
 	bed.name = String(definition.get("name", "Bed"))
 	bed.position = HexGrid.axial_to_world(definition["hex"], hex_radius, floor_y + 0.17)
@@ -180,11 +180,11 @@ static func _present_bed(parent: Node3D, definition: Dictionary, hex_radius: flo
 	blanket_material.albedo_color = definition["blanket"]
 	blanket_material.roughness = 0.88
 	blanket_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_add_box(bed, "BedFrame", Vector3.ZERO, Vector3(1.25, 0.38, 2.15), StandardMaterial3D.new())
+	_add_box(bed, "BedFrame", Vector3.ZERO, Vector3(1.25, 0.38, 2.15), materials["dark_wood"])
 	_add_box(bed, "Mattress", Vector3(0.0, 0.22, 0.0), Vector3(1.15, 0.18, 2.0), _material(Color(0.78, 0.72, 0.58)))
 	_add_box(bed, "Blanket", Vector3(0.0, 0.34, 0.28), Vector3(1.12, 0.12, 1.35), blanket_material)
 	_add_box(bed, "Pillow", Vector3(0.0, 0.36, -0.78), Vector3(0.82, 0.12, 0.38), _material(Color(0.82, 0.79, 0.68)))
-	_add_box(bed, "Headboard", Vector3(0.0, 0.55, -1.0), Vector3(1.3, 0.95, 0.12), _material(Color(0.31, 0.18, 0.10)))
+	_add_box(bed, "Headboard", Vector3(0.0, 0.55, -1.0), Vector3(1.3, 0.95, 0.12), materials["timber"])
 
 static func _material(colour: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
