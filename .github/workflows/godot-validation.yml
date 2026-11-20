@@ -135,6 +135,7 @@ jobs:
           python -m json.tool data/world/campaign2_geography.json > /dev/null
           python -m json.tool data/world/campaign2_road_paths.json > /dev/null
           python -m json.tool data/world/campaign2_settlement_layouts.json > /dev/null
+          python -m json.tool data/characters/campaign2_characters.json > /dev/null
       - name: Smoke-test terrain prototype
         run: godot --headless --path . --scene res://scenes/prototypes/terrain_elevation_prototype.tscn --quit-after 5
       - name: Smoke-test Campaign 2 macro-world preview
