@@ -182,24 +182,10 @@ func _create_farmstead() -> void:
 		if String(definition.get("id", "")) == "old_mac_farmhouse":
 			_create_authored_building(definition)
 			break
-	var barn_centre := HexGrid.axial_to_world(HollowmereVillageData.FARM_BARN, HEX_RADIUS)
-	var barn := Node3D.new()
-	barn.name = "OldMacBarn"
-	barn.position = barn_centre
-	add_child(barn)
-	_add_box(barn, "BarnFoundation", Vector3(0.0, 0.12, 0.0), Vector3(13.0, 0.24, 9.0), stone_material)
-	_add_box(barn, "BarnRearWall", Vector3(0.0, 2.1, 4.2), Vector3(12.5, 4.0, 0.25), timber_material)
-	_add_box(barn, "BarnLeftWall", Vector3(-6.1, 2.1, 0.0), Vector3(0.25, 4.0, 8.5), timber_material)
-	_add_box(barn, "BarnRightWall", Vector3(6.1, 2.1, 0.0), Vector3(0.25, 4.0, 8.5), timber_material)
-	_add_box(barn, "BarnFrontLeft", Vector3(-3.9, 2.1, -4.2), Vector3(4.5, 4.0, 0.25), timber_material)
-	_add_box(barn, "BarnFrontRight", Vector3(3.9, 2.1, -4.2), Vector3(4.5, 4.0, 0.25), timber_material)
-	_add_box(barn, "BarnDoorLeft", Vector3(-1.55, 1.8, -4.32), Vector3(0.18, 3.5, 0.16), dark_wood_material)
-	_add_box(barn, "BarnDoorRight", Vector3(1.55, 1.8, -4.32), Vector3(0.18, 3.5, 0.16), dark_wood_material)
-	var roof_a := _add_box(barn, "BarnRoofA", Vector3(-3.0, 5.0, 0.0), Vector3(7.2, 0.25, 10.0), roof_material)
-	roof_a.rotation_degrees.z = -28.0
-	var roof_b := _add_box(barn, "BarnRoofB", Vector3(3.0, 5.0, 0.0), Vector3(7.2, 0.25, 10.0), roof_material)
-	roof_b.rotation_degrees.z = 28.0
-	_add_box(barn, "BarnRidge", Vector3(0.0, 6.7, 0.0), Vector3(0.25, 0.25, 10.2), dark_wood_material)
+	for definition in HollowmereVillageData.BUILDINGS:
+		if String(definition.get("id", "")) == "old_mac_barn":
+			_create_authored_building(definition)
+			break
 
 	# Irregular fields sit beside the farm track; crop rows are separate reusable ribbons.
 	_add_farm_field("NorthwestField", [Vector2i(0, 42), Vector2i(13, 40), Vector2i(19, 52), Vector2i(4, 58)], field_material)
