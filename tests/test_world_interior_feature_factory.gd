@@ -12,6 +12,7 @@ func _initialize() -> void:
 	_test_tavern_delegates_furniture()
 	_test_upper_rooms_use_authored_data()
 	_test_building_structure_uses_authored_data()
+	_test_tavern_building_assembly_keeps_live_door_and_floor_groups()
 	print("World interior feature tests passed.")
 	quit(0)
 
@@ -90,3 +91,23 @@ func _test_building_structure_uses_authored_data() -> void:
 	var foundation := shell.get_node("StoneFloorFoundation") as MeshInstance3D
 	assert((foundation.mesh as BoxMesh).size == Vector3(16.7, 0.16, 11.7))
 	parent.free()
+
+func _test_tavern_building_assembly_keeps_live_door_and_floor_groups() -> void:
+	var tavern := TAVERN.new() as Node3D
+	tavern.call("_create_materials")
+	tavern.simulation = WorldSimulation.new()
+	tavern.tile_mesh = tavern.call("_create_hex_tile_mesh")
+	tavern.call("_create_building")
+	var building := tavern.get_node_or_null("HollowTankardBuilding")
+	var upper_shell := tavern.get_node_or_null("UpperStoreyExterior")
+	var upper_floor := tavern.get_node_or_null("UpperFloorPresentation")
+	var roof := tavern.get_node_or_null("RoofCutaway")
+	assert(building != null and upper_shell != null and upper_floor != null and roof != null)
+	assert(building.get_node_or_null("FrontDoorHinge/FrontDoorLeaf") != null)
+	assert(upper_floor.get_node_or_null("UpperHexFloor") != null)
+	assert(upper_floor.get_node("UpperHexFloor").get_child_count() == 45)
+	assert(upper_floor.get_node_or_null("UpperBedrooms/UpperRoomPresentation") != null)
+	assert(roof.get_node_or_null("NorthRoofSlope") != null)
+	assert(not roof.visible)
+	tavern.simulation.free()
+	tavern.free()
