@@ -16,7 +16,7 @@ def read_glb(path):
         size,kind=struct.unpack_from("<II",raw,pos); pos+=8
         chunk=raw[pos:pos+size]; pos+=size
         if len(chunk)!=size: raise ValueError(f"{path}: truncated chunk")
-        if kind==0x4E4F534A: doc=json.loads(chunk.decode("utf-8").rstrip(" \\t\\r\\n\\0"))
+        if kind==0x4E4F534A: doc=json.loads(chunk.decode("utf-8").rstrip(" \t\r\n\0"))
         elif kind==0x004E4942: binary=chunk
     if doc is None: raise ValueError(f"{path}: missing JSON")
     return doc,binary
@@ -116,7 +116,7 @@ def main():
     if not files:raise SystemExit(f"No GLBs under {root}")
     reports=[audit(p) for p in files]; result={"schema_version":1,"asset_count":len(reports),"assets":reports,"rig_comparison":compare(reports)}
     out=Path(a.output);out.mkdir(parents=True,exist_ok=True)
-    (out/"character-spatial-audit.json").write_text(json.dumps(result,indent=2)+"\\n")
+    (out/"character-spatial-audit.json").write_text(json.dumps(result,indent=2)+"\n")
     rows=result["rig_comparison"]["comparisons"]
     md=["# Character spatial foundation audit","",f"Audited {len(reports)} committed Ara runtime and Hollowmere GLBs.","",
         "## Rig compatibility","","| Asset | Bones | Names/order | Hierarchy | Max rest-position delta |","|---|---:|---|---|---:|"]
@@ -125,6 +125,6 @@ def main():
     for r in reports:md.append(f"| {Path(r['file']).name} | {len(r['mesh_nodes'])} | {len(r['skins'])} | {r['animation_count']} | {len(r['spatial_markers'])} |")
     md += ["","Detailed primitive, vertex-count, topology-hash, morph-target, joint, landmark-candidate and animation-channel data is in character-spatial-audit.json.","",
         "Read-only structural audit; does not establish visual deformation quality or semantic correctness of anatomical landmarks."]
-    (out/"character-spatial-audit.md").write_text("\\n".join(md)+"\\n")
+    (out/"character-spatial-audit.md").write_text("\n".join(md)+"\n")
     print(json.dumps({"asset_count":len(reports),"rig_comparison":result["rig_comparison"],"report":str(out/"character-spatial-audit.md")},indent=2))
 if __name__=="__main__":main()
