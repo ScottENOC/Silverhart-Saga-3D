@@ -1,4 +1,5 @@
 name: Preview approved companion underwear outfits
+# Mirabel's garment source is re-exported against her exact accepted Ara profile.
 
 on:
   pull_request:
