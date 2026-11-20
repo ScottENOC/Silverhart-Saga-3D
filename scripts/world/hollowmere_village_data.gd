@@ -82,7 +82,8 @@ const PRESENTATION_ROUTES := [
 	{"id": "ChapelLane", "material": "path", "points": [Vector2i(-8,0),Vector2i(-10,0),Vector2i(-11,0)], "widths": [1.8,1.7,1.6], "elevation": 0.032},
 	{"id": "ElderLane", "material": "path", "points": [Vector2i(0,-6),Vector2i(0,-8),Vector2i(0,-10)], "widths": [1.8,1.7,1.6], "elevation": 0.032},
 	{"id": "MiraLane", "material": "path", "points": [Vector2i(8,6),Vector2i(9,8),Vector2i(10,9)], "widths": [1.8,1.7,1.6], "elevation": 0.032},
-	{"id": "OskarLane", "material": "path", "points": [Vector2i(-4,6),Vector2i(-4,8),Vector2i(-4,9)], "widths": [1.8,1.7,1.6], "elevation": 0.032}
+	{"id": "OskarLane", "material": "path", "points": [Vector2i(-4,6),Vector2i(-4,8),Vector2i(-4,9)], "widths": [1.8,1.7,1.6], "elevation": 0.032},
+	{"id": "FarmyardLane", "material": "path", "points": FARMYARD_CENTRELINE, "widths": [2.2,2.0,2.0,2.0], "elevation": 0.035}
 ]
 
 static func is_in_bounds(hex: Vector2i) -> bool:
