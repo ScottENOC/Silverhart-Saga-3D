@@ -95,8 +95,11 @@ def map_group(obj, label, vertex_indices, body_vertices, body_triangles, body_tr
     positions = []
     weights = []
     distances = []
+    signed_distances = []
+    surface_normals = []
     triangle_ids = []
     rejected = 0
+    penetrating = 0
     for vertex_index in sorted(vertex_indices):
         point = obj.matrix_world @ obj.data.vertices[vertex_index].co
         nearest = body_tree.find_nearest(point)
@@ -104,6 +107,8 @@ def map_group(obj, label, vertex_indices, body_vertices, body_triangles, body_tr
             positions.append(vertex_index)
             weights.append(None)
             distances.append(None)
+            signed_distances.append(None)
+            surface_normals.append(None)
             triangle_ids.append(None)
             rejected += 1
             continue
@@ -115,6 +120,8 @@ def map_group(obj, label, vertex_indices, body_vertices, body_triangles, body_tr
             positions.append(vertex_index)
             weights.append(None)
             distances.append(distance)
+            signed_distances.append(None)
+            surface_normals.append(None)
             triangle_ids.append(None)
             rejected += 1
             continue
@@ -129,9 +136,15 @@ def map_group(obj, label, vertex_indices, body_vertices, body_triangles, body_tr
             triangle_ids.append(None)
             rejected += 1
             continue
+        normal = _normal.normalized()
+        signed_distance = float((point - surface_point).dot(normal))
+        if signed_distance < 0.0:
+            penetrating += 1
         positions.append(vertex_index)
         weights.append([round(value, 8) for value in bary])
         distances.append(round(distance, 7))
+        signed_distances.append(round(signed_distance, 7))
+        surface_normals.append([round(float(value), 7) for value in normal])
         triangle_ids.append(list(triangle))
 
     valid_distances = [value for value in distances if value is not None and value <= max_distance]
@@ -146,10 +159,13 @@ def map_group(obj, label, vertex_indices, body_vertices, body_triangles, body_tr
         "body_triangle_vertex_indices": triangle_ids,
         "barycentric_weights": weights,
         "distance_m": distances,
+        "signed_distance_m": signed_distances,
+        "surface_normals": surface_normals,
         "summary": {
             "garment_vertices": len(positions),
             "mapped_vertices": len(valid_distances),
             "rejected_vertices": rejected,
+            "penetrating_vertices": penetrating,
             "mapped_fraction": round(len(valid_distances) / max(len(positions), 1), 5),
             "mean_surface_distance_m": round(sum(valid_distances) / max(len(valid_distances), 1), 6),
             "max_surface_distance_m": round(max(valid_distances, default=0.0), 6),
