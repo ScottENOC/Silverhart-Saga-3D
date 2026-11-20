@@ -2,14 +2,14 @@ class_name Campaign2WorldTerrainData
 extends RefCounted
 ## Deterministic local-hex terrain for the streamed Campaign 2 world.
 ## The strategic map owns biome/faction placement; local noise adds detail.
-## The authored Hollowmere scene remains authoritative inside its radius.
+## Hollowmere is supplied by its authored settlement data within its local bounds.
 
 const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
 const ROAD_PATHS_PATH := "res://data/world/campaign2_road_paths.json"
 const SETTLEMENT_LAYOUTS_PATH := "res://data/world/campaign2_settlement_layouts.json"
 const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
 const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
-const AUTHORED_VILLAGE_RADIUS := 96
+const HOLLOWMERE_DATA = preload("res://scripts/world/hollowmere_village_data.gd")
 
 var strategic_grid: Array = []
 var road_cells: Dictionary = {}
@@ -91,8 +91,8 @@ func _build_strategic_river() -> void:
 		river_points.append(HexGrid.axial_to_world(Vector2i(local_q, local_r), HexGrid.DEFAULT_RADIUS_M))
 
 func terrain_for_hex(hex: Vector2i) -> String:
-	if HexGrid.distance(Vector2i.ZERO, hex) <= AUTHORED_VILLAGE_RADIUS:
-		return "authored"
+	if HOLLOWMERE_DATA.is_in_bounds(hex):
+		return HOLLOWMERE_DATA.terrain_id_at(hex)
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "authored"
 	if settlement_path_cells.has(_hex_key(hex)):
@@ -109,21 +109,29 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var faction := String(source_cell.get("faction", ""))
 	return LOCAL_TERRAIN_RULES.terrain_for_hex(hex, base_terrain, faction)
 
-## Gameplay terrain distinguishes authored settlement footprints from the wilderness.
-## Hollowmere's full local map is supplied by its authored location data and is not
-## overwritten by procedural region loading.
+## Gameplay terrain is resolved from authored settlement data first, then regional rules.
 func gameplay_terrain_for_hex(hex: Vector2i) -> String:
-	if HexGrid.distance(Vector2i.ZERO, hex) <= AUTHORED_VILLAGE_RADIUS:
-		return "authored"
+	if HOLLOWMERE_DATA.is_in_bounds(hex):
+		return HOLLOWMERE_DATA.terrain_id_at(hex)
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "building"
 	var terrain := terrain_for_hex(hex)
 	return "building" if terrain == "authored" else terrain
 
+func is_walkable_for_hex(hex: Vector2i) -> bool:
+	if HOLLOWMERE_DATA.is_in_bounds(hex):
+		return not HOLLOWMERE_DATA.is_blocked(hex)
+	var terrain := gameplay_terrain_for_hex(hex)
+	return terrain != "water" and terrain != "building"
+
 func elevation_for_hex(hex: Vector2i) -> float:
+	if HOLLOWMERE_DATA.is_in_bounds(hex):
+		return 0.0
 	return LOCAL_TERRAIN_RULES.elevation_for_hex(hex, terrain_for_hex(hex))
 
 func has_tree(hex: Vector2i) -> bool:
+	if HOLLOWMERE_DATA.is_in_bounds(hex):
+		return HOLLOWMERE_DATA.has_tree(hex)
 	return LOCAL_TERRAIN_RULES.has_tree(hex, terrain_for_hex(hex))
 
 func has_rock_outcrop(hex: Vector2i) -> bool:
