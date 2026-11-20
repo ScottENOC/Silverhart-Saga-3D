@@ -79,7 +79,7 @@ func _test_hollowmere_character_manifest() -> void:
     assert(file != null, "Hollowmere character definitions must exist")
     var manifest: Variant = JSON.parse_string(file.get_as_text())
     assert(manifest is Dictionary, "Hollowmere character definitions must be valid JSON")
-    var population_file := FileAccess.open("res://data/characters/hollowmere_population.json", FileAccess.READ)
+    var population_file := FileAccess.open("res://data/world/hollowmere_population.json", FileAccess.READ)
     assert(population_file != null, "Hollowmere world population placements must exist")
     var population_manifest: Variant = JSON.parse_string(population_file.get_as_text())
     assert(population_manifest is Dictionary, "Hollowmere population manifest must be valid JSON")
