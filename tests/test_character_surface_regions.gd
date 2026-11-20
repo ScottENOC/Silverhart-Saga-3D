@@ -99,6 +99,35 @@ func _test_body(asset_path: String) -> void:
     assert(not after_pose.is_empty(), "No upper-arm sample after pose")
     var pose_delta: float = before_arm_position.distance_to(after_pose[0]["position"])
     assert(pose_delta > 0.00001, "%s upper-arm surface did not respond to a joint pose change" % asset_path)
+
+    # Cross-check the CPU query against Godot's own baked skinned mesh for the
+    # same vertex, surface and live pose. This catches incorrect bind transforms.
+    var reference_sample: Dictionary = after_pose[0]
+    var reference_mesh: MeshInstance3D = reference_sample["mesh_instance"]
+    var baked_mesh := reference_mesh.bake_mesh_from_current_skeleton_pose()
+    assert(baked_mesh != null, "%s could not bake current skeleton pose" % asset_path)
+    var reference_surface_index: int = reference_sample["surface_index"]
+    var baked_arrays := baked_mesh.surface_get_arrays(reference_surface_index)
+    var baked_vertices: PackedVector3Array = baked_arrays[Mesh.ARRAY_VERTEX]
+    var baked_normals: PackedVector3Array = baked_arrays[Mesh.ARRAY_NORMAL]
+    var reference_vertex_index: int = reference_sample["vertex_index"]
+    assert(reference_vertex_index < baked_vertices.size(), "%s baked surface topology changed" % asset_path)
+    var actor_from_mesh := actor_root.global_transform.affine_inverse() * reference_mesh.global_transform
+    var expected_position := actor_from_mesh * baked_vertices[reference_vertex_index]
+    var actual_position: Vector3 = reference_sample["position"]
+    var bake_position_error := expected_position.distance_to(actual_position)
+    assert(bake_position_error < 0.002, "%s CPU surface position differs from Godot bake by %.6fm" % [
+        asset_path, bake_position_error
+    ])
+    var expected_normal := (actor_from_mesh.basis.inverse().transposed() * baked_normals[reference_vertex_index]).normalized()
+    var actual_normal: Vector3 = reference_sample["normal"]
+    var normal_alignment := expected_normal.dot(actual_normal)
+    assert(normal_alignment > 0.99, "%s CPU surface normal differs from Godot bake (dot=%.5f)" % [
+        asset_path, normal_alignment
+    ])
+    print("ARA_SURFACE_REGION_BAKE_MATCH asset=%s position_error=%.6f normal_dot=%.5f" % [
+        asset_path, bake_position_error, normal_alignment
+    ])
     skeleton.set_bone_pose(arm_bone_index, original_pose)
     await process_frame
 
