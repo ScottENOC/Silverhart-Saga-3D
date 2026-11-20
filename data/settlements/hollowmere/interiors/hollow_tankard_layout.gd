@@ -5,11 +5,87 @@ extends RefCounted
 const STRUCTURE = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_structure.gd")
 const TAPROOM = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_taproom.gd")
 const UPPER_ROOMS = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_upper_rooms.gd")
+const HOLLOWMERE_QUERIES = preload("res://scripts/world/hollowmere_village_data.gd")
 
 const TILE_THICKNESS := 0.12
 const ROOM_HALF_WIDTH := 8.0
 const ROOM_HALF_DEPTH := 5.5
 const UPPER_FLOOR_Y := 3.38
+
+
+const BUILDING_ID := "hollow_tankard"
+const FRONT_DOOR_ID := "hollow_tankard_front_door"
+const DOOR_HEX := Vector2i(0, 3)
+const UPPER_FLOOR_ORIGIN := Vector2i(100, 100)
+const STAIR_GROUND_HEX := Vector2i(3, 0)
+const STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + Vector2i(3, -1)
+const UPPER_BED_HEXES: Array[Vector2i] = [
+	Vector2i(-3, 0), Vector2i(-3, 2),
+	Vector2i(2, -2), Vector2i(3, -2),
+	Vector2i(2, 0), Vector2i(3, 0)
+]
+
+const LOGICAL_DEFINITION := {
+	"ground_overlay": {
+		"query_script": HOLLOWMERE_QUERIES,
+		"in_bounds_method": "is_in_bounds",
+		"blocked_method": "is_blocked",
+		"map_radius": 96,
+		"room_half_width": ROOM_HALF_WIDTH,
+		"room_half_depth": ROOM_HALF_DEPTH,
+		"wall_blockers": [
+			{"x_min": -9.1, "x_max": -6.9, "z_min": -5.5, "z_max": 5.5},
+			{"x_min": 6.9, "x_max": 9.1, "z_min": -5.5, "z_max": 5.5},
+			{"x_min": -INF, "x_max": INF, "z_min": -6.6, "z_max": -4.4},
+			{"x_min": -INF, "x_max": -1.1, "z_min": 4.4, "z_max": 6.6},
+			{"x_min": 1.1, "x_max": INF, "z_min": 4.4, "z_max": 6.6}
+		],
+		"furniture_blockers": [
+			{"x_min": -1.2, "x_max": 6.2, "z_min": -5.5, "z_max": -4.0},
+			{"x_min": -8.0, "x_max": -6.0, "z_min": -3.8, "z_max": 1.5},
+			{"x_min": -4.0, "x_max": -1.2, "z_min": -0.95, "z_max": 0.95},
+			{"x_min": 1.2, "x_max": 4.0, "z_min": -0.95, "z_max": 0.95},
+			{"x_min": -4.0, "x_max": -1.2, "z_min": -2.0, "z_max": -1.0},
+			{"x_min": 1.2, "x_max": 4.0, "z_min": -2.0, "z_max": -1.0},
+			{"x_min": -4.0, "x_max": -1.2, "z_min": 1.0, "z_max": 2.0},
+			{"x_min": 1.2, "x_max": 4.0, "z_min": 1.0, "z_max": 2.0}
+		]
+	},
+	"upper_floor": {
+		"origin": UPPER_FLOOR_ORIGIN,
+		"q_min": -4,
+		"q_max": 4,
+		"row_min": -2,
+		"row_max": 2,
+		"elevation": UPPER_FLOOR_Y,
+		"terrain_id": "timber_floor",
+		"blocked_hexes": UPPER_BED_HEXES,
+		"partition_rules": [
+			{"q_min": 0, "q_max": 0, "z_abs_min": 1.1},
+			{"q_min": 1, "q_max": 4, "z_abs_max": 0.55, "exclude_q": [3]}
+		]
+	},
+	"building": {
+		"id": BUILDING_ID,
+		"name": "The Hollow Tankard",
+		"entrance_hex": DOOR_HEX,
+		"floor_count": 2,
+		"lodging_capacity": 8,
+		"sleeping_beds": 6,
+		"virtual_floor_bounds": [96, 104, 96, 104],
+		"source_location": "campaign2World.js: Hollow Tankard; hollowmereSocialFabric.js: buildTankardUpperFloor",
+		"source_stair_hex": STAIR_GROUND_HEX,
+		"upper_landing_hex": STAIR_UPPER_HEX
+	},
+	"door": {
+		"id": FRONT_DOOR_ID,
+		"building_id": BUILDING_ID,
+		"hex": DOOR_HEX,
+		"starts_open": true,
+		"starts_locked": false,
+		"durability": 20
+	}
+}
 
 const DEFINITION := {
 	"ground": {
