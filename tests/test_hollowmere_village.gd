@@ -91,6 +91,7 @@ func _test_building_definitions_use_shared_factory() -> void:
     parent.free()
 
     var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
+    village.call("_create_materials")
     village.call("_create_buildings")
     assert(village.get_node_or_null("GeneralStore") != null, "The general store should be factory-built")
     assert(village.get_node_or_null("GeneralStore/StoreSignPresentation/StoreSign") != null, "The store sign should remain a separate add-on feature")
