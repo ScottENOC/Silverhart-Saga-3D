@@ -21,13 +21,13 @@ static func create_actor(
         push_error("Cannot create character presentation without simulation state.")
         return null
 
-    var body_variant := String(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
+    var body_variant := String(player_profile.get("body_base", player_profile.get("body_variant", "female"))) if is_player else String(npc_profile.get("body_base", ""))
+    if body_variant not in ["male", "female"]:
+        push_error("Character %s must explicitly select the shared male or female body base." % state.id)
+        return null
+    # All human actors use one of the two shared Ara bases. Character-specific
+    # appearance is supplied separately; per-NPC GLBs are not runtime bodies.
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
-    # All campaign characters use the same gendered Ara runtime base as the
-    # player. Per-NPC GLBs bake in their own body, hair and materials, which
-    # prevents consistent runtime morphs and appearance customisation.
-    # Individual identity comes from each NPC's params and attached hair.
-    model_path = PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
 
     var hair_id := String(player_profile.get("hair_style_id", "short02")) if is_player else String(npc_profile.get("params", {}).get("hair", "short02"))
     var appearance := player_profile if is_player else npc_profile
