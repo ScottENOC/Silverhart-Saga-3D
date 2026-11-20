@@ -143,7 +143,6 @@ def estimate_correction_strain(edge_pairs: list[tuple[int, int]],
     approximation, not a full cloth strain tensor.
     """
     max_strain = 0.0
-    overstretched_edges = 0
     sampled_edges = 0
     for a, b in edge_pairs:
         if a not in corrections or b not in corrections:
