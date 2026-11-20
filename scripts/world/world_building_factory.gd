@@ -196,7 +196,7 @@ static func _build_windows(root: Node3D, config: Dictionary, definition: Diction
 	for side in ["north", "south", "west", "east"]:
 		if side == String(definition.get("door_side", "east")).to_lower():
 			continue
-		var along_z := side in ["west", "east"]
+		var along_z: bool = side in ["west", "east"]
 		var span := depth if along_z else width
 		for index in range(count):
 			var t := (float(index) + 1.0) / (float(count) + 1.0)
