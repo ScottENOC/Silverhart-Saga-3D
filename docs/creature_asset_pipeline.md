@@ -54,18 +54,18 @@ terms before redistributing the model in a public build.
 ## Runtime usage
 
 ```gdscript
-var small_red := CreatureVisualFactory.create_creature(
-    "ashwing_drake_lite",
+var small_red := CreatureVisualFactory.create_species(
+    "dragon",
     {"instance_name": "CaveDrake", "size": "small", "colour": "red", "animation": "idle"}
 )
 
-var large_gold := CreatureVisualFactory.create_creature(
-    "ashwing_drake_lite",
+var large_gold := CreatureVisualFactory.create_species(
+    "dragon",
     {"instance_name": "AncientGold", "size": "large", "colour": "gold", "animation": "fly"}
 )
 ```
 
-Supported size names are tiny, small, medium, large, huge and ancient.
+`create_species("dragon", options)` selects the registered default dragon asset, so callers can request a creature by species without hardcoding its source filename. Use `create_creature(asset_id, options)` when a specific model variant is required.\n\nSupported size names are tiny, small, medium, large, huge and ancient.
 The initial multipliers are relative to the source model: 0.35, 0.65, 1.0,
 1.55, 2.2 and 3.0. They are starting presentation values, not measured
 in-world heights. A caller may supply an explicit positive `scale` override.
