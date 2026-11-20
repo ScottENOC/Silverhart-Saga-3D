@@ -1,5 +1,7 @@
 class_name CampaignCharacterSpawner
 extends RefCounted
+
+const PROCEDURAL_NPC_PROFILES = preload("res://scripts/simulation/procedural_npc_profile_factory.gd")
 ## Owns campaign character-state creation, simulation registration and actor
 ## insertion. Scene controllers supply world-specific spawn positions only.
 
@@ -25,7 +27,10 @@ static func spawn_character(
         push_warning("Campaign character '%s' already has a presentation actor." % character_id)
         return actor_by_id[character_id] as Node3D
 
-    var state := CampaignCharacterFactory.create_player_state(player_profile, character_id, spawn_hex) if is_player else CampaignCharacterFactory.create_npc_state(character_id, display_name, spawn_hex, npc_profile, starting_loadouts)
+    var resolved_npc_profile := npc_profile
+    if not is_player and resolved_npc_profile.is_empty():
+        resolved_npc_profile = PROCEDURAL_NPC_PROFILES.create_profile(character_id, display_name, ambient_role if not ambient_role.is_empty() else "villager")
+    var state := CampaignCharacterFactory.create_player_state(player_profile, character_id, spawn_hex) if is_player else CampaignCharacterFactory.create_npc_state(character_id, display_name, spawn_hex, resolved_npc_profile, starting_loadouts)
     if state == null:
         push_error("Campaign character factory failed to create state for '%s'." % character_id)
         return null
@@ -37,7 +42,7 @@ static func spawn_character(
         world_position,
         is_player,
         player_profile,
-        npc_profile,
+        resolved_npc_profile,
         ara_model_id,
         ambient_role
     )
