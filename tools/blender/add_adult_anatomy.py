@@ -17,6 +17,10 @@ import bpy
 from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
 
+# Shared material-aware fit policy; kept outside Blender so it can be unit-tested.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ara")))
+from garment_fit import profile_for_material
+
 
 def arguments():
     raw = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -737,33 +741,44 @@ def expand_lower_garments(objects, pelvis_z, body_front_y, width):
         obj.data.update()
 
 
-def fit_garment_clearance(objects, skin, material_tokens, clearance=0.004):
-    """Push selected garment vertices just outside the full retained skin surface.
+def fit_garment_clearance(objects, skin, material_tokens):
+    """Apply profile-specific body clearance without modifying the skin.
 
-    The body remains untouched. Fitting is performed against the integrated
-    female Ara skin, so briefs/bikini bottoms clear the vulvar contour and
-    bras/tops clear the lower breast fold instead of relying on the original
-    generic body shell offset.
+    Material names select the garment's fit profile. Vertices shared by
+    multiple material regions use the largest required clearance so a seam
+    cannot be pulled back inside the body by a neighbouring material.
     """
     tree = build_bvh(skin)
     tokens = tuple(token.lower() for token in material_tokens)
     moved_total = 0
+    stats = {}
     for obj in objects:
         if obj.type != "MESH":
             continue
-        garment_vertices = set()
+        vertex_profiles = {}
         for poly in obj.data.polygons:
             if poly.material_index >= len(obj.material_slots):
                 continue
             material = obj.material_slots[poly.material_index].material
-            label = material.name.lower() if material else ""
-            if any(token in label for token in tokens):
-                garment_vertices.update(poly.vertices)
-        if not garment_vertices:
+            label = material.name if material else ""
+            if not any(token in label.lower() for token in tokens):
+                continue
+            profile = profile_for_material(label)
+            profile_name = profile["name"]
+            bucket = stats.setdefault(profile_name, {
+                "vertices": set(), "moved": 0, "penetrating": 0,
+                "max_displacement_m": 0.0, "total_displacement_m": 0.0,
+            })
+            bucket["vertices"].update(poly.vertices)
+            for index in poly.vertices:
+                previous = vertex_profiles.get(index)
+                if previous is None or profile["clearance_m"] > previous["clearance_m"]:
+                    vertex_profiles[index] = profile
+        if not vertex_profiles:
             continue
+
         inv = obj.matrix_world.inverted()
-        moved = 0
-        for index in garment_vertices:
+        for index, profile in vertex_profiles.items():
             vert = obj.data.vertices[index]
             world = obj.matrix_world @ vert.co
             nearest = tree.find_nearest(world)
@@ -772,30 +787,46 @@ def fit_garment_clearance(objects, skin, material_tokens, clearance=0.004):
             location, normal, _face, _distance = nearest
             normal = normal.normalized()
             signed = (world - location).dot(normal)
-            if signed < clearance:
-                world += normal * (clearance - signed)
+            bucket = stats[profile["name"]]
+            if signed < 0.0:
+                bucket["penetrating"] += 1
+            required = float(profile["clearance_m"])
+            if signed < required:
+                displacement = required - signed
+                world += normal * displacement
                 vert.co = inv @ world
-                moved += 1
-        if moved:
-            obj.data.update()
-            print(f"Garment clearance: {obj.name} moved {moved} vertices ({clearance:.4f} m)")
-            moved_total += moved
+                bucket["moved"] += 1
+                bucket["total_displacement_m"] += displacement
+                bucket["max_displacement_m"] = max(
+                    bucket["max_displacement_m"], displacement
+                )
+                moved_total += 1
+        obj.data.update()
+
+    for name, bucket in sorted(stats.items()):
+        count = len(bucket["vertices"])
+        average = bucket["total_displacement_m"] / max(bucket["moved"], 1)
+        print(
+            "Garment fit profile "
+            f"{name}: vertices={count}, moved={bucket['moved']}, "
+            f"initial_penetrations={bucket['penetrating']}, "
+            f"average_correction={average:.4f} m, "
+            f"max_correction={bucket['max_displacement_m']:.4f} m"
+        )
     return moved_total
 
 
 def fit_female_clothing(objects, skin):
-    # Lower garments need a little more stand-off around the integrated vulvar
-    # contour; upper layers need a smaller clearance to avoid the inframammary
-    # fold without making the clothing visibly float away from the chest.
+    # Material metadata now determines exact stand-off and future stretch,
+    # compression and coverage policy. These token groups only select which
+    # garment regions are included in this particular anatomy clearance pass.
     lower = fit_garment_clearance(
         objects, skin,
         ("brief", "bikini bottom", "bikini strings", "g-string", "pants", "trouser", "breech"),
-        clearance=0.006,
     )
     upper = fit_garment_clearance(
         objects, skin,
         ("bra", "halter", "bikini top", "fatigue shirt", "tank top", "shirt", "dress"),
-        clearance=0.0045,
     )
     print(f"Female garment fitting complete: {lower} lower-body and {upper} upper-body vertices adjusted")
 
