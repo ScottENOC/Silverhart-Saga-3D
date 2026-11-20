@@ -80,7 +80,8 @@ def bone_head_world(armature, name):
 def nipple_socket_world(armature, side):
     """Read the existing surface-derived breast reference socket."""
     name = f"SOCKET_Nipple_{side}"
-    socket = bpy.data.objects.get(name)
+    socket = next((obj for obj in bpy.context.scene.objects
+                   if obj.parent == armature and obj.name.split(".")[0] == name), None)
     if socket is None:
         raise RuntimeError(
             f"Character is missing {name}; refusing to guess bra height from torso bones"
