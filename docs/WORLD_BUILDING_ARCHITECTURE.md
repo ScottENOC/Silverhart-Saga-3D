@@ -115,7 +115,7 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 ## Incremental migration sequence
 
 1. **Building factory (current slice):** extract the Millbrook hardcoded house into a shared factory; define supported archetypes and data-driven parameters; add isolated tests and CI validation.
-2. **Hollowmere feature decomposition:** buildings are now driven by `HollowmereVillageData.BUILDINGS` for both footprints and factory construction. Continue with vegetation, remaining bespoke props and reusable landmark dressing. Preserve gameplay while each feature is migrated. Keep the tavern playable.
+2. **Hollowmere feature decomposition:** buildings are now driven by `HollowmereVillageData.BUILDINGS` for both footprints and factory construction. Continue with vegetation and then move to building/interior convergence. Preserve gameplay while each feature is migrated. Keep the tavern playable.
 3. **Building and interior convergence:** make all Hollowmere buildings use the same building definitions, logical registry, doors, entrances and reusable interior/floor composition. Do not treat the tavern as a reason to duplicate the system.
 4. **Streaming consolidation:** decide the single authoritative streamer and separate data generation, logical world state and disposable presentation. Verify cross-chunk roads, rivers, terrain edges, actors and state restoration.
 5. **Source inventory extraction:** systematically inspect Hex-crpg Campaign 2 source and produce complete inventories for settlements, structures, routes, landmarks and authored geography. Keep source IDs and provenance.
