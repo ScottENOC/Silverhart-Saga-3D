@@ -6,8 +6,8 @@ var failures: int = 0
 
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
-	_check(terrain.terrain_for_hex(Vector2i(8, 24)) == "authored", "Hollowmere's authored village area must not be procedurally overwritten")
-	_check(terrain.terrain_for_hex(Vector2i(8, -25)) == "authored", "The authored village scene must retain its bridge crossing")
+	_check(terrain.terrain_for_hex(Vector2i(8, 24)) == "path", "Hollowmere crossroads must resolve from authored settlement path data")
+	_check(terrain.terrain_for_hex(Vector2i(8, -25)) == "path", "The authored bridge crossing must resolve as a traversable path")
 	_check(terrain.terrain_for_hex(Vector2i(100, -27)) == "water", "The local stream must continue beyond the authored village radius")
 	_check(terrain.terrain_for_hex(Vector2i(8, -176)) == "path", "The north road must follow the source road trace")
 	_check(terrain.terrain_for_hex(Vector2i(1, -366)) == "authored", "Millbrook's house footprint must be authored, not procedural")
