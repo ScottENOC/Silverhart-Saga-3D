@@ -29,44 +29,52 @@ static func present(
 			"landmark_props", "quest_props", "wayfinding_props"]:
 		if not data.get(key, []) is Array:
 			return {"ok": false, "reason": "invalid_%s" % key}
+	var building_definitions: Array = building_definitions
+	var route_definitions: Array = route_definitions
+	var field_definitions: Array = field_definitions
+	var crop_row_definitions: Array = crop_row_definitions
+	var fence_definitions: Array = fence_definitions
+	var landmark_definitions: Array = landmark_definitions
+	var quest_definitions: Array = quest_definitions
+	var wayfinding_definitions: Array = wayfinding_definitions
 	var bridge_definition: Variant = data.get("bridge", {})
 	if not bridge_definition is Dictionary:
 		return {"ok": false, "reason": "invalid_bridge_definition"}
-	for building in data.get("buildings", []):
+	for building in building_definitions:
 		if not building is Dictionary or not BUILDING_FACTORY.supports_definition(building):
 			return {"ok": false, "reason": "unsupported_building_definition"}
 	# Fail before constructing anything if a feature collection has invalid
 	# shape. The underlying factories validate detailed geometry/material data.
 	var created_buildings := 0
-	for building in data.get("buildings", []):
+	for building in building_definitions:
 		if BUILDING_FACTORY.create_building(parent, settlement, building) != null:
 			created_buildings += 1
 	var route_nodes: Array[Node3D] = POLYLINE_FACTORY.render_features(
-		parent, data.get("routes", []), materials.get("routes", {}), hex_radius
+		parent, route_definitions, materials.get("routes", {}), hex_radius
 	)
 	var bridge_node: Node3D = BRIDGE_FACTORY.create_bridge(
 		parent, bridge_definition, materials.get("bridge", {}), hex_radius
 	)
 	var agriculture_result: Dictionary = AGRICULTURE_FACTORY.render_features(
 		parent,
-		data.get("fields", []),
-		data.get("crop_rows", []),
-		data.get("fences", []),
+		field_definitions,
+		crop_row_definitions,
+		fence_definitions,
 		materials.get("agriculture", {}),
 		hex_radius
 	)
 	var landmark_ok: bool = PROP_FACTORY.render_features(
-		parent, data.get("landmark_props", []), materials.get("props", {}), hex_radius
+		parent, landmark_definitions, materials.get("props", {}), hex_radius
 	)
 	var quest_ok: bool = PROP_FACTORY.render_features(
-		parent, data.get("quest_props", []), materials.get("quest_props", {}), hex_radius
+		parent, quest_definitions, materials.get("quest_props", {}), hex_radius
 	)
 	var wayfinding_ok: bool = PROP_FACTORY.render_features(
-		parent, data.get("wayfinding_props", []), materials.get("wayfinding_props", {}), hex_radius
+		parent, wayfinding_definitions, materials.get("wayfinding_props", {}), hex_radius
 	)
 	var ok := (
-		created_buildings == data.get("buildings", []).size()
-		and route_nodes.size() == data.get("routes", []).size()
+		created_buildings == building_definitions.size()
+		and route_nodes.size() == route_definitions.size()
 		and bridge_node != null
 		and bool(agriculture_result.get("ok", false))
 		and landmark_ok and quest_ok and wayfinding_ok
@@ -78,7 +86,7 @@ static func present(
 		"routes": route_nodes.size(),
 		"bridge": bridge_node != null,
 		"agriculture": agriculture_result,
-		"landmark_props": data.get("landmark_props", []).size() if landmark_ok else 0,
-		"quest_props": data.get("quest_props", []).size() if quest_ok else 0,
-		"wayfinding_props": data.get("wayfinding_props", []).size() if wayfinding_ok else 0
+		"landmark_props": landmark_definitions.size() if landmark_ok else 0,
+		"quest_props": quest_definitions.size() if quest_ok else 0,
+		"wayfinding_props": wayfinding_definitions.size() if wayfinding_ok else 0
 	}
