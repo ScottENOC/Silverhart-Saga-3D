@@ -162,9 +162,10 @@ func _test_main_campaign_world_map() -> void:
     assert(grid[6][4]["poi"]["name"] == "Emberlode", "Emberlode should lie west of Hollowmere")
     assert(grid[7][6]["poi"]["name"] == "Old Mac's Farmstead", "The farmstead should lie south of Hollowmere")
 
-    assert(MAIN_CAMPAIGN_MAP.RIVER_PATH.size() == 15, "The source river path should contain 15 strategic cells")
-    assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[0] == Vector2i(1, 5))
-    assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[14] == Vector2i(15, 4))
+    var river_path := MAIN_CAMPAIGN_MAP.strategic_river_path()
+    assert(river_path.size() == 15, "The source river path should contain 15 strategic cells")
+    assert(river_path[0] == Vector2i(1, 5))
+    assert(river_path[14] == Vector2i(15, 4))
     assert(MAIN_CAMPAIGN_MAP.world_cell_from_local_hex(Vector2i(8, 24)) == Vector2i(6, 6), "The local crossroads must map to Hollowmere's world cell")
 
 func _test_animal_actor_registration() -> void:
