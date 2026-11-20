@@ -19,7 +19,7 @@ from mathutils.bvhtree import BVHTree
 
 # Shared material-aware fit policy; kept outside Blender so it can be unit-tested.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ara")))
-from garment_fit import profile_for_material
+from garment_fit import (\n    profile_for_material, estimate_correction_strain, classify_strain,\n)
 
 
 def arguments():
@@ -793,25 +793,56 @@ def fit_garment_clearance(objects, skin, material_tokens):
             required = float(profile["clearance_m"])
             if signed < required:
                 displacement = required - signed
-                world += normal * displacement
+                correction = normal * displacement
+                world += correction
                 vert.co = inv @ world
                 bucket["moved"] += 1
                 bucket["total_displacement_m"] += displacement
                 bucket["max_displacement_m"] = max(
                     bucket["max_displacement_m"], displacement
                 )
+                bucket.setdefault("corrections", {})[index] = tuple(correction)
+                bucket.setdefault("original_positions", {})[index] = tuple(
+                    obj.matrix_world @ (vert.co - inv.to_3x3() @ correction)
+                )
                 moved_total += 1
         obj.data.update()
+
+        # Estimate strain introduced by the clearance pass from differential
+        # vertex corrections along the original garment edges.
+        for name, bucket in stats.items():
+            corrections = bucket.get("corrections", {})
+            if not corrections:
+                continue
+            positions = bucket.get("original_positions", {})
+            edges = [tuple(edge.vertices) for edge in obj.data.edges
+                     if edge.vertices[0] in corrections and edge.vertices[1] in corrections]
+            # Positions are world-space and were captured before this pass.
+            estimate = estimate_correction_strain(edges, positions, corrections)
+            bucket["sampled_edges"] = bucket.get("sampled_edges", 0) + estimate["sampled_edges"]
+            bucket["max_estimated_strain"] = max(
+                bucket.get("max_estimated_strain", 0.0),
+                estimate["max_estimated_strain"],
+            )
 
     for name, bucket in sorted(stats.items()):
         count = len(bucket["vertices"])
         average = bucket["total_displacement_m"] / max(bucket["moved"], 1)
+        profile = profile_for_material(name)
+        strain = bucket.get("max_estimated_strain", 0.0)
+        classification = classify_strain(strain, profile)
+        status = "RE-PATTERN" if classification["overstretched"] else (
+            "CHECK" if classification["above_comfort_strain"] else "within comfort"
+        )
         print(
             "Garment fit profile "
             f"{name}: vertices={count}, moved={bucket['moved']}, "
             f"initial_penetrations={bucket['penetrating']}, "
             f"average_correction={average:.4f} m, "
-            f"max_correction={bucket['max_displacement_m']:.4f} m"
+            f"max_correction={bucket['max_displacement_m']:.4f} m, "
+            f"max_estimated_strain={strain:.3f}, "
+            f"sampled_edges={bucket.get('sampled_edges', 0)}, "
+            f"fit_status={status}"
         )
     return moved_total
 
