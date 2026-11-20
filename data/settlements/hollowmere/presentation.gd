@@ -11,6 +11,7 @@ const PROPS = preload("res://data/settlements/hollowmere/props.gd")
 const PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 const VILLAGE_QUERIES = preload("res://scripts/world/hollowmere_village_data.gd")
 const HEARTLAND_BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
+const HOLLOWMERE_PRESENTATION_RULES = preload("res://data/settlements/hollowmere/presentation_rules.gd")
 
 const IDENTITY := {
 	"id": SETTLEMENT.SETTLEMENT_ID,
@@ -88,4 +89,3 @@ const DEFINITION := {
 	"vegetation": VEGETATION
 }
 
-const HOLLOWMERE_PRESENTATION_RULES = preload("res://data/settlements/hollowmere/presentation_rules.gd")
