@@ -42,7 +42,7 @@ var _configuration_error := ""
 func configure(
     character_root: Node3D,
     body_root: Node3D,
-    fine_region_masks: Array[Resource] = [],
+    fine_region_masks: Array = [],
     body_asset_path: String = ""
 ) -> bool:
     _character_root = character_root
