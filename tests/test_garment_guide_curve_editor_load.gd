@@ -26,7 +26,7 @@ func _run() -> void:
     assert(manifest != null, "Garment guide manifest failed to load")
     for resource in manifest.guides:
         assert(resource is CharacterGarmentGuideCurve, "Guide manifest contains a non-guide resource")
-    assert(CharacterGarmentGuideLibrary.load_for_body("res://missing_body.glb").is_empty(),
+    assert(CharacterGarmentGuideLibrary.load_for_body("res://missing_body.glb", null).is_empty(),
         "Unknown body should not receive garment guides")
     print("ARA_GARMENT_GUIDE_EDITOR_LOAD: PASS guide_ids=%d" % labels.size())
     quit(0)
