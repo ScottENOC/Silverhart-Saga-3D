@@ -40,6 +40,19 @@ static func load_location(
 				staged.free()
 			return {"ok": false, "reason": "component_is_not_a_node_%s" % role}
 		node.name = String(component["node_name"])
+		if bool(component.get("configure_location", false)):
+			if not node.has_method("configure_location"):
+				node.free()
+				for staged in staged_nodes:
+					staged.free()
+				return {"ok": false, "reason": "component_missing_location_configuration_%s" % role}
+			var location_data: Variant = component.get("location_data", {})
+			if not location_data is Dictionary:
+				node.free()
+				for staged in staged_nodes:
+					staged.free()
+				return {"ok": false, "reason": "invalid_location_component_data_%s" % role}
+			node.call("configure_location", location_data)
 		if bool(component.get("configure_campaign", false)):
 			if not node.has_method("configure_campaign"):
 				node.free()
