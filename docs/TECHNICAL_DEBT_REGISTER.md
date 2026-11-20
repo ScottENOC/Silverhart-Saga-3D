@@ -43,7 +43,7 @@ The desired end state for `scripts/world/hollow_tankard.gd` is to remove its loc
 
 Apply the same principle to `hollowmere_village.gd`: village-specific content should describe the village, while reusable world presentation/building systems implement it.
 
-## 3. Prioritised debt register
+## 3. Historical prioritised debt register (13 November baseline; superseded by Section 7)
 
 | ID | Priority | Area | Baseline evidence | Intended outcome | Status |
 |---|---|---|---|---|---|
@@ -61,7 +61,7 @@ Apply the same principle to `hollowmere_village.gd`: village-specific content sh
 
 File sizes/line counts are measurements of the baseline snapshot, not automatic evidence that a file must be split. For example, the character actor and creator are audit candidates, not approved refactor designs.
 
-## 4. Execution sequence and acceptance criteria
+## 4. Historical execution sequence and acceptance criteria (superseded by Section 7)
 
 ### Phase 0 — Baseline (recorded; repeat before structural changes)
 
