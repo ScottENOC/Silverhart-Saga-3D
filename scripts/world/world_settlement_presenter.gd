@@ -51,11 +51,8 @@ func _create_materials(palette: Dictionary) -> void:
 				float(entry.get("roughness", 0.9)),
 				float(entry.get("metallic", 0.0))
 			)
-	var required := ["grass", "path", "water", "bank", "stone", "plaster", "timber",
-		"dark_wood", "roof", "glass", "field", "crop", "pasture", "fence", "blood"]
-	for key in required:
-		if not materials.has(key):
-			push_error("Settlement %s is missing palette material '%s'." % [String(definition.get("id", "")), key])
+	if palette.is_empty():
+		push_error("Settlement %s has no authored material palette." % String(definition.get("id", "")))
 
 func _create_ground(ground_definition: Dictionary) -> void:
 	var ground := MeshInstance3D.new()
@@ -65,7 +62,11 @@ func _create_ground(ground_definition: Dictionary) -> void:
 	mesh.size = Vector2(size, size)
 	ground.mesh = mesh
 	ground.position.y = float(ground_definition.get("height", -0.22))
-	ground.material_override = materials.get(String(ground_definition.get("material", "grass")))
+	var material_key := String(ground_definition.get("material", ""))
+	if not materials.has(material_key):
+		push_error("Settlement ground references missing palette material: %s" % material_key)
+		return
+	ground.material_override = materials[material_key]
 	add_child(ground)
 
 func _present_authored_features(features: Dictionary, hex_radius: float) -> void:
