@@ -140,6 +140,11 @@ static func _add_side(parent: Node3D, label: String, centre: Vector3, length: fl
 		var offset := (door_width + segment_length) * 0.5
 		_add_wall_segment(parent, label + "A", centre + (Vector3(0.0, 0.0, -offset) if along_z else Vector3(-offset, 0.0, 0.0)), Vector3(thickness, height, segment_length) if along_z else Vector3(segment_length, height, thickness), plaster, timber)
 		_add_wall_segment(parent, label + "B", centre + (Vector3(0.0, 0.0, offset) if along_z else Vector3(offset, 0.0, 0.0)), Vector3(thickness, height, segment_length) if along_z else Vector3(segment_length, height, thickness), plaster, timber)
+		var lintel_height := maxf(0.0, height - 2.75)
+		if lintel_height > 0.05:
+			var lintel_size := Vector3(thickness, lintel_height, door_width) if along_z else Vector3(door_width, lintel_height, thickness)
+			var lintel_centre := centre + Vector3.UP * (height * 0.5 - lintel_height * 0.5)
+			_add_box(parent, label + "_DoorLintel", lintel_centre, lintel_size, plaster)
 	else:
 		_add_wall_segment(parent, label, centre, Vector3(thickness, height, length) if along_z else Vector3(length, height, thickness), plaster, timber)
 
@@ -163,7 +168,8 @@ static func _build_entrance(root: Node3D, config: Dictionary, definition: Dictio
 	var outward := Vector3.RIGHT if side == "east" else (Vector3.LEFT if side == "west" else (Vector3.FORWARD if side == "north" else Vector3.BACK))
 	var timber := _material(Color(config.timber_colour))
 	var door := _material(Color(config.door_colour))
-	var frame_width := float(definition.get("door_width", 2.1))
+	var door_span := depth if side in ["east", "west"] else width
+	var frame_width := clampf(float(definition.get("door_width", 2.1)), 0.8, door_span * 0.45)
 	if side in ["east", "west"]:
 		_add_box(root, "DoorFrame", offset + Vector3.UP * 1.55, Vector3(0.22, 2.75, frame_width), timber)
 	else:
