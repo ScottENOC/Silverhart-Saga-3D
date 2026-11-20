@@ -26,7 +26,8 @@ func _inspect_body_asset(asset_path: String) -> void:
     _collect_skinned_meshes(instance, meshes)
     assert(not meshes.is_empty(), "No skinned meshes found in " + asset_path)
     for mesh_instance in meshes:
-        var mesh := mesh_instance.mesh
+        var mesh := mesh_instance.mesh as ArrayMesh
+        assert(mesh != null, "Expected ArrayMesh in " + asset_path)
         print("ARA_SURFACE_CHANNEL asset=%s mesh=%s surfaces=%d blend_shapes=%d blend_mode=%d skin_binds=%d" % [
             asset_path, mesh_instance.name, mesh.get_surface_count(),
             mesh.get_blend_shape_count(), mesh.blend_shape_mode,
