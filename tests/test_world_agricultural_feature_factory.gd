@@ -74,13 +74,13 @@ func _test_invalid_definitions_are_rejected_atomically() -> void:
 func _test_hollowmere_delegates_to_shared_factory() -> void:
 	var village := VILLAGE_SCRIPT.new() as Node3D
 	village.call("_create_materials")
-	village.call("_create_farmstead")
+	village.call("_present_authored_settlement")
 	for field in VILLAGE_DATA.FARM_FIELDS:
 		assert(village.get_node_or_null(String(field["id"])) != null, "Hollowmere should render each field through the shared factory")
 	for row in VILLAGE_DATA.FARM_CROP_ROWS:
 		assert(village.get_node_or_null(String(row["id"])) != null, "Hollowmere should render each crop row through the shared factory")
 	for fence in VILLAGE_DATA.FARM_FENCES:
 		assert(village.get_node_or_null(String(fence["id"])) != null, "Hollowmere should render each fence through the shared factory")
-	assert(village.get_node_or_null("BrokenPastureFence/BrokenRailA") != null, "Quest-specific broken fence dressing should remain present")
+	assert(village.get_node_or_null("BrokenPastureFence") != null, "Quest-specific broken fence dressing should remain present")
 	assert(village.get_node_or_null("BloodTrailPresentation/BloodTrail_00") != null, "Quest-specific blood trail dressing should remain present")
 	village.free()
