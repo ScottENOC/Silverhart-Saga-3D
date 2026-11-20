@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+"""Create a deterministic, catalogue-validated sample of generic tavern NPCs.
+
+Run from the pinned Ara 3D Gen checkout. The generated profiles use Ara's
+normal character parameter schema and are suitable for the existing GLB builder.
+"""
+import argparse
+import json
+import random
+import re
+from pathlib import Path
+
+NAMES = [
+    ("Mara", "Fenwick"), ("Tomas", "Reed"), ("Elin", "Marlow"), ("Bram", "Ashford"),
+    ("Nessa", "Vale"), ("Orrin", "Thatch"), ("Sella", "Wren"), ("Harlan", "Pike"),
+    ("Tilda", "Moss"), ("Corin", "Briar"), ("Anwen", "Fletcher"), ("Dain", "Holt"),
+    ("Lysa", "Mere"), ("Perrin", "Cobb"), ("Ivara", "Stone"), ("Jory", "Beck"),
+    ("Merrit", "Dale"), ("Runa", "Blackwood"), ("Eamon", "Quill"), ("Vessa", "North"),
+    ("Alric", "Fen"), ("Mina", "Rowe"), ("Tarin", "Bell"), ("Sorin", "Wells"),
+    ("Ketta", "Brask"), ("Odel", "Wick"), ("Brynn", "Hearth"), ("Cadan", "Marlow"),
+    ("Edda", "Thorne"), ("Rafe", "Greel"),
+]
+NATURAL_HAIR = ["#17120F", "#30251B", "#49372A", "#75452D", "#87452D", "#A87552", "#8A6A4C", "#898176", "#D0B47A"]
+UNNATURAL_HAIR = ["#287BFF", "#7446A8", "#2C9B70"]
+SKIN_TINTS = ["#70452F", "#8F6045", "#A87552", "#B98260", "#C99A75", "#DDAE8D", "#E0B99B"]
+EARTH_TONES = ["#66513B", "#8B6843", "#48525B", "#4D5140", "#554D40", "#6B604B", "#39332E", "#766D59"]
+HAIR_STYLES = ["braid01", "short02", "short03", "short04", "long01", "bob02", "buzz", "cornrows", "box_braids", "mohawk"]
+EYES_FALLBACK = ["blackbrown", "darkbrown", "brown", "brownlight", "green", "bluegreen", "grey", "blue", "lightblue", "deepblue", "ice", "hazel"]
+TATTOOS_FALLBACK = ["armband_l", "sleeve_r", "forearm_l", "chest", "back", "face_marks"]
+
+
+def ids_from(root: Path, relative: str, pattern: str, fallback: list[str]) -> list[str]:
+    path = root / relative
+    if not path.exists():
+        return fallback
+    found = sorted(set(re.findall(pattern, path.read_text())))
+    return found or fallback
+
+
+def generate(count: int, seed: int, ara_root: Path) -> dict:
+    rng = random.Random(seed)
+    garments = set(ids_from(ara_root, "src/core/garments/catalog.ts", r"\bid:\s*'([^']+)'", []))
+    garments.update({"none", "bra"})
+    eyes = ids_from(ara_root, "src/app/ui/quick-data.ts", r"\['([^']+)',\s*'[^']+',\s*'#[0-9a-fA-F]{6}'\]", EYES_FALLBACK)
+    tattoos = ids_from(ara_root, "src/core/looks/tattoos.ts", r"'(armband_l|sleeve_r|forearm_l|chest|back|face_marks)'", TATTOOS_FALLBACK)
+    tops = [x for x in ["long_tunic", "tunic", "tattered_shirt", "fatigue_shirt", "uniform_shirt"] if x in garments]
+    bottoms = [x for x in ["trousers", "wrapper_long", "fatigue_pants", "wrapper_knee"] if x in garments]
+    if not tops or not bottoms:
+        raise SystemExit(f"Cannot generate tavern outfits: catalogue tops={tops}, bottoms={bottoms}")
+
+    # Rare styles are enabled only when the pinned Ara catalogue actually has them.
+    rare_under_bottoms = [x for x in ["g_string", "g-string", "string_bikini_bottom", "lace_briefs", "fishnet_briefs"] if x in garments]
+    rare_under_tops = [x for x in ["lace_bra", "fishnet_bra"] if x in garments]
+    characters = []
+    for index in range(count):
+        first, last = NAMES[index % len(NAMES)]
+        if index >= len(NAMES):
+            last = f"{last}{index // len(NAMES) + 1}"
+        character_id = f"tavern_generated_{index + 1:03d}"
+        person_seed = seed + index * 7919
+        person = random.Random(person_seed)
+        gender = person.randrange(2)
+        age = person.uniform(0.36, 0.88)
+        complexion = [person.uniform(0.02, 0.92) for _ in range(3)]
+        total = sum(complexion)
+        complexion = [round(v / total, 4) for v in complexion]
+        hair_tint = person.choice(NATURAL_HAIR)
+        if person.random() < 0.015:
+            hair_tint = person.choice(UNNATURAL_HAIR)
+        facial_hair = "none"
+        if gender == 1 and age > 0.42 and person.random() < 0.38:
+            facial_hair = person.choice(["stubble", "mustache", "mustache_stubble", "goatee", "short_beard", "full_beard"])
+        tattoo_list = []
+        if age >= 0.34375 and tattoos and person.random() < 0.07:
+            tattoo_list = [person.choice(tattoos)]
+        top = person.choice(tops)
+        bottom = person.choice(bottoms)
+        under_top = "bra" if gender == 0 and "bra" in garments else "none"
+        under_bottom = "briefs" if "briefs" in garments else "none"
+        if rare_under_bottoms and person.random() < 0.003:
+            under_bottom = person.choice(rare_under_bottoms)
+        if gender == 0 and rare_under_tops and person.random() < 0.005:
+            under_top = person.choice(rare_under_tops)
+        top_colour = person.choice(EARTH_TONES)
+        bottom_colour = person.choice(EARTH_TONES)
+        params = {
+            "seed": person_seed, "gender": gender, "age": round(age, 3),
+            "muscle": round(person.uniform(0.22, 0.76), 3),
+            "weight": round(person.uniform(0.24, 0.78), 3),
+            "height": round(person.uniform(0.30, 0.78), 3),
+            "proportions": round(person.uniform(0.35, 0.68), 3),
+            "african": complexion[0], "asian": complexion[1], "caucasian": complexion[2],
+            "eyes": person.choice(eyes), "hair": person.choice(HAIR_STYLES),
+            "hairTint": hair_tint, "hairColor": hair_tint, "facialHair": facial_hair,
+            "tattoos": tattoo_list, "tattooInk": "#3b3028",
+            "outfit": "none", "top": top, "underTop": under_top,
+            "underBottom": under_bottom, "jacket": "none", "bottom": bottom,
+            "underwear": True, "shoes": person.choice(["sandals", "combat_boots"]),
+            "hat": "none", "weapon": "none", "carry": "none", "accessories": [],
+            "garmentStyles": {
+                top: {"pattern": "solid", "color": top_colour, "color2": top_colour},
+                bottom: {"pattern": "solid", "color": bottom_colour, "color2": bottom_colour},
+            },
+            "detail": "medium", "rig": "game", "restPose": "A", "animations": True,
+            "faceBones": True, "faceShapes": True, "speechShapes": False,
+            "expression": "neutral", "legs": round(person.uniform(0.30, 0.72), 3),
+            "breasts": round(person.uniform(0.20, 0.78), 3) if gender == 0 else 0.0,
+            "skinTint": person.choice(SKIN_TINTS),
+        }
+        characters.append({
+            "id": character_id, "game_id": character_id, "name": f"{first} {last}",
+            "role": "tavern patron", "hex": [index % 5, index // 5],
+            "detail": "medium", "params": params,
+        })
+    return {
+        "schema_version": 1,
+        "generator": "Ara 3D Gen + Silverhart seeded tavern profile generator",
+        "generator_commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395",
+        "seed": seed,
+        "count": count,
+        "rarity_policy": {
+            "unnatural_hair": 0.015, "tattoos": 0.07,
+            "rare_underwear_bottom": 0.003, "rare_underwear_top": 0.005,
+            "note": "Rare garment probabilities activate only when those exact IDs exist in the pinned Ara catalogue. Piercings and transparent fabrics remain disabled until their runtime/asset support is validated."
+        },
+        "characters": characters,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--count", type=int, default=20)
+    parser.add_argument("--seed", type=int, default=20261120)
+    parser.add_argument("--out", type=Path, required=True)
+    args = parser.parse_args()
+    if not 1 <= args.count <= 100:
+        raise SystemExit("--count must be between 1 and 100")
+    ara_root = Path.cwd()
+    if not (ara_root / "package.json").exists():
+        raise SystemExit("Run from the pinned Ara 3D Gen repository root")
+    manifest = generate(args.count, args.seed, ara_root)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(manifest, indent=2) + "\n")
+    print(f"Generated {args.count} deterministic tavern NPC profiles (seed={args.seed}).")
+    print("Available rare underwear IDs: " + ", ".join(
+        sorted(set(["g_string", "g-string", "string_bikini_bottom", "lace_briefs", "fishnet_briefs", "lace_bra", "fishnet_bra"]) & set(ids_from(ara_root, "src/core/garments/catalog.ts", r"\bid:\s*'([^']+)'", [])))
+    ))
+
+
+if __name__ == "__main__":
+    main()
