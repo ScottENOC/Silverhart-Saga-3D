@@ -93,8 +93,8 @@ func _test_building_definitions_use_shared_factory() -> void:
     var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
     village.call("_create_buildings")
     assert(village.get_node_or_null("GeneralStore") != null, "The general store should be factory-built")
-    assert(village.get_node_or_null("GeneralStore/StoreSign") != null, "The store sign should remain a separate add-on feature")
-    assert(village.get_node_or_null("Chapel/BellTower") != null, "The chapel bell tower should remain a separate add-on feature")
+    assert(village.get_node_or_null("GeneralStore/StoreSignPresentation/StoreSign") != null, "The store sign should remain a separate add-on feature")
+    assert(village.get_node_or_null("Chapel/ChapelBellTowerPresentation/BellTower") != null, "The chapel bell tower should remain a separate add-on feature")
     village.free()
 func _test_building_thresholds() -> void:
     assert(HollowmereVillageData.is_blocked(Vector2i(0, 18)), "General-store footprint should block movement")
