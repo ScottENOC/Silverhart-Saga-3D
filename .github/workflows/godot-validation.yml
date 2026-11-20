@@ -108,6 +108,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_npc_pass_through.gd
       - name: Run shared character anatomy tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_anatomy.gd
+      - name: Validate anatomy landmarks on both canonical Ara bodies
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_ara_body_anatomy_assets.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
       - name: Run equipment appearance and heraldry tests
