@@ -207,7 +207,7 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 		}
 	}
 	var male_actor := CampaignCharacterActorFactory.create_actor(
-		male_state, Vector3.ZERO, false, {}, male_profile, "garrick_holt.glb", "civilian"
+		male_state, Vector3.ZERO, false, {}, male_profile, "civilian"
 	)
 	assert(male_actor != null)
 	var male_model := male_actor.get_node_or_null("CharacterModel") as AraCharacterActor
@@ -251,7 +251,7 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 		}
 	}
 	var wren_actor := CampaignCharacterActorFactory.create_actor(
-		wren_state, Vector3.ZERO, false, {}, wren_profile, "wren_talbot.glb", "companion"
+		wren_state, Vector3.ZERO, false, {}, wren_profile, "companion"
 	)
 	assert(wren_actor != null)
 	var wren_model := wren_actor.get_node_or_null("CharacterModel") as AraCharacterActor
