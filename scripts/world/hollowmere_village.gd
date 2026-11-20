@@ -12,6 +12,7 @@ const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_facto
 const POLYLINE_FEATURE_FACTORY = preload("res://scripts/world/world_polyline_feature_factory.gd")
 const BRIDGE_FEATURE_FACTORY = preload("res://scripts/world/world_bridge_feature_factory.gd")
 const AGRICULTURAL_FEATURE_FACTORY = preload("res://scripts/world/world_agricultural_feature_factory.gd")
+const PROP_FEATURE_FACTORY = preload("res://scripts/world/world_prop_feature_factory.gd")
 var grass_material: StandardMaterial3D
 var path_material: StandardMaterial3D
 var water_material: StandardMaterial3D
@@ -118,8 +119,7 @@ func _create_buildings() -> void:
 		if building_id in ["old_mac_farmhouse", "old_mac_barn"]:
 			continue
 		_create_authored_building(definition)
-	_add_store_sign()
-	_add_chapel_bell_tower()
+	_create_landmark_props()
 
 func _create_authored_building(definition: Dictionary) -> Node3D:
 	return WORLD_BUILDING_FACTORY.create_building(self, {"id": "hollowmere"}, definition)
@@ -144,7 +144,7 @@ func _create_farmstead() -> void:
 		{"field": field_material, "pasture": pasture_material, "crop": crop_material, "fence": fence_material},
 		HEX_RADIUS
 	)
-	_add_broken_fence_and_blood_trail()
+	_create_quest_props()
 
 func _create_farm_animals() -> void:
 	# Old Mac's surviving herd occupies the fenced southern pasture.
@@ -156,33 +156,6 @@ func _create_farm_animals() -> void:
 	# A second coat variant and a small farm dog use their own original glTF scenes.
 	_spawn_creature("FarmWhiteHorse", "horse", "mount", Vector2i(27, 61), 0.82, "Horse_White.gltf")
 	_spawn_creature("FarmShiba", "shiba_inu", "farm", Vector2i(19, 60), 0.48, "ShibaInu.gltf")
-
-func _add_broken_fence_and_blood_trail() -> void:
-	var gap_hex := Vector2i(1, 67)
-	var gap_centre := HexGrid.axial_to_world(gap_hex, HEX_RADIUS, 0.04)
-	var broken := Node3D.new()
-	broken.name = "BrokenPastureFence"
-	broken.position = gap_centre
-	add_child(broken)
-	var rail_a := _add_box(broken, "BrokenRailA", Vector3(-0.55, 0.32, -0.25), Vector3(1.3, 0.10, 0.12), fence_material)
-	rail_a.rotation.y = deg_to_rad(-24.0)
-	var rail_b := _add_box(broken, "BrokenRailB", Vector3(0.55, 0.22, 0.22), Vector3(1.0, 0.10, 0.12), dark_wood_material)
-	rail_b.rotation.y = deg_to_rad(18.0)
-
-	var blood_material := _material(Color(0.22, 0.045, 0.025))
-	var trail_hexes: Array[Vector2i] = [Vector2i(1, 67), Vector2i(-4, 68), Vector2i(-10, 69), Vector2i(-17, 70), Vector2i(-24, 71), Vector2i(-31, 72), Vector2i(-38, 73)]
-	for index in range(trail_hexes.size()):
-		var stain := MeshInstance3D.new()
-		stain.name = "BloodTrail_%02d" % index
-		var mesh := CylinderMesh.new()
-		mesh.top_radius = 0.13 if index < 3 else 0.075
-		mesh.bottom_radius = mesh.top_radius
-		mesh.height = 0.018
-		mesh.radial_segments = 7
-		stain.mesh = mesh
-		stain.material_override = blood_material
-		stain.position = HexGrid.axial_to_world(trail_hexes[index], HEX_RADIUS, 0.015)
-		add_child(stain)
 
 func _create_wilderness_animals() -> void:
 	# Ambient wildlife is placed in the outer forest belt, away from the
@@ -249,30 +222,6 @@ func _spawn_creature(actor_name: String, kind: String, behaviour_name: String, h
 	actor.rotation.y = deg_to_rad(float(posmod(hex.x * 37 + hex.y * 19, 360)))
 	add_child(actor)
 
-func _add_store_sign() -> void:
-	var root := get_node_or_null("GeneralStore") as Node3D
-	if root == null:
-		return
-	_add_box(root, "StoreSignBoard", Vector3(0.0, 2.75, -3.45), Vector3(3.3, 0.55, 0.16), dark_wood_material)
-	var sign := Label3D.new()
-	sign.name = "StoreSign"
-	sign.text = "GENERAL STORE"
-	sign.position = Vector3(0.0, 2.62, -3.56)
-	sign.font_size = 34
-	sign.pixel_size = 0.006
-	sign.modulate = Color(0.91, 0.82, 0.63)
-	sign.outline_size = 5
-	add_child_to(root, sign)
-
-func _add_chapel_bell_tower() -> void:
-	var root := get_node_or_null("Chapel") as Node3D
-	if root == null:
-		return
-	_add_box(root, "BellTower", Vector3(0.0, 4.2, -1.4), Vector3(1.45, 2.1, 1.45), stone_material)
-	_add_box(root, "BellOpening", Vector3(0.0, 4.35, -0.64), Vector3(0.72, 0.62, 0.08), dark_wood_material)
-	_add_box(root, "ChapelCrossStem", Vector3(0.0, 5.75, -1.4), Vector3(0.14, 1.0, 0.14), timber_material)
-	_add_box(root, "ChapelCrossBar", Vector3(0.0, 5.85, -1.4), Vector3(0.65, 0.14, 0.14), timber_material)
-
 func _create_bridge() -> void:
 	BRIDGE_FEATURE_FACTORY.create_bridge(
 		self,
@@ -281,35 +230,26 @@ func _create_bridge() -> void:
 		HEX_RADIUS
 	)
 
+func _create_landmark_props() -> void:
+	PROP_FEATURE_FACTORY.render_features(
+		self, HollowmereVillageData.LANDMARK_PROPS,
+		{"dark_wood": dark_wood_material, "stone": stone_material, "timber": timber_material},
+		HEX_RADIUS
+	)
+
+func _create_quest_props() -> void:
+	PROP_FEATURE_FACTORY.render_features(
+		self, HollowmereVillageData.QUEST_PROPS,
+		{"fence": fence_material, "dark_wood": dark_wood_material, "blood": _material(Color(0.22, 0.045, 0.025))},
+		HEX_RADIUS
+	)
+
 func _create_signpost() -> void:
-	var centre := HexGrid.axial_to_world(HollowmereVillageData.CROSSROADS, HEX_RADIUS, 0.0)
-	var post := MeshInstance3D.new()
-	var post_mesh := CylinderMesh.new()
-	post_mesh.top_radius = 0.10
-	post_mesh.bottom_radius = 0.15
-	post_mesh.height = 2.6
-	post.mesh = post_mesh
-	post.position = centre + Vector3(0.0, 1.3, 0.0)
-	post.material_override = timber_material
-	add_child(post)
-	_add_box(self, "SignboardNorth", centre + Vector3(0.0, 2.0, -0.05), Vector3(4.2, 0.78, 0.14), dark_wood_material)
-	_add_box(self, "SignboardSouth", centre + Vector3(0.0, 1.05, -0.05), Vector3(4.2, 0.78, 0.14), dark_wood_material)
-	var north_south_label := Label3D.new()
-	north_south_label.text = "N  MILLBROOK  /  SILVERHART\nS  OLD MAC'S FARMSTEAD"
-	north_south_label.position = centre + Vector3(0.0, 2.0, -0.14)
-	north_south_label.font_size = 17
-	north_south_label.pixel_size = 0.004
-	north_south_label.modulate = Color(0.91, 0.82, 0.63)
-	north_south_label.outline_size = 4
-	add_child(north_south_label)
-	var east_west_label := Label3D.new()
-	east_west_label.text = "E  REDDALE  /  W  EMBERLODE"
-	east_west_label.position = centre + Vector3(0.0, 1.05, -0.14)
-	east_west_label.font_size = 17
-	east_west_label.pixel_size = 0.004
-	east_west_label.modulate = Color(0.91, 0.82, 0.63)
-	east_west_label.outline_size = 4
-	add_child(east_west_label)
+	PROP_FEATURE_FACTORY.render_features(
+		self, HollowmereVillageData.WAYFINDING_PROPS,
+		{"dark_wood": dark_wood_material, "timber": timber_material},
+		HEX_RADIUS
+	)
 
 func _create_forest() -> void:
 	# Hollowmere supplies local terrain/biome rules; the shared world generator
