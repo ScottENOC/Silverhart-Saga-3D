@@ -167,7 +167,7 @@ func _test_accessory_socket_attach_and_remove() -> void:
 
 func _test_campaign_character_actor_factory() -> void:
 	var state := CharacterState.new("factory_player", "Factory Player", Vector2i(-1, 2))
-	var profile := {"name": "Factory Player", "body_variant": "female", "hair_style_id": "short02"}
+	var profile := {"name": "Factory Player", "body_base": "female", "body_variant": "female", "hair_style_id": "short02"}
 	var actor := CampaignCharacterActorFactory.create_actor(
 		state,
 		Vector3(1.5, 0.0, -2.0),
@@ -194,6 +194,7 @@ func _test_campaign_character_actor_factory() -> void:
 func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	var male_state := CharacterState.new("garrick_test", "Garrick", Vector2i.ZERO)
 	var male_profile := {
+		"body_base": "male",
 		"params": {
 			"gender": 1,
 			"age": 0.7,
@@ -217,6 +218,7 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	var settlement_actor := CampaignCharacterActorFactory.create_settlement_actor({
 		"id": "rurik_test",
 		"name": "Rurik",
+		"body_base": "male",
 		"appearance": {
 			"gender_presentation": "Masculine",
 			"height_scale": 1.03,
@@ -232,6 +234,7 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 
 	var wren_state := CharacterState.new("wren_test", "Wren", Vector2i.ZERO)
 	var wren_profile := {
+		"body_base": "female",
 		"params": {
 			"gender": 0,
 			"age": 0.5,
