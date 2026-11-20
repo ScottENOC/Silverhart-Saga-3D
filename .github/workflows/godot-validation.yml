@@ -118,7 +118,6 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_surface_region_masks.gd
       - name: Load Ara anatomy surface painter tool
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_anatomy_surface_painter_load.gd
-        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_surface_region_masks.gd
       - name: Audit fine Ara anatomy surface geometry
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/audit_ara_fine_surface_geometry.gd
       - name: Run character appearance tests
