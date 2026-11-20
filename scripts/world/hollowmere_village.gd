@@ -15,6 +15,7 @@ const HOLLOWMERE_ROUTES = preload("res://data/settlements/hollowmere/routes.gd")
 const HOLLOWMERE_BRIDGES = preload("res://data/settlements/hollowmere/bridges.gd")
 const HOLLOWMERE_AGRICULTURE = preload("res://data/settlements/hollowmere/agriculture.gd")
 const HOLLOWMERE_PROPS = preload("res://data/settlements/hollowmere/props.gd")
+const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 var grass_material: StandardMaterial3D
 var path_material: StandardMaterial3D
 var water_material: StandardMaterial3D
@@ -129,24 +130,12 @@ func _present_authored_settlement() -> void:
 		push_error("Hollowmere authored settlement presentation failed: %s" % result)
 
 func _create_farm_animals() -> void:
-	# Old Mac's surviving herd occupies the fenced southern pasture.
-	_spawn_creature("FarmCowA", "cow", "farm", Vector2i(5, 66), 0.82)
-	_spawn_creature("FarmCowB", "cow", "farm", Vector2i(10, 69), 0.82)
-	_spawn_creature("FarmCowC", "cow", "farm", Vector2i(13, 64), 0.82)
-	# A farm horse is present as a visible future mount candidate.
-	_spawn_creature("FarmHorse", "horse", "mount", Vector2i(24, 57), 0.82)
-	# A second coat variant and a small farm dog use their own original glTF scenes.
-	_spawn_creature("FarmWhiteHorse", "horse", "mount", Vector2i(27, 61), 0.82, "Horse_White.gltf")
-	_spawn_creature("FarmShiba", "shiba_inu", "farm", Vector2i(19, 60), 0.48, "ShibaInu.gltf")
+	for placement in HOLLOWMERE_PLACEMENTS.FARM_ANIMALS:
+		_spawn_creature(String(placement["id"]), String(placement["kind"]), String(placement["behaviour"]), placement["hex"], float(placement["scale"]), String(placement.get("asset", "")))
 
 func _create_wilderness_animals() -> void:
-	# Ambient wildlife is placed in the outer forest belt, away from the
-	# settlement, farm and roads. These are presentation actors; encounter
-	# spawning and combat ownership remain with the world simulation.
-	_spawn_creature("WildernessDeer", "deer", "passive_wildlife", Vector2i(-34, 18), 0.78)
-	_spawn_creature("WildernessStag", "stag", "passive_wildlife", Vector2i(37, -12), 0.82)
-	_spawn_creature("WildernessFox", "fox", "passive_wildlife", Vector2i(-29, -30), 0.72)
-	_spawn_creature("WildernessWolf", "wolf", "predator", Vector2i(39, 39), 0.76)
+	for placement in HOLLOWMERE_PLACEMENTS.WILDERNESS_ANIMALS:
+		_spawn_creature(String(placement["id"]), String(placement["kind"]), String(placement["behaviour"]), placement["hex"], float(placement["scale"]), String(placement.get("asset", "")))
 
 ## Registers the existing exterior animal actors in the campaign simulation.
 ## They remain neutral and dormant until an encounter explicitly activates them.
