@@ -230,3 +230,14 @@ geometry-orientation audit to inform mask authoring, not an automatic anatomical
 classifier and not evidence that the fine masks already exist. Extreme body presets
 such as Reyna and Dagna still need to be validated after the masks and the missing female
 body morph support are addressed.
+
+### Garment guide curve runtime contract
+
+The first garment-fit guide runtime contract is now implemented separately from the painted surface masks. `CharacterGarmentGuideCurve` stores a named construction line for one exact canonical body, mesh node and surface. Every guide point is attached to a source triangle by three vertex indices and barycentric weights. The resource stores the same rest-mesh signature used by fine masks and rejects a different body, surface, vertex count, topology or triangle reference.
+
+At runtime, `CharacterSurfaceRegions.get_surface_vertex_sample()` evaluates each referenced vertex using current blend shapes and skeleton skinning. The guide interpolates the three evaluated positions and normals, then derives a local tangent, binormal and orthonormal frame along the curve. This means the guide follows the deformed skin instead of remaining at a static rest-pose coordinate. It also keeps the surface attachment stable through pose changes and supported morphs.
+
+The guide vocabulary covers neckline/collar, shoulder seams, armholes, chest line, cup apexes, underbust, natural waist, high/full hip, seat, crotch front/back, inseams/outseams, limb openings and foot alignment. Left/right guides can name their paired counterpart. `CharacterGarmentGuideLibrary` loads only resources matching the actor's exact body asset; `AraCharacterActor.get_garment_guide_curves()` exposes them to fitting systems.
+
+This is the data/runtime contract and CI validation only. The manifest is intentionally empty: **no production guide curves have been authored yet**. A valid curve must be visually traced and reviewed on each canonical body, independently. The automated test uses a temporary triangle fixture to verify barycentric attachment, deformation-aware evaluation, tangent frames and stale-topology rejection; it is not a usable neckline or garment pattern. The next authoring step is a visual curve editor with surface picking, point insertion/deletion, loop closure and left/right pairing, followed by guides reviewed against Reyna and Dagna.
+
