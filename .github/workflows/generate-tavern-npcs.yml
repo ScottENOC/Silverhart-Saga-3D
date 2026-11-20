@@ -7,6 +7,8 @@ on:
       - "tools/ara/generate_tavern_npc_profiles.py"
       - "tools/ara/build_hollowmere_npcs.py"
       - "tools/ara/patch_layering.py"
+      - "tools/review/render_tavern_npc_contact_sheet.py"
+      - "tools/review/compose_tavern_npc_contact_sheet.py"
       - ".github/workflows/generate-tavern-npcs.yml"
   pull_request:
     branches: [dev]
@@ -14,6 +16,8 @@ on:
       - "tools/ara/generate_tavern_npc_profiles.py"
       - "tools/ara/build_hollowmere_npcs.py"
       - "tools/ara/patch_layering.py"
+      - "tools/review/render_tavern_npc_contact_sheet.py"
+      - "tools/review/compose_tavern_npc_contact_sheet.py"
       - ".github/workflows/generate-tavern-npcs.yml"
   workflow_dispatch:
     inputs:
@@ -87,13 +91,31 @@ jobs:
       - name: Install Blender for anatomy integration
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          sudo apt-get install -y blender python3-numpy python3-pil libegl1 libgl1-mesa-dri
 
       - name: Integrate adult anatomy consistently
         run: |
           set -euo pipefail
           python -m py_compile tools/ara/integrate_hollowmere_anatomy.py
           python tools/ara/integrate_hollowmere_anatomy.py --directory art/characters/tavern_npcs/generated
+
+      - name: Render individual NPC previews and contact sheet
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          mkdir -p art/characters/tavern_npcs/generated/review
+          blender --background --python-exit-code 1 \
+            --python tools/review/render_tavern_npc_contact_sheet.py -- \
+            art/characters/tavern_npcs/generated/profiles.json \
+            art/characters/tavern_npcs/generated \
+            art/characters/tavern_npcs/generated/review
+          python3 tools/review/compose_tavern_npc_contact_sheet.py \
+            --manifest art/characters/tavern_npcs/generated/profiles.json \
+            --images art/characters/tavern_npcs/generated/review \
+            --output art/characters/tavern_npcs/generated/review/contact-sheet.png
 
       - name: Upload generated NPCs and deterministic manifest
         uses: actions/upload-artifact@v4
@@ -103,5 +125,6 @@ jobs:
             art/characters/tavern_npcs/generated/*.glb
             art/characters/tavern_npcs/generated/*.params.json
             art/characters/tavern_npcs/generated/profiles.json
+            art/characters/tavern_npcs/generated/review/*.png
           if-no-files-found: error
           retention-days: 90
