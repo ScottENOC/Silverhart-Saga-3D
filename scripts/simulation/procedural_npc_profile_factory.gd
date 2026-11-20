@@ -3,7 +3,6 @@ extends RefCounted
 ## Deterministic appearance profiles for background campaign NPCs.
 ## A character ID is the seed: the same NPC is stable across sessions and builds.
 
-const HAIR_STYLES := ["short02", "short03", "short04", "long01", "bob02", "buzz", "cornrows", "box_braids", "mohawk", "braid01"]
 const EYE_COLOURS := ["brown", "brownlight", "darkbrown", "green", "bluegreen", "grey", "blue", "hazel"]
 const NATURAL_HAIR := ["#17120F", "#30251B", "#49372A", "#75452D", "#87452D", "#A87552", "#8A6A4C", "#898176"]
 const UNNATURAL_HAIR := ["#287BFF", "#7446A8", "#2C9B70"]
@@ -21,9 +20,14 @@ static func create_profile(character_id: String, display_name: String, context: 
     var facial_hair := "none"
     if gender == 1 and age > 0.42 and rng.randf() < 0.38:
         facial_hair = ["stubble", "mustache", "goatee", "short_beard"][rng.randi_range(0, 3)]
-    var tattoos: Array[String] = []
+    var tattoos: Array[Dictionary] = []
     if age >= 0.34375 and rng.randf() < 0.07:
-        tattoos.append(["armband_l", "forearm_l", "sleeve_r", "chest", "back"][rng.randi_range(0, 4)])
+        tattoos.append({"design": "mirabel_arcane"})
+    var piercings: Array[String] = []
+    if age >= 0.34375 and rng.randf() < 0.004:
+        piercings.append("nipple_left")
+    if age >= 0.34375 and rng.randf() < 0.001:
+        piercings.append("clit")
     var top_options := ["long_tunic", "tunic", "tattered_shirt"]
     if context in ["guard", "soldier"]:
         top_options.append("uniform_shirt")
@@ -50,6 +54,7 @@ static func create_profile(character_id: String, display_name: String, context: 
         "hairColor": hair_tint,
         "facialHair": facial_hair,
         "tattoos": tattoos,
+        "piercings": piercings,
         "tattoo_ink": "#3b3028",
         "outfit": "none",
         "top": top,
