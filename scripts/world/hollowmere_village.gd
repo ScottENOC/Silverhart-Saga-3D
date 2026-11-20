@@ -5,14 +5,9 @@ extends Node3D
 
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
 const GROUND_SIZE: float = 420.0
-const ORGANIC_FEATURES = preload("res://scripts/world/organic_world_features.gd")
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 const HEARTLAND_BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
-const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
-const POLYLINE_FEATURE_FACTORY = preload("res://scripts/world/world_polyline_feature_factory.gd")
-const BRIDGE_FEATURE_FACTORY = preload("res://scripts/world/world_bridge_feature_factory.gd")
-const AGRICULTURAL_FEATURE_FACTORY = preload("res://scripts/world/world_agricultural_feature_factory.gd")
 const AUTHORED_SETTLEMENT_PRESENTER = preload("res://scripts/world/authored_settlement_presenter.gd")
 const HOLLOWMERE_SETTLEMENT = preload("res://data/settlements/hollowmere/settlement_definition.gd")
 const HOLLOWMERE_BUILDINGS = preload("res://data/settlements/hollowmere/buildings.gd")
