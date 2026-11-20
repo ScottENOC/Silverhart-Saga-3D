@@ -123,7 +123,8 @@ def detect_breast_surface_anchors(skin, armature):
     depsgraph = bpy.context.evaluated_depsgraph_get()
     evaluated = skin.evaluated_get(depsgraph)
     mesh = evaluated.to_mesh()
-    width = mesh_world_bounds(skin)[1].x - mesh_world_bounds(skin)[0].x
+    skin_bounds = [skin.matrix_world @ Vector(corner) for corner in skin.bound_box]
+    width = max(point.x for point in skin_bounds) - min(point.x for point in skin_bounds)
     # Delimit the upper torso relative to the actual rig, not whole-body height.
     z_low = pelvis_z + torso_span * 0.36
     z_high = shoulder_z - torso_span * 0.10
