@@ -115,7 +115,7 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 ## Incremental migration sequence
 
 1. **Building factory (current slice):** extract the Millbrook hardcoded house into a shared factory; define supported archetypes and data-driven parameters; add isolated tests and CI validation.
-2. **Hollowmere feature decomposition:** buildings are now driven by `HollowmereVillageData.BUILDINGS` for both footprints and factory construction. Continue with roads, watercourse, bridge, fields, fences, vegetation and reusable props. Preserve gameplay while each feature is migrated. Keep the tavern playable.
+2. **Hollowmere feature decomposition:** buildings are now driven by `HollowmereVillageData.BUILDINGS` for both footprints and factory construction. Continue with vegetation, remaining bespoke props and reusable landmark dressing. Preserve gameplay while each feature is migrated. Keep the tavern playable.
 3. **Building and interior convergence:** make all Hollowmere buildings use the same building definitions, logical registry, doors, entrances and reusable interior/floor composition. Do not treat the tavern as a reason to duplicate the system.
 4. **Streaming consolidation:** decide the single authoritative streamer and separate data generation, logical world state and disposable presentation. Verify cross-chunk roads, rivers, terrain edges, actors and state restoration.
 5. **Source inventory extraction:** systematically inspect Hex-crpg Campaign 2 source and produce complete inventories for settlements, structures, routes, landmarks and authored geography. Keep source IDs and provenance.
@@ -143,6 +143,7 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 - [x] Keep store signage and chapel bell tower as separate add-on presentation features.
 - [x] Move Hollowmere stream, banks, main roads, village lane, ring road and house spurs into authored presentation route data and a shared polyline renderer.
 - [x] Move Hollowmere bridge placement and component geometry into authored data and a shared bridge assembly factory.
-- [x] Move Hollowmere field polygons, crop rows and fence runs into authored data and a shared agricultural renderer.\n- [ ] Migrate remaining bespoke props (including the broken-fence/blood-trail quest dressing).
+- [x] Move Hollowmere field polygons, crop rows and fence runs into authored data and a shared agricultural renderer.
+- [ ] Migrate remaining bespoke props (including the broken-fence/blood-trail quest dressing).
 - [ ] Consolidate streaming and world composition.
 - [ ] Complete source-world feature inventory and regional migration.
