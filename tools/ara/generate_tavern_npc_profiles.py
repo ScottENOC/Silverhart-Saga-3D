@@ -49,7 +49,7 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
         raise SystemExit(f"Cannot generate tavern outfits: catalogue tops={tops}, bottoms={bottoms}")
 
     # Rare styles are enabled only when the pinned Ara catalogue actually has them.
-    rare_under_bottoms = [x for x in ["g_string", "g-string", "string_bikini_bottom", "lace_briefs", "fishnet_briefs"] if x in garments]
+    rare_under_bottoms = [x for x in ["bikini_bottom", "g_string", "g-string", "string_bikini_bottom", "lace_briefs", "fishnet_briefs"] if x in garments]
     rare_under_tops = [x for x in ["lace_bra", "fishnet_bra", "halter_bra_lace", "halter_bra_fishnet"] if x in garments]
     rare_tops = [x for x in ["lace_shirt", "fishnet_shirt"] if x in garments]
     rare_bottoms = [x for x in ["lace_pants", "fishnet_pants"] if x in garments]
@@ -98,7 +98,8 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
             "african": complexion[0], "asian": complexion[1], "caucasian": complexion[2],
             "eyes": person.choice(eyes), "hair": person.choice(HAIR_STYLES),
             "hairTint": hair_tint, "hairColor": hair_tint, "facialHair": facial_hair,
-            "tattoos": tattoo_list, "tattooInk": "#3b3028",
+            "tattoos": tattoo_list, "tattooInk": "#3b3028", "tattoo_ink": "#3b3028",
+            "piercings": piercings,
             "outfit": "none", "top": top, "underTop": under_top,
             "underBottom": under_bottom, "jacket": "none", "bottom": bottom,
             "underwear": True, "shoes": person.choice(["sandals", "combat_boots"]),
@@ -126,9 +127,10 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
         "count": count,
         "rarity_policy": {
             "unnatural_hair": 0.015, "tattoos": 0.07,
+            "non_ear_piercings": 0.004, "additional_clitoral_piercing": 0.001,
             "rare_underwear_bottom": 0.003, "rare_underwear_top": 0.005,
             "transparent_or_open_weave_shirt": 0.005, "transparent_or_open_weave_pants": 0.005,
-            "note": "Rare garment probabilities activate only when those exact IDs exist in the pinned Ara catalogue. Piercings are handled by the runtime appearance-details layer; transparency is represented only by supported lace/fishnet catalogue garments."
+            "note": "Rare garment probabilities activate only when those exact IDs exist in the pinned Ara catalogue. Piercing details are carried in the profile for the runtime appearance-details layer; the current Ara export may ignore those Silverhart-only fields."
         },
         "characters": characters,
     }
