@@ -92,9 +92,7 @@ regions added where gameplay needs them.
 
 ## Current implementation boundary
 
-The first runtime layer implements rig landmarks and resolves existing surface anchors.
-Surface-region segmentation, deformation-aware sampling and spatial volumes remain
-explicit follow-on work; they are not claimed to be implemented by this layer.
+The shared runtime now implements rig landmarks, existing surface anchors and a validated broad surface-region query layer. Fine anatomical masks, authored surface anchors beyond the existing sockets, and spatial volumes remain follow-on work.
 
 ## Surface-region proof of concept
 
@@ -149,3 +147,19 @@ The bake API ignores blend shapes, so this engine comparison is performed with m
 weights reset and a changed joint pose. The Godot CI run is the acceptance gate; no
 garment-fitting consumer should depend on this proof of concept until that comparison
 passes for both canonical bodies.
+
+### Next step: fine anatomical surface masks
+
+The broad rig-weight regions are now validated as a deformation evaluator. Do not stretch
+those broad labels into fine anatomy by simply adding more bone aliases. The next layer
+needs authored, per-body semantic masks (for example left/right breast, underbust, waist,
+hip, buttock and groin regions) with stable mesh/surface/vertex correspondence. Masks
+must remain separate from the existing female skin-colour vertex channel and must be
+evaluated through the same morph-and-skin deformation path.
+
+`tests/audit_ara_fine_surface_geometry.gd` records the current chest, abdomen and pelvis
+sample bounds, centroids and normal directions for both canonical bodies. This is a
+geometry-orientation audit to inform mask authoring, not an automatic anatomical
+classifier and not evidence that the fine masks already exist. Extreme body presets
+such as Reyna and Dagna still need to be validated after the masks and the missing female
+body morph support are addressed.
