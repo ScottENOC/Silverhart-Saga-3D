@@ -14,7 +14,7 @@ const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_q
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 const WORLD_CELL_LOADER_SCRIPT = preload("res://scripts/world/campaign2_world_cell_loader.gd")
-const BUILDING_LAYOUT_REGISTRAR = preload("res://scripts/world/building_layout_registrar.gd")
+const INTERIOR_LAYOUT_REGISTRAR = preload("res://scripts/world/world_interior_layout_registrar.gd")
 const INTERIOR_LAYOUT_PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
 const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
 const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
@@ -22,18 +22,14 @@ const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
-const TAVERN_BUILDING_ID := "hollow_tankard"
-const TAVERN_FRONT_DOOR_ID := "hollow_tankard_front_door"
-const TAVERN_DOOR_HEX := Vector2i(0, 3)
-const UPPER_FLOOR_ORIGIN := Vector2i(100, 100)
+const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
+const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
+const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
+const UPPER_FLOOR_ORIGIN: Vector2i = HOLLOW_TANKARD_LAYOUT.UPPER_FLOOR_ORIGIN
 const UPPER_FLOOR_Y: float = HOLLOW_TANKARD_LAYOUT.UPPER_FLOOR_Y
-const TAVERN_STAIR_GROUND_HEX := Vector2i(3, 0)
-const TAVERN_STAIR_UPPER_HEX := UPPER_FLOOR_ORIGIN + Vector2i(3, -1)
-const UPPER_BED_HEXES = [
-	Vector2i(-3, 0), Vector2i(-3, 2),
-	Vector2i(2, -2), Vector2i(3, -2),
-	Vector2i(2, 0), Vector2i(3, 0),
-]
+const TAVERN_STAIR_GROUND_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.STAIR_GROUND_HEX
+const TAVERN_STAIR_UPPER_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.STAIR_UPPER_HEX
+const UPPER_BED_HEXES: Array[Vector2i] = HOLLOW_TANKARD_LAYOUT.UPPER_BED_HEXES
 
 var location_label: Label
 var upper_shell_group: Node3D
@@ -206,64 +202,14 @@ func _configure_location_simulation() -> void:
 	# regional preview. Hollowmere is no longer a bypassed special-case radius.
 	world_cell_loader = WORLD_CELL_LOADER_SCRIPT.new() as Campaign2WorldCellLoader
 	world_cell_loader.load_around(simulation.map_data, Vector2i.ZERO, 4)
-	# Apply tavern-specific interior walls/furniture as local gameplay overlays;
-	# terrain, paths, water, buildings and vegetation come from the world provider.
-	for q in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
-		for r in range(-HollowmereVillageData.MAP_RADIUS, HollowmereVillageData.MAP_RADIUS + 1):
-			var hex := Vector2i(q, r)
-			if not HollowmereVillageData.is_in_bounds(hex):
-				continue
-			var world := HexGrid.axial_to_world(hex, HEX_RADIUS)
-			var inside_room: bool = absf(world.x) < ROOM_HALF_WIDTH - 0.2 and absf(world.z) < ROOM_HALF_DEPTH - 0.2
-			var blocked: bool = _is_wall_cell_blocked(world) or (inside_room and _is_furniture_cell_blocked(world)) or HollowmereVillageData.is_blocked(hex)
-			if inside_room:
-				simulation.map_data.add_cell(hex, 0.0, not blocked, "timber_floor")
-			else:
-				simulation.map_data.set_walkable(hex, not blocked)
-
-	# Keep this location's authored building and floor geometry here, but
-	# delegate registration and map-cell creation to the reusable framework.
-	var upper_floor_cells: Array[Dictionary] = []
-	for q in range(-4, 5):
-		var row_shift := -floori(float(q) / 2.0)
-		for row in range(-2, 3):
-			var local_hex := Vector2i(q, row + row_shift)
-			var local_world := HexGrid.axial_to_world(local_hex, HEX_RADIUS)
-			var partition_wall := (q == 0 and absf(local_world.z) > 1.1) or (q >= 1 and q <= 4 and absf(local_world.z) < 0.55 and q != 3)
-			var furniture_blocked := UPPER_BED_HEXES.has(local_hex)
-			upper_floor_cells.append({
-				"hex": UPPER_FLOOR_ORIGIN + local_hex,
-				"elevation": UPPER_FLOOR_Y,
-				"walkable": not (partition_wall or furniture_blocked),
-				"terrain_id": "timber_floor",
-			})
-
-	var building_definition := {
-		"id": TAVERN_BUILDING_ID,
-		"name": "The Hollow Tankard",
-		"entrance_hex": TAVERN_DOOR_HEX,
-		"floor_count": 2,
-		"lodging_capacity": 8,
-		"sleeping_beds": 6,
-		"virtual_floor_bounds": [96, 104, 96, 104],
-		"source_location": "campaign2World.js: Hollow Tankard; hollowmereSocialFabric.js: buildTankardUpperFloor",
-		"source_stair_hex": TAVERN_STAIR_GROUND_HEX,
-		"upper_landing_hex": TAVERN_STAIR_UPPER_HEX,
-	}
-	var door_definition := {
-		"id": TAVERN_FRONT_DOOR_ID,
-		"building_id": TAVERN_BUILDING_ID,
-		"hex": TAVERN_DOOR_HEX,
-		"starts_open": true,
-		"starts_locked": false,
-		"durability": 20,
-	}
-	if not BUILDING_LAYOUT_REGISTRAR.register_layout(simulation, building_definition, door_definition, upper_floor_cells):
-		push_error("Failed to register the Hollow Tankard building layout.")
+	# Authored collision regions, upper-floor cells, building metadata and door
+	# state are registered by the shared logical interior-layout registrar.
+	if not INTERIOR_LAYOUT_REGISTRAR.register_layout(
+		simulation, HOLLOW_TANKARD_LAYOUT.LOGICAL_DEFINITION, HEX_RADIUS
+	):
+		push_error("Failed to register the Hollow Tankard logical interior layout.")
 		return
 	simulation.building_registry.door_state_changed.connect(_on_building_door_state_changed)
-
-
 	simulation.character_moved.connect(_on_character_moved)
 	simulation.reaction_requested.connect(_on_reaction_requested)
 	simulation.reaction_resolved.connect(_on_reaction_resolved)
@@ -349,30 +295,6 @@ func _on_world_clock_ticked(_tick_index: int, _world_seconds: float) -> void:
 		if tree is SeasonalTreeVisual:
 			tree.refresh_month(month_index)
 	_refresh_resource_visuals()
-
-func _is_wall_cell_blocked(world: Vector3) -> bool:
-	# The south-wall gap is the only opening. The nearest grid cells to the
-	# doorway remain clear; adjacent cells are blocked by the wall.
-	if absf(absf(world.x) - ROOM_HALF_WIDTH) < 1.1 and absf(world.z) < ROOM_HALF_DEPTH:
-		return true
-	if absf(world.z + ROOM_HALF_DEPTH) < 1.1:
-		return true # north wall has no doorway
-	if absf(world.z - ROOM_HALF_DEPTH) < 1.1 and absf(world.x) > 1.1:
-		return true # south wall, except the entrance
-	return false
-
-func _is_furniture_cell_blocked(world: Vector3) -> bool:
-	# These are coarse logical footprints, deliberately separate from meshes.
-	# The clear central aisle and door approach remain walkable.
-	if world.z < -4.0 and world.x > -1.2 and world.x < 6.2:
-		return true # bar and working space
-	if world.x < -6.0 and world.z > -3.8 and world.z < 1.5:
-		return true # fireplace/hearth
-	if absf(world.z) < 0.95 and ((world.x > -4.0 and world.x < -1.2) or (world.x > 1.2 and world.x < 4.0)):
-		return true # two tables
-	if absf(world.z) > 1.0 and absf(world.z) < 2.0 and ((world.x > -4.0 and world.x < -1.2) or (world.x > 1.2 and world.x < 4.0)):
-		return true # benches
-	return false
 
 func _present_interior_layout() -> void:
 	# Static interior geometry is authored in a location data manifest and
