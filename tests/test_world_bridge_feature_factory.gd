@@ -50,6 +50,8 @@ func _test_invalid_bridge_is_rejected_atomically() -> void:
 		"parts": [{"name": "Deck", "position": Vector3.ZERO, "size": Vector3(1.0, 0.0, 1.0), "material": "timber"}]
 	}
 	assert(FACTORY.create_bridge(parent, invalid_size, {"timber": timber}, HexGrid.DEFAULT_RADIUS_M) == null, "Zero-sized geometry should be rejected")
+	var invalid_centre := {"id": "BadCentre", "centre": Vector3.ZERO, "parts": [{"name": "Deck", "position": Vector3.ZERO, "size": Vector3.ONE, "material": "timber"}]}
+	assert(FACTORY.create_bridge(parent, invalid_centre, {"timber": timber}, HexGrid.DEFAULT_RADIUS_M) == null, "Bridge centre must be an axial coordinate")
 	assert(parent.get_child_count() == 0, "Invalid definitions must not leave partial bridge roots")
 	parent.free()
 
