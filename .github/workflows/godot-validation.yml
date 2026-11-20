@@ -116,6 +116,8 @@ jobs:
         run: xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 bash tools/ci/run_godot_checked.sh godot --path . --rendering-method gl_compatibility --script res://tests/test_character_surface_regions.gd
       - name: Test authored fine Ara surface mask contract
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_surface_region_masks.gd
+      - name: Test topology-bound Ara garment guide curves
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_garment_guide_curves.gd
       - name: Load Ara anatomy surface painter tool
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_anatomy_surface_painter_load.gd
       - name: Audit fine Ara anatomy surface geometry
