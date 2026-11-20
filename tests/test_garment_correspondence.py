@@ -61,3 +61,38 @@ class GarmentCorrespondenceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SurfaceCorrespondenceTests(unittest.TestCase):
+    def test_barycentric_coordinates_at_triangle_vertices_and_centre(self):
+        from garment_correspondence import barycentric_weights
+        a, b, c = (0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)
+        self.assertEqual(barycentric_weights(a, a, b, c), (1.0, 0.0, 0.0))
+        self.assertEqual(barycentric_weights(b, a, b, c), (0.0, 1.0, 0.0))
+        weights = barycentric_weights((0.25, 0.25, 0.0), a, b, c)
+        self.assertAlmostEqual(sum(weights), 1.0)
+        self.assertAlmostEqual(weights[0], 0.5)
+        self.assertAlmostEqual(weights[1], 0.25)
+        self.assertAlmostEqual(weights[2], 0.25)
+
+    def test_barycentric_rejects_degenerate_or_outside_points(self):
+        from garment_correspondence import barycentric_weights
+        with self.assertRaises(ValueError):
+            barycentric_weights((0, 0, 0), (0, 0, 0), (1, 0, 0), (2, 0, 0))
+        with self.assertRaises(ValueError):
+            barycentric_weights((1, 1, 0), (0, 0, 0), (1, 0, 0), (0, 1, 0))
+
+    def test_surface_delta_interpolation(self):
+        from garment_correspondence import interpolate_triangle_delta
+        result = interpolate_triangle_delta(
+            (0.5, 0.25, 0.25),
+            ((0, 0, 0), (2, 0, 0), (0, 2, 0)),
+        )
+        self.assertEqual(result, (0.5, 0.5, 0.0))
+
+    def test_surface_delta_requires_valid_triangle(self):
+        from garment_correspondence import interpolate_triangle_delta
+        with self.assertRaises(ValueError):
+            interpolate_triangle_delta((1, 0), ((0, 0, 0), (1, 0, 0)))
+        with self.assertRaises(ValueError):
+            interpolate_triangle_delta((0, 0, 0), ((0, 0, 0),) * 3)
