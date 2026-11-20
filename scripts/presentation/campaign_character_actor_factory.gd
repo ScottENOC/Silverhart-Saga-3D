@@ -14,7 +14,6 @@ static func create_actor(
     is_player: bool,
     player_profile: Dictionary,
     npc_profile: Dictionary,
-    ara_model_id: String,
     ambient_role: String
 ) -> Node3D:
     if state == null:
