@@ -9,20 +9,102 @@ const BODY_OPTIONS := {
     "Male Ara": "res://art/characters/ara_runtime/ara_person_male_body.glb"
 }
 const REGION_LABELS := {
+    "face_front": "Face — front",
+    "lips": "Lips / mouth contact",
+    "ear_left": "Ear — left",
+    "ear_right": "Ear — right",
+    "neck_front": "Neck — front",
+    "neck_back": "Neck — back",
+    "neck_left": "Neck — left",
+    "neck_right": "Neck — right",
+    "clavicle_left": "Clavicle — left",
+    "clavicle_right": "Clavicle — right",
     "breast_left": "Breast — left",
     "breast_right": "Breast — right",
+    "areola_left": "Areola — left",
+    "areola_right": "Areola — right",
+    "nipple_left": "Nipple — left",
+    "nipple_right": "Nipple — right",
     "underbust": "Underbust",
-    "waist": "Waist",
+    "chest_back": "Upper / mid back",
+    "abdomen_upper": "Abdomen — upper",
+    "abdomen_lower": "Abdomen — lower",
+    "waist": "Waist — general",
+    "waist_front": "Waist — front",
+    "waist_back": "Waist — back",
+    "waist_left": "Waist — left side",
+    "waist_right": "Waist — right side",
+    "flank_left": "Flank — left",
+    "flank_right": "Flank — right",
+    "pelvis_front": "Pelvis — front",
+    "pelvis_back": "Pelvis — back",
     "hip_left": "Hip — left",
     "hip_right": "Hip — right",
     "buttock_left": "Buttock — left",
     "buttock_right": "Buttock — right",
-    "groin": "Groin"
+    "groin": "Groin — general",
+    "perineum": "Perineum",
+    "anal_region": "Anal / perianal surface",
+    "vulva_external": "External vulvar region",
+    "penis_external": "External penile region",
+    "scrotum": "Scrotal region",
+    "shoulder_left": "Shoulder — left",
+    "shoulder_right": "Shoulder — right",
+    "elbow_left": "Elbow — left",
+    "elbow_right": "Elbow — right",
+    "forearm_left": "Forearm — left",
+    "forearm_right": "Forearm — right",
+    "wrist_left": "Wrist — left",
+    "wrist_right": "Wrist — right",
+    "palm_left": "Palm — left",
+    "palm_right": "Palm — right",
+    "hand_back_left": "Back of hand — left",
+    "hand_back_right": "Back of hand — right",
+    "thigh_inner_left": "Inner thigh — left",
+    "thigh_inner_right": "Inner thigh — right",
+    "thigh_outer_left": "Outer thigh — left",
+    "thigh_outer_right": "Outer thigh — right",
+    "knee_left": "Knee — left",
+    "knee_right": "Knee — right",
+    "calf_left": "Calf — left",
+    "calf_right": "Calf — right",
+    "ankle_left": "Ankle — left",
+    "ankle_right": "Ankle — right",
+    "foot_top_left": "Top of foot — left",
+    "foot_top_right": "Top of foot — right",
+    "foot_sole_left": "Sole — left",
+    "foot_sole_right": "Sole — right"
 }
+const REGION_GROUPS := [
+    {"label": "HEAD AND NECK", "ids": ["face_front", "lips", "ear_left", "ear_right", "neck_front", "neck_back", "neck_left", "neck_right"]},
+    {"label": "TORSO AND CHEST", "ids": ["clavicle_left", "clavicle_right", "breast_left", "breast_right", "areola_left", "areola_right", "nipple_left", "nipple_right", "underbust", "chest_back", "abdomen_upper", "abdomen_lower", "waist", "waist_front", "waist_back", "waist_left", "waist_right", "flank_left", "flank_right"]},
+    {"label": "PELVIS AND EXTERNAL ANATOMY", "ids": ["pelvis_front", "pelvis_back", "hip_left", "hip_right", "buttock_left", "buttock_right", "groin", "perineum", "anal_region", "vulva_external", "penis_external", "scrotum"]},
+    {"label": "ARMS AND HANDS", "ids": ["shoulder_left", "shoulder_right", "elbow_left", "elbow_right", "forearm_left", "forearm_right", "wrist_left", "wrist_right", "palm_left", "palm_right", "hand_back_left", "hand_back_right"]},
+    {"label": "LEGS AND FEET", "ids": ["thigh_inner_left", "thigh_inner_right", "thigh_outer_left", "thigh_outer_right", "knee_left", "knee_right", "calf_left", "calf_right", "ankle_left", "ankle_right", "foot_top_left", "foot_top_right", "foot_sole_left", "foot_sole_right"]}
+]
 const REGION_PAIRS := {
     "breast_left": "breast_right", "breast_right": "breast_left",
+    "areola_left": "areola_right", "areola_right": "areola_left",
+    "nipple_left": "nipple_right", "nipple_right": "nipple_left",
+    "ear_left": "ear_right", "ear_right": "ear_left",
+    "clavicle_left": "clavicle_right", "clavicle_right": "clavicle_left",
     "hip_left": "hip_right", "hip_right": "hip_left",
-    "buttock_left": "buttock_right", "buttock_right": "buttock_left"
+    "buttock_left": "buttock_right", "buttock_right": "buttock_left",
+    "flank_left": "flank_right", "flank_right": "flank_left",
+    "waist_left": "waist_right", "waist_right": "waist_left",
+    "shoulder_left": "shoulder_right", "shoulder_right": "shoulder_left",
+    "elbow_left": "elbow_right", "elbow_right": "elbow_left",
+    "forearm_left": "forearm_right", "forearm_right": "forearm_left",
+    "wrist_left": "wrist_right", "wrist_right": "wrist_left",
+    "palm_left": "palm_right", "palm_right": "palm_left",
+    "hand_back_left": "hand_back_right", "hand_back_right": "hand_back_left",
+    "thigh_inner_left": "thigh_inner_right", "thigh_inner_right": "thigh_inner_left",
+    "thigh_outer_left": "thigh_outer_right", "thigh_outer_right": "thigh_outer_left",
+    "knee_left": "knee_right", "knee_right": "knee_left",
+    "calf_left": "calf_right", "calf_right": "calf_left",
+    "ankle_left": "ankle_right", "ankle_right": "ankle_left",
+    "foot_top_left": "foot_top_right", "foot_top_right": "foot_top_left",
+    "foot_sole_left": "foot_sole_right", "foot_sole_right": "foot_sole_left"
 }
 const MASK_DIRECTORY := "res://data/characters/anatomy_masks"
 const MASK_MANIFEST_PATH := "res://data/characters/anatomy_masks/manifest.tres"
@@ -164,9 +246,12 @@ func _build_interface() -> void:
 
     _add_caption(column, "Anatomical region")
     _region_option = OptionButton.new()
-    for region_id in REGION_LABELS:
-        _region_option.add_item(REGION_LABELS[region_id])
-    _region_option.select(0)
+    for group in REGION_GROUPS:
+        _region_option.get_popup().add_separator(String(group["label"]))
+        for region_id in group["ids"]:
+            _region_option.add_item(REGION_LABELS[region_id])
+            _region_option.set_item_metadata(_region_option.item_count - 1, region_id)
+    _region_option.select(1)
     _region_option.item_selected.connect(_on_region_selected)
     column.add_child(_region_option)
 
@@ -348,10 +433,12 @@ func _on_surface_selected(index: int) -> void:
 
 
 func _on_region_selected(index: int) -> void:
-    var keys := REGION_LABELS.keys()
-    if index < 0 or index >= keys.size():
+    if index < 0 or index >= _region_option.item_count:
         return
-    _selected_region = String(keys[index])
+    var selected_id: Variant = _region_option.get_item_metadata(index)
+    if selected_id == null:
+        return
+    _selected_region = String(selected_id)
     _rebuild_markers()
 
 
