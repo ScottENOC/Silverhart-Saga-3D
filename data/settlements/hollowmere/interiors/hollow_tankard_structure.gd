@@ -103,8 +103,8 @@ const UPPER_FLOOR := {
 const ROOF := {
 	"id":"RoofCutaway",
 	"features":[
-		{"name":"NorthRoofSlope","position":Vector3(0.0,7.75,-2.75),"size":Vector3(16.9,0.22,sqrt(5.5*5.5+2.6*2.6)),"material":"roof","rotation_degrees":Vector3(-rad_to_deg(atan2(2.6,5.5)),0.0,0.0)},
-		{"name":"SouthRoofSlope","position":Vector3(0.0,7.75,2.75),"size":Vector3(16.9,0.22,sqrt(5.5*5.5+2.6*2.6)),"material":"roof","rotation_degrees":Vector3(rad_to_deg(atan2(2.6,5.5)),0.0,0.0)},
+		{"name":"NorthRoofSlope","position":Vector3(0.0,7.75,-2.75),"size":Vector3(16.9,0.22,6.083584),"material":"roof","rotation_degrees":Vector3(-25.301379,0.0,0.0)},
+		{"name":"SouthRoofSlope","position":Vector3(0.0,7.75,2.75),"size":Vector3(16.9,0.22,6.083584),"material":"roof","rotation_degrees":Vector3(25.301379,0.0,0.0)},
 		{"name":"RidgeBeam","position":Vector3(0.0,9.03,0.0),"size":Vector3(17.0,0.25,0.3),"material":"dark_wood"},
 		{"name":"Chimney","position":Vector3(-6.0,8.0,-1.0),"size":Vector3(0.9,3.8,0.9),"material":"stone"}
 	]
