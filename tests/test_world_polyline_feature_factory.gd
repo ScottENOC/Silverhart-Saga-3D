@@ -1,10 +1,12 @@
 extends SceneTree
 
 const FACTORY = preload("res://scripts/world/world_polyline_feature_factory.gd")
+const VILLAGE_DATA = preload("res://scripts/world/hollowmere_village_data.gd")
 
 func _initialize() -> void:
 	_test_authored_route_rendering()
 	_test_invalid_definitions_are_skipped_without_partial_nodes()
+	_test_hollowmere_authored_route_manifest()
 	print("World polyline feature factory tests passed.")
 	quit(0)
 
@@ -43,4 +45,20 @@ func _test_invalid_definitions_are_skipped_without_partial_nodes() -> void:
 	]
 	created = FACTORY.render_features(parent, duplicate_ids, {"path": material}, HexGrid.DEFAULT_RADIUS_M)
 	assert(created.size() == 1 and parent.get_child_count() == 1, "Only the first route with a stable ID should be created")
+	parent.free()
+
+func _test_hollowmere_authored_route_manifest() -> void:
+	var parent := Node3D.new()
+	var path_material := StandardMaterial3D.new()
+	var water_material := StandardMaterial3D.new()
+	var bank_material := StandardMaterial3D.new()
+	var created := FACTORY.render_features(
+		parent,
+		VILLAGE_DATA.PRESENTATION_ROUTES,
+		{"path": path_material, "water": water_material, "bank": bank_material},
+		HexGrid.DEFAULT_RADIUS_M
+	)
+	assert(VILLAGE_DATA.PRESENTATION_ROUTES.size() == 11, "Hollowmere should author the stream, banks, main roads, village lane, ring and five house spurs")
+	assert(created.size() == VILLAGE_DATA.PRESENTATION_ROUTES.size(), "Every authored Hollowmere route should render")
+	assert(parent.get_node_or_null("VillageStream") != null and parent.get_node_or_null("NorthSouthRoad") != null, "Key routes should retain stable scene names")
 	parent.free()
