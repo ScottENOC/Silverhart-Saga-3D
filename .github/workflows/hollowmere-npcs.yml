@@ -6,6 +6,7 @@ on:
     branches: [dev, feature/opening-village]
     paths:
       - "data/characters/hollowmere_npcs.json"
+      - "data/characters/hollowmere_population.json"
       - "tools/ara/build_hollowmere_npcs.py"
       - "tools/ara/patch_layering.py"
       - "tools/ara/integrate_hollowmere_anatomy.py"
