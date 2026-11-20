@@ -7,7 +7,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tools.ara.garment_fit import (
-    FIT_PROFILES, classify_strain, estimate_correction_strain, evaluate_fit,\n    profile_for_material, profile_name_for_material,
+    FIT_PROFILES, classify_strain, estimate_correction_strain, evaluate_fit,
+    profile_for_material, profile_name_for_material,
 )
 
 
