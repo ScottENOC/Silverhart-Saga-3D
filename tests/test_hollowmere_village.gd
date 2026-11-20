@@ -126,11 +126,15 @@ func _test_hollowmere_character_manifest() -> void:
             assert(not profile.has("hex"), "Character profile data must not duplicate world placement")
             continue
         assert(not profile.has("hex"), "Character profile data must not duplicate world placement")
-        assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.has(String(profile["id"])), "%s must have one authored settlement start" % profile["id"])
-        var spawn: Vector2i = HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS[String(profile["id"])]
-        assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
-        assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % profile["id"])
-    assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.size() == 21, "Every non-player profile must have exactly one start placement")
+        var character_id := String(profile["id"])
+        if HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.has(character_id):
+            var spawn: Vector2i = HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS[character_id]
+            assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % character_id)
+            assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % character_id)
+        else:
+            assert(HOLLOWMERE_PLACEMENTS.DEFERRED_COMPANIONS.has(character_id), "%s must have a local start or an explicit deferred recruitment-region marker" % character_id)
+    assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.size() == 14, "Only characters actually present in the opening settlement should have local starts")
+    assert(HOLLOWMERE_PLACEMENTS.DEFERRED_COMPANIONS.size() == 7, "Companions awaiting their real recruitment regions should remain explicitly deferred")
     assert(HOLLOWMERE_PLACEMENTS.FARM_ANIMALS.size() == 6, "All six farm animal placements must remain authored")
     assert(HOLLOWMERE_PLACEMENTS.WILDERNESS_ANIMALS.size() == 4, "All four ambient wildlife placements must remain authored")
     var companion_names := ["Ser Aldric Thorne", "Nix Sharpear", "Warlord Grukk Ironhide", "Reyna Fletcher", "Mirabel Quill", "Fenn Oakheart", "Brother Alden", "Snik Fangtooth"]
