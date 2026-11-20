@@ -133,6 +133,8 @@ def map_group(obj, label, vertex_indices, body_vertices, body_triangles, body_tr
             positions.append(vertex_index)
             weights.append(None)
             distances.append(distance)
+            signed_distances.append(None)
+            surface_normals.append(None)
             triangle_ids.append(None)
             rejected += 1
             continue
