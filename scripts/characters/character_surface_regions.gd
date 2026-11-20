@@ -62,13 +62,18 @@ func configure(character_root: Node3D, body_root: Node3D) -> bool:
         return false
 
     for mesh_instance in meshes:
-        if mesh_instance.mesh.blend_shape_mode != Mesh.BLEND_SHAPE_MODE_RELATIVE:
+        var array_mesh := mesh_instance.mesh as ArrayMesh
+        if array_mesh == null:
+            _configuration_error = "Expected ArrayMesh on %s" % mesh_instance.name
+            _surfaces.clear()
+            return false
+        if array_mesh.blend_shape_mode != Mesh.BLEND_SHAPE_MODE_RELATIVE:
             _configuration_error = "Unsupported blend-shape mode on %s; expected RELATIVE" % mesh_instance.name
             _surfaces.clear()
             return false
         var skin := mesh_instance.skin
-        for surface_index in range(mesh_instance.mesh.get_surface_count()):
-            var arrays := mesh_instance.mesh.surface_get_arrays(surface_index)
+        for surface_index in range(array_mesh.get_surface_count()):
+            var arrays := array_mesh.surface_get_arrays(surface_index)
             var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
             var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
             var bones: PackedInt32Array = arrays[Mesh.ARRAY_BONES]
@@ -116,7 +121,7 @@ func configure(character_root: Node3D, body_root: Node3D) -> bool:
                 "weights": weights,
                 "influences_per_vertex": influences_per_vertex,
                 "region_weights": region_weights,
-                "blend_shape_arrays": mesh_instance.mesh.surface_get_blend_shape_arrays(surface_index),
+                "blend_shape_arrays": array_mesh.surface_get_blend_shape_arrays(surface_index),
                 "skin": skin
             })
 
@@ -205,7 +210,8 @@ func get_closest_region_sample(
     var best: Dictionary = {}
     var best_distance_squared := INF
     for sample in samples:
-        var distance_squared: float = (sample["position"] as Vector3).distance_squared_to(character_local_point)
+        var sample_position: Vector3 = sample["position"]
+        var distance_squared: float = sample_position.distance_squared_to(character_local_point)
         if distance_squared < best_distance_squared:
             best_distance_squared = distance_squared
             best = sample
