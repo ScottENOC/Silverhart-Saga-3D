@@ -71,6 +71,11 @@ static func create_building(parent: Node3D, settlement: Dictionary, definition: 
 		for key in ["width", "depth", "wall_height", "roof_rise"]:
 			if overrides.has(key):
 				config[key] = float(overrides[key])
+	var material_overrides: Variant = definition.get("materials", {})
+	if material_overrides is Dictionary:
+		for key in ["foundation_colour", "floor_colour", "wall_colour", "timber_colour", "door_colour", "roof_colour", "glass_colour"]:
+			if material_overrides.has(key) and material_overrides[key] is String:
+				config[key] = String(material_overrides[key])
 	if float(config.width) <= 2.0 or float(config.depth) <= 2.0 or float(config.wall_height) <= 1.5:
 		return null
 
