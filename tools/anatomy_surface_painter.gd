@@ -311,6 +311,7 @@ func _collect_surface_descriptors(node: Node) -> void:
                     "mesh": mesh_instance,
                     "surface_index": surface_index,
                     "vertices": vertices,
+                    "normals": normals,
                     "triangle_ids": triangle_ids,
                     "weights": {},
                     "faces": faces
@@ -440,9 +441,12 @@ func _paint_at(screen_position: Vector2) -> void:
         _set_status("Could not resolve the hit triangle to source vertices")
         return
     var hit_position: Vector3 = hit["position"]
+    var hit_normal: Vector3 = (hit["normal"] as Vector3).normalized()
     var vertices: PackedVector3Array = descriptor["vertices"]
+    var normals: PackedVector3Array = descriptor["normals"]
     var mesh_instance: MeshInstance3D = descriptor["mesh"]
     var mesh_transform := mesh_instance.global_transform
+    var normal_transform := mesh_transform.basis.inverse().transposed()
     var weights: PackedFloat32Array = _get_or_create_weights(_selected_region, vertices.size())
     var erase_mode := _mode_option.selected == 1
     var paired_region := String(REGION_PAIRS.get(_selected_region, _selected_region))
@@ -453,6 +457,9 @@ func _paint_at(screen_position: Vector2) -> void:
         var world_position := mesh_transform * vertices[vertex_index]
         var distance := world_position.distance_to(hit_position)
         if distance > _brush_radius:
+            continue
+        var world_normal := (normal_transform * normals[vertex_index]).normalized()
+        if world_normal.dot(hit_normal) < 0.15:
             continue
         var falloff := 1.0 - distance / _brush_radius
         falloff = falloff * falloff * (3.0 - 2.0 * falloff)
