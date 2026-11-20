@@ -49,8 +49,6 @@ const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
 const TILE_THICKNESS: float = 0.12
 const ROOM_HALF_WIDTH: float = 8.0
 const ROOM_HALF_DEPTH: float = 5.5
-const WALL_HEIGHT: float = 3.2
-const ROOF_RIDGE_HEIGHT: float = 5.8
 
 var simulation: WorldSimulation
 var spell_vfx: Node3D
@@ -519,27 +517,6 @@ func _create_bed(parent: Node3D, bed_name: String, bed_position: Vector3, blanke
 	_add_box(bed, "Pillow", Vector3(0.0, 0.36, -0.78), Vector3(0.82, 0.12, 0.38), _material(Color(0.82, 0.79, 0.68)))
 	_add_box(bed, "Headboard", Vector3(0.0, 0.55, -1.0), Vector3(1.3, 0.95, 0.12), timber_material)
 
-func _add_room_label(parent: Node3D, text_value: String, position: Vector3) -> void:
-	var label := Label3D.new()
-	label.text = text_value
-	label.position = position
-	label.font_size = 30
-	label.outline_size = 6
-	label.modulate = Color(0.9, 0.82, 0.62)
-	parent.add_child(label)
-
-func _add_wall_segment(parent: Node3D, position: Vector3, size: Vector3) -> void:
-	_add_box(parent, "PlasterWall", position, size, plaster_material)
-	var beam_y: float = position.y + size.y * 0.5 - 0.12
-	_add_box(parent, "WallTopBeam", Vector3(position.x, beam_y, position.z), Vector3(size.x + 0.08, 0.22, size.z + 0.08), timber_material)
-
-func _add_window(parent: Node3D, position: Vector3, dimensions: Vector2, on_side_wall: bool = false) -> void:
-	var pane_size := Vector3(0.08, dimensions.y, dimensions.x) if on_side_wall else Vector3(dimensions.x, dimensions.y, 0.08)
-	_add_box(parent, "WindowGlass", position, pane_size, glass_material)
-	if on_side_wall:
-		_add_box(parent, "WindowSill", position + Vector3(0.0, -dimensions.y * 0.5, 0.0), Vector3(0.18, 0.12, dimensions.x + 0.2), timber_material)
-	else:
-		_add_box(parent, "WindowSill", position + Vector3(0.0, -dimensions.y * 0.5, 0.0), Vector3(dimensions.x + 0.2, 0.12, 0.18), timber_material)
 
 func _create_furniture() -> void:
 	var result := INTERIOR_FEATURE_FACTORY.present(
