@@ -91,7 +91,7 @@ func get_garment_guide_curves() -> Array[Resource]:
     if model_root == null or not is_instance_valid(model_root):
         return []
     if not _garment_guides_loaded:
-        garment_guide_curves = CHARACTER_GARMENT_GUIDE_LIBRARY_SCRIPT.load_for_body(loaded_asset_path)
+        garment_guide_curves = CHARACTER_GARMENT_GUIDE_LIBRARY_SCRIPT.load_for_body(loaded_asset_path, model_root)
         _garment_guides_loaded = true
     return garment_guide_curves.duplicate()
 
