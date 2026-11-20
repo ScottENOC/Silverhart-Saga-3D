@@ -59,7 +59,7 @@ static func create_profile(character_id: String, display_name: String, context: 
         "eyes": String(authored_appearance.get("eye_colour", EYE_COLOURS[rng.randi_range(0, EYE_COLOURS.size() - 1)])),
         "hair": String(authored_appearance.get("hair_style", hair_styles[rng.randi_range(0, hair_styles.size() - 1)])),
         "hairTint": String(authored_appearance.get("hair_colour", hair_tint)),
-        "hairColor": hair_tint,
+        "hairColor": String(authored_appearance.get("hair_colour", hair_tint)),
         "facialHair": facial_hair,
         "tattoos": tattoos,
         "piercings": piercings,
@@ -80,8 +80,8 @@ static func create_profile(character_id: String, display_name: String, context: 
             top: {"pattern": "solid", "color": top_colour, "color2": top_colour},
             bottom: {"pattern": "solid", "color": bottom_colour, "color2": bottom_colour}
         },
-        "legs": rng.randf_range(0.30, 0.72),
-        "breasts": rng.randf_range(0.20, 0.78) if gender == 0 else 0.0,
+        "legs": float(authored_appearance.get("legs", rng.randf_range(0.30, 0.72))),
+        "breasts": float(authored_appearance.get("breasts", rng.randf_range(0.20, 0.78) if gender == 0 else 0.0)),
         "skinTint": String(authored_appearance.get("skin_colour", SKIN_TINTS[rng.randi_range(0, SKIN_TINTS.size() - 1)]))
     }
     return {"id": character_id, "name": display_name, "role": context, "params": params}
