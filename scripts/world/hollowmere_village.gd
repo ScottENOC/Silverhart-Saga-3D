@@ -141,10 +141,6 @@ func _create_farmstead() -> void:
 	_add_farm_fence("FarmyardFence", [Vector2i(5, 50), Vector2i(8, 47), Vector2i(18, 47), Vector2i(26, 51), Vector2i(24, 59), Vector2i(15, 61), Vector2i(7, 58), Vector2i(5, 50)])
 	_add_farm_fence("PastureFence", [Vector2i(1, 61), Vector2i(15, 62), Vector2i(17, 74), Vector2i(2, 73), Vector2i(1, 61)])
 	_add_broken_fence_and_blood_trail()
-	var yard_lane: Array[Vector3] = []
-	for hex in HollowmereVillageData.FARMYARD_CENTRELINE:
-		yard_lane.append(HexGrid.axial_to_world(hex, HEX_RADIUS, 0.035))
-	add_child(ORGANIC_FEATURES.make_ribbon("FarmyardLane", yard_lane, PackedFloat32Array([2.2, 2.0, 2.0, 2.0]), path_material, 0.0, 8))
 
 func _create_farm_animals() -> void:
 	# Old Mac's surviving herd occupies the fenced southern pasture.
