@@ -87,6 +87,7 @@ const REGION_PAIRS := {
     "areola_left": "areola_right", "areola_right": "areola_left",
     "nipple_left": "nipple_right", "nipple_right": "nipple_left",
     "ear_left": "ear_right", "ear_right": "ear_left",
+    "neck_left": "neck_right", "neck_right": "neck_left",
     "clavicle_left": "clavicle_right", "clavicle_right": "clavicle_left",
     "hip_left": "hip_right", "hip_right": "hip_left",
     "buttock_left": "buttock_right", "buttock_right": "buttock_left",
