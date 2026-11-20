@@ -90,10 +90,10 @@ The authoring vocabulary is divided by purpose. A surface mask says *where* a fe
 
 #### 1. Surface regions (the painter's current vocabulary)
 
-The Godot painter now exposes 65 fine-region IDs, grouped in its selector:
+The Godot painter now exposes 73 fine-region IDs, grouped in its selector:
 
 - **Head and neck:** face, lips/mouth contact, left/right ears, front/back/left/right neck.
-- **Torso and chest:** left/right clavicles, breasts, areolae and nipples; underbust; back; upper/lower abdomen; general/front/back/left/right waist; left/right flanks.
+- **Torso and chest:** left/right clavicles, front chest, pectorals, ribcage, sternum, breasts, areolae and nipples; underbust; upper/lower back; upper/lower abdomen; general/front/back/left/right waist; left/right flanks.
 - **Pelvis and external anatomy:** front/back pelvis, left/right hips and buttocks, groin, perineum, anal/perianal surface, and base-specific external vulvar, penile and scrotal regions. A body only receives labels that are anatomically present.
 - **Arms and hands:** left/right shoulders, elbows, forearms, wrists, palms and backs of hands.
 - **Legs and feet:** left/right inner and outer thighs, knees, calves, ankles, tops of feet and soles.
