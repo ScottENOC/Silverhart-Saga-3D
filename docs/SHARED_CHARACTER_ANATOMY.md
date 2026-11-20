@@ -95,3 +95,40 @@ regions added where gameplay needs them.
 The first runtime layer implements rig landmarks and resolves existing surface anchors.
 Surface-region segmentation, deformation-aware sampling and spatial volumes remain
 explicit follow-on work; they are not claimed to be implemented by this layer.
+
+## Surface-region proof of concept
+
+`CharacterSurfaceRegions` is the first runtime implementation of broad surface regions.
+It derives per-vertex region influence from the canonical Ara skin's existing bone weights,
+then evaluates each selected vertex using the mesh's active relative blend-shape deltas,
+the current `Skeleton3D` bone poses and the `Skin` inverse-bind transforms.
+
+The first shared vocabulary is deliberately broad:
+
+- head, neck, chest, abdomen and pelvis
+- left/right shoulder, upper arm, forearm, hand, thigh, calf and foot
+
+A region query returns character-root-local positions, normals, influence weights and
+stable source vertex identifiers. It also supports nearest-sample lookup. These samples
+are evaluated when queried; they are not cached in rest-pose world coordinates.
+
+### Important limits
+
+This is a proof of concept for rig-driven broad regions. Skin weights are useful for
+limbs and large torso divisions, but they do not encode every anatomical boundary.
+They cannot, by themselves, reliably separate breast tissue from the chest, underbust
+from abdomen, or buttocks from pelvis. Those require explicit authorable surface labels
+or region masks, which must be added without repurposing the existing skin-colour vertex
+attribute.
+
+The current query is CPU-evaluated and intended for validation and low-frequency fitting
+queries, not yet as a per-frame full-mesh operation. A later pass should add caching and
+a purpose-built sparse sample set after correctness and performance have been measured.
+
+### Validation
+
+`tests/test_character_surface_regions.gd` loads both canonical GLBs and checks that
+the common broad regions return finite surface positions and normals, then verifies
+that chest samples respond to a body morph and upper-arm samples respond to a changed
+joint pose. The Godot CI run is the acceptance gate; no garment-fitting consumer should
+depend on this proof of concept until the test passes.
