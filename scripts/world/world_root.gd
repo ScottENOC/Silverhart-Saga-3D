@@ -8,7 +8,7 @@ const COMPANION_CAMPAIGN_CONTENT = preload("res://scripts/simulation/companion_c
 const FARM_WOLVES_QUEST = preload("res://scripts/simulation/farm_wolves_quest.gd")
 
 var simulation: WorldSimulation
-var village: Node3D
+var settlement_presentation: Node3D
 var tavern: Node3D
 var loading_layer: CanvasLayer
 var loading_label: Label
@@ -147,16 +147,16 @@ func _on_character_created(profile: Dictionary) -> void:
         push_error("Could not load Campaign 2 location %s: %s" % [STARTING_LOCATION.LOCATION_ID, location_result])
         return
     var location_components: Dictionary = location_result.get("components", {})
-    village = location_components.get("settlement") as Node3D
+    settlement_presentation = location_components.get("settlement") as Node3D
     tavern = location_components.get("interior_controller") as Node3D
-    if village == null or tavern == null:
+    if settlement_presentation == null or tavern == null:
         push_error("Campaign 2 location %s did not provide its settlement and interior controller." % STARTING_LOCATION.LOCATION_ID)
         return
 
     # Register the village's existing animal actors into the shared campaign
     # simulation after both location presentations have completed setup.
-    if village.has_method("register_animals_with_simulation"):
-        var animal_registration: Dictionary = village.call("register_animals_with_simulation", simulation)
+    if settlement_presentation.has_method("register_animals_with_simulation"):
+        var animal_registration: Dictionary = settlement_presentation.call("register_animals_with_simulation", simulation)
         if not bool(animal_registration.get("ok", false)):
             push_warning("Some Hollowmere animals were not registered: %s" % animal_registration.get("skipped", []))
 
