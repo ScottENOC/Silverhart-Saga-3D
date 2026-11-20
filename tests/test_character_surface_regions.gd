@@ -12,6 +12,8 @@ const REQUIRED_REGIONS := [
     "calf_left", "calf_right",
     "foot_left", "foot_right"
 ]
+const POSITION_TOLERANCE := 0.0005
+const NORMAL_DOT_TOLERANCE := 0.995
 
 
 func _initialize() -> void:
@@ -22,7 +24,7 @@ func _run() -> void:
     await process_frame
     for asset_path in BODY_ASSETS:
         await _test_body(asset_path)
-    print("ARA_SURFACE_REGION_POC: PASS")
+    print("ARA_SURFACE_REGION_POC: PASS (engine-baked positions and normals verified)")
     quit(0)
 
 
@@ -35,6 +37,30 @@ func _test_body(asset_path: String) -> void:
     assert(body_root != null, "Ara scene root is not Node3D: " + asset_path)
     actor_root.add_child(body_root)
     await process_frame
+
+    var skeleton := _find_skeleton(body_root)
+    assert(skeleton != null, "No Skeleton3D in " + asset_path)
+    var skinned_meshes: Array[MeshInstance3D] = []
+    _collect_skinned_meshes(body_root, skinned_meshes)
+    assert(not skinned_meshes.is_empty(), "No skinned meshes in " + asset_path)
+
+    # Godot 4.6 changed the default MeshInstance3D skeleton path to empty.
+    # GLB instances may therefore have a Skin resource but no registered
+    # SkinReference in a headless test. Explicitly bind every imported mesh.
+    for mesh_instance in skinned_meshes:
+        mesh_instance.set_skeleton_path(mesh_instance.get_path_to(skeleton))
+        mesh_instance.set_skin(mesh_instance.skin)
+    await process_frame
+    await process_frame
+
+    for mesh_instance in skinned_meshes:
+        var skin_reference := mesh_instance.get_skin_reference()
+        assert(skin_reference != null, "%s has no registered SkinReference on %s (skeleton path: %s)" % [
+            asset_path, mesh_instance.name, mesh_instance.skeleton
+        ])
+        assert(skin_reference.get_skeleton().is_valid(), "%s SkinReference has invalid skeleton RID on %s" % [
+            asset_path, mesh_instance.name
+        ])
 
     var regions := CharacterSurfaceRegions.new()
     assert(regions.configure(actor_root, body_root), "%s: %s" % [asset_path, regions.get_configuration_error()])
@@ -82,35 +108,85 @@ func _test_body(asset_path: String) -> void:
         print("ARA_SURFACE_REGION_NO_BODY_MORPHS asset=%s stature_scale_delta=%.6f" % [asset_path, morph_delta])
     await process_frame
 
-    # Prove that samples follow a changed joint pose, not a static rest-pose cache.
+    # Change a real joint pose, then compare our evaluator against Godot's
+    # RenderingServer-backed baked mesh output. The bake API ignores blend
+    # shapes, so all blend-shape weights are reset before this comparison.
     var arm_bones := regions.get_region_bone_indices("upper_arm_left")
     assert(not arm_bones.is_empty(), "%s has no left upper-arm bone mapping" % asset_path)
-    var skeleton := regions.get_skeleton()
     var arm_bone_index := arm_bones[0]
     var original_pose := skeleton.get_bone_pose(arm_bone_index)
-    var before_pose := regions.get_region_surface_samples("upper_arm_left", 0.55, 1)
-    assert(not before_pose.is_empty(), "No upper-arm sample before pose")
-    var before_arm_position: Vector3 = before_pose[0]["position"]
     var changed_pose := original_pose
     changed_pose.basis = Basis(Vector3.UP, 0.35) * original_pose.basis
     skeleton.set_bone_pose(arm_bone_index, changed_pose)
     await process_frame
-    var after_pose := regions.get_region_surface_samples("upper_arm_left", 0.55, 1)
-    assert(not after_pose.is_empty(), "No upper-arm sample after pose")
-    var pose_delta: float = before_arm_position.distance_to(after_pose[0]["position"])
-    assert(pose_delta > 0.00001, "%s upper-arm surface did not respond to a joint pose change" % asset_path)
+    for mesh_instance in skinned_meshes:
+        for shape_index in range(mesh_instance.get_blend_shape_count()):
+            mesh_instance.set_blend_shape_value(shape_index, 0.0)
+    await process_frame
 
-    # The imported GLBs do not expose a registered SkinReference in this
-    # headless SceneTree test, so the GPU readback bake API is unavailable here.
-    # Runtime samples are instead checked for finite values and live pose response.
+    var total_position_checks := 0
+    var worst_position_error := 0.0
+    var minimum_normal_dot := 1.0
+    for region_id in ["head", "chest", "abdomen", "pelvis", "upper_arm_left", "forearm_left", "thigh_left"]:
+        var samples := regions.get_region_surface_samples(region_id, 0.35, 12)
+        for sample in samples:
+            var mesh_instance: MeshInstance3D = sample["mesh_instance"]
+            var surface_index: int = sample["surface_index"]
+            var vertex_index: int = sample["vertex_index"]
+            var baked := mesh_instance.bake_mesh_from_current_skeleton_pose()
+            assert(baked != null, "%s Godot bake returned null for %s" % [asset_path, mesh_instance.name])
+            assert(surface_index < baked.get_surface_count(), "Baked surface missing: %s surface %d" % [mesh_instance.name, surface_index])
+            var baked_arrays := baked.surface_get_arrays(surface_index)
+            var baked_vertices: PackedVector3Array = baked_arrays[Mesh.ARRAY_VERTEX]
+            var baked_normals: PackedVector3Array = baked_arrays[Mesh.ARRAY_NORMAL]
+            assert(vertex_index < baked_vertices.size(), "Baked vertex missing: %s surface %d vertex %d" % [
+                mesh_instance.name, surface_index, vertex_index
+            ])
+            var expected_position: Vector3 = mesh_instance.global_transform.affine_inverse() * actor_root.global_transform * sample["position"]
+            var actual_position := baked_vertices[vertex_index]
+            var position_error := expected_position.distance_to(actual_position)
+            worst_position_error = maxf(worst_position_error, position_error)
+            assert(position_error <= POSITION_TOLERANCE, "%s %s surface %d vertex %d position mismatch %.8f m" % [
+                asset_path, region_id, surface_index, vertex_index, position_error
+            ])
+
+            assert(vertex_index < baked_normals.size(), "Baked normal missing: %s surface %d vertex %d" % [
+                mesh_instance.name, surface_index, vertex_index
+            ])
+            var expected_normal: Vector3 = (
+                mesh_instance.global_transform.basis.transposed()
+                * actor_root.global_transform.basis
+                * sample["normal"]
+            ).normalized()
+            var actual_normal: Vector3 = baked_normals[vertex_index].normalized()
+            var normal_dot := expected_normal.dot(actual_normal)
+            minimum_normal_dot = minf(minimum_normal_dot, normal_dot)
+            assert(normal_dot >= NORMAL_DOT_TOLERANCE, "%s %s surface %d vertex %d normal dot %.6f" % [
+                asset_path, region_id, surface_index, vertex_index, normal_dot
+            ])
+            total_position_checks += 1
+            baked = null
+
+    assert(total_position_checks >= 20, "%s had too few engine-bake comparison points: %d" % [asset_path, total_position_checks])
     skeleton.set_bone_pose(arm_bone_index, original_pose)
     await process_frame
 
-    print("ARA_SURFACE_REGION_POC_BODY: PASS asset=%s morph_delta=%.6f pose_delta=%.6f" % [
-        asset_path, morph_delta, pose_delta
+    print("ARA_SURFACE_REGION_ENGINE_BAKE: PASS asset=%s checks=%d worst_position_error=%.8f minimum_normal_dot=%.6f" % [
+        asset_path, total_position_checks, worst_position_error, minimum_normal_dot
     ])
+    print("ARA_SURFACE_REGION_POC_BODY: PASS asset=%s morph_delta=%.6f" % [asset_path, morph_delta])
     actor_root.queue_free()
     await process_frame
+
+
+func _find_skeleton(node: Node) -> Skeleton3D:
+    if node is Skeleton3D:
+        return node as Skeleton3D
+    for child in node.get_children():
+        var found := _find_skeleton(child)
+        if found != null:
+            return found
+    return null
 
 
 func _largest_skinned_mesh(node: Node) -> MeshInstance3D:
