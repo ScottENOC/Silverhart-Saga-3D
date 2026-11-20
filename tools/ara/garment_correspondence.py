@@ -44,6 +44,7 @@ def build_landmark_weights(
     neighbours: int = 4,
     falloff: float = 2.0,
     max_distance: float | None = None,
+    region: str | None = None,
 ) -> list[dict[str, float]]:
     """Build inverse-distance weights from each garment point to body anchors.
 
@@ -52,6 +53,15 @@ def build_landmark_weights(
     """
     if not body_landmarks:
         raise ValueError("At least one body landmark is required")
+    if region is not None:
+        if region not in set(LANDMARK_REGIONS.values()):
+            raise ValueError(f"Unknown body landmark region: {region!r}")
+        body_landmarks = {
+            name: point for name, point in body_landmarks.items()
+            if LANDMARK_REGIONS.get(name) == region
+        }
+        if not body_landmarks:
+            raise ValueError(f"No body landmarks available for region {region!r}")
     if neighbours < 1:
         raise ValueError("neighbours must be at least one")
     if falloff <= 0:
