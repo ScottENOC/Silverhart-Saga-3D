@@ -19,8 +19,24 @@ func _initialize() -> void:
     if int(named_male_params.get("gender", -1)) != 1:
         _fail("Authored male NPC identity was not respected")
         return
-    if String(named_female_params.get("hair", "")) != "bob01":
-        _fail("Authored female NPC hair profile was not reused")
+    var authored_checks := {
+        "hair": "bob01",
+        "eyes": "brown",
+        "hairTint": "#38251D",
+        "skinTint": "#C99A75",
+        "height": 0.44,
+        "muscle": 0.38,
+        "weight": 0.34,
+        "proportions": 0.46,
+        "breasts": 0.43,
+        "legs": 0.43
+    }
+    for key in authored_checks:
+        if named_female_params.get(key) != authored_checks[key]:
+            _fail("Mira's authored appearance field was not reused: %s (got %s)" % [key, named_female_params.get(key)])
+            return
+    if named_male_params.get("hair") != "buzz" or named_male_params.get("eyes") != "green" or named_male_params.get("hairTint") != "#87452D" or named_male_params.get("skinTint") != "#DDAE8D":
+        _fail("Garrick's authored appearance was not reused")
         return
     var stable_keys := ["gender", "age", "muscle", "weight", "height", "proportions", "african", "asian", "caucasian", "eyes", "hair", "hairTint", "top", "bottom", "underTop", "underBottom", "shoes", "tattoos", "piercings"]
     for key in stable_keys:
