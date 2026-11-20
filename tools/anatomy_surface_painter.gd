@@ -3,6 +3,7 @@ extends Control
 ## Open res://tools/anatomy_surface_painter.tscn and run it from the editor.
 
 const MASK_SCRIPT = preload("res://scripts/characters/character_surface_region_mask.gd")
+const INPUT_ROUTER_SCRIPT = preload("res://tools/anatomy_surface_painter_input.gd")
 const BODY_OPTIONS := {
     "Female Ara": "res://art/characters/ara_runtime/ara_person_body_anatomy.glb",
     "Male Ara": "res://art/characters/ara_runtime/ara_person_male_body.glb"
@@ -76,10 +77,13 @@ func _build_interface() -> void:
     _viewport.own_world_3d = true
     _viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
     _viewport_container.add_child(_viewport)
-    _viewport.gui_input.connect(_on_viewport_gui_input)
-
     _world_root = Node3D.new()
     _viewport.add_child(_world_root)
+    var input_router := Node3D.new()
+    input_router.name = "PainterInputRouter"
+    input_router.set_script(INPUT_ROUTER_SCRIPT)
+    input_router.connect("input_event_received", _on_viewport_gui_input)
+    _world_root.add_child(input_router)
     var environment := WorldEnvironment.new()
     var world_environment := Environment.new()
     world_environment.background_mode = Environment.BG_COLOR
