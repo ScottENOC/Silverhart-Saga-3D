@@ -564,7 +564,14 @@ func _create_characters() -> void:
 		var actor_id := str(profile.get("game_id", profile.get("id", "")))
 		var model_id := str(profile.get("id", ""))
 		var display_name := str(profile.get("name", actor_id))
-		if actor_id.is_empty() or model_id.is_empty() or not HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.has(model_id):
+		if actor_id.is_empty() or model_id.is_empty():
+			push_error("Invalid Hollowmere character profile: " + model_id)
+			continue
+		if not HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.has(model_id):
+			if HOLLOWMERE_PLACEMENTS.DEFERRED_COMPANIONS.has(model_id):
+				# Their recruitment regions are not in the opening world yet.
+				# Do not create off-region companions at arbitrary Hollowmere coordinates.
+				continue
 			push_error("Missing authored Hollowmere start placement for character profile: " + model_id)
 			continue
 		var spawn: Vector2i = HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS[model_id]
