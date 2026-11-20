@@ -101,15 +101,16 @@ def validate_profiles(profiles: dict) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--profiles", type=Path, default=PROFILE_FILE, help="Profile manifest to build")
     parser.add_argument("--detail", choices=("low", "medium", "high"), default=None)
     args = parser.parse_args()
 
     if not (ARA_ROOT / "package.json").exists() or not (ARA_ROOT / "src").exists():
         raise SystemExit("Run this script from the pinned Ara 3D Gen repository root")
-    if not PROFILE_FILE.exists():
-        raise SystemExit(f"Missing character profile file: {PROFILE_FILE}")
+    if not args.profiles.exists():
+        raise SystemExit(f"Missing character profile file: {args.profiles}")
 
-    manifest = json.loads(PROFILE_FILE.read_text())
+    manifest = json.loads(args.profiles.read_text())
     validate_profiles(manifest)
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -174,6 +175,9 @@ def main() -> None:
         "generator_commit": manifest["generator_commit"],
         "characters": built,
     }
+    for metadata_key in ("seed", "count", "rarity_policy"):
+        if metadata_key in manifest:
+            output_manifest[metadata_key] = manifest[metadata_key]
     (args.out / "profiles.json").write_text(json.dumps(output_manifest, indent=2) + "\n")
     print(f"\nBuilt {len(built)} Hollowmere Ara characters.", flush=True)
 
