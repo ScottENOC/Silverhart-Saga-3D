@@ -441,7 +441,7 @@ func _paint_at(screen_position: Vector2) -> void:
         _set_status("Could not resolve the hit triangle to source vertices")
         return
     var hit_position: Vector3 = hit["position"]
-    var hit_normal: Vector3 = (hit["normal"] as Vector3).normalized()
+    var hit_normal: Vector3 = hit["normal"]
     var vertices: PackedVector3Array = descriptor["vertices"]
     var normals: PackedVector3Array = descriptor["normals"]
     var mesh_instance: MeshInstance3D = descriptor["mesh"]
