@@ -62,8 +62,12 @@ static func _matches_any_region(world: Vector3, regions: Array) -> bool:
 	for region in regions:
 		if not region is Dictionary:
 			continue
-		if world.x > float(region.get("x_min", -INF)) and world.x < float(region.get("x_max", INF)) \
-				and world.z > float(region.get("z_min", -INF)) and world.z < float(region.get("z_max", INF)):
+		if (
+			world.x > float(region.get("x_min", -INF))
+			and world.x < float(region.get("x_max", INF))
+			and world.z > float(region.get("z_min", -INF))
+			and world.z < float(region.get("z_max", INF))
+		):
 			return true
 	return false
 
