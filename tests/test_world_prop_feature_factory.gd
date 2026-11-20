@@ -22,11 +22,13 @@ func _materials() -> Dictionary:
 
 func _test_authored_prop_assemblies() -> void:
 	var parent := Node3D.new()
+	var store := Node3D.new()
+	store.name = "GeneralStore"
+	parent.add_child(store)
+	var chapel := Node3D.new()
+	chapel.name = "Chapel"
+	parent.add_child(chapel)
 	var materials := _materials()
-	var all_definitions: Array = []
-	all_definitions.append_array(VILLAGE_DATA.LANDMARK_PROPS)
-	all_definitions.append_array(VILLAGE_DATA.QUEST_PROPS)
-	all_definitions.append_array(VILLAGE_DATA.WAYFINDING_PROPS)
 	var result := FACTORY.render_features(parent, VILLAGE_DATA.LANDMARK_PROPS, materials, HexGrid.DEFAULT_RADIUS_M)
 	assert(result, "Store and chapel landmark props should render")
 	var store := parent.get_node_or_null("GeneralStore/StoreSignPresentation") as Node3D
