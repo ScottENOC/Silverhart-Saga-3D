@@ -53,3 +53,11 @@ Saved resources are registered in `data/characters/anatomy_masks/manifest.tres`.
 - The marker overlay is a vertex point cloud, not a continuous heatmap. Use multiple viewing angles and small brushes for boundaries.
 - It does not automatically infer anatomical labels. Production labels require human visual judgement and review, including checks against Reyna and Dagna.
 - It authors masks only. It does not change body geometry, create missing female morph targets, or fit garments.
+
+## Garment guide curves (separate follow-on authoring layer)
+
+The separate runtime contract is `CharacterGarmentGuideCurve`. A guide point is attached to a source triangle using three vertex indices and barycentric weights, not a free-floating coordinate. The resource is tied to the exact body asset, mesh surface and rest-mesh signature. Runtime evaluation uses the shared deformation-aware vertex evaluator and returns position, normal, tangent, binormal and a local frame for every guide point.
+
+The first supported guide IDs cover neckline/collar, shoulder seams, armholes, chest line/cup apexes, underbust, waist/hip loops, seat/crotch junctions, inseams/outseams, limb openings and foot alignment. `CharacterGarmentGuideLibrary` supplies body-specific resources to Ara actors.
+
+The guide manifest is currently empty. The test fixture is synthetic and must not be used for fitting. Production curves still need to be traced and visually reviewed on both canonical bodies. A dedicated visual curve editor is the next authoring-tool task; the existing vertex painter does not author curves.
