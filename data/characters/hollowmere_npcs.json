@@ -1399,12 +1399,11 @@
         "weight": 0.5,
         "height": 0.5,
         "proportions": 0.5,
-        "african": 0.3,
-        "asian": 0.3,
-        "caucasian": 0.4,
+        "african": 0,
+        "asian": 0,
+        "caucasian": 1,
         "eyes": "brown",
         "hair": "short02",
-        "hairTint": "#6f6558",
         "facialHair": "none",
         "tattoos": [],
         "outfit": "none",
@@ -1428,9 +1427,7 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral",
-        "hairColor": "#6f6558",
-        "name": "Old Mac",
-        "skinTint": "#B98260"
+        "name": "Old Mac"
       }
     }
   ]
