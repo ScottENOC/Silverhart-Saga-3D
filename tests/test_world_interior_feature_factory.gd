@@ -4,12 +4,14 @@ const FACTORY = preload("res://scripts/world/world_interior_feature_factory.gd")
 const TAPROOM = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_taproom.gd")
 const UPPER_ROOMS = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_upper_rooms.gd")
 const STRUCTURE = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_structure.gd")
+const LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
+const PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
 const TAVERN = preload("res://scripts/world/hollow_tankard.gd")
 
 func _initialize() -> void:
 	_test_authored_taproom_features()
 	_test_invalid_interior_is_atomic()
-	_test_tavern_delegates_furniture()
+	_test_tavern_uses_shared_interior_layout()
 	_test_upper_rooms_use_authored_data()
 	_test_building_structure_uses_authored_data()
 	_test_tavern_building_assembly_keeps_live_door_and_floor_groups()
@@ -18,7 +20,7 @@ func _initialize() -> void:
 
 func _materials() -> Dictionary:
 	var result := {}
-	for key in ["dark_wood", "timber", "stone", "bottle_green"]:
+	for key in ["dark_wood", "timber", "stone", "bottle_green", "plaster", "glass", "roof", "grass", "floor", "blocked"]:
 		result[key] = StandardMaterial3D.new()
 	return result
 
@@ -44,36 +46,43 @@ func _test_invalid_interior_is_atomic() -> void:
 	assert(parent.get_child_count() == 0)
 	parent.free()
 
-func _test_tavern_delegates_furniture() -> void:
+func _test_tavern_uses_shared_interior_layout() -> void:
 	var tavern := TAVERN.new() as Node3D
 	tavern.call("_create_materials")
-	tavern.call("_create_furniture")
+	tavern.simulation = WorldSimulation.new()
+	tavern.call("_present_interior_layout")
 	assert(tavern.get_node_or_null("TaproomFurniture") != null)
 	assert(tavern.get_node("TaproomFurniture").get_child_count() == TAPROOM.DEFINITION.features.size())
+	assert(tavern.get_node_or_null("HollowTankardBuilding/FrontDoorHinge/FrontDoorLeaf") != null)
+	assert(tavern.get_node_or_null("UpperFloorPresentation/UpperBedrooms/UpperRoomPresentation") != null)
+	assert(tavern.get_node_or_null("UpperFloorPresentation/UpperBedrooms/GarrickBed") != null)
+	assert(tavern.get_node_or_null("UpperFloorPresentation/UpperBedrooms/SouthGuestBedB") != null)
+	tavern.simulation.free()
 	tavern.free()
 
 func _test_upper_rooms_use_authored_data() -> void:
-	var tavern := TAVERN.new() as Node3D
-	tavern.call("_create_materials")
+	assert(UPPER_ROOMS.BEDS.size() == 6, "All six upper-floor beds should be authored as axial data")
 	var parent := Node3D.new()
-	tavern.call("_create_upper_floor_rooms", parent)
-	var presentation := parent.get_node_or_null("UpperRoomPresentation")
+	var simulation := WorldSimulation.new()
+	var result: Dictionary = PRESENTER.present(parent, LAYOUT.DEFINITION, _materials(), simulation.map_data, HexGrid.DEFAULT_RADIUS_M)
+	assert(bool(result.get("ok", false)), "The shared presenter should compose all authored upper-room features")
+	var upper_floor := result.get("upper_floor") as Node3D
+	var bedrooms := upper_floor.get_node_or_null("UpperBedrooms")
+	assert(bedrooms != null)
+	var presentation := bedrooms.get_node_or_null("UpperRoomPresentation")
 	assert(presentation != null)
 	assert(presentation.get_child_count() == UPPER_ROOMS.DEFINITION.features.size())
 	assert(presentation.get_node_or_null("WestPartitionNorth") != null)
 	assert(presentation.get_node_or_null("GarrickRoomLabel") != null)
-	assert(parent.get_node_or_null("GarrickBed") != null)
-	assert(parent.get_node_or_null("SouthGuestBedB") != null)
-	assert(parent.get_node_or_null("LandingTable") == null)
+	assert(bedrooms.get_node_or_null("GarrickBed") != null)
+	assert(bedrooms.get_node_or_null("SouthGuestBedB") != null)
+	assert(bedrooms.get_node_or_null("LandingTable") == null)
 	parent.free()
-	tavern.free()
+	simulation.free()
 
 func _test_building_structure_uses_authored_data() -> void:
 	var parent := Node3D.new()
 	var materials := _materials()
-	materials["plaster"] = StandardMaterial3D.new()
-	materials["glass"] = StandardMaterial3D.new()
-	materials["roof"] = StandardMaterial3D.new()
 	var shell := FACTORY.present(parent, STRUCTURE.BUILDING_SHELL, materials)
 	var upper := FACTORY.present(parent, STRUCTURE.UPPER_EXTERIOR, materials)
 	var floor := FACTORY.present(parent, STRUCTURE.UPPER_FLOOR, materials)
@@ -96,8 +105,7 @@ func _test_tavern_building_assembly_keeps_live_door_and_floor_groups() -> void:
 	var tavern := TAVERN.new() as Node3D
 	tavern.call("_create_materials")
 	tavern.simulation = WorldSimulation.new()
-	tavern.tile_mesh = tavern.call("_create_hex_tile_mesh")
-	tavern.call("_create_building")
+	tavern.call("_present_interior_layout")
 	var building := tavern.get_node_or_null("HollowTankardBuilding")
 	var upper_shell := tavern.get_node_or_null("UpperStoreyExterior")
 	var upper_floor := tavern.get_node_or_null("UpperFloorPresentation")
