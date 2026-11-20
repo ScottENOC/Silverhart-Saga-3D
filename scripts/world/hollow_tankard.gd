@@ -54,8 +54,6 @@ var save_load_menu: CanvasLayer
 var pending_save_data: Dictionary = {}
 var initial_character_baselines: Dictionary = {}
 
-func _save_manager_service() -> Node:
-	return get_node_or_null("/root/SaveManager")
 var autosave_accumulator: float = 0.0
 var reaction_prompt: CanvasLayer
 var initiative_timeline: CombatInitiativeTimeline
@@ -117,6 +115,9 @@ var wilderness_steps_since_spawn: int = 0
 var wilderness_creature_nodes: Array[Node3D] = []
 var enemy_turn_processed: bool = false
 var enemy_turn_waiting_for_reaction: bool = false
+
+func _save_manager_service() -> Node:
+	return get_node_or_null("/root/SaveManager")
 
 func _ready() -> void:
     _create_materials()
