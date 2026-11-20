@@ -75,6 +75,11 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
         tattoo_list = []
         if age >= 0.34375 and tattoos and person.random() < 0.07:
             tattoo_list = [person.choice(tattoos)]
+        piercings = []
+        if age >= 0.34375 and person.random() < 0.004:
+            piercings.append("nipple_left")
+        if gender == 0 and age >= 0.34375 and person.random() < 0.001:
+            piercings.append("clit")
         top = person.choice(tops)
         bottom = person.choice(bottoms)
         if rare_tops and person.random() < 0.005:
