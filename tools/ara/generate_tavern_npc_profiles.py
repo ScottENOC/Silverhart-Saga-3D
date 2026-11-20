@@ -20,7 +20,7 @@ NAMES = [
     ("Ketta", "Brask"), ("Odel", "Wick"), ("Brynn", "Hearth"), ("Cadan", "Marlow"),
     ("Edda", "Thorne"), ("Rafe", "Greel"),
 ]
-FEMALE_FIRST_NAMES = {"Mara", "Elin", "Nessa", "Sella", "Tilda", "Anwen", "Lysa", "Ivara", "Mina", "Ketta", "Brynn", "Edda", "Vessa"}
+FEMALE_FIRST_NAMES = {"Mara", "Elin", "Nessa", "Sella", "Tilda", "Anwen", "Lysa", "Ivara", "Runa", "Mina", "Ketta", "Brynn", "Edda", "Vessa"}
 NATURAL_HAIR = ["#17120F", "#30251B", "#49372A", "#75452D", "#87452D", "#A87552", "#8A6A4C", "#898176", "#D0B47A"]
 UNNATURAL_HAIR = ["#287BFF", "#7446A8", "#2C9B70"]
 SKIN_TINTS = ["#70452F", "#8F6045", "#A87552", "#B98260", "#C99A75", "#DDAE8D", "#E0B99B"]
