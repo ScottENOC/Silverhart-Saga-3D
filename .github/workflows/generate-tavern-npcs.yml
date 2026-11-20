@@ -63,8 +63,8 @@ jobs:
       - name: Generate seeded tavern profiles
         shell: bash
         env:
-          NPC_COUNT: ${{ inputs.count }}
-          NPC_SEED: ${{ inputs.seed }}
+          NPC_COUNT: ${{ inputs.count || '20' }}
+          NPC_SEED: ${{ inputs.seed || '20261120' }}
         run: |
           set -euo pipefail
           cd /tmp/ara-3d-gen
@@ -98,7 +98,7 @@ jobs:
       - name: Upload generated NPCs and deterministic manifest
         uses: actions/upload-artifact@v4
         with:
-          name: tavern-npc-sample-seed-${{ inputs.seed }}
+          name: tavern-npc-sample-seed-${{ inputs.seed || '20261120' }}
           path: |
             art/characters/tavern_npcs/generated/*.glb
             art/characters/tavern_npcs/generated/*.params.json
