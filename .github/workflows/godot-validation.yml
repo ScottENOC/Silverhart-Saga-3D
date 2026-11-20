@@ -110,6 +110,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_anatomy.gd
       - name: Validate anatomy landmarks on both canonical Ara bodies
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_ara_body_anatomy_assets.gd
+      - name: Audit deformation-ready Ara surface channels
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/audit_ara_surface_channels.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
       - name: Run equipment appearance and heraldry tests
