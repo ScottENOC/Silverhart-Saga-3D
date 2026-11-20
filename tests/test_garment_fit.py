@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from tools.ara.garment_fit import (
-    FIT_PROFILES, evaluate_fit, profile_for_material, profile_name_for_material,
+    FIT_PROFILES, classify_strain, estimate_correction_strain, evaluate_fit,\n    profile_for_material, profile_name_for_material,
 )
 
 
@@ -40,6 +40,23 @@ class GarmentFitPolicyTests(unittest.TestCase):
         for profile in FIT_PROFILES.values():
             self.assertGreater(profile["max_strain"], 0)
             self.assertLessEqual(profile["compression_limit"], 0.15)
+
+    def test_differential_clearance_correction_estimates_strain(self):
+        result = estimate_correction_strain(
+            [(0, 1), (1, 2)],
+            {0: (0.0, 0.0, 0.0), 1: (1.0, 0.0, 0.0), 2: (2.0, 0.0, 0.0)},
+            {0: (0.0, 0.0, 0.0), 1: (0.1, 0.0, 0.0), 2: (0.1, 0.0, 0.0)},
+        )
+        self.assertEqual(result["sampled_edges"], 2)
+        self.assertAlmostEqual(result["max_estimated_strain"], 0.1)
+
+    def test_strain_classification_separates_comfort_from_failure(self):
+        profile = profile_for_material("Standard Bra")
+        comfort = classify_strain(0.07, profile)
+        hard = classify_strain(0.13, profile)
+        self.assertTrue(comfort["above_comfort_strain"])
+        self.assertFalse(comfort["overstretched"])
+        self.assertTrue(hard["overstretched"])
 
 
 if __name__ == "__main__":
