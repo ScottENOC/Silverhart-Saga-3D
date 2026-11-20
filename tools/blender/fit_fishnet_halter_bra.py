@@ -225,13 +225,11 @@ def cup_centres(selected):
 
 
 def align_garment_to_character(selected, reference_path, skin, target_armature):
-    """Place this one bra from bilateral surface-derived nipple reference sockets.
+    """Place this one bra using bilateral prominence peaks on the target skin.
 
-    The socket generator is a bounded surface-vertex heuristic, not semantic
-    breast recognition. We use it as an explicit placement reference only.
-    The authored cup centroids are mapped to the corresponding left/right
-    target sockets; the complete garment follows that translation and horizontal
-    spacing adjustment. No body vertices or anatomy profiles are changed.
+    The authored cup centroids map to the left/right surface peaks. This is
+    geometric placement only: it does not infer underbust contours or simulate
+    fabric. No body vertices or anatomy profiles are changed.
     """
     if target_armature is None:
         raise RuntimeError("Target companion GLB has no armature")
