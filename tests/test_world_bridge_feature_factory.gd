@@ -58,7 +58,7 @@ func _test_invalid_bridge_is_rejected_atomically() -> void:
 func _test_hollowmere_bridge_integration() -> void:
 	var village := VILLAGE_SCRIPT.new() as Node3D
 	village.call("_create_materials")
-	village.call("_create_bridge")
+	village.call("_present_authored_settlement")
 	var bridge := village.get_node_or_null("NarrowRiverBridge") as Node3D
 	assert(bridge != null, "Hollowmere should delegate its authored bridge to the shared factory")
 	assert(bridge.get_child_count() == VILLAGE_DATA.BRIDGE_PRESENTATION.parts.size(), "Hollowmere bridge should render every authored part")
