@@ -106,7 +106,9 @@ func _test_body(asset_path: String) -> void:
     var regions := CharacterSurfaceRegions.new()
     assert(regions.configure(actor_root, body_root), "Surface region setup failed: " + regions.get_configuration_error())
     var evaluated := curve.evaluate(regions)
-    assert(evaluated.size() == 3, "Expected three evaluated guide points for " + asset_path)
+    if evaluated.size() != 3:
+        printerr("ARA_GARMENT_GUIDE_EVALUATION_ERROR asset=%s error=%s" % [asset_path, curve.last_evaluation_error])
+    assert(evaluated.size() == 3, "Expected three evaluated guide points for %s: %s" % [asset_path, curve.last_evaluation_error])
     for point in evaluated:
         var position: Vector3 = point["position"]
         var normal: Vector3 = point["normal"]
