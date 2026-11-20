@@ -168,6 +168,7 @@ static func path_cells() -> Array[Vector2i]:
 		_append_unique(cells, seen, Vector2i(0, r))
 	_append_unique(cells, seen, Vector2i(0, 5))
 	_append_unique(cells, seen, Vector2i(0, 15))
+	_append_unique(cells, seen, Vector2i(0, -10))
 	_append_unique(cells, seen, Vector2i(1, 13))
 	_append_unique(cells, seen, Vector2i(1, 14))
 	_append_unique(cells, seen, Vector2i(-11, 0))
