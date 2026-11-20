@@ -13,6 +13,20 @@ This is a Godot-native authoring tool for the exact imported Ara GLB mesh data u
 
 The first run may take a little longer while Godot imports the GLB and creates static picking geometry.
 
+## Semantic label groups
+
+The selector groups the 65 supported fine surface IDs into:
+
+- Head and neck: face, lips, ears and neck surfaces.
+- Torso and chest: clavicles, breasts, areolae, nipples, underbust, back, abdomen, waist and flanks.
+- Pelvis and external anatomy: pelvis, hips, buttocks, groin, perineum, anal/perianal surface and the applicable external vulvar, penile and scrotal regions.
+- Arms and hands: shoulders, elbows, forearms, wrists, palms and backs of hands.
+- Legs and feet: inner/outer thighs, knees, calves, ankles, tops of feet and soles.
+
+Only paint a region on a body where that anatomy is present. The shared vocabulary does not mean the male and female boundaries are identical. For example, breast, areola and nipple masks must be independently reviewed on each base. Use left/right mirroring as a first pass only; verify both sides in the viewport.
+
+These masks support surface queries for fitting and contact. They are not garment seam curves, collision volumes, rig joints or permission flags. The separate garment-guide layer still needs to author neckline/armhole loops, bust and underbust guides, waist/hip loops, crotch junctions, inseams/outseams and limb openings. Animation uses rig landmarks; cutscenes use contact anchors; combat uses pose-aware volumes. Those systems should consume this shared anatomy contract rather than adding offsets to individual animations.
+
 ## Painting controls
 
 - **Mesh surface** selects the exact skinned mesh surface being authored. Painting a different surface is blocked until it is selected.
