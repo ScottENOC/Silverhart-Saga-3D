@@ -49,58 +49,58 @@ static func create_actor(
 ## Character identity and appearance come from the character definition.
 ## The caller supplies only the world position; settlement layouts never select a body.
 static func create_settlement_actor(character: Dictionary, world_position: Vector3) -> Node3D:
-	var character_id := String(character.get("id", ""))
-	if character_id.is_empty():
-		push_error("Cannot create settlement actor without a character id.")
-		return null
-	var display_name := String(character.get("name", character_id))
-	var body_base := String(character.get("body_base", ""))
-	if body_base not in ["male", "female"]:
-		push_error("Character %s must declare body_base as male or female." % character_id)
-		return null
-	var appearance: Dictionary = character.get("appearance", {})
-	var profile := {
-		"skin_colour": String(appearance.get("skin_colour", "#b9825f")),
-		"eye_colour": String(appearance.get("eye_colour", "Brown")),
-		"hair_colour": String(appearance.get("hair_colour", "Dark brown")),
-		"height": float(appearance.get("height", clampf((float(appearance.get("height_scale", 1.0)) - 0.8) / 0.4, 0.0, 1.0))),
-		"muscle": float(appearance.get("muscle", clampf((float(appearance.get("build_scale", 1.0)) - 0.8) / 0.4, 0.0, 1.0))),
-		"weight": float(appearance.get("weight", 0.5)),
-		"proportions": float(appearance.get("proportions", 0.5)),
-		"breasts": float(appearance.get("breasts", 0.5)),
-		"legs": float(appearance.get("legs", 0.5)),
-		"body_base": body_base,
-		"body_variant": body_base,
-		"gender_presentation": String(appearance.get("gender_presentation", "Androgynous")),
-		"pronouns": String(appearance.get("pronouns", "they/them"))
-	}
-	var model_path := PLAYER_MALE_ASSET if body_base == "male" else PLAYER_FEMALE_ASSET
-	var equipment: Dictionary = character.get("visual_equipment", {})
-	var actor := _create_actor_presentation(
-		character_id,
-		display_name,
-		world_position,
-		model_path,
-		body_base,
-		profile,
-		equipment,
-		false,
-		"",
-		String(appearance.get("hair_style", "")),
-		deg_to_rad(180.0)
-	)
-	if actor != null:
-		actor.name = "NPC_" + character_id
-		actor.set_meta("campaign2_npc_id", character_id)
-		actor.set_meta("dialogue_id", String(character.get("dialogue_id", "")))
-		actor.set_meta("faction_id", String(character.get("faction_id", "")))
-		actor.set_meta("side", String(character.get("side", "neutral")))
-		actor.set_meta("class_levels", character.get("class_levels", []))
-		actor.set_meta("skill_picks", character.get("skill_picks", []))
-		actor.set_meta("quest_hooks", character.get("quest_hooks", []))
-		actor.set_meta("ambient_enabled", false)
-		actor.add_to_group("campaign2_npc")
-	return actor
+    var character_id := String(character.get("id", ""))
+    if character_id.is_empty():
+        push_error("Cannot create settlement actor without a character id.")
+        return null
+    var display_name := String(character.get("name", character_id))
+    var body_base := String(character.get("body_base", ""))
+    if body_base not in ["male", "female"]:
+        push_error("Character %s must declare body_base as male or female." % character_id)
+        return null
+    var appearance: Dictionary = character.get("appearance", {})
+    var profile := {
+        "skin_colour": String(appearance.get("skin_colour", "#b9825f")),
+        "eye_colour": String(appearance.get("eye_colour", "Brown")),
+        "hair_colour": String(appearance.get("hair_colour", "Dark brown")),
+        "height": float(appearance.get("height", clampf((float(appearance.get("height_scale", 1.0)) - 0.8) / 0.4, 0.0, 1.0))),
+        "muscle": float(appearance.get("muscle", clampf((float(appearance.get("build_scale", 1.0)) - 0.8) / 0.4, 0.0, 1.0))),
+        "weight": float(appearance.get("weight", 0.5)),
+        "proportions": float(appearance.get("proportions", 0.5)),
+        "breasts": float(appearance.get("breasts", 0.5)),
+        "legs": float(appearance.get("legs", 0.5)),
+        "body_base": body_base,
+        "body_variant": body_base,
+        "gender_presentation": String(appearance.get("gender_presentation", "Androgynous")),
+        "pronouns": String(appearance.get("pronouns", "they/them"))
+    }
+    var model_path := PLAYER_MALE_ASSET if body_base == "male" else PLAYER_FEMALE_ASSET
+    var equipment: Dictionary = character.get("visual_equipment", {})
+    var actor := _create_actor_presentation(
+        character_id,
+        display_name,
+        world_position,
+        model_path,
+        body_base,
+        profile,
+        equipment,
+        false,
+        "",
+        String(appearance.get("hair_style", "")),
+        deg_to_rad(180.0)
+    )
+    if actor != null:
+        actor.name = "NPC_" + character_id
+        actor.set_meta("campaign2_npc_id", character_id)
+        actor.set_meta("dialogue_id", String(character.get("dialogue_id", "")))
+        actor.set_meta("faction_id", String(character.get("faction_id", "")))
+        actor.set_meta("side", String(character.get("side", "neutral")))
+        actor.set_meta("class_levels", character.get("class_levels", []))
+        actor.set_meta("skill_picks", character.get("skill_picks", []))
+        actor.set_meta("quest_hooks", character.get("quest_hooks", []))
+        actor.set_meta("ambient_enabled", false)
+        actor.add_to_group("campaign2_npc")
+    return actor
 
 
 ## Equipment refreshes are routed through the presentation factory so callers
