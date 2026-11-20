@@ -131,6 +131,11 @@ func _load_garment_attachment(garment_id: String) -> bool:
             continue
         instance.name = "Garment_%s_%s" % [garment_id, source_mesh.name]
         instance.set_meta("ara_external_garment", true)
+        # Garment GLBs may nest skinned meshes beneath transformed scene nodes.
+        # Reparenting the mesh directly under model_root without carrying that
+        # accumulated transform moves the garment away from its bind pose (in
+        # practice, underwear can appear at the head or far from the body).
+        instance.transform = _transform_from_scene_root(source_mesh, source_root)
         model_root.add_child(instance)
         instance.skeleton = instance.get_path_to(target_skeleton)
         instance.visible = false
@@ -143,6 +148,24 @@ func _load_garment_attachment(garment_id: String) -> bool:
     if not current_body_parameters.is_empty():
         apply_body_parameters(current_body_parameters)
     return true
+
+
+## Return a Node3D's accumulated local transform in its imported scene-root
+## coordinate frame. This is required when flattening imported GLB hierarchies.
+func _transform_from_scene_root(node: Node3D, scene_root: Node3D) -> Transform3D:
+    var chain: Array[Transform3D] = []
+    var cursor: Node = node
+    while cursor != null and cursor != scene_root:
+        if cursor is Node3D:
+            chain.push_front((cursor as Node3D).transform)
+        cursor = cursor.get_parent()
+    if cursor != scene_root:
+        push_warning("Ara attachment mesh is not a descendant of its imported scene root")
+        return Transform3D.IDENTITY
+    var result := scene_root.transform
+    for local_transform in chain:
+        result = result * local_transform
+    return result
 
 
 func _surface_label(mesh_instance: MeshInstance3D, surface: int) -> String:
