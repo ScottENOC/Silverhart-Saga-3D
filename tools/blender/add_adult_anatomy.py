@@ -19,7 +19,9 @@ from mathutils.bvhtree import BVHTree
 
 # Shared material-aware fit policy; kept outside Blender so it can be unit-tested.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ara")))
-from garment_fit import (\n    FIT_PROFILES, profile_for_material, estimate_correction_strain, classify_strain,\n)
+from garment_fit import (
+    FIT_PROFILES, profile_for_material, estimate_correction_strain, classify_strain,
+)
 
 
 def arguments():
