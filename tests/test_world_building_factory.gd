@@ -40,6 +40,7 @@ func _test_data_driven_dimensions_and_metadata() -> void:
 		"door_side": "north",
 		"dimensions": {"width": 17.0, "depth": 14.0, "wall_height": 3.8},
 		"windows_per_side": 1,
+		"materials": {"wall_colour": "#fefefe"},
 		"features": ["fireplace"]
 	}
 	var node := FACTORY.create_building(parent, {"id": "test_village"}, definition)
@@ -48,6 +49,8 @@ func _test_data_driven_dimensions_and_metadata() -> void:
 	assert(node.get_meta("archetype") == "cottage")
 	assert(node.get_meta("source_door_hex") == Vector2i(0, 7))
 	assert(node.find_child("FireplaceHearth", true, false) != null, "Optional features should be data-controlled")
+	var wall := node.find_child("SouthWall_Plaster", true, false) as MeshInstance3D
+	assert(wall != null and (wall.material_override as StandardMaterial3D).albedo_color == Color("#fefefe"), "Material overrides should be data-controlled")
 	assert(node.find_child("DoorLeaf", true, false) != null, "The selected entrance should be constructed")
 	assert(node.find_child("EastWall_DoorLintel", true, false) != null or node.find_child("NorthWall_DoorLintel", true, false) != null, "The entrance opening must be closed above the door")
 	parent.free()
