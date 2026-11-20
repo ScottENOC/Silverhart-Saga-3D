@@ -114,6 +114,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/audit_ara_surface_channels.gd
       - name: Test deformation-aware Ara surface regions
         run: xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 bash tools/ci/run_godot_checked.sh godot --path . --rendering-method gl_compatibility --script res://tests/test_character_surface_regions.gd
+      - name: Test authored fine Ara surface mask contract
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_surface_region_masks.gd
       - name: Audit fine Ara anatomy surface geometry
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/audit_ara_fine_surface_geometry.gd
       - name: Run character appearance tests
