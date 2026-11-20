@@ -180,10 +180,19 @@ static func _build_entrance(root: Node3D, config: Dictionary, definition: Dictio
 	else:
 		_add_box(root, "DoorFrame", offset + Vector3.UP * 1.55, Vector3(frame_width, 2.75, 0.22), timber)
 	var leaf_offset := offset + outward * 0.13 + Vector3.UP * 1.48
-	if side in ["east", "west"]:
-		_add_box(root, "DoorLeaf", leaf_offset, Vector3(0.12, 2.42, frame_width * 0.82), door)
+	if _has_feature(definition, "double_door"):
+		var tangent := Vector3.FORWARD if side in ["east", "west"] else Vector3.RIGHT
+		var leaf_width := frame_width * 0.39
+		for index in range(2):
+			var direction := -1.0 if index == 0 else 1.0
+			var leaf_centre := leaf_offset + tangent * direction * frame_width * 0.205
+			var leaf_size := Vector3(0.12, 3.45, leaf_width) if side in ["east", "west"] else Vector3(leaf_width, 3.45, 0.12)
+			_add_box(root, "DoorLeaf_%s" % ("Left" if index == 0 else "Right"), leaf_centre, leaf_size, door)
 	else:
-		_add_box(root, "DoorLeaf", leaf_offset, Vector3(frame_width * 0.82, 2.42, 0.12), door)
+		if side in ["east", "west"]:
+			_add_box(root, "DoorLeaf", leaf_offset, Vector3(0.12, 2.42, frame_width * 0.82), door)
+		else:
+			_add_box(root, "DoorLeaf", leaf_offset, Vector3(frame_width * 0.82, 2.42, 0.12), door)
 	_add_box(root, "PorchStep", offset + outward * 0.75 + Vector3(0.0, 0.22, 0.0), Vector3(1.5, 0.3, 2.6), _material(Color(config.foundation_colour)))
 
 static func _build_windows(root: Node3D, config: Dictionary, definition: Dictionary) -> void:
