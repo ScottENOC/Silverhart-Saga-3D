@@ -63,6 +63,8 @@ The first vertical slice is in place:
   fishnet halter bras retain open-mesh texture behaviour while exposing
   structured cup/underbust/strap constraints.
 - A Blender-independent landmark correspondence module maps garment points to nearby body anchors with normalised weights, transfers body-shape landmark deltas to garment points, rejects implausibly distant matches, and can restrict correspondence to a semantic body region to prevent cross-region influence.
+- Triangle-surface correspondence primitives calculate barycentric weights and transfer a body-surface displacement to a garment point.
+- A Blender diagnostic adapter now builds a BVH from the actual companion skin triangles, maps garment vertices to their nearest skin triangle, and records triangle indices, barycentric weights and distances by garment material. It is deliberately read-only: it does not alter the body or garments.
 - Profiles define bounded strain, compression, clearance, coverage and texture
   response policies.
 - The existing Blender anatomy fitting pass now uses profile-specific body
