@@ -1,6 +1,11 @@
 name: Fishnet Halter Bra Fit Experiment
 
 on:
+  push:
+    branches: [experiment/fishnet-halter-bra-fit]
+    paths:
+      - .github/workflows/fishnet-halter-bra-fit-experiment.yml
+      - tools/blender/fit_fishnet_halter_bra.py
   workflow_dispatch:
     inputs:
       source_run_id:
@@ -73,9 +78,9 @@ jobs:
             echo "::group::${character} — assemble one garment"
             if [ "$character" = "dagna" ]; then filename="Dagna.glb"; else filename="Mirabel.glb"; fi
             source="/tmp/companions/$character/$filename"
-            raw="$ROOT/$character_raw.glb"
-            fitted="$ROOT/$character_fishnet_bra_fitted.glb"
-            report="$ROOT/$character_fit_report.json"
+            raw="$ROOT/${character}_raw.glb"
+            fitted="$ROOT/${character}_fishnet_bra_fitted.glb"
+            report="$ROOT/${character}_fit_report.json"
             python tools/ara/assemble_modular_glb.py "$source" "$raw" \
               /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra cups" \
               /tmp/ara-generated/ara_person_halter_bra_fishnet.glb "Halter fishnet bra straps"
