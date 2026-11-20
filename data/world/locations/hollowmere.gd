@@ -2,7 +2,8 @@ extends RefCounted
 ## Composition data for the opening Campaign 2 location.
 ## This file identifies reusable component scripts; it does not construct geometry.
 
-const SETTLEMENT_PRESENTATION = preload("res://scripts/world/hollowmere_village.gd")
+const SETTLEMENT_PRESENTATION = preload("res://scripts/world/world_settlement_presenter.gd")
+const SETTLEMENT_PRESENTATION_DATA = preload("res://data/settlements/hollowmere/presentation.gd")
 const INTERIOR_CONTROLLER = preload("res://scripts/world/hollow_tankard.gd")
 
 const LOCATION_ID := "hollowmere"
@@ -14,7 +15,9 @@ const DEFINITION := {
 		{
 			"role": "settlement",
 			"node_name": "HollowmereVillage",
-			"script": SETTLEMENT_PRESENTATION
+			"script": SETTLEMENT_PRESENTATION,
+			"configure_location": true,
+			"location_data": SETTLEMENT_PRESENTATION_DATA.DEFINITION
 		},
 		{
 			"role": "interior_controller",
