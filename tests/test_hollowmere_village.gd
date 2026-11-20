@@ -123,11 +123,16 @@ func _test_hollowmere_character_manifest() -> void:
             assert(params.has(slider), "%s is missing Ara slider %s" % [profile["id"], slider])
             assert(float(params[slider]) >= 0.0 and float(params[slider]) <= 1.0)
         if String(profile["role"]) == "player avatar":
-			continue
-		assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.has(String(profile["id"])), "%s must have one authored settlement start" % profile["id"])
-		var spawn: Vector2i = HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS[String(profile["id"])]
-		assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
-		assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % profile["id"])
+            assert(not profile.has("hex"), "Character profile data must not duplicate world placement")
+            continue
+        assert(not profile.has("hex"), "Character profile data must not duplicate world placement")
+        assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.has(String(profile["id"])), "%s must have one authored settlement start" % profile["id"])
+        var spawn: Vector2i = HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS[String(profile["id"])]
+        assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
+        assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % profile["id"])
+    assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.size() == 21, "Every non-player profile must have exactly one start placement")
+    assert(HOLLOWMERE_PLACEMENTS.FARM_ANIMALS.size() == 6, "All six farm animal placements must remain authored")
+    assert(HOLLOWMERE_PLACEMENTS.WILDERNESS_ANIMALS.size() == 4, "All four ambient wildlife placements must remain authored")
     var companion_names := ["Ser Aldric Thorne", "Nix Sharpear", "Warlord Grukk Ironhide", "Reyna Fletcher", "Mirabel Quill", "Fenn Oakheart", "Brother Alden", "Snik Fangtooth"]
     var companion_count := 0
     for profile in characters:
