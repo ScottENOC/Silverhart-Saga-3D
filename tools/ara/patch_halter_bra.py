@@ -46,11 +46,20 @@ panel = """  if (!mode) {
     // straps and rear-neck panel. No single-cord neck or back straps remain.
     const panels = shellPart(g, {
       covers: (v) => isUpper(v) && (
-        (v.tt >= 0.52 && v.tt < 0.76) ||
-        (v.tt >= 0.76 && v.region === REGION.neck) ||
-        (v.tt >= 0.68 && Math.abs(v.ax - 0.6 * sx) < 0.2 * sx)
+        // Keep only a slim lower-back anchor band; the halter is not a
+        // conventional bra with a horizontal strap across the back.
+        (v.tt >= 0.54 && v.tt < 0.60) ||
+        // Two broad shoulder ribbons rise from the cups and converge into
+        // one continuous panel at the nape, behind the neck.
+        (v.tt >= 0.60 && v.tt < 0.86 &&
+          (Math.abs(v.ax - 0.6 * sx) < 0.16 * sx ||
+           Math.abs(v.ax + 0.6 * sx) < 0.16 * sx ||
+           Math.abs(v.ax) < 0.20 * sx)) ||
+        (v.tt >= 0.76 && v.region === REGION.neck)
       ),
-      offset: cm(0.62), tile: 0.2, relax: 4,
+      // Finer sampling and extra relaxation close small holes at the shoulder
+      // transitions without changing the cup mesh or body.
+      offset: cm(0.62), tile: 0.12, relax: 8,
     }, panelMaterial, false);
     parts.push(...panels);
   }
