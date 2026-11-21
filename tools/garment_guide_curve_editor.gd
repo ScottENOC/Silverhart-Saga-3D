@@ -369,6 +369,7 @@ func _on_viewport_input(event: InputEvent) -> void:
                 _touch_start_position = touch.position
                 _touch_dragged = false
             elif _touch_positions.size() == 2:
+                _touch_dragged = true
                 var values: Array = _touch_positions.values()
                 _pinch_distance = values[0].distance_to(values[1])
         else:
