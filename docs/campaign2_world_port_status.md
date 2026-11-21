@@ -29,7 +29,7 @@ The shared chunk presenter renders the exterior buildings and surface actors for
 
 ## Remaining source-authored world locations
 
-These 20 location anchors exist in the world geography manifest, but their full source-authored settlement/site content has not yet been migrated into canonical settlement or location definitions:
+These 20 additional location anchors exist in the world geography manifest. Nineteen still lack canonical source-authored site definitions; Emberlode Mine is partially represented by its parent settlement's mine metadata but is not yet playable:
 
 | Location | Source content still to port |
 |---|---|
@@ -52,7 +52,7 @@ These 20 location anchors exist in the world geography manifest, but their full 
 | Thieves' Cove Caves | Cave network, guild residents, services and quest content |
 | Old Mac's Wolf Den | Hidden den, wolf encounter and rescue quest logic |
 | Unicorn Vale | Roaming encounter area and its eight-waypoint patrol loop |
-| Emberlode Mine | Already captured as Emberlode's three-level interior metadata; playable mine implementation remains outstanding |
+| Emberlode Mine | Partial: its three-level floor, stair, ore, ledger and spider data are captured under Emberlode |
 
 ## Next port order
 
