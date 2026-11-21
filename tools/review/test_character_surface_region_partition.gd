@@ -46,6 +46,13 @@ func _run() -> void:
         PARTITION_SCRIPT.validate_arrays(4, quad_indices, regions, PackedInt32Array([0, 0, 1])),
         "exactly one primary region"
     )
+    var boundary_report: Dictionary = PARTITION_SCRIPT.build_boundary_diagnostics(4, quad_indices, regions, valid)
+    if not boundary_report.get("valid", false):
+        push_error("boundary diagnostics rejected valid partition: %s" % boundary_report.get("error", "unknown"))
+        failed = true
+    elif int(boundary_report.get("boundary_edge_count", -1)) != 3 or int(boundary_report.get("mixed_triangle_count", -1)) != 2:
+        push_error("shared boundary diagnostics returned unexpected counts: %s" % boundary_report)
+        failed = true
     _expect_contains(
         "empty primary region rejected",
         PARTITION_SCRIPT.validate_arrays(
@@ -59,7 +66,7 @@ func _run() -> void:
     if failed:
         quit(1)
         return
-    print("SURFACE_REGION_PARTITION_TESTS_OK cases=6")
+    print("SURFACE_REGION_PARTITION_TESTS_OK cases=7")
     quit(0)
 
 
