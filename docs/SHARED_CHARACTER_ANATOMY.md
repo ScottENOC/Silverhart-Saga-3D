@@ -86,6 +86,22 @@ apices, nipples, underbust, waist, iliac crest, hip front/side/back, sacrum and 
 symphysis), hand/fingertip landmarks, and heel/toe landmarks. Male/female resources are
 authored independently; a semantic ID does not imply identical coordinates or geometry.
 
+### Surface contact paths for animation
+
+CharacterSurfaceContactPath is a separate resource from garment construction guides.
+It stores an ordered set of topology-bound skin control points and evaluates each
+against the current deformed surface, returning a position, normal and local frame.
+AraCharacterActor.get_surface_contact_path(path_id) exposes the evaluated points to
+animation code.
+
+This is the data layer needed to describe a contact trajectory such as a fingertip
+moving along a short path over the chest. The animation still has to provide a hand
+and finger rig, IK targets, joint limits, approach/withdrawal timing, speed profile,
+contact pressure/offset and collision or pose constraints. The path currently returns
+its authored control points; it does not yet compute a geodesic or a dense, evenly
+spaced surface spline between them. Those are deliberate next steps before relying
+on it for production choreography.
+
 The manifest is intentionally empty at introduction. The synthetic tests prove
 topology validation and deformation-aware evaluation on both canonical Ara bodies; they
 do not claim that any production anatomical landmark has been placed or visually
