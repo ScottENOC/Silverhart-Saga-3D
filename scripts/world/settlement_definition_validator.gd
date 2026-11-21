@@ -84,19 +84,23 @@ static func _validate_record_array(value: Variant, label: String, errors: Array[
 		errors.append("%s must be an array." % label)
 		return false
 	var seen: Dictionary = {}
+	var valid := true
 	for index in range(value.size()):
 		var record: Variant = value[index]
 		if not record is Dictionary:
 			errors.append("%s[%d] must be an object." % [label, index])
+			valid = false
 			continue
 		var record_id := String(record.get("id", "")).strip_edges()
 		if record_id.is_empty():
 			errors.append("%s[%d] requires a stable id." % [label, index])
+			valid = false
 		elif seen.has(record_id):
 			errors.append("%s contains duplicate id %s." % [label, record_id])
+			valid = false
 		else:
 			seen[record_id] = true
-	return true
+	return valid
 
 static func _is_axial(value: Variant) -> bool:
 	return value is Dictionary and value.has("q") and value.has("r") and value.q is int and value.r is int
