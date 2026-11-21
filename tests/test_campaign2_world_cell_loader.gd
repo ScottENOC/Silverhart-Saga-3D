@@ -42,8 +42,6 @@ func _test_hollowmere_cells_are_loaded_from_settlement_data() -> void:
     _check(map_data.has_cell(bridge) and map_data.terrain_id_at(bridge) == "path" and map_data.is_walkable(bridge), "The authored bridge must remain a traversable path across the stream")
     _check(map_data.has_cell(Vector2i(110, 110)), "The same loaded area must continue into regional terrain beyond the settlement boundary")
     _check(loader.loaded_chunk_count() == 81, "The opening world should be materialised as a 9x9 neighbourhood of shared world chunks")
-    map_data.free()
-
 func _test_settlement_footprints_and_paths_are_logical_cells() -> void:
     var map_data := HexMapData.new()
     var loader = CELL_LOADER.new()
@@ -53,9 +51,6 @@ func _test_settlement_footprints_and_paths_are_logical_cells() -> void:
     _check(not map_data.is_walkable(Vector2i(1, -366)), "The Millbrook building footprint should be blocked")
     _check(map_data.terrain_id_at(Vector2i(5, -366)) == "path", "The Millbrook entrance path should be materialised from settlement data")
     _check(map_data.is_walkable(Vector2i(5, -366)), "The Millbrook entrance path should be walkable")
-    map_data.free()
-    loader.free()
-
 func _test_generation_is_stable_across_chunk_load_order() -> void:
     var first_map := HexMapData.new()
     var second_map := HexMapData.new()
@@ -74,8 +69,6 @@ func _test_negative_chunk_coordinates() -> void:
     _check(loader.terrain_data.chunk_for_hex(Vector2i(-1, -1), CELL_LOADER.CHUNK_SIZE) == Vector2i(-1, -1), "Negative coordinates must use floor-based chunk ownership")
     _check(loader.terrain_data.chunk_for_hex(Vector2i(-24, -24), CELL_LOADER.CHUNK_SIZE) == Vector2i(-1, -1), "Negative chunk boundaries must be stable")
     _check(loader.terrain_data.chunk_for_hex(Vector2i(-25, -25), CELL_LOADER.CHUNK_SIZE) == Vector2i(-2, -2), "Negative coordinates below the boundary must enter the preceding chunk")
-    loader.free()
-
 func _check(condition: bool, message: String) -> void:
     if not condition:
         failures += 1
