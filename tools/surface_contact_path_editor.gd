@@ -12,6 +12,8 @@ var _path_preview_mesh: ImmediateMesh
 var _path_preview_instance: MeshInstance3D
 var _path_point_markers: Array[MeshInstance3D] = []
 var _point_count_label: Label
+var _surface_regions: CharacterSurfaceRegions
+var _preview_contact_path: CharacterSurfaceContactPath
 
 
 func _ready() -> void:
@@ -85,6 +87,15 @@ func _load_body(body_name: String) -> void:
     super._load_body(body_name)
     _path_points.clear()
     _path_closed = false
+    _surface_regions = null
+    _preview_contact_path = CharacterSurfaceContactPath.new()
+    if _body_root != null:
+        _surface_regions = CharacterSurfaceRegions.new()
+        var body_asset := String(BODY_OPTIONS.get(body_name, ""))
+        var masks: Array[Resource] = CharacterSurfaceRegionMaskLibrary.load_for_body(body_asset)
+        if not _surface_regions.configure(_body_root, _body_root, masks, body_asset):
+            _set_status("Contact preview unavailable: " + _surface_regions.get_configuration_error())
+            _surface_regions = null
     if _path_preview_mesh != null:
         _refresh_marker()
     _update_point_count()
@@ -112,32 +123,26 @@ func _refresh_marker() -> void:
     if _path_preview_mesh == null:
         return
     _path_preview_mesh.clear_surfaces()
-    if _path_points.size() >= 2 and _selected_descriptor >= 0:
+    if _path_points.size() >= 2 and _selected_descriptor >= 0 and _surface_regions != null:
         var descriptor: Dictionary = _descriptors[_selected_descriptor]
         var mesh: MeshInstance3D = descriptor["mesh"]
-        var contact_path := CharacterSurfaceContactPath.new()
-        contact_path.body_asset_path = String(BODY_OPTIONS.get(_body_option.get_item_text(_body_option.selected), ""))
-        contact_path.mesh_node_path = _body_root.get_path_to(mesh)
-        contact_path.surface_index = int(descriptor["surface_index"])
-        contact_path.surface_name = mesh.mesh.surface_get_name(contact_path.surface_index)
-        contact_path.vertex_count = (descriptor["vertices"] as PackedVector3Array).size()
-        contact_path.surface_signature = CharacterSurfaceRegionMask.build_surface_signature(mesh.mesh, contact_path.surface_index)
-        contact_path.path_id = _path_id_input.text.strip_edges().to_snake_case()
-        contact_path.closed_loop = _path_closed
-        contact_path.points = _path_points.duplicate(true)
-        var surface_regions := CharacterSurfaceRegions.new()
-        var masks: Array[Resource] = CharacterSurfaceRegionMaskLibrary.load_for_body(contact_path.body_asset_path)
-        if surface_regions.configure(_body_root, _body_root, masks, contact_path.body_asset_path):
-            var dense_path := contact_path.evaluate_surface_path(surface_regions)
-            if not dense_path.is_empty():
-                _path_preview_mesh.surface_begin(Mesh.PRIMITIVE_LINE_STRIP, _path_preview_instance.material_override)
-                for sample in dense_path:
-                    _path_preview_mesh.surface_add_vertex(sample["position"])
-                _path_preview_mesh.surface_end()
-            else:
-                _set_status("Surface route could not be evaluated: " + contact_path.last_evaluation_error)
+        _preview_contact_path.body_asset_path = String(BODY_OPTIONS.get(_body_option.get_item_text(_body_option.selected), ""))
+        _preview_contact_path.mesh_node_path = _body_root.get_path_to(mesh)
+        _preview_contact_path.surface_index = int(descriptor["surface_index"])
+        _preview_contact_path.surface_name = mesh.mesh.surface_get_name(_preview_contact_path.surface_index)
+        _preview_contact_path.vertex_count = (descriptor["vertices"] as PackedVector3Array).size()
+        _preview_contact_path.surface_signature = CharacterSurfaceRegionMask.build_surface_signature(mesh.mesh, _preview_contact_path.surface_index)
+        _preview_contact_path.path_id = _path_id_input.text.strip_edges().to_snake_case()
+        _preview_contact_path.closed_loop = _path_closed
+        _preview_contact_path.points = _path_points.duplicate(true)
+        var dense_path := _preview_contact_path.evaluate_surface_path(_surface_regions)
+        if not dense_path.is_empty():
+            _path_preview_mesh.surface_begin(Mesh.PRIMITIVE_LINE_STRIP, _path_preview_instance.material_override)
+            for sample in dense_path:
+                _path_preview_mesh.surface_add_vertex(_body_root.global_transform * sample["position"])
+            _path_preview_mesh.surface_end()
         else:
-            _set_status("Surface route evaluator could not configure: " + surface_regions.get_configuration_error())
+            _set_status("Surface route could not be evaluated: " + _preview_contact_path.last_evaluation_error)
     _update_point_count()
 
 
