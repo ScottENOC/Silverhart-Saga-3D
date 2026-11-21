@@ -3,6 +3,10 @@ extends Control
 ## Open res://tools/anatomy_surface_painter.tscn and run it from the editor.
 
 const MASK_SCRIPT = preload("res://scripts/characters/character_surface_region_mask.gd")
+const PARTITION_SCRIPT = preload("res://scripts/characters/character_surface_region_partition.gd")
+const PARTITION_REGION_IDS := PackedStringArray(["head_neck", "torso", "pelvis", "upper_arm_left", "upper_arm_right", "forearm_left", "forearm_right", "hand_left", "hand_right", "thigh_left", "thigh_right", "lower_leg_left", "lower_leg_right", "foot_left", "foot_right"])
+const PARTITION_REGION_LABELS := ["Head and neck", "Torso", "Pelvis", "Upper arm — left", "Upper arm — right", "Forearm — left", "Forearm — right", "Hand — left", "Hand — right", "Thigh — left", "Thigh — right", "Lower leg — left", "Lower leg — right", "Foot — left", "Foot — right"]
+const PARTITION_DIRECTORY := "res://data/characters/anatomy_partitions"
 const INPUT_ROUTER_SCRIPT = preload("res://tools/anatomy_surface_painter_input.gd")
 const BODY_OPTIONS := {
     "Wren (current native build)": "res://build/wren-native/Wren.glb",
@@ -133,6 +137,9 @@ var _weights_by_region: Dictionary = {}
 var _mirror_map_cache: Dictionary = {}
 var _point_cloud: MultiMeshInstance3D
 var _region_option: OptionButton
+var _partition_mode_check: CheckButton
+var _partition_region_option: OptionButton
+var _partition_assignments := PackedInt32Array()
 var _surface_option: OptionButton
 var _body_option: OptionButton
 var _radius_spin: SpinBox
@@ -276,7 +283,22 @@ func _build_interface() -> void:
     _surface_option.item_selected.connect(_on_surface_selected)
     column.add_child(_surface_option)
 
-    _add_caption(column, "Anatomical region")
+    _partition_mode_check = CheckButton.new()
+    _partition_mode_check.text = "Exclusive primary partition (draft)"
+    _partition_mode_check.tooltip_text = "Separate one-owner-per-vertex map. Does not alter overlapping feature masks."
+    _partition_mode_check.toggled.connect(_on_partition_mode_toggled)
+    column.add_child(_partition_mode_check)
+    _partition_region_option = OptionButton.new()
+    for label in PARTITION_REGION_LABELS:
+        _partition_region_option.add_item(label)
+    _partition_region_option.visible = false
+    _partition_region_option.item_selected.connect(func(index: int):
+        if index >= 0 and index < PARTITION_REGION_IDS.size():
+            _selected_region = String(PARTITION_REGION_IDS[index])
+            _rebuild_markers()
+    )
+    column.add_child(_partition_region_option)
+    _add_caption(column, "Overlapping anatomical feature")
     _region_option = OptionButton.new()
     for group in REGION_GROUPS:
         _region_option.get_popup().add_separator(String(group["label"]))
@@ -362,6 +384,20 @@ func _add_caption(parent: VBoxContainer, text_value: String) -> void:
     parent.add_child(label)
 
 
+func _on_partition_mode_toggled(enabled: bool) -> void:
+    _painting = false
+    _partition_region_option.visible = enabled
+    _region_option.visible = not enabled
+    _mirror_check.disabled = enabled
+    _inspect_check.button_pressed = false
+    if enabled:
+        _selected_region = String(PARTITION_REGION_IDS[_partition_region_option.selected])
+        _set_status("Exclusive partition draft mode. Paint assigns one owner; erase leaves vertices unassigned. Save checks coverage and connectivity.")
+    else:
+        _set_status("Overlapping feature-mask mode restored.")
+    _rebuild_markers()
+
+
 func _on_body_selected(index: int) -> void:
     _load_body(_body_option.get_item_text(index))
 
@@ -409,6 +445,7 @@ func _clear_body() -> void:
             child.queue_free()
     _descriptors.clear()
     _weights_by_region.clear()
+    _partition_assignments = PackedInt32Array()
     _mirror_map_cache.clear()
     _point_cloud.multimesh.instance_count = 0
     if is_instance_valid(_inspected_point_marker):
@@ -726,6 +763,9 @@ func _paint_at(screen_position: Vector2) -> void:
     var mesh_instance: MeshInstance3D = descriptor["mesh"]
     var mesh_transform := mesh_instance.global_transform
     var normal_transform := mesh_transform.basis.inverse().transposed()
+    if _partition_mode_check.button_pressed:
+        _paint_partition_vertices(descriptor, hit_position, hit_normal, screen_position)
+        return
     var weights: PackedFloat32Array = _get_or_create_weights(_selected_region, vertices.size())
     var erase_mode := _mode_option.selected == 1
     var paired_region := _paired_region_id(_selected_region)
@@ -758,6 +798,36 @@ func _paint_at(screen_position: Vector2) -> void:
     _set_status("Painted %s: %d vertices affected%s" % [
         _selected_region, touched, " (mirrored)" if _mirror_check.button_pressed else ""
     ])
+
+
+func _paint_partition_vertices(descriptor: Dictionary, hit_position: Vector3, hit_normal: Vector3, screen_position: Vector2) -> void:
+    var vertices: PackedVector3Array = descriptor["vertices"]
+    var normals: PackedVector3Array = descriptor["normals"]
+    if _partition_assignments.size() != vertices.size():
+        _partition_assignments.resize(vertices.size())
+        _partition_assignments.fill(-1)
+    var mesh_instance: MeshInstance3D = descriptor["mesh"]
+    var mesh_transform := mesh_instance.global_transform
+    var normal_transform := mesh_transform.basis.inverse().transposed()
+    var selected_owner := PARTITION_REGION_IDS.find(_selected_region)
+    if selected_owner < 0:
+        _set_status("Select a valid primary region")
+        return
+    var erase_mode := _mode_option.selected == 1
+    var touched := 0
+    for vertex_index in vertices.size():
+        var world_position: Vector3 = mesh_transform * vertices[vertex_index]
+        var distance := world_position.distance_to(hit_position)
+        if distance > _brush_radius:
+            continue
+        var world_normal := (normal_transform * normals[vertex_index]).normalized()
+        if world_normal.dot(hit_normal) < 0.15:
+            continue
+        _partition_assignments[vertex_index] = -1 if erase_mode else selected_owner
+        touched += 1
+    _last_paint_position = screen_position
+    _rebuild_markers()
+    _set_status("Primary partition: %s %d vertices %s." % [_selected_region, touched, "cleared" if erase_mode else "assigned"])
 
 
 func _paired_region_id(region_id: String) -> String:
@@ -841,6 +911,27 @@ func _rebuild_markers() -> void:
         return
     var descriptor: Dictionary = _descriptors[_selected_descriptor]
     var vertices: PackedVector3Array = descriptor["vertices"]
+    if _partition_mode_check.button_pressed:
+        if _partition_assignments.size() != vertices.size():
+            _partition_assignments.resize(vertices.size())
+            _partition_assignments.fill(-1)
+        var multi_partition := _point_cloud.multimesh
+        var assigned_count := 0
+        for owner_index in _partition_assignments:
+            if owner_index >= 0:
+                assigned_count += 1
+        multi_partition.instance_count = assigned_count
+        var cursor := 0
+        var partition_transform: Transform3D = descriptor["mesh"].global_transform
+        for vertex_index in vertices.size():
+            var owner_index: int = _partition_assignments[vertex_index]
+            if owner_index < 0:
+                continue
+            var marker_position: Vector3 = partition_transform * vertices[vertex_index]
+            multi_partition.set_instance_transform(cursor, Transform3D(Basis().scaled(Vector3.ONE * 0.9), marker_position))
+            multi_partition.set_instance_color(cursor, Color.from_hsv(float(owner_index) / float(PARTITION_REGION_IDS.size()), 0.78, 1.0))
+            cursor += 1
+        return
     var weights: PackedFloat32Array = _get_or_create_weights(_selected_region, vertices.size())
     var mesh_instance: MeshInstance3D = descriptor["mesh"]
     var transform := mesh_instance.global_transform
@@ -867,6 +958,17 @@ func _clear_selected_region() -> void:
         return
     var descriptor: Dictionary = _descriptors[_selected_descriptor]
     var vertices: PackedVector3Array = descriptor["vertices"]
+    if _partition_mode_check.button_pressed:
+        if _partition_assignments.size() != vertices.size():
+            _partition_assignments.resize(vertices.size())
+            _partition_assignments.fill(-1)
+        var selected_owner := PARTITION_REGION_IDS.find(_selected_region)
+        for vertex_index in _partition_assignments.size():
+            if _partition_assignments[vertex_index] == selected_owner:
+                _partition_assignments[vertex_index] = -1
+        _rebuild_markers()
+        _set_status("Cleared %s; those vertices are now unassigned." % _selected_region)
+        return
     var empty := PackedFloat32Array()
     empty.resize(vertices.size())
     _weights_by_region[_selected_region] = empty
@@ -876,6 +978,9 @@ func _clear_selected_region() -> void:
 
 
 func _save_mask() -> void:
+    if _partition_mode_check.button_pressed:
+        _save_primary_partition()
+        return
     if _selected_descriptor < 0:
         _set_status("Select a skinned mesh surface first")
         return
@@ -929,6 +1034,41 @@ func _save_mask() -> void:
     _weights_by_region = nonempty
     descriptor["weights"] = _weights_by_region
     _set_status("Saved and validated %s (%d semantic regions)" % [path, nonempty.size()])
+
+
+func _save_primary_partition() -> void:
+    if _selected_descriptor < 0:
+        _set_status("Select a skinned mesh surface first")
+        return
+    var descriptor: Dictionary = _descriptors[_selected_descriptor]
+    var mesh_instance: MeshInstance3D = descriptor["mesh"]
+    var vertices: PackedVector3Array = descriptor["vertices"]
+    if _partition_assignments.size() != vertices.size():
+        _set_status("Partition not saved: no complete assignment array exists for this surface")
+        return
+    var partition := PARTITION_SCRIPT.new()
+    var setup_error: String = partition.configure_for_mesh(mesh_instance, _body_root, _body_asset_path, int(descriptor["surface_index"]), PARTITION_REGION_IDS)
+    if not setup_error.is_empty():
+        _set_status("Partition setup failed: " + setup_error)
+        return
+    partition.vertex_region_indices = _partition_assignments.duplicate()
+    var validation: String = partition.validate_for_mesh(mesh_instance, _body_root, _body_asset_path)
+    if not validation.is_empty():
+        _set_status("Partition not saved: " + validation)
+        return
+    var path := _save_path_edit.text.strip_edges()
+    if not path.begins_with(PARTITION_DIRECTORY + "/") or not path.ends_with(".tres"):
+        _set_status("Primary partitions must be saved under %s as a .tres resource" % PARTITION_DIRECTORY)
+        return
+    var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
+    if directory_error != OK and directory_error != ERR_ALREADY_EXISTS:
+        _set_status("Could not create partition directory (error %d)" % directory_error)
+        return
+    var save_error := ResourceSaver.save(partition, path)
+    if save_error != OK:
+        _set_status("Partition save failed (error %d)" % save_error)
+        return
+    _set_status("Saved validated draft primary partition: %s. Not registered for runtime use." % path)
 
 
 func _register_saved_mask(mask_path: String, saved_mask: CharacterSurfaceRegionMask) -> bool:
