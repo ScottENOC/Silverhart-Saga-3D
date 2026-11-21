@@ -2,7 +2,7 @@ name: Companion anatomy region review
 
 on:
   push:
-    branches: [feature/ara-garment-fit-guides]
+    branches: [feature/ara-garment-fit-guides, feature/full-body-overlapping-anatomy-vocabulary]
     paths:
       - ".github/workflows/companion-anatomy-region-review.yml"
       - "tools/review/companion_surface_region_review.gd"
@@ -41,6 +41,10 @@ jobs:
           test -s build/aldric-native/Aldric.glb
           echo "WREN_RUN=$wren_run" >> "$GITHUB_ENV"
           echo "ALDRIC_RUN=$aldric_run" >> "$GITHUB_ENV"
+          wren_sha=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$wren_run" --jq '.head_sha')
+          aldric_sha=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$aldric_run" --jq '.head_sha')
+          echo "WREN_BUILD_SHA=$wren_sha" >> "$GITHUB_ENV"
+          echo "ALDRIC_BUILD_SHA=$aldric_sha" >> "$GITHUB_ENV"
       - name: Assemble isolated review project
         run: |
           set -euo pipefail
@@ -82,7 +86,7 @@ jobs:
           done
           mkdir -p build/companion-anatomy-review
           cp -R "$p/build/anatomy-review/." build/companion-anatomy-review/
-          printf '{"wren_run":%s,"aldric_run":%s}\n' "$WREN_RUN" "$ALDRIC_RUN" > build/companion-anatomy-review/source-runs.json
+          printf '{"wren_run":%s,"wren_build_sha":"%s","aldric_run":%s,"aldric_build_sha":"%s","review_source_sha":"%s"}\n' "$WREN_RUN" "$WREN_BUILD_SHA" "$ALDRIC_RUN" "$ALDRIC_BUILD_SHA" "${GITHUB_SHA}" > build/companion-anatomy-review/source-runs.json
       - uses: actions/upload-artifact@v7
         with:
           name: companion-anatomy-region-review
