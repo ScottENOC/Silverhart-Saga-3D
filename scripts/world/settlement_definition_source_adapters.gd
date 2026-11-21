@@ -95,6 +95,14 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 			"character_id": character_id,
 			"position": _read_axial(npc.get("position", {}))
 		})
+	var interiors: Array = []
+	for source_interior in layout.get("interiors", []):
+		if not source_interior is Dictionary:
+			continue
+		var interior: Dictionary = source_interior.duplicate(true)
+		if interior.has("center"):
+			interior["center"] = _read_axial(interior["center"])
+		interiors.append(interior)
 	var min_q := int(centre.get("q", 0))
 	var max_q := min_q
 	var min_r := int(centre.get("r", 0))
@@ -132,7 +140,7 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 		# class progression, equipment and dialogue remain character-owned.
 		"placements": {"characters": characters, "creatures": []},
 		"presentation": {"mode": "chunked", "hex_radius": HexGrid.DEFAULT_RADIUS_M, "ground": {}, "palette": {}, "vegetation": {}},
-		"interiors": []
+		"interiors": interiors
 	}
 	return canonical
 
