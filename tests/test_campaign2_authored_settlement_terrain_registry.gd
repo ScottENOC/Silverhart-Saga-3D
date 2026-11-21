@@ -19,7 +19,7 @@ var failures := 0
 
 func _test_catalogue_owns_authored_terrain() -> void:
 	var registry = REGISTRY.new()
-	_check(registry.validation_errors.is_empty(), "Unified settlement catalogue should validate: %s" % registry.validation_errors)
+	_check(registry.validation_errors.is_empty(), "Unified settlement catalogue should validate: " + str(registry.validation_errors))
 	_check(registry.settlement_ids() == ["hollowmere", "millbrook"], "Terrain and layout settlements must share one catalogue")
 	var inside := registry.resolve(Vector2i(0, 18))
 	var canonical: Dictionary = inside.get("definition", {})
@@ -42,7 +42,6 @@ func _test_world_terrain_uses_canonical_registry() -> void:
 	_check(not terrain.has_tree(Vector2i(10, 60)), "Regional vegetation queries should respect authored farm exclusions")
 	_check(terrain.terrain_for_hex(Vector2i(1, -366)) == "authored", "Millbrook's canonical layout entry must not be mistaken for a terrain definition")
 	_check(terrain.terrain_for_hex(Vector2i(5, -366)) == "path", "Millbrook path occupancy should remain intact without authored terrain data")
-	terrain.free()
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:
