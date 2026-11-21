@@ -44,7 +44,7 @@ func _test_campaign2_layout_adapter() -> void:
 	if not parsed is Dictionary:
 		return
 	var settlements: Array = parsed.get("settlements", [])
-	_check(not settlements.is_empty(), "Campaign 2 source must include Millbrook")
+	_check(settlements.size() == 4, "Campaign 2 source must include Millbrook, Emberlode, Reddale and Old Mac's Farmstead")
 	for layout in settlements:
 		var canonical: Dictionary = adapters.adapt_campaign2_layout(layout)
 		var validation: Dictionary = adapters.validate_adapted(canonical)
@@ -53,6 +53,8 @@ func _test_campaign2_layout_adapter() -> void:
 		_check(canonical.get("layout", {}).get("buildings", []).size() == layout.get("buildings", []).size(), "All source buildings must survive adaptation")
 		_check(canonical.get("placements", {}).get("characters", []).size() == layout.get("npcs", []).size(), "All source character placement references must survive adaptation")
 		_check(canonical.get("interiors", []).size() == layout.get("interiors", []).size(), "All source interior records must survive adaptation")
+		_check(canonical.get("layout", {}).get("fields", []).size() == layout.get("fields", []).size() + layout.get("crop_rows", []).size() + layout.get("fences", []).size(), "All source agricultural fields, crop rows and fences must survive adaptation")
+		_check(canonical.get("layout", {}).get("props", []).size() == layout.get("props", []).size(), "All source quest props must survive adaptation")
 		if String(layout.get("id", "")) != "millbrook":
 			continue
 		var house := _find_record(canonical.layout.buildings, "millbrook_house")
