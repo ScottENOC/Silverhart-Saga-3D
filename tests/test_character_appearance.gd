@@ -271,11 +271,18 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	assert(wren_model.current_hair_colour.is_equal_approx(Color("#252b62")))
 	assert(int(wren_model.get_meta("skin_surfaces_tinted", 0)) > 0, "Wren's skin tint did not reach a material surface")
 	assert(int(wren_model.get_meta("eye_surfaces_tinted", 0)) > 0, "Wren's eye tint did not reach a material surface")
+	# The pinned Ara base currently exposes facial blend shapes only. Do not
+	# report body parameters as blend-shape deformations until body shape keys
+	# exist; height is currently the only visible body adjustment (root scale).
 	var applied_morphs: Dictionary = wren_model.get_meta("body_morph_parameters_applied", {})
-	for morph_name in ["height", "muscle", "weight", "breasts", "legs", "proportions"]:
-		assert(applied_morphs.has(morph_name), "Ara body morph is missing: %s" % morph_name)
+	assert(applied_morphs.is_empty(), "Ara must not claim unsupported body blend shapes were applied")
+	for parameter in ["height", "muscle", "weight", "breasts", "legs", "proportions"]:
+		assert(body_parameters.has(parameter), "Ara body parameter was not retained: %s" % parameter)
 	assert(is_equal_approx(float(body_parameters.get("breasts", 0.0)), 0.76))
 	assert(is_equal_approx(float(body_parameters.get("legs", 0.0)), 0.62))
+	var base_scale: Vector3 = wren_model.get_meta("ara_base_model_scale", wren_model.model_root.scale)
+	var expected_height_scale := base_scale.y * lerpf(0.90, 1.10, 0.55)
+	assert(is_equal_approx(wren_model.model_root.scale.y, expected_height_scale), "Ara height setting must affect stature scale")
 	wren_actor.free()
 
 
