@@ -88,6 +88,9 @@ func _load_body(body_name: String) -> void:
     if _path_preview_mesh != null:
         _refresh_marker()
     _update_point_count()
+    # The base editor writes a landmark resource path during body changes;
+    # restore the contact-path-specific path for the newly selected body.
+    _set_contact_default_path()
 
 
 func _place_point(screen_position: Vector2) -> void:
