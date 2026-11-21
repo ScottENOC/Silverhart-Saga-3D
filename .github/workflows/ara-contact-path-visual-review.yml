@@ -1,7 +1,7 @@
 name: Wren and Aldric native-mesh contact-path visual review
 
 on:
-  push:
+  pull_request:
     branches: [feature/ara-garment-fit-guides]
     paths:
       - ".github/workflows/ara-contact-path-visual-review.yml"
