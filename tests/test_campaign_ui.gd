@@ -17,14 +17,13 @@ func _test_combat_hud_presentation_and_actions() -> void:
     assert(hud.end_turn_button != null)
     assert(hud.status_label != null)
 
-    var attack_requested := false
-    var end_turn_requested := false
-    hud.attack_requested.connect(func(): attack_requested = true)
-    hud.end_turn_requested.connect(func(): end_turn_requested = true)
+    var requested_actions: Array[String] = []
+    hud.attack_requested.connect(func(): requested_actions.append("attack"))
+    hud.end_turn_requested.connect(func(): requested_actions.append("end_turn"))
     hud.attack_button.emit_signal("pressed")
     hud.end_turn_button.emit_signal("pressed")
-    assert(attack_requested)
-    assert(end_turn_requested)
+    assert(requested_actions.has("attack"))
+    assert(requested_actions.has("end_turn"))
 
     hud.present(true, false, false, "Not your turn.")
     assert(hud.visible)
@@ -50,8 +49,8 @@ func _test_dialogue_panel_presentation_and_choice_signal() -> void:
     root.add_child(panel)
     assert(not panel.visible)
 
-    var selected_choice: Dictionary = {}
-    panel.choice_selected.connect(func(choice: Dictionary): selected_choice = choice)
+    var selected_choices: Array[Dictionary] = []
+    panel.choice_selected.connect(func(choice: Dictionary): selected_choices.append(choice))
     var choices: Array[Dictionary] = [
         {"id": "start:quest_intro", "label": "Hear the offer", "available": true},
         {"id": "locked", "label": "Not yet", "available": false, "unavailable_reason": "Requires a key."}
@@ -69,7 +68,8 @@ func _test_dialogue_panel_presentation_and_choice_signal() -> void:
     assert(unavailable_button.disabled)
     assert(unavailable_button.tooltip_text == "Requires a key.")
     available_button.emit_signal("pressed")
-    assert(selected_choice == choices[0])
+    assert(selected_choices.size() == 1)
+    assert(selected_choices[0] == choices[0])
 
     panel.dismiss()
     assert(not panel.visible)
