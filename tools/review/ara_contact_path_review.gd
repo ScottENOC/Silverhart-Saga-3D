@@ -12,6 +12,7 @@ const BODY_ASSETS := {
 }
 var _stage: Node3D
 var _camera: Camera3D
+var _failed := false
 
 func _initialize() -> void:
     call_deferred("_run")
@@ -27,24 +28,34 @@ func _run() -> void:
     _stage.add_child(_camera)
     for body_key in BODY_ASSETS:
         await _render_body(body_key, BODY_ASSETS[body_key])
+        if _failed:
+            return
     print("ARA_CONTACT_PATH_VISUAL_REVIEW: PASS")
     quit(0)
 
 func _render_body(body_key: String, asset_path: String) -> void:
     var packed := load(asset_path) as PackedScene
-    assert(packed != null, "Could not load canonical Ara asset: " + asset_path)
+    if packed == null:
+        _fail("Could not load canonical Ara asset: " + asset_path)
+        return
     var actor_root := Node3D.new()
     actor_root.name = body_key + "_actor"
     _stage.add_child(actor_root)
     var body_root := packed.instantiate() as Node3D
-    assert(body_root != null, "Ara asset root is not Node3D: " + asset_path)
+    if body_root == null:
+        _fail("Ara asset root is not Node3D: " + asset_path)
+        return
     actor_root.add_child(body_root)
     await process_frame
     var skeleton := _find_skeleton(body_root)
-    assert(skeleton != null, "No Skeleton3D in " + asset_path)
+    if skeleton == null:
+        _fail("No Skeleton3D in " + asset_path)
+        return
     var meshes: Array[MeshInstance3D] = []
     _collect_skinned_meshes(body_root, meshes)
-    assert(not meshes.is_empty(), "No skinned meshes in " + asset_path)
+    if meshes.is_empty():
+        _fail("No skinned meshes in " + asset_path)
+        return
     for mesh in meshes:
         mesh.set_skeleton_path(mesh.get_path_to(skeleton))
         mesh.set_skin(mesh.skin)
@@ -52,20 +63,33 @@ func _render_body(body_key: String, asset_path: String) -> void:
     await process_frame
 
     var regions = REGION_SCRIPT.new()
-    assert(regions.configure(actor_root, body_root, [], asset_path),
-        "Surface evaluator failed: " + regions.get_configuration_error())
+    if not regions.configure(actor_root, body_root, [], asset_path):
+        _fail("Surface evaluator failed: " + regions.get_configuration_error())
+        actor_root.queue_free()
+        return
     var path := _build_real_surface_test_path(body_root, meshes, asset_path)
+    if path == null:
+        actor_root.queue_free()
+        return
     var validation := path.validate_for_mesh(
         regions.get_surface_mesh_instance(path.mesh_node_path, path.surface_index),
         body_root,
         asset_path
     )
-    assert(validation.is_empty(), "Generated path failed topology validation: " + validation)
+    if not validation.is_empty():
+        _fail("Generated path failed topology validation: " + validation)
+        actor_root.queue_free()
+        return
     var samples: Array[Dictionary] = path.evaluate_surface_path(regions)
-    assert(samples.size() >= 3, "Could not evaluate dense surface route: " + path.last_evaluation_error)
+    if samples.size() < 3:
+        _fail("Could not evaluate dense surface route: " + path.last_evaluation_error)
+        actor_root.queue_free()
+        return
     for sample in samples:
-        assert(sample["position"].is_finite() and sample["normal"].is_finite(),
-            "Surface route contains a non-finite sample")
+        if not sample["position"].is_finite() or not sample["normal"].is_finite():
+            _fail("Surface route contains a non-finite sample")
+            actor_root.queue_free()
+            return
     _draw_path(samples)
     var bounds := _body_bounds(actor_root, meshes)
     var centre: Vector3 = bounds.get_center()
@@ -87,8 +111,10 @@ func _render_body(body_key: String, asset_path: String) -> void:
         await process_frame
         await RenderingServer.frame_post_draw
         var image := root.get_texture().get_image()
-        assert(image.save_png(output_dir.path_join(view_name + ".png")) == OK,
-            "Could not save " + body_key + " " + view_name + " review image")
+        if image.save_png(output_dir.path_join(view_name + ".png")) != OK:
+            _fail("Could not save " + body_key + " " + view_name + " review image")
+            actor_root.queue_free()
+            return
     var report := {
         "body": body_key,
         "asset": asset_path,
