@@ -2,11 +2,10 @@ class_name Campaign2WorldTerrainData
 extends RefCounted
 ## Deterministic local-hex terrain for the streamed Campaign 2 world.
 ## The strategic map owns biome/faction placement; local noise adds detail.
-## Authored settlement terrain is resolved through the world manifest and generic provider.
+## Settlement terrain and layout occupancy are read from one canonical registry.
 
 const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
 const ROAD_PATHS_PATH := "res://data/world/campaign2_road_paths.json"
-const SETTLEMENT_LAYOUTS_PATH := "res://data/world/campaign2_settlement_layouts.json"
 const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
 const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
 const AUTHORED_SETTLEMENT_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
@@ -16,6 +15,8 @@ var strategic_grid: Array = []
 var road_cells: Dictionary = {}
 var locations_by_hex: Dictionary = {}
 var locations: Array = []
+## Transitional property name retained for current builder callers. Values are
+## canonical registry entries, never decoded legacy layout records.
 var settlement_layouts: Array = []
 var settlement_definition_registry: Campaign2SettlementDefinitionRegistry
 var settlement_building_cells: Dictionary = {}
@@ -61,30 +62,54 @@ func _load_locations() -> void:
 		locations_by_hex[_hex_key(hex)] = location
 
 func _load_settlement_layouts() -> void:
-	if not FileAccess.file_exists(SETTLEMENT_LAYOUTS_PATH):
-		push_warning("Campaign 2 settlement layouts are missing.")
+	settlement_layouts.clear()
+	settlement_building_cells.clear()
+	settlement_path_cells.clear()
+	if settlement_definition_registry == null:
 		return
-	var parsed = JSON.parse_string(FileAccess.get_file_as_string(SETTLEMENT_LAYOUTS_PATH))
-	if not parsed is Dictionary:
-		push_warning("Campaign 2 settlement layouts could not be parsed.")
-		return
-	settlement_layouts = parsed.get("settlements", [])
-	for settlement in settlement_layouts:
-		for building in settlement.get("buildings", []):
-			var centre := Vector2i(int(building.get("center", {}).get("q", 0)), int(building.get("center", {}).get("r", 0)))
+	settlement_layouts = settlement_definition_registry.get_definitions()
+	for entry in settlement_layouts:
+		var definition: Dictionary = entry.get("definition", {})
+		var origin: Vector2i = entry.get("origin", Vector2i.ZERO)
+		var layout: Dictionary = definition.get("layout", {})
+		for building in layout.get("buildings", []):
+			if not building is Dictionary:
+				continue
+			var centre := _read_axial(building.get("center", Vector2i.ZERO)) + origin
 			var half_q := int(building.get("half_q", 0))
 			var half_r := int(building.get("half_r", 0))
 			for q in range(centre.x - half_q, centre.x + half_q + 1):
 				for r in range(centre.y - half_r, centre.y + half_r + 1):
 					settlement_building_cells[_hex_key(Vector2i(q, r))] = true
-		for path in settlement.get("paths", []):
-			var start := Vector2i(int(path.get("from", {}).get("q", 0)), int(path.get("from", {}).get("r", 0)))
-			var finish := Vector2i(int(path.get("to", {}).get("q", 0)), int(path.get("to", {}).get("r", 0)))
-			var steps := maxi(1, HexGrid.distance(start, finish))
-			for step in range(steps + 1):
-				var t := float(step) / float(steps)
-				var cell := Vector2i(roundi(lerpf(float(start.x), float(finish.x), t)), roundi(lerpf(float(start.y), float(finish.y), t)))
-				settlement_path_cells[_hex_key(cell)] = true
+		for path in layout.get("paths", []):
+			if not path is Dictionary:
+				continue
+			if path.has("points") and path.get("points") is Array:
+				var points: Array = path.get("points", [])
+				for index in range(points.size() - 1):
+					_rasterize_path_segment(_read_axial(points[index]) + origin, _read_axial(points[index + 1]) + origin)
+			elif path.has("from") and path.has("to"):
+				_rasterize_path_segment(
+					_read_axial(path.get("from", Vector2i.ZERO)) + origin,
+					_read_axial(path.get("to", Vector2i.ZERO)) + origin
+				)
+
+func _rasterize_path_segment(start: Vector2i, finish: Vector2i) -> void:
+	var steps := maxi(1, HexGrid.distance(start, finish))
+	for step in range(steps + 1):
+		var t := float(step) / float(steps)
+		var cell := Vector2i(
+			roundi(lerpf(float(start.x), float(finish.x), t)),
+			roundi(lerpf(float(start.y), float(finish.y), t))
+		)
+		settlement_path_cells[_hex_key(cell)] = true
+
+func _read_axial(value: Variant) -> Vector2i:
+	if value is Vector2i:
+		return value
+	if value is Dictionary:
+		return Vector2i(int(value.get("q", 0)), int(value.get("r", 0)))
+	return Vector2i.ZERO
 
 func _build_strategic_river() -> void:
 	var origin_cell := MainCampaignWorldMapData.hollowmere_origin_cell()
