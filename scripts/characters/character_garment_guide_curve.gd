@@ -1,6 +1,6 @@
 class_name CharacterGarmentGuideCurve
 extends Resource
-## A named garment construction guide attached to one exact Ara mesh surface.
+## A named garment construction guide attached to one exact character mesh surface.
 ## Each point is a barycentric coordinate inside a source triangle, so it follows
 ## the same skinning and blend-shape evaluation as the body surface.
 
