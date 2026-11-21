@@ -61,6 +61,30 @@ func _run() -> void:
     assert(painter_instance.get("_body_root") != null, "Anatomy painter did not load the current Wren native build")
     assert(painter_instance.get("_inspect_check") != null, "Anatomy painter did not build its membership inspection toggle")
     assert(painter_instance.get("_inspected_point_marker") != null, "Anatomy painter did not build its inspected-point marker")
+    # The exclusive primary partition is a separate authoring mode. Verify
+    # that it exposes the 15 broad regions without replacing the overlapping
+    # feature-mask selector or enabling mirror painting.
+    var partition_ids: Array = painter_constants.get("PARTITION_REGION_IDS", [])
+    var partition_labels: Array = painter_constants.get("PARTITION_REGION_LABELS", [])
+    assert(partition_ids.size() == 15, "Primary partition must expose the 15 broad body regions")
+    assert(partition_labels.size() == partition_ids.size(), "Every primary partition region needs a display label")
+    var partition_check := painter_instance.get("_partition_mode_check") as CheckButton
+    var partition_option := painter_instance.get("_partition_region_option") as OptionButton
+    var feature_option := painter_instance.get("_region_option") as OptionButton
+    var mirror_check := painter_instance.get("_mirror_check") as CheckButton
+    var save_path_edit := painter_instance.get("_save_path_edit") as LineEdit
+    assert(partition_check != null and partition_option != null and feature_option != null,
+        "Painter did not build the separate primary partition controls")
+    painter_instance.call("_on_partition_mode_toggled", true)
+    assert(partition_option.visible, "Primary partition selector should be visible in partition mode")
+    assert(not feature_option.visible, "Overlapping feature selector should be hidden in partition mode")
+    assert(mirror_check.disabled, "Mirror painting must be disabled for exclusive partition ownership")
+    assert(save_path_edit.text.ends_with("_primary.tres"),
+        "Primary partition saves must use a distinct _primary resource path")
+    painter_instance.call("_on_partition_mode_toggled", false)
+    assert(feature_option.visible and not partition_option.visible,
+        "Returning to feature mode must restore the overlapping feature selector")
+    assert(not mirror_check.disabled, "Returning to feature mode must restore mirror painting")
     painter_instance.queue_free()
     await process_frame
     var input_router := load("res://tools/anatomy_surface_painter_input.gd") as Script
