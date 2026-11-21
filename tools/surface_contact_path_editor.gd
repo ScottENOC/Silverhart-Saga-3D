@@ -11,6 +11,7 @@ var _path_closed := false
 var _path_preview_mesh: ImmediateMesh
 var _path_preview_instance: MeshInstance3D
 var _path_point_markers: Array[MeshInstance3D] = []
+var _point_count_label: Label
 
 
 func _ready() -> void:
@@ -47,6 +48,7 @@ func _build_contact_controls() -> void:
     _path_id_input = LineEdit.new()
     _path_id_input.placeholder_text = "e.g. fingertip_trace_left"
     _path_id_input.text = "contact_path_01"
+    _path_id_input.text_changed.connect(func(_value: String): _set_contact_default_path())
     column.add_child(_path_id_input)
     var actions := HBoxContainer.new()
     column.add_child(actions)
@@ -62,10 +64,9 @@ func _build_contact_controls() -> void:
     close.text = "Close loop"
     close.pressed.connect(_toggle_closed_loop)
     actions.add_child(close)
-    var count := Label.new()
-    count.name = "PointCount"
-    count.text = "0 points"
-    column.add_child(count)
+    _point_count_label = Label.new()
+    _point_count_label.text = "0 points"
+    column.add_child(_point_count_label)
 
 
 func _setup_path_preview() -> void:
@@ -78,6 +79,15 @@ func _setup_path_preview() -> void:
     material.no_depth_test = true
     _path_preview_instance.material_override = material
     _world_root.add_child(_path_preview_instance)
+
+
+func _load_body(body_name: String) -> void:
+    super._load_body(body_name)
+    _path_points.clear()
+    _path_closed = false
+    if _path_preview_mesh != null:
+        _refresh_marker()
+    _update_point_count()
 
 
 func _place_point(screen_position: Vector2) -> void:
@@ -225,6 +235,5 @@ func _save_landmark() -> void:
 func _update_point_count() -> void:
     if _path_id_input == null:
         return
-    var label := get_node_or_null("PanelContainer/VBoxContainer/PointCount") as Label
-    if label != null:
-        label.text = "%d points%s" % [_path_points.size(), " · closed" if _path_closed else ""]
+    if _point_count_label != null:
+        _point_count_label.text = "%d points%s" % [_path_points.size(), " · closed" if _path_closed else ""]
