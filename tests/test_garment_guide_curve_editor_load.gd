@@ -90,6 +90,32 @@ func _run() -> void:
 
     var scene := load("res://tools/garment_guide_curve_editor.tscn") as PackedScene
     assert(scene != null, "Garment guide editor scene failed to load")
+    var editor_instance := scene.instantiate() as Control
+    assert(editor_instance != null, "Garment guide editor scene root is not Control")
+    root.add_child(editor_instance)
+    await process_frame
+    await process_frame
+    assert(editor_instance.get("_body_root") != null,
+        "Garment guide editor did not load the current Wren native build")
+    var guide_option := editor_instance.get("_guide_option") as OptionButton
+    var closed_check := editor_instance.get("_closed_check") as CheckButton
+    assert(guide_option != null and closed_check != null,
+        "Garment guide editor did not build its guide and loop controls")
+    for guide_id in loop_requirements:
+        var option_index := -1
+        for item_index in range(guide_option.item_count):
+            if String(guide_option.get_item_metadata(item_index)) == String(guide_id):
+                option_index = item_index
+                break
+        assert(option_index >= 0, "Guide editor selector is missing " + String(guide_id))
+        guide_option.select(option_index)
+        editor_instance.call("_on_guide_selected", option_index)
+        assert(closed_check.disabled,
+            "Bra guide loop semantics must lock the checkbox for " + String(guide_id))
+        assert(closed_check.button_pressed == bool(loop_requirements[guide_id]),
+            "Bra guide loop checkbox has the wrong state for " + String(guide_id))
+    editor_instance.queue_free()
+    await process_frame
     var manifest := load("res://data/characters/garment_guides/manifest.tres") as CharacterGarmentGuideManifest
     assert(manifest != null, "Garment guide manifest failed to load")
     for resource in manifest.guides:
