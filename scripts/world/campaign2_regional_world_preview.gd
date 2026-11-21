@@ -268,7 +268,7 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 	_add_multimesh(root, "ForestCrowns", tree_crown_mesh, tree_transforms)
 	_add_multimesh(root, "ForestTrunks", tree_trunk_mesh, trunk_transforms)
 	_add_chunk_locations(root, chunk)
-	settlement_builder.add_settlements_in_chunk(root, chunk_min, CHUNK_SIZE)
+	settlement_builder.add_settlements_in_chunk(root, chunk_min, CHUNK_SIZE, "chunked")
 	return root
 
 func _add_hex_to_surface(surface: SurfaceTool, hex: Vector2i, elevation: float) -> void:
