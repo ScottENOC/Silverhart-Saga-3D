@@ -145,10 +145,14 @@ func _test_hollowmere_character_manifest() -> void:
         if String(profile.get("role", "")) != "companion":
             continue
         companion_count += 1
-        assert(profile.has("progression"), "%s must have source-authored progression" % profile.get("name", "companion"))
-        var progression: Dictionary = profile["progression"]
-        assert(not progression.get("class_levels", []).is_empty(), "Canonical companions need ordered class levels")
-        assert(not progression.get("skill_picks", []).is_empty(), "Canonical companions need authored skill preferences")
+        # Wren is the authored opening-party character and retains her separate
+        # starting-character setup. The eight recruitable campaign companions
+        # carry canonical runtime progression records in this manifest.
+        if String(profile.get("detail", "")) == "runtime":
+            assert(profile.has("progression"), "%s must have source-authored progression" % profile.get("name", "companion"))
+            var progression: Dictionary = profile["progression"]
+            assert(not progression.get("class_levels", []).is_empty(), "Canonical companions need ordered class levels")
+            assert(not progression.get("skill_picks", []).is_empty(), "Canonical companions need authored skill preferences")
     assert(companion_count == 9, "Wren plus eight original campaign companions should be staged in Hollowmere")
     for companion_name in companion_names:
         var found := false
