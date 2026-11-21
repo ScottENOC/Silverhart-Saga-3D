@@ -72,6 +72,7 @@ var _body_root: Node3D
 var _descriptors: Array[Dictionary] = []
 var _selected_descriptor := -1
 var _guide_points: Array[Dictionary] = []
+var _surface_regions: CharacterSurfaceRegions
 var _line_instance: MeshInstance3D
 var _line_mesh: ImmediateMesh
 var _marker_cloud: MultiMeshInstance3D
@@ -265,6 +266,11 @@ func _load_body(body_name: String) -> void:
         return
     _world_root.add_child(_body_root)
     _collect_surfaces(_body_root)
+    _surface_regions = CharacterSurfaceRegions.new()
+    var masks: Array[Resource] = CharacterSurfaceRegionMaskLibrary.load_for_body(asset_path)
+    if not _surface_regions.configure(_body_root, _body_root, masks, asset_path):
+        _set_status("Guide preview unavailable: " + _surface_regions.get_configuration_error())
+        _surface_regions = null
     _surface_option.clear()
     for descriptor in _descriptors:
         var mesh: MeshInstance3D = descriptor["mesh"]
@@ -496,24 +502,41 @@ func _refresh_guide_display() -> void:
     if _selected_descriptor >= 0 and _selected_descriptor < _descriptors.size():
         var descriptor: Dictionary = _descriptors[_selected_descriptor]
         var mesh: MeshInstance3D = descriptor["mesh"]
+        if _guide_points.size() >= 2 and _surface_regions != null:
+            var guide := CharacterGarmentGuideCurve.new()
+            guide.body_asset_path = String(BODY_OPTIONS.get(_body_option.get_item_text(_body_option.selected), ""))
+            guide.mesh_node_path = _body_root.get_path_to(mesh)
+            guide.surface_index = int(descriptor["surface_index"])
+            guide.surface_name = mesh.mesh.surface_get_name(guide.surface_index)
+            guide.vertex_count = (descriptor["vertices"] as PackedVector3Array).size()
+            guide.surface_signature = CharacterSurfaceRegionMask.build_surface_signature(mesh.mesh, guide.surface_index)
+            guide.guide_id = _selected_guide_id()
+            guide.closed_loop = _closed_check.button_pressed
+            guide.points = _guide_points.duplicate(true)
+            var dense_path := guide.evaluate_surface_path(_surface_regions)
+            if dense_path.is_empty():
+                _set_status("Surface guide route could not be evaluated: " + guide.last_evaluation_error)
+            else:
+                for sample in dense_path:
+                    positions.append(_body_root.global_transform * sample["position"])
+    var multi := _marker_cloud.multimesh
+    multi.instance_count = _guide_points.size()
+    if _selected_descriptor >= 0 and _selected_descriptor < _descriptors.size():
+        var descriptor: Dictionary = _descriptors[_selected_descriptor]
+        var mesh: MeshInstance3D = descriptor["mesh"]
         var vertices: PackedVector3Array = descriptor["vertices"]
-        for point in _guide_points:
+        for index in range(_guide_points.size()):
+            var point: Dictionary = _guide_points[index]
             var triangle: PackedInt32Array = point["triangle_indices"]
             var barycentric: PackedFloat32Array = point["barycentric"]
             var local_position := Vector3.ZERO
             for corner in range(3):
                 local_position += vertices[triangle[corner]] * barycentric[corner]
-            positions.append(mesh.global_transform * local_position)
-    var multi := _marker_cloud.multimesh
-    multi.instance_count = positions.size()
-    for index in range(positions.size()):
-        multi.set_instance_transform(index, Transform3D(Basis.IDENTITY, positions[index]))
+            multi.set_instance_transform(index, Transform3D(Basis.IDENTITY, mesh.global_transform * local_position))
     if positions.size() >= 2:
         _line_mesh.surface_begin(Mesh.PRIMITIVE_LINE_STRIP, _line_instance.material_override)
         for position in positions:
             _line_mesh.surface_add_vertex(position)
-        if _closed_check.button_pressed and positions.size() >= 3:
-            _line_mesh.surface_add_vertex(positions[0])
         _line_mesh.surface_end()
 
 
