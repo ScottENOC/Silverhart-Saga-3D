@@ -1,4 +1,4 @@
-name: Wren and Aldric contact path visual review
+name: Wren and Aldric native-mesh contact-path visual review
 
 on:
   push:
@@ -51,7 +51,7 @@ jobs:
         run: |
           godot --version
           godot --headless --editor --path . --quit
-      - name: Render synthetic surface-following traces on Wren and Aldric
+      - name: Render diagnostic surface-following traces on current Wren and Aldric builds
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
