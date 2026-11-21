@@ -153,6 +153,10 @@ var _camera_pitch := 0.12
 var _camera_distance := 2.2
 var _camera_target := Vector3(0.0, 0.85, 0.0)
 var _last_paint_position := Vector2(-10000, -10000)
+var _touch_positions: Dictionary = {}
+var _touch_start_position := Vector2.ZERO
+var _touch_dragged := false
+var _pinch_distance := 0.0
 
 
 func _ready() -> void:
@@ -333,7 +337,7 @@ func _build_interface() -> void:
 
     var help := Label.new()
     help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    help.text = "View: left-drag paints; right-drag orbits; wheel zooms. Paint the chosen side, then enable mirroring if appropriate. Blue markers show non-zero weights. Save each mesh surface to its own resource."
+    help.text = "Mouse: left-drag paints, right-drag orbits, wheel zooms. Touch: one-finger drag paints, two-finger drag orbits and pinches to zoom. Inspect point memberships to tap a point and see all overlapping authored regions. Blue markers show the selected region only."
     column.add_child(help)
 
 
@@ -533,7 +537,53 @@ func _on_viewport_gui_input(event: InputEvent) -> void:
         elif _painting and motion.position.distance_to(_last_paint_position) >= 3.0:
             _paint_at(motion.position)
         _viewport.set_input_as_handled()
-
+    elif event is InputEventScreenTouch:
+        var touch := event as InputEventScreenTouch
+        if touch.pressed:
+            _touch_positions[touch.index] = touch.position
+            if _touch_positions.size() == 1:
+                _touch_start_position = touch.position
+                _touch_dragged = false
+            elif _touch_positions.size() == 2:
+                _painting = false
+                var values: Array = _touch_positions.values()
+                _pinch_distance = (values[0] as Vector2).distance_to(values[1])
+        else:
+            if _touch_positions.has(touch.index):
+                if _touch_positions.size() == 1 and not _touch_dragged:
+                    if _inspect_check.button_pressed:
+                        _inspect_at(touch.position)
+                    else:
+                        _paint_at(touch.position)
+                _touch_positions.erase(touch.index)
+                if _touch_positions.size() < 2:
+                    _pinch_distance = 0.0
+                    _painting = false
+        _viewport.set_input_as_handled()
+    elif event is InputEventScreenDrag:
+        var drag := event as InputEventScreenDrag
+        if _touch_positions.size() >= 2:
+            _touch_positions[drag.index] = drag.position
+            var values: Array = _touch_positions.values()
+            var distance: float = (values[0] as Vector2).distance_to(values[1])
+            if _pinch_distance > 1.0 and distance > 1.0:
+                _camera_distance = clampf(_camera_distance * _pinch_distance / distance, 0.7, 5.0)
+            _camera_yaw -= drag.relative.x * 0.004
+            _camera_pitch = clampf(_camera_pitch + drag.relative.y * 0.004, -1.1, 1.1)
+            _pinch_distance = distance
+            _update_camera()
+        elif _touch_positions.size() == 1:
+            _touch_positions[drag.index] = drag.position
+            if drag.position.distance_to(_touch_start_position) > 8.0:
+                _touch_dragged = true
+            if _touch_dragged:
+                if _inspect_check.button_pressed:
+                    _camera_yaw -= drag.relative.x * 0.008
+                    _camera_pitch = clampf(_camera_pitch + drag.relative.y * 0.008, -1.1, 1.1)
+                    _update_camera()
+                else:
+                    _paint_at(drag.position)
+        _viewport.set_input_as_handled()
 
 ## Inspect a point on the selected native mesh and report all authored
 ## semantic memberships using barycentric interpolation across its hit triangle.
