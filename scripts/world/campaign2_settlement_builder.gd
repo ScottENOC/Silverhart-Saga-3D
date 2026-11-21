@@ -5,7 +5,7 @@ extends RefCounted
 
 const HEX_RADIUS := HexGrid.DEFAULT_RADIUS_M
 const CHARACTER_ACTOR_FACTORY = preload("res://scripts/presentation/campaign_character_actor_factory.gd")
-const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
+const FEATURE_COMPOSER = preload("res://scripts/world/world_settlement_feature_composer.gd")
 const CHARACTER_REGISTRY_SCRIPT = preload("res://scripts/world/campaign2_character_definition_registry.gd")
 
 var settlements: Array = []
@@ -29,15 +29,16 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 		var presentation: Dictionary = definition.get("presentation", {})
 		if String(presentation.get("mode", "chunked")) != "chunked":
 			continue
-		var layout: Dictionary = definition.get("layout", {})
-		var settlement_context := {"id": settlement_id}
-		for source_building in layout.get("buildings", []):
-			if not source_building is Dictionary:
-				continue
-			var building := _world_building(source_building, origin)
-			var centre := _read_hex(building.get("center", {}))
-			if _contains_chunk(centre, chunk_min, chunk_size):
-				_build_building(parent, settlement_context, building)
+		var composition := FEATURE_COMPOSER.compose_chunk(
+			parent,
+			entry,
+			chunk_min,
+			chunk_size,
+			HEX_RADIUS
+		)
+		if not bool(composition.get("ok", false)):
+			push_warning("Settlement feature composition failed for %s: %s" % [settlement_id, composition])
+
 		var placements: Dictionary = definition.get("placements", {})
 		for placement in placements.get("characters", []):
 			if not placement is Dictionary:
@@ -48,19 +49,6 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 			var world_hex := _read_hex(placement.get("position", Vector2i.ZERO)) + origin
 			if _contains_chunk(world_hex, chunk_min, chunk_size):
 				_add_character(parent, character_id, world_hex)
-
-func _world_building(source: Dictionary, origin: Vector2i) -> Dictionary:
-	var building := source.duplicate(true)
-	for coordinate_key in ["center", "door"]:
-		if building.has(coordinate_key):
-			building[coordinate_key] = _read_hex(building[coordinate_key]) + origin
-	return building
-
-func _build_building(parent: Node3D, settlement: Dictionary, building: Dictionary) -> void:
-	if not WORLD_BUILDING_FACTORY.supports_definition(building):
-		push_warning("Unsupported building definition: %s" % String(building.get("id", "<missing id>")))
-		return
-	WORLD_BUILDING_FACTORY.create_building(parent, settlement, building)
 
 func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -> void:
 	var character := character_registry.get_character(character_id)
