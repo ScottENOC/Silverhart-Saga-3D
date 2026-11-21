@@ -98,7 +98,7 @@ func _run() -> void:
     var fine_region_status := {}
     var fine_regions_painted := 0
     for fine_region_id in MASK_SCRIPT.REGION_IDS:
-        var fine_samples: Array[Dictionary] = regions.get_region_surface_samples(fine_region_id, 0.25, 0)
+        var fine_samples: Array[Dictionary] = regions.get_authored_region_surface_samples(fine_region_id, 0.25, 0)
         var sample_count := fine_samples.size()
         var status := "painted" if sample_count > 0 else "unpainted"
         if sample_count > 0:
