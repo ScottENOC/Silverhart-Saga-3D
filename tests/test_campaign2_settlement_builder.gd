@@ -86,6 +86,27 @@ func _initialize() -> void:
 			quit(1)
 			return
 
+	var farmstead_chunk := Node3D.new()
+	root.add_child(farmstead_chunk)
+	builder.add_settlements_in_chunk(farmstead_chunk, Vector2i(0, 192), 24)
+	for node_name in ["old_mac_farmhouse", "old_mac_farmhouse_road_spur_chunk_0", "NPC_old_mac"]:
+		if farmstead_chunk.get_node_or_null(node_name) == null:
+			push_error("Old Mac's source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	if farmstead_chunk.get_node_or_null("old_mac_broken_fence_rail") == null:
+		push_error("Old Mac's broken fence clue was not composed by the shared quest-prop factory.")
+		quit(1)
+		return
+	var pasture_chunk := Node3D.new()
+	root.add_child(pasture_chunk)
+	builder.add_settlements_in_chunk(pasture_chunk, Vector2i(-24, 192), 24)
+	for node_name in ["old_mac_pasture", "old_mac_pasture_north_fence", "old_mac_pasture_south_fence", "old_mac_pasture_west_fence_upper", "old_mac_pasture_west_fence_lower"]:
+		if pasture_chunk.get_node_or_null(node_name) == null:
+			push_error("Old Mac's source pasture feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+
 	# Hollowmere ecology is now chunk-owned. The wilderness deer starts in this
 	# chunk and its gameplay state must survive presentation teardown/rebuild.
 	var simulation := WorldSimulation.new()
