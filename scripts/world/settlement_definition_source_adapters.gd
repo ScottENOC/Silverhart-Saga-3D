@@ -10,9 +10,9 @@ const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placeme
 const VALIDATOR = preload("res://scripts/world/settlement_definition_validator.gd")
 
 func adapt_hollowmere() -> Dictionary:
-	var presentation_constants: Dictionary = HOLLOWMERE_PRESENTATION.get_script_constant_map()
-	var terrain_constants: Dictionary = HOLLOWMERE_TERRAIN.get_script_constant_map()
-	var placement_constants: Dictionary = HOLLOWMERE_PLACEMENTS.get_script_constant_map()
+	var presentation_constants: Dictionary = HOLLOWMERE_PRESENTATION.new().get_script_constant_map()
+	var terrain_constants: Dictionary = HOLLOWMERE_TERRAIN.new().get_script_constant_map()
+	var placement_constants: Dictionary = HOLLOWMERE_PLACEMENTS.new().get_script_constant_map()
 	var source: Dictionary = presentation_constants.get("DEFINITION", {})
 	var feature_data: Dictionary = source.get("features", {}).get("data", {})
 	var placements: Dictionary = {}
