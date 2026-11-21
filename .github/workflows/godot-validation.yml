@@ -150,6 +150,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_local_terrain.gd
       - name: Run Silverhart heartland biome tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_heartland_biomes.gd
+      - name: Run canonical settlement definition validator tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_settlement_definition_validator.gd
       - name: Run Campaign 2 settlement layout tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
       - name: Validate Hollowmere and item data JSON
