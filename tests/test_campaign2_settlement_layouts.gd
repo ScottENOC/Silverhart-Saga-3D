@@ -1,6 +1,8 @@
 extends SceneTree
 
 const TERRAIN_DATA = preload("res://scripts/world/campaign2_world_terrain_data.gd")
+const BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
+const CHARACTER_REGISTRY = preload("res://scripts/world/campaign2_character_definition_registry.gd")
 var failures: int = 0
 
 func _initialize() -> void:
@@ -89,8 +91,8 @@ func _test_emberlode(terrain: Campaign2WorldTerrainData, entries: Array) -> void
 	var mine := _find_record(definition.get("interiors", []), "emberlode_mine_interior")
 	_check(mine.get("floors", []).size() == 3, "Emberlode mine must retain surface, -1 and -2 floors")
 	if mine.get("floors", []).size() == 3:
-		_check(mine.floors[1].get("objects", []).any(func(item): return String(item.get("ore_type", "")) == "ore_gold"), "Working Vein must retain the gold ore node")
-		_check(mine.floors[2].get("objects", []).any(func(item): return String(item.get("ore_type", "")) == "gem_blue"), "Old Seam must retain the blue gem node")
+		_check(String(mine.floors[1].get("objects", [])[0].get("ore_type", "")) == "ore_gold", "Working Vein must retain the gold ore node")
+		_check(String(mine.floors[2].get("objects", [])[0].get("ore_type", "")) == "gem_blue", "Old Seam must retain the blue gem node")
 		_check(mine.floors[2].get("creatures", []).size() == 2, "Old Seam must retain its two source spiders")
 	var actors := definition.get("placements", {}).get("characters", [])
 	var ids: Dictionary = {}
@@ -99,7 +101,7 @@ func _test_emberlode(terrain: Campaign2WorldTerrainData, entries: Array) -> void
 	_check(ids.has("corran_vale") and ids.has("bettina_marrow") and ids.has("rennik_coalmarrow"), "Emberlode character IDs must remain stable")
 	_check(terrain.terrain_for_hex(Vector2i(-256, 22)) == "authored", "Emberlode foreman's hall must suppress procedural terrain")
 	_check(terrain.terrain_for_hex(Vector2i(-252, 20)) == "path", "Emberlode mine approach must be indexed as a path")
-	var factory = preload("res://scripts/world/world_building_factory.gd")
+	var factory = BUILDING_FACTORY
 	for building in layout.get("buildings", []):
 		_check(factory.supports_definition(building), "Emberlode building archetype must be supported: " + String(building.get("id", "")))
 
@@ -124,7 +126,7 @@ func _test_reddale(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
 	var factory = preload("res://scripts/world/world_building_factory.gd")
 	for building in layout.get("buildings", []):
 		_check(factory.supports_definition(building), "Reddale building archetype must be supported: " + String(building.get("id", "")))
-	var registry = preload("res://scripts/world/campaign2_character_definition_registry.gd").new()
+	var registry = CHARACTER_REGISTRY.new()
 	_check(not registry.get_character("corran_vale").is_empty(), "Emberlode NPC profile must resolve through the character registry")
 	_check(not registry.get_character("captain_ilsa_rennick").is_empty(), "Reddale NPC profile must resolve through the character registry")
 
