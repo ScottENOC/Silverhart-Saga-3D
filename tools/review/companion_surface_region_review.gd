@@ -65,10 +65,20 @@ func _run() -> void:
     _add_legend(available)
     var output_abs := ProjectSettings.globalize_path(output)
     DirAccess.make_dir_recursive_absolute(output_abs)
+    # Keep the full-body references, but add close views so the actual native
+    # anatomy can be inspected at useful scale before any fine mask is painted.
+    # These are still orientation references: the dots remain broad rig weights.
     var views := {
         "front": [Vector3(0, 0.88, 4.4), Vector3(0, 0.88, 0), 2.05],
         "side": [Vector3(4.4, 0.88, 0), Vector3(0, 0.88, 0), 2.05],
-        "rear": [Vector3(0, 0.88, -4.4), Vector3(0, 0.88, 0), 2.05]
+        "rear": [Vector3(0, 0.88, -4.4), Vector3(0, 0.88, 0), 2.05],
+        "face_front": [Vector3(0, 1.58, 4.4), Vector3(0, 1.58, 0), 0.52],
+        "face_side": [Vector3(4.4, 1.58, 0), Vector3(0, 1.58, 0), 0.52],
+        "torso_front": [Vector3(0, 1.18, 4.4), Vector3(0, 1.18, 0), 0.92],
+        "torso_side": [Vector3(4.4, 1.18, 0), Vector3(0, 1.18, 0), 0.92],
+        "torso_rear": [Vector3(0, 1.18, -4.4), Vector3(0, 1.18, 0), 0.92],
+        "pelvis_front": [Vector3(0, 0.72, 4.4), Vector3(0, 0.72, 0), 0.62],
+        "pelvis_side": [Vector3(4.4, 0.72, 0), Vector3(0, 0.72, 0), 0.62]
     }
     for view in views:
         var v: Array = views[view]
