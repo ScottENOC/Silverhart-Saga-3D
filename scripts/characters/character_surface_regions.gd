@@ -306,6 +306,61 @@ func get_surface_vertex_sample(mesh_node_path: NodePath, surface_index: int, ver
     return {}
 
 
+## True only when a topology-bound authored mask supplies this region on at least
+## one validated source surface. Broad rig channels are deliberately excluded.
+func has_authored_region(region_id: String) -> bool:
+    if not is_configured() or not CharacterSurfaceRegionMask.REGION_IDS.has(region_id):
+        return false
+    for surface in _surfaces:
+        var weights := _get_authored_region_weights(surface, region_id)
+        for weight in weights:
+            if weight > 0.0:
+                return true
+    return false
+
+
+## Returns the union of independently authored channels. Vertices belonging to
+## multiple selected regions appear once, with all memberships retained. This is
+## the coverage primitive for garment panels; boundary overlap is intentional.
+func get_authored_region_union_samples(
+    region_ids: PackedStringArray,
+    minimum_weight: float = 0.25,
+    max_samples: int = 0
+) -> Array[Dictionary]:
+    var result: Array[Dictionary] = []
+    if not is_configured() or region_ids.is_empty():
+        return result
+    var by_vertex: Dictionary = {}
+    for region_id in region_ids:
+        if not CharacterSurfaceRegionMask.REGION_IDS.has(region_id):
+            continue
+        for sample in get_authored_region_surface_samples(region_id, minimum_weight, 0):
+            var mesh_instance: MeshInstance3D = sample["mesh_instance"]
+            var key := "%d:%d:%d" % [
+                mesh_instance.get_instance_id(), int(sample["surface_index"]), int(sample["vertex_index"])
+            ]
+            if not by_vertex.has(key):
+                sample["region_ids"] = PackedStringArray([region_id])
+                by_vertex[key] = sample
+            else:
+                var existing: Dictionary = by_vertex[key]
+                var memberships: PackedStringArray = existing["region_ids"]
+                if not memberships.has(region_id):
+                    memberships.append(region_id)
+                existing["region_ids"] = memberships
+                existing["weight"] = maxf(float(existing["weight"]), float(sample["weight"]))
+                by_vertex[key] = existing
+    for sample in by_vertex.values():
+        result.append(sample)
+    if max_samples > 0 and result.size() > max_samples:
+        var sampled: Array[Dictionary] = []
+        var stride := int(ceil(float(result.size()) / float(max_samples)))
+        for index in range(0, result.size(), stride):
+            sampled.append(result[index])
+        return sampled
+    return result
+
+
 func get_closest_region_sample(
     region_id: String,
     character_local_point: Vector3,
