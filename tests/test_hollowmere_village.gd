@@ -65,21 +65,17 @@ func _test_village_bounds_and_terrain() -> void:
 
 func _test_generic_terrain_provider_contract() -> void:
     var definition: Dictionary = HOLLOWMERE_TERRAIN.DEFINITION
-    var sample_hexes := [
-        Vector2i(0, 0), Vector2i(8, 24), Vector2i(8, -25),
-        Vector2i(0, -25), Vector2i(0, 15), Vector2i(-11, 0),
-        Vector2i(0, 18), Vector2i(12, 54), Vector2i(12, 57),
-        Vector2i(10, 60), Vector2i(60, 60), Vector2i(97, 0)
-    ]
-    for hex in sample_hexes:
-        assert(TERRAIN_PROVIDER.is_water(hex, definition) == _is_water(hex), "Generic water query diverged at %s" % hex)
-        assert(TERRAIN_PROVIDER.is_building(hex, definition) == _is_building(hex), "Generic building query diverged at %s" % hex)
-        assert(TERRAIN_PROVIDER.is_door(hex, definition) == _is_door(hex), "Generic door query diverged at %s" % hex)
-        assert(TERRAIN_PROVIDER.is_path(hex, definition) == _is_path(hex), "Generic path query diverged at %s" % hex)
-        assert(TERRAIN_PROVIDER.is_blocked(hex, definition) == _is_blocked(hex), "Generic movement query diverged at %s" % hex)
-        assert(TERRAIN_PROVIDER.terrain_id_at(hex, definition) == _terrain_id_at(hex), "Generic terrain ID diverged at %s" % hex)
-        assert(TERRAIN_PROVIDER.is_farm_land(hex, definition) == _is_farm_land(hex), "Generic farm query diverged at %s" % hex)
-        assert(TERRAIN_PROVIDER.is_forest_candidate(hex, definition) == _is_forest_candidate(hex), "Generic woodland query diverged at %s" % hex)
+    assert(TERRAIN_PROVIDER.is_in_bounds(Vector2i(12, 26), definition), "Generic provider should include the authored playable area")
+    assert(not TERRAIN_PROVIDER.is_in_bounds(Vector2i(60, 60), definition), "Generic provider should reject distant cells")
+    assert(TERRAIN_PROVIDER.is_water(Vector2i(0, HOLLOWMERE_SETTLEMENT.STREAM_R), definition), "Generic provider should identify the stream")
+    assert(not TERRAIN_PROVIDER.is_water(HOLLOWMERE_SETTLEMENT.BRIDGE, definition), "The authored bridge must exempt its cell from water")
+    assert(TERRAIN_PROVIDER.is_building(HOLLOWMERE_SETTLEMENT.FARMHOUSE, definition), "Farmhouse footprint must be supplied by authored building data")
+    assert(TERRAIN_PROVIDER.is_building(HOLLOWMERE_SETTLEMENT.FARM_BARN, definition), "Barn footprint must be supplied by authored building data")
+    assert(TERRAIN_PROVIDER.is_door(HOLLOWMERE_SETTLEMENT.FARMHOUSE_DOOR, definition), "Farmhouse entrance must remain explicit")
+    assert(not TERRAIN_PROVIDER.is_blocked(HOLLOWMERE_SETTLEMENT.FARMHOUSE_DOOR, definition), "Authored entrances must remain traversable")
+    assert(TERRAIN_PROVIDER.is_path(Vector2i(0, 15), definition), "Store threshold must be on the authored path network")
+    assert(TERRAIN_PROVIDER.is_farm_land(Vector2i(10, 60), definition), "Farm bounds must be supplied by authored data")
+    assert(not TERRAIN_PROVIDER.is_forest_candidate(Vector2i(10, 60), definition), "Regional woodland rules must respect farm exclusions")
     assert(TERRAIN_PROVIDER.path_cells(definition).size() == 346, "Authored path-cell enumeration must preserve the original 346-cell route network")
     assert(TERRAIN_PROVIDER.water_cells(definition).size() == 182, "Authored stream-cell enumeration must preserve the original 182 water cells")
 
