@@ -4,7 +4,11 @@ extends RefCounted
 ## generated once into a compact q-column lookup, not recomputed per terrain query.
 
 const STREAM_Q_MIN := -90
-const STREAM_Q_MAX := 220
+const STREAM_Q_MAX := 462
+const NORTHWATCH_CENTRE := Vector2i(268, -21)
+const RIDGEHOLD_CENTRE := Vector2i(426, 43)
+const FORT_MOAT_RADIUS := 22
+const FORT_MOAT_WIDTH := 3
 
 static var _stream_cells_by_q: Dictionary = {}
 static var _stream_centres: Dictionary = {}
@@ -33,6 +37,7 @@ static func _ensure_stream() -> void:
 	east_end = _paint_stream_segment(70, 130, 1, int(east_end.r))
 	_paint_stream_segment(130, 220, 1, int(east_end.r), -25, 0.6)
 	_paint_stream_segment(-21, -90, -1, -25)
+	_build_fort_waterways()
 	_stream_built = true
 
 static func _paint_stream_segment(start_q: int, end_q: int, q_step: int, start_r: int, target_r: int = -999999, drift_bias: float = 0.0) -> Dictionary:
@@ -58,6 +63,49 @@ static func _paint_stream_segment(start_q: int, end_q: int, q_step: int, start_r
 		for w in range(1, extra + 1):
 			_add_stream_cell(q, r + w)
 	return {"q": end_q, "r": r}
+
+
+## The source's Northwatch connector leg ends at r=-26, while its L-shaped
+## moat starts at r=-43. The original comment says they connect, but the
+## authored algorithm leaves a 17-hex gap. Preserve the source meander and
+## moat, then fill that short axial connector so the intended waterway is
+## genuinely continuous in the streamed 3D world.
+static func _build_fort_waterways() -> void:
+	var moat_north_r := NORTHWATCH_CENTRE.y - FORT_MOAT_RADIUS
+	var moat_east_q := NORTHWATCH_CENTRE.x + FORT_MOAT_RADIUS
+	var connector_end := _paint_stream_segment(
+		220,
+		NORTHWATCH_CENTRE.x - FORT_MOAT_RADIUS,
+		1,
+		-25,
+		moat_north_r,
+		0.5
+	)
+	var connector_r := int(connector_end.get("r", -25))
+	for r in range(mini(connector_r, moat_north_r), maxi(connector_r, moat_north_r) + 1):
+		_add_stream_cell(int(connector_end.q), r)
+	for q in range(int(connector_end.q), moat_east_q + 1):
+		for width in range(FORT_MOAT_WIDTH):
+			_add_stream_cell(q, moat_north_r - width)
+	for r in range(moat_north_r, NORTHWATCH_CENTRE.y + FORT_MOAT_RADIUS + 1):
+		for width in range(FORT_MOAT_WIDTH):
+			_add_stream_cell(moat_east_q + width, r)
+
+	var moat_exit := Vector2i(moat_east_q, NORTHWATCH_CENTRE.y + FORT_MOAT_RADIUS)
+	var to_ridgehold := _paint_stream_segment(
+		moat_exit.x,
+		RIDGEHOLD_CENTRE.x - 24,
+		1,
+		moat_exit.y,
+		RIDGEHOLD_CENTRE.y - 6,
+		0.5
+	)
+	_paint_stream_segment(
+		int(to_ridgehold.q),
+		int(to_ridgehold.q) + 60,
+		1,
+		int(to_ridgehold.r)
+	)
 
 static func _add_stream_cell(q: int, r: int) -> void:
 	var key := str(q)
