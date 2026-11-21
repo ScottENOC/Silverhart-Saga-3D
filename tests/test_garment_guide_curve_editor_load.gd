@@ -32,7 +32,7 @@ func _run() -> void:
     var coverage = coverage_script.new()
     coverage.garment_id = "test_bra"
     coverage.body_asset_path = "res://build/wren-native/Wren.glb"
-    coverage.coverage_parts = [
+    var coverage_parts: Array[Dictionary] = [
         {
             "part_id": "left_cup",
             "region_ids": PackedStringArray(["breast_left", "sternum"]),
@@ -43,6 +43,7 @@ func _run() -> void:
             "support": 0.8
         }
     ]
+    coverage.coverage_parts = coverage_parts
     assert(coverage.validate_definition().is_empty(),
         "A cup should allow overlapping breast/sternum coverage channels")
     coverage.coverage_parts[0]["region_ids"] = PackedStringArray(["not_an_anatomy_region"])
