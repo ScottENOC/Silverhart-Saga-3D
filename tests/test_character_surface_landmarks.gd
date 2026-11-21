@@ -152,6 +152,16 @@ func _test_body(asset_path: String) -> void:
             dense_control_points += 1
     assert(dense_control_points == 3, "Dense contact route lost authored control points")
 
+    var closed_path := contact_path.duplicate(true) as CharacterSurfaceContactPath
+    closed_path.closed_loop = true
+    var closed_samples := closed_path.evaluate_surface_path(regions)
+    assert(closed_samples.size() >= 4,
+        "Closed surface contact route failed: " + closed_path.last_evaluation_error)
+    var first_closed_position: Vector3 = closed_samples[0]["position"]
+    var last_closed_position: Vector3 = closed_samples[-1]["position"]
+    assert(first_closed_position.distance_to(last_closed_position) < 0.0001,
+        "Closed surface contact route did not return to its exact starting anchor")
+
     var stale := landmark.duplicate() as CharacterSurfaceLandmark
     stale.surface_signature = "stale-topology"
     assert(stale.validate_for_mesh(target_mesh, body_root, asset_path).contains("signature mismatch"),
