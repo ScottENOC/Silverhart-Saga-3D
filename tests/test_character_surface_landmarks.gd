@@ -138,6 +138,20 @@ func _test_body(asset_path: String) -> void:
         assert(path_frame.basis.x.is_finite() and path_frame.basis.y.is_finite() and path_frame.basis.z.is_finite(),
             "Contact path returned a non-finite local frame")
 
+    var dense_path := contact_path.evaluate_surface_path(regions)
+    assert(dense_path.size() >= 3,
+        "Surface-following contact route did not include a dense route: " + contact_path.last_evaluation_error)
+    var dense_control_points := 0
+    for path_sample in dense_path:
+        assert(path_sample["position"].is_finite() and path_sample["normal"].is_finite(),
+            "Dense contact route returned a non-finite surface sample")
+        var dense_frame: Transform3D = path_sample["frame"]
+        assert(dense_frame.basis.x.is_finite() and dense_frame.basis.y.is_finite() and dense_frame.basis.z.is_finite(),
+            "Dense contact route returned a non-finite local frame")
+        if path_sample.get("is_control_point", false):
+            dense_control_points += 1
+    assert(dense_control_points == 3, "Dense contact route lost authored control points")
+
     var stale := landmark.duplicate() as CharacterSurfaceLandmark
     stale.surface_signature = "stale-topology"
     assert(stale.validate_for_mesh(target_mesh, body_root, asset_path).contains("signature mismatch"),
