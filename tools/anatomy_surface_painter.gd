@@ -392,8 +392,15 @@ func _on_partition_mode_toggled(enabled: bool) -> void:
     _inspect_check.button_pressed = false
     if enabled:
         _selected_region = String(PARTITION_REGION_IDS[_partition_region_option.selected])
+        if _selected_descriptor >= 0:
+            var descriptor: Dictionary = _descriptors[_selected_descriptor]
+            var body_prefix := "wren" if _body_asset_path.ends_with("/Wren.glb") else "aldric"
+            var mesh_name := String((descriptor["mesh"] as MeshInstance3D).name).to_snake_case()
+            _save_path_edit.text = "%s/%s_%s_surface_%d_primary.tres" % [PARTITION_DIRECTORY, body_prefix, mesh_name, int(descriptor["surface_index"])]
         _set_status("Exclusive partition draft mode. Paint assigns one owner; erase leaves vertices unassigned. Save checks coverage and connectivity.")
     else:
+        if _selected_descriptor >= 0:
+            _save_path_edit.text = _default_save_path(_descriptors[_selected_descriptor])
         _set_status("Overlapping feature-mask mode restored.")
     _rebuild_markers()
 
@@ -516,10 +523,16 @@ func _on_surface_selected(index: int) -> void:
         return
     _selected_descriptor = index
     _mirror_map_cache.erase(index)
+    _partition_assignments = PackedInt32Array()
     _load_current_mask()
     _rebuild_markers()
     var descriptor: Dictionary = _descriptors[index]
-    _save_path_edit.text = _default_save_path(descriptor)
+    if _partition_mode_check.button_pressed:
+        var body_prefix := "wren" if _body_asset_path.ends_with("/Wren.glb") else "aldric"
+        var mesh_name := String((descriptor["mesh"] as MeshInstance3D).name).to_snake_case()
+        _save_path_edit.text = "%s/%s_%s_surface_%d_primary.tres" % [PARTITION_DIRECTORY, body_prefix, mesh_name, int(descriptor["surface_index"])]
+    else:
+        _save_path_edit.text = _default_save_path(descriptor)
 
 
 func _on_region_selected(index: int) -> void:
