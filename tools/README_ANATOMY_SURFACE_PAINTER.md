@@ -15,7 +15,7 @@ The first run may take a little longer while Godot imports the GLB and creates s
 
 ## Semantic label groups
 
-The selector groups the 73 supported fine surface IDs into:
+The selector groups the expanded full-body fine surface vocabulary (145 IDs) into head/face, torso/chest, pelvis, arms/hands and legs/feet. It includes detailed facial zones (forehead, brows, eye sockets and lids, cheeks, nose, jaw, chin and ears), torso subdivisions, individual fingers, and heel/toe regions.
 
 - Head and neck: face, lips, ears and neck surfaces.
 - Torso and chest: clavicles, breasts, areolae, nipples, underbust, back, abdomen, waist and flanks.
@@ -23,7 +23,7 @@ The selector groups the 73 supported fine surface IDs into:
 - Arms and hands: shoulders, elbows, forearms, wrists, palms and backs of hands.
 - Legs and feet: inner/outer thighs, knees, calves, ankles, tops of feet and soles.
 
-Only paint a region on a body where that anatomy is present. The shared vocabulary does not mean the male and female boundaries are identical. For example, breast, areola and nipple masks must be independently reviewed on each base. Use left/right mirroring as a first pass only; verify both sides in the viewport.
+A source vertex may carry non-zero weights in several regions simultaneously. This is intentional: for example, a boundary vertex can belong to both breast and sternum, and a garment covering both regions covers their union. Region membership is not an exclusive partition. Only paint a region on a body where that anatomy is present. The shared vocabulary does not mean the male and female boundaries are identical. For example, breast, areola and nipple masks must be independently reviewed on each base. Use left/right mirroring as a first pass only; verify both sides in the viewport.
 
 These masks support surface queries for fitting and contact. They are not garment seam curves, collision volumes, rig joints or permission flags. The separate garment-guide layer still needs to author neckline/armhole loops, bust and underbust guides, waist/hip loops, crotch junctions, inseams/outseams and limb openings. Animation uses rig landmarks; cutscenes use contact anchors; combat uses pose-aware volumes. Those systems should consume this shared anatomy contract rather than adding offsets to individual animations.
 
@@ -35,7 +35,7 @@ These masks support surface queries for fitting and contact. They are not garmen
 - **Paint / add** increases weights toward 1.0; **Erase / subtract** decreases them toward 0.0.
 - **Mirror paired left/right region** mirrors a stroke across the body's local X=0 plane and writes to the paired semantic ID (left/right breasts, hips or buttocks). The tool reports how many vertices could be paired. The mirror map uses nearest-position matching within 12 mm; inspect the mirrored result before saving.
 - **Clear selected region** clears the selected channel in the current in-memory surface mask.
-- Blue markers show non-zero weights for the selected region. Rotate the body and inspect the boundaries before saving.
+- Blue markers show non-zero weights for the selected region. Rotate the body and inspect the boundaries before saving. Overlap between semantic channels is supported and should be used where anatomical boundaries are gradual or where garment coverage must bridge adjacent areas.
 
 Central regions (underbust, waist, groin) mirror to themselves. Mirroring is optional and can be disabled for asymmetric anatomy.
 
