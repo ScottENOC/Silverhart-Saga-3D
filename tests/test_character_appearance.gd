@@ -113,6 +113,7 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	assert(is_equal_approx(after_reload.albedo_color.a, 0.35))
 	assert(not shirt.visible)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	_release_test_mesh_resources(body)
 	body.free()
 
 func _test_materials_are_not_shared_between_characters() -> void:
@@ -141,6 +142,8 @@ func _test_materials_are_not_shared_between_characters() -> void:
 	assert((a.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(Color.RED))
 	assert((b.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(Color.BLUE))
 	assert(shared_material.albedo_color.is_equal_approx(Color.WHITE))
+	_release_test_mesh_resources(root_a)
+	_release_test_mesh_resources(root_b)
 	root_a.free()
 	root_b.free()
 
@@ -304,3 +307,18 @@ func _collect_blend_shape_names(node: Node, output: Array[String]) -> void:
 				output.append(shape_name)
 	for child in node.get_children():
 		_collect_blend_shape_names(child, output)
+
+
+func _release_test_mesh_resources(root: Node) -> void:
+	# Headless's dummy renderer queries material shader parameters while a
+	# detached MeshInstance3D is destroyed. Detach the tested mesh resources
+	# explicitly after assertions so teardown does not emit a false null-RID
+	# material diagnostic.
+	if root is MeshInstance3D:
+		var mesh_instance := root as MeshInstance3D
+		if mesh_instance.mesh != null:
+			for surface in range(mesh_instance.mesh.get_surface_count()):
+				mesh_instance.set_surface_override_material(surface, null)
+			mesh_instance.mesh = null
+	for child in root.get_children():
+		_release_test_mesh_resources(child)
