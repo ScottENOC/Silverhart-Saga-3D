@@ -33,8 +33,8 @@ static func river_centre_r(q: int, definition: Dictionary) -> float:
 static func river_half_width(q: int, definition: Dictionary) -> float:
 	var stream: Dictionary = definition.get("stream", {})
 	var samples: Array = stream.get("centre_samples", [])
-	var widths: PackedFloat32Array = stream.get("half_width_samples", PackedFloat32Array())
-	if samples.size() < 2 or widths.size() != samples.size():
+	var widths: Variant = stream.get("half_width_samples", [])
+	if samples.size() < 2 or not (widths is Array or widths is PackedFloat32Array) or widths.size() != samples.size():
 		return 0.0
 	for index in range(samples.size() - 1):
 		var first: Vector2i = samples[index]
