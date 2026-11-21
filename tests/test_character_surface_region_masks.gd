@@ -1,8 +1,8 @@
 extends SceneTree
 
 const BODY_ASSETS := [
-    "res://art/characters/ara_runtime/ara_person_body_anatomy.glb",
-    "res://art/characters/ara_runtime/ara_person_male_body.glb"
+    "res://build/wren-native/Wren.glb",
+    "res://build/aldric-native/Aldric.glb"
 ]
 
 
@@ -14,7 +14,7 @@ func _run() -> void:
     await process_frame
     for asset_path in BODY_ASSETS:
         await _test_mask_contract(asset_path)
-    print("ARA_FINE_SURFACE_MASK_CONTRACT: PASS")
+    print("WREN_ALDRIC_FINE_SURFACE_MASK_CONTRACT: PASS")
     quit(0)
 
 
@@ -103,7 +103,7 @@ func _test_mask_contract(asset_path: String) -> void:
         "Runtime accepted stale fine mask for " + asset_path)
     assert(invalid_regions.get_configuration_error().contains("signature mismatch"),
         "Runtime did not report stale fine mask reason")
-    print("ARA_FINE_SURFACE_MASK_BODY: PASS asset=%s mesh=%s surface=%d vertices=%d sample_vertex=%d" % [
+    print("COMPANION_FINE_SURFACE_MASK_BODY: PASS asset=%s mesh=%s surface=%d vertices=%d sample_vertex=%d" % [
         asset_path, target_mesh.name, target_surface, target_vertex_count, target_vertex
     ])
     actor_root.queue_free()
