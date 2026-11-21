@@ -57,7 +57,7 @@ func adapt_hollowmere() -> Dictionary:
 		},
 		"placements": {"characters": characters, "creatures": creatures},
 		"presentation": {
-			"mode": "location_presenter",
+			"mode": "chunked",
 			"hex_radius": source.get("hex_radius", HexGrid.DEFAULT_RADIUS_M),
 			"ground": source.get("ground", {}),
 			"palette": source.get("palette", {}),
