@@ -9,7 +9,6 @@ const ROUTE_DATA = preload("res://data/settlements/hollowmere/routes.gd")
 const BRIDGE_DATA = preload("res://data/settlements/hollowmere/bridges.gd")
 const PROP_DATA = preload("res://data/settlements/hollowmere/props.gd")
 const AGRICULTURE_DATA = preload("res://data/settlements/hollowmere/agriculture.gd")
-const HEARTLAND_BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
 const TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
 const TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 
