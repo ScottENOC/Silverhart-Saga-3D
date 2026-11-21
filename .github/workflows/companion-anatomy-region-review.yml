@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/companion-anatomy-region-review.yml"
       - "tools/review/companion_surface_region_review.gd"
+      - "scripts/characters/character_body_surface.gd"
       - "scripts/characters/character_surface_regions.gd"
       - "scripts/characters/character_surface_region_mask.gd"
   pull_request:
@@ -61,6 +62,7 @@ jobs:
           cp build/wren-native/Wren.glb "$p/build/wren-native/"
           cp build/aldric-native/Aldric.glb "$p/build/aldric-native/"
           cp tools/review/companion_surface_region_review.gd "$p/tools/review/"
+          cp scripts/characters/character_body_surface.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_regions.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_region_mask.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_region_mask_library.gd "$p/scripts/characters/"
