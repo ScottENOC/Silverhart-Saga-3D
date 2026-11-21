@@ -117,6 +117,10 @@
         },
         "materials": {
           "type": "object"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["chunked", "location_presenter"]
         }
       }
     },
