@@ -95,7 +95,7 @@ func _test_emberlode(terrain: Campaign2WorldTerrainData, entries: Array) -> void
 		_check(String(mine.floors[1].get("objects", [])[0].get("ore_type", "")) == "ore_gold", "Working Vein must retain the gold ore node")
 		_check(String(mine.floors[2].get("objects", [])[0].get("ore_type", "")) == "gem_blue", "Old Seam must retain the blue gem node")
 		_check(mine.floors[2].get("creatures", []).size() == 2, "Old Seam must retain its two source spiders")
-	var actors := definition.get("placements", {}).get("characters", [])
+	var actors: Array = definition.get("placements", {}).get("characters", [])
 	var ids: Dictionary = {}
 	for actor in actors:
 		ids[String(actor.get("character_id", ""))] = actor
@@ -153,7 +153,7 @@ func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array)
 		var spatter := _find_record(layout.get("props", []), blood_spatter_ids[index])
 		_check(not spatter.is_empty(), "Source blood trail mark must be present: " + blood_spatter_ids[index])
 		if not spatter.is_empty():
-			var expected_q := [-10, -11, -12, -13, -15, -17, -19][index]
+			var expected_q: int = [-10, -11, -12, -13, -15, -17, -19][index]
 			_assert_axial(spatter.get("anchor", {}), Vector2i(expected_q, 194), "Blood trail source step %s" % blood_spatter_ids[index])
 			var expected_visibility := "obvious" if index < 4 else "knowledge_nature"
 			_check(String(spatter.get("evidence_visibility", "")) == expected_visibility, "Blood trail evidence visibility must preserve source progression")
@@ -162,7 +162,7 @@ func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array)
 	_assert_axial(farmhouse.get("door", {}), Vector2i(3, 194), "Old Mac farmhouse door")
 	var actor := _find_record(definition.get("placements", {}).get("characters", []), "old_mac")
 	_assert_axial(actor.get("position", {}), Vector2i(1, 194), "Old Mac source placement")
-	var sheep := definition.get("placements", {}).get("creatures", [])
+	var sheep: Array = definition.get("placements", {}).get("creatures", [])
 	_check(sheep.size() == 2, "Old Mac's two source sheep must be retained as creature placements")
 	var sheep_a := _find_record(sheep, "OldMacSheepA")
 	var sheep_b := _find_record(sheep, "OldMacSheepB")
