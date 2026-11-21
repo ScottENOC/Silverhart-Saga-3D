@@ -139,7 +139,7 @@ func _test_body(asset_path: String) -> void:
         var start_position: Vector3 = vertices[triangle[0]]
         var far_triangle := PackedInt32Array()
         var far_distance := -1.0
-        var triangle_count := indices.size() / 3 if not indices.is_empty() else vertices.size() / 3
+        var triangle_count := int(indices.size() / 3) if not indices.is_empty() else int(vertices.size() / 3)
         for triangle_index in range(triangle_count):
             var offset := triangle_index * 3
             var candidate := PackedInt32Array()
