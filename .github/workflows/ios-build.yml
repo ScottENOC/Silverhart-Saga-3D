@@ -71,7 +71,7 @@ jobs:
           fi
           echo "IOS_XCODE_PROJECT=$PROJECT" >> "$GITHUB_ENV"
 
-      - name: Compile for physical iPhone hardware (unsigned)
+      - name: Compile and package unsigned IPA for AltServer
         shell: bash
         run: |
           set -euo pipefail
@@ -80,8 +80,7 @@ jobs:
           import json
           with open("build/ios/xcode-project.json", encoding="utf-8") as f:
               data = json.load(f)
-          project = data.get("project", {})
-          schemes = project.get("schemes", [])
+          schemes = data.get("project", {}).get("schemes", [])
           if not schemes:
               raise SystemExit("No Xcode build scheme was exported.")
           print(schemes[0])
@@ -94,16 +93,34 @@ jobs:
             -configuration Debug \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
+            -derivedDataPath build/ios/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee build/ios/xcodebuild.log
 
-      - name: Upload unsigned Xcode export and build diagnostics
+          APP_PATH="build/ios/DerivedData/Build/Products/Debug-iphoneos/$SCHEME.app"
+          if [ ! -d "$APP_PATH" ]; then
+            APP_PATH="$(find build/ios/DerivedData/Build/Products/Debug-iphoneos -maxdepth 1 -name '*.app' -type d -print -quit)"
+          fi
+          if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
+            echo "Xcode build succeeded but no iOS .app bundle was found." >&2
+            find build/ios/DerivedData/Build/Products -maxdepth 3 -print
+            exit 1
+          fi
+
+          mkdir -p build/ios/ipa/Payload
+          ditto "$APP_PATH" "build/ios/ipa/Payload/$(basename "$APP_PATH")"
+          (cd build/ios/ipa && /usr/bin/zip -qry ../SilverhartSaga-unsigned.ipa Payload)
+          test -s build/ios/SilverhartSaga-unsigned.ipa
+          echo "Created unsigned IPA for AltServer signing: build/ios/SilverhartSaga-unsigned.ipa"
+
+      - name: Upload unsigned IPA, Xcode export and build diagnostics
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: silverhart-ios-iphone17-${{ github.sha }}
           path: |
             build/ios/SilverhartSaga.zip
+            build/ios/SilverhartSaga-unsigned.ipa
             build/ios/xcode-project.json
             build/ios/xcodebuild.log
           if-no-files-found: warn
