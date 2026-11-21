@@ -1,0 +1,49 @@
+name: Ara garment guide visual preview
+on:
+  push:
+    branches: ["feature/ara-garment-fit-guides"]
+    paths:
+      - "tools/garment_guide_curve_editor.gd"
+      - "tools/garment_guide_curve_editor.tscn"
+      - "tools/review/capture_garment_guide_editor.gd"
+      - "art/characters/ara_runtime/**"
+      - ".github/workflows/garment-guide-preview.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ara-garment-guide-preview
+  cancel-in-progress: true
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import Ara assets
+        run: godot --headless --editor --path . --quit
+      - name: Capture female and male Ara bodies
+        run: |
+          mkdir -p build/garment-guide-preview
+          xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 godot --path . --rendering-method gl_compatibility --script res://tools/review/capture_garment_guide_editor.gd -- build/garment-guide-preview
+          test -s build/garment-guide-preview/female-ara-front.png
+          test -s build/garment-guide-preview/female-ara-side.png
+          test -s build/garment-guide-preview/female-ara-rear.png
+          test -s build/garment-guide-preview/male-ara-front.png
+          test -s build/garment-guide-preview/male-ara-side.png
+          test -s build/garment-guide-preview/male-ara-rear.png
+      - name: Upload visual review images
+        uses: actions/upload-artifact@v4
+        with:
+          name: ara-garment-guide-body-preview
+          path: build/garment-guide-preview/*.png
+          if-no-files-found: error
+          retention-days: 14
