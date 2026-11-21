@@ -27,6 +27,8 @@ func _initialize() -> void:
 	_check(HOLLOWMERE_PLACEMENTS.FARM_WOLF_DEN_HEX == Vector2i(-59, 204), "The live farm-wolf encounter must use the canonical source den coordinate")
 	_check(terrain.chunk_for_hex(Vector2i(-1, -1)) == Vector2i(-1, -1), "Chunk indexing must floor negative axial coordinates")
 	_check(terrain.terrain_for_hex(Vector2i(150, -200)) == "rocky_outcrop", "Unpainted grassland must use the original Campaign 2 rocky-outcrop clump")
+	_check(terrain.terrain_for_hex(Vector2i(528, 284)) == "hills", "Greenskin macro terrain must retain faction-specific hills instead of being replaced by local grassland noise")
+	_check(terrain.terrain_for_hex(Vector2i(528, 414)) == "badlands", "Greenskin macro terrain must retain faction-specific badlands variation")
 	var preview = REGIONAL_PREVIEW.new()
 	preview._create_materials()
 	for terrain_id in ["grass", "forest", "hills", "mountain", "badlands", "sand", "swamp", "rocky_outcrop", "water", "path"]:
