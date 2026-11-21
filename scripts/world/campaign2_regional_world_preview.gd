@@ -4,8 +4,6 @@ extends Node3D
 
 const TERRAIN_DATA_SCRIPT = preload("res://scripts/world/campaign2_world_terrain_data.gd")
 const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
-const SETTLEMENT_PRESENTER = preload("res://scripts/world/world_settlement_presenter.gd")
-const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
 const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
@@ -36,7 +34,6 @@ func _ready() -> void:
 	_create_environment()
 	_create_materials()
 	_create_camera()
-	_add_authored_hollowmere()
 	_build_interface()
 	jump_to_location("hollowmere")
 
@@ -94,14 +91,6 @@ func _create_camera() -> void:
 	camera.current = true
 	add_child(camera)
 	_update_camera()
-
-func _add_authored_hollowmere() -> void:
-	# The regional preview and campaign opening use the same generic presenter
-	# and the same authored settlement definition.
-	var settlement := SETTLEMENT_PRESENTER.new() as Node3D
-	settlement.name = "AuthoredHollowmere"
-	settlement.configure_location(HOLLOWMERE_PRESENTATION.DEFINITION)
-	add_child(settlement)
 
 func _build_interface() -> void:
 	var layer := CanvasLayer.new()
@@ -255,7 +244,7 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 				continue
 			var elevation := terrain_data.elevation_for_hex(hex)
 			_add_hex_to_surface(tools[terrain] as SurfaceTool, hex, elevation)
-			if terrain_data.has_tree(hex):
+			if terrain_data.has_tree(hex) and terrain_data.settlement_definition_registry.resolve(hex).is_empty():
 				var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
 				var size_roll := LOCAL_TERRAIN_RULES.stable_roll(hex, 2909)
 				var scale := 0.72 + size_roll * 0.5
