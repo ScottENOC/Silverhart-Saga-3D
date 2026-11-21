@@ -53,8 +53,10 @@ func _test_generic_terrain_provider_contract() -> void:
         assert(TERRAIN_PROVIDER.terrain_id_at(hex, definition) == HollowmereVillageData.terrain_id_at(hex), "Generic terrain ID diverged at %s" % hex)
         assert(TERRAIN_PROVIDER.is_farm_land(hex, definition) == HollowmereVillageData.is_farm_land(hex), "Generic farm query diverged at %s" % hex)
         assert(TERRAIN_PROVIDER.is_forest_candidate(hex, definition) == HollowmereVillageData.is_forest_candidate(hex), "Generic woodland query diverged at %s" % hex)
-    assert(TERRAIN_PROVIDER.path_cells(definition).size() == HollowmereVillageData.path_cells().size(), "Generic path-cell enumeration must preserve the authored route set size")
-    assert(TERRAIN_PROVIDER.water_cells(definition).size() == HollowmereVillageData.water_cells().size(), "Generic stream-cell enumeration must preserve the authored water set size")
+    assert(TERRAIN_PROVIDER.path_cells(definition).size() == 346, "Authored path-cell enumeration must preserve the original 346-cell route network")
+    assert(TERRAIN_PROVIDER.path_cells(definition).size() == HollowmereVillageData.path_cells().size(), "Generic path-cell enumeration must preserve the compatibility route set size")
+    assert(TERRAIN_PROVIDER.water_cells(definition).size() == 182, "Authored stream-cell enumeration must preserve the original 182 water cells")
+    assert(TERRAIN_PROVIDER.water_cells(definition).size() == HollowmereVillageData.water_cells().size(), "Generic stream-cell enumeration must preserve the compatibility water set size")
 
 func _test_road_network_connectivity() -> void:
     var path_cells := HollowmereVillageData.path_cells()
