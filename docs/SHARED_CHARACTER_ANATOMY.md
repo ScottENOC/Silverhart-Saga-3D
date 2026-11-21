@@ -304,3 +304,17 @@ The guide vocabulary covers neckline/collar, shoulder seams, armholes, chest lin
 
 This is the data/runtime contract and CI validation only. The manifest is intentionally empty: **no production guide curves have been authored yet**. A valid curve must be visually traced and reviewed on each canonical body, independently. The automated test uses a temporary triangle fixture to verify barycentric attachment, deformation-aware evaluation, tangent frames and stale-topology rejection; it is not a usable neckline or garment pattern. The next authoring step is a visual curve editor with surface picking, point insertion/deletion, loop closure and left/right pairing, followed by guides reviewed against Reyna and Dagna.
 
+
+
+## Current companion anatomy authoring target: Wren and Aldric
+
+The older painter instructions above describe the canonical Ara prototype bodies. That is no longer the visual authoring target for the current companion/clothing review. The anatomy surface painter now offers only the latest native companion exports:
+
+- Wren: `res://build/wren-native/Wren.glb`
+- Aldric: `res://build/aldric-native/Aldric.glb`
+
+The Godot validation workflow downloads the latest successful native Wren and Aldric build artifacts from `dev` before running the fine-mask contract test and loading the painter. The painter saves topology-bound masks against the exact selected GLB, mesh path, surface, vertex count and surface signature. A mask authored for Wren is not reusable on Aldric, or on a later re-export whose topology changes.
+
+For the first clothing-relevant pass, author and visually review Wren's left/right breast surfaces, underbust, sternum/medial chest, upper/lower abdomen and ribcage; author Aldric's left/right pectoral surfaces, sternum, ribcage and upper/lower abdomen. Use the existing vocabulary where it fits, and add a new semantic ID only when the current vocabulary cannot express a real distinction. These are anatomical labels, not garment coverage definitions.
+
+**Important status:** the painter is now pointed at Wren and Aldric and CI exercises the real native mesh topology, but no production anatomical masks have been painted or approved yet. The synthetic CI masks only verify that topology-bound weights can be stored, validated and queried. Bra cups, centre gore, underband, straps and shirt panels still need their own garment coverage boundaries/guides; a breast mask alone does not tell the clothing system where a cup ends or whether fabric covers the sternum or abdomen.
