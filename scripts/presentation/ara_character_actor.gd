@@ -246,6 +246,11 @@ func _load_garment_attachment(garment_id: String) -> bool:
             continue
         instance.name = "Garment_%s_%s" % [garment_id, source_mesh.name]
         instance.set_meta("ara_external_garment", true)
+        # The standalone GLB may place its skinned mesh below one or more
+        # transformed parent nodes. Reparenting the mesh directly to model_root
+        # without carrying those transforms can move a correctly skinned bra
+        # away from the torso (historically as far as the head).
+        instance.transform = _relative_transform_to_root(source_mesh, source_root)
         model_root.add_child(instance)
         instance.skeleton = instance.get_path_to(target_skeleton)
         instance.visible = false
@@ -258,6 +263,21 @@ func _load_garment_attachment(garment_id: String) -> bool:
     if not current_body_parameters.is_empty():
         apply_body_parameters(current_body_parameters)
     return true
+
+
+## Preserve the complete imported node transform when moving a skinned mesh
+## from a standalone garment scene under the character model root.
+static func _relative_transform_to_root(node: Node3D, root_node: Node3D) -> Transform3D:
+    var result := Transform3D.IDENTITY
+    var cursor: Node = node
+    while cursor != null and cursor != root_node:
+        if cursor is Node3D:
+            result = (cursor as Node3D).transform * result
+        cursor = cursor.get_parent()
+    if cursor != root_node:
+        push_warning("Garment mesh is not a descendant of its source scene root.")
+        return Transform3D.IDENTITY
+    return result
 
 
 func _surface_label(mesh_instance: MeshInstance3D, surface: int) -> String:
