@@ -33,6 +33,10 @@ func _test_source_backed_quest_flow() -> void:
 	assert(is_equal_approx(journal.npc_standing("old_mac"), 15.0))
 
 func _test_creature_assets_exist() -> void:
+	assert(AnimalCatalog.has_profile("sheep"), "Sheep must have a first-class animal gameplay profile")
+	assert(FileAccess.file_exists("res://art/creatures/generated/Sheep.tscn"), "Generated sheep scene must exist")
+	var sheep_state := AnimalCatalog.create_state("sheep", "test_sheep", "Test Sheep", Vector2i.ZERO, 123)
+	assert(sheep_state != null and sheep_state.max_health <= 4, "Sheep must retain the source low-health profile")
 	for filename in ["Cow.gltf", "Horse.gltf", "Horse_White.gltf", "ShibaInu.gltf", "Wolf.gltf", "Fox.gltf", "Deer.gltf", "Stag.gltf"]:
 		var path: String = "res://art/creatures/quaternius/" + filename
 		assert(FileAccess.file_exists(path), "Missing creature asset: " + path)

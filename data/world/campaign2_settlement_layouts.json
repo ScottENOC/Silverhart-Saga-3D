@@ -1540,6 +1540,34 @@
           "kind": "single_room",
           "source": "campaign2World.js:buildFarmstead carveBuilding"
         }
+      ],
+      "creatures": [
+        {
+          "id": "OldMacSheepA",
+          "kind": "sheep",
+          "behaviour": "farm",
+          "position": {
+            "q": -4,
+            "r": 193
+          },
+          "scale": 0.56,
+          "asset_path": "res://art/creatures/generated/Sheep.tscn",
+          "dialogue_id": "farm_sheep",
+          "source": "campaign2World.js:buildFarmstead sheep[0]"
+        },
+        {
+          "id": "OldMacSheepB",
+          "kind": "sheep",
+          "behaviour": "farm",
+          "position": {
+            "q": -5,
+            "r": 195
+          },
+          "scale": 0.56,
+          "asset_path": "res://art/creatures/generated/Sheep.tscn",
+          "dialogue_id": "farm_sheep",
+          "source": "campaign2World.js:buildFarmstead sheep[1]"
+        }
       ]
     }
   ]

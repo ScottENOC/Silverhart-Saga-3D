@@ -116,10 +116,15 @@ func _add_creatures_in_chunk(
 		actor.behaviour = String(placement.get("behaviour", "passive_wildlife"))
 		actor.axial_hex = actor_hex
 		actor.model_scale = float(placement.get("scale", 1.0))
-		var filename := String(placement.get("asset", ""))
-		if filename.is_empty():
-			filename = "%s.gltf" % creature_kind.capitalize()
-		actor.model_path = "res://art/creatures/quaternius/%s" % filename
+		var authored_asset_path := String(placement.get("asset_path", "")).strip_edges()
+		if not authored_asset_path.is_empty():
+			actor.model_path = authored_asset_path
+		else:
+			var filename := String(placement.get("asset", ""))
+			if filename.is_empty():
+				filename = "%s.gltf" % creature_kind.capitalize()
+			actor.model_path = "res://art/creatures/quaternius/%s" % filename
+		actor.dialogue_id = String(placement.get("dialogue_id", ""))
 		actor.position = HexGrid.axial_to_world(actor_hex, HEX_RADIUS)
 		if state != null:
 			actor.simulation_state = state

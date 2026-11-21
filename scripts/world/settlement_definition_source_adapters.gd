@@ -95,6 +95,14 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 			"character_id": character_id,
 			"position": _read_axial(npc.get("position", {}))
 		})
+	var creatures: Array = []
+	for source_creature in layout.get("creatures", []):
+		if not source_creature is Dictionary:
+			continue
+		var creature: Dictionary = source_creature.duplicate(true)
+		creature["position"] = _read_axial(creature.get("position", creature.get("hex", {})))
+		creature.erase("hex")
+		creatures.append(creature)
 	var interiors: Array = []
 	for source_interior in layout.get("interiors", []):
 		if not source_interior is Dictionary:
@@ -145,6 +153,12 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 		max_q = maxi(max_q, int(point.get("q", 0)))
 		min_r = mini(min_r, int(point.get("r", 0)))
 		max_r = maxi(max_r, int(point.get("r", 0)))
+	for creature in creatures:
+		var point: Dictionary = creature.get("position", {})
+		min_q = mini(min_q, int(point.get("q", 0)))
+		max_q = maxi(max_q, int(point.get("q", 0)))
+		min_r = mini(min_r, int(point.get("r", 0)))
+		max_r = maxi(max_r, int(point.get("r", 0)))
 	for path in paths:
 		for endpoint_name in ["from", "to"]:
 			var point: Dictionary = path.get(endpoint_name, {})
@@ -186,7 +200,7 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 		"layout": {"buildings": buildings, "paths": paths, "bridges": [], "fields": fields, "props": props},
 		# Only placement references survive this adapter. Identity, appearance,
 		# class progression, equipment and dialogue remain character-owned.
-		"placements": {"characters": characters, "creatures": []},
+		"placements": {"characters": characters, "creatures": creatures},
 		"presentation": {"mode": "chunked", "hex_radius": HexGrid.DEFAULT_RADIUS_M, "ground": {}, "palette": layout.get("presentation", {}).get("palette", {}), "materials": layout.get("presentation", {}).get("materials", {}), "vegetation": {}},
 		"interiors": interiors
 	}
