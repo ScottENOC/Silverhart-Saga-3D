@@ -83,8 +83,24 @@ func _run() -> void:
             push_error("Could not save " + view + " view")
             quit(1)
             return
+    var fine_region_status := {}
+    for fine_region_id in MASK_SCRIPT.REGION_IDS:
+        fine_region_status[fine_region_id] = {
+            "status": "unpainted",
+            "sample_count": 0,
+            "note": "No topology-bound authored mask is loaded for this review."
+        }
+    var report := {
+        "character": character_name,
+        "model": model_path,
+        "regions": region_report,
+        "fine_region_status": fine_region_status,
+        "fine_region_total": MASK_SCRIPT.REGION_IDS.size(),
+        "fine_regions_painted": 0,
+        "interpretation": "Rendered dots are broad rig-influence orientation only. All fine anatomical regions are explicitly unpainted; no fine anatomical boundaries are inferred."
+    }
     var file := FileAccess.open(output_abs.path_join("region-report.json"), FileAccess.WRITE)
-    file.store_string(JSON.stringify({"character": character_name, "model": model_path, "regions": region_report, "interpretation": "Bone-influence regions; not authored fine anatomical boundaries."}, "\t"))
+    file.store_string(JSON.stringify(report, "\t"))
     file.close()
     print("ANATOMY_REVIEW_OK character=%s regions=%d" % [character_name, available.size()])
     quit(0)
