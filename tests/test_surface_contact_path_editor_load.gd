@@ -24,8 +24,8 @@ func _run() -> void:
     var male_save_path: LineEdit = editor.get("_save_path")
     assert(male_save_path.text.begins_with("res://data/characters/surface_contact_paths/male_"),
         "Changing to Male Ara left the contact path save target on the wrong body: " + male_save_path.text)
-    assert((editor.get("_path_points") as Array).is_empty(),
-        "Changing body did not clear the previous contact path points")
+    var path_points: Array = editor.get("_path_points")
+    assert(path_points.is_empty(), "Changing body did not clear the previous contact path points")
     body_option.select(0)
     editor.call("_load_body", "Female Ara")
     await process_frame
