@@ -174,6 +174,8 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
             var triangle_count := indices.size() if not indices.is_empty() else vertices.size()
             var candidates: Array[Dictionary] = []
             var all_candidates: Array[Dictionary] = []
+            var valid_area_count := 0
+            var max_cross_squared := 0.0
             for offset in range(0, triangle_count - 2, 3):
                 var tri := PackedInt32Array()
                 if indices.is_empty():
@@ -185,8 +187,11 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
                 var a: Vector3 = vertices[tri[0]]
                 var b: Vector3 = vertices[tri[1]]
                 var c: Vector3 = vertices[tri[2]]
-                if (b - a).cross(c - a).length_squared() < 0.0000001:
+                var cross_squared := (b - a).cross(c - a).length_squared()
+                max_cross_squared = maxf(max_cross_squared, cross_squared)
+                if cross_squared <= 0.00000000000001:
                     continue
+                valid_area_count += 1
                 var centre := (a + b + c) / 3.0
                 var candidate := {"triangle": tri, "centre": centre}
                 all_candidates.append(candidate)
@@ -197,6 +202,10 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
             if candidates.size() < 3:
                 candidates = all_candidates
             if candidates.size() < 3:
+                print("ARA_SURFACE_GEOMETRY mesh=%s surface=%d name='%s' valid_triangles=%d max_cross_squared=%.12g bounds=%s" % [
+                    mesh.name, surface_index, array_mesh.surface_get_name(surface_index),
+                    valid_area_count, max_cross_squared, vertex_bounds
+                ])
                 continue
             candidates.sort_custom(func(a: Dictionary, b: Dictionary):
                 return _axis_value(a["centre"], horizontal_axis) < _axis_value(b["centre"], horizontal_axis)
