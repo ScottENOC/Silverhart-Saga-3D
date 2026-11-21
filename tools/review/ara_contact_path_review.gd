@@ -174,6 +174,13 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
             var triangle_count := indices.size() if not indices.is_empty() else vertices.size()
             var candidates: Array[Dictionary] = []
             var all_candidates: Array[Dictionary] = []
+            # Ara's imported Skin surface can contain multiple disconnected
+            # islands (separate body regions). Build vertex components so the
+            # synthetic review anchors all belong to one routable island.
+            var component_parent := PackedInt32Array()
+            component_parent.resize(vertices.size())
+            for vertex_index in range(vertices.size()):
+                component_parent[vertex_index] = vertex_index
             var valid_area_count := 0
             var max_cross_squared := 0.0
             for offset in range(0, triangle_count - 2, 3):
@@ -192,6 +199,9 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
                 if cross_squared <= 0.00000000000001:
                     continue
                 valid_area_count += 1
+                _union_component(component_parent, tri[0], tri[1])
+                _union_component(component_parent, tri[1], tri[2])
+                _union_component(component_parent, tri[2], tri[0])
                 var centre := (a + b + c) / 3.0
                 var candidate := {"triangle": tri, "centre": centre}
                 all_candidates.append(candidate)
@@ -201,6 +211,22 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
             # If the middle third is sparse, fall back to all valid triangles.
             if candidates.size() < 3:
                 candidates = all_candidates
+            # Keep only the largest connected component. Without this, three
+            # individually valid triangles can straddle separate skin islands
+            # and the production edge-graph correctly has no route between them.
+            var component_groups: Dictionary = {}
+            for candidate in candidates:
+                var triangle: PackedInt32Array = candidate["triangle"]
+                var component_id := _find_component_root(component_parent, triangle[0])
+                if not component_groups.has(component_id):
+                    component_groups[component_id] = []
+                component_groups[component_id].append(candidate)
+            var largest_component: Array[Dictionary] = []
+            for component_id in component_groups:
+                var group: Array = component_groups[component_id]
+                if group.size() > largest_component.size():
+                    largest_component.assign(group)
+            candidates = largest_component
             if candidates.size() < 3:
                 print("ARA_SURFACE_GEOMETRY mesh=%s surface=%d name='%s' valid_triangles=%d max_cross_squared=%.12g bounds=%s" % [
                     mesh.name, surface_index, array_mesh.surface_get_name(surface_index),
@@ -266,6 +292,25 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
             "barycentric": PackedFloat32Array([0.33333334, 0.33333333, 0.33333333])
         })
     return path
+
+
+func _find_component_root(parent: PackedInt32Array, vertex_index: int) -> int:
+    var root_index := vertex_index
+    while parent[root_index] != root_index:
+        root_index = parent[root_index]
+    var current := vertex_index
+    while parent[current] != current:
+        var next := parent[current]
+        parent[current] = root_index
+        current = next
+    return root_index
+
+
+func _union_component(parent: PackedInt32Array, a: int, b: int) -> void:
+    var root_a := _find_component_root(parent, a)
+    var root_b := _find_component_root(parent, b)
+    if root_a != root_b:
+        parent[root_b] = root_a
 
 
 func _axis_value(value: Vector3, axis: int) -> float:
