@@ -67,7 +67,7 @@ const ARCHETYPES := {
 		"foundation_colour": "#555b5c", "floor_colour": "#343638",
 		"wall_colour": "#777b78", "timber_colour": "#514638",
 		"door_colour": "#302a22", "roof_colour": "#424547",
-		"glass_colour": "#52717a", "roof_style": "gable"
+		"glass_colour": "#52717a", "roof_style": "none"
 	}
 }
 
@@ -122,12 +122,15 @@ static func create_building(parent: Node3D, settlement: Dictionary, definition: 
 	root.rotation.y = deg_to_rad(float(definition.get("rotation_degrees", -30.0)))
 	parent.add_child(root)
 
-	_build_shell(root, config, definition)
-	_build_entrance(root, config, definition)
-	_build_windows(root, config, definition)
-	_build_roof(root, config)
-	if _has_feature(definition, "fireplace"):
-		_build_fireplace(root, config)
+	if archetype == "mine_entrance":
+		_build_mine_portal(root, config)
+	else:
+		_build_shell(root, config, definition)
+		_build_entrance(root, config, definition)
+		_build_windows(root, config, definition)
+		_build_roof(root, config)
+		if _has_feature(definition, "fireplace"):
+			_build_fireplace(root, config)
 
 	root.set_meta("settlement_id", String(settlement.get("id", "")))
 	root.set_meta("building_id", building_id)
@@ -274,6 +277,30 @@ static func _build_roof(root: Node3D, config: Dictionary) -> void:
 	var right := _add_box(root, "RoofRightSlope", Vector3(half_run * 0.5, y, 0.0), Vector3(slope_length, 0.3, depth + 0.8), roof)
 	right.rotation.z = -angle
 	_add_box(root, "RoofRidge", Vector3(0.0, float(config.wall_height) + 0.4 + rise, 0.0), Vector3(0.3, 0.3, depth + 0.9), ridge)
+
+static func _build_mine_portal(root: Node3D, config: Dictionary) -> void:
+	# A mine entrance is a cut portal in a rock face, not a timber house.
+	# Keep the opening visually dark and frame it with stone piers and heavy
+	# timber supports so the streamed exterior reads as a mine mouth.
+	var width := float(config.width)
+	var depth := float(config.depth)
+	var height := float(config.wall_height) + 1.2
+	var stone := _material(Color(config.wall_colour))
+	var foundation := _material(Color(config.foundation_colour))
+	var timber := _material(Color(config.timber_colour))
+	var darkness := _material(Color("#101214"), 1.0)
+	_add_box(root, "MineApron", Vector3(0.0, 0.18, 0.0), Vector3(width + 1.0, 0.36, depth + 1.0), foundation)
+	var portal_z := depth * 0.5
+	var pier_width := 2.2
+	var opening_width := width - pier_width * 2.0
+	_add_box(root, "MineRockLeft", Vector3(-width * 0.5 + pier_width * 0.5, height * 0.5 + 0.35, portal_z), Vector3(pier_width, height, 1.25), stone)
+	_add_box(root, "MineRockRight", Vector3(width * 0.5 - pier_width * 0.5, height * 0.5 + 0.35, portal_z), Vector3(pier_width, height, 1.25), stone)
+	_add_box(root, "MineRockLintel", Vector3(0.0, height + 0.15, portal_z), Vector3(opening_width, 1.0, 1.45), stone)
+	_add_box(root, "MineDarkOpening", Vector3(0.0, 2.0, portal_z + 0.08), Vector3(opening_width - 0.3, 3.2, 0.12), darkness)
+	_add_box(root, "MineTimberLeft", Vector3(-opening_width * 0.5 + 0.16, 2.05, portal_z + 0.22), Vector3(0.28, 3.8, 0.3), timber)
+	_add_box(root, "MineTimberRight", Vector3(opening_width * 0.5 - 0.16, 2.05, portal_z + 0.22), Vector3(0.28, 3.8, 0.3), timber)
+	_add_box(root, "MineTimberHeader", Vector3(0.0, 3.9, portal_z + 0.22), Vector3(opening_width, 0.3, 0.3), timber)
+	_add_box(root, "MineThreshold", Vector3(0.0, 0.42, portal_z + 0.65), Vector3(opening_width, 0.22, 1.4), foundation)
 
 static func _build_fireplace(root: Node3D, config: Dictionary) -> void:
 	var stone := _material(Color(config.foundation_colour))
