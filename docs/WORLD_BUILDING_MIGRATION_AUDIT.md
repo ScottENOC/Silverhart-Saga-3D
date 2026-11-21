@@ -1,94 +1,101 @@
 # World construction and migration audit
 
-**Audit date:** 2026-11-20  
+**Audit date:** 2026-11-21  
 **Working branch:** `feature/world-building-foundation`  
 **Target branch:** `dev`
 
 ## Executive finding
 
-The project does not currently have three equivalent systems independently generating the playable world. It has two distinct world-construction paths plus a strategic-map presentation:
+The project has one strategic geography source and two distinct playable-world presentation paths. The earlier three-way impression came from counting the strategic map UI as a world generator and the retired logical-cell streamer as a separate terrain source.
 
-1. **Production opening campaign:** `scenes/main.tscn` → `WorldRoot` → `WorldSimulation`, `HollowmereVillage` and `HollowTankard`. This is still a fixed, Hollowmere-specific composition.
-2. **Campaign 2 regional development preview:** `scenes/prototypes/campaign2_regional_world_preview.tscn` → `Campaign2WorldTerrainData` → a 24×24 chunk renderer and `Campaign2SettlementBuilder`. It uses the same authored Hollowmere exterior as an exclusion/presentation scene and generates the surrounding world from the Campaign 2 geography and settlement manifests.
-3. **Strategic map presentation:** `MainCampaignWorldMapData` reads the same Campaign 2 geography manifest and produces a 16×16 strategic overview. This is not a separate playable-world generator.
+1. **Production opening campaign:** `scenes/main.tscn` → `WorldRoot` → `Campaign2LocationLoader`. The selected Hollowmere location composes the generic `WorldSettlementPresenter` and the `HollowTankard` runtime controller. Logical cells are materialised through `Campaign2WorldCellLoader` using `Campaign2WorldTerrainData`.
+2. **Campaign 2 regional preview:** `scenes/prototypes/campaign2_regional_world_preview.tscn` → `Campaign2WorldTerrainData` → regional chunk presentation. Hollowmere uses the same generic `WorldSettlementPresenter` and authored definition as the production campaign; other settlements use `Campaign2SettlementBuilder`.
+3. **Strategic map presentation:** `MainCampaignWorldMapData` adapts `campaign2_geography.json` into the 16×16 overview. It is not a playable-world generator or a second geography authority.
 
-There was also a fourth-looking component: `HexWorldChunkStreamer`. It was not the regional preview's renderer. It was a logical-cell materialiser that populated `HexMapData` for movement and pathfinding using its own unrelated seeded terrain algorithm. It was still called by `WorldSimulation`; deleting it without replacing that responsibility broke three CI workflows. That responsibility is now being migrated to a data-backed cell loader using the Campaign 2 world terrain provider.
+The legacy `HexWorldChunkStreamer` has been removed. Its logical-cell materialisation responsibility is now handled by `Campaign2WorldCellLoader`. The regional preview still owns the only current chunked 3D presentation renderer; it has not yet been promoted to the production campaign.
 
 ## Current production call paths
 
 ### Opening campaign
 
-- `scenes/main.tscn` attaches `scripts/world/world_root.gd`.
-- `WorldRoot` creates `WorldSimulation`, registers opening quests/social standings, instantiates `HollowmereVillage`, then instantiates `HollowTankard`.
-- `HollowmereVillage` constructs its own ground, authored routes, village buildings, farmstead, agriculture, bridge, signs/quest props, forest and visible wildlife. Its authored definitions are split across `data/settlements/hollowmere/*.gd`, but its runtime assembly is still a location-specific script.
-- `HollowTankard` separately constructs the tavern building/interior, upper floor, furniture, doors, map cells and starting NPC/party presentation. It also registers the Hollowmere logical map cells into `WorldSimulation.map_data`.
-- The opening composition is therefore not yet driven by the regional world provider. It is a fixed location bootstrap with authored local content.
+- `WorldRoot` selects `data/world/locations/hollowmere.gd` and delegates component staging to `Campaign2LocationLoader`.
+- `WorldSettlementPresenter` receives `data/settlements/hollowmere/presentation.gd` and composes authored buildings, routes, bridge, agriculture, props, animal actors and deterministic vegetation through shared factories/generators.
+- The same presenter and data definition are used by the regional preview. The former `HollowmereVillage` presentation script has been deleted.
+- `HollowTankard` remains the starting tavern's runtime controller: interactions, live door/floor/roof transitions, local NPC/party presentation and encounter behaviour remain controller responsibilities.
+- Its static shell, upper storey, roof, taproom furnishings, upper-room partitions, labels and bed anchors are authored in `data/settlements/hollowmere/interiors/` and interpreted by `WorldInteriorLayoutPresenter`.
+- Its ground-floor blockers, upper-floor occupancy, building metadata and door registration are authored in `hollow_tankard_layout.gd` and interpreted by `WorldInteriorLayoutRegistrar`.
 
 ### Regional preview
 
-- `scenes/prototypes/campaign2_regional_world_preview.tscn` attaches `campaign2_regional_world_preview.gd`.
-- The preview instantiates `Campaign2WorldTerrainData`, which reads `campaign2_geography.json`, `campaign2_road_paths.json` and `campaign2_settlement_layouts.json`.
-- It uses the shared 24-hex chunk size, builds terrain meshes and deterministic vegetation from global axial coordinates, and delegates settlement buildings/NPC actors to `Campaign2SettlementBuilder`.
-- Hollowmere is currently excluded from the preview's procedural terrain by a radius rule and inserted by instantiating the same `HollowmereVillage` script used by the opening campaign.
-- The settlement layout manifest currently contains Millbrook. Hollowmere is not yet represented through the generic settlement-builder contract.
+- `Campaign2WorldTerrainData` resolves global axial coordinates against the strategic geography, roads, regional hydrology, shared local terrain rules and authored settlement layouts.
+- Hollowmere's local area is resolved by `AuthoredSettlementTerrainProvider` using `data/settlements/hollowmere/terrain.gd`; it is not a separate terrain algorithm.
+- Hollowmere's exterior is composed by the same `WorldSettlementPresenter` used by the production opening campaign.
+- `Campaign2SettlementBuilder` still owns chunk orchestration for other settlement layouts such as Millbrook. Its JSON settlement-layout input is a separate authored path that should eventually converge with the domain-file settlement contract.
 
 ### Strategic geography
 
-- `MainCampaignWorldMapData` is a runtime adapter over `campaign2_geography.json`; it is not a second geography source.
-- `Campaign2WorldTerrainData` uses that adapter for the local-to-strategic transform, strategic biome/faction grid and regional river path.
-- The map UI had stale references to removed static constants (`WORLD_SIZE`, `RIVER_PATH`, `LOCATIONS`). These are being replaced with the adapter's current query methods.
+- `campaign2_geography.json` owns strategic dimensions, local/global transform inputs, region/faction bands, river path and macro-map markers.
+- `MainCampaignWorldMapData` is the adapter used by the UI and world provider.
+- The strategic map is an index and overview, not a competing source of playable local terrain.
 
 ## Authority and duplication map
 
-| Concern | Current authority | Migration status |
+| Concern | Current authority | Status |
 |---|---|---|
-| Strategic grid dimensions, origin and scale | `campaign2_geography.json` via `MainCampaignWorldMapData` | One manifest; adapter API now used by map UI |
-| Regional terrain/elevation and hydrology | `Campaign2WorldTerrainData` + region/world rule modules | Foundation exists; needs logical/presentation parity tests |
-| Regional roads and settlement layouts | `campaign2_road_paths.json`, `campaign2_settlement_layouts.json` | Millbrook is generic; Hollowmere not migrated |
-| Hollowmere building/route/bridge/agriculture/prop definitions | `data/settlements/hollowmere/*.gd` | Data decomposed; still consumed by Hollowmere-specific presenter |
-| Hollowmere logical occupancy/navigation | `HollowmereVillageData` + tavern registration | Still location-specific; must become settlement data/query providers |
-| Hollowmere interiors and door/floor behaviour | `HollowTankard` and building registry | Still bespoke; preserve and migrate as reusable interior definitions |
-| Hollowmere named NPC identities and starting positions | Tavern/campaign content and character data | Must remain authored; do not randomise or regenerate named identities |
-| Presentation streaming | Regional preview's 24-hex chunk renderer | Preview only; not yet production campaign streaming |
-| Logical exploration cells | Former `HexWorldChunkStreamer`; now `Campaign2WorldCellLoader` | First convergence slice: uses the same regional world data and preserves loaded state |
+| Strategic grid, transform and macro river | `campaign2_geography.json` via `MainCampaignWorldMapData` | Single manifest; adapter used by UI and world provider |
+| Regional hydrology | `data/world/regions/silverhart_heartland/hydrology.gd` | Region-owned stream rule and tests |
+| Heartland woodland ecology | `data/world/regions/silverhart_heartland/biomes.gd` | Region-owned species/eligibility rules receive local exclusions as context |
+| Shared local terrain refinement/elevation | `data/world/terrain/campaign2_local_terrain.gd` | Shared rules for non-settlement terrain |
+| Hollowmere local movement/terrain | `data/settlements/hollowmere/terrain.gd` + `AuthoredSettlementTerrainProvider` | Authored definition interpreted by generic query provider |
+| Hollowmere buildings/routes/bridge/agriculture/props | `data/settlements/hollowmere/*.gd` | Domain data and shared factories |
+| Hollowmere exterior | `WorldSettlementPresenter` + `presentation.gd` | Same generic presenter in production and preview |
+| Hollow Tankard static interior | `interiors/*.gd` + shared interior presenter/registrar | Geometry and logical layout extracted; live behaviour remains in controller |
+| NPC identity and appearance | `data/characters/hollowmere_npcs.json` | Profile only; no duplicated world coordinates |
+| Starting actors, creatures and quest anchors | `data/settlements/hollowmere/placements.gd` | Authored placement data; future companions deferred until their real recruitment regions exist |
+| Logical explored cells | `Campaign2WorldCellLoader` + `Campaign2WorldTerrainData` | Replaces legacy streamer; retains existing/materialised state |
+| 3D presentation streaming | Regional preview chunk renderer | Preview-only; production promotion still outstanding |
 
-## First convergence slice
+## Work completed in the current migration
 
-The removed legacy logical streamer generated grass/forest/outcrop/water with a second seed algorithm and unloaded cells by erasing `HexMapData.cells` and clearing the entire shared vertex-height cache. The replacement `Campaign2WorldCellLoader` now materialises logical cells from `Campaign2WorldTerrainData` using the same 24-hex global chunk indexing as the regional preview. It does not overwrite Hollowmere's authored radius or existing runtime-mutated cells, and it retains explored logical cells rather than deleting gameplay state on chunk movement.
+- Removed `HexWorldChunkStreamer`; its independent seeded wilderness algorithm and destructive unload behaviour are no longer in production.
+- Established the continuous-world architecture and authored-data ownership in ADR 0001.
+- Made the strategic geography manifest authoritative for strategic dimensions, transforms, region bands, faction borders, river path and selected markers.
+- Moved heartland hydrology and woodland rules into region-owned modules.
+- Moved shared Campaign 2 local terrain refinement, elevation and geological rules into a shared world-terrain module.
+- Split Hollowmere's authored buildings, routes, bridge, agriculture, props, placements, terrain and tavern interior into domain files.
+- Replaced the Hollowmere-specific exterior presenter with `WorldSettlementPresenter`.
+- Replaced the Hollow Tankard's static geometry and logical layout construction with shared presenters/registrars.
+- Added the generic `AuthoredSettlementTerrainProvider`. Hollowmere terrain/navigation data is now interpreted by that provider; the remaining `HollowmereVillageData` script is a compatibility facade only.
+- Routed both campaign and regional-preview Hollowmere terrain queries through the same authored terrain definition and provider.
+- Preserved authored NPC/animal positions and deferred companions whose actual recruitment regions have not yet been built.
 
-This does **not** yet unify the presentation streamer. It removes the duplicate wilderness terrain authority and repairs the simulation dependency first.
+## Remaining architecture work
 
-## Hollowmere migration target
+1. **Retire the compatibility facade safely.** Find and migrate every remaining `HollowmereVillageData` caller to the generic provider or a typed world-data interface. Delete the facade only after the dependency audit and regression tests prove it is unused.
+2. **Converge settlement definition formats.** Move the Millbrook/other `campaign2_settlement_layouts.json` path toward the same validated domain-data contract used by Hollowmere. Avoid a second settlement registry.
+3. **Consolidate presentation streaming.** Audit the regional preview renderer and promote/generalise it for production only after seam, negative-coordinate, load-order, unload/reload and persistent-state tests pass. Do not reintroduce a second logical streamer.
+4. **Complete source-world inventory.** Inspect the original Hex-crpg Campaign 2 content and record every region, settlement, building, route, landmark, encounter and interior with source IDs/provenance and port status.
+5. **Move campaign start composition to scenario data.** Keep quest definitions, opening time, player spawn and starting party composition in campaign scenario/content services, not in generic settlement presentation.
+6. **Fidelity and visual audit.** Compare Hollowmere's rendered exterior/interior against the authored source and confirm all original coordinates, feature counts, NPC placements and interaction behaviour.
 
-Keep the authored content under `data/settlements/hollowmere/`; remove the special runtime pathway, not the settlement's identity or its data.
+## Required invariants
 
-The target settlement definition must preserve:
-- all authored building IDs, footprints, dimensions, entrances and orientations;
-- every authored path/road/river route, bridge and landmark;
-- fields, crop rows, fences and quest dressing;
-- interior definitions, floor/room layout, stairs, doors and traversal links;
-- named NPC identities, authored genders/appearance data and starting world positions;
-- animal placements and their simulation registrations;
-- stable provenance IDs so source-to-3D parity can be tested.
+- One continuous logical world in a single canonical global coordinate frame.
+- Regional geography owns cross-settlement terrain, elevation, hydrology and biomes.
+- Settlement definitions own only authored local additions and explicit overrides.
+- Shared providers interpret data; no generic system branches on settlement IDs.
+- Stable IDs and deterministic generation independent of chunk load order.
+- Authored buildings, roads, bridges, rivers, entrances, landmarks and quest anchors take precedence over procedural detail.
+- Presentation unload never deletes logical cells, campaign state, resources, building state or save data.
+- Character appearance/identity and world placement remain separate data domains.
+- New settlements should be addable through validated data, not new location-specific construction scripts.
 
-The generic settlement composition system should accept these domain definitions and invoke shared factories. The world root should select a campaign start/location from campaign composition data, not contain a Hollowmere construction recipe. Campaign-specific quests and opening-event rules should live in campaign scenario data/services, not in a generic settlement renderer.
+## Acceptance gates before removing the compatibility facade or promoting streaming
 
-## Migration sequence
-
-1. **Restore one logical terrain authority (this slice):** route simulation exploration-cell materialisation through `Campaign2WorldTerrainData`; retain authored and mutated cells; test negative chunk indexing, settlement footprints, paths and load-order determinism.
-2. **Make Hollowmere a generic settlement input:** add validated definitions for its buildings, paths, bridge, agriculture, props, interiors and placements to the same settlement assembly contract. Preserve the existing GDScript domain files initially; data format conversion is not a prerequisite.
-3. **Replace the Hollowmere presenter:** move ground/terrain, routes, buildings, agriculture, props, vegetation and creature placements into reusable feature factories invoked by the generic settlement composer. Keep the old presenter temporarily as a parity/reference harness, then remove it after scene-level equivalence tests.
-4. **Generalise interiors:** extract the Hollow Tankard and other enterable buildings into reusable building/interior/floor/door definitions. Preserve upper floors, stairs, furniture, interactions and save/restore behaviour.
-5. **Move campaign start composition to data:** define the opening location, player spawn, party/NPC placements, starting time and scenario hooks as campaign composition data. Keep narrative quest logic distinct from settlement presentation.
-6. **Promote the regional renderer to production:** make the actual campaign and development preview use the same presentation streamer and world provider. Add party/observer-based streaming, cross-chunk features and persistent presentation reconstruction.
-7. **Delete compatibility and special-case code:** remove `HollowmereVillage`, the `HollowmereVillageData` compatibility facade and redundant opening-world construction only after all content parity checks pass.
-
-## Acceptance gates before deleting Hollowmere-specific runtime code
-
-- A scene comparison confirms the authored exterior remains in the same global positions and retains all buildings, routes, fields, props, vegetation and animal placements.
-- Tavern/interior tests confirm all floors, stairs, doors, furniture, room occupancy, NPC positions and interactions remain functional.
-- Named NPC identity, authored gender/appearance and exact starting placements survive the new pipeline.
-- The campaign save/restore integration test remains green.
-- The production campaign and regional preview query the same world data for the same global coordinates.
-- Loading chunks in different orders produces identical terrain, elevation, vegetation and settlement placements.
-- Unloading presentation never erases logical cells, runtime state, resources, building state or save data.
+- A code dependency audit proves no remaining caller relies on `HollowmereVillageData` static methods or constants.
+- Generic-provider parity tests cover stream boundaries, bridge exemption, buildings, doors, paths, farm bounds, forest exclusions and movement blocking.
+- Campaign and regional preview return identical terrain/elevation for the same global coordinates.
+- Adjacent chunks load in different orders without seams or changes to deterministic feature placement.
+- Negative coordinates, settlement crossings and unload/reload preserve continuous terrain and logical state.
+- Tavern floors, stairs, doors, occupancy, NPC positions, interactions and save/restore remain functional.
+- Authored exterior and interior content matches the source inventory.
