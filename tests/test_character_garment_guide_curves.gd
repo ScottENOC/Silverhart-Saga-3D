@@ -218,7 +218,8 @@ func _find_long_route_anchors(vertices: PackedVector3Array, arrays: Array, signa
         if visited.has(initial_vertex):
             continue
         var queue: Array[int] = [initial_vertex]
-        var component: Dictionary = {initial_vertex: true}
+        var component: Dictionary = {}
+        component[initial_vertex] = true
         visited[initial_vertex] = true
         var cursor := 0
         while cursor < queue.size():
