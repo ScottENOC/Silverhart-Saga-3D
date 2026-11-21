@@ -8,6 +8,11 @@ func _initialize() -> void:
 func _run() -> void:
     var editor_script := load("res://tools/garment_guide_curve_editor.gd") as Script
     assert(editor_script != null, "Garment guide editor script failed to load")
+    var guide_script := load("res://scripts/characters/character_garment_guide_curve.gd") as Script
+    assert(guide_script != null, "Garment guide curve script failed to load")
+    var guide_probe = guide_script.new()
+    assert(guide_probe.has_method("evaluate_surface_path"),
+        "Garment guides must expose mesh-constrained dense path evaluation")
     var constants: Dictionary = editor_script.get_script_constant_map()
     var labels: Dictionary = constants.get("GUIDE_LABELS", {})
     var pairs: Dictionary = constants.get("GUIDE_PAIRS", {})
