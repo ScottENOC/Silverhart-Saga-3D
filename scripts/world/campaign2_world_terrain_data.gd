@@ -15,6 +15,9 @@ var strategic_grid: Array = []
 var road_cells: Dictionary = {}
 var locations_by_hex: Dictionary = {}
 var locations: Array = []
+var encounter_sites: Array[Dictionary] = []
+var encounter_sites_by_id: Dictionary = {}
+var encounter_sites_by_hex: Dictionary = {}
 ## Transitional property name retained for current builder callers. Values are
 ## canonical registry entries, never decoded legacy layout records.
 var settlement_layouts: Array = []
@@ -60,6 +63,27 @@ func _load_locations() -> void:
 	for location in locations:
 		var hex := Vector2i(int(location.get("q", 8)), int(location.get("r", 24)))
 		locations_by_hex[_hex_key(hex)] = location
+	encounter_sites.clear()
+	encounter_sites_by_id.clear()
+	encounter_sites_by_hex.clear()
+	for site in parsed.get("encounter_sites", []):
+		if not site is Dictionary:
+			continue
+		var site_id := String(site.get("id", "")).strip_edges()
+		if site_id.is_empty() or encounter_sites_by_id.has(site_id):
+			push_warning("Campaign 2 encounter site has a missing or duplicate ID: %s" % site_id)
+			continue
+		var site_hex := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
+		var site_record: Dictionary = site.duplicate(true)
+		encounter_sites.append(site_record)
+		encounter_sites_by_id[site_id] = site_record
+		encounter_sites_by_hex[_hex_key(site_hex)] = site_record
+
+func encounter_site(site_id: String) -> Dictionary:
+	return (encounter_sites_by_id.get(site_id, {}) as Dictionary).duplicate(true)
+
+func encounter_site_at(hex: Vector2i) -> Dictionary:
+	return (encounter_sites_by_hex.get(_hex_key(hex), {}) as Dictionary).duplicate(true)
 
 func _load_settlement_layouts() -> void:
 	settlement_layouts.clear()
