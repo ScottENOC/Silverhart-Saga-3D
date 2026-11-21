@@ -30,8 +30,9 @@ func _init(
 func configure_simulation(source_simulation: WorldSimulation) -> void:
 	simulation = source_simulation
 
-## Each building and character is attached only to the chunk containing its
-## canonical world anchor. Chunk unloads retire presentation, not authored data.
+## Authored features, vegetation and actor placements are attached only to the
+## chunk owning their canonical anchor/candidate. Chunk unloads retire presentation,
+## not authored data or persistent simulation state.
 func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: int) -> void:
 	for entry in settlements:
 		if not entry is Dictionary:
