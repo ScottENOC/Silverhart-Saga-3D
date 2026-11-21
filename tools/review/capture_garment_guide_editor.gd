@@ -49,11 +49,11 @@ func _capture() -> void:
             await process_frame
             await RenderingServer.frame_post_draw
         for view in ["front", "side", "rear"]:
-            var yaw := PI
+            var yaw := 0.0
             if view == "side":
                 yaw = PI * 0.5
             elif view == "rear":
-                yaw = 0.0
+                yaw = PI
             editor.set("_camera_yaw", yaw)
             editor.call("_update_camera")
             await process_frame
