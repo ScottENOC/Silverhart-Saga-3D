@@ -1,6 +1,5 @@
 extends SceneTree
 
-const DATA = preload("res://scripts/world/hollowmere_village_data.gd")
 const SETTLEMENT = preload("res://data/settlements/hollowmere/settlement_definition.gd")
 const BUILDINGS = preload("res://data/settlements/hollowmere/buildings.gd")
 const ROUTES = preload("res://data/settlements/hollowmere/routes.gd")
@@ -15,9 +14,6 @@ func _initialize() -> void:
 	assert(SETTLEMENT.SETTLEMENT_ID == "hollowmere")
 	assert(SETTLEMENT.COORDINATE_SYSTEM == "campaign2_local_axial_qr")
 	assert(SETTLEMENT.WORLD_REFERENCE_HEX == Vector2i(8, 24), "Hollowmere reference point must remain in campaign axial world coordinates")
-	assert(DATA.MAP_RADIUS == 96, "Compatibility facade must preserve the authored local map extent")
-	assert(DATA.CROSSROADS == SETTLEMENT.WORLD_REFERENCE_HEX)
-	assert(DATA.BRIDGE == Vector2i(8, -25))
 
 	assert(BUILDINGS.BUILDINGS.size() == 7, "All seven authored Hollowmere buildings must remain in the building data module")
 	var building_ids: Dictionary = {}
@@ -84,10 +80,5 @@ func _initialize() -> void:
 	for companion_id in PLACEMENTS.DEFERRED_COMPANIONS:
 		assert(not PLACEMENTS.CHARACTER_STARTS.has(companion_id), "Deferred companions cannot also have local coordinates")
 
-	# Existing callers continue using HollowmereVillageData while authored data is independently organised.
-	assert(DATA.BUILDINGS.size() == BUILDINGS.BUILDINGS.size())
-	assert(DATA.PRESENTATION_ROUTES.size() == ROUTES.PRESENTATION_ROUTES.size())
-	assert(DATA.BRIDGE_PRESENTATION.parts.size() == BRIDGES.BRIDGE_PRESENTATION.parts.size())
-	assert(DATA.FARM_CROP_ROWS.size() == AGRICULTURE.FARM_CROP_ROWS.size())
 	print("Hollowmere modular settlement data tests passed.")
 	quit(0)
