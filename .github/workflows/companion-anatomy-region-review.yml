@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/companion-anatomy-region-review.yml"
       - "tools/review/companion_surface_region_review.gd"
+      - "tools/review/wren_bra_anatomy_proposal.gd"
       - "scripts/characters/character_body_surface.gd"
       - "scripts/characters/character_surface_regions.gd"
       - "scripts/characters/character_surface_region_mask.gd"
@@ -62,6 +63,7 @@ jobs:
           cp build/wren-native/Wren.glb "$p/build/wren-native/"
           cp build/aldric-native/Aldric.glb "$p/build/aldric-native/"
           cp tools/review/companion_surface_region_review.gd "$p/tools/review/"
+          cp tools/review/wren_bra_anatomy_proposal.gd "$p/tools/review/"
           cp scripts/characters/character_body_surface.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_regions.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_region_mask.gd "$p/scripts/characters/"
@@ -97,8 +99,13 @@ jobs:
               test -s "$p/build/anatomy-review/${character,,}/$view.png"
             done
           done
+          xvfb-run -a -s "-screen 0 1280x1200x24" godot --path "$p" --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/wren_bra_anatomy_proposal.gd
+          for view in front side rear; do
+            test -s "$p/build/wren-bra-proposal/$view-candidate.png"
+          done
           mkdir -p build/companion-anatomy-review
           cp -R "$p/build/anatomy-review/." build/companion-anatomy-review/
+          cp -R "$p/build/wren-bra-proposal" build/companion-anatomy-review/
           printf '{"wren_run":%s,"wren_build_sha":"%s","aldric_run":%s,"aldric_build_sha":"%s","review_source_sha":"%s"}\n' "$WREN_RUN" "$WREN_BUILD_SHA" "$ALDRIC_RUN" "$ALDRIC_BUILD_SHA" "$REVIEW_SOURCE_SHA" > build/companion-anatomy-review/source-runs.json
       - uses: actions/upload-artifact@v7
         with:
