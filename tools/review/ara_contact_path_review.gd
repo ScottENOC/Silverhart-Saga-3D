@@ -147,6 +147,11 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
         if array_mesh == null:
             continue
         for surface_index in range(array_mesh.get_surface_count()):
+            # The skinned body mesh also contains hair/face/accessory surfaces.
+            # Those are valid topology, but not useful for a skin-contact review.
+            var surface_label := array_mesh.surface_get_name(surface_index).to_lower()
+            if surface_label.contains("hair") or surface_label.contains("eye") or surface_label.contains("lash") or surface_label.contains("brow") or surface_label.contains("teeth") or surface_label.contains("tongue"):
+                continue
             var arrays := array_mesh.surface_get_arrays(surface_index)
             var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
             if vertices.size() < 3:
