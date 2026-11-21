@@ -16,8 +16,9 @@ static func register_layout(
 	var query_script: Variant = ground.get("query_script")
 	if not query_script is Script:
 		return false
-	var in_bounds := Callable(query_script, String(ground.get("in_bounds_method", "is_in_bounds")))
-	var terrain_blocked := Callable(query_script, String(ground.get("blocked_method", "is_blocked")))
+	var query_context: Dictionary = ground.get("query_context", {})
+	var in_bounds: Callable = Callable(query_script, String(ground.get("in_bounds_method", "is_in_bounds"))).bind(query_context)
+	var terrain_blocked: Callable = Callable(query_script, String(ground.get("blocked_method", "is_blocked"))).bind(query_context)
 	if not in_bounds.is_valid() or not terrain_blocked.is_valid():
 		return false
 	var room_half_width := float(ground.get("room_half_width", 0.0))
