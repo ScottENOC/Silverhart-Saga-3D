@@ -126,7 +126,7 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 		"presentation": {"hex_radius": HexGrid.DEFAULT_RADIUS_M, "ground": {}, "palette": {}, "vegetation": {}},
 		"interiors": []
 	}
-	return _normalize_axial_values(canonical)
+	return canonical
 
 func validate_adapted(definition: Dictionary) -> Dictionary:
 	return VALIDATOR.validate(definition)
