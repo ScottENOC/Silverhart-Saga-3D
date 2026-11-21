@@ -267,7 +267,7 @@ func _load_garment_attachment(garment_id: String) -> bool:
 
 ## Preserve the complete imported node transform when moving a skinned mesh
 ## from a standalone garment scene under the character model root.
-static func _relative_transform_to_root(node: Node3D, root_node: Node3D) -> Transform3D:
+static func _relative_transform_to_root(node: Node3D, root_node: Node) -> Transform3D:
     var result := Transform3D.IDENTITY
     var cursor: Node = node
     while cursor != null and cursor != root_node:
