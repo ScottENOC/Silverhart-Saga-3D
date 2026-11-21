@@ -37,6 +37,7 @@ var _surfaces: Array[Dictionary] = []
 var _region_bone_indices: Dictionary = {}
 var _configured := false
 var _configuration_error := ""
+var _body_asset_path := ""
 
 
 func configure(
@@ -47,6 +48,7 @@ func configure(
 ) -> bool:
     _character_root = character_root
     _body_root = body_root
+    _body_asset_path = body_asset_path
     _skeleton = _find_skeleton(body_root) if body_root != null else null
     _surfaces.clear()
     _region_bone_indices.clear()
@@ -184,6 +186,10 @@ func get_skeleton() -> Skeleton3D:
     return _skeleton
 
 
+func get_body_asset_path() -> String:
+    return _body_asset_path
+
+
 func has_region(region_id: String, minimum_weight: float = 0.25) -> bool:
     if not is_configured() or not _is_known_region(region_id):
         return false
@@ -308,13 +314,13 @@ func get_surface_vertex_sample(mesh_node_path: NodePath, surface_index: int, ver
 
 ## True only when a topology-bound authored mask supplies this region on at least
 ## one validated source surface. Broad rig channels are deliberately excluded.
-func has_authored_region(region_id: String) -> bool:
+func has_authored_region(region_id: String, minimum_weight: float = 0.25) -> bool:
     if not is_configured() or not CharacterSurfaceRegionMask.REGION_IDS.has(region_id):
         return false
     for surface in _surfaces:
         var weights := _get_authored_region_weights(surface, region_id)
         for weight in weights:
-            if weight > 0.0:
+            if weight >= minimum_weight:
                 return true
     return false
 
