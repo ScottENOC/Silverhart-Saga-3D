@@ -119,8 +119,8 @@ func _spawn_authored_creatures(placements: Array, hex_radius: float) -> void:
 func _generate_vegetation(vegetation: Dictionary, hex_radius: float) -> void:
 	if vegetation.is_empty():
 		return
-	var forest := vegetation.get("forest", {})
-	var understorey := vegetation.get("understorey", {})
+	var forest: Dictionary = vegetation.get("forest", {})
+	var understorey: Dictionary = vegetation.get("understorey", {})
 	_generate_vegetation_pass(forest, hex_radius)
 	_generate_vegetation_pass(understorey, hex_radius)
 
