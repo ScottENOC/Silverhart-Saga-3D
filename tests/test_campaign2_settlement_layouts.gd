@@ -6,7 +6,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 	var entries: Array = terrain.settlement_layouts
-	_check(entries.size() == 2, "Canonical registry should expose Hollowmere and Millbrook")
+	_check(entries.size() == 4, "Canonical registry should expose Hollowmere, Millbrook, Emberlode and Reddale")
 	var millbrook_entry := _entry_by_id(entries, "millbrook")
 	_check(not millbrook_entry.is_empty(), "Canonical Millbrook definition must be available")
 	if millbrook_entry.is_empty():
@@ -56,6 +56,9 @@ func _initialize() -> void:
 	_check(terrain.settlement_building_cells.has("1,-366"), "Canonical building occupancy must be indexed")
 	_check(terrain.settlement_path_cells.has("5,-366"), "Canonical path occupancy must be indexed")
 
+	_test_emberlode(terrain, entries)
+	_test_reddale(terrain, entries)
+
 	var hollowmere_entry := _entry_by_id(entries, "hollowmere")
 	_check(not hollowmere_entry.is_empty(), "Canonical Hollowmere definition must remain available")
 	if not hollowmere_entry.is_empty():
@@ -70,6 +73,60 @@ func _initialize() -> void:
 		return
 	print("Canonical Campaign 2 settlement layout tests passed.")
 	quit(0)
+
+
+func _test_emberlode(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "emberlode")
+	_check(not entry.is_empty(), "Canonical Emberlode definition must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var layout: Dictionary = definition.get("layout", {})
+	_check(layout.get("buildings", []).size() == 3, "Emberlode must retain its foreman's hall, bunkhouse and mine entrance")
+	_check(layout.get("paths", []).size() == 3, "Emberlode must retain all three source road approaches")
+	_check(definition.get("placements", {}).get("characters", []).size() == 3, "Emberlode must retain Corran, Bettina and Rennik")
+	_check(definition.get("interiors", []).size() == 3, "Emberlode must retain all three interior definitions")
+	var mine := _find_record(definition.get("interiors", []), "emberlode_mine_interior")
+	_check(mine.get("floors", []).size() == 3, "Emberlode mine must retain surface, -1 and -2 floors")
+	if mine.get("floors", []).size() == 3:
+		_check(mine.floors[1].get("objects", []).any(func(item): return String(item.get("ore_type", "")) == "ore_gold"), "Working Vein must retain the gold ore node")
+		_check(mine.floors[2].get("objects", []).any(func(item): return String(item.get("ore_type", "")) == "gem_blue"), "Old Seam must retain the blue gem node")
+		_check(mine.floors[2].get("creatures", []).size() == 2, "Old Seam must retain its two source spiders")
+	var actors := definition.get("placements", {}).get("characters", [])
+	var ids: Dictionary = {}
+	for actor in actors:
+		ids[String(actor.get("character_id", ""))] = actor
+	_check(ids.has("corran_vale") and ids.has("bettina_marrow") and ids.has("rennik_coalmarrow"), "Emberlode character IDs must remain stable")
+	_check(terrain.terrain_for_hex(Vector2i(-256, 22)) == "authored", "Emberlode foreman's hall must suppress procedural terrain")
+	_check(terrain.terrain_for_hex(Vector2i(-252, 20)) == "path", "Emberlode mine approach must be indexed as a path")
+	var factory = preload("res://scripts/world/world_building_factory.gd")
+	for building in layout.get("buildings", []):
+		_check(factory.supports_definition(building), "Emberlode building archetype must be supported: " + String(building.get("id", "")))
+
+func _test_reddale(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "reddale")
+	_check(not entry.is_empty(), "Canonical Reddale definition must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var layout: Dictionary = definition.get("layout", {})
+	_check(layout.get("buildings", []).size() == 6, "Reddale must retain its guardhouse, reeve house, inn, guildhouse, manor and smithy")
+	_check(layout.get("paths", []).size() == 3, "Reddale must retain its authored road approaches")
+	_check(definition.get("placements", {}).get("characters", []).size() == 12, "Reddale must retain its twelve named surface NPC placements")
+	_check(definition.get("interiors", []).size() == 6, "Reddale must retain all six interior/service records")
+	var ids: Dictionary = {}
+	for actor in definition.get("placements", {}).get("characters", []):
+		ids[String(actor.get("character_id", ""))] = actor
+	for required_id in ["captain_ilsa_rennick", "watchman_bram_oswick", "reeve_aldous_finch", "nella_brook", "mira_selk", "mirella_thorn", "petra_voss", "osric_vane", "guild_watchman_corley", "baron_corwin_aldervale", "steward_halvard_greer", "torvald_anvik"]:
+		_check(ids.has(required_id), "Reddale must retain source NPC " + required_id)
+	_check(terrain.terrain_for_hex(Vector2i(134, 24)) == "authored", "Reddale guardhouse must suppress procedural terrain")
+	_check(terrain.terrain_for_hex(Vector2i(138, 22)) == "path", "Reddale reeve approach must be indexed as a path")
+	var factory = preload("res://scripts/world/world_building_factory.gd")
+	for building in layout.get("buildings", []):
+		_check(factory.supports_definition(building), "Reddale building archetype must be supported: " + String(building.get("id", "")))
+	var registry = preload("res://scripts/world/campaign2_character_definition_registry.gd").new()
+	_check(not registry.get_character("corran_vale").is_empty(), "Emberlode NPC profile must resolve through the character registry")
+	_check(not registry.get_character("captain_ilsa_rennick").is_empty(), "Reddale NPC profile must resolve through the character registry")
 
 func _entry_by_id(entries: Array, settlement_id: String) -> Dictionary:
 	for entry in entries:
