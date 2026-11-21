@@ -30,7 +30,7 @@ func _run() -> void:
         await _render_body(body_key, BODY_ASSETS[body_key])
         if _failed:
             return
-    print("ARA_CONTACT_PATH_VISUAL_REVIEW: PASS")
+    print("WREN_ALDRIC_NATIVE_CONTACT_PATH_VISUAL_REVIEW: PASS")
     quit(0)
 
 func _render_body(body_key: String, asset_path: String) -> void:
@@ -43,7 +43,7 @@ func _render_body(body_key: String, asset_path: String) -> void:
     _stage.add_child(actor_root)
     var body_root := packed.instantiate() as Node3D
     if body_root == null:
-        _fail("Ara asset root is not Node3D: " + asset_path)
+        _fail("Native companion asset root is not Node3D: " + asset_path)
         return
     actor_root.add_child(body_root)
     await process_frame
@@ -124,12 +124,12 @@ func _render_body(body_key: String, asset_path: String) -> void:
         "control_points": path.points.size(),
         "evaluated_samples": samples.size(),
         "path_id": path.path_id,
-        "interpretation": "Synthetic topology/evaluation trace on real canonical Ara geometry. Not an authored anatomical or fingertip path."
+        "interpretation": "Synthetic topology/evaluation trace on the current native companion mesh. Not an authored anatomical or fingertip path."
     }
     var report_file := FileAccess.open(output_dir.path_join("report.json"), FileAccess.WRITE)
     report_file.store_string(JSON.stringify(report, "\t"))
     report_file.close()
-    print("ARA_CONTACT_PATH_BODY_OK body=%s mesh=%s surface=%d samples=%d" % [
+    print("NATIVE_COMPANION_CONTACT_PATH_BODY_OK body=%s mesh=%s surface=%d samples=%d" % [
         body_key, path.mesh_node_path, path.surface_index, samples.size()
     ])
     _clear_path_draw()
@@ -228,7 +228,7 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
                     largest_component.assign(group)
             candidates = largest_component
             if candidates.size() < 3:
-                print("ARA_SURFACE_GEOMETRY mesh=%s surface=%d name='%s' valid_triangles=%d max_cross_squared=%.12g bounds=%s" % [
+                print("NATIVE_COMPANION_SURFACE_GEOMETRY mesh=%s surface=%d name='%s' valid_triangles=%d max_cross_squared=%.12g bounds=%s" % [
                     mesh.name, surface_index, array_mesh.surface_get_name(surface_index),
                     valid_area_count, max_cross_squared, vertex_bounds
                 ])
@@ -250,7 +250,7 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
         for mesh in meshes:
             var array_mesh := mesh.mesh as ArrayMesh
             if array_mesh == null:
-                print("ARA_SURFACE_DIAGNOSTIC mesh=%s type=%s" % [mesh.name, mesh.mesh.get_class()])
+                print("NATIVE_COMPANION_SURFACE_DIAGNOSTIC mesh=%s type=%s" % [mesh.name, mesh.mesh.get_class()])
                 continue
             for surface_index in range(array_mesh.get_surface_count()):
                 var arrays := array_mesh.surface_get_arrays(surface_index)
@@ -258,12 +258,12 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
                 var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
                 var label := array_mesh.surface_get_name(surface_index)
                 var triangle_count := indices.size() if not indices.is_empty() else vertices.size()
-                print("ARA_SURFACE_DIAGNOSTIC mesh=%s surface=%d name='%s' vertices=%d indices=%d triangles=%d excluded=%s" % [
+                print("NATIVE_COMPANION_SURFACE_DIAGNOSTIC mesh=%s surface=%d name='%s' vertices=%d indices=%d triangles=%d excluded=%s" % [
                     mesh.name, surface_index, label, vertices.size(), indices.size(),
                     triangle_count / 3,
                     label.to_lower().contains("hair") or label.to_lower().contains("eye") or label.to_lower().contains("lash") or label.to_lower().contains("brow") or label.to_lower().contains("teeth") or label.to_lower().contains("tongue")
                 ])
-        _fail("No native companion surface contained three valid, non-degenerate triangles; see ARA_SURFACE_DIAGNOSTIC inventory")
+        _fail("No native companion surface contained three valid, non-degenerate triangles; see NATIVE_COMPANION_SURFACE_DIAGNOSTIC inventory")
         return null
     var candidates: Array[Dictionary] = best["candidates"]
     var selected: Array[Dictionary] = []
