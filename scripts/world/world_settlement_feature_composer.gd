@@ -134,6 +134,62 @@ static func compose_chunk(
 			+ props_by_category.get("wayfinding_props", []).size()
 	}
 
+## Adapts the existing authored-location presentation envelope to the same
+## canonical feature composer used by streamed settlements. This compatibility
+## entry point deliberately keeps the location's ground/ecology/actors owned by
+## WorldSettlementPresenter while feature geometry converges on one pipeline.
+static func compose_location(
+	parent: Node3D,
+	location_definition: Dictionary,
+	hex_radius: float = HexGrid.DEFAULT_RADIUS_M
+) -> Dictionary:
+	if parent == null or location_definition.is_empty():
+		return {"ok": false, "reason": "invalid_location_input"}
+	var feature_bundle: Dictionary = location_definition.get("features", {})
+	var data: Dictionary = feature_bundle.get("data", {})
+	var source_materials: Dictionary = feature_bundle.get("materials", {})
+	var layout := {
+		"buildings": _tag_records(data.get("buildings", []), "building"),
+		"paths": _tag_records(data.get("routes", []), "route"),
+		"bridges": [],
+		"fields": [],
+		"props": []
+	}
+	var bridge: Variant = data.get("bridge", {})
+	if bridge is Dictionary and not bridge.is_empty():
+		layout["bridges"].append(bridge.duplicate(true))
+	layout["fields"].append_array(_tag_records(data.get("fields", []), "field"))
+	layout["fields"].append_array(_tag_records(data.get("crop_rows", []), "crop_row"))
+	layout["fields"].append_array(_tag_records(data.get("fences", []), "fence"))
+	for category in ["landmark_props", "quest_props", "wayfinding_props"]:
+		layout["props"].append_array(_tag_records(data.get(category, []), category))
+	var entry := {
+		"id": String(location_definition.get("id", "authored_location")),
+		"origin": Vector2i.ZERO,
+		"definition": {
+			"presentation": {
+				"mode": "chunked",
+				"hex_radius": hex_radius,
+				"palette": location_definition.get("palette", {}),
+				"materials": source_materials
+			},
+			"layout": layout
+		}
+	}
+	# A single encompassing axial window preserves the authored location's
+	# existing one-shot lifecycle; streaming callers use compose_chunk directly.
+	return compose_chunk(parent, entry, Vector2i(-256, -256), 512, hex_radius)
+
+static func _tag_records(records: Array, feature_type: String) -> Array:
+	var result: Array = []
+	for source in records:
+		if not source is Dictionary:
+			continue
+		var feature: Dictionary = source.duplicate(true)
+		feature["feature_type"] = feature_type
+		result.append(feature)
+	return result
+
 static func _route_fragments_for_chunk(
 	source: Dictionary,
 	origin: Vector2i,
