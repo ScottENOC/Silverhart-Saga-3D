@@ -13,6 +13,11 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+    var generic_surface := CharacterBodySurface.new()
+    assert(not generic_surface.is_configured(),
+        "The generic body-surface contract must fail closed until an adapter is configured")
+    assert(generic_surface.get_surface_vertex_sample("Body", 0, 0).is_empty(),
+        "The generic body-surface contract must not fabricate samples")
     await process_frame
     for asset_path in BODY_ASSETS:
         await _test_body(asset_path)
@@ -106,6 +111,8 @@ func _test_body(asset_path: String) -> void:
         "Valid guide curve was rejected for %s" % asset_path)
 
     var regions := CharacterSurfaceRegions.new()
+    assert(regions is CharacterBodySurface,
+        "The Ara surface implementation must implement the model-independent body-surface contract")
     assert(regions.configure(actor_root, body_root), "Surface region setup failed: " + regions.get_configuration_error())
     var evaluated := curve.evaluate(regions)
     if evaluated.size() != 3:
