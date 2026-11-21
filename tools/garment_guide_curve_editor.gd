@@ -48,6 +48,17 @@ const GUIDE_LABELS := {
     "strap_left": "Bra strap — left",
     "strap_right": "Bra strap — right"
 }
+## Bra panel outlines are closed loops; underband edges and straps are open paths.
+## Locking these requirements in the editor prevents an accidentally open cup or closed strap.
+const GUIDE_LOOP_REQUIREMENTS := {
+    "cup_perimeter_left": true,
+    "cup_perimeter_right": true,
+    "centre_gore": true,
+    "underband_front": false,
+    "underband_back": false,
+    "strap_left": false,
+    "strap_right": false
+}
 const GUIDE_PAIRS := {
     "shoulder_seam_left": "shoulder_seam_right", "shoulder_seam_right": "shoulder_seam_left",
     "armhole_left": "armhole_right", "armhole_right": "armhole_left",
@@ -351,6 +362,14 @@ func _on_surface_selected(index: int) -> void:
 
 func _on_guide_selected(_index: int) -> void:
     _guide_points.clear()
+    var guide_id := _selected_guide_id()
+    if GUIDE_LOOP_REQUIREMENTS.has(guide_id):
+        _closed_check.button_pressed = bool(GUIDE_LOOP_REQUIREMENTS[guide_id])
+        _closed_check.disabled = true
+        _closed_check.text = "Closed loop required" if _closed_check.button_pressed else "Open path required"
+    else:
+        _closed_check.disabled = false
+        _closed_check.text = "Closed loop (neckline, waist, etc.)"
     _set_default_save_path()
     _refresh_guide_display()
     _set_status("Guide type changed. Start tracing its points.")
@@ -571,6 +590,11 @@ func _save_guide() -> void:
     guide.surface_signature = CharacterSurfaceRegionMask.build_surface_signature(mesh.mesh, guide.surface_index)
     guide.guide_id = _selected_guide_id()
     guide.paired_guide_id = String(GUIDE_PAIRS.get(guide.guide_id, ""))
+    if GUIDE_LOOP_REQUIREMENTS.has(guide.guide_id):
+        var required_closed := bool(GUIDE_LOOP_REQUIREMENTS[guide.guide_id])
+        if _closed_check.button_pressed != required_closed:
+            _set_status("Guide rejected: %s must be %s." % [guide.guide_id, "a closed loop" if required_closed else "an open path"])
+            return
     guide.closed_loop = _closed_check.button_pressed
     guide.points = _guide_points.duplicate(true)
     var validation := guide.validate_for_mesh(mesh, _body_root, guide.body_asset_path)
