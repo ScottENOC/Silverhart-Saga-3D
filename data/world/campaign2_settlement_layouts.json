@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "coordinate_system": "local_axial_qr",
-  "source": "Hex-crpg Campaign 2 source builders and campaign2Content.js; source-authored coordinates retained",
+  "source": "Hex-crpg Campaign 2 source builders and campaign2Content.js; source-authored coordinates retained; Old Mac's Farmstead source builder",
   "settlements": [
     {
       "id": "millbrook",
@@ -1071,6 +1071,281 @@
             ]
           },
           "source": "buildReddale smithyRegion"
+        }
+      ]
+    },
+    {
+      "id": "old_mac_farmstead",
+      "name": "Old Mac's Farmstead",
+      "location_id": "old_mac_farmstead",
+      "center": {
+        "q": 0,
+        "r": 194
+      },
+      "road_endpoint": {
+        "q": 6,
+        "r": 194
+      },
+      "source_builder": "campaign2World.js:buildFarmstead",
+      "buildings": [
+        {
+          "id": "old_mac_farmhouse",
+          "kind": "house",
+          "archetype": "cottage",
+          "center": {
+            "q": 0,
+            "r": 194
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 3,
+            "r": 194
+          },
+          "door_side": "east",
+          "features": [],
+          "interior": {
+            "kind": "single_room",
+            "floor": "wood"
+          },
+          "source": "campaign2World.js:buildFarmstead carveBuilding(houseCenter,3,2)"
+        }
+      ],
+      "paths": [
+        {
+          "id": "old_mac_farmhouse_road_spur",
+          "kind": "road",
+          "from": {
+            "q": 4,
+            "r": 194
+          },
+          "to": {
+            "q": 5,
+            "r": 194
+          },
+          "source": "campaign2World.js:buildFarmstead door-to-road spur"
+        }
+      ],
+      "npcs": [
+        {
+          "id": "old_mac",
+          "name": "Old Mac",
+          "title": "Farmer",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [
+            "club"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "old_mac",
+          "position": {
+            "q": 1,
+            "r": 194
+          },
+          "source": "campaign2Content.js:campaign2OldMac"
+        }
+      ],
+      "fields": [
+        {
+          "id": "old_mac_pasture",
+          "feature_type": "field",
+          "corners": [
+            {
+              "q": -9,
+              "r": 190
+            },
+            {
+              "q": -3,
+              "r": 190
+            },
+            {
+              "q": -3,
+              "r": 198
+            },
+            {
+              "q": -9,
+              "r": 198
+            }
+          ],
+          "material": "pasture",
+          "elevation": -0.12,
+          "source": "campaign2World.js:buildFarmstead pasture bounds"
+        }
+      ],
+      "crop_rows": [],
+      "fences": [
+        {
+          "id": "old_mac_pasture_north_fence",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -9,
+              "r": 190
+            },
+            {
+              "q": -3,
+              "r": 190
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead pasture north boundary"
+        },
+        {
+          "id": "old_mac_pasture_south_fence",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -9,
+              "r": 198
+            },
+            {
+              "q": -3,
+              "r": 198
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead pasture south boundary"
+        },
+        {
+          "id": "old_mac_pasture_west_fence_upper",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -9,
+              "r": 190
+            },
+            {
+              "q": -9,
+              "r": 193
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead west fence; broken section below"
+        },
+        {
+          "id": "old_mac_pasture_west_fence_lower",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -9,
+              "r": 195
+            },
+            {
+              "q": -9,
+              "r": 198
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead west fence; broken section above"
+        },
+        {
+          "id": "old_mac_pasture_east_fence_upper",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -3,
+              "r": 190
+            },
+            {
+              "q": -3,
+              "r": 192
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead east fence outside farmhouse wall"
+        },
+        {
+          "id": "old_mac_pasture_east_fence_lower",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -3,
+              "r": 196
+            },
+            {
+              "q": -3,
+              "r": 198
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead east fence outside farmhouse wall"
+        }
+      ],
+      "props": [
+        {
+          "id": "old_mac_broken_fence_rail",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -9,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "FallenRail",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.12,
+                "z": 0
+              },
+              "size": {
+                "x": 1.4,
+                "y": 0.12,
+                "z": 0.14
+              },
+              "material": "fence"
+            }
+          ],
+          "source": "campaign2World.js:buildFarmstead brokenFenceHex"
+        }
+      ],
+      "presentation": {
+        "palette": {
+          "path": "#6d5940",
+          "pasture": "#4d6335",
+          "fence": "#59402a"
+        },
+        "materials": {
+          "routes": {
+            "path": "path"
+          },
+          "agriculture": {
+            "pasture": "pasture",
+            "fence": "fence"
+          },
+          "props": {
+            "fence": "fence"
+          },
+          "quest_props": {
+            "fence": "fence"
+          }
+        }
+      },
+      "interiors": [
+        {
+          "id": "old_mac_farmhouse_interior",
+          "building_id": "old_mac_farmhouse",
+          "center": {
+            "q": 0,
+            "r": 194
+          },
+          "floor": 0,
+          "kind": "single_room",
+          "source": "campaign2World.js:buildFarmstead carveBuilding"
         }
       ]
     }
