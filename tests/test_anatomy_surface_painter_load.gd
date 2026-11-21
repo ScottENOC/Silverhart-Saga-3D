@@ -10,6 +10,12 @@ func _run() -> void:
     assert(painter_script != null, "Anatomy surface painter script failed to load")
     var painter_constants: Dictionary = painter_script.get_script_constant_map()
     var painter_labels: Dictionary = painter_constants.get("REGION_LABELS", {})
+    var body_options: Dictionary = painter_constants.get("BODY_OPTIONS", {})
+    assert(body_options.get("Wren (current native build)", "") == "res://build/wren-native/Wren.glb",
+        "Painter must target the current native Wren build")
+    assert(body_options.get("Aldric (current native build)", "") == "res://build/aldric-native/Aldric.glb",
+        "Painter must target the current native Aldric build")
+    assert(body_options.size() == 2, "Painter must not offer the obsolete generic Ara bodies")
     for region_id in CharacterSurfaceRegionMask.REGION_IDS:
         assert(painter_labels.has(region_id), "Mask region %s is missing from the painter selector" % region_id)
     assert(painter_labels.size() == CharacterSurfaceRegionMask.REGION_IDS.size(),
@@ -46,7 +52,7 @@ func _run() -> void:
             "Male mask library returned a mask for another body")
     assert(CharacterSurfaceRegionMaskLibrary.load_for_body("res://missing_body.glb").is_empty(),
         "Unknown body should not receive any fine masks")
-    print("ARA_ANATOMY_SURFACE_PAINTER_LOAD: PASS female_masks=%d male_masks=%d" % [
+    print("WREN_ALDRIC_ANATOMY_SURFACE_PAINTER_LOAD: PASS legacy_library_masks=%d/%d" % [
         female_masks.size(), male_masks.size()
     ])
     quit(0)
