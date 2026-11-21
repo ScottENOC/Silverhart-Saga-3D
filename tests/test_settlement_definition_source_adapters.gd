@@ -26,9 +26,9 @@ func _test_hollowmere_adapter() -> void:
 	_check(canonical.get("layout", {}).get("paths", []).size() == 12, "All twelve Hollowmere presentation routes must adapt")
 	_check(canonical.get("placements", {}).get("characters", []).size() == 15, "Player start and fourteen authored character placements must adapt")
 	var wren := _find_record(canonical.placements.characters, "wren_talbot")
-	_check(wren.get("position", {}) == {"q": -2, "r": 1}, "Wren's authored start must remain unchanged")
+	_check(wren.get("position", Vector2i.ZERO) == Vector2i(-2, 1), "Wren's authored start must remain unchanged")
 	var player := _find_record(canonical.placements.characters, "player_start")
-	_check(player.get("position", {}) == {"q": -1, "r": 2}, "Player start must remain unchanged")
+	_check(player.get("position", Vector2i.ZERO) == Vector2i(-1, 2), "Player start must remain unchanged")
 	_check(canonical.get("terrain", {}).get("id", "") == "hollowmere", "Hollowmere terrain rules must remain part of its canonical envelope")
 
 func _test_campaign2_layout_adapter() -> void:
