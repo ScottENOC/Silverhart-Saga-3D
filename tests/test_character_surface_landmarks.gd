@@ -114,6 +114,28 @@ func _test_body(asset_path: String) -> void:
     assert(frame.origin.is_finite() and frame.basis.x.is_finite() and frame.basis.y.is_finite() and frame.basis.z.is_finite(),
         "Landmark frame is invalid")
 
+    var contact_path := CharacterSurfaceContactPath.new()
+    contact_path.body_asset_path = asset_path
+    contact_path.mesh_node_path = body_root.get_path_to(target_mesh)
+    contact_path.surface_index = target_surface
+    contact_path.surface_name = target_mesh.mesh.surface_get_name(target_surface)
+    contact_path.vertex_count = target_mesh.mesh.surface_get_arrays(target_surface)[Mesh.ARRAY_VERTEX].size()
+    contact_path.surface_signature = CharacterSurfaceRegionMask.build_surface_signature(target_mesh.mesh, target_surface)
+    contact_path.path_id = "test_fingertip_trace"
+    contact_path.points = [
+        {"triangle_indices": triangle, "barycentric": PackedFloat32Array([0.8, 0.1, 0.1])},
+        {"triangle_indices": triangle, "barycentric": PackedFloat32Array([0.1, 0.8, 0.1])},
+        {"triangle_indices": triangle, "barycentric": PackedFloat32Array([0.1, 0.1, 0.8])}
+    ]
+    assert(contact_path.validate_for_mesh(target_mesh, body_root, asset_path).is_empty(),
+        "Valid contact path rejected for " + asset_path)
+    var evaluated_path := contact_path.evaluate(regions)
+    assert(evaluated_path.size() == 3, "Contact path did not evaluate all control points")
+    for path_point in evaluated_path:
+        assert(path_point["position"].is_finite() and path_point["normal"].is_finite(),
+            "Contact path returned a non-finite surface sample")
+        assert(path_point["frame"].basis.is_finite(), "Contact path returned a non-finite local frame")
+
     var stale := landmark.duplicate() as CharacterSurfaceLandmark
     stale.surface_signature = "stale-topology"
     assert(stale.validate_for_mesh(target_mesh, body_root, asset_path).contains("signature mismatch"),
