@@ -22,7 +22,7 @@ func _check(condition: bool, message: String = "Assertion failed") -> void:
         push_error(message)
 func _test_animal_catalog_and_state() -> void:
     var expected_kinds := PackedStringArray([
-        "cow", "bull", "horse", "donkey", "alpaca", "wolf",
+        "cow", "sheep", "bull", "horse", "donkey", "alpaca", "wolf",
         "fox", "deer", "stag", "husky", "shiba_inu"
     ])
     var supported := AnimalCatalog.supported_kinds()
