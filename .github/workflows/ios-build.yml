@@ -1,0 +1,110 @@
+name: iOS build (iPhone 17)
+
+on:
+  push:
+    branches:
+      - dev
+      - feature/ios-iphone17-foundation
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "scenes/**"
+      - "scripts/**"
+      - "data/**"
+      - "art/**"
+      - ".github/workflows/ios-build.yml"
+  pull_request:
+    branches: [dev]
+    paths:
+      - "project.godot"
+      - "export_presets.cfg"
+      - "scenes/**"
+      - "scripts/**"
+      - "data/**"
+      - "art/**"
+      - ".github/workflows/ios-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export-ios:
+    name: Export and compile iOS project
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Check out Silverhart
+        uses: actions/checkout@v7
+
+      - name: Install Godot 4.7.2 and export templates
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Import and validate project
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --version
+          godot --headless --editor --path . --quit
+
+      - name: Export iOS Xcode project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/ios
+          godot --headless --path . --export-debug "iOS" build/ios/SilverhartSaga.zip
+          test -s build/ios/SilverhartSaga.zip
+          unzip -q build/ios/SilverhartSaga.zip -d build/ios/unpacked
+          PROJECT="$(find build/ios/unpacked -maxdepth 4 -name '*.xcodeproj' -type d -print -quit)"
+          if [ -z "$PROJECT" ]; then
+            echo "Godot export did not produce an Xcode project." >&2
+            find build/ios/unpacked -maxdepth 4 -print
+            exit 1
+          fi
+          echo "IOS_XCODE_PROJECT=$PROJECT" >> "$GITHUB_ENV"
+
+      - name: Compile for physical iPhone hardware (unsigned)
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -list -json -project "$IOS_XCODE_PROJECT" > build/ios/xcode-project.json
+          SCHEME="$(python3 - <<'PY'
+          import json
+          with open("build/ios/xcode-project.json", encoding="utf-8") as f:
+              data = json.load(f)
+          project = data.get("project", {})
+          schemes = project.get("schemes", [])
+          if not schemes:
+              raise SystemExit("No Xcode build scheme was exported.")
+          print(schemes[0])
+          PY
+          )"
+          set -o pipefail
+          xcodebuild \
+            -project "$IOS_XCODE_PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee build/ios/xcodebuild.log
+
+      - name: Upload unsigned Xcode export and build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: silverhart-ios-iphone17-${{ github.sha }}
+          path: |
+            build/ios/SilverhartSaga.zip
+            build/ios/xcode-project.json
+            build/ios/xcodebuild.log
+          if-no-files-found: warn
+          retention-days: 30
