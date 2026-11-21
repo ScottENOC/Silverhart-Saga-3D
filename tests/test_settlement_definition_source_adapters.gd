@@ -2,6 +2,7 @@ extends SceneTree
 
 const ADAPTERS = preload("res://scripts/world/settlement_definition_source_adapters.gd")
 const LAYOUT_PATH := "res://data/world/campaign2_settlement_layouts.json"
+var adapters = ADAPTERS.new()
 
 func _initialize() -> void:
 	_test_hollowmere_adapter()
@@ -16,8 +17,8 @@ func _initialize() -> void:
 var failures := 0
 
 func _test_hollowmere_adapter() -> void:
-	var canonical: Dictionary = ADAPTERS.adapt_hollowmere()
-	var validation: Dictionary = ADAPTERS.validate_adapted(canonical)
+	var canonical: Dictionary = adapters.adapt_hollowmere()
+	var validation: Dictionary = adapters.validate_adapted(canonical)
 	_check(bool(validation.get("ok", false)), "Hollowmere canonical envelope should validate: %s" % validation.get("errors", []))
 	_check(canonical.get("id", "") == "hollowmere", "Hollowmere ID must remain stable")
 	_check(canonical.get("origin", {}) == {"q": 0, "r": 0}, "Hollowmere legacy coordinates must retain their existing zero transform")
@@ -42,7 +43,7 @@ func _test_campaign2_layout_adapter() -> void:
 	var settlements: Array = parsed.get("settlements", [])
 	_check(not settlements.is_empty(), "Campaign 2 source must include Millbrook")
 	for layout in settlements:
-		var canonical: Dictionary = ADAPTERS.adapt_campaign2_layout(layout)
+		var canonical: Dictionary = adapters.adapt_campaign2_layout(layout)
 		var validation: Dictionary = ADAPTERS.validate_adapted(canonical)
 		_check(bool(validation.get("ok", false)), "%s canonical envelope should validate: %s" % [canonical.get("id", ""), validation.get("errors", [])])
 		_check(canonical.get("id", "") == "millbrook", "Millbrook ID must remain stable")
