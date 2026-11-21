@@ -11,7 +11,7 @@ The current Campaign 2 world foundation contains:
 - Source-derived strategic road traces and a macro-world preview.
 - A continuous local axial coordinate frame, deterministic regional terrain, chunk loading and a regional streamed preview.
 - A canonical settlement definition registry and shared chunk presenter.
-- Source local terrain noise and the Silverhart heartland stream are being ported in follow-on PR #203; these are not yet part of this branch.
+- Source local terrain noise, the Silverhart heartland stream, Northwatch/Ridgehold waterway and Emberwood Grove terrain are being ported in follow-on PR #203; the fort waterway includes a small continuity repair where the original source leaves a gap. These are not yet part of this branch.
 
 The surrounding wilderness is still partly generated from regional terrain rules. It is not yet a faithful, fully authored recreation of every source-world hex.
 
@@ -37,8 +37,8 @@ The 24-anchor geography manifest has five canonical settlement definitions above
 |---|---|
 | Silverhart | Palace/capital layout, court, guards, services, population and kingdom interactions |
 | Skarn-tooth Camp | Goblin camp structures, chief, tribe roster, trade and negotiation/hostility branches |
-| Northwatch Fort | Star fort, keep, gate, moat, garrison, siege actors and border-war interactions |
-| Ridgehold Fort | Fort and keep, river connection, patrols and faction consequences |
+| Northwatch Fort | Star fort, keep, gate, garrison, siege actors and border-war interactions; moat waterway terrain is included in follow-on PR #203 |
+| Ridgehold Fort | Fort and keep, patrols and faction consequences; downstream waterway terrain is included in follow-on PR #203 |
 | Skarnak's Hold | Orc stronghold, huts, warlord, guards, trader and troll encounter |
 | Kragmoor | Deepholds mountain city, excavated rooms/tunnels, vertical layers, population and mine |
 | Sil'thandriel | Sylvan Court capital, vertical/forest architecture, population and faction interactions |
