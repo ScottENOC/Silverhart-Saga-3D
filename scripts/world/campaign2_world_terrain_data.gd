@@ -168,6 +168,10 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var source_cell: Dictionary = strategic_grid[strategic_cell.y][strategic_cell.x]
 	var base_terrain := String(source_cell.get("terrain", "grass"))
 	var faction := String(source_cell.get("faction", ""))
+	# Port the original Campaign 2 local fallback for unpainted grassland.
+	# Strategic ocean, mountain, forest and hill bands remain macro overrides.
+	if base_terrain == "grass":
+		return LOCAL_TERRAIN_RULES.source_local_terrain(hex)
 	return LOCAL_TERRAIN_RULES.terrain_for_hex(hex, base_terrain, faction)
 
 ## Gameplay terrain is resolved from authored settlement data first, then regional rules.
