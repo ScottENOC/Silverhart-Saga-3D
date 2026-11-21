@@ -82,7 +82,7 @@ func validate_for_character(surface_regions: CharacterBodySurface) -> String:
     if not definition_error.is_empty():
         return definition_error
     if surface_regions == null or not surface_regions.is_configured():
-        return "A configured CharacterSurfaceRegions instance is required"
+        return "A configured CharacterBodySurface instance is required"
     if surface_regions.get_body_asset_path() != body_asset_path:
         return "Garment coverage body asset mismatch: expected %s, got %s" % [
             body_asset_path, surface_regions.get_body_asset_path()
@@ -109,7 +109,7 @@ func validate_for_character(surface_regions: CharacterBodySurface) -> String:
     return ""
 
 
-func get_part_region_union(surface_regions: CharacterSurfaceRegions, part_id: String) -> Array[Dictionary]:
+func get_part_region_union(surface_regions: CharacterBodySurface, part_id: String) -> Array[Dictionary]:
     if not validate_for_character(surface_regions).is_empty():
         return []
     for part in coverage_parts:
@@ -118,7 +118,7 @@ func get_part_region_union(surface_regions: CharacterSurfaceRegions, part_id: St
     return []
 
 
-func get_part_boundary_guides(surface_regions: CharacterSurfaceRegions, part_id: String) -> Array[Resource]:
+func get_part_boundary_guides(surface_regions: CharacterBodySurface, part_id: String) -> Array[Resource]:
     var result: Array[Resource] = []
     if not validate_for_character(surface_regions).is_empty():
         return result
