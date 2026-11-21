@@ -136,26 +136,17 @@ func _test_body(asset_path: String) -> void:
         var arrays := target_mesh.mesh.surface_get_arrays(target_surface)
         var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
         var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
-        var start_position: Vector3 = vertices[triangle[0]]
-        var far_triangle := PackedInt32Array()
-        var far_distance := -1.0
-        var triangle_count := int(indices.size() / 3) if not indices.is_empty() else int(vertices.size() / 3)
-        for triangle_index in range(triangle_count):
-            var offset := triangle_index * 3
-            var candidate := PackedInt32Array()
-            if indices.is_empty():
-                candidate = PackedInt32Array([offset, offset + 1, offset + 2])
-            else:
-                candidate = PackedInt32Array([indices[offset], indices[offset + 1], indices[offset + 2]])
-            if candidate == triangle:
-                continue
-            var centre := (vertices[candidate[0]] + vertices[candidate[1]] + vertices[candidate[2]]) / 3.0
-            var distance := centre.distance_squared_to(start_position)
-            if distance > far_distance:
-                far_distance = distance
-                far_triangle = candidate
-        assert(far_triangle.size() == 3 and far_distance > 0.0001,
-            "Could not find a spatially separated route anchor on " + asset_path)
+        var route_anchors := _find_long_route_anchors(vertices, arrays, curve.surface_signature)
+        assert(route_anchors.has("start_triangle") and route_anchors.has("end_triangle"),
+            "Could not find two route anchors in one connected mesh component on " + asset_path)
+        triangle = route_anchors["start_triangle"]
+        var far_triangle: PackedInt32Array = route_anchors["end_triangle"]
+        var far_distance: float = route_anchors["distance"]
+        print("NATIVE_GUIDE_ROUTE_COMPONENT: asset=%s vertices=%d component_vertices=%d anchor_distance=%.4f" % [
+            asset_path, vertices.size(), int(route_anchors["component_vertex_count"]), sqrt(far_distance)
+        ])
+        assert(far_distance > 0.0001,
+            "Could not find a spatially separated connected route on " + asset_path)
         curve.closed_loop = false
         curve.points = [
             {"triangle_indices": triangle, "barycentric": PackedFloat32Array([1.0, 0.0, 0.0])},
@@ -208,6 +199,78 @@ func _test_body(asset_path: String) -> void:
     ])
     actor_root.queue_free()
     await process_frame
+
+
+
+func _find_long_route_anchors(vertices: PackedVector3Array, arrays: Array, signature: String) -> Dictionary:
+    var probe := CharacterSurfaceContactPath.new()
+    probe.vertex_count = vertices.size()
+    probe.surface_signature = signature
+    var graph: AStar3D = probe._get_surface_graph(vertices, arrays)
+    if graph == null:
+        return {}
+
+    # A single ArrayMesh surface can contain several disconnected islands.
+    # Select the largest edge-connected component before choosing endpoints.
+    var visited: Dictionary = {}
+    var largest_component: Dictionary = {}
+    for initial_vertex in range(vertices.size()):
+        if visited.has(initial_vertex):
+            continue
+        var queue: Array[int] = [initial_vertex]
+        var component: Dictionary = {initial_vertex: true}
+        visited[initial_vertex] = true
+        var cursor := 0
+        while cursor < queue.size():
+            var current_vertex := queue[cursor]
+            cursor += 1
+            for neighbour in graph.get_point_connections(current_vertex):
+                var neighbour_id := int(neighbour)
+                if visited.has(neighbour_id):
+                    continue
+                visited[neighbour_id] = true
+                component[neighbour_id] = true
+                queue.append(neighbour_id)
+        if component.size() > largest_component.size():
+            largest_component = component
+
+    var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+    var triangle_count := int(indices.size() / 3) if not indices.is_empty() else int(vertices.size() / 3)
+    var start_triangle := PackedInt32Array()
+    var end_triangle := PackedInt32Array()
+    var start_centre := Vector3.ZERO
+    var far_distance := -1.0
+    for triangle_index in range(triangle_count):
+        var offset := triangle_index * 3
+        var candidate := PackedInt32Array()
+        if indices.is_empty():
+            candidate = PackedInt32Array([offset, offset + 1, offset + 2])
+        else:
+            candidate = PackedInt32Array([indices[offset], indices[offset + 1], indices[offset + 2]])
+        if not largest_component.has(candidate[0]) or not largest_component.has(candidate[1]) or not largest_component.has(candidate[2]):
+            continue
+        var area := (vertices[candidate[1]] - vertices[candidate[0]]).cross(
+            vertices[candidate[2]] - vertices[candidate[0]]
+        ).length()
+        if area <= 0.000001:
+            continue
+        var centre := (vertices[candidate[0]] + vertices[candidate[1]] + vertices[candidate[2]]) / 3.0
+        if start_triangle.is_empty():
+            start_triangle = candidate
+            start_centre = centre
+        var distance := centre.distance_squared_to(start_centre)
+        if distance > far_distance:
+            far_distance = distance
+            end_triangle = candidate
+
+    if start_triangle.is_empty() or end_triangle.is_empty():
+        return {}
+    return {
+        "start_triangle": start_triangle,
+        "end_triangle": end_triangle,
+        "distance": far_distance,
+        "component_vertex_count": largest_component.size()
+    }
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:
