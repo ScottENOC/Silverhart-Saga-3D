@@ -190,6 +190,10 @@ func get_body_asset_path() -> String:
     return _body_asset_path
 
 
+func get_body_root() -> Node3D:
+    return _body_root
+
+
 func has_region(region_id: String, minimum_weight: float = 0.25) -> bool:
     if not is_configured() or not _is_known_region(region_id):
         return false
