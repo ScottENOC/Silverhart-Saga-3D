@@ -70,8 +70,11 @@ func configure(manifest: Dictionary) -> Dictionary:
 			"definition": definition,
 			"definition_script": script_path
 		})
+	if not validation_errors.is_empty():
+		_entries.clear()
+		return {"ok": false, "errors": validation_errors.duplicate()}
 	_entries.sort_custom(_entry_precedes)
-	return {"ok": validation_errors.is_empty(), "errors": validation_errors.duplicate()}
+	return {"ok": true, "errors": []}
 
 func resolve(hex: Vector2i) -> Dictionary:
 	for entry in _entries:
