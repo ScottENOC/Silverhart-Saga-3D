@@ -78,14 +78,24 @@ jobs:
           set -euo pipefail
           mkdir -p build/ios
           godot --headless --path . --export-debug "iOS" build/ios/SilverhartSaga.zip --verbose 2>&1 | tee build/ios/godot-export.log
-          test -s build/ios/SilverhartSaga.zip
-          unzip -q build/ios/SilverhartSaga.zip -d build/ios/unpacked
-          PROJECT="$(find build/ios/unpacked -maxdepth 4 -name '*.xcodeproj' -type d -print -quit)"
+
+          # Godot's iOS project-only export can place the Xcode project directly
+          # in the destination rather than producing a ZIP archive. Accept both
+          # layouts and only unzip when the output is actually an archive.
+          if [ -f build/ios/SilverhartSaga.zip ]; then
+            unzip -q build/ios/SilverhartSaga.zip -d build/ios/unpacked
+          fi
+
+          PROJECT="$(find build/ios -maxdepth 6 -name '*.xcodeproj' -type d -print -quit)"
           if [ -z "$PROJECT" ]; then
-            echo "Godot export did not produce an Xcode project." >&2
-            find build/ios/unpacked -maxdepth 4 -print
+            echo "Godot export completed but no Xcode project was found." >&2
+            echo "Export output listing:"
+            find build/ios -maxdepth 6 -print
             exit 1
           fi
+
+          ditto -c -k --sequesterRsrc --keepParent "$PROJECT" build/ios/XcodeProject.zip
+          echo "Found Xcode project: $PROJECT"
           echo "IOS_XCODE_PROJECT=$PROJECT" >> "$GITHUB_ENV"
 
       - name: Compile and package unsigned IPA for AltServer
@@ -137,6 +147,7 @@ jobs:
           name: silverhart-ios-iphone17-${{ github.sha }}
           path: |
             build/ios/SilverhartSaga.zip
+            build/ios/XcodeProject.zip
             build/ios/SilverhartSaga-unsigned.ipa
             build/ios/xcode-project.json
             build/ios/xcodebuild.log
