@@ -29,12 +29,12 @@ The shared chunk presenter renders the exterior buildings and surface actors for
 
 ## Remaining source-authored world locations
 
-These 20 additional location anchors exist in the world geography manifest. The farmstead now has a partial canonical surface definition; the wolf-den encounter and 18 other sites still lack full canonical site definitions. Emberlode Mine is partially represented by its parent settlement's mine metadata but is not yet playable:
+These 20 additional location anchors exist in the world geography manifest. The farmstead now has a partial canonical surface definition and a separate source-backed wolf-den encounter-site record; 18 other sites still lack full canonical site definitions. Emberlode Mine is partially represented by its parent settlement's mine metadata but is not yet playable:
 
 | Location | Source content still to port |
 |---|---|
 | Silverhart | Palace/capital layout, court, guards, services, population and kingdom interactions |
-| Old Mac's Farmstead | Farmhouse, road spur, pasture polygon, broken west-fence gap, fallen rail clue and Old Mac's source NPC placement | Sheep model/placements, blood-spatter trail, separate wolf-den site and fully wired encounter/quest progression
+| Old Mac's Farmstead | Farmhouse, road spur, pasture polygon, broken west-fence gap, fallen rail clue, seven source-positioned blood-spatter marks and Old Mac's source NPC placement; hidden wolf-den anchor is registered separately | Sheep model/placements; evidence-visibility gating; visual den dressing; binding the new global den site to the correct quest/encounter lifecycle
 | Skarn-tooth Camp | Goblin camp structures, chief, tribe roster, trade and negotiation/hostility branches |
 | Northwatch Fort | Star fort, keep, gate, moat, garrison, siege actors and border-war interactions |
 | Ridgehold Fort | Fort and keep, river connection, patrols and faction consequences |
@@ -50,13 +50,13 @@ These 20 additional location anchors exist in the world geography manifest. The 
 | Emberwood Grove | Druid grove layout, inhabitants and quest interactions |
 | Vampire Grave | Grave site, vampire encounter and related content |
 | Thieves' Cove Caves | Cave network, guild residents, services and quest content |
-| Old Mac's Wolf Den | Hidden den, wolf encounter and rescue quest logic |
+| Old Mac's Wolf Den | Hidden site anchor at (-59,204) is now in the encounter-site registry; den presentation, encounter trigger and quest integration remain outstanding |
 | Unicorn Vale | Roaming encounter area and its eight-waypoint patrol loop |
 | Emberlode Mine | Partial: its three-level floor, stair, ore, ledger and spider data are captured under Emberlode |
 
 ## Next port order
 
-1. **Complete Old Mac's Farmstead and wolf den.** The farmhouse, pasture, broken fence and Old Mac placement are now in the canonical stream. Next add sheep presentation, blood-trail evidence, the wolf-den site and wire the existing quest model into the NPC/encounter lifecycle. Keep the source farmstead at (0,194); do not confuse it with Hollowmere's separate village crop fields.
+1. **Complete Old Mac's Farmstead and wolf den.** The farmhouse, pasture, broken fence, fallen rail, seven blood-trail marks and Old Mac placement are now in the canonical stream; the hidden den anchor is separately registered at (-59,204). Next add sheep presentation, evidence-visibility gating and den dressing, then reconcile the global site with the existing quest lifecycle. The current Hollowmere farm-wolf quest uses a different den at (-42,72); do not silently conflate or relocate the two. Keep the source farmstead at (0,194).
 2. **Silverhart capital.** This is the kingdom's main hub and unlocks the royal court, services and major faction threads.
 3. **Northwatch, Ridgehold and the greenskin sites.** Port the connected border-road sequence, forts, strongholds, gates, garrisons and encounter state.
 4. **Kragmoor and Sil'thandriel.** Preserve their distinct vertical/architectural structures and faction populations.
