@@ -73,6 +73,10 @@ var _closed_check: CheckButton
 var _save_path_edit: LineEdit
 var _status: Label
 var _orbiting := false
+var _touch_positions: Dictionary = {}
+var _touch_start_position := Vector2.ZERO
+var _touch_dragged := false
+var _pinch_distance := 0.0
 var _camera_yaw := PI
 var _camera_pitch := 0.12
 var _camera_distance := 2.2
@@ -355,10 +359,49 @@ func _on_viewport_input(event: InputEvent) -> void:
             _viewport.set_input_as_handled()
     elif event is InputEventMouseMotion and _orbiting:
         var motion := event as InputEventMouseMotion
-        _camera_yaw -= motion.relative.x * 0.008
-        _camera_pitch = clampf(_camera_pitch + motion.relative.y * 0.008, -1.1, 1.1)
-        _update_camera()
+        _orbit_camera(motion.relative)
         _viewport.set_input_as_handled()
+    elif event is InputEventScreenTouch:
+        var touch := event as InputEventScreenTouch
+        if touch.pressed:
+            _touch_positions[touch.index] = touch.position
+            if _touch_positions.size() == 1:
+                _touch_start_position = touch.position
+                _touch_dragged = false
+            elif _touch_positions.size() == 2:
+                var values: Array = _touch_positions.values()
+                _pinch_distance = values[0].distance_to(values[1])
+        else:
+            if _touch_positions.has(touch.index):
+                if _touch_positions.size() == 1 and not _touch_dragged:
+                    _add_guide_point(touch.position)
+                _touch_positions.erase(touch.index)
+                if _touch_positions.size() < 2:
+                    _pinch_distance = 0.0
+        _viewport.set_input_as_handled()
+    elif event is InputEventScreenDrag:
+        var drag := event as InputEventScreenDrag
+        if _touch_positions.size() >= 2:
+            _touch_positions[drag.index] = drag.position
+            var values: Array = _touch_positions.values()
+            var distance := values[0].distance_to(values[1])
+            if _pinch_distance > 1.0 and distance > 1.0:
+                _camera_distance = clampf(_camera_distance * _pinch_distance / distance, 0.7, 5.0)
+                _update_camera()
+            _pinch_distance = distance
+        elif _touch_positions.size() == 1:
+            _touch_positions[drag.index] = drag.position
+            if drag.position.distance_to(_touch_start_position) > 8.0:
+                _touch_dragged = true
+            if _touch_dragged:
+                _orbit_camera(drag.relative)
+        _viewport.set_input_as_handled()
+
+
+func _orbit_camera(relative: Vector2) -> void:
+    _camera_yaw -= relative.x * 0.008
+    _camera_pitch = clampf(_camera_pitch + relative.y * 0.008, -1.1, 1.1)
+    _update_camera()
 
 
 func _add_guide_point(screen_position: Vector2) -> void:
