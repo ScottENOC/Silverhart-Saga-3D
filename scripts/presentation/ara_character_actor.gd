@@ -7,6 +7,7 @@ const CHARACTER_SURFACE_REGIONS_SCRIPT = preload("res://scripts/characters/chara
 const CHARACTER_SURFACE_REGION_MASK_LIBRARY_SCRIPT = preload("res://scripts/characters/character_surface_region_mask_library.gd")
 const CHARACTER_GARMENT_GUIDE_LIBRARY_SCRIPT = preload("res://scripts/characters/character_garment_guide_library.gd")
 const CHARACTER_SURFACE_LANDMARK_LIBRARY_SCRIPT = preload("res://scripts/characters/character_surface_landmark_library.gd")
+const CHARACTER_SURFACE_CONTACT_PATH_LIBRARY_SCRIPT = preload("res://scripts/characters/character_surface_contact_path_library.gd")
 ## Runtime wrapper for generated Ara GLBs. The selected body asset is supplied
 ## by the player profile so Workshop exports can be replaced without code edits.
 
@@ -24,6 +25,8 @@ var garment_guide_curves: Array[Resource] = []
 var _garment_guides_loaded := false
 var surface_landmarks: Array[Resource] = []
 var _surface_landmarks_loaded := false
+var surface_contact_paths: Array[Resource] = []
+var _surface_contact_paths_loaded := false
 const GARMENT_ASSET_ROOT := "res://art/characters/ara_runtime/garments/"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
 const GARMENT_VISUALS := ["bra", "briefs", "long_tunic", "trousers", "tunic", "wrapper_long", "uniform_shirt", "fatigue_pants", "wrapper_knee", "tattered_shirt", "fatigue_shirt", "sandals", "combat_boots", "leather armor"]
@@ -41,6 +44,8 @@ func configure(glb_path: String) -> bool:
     _garment_guides_loaded = false
     surface_landmarks.clear()
     _surface_landmarks_loaded = false
+    surface_contact_paths.clear()
+    _surface_contact_paths_loaded = false
     hair_instances.clear()
     _clear_garment_attachments()
     loaded_asset_path = ""
@@ -120,6 +125,27 @@ func get_surface_landmark(landmark_id: String) -> Dictionary:
         if resource is CharacterSurfaceLandmark and resource.landmark_id == landmark_id:
             return resource.evaluate(regions)
     return {}
+
+
+## Surface-attached control paths for contact choreography.
+## Returns evaluated control points and local frames; animation still supplies IK and timing.
+func get_surface_contact_paths() -> Array[Resource]:
+    if model_root == null or not is_instance_valid(model_root):
+        return []
+    if not _surface_contact_paths_loaded:
+        surface_contact_paths = CHARACTER_SURFACE_CONTACT_PATH_LIBRARY_SCRIPT.load_for_body(loaded_asset_path, model_root)
+        _surface_contact_paths_loaded = true
+    return surface_contact_paths.duplicate()
+
+
+func get_surface_contact_path(path_id: String) -> Array[Dictionary]:
+    var regions := get_surface_regions()
+    if regions == null:
+        return []
+    for resource in get_surface_contact_paths():
+        if resource is CharacterSurfaceContactPath and resource.path_id == path_id:
+            return resource.evaluate(regions)
+    return []
 
 
 func _dump_garment_surface_report() -> void:
