@@ -5,6 +5,7 @@ extends SceneTree
 
 const REGION_SCRIPT := preload("res://scripts/characters/character_surface_regions.gd")
 const MASK_SCRIPT := preload("res://scripts/characters/character_surface_region_mask.gd")
+const MASK_LIBRARY := preload("res://scripts/characters/character_surface_region_mask_library.gd")
 const SIZE := Vector2i(1000, 1100)
 const REGION_COLOURS := {
     "head": Color("#f4d35e"), "neck": Color("#ee964b"), "chest": Color("#f95738"),
@@ -51,8 +52,9 @@ func _run() -> void:
     await process_frame
     if character_name == "Aldric":
         _activate_abdominal_definition(body)
+    var fine_masks: Array[Resource] = MASK_LIBRARY.load_for_body(model_path)
     var regions = REGION_SCRIPT.new()
-    if not regions.configure(body, body, [], model_path):
+    if not regions.configure(body, body, fine_masks, model_path):
         push_error("Surface region system failed: " + regions.get_configuration_error())
         quit(1)
         return
@@ -94,11 +96,17 @@ func _run() -> void:
             quit(1)
             return
     var fine_region_status := {}
+    var fine_regions_painted := 0
     for fine_region_id in MASK_SCRIPT.REGION_IDS:
+        var fine_samples: Array[Dictionary] = regions.get_region_surface_samples(fine_region_id, 0.25, 0)
+        var sample_count := fine_samples.size()
+        var status := "painted" if sample_count > 0 else "unpainted"
+        if sample_count > 0:
+            fine_regions_painted += 1
         fine_region_status[fine_region_id] = {
-            "status": "unpainted",
-            "sample_count": 0,
-            "note": "No topology-bound authored mask is loaded for this review."
+            "status": status,
+            "sample_count": sample_count,
+            "note": "Topology-bound authored mask loaded and validated." if sample_count > 0 else "No qualifying authored vertices in the loaded topology-bound masks."
         }
     var report := {
         "character": character_name,
@@ -106,8 +114,9 @@ func _run() -> void:
         "regions": region_report,
         "fine_region_status": fine_region_status,
         "fine_region_total": MASK_SCRIPT.REGION_IDS.size(),
-        "fine_regions_painted": 0,
-        "interpretation": "Rendered dots are broad rig-influence orientation only. All fine anatomical regions are explicitly unpainted; no fine anatomical boundaries are inferred."
+        "fine_regions_painted": fine_regions_painted,
+        "fine_masks_loaded": fine_masks.size(),
+        "interpretation": "Broad rig-influence dots are orientation only. Fine-region status is derived from the topology-bound mask manifest and validated against the exact native GLB topology. A painted status means authored weights exist; it does not mean anatomical review or approval is complete."
     }
     var file := FileAccess.open(output_abs.path_join("region-report.json"), FileAccess.WRITE)
     file.store_string(JSON.stringify(report, "\t"))
