@@ -87,7 +87,9 @@ static func _validate_axial_position(position: Variant, label: String, bounds: D
 	if not _is_axial(position):
 		errors.append("%s has invalid axial coordinates." % label)
 		return
-	if int(position.q) < int(bounds.min_q) or int(position.q) > int(bounds.max_q) or int(position.r) < int(bounds.min_r) or int(position.r) > int(bounds.max_r):
+	var q := int(position.x) if position is Vector2i else int(position.get("q", 0))
+	var r := int(position.y) if position is Vector2i else int(position.get("r", 0))
+	if q < int(bounds.min_q) or q > int(bounds.max_q) or r < int(bounds.min_r) or r > int(bounds.max_r):
 		errors.append("%s is outside settlement bounds." % label)
 
 static func _validate_record_array(value: Variant, label: String, errors: Array[String]) -> bool:
@@ -114,7 +116,7 @@ static func _validate_record_array(value: Variant, label: String, errors: Array[
 	return valid
 
 static func _is_axial(value: Variant) -> bool:
-	return value is Dictionary and value.has("q") and value.has("r") and value.q is int and value.r is int
+	return value is Vector2i or (value is Dictionary and value.has("q") and value.has("r") and value.q is int and value.r is int)
 
 static func _is_valid_id(value: String) -> bool:
 	if value.is_empty() or value != value.to_lower():
