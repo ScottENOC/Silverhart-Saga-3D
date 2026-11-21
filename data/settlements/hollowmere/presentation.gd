@@ -9,9 +9,8 @@ const BRIDGES = preload("res://data/settlements/hollowmere/bridges.gd")
 const AGRICULTURE = preload("res://data/settlements/hollowmere/agriculture.gd")
 const PROPS = preload("res://data/settlements/hollowmere/props.gd")
 const PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
-const VILLAGE_QUERIES = preload("res://scripts/world/hollowmere_village_data.gd")
-const HEARTLAND_BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
-const HOLLOWMERE_PRESENTATION_RULES = preload("res://data/settlements/hollowmere/presentation_rules.gd")
+const TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
+const TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 
 const IDENTITY := {
 	"id": SETTLEMENT.SETTLEMENT_ID,
@@ -50,16 +49,20 @@ const FEATURE_DATA := {
 
 const VEGETATION := {
 	"forest": {
-		"candidate_script": VILLAGE_QUERIES, "candidate_method": "is_forest_candidate",
-		"selector_script": HOLLOWMERE_PRESENTATION_RULES, "selector_method": "select_tree_family",
+		"candidate_script": TERRAIN_PROVIDER, "candidate_method": "is_forest_candidate",
+		"candidate_context": TERRAIN_DEFINITION.DEFINITION,
+		"selector_script": TERRAIN_PROVIDER, "selector_method": "select_tree_family",
+		"selector_context": TERRAIN_DEFINITION.DEFINITION,
 		"min_q": -96, "max_q": 96, "min_r": -96, "max_r": 96,
 		"spacing": 4, "density_offset": HEARTLAND_BIOMES.FOREST_DENSITY_OFFSET,
 		"density_threshold": HEARTLAND_BIOMES.FOREST_DENSITY_THRESHOLD,
 		"scale_min": 0.78, "scale_range": 0.46, "node_prefix": "HollowmereTree"
 	},
 	"understorey": {
-		"candidate_script": HOLLOWMERE_PRESENTATION_RULES, "candidate_method": "is_understorey_candidate",
-		"selector_script": HOLLOWMERE_PRESENTATION_RULES, "selector_method": "select_understorey_family",
+		"candidate_script": TERRAIN_PROVIDER, "candidate_method": "is_understorey_candidate",
+		"candidate_context": TERRAIN_DEFINITION.DEFINITION,
+		"selector_script": TERRAIN_PROVIDER, "selector_method": "select_understorey_family",
+		"selector_context": TERRAIN_DEFINITION.DEFINITION,
 		"min_q": -96, "max_q": 96, "min_r": -96, "max_r": 96,
 		"spacing": 8, "density_offset": HEARTLAND_BIOMES.UNDERSTOREY_DENSITY_OFFSET,
 		"density_threshold": HEARTLAND_BIOMES.UNDERSTOREY_DENSITY_THRESHOLD,
