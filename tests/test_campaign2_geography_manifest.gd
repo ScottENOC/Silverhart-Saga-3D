@@ -19,8 +19,13 @@ func _initialize() -> void:
 	assert(int(parsed.get("campaign_id", 0)) == 2, "Manifest must target Campaign 2")
 	var coordinates: Dictionary = parsed.get("coordinate_system", {})
 	assert(int(coordinates.get("local_hexes_per_strategic_cell", 0)) == 130)
-	assert(coordinates.get("strategic_grid_dimensions", {}) == {"columns": 16, "rows": 16},
-		"Strategic grid dimensions must be authored in the manifest")
+	var dimensions: Dictionary = coordinates.get("strategic_grid_dimensions", {})
+	_checkpoint("grid dimensions decoded: columns=%s rows=%s" % [
+		str(dimensions.get("columns", "<missing>")),
+		str(dimensions.get("rows", "<missing>"))
+	])
+	assert(int(dimensions.get("columns", 0)) == 16 and int(dimensions.get("rows", 0)) == 16,
+		"Strategic grid dimensions must be authored as 16 columns by 16 rows")
 	assert(coordinates.get("origin", {}).get("local_q", -1) == 8)
 	assert(coordinates.get("origin", {}).get("local_r", -1) == 24)
 
