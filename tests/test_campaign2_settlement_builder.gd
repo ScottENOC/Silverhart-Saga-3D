@@ -56,7 +56,7 @@ func _initialize() -> void:
 	var reddale_southwest_chunk := Node3D.new()
 	root.add_child(reddale_southwest_chunk)
 	builder.add_settlements_in_chunk(reddale_southwest_chunk, Vector2i(120, 0), 24)
-	for node_name in ["reddale_reeve_house", "reddale_baron_manor", "NPC_reeve_aldous_finch", "NPC_baron_corwin_aldervale", "NPC_steward_halvard_greer"]:
+	for node_name in ["reddale_reeve_house", "NPC_reeve_aldous_finch"]:
 		if reddale_southwest_chunk.get_node_or_null(node_name) == null:
 			push_error("Reddale source feature was not presented in its owning chunk: " + node_name)
 			quit(1)
@@ -66,6 +66,14 @@ func _initialize() -> void:
 	builder.add_settlements_in_chunk(reddale_northwest_chunk, Vector2i(120, 24), 24)
 	for node_name in ["reddale_guardhouse", "reddale_inn", "reddale_smithy", "NPC_captain_ilsa_rennick", "NPC_watchman_bram_oswick", "NPC_nella_brook", "NPC_mira_selk", "NPC_mirella_thorn", "NPC_torvald_anvik"]:
 		if reddale_northwest_chunk.get_node_or_null(node_name) == null:
+			push_error("Reddale source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	var reddale_manor_chunk := Node3D.new()
+	root.add_child(reddale_manor_chunk)
+	builder.add_settlements_in_chunk(reddale_manor_chunk, Vector2i(144, 0), 24)
+	for node_name in ["reddale_baron_manor", "NPC_baron_corwin_aldervale", "NPC_steward_halvard_greer"]:
+		if reddale_manor_chunk.get_node_or_null(node_name) == null:
 			push_error("Reddale source feature was not presented in its owning chunk: " + node_name)
 			quit(1)
 			return
