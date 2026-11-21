@@ -32,6 +32,7 @@ const VALID_GUIDE_IDS := [
 @export var points: Array[Dictionary] = []
 
 var last_evaluation_error: String = ""
+var _surface_path_evaluator: CharacterSurfaceContactPath
 
 
 func validate_for_mesh(mesh_instance: MeshInstance3D, body_root: Node3D, expected_body_asset_path: String) -> String:
@@ -167,7 +168,9 @@ func evaluate_surface_path(surface_regions: CharacterSurfaceRegions) -> Array[Di
         return []
     # Reuse the topology-constrained path solver while keeping guide resources
     # separate from contact choreography resources.
-    var evaluator := CharacterSurfaceContactPath.new()
+    if _surface_path_evaluator == null:
+        _surface_path_evaluator = CharacterSurfaceContactPath.new()
+    var evaluator := _surface_path_evaluator
     evaluator.body_asset_path = body_asset_path
     evaluator.mesh_node_path = mesh_node_path
     evaluator.surface_index = surface_index
