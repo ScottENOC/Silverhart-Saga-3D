@@ -114,6 +114,14 @@ func get_definition(settlement_id: String) -> Dictionary:
 			return (entry.get("definition", {}) as Dictionary).duplicate(true)
 	return {}
 
+## Returns the validated definitions with their world-space origin and catalogue
+## priority. Consumers use this instead of reopening a legacy source file.
+func get_definitions() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for entry in _entries:
+		result.append(entry.duplicate(true))
+	return result
+
 func resolve(global_hex: Vector2i) -> Dictionary:
 	for entry in _entries:
 		var definition: Dictionary = entry.get("definition", {})
