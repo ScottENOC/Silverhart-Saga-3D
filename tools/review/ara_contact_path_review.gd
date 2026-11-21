@@ -210,7 +210,25 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
                 best_score = score
                 best = {"mesh": mesh, "surface": surface_index, "vertices": vertices, "candidates": candidates}
     if best.is_empty():
-        _fail("No canonical Ara surface contained three valid, non-degenerate triangles")
+        # Emit the imported mesh inventory so the next correction is based on
+        # the actual GLB surfaces rather than assumptions about their names.
+        for mesh in meshes:
+            var array_mesh := mesh.mesh as ArrayMesh
+            if array_mesh == null:
+                print("ARA_SURFACE_DIAGNOSTIC mesh=%s type=%s" % [mesh.name, mesh.mesh.get_class()])
+                continue
+            for surface_index in range(array_mesh.get_surface_count()):
+                var arrays := array_mesh.surface_get_arrays(surface_index)
+                var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+                var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+                var label := array_mesh.surface_get_name(surface_index)
+                var triangle_count := indices.size() if not indices.is_empty() else vertices.size()
+                print("ARA_SURFACE_DIAGNOSTIC mesh=%s surface=%d name='%s' vertices=%d indices=%d triangles=%d excluded=%s" % [
+                    mesh.name, surface_index, label, vertices.size(), indices.size(),
+                    triangle_count / 3,
+                    label.to_lower().contains("hair") or label.to_lower().contains("eye") or label.to_lower().contains("lash") or label.to_lower().contains("brow") or label.to_lower().contains("teeth") or label.to_lower().contains("tongue")
+                ])
+        _fail("No canonical Ara surface contained three valid, non-degenerate triangles; see ARA_SURFACE_DIAGNOSTIC inventory")
         return null
     var candidates: Array[Dictionary] = best["candidates"]
     var selected: Array[Dictionary] = []
