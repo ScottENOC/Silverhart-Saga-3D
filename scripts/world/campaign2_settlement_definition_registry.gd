@@ -123,6 +123,10 @@ func resolve(global_hex: Vector2i) -> Dictionary:
 			continue
 		if local_hex.y < int(bounds.get("min_r", 1)) or local_hex.y > int(bounds.get("max_r", -1)):
 			continue
+		var terrain: Dictionary = definition.get("terrain", {})
+		var terrain_radius := int(terrain.get("map_radius", 0))
+		if terrain_radius > 0 and HexGrid.distance(Vector2i.ZERO, local_hex) > terrain_radius:
+			continue
 		var result := entry.duplicate()
 		result["local_hex"] = local_hex
 		return result
