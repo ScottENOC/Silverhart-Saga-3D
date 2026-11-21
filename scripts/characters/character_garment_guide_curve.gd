@@ -152,7 +152,7 @@ func evaluate(surface_regions: CharacterBodySurface) -> Array[Dictionary]:
 ## Densifies the authored guide by routing between anchors over the exact
 ## source mesh's triangle-edge graph. This approximates a geodesic; it never
 ## substitutes a straight chord through the body.
-func evaluate_surface_path(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
+func evaluate_surface_path(surface_regions: CharacterBodySurface) -> Array[Dictionary]:
     last_evaluation_error = ""
     if surface_regions == null:
         last_evaluation_error = "Surface-region evaluator is null"
