@@ -55,6 +55,42 @@ The current Ara anatomy exports contain only a small set of explicit surface soc
 (ear, nose, necklace and anatomy-specific points). They do not yet contain the general
 surface-region data required for robust clothing fit or combat volumes.
 
+## Semantic skin-surface landmarks
+
+Rig landmarks and surface landmarks are different contracts. A rig landmark resolves to
+an animated joint; a skin-surface landmark resolves to a point on the deformed body mesh.
+The latter is required for precise contact choreography and for construction references
+that must remain attached to skin rather than drifting with a nearby bone origin.
+
+CharacterSurfaceLandmark stores:
+
+- canonical body asset path and relative mesh-node path;
+- surface index/name, vertex count and a SHA-256 topology signature;
+- one source triangle and barycentric coordinates within that triangle;
+- a semantic landmark ID, a triangle-edge tangent reference and optional normal offset.
+
+At runtime, CharacterSurfaceLandmarkLibrary loads only resources matching the actor's
+exact body asset and rejects stale topology, invalid triangles, duplicate IDs and invalid
+barycentric weights. AraCharacterActor.get_surface_landmark(id) evaluates the anchor
+through CharacterSurfaceRegions, so its position and local frame follow blend shapes
+and the current skeleton pose. get_surface_landmarks() exposes the validated resources.
+
+The point frame contains a surface normal and a stable tangent/binormal derived from the
+authored triangle edge. This is a local contact frame, not a complete animation solution:
+hand placement still needs IK, joint limits, approach direction, contact offsets and
+pose/scene constraints. A path traced over skin should use CharacterGarmentGuideCurve
+or a later general surface-path resource rather than a cloud of region samples.
+
+The initial semantic vocabulary includes torso landmarks (sternum, clavicles, breast
+apices, nipples, underbust, waist, iliac crest, hip front/side/back, sacrum and pubic
+symphysis), hand/fingertip landmarks, and heel/toe landmarks. Male/female resources are
+authored independently; a semantic ID does not imply identical coordinates or geometry.
+
+The manifest is intentionally empty at introduction. The synthetic tests prove
+topology validation and deformation-aware evaluation on both canonical Ara bodies; they
+do not claim that any production anatomical landmark has been placed or visually
+reviewed yet.
+
 ## Surface regions: implementation and next requirements
 
 The first broad region layer is implemented by `CharacterSurfaceRegions` and validated against Godot's skinned-mesh bake for both canonical bodies. The next work is to extend the vocabulary with authored fine regions, not to replace the working broad rig-weight layer.
