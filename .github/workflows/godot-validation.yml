@@ -124,6 +124,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_surface_region_masks.gd
       - name: Test topology-bound Ara garment guide curves
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_garment_guide_curves.gd
+      - name: Test topology-bound semantic Ara surface landmarks
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_surface_landmarks.gd
       - name: Load Ara garment guide curve editor
         run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_garment_guide_curve_editor_load.gd
       - name: Load Ara anatomy surface painter tool
