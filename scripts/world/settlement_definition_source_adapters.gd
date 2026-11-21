@@ -82,9 +82,12 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 	for npc in layout.get("npcs", []):
 		if not npc is Dictionary:
 			continue
+		var character_id := String(npc.get("character_id", npc.get("id", ""))).strip_edges()
+		if character_id.is_empty():
+			continue
 		characters.append({
-			"id": String(npc.get("id", "")),
-			"character_id": String(npc.get("id", "")),
+			"id": character_id,
+			"character_id": character_id,
 			"position": _read_axial(npc.get("position", {}))
 		})
 	var min_q := int(centre.get("q", 0))
