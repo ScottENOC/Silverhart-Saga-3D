@@ -14,7 +14,8 @@ func _capture() -> void:
     var output_directory := "build/garment-guide-preview"
     if not arguments.is_empty():
         output_directory = arguments[0]
-    var absolute_directory := ProjectSettings.globalize_path(output_directory) if output_directory.begins_with("res://") or output_directory.begins_with("user://") else output_directory
+    var project_relative_directory := output_directory if output_directory.begins_with("res://") or output_directory.begins_with("user://") else "res://" + output_directory.trim_prefix("/")
+    var absolute_directory := ProjectSettings.globalize_path(project_relative_directory)
     var directory_error := DirAccess.make_dir_recursive_absolute(absolute_directory)
     if directory_error != OK:
         push_error("Could not create garment preview directory: %s (%d)" % [absolute_directory, directory_error])
