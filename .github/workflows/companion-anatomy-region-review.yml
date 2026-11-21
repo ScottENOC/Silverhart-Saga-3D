@@ -56,12 +56,15 @@ jobs:
         run: |
           set -euo pipefail
           p=build/anatomy-review-project
-          mkdir -p "$p/build/wren-native" "$p/build/aldric-native" "$p/tools/review" "$p/scripts/characters"
+          mkdir -p "$p/build/wren-native" "$p/build/aldric-native" "$p/tools/review" "$p/scripts/characters" "$p/data/characters"
+          cp -R data/characters/anatomy_masks "$p/data/characters/"
           cp build/wren-native/Wren.glb "$p/build/wren-native/"
           cp build/aldric-native/Aldric.glb "$p/build/aldric-native/"
           cp tools/review/companion_surface_region_review.gd "$p/tools/review/"
           cp scripts/characters/character_surface_regions.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_region_mask.gd "$p/scripts/characters/"
+          cp scripts/characters/character_surface_region_mask_library.gd "$p/scripts/characters/"
+          cp scripts/characters/character_surface_region_mask_manifest.gd "$p/scripts/characters/"
           cat > "$p/project.godot" <<'EOF'
           config_version=5
           [application]
