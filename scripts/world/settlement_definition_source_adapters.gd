@@ -9,7 +9,7 @@ const HOLLOWMERE_TERRAIN = preload("res://data/settlements/hollowmere/terrain.gd
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 const VALIDATOR = preload("res://scripts/world/settlement_definition_validator.gd")
 
-static func adapt_hollowmere() -> Dictionary:
+func adapt_hollowmere() -> Dictionary:
 	var source: Dictionary = HOLLOWMERE_PRESENTATION.DEFINITION
 	var feature_data: Dictionary = source.get("features", {}).get("data", {})
 	var placements: Dictionary = {}
@@ -60,7 +60,7 @@ static func adapt_hollowmere() -> Dictionary:
 	}
 	return _normalize_axial_values(canonical)
 
-static func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
+func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 	var centre: Dictionary = layout.get("center", {"q": 0, "r": 0})
 	var buildings: Array = []
 	for source_building in layout.get("buildings", []):
@@ -125,17 +125,17 @@ static func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 	}
 	return _normalize_axial_values(canonical)
 
-static func validate_adapted(definition: Dictionary) -> Dictionary:
+func validate_adapted(definition: Dictionary) -> Dictionary:
 	return VALIDATOR.validate(definition)
 
-static func _read_axial(value: Variant) -> Dictionary:
+func _read_axial(value: Variant) -> Dictionary:
 	if value is Vector2i:
 		return {"q": value.x, "r": value.y}
 	if value is Dictionary:
 		return {"q": int(value.get("q", 0)), "r": int(value.get("r", 0))}
 	return {"q": 0, "r": 0}
 
-static func _normalize_axial_values(value: Variant) -> Variant:
+func _normalize_axial_values(value: Variant) -> Variant:
 	if value is Vector2i:
 		return {"q": value.x, "r": value.y}
 	if value is Array:
