@@ -17,6 +17,7 @@ extends Resource
 ## channels, never a partition that leaves ambiguous boundary vertices uncovered.
 
 const REGION_MASK_SCRIPT = preload("res://scripts/characters/character_surface_region_mask.gd")
+const GUIDE_CURVE_SCRIPT = preload("res://scripts/characters/character_garment_guide_curve.gd")
 const FIT_MODES := ["drape", "clearance", "compression", "support"]
 
 @export var garment_id: String = ""
@@ -50,6 +51,16 @@ func validate_definition() -> String:
             if seen_regions.has(region_id):
                 return "Coverage part %s repeats anatomical region %s" % [part_id, region_id]
             seen_regions[region_id] = true
+        var guide_ids: Variant = part.get("boundary_guide_ids", PackedStringArray())
+        if not guide_ids is PackedStringArray or guide_ids.is_empty():
+            return "Coverage part %s needs at least one explicit garment boundary guide" % part_id
+        var seen_guides := {}
+        for guide_id in guide_ids:
+            if not GUIDE_CURVE_SCRIPT.VALID_GUIDE_IDS.has(guide_id):
+                return "Coverage part %s references unknown boundary guide %s" % [part_id, guide_id]
+            if seen_guides.has(guide_id):
+                return "Coverage part %s repeats boundary guide %s" % [part_id, guide_id]
+            seen_guides[guide_id] = true
         var fit_mode := String(part.get("fit_mode", "clearance"))
         if not FIT_MODES.has(fit_mode):
             return "Coverage part %s has unsupported fit_mode %s" % [part_id, fit_mode]
@@ -83,6 +94,18 @@ func validate_for_character(surface_regions: CharacterSurfaceRegions) -> String:
                 return "Coverage part %s requires authored anatomy region %s on %s" % [
                     part_id, region_id, body_asset_path
                 ]
+    var available_guides: Array[Resource] = CharacterGarmentGuideLibrary.load_for_body(
+        body_asset_path, surface_regions.get_body_root()
+    )
+    var available_ids := PackedStringArray()
+    for guide in available_guides:
+        available_ids.append(String(guide.guide_id))
+    for part in coverage_parts:
+        for guide_id in part["boundary_guide_ids"]:
+            if not available_ids.has(String(guide_id)):
+                return "Coverage part %s requires an authored boundary guide %s on %s" % [
+                    String(part["part_id"]), String(guide_id), body_asset_path
+                ]
     return ""
 
 
@@ -93,3 +116,21 @@ func get_part_region_union(surface_regions: CharacterSurfaceRegions, part_id: St
         if String(part["part_id"]) == part_id:
             return surface_regions.get_authored_region_union_samples(part["region_ids"], 0.25, 0)
     return []
+
+
+func get_part_boundary_guides(surface_regions: CharacterSurfaceRegions, part_id: String) -> Array[Resource]:
+    var result: Array[Resource] = []
+    if not validate_for_character(surface_regions).is_empty():
+        return result
+    var available_guides: Array[Resource] = CharacterGarmentGuideLibrary.load_for_body(
+        body_asset_path, surface_regions.get_body_root()
+    )
+    for part in coverage_parts:
+        if String(part["part_id"]) != part_id:
+            continue
+        for requested_id in part["boundary_guide_ids"]:
+            for guide in available_guides:
+                if String(guide.guide_id) == String(requested_id):
+                    result.append(guide)
+                    break
+    return result
