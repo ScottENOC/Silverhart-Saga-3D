@@ -1,0 +1,151 @@
+extends RefCounted
+## Read-only migration adapters from legacy authored sources to the canonical
+## settlement envelope. These are temporary source-boundary adapters; runtime
+## consumers must depend on the canonical provider, not these legacy formats.
+
+const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
+const HOLLOWMERE_SETTLEMENT = preload("res://data/settlements/hollowmere/settlement_definition.gd")
+const HOLLOWMERE_TERRAIN = preload("res://data/settlements/hollowmere/terrain.gd")
+const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
+const VALIDATOR = preload("res://scripts/world/settlement_definition_validator.gd")
+
+static func adapt_hollowmere() -> Dictionary:
+	var source: Dictionary = HOLLOWMERE_PRESENTATION.DEFINITION
+	var feature_data: Dictionary = source.get("features", {}).get("data", {})
+	var placements: Dictionary = {}
+	for character_id in HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS:
+		placements[character_id] = HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS[character_id]
+	var characters: Array = []
+	characters.append({"id": "player_start", "character_id": "player", "position": HOLLOWMERE_PLACEMENTS.PLAYER_START_HEX})
+	for character_id in placements:
+		characters.append({"id": String(character_id), "character_id": String(character_id), "position": placements[character_id]})
+	var creatures: Array = []
+	for placement in HOLLOWMERE_PLACEMENTS.FARM_ANIMALS + HOLLOWMERE_PLACEMENTS.WILDERNESS_ANIMALS:
+		var creature: Dictionary = placement.duplicate(true)
+		creature["position"] = creature.get("hex", Vector2i.ZERO)
+		creature.erase("hex")
+		creatures.append(creature)
+	var props: Array = []
+	for collection_name in ["landmark_props", "quest_props", "wayfinding_props"]:
+		props.append_array(feature_data.get(collection_name, []))
+	var canonical := {
+		"schema_version": 1,
+		"id": HOLLOWMERE_SETTLEMENT.SETTLEMENT_ID,
+		"name": HOLLOWMERE_SETTLEMENT.DISPLAY_NAME,
+		"source": "data/settlements/hollowmere domain modules",
+		"coordinate_system": "campaign2_local_axial_qr",
+		# Existing authored feature and terrain coordinates are already expressed
+		# in the Campaign 2 axial frame. Keep a zero transform until a separately
+		# tested rebase converts every source domain together.
+		"origin": {"q": 0, "r": 0},
+		"bounds": {"min_q": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_q": HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "min_r": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_r": HOLLOWMERE_SETTLEMENT.MAP_RADIUS},
+		"terrain": HOLLOWMERE_TERRAIN.DEFINITION,
+		"layout": {
+			"buildings": feature_data.get("buildings", []),
+			"paths": feature_data.get("routes", []),
+			"bridges": [feature_data.get("bridge", {})],
+			"fields": feature_data.get("fields", []) + feature_data.get("crop_rows", []) + feature_data.get("fences", []),
+			"props": props
+		},
+		"placements": {"characters": characters, "creatures": creatures},
+		"presentation": {
+			"hex_radius": source.get("hex_radius", HexGrid.DEFAULT_RADIUS_M),
+			"ground": source.get("ground", {}),
+			"palette": source.get("palette", {}),
+			"vegetation": source.get("vegetation", {}),
+			"feature_materials": source.get("features", {}).get("materials", {}),
+			"feature_data": feature_data
+		},
+		"interiors": []
+	}
+	return _normalize_axial_values(canonical)
+
+static func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
+	var centre: Dictionary = layout.get("center", {"q": 0, "r": 0})
+	var buildings: Array = []
+	for source_building in layout.get("buildings", []):
+		var building: Dictionary = source_building.duplicate(true)
+		building["center"] = _read_axial(building.get("center", {}))
+		if building.has("door"):
+			building["door"] = _read_axial(building["door"])
+		buildings.append(building)
+	var paths: Array = []
+	for source_path in layout.get("paths", []):
+		var path: Dictionary = source_path.duplicate(true)
+		path["from"] = _read_axial(path.get("from", {}))
+		path["to"] = _read_axial(path.get("to", {}))
+		paths.append(path)
+	var characters: Array = []
+	for npc in layout.get("npcs", []):
+		if not npc is Dictionary:
+			continue
+		characters.append({
+			"id": String(npc.get("id", "")),
+			"character_id": String(npc.get("id", "")),
+			"position": _read_axial(npc.get("position", {}))
+		})
+	var min_q := int(centre.get("q", 0))
+	var max_q := min_q
+	var min_r := int(centre.get("r", 0))
+	var max_r := min_r
+	for building in buildings:
+		var point: Dictionary = building.get("center", {})
+		min_q = mini(min_q, int(point.get("q", 0)) - int(building.get("half_q", 0)) - 2)
+		max_q = maxi(max_q, int(point.get("q", 0)) + int(building.get("half_q", 0)) + 2)
+		min_r = mini(min_r, int(point.get("r", 0)) - int(building.get("half_r", 0)) - 2)
+		max_r = maxi(max_r, int(point.get("r", 0)) + int(building.get("half_r", 0)) + 2)
+	for character in characters:
+		var point: Dictionary = character.get("position", {})
+		min_q = mini(min_q, int(point.get("q", 0)))
+		max_q = maxi(max_q, int(point.get("q", 0)))
+		min_r = mini(min_r, int(point.get("r", 0)))
+		max_r = maxi(max_r, int(point.get("r", 0)))
+	for path in paths:
+		for endpoint_name in ["from", "to"]:
+			var point: Dictionary = path.get(endpoint_name, {})
+			min_q = mini(min_q, int(point.get("q", 0)))
+			max_q = maxi(max_q, int(point.get("q", 0)))
+			min_r = mini(min_r, int(point.get("r", 0)))
+			max_r = maxi(max_r, int(point.get("r", 0)))
+	var canonical := {
+		"schema_version": 1,
+		"id": String(layout.get("id", "")),
+		"name": String(layout.get("name", layout.get("id", ""))),
+		"source": String(layout.get("source", layout.get("source_builder", "campaign2 settlement layout"))),
+		"coordinate_system": "campaign2_local_axial_qr",
+		"origin": {"q": 0, "r": 0},
+		"bounds": {"min_q": min_q - 2, "max_q": max_q + 2, "min_r": min_r - 2, "max_r": max_r + 2},
+		"terrain": {},
+		"layout": {"buildings": buildings, "paths": paths, "bridges": [], "fields": [], "props": []},
+		# Only placement references survive this adapter. Identity, appearance,
+		# class progression, equipment and dialogue remain character-owned.
+		"placements": {"characters": characters, "creatures": []},
+		"presentation": {"hex_radius": HexGrid.DEFAULT_RADIUS_M, "ground": {}, "palette": {}, "vegetation": {}},
+		"interiors": []
+	}
+	return _normalize_axial_values(canonical)
+
+static func validate_adapted(definition: Dictionary) -> Dictionary:
+	return VALIDATOR.validate(definition)
+
+static func _read_axial(value: Variant) -> Dictionary:
+	if value is Vector2i:
+		return {"q": value.x, "r": value.y}
+	if value is Dictionary:
+		return {"q": int(value.get("q", 0)), "r": int(value.get("r", 0))}
+	return {"q": 0, "r": 0}
+
+static func _normalize_axial_values(value: Variant) -> Variant:
+	if value is Vector2i:
+		return {"q": value.x, "r": value.y}
+	if value is Array:
+		var result: Array = []
+		for item in value:
+			result.append(_normalize_axial_values(item))
+		return result
+	if value is Dictionary:
+		var result: Dictionary = {}
+		for key in value:
+			result[key] = _normalize_axial_values(value[key])
+		return result
+	return value
