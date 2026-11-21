@@ -3,8 +3,18 @@ extends SceneTree
 const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
 const MAP_DATA = preload("res://scripts/world/main_campaign_world_map_data.gd")
 
+var _diagnostic_started_at := 0
+
+func _checkpoint(label: String) -> void:
+	var elapsed := Time.get_ticks_msec() - _diagnostic_started_at
+	print("[GEOGRAPHY-DIAG +%dms] %s" % [elapsed, label])
+
 func _initialize() -> void:
+	_diagnostic_started_at = Time.get_ticks_msec()
+	_checkpoint("test process entered _initialize")
+	_checkpoint("reading and parsing geography JSON")
 	var parsed = JSON.parse_string(FileAccess.get_file_as_string(MANIFEST_PATH))
+	_checkpoint("JSON parsed; validating campaign and coordinate metadata")
 	assert(parsed is Dictionary, "Campaign 2 geography manifest must parse as an object")
 	assert(int(parsed.get("campaign_id", 0)) == 2, "Manifest must target Campaign 2")
 	var coordinates: Dictionary = parsed.get("coordinate_system", {})
@@ -14,11 +24,13 @@ func _initialize() -> void:
 	assert(coordinates.get("origin", {}).get("local_q", -1) == 8)
 	assert(coordinates.get("origin", {}).get("local_r", -1) == 24)
 
+	_checkpoint("coordinate metadata passed; beginning 24-location validation")
 	var locations: Array = parsed.get("locations", [])
 	assert(locations.size() == 24, "The current first-pass geography inventory should contain 24 destinations")
 	var ids: Dictionary = {}
 	var location_by_id: Dictionary = {}
 	for location in locations:
+		_checkpoint("validating location: " + String(location.get("id", "<missing-id>")))
 		assert(location is Dictionary, "Every location must be an object")
 		var id := String(location.get("id", ""))
 		assert(not id.is_empty(), "Every location needs a stable id")
@@ -32,6 +44,7 @@ func _initialize() -> void:
 		assert(cell.x >= -0.5 and cell.x <= 15.5, "Location falls outside strategic map horizontally: " + id)
 		assert(cell.y >= -0.5 and cell.y <= 15.5, "Location falls outside strategic map vertically: " + id)
 
+	_checkpoint("all location records passed; checking required destination inventory")
 	for required_id in [
 		"hollowmere", "millbrook", "silverhart", "emberlode", "reddale",
 		"old_mac_farmstead", "hollowmere_guild_den", "abandoned_house",
@@ -47,6 +60,7 @@ func _initialize() -> void:
 	assert(int(location_by_id["ashveil_lair"]["q"]) == 101, "Dragon lair must be placed 100 q east of Millbrook centre")
 	assert(int(location_by_id["lich_chapterhouse"]["q"]) == -39, "Chapterhouse must be offset west of Millbrook centre")
 
+	_checkpoint("required destinations passed; validating 22 connections")
 	var connections: Array = parsed.get("connections", [])
 	assert(connections.size() == 22, "The current first-pass travel graph should contain 22 connections")
 	for connection in connections:
@@ -64,9 +78,12 @@ func _initialize() -> void:
 	assert(MAP_DATA.world_cell_from_local_hex(Vector2i(1, -366)) == Vector2i(6, 3))
 	assert(MAP_DATA.world_cell_from_local_hex(Vector2i(-256, 22)) == Vector2i(4, 6))
 
+	_checkpoint("river and coordinate adapter passed; resolving strategic markers")
 	var markers: Array = MAP_DATA.strategic_locations()
 	assert(markers.size() == 6, "Strategic marker selection must be manifest-authored")
+	_checkpoint("marker validation passed; entering MAP_DATA.generate_grid()")
 	var grid: Array = MAP_DATA.generate_grid()
+	_checkpoint("generate_grid() returned; checking generated 16x16 cells")
 	assert(grid.size() == 16 and grid[0].size() == 16, "Strategic grid dimensions must come from the manifest")
 	assert(grid[0][0]["terrain"] == "ocean")
 	assert(grid[13][2]["terrain"] == "forest" and grid[13][2]["faction"] == "elves")
@@ -74,5 +91,6 @@ func _initialize() -> void:
 	assert(grid[4][12]["faction"] == "orcs", "South edge of the dwarf/orc border must be retained")
 	assert(grid[6][6]["poi"].get("id", "") == "hollowmere")
 
+	_checkpoint("all assertions passed")
 	print("Campaign 2 geography manifest: %d locations, %d connections, %d river cells — OK" % [locations.size(), connections.size(), river.size()])
 	quit(0)
