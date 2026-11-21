@@ -4,8 +4,8 @@ extends Control
 
 const INPUT_ROUTER_SCRIPT = preload("res://tools/anatomy_surface_painter_input.gd")
 const BODY_OPTIONS := {
-    "Female Ara": "res://art/characters/ara_runtime/ara_person_body_anatomy.glb",
-    "Male Ara": "res://art/characters/ara_runtime/ara_person_male_body.glb"
+    "Wren (current native build)": "res://build/wren-native/Wren.glb",
+    "Aldric (current native build)": "res://build/aldric-native/Aldric.glb"
 }
 const GUIDE_LABELS := {
     "neckline": "Neckline circumference",
@@ -85,7 +85,7 @@ var _camera_target := Vector3(0.0, 0.85, 0.0)
 
 func _ready() -> void:
     _build_interface()
-    _load_body("Female Ara")
+    _load_body("Wren (current native build)")
 
 
 func _build_interface() -> void:
@@ -577,7 +577,7 @@ func _set_default_save_path() -> void:
         return
     var descriptor: Dictionary = _descriptors[_selected_descriptor]
     var mesh: MeshInstance3D = descriptor["mesh"]
-    var prefix := "female" if _body_option.get_item_text(_body_option.selected) == "Female Ara" else "male"
+    var prefix := "wren" if _body_option.get_item_text(_body_option.selected).begins_with("Wren") else "aldric"
     _save_path_edit.text = "%s/%s_%s_surface_%d_%s.tres" % [
         GUIDE_DIRECTORY, prefix, String(mesh.name).to_snake_case(),
         int(descriptor["surface_index"]), _selected_guide_id()
