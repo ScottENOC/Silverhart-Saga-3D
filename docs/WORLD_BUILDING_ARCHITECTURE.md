@@ -126,6 +126,8 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 
 ## Incremental migration sequence
 
+The canonical settlement definition contract is now specified in [ADR 0002](adr/0002-settlement-definition-contract.md). The current Hollowmere GDScript composition, Campaign 2 JSON layouts and terrain-only registry are explicitly transitional inputs; none is yet the final catalogue/provider. The next implementation slice is the canonical envelope validator and read-only adapters, followed by moving consumers to the provider. Do not treat the ADR as evidence that runtime convergence is already complete.
+
 1. **Architecture decision and current-world audit (current slice):** accepted in [ADR 0001](adr/0001-continuous-world-and-streamed-presentation.md). Map the existing coordinate frames, geography sources, feature precedence, streamer call sites and simulation-state ownership before changing runtime architecture.
 2. **World/region authority:** establish which existing manifests and transforms are authoritative; make the strategic map a coarse index into the continuous world, not a competing playable coordinate system. Add explicit validated transforms where local authoring remains useful.
 3. **Hollowmere feature decomposition:** buildings, roads, bridge, agriculture and props use shared factories; authored definitions are now split into domain files under `data/settlements/hollowmere/`. Keep settlement logical rules separate from regional terrain, hydrology and biome ownership. Preserve all existing world coordinates and gameplay behaviour.
@@ -172,5 +174,8 @@ The first implementation adds `WorldBuildingFactory` with reusable cottage, shop
 - [x] Move shared Campaign 2 local terrain classification, elevation profiles, forest density and geological outcrop rules into a world-terrain module with direct threshold tests.
 - [x] Replace the duplicate seeded logical exploration terrain generator with `Campaign2WorldCellLoader` backed by `Campaign2WorldTerrainData`; preserve authored cells and explored logical state.
 - [x] Route Hollowmere local terrain through the shared Campaign 2 world provider and materialise its opening logical map through `Campaign2WorldCellLoader`; keep tavern walls/furniture as local gameplay overlays.
-- [ ] Consolidate presentation streaming and world composition.
+- [ ] Introduce and validate the canonical settlement definition envelope (ADR 0002).
+- [ ] Adapt Hollowmere domain modules and Campaign 2 layout JSON to the same canonical envelope without changing authored coordinates.
+- [ ] Replace independent settlement/terrain catalogues with one authoritative settlement provider.
+- [ ] Consolidate full-settlement and streamed presentation on the same feature composition service.
 - [ ] Complete source-world feature inventory and regional migration.
