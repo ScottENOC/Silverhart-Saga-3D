@@ -2,7 +2,9 @@ extends SceneTree
 
 const BODY_ASSETS := [
     "res://art/characters/ara_runtime/ara_person_body_anatomy.glb",
-    "res://art/characters/ara_runtime/ara_person_male_body.glb"
+    "res://art/characters/ara_runtime/ara_person_male_body.glb",
+    "res://build/wren-native/Wren.glb",
+    "res://build/aldric-native/Aldric.glb"
 ]
 
 
@@ -122,6 +124,67 @@ func _test_body(asset_path: String) -> void:
         assert(frame.origin.is_finite(), "Guide frame origin is non-finite")
         assert(frame.basis.x.is_finite() and frame.basis.y.is_finite() and frame.basis.z.is_finite(),
             "Guide frame basis is non-finite")
+
+    if asset_path.begins_with("res://build/"):
+        var arrays := target_mesh.mesh.surface_get_arrays(target_surface)
+        var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+        var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+        var start_position: Vector3 = vertices[triangle[0]]
+        var far_triangle := PackedInt32Array()
+        var far_distance := -1.0
+        var triangle_count := indices.size() / 3 if not indices.is_empty() else vertices.size() / 3
+        for triangle_index in range(triangle_count):
+            var offset := triangle_index * 3
+            var candidate := PackedInt32Array()
+            if indices.is_empty():
+                candidate = PackedInt32Array([offset, offset + 1, offset + 2])
+            else:
+                candidate = PackedInt32Array([indices[offset], indices[offset + 1], indices[offset + 2]])
+            if candidate == triangle:
+                continue
+            var centre := (vertices[candidate[0]] + vertices[candidate[1]] + vertices[candidate[2]]) / 3.0
+            var distance := centre.distance_squared_to(start_position)
+            if distance > far_distance:
+                far_distance = distance
+                far_triangle = candidate
+        assert(far_triangle.size() == 3 and far_distance > 0.0001,
+            "Could not find a spatially separated route anchor on " + asset_path)
+        curve.closed_loop = false
+        curve.points = [
+            {"triangle_indices": triangle, "barycentric": PackedFloat32Array([1.0, 0.0, 0.0])},
+            {"triangle_indices": far_triangle, "barycentric": PackedFloat32Array([0.0, 1.0, 0.0])}
+        ]
+        var dense_route := curve.evaluate_surface_path(regions)
+        if dense_route.size() < 3:
+            printerr("NATIVE_DENSE_GUIDE_ROUTE_ERROR asset=%s error=%s samples=%d" % [
+                asset_path, curve.last_evaluation_error, dense_route.size()
+            ])
+        assert(dense_route.size() >= 3,
+            "Native guide route must contain intermediate mesh-edge samples for %s: %s" % [
+                asset_path, curve.last_evaluation_error
+            ])
+        assert(dense_route.front().get("is_control_point", false),
+            "Dense route must preserve its first barycentric control point")
+        assert(dense_route.back().get("is_control_point", false),
+            "Dense route must preserve its final barycentric control point")
+        var intermediate_count := 0
+        for sample in dense_route:
+            var position: Vector3 = sample["position"]
+            var normal: Vector3 = sample["normal"]
+            assert(position.is_finite(), "Native dense route contains a non-finite position")
+            assert(normal.is_finite() and normal.length() > 0.5,
+                "Native dense route contains an invalid surface normal")
+            if not sample.get("is_control_point", false):
+                intermediate_count += 1
+                assert(sample.has("surface_vertex_index"),
+                    "Intermediate route sample is not attached to a source mesh vertex")
+                assert(int(sample["surface_vertex_index"]) >= 0
+                    and int(sample["surface_vertex_index"]) < vertices.size(),
+                    "Intermediate route sample references a vertex outside the native mesh")
+        assert(intermediate_count > 0, "Native route did not traverse the source mesh graph")
+        print("NATIVE_DENSE_GUIDE_ROUTE: PASS asset=%s vertices=%d samples=%d intermediates=%d" % [
+            asset_path, vertices.size(), dense_route.size(), intermediate_count
+        ])
 
     var stale := curve.duplicate() as CharacterGarmentGuideCurve
     stale.surface_signature = "stale-topology"
