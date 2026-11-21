@@ -213,12 +213,35 @@ func get_region_surface_samples(
     minimum_weight: float = 0.25,
     max_samples: int = 0
 ) -> Array[Dictionary]:
+    return _get_surface_samples(region_id, minimum_weight, max_samples, false)
+
+
+## Returns only topology-bound authored mask samples. Broad rig channels are
+## deliberately excluded, even when a fine ID shares a name such as calf_left.
+func get_authored_region_surface_samples(
+    region_id: String,
+    minimum_weight: float = 0.25,
+    max_samples: int = 0
+) -> Array[Dictionary]:
+    return _get_surface_samples(region_id, minimum_weight, max_samples, true)
+
+
+func _get_surface_samples(
+    region_id: String,
+    minimum_weight: float,
+    max_samples: int,
+    authored_only: bool
+) -> Array[Dictionary]:
     var result: Array[Dictionary] = []
     if not is_configured() or not _is_known_region(region_id):
         return result
 
     for surface in _surfaces:
-        var region_values := _get_region_weights(surface, region_id)
+        var region_values: PackedFloat32Array
+        if authored_only:
+            region_values = _get_authored_region_weights(surface, region_id)
+        else:
+            region_values = _get_region_weights(surface, region_id)
         if region_values.is_empty():
             continue
         var qualifying: Array[int] = []
@@ -317,13 +340,19 @@ func _is_known_region(region_id: String) -> bool:
 
 
 func _get_region_weights(surface: Dictionary, region_id: String) -> PackedFloat32Array:
+    var authored_values := _get_authored_region_weights(surface, region_id)
+    if not authored_values.is_empty():
+        return authored_values
     if surface["region_weights"].has(region_id):
         var broad_values: PackedFloat32Array = surface["region_weights"][region_id]
         return broad_values
+    return PackedFloat32Array()
+
+
+func _get_authored_region_weights(surface: Dictionary, region_id: String) -> PackedFloat32Array:
     var fine_weights: Dictionary = surface.get("fine_region_weights", {})
     if fine_weights.has(region_id):
-        var authored_values: PackedFloat32Array = fine_weights[region_id]
-        return authored_values
+        return fine_weights[region_id] as PackedFloat32Array
     return PackedFloat32Array()
 
 
