@@ -8,6 +8,13 @@ on:
       - "tools/review/companion_surface_region_review.gd"
       - "scripts/characters/character_surface_regions.gd"
       - "scripts/characters/character_surface_region_mask.gd"
+  pull_request:
+    branches: [feature/ara-garment-fit-guides]
+    paths:
+      - ".github/workflows/companion-anatomy-region-review.yml"
+      - "tools/review/companion_surface_region_review.gd"
+      - "scripts/characters/character_surface_regions.gd"
+      - "scripts/characters/character_surface_region_mask.gd"
   workflow_dispatch:
 
 permissions:
