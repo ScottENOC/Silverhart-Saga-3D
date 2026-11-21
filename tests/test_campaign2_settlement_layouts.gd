@@ -142,7 +142,21 @@ func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array)
 	_check(layout.get("buildings", []).size() == 1, "Old Mac's Farmstead must retain its source farmhouse")
 	_check(layout.get("paths", []).size() == 1, "Old Mac's Farmstead must retain its short road spur")
 	_check(layout.get("fields", []).size() == 7, "Old Mac's pasture and six fence runs must survive canonical adaptation")
-	_check(layout.get("props", []).size() == 1, "The broken fence rail must be retained as a quest prop")
+	_check(layout.get("props", []).size() == 8, "The broken fence rail and seven blood-trail marks must be retained as quest props")
+	var blood_spatter_ids := [
+		"old_mac_blood_spatter_01", "old_mac_blood_spatter_02",
+		"old_mac_blood_spatter_03", "old_mac_blood_spatter_04",
+		"old_mac_blood_spatter_06", "old_mac_blood_spatter_08",
+		"old_mac_blood_spatter_10"
+	]
+	for index in range(blood_spatter_ids.size()):
+		var spatter := _find_record(layout.get("props", []), blood_spatter_ids[index])
+		_check(not spatter.is_empty(), "Source blood trail mark must be present: " + blood_spatter_ids[index])
+		if not spatter.is_empty():
+			var expected_q := [-10, -11, -12, -13, -15, -17, -19][index]
+			_assert_axial(spatter.get("anchor", {}), Vector2i(expected_q, 194), "Blood trail source step %s" % blood_spatter_ids[index])
+			var expected_visibility := "obvious" if index < 4 else "knowledge_nature"
+			_check(String(spatter.get("evidence_visibility", "")) == expected_visibility, "Blood trail evidence visibility must preserve source progression")
 	var farmhouse := _find_record(layout.get("buildings", []), "old_mac_farmhouse")
 	_assert_axial(farmhouse.get("center", {}), Vector2i(0, 194), "Old Mac farmhouse centre")
 	_assert_axial(farmhouse.get("door", {}), Vector2i(3, 194), "Old Mac farmhouse door")
