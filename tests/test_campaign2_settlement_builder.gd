@@ -115,6 +115,9 @@ func _initialize() -> void:
 		quit(1)
 		return
 
+	# SceneTree._initialize runs before the first process frame; wait for the newly
+	# added CreatureActor nodes to enter the tree and execute _ready/_load_model.
+	await process_frame
 	var sheep_actor := pasture_chunk.get_node_or_null("OldMacSheepA") as CreatureActor
 	if sheep_actor == null or sheep_actor.model_root == null or sheep_actor.dialogue_id != "farm_sheep":
 		push_error("Old Mac's first sheep must load its generated 3D model and retain dialogue identity.")
