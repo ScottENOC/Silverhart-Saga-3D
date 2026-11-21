@@ -411,6 +411,10 @@ func _clear_body() -> void:
     _weights_by_region.clear()
     _mirror_map_cache.clear()
     _point_cloud.multimesh.instance_count = 0
+    if is_instance_valid(_inspected_point_marker):
+        _inspected_point_marker.visible = false
+    if is_instance_valid(_membership_label):
+        _membership_label.text = "Point inspector: no surface point selected."
 
 
 func _collect_surface_descriptors(node: Node) -> void:
