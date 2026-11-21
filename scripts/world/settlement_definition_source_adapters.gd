@@ -25,9 +25,13 @@ func adapt_hollowmere() -> Dictionary:
 		creature["position"] = creature.get("hex", Vector2i.ZERO)
 		creature.erase("hex")
 		creatures.append(creature)
+	var fields: Array = []
+	fields.append_array(_tag_records(feature_data.get("fields", []), "field"))
+	fields.append_array(_tag_records(feature_data.get("crop_rows", []), "crop_row"))
+	fields.append_array(_tag_records(feature_data.get("fences", []), "fence"))
 	var props: Array = []
 	for collection_name in ["landmark_props", "quest_props", "wayfinding_props"]:
-		props.append_array(feature_data.get(collection_name, []))
+		props.append_array(_tag_records(feature_data.get(collection_name, []), collection_name))
 	var canonical := {
 		"schema_version": 1,
 		"id": HOLLOWMERE_SETTLEMENT.SETTLEMENT_ID,
@@ -41,10 +45,10 @@ func adapt_hollowmere() -> Dictionary:
 		"bounds": {"min_q": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_q": HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "min_r": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_r": HOLLOWMERE_SETTLEMENT.MAP_RADIUS},
 		"terrain": HOLLOWMERE_TERRAIN.DEFINITION,
 		"layout": {
-			"buildings": feature_data.get("buildings", []),
-			"paths": feature_data.get("routes", []),
-			"bridges": [feature_data.get("bridge", {})],
-			"fields": feature_data.get("fields", []) + feature_data.get("crop_rows", []) + feature_data.get("fences", []),
+			"buildings": _tag_records(feature_data.get("buildings", []), "building"),
+			"paths": _tag_records(feature_data.get("routes", []), "route"),
+			"bridges": _tag_records([feature_data.get("bridge", {})], "bridge"),
+			"fields": fields,
 			"props": props
 		},
 		"placements": {"characters": characters, "creatures": creatures},
@@ -53,8 +57,7 @@ func adapt_hollowmere() -> Dictionary:
 			"ground": source.get("ground", {}),
 			"palette": source.get("palette", {}),
 			"vegetation": source.get("vegetation", {}),
-			"feature_materials": source.get("features", {}).get("materials", {}),
-			"feature_data": feature_data
+			"materials": source.get("features", {}).get("materials", {})
 		},
 		"interiors": []
 	}
@@ -134,3 +137,13 @@ func _read_axial(value: Variant) -> Dictionary:
 	if value is Dictionary:
 		return {"q": int(value.get("q", 0)), "r": int(value.get("r", 0))}
 	return {"q": 0, "r": 0}
+
+func _tag_records(records: Array, feature_type: String) -> Array:
+	var tagged: Array = []
+	for source_record in records:
+		if not source_record is Dictionary:
+			continue
+		var record: Dictionary = source_record.duplicate(true)
+		record["feature_type"] = feature_type
+		tagged.append(record)
+	return tagged
