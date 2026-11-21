@@ -39,7 +39,14 @@ const GUIDE_LABELS := {
     "foot_opening_left": "Foot opening — left",
     "foot_opening_right": "Foot opening — right",
     "heel_alignment": "Heel alignment",
-    "toe_alignment": "Toe alignment"
+    "toe_alignment": "Toe alignment",
+    "cup_perimeter_left": "Bra cup perimeter — left (closed)",
+    "cup_perimeter_right": "Bra cup perimeter — right (closed)",
+    "centre_gore": "Bra centre gore boundary (closed)",
+    "underband_front": "Bra underband — front edge",
+    "underband_back": "Bra underband — back edge",
+    "strap_left": "Bra strap — left",
+    "strap_right": "Bra strap — right"
 }
 const GUIDE_PAIRS := {
     "shoulder_seam_left": "shoulder_seam_right", "shoulder_seam_right": "shoulder_seam_left",
@@ -51,7 +58,9 @@ const GUIDE_PAIRS := {
     "wrist_opening_left": "wrist_opening_right", "wrist_opening_right": "wrist_opening_left",
     "knee_opening_left": "knee_opening_right", "knee_opening_right": "knee_opening_left",
     "ankle_opening_left": "ankle_opening_right", "ankle_opening_right": "ankle_opening_left",
-    "foot_opening_left": "foot_opening_right", "foot_opening_right": "foot_opening_left"
+    "foot_opening_left": "foot_opening_right", "foot_opening_right": "foot_opening_left",
+    "cup_perimeter_left": "cup_perimeter_right", "cup_perimeter_right": "cup_perimeter_left",
+    "strap_left": "strap_right", "strap_right": "strap_left"
 }
 const GUIDE_DIRECTORY := "res://data/characters/garment_guides"
 const GUIDE_MANIFEST_PATH := GUIDE_DIRECTORY + "/manifest.tres"
