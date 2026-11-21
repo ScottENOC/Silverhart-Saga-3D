@@ -6,7 +6,7 @@ const SCHEMA_VERSION := 1
 const COORDINATE_SYSTEM := "campaign2_local_axial_qr"
 const LAYOUT_COLLECTIONS := ["buildings", "paths", "bridges", "fields", "props"]
 const PLACEMENT_COLLECTIONS := ["characters", "creatures"]
-const POSITION_KEYS := ["center", "door", "from", "to", "position", "hex"]
+const POSITION_KEYS := ["center", "centre", "door", "from", "to", "position", "hex", "anchor"]
 
 static func validate(definition: Dictionary) -> Dictionary:
 	var errors: Array[String] = []
@@ -72,12 +72,23 @@ static func _validate_section_records(source: Variant, collection_names: Array, 
 			for position_key in POSITION_KEYS:
 				if not record.has(position_key):
 					continue
-				var position: Variant = record[position_key]
-				if not _is_axial(position):
-					errors.append("%s record %s has invalid %s axial coordinates." % [collection_name, String(record.get("id", "")), position_key])
+				_validate_axial_position(record[position_key], "%s record %s %s" % [collection_name, String(record.get("id", "")), position_key], bounds, errors)
+			for point_collection in ["points", "corners"]:
+				if not record.has(point_collection):
 					continue
-				if int(position.q) < int(bounds.min_q) or int(position.q) > int(bounds.max_q) or int(position.r) < int(bounds.min_r) or int(position.r) > int(bounds.max_r):
-					errors.append("%s record %s has %s outside settlement bounds." % [collection_name, String(record.get("id", "")), position_key])
+				var points: Variant = record[point_collection]
+				if not points is Array:
+					errors.append("%s record %s %s must be an array." % [collection_name, String(record.get("id", "")), point_collection])
+					continue
+				for point_index in range(points.size()):
+					_validate_axial_position(points[point_index], "%s record %s %s[%d]" % [collection_name, String(record.get("id", "")), point_collection, point_index], bounds, errors)
+
+static func _validate_axial_position(position: Variant, label: String, bounds: Dictionary, errors: Array[String]) -> void:
+	if not _is_axial(position):
+		errors.append("%s has invalid axial coordinates." % label)
+		return
+	if int(position.q) < int(bounds.min_q) or int(position.q) > int(bounds.max_q) or int(position.r) < int(bounds.min_r) or int(position.r) > int(bounds.max_r):
+		errors.append("%s is outside settlement bounds." % label)
 
 static func _validate_record_array(value: Variant, label: String, errors: Array[String]) -> bool:
 	if not value is Array:
