@@ -76,7 +76,9 @@ func _test_generic_terrain_provider_contract() -> void:
     assert(TERRAIN_PROVIDER.is_path(Vector2i(0, 15), definition), "Store threshold must be on the authored path network")
     assert(TERRAIN_PROVIDER.is_farm_land(Vector2i(10, 60), definition), "Farm bounds must be supplied by authored data")
     assert(not TERRAIN_PROVIDER.is_forest_candidate(Vector2i(10, 60), definition), "Regional woodland rules must respect farm exclusions")
-    assert(TERRAIN_PROVIDER.path_cells(definition).size() == 346, "Authored path-cell enumeration must preserve the original 346-cell route network")
+    var enumerated_path_cells := TERRAIN_PROVIDER.path_cells(definition)
+	print("Hollowmere authored path-cell count: %d" % enumerated_path_cells.size())
+	assert(enumerated_path_cells.size() == 346, "Authored path-cell enumeration must preserve the original 346-cell route network")
     assert(TERRAIN_PROVIDER.water_cells(definition).size() == 182, "Authored stream-cell enumeration must preserve the original 182 water cells")
 
 func _test_road_network_connectivity() -> void:
