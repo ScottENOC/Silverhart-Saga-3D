@@ -43,6 +43,11 @@ jobs:
           echo "WREN_BUILD_RUN=$run_id" >> "$GITHUB_ENV"
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id" --jq '.head_sha' > build/wren-native/source-sha.txt
 
+      - name: Install Blender and asset build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri unzip
+
       - name: Generate the standalone Ara bra asset
         shell: bash
         run: |
