@@ -46,7 +46,7 @@ The legacy `HexWorldChunkStreamer` has been removed. Its logical-cell materialis
 | Regional hydrology | `data/world/regions/silverhart_heartland/hydrology.gd` | Region-owned stream rule and tests |
 | Heartland woodland ecology | `data/world/regions/silverhart_heartland/biomes.gd` | Region-owned species/eligibility rules receive local exclusions as context |
 | Shared local terrain refinement/elevation | `data/world/terrain/campaign2_local_terrain.gd` | Shared rules for non-settlement terrain |
-| Hollowmere local movement/terrain | `data/settlements/hollowmere/terrain.gd` + `AuthoredSettlementTerrainProvider` | Authored definition interpreted by generic query provider |
+| Authored settlement movement/terrain | `authored_settlement_terrain.json` + `Campaign2AuthoredSettlementTerrainRegistry` + `AuthoredSettlementTerrainProvider` | Definitions are loaded by stable ID and priority; no location-specific branches in the world terrain adapter |
 | Hollowmere buildings/routes/bridge/agriculture/props | `data/settlements/hollowmere/*.gd` | Domain data and shared factories |
 | Hollowmere exterior | `WorldSettlementPresenter` + `presentation.gd` | Same generic presenter in production and preview |
 | Hollow Tankard static interior | `interiors/*.gd` + shared interior presenter/registrar | Geometry and logical layout extracted; live behaviour remains in controller |
@@ -66,16 +66,17 @@ The legacy `HexWorldChunkStreamer` has been removed. Its logical-cell materialis
 - Replaced the Hollowmere-specific exterior presenter with `WorldSettlementPresenter`.
 - Replaced the Hollow Tankard's static geometry and logical layout construction with shared presenters/registrars.
 - Added the generic `AuthoredSettlementTerrainProvider` and migrated all callers to authored modules/provider queries; removed the obsolete compatibility facade.
+- Added a validated authored-settlement terrain manifest/registry and removed Hollowmere-specific terrain preloads and branches from `Campaign2WorldTerrainData`.
 - Routed both campaign and regional-preview Hollowmere terrain queries through the same authored terrain definition and provider.
 - Preserved authored NPC/animal positions and deferred companions whose actual recruitment regions have not yet been built.
 
 ## Remaining architecture work
 
-2. **Converge settlement definition formats.** Move the Millbrook/other `campaign2_settlement_layouts.json` path toward the same validated domain-data contract used by Hollowmere. Avoid a second settlement registry.
-3. **Consolidate presentation streaming.** Audit the regional preview renderer and promote/generalise it for production only after seam, negative-coordinate, load-order, unload/reload and persistent-state tests pass. Do not reintroduce a second logical streamer.
-4. **Complete source-world inventory.** Inspect the original Hex-crpg Campaign 2 content and record every region, settlement, building, route, landmark, encounter and interior with source IDs/provenance and port status.
-5. **Move campaign start composition to scenario data.** Keep quest definitions, opening time, player spawn and starting party composition in campaign scenario/content services, not in generic settlement presentation.
-6. **Fidelity and visual audit.** Compare Hollowmere's rendered exterior/interior against the authored source and confirm all original coordinates, feature counts, NPC placements and interaction behaviour.
+1. **Converge settlement definition formats.** Move the Millbrook/other `campaign2_settlement_layouts.json` path toward the same validated domain-data contract used by Hollowmere. Avoid a second settlement registry.
+2. **Consolidate presentation streaming.** Audit the regional preview renderer and promote/generalise it for production only after seam, negative-coordinate, load-order, unload/reload and persistent-state tests pass. Do not reintroduce a second logical streamer.
+3. **Complete source-world inventory.** Inspect the original Hex-crpg Campaign 2 content and record every region, settlement, building, route, landmark, encounter and interior with source IDs/provenance and port status.
+4. **Move campaign start composition to scenario data.** Keep quest definitions, opening time, player spawn and starting party composition in campaign scenario/content services, not in generic settlement presentation.
+5. **Fidelity and visual audit.** Compare Hollowmere's rendered exterior/interior against the authored source and confirm all original coordinates, feature counts, NPC placements and interaction behaviour.
 
 ## Required invariants
 
