@@ -70,13 +70,20 @@ func _test_invalid_definitions_are_rejected() -> void:
 func _test_settlement_builder_delegates_to_factory() -> void:
 	var builder = SETTLEMENT_BUILDER.new([{
 		"id": "data_only_village",
-		"buildings": [{
-			"id": "data_only_house",
-			"kind": "house",
-			"center": {"q": 3, "r": 4},
-			"door": {"q": 6, "r": 4}
-		}],
-		"npcs": []
+		"origin": Vector2i.ZERO,
+		"definition": {
+			"id": "data_only_village",
+			"presentation": {"mode": "chunked"},
+			"layout": {
+				"buildings": [{
+					"id": "data_only_house",
+					"kind": "house",
+					"center": {"q": 3, "r": 4},
+					"door": {"q": 6, "r": 4}
+				}]
+			},
+			"placements": {"characters": []}
+		}
 	}])
 	var parent := Node3D.new()
 	builder.add_settlements_in_chunk(parent, Vector2i.ZERO, 16)
