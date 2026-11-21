@@ -1448,7 +1448,7 @@
           "source": "campaign2World.js:buildFarmstead blood trail step 6"
         },
         {
-          "id": "old_mac_blood_spatter_07",
+          "id": "old_mac_blood_spatter_08",
           "feature_type": "quest_props",
           "anchor": {
             "q": -17,
@@ -1472,10 +1472,10 @@
             }
           ],
           "evidence_visibility": "knowledge_nature",
-          "source": "campaign2World.js:buildFarmstead blood trail step 7"
+          "source": "campaign2World.js:buildFarmstead blood trail step 8"
         },
         {
-          "id": "old_mac_blood_spatter_08",
+          "id": "old_mac_blood_spatter_10",
           "feature_type": "quest_props",
           "anchor": {
             "q": -19,
@@ -1499,7 +1499,7 @@
             }
           ],
           "evidence_visibility": "knowledge_nature",
-          "source": "campaign2World.js:buildFarmstead blood trail step 8"
+          "source": "campaign2World.js:buildFarmstead blood trail step 10"
         }
       ],
       "presentation": {
