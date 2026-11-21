@@ -94,14 +94,10 @@ func _initialize() -> void:
 			push_error("Old Mac's source feature was not presented in its owning chunk: " + node_name)
 			quit(1)
 			return
-	if farmstead_chunk.get_node_or_null("old_mac_broken_fence_rail") == null:
-		push_error("Old Mac's broken fence clue was not composed by the shared quest-prop factory.")
-		quit(1)
-		return
 	var pasture_chunk := Node3D.new()
 	root.add_child(pasture_chunk)
 	builder.add_settlements_in_chunk(pasture_chunk, Vector2i(-24, 192), 24)
-	for node_name in ["old_mac_pasture", "old_mac_pasture_north_fence", "old_mac_pasture_south_fence", "old_mac_pasture_west_fence_upper", "old_mac_pasture_west_fence_lower"]:
+	for node_name in ["old_mac_pasture", "old_mac_pasture_north_fence", "old_mac_pasture_south_fence", "old_mac_pasture_west_fence_upper", "old_mac_pasture_west_fence_lower", "old_mac_broken_fence_rail"]:
 		if pasture_chunk.get_node_or_null(node_name) == null:
 			push_error("Old Mac's source pasture feature was not presented in its owning chunk: " + node_name)
 			quit(1)
