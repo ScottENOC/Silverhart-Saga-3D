@@ -26,6 +26,9 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 		var settlement_id := String(entry.get("id", ""))
 		var origin: Vector2i = entry.get("origin", Vector2i.ZERO)
 		var definition: Dictionary = entry.get("definition", {})
+		var presentation: Dictionary = definition.get("presentation", {})
+		if String(presentation.get("mode", "chunked")) != "chunked":
+			continue
 		var layout: Dictionary = definition.get("layout", {})
 		var settlement_context := {"id": settlement_id}
 		for source_building in layout.get("buildings", []):
