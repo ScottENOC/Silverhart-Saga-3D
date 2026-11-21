@@ -55,12 +55,29 @@ jobs:
           godot --version
           godot --headless --editor --path . --quit
 
+      - name: Diagnose iOS export prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          TEMPLATE_DIR="$HOME/Library/Application Support/Godot/export_templates/4.7.2.stable"
+          echo "Godot export template directory: $TEMPLATE_DIR"
+          if [ -d "$TEMPLATE_DIR" ]; then
+            find "$TEMPLATE_DIR" -maxdepth 1 -type f -print -exec ls -lh {} \;
+          else
+            echo "Expected Godot export template directory is missing."
+            find "$HOME/Library/Application Support/Godot" -maxdepth 4 -print 2>/dev/null || true
+          fi
+          echo "iOS preset:"
+          sed -n '/^\[preset.1\]/,$p' export_presets.cfg
+          echo "Application icon:"
+          sips -g pixelWidth -g pixelHeight art/app_icon/icon-1024.png
+
       - name: Export iOS Xcode project
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p build/ios
-          godot --headless --path . --export-debug "iOS" build/ios/SilverhartSaga.zip
+          godot --headless --path . --export-debug "iOS" build/ios/SilverhartSaga.zip --verbose 2>&1 | tee build/ios/godot-export.log
           test -s build/ios/SilverhartSaga.zip
           unzip -q build/ios/SilverhartSaga.zip -d build/ios/unpacked
           PROJECT="$(find build/ios/unpacked -maxdepth 4 -name '*.xcodeproj' -type d -print -quit)"
@@ -123,5 +140,6 @@ jobs:
             build/ios/SilverhartSaga-unsigned.ipa
             build/ios/xcode-project.json
             build/ios/xcodebuild.log
+            build/ios/godot-export.log
           if-no-files-found: warn
           retention-days: 30
