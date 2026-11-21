@@ -13,9 +13,9 @@ const STREAM_CENTRE_SAMPLES: Array[Vector2i] = [
 	Vector2i(5, -24), Vector2i(8, -25), Vector2i(12, -27),
 	Vector2i(18, -25), Vector2i(24, -28), Vector2i(30, -25)
 ]
-const STREAM_HALF_WIDTH_SAMPLES := PackedFloat32Array([
+const STREAM_HALF_WIDTH_SAMPLES := [
 	1.0, 1.5, 1.8, 1.4, 1.8, 1.5, 1.1, 0.65, 1.4, 1.8, 1.5, 1.0
-])
+]
 
 const PATH_RULES := {
 	"horizontal_ranges": [
