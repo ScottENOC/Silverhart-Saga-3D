@@ -41,3 +41,9 @@ The current Wren ellipsoid proposal is a spatial hypothesis only. It is not a pr
 ## Validation implementation
 
 `scripts/characters/character_surface_region_partition.gd` contains the reusable exact-surface contract and topology checks. `tools/review/test_character_surface_region_partition.gd` exercises complete coverage, missing assignments, disconnected regions, duplicate IDs, assignment cardinality and empty regions in CI.
+
+## Shared boundary diagnostics
+
+`build_boundary_diagnostics()` reports unique mesh edges whose endpoint owners differ, mixed-label boundary triangles, region-pair adjacency edge counts and per-region triangle membership counts. These values are intended for the review overlay and boundary-junction audit. A mixed-label triangle is expected along a discrete vertex-labelled boundary; it is not itself an overlap error.
+
+The resource also exposes `configure_for_mesh()`, `assign_vertex_to_region()` and `clear_vertex_assignment()` for a future interactive exclusive-painting editor. New partitions start with every vertex explicitly unassigned; they cannot pass validation until the author has covered the entire surface.
