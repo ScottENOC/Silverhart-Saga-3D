@@ -72,10 +72,14 @@ func validate_for_character(surface_regions: CharacterSurfaceRegions) -> String:
         return definition_error
     if surface_regions == null or not surface_regions.is_configured():
         return "A configured CharacterSurfaceRegions instance is required"
+    if surface_regions.get_body_asset_path() != body_asset_path:
+        return "Garment coverage body asset mismatch: expected %s, got %s" % [
+            body_asset_path, surface_regions.get_body_asset_path()
+        ]
     for part in coverage_parts:
         var part_id := String(part["part_id"])
         for region_id in part["region_ids"]:
-            if not surface_regions.has_authored_region(region_id):
+            if not surface_regions.has_authored_region(String(region_id)):
                 return "Coverage part %s requires authored anatomy region %s on %s" % [
                     part_id, region_id, body_asset_path
                 ]
