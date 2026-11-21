@@ -1,6 +1,14 @@
 name: Campaign 2 geography diagnostic
 
 on:
+  pull_request:
+    branches:
+      - "feature/world-building-foundation"
+    paths:
+      - "tests/test_campaign2_geography_manifest.gd"
+      - "scripts/world/main_campaign_world_map_data.gd"
+      - "data/world/campaign2_geography.json"
+      - ".github/workflows/campaign2-geography-diagnostic.yml"
   push:
     branches:
       - "diagnostic/**"
