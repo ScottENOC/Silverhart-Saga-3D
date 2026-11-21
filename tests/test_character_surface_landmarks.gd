@@ -134,7 +134,9 @@ func _test_body(asset_path: String) -> void:
     for path_point in evaluated_path:
         assert(path_point["position"].is_finite() and path_point["normal"].is_finite(),
             "Contact path returned a non-finite surface sample")
-        assert(path_point["frame"].basis.is_finite(), "Contact path returned a non-finite local frame")
+        var path_frame: Transform3D = path_point["frame"]
+        assert(path_frame.basis.x.is_finite() and path_frame.basis.y.is_finite() and path_frame.basis.z.is_finite(),
+            "Contact path returned a non-finite local frame")
 
     var stale := landmark.duplicate() as CharacterSurfaceLandmark
     stale.surface_signature = "stale-topology"
