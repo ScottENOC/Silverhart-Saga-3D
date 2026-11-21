@@ -95,17 +95,28 @@ AraCharacterActor.get_surface_contact_path(path_id) exposes the evaluated points
 animation code.
 
 This is the data layer needed to describe a contact trajectory such as a fingertip
-moving along a short path over the chest. The animation still has to provide a hand
-and finger rig, IK targets, joint limits, approach/withdrawal timing, speed profile,
-contact pressure/offset and collision or pose constraints. The path currently returns
-its authored control points; it does not yet compute a geodesic or a dense, evenly
-spaced surface spline between them. Those are deliberate next steps before relying
-on it for production choreography.
+moving along a short path over the chest. The visual authoring scene is
+`tools/surface_contact_path_editor.tscn`: choose a canonical Ara body and mesh surface,
+tap points in travel order, undo or clear points, optionally close a loop, then save the
+topology-validated resource into the contact-path manifest. The editor reuses the same
+triangle picking and touch orbit/zoom controls as the landmark editor.
 
-The manifest is intentionally empty at introduction. The synthetic tests prove
-topology validation and deformation-aware evaluation on both canonical Ara bodies; they
-do not claim that any production anatomical landmark has been placed or visually
-reviewed yet.
+Two runtime queries are available. `get_surface_contact_path(path_id)` returns the
+evaluated authored control points. `get_surface_contact_path_samples(path_id)` returns
+a denser surface-following route: for each adjacent pair of anchors it finds a shortest
+route over the source mesh's triangle-edge graph, then evaluates those mesh vertices
+against the current deformed skin. The anchors and routed vertices receive local frames.
+This is constrained to the mesh surface rather than drawing straight chords through the
+body, but it is a mesh-edge approximation, not an exact continuous geodesic or a smooth,
+evenly spaced spline. It can follow a longer-than-ideal edge route on coarse or irregular
+topology, so the authored preview and eventual animation must be visually checked.
+
+The animation still has to provide a hand and finger rig, IK targets, joint limits,
+approach/withdrawal timing, speed profile, contact pressure/offset and collision or pose
+constraints. The manifest remains intentionally empty until paths are authored and
+reviewed. Synthetic tests validate topology, deformation-aware samples and the surface
+route on both canonical Ara bodies; they do not claim that a production contact path or
+anatomical landmark has been placed or visually reviewed yet.
 
 ## Surface regions: implementation and next requirements
 
