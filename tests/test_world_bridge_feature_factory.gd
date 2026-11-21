@@ -3,6 +3,8 @@ extends SceneTree
 const FACTORY = preload("res://scripts/world/world_bridge_feature_factory.gd")
 const HOLLOWMERE_BRIDGES = preload("res://data/settlements/hollowmere/bridges.gd")
 const HOLLOWMERE_SETTLEMENT = preload("res://data/settlements/hollowmere/settlement_definition.gd")
+const HOLLOWMERE_TERRAIN = preload("res://data/settlements/hollowmere/terrain.gd")
+const TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 const SETTLEMENT_PRESENTER = preload("res://scripts/world/world_settlement_presenter.gd")
 const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
 
@@ -65,5 +67,5 @@ func _test_hollowmere_bridge_integration() -> void:
 	var bridge := village.get_node_or_null("NarrowRiverBridge") as Node3D
 	assert(bridge != null, "Hollowmere should delegate its authored bridge to the shared factory")
 	assert(bridge.get_child_count() == HOLLOWMERE_BRIDGES.BRIDGE_PRESENTATION.parts.size(), "Hollowmere bridge should render every authored part")
-	assert(not VILLAGE_DATA.is_blocked(HOLLOWMERE_SETTLEMENT.BRIDGE), "Presentation extraction must not alter bridge movement traversability")
+	assert(not TERRAIN_PROVIDER.is_blocked(HOLLOWMERE_SETTLEMENT.BRIDGE, HOLLOWMERE_TERRAIN.DEFINITION), "Presentation extraction must not alter bridge movement traversability")
 	village.free()
