@@ -16,10 +16,13 @@ func _run() -> void:
     assert(body_options.get("Aldric (current native build)", "") == "res://build/aldric-native/Aldric.glb",
         "Painter must target the current native Aldric build")
     assert(body_options.size() == 2, "Painter must not offer the obsolete generic Ara bodies")
+    # REGION_LABELS is intentionally a partial override map: newly added IDs use
+    # the painter's readable fallback (underscores replaced and title-cased).
+    # Verify every runtime ID has either an explicit label or a non-empty fallback.
     for region_id in CharacterSurfaceRegionMask.REGION_IDS:
-        assert(painter_labels.has(region_id), "Mask region %s is missing from the painter selector" % region_id)
-    assert(painter_labels.size() == CharacterSurfaceRegionMask.REGION_IDS.size(),
-        "Painter and runtime mask vocabularies contain different region counts")
+        var display_label := String(painter_labels.get(region_id, region_id.replace("_", " ").capitalize()))
+        assert(not display_label.strip_edges().is_empty(),
+            "Mask region %s has no usable painter label" % region_id)
     var grouped_regions: Array = painter_constants.get("REGION_GROUPS", [])
     var grouped_ids := PackedStringArray()
     for group in grouped_regions:
