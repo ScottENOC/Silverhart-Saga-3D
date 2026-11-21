@@ -47,6 +47,12 @@ func _run() -> void:
     mixed_channels["fine_region_weights"] = {"calf_left": PackedFloat32Array([0.6])}
     assert(region_queries._get_region_weights(mixed_channels, "calf_left")[0] == 0.6,
         "Authored fine weights must take precedence over broad rig weights")
+    assert(painter_script.get_script_method_list().any(func(method: Dictionary): return method["name"] == "_inspect_at"),
+        "Painter must expose barycentric multi-region point inspection")
+    assert(painter_script.get_script_method_list().any(func(method: Dictionary): return method["name"] == "_barycentric_weights"),
+        "Painter must interpolate region memberships at triangle surface points")
+    assert(painter_script.get_script_property_list().any(func(property: Dictionary): return property["name"] == "_inspect_check"),
+        "Painter must expose the membership inspection toggle")
     var painter_scene := load("res://tools/anatomy_surface_painter.tscn") as PackedScene
     assert(painter_scene != null, "Anatomy surface painter scene failed to load")
     var input_router := load("res://tools/anatomy_surface_painter_input.gd") as Script
