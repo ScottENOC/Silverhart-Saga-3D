@@ -185,3 +185,9 @@ static func _is_near_axial_segment(hex: Vector2i, start: Vector2i, finish: Vecto
 		if HexGrid.distance(hex, sample) <= tolerance:
 			return true
 	return false
+
+static func elevation_for_hex(hex: Vector2i, definition: Dictionary) -> float:
+	var elevation: Variant = definition.get("elevation", 0.0)
+	if elevation is float or elevation is int:
+		return float(elevation)
+	return 0.0
