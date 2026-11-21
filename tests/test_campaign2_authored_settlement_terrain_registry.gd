@@ -2,7 +2,6 @@ extends SceneTree
 
 const REGISTRY = preload("res://scripts/world/campaign2_authored_settlement_terrain_registry.gd")
 const WORLD_TERRAIN = preload("res://scripts/world/campaign2_world_terrain_data.gd")
-const TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 const HOLLOWMERE_TERRAIN = preload("res://data/settlements/hollowmere/terrain.gd")
 
 func _initialize() -> void:
@@ -33,6 +32,7 @@ func _test_registry_rejects_invalid_manifests() -> void:
 	})
 	assert(not bool(duplicate_result.get("ok", true)), "Duplicate settlement IDs must be rejected")
 	assert(not registry.validation_errors.is_empty(), "Invalid manifests should retain actionable validation errors")
+	assert(registry.settlement_ids().is_empty(), "Invalid manifests must not leave a partially active registry")
 	var missing_script_result := registry.configure({
 		"schema_version": 1,
 		"coordinate_system": "campaign2_local_axial_qr",
