@@ -361,6 +361,7 @@ func _load_body(body_name: String) -> void:
         ])
     _selected_descriptor = 0
     _surface_option.select(0)
+    _save_path_edit.text = _default_save_path(_descriptors[0])
     _frame_body()
     _load_current_mask()
     _rebuild_markers()
