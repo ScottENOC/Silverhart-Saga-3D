@@ -2,6 +2,7 @@ extends SceneTree
 ## Headless contract tests for exclusive primary surface partitions.
 
 const PARTITION_SCRIPT := preload("res://scripts/characters/character_surface_region_partition.gd")
+var failed := false
 
 func _initialize() -> void:
     call_deferred("_run")
@@ -55,6 +56,9 @@ func _run() -> void:
         ),
         "has no assigned vertices"
     )
+    if failed:
+        failed = true
+        return
     print("SURFACE_REGION_PARTITION_TESTS_OK cases=6")
     quit(0)
 
@@ -62,7 +66,7 @@ func _run() -> void:
 func _expect_empty(label: String, actual: String) -> void:
     if not actual.is_empty():
         push_error("%s failed: %s" % [label, actual])
-        quit(1)
+        failed = true
 
 
 func _expect_contains(label: String, actual: String, expected: String) -> void:
