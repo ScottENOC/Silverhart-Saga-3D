@@ -2,6 +2,7 @@ extends SceneTree
 ## Millbrook's POI anchor is its house centre; the road endpoint is a separate waypoint.
 
 const TERRAIN_DATA = preload("res://scripts/world/campaign2_world_terrain_data.gd")
+const REGIONAL_PREVIEW = preload("res://scripts/world/campaign2_regional_world_preview.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 var failures: int = 0
 
@@ -26,6 +27,11 @@ func _initialize() -> void:
 	_check(HOLLOWMERE_PLACEMENTS.FARM_WOLF_DEN_HEX == Vector2i(-59, 204), "The live farm-wolf encounter must use the canonical source den coordinate")
 	_check(terrain.chunk_for_hex(Vector2i(-1, -1)) == Vector2i(-1, -1), "Chunk indexing must floor negative axial coordinates")
 	_check(terrain.terrain_for_hex(Vector2i(150, -200)) == "rocky_outcrop", "Unpainted grassland must use the original Campaign 2 rocky-outcrop clump")
+	var preview = REGIONAL_PREVIEW.new()
+	preview._create_materials()
+	for terrain_id in ["grass", "forest", "hills", "mountain", "badlands", "sand", "swamp", "rocky_outcrop", "water", "path"]:
+		_check(preview.materials.has(terrain_id), "Regional preview must render the %s terrain instead of leaving a hole" % terrain_id)
+	preview.free()
 	_check(terrain.terrain_for_hex(Vector2i(120, 40)) == terrain.terrain_for_hex(Vector2i(120, 40)), "Terrain must be deterministic")
 	if failures > 0:
 		push_error("%d Campaign 2 terrain test(s) failed." % failures)
