@@ -546,5 +546,19 @@
       "id": "old_mac_farmstead",
       "short": "F"
     }
+  ],
+  "encounter_sites": [
+    {
+      "id": "old_mac_farmstead_wolf_den",
+      "name": "Wolf Den",
+      "kind": "wolf_den",
+      "region": "human",
+      "q": -59,
+      "r": 204,
+      "visibility": "undiscovered",
+      "associated_location": "old_mac_farmstead",
+      "encounter_profile": "farmstead_wolf_pack",
+      "source": "campaign2World.js:buildFarmstead campaign2WolfDenCenter"
+    }
   ]
 }
