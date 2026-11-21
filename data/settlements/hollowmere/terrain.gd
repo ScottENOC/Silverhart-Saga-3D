@@ -45,6 +45,7 @@ const PATH_RULES := {
 const DEFINITION := {
 	"id": SETTLEMENT.SETTLEMENT_ID,
 	"map_radius": SETTLEMENT.MAP_RADIUS,
+	"elevation": 0.0,
 	"stream": {
 		"q_min": SETTLEMENT.STREAM_Q_MIN,
 		"q_max": SETTLEMENT.STREAM_Q_MAX,
