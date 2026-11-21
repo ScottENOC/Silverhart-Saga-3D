@@ -5,6 +5,7 @@ on:
     branches: [dev, dev_2, "feature/**"]
     paths:
       - "project.godot"
+      - "docs/SHARED_CHARACTER_ANATOMY.md"
       - "export_presets.cfg"
       - "art/characters/**"
       - "art/ui/**"
@@ -25,6 +26,7 @@ on:
     branches: [dev, dev_2, "feature/**"]
     paths:
       - "project.godot"
+      - "docs/SHARED_CHARACTER_ANATOMY.md"
       - "export_presets.cfg"
       - "art/characters/**"
       - "art/ui/**"
