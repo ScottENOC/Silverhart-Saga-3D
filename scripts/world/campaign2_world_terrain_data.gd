@@ -97,8 +97,9 @@ func _build_strategic_river() -> void:
 
 func terrain_for_hex(hex: Vector2i) -> String:
 	var authored_settlement := settlement_definition_registry.resolve(hex)
-	if not authored_settlement.is_empty() and not (authored_settlement.definition.get("terrain", {}) as Dictionary).is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, authored_settlement.definition.get("terrain", {}))
+	var terrain_definition := _authored_terrain_definition(authored_settlement)
+	if not terrain_definition.is_empty():
+		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "authored"
 	if settlement_path_cells.has(_hex_key(hex)):
@@ -117,32 +118,43 @@ func terrain_for_hex(hex: Vector2i) -> String:
 
 ## Gameplay terrain is resolved from authored settlement data first, then regional rules.
 func gameplay_terrain_for_hex(hex: Vector2i) -> String:
-	var authored_settlement := authored_settlement_terrain_registry.resolve(hex)
-	if not authored_settlement.is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, authored_settlement.definition)
+	var authored_settlement := settlement_definition_registry.resolve(hex)
+	var terrain_definition := _authored_terrain_definition(authored_settlement)
+	if not terrain_definition.is_empty():
+		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "building"
 	var terrain := terrain_for_hex(hex)
 	return "building" if terrain == "authored" else terrain
 
 func is_walkable_for_hex(hex: Vector2i) -> bool:
-	var authored_settlement := authored_settlement_terrain_registry.resolve(hex)
-	if not authored_settlement.is_empty() and not (authored_settlement.definition.get("terrain", {}) as Dictionary).is_empty():
-		return not AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.is_blocked(authored_settlement.local_hex, authored_settlement.definition.get("terrain", {}))
+	var authored_settlement := settlement_definition_registry.resolve(hex)
+	var terrain_definition := _authored_terrain_definition(authored_settlement)
+	if not terrain_definition.is_empty():
+		return not AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.is_blocked(authored_settlement.local_hex, terrain_definition)
 	var terrain := gameplay_terrain_for_hex(hex)
 	return terrain != "water" and terrain != "building"
 
 func elevation_for_hex(hex: Vector2i) -> float:
-	var authored_settlement := authored_settlement_terrain_registry.resolve(hex)
-	if not authored_settlement.is_empty() and not (authored_settlement.definition.get("terrain", {}) as Dictionary).is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.elevation_for_hex(authored_settlement.local_hex, authored_settlement.definition.get("terrain", {}))
+	var authored_settlement := settlement_definition_registry.resolve(hex)
+	var terrain_definition := _authored_terrain_definition(authored_settlement)
+	if not terrain_definition.is_empty():
+		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.elevation_for_hex(authored_settlement.local_hex, terrain_definition)
 	return LOCAL_TERRAIN_RULES.elevation_for_hex(hex, terrain_for_hex(hex))
 
 func has_tree(hex: Vector2i) -> bool:
-	var authored_settlement := authored_settlement_terrain_registry.resolve(hex)
-	if not authored_settlement.is_empty() and not (authored_settlement.definition.get("terrain", {}) as Dictionary).is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.has_tree(authored_settlement.local_hex, authored_settlement.definition.get("terrain", {}))
+	var authored_settlement := settlement_definition_registry.resolve(hex)
+	var terrain_definition := _authored_terrain_definition(authored_settlement)
+	if not terrain_definition.is_empty():
+		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.has_tree(authored_settlement.local_hex, terrain_definition)
 	return LOCAL_TERRAIN_RULES.has_tree(hex, terrain_for_hex(hex))
+
+func _authored_terrain_definition(entry: Dictionary) -> Dictionary:
+	if entry.is_empty():
+		return {}
+	var definition: Dictionary = entry.get("definition", {})
+	var terrain: Variant = definition.get("terrain", {})
+	return terrain if terrain is Dictionary else {}
 
 func has_rock_outcrop(hex: Vector2i) -> bool:
 	return LOCAL_TERRAIN_RULES.has_rock_outcrop(hex, terrain_for_hex(hex))
