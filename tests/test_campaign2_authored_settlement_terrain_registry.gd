@@ -24,13 +24,25 @@ func _test_manifest_loads_authored_definitions() -> void:
 		"schema_version": 1,
 		"coordinate_system": "campaign2_local_axial_qr",
 		"settlements": [
-			{"id": "hollowmere", "definition_script": "res://data/settlements/hollowmere/terrain.gd", "priority": 100},
-			{"id": "overlap_test", "definition_script": "res://tests/fixtures/test_overlapping_settlement_terrain.gd", "priority": 200}
+			{"id": "hollowmere", "origin": {"q": 0, "r": 0}, "definition_script": "res://data/settlements/hollowmere/terrain.gd", "priority": 100},
+			{"id": "overlap_test", "origin": {"q": 0, "r": 0}, "definition_script": "res://tests/fixtures/test_overlapping_settlement_terrain.gd", "priority": 200}
 		]
 	})
 	assert(bool(overlap_result.get("ok", false)), "Valid overlapping settlement definitions should be accepted")
 	assert(String(registry.resolve(Vector2i.ZERO).get("id", "")) == "overlap_test", "Higher-priority authored settlement terrain must win overlaps")
 	assert(is_equal_approx(TERRAIN_PROVIDER.elevation_for_hex(Vector2i.ZERO, registry.resolve(Vector2i.ZERO).definition), 0.25), "Resolved terrain should retain the winning definition's elevation")
+	var translated_result := registry.configure({
+		"schema_version": 1,
+		"coordinate_system": "campaign2_local_axial_qr",
+		"settlements": [
+			{"id": "overlap_test", "origin": {"q": 200, "r": 300}, "definition_script": "res://tests/fixtures/test_overlapping_settlement_terrain.gd", "priority": 200}
+		]
+	})
+	assert(bool(translated_result.get("ok", false)), "Translated settlement-local definitions should validate")
+	var translated := registry.resolve(Vector2i(200, 300))
+	assert(String(translated.get("id", "")) == "overlap_test", "Registry should resolve a settlement away from world origin")
+	assert(translated.get("local_hex", Vector2i.ONE) == Vector2i.ZERO, "Registry should translate global axial coordinates into settlement-local coordinates")
+	assert(registry.resolve(Vector2i(200, 302)).is_empty(), "Settlement bounds should be evaluated after local-coordinate translation")
 
 func _test_registry_rejects_invalid_manifests() -> void:
 	var registry := REGISTRY.new()
@@ -38,8 +50,8 @@ func _test_registry_rejects_invalid_manifests() -> void:
 		"schema_version": 1,
 		"coordinate_system": "campaign2_local_axial_qr",
 		"settlements": [
-			{"id": "hollowmere", "definition_script": "res://data/settlements/hollowmere/terrain.gd"},
-			{"id": "hollowmere", "definition_script": "res://data/settlements/hollowmere/terrain.gd"}
+			{"id": "hollowmere", "origin": {"q": 0, "r": 0}, "definition_script": "res://data/settlements/hollowmere/terrain.gd"},
+			{"id": "hollowmere", "origin": {"q": 0, "r": 0}, "definition_script": "res://data/settlements/hollowmere/terrain.gd"}
 		]
 	})
 	assert(not bool(duplicate_result.get("ok", true)), "Duplicate settlement IDs must be rejected")
@@ -49,7 +61,7 @@ func _test_registry_rejects_invalid_manifests() -> void:
 		"schema_version": 1,
 		"coordinate_system": "campaign2_local_axial_qr",
 		"settlements": [
-			{"id": "missing_location", "definition_script": "res://data/settlements/missing/terrain.gd"}
+			{"id": "missing_location", "origin": {"q": 0, "r": 0}, "definition_script": "res://data/settlements/missing/terrain.gd"}
 		]
 	})
 	assert(not bool(missing_script_result.get("ok", true)), "Missing terrain scripts must be rejected")
