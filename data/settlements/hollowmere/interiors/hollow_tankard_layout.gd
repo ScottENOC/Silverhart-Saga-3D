@@ -5,7 +5,8 @@ extends RefCounted
 const STRUCTURE = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_structure.gd")
 const TAPROOM = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_taproom.gd")
 const UPPER_ROOMS = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_upper_rooms.gd")
-const HOLLOWMERE_QUERIES = preload("res://scripts/world/hollowmere_village_data.gd")
+const TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
+const TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 
 const TILE_THICKNESS := 0.12
 const ROOM_HALF_WIDTH := 8.0
@@ -27,7 +28,8 @@ const UPPER_BED_HEXES: Array[Vector2i] = [
 
 const LOGICAL_DEFINITION := {
 	"ground_overlay": {
-		"query_script": HOLLOWMERE_QUERIES,
+		"query_script": TERRAIN_PROVIDER,
+		"query_context": TERRAIN_DEFINITION.DEFINITION,
 		"in_bounds_method": "is_in_bounds",
 		"blocked_method": "is_blocked",
 		"map_radius": 96,
