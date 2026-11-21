@@ -36,7 +36,9 @@ const PATH_RULES := {
 		# Explicit village door spurs retained from the original Hollowmere route network.
 		Vector2i(0, -10), Vector2i(-11, 0), Vector2i(0, 15),
 		Vector2i(10, 9), Vector2i(-4, 9), SETTLEMENT.BRIDGE, Vector2i(0, 5),
-		Vector2i(1, 13), Vector2i(1, 14), Vector2i(9, 9)
+		Vector2i(1, 13), Vector2i(1, 14), Vector2i(9, 9),
+		Vector2i(-10, 0), Vector2i(-9, 0), Vector2i(-3, 9),
+		Vector2i(-2, 9), Vector2i(-1, 9)
 	],
 	"crossroads": SETTLEMENT.CROSSROADS,
 	"segments": [ROUTES.SOUTH_ROAD_CENTRELINE, ROUTES.FARMYARD_CENTRELINE],
