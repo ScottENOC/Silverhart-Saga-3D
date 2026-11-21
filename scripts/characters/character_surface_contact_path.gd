@@ -84,7 +84,19 @@ func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
         if normal.length_squared() < 0.000001:
             last_evaluation_error = "Degenerate normal at contact path point %d" % point_index
             return []
-        result.append({"position": position, "normal": normal.normalized(), "point_index": point_index})
+        result.append({
+            "position": position,
+            "normal": normal.normalized(),
+            "point_index": point_index,
+            "fallback_edges": [
+                surface_regions.get_surface_vertex_sample(mesh_node_path, surface_index, triangle[1])["position"]
+                    - surface_regions.get_surface_vertex_sample(mesh_node_path, surface_index, triangle[0])["position"],
+                surface_regions.get_surface_vertex_sample(mesh_node_path, surface_index, triangle[2])["position"]
+                    - surface_regions.get_surface_vertex_sample(mesh_node_path, surface_index, triangle[0])["position"],
+                surface_regions.get_surface_vertex_sample(mesh_node_path, surface_index, triangle[2])["position"]
+                    - surface_regions.get_surface_vertex_sample(mesh_node_path, surface_index, triangle[1])["position"]
+            ]
+        })
     for point_index in range(result.size()):
         var previous_index := point_index - 1
         var next_index := point_index + 1
@@ -99,7 +111,18 @@ func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
             result[next_index]["position"] - result[previous_index]["position"], normal
         )
         if tangent.length_squared() < 0.000001:
-            last_evaluation_error = "Degenerate tangent at contact path point %d" % point_index
+            # Smoothed vertex normals can make a perfectly valid surface chord
+            # appear normal-aligned. Fall back to a real edge of the attached
+            # source triangle, projected onto the evaluated tangent plane.
+            var fallback_edges: Array = result[point_index]["fallback_edges"]
+            var longest_edge := Vector3.ZERO
+            for edge in fallback_edges:
+                var projected := _project_to_surface(edge, normal)
+                if projected.length_squared() > longest_edge.length_squared():
+                    longest_edge = projected
+            tangent = longest_edge
+        if tangent.length_squared() < 0.000001:
+            last_evaluation_error = "No stable tangent at contact path point %d" % point_index
             return []
         tangent = tangent.normalized()
         var binormal := tangent.cross(normal).normalized()
@@ -108,6 +131,7 @@ func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
         result[point_index]["tangent"] = tangent
         result[point_index]["binormal"] = binormal
         result[point_index]["frame"] = Transform3D(frame, result[point_index]["position"])
+        result[point_index].erase("fallback_edges")
     return result
 
 
