@@ -72,10 +72,14 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	appearance.apply_to(body)
 	var dyed_bra := bra.get_active_material(0) as StandardMaterial3D
 	var dyed_briefs := briefs.get_active_material(0) as StandardMaterial3D
-	assert(dyed_bra.albedo_color.is_equal_approx(appearance.bra_tint))
+	assert(is_equal_approx(dyed_bra.albedo_color.r, appearance.bra_tint.r))
+	assert(is_equal_approx(dyed_bra.albedo_color.g, appearance.bra_tint.g))
+	assert(is_equal_approx(dyed_bra.albedo_color.b, appearance.bra_tint.b))
 	assert(is_equal_approx(dyed_bra.albedo_color.a, 0.6))
 	assert(not bra.visible)
-	assert(dyed_briefs.albedo_color.is_equal_approx(appearance.briefs_tint))
+	assert(is_equal_approx(dyed_briefs.albedo_color.r, appearance.briefs_tint.r))
+	assert(is_equal_approx(dyed_briefs.albedo_color.g, appearance.briefs_tint.g))
+	assert(is_equal_approx(dyed_briefs.albedo_color.b, appearance.briefs_tint.b))
 	assert(is_equal_approx(dyed_briefs.albedo_color.a, 0.8))
 
 	var path := "user://character_appearance_test.json"
