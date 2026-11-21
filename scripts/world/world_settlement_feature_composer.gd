@@ -187,6 +187,8 @@ static func _append_route_fragment(result: Array, source: Dictionary, points: Ar
 	if points.size() < 2:
 		return
 	var fragment := source.duplicate(true)
+	if String(fragment.get("material", "")).is_empty():
+		fragment["material"] = "path"
 	fragment["id"] = "%s_chunk_%d" % [String(source.get("id", "route")), index]
 	fragment["points"] = points
 	fragment["widths"] = widths
