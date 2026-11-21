@@ -1,12 +1,31 @@
 extends SceneTree
 
 const COMPOSER = preload("res://scripts/world/world_settlement_feature_composer.gd")
+const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
 
 func _initialize() -> void:
 	_test_chunk_ownership_and_route_clipping()
 	_test_empty_chunk_is_valid()
+	_test_hollowmere_location_uses_shared_composer()
 	print("World settlement feature composer tests passed.")
 	quit(0)
+
+func _test_hollowmere_location_uses_shared_composer() -> void:
+	var parent := Node3D.new()
+	var result: Dictionary = COMPOSER.compose_location(
+		parent,
+		HOLLOWMERE_PRESENTATION.DEFINITION,
+		HexGrid.DEFAULT_RADIUS_M
+	)
+	assert(bool(result.get("ok", false)), "Hollowmere authored features should compose through the shared pipeline: %s" % result)
+	assert(int(result.get("buildings", 0)) == HOLLOWMERE_PRESENTATION.FEATURE_DATA.buildings.size())
+	assert(int(result.get("routes", 0)) == HOLLOWMERE_PRESENTATION.FEATURE_DATA.routes.size())
+	assert(int(result.get("bridges", 0)) == 1)
+	assert(parent.get_node_or_null("GeneralStore") != null)
+	assert(parent.get_node_or_null("Chapel") != null)
+	assert(parent.get_node_or_null("NarrowRiverBridge") != null)
+	assert(parent.get_node_or_null("StoreSignPresentation") != null)
+	parent.free()
 
 func _definition() -> Dictionary:
 	return {
