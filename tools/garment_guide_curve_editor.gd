@@ -1,5 +1,5 @@
 extends Control
-## Surface-attached garment guide authoring tool for the canonical Ara bodies.
+## Surface-attached garment guide authoring tool for current native Wren and Aldric builds.
 ## Click the body to add points; each point is saved as a triangle+barycentric attachment.
 
 const INPUT_ROUTER_SCRIPT = preload("res://tools/anatomy_surface_painter_input.gd")
@@ -172,7 +172,7 @@ func _build_interface() -> void:
     scroll.add_child(column)
 
     var heading := Label.new()
-    heading.text = "Ara garment guide editor"
+    heading.text = "Wren / Aldric garment guide editor"
     heading.add_theme_font_size_override("font_size", 18)
     column.add_child(heading)
     _caption(column, "Click or tap the body to place guide points. Right-drag / one-finger drag orbits; wheel / pinch zooms.")
@@ -221,9 +221,9 @@ func _build_interface() -> void:
 
     _status = Label.new()
     _status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    _status.text = "Loading Ara body…"
+    _status.text = "Loading native companion…"
     column.add_child(_status)
-    _caption(column, "Trace a complete circumference or seam by clicking sequentially around the body. Each point stores its source triangle and barycentric position, so it follows skinning and supported body morphs. Review the line from several angles before saving. Male and female guides are authored separately.")
+    _caption(column, "Trace a complete circumference or seam by clicking sequentially around the body. Each point stores its source triangle and barycentric position, so it follows skinning and supported body morphs. Review the line from several angles before saving. Wren and Aldric guides are authored separately.")
 
 
 func _caption(parent: VBoxContainer, value: String) -> void:
@@ -252,7 +252,7 @@ func _load_body(body_name: String) -> void:
         return
     _body_root = packed.instantiate() as Node3D
     if _body_root == null:
-        _set_status("Ara body scene root is not Node3D")
+        _set_status("Native companion scene root is not Node3D")
         return
     _world_root.add_child(_body_root)
     _collect_surfaces(_body_root)
