@@ -24,7 +24,8 @@ func _test_hollowmere_location_uses_shared_composer() -> void:
 	assert(parent.get_node_or_null("GeneralStore") != null)
 	assert(parent.get_node_or_null("Chapel") != null)
 	assert(parent.get_node_or_null("NarrowRiverBridge") != null)
-	assert(parent.get_node_or_null("StoreSignPresentation") != null)
+	assert(parent.get_node_or_null("GeneralStore/StoreSignPresentation") != null)
+	assert(parent.get_node_or_null("Chapel/ChapelBellTowerPresentation") != null)
 	parent.free()
 
 func _definition() -> Dictionary:
