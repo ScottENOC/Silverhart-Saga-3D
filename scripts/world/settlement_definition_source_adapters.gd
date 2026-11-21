@@ -10,17 +10,20 @@ const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placeme
 const VALIDATOR = preload("res://scripts/world/settlement_definition_validator.gd")
 
 func adapt_hollowmere() -> Dictionary:
-	var source: Dictionary = HOLLOWMERE_PRESENTATION.DEFINITION
+	var presentation_constants: Dictionary = HOLLOWMERE_PRESENTATION.get_script_constant_map()
+	var terrain_constants: Dictionary = HOLLOWMERE_TERRAIN.get_script_constant_map()
+	var placement_constants: Dictionary = HOLLOWMERE_PLACEMENTS.get_script_constant_map()
+	var source: Dictionary = presentation_constants.get("DEFINITION", {})
 	var feature_data: Dictionary = source.get("features", {}).get("data", {})
 	var placements: Dictionary = {}
-	for character_id in HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS:
-		placements[character_id] = HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS[character_id]
+	for character_id in placement_constants.get("CHARACTER_STARTS", {}):
+		placements[character_id] = placement_constants.get("CHARACTER_STARTS", {})[character_id]
 	var characters: Array = []
-	characters.append({"id": "player_start", "character_id": "player", "position": HOLLOWMERE_PLACEMENTS.PLAYER_START_HEX})
+	characters.append({"id": "player_start", "character_id": "player", "position": placement_constants.get("PLAYER_START_HEX", Vector2i.ZERO)})
 	for character_id in placements:
 		characters.append({"id": String(character_id), "character_id": String(character_id), "position": placements[character_id]})
 	var creatures: Array = []
-	for placement in HOLLOWMERE_PLACEMENTS.FARM_ANIMALS + HOLLOWMERE_PLACEMENTS.WILDERNESS_ANIMALS:
+	for placement in placement_constants.get("FARM_ANIMALS", []) + placement_constants.get("WILDERNESS_ANIMALS", []):
 		var creature: Dictionary = placement.duplicate(true)
 		creature["position"] = creature.get("hex", Vector2i.ZERO)
 		creature.erase("hex")
@@ -34,16 +37,16 @@ func adapt_hollowmere() -> Dictionary:
 		props.append_array(_tag_records(feature_data.get(collection_name, []), collection_name))
 	var canonical := {
 		"schema_version": 1,
-		"id": HOLLOWMERE_SETTLEMENT.SETTLEMENT_ID,
-		"name": HOLLOWMERE_SETTLEMENT.DISPLAY_NAME,
+		"id": HOLLOWMERE_SETTLEMENT.get_script_constant_map().get("SETTLEMENT_ID", ""),
+		"name": HOLLOWMERE_SETTLEMENT.get_script_constant_map().get("DISPLAY_NAME", ""),
 		"source": "data/settlements/hollowmere domain modules",
 		"coordinate_system": "campaign2_local_axial_qr",
 		# Existing authored feature and terrain coordinates are already expressed
 		# in the Campaign 2 axial frame. Keep a zero transform until a separately
 		# tested rebase converts every source domain together.
 		"origin": {"q": 0, "r": 0},
-		"bounds": {"min_q": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_q": HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "min_r": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_r": HOLLOWMERE_SETTLEMENT.MAP_RADIUS},
-		"terrain": HOLLOWMERE_TERRAIN.DEFINITION,
+		"bounds": {"min_q": -HOLLOWMERE_SETTLEMENT.get_script_constant_map().get("MAP_RADIUS", 0), "max_q": HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "min_r": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_r": HOLLOWMERE_SETTLEMENT.MAP_RADIUS},
+		"terrain": terrain_constants.get("DEFINITION", {}),
 		"layout": {
 			"buildings": _tag_records(feature_data.get("buildings", []), "building"),
 			"paths": _tag_records(feature_data.get("routes", []), "route"),
