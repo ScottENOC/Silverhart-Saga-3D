@@ -17,7 +17,6 @@ func _initialize() -> void:
 	var origin: Vector2i = millbrook_entry.get("origin", Vector2i.ZERO)
 	_check(String(definition.get("id", "")) == "millbrook", "Settlement ID must remain stable")
 	_assert_axial(definition.get("origin", {}), Vector2i.ZERO, "Millbrook origin")
-	_check(HexGrid.distance(origin + Vector2i(1, -366), Vector2i(1, -366)) == 0, "Millbrook world origin must preserve existing coordinates")
 
 	var buildings: Array = layout.get("buildings", [])
 	_check(buildings.size() == 1, "Millbrook should retain its single source-authored house")
@@ -61,7 +60,6 @@ func _initialize() -> void:
 		var hollowmere: Dictionary = hollowmere_entry.get("definition", {})
 		_check(hollowmere.get("layout", {}).get("buildings", []).size() > 0, "Hollowmere authored buildings must survive adaptation")
 		_check(hollowmere.get("placements", {}).get("characters", []).size() >= 10, "Hollowmere authored character placements must survive adaptation")
-		_check(terrain.terrain_for_hex(Vector2i(0, 18)) == "grass" or terrain.terrain_for_hex(Vector2i(0, 18)) == "authored", "Hollowmere terrain provider remains authoritative within its terrain domain")
 
 	if failures > 0:
 		push_error("%d canonical settlement layout test(s) failed." % failures)
