@@ -175,6 +175,13 @@ static func _route_fragments_for_chunk(
 				else:
 					current_widths[current_widths.size() - 1] = width
 			elif not current_points.is_empty():
+				# Include the first sample beyond the chunk edge so the segment
+				# crossing the boundary is owned by the chunk containing its start.
+				# The adjacent chunk begins at that shared endpoint, avoiding a gap
+				# without rendering the same crossing segment twice.
+				if current_points.back() != sample:
+					current_points.append(sample)
+					current_widths.append(lerpf(float(raw_widths[segment_index]), float(raw_widths[segment_index + 1]), t))
 				_append_route_fragment(result, source, current_points, current_widths, fragment_index)
 				fragment_index += 1
 				current_points = []
