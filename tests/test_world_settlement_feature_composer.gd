@@ -1,0 +1,77 @@
+extends SceneTree
+
+const COMPOSER = preload("res://scripts/world/world_settlement_feature_composer.gd")
+
+func _initialize() -> void:
+	_test_chunk_ownership_and_route_clipping()
+	_test_empty_chunk_is_valid()
+	print("World settlement feature composer tests passed.")
+	quit(0)
+
+func _definition() -> Dictionary:
+	return {
+		"id": "composer_test",
+		"origin": Vector2i.ZERO,
+		"definition": {
+			"presentation": {
+				"mode": "chunked",
+				"palette": {"timber": Color(0.3, 0.18, 0.1), "field": Color(0.3, 0.4, 0.2)},
+				"materials": {"props": {"timber": "timber"}, "agriculture": {"field": "field"}}
+			},
+			"layout": {
+				"buildings": [{
+					"id": "HouseA", "kind": "house", "center": Vector2i(1, 1),
+					"door": Vector2i(3, 1), "half_q": 1, "half_r": 1
+				}],
+				"paths": [{
+					"id": "CrossChunkRoad", "feature_type": "route",
+					"from": Vector2i(-2, 1), "to": Vector2i(6, 1), "width": 2.0
+				}],
+				"bridges": [],
+				"fields": [{
+					"id": "FieldA", "feature_type": "field",
+					"corners": [Vector2i(0, 0), Vector2i(2, 0), Vector2i(2, 2)],
+					"material": "field"
+				}],
+				"props": [{
+					"id": "HouseSign", "feature_type": "landmark_props",
+					"parent_node": "HouseA",
+					"parts": [{
+						"name": "SignBoard", "type": "box",
+						"size": Vector3(1.0, 0.5, 0.1),
+						"position": Vector3(0, 2, -1),
+						"material": "timber"
+					}]
+				}]
+			}
+		}
+	}
+
+func _test_chunk_ownership_and_route_clipping() -> void:
+	var entry := _definition()
+	var first_chunk := Node3D.new()
+	var first_result := COMPOSER.compose_chunk(first_chunk, entry, Vector2i.ZERO, 4)
+	assert(bool(first_result.get("ok", false)), "First chunk should compose: %s" % first_result)
+	assert(first_chunk.get_node_or_null("HouseA") != null, "Building anchor belongs to first chunk")
+	assert(first_chunk.get_node_or_null("HouseA/HouseSign/SignBoard") != null, "Building-attached prop should follow its parent building")
+	assert(first_chunk.get_node_or_null("FieldA") != null, "Field centroid belongs to first chunk")
+	var first_routes := first_chunk.find_children("*", "MeshInstance3D", true, false).filter(func(node): return String(node.name).begins_with("CrossChunkRoad_chunk_"))
+	assert(first_routes.size() == 1, "Only the route segment inside this chunk should be emitted")
+	first_chunk.free()
+
+	var second_chunk := Node3D.new()
+	var second_result := COMPOSER.compose_chunk(second_chunk, entry, Vector2i(4, 0), 4)
+	assert(bool(second_result.get("ok", false)), "Second chunk should compose: %s" % second_result)
+	assert(second_chunk.get_node_or_null("HouseA") == null, "Building must not be duplicated in adjacent chunk")
+	assert(second_chunk.get_node_or_null("FieldA") == null, "Field must not be duplicated in adjacent chunk")
+	var second_routes := second_chunk.find_children("*", "MeshInstance3D", true, false).filter(func(node): return String(node.name).begins_with("CrossChunkRoad_chunk_"))
+	assert(second_routes.size() == 1, "Adjacent chunk should receive only its own clipped route segment")
+	second_chunk.free()
+
+func _test_empty_chunk_is_valid() -> void:
+	var parent := Node3D.new()
+	var entry := _definition()
+	var result := COMPOSER.compose_chunk(parent, entry, Vector2i(40, 40), 4)
+	assert(bool(result.get("ok", false)), "A chunk with no settlement features should be a valid empty composition")
+	assert(parent.get_child_count() == 0, "Empty chunks should not receive stray presentation nodes")
+	parent.free()
