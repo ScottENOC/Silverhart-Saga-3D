@@ -12,6 +12,9 @@ on:
       - "scripts/characters/character_surface_region_mask.gd"
       - "scripts/characters/character_surface_region_partition.gd"
       - "tools/review/test_character_surface_region_partition.gd"
+      - "tools/anatomy_surface_painter.gd"
+      - "tools/anatomy_surface_painter.tscn"
+      - "tools/anatomy_surface_painter_input.gd"
   pull_request:
     branches: [feature/ara-garment-fit-guides]
     paths:
@@ -73,6 +76,9 @@ jobs:
           cp scripts/characters/character_surface_region_mask.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_region_partition.gd "$p/scripts/characters/"
           cp tools/review/test_character_surface_region_partition.gd "$p/tools/review/"
+          cp tools/anatomy_surface_painter.gd "$p/tools/"
+          cp tools/anatomy_surface_painter.tscn "$p/tools/"
+          cp tools/anatomy_surface_painter_input.gd "$p/tools/"
           cp scripts/characters/character_surface_region_mask_library.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_region_mask_manifest.gd "$p/scripts/characters/"
           cat > "$p/project.godot" <<'EOF'
@@ -100,6 +106,7 @@ jobs:
           p=build/anatomy-review-project
           godot --headless --editor --path "$p" --quit
           godot --headless --path "$p" --script res://tools/review/test_character_surface_region_partition.gd
+          godot --headless --path "$p" res://tools/anatomy_surface_painter.tscn --quit-after 2
           for character in Wren Aldric; do
             xvfb-run -a -s "-screen 0 1280x1200x24" godot --path "$p" --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/companion_surface_region_review.gd -- "$character"
             for view in front side rear; do
