@@ -13,7 +13,9 @@ const VALID_GUIDE_IDS := [
     "elbow_opening_left", "elbow_opening_right", "wrist_opening_left",
     "wrist_opening_right", "knee_opening_left", "knee_opening_right",
     "ankle_opening_left", "ankle_opening_right", "foot_opening_left",
-    "foot_opening_right", "heel_alignment", "toe_alignment"
+    "foot_opening_right", "heel_alignment", "toe_alignment",
+    "cup_perimeter_left", "cup_perimeter_right", "centre_gore",
+    "underband_front", "underband_back", "strap_left", "strap_right"
 ]
 
 @export var body_asset_path: String = ""
