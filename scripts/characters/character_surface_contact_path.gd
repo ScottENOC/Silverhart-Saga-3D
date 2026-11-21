@@ -212,8 +212,10 @@ func evaluate_surface_path(surface_regions: CharacterSurfaceRegions) -> Array[Di
                 "surface_vertex_index": vertex_index,
                 "is_control_point": false
             })
-        if not (closed_loop and next_index == 0):
-            dense.append(end_anchor)
+        # Include the first anchor again at the end of a closed route.
+        # Omitting it leaves a small gap between the last graph vertex and the
+        # actual barycentric start point.
+        dense.append(end_anchor)
     if dense.size() < 2:
         last_evaluation_error = "Surface contact route produced fewer than two samples"
         return []
