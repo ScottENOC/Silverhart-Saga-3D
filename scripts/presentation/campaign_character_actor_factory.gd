@@ -14,23 +14,26 @@ static func create_actor(
     is_player: bool,
     player_profile: Dictionary,
     npc_profile: Dictionary,
-    ara_model_id: String,
     ambient_role: String
 ) -> Node3D:
     if state == null:
         push_error("Cannot create character presentation without simulation state.")
         return null
 
-    var body_variant := String(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
+    var body_variant := String(player_profile.get("body_base", player_profile.get("body_variant", "female"))) if is_player else String(npc_profile.get("body_base", ""))
+    if body_variant not in ["male", "female"]:
+        push_error("Character %s must explicitly select the shared male or female body base." % state.id)
+        return null
+    # All human actors use one of the two shared Ara bases. Character-specific
+    # appearance is supplied separately; per-NPC GLBs are not runtime bodies.
     var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
-    # All campaign characters use the same gendered Ara runtime base as the
-    # player. Per-NPC GLBs bake in their own body, hair and materials, which
-    # prevents consistent runtime morphs and appearance customisation.
-    # Individual identity comes from each NPC's params and attached hair.
-    model_path = PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
 
     var hair_id := String(player_profile.get("hair_style_id", "short02")) if is_player else String(npc_profile.get("params", {}).get("hair", "short02"))
-    var appearance := player_profile if is_player else npc_profile
+    var appearance: Dictionary = player_profile if is_player else npc_profile.duplicate(true)
+    if not is_player:
+        var npc_params: Dictionary = appearance.get("params", {}).duplicate(true)
+        npc_params["body_base"] = body_variant
+        appearance["params"] = npc_params
     return _create_actor_presentation(
         state.id,
         state.display_name,
@@ -46,41 +49,42 @@ static func create_actor(
     )
 
 
-## Settlement NPCs use the same Ara renderer, equipment mapping, hair
-## attachment and nameplate as campaign characters. This builder supplies only
-## settlement-specific appearance data and world placement.
-static func create_settlement_actor(npc: Dictionary, world_position: Vector3) -> Node3D:
-    var character_id := String(npc.get("id", "campaign2_npc"))
-    var display_name := String(npc.get("name", character_id))
-    var appearance: Dictionary = npc.get("appearance", {})
-    var body_variant := String(appearance.get("body_variant", npc.get("body_variant", "")))
-    if body_variant.is_empty():
-        var presentation := String(appearance.get("gender_presentation", "")).to_lower()
-        body_variant = "male" if presentation in ["male", "masculine", "man"] else "female"
-    var height_scale := float(appearance.get("height_scale", 1.0))
-    var build_scale := float(appearance.get("build_scale", 1.0))
+## Character identity and appearance come from the character definition.
+## The caller supplies only the world position; settlement layouts never select a body.
+static func create_settlement_actor(character: Dictionary, world_position: Vector3) -> Node3D:
+    var character_id := String(character.get("id", ""))
+    if character_id.is_empty():
+        push_error("Cannot create settlement actor without a character id.")
+        return null
+    var display_name := String(character.get("name", character_id))
+    var body_base := String(character.get("body_base", ""))
+    if body_base not in ["male", "female"]:
+        push_error("Character %s must declare body_base as male or female." % character_id)
+        return null
+    var appearance: Dictionary = character.get("appearance", {})
     var profile := {
         "skin_colour": String(appearance.get("skin_colour", "#b9825f")),
         "eye_colour": String(appearance.get("eye_colour", "Brown")),
         "hair_colour": String(appearance.get("hair_colour", "Dark brown")),
-        "height": float(appearance.get("height", clampf((height_scale - 0.8) / 0.4, 0.0, 1.0))),
-        "muscle": float(appearance.get("muscle", clampf((build_scale - 0.8) / 0.4, 0.0, 1.0))),
+        "height": float(appearance.get("height", clampf((float(appearance.get("height_scale", 1.0)) - 0.8) / 0.4, 0.0, 1.0))),
+        "muscle": float(appearance.get("muscle", clampf((float(appearance.get("build_scale", 1.0)) - 0.8) / 0.4, 0.0, 1.0))),
         "weight": float(appearance.get("weight", 0.5)),
         "proportions": float(appearance.get("proportions", 0.5)),
         "breasts": float(appearance.get("breasts", 0.5)),
         "legs": float(appearance.get("legs", 0.5)),
-        "body_variant": body_variant,
+        "body_base": body_base,
+        "body_variant": body_base,
         "gender_presentation": String(appearance.get("gender_presentation", "Androgynous")),
         "pronouns": String(appearance.get("pronouns", "they/them"))
     }
-    var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
-    var equipment: Dictionary = npc.get("visual_equipment", {})
+    var model_path := PLAYER_MALE_ASSET if body_base == "male" else PLAYER_FEMALE_ASSET
+    var equipment: Dictionary = character.get("visual_equipment", {})
     var actor := _create_actor_presentation(
         character_id,
         display_name,
         world_position,
         model_path,
-        body_variant,
+        body_base,
         profile,
         equipment,
         false,
@@ -91,12 +95,12 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
     if actor != null:
         actor.name = "NPC_" + character_id
         actor.set_meta("campaign2_npc_id", character_id)
-        actor.set_meta("dialogue_id", String(npc.get("dialogue_id", "")))
-        actor.set_meta("faction_id", String(npc.get("faction_id", "")))
-        actor.set_meta("side", String(npc.get("side", "neutral")))
-        actor.set_meta("class_levels", npc.get("class_levels", []))
-        actor.set_meta("skill_picks", npc.get("skill_picks", []))
-        actor.set_meta("quest_hooks", npc.get("quest_hooks", []))
+        actor.set_meta("dialogue_id", String(character.get("dialogue_id", "")))
+        actor.set_meta("faction_id", String(character.get("faction_id", "")))
+        actor.set_meta("side", String(character.get("side", "neutral")))
+        actor.set_meta("class_levels", character.get("class_levels", []))
+        actor.set_meta("skill_picks", character.get("skill_picks", []))
+        actor.set_meta("quest_hooks", character.get("quest_hooks", []))
         actor.set_meta("ambient_enabled", false)
         actor.add_to_group("campaign2_npc")
     return actor
@@ -117,7 +121,7 @@ static func apply_player_profile(actor: Node3D, profile: Dictionary) -> void:
         return
     actor.set_meta("player_profile", profile.duplicate(true))
     actor.set_meta("appearance_profile", profile.duplicate(true))
-    actor.set_meta("body_variant", String(profile.get("body_variant", "female")))
+    actor.set_meta("body_variant", String(profile.get("body_base", profile.get("body_variant", "female"))))
     actor.set_meta("gender_presentation", String(profile.get("gender_presentation", "Androgynous")))
     actor.set_meta("pronouns", String(profile.get("pronouns", "they/them")))
     var name_label := actor.get_node_or_null("PlayerNameLabel") as Label3D

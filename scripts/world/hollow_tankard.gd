@@ -623,38 +623,48 @@ func _create_furniture() -> void:
 
 func _create_characters() -> void:
     starting_loadouts = _load_starting_loadouts()
-    # Player and NPCs use the shared gendered Ara base mesh.
-    _spawn_character("player", String(player_profile.get("name", "Adventurer")), Vector2i(-1, 2), true)
-
     var profile_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
-    if profile_file == null:
-        push_error("Hollowmere character manifest is missing.")
+    var population_file := FileAccess.open("res://data/world/hollowmere_population.json", FileAccess.READ)
+    if profile_file == null or population_file == null:
+        push_error("Hollowmere character definitions or world population placements are missing.")
         return
     var parsed: Variant = JSON.parse_string(profile_file.get_as_text())
-    if not parsed is Dictionary:
-        push_error("Hollowmere character manifest is not valid JSON.")
+    var population_parsed: Variant = JSON.parse_string(population_file.get_as_text())
+    if not parsed is Dictionary or not population_parsed is Dictionary:
+        push_error("Hollowmere character definitions or population placements are not valid JSON.")
         return
+    var placements_by_id: Dictionary = {}
+    for placement_variant in population_parsed.get("placements", []):
+        if not placement_variant is Dictionary:
+            continue
+        var placement: Dictionary = placement_variant
+        var character_id := String(placement.get("character_id", ""))
+        if character_id.is_empty() or placements_by_id.has(character_id):
+            push_error("Hollowmere population contains a missing or duplicate character_id.")
+            continue
+        placements_by_id[character_id] = placement
+    var player_placement: Dictionary = placements_by_id.get("player", {})
+    var player_position: Dictionary = player_placement.get("position", {})
+    var player_spawn := Vector2i(int(player_position.get("q", -1)), int(player_position.get("r", 2)))
+    _spawn_character("player", String(player_profile.get("name", "Adventurer")), player_spawn, true)
+
     for profile_variant in parsed.get("characters", []):
         if not profile_variant is Dictionary:
             continue
         var profile: Dictionary = profile_variant
         if str(profile.get("role", "")) == "player avatar":
             continue
-        var coordinates: Array = profile.get("hex", [0, 0])
-        if coordinates.size() < 2:
+        var actor_id := String(profile.get("game_id", profile.get("id", "")))
+        var placement: Dictionary = placements_by_id.get(actor_id, {})
+        if placement.is_empty():
+            push_error("Hollowmere character %s has no world population placement." % actor_id)
             continue
-        var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
-        var actor_id := str(profile.get("game_id", profile.get("id", "")))
-        if actor_id == "companion_reyna_fletcher":
-            spawn = Vector2i(17, 57) # Reyna is stationed beside Old Mac's grain store.
-        var model_id := str(profile.get("id", ""))
-        var display_name := str(profile.get("name", actor_id))
-        if actor_id.is_empty() or model_id.is_empty():
+        var position: Dictionary = placement.get("position", {})
+        var spawn := Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))
+        var display_name := String(profile.get("name", actor_id))
+        if actor_id.is_empty():
             continue
-        _spawn_character(actor_id, display_name, spawn, false, model_id, profile)
-
-    # Old Mac lives at his farmstead on the same continuous axial world grid.
-    _spawn_character("old_mac", "Old Mac", Vector2i(12, 58), false, "", {"params": {"gender": 1}})
+        _spawn_character(actor_id, display_name, spawn, false, profile)
     var wolf_result := FARMSTEAD_DIRE_WOLF_SCRIPT.create_dire_wolf(simulation, Vector2i(30, 58))
     if bool(wolf_result.get("ok", false)):
         _spawn_farmstead_dire_wolf()
@@ -741,7 +751,7 @@ func _spawn_missing_child() -> void:
         if not simulation.unregister_character("missing_child_tessa"):
             push_warning("Could not replace the existing Tessa character state safely.")
             return
-    _spawn_character("missing_child_tessa", "Tessa", spawn_hex, false, "", {"params":{"gender":0,"hair":"short02"}})
+    _spawn_character("missing_child_tessa", "Tessa", spawn_hex, false, {"body_base":"female","params":{"gender":0,"hair":"short02"}})
     var actor := actor_by_id.get("missing_child_tessa") as Node3D
     if actor != null:
         actor.scale = Vector3(0.72, 0.72, 0.72)
@@ -827,7 +837,7 @@ func _load_starting_loadouts() -> Dictionary:
     return CampaignCharacterFactory.load_starting_loadouts()
 
 
-func _spawn_character(id: String, display_name: String, hex: Vector2i, is_player: bool = false, ara_model_id: String = "", npc_profile: Dictionary = {}) -> void:
+func _spawn_character(id: String, display_name: String, hex: Vector2i, is_player: bool = false, npc_profile: Dictionary = {}) -> void:
     var spawn_hex := _find_valid_spawn_hex(hex)
     CampaignCharacterSpawner.spawn_character(
         simulation,
@@ -840,7 +850,6 @@ func _spawn_character(id: String, display_name: String, hex: Vector2i, is_player
         spawn_hex,
         _hex_world_position(spawn_hex),
         is_player,
-        ara_model_id,
         npc_profile,
         _ambient_role_for_id(id)
     )

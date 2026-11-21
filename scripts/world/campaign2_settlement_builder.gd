@@ -1,17 +1,20 @@
 class_name Campaign2SettlementBuilder
 extends RefCounted
-## Builds source-described settlement structures and NPC presentation inside streamed chunks.
-## The data layout is separate from the reusable 3D construction routines.
+## Builds settlement structures and places referenced character definitions in streamed chunks.
+## Settlement data owns spatial placement; character definitions own identity and appearance.
 
 const HEX_RADIUS := HexGrid.DEFAULT_RADIUS_M
 const CHARACTER_ACTOR_FACTORY = preload("res://scripts/presentation/campaign_character_actor_factory.gd")
+const CHARACTER_DEFINITIONS = preload("res://scripts/simulation/campaign_character_definitions.gd")
 
 var settlements: Array = []
+var characters_by_id: Dictionary = {}
 
-func _init(source_layouts: Array = []) -> void:
+func _init(source_layouts: Array = [], source_characters: Dictionary = {}) -> void:
 	settlements = source_layouts.duplicate(true)
+	characters_by_id = source_characters.duplicate(true) if not source_characters.is_empty() else CHARACTER_DEFINITIONS.load_campaign2()
 
-## Each building and NPC is attached only to the chunk containing its source anchor.
+## Each building and character is attached only to the chunk containing its world anchor.
 ## When a chunk unloads, its settlement presentation unloads with it.
 func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: int) -> void:
 	for settlement in settlements:
@@ -19,10 +22,10 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 			var centre := _read_hex(building.get("center", {}))
 			if _contains_chunk(centre, chunk_min, chunk_size):
 				_build_building(parent, settlement, building)
-		for npc in settlement.get("npcs", []):
-			var position := _read_hex(npc.get("position", {}))
+		for placement in settlement.get("npcs", []):
+			var position := _read_hex(placement.get("position", {}))
 			if _contains_chunk(position, chunk_min, chunk_size):
-				_add_npc(parent, npc)
+				_add_npc(parent, placement)
 
 ## Millbrook's local +X face is aligned to the source q+ door/road approach.
 func _build_building(parent: Node3D, settlement: Dictionary, building: Dictionary) -> void:
@@ -46,21 +49,16 @@ func _build_building(parent: Node3D, settlement: Dictionary, building: Dictionar
 
 	_add_box(house, "StoneFoundation", Vector3(0.0, 0.18, 0.0), Vector3(13.2, 0.36, 12.4), stone)
 	_add_box(house, "InteriorWoodFloor", Vector3(0.0, 0.40, 0.0), Vector3(12.4, 0.12, 11.6), dark_wood)
-
-	# Three complete walls and a split east wall leave the source-authored
-	# east-facing door opening aligned with the short spur to the north road.
 	_add_wall(house, "NorthWall", Vector3(0.0, 1.95, -5.85), Vector3(13.0, 3.1, 0.34), plaster, timber)
 	_add_wall(house, "SouthWall", Vector3(0.0, 1.95, 5.85), Vector3(13.0, 3.1, 0.34), plaster, timber)
 	_add_wall(house, "WestWall", Vector3(-6.35, 1.95, 0.0), Vector3(0.34, 3.1, 11.7), plaster, timber)
 	_add_wall(house, "EastWallNorth", Vector3(6.35, 1.95, -4.15), Vector3(0.34, 3.1, 3.4), plaster, timber)
 	_add_wall(house, "EastWallSouth", Vector3(6.35, 1.95, 4.15), Vector3(0.34, 3.1, 3.4), plaster, timber)
-
 	_add_box(house, "DoorFrame", Vector3(6.48, 1.55, 0.0), Vector3(0.20, 2.75, 2.65), timber)
 	_add_box(house, "FrontDoor", Vector3(6.61, 1.48, 0.0), Vector3(0.12, 2.45, 2.12), dark_wood)
 	_add_box(house, "DoorHandle", Vector3(6.70, 1.35, -0.62), Vector3(0.08, 0.16, 0.08), stone)
 	_add_box(house, "PorchStep", Vector3(7.05, 0.22, 0.0), Vector3(1.65, 0.30, 3.0), stone)
 
-	# Windows on the north and south elevations, with dark timber lintels.
 	for window_x in [-3.6, 3.6]:
 		_add_box(house, "NorthWindowGlass", Vector3(window_x, 2.05, -6.04), Vector3(1.55, 1.15, 0.08), glass)
 		_add_box(house, "NorthWindowLintel", Vector3(window_x, 2.70, -6.10), Vector3(1.85, 0.16, 0.16), timber)
@@ -75,9 +73,6 @@ func _build_building(parent: Node3D, settlement: Dictionary, building: Dictionar
 	_add_box(house, "Chimney", Vector3(-4.7, 5.55, -3.7), Vector3(1.15, 3.1, 1.15), stone)
 	_add_box(house, "FireplaceHearth", Vector3(-4.7, 0.78, -4.65), Vector3(2.4, 0.55, 1.6), hearth)
 	_add_box(house, "FireplaceMantel", Vector3(-4.7, 2.05, -5.25), Vector3(2.6, 0.20, 0.30), timber)
-
-	# Keep a small metadata record on the structure for the later interior/door
-	# transition and building-integrity systems.
 	house.set_meta("campaign2_settlement_id", String(settlement.get("id", "")))
 	house.set_meta("campaign2_building_id", String(building.get("id", "")))
 	house.set_meta("source_door_hex", _read_hex(building.get("door", {})))
@@ -105,14 +100,20 @@ func _material(colour: Color, roughness: float = 0.88) -> StandardMaterial3D:
 	material.roughness = roughness
 	return material
 
-func _add_npc(parent: Node3D, npc: Dictionary) -> void:
-	var hex := _read_hex(npc.get("position", {}))
+func _add_npc(parent: Node3D, placement: Dictionary) -> void:
+	var character_id := String(placement.get("character_id", ""))
+	var definition := CHARACTER_DEFINITIONS.get_campaign2_character(characters_by_id, character_id)
+	if definition.is_empty():
+		push_error("Settlement placement references missing character definition '%s'." % character_id)
+		return
+	var hex := _read_hex(placement.get("position", {}))
 	var actor := CHARACTER_ACTOR_FACTORY.create_settlement_actor(
-		npc,
+		definition,
 		HexGrid.axial_to_world(hex, HEX_RADIUS)
 	)
 	if actor == null:
 		return
+	actor.set_meta("settlement_hex", hex)
 	parent.add_child(actor)
 
 func _contains_chunk(hex: Vector2i, chunk_min: Vector2i, chunk_size: int) -> bool:

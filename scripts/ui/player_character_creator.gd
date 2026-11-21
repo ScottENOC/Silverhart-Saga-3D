@@ -205,7 +205,7 @@ func _build_screen() -> void:
     rules_preview.add_theme_color_override("font_color", Color(0.82, 0.82, 0.78))
     panel.add_child(rules_preview)
     _refresh_character_preview(0)
-    body_variant_select = _option_row(panel, "Body model", ["Female", "Male"])
+    body_variant_select = _option_row(panel, "Body base", ["Female", "Male"])
     body_variant_select.item_selected.connect(_refresh_appearance_preview)
     presentation_select = _option_row(panel, "Gender presentation", PRESENTATIONS)
     pronoun_select = _option_row(panel, "Pronouns", PRONOUN_SETS)
@@ -351,7 +351,7 @@ func _load_saved_profile() -> void:
     ironman_check.button_pressed = bool(data.get("ironman_mode", false))
     _select_metadata(campaign_select, str(data.get("campaign_id", "2")))
     arena_rewards_check.button_pressed = bool(data.get("arena_roguelike_rewards", true))
-    _select_text(body_variant_select, "Male" if str(data.get("body_variant", "female")) == "male" else "Female")
+    _select_text(body_variant_select, "Male" if str(data.get("body_base", data.get("body_variant", "female"))) == "male" else "Female")
     _select_text(presentation_select, str(data.get("gender_presentation", "Masculine")))
     _select_text(pronoun_select, str(data.get("pronoun_preset", "They / them")))
     custom_pronouns.text = str(data.get("custom_pronouns", ""))
@@ -421,6 +421,7 @@ func _refresh_appearance_preview(_index: int) -> void:
         "hair_colour": hair_colour_select.get_item_text(hair_colour_select.selected),
         "height_scale": height_slider.value,
         "build_scale": float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)),
+        "body_base": variant,
         "body_variant": variant,
         "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
         "pronouns": "they/them"
@@ -561,6 +562,7 @@ func _finish() -> void:
         "arena_roguelike_rewards": arena_rewards_check.button_pressed,
         "difficulty_mode": _selected_id(difficulty_select, "normal"),
         "ironman_mode": ironman_check.button_pressed,
+        "body_base": "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female",
         "body_variant": "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female",
         "height_scale": height_slider.value,
         "height": inverse_lerp(0.90, 1.10, height_slider.value),

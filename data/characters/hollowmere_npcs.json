@@ -2,17 +2,13 @@
   "schema_version": 1,
   "generator": "Ara 3D Gen",
   "generator_commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395",
-  "description": "First-pass Hollowmere adult cast. All appearance values are explicit Ara parameters or IDs from the pinned Ara catalogue. Body sliders are normalized 0..1. NPC appearance is build-time data; Godot does not pretend to regenerate Ara geometry at runtime.",
+  "description": "Character-owned Hollowmere identity and appearance definitions. World spawn positions are stored separately in hollowmere_population.json. Each human explicitly selects one of the shared male or female body bases.",
   "characters": [
     {
       "id": "wren_talbot",
       "game_id": "companion_wren_talbot",
       "name": "Wren Talbot",
       "role": "companion",
-      "hex": [
-        -2,
-        1
-      ],
       "detail": "high",
       "params": {
         "seed": 218,
@@ -80,17 +76,14 @@
       "party": {
         "starts_in_party": true,
         "never_voluntarily_leaves": true
-      }
+      },
+      "body_base": "female"
     },
     {
       "id": "garrick_holt",
       "game_id": "garrick_holt",
       "name": "Garrick Holt",
       "role": "tavern keeper",
-      "hex": [
-        -3,
-        -2
-      ],
       "detail": "medium",
       "params": {
         "seed": 731,
@@ -147,17 +140,14 @@
         "legs": 0.68,
         "skinTint": "#DDAE8D"
       },
-      "dialogue_id": "garrick_holt"
+      "dialogue_id": "garrick_holt",
+      "body_base": "male"
     },
     {
       "id": "mira_ashbrook",
       "game_id": "mira_ashbrook",
       "name": "Mira Ashbrook",
       "role": "villager",
-      "hex": [
-        2,
-        -2
-      ],
       "detail": "medium",
       "params": {
         "seed": 842,
@@ -214,17 +204,14 @@
         "breasts": 0.43,
         "skinTint": "#C99A75"
       },
-      "dialogue_id": "mira_ashbrook"
+      "dialogue_id": "mira_ashbrook",
+      "body_base": "female"
     },
     {
       "id": "oskar_vinn",
       "game_id": "oskar_vinn",
       "name": "Oskar Vinn",
       "role": "villager",
-      "hex": [
-        3,
-        -2
-      ],
       "detail": "medium",
       "params": {
         "seed": 953,
@@ -281,17 +268,14 @@
         "legs": 0.64,
         "skinTint": "#B98260"
       },
-      "dialogue_id": "oskar_vinn"
+      "dialogue_id": "oskar_vinn",
+      "body_base": "male"
     },
     {
       "id": "wick_hallow",
       "game_id": "wick_hallow",
       "name": "Wick Hallow",
       "role": "general store keeper",
-      "hex": [
-        0,
-        15
-      ],
       "detail": "medium",
       "params": {
         "seed": 1064,
@@ -346,17 +330,14 @@
         "legs": 0.4,
         "skinTint": "#70452F"
       },
-      "dialogue_id": "wick_hallow"
+      "dialogue_id": "wick_hallow",
+      "body_base": "male"
     },
     {
       "id": "dray",
       "game_id": "dray_coltayne",
       "name": "Dray Coltayne",
       "role": "ironbond soldier",
-      "hex": [
-        -1,
-        6
-      ],
       "detail": "medium",
       "params": {
         "seed": 1175,
@@ -416,17 +397,14 @@
         "legs": 0.74,
         "skinTint": "#8F6045"
       },
-      "dialogue_id": "dray_coltayne"
+      "dialogue_id": "dray_coltayne",
+      "body_base": "male"
     },
     {
       "id": "tomlin",
       "game_id": "tomlin_brask",
       "name": "Tomlin Brask",
       "role": "ironbond soldier",
-      "hex": [
-        0,
-        6
-      ],
       "detail": "medium",
       "params": {
         "seed": 1286,
@@ -482,17 +460,14 @@
         "legs": 0.6,
         "skinTint": "#8F6045"
       },
-      "dialogue_id": "tomlin_brask"
+      "dialogue_id": "tomlin_brask",
+      "body_base": "male"
     },
     {
       "id": "hask",
       "game_id": "hask_greel",
       "name": "Hask Greel",
       "role": "ironbond soldier",
-      "hex": [
-        1,
-        6
-      ],
       "detail": "medium",
       "params": {
         "seed": 1397,
@@ -550,17 +525,14 @@
         "legs": 0.7,
         "skinTint": "#B98260"
       },
-      "dialogue_id": "hask_greel"
+      "dialogue_id": "hask_greel",
+      "body_base": "male"
     },
     {
       "id": "yvette",
       "game_id": "yvette_marlow",
       "name": "Yvette Marlow",
       "role": "villager",
-      "hex": [
-        -2,
-        2
-      ],
       "detail": "medium",
       "params": {
         "seed": 1508,
@@ -620,17 +592,14 @@
         "breasts": 0.58,
         "skinTint": "#D0A17D"
       },
-      "dialogue_id": "yvette_marlow"
+      "dialogue_id": "yvette_marlow",
+      "body_base": "female"
     },
     {
       "id": "hendra",
       "game_id": "hendra_wells",
       "name": "Hendra Wells",
       "role": "villager",
-      "hex": [
-        -3,
-        2
-      ],
       "detail": "medium",
       "params": {
         "seed": 1619,
@@ -687,17 +656,14 @@
         "breasts": 0.66,
         "skinTint": "#E8C5A5"
       },
-      "dialogue_id": "hendra_wells"
+      "dialogue_id": "hendra_wells",
+      "body_base": "female"
     },
     {
       "id": "tavern_patron",
       "game_id": "tavern_patron",
       "name": "Bram Fenwick",
       "role": "background patron",
-      "hex": [
-        3,
-        -2
-      ],
       "detail": "low",
       "params": {
         "seed": 1730,
@@ -750,17 +716,14 @@
         "hairColor": "#241A16",
         "legs": 0.52,
         "skinTint": "#A87552"
-      }
+      },
+      "body_base": "male"
     },
     {
       "id": "elder_marta",
       "game_id": "marta_wynfield",
       "name": "Elder Marta Wynfield",
       "role": "village elder",
-      "hex": [
-        0,
-        -9
-      ],
       "detail": "medium",
       "params": {
         "seed": 1841,
@@ -817,17 +780,14 @@
         "breasts": 0.4,
         "skinTint": "#E0B99B"
       },
-      "dialogue_id": "marta_wynfield"
+      "dialogue_id": "marta_wynfield",
+      "body_base": "female"
     },
     {
       "id": "rowan_fletcher",
       "game_id": "rowan_fletcher",
       "name": "Rowan Fletcher",
       "role": "wandering hunter",
-      "hex": [
-        12,
-        26
-      ],
       "detail": "medium",
       "params": {
         "seed": 1952,
@@ -887,17 +847,14 @@
         "legs": 0.68,
         "skinTint": "#A87552"
       },
-      "dialogue_id": "hollowmere_hunter"
+      "dialogue_id": "hollowmere_hunter",
+      "body_base": "male"
     },
     {
       "id": "player_avatar",
       "game_id": "player",
       "name": "Player Character",
       "role": "player avatar",
-      "hex": [
-        -1,
-        2
-      ],
       "detail": "high",
       "params": {
         "seed": 2468,
@@ -951,17 +908,14 @@
         "legs": 0.5,
         "breasts": 0.5,
         "skinTint": "#B98260"
-      }
+      },
+      "body_base": "female"
     },
     {
       "id": "ser_aldric_thorne",
       "game_id": "companion_ser_aldric_thorne",
       "name": "Ser Aldric Thorne",
       "role": "companion",
-      "hex": [
-        -11,
-        -5
-      ],
       "detail": "runtime",
       "progression": {
         "race": "human",
@@ -1012,17 +966,14 @@
         "skinTint": "#9A6D50"
       },
       "dialogue_id": "ser_aldric_captive",
-      "companion_dialogue_id": "companion_ser_aldric"
+      "companion_dialogue_id": "companion_ser_aldric",
+      "body_base": "male"
     },
     {
       "id": "nix_sharpear",
       "game_id": "companion_nix_sharpear",
       "name": "Nix Sharpear",
       "role": "companion",
-      "hex": [
-        -16,
-        9
-      ],
       "detail": "runtime",
       "progression": {
         "race": "goblin",
@@ -1078,17 +1029,14 @@
         "skinTint": "#B98260"
       },
       "dialogue_id": "nix_sharpear",
-      "companion_dialogue_id": "companion_nix_sharpear"
+      "companion_dialogue_id": "companion_nix_sharpear",
+      "body_base": "male"
     },
     {
       "id": "warlord_grukk_ironhide",
       "game_id": "companion_warlord_grukk",
       "name": "Warlord Grukk Ironhide",
       "role": "companion",
-      "hex": [
-        16,
-        17
-      ],
       "detail": "runtime",
       "progression": {
         "race": "orc",
@@ -1144,17 +1092,14 @@
         "skinTint": "#8F6045"
       },
       "dialogue_id": "orc_warlord",
-      "companion_dialogue_id": "companion_orc_warlord"
+      "companion_dialogue_id": "companion_orc_warlord",
+      "body_base": "male"
     },
     {
       "id": "reyna_fletcher",
       "game_id": "companion_reyna_fletcher",
       "name": "Reyna Fletcher",
       "role": "companion",
-      "hex": [
-        -18,
-        -12
-      ],
       "detail": "runtime",
       "progression": {
         "race": "human",
@@ -1206,17 +1151,14 @@
         "skinTint": "#5A3426"
       },
       "dialogue_id": "reyna_fletcher",
-      "companion_dialogue_id": "reyna_fletcher"
+      "companion_dialogue_id": "reyna_fletcher",
+      "body_base": "female"
     },
     {
       "id": "mirabel_quill",
       "game_id": "companion_mirabel_quill",
       "name": "Mirabel Quill",
       "role": "companion",
-      "hex": [
-        17,
-        -11
-      ],
       "detail": "runtime",
       "progression": {
         "race": "elf",
@@ -1267,17 +1209,14 @@
         "breasts": 0.7
       },
       "dialogue_id": "mirabel_quill",
-      "companion_dialogue_id": "mirabel_quill"
+      "companion_dialogue_id": "mirabel_quill",
+      "body_base": "female"
     },
     {
       "id": "fenn_oakheart",
       "game_id": "companion_fenn_oakheart",
       "name": "Fenn Oakheart",
       "role": "companion",
-      "hex": [
-        -17,
-        17
-      ],
       "detail": "runtime",
       "progression": {
         "race": "human",
@@ -1326,17 +1265,14 @@
         "skinTint": "#E0B99B"
       },
       "dialogue_id": "fenn_oakheart",
-      "companion_dialogue_id": "fenn_oakheart"
+      "companion_dialogue_id": "fenn_oakheart",
+      "body_base": "male"
     },
     {
       "id": "brother_alden",
       "game_id": "companion_brother_alden",
       "name": "Brother Alden",
       "role": "companion",
-      "hex": [
-        5,
-        -16
-      ],
       "detail": "runtime",
       "progression": {
         "race": "human",
@@ -1385,17 +1321,14 @@
         "skinTint": "#70452F"
       },
       "dialogue_id": "brother_alden",
-      "companion_dialogue_id": "brother_alden"
+      "companion_dialogue_id": "brother_alden",
+      "body_base": "male"
     },
     {
       "id": "snik_fangtooth",
       "game_id": "companion_snik_fangtooth",
       "name": "Snik Fangtooth",
       "role": "companion",
-      "hex": [
-        -19,
-        -2
-      ],
       "detail": "runtime",
       "progression": {
         "race": "goblin",
@@ -1448,7 +1381,54 @@
         "skinTint": "#D0A17D"
       },
       "dialogue_id": "snik_fangtooth",
-      "companion_dialogue_id": "snik_fangtooth"
+      "companion_dialogue_id": "snik_fangtooth",
+      "body_base": "male"
+    },
+    {
+      "id": "old_mac",
+      "game_id": "old_mac",
+      "name": "Old Mac",
+      "role": "farmer",
+      "body_base": "male",
+      "detail": "low",
+      "params": {
+        "seed": 2099,
+        "gender": 1,
+        "age": 0.5,
+        "muscle": 0.5,
+        "weight": 0.5,
+        "height": 0.5,
+        "proportions": 0.5,
+        "african": 0,
+        "asian": 0,
+        "caucasian": 1,
+        "eyes": "brown",
+        "hair": "short02",
+        "facialHair": "none",
+        "tattoos": [],
+        "outfit": "none",
+        "top": "none",
+        "underTop": "none",
+        "underBottom": "none",
+        "jacket": "none",
+        "bottom": "none",
+        "underwear": false,
+        "shoes": "none",
+        "hat": "none",
+        "weapon": "none",
+        "carry": "none",
+        "accessories": [],
+        "garmentStyles": {},
+        "detail": "low",
+        "rig": "game",
+        "restPose": "A",
+        "animations": true,
+        "faceBones": true,
+        "faceShapes": true,
+        "speechShapes": false,
+        "expression": "neutral",
+        "name": "Old Mac"
+      }
     }
   ]
 }

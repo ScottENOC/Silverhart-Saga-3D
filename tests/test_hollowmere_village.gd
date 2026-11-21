@@ -76,24 +76,42 @@ func _test_building_thresholds() -> void:
 
 func _test_hollowmere_character_manifest() -> void:
     var file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
-    assert(file != null, "Hollowmere Ara profile manifest must exist")
+    assert(file != null, "Hollowmere character definitions must exist")
     var manifest: Variant = JSON.parse_string(file.get_as_text())
-    assert(manifest is Dictionary, "Hollowmere character manifest must be valid JSON")
+    assert(manifest is Dictionary, "Hollowmere character definitions must be valid JSON")
+    var population_file := FileAccess.open("res://data/world/hollowmere_population.json", FileAccess.READ)
+    assert(population_file != null, "Hollowmere world population placements must exist")
+    var population_manifest: Variant = JSON.parse_string(population_file.get_as_text())
+    assert(population_manifest is Dictionary, "Hollowmere population manifest must be valid JSON")
     var characters: Array = manifest.get("characters", [])
-    assert(characters.size() == 21, "Expected 13 village profiles plus eight canonical campaign companions")
+    var placements: Array = population_manifest.get("placements", [])
+    assert(characters.size() == 23, "Expected 13 original village profiles, eight campaign companions, player avatar and Old Mac")
+    assert(placements.size() == characters.size(), "Every Hollowmere character, including the player, must have one world placement")
+    var placement_by_id: Dictionary = {}
+    for placement in placements:
+        var character_id := String(placement.get("character_id", ""))
+        assert(not character_id.is_empty() and not placement_by_id.has(character_id), "Population character IDs must be present and unique")
+        placement_by_id[character_id] = placement
     var ids: Dictionary = {}
     for profile in characters:
         assert(profile.has("id") and profile.has("game_id") and profile.has("params"))
         assert(not ids.has(profile["id"]), "Character profile IDs must be unique")
         ids[profile["id"]] = true
+        assert(profile.get("body_base", "") in ["male", "female"], "%s must explicitly select a shared body base" % profile["id"])
+        assert(not profile.has("hex"), "Character definitions must not own world coordinates")
+        var expected_base := "male" if int(profile["params"].get("gender", 0)) == 1 else "female"
+        assert(profile["body_base"] == expected_base, "%s body base must preserve its authored Ara gender" % profile["id"])
         var params: Dictionary = profile["params"]
         for slider in ["gender", "age", "muscle", "weight", "height", "proportions"]:
             assert(params.has(slider), "%s is missing Ara slider %s" % [profile["id"], slider])
             assert(float(params[slider]) >= 0.0 and float(params[slider]) <= 1.0)
-        var coordinates: Array = profile["hex"]
-        var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
-        assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
-        assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % profile["id"])
+        var game_id := String(profile["game_id"])
+        assert(placement_by_id.has(game_id), "%s must have a separate world placement" % game_id)
+        if placement_by_id.has(game_id):
+            var position: Dictionary = placement_by_id[game_id].get("position", {})
+            var spawn := Vector2i(int(position.get("q", 999999)), int(position.get("r", 999999)))
+            assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % game_id)
+            assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % game_id)
     var companion_names := ["Ser Aldric Thorne", "Nix Sharpear", "Warlord Grukk Ironhide", "Reyna Fletcher", "Mirabel Quill", "Fenn Oakheart", "Brother Alden", "Snik Fangtooth"]
     var companion_count := 0
     for profile in characters:
@@ -112,6 +130,8 @@ func _test_hollowmere_character_manifest() -> void:
                 found = true
                 break
         assert(found, "Missing original companion: %s" % companion_name)
+    assert(placement_by_id.has("player"), "Player starting position must be owned by world population data")
+    assert(placement_by_id.has("old_mac"), "Old Mac must have a world population placement")
 
 func _test_main_campaign_world_map() -> void:
     var grid := MAIN_CAMPAIGN_MAP.generate_grid()
