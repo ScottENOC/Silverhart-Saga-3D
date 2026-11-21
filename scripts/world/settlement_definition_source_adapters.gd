@@ -58,7 +58,7 @@ func adapt_hollowmere() -> Dictionary:
 		},
 		"interiors": []
 	}
-	return _normalize_axial_values(canonical)
+	return canonical
 
 func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 	var centre: Dictionary = layout.get("center", {"q": 0, "r": 0})
@@ -134,18 +134,3 @@ func _read_axial(value: Variant) -> Dictionary:
 	if value is Dictionary:
 		return {"q": int(value.get("q", 0)), "r": int(value.get("r", 0))}
 	return {"q": 0, "r": 0}
-
-func _normalize_axial_values(value: Variant) -> Variant:
-	if value is Vector2i:
-		return {"q": value.x, "r": value.y}
-	if value is Array:
-		var result: Array = []
-		for item in value:
-			result.append(_normalize_axial_values(item))
-		return result
-	if value is Dictionary:
-		var result: Dictionary = {}
-		for key in value:
-			result[key] = _normalize_axial_values(value[key])
-		return result
-	return value
