@@ -10,9 +10,9 @@ const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placeme
 const VALIDATOR = preload("res://scripts/world/settlement_definition_validator.gd")
 
 func adapt_hollowmere() -> Dictionary:
-	var presentation_constants: Dictionary = HOLLOWMERE_PRESENTATION.get_script_constant_map()
-	var terrain_constants: Dictionary = HOLLOWMERE_TERRAIN.get_script_constant_map()
-	var placement_constants: Dictionary = HOLLOWMERE_PLACEMENTS.get_script_constant_map()
+	var presentation_constants: Dictionary = HOLLOWMERE_PRESENTATION.new().get_script_constant_map()
+	var terrain_constants: Dictionary = HOLLOWMERE_TERRAIN.new().get_script_constant_map()
+	var placement_constants: Dictionary = HOLLOWMERE_PLACEMENTS.new().get_script_constant_map()
 	var source: Dictionary = presentation_constants.get("DEFINITION", {})
 	var feature_data: Dictionary = source.get("features", {}).get("data", {})
 	var placements: Dictionary = {}
@@ -37,15 +37,15 @@ func adapt_hollowmere() -> Dictionary:
 		props.append_array(_tag_records(feature_data.get(collection_name, []), collection_name))
 	var canonical := {
 		"schema_version": 1,
-		"id": HOLLOWMERE_SETTLEMENT.get_script_constant_map().get("SETTLEMENT_ID", ""),
-		"name": HOLLOWMERE_SETTLEMENT.get_script_constant_map().get("DISPLAY_NAME", ""),
+		"id": HOLLOWMERE_SETTLEMENT.SETTLEMENT_ID,
+		"name": HOLLOWMERE_SETTLEMENT.DISPLAY_NAME,
 		"source": "data/settlements/hollowmere domain modules",
 		"coordinate_system": "campaign2_local_axial_qr",
 		# Existing authored feature and terrain coordinates are already expressed
 		# in the Campaign 2 axial frame. Keep a zero transform until a separately
 		# tested rebase converts every source domain together.
 		"origin": {"q": 0, "r": 0},
-		"bounds": {"min_q": -HOLLOWMERE_SETTLEMENT.get_script_constant_map().get("MAP_RADIUS", 0), "max_q": HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "min_r": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_r": HOLLOWMERE_SETTLEMENT.MAP_RADIUS},
+		"bounds": {"min_q": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_q": HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "min_r": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_r": HOLLOWMERE_SETTLEMENT.MAP_RADIUS},
 		"terrain": terrain_constants.get("DEFINITION", {}),
 		"layout": {
 			"buildings": _tag_records(feature_data.get("buildings", []), "building"),
