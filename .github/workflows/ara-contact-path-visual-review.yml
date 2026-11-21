@@ -1,0 +1,54 @@
+name: Ara contact path visual review
+
+on:
+  push:
+    branches: [feature/ara-garment-fit-guides]
+    paths:
+      - ".github/workflows/ara-contact-path-visual-review.yml"
+      - "tools/review/ara_contact_path_review.gd"
+      - "scripts/characters/character_surface_contact_path.gd"
+      - "scripts/characters/character_surface_regions.gd"
+      - "scripts/characters/character_surface_region_mask.gd"
+      - "art/characters/ara_runtime/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import canonical Ara assets and scripts
+        run: |
+          godot --version
+          godot --headless --editor --path . --quit
+      - name: Render synthetic surface-following traces on both canonical bodies
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+          xvfb-run -a -s "-screen 0 1400x1300x24" godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/ara_contact_path_review.gd
+          for body in female male; do
+            for view in front side rear; do
+              test -s "build/ara-contact-path-review/$body/$view.png"
+            done
+            test -s "build/ara-contact-path-review/$body/report.json"
+          done
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ara-contact-path-visual-review
+          path: build/ara-contact-path-review/
+          if-no-files-found: error
+          retention-days: 30
