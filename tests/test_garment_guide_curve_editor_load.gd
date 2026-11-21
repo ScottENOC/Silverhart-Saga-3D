@@ -11,6 +11,20 @@ func _run() -> void:
     var guide_script := load("res://scripts/characters/character_garment_guide_curve.gd") as Script
     assert(guide_script != null, "Garment guide curve script failed to load")
     var guide_probe = guide_script.new()
+    guide_probe.guide_id = "cup_perimeter_left"
+    guide_probe.closed_loop = false
+    assert(guide_probe.validate_loop_semantics().contains("closed loop"),
+        "Runtime guide resource must reject an open bra cup perimeter")
+    guide_probe.closed_loop = true
+    assert(guide_probe.validate_loop_semantics().is_empty(),
+        "Runtime guide resource must accept a closed bra cup perimeter")
+    guide_probe.guide_id = "strap_left"
+    guide_probe.closed_loop = true
+    assert(guide_probe.validate_loop_semantics().contains("open path"),
+        "Runtime guide resource must reject a closed bra strap")
+    guide_probe.closed_loop = false
+    assert(guide_probe.validate_loop_semantics().is_empty(),
+        "Runtime guide resource must accept an open bra strap")
     assert(guide_probe.has_method("evaluate_surface_path"),
         "Garment guides must expose mesh-constrained dense path evaluation")
     var constants: Dictionary = editor_script.get_script_constant_map()
