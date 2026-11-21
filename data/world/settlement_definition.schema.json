@@ -17,73 +17,146 @@
     "presentation"
   ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
-    "name": { "type": "string", "minLength": 1 },
-    "source": { "type": "string", "minLength": 1 },
-    "coordinate_system": { "const": "campaign2_local_axial_qr" },
-    "origin": { "$ref": "#/$defs/axial" },
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coordinate_system": {
+      "const": "campaign2_local_axial_qr"
+    },
+    "origin": {
+      "$ref": "#/$defs/axial"
+    },
     "bounds": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["min_q", "max_q", "min_r", "max_r"],
+      "required": [
+        "min_q",
+        "max_q",
+        "min_r",
+        "max_r"
+      ],
       "properties": {
-        "min_q": { "type": "integer" },
-        "max_q": { "type": "integer" },
-        "min_r": { "type": "integer" },
-        "max_r": { "type": "integer" }
+        "min_q": {
+          "type": "integer"
+        },
+        "max_q": {
+          "type": "integer"
+        },
+        "min_r": {
+          "type": "integer"
+        },
+        "max_r": {
+          "type": "integer"
+        }
       }
     },
-    "terrain": { "type": "object" },
+    "terrain": {
+      "type": "object"
+    },
     "layout": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "buildings": { "$ref": "#/$defs/recordArray" },
-        "paths": { "$ref": "#/$defs/recordArray" },
-        "bridges": { "$ref": "#/$defs/recordArray" },
-        "fields": { "$ref": "#/$defs/recordArray" },
-        "props": { "$ref": "#/$defs/recordArray" }
+        "buildings": {
+          "$ref": "#/$defs/recordArray"
+        },
+        "paths": {
+          "$ref": "#/$defs/recordArray"
+        },
+        "bridges": {
+          "$ref": "#/$defs/recordArray"
+        },
+        "fields": {
+          "$ref": "#/$defs/recordArray"
+        },
+        "props": {
+          "$ref": "#/$defs/recordArray"
+        }
       }
     },
     "placements": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "characters": { "$ref": "#/$defs/recordArray" },
-        "creatures": { "$ref": "#/$defs/recordArray" }
+        "characters": {
+          "$ref": "#/$defs/recordArray"
+        },
+        "creatures": {
+          "$ref": "#/$defs/recordArray"
+        }
       }
     },
     "presentation": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "hex_radius": { "type": "number", "exclusiveMinimum": 0 },
-        "ground": { "type": "object" },
-        "palette": { "type": "object" },
-        "vegetation": { "type": "object" }
+        "hex_radius": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "ground": {
+          "type": "object"
+        },
+        "palette": {
+          "type": "object"
+        },
+        "vegetation": {
+          "type": "object"
+        },
+        "materials": {
+          "type": "object"
+        }
       }
     },
-    "interiors": { "$ref": "#/$defs/recordArray" }
+    "interiors": {
+      "$ref": "#/$defs/recordArray"
+    }
   },
   "$defs": {
     "axial": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["q", "r"],
+      "required": [
+        "q",
+        "r"
+      ],
       "properties": {
-        "q": { "type": "integer" },
-        "r": { "type": "integer" }
+        "q": {
+          "type": "integer"
+        },
+        "r": {
+          "type": "integer"
+        }
       }
     },
     "recordArray": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id"],
+        "required": [
+          "id"
+        ],
         "properties": {
-          "id": { "type": "string", "minLength": 1 },
-          "source": { "type": "string", "minLength": 1 }
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "additionalProperties": true
       }
