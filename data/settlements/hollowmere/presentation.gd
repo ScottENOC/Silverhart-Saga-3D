@@ -11,6 +11,7 @@ const PROPS = preload("res://data/settlements/hollowmere/props.gd")
 const PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 const TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
 const TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
+const HEARTLAND_BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
 
 const IDENTITY := {
 	"id": SETTLEMENT.SETTLEMENT_ID,
