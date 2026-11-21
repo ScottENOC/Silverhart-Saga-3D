@@ -15,6 +15,8 @@ func _initialize() -> void:
 	var definition: Dictionary = millbrook_entry.get("definition", {})
 	var layout: Dictionary = definition.get("layout", {})
 	var origin: Vector2i = millbrook_entry.get("origin", Vector2i.ZERO)
+	_check(origin == Vector2i.ZERO, "Millbrook origin must preserve its existing global axial coordinates")
+	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Millbrook must be owned by the streamed chunk presenter")
 	_check(String(definition.get("id", "")) == "millbrook", "Settlement ID must remain stable")
 	_assert_axial(definition.get("origin", {}), Vector2i.ZERO, "Millbrook origin")
 
@@ -58,6 +60,7 @@ func _initialize() -> void:
 	_check(not hollowmere_entry.is_empty(), "Canonical Hollowmere definition must remain available")
 	if not hollowmere_entry.is_empty():
 		var hollowmere: Dictionary = hollowmere_entry.get("definition", {})
+		_check(String(hollowmere.get("presentation", {}).get("mode", "")) == "location_presenter", "Hollowmere must remain owned by its location presenter")
 		_check(hollowmere.get("layout", {}).get("buildings", []).size() > 0, "Hollowmere authored buildings must survive adaptation")
 		_check(hollowmere.get("placements", {}).get("characters", []).size() >= 10, "Hollowmere authored character placements must survive adaptation")
 
