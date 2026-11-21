@@ -36,7 +36,7 @@ func _valid_definition() -> Dictionary:
 
 func _test_valid_definition() -> void:
 	var result: Dictionary = VALIDATOR.validate(_valid_definition())
-	_check(bool(result.ok), "A structurally valid canonical settlement should pass: %s" % result.errors)
+	_check(bool(result.ok), "A structurally valid canonical settlement should pass: %s" % str(result.errors))
 
 func _test_required_envelope_fields() -> void:
 	var definition := _valid_definition()
