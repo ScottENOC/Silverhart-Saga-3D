@@ -32,6 +32,10 @@ func _capture() -> void:
         push_error("Garment guide editor root is not a Control")
         quit(1)
         return
+    if not editor.has_method("_load_body") or not editor.has_method("_update_camera"):
+        push_error("Garment guide editor script did not attach or failed to load")
+        quit(1)
+        return
     root.size = Vector2i(1600, 1000)
     root.add_child(editor)
     await process_frame
