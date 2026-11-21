@@ -1,7 +1,8 @@
 extends SceneTree
 
 const FACTORY = preload("res://scripts/world/world_bridge_feature_factory.gd")
-const VILLAGE_DATA = preload("res://scripts/world/hollowmere_village_data.gd")
+const HOLLOWMERE_BRIDGES = preload("res://data/settlements/hollowmere/bridges.gd")
+const HOLLOWMERE_SETTLEMENT = preload("res://data/settlements/hollowmere/settlement_definition.gd")
 const SETTLEMENT_PRESENTER = preload("res://scripts/world/world_settlement_presenter.gd")
 const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
 
@@ -18,13 +19,13 @@ func _test_bridge_assembly_from_authored_definition() -> void:
 	var dark_wood := StandardMaterial3D.new()
 	var bridge := FACTORY.create_bridge(
 		parent,
-		VILLAGE_DATA.BRIDGE_PRESENTATION,
+		HOLLOWMERE_BRIDGES.BRIDGE_PRESENTATION,
 		{"timber": timber, "dark_wood": dark_wood},
 		HexGrid.DEFAULT_RADIUS_M
 	)
 	assert(bridge != null, "Authored bridge should be constructible")
 	assert(bridge.name == "NarrowRiverBridge", "Bridge root should retain its authored identity")
-	assert(bridge.position.distance_to(HexGrid.axial_to_world(VILLAGE_DATA.BRIDGE, HexGrid.DEFAULT_RADIUS_M, 0.0)) < 0.001, "Bridge should be placed at its authored axial centre")
+	assert(bridge.position.distance_to(HexGrid.axial_to_world(HOLLOWMERE_SETTLEMENT.BRIDGE, HexGrid.DEFAULT_RADIUS_M, 0.0)) < 0.001, "Bridge should be placed at its authored axial centre")
 	assert(is_equal_approx(rad_to_deg(bridge.rotation.y), -5.0), "Bridge should preserve its authored crossing angle")
 	assert(bridge.get_child_count() == 9, "Bridge should contain one deck, two rails and six posts")
 	var deck := bridge.get_node("StreamBridgeDeck") as MeshInstance3D
@@ -63,6 +64,6 @@ func _test_hollowmere_bridge_integration() -> void:
 	village.call("_present_authored_features", HOLLOWMERE_PRESENTATION.DEFINITION.features, HexGrid.DEFAULT_RADIUS_M)
 	var bridge := village.get_node_or_null("NarrowRiverBridge") as Node3D
 	assert(bridge != null, "Hollowmere should delegate its authored bridge to the shared factory")
-	assert(bridge.get_child_count() == VILLAGE_DATA.BRIDGE_PRESENTATION.parts.size(), "Hollowmere bridge should render every authored part")
-	assert(not VILLAGE_DATA.is_blocked(VILLAGE_DATA.BRIDGE), "Presentation extraction must not alter bridge movement traversability")
+	assert(bridge.get_child_count() == HOLLOWMERE_BRIDGES.BRIDGE_PRESENTATION.parts.size(), "Hollowmere bridge should render every authored part")
+	assert(not VILLAGE_DATA.is_blocked(HOLLOWMERE_SETTLEMENT.BRIDGE), "Presentation extraction must not alter bridge movement traversability")
 	village.free()
