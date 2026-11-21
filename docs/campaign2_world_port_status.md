@@ -50,18 +50,22 @@ These 20 additional location anchors exist in the world geography manifest. The 
 | Emberwood Grove | Druid grove layout, inhabitants and quest interactions |
 | Vampire Grave | Grave site, vampire encounter and related content |
 | Thieves' Cove Caves | Cave network, guild residents, services and quest content |
-| Old Mac's Wolf Den | Hidden site anchor at (-59,204) is now in the encounter-site registry; den presentation, encounter trigger and quest integration remain outstanding |
+| Old Mac's Wolf Den | Hidden site anchor at (-59,204) is derived from the canonical geography location and exposed through encounter-site lookup | Den presentation, encounter trigger and quest persistence remain outstanding |
 | Unicorn Vale | Roaming encounter area and its eight-waypoint patrol loop |
 | Emberlode Mine | Partial: its three-level floor, stair, ore, ledger and spider data are captured under Emberlode |
 
 ## Next port order
 
-1. **Complete Old Mac's Farmstead and wolf den.** The farmhouse, pasture, broken fence, fallen rail, seven blood-trail marks and Old Mac placement are now in the canonical stream; the hidden den anchor is separately registered at (-59,204). Next add sheep presentation, evidence-visibility gating and den dressing, then reconcile the global site with the existing quest lifecycle. The current Hollowmere farm-wolf quest uses a different den at (-42,72); do not silently conflate or relocate the two. Keep the source farmstead at (0,194).
+1. **Complete Old Mac's Farmstead and wolf den.** The farmhouse, pasture, broken fence, fallen rail, seven blood-trail marks, two generated sheep placeholders and Old Mac placement are in the canonical stream; the hidden den at (-59,204) is derived from the existing canonical geography record. Next replace the sheep placeholder with final art/animation, add sheep interaction, evidence-visibility gating and den dressing, then reconcile the opening-scene Old Mac identity/placement and complete quest persistence. The live farm-wolf quest now uses the source den coordinate (-59,204); preserve the source farmstead at (0,194).
 2. **Silverhart capital.** This is the kingdom's main hub and unlocks the royal court, services and major faction threads.
 3. **Northwatch, Ridgehold and the greenskin sites.** Port the connected border-road sequence, forts, strongholds, gates, garrisons and encounter state.
 4. **Kragmoor and Sil'thandriel.** Preserve their distinct vertical/architectural structures and faction populations.
 5. **Dungeons and wilderness sites.** Port interiors, encounter triggers, loot, patrols and quest consequences.
 6. **World simulation and persistence.** Validate travel, schedules, caravans, faction changes, save/reload and chunk unload/reload across the full map.
+
+## Current validation note
+
+The first full validation attempt reached the new Campaign 2 settlement-layout test and exposed three GDScript type-inference parse errors in its test locals (`actors`, `expected_q` and `sheep`). Those declarations have been given explicit types in the current branch head. The validation workflow must be rerun against that new head; the previous run is not a green result.
 
 ## Acceptance rule
 
