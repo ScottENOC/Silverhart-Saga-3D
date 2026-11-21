@@ -80,6 +80,10 @@ static func terrain_id_at(hex: Vector2i, definition: Dictionary) -> String:
 	return "grass"
 
 static func is_path(hex: Vector2i, definition: Dictionary) -> bool:
+	# Every authored entrance is also a walkable path cell, including doors
+	# on building footprints that are not part of a rectangular lane rule.
+	if is_door(hex, definition):
+		return true
 	var path: Dictionary = definition.get("path", {})
 	for rule in path.get("horizontal_ranges", []):
 		if hex.y == int(rule.get("r", 2147483647)) and hex.x >= int(rule.get("q_min", 1)) and hex.x <= int(rule.get("q_max", -1)):
