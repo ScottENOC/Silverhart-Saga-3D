@@ -104,7 +104,7 @@ func _dump_garment_surface_report() -> void:
         return
     set_meta("ara_garment_surface_reported", true)
 
-    var actor_path := str(get_path()) if is_inside_tree() else name
+    var actor_path: String = str(get_path()) if is_inside_tree() else String(name)
     print("[Ara garment report] BEGIN actor=%s asset=%s" % [actor_path, loaded_asset_path])
     var meshes: Array[MeshInstance3D] = []
     _collect_meshes(model_root, meshes)
