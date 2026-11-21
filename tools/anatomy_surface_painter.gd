@@ -140,6 +140,8 @@ var _strength_slider: HSlider
 var _mirror_check: CheckButton
 var _mode_option: OptionButton
 var _status_label: Label
+var _inspect_check: CheckButton
+var _membership_label: Label
 var _save_path_edit: LineEdit
 var _selected_region := "breast_left"
 var _brush_radius := 0.045
@@ -293,6 +295,19 @@ func _build_interface() -> void:
     _mirror_check = CheckButton.new()
     _mirror_check.text = "Mirror paired left/right region"
     column.add_child(_mirror_check)
+
+    _inspect_check = CheckButton.new()
+    _inspect_check.text = "Inspect point memberships"
+    _inspect_check.tooltip_text = "Tap a surface point to inspect all authored region memberships at that location."
+    _inspect_check.toggled.connect(func(enabled: bool):
+        _painting = false
+        _set_status("Membership inspection enabled. Tap a point on the selected surface." if enabled else "Painting mode enabled.")
+    )
+    column.add_child(_inspect_check)
+    _membership_label = Label.new()
+    _membership_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    _membership_label.text = "Point inspector: no surface point selected."
+    column.add_child(_membership_label)
 
     var clear_button := Button.new()
     clear_button.text = "Clear selected region"
@@ -494,9 +509,12 @@ func _on_viewport_gui_input(event: InputEvent) -> void:
             _orbiting = mouse_button.pressed
             _viewport.set_input_as_handled()
         elif mouse_button.button_index == MOUSE_BUTTON_LEFT:
-            _painting = mouse_button.pressed
+            _painting = mouse_button.pressed and not _inspect_check.button_pressed
             if mouse_button.pressed:
-                _paint_at(mouse_button.position)
+                if _inspect_check.button_pressed:
+                    _inspect_at(mouse_button.position)
+                else:
+                    _paint_at(mouse_button.position)
             _viewport.set_input_as_handled()
         elif mouse_button.button_index == MOUSE_BUTTON_WHEEL_UP and mouse_button.pressed:
             _camera_distance = maxf(0.7, _camera_distance * 0.9)
@@ -515,6 +533,92 @@ func _on_viewport_gui_input(event: InputEvent) -> void:
         elif _painting and motion.position.distance_to(_last_paint_position) >= 3.0:
             _paint_at(motion.position)
         _viewport.set_input_as_handled()
+
+
+## Inspect a point on the selected native mesh and report all authored
+## semantic memberships using barycentric interpolation across its hit triangle.
+func _inspect_at(screen_position: Vector2) -> void:
+    if _selected_descriptor < 0 or _selected_descriptor >= _descriptors.size():
+        return
+    var ray_origin := _camera.project_ray_origin(screen_position)
+    var ray_direction := _camera.project_ray_normal(screen_position)
+    var query := PhysicsRayQueryParameters3D.create(ray_origin, ray_origin + ray_direction * 10.0)
+    query.collision_mask = 1
+    var hit := _viewport.world_3d.direct_space_state.intersect_ray(query)
+    if hit.is_empty():
+        _membership_label.text = "Point inspector: no surface hit."
+        return
+    var collider := hit["collider"] as Node
+    if not collider.has_meta("descriptor_index") or int(collider.get_meta("descriptor_index")) != _selected_descriptor:
+        _membership_label.text = "Point inspector: select the mesh surface that was hit."
+        return
+    var descriptor: Dictionary = _descriptors[_selected_descriptor]
+    var triangle_ids: PackedInt32Array = descriptor["triangle_ids"]
+    var face_index := int(hit.get("face_index", -1))
+    var offset := face_index * 3
+    if face_index < 0 or offset + 2 >= triangle_ids.size():
+        _membership_label.text = "Point inspector: hit triangle could not be resolved."
+        return
+    var triangle := PackedInt32Array([triangle_ids[offset], triangle_ids[offset + 1], triangle_ids[offset + 2]])
+    var vertices: PackedVector3Array = descriptor["vertices"]
+    var mesh: MeshInstance3D = descriptor["mesh"]
+    var local_hit: Vector3 = mesh.global_transform.affine_inverse() * hit["position"]
+    var barycentric := _barycentric_weights(local_hit, vertices[triangle[0]], vertices[triangle[1]], vertices[triangle[2]])
+    if barycentric.is_empty():
+        _membership_label.text = "Point inspector: barycentric interpolation failed."
+        return
+    var membership_values: Array[Dictionary] = []
+    for region_variant in _weights_by_region:
+        var region_id := String(region_variant)
+        var values: PackedFloat32Array = _weights_by_region[region_id]
+        if values.size() != vertices.size():
+            continue
+        var interpolated := 0.0
+        for corner in range(3):
+            interpolated += values[triangle[corner]] * barycentric[corner]
+        if interpolated >= 0.05:
+            membership_values.append({"id": region_id, "weight": interpolated})
+    membership_values.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+        return float(a["weight"]) > float(b["weight"])
+    )
+    var memberships: Array[String] = []
+    for membership in membership_values:
+        memberships.append("%s %.2f" % [String(membership["id"]), float(membership["weight"])])
+    var point_text := "Surface point\nTriangle vertices: %d, %d, %d\nBarycentric: %.3f / %.3f / %.3f\n" % [
+        triangle[0], triangle[1], triangle[2], barycentric[0], barycentric[1], barycentric[2]
+    ]
+    if memberships.is_empty():
+        point_text += "No authored memberships at threshold 0.05."
+    else:
+        point_text += "Authored memberships (weight):\n" + "\n".join(memberships)
+    _membership_label.text = point_text
+    _set_status("Inspected %d authored region memberships on %s." % [membership_values.size(), String(mesh.name)])
+
+
+func _barycentric_weights(point: Vector3, a: Vector3, b: Vector3, c: Vector3) -> PackedFloat32Array:
+    var edge_0 := b - a
+    var edge_1 := c - a
+    var relative := point - a
+    var d00 := edge_0.dot(edge_0)
+    var d01 := edge_0.dot(edge_1)
+    var d11 := edge_1.dot(edge_1)
+    var d20 := relative.dot(edge_0)
+    var d21 := relative.dot(edge_1)
+    var denominator := d00 * d11 - d01 * d01
+    if absf(denominator) < 0.0000001:
+        return PackedFloat32Array()
+    var wb := (d11 * d20 - d01 * d21) / denominator
+    var wc := (d00 * d21 - d01 * d20) / denominator
+    var wa := 1.0 - wb - wc
+    if minf(wa, minf(wb, wc)) < -0.02:
+        return PackedFloat32Array()
+    var result := PackedFloat32Array([maxf(0.0, wa), maxf(0.0, wb), maxf(0.0, wc)])
+    var total := result[0] + result[1] + result[2]
+    if total <= 0.000001:
+        return PackedFloat32Array()
+    for index in range(3):
+        result[index] /= total
+    return result
 
 
 func _paint_at(screen_position: Vector2) -> void:
