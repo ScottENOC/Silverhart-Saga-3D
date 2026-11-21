@@ -33,6 +33,20 @@ func _run() -> void:
         "Painter selector groups do not cover every runtime region")
     for region_id in CharacterSurfaceRegionMask.REGION_IDS:
         assert(grouped_ids.has(region_id), "Painter selector group is missing " + region_id)
+    # A broad rig channel must never be counted as an authored fine mask.
+    # This catches name collisions such as calf_left and forearm_left.
+    var region_queries = load("res://scripts/characters/character_surface_regions.gd").new()
+    var mixed_channels := {
+        "region_weights": {"calf_left": PackedFloat32Array([1.0])},
+        "fine_region_weights": {}
+    }
+    assert(region_queries._get_region_weights(mixed_channels, "calf_left").size() == 1,
+        "General region queries should retain the broad rig fallback")
+    assert(region_queries._get_authored_region_weights(mixed_channels, "calf_left").is_empty(),
+        "Authored-only queries must not mistake broad rig weights for fine masks")
+    mixed_channels["fine_region_weights"] = {"calf_left": PackedFloat32Array([0.6])}
+    assert(region_queries._get_region_weights(mixed_channels, "calf_left")[0] == 0.6,
+        "Authored fine weights must take precedence over broad rig weights")
     var painter_scene := load("res://tools/anatomy_surface_painter.tscn") as PackedScene
     assert(painter_scene != null, "Anatomy surface painter scene failed to load")
     var input_router := load("res://tools/anatomy_surface_painter_input.gd") as Script
