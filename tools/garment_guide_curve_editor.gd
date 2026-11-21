@@ -371,7 +371,9 @@ func _on_viewport_input(event: InputEvent) -> void:
             elif _touch_positions.size() == 2:
                 _touch_dragged = true
                 var values: Array = _touch_positions.values()
-                _pinch_distance = values[0].distance_to(values[1])
+                var first_position: Vector2 = values[0]
+                var second_position: Vector2 = values[1]
+                _pinch_distance = first_position.distance_to(second_position)
         else:
             if _touch_positions.has(touch.index):
                 if _touch_positions.size() == 1 and not _touch_dragged:
@@ -385,7 +387,9 @@ func _on_viewport_input(event: InputEvent) -> void:
         if _touch_positions.size() >= 2:
             _touch_positions[drag.index] = drag.position
             var values: Array = _touch_positions.values()
-            var distance := values[0].distance_to(values[1])
+            var first_position: Vector2 = values[0]
+            var second_position: Vector2 = values[1]
+            var distance: float = first_position.distance_to(second_position)
             if _pinch_distance > 1.0 and distance > 1.0:
                 _camera_distance = clampf(_camera_distance * _pinch_distance / distance, 0.7, 5.0)
                 _update_camera()
