@@ -33,8 +33,10 @@ const PATH_RULES := {
 		{"q": SETTLEMENT.CROSSROADS.x, "r_min": -40, "r_max": 32}
 	],
 	"cells": [
-		Vector2i(0, 5), Vector2i(1, 13), Vector2i(1, 14),
-		Vector2i(9, 9)
+		# Explicit village door spurs retained from the original Hollowmere route network.
+		Vector2i(0, -10), Vector2i(-11, 0), Vector2i(0, 15),
+		Vector2i(10, 9), Vector2i(-4, 9), Vector2i(0, 5),
+		Vector2i(1, 13), Vector2i(1, 14), Vector2i(9, 9)
 	],
 	"crossroads": SETTLEMENT.CROSSROADS,
 	"segments": [ROUTES.SOUTH_ROAD_CENTRELINE, ROUTES.FARMYARD_CENTRELINE],
