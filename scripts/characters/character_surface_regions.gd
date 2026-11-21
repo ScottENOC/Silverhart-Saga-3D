@@ -1,5 +1,5 @@
 class_name CharacterSurfaceRegions
-extends RefCounted
+extends CharacterBodySurface
 ## Deformation-aware surface queries for broad regions shared by the two Ara bases.
 ##
 ## Region membership is derived from the mesh's skin-weight influences. Vertex positions
