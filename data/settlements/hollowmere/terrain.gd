@@ -35,7 +35,7 @@ const PATH_RULES := {
 	"cells": [
 		# Explicit village door spurs retained from the original Hollowmere route network.
 		Vector2i(0, -10), Vector2i(-11, 0), Vector2i(0, 15),
-		Vector2i(10, 9), Vector2i(-4, 9), Vector2i(0, 5),
+		Vector2i(10, 9), Vector2i(-4, 9), SETTLEMENT.BRIDGE, Vector2i(0, 5),
 		Vector2i(1, 13), Vector2i(1, 14), Vector2i(9, 9)
 	],
 	"crossroads": SETTLEMENT.CROSSROADS,
