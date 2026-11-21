@@ -73,6 +73,7 @@ var _descriptors: Array[Dictionary] = []
 var _selected_descriptor := -1
 var _guide_points: Array[Dictionary] = []
 var _surface_regions: CharacterSurfaceRegions
+var _preview_guide: CharacterGarmentGuideCurve
 var _line_instance: MeshInstance3D
 var _line_mesh: ImmediateMesh
 var _marker_cloud: MultiMeshInstance3D
@@ -503,7 +504,9 @@ func _refresh_guide_display() -> void:
         var descriptor: Dictionary = _descriptors[_selected_descriptor]
         var mesh: MeshInstance3D = descriptor["mesh"]
         if _guide_points.size() >= 2 and _surface_regions != null:
-            var guide := CharacterGarmentGuideCurve.new()
+            if _preview_guide == null:
+                _preview_guide = CharacterGarmentGuideCurve.new()
+            var guide := _preview_guide
             guide.body_asset_path = String(BODY_OPTIONS.get(_body_option.get_item_text(_body_option.selected), ""))
             guide.mesh_node_path = _body_root.get_path_to(mesh)
             guide.surface_index = int(descriptor["surface_index"])
