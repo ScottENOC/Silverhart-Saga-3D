@@ -10,20 +10,21 @@ const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placeme
 const VALIDATOR = preload("res://scripts/world/settlement_definition_validator.gd")
 
 func adapt_hollowmere() -> Dictionary:
-	var presentation_constants: Dictionary = HOLLOWMERE_PRESENTATION.new().get_script_constant_map()
-	var terrain_constants: Dictionary = HOLLOWMERE_TERRAIN.new().get_script_constant_map()
-	var placement_constants: Dictionary = HOLLOWMERE_PLACEMENTS.new().get_script_constant_map()
-	var source: Dictionary = presentation_constants.get("DEFINITION", {})
+	# These are preloaded Script resources. Read their named constants directly;
+	# .new() creates RefCounted instances, which do not expose Script reflection.
+	var source: Dictionary = HOLLOWMERE_PRESENTATION.DEFINITION
+	var terrain_definition: Dictionary = HOLLOWMERE_TERRAIN.DEFINITION
+	var character_starts: Dictionary = HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS
+	var farm_animals: Array = HOLLOWMERE_PLACEMENTS.FARM_ANIMALS
+	var wilderness_animals: Array = HOLLOWMERE_PLACEMENTS.WILDERNESS_ANIMALS
 	var feature_data: Dictionary = source.get("features", {}).get("data", {})
-	var placements: Dictionary = {}
-	for character_id in placement_constants.get("CHARACTER_STARTS", {}):
-		placements[character_id] = placement_constants.get("CHARACTER_STARTS", {})[character_id]
+	var placements: Dictionary = character_starts.duplicate(true)
 	var characters: Array = []
-	characters.append({"id": "player_start", "character_id": "player", "position": placement_constants.get("PLAYER_START_HEX", Vector2i.ZERO)})
+	characters.append({"id": "player_start", "character_id": "player", "position": HOLLOWMERE_PLACEMENTS.PLAYER_START_HEX})
 	for character_id in placements:
 		characters.append({"id": String(character_id), "character_id": String(character_id), "position": placements[character_id]})
 	var creatures: Array = []
-	for placement in placement_constants.get("FARM_ANIMALS", []) + placement_constants.get("WILDERNESS_ANIMALS", []):
+	for placement in farm_animals + wilderness_animals:
 		var creature: Dictionary = placement.duplicate(true)
 		creature["position"] = creature.get("hex", Vector2i.ZERO)
 		creature.erase("hex")
@@ -46,7 +47,7 @@ func adapt_hollowmere() -> Dictionary:
 		# tested rebase converts every source domain together.
 		"origin": {"q": 0, "r": 0},
 		"bounds": {"min_q": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_q": HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "min_r": -HOLLOWMERE_SETTLEMENT.MAP_RADIUS, "max_r": HOLLOWMERE_SETTLEMENT.MAP_RADIUS},
-		"terrain": terrain_constants.get("DEFINITION", {}),
+		"terrain": terrain_definition,
 		"layout": {
 			"buildings": _tag_records(feature_data.get("buildings", []), "building"),
 			"paths": _tag_records(feature_data.get("routes", []), "route"),
