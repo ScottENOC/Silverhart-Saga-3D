@@ -4,7 +4,7 @@ extends Control
 
 const MASK_SCRIPT = preload("res://scripts/characters/character_surface_region_mask.gd")
 const PARTITION_SCRIPT = preload("res://scripts/characters/character_surface_region_partition.gd")
-const PARTITION_REGION_IDS := PackedStringArray(["head_neck", "torso", "pelvis", "upper_arm_left", "upper_arm_right", "forearm_left", "forearm_right", "hand_left", "hand_right", "thigh_left", "thigh_right", "lower_leg_left", "lower_leg_right", "foot_left", "foot_right"])
+const PARTITION_REGION_IDS := ["head_neck", "torso", "pelvis", "upper_arm_left", "upper_arm_right", "forearm_left", "forearm_right", "hand_left", "hand_right", "thigh_left", "thigh_right", "lower_leg_left", "lower_leg_right", "foot_left", "foot_right"]
 const PARTITION_REGION_LABELS := ["Head and neck", "Torso", "Pelvis", "Upper arm — left", "Upper arm — right", "Forearm — left", "Forearm — right", "Hand — left", "Hand — right", "Thigh — left", "Thigh — right", "Lower leg — left", "Lower leg — right", "Foot — left", "Foot — right"]
 const PARTITION_DIRECTORY := "res://data/characters/anatomy_partitions"
 const INPUT_ROUTER_SCRIPT = preload("res://tools/anatomy_surface_painter_input.gd")
@@ -1065,7 +1065,7 @@ func _save_primary_partition() -> void:
         _set_status("Partition not saved: no complete assignment array exists for this surface")
         return
     var partition := PARTITION_SCRIPT.new()
-    var setup_error: String = partition.configure_for_mesh(mesh_instance, _body_root, _body_asset_path, int(descriptor["surface_index"]), PARTITION_REGION_IDS)
+    var setup_error: String = partition.configure_for_mesh(mesh_instance, _body_root, _body_asset_path, int(descriptor["surface_index"]), PackedStringArray(PARTITION_REGION_IDS))
     if not setup_error.is_empty():
         _set_status("Partition setup failed: " + setup_error)
         return
