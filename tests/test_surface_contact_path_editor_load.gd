@@ -41,7 +41,7 @@ func _run() -> void:
     await process_frame
     var aldric_save_path: LineEdit = editor.get("_save_path")
     assert(aldric_save_path.text.begins_with("res://data/characters/surface_contact_paths/aldric_"),
-        "Changing to Aldric left the contact path save target on the wrong body: " + male_save_path.text)
+        "Changing to Aldric left the contact path save target on the wrong body: " + aldric_save_path.text)
     var path_points: Array = editor.get("_path_points")
     assert(path_points.is_empty(), "Changing body did not clear the previous contact path points")
     body_option.select(0)
@@ -49,7 +49,7 @@ func _run() -> void:
     await process_frame
     var wren_save_path: LineEdit = editor.get("_save_path")
     assert(wren_save_path.text.begins_with("res://data/characters/surface_contact_paths/wren_"),
-        "Changing back to Wren left the contact path save target on the wrong body: " + female_save_path.text)
+        "Changing back to Wren left the contact path save target on the wrong body: " + wren_save_path.text)
     print("NATIVE_COMPANION_SURFACE_CONTACT_PATH_EDITOR_LOAD: PASS surfaces=%d body_switch=PASS" % descriptors.size())
     editor.queue_free()
     await process_frame
