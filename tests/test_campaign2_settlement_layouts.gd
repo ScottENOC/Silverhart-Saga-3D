@@ -60,7 +60,7 @@ func _initialize() -> void:
 	_check(not hollowmere_entry.is_empty(), "Canonical Hollowmere definition must remain available")
 	if not hollowmere_entry.is_empty():
 		var hollowmere: Dictionary = hollowmere_entry.get("definition", {})
-		_check(String(hollowmere.get("presentation", {}).get("mode", "")) == "location_presenter", "Hollowmere must remain owned by its location presenter")
+		_check(String(hollowmere.get("presentation", {}).get("mode", "")) == "chunked", "Hollowmere canonical definition must use the shared chunked presentation mode")
 		_check(hollowmere.get("layout", {}).get("buildings", []).size() > 0, "Hollowmere authored buildings must survive adaptation")
 		_check(hollowmere.get("placements", {}).get("characters", []).size() >= 10, "Hollowmere authored character placements must survive adaptation")
 
