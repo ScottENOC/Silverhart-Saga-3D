@@ -16,7 +16,7 @@ The surrounding wilderness is still partly generated from regional terrain rules
 
 ## Canonical settlement content
 
-The registry on this branch contains four settlement definitions:
+The registry on this branch contains five settlement definitions:
 
 | Location | Migrated content | Still outstanding |
 |---|---|---|
@@ -29,12 +29,12 @@ The shared chunk presenter renders the exterior buildings and surface actors for
 
 ## Remaining source-authored world locations
 
-These 20 additional location anchors exist in the world geography manifest. Nineteen still lack canonical source-authored site definitions; Emberlode Mine is partially represented by its parent settlement's mine metadata but is not yet playable:
+These 20 additional location anchors exist in the world geography manifest. The farmstead now has a partial canonical surface definition; the wolf-den encounter and 18 other sites still lack full canonical site definitions. Emberlode Mine is partially represented by its parent settlement's mine metadata but is not yet playable:
 
 | Location | Source content still to port |
 |---|---|
 | Silverhart | Palace/capital layout, court, guards, services, population and kingdom interactions |
-| Old Mac's Farmstead | Farmhouse, fenced pasture, broken fence, blood trail, sheep, Old Mac and rescue/wolf quest |
+| Old Mac's Farmstead | Farmhouse, road spur, pasture polygon, broken west-fence gap, fallen rail clue and Old Mac's source NPC placement | Sheep model/placements, blood-spatter trail, separate wolf-den site and fully wired encounter/quest progression
 | Skarn-tooth Camp | Goblin camp structures, chief, tribe roster, trade and negotiation/hostility branches |
 | Northwatch Fort | Star fort, keep, gate, moat, garrison, siege actors and border-war interactions |
 | Ridgehold Fort | Fort and keep, river connection, patrols and faction consequences |
@@ -56,7 +56,7 @@ These 20 additional location anchors exist in the world geography manifest. Nine
 
 ## Next port order
 
-1. **Old Mac's Farmstead and wolf den.** Port the source's real location and quest anchors. Before doing so, reconcile the existing Hollowmere agricultural/farmhouse presentation, which currently places farm-related geometry near the village and must not be mistaken for the source farmstead at its world anchor.
+1. **Complete Old Mac's Farmstead and wolf den.** The farmhouse, pasture, broken fence and Old Mac placement are now in the canonical stream. Next add sheep presentation, blood-trail evidence, the wolf-den site and wire the existing quest model into the NPC/encounter lifecycle. Keep the source farmstead at (0,194); do not confuse it with Hollowmere's separate village crop fields.
 2. **Silverhart capital.** This is the kingdom's main hub and unlocks the royal court, services and major faction threads.
 3. **Northwatch, Ridgehold and the greenskin sites.** Port the connected border-road sequence, forts, strongholds, gates, garrisons and encounter state.
 4. **Kragmoor and Sil'thandriel.** Preserve their distinct vertical/architectural structures and faction populations.
