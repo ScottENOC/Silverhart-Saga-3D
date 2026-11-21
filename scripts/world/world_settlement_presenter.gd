@@ -4,7 +4,7 @@ extends Node3D
 ## Receives authored settlement definitions and composes shared feature,
 ## vegetation and creature presenters. It contains no settlement-specific rules.
 
-const AUTHORED_SETTLEMENT_PRESENTER = preload("res://scripts/world/authored_settlement_presenter.gd")
+const FEATURE_COMPOSER = preload("res://scripts/world/world_settlement_feature_composer.gd")
 const WORLD_VEGETATION = preload("res://scripts/world/world_vegetation_generator.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 
@@ -69,32 +69,11 @@ func _create_ground(ground_definition: Dictionary) -> void:
 	ground.material_override = materials[material_key]
 	add_child(ground)
 
-func _present_authored_features(features: Dictionary, hex_radius: float) -> void:
-	var result := AUTHORED_SETTLEMENT_PRESENTER.present(
-		self,
-		features.get("identity", {}),
-		features.get("data", {}),
-		_resolve_material_bindings(features.get("materials", {})),
-		hex_radius
-	)
+func _present_authored_features(_features: Dictionary, hex_radius: float) -> void:
+	var result := FEATURE_COMPOSER.compose_location(self, definition, hex_radius)
 	if not bool(result.get("ok", false)):
-		push_error("Authored settlement presentation failed: %s" % result)
+		push_error("Settlement feature composition failed: %s" % result)
 
-
-func _resolve_material_bindings(value: Variant) -> Variant:
-	if value is Dictionary:
-		var resolved: Dictionary = {}
-		for key in value:
-			resolved[key] = _resolve_material_bindings(value[key])
-		return resolved
-	if value is Array:
-		var resolved: Array = []
-		for item in value:
-			resolved.append(_resolve_material_bindings(item))
-		return resolved
-	if value is String and materials.has(value):
-		return materials[value]
-	return value
 
 func _spawn_authored_creatures(placements: Array, hex_radius: float) -> void:
 	for placement in placements:
