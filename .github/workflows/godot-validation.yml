@@ -24,6 +24,7 @@ on:
       - "tests/test_surface_contact_path_editor_load.gd"
       - "tools/garment_guide_curve_editor.tscn"
       - "tools/review/capture_garment_guide_editor.gd"
+      - "tools/review/ara_contact_path_review.gd"
       - ".github/workflows/godot-validation.yml"
   push:
     branches: [dev, dev_2, "feature/**"]
@@ -161,7 +162,7 @@ jobs:
         run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_surface_contact_path_editor_load.gd
       - name: Load Ara garment guide curve editor
         run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_garment_guide_curve_editor_load.gd
-      - name: Load Ara anatomy surface painter tool
+      - name: Load Wren/Aldric anatomy surface painter tool
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_anatomy_surface_painter_load.gd
       - name: Audit fine Ara anatomy surface geometry
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/audit_ara_fine_surface_geometry.gd
