@@ -4,6 +4,7 @@
   "settlements": [
     {
       "id": "hollowmere",
+      "origin": {"q": 0, "r": 0},
       "definition_script": "res://data/settlements/hollowmere/terrain.gd",
       "priority": 100
     }
