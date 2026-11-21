@@ -8,7 +8,7 @@ func _run() -> void:
     var packed := load("res://tools/surface_contact_path_editor.tscn") as PackedScene
     assert(packed != null, "Native companion surface contact path editor scene did not load")
     var editor := packed.instantiate() as Control
-    assert(editor != null, "Ara surface contact path editor root is not Control")
+    assert(editor != null, "Native surface contact path editor root is not Control")
     root.add_child(editor)
     await process_frame
     await process_frame
@@ -25,16 +25,16 @@ func _run() -> void:
     body_option.select(1)
     editor.call("_load_body", "Aldric (current native build)")
     await process_frame
-    var male_save_path: LineEdit = editor.get("_save_path")
-    assert(male_save_path.text.begins_with("res://data/characters/surface_contact_paths/aldric_"),
+    var aldric_save_path: LineEdit = editor.get("_save_path")
+    assert(aldric_save_path.text.begins_with("res://data/characters/surface_contact_paths/aldric_"),
         "Changing to Aldric left the contact path save target on the wrong body: " + male_save_path.text)
     var path_points: Array = editor.get("_path_points")
     assert(path_points.is_empty(), "Changing body did not clear the previous contact path points")
     body_option.select(0)
     editor.call("_load_body", "Wren (current native build)")
     await process_frame
-    var female_save_path: LineEdit = editor.get("_save_path")
-    assert(female_save_path.text.begins_with("res://data/characters/surface_contact_paths/wren_"),
+    var wren_save_path: LineEdit = editor.get("_save_path")
+    assert(wren_save_path.text.begins_with("res://data/characters/surface_contact_paths/wren_"),
         "Changing back to Wren left the contact path save target on the wrong body: " + female_save_path.text)
     print("NATIVE_COMPANION_SURFACE_CONTACT_PATH_EDITOR_LOAD: PASS surfaces=%d body_switch=PASS" % descriptors.size())
     editor.queue_free()
