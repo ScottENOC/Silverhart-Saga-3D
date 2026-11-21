@@ -66,15 +66,20 @@ func _load_locations() -> void:
 	encounter_sites.clear()
 	encounter_sites_by_id.clear()
 	encounter_sites_by_hex.clear()
-	for site in parsed.get("encounter_sites", []):
-		if not site is Dictionary:
+	# Encounter sites are a view over the canonical geography locations, not
+	# a second authored list that can drift away from the world map.
+	for location in locations:
+		if not location is Dictionary:
 			continue
-		var site_id := String(site.get("id", "")).strip_edges()
+		var kind := String(location.get("kind", ""))
+		if kind not in ["wolf_den", "quest_site", "dungeon", "dragon_lair", "haunted_house"]:
+			continue
+		var site_id := String(location.get("id", "")).strip_edges()
 		if site_id.is_empty() or encounter_sites_by_id.has(site_id):
 			push_warning("Campaign 2 encounter site has a missing or duplicate ID: %s" % site_id)
 			continue
-		var site_hex := Vector2i(int(site.get("q", 0)), int(site.get("r", 0)))
-		var site_record: Dictionary = site.duplicate(true)
+		var site_hex := Vector2i(int(location.get("q", 0)), int(location.get("r", 0)))
+		var site_record: Dictionary = location.duplicate(true)
 		encounter_sites.append(site_record)
 		encounter_sites_by_id[site_id] = site_record
 		encounter_sites_by_hex[_hex_key(site_hex)] = site_record
