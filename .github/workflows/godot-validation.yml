@@ -25,6 +25,7 @@ on:
       - "tools/garment_guide_curve_editor.tscn"
       - "tools/review/capture_garment_guide_editor.gd"
       - "tools/review/ara_contact_path_review.gd"
+      - "tools/review/ara_anatomy_region_review.gd"
       - ".github/workflows/godot-validation.yml"
   push:
     branches: [dev, dev_2, "feature/**"]
@@ -221,6 +222,27 @@ jobs:
             done
             test -s "build/ara-contact-path-review/$character/report.json"
           done
+      - name: Render broad Wren and Aldric torso region overlays
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1400x1300x24" godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/ara_anatomy_region_review.gd
+          for character in wren aldric; do
+            for view in front side rear; do
+              test -s "build/ara-anatomy-region-review/$character/$view.png"
+            done
+            test -s "build/ara-anatomy-region-review/$character/report.json"
+          done
+
+      - name: Upload Wren and Aldric anatomical region colour review
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-aldric-anatomical-region-colour-review
+          path: build/ara-anatomy-region-review/
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Upload Wren and Aldric visual review
         uses: actions/upload-artifact@v7
         with:
