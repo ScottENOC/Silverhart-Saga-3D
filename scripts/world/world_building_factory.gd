@@ -40,6 +40,34 @@ const ARCHETYPES := {
 		"wall_colour": "#c5ae86", "timber_colour": "#68462d",
 		"door_colour": "#40291c", "roof_colour": "#424a47",
 		"glass_colour": "#52717a", "roof_style": "gable"
+	},
+	"inn": {
+		"width": 19.0, "depth": 17.0, "wall_height": 3.8, "roof_rise": 2.3,
+		"foundation_colour": "#716b5c", "floor_colour": "#493323",
+		"wall_colour": "#a98560", "timber_colour": "#54351f",
+		"door_colour": "#382719", "roof_colour": "#48443a",
+		"glass_colour": "#52717a", "roof_style": "gable"
+	},
+	"guardhouse": {
+		"width": 17.0, "depth": 15.0, "wall_height": 4.0, "roof_rise": 2.0,
+		"foundation_colour": "#77766f", "floor_colour": "#514638",
+		"wall_colour": "#aaa99f", "timber_colour": "#514b43",
+		"door_colour": "#34271f", "roof_colour": "#454b50",
+		"glass_colour": "#52717a", "roof_style": "gable"
+	},
+	"smithy": {
+		"width": 16.0, "depth": 14.0, "wall_height": 3.6, "roof_rise": 2.0,
+		"foundation_colour": "#716b5c", "floor_colour": "#493323",
+		"wall_colour": "#8c6846", "timber_colour": "#54351f",
+		"door_colour": "#382719", "roof_colour": "#48443a",
+		"glass_colour": "#52717a", "roof_style": "gable"
+	},
+	"mine_entrance": {
+		"width": 15.0, "depth": 13.0, "wall_height": 3.2, "roof_rise": 1.6,
+		"foundation_colour": "#555b5c", "floor_colour": "#343638",
+		"wall_colour": "#777b78", "timber_colour": "#514638",
+		"door_colour": "#302a22", "roof_colour": "#424547",
+		"glass_colour": "#52717a", "roof_style": "gable"
 	}
 }
 
@@ -50,7 +78,15 @@ const KIND_TO_ARCHETYPE := {
 	"general_store": "shop",
 	"chapel": "chapel",
 	"barn": "barn",
-	"manor": "manor"
+	"manor": "manor",
+	"foremans_hall": "manor",
+	"bunkhouse": "cottage",
+	"reeve_house": "cottage",
+	"guildhouse": "shop",
+	"inn": "inn",
+	"guardhouse": "guardhouse",
+	"smithy": "smithy",
+	"mine_entrance": "mine_entrance"
 }
 
 ## Returns null for an invalid/unsupported definition instead of silently
