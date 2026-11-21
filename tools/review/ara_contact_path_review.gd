@@ -111,6 +111,9 @@ func _render_body(body_key: String, asset_path: String) -> void:
     await process_frame
 
 func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance3D], asset_path: String) -> CharacterSurfaceContactPath:
+    # Imported Ara assets do not guarantee a particular local forward axis or
+    # triangle winding. Select a broad band using surface bounds and spatial
+    # spread; do not infer the front from a normal component.
     var best: Dictionary = {}
     var best_score := -INF
     for mesh in meshes:
@@ -123,51 +126,61 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
             if vertices.size() < 3:
                 continue
             var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
-            var y_min := INF
-            var y_max := -INF
+            var vertex_bounds := AABB(vertices[0], Vector3.ZERO)
             for vertex in vertices:
-                y_min = minf(y_min, vertex.y)
-                y_max = maxf(y_max, vertex.y)
-            var height := maxf(y_max - y_min, 0.001)
-            var positive_facing: Array[Dictionary] = []
-            var negative_facing: Array[Dictionary] = []
+                vertex_bounds = vertex_bounds.expand(vertex)
+            var extents := vertex_bounds.size
+            var vertical_axis := 1
+            if extents.x > extents.y and extents.x >= extents.z:
+                vertical_axis = 0
+            elif extents.z > extents.y and extents.z > extents.x:
+                vertical_axis = 2
+            var horizontal_axis := 0 if vertical_axis != 0 else 2
+            if vertical_axis == 1:
+                horizontal_axis = 0 if extents.x >= extents.z else 2
+            var vertical_min := _axis_value(vertex_bounds.position, vertical_axis)
+            var vertical_extent := maxf(_axis_value(extents, vertical_axis), 0.001)
             var triangle_count := indices.size() if not indices.is_empty() else vertices.size()
+            var candidates: Array[Dictionary] = []
+            var all_candidates: Array[Dictionary] = []
             for offset in range(0, triangle_count - 2, 3):
                 var tri := PackedInt32Array()
                 if indices.is_empty():
                     tri = PackedInt32Array([offset, offset + 1, offset + 2])
                 else:
                     tri = PackedInt32Array([indices[offset], indices[offset + 1], indices[offset + 2]])
-                if tri[0] >= vertices.size() or tri[1] >= vertices.size() or tri[2] >= vertices.size():
+                if tri[0] < 0 or tri[1] < 0 or tri[2] < 0 or tri[0] >= vertices.size() or tri[1] >= vertices.size() or tri[2] >= vertices.size():
                     continue
                 var a: Vector3 = vertices[tri[0]]
                 var b: Vector3 = vertices[tri[1]]
                 var c: Vector3 = vertices[tri[2]]
-                var normal := (b - a).cross(c - a)
-                if normal.length_squared() < 0.0000001:
+                if (b - a).cross(c - a).length_squared() < 0.0000001:
                     continue
-                normal = normal.normalized()
                 var centre := (a + b + c) / 3.0
-                var y_ratio := (centre.y - y_min) / height
-                if y_ratio < 0.34 or y_ratio > 0.66 or absf(normal.z) < 0.45:
-                    continue
                 var candidate := {"triangle": tri, "centre": centre}
-                if normal.z > 0.0:
-                    positive_facing.append(candidate)
-                else:
-                    negative_facing.append(candidate)
-            # Imported winding may point either way. Select the better-populated
-            # outward-facing side rather than assuming Ara's forward axis or winding.
-            var candidates: Array[Dictionary] = positive_facing if positive_facing.size() >= negative_facing.size() else negative_facing
+                all_candidates.append(candidate)
+                var height_ratio := (_axis_value(centre, vertical_axis) - vertical_min) / vertical_extent
+                if height_ratio >= 0.34 and height_ratio <= 0.66:
+                    candidates.append(candidate)
+            # If the middle third is sparse, fall back to all valid triangles.
+            if candidates.size() < 3:
+                candidates = all_candidates
             if candidates.size() < 3:
                 continue
-            candidates.sort_custom(func(a: Dictionary, b: Dictionary): return a["centre"].x < b["centre"].x)
-            var x_span: float = candidates[-1]["centre"].x - candidates[0]["centre"].x
-            var score := float(candidates.size()) * maxf(x_span, 0.001)
+            candidates.sort_custom(func(a: Dictionary, b: Dictionary):
+                return _axis_value(a["centre"], horizontal_axis) < _axis_value(b["centre"], horizontal_axis)
+            )
+            var spread := absf(
+                _axis_value(candidates[-1]["centre"], horizontal_axis)
+                - _axis_value(candidates[0]["centre"], horizontal_axis)
+            )
+            var score := float(candidates.size()) * maxf(spread, 0.001)
             if score > best_score:
                 best_score = score
                 best = {"mesh": mesh, "surface": surface_index, "vertices": vertices, "candidates": candidates}
-    assert(not best.is_empty(), "Could not find a broad front-facing torso-like triangle band on either canonical mesh")
+    if best.is_empty():
+        _fail("No canonical Ara surface contained three valid, non-degenerate triangles")
+        return null
     var candidates: Array[Dictionary] = best["candidates"]
     var selected: Array[Dictionary] = []
     for fraction in [0.2, 0.5, 0.8]:
@@ -175,7 +188,9 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
         var candidate: Dictionary = candidates[candidate_index]
         if selected.is_empty() or candidate["triangle"] != selected[-1]["triangle"]:
             selected.append(candidate)
-    assert(selected.size() == 3, "Could not select three distinct surface triangles for the visual trace")
+    if selected.size() != 3:
+        _fail("Could not select three distinct source triangles for the synthetic trace")
+        return null
     var mesh: MeshInstance3D = best["mesh"]
     var surface_index: int = best["surface"]
     var path: CharacterSurfaceContactPath = PATH_SCRIPT.new()
@@ -185,7 +200,7 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
     path.surface_name = mesh.mesh.surface_get_name(surface_index)
     path.vertex_count = best["vertices"].size()
     path.surface_signature = CharacterSurfaceRegionMask.build_surface_signature(mesh.mesh, surface_index)
-    path.path_id = "synthetic_front_surface_trace"
+    path.path_id = "synthetic_surface_trace"
     path.closed_loop = false
     for candidate in selected:
         path.points.append({
@@ -193,6 +208,21 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
             "barycentric": PackedFloat32Array([0.33333334, 0.33333333, 0.33333333])
         })
     return path
+
+
+func _axis_value(value: Vector3, axis: int) -> float:
+    if axis == 0:
+        return value.x
+    if axis == 1:
+        return value.y
+    return value.z
+
+
+func _fail(message: String) -> void:
+    _failed = true
+    push_error("ARA_CONTACT_PATH_VISUAL_REVIEW: FAIL — " + message)
+    quit(1)
+
 
 func _draw_path(samples: Array[Dictionary]) -> void:
     var line := ImmediateMesh.new()
