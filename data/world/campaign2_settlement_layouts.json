@@ -1311,13 +1311,204 @@
             }
           ],
           "source": "campaign2World.js:buildFarmstead brokenFenceHex"
+        },
+        {
+          "id": "old_mac_blood_spatter_01",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -10,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.42,
+                "y": 0.018,
+                "z": 0.28
+              },
+              "material": "blood"
+            }
+          ],
+          "evidence_visibility": "obvious",
+          "source": "campaign2World.js:buildFarmstead blood trail step 1"
+        },
+        {
+          "id": "old_mac_blood_spatter_02",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -11,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.42,
+                "y": 0.018,
+                "z": 0.28
+              },
+              "material": "blood"
+            }
+          ],
+          "evidence_visibility": "obvious",
+          "source": "campaign2World.js:buildFarmstead blood trail step 2"
+        },
+        {
+          "id": "old_mac_blood_spatter_03",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -12,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.42,
+                "y": 0.018,
+                "z": 0.28
+              },
+              "material": "blood"
+            }
+          ],
+          "evidence_visibility": "obvious",
+          "source": "campaign2World.js:buildFarmstead blood trail step 3"
+        },
+        {
+          "id": "old_mac_blood_spatter_04",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -13,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.42,
+                "y": 0.018,
+                "z": 0.28
+              },
+              "material": "blood"
+            }
+          ],
+          "evidence_visibility": "obvious",
+          "source": "campaign2World.js:buildFarmstead blood trail step 4"
+        },
+        {
+          "id": "old_mac_blood_spatter_06",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -15,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.22,
+                "y": 0.012,
+                "z": 0.16
+              },
+              "material": "blood_faint"
+            }
+          ],
+          "evidence_visibility": "knowledge_nature",
+          "source": "campaign2World.js:buildFarmstead blood trail step 6"
+        },
+        {
+          "id": "old_mac_blood_spatter_07",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -17,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.22,
+                "y": 0.012,
+                "z": 0.16
+              },
+              "material": "blood_faint"
+            }
+          ],
+          "evidence_visibility": "knowledge_nature",
+          "source": "campaign2World.js:buildFarmstead blood trail step 7"
+        },
+        {
+          "id": "old_mac_blood_spatter_08",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -19,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.22,
+                "y": 0.012,
+                "z": 0.16
+              },
+              "material": "blood_faint"
+            }
+          ],
+          "evidence_visibility": "knowledge_nature",
+          "source": "campaign2World.js:buildFarmstead blood trail step 8"
         }
       ],
       "presentation": {
         "palette": {
           "path": "#6d5940",
           "pasture": "#4d6335",
-          "fence": "#59402a"
+          "fence": "#59402a",
+          "blood": "#641c19",
+          "blood_faint": "#4a2522"
         },
         "materials": {
           "routes": {
@@ -1331,7 +1522,9 @@
             "fence": "fence"
           },
           "quest_props": {
-            "fence": "fence"
+            "fence": "fence",
+            "blood": "blood",
+            "blood_faint": "blood_faint"
           }
         }
       },
