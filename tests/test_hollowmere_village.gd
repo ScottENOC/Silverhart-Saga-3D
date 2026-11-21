@@ -5,9 +5,12 @@ const WORLD_SETTLEMENT_PRESENTER = preload("res://scripts/world/world_settlement
 const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
 const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
+const HOLLOWMERE_TERRAIN = preload("res://data/settlements/hollowmere/terrain.gd")
+const TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 func _initialize() -> void:
     _test_village_uses_shared_vegetation_generator()
     _test_village_bounds_and_terrain()
+    _test_generic_terrain_provider_contract()
     _test_main_campaign_world_map()
     _test_road_network_connectivity()
     _test_building_thresholds()
@@ -31,6 +34,27 @@ func _test_village_bounds_and_terrain() -> void:
     assert(not HollowmereVillageData.is_forest_candidate(Vector2i(10, 60)), "Procedural trees must not grow through farm fields")
     assert(not HollowmereVillageData.is_blocked(HollowmereVillageData.BRIDGE), "The bridge must be traversable")
     assert(HollowmereVillageData.terrain_id_at(Vector2i(0, 15)) == "path", "The general-store threshold should be a path")
+
+func _test_generic_terrain_provider_contract() -> void:
+    var definition: Dictionary = HOLLOWMERE_TERRAIN.DEFINITION
+    var sample_hexes := [
+        Vector2i(0, 0), Vector2i(8, 24), Vector2i(8, -25),
+        Vector2i(0, -25), Vector2i(0, 15), Vector2i(-11, 0),
+        Vector2i(0, 18), Vector2i(12, 54), Vector2i(12, 57),
+        Vector2i(10, 60), Vector2i(60, 60), Vector2i(97, 0)
+    ]
+    for hex in sample_hexes:
+        assert(TERRAIN_PROVIDER.is_in_bounds(hex, definition) == HollowmereVillageData.is_in_bounds(hex), "Generic bounds query diverged at %s" % hex)
+        assert(TERRAIN_PROVIDER.is_water(hex, definition) == HollowmereVillageData.is_water(hex), "Generic water query diverged at %s" % hex)
+        assert(TERRAIN_PROVIDER.is_building(hex, definition) == HollowmereVillageData.is_building(hex), "Generic building query diverged at %s" % hex)
+        assert(TERRAIN_PROVIDER.is_door(hex, definition) == HollowmereVillageData.is_door(hex), "Generic door query diverged at %s" % hex)
+        assert(TERRAIN_PROVIDER.is_path(hex, definition) == HollowmereVillageData.is_path(hex), "Generic path query diverged at %s" % hex)
+        assert(TERRAIN_PROVIDER.is_blocked(hex, definition) == HollowmereVillageData.is_blocked(hex), "Generic movement query diverged at %s" % hex)
+        assert(TERRAIN_PROVIDER.terrain_id_at(hex, definition) == HollowmereVillageData.terrain_id_at(hex), "Generic terrain ID diverged at %s" % hex)
+        assert(TERRAIN_PROVIDER.is_farm_land(hex, definition) == HollowmereVillageData.is_farm_land(hex), "Generic farm query diverged at %s" % hex)
+        assert(TERRAIN_PROVIDER.is_forest_candidate(hex, definition) == HollowmereVillageData.is_forest_candidate(hex), "Generic woodland query diverged at %s" % hex)
+    assert(TERRAIN_PROVIDER.path_cells(definition).size() == HollowmereVillageData.path_cells().size(), "Generic path-cell enumeration must preserve the authored route set size")
+    assert(TERRAIN_PROVIDER.water_cells(definition).size() == HollowmereVillageData.water_cells().size(), "Generic stream-cell enumeration must preserve the authored water set size")
 
 func _test_road_network_connectivity() -> void:
     var path_cells := HollowmereVillageData.path_cells()
