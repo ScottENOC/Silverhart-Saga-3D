@@ -258,7 +258,7 @@ func _build_screen() -> void:
         hair_row.add_child(density_slider)
         body_hair_checks[area] = hair_check
         body_hair_density_sliders[area] = density_slider
-        hair_check.toggled.connect(func(enabled: bool): density_slider.disabled = not enabled)
+        hair_check.toggled.connect(func(enabled: bool): density_slider.editable = enabled)
         hair_check.toggled.connect(func(_enabled: bool): _refresh_appearance_preview(0))
         density_slider.value_changed.connect(_refresh_appearance_preview_value)
     body_hair_style_select = _option_row(panel, "Pubic style", ["Natural", "Trimmed", "Landing strip", "Triangle", "Full"])
