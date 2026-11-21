@@ -48,17 +48,8 @@ const GUIDE_LABELS := {
     "strap_left": "Bra strap — left",
     "strap_right": "Bra strap — right"
 }
-## Bra panel outlines are closed loops; underband edges and straps are open paths.
-## Locking these requirements in the editor prevents an accidentally open cup or closed strap.
-const GUIDE_LOOP_REQUIREMENTS := {
-    "cup_perimeter_left": true,
-    "cup_perimeter_right": true,
-    "centre_gore": true,
-    "underband_front": false,
-    "underband_back": false,
-    "strap_left": false,
-    "strap_right": false
-}
+## Use the same semantic requirements enforced by the saved guide resource.
+const GUIDE_LOOP_REQUIREMENTS := CharacterGarmentGuideCurve.GUIDE_LOOP_REQUIREMENTS
 const GUIDE_PAIRS := {
     "shoulder_seam_left": "shoulder_seam_right", "shoulder_seam_right": "shoulder_seam_left",
     "armhole_left": "armhole_right", "armhole_right": "armhole_left",
