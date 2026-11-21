@@ -82,7 +82,7 @@ func validate_for_mesh(mesh_instance: MeshInstance3D, body_root: Node3D, expecte
     return ""
 
 
-func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
+func evaluate(surface_regions: CharacterBodySurface) -> Array[Dictionary]:
     var result: Array[Dictionary] = []
     last_evaluation_error = ""
     if surface_regions == null:
