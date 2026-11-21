@@ -112,8 +112,8 @@ func terrain_for_hex(hex: Vector2i) -> String:
 
 ## Gameplay terrain is resolved from authored settlement data first, then regional rules.
 func gameplay_terrain_for_hex(hex: Vector2i) -> String:
-	if HOLLOWMERE_DATA.is_in_bounds(hex):
-		return HOLLOWMERE_DATA.terrain_id_at(hex)
+	if HOLLOWMERE_TERRAIN_PROVIDER.is_in_bounds(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
+		return HOLLOWMERE_TERRAIN_PROVIDER.terrain_id_at(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION)
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "building"
 	var terrain := terrain_for_hex(hex)
@@ -126,12 +126,12 @@ func is_walkable_for_hex(hex: Vector2i) -> bool:
 	return terrain != "water" and terrain != "building"
 
 func elevation_for_hex(hex: Vector2i) -> float:
-	if HOLLOWMERE_DATA.is_in_bounds(hex):
+	if HOLLOWMERE_TERRAIN_PROVIDER.is_in_bounds(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
 		return 0.0
 	return LOCAL_TERRAIN_RULES.elevation_for_hex(hex, terrain_for_hex(hex))
 
 func has_tree(hex: Vector2i) -> bool:
-	if HOLLOWMERE_DATA.is_in_bounds(hex):
+	if HOLLOWMERE_TERRAIN_PROVIDER.is_in_bounds(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
 		return HOLLOWMERE_TERRAIN_PROVIDER.has_tree(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION)
 	return LOCAL_TERRAIN_RULES.has_tree(hex, terrain_for_hex(hex))
 
