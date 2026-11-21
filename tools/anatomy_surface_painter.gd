@@ -84,11 +84,11 @@ const REGION_LABELS := {
     "foot_sole_right": "Sole — right"
 }
 const REGION_GROUPS := [
-    {"label": "HEAD AND NECK", "ids": ["face_front", "lips", "ear_left", "ear_right", "neck_front", "neck_back", "neck_left", "neck_right"]},
-    {"label": "TORSO AND CHEST", "ids": ["clavicle_left", "clavicle_right", "chest_front_left", "chest_front_right", "pectoral_left", "pectoral_right", "sternum", "ribcage_left", "ribcage_right", "lower_back", "breast_left", "breast_right", "areola_left", "areola_right", "nipple_left", "nipple_right", "underbust", "chest_back", "abdomen_upper", "abdomen_lower", "waist", "waist_front", "waist_back", "waist_left", "waist_right", "flank_left", "flank_right"]},
-    {"label": "PELVIS AND EXTERNAL ANATOMY", "ids": ["pelvis_front", "pelvis_back", "hip_left", "hip_right", "buttock_left", "buttock_right", "groin", "perineum", "anal_region", "vulva_external", "penis_external", "scrotum"]},
-    {"label": "ARMS AND HANDS", "ids": ["shoulder_left", "shoulder_right", "elbow_left", "elbow_right", "forearm_left", "forearm_right", "wrist_left", "wrist_right", "palm_left", "palm_right", "hand_back_left", "hand_back_right"]},
-    {"label": "LEGS AND FEET", "ids": ["thigh_inner_left", "thigh_inner_right", "thigh_outer_left", "thigh_outer_right", "knee_left", "knee_right", "calf_left", "calf_right", "ankle_left", "ankle_right", "foot_top_left", "foot_top_right", "foot_sole_left", "foot_sole_right"]}
+    {"label": "HEAD AND NECK", "ids": ["face_front", "head_top", "head_back", "head_left", "head_right", "forehead", "temple_left", "temple_right", "brow_left", "brow_right", "eye_socket_left", "eye_socket_right", "eyelid_upper_left", "eyelid_upper_right", "eyelid_lower_left", "eyelid_lower_right", "cheek_left", "cheek_right", "nose_bridge", "nose_tip", "nostril_left", "nostril_right", "jaw_left", "jaw_right", "chin", "face_side_left", "face_side_right", "lips", "ear_left", "ear_right", "ear_inner_left", "ear_inner_right", "ear_lobe_left", "ear_lobe_right", "neck_front", "neck_back", "neck_left", "neck_right", "upper_neck_front", "upper_neck_back", "throat", "nape"]},
+    {"label": "TORSO AND CHEST", "ids": ["clavicle_left", "clavicle_right", "chest_front_left", "chest_front_right", "pectoral_left", "pectoral_right", "sternum", "ribcage_left", "ribcage_right", "lower_back", "upper_back", "mid_back", "scapula_left", "scapula_right", "lumbar_back", "sacrum", "breast_left", "breast_right", "areola_left", "areola_right", "nipple_left", "nipple_right", "underbust", "chest_back", "abdomen_upper", "abdomen_lower", "upper_abdomen_left", "upper_abdomen_right", "lower_abdomen_left", "lower_abdomen_right", "waist", "waist_front", "waist_back", "waist_left", "waist_right", "flank_left", "flank_right"]},
+    {"label": "PELVIS AND EXTERNAL ANATOMY", "ids": ["pelvis_front", "pelvis_back", "hip_left", "hip_right", "iliac_crest_left", "iliac_crest_right", "buttock_left", "buttock_right", "gluteal_left", "gluteal_right", "inguinal_left", "inguinal_right", "groin", "perineum", "anal_region", "vulva_external", "penis_external", "scrotum"]},
+    {"label": "ARMS AND HANDS", "ids": ["shoulder_left", "shoulder_right", "upper_arm_left", "upper_arm_right", "bicep_left", "bicep_right", "tricep_left", "tricep_right", "elbow_left", "elbow_right", "forearm_left", "forearm_right", "wrist_left", "wrist_right", "palm_left", "palm_right", "hand_back_left", "hand_back_right", "thumb_left", "thumb_right", "index_finger_left", "index_finger_right", "middle_finger_left", "middle_finger_right", "ring_finger_left", "ring_finger_right", "little_finger_left", "little_finger_right"]},
+    {"label": "LEGS AND FEET", "ids": ["thigh_inner_left", "thigh_inner_right", "thigh_outer_left", "thigh_outer_right", "knee_left", "knee_right", "calf_left", "calf_right", "ankle_left", "ankle_right", "foot_top_left", "foot_top_right", "foot_sole_left", "foot_sole_right", "heel_left", "heel_right", "toes_left", "toes_right", "instep_left", "instep_right"]}
 ]
 const REGION_PAIRS := {
     "breast_left": "breast_right", "breast_right": "breast_left",
@@ -261,7 +261,7 @@ func _build_interface() -> void:
     for group in REGION_GROUPS:
         _region_option.get_popup().add_separator(String(group["label"]))
         for region_id in group["ids"]:
-            _region_option.add_item(REGION_LABELS[region_id])
+            _region_option.add_item(String(REGION_LABELS.get(region_id, region_id.replace("_", " ").capitalize())))
             _region_option.set_item_metadata(_region_option.get_item_count() - 1, region_id)
     _region_option.select(1)
     _region_option.item_selected.connect(_on_region_selected)
@@ -550,7 +550,7 @@ func _paint_at(screen_position: Vector2) -> void:
     var normal_transform := mesh_transform.basis.inverse().transposed()
     var weights: PackedFloat32Array = _get_or_create_weights(_selected_region, vertices.size())
     var erase_mode := _mode_option.selected == 1
-    var paired_region := String(REGION_PAIRS.get(_selected_region, _selected_region))
+    var paired_region := _paired_region_id(_selected_region)
     var paired_weights := _get_or_create_weights(paired_region, vertices.size()) if _mirror_check.button_pressed else PackedFloat32Array()
     var mirror_map: PackedInt32Array = _get_mirror_map(descriptor_index) if _mirror_check.button_pressed else PackedInt32Array()
     var touched := 0
@@ -580,6 +580,20 @@ func _paint_at(screen_position: Vector2) -> void:
     _set_status("Painted %s: %d vertices affected%s" % [
         _selected_region, touched, " (mirrored)" if _mirror_check.button_pressed else ""
     ])
+
+
+func _paired_region_id(region_id: String) -> String:
+    if REGION_PAIRS.has(region_id):
+        return String(REGION_PAIRS[region_id])
+    if region_id.ends_with("_left"):
+        var candidate := region_id.trim_suffix("_left") + "_right"
+        if MASK_SCRIPT.REGION_IDS.has(candidate):
+            return candidate
+    elif region_id.ends_with("_right"):
+        var candidate := region_id.trim_suffix("_right") + "_left"
+        if MASK_SCRIPT.REGION_IDS.has(candidate):
+            return candidate
+    return region_id
 
 
 func _get_or_create_weights(region_id: String, vertex_count: int) -> PackedFloat32Array:
