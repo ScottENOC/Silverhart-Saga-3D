@@ -118,6 +118,11 @@ func _test_hollowmere_character_manifest() -> void:
         if String(profile.get("role", "")) != "companion":
             continue
         companion_count += 1
+        # Wren is a story-specific starting companion, not one of the eight
+        # canonical builds ported from companionProgression.js. Her progression
+        # remains separately authored rather than guessed from her sword.
+        if String(profile.get("id", "")) == "wren_talbot":
+            continue
         assert(profile.has("progression"), "%s must have source-authored progression" % profile.get("name", "companion"))
         var progression: Dictionary = profile["progression"]
         assert(not progression.get("class_levels", []).is_empty(), "Canonical companions need ordered class levels")
