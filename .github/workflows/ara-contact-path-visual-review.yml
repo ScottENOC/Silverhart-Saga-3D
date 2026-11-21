@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/ara-contact-path-visual-review.yml"
       - "tools/review/ara_contact_path_review.gd"
+      - "scripts/characters/character_body_surface.gd"
       - "scripts/characters/character_surface_contact_path.gd"
       - "scripts/characters/character_surface_regions.gd"
       - "scripts/characters/character_surface_region_mask.gd"
