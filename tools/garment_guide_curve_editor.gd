@@ -175,7 +175,7 @@ func _build_interface() -> void:
     heading.text = "Ara garment guide editor"
     heading.add_theme_font_size_override("font_size", 18)
     column.add_child(heading)
-    _caption(column, "Click the body to place surface-attached guide points. Right-drag orbits; wheel zooms.")
+    _caption(column, "Click or tap the body to place guide points. Right-drag / one-finger drag orbits; wheel / pinch zooms.")
     _caption(column, "Body")
     _body_option = OptionButton.new()
     for body_name in BODY_OPTIONS:
