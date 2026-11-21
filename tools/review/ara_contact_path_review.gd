@@ -125,16 +125,12 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
             var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
             var y_min := INF
             var y_max := -INF
-            var z_min := INF
-            var z_max := -INF
             for vertex in vertices:
                 y_min = minf(y_min, vertex.y)
                 y_max = maxf(y_max, vertex.y)
-                z_min = minf(z_min, vertex.z)
-                z_max = maxf(z_max, vertex.z)
             var height := maxf(y_max - y_min, 0.001)
-            var front_sign := 1.0 if absf(z_max) >= absf(z_min) else -1.0
-            var candidates: Array[Dictionary] = []
+            var positive_facing: Array[Dictionary] = []
+            var negative_facing: Array[Dictionary] = []
             var triangle_count := indices.size() if not indices.is_empty() else vertices.size()
             for offset in range(0, triangle_count - 2, 3):
                 var tri := PackedInt32Array()
@@ -153,9 +149,16 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
                 normal = normal.normalized()
                 var centre := (a + b + c) / 3.0
                 var y_ratio := (centre.y - y_min) / height
-                if y_ratio < 0.34 or y_ratio > 0.66 or normal.z * front_sign < 0.45:
+                if y_ratio < 0.34 or y_ratio > 0.66 or absf(normal.z) < 0.45:
                     continue
-                candidates.append({"triangle": tri, "centre": centre})
+                var candidate := {"triangle": tri, "centre": centre}
+                if normal.z > 0.0:
+                    positive_facing.append(candidate)
+                else:
+                    negative_facing.append(candidate)
+            # Imported winding may point either way. Select the better-populated
+            # outward-facing side rather than assuming Ara's forward axis or winding.
+            var candidates: Array[Dictionary] = positive_facing if positive_facing.size() >= negative_facing.size() else negative_facing
             if candidates.size() < 3:
                 continue
             candidates.sort_custom(func(a: Dictionary, b: Dictionary): return a["centre"].x < b["centre"].x)
