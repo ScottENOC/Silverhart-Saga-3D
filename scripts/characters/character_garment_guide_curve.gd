@@ -1,6 +1,6 @@
 class_name CharacterGarmentGuideCurve
 extends Resource
-## A named garment construction guide attached to one exact Ara mesh surface.
+## A named garment construction guide attached to one exact character mesh surface.
 ## Each point is a barycentric coordinate inside a source triangle, so it follows
 ## the same skinning and blend-shape evaluation as the body surface.
 
@@ -13,7 +13,9 @@ const VALID_GUIDE_IDS := [
     "elbow_opening_left", "elbow_opening_right", "wrist_opening_left",
     "wrist_opening_right", "knee_opening_left", "knee_opening_right",
     "ankle_opening_left", "ankle_opening_right", "foot_opening_left",
-    "foot_opening_right", "heel_alignment", "toe_alignment"
+    "foot_opening_right", "heel_alignment", "toe_alignment",
+    "cup_perimeter_left", "cup_perimeter_right", "centre_gore",
+    "underband_front", "underband_back", "strap_left", "strap_right"
 ]
 
 @export var body_asset_path: String = ""
@@ -30,6 +32,7 @@ const VALID_GUIDE_IDS := [
 @export var points: Array[Dictionary] = []
 
 var last_evaluation_error: String = ""
+var _surface_path_evaluator: CharacterSurfaceContactPath
 
 
 func validate_for_mesh(mesh_instance: MeshInstance3D, body_root: Node3D, expected_body_asset_path: String) -> String:
@@ -79,7 +82,7 @@ func validate_for_mesh(mesh_instance: MeshInstance3D, body_root: Node3D, expecte
     return ""
 
 
-func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
+func evaluate(surface_regions: CharacterBodySurface) -> Array[Dictionary]:
     var result: Array[Dictionary] = []
     last_evaluation_error = ""
     if surface_regions == null:
@@ -143,6 +146,43 @@ func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
         result[point_index]["binormal"] = binormal
         result[point_index]["frame"] = Transform3D(frame, result[point_index]["position"])
     return result
+
+
+
+## Densifies the authored guide by routing between anchors over the exact
+## source mesh's triangle-edge graph. This approximates a geodesic; it never
+## substitutes a straight chord through the body.
+func evaluate_surface_path(surface_regions: CharacterBodySurface) -> Array[Dictionary]:
+    last_evaluation_error = ""
+    if surface_regions == null:
+        last_evaluation_error = "Surface-region evaluator is null"
+        return []
+    var mesh_instance := surface_regions.get_surface_mesh_instance(mesh_node_path, surface_index)
+    if mesh_instance == null or mesh_instance.mesh == null:
+        last_evaluation_error = "Garment guide source mesh is unavailable"
+        return []
+    var arrays := mesh_instance.mesh.surface_get_arrays(surface_index)
+    var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+    if vertices.size() != vertex_count:
+        last_evaluation_error = "Garment guide source vertex count changed"
+        return []
+    # Reuse the topology-constrained path solver while keeping guide resources
+    # separate from contact choreography resources.
+    if _surface_path_evaluator == null:
+        _surface_path_evaluator = CharacterSurfaceContactPath.new()
+    var evaluator := _surface_path_evaluator
+    evaluator.body_asset_path = body_asset_path
+    evaluator.mesh_node_path = mesh_node_path
+    evaluator.surface_index = surface_index
+    evaluator.surface_name = surface_name
+    evaluator.vertex_count = vertex_count
+    evaluator.surface_signature = surface_signature
+    evaluator.path_id = "garment_guide_" + guide_id
+    evaluator.closed_loop = closed_loop
+    evaluator.points = points.duplicate(true)
+    var dense := evaluator.evaluate_surface_path(surface_regions)
+    last_evaluation_error = evaluator.last_evaluation_error
+    return dense
 
 
 func _triangle_exists(arrays: Array, triangle: PackedInt32Array, source_vertex_count: int) -> bool:

@@ -8,6 +8,11 @@ func _initialize() -> void:
 func _run() -> void:
     var editor_script := load("res://tools/garment_guide_curve_editor.gd") as Script
     assert(editor_script != null, "Garment guide editor script failed to load")
+    var guide_script := load("res://scripts/characters/character_garment_guide_curve.gd") as Script
+    assert(guide_script != null, "Garment guide curve script failed to load")
+    var guide_probe = guide_script.new()
+    assert(guide_probe.has_method("evaluate_surface_path"),
+        "Garment guides must expose mesh-constrained dense path evaluation")
     var constants: Dictionary = editor_script.get_script_constant_map()
     var labels: Dictionary = constants.get("GUIDE_LABELS", {})
     var pairs: Dictionary = constants.get("GUIDE_PAIRS", {})
@@ -20,6 +25,45 @@ func _run() -> void:
             "Guide pair points to unsupported ID: " + String(pairs[guide_id]))
         assert(pairs.has(pairs[guide_id]) and pairs[pairs[guide_id]] == guide_id,
             "Guide pairing is not reciprocal for " + String(guide_id))
+    var body_options: Dictionary = constants.get("BODY_OPTIONS", {})
+    assert(body_options.get("Wren (current native build)", "") == "res://build/wren-native/Wren.glb",
+        "Garment guides must target the current native Wren build")
+    assert(body_options.get("Aldric (current native build)", "") == "res://build/aldric-native/Aldric.glb",
+        "Garment guides must target the current native Aldric build")
+    assert(body_options.size() == 2, "Generic Ara bodies must not remain garment guide targets")
+
+    var coverage_script := load("res://scripts/characters/character_garment_coverage_definition.gd") as Script
+    assert(coverage_script != null, "Garment coverage definition failed to load")
+    var coverage = coverage_script.new()
+    coverage.garment_id = "test_bra"
+    coverage.body_asset_path = "res://build/wren-native/Wren.glb"
+    var coverage_parts: Array[Dictionary] = [
+        {
+            "part_id": "left_cup",
+            "region_ids": PackedStringArray(["breast_left", "sternum"]),
+            "boundary_guide_ids": PackedStringArray(["cup_perimeter_left"]),
+            "fit_mode": "support",
+            "normal_offset_m": 0.003,
+            "clearance_m": 0.002,
+            "compression": 0.15,
+            "support": 0.8
+        }
+    ]
+    coverage.coverage_parts = coverage_parts
+    assert(coverage.validate_definition().is_empty(),
+        "A cup should allow overlapping breast/sternum coverage channels")
+    coverage.coverage_parts[0]["boundary_guide_ids"] = PackedStringArray(["unknown_bra_seam"])
+    assert(not coverage.validate_definition().is_empty(),
+        "Unknown garment boundary guides must be rejected")
+    coverage.coverage_parts[0]["boundary_guide_ids"] = PackedStringArray(["cup_perimeter_left"])
+    coverage.coverage_parts[0]["region_ids"] = PackedStringArray(["not_an_anatomy_region"])
+    assert(not coverage.validate_definition().is_empty(),
+        "Unknown anatomical region IDs must be rejected")
+    coverage.coverage_parts[0]["region_ids"] = PackedStringArray(["breast_left", "sternum"])
+    coverage.coverage_parts.append(coverage.coverage_parts[0].duplicate(true))
+    assert(not coverage.validate_definition().is_empty(),
+        "Duplicate garment coverage part IDs must be rejected")
+
     var scene := load("res://tools/garment_guide_curve_editor.tscn") as PackedScene
     assert(scene != null, "Garment guide editor scene failed to load")
     var manifest := load("res://data/characters/garment_guides/manifest.tres") as CharacterGarmentGuideManifest

@@ -71,7 +71,11 @@ func _test_mask_contract(asset_path: String) -> void:
     var weights := PackedFloat32Array()
     weights.resize(target_vertex_count)
     weights[target_vertex] = 1.0
-    mask.region_weights = {region_id: weights}
+    var overlap_id := "sternum"
+    var overlap_weights := PackedFloat32Array()
+    overlap_weights.resize(target_vertex_count)
+    overlap_weights[target_vertex] = 0.65
+    mask.region_weights = {region_id: weights, overlap_id: overlap_weights}
 
     assert(mask.validate_for_mesh(target_mesh, body_root, asset_path).is_empty(),
         "Valid synthetic mask was rejected for " + asset_path)
@@ -95,9 +99,13 @@ func _test_mask_contract(asset_path: String) -> void:
     assert(regions.configure(actor_root, body_root, [mask], asset_path),
         "Fine mask configuration failed for %s: %s" % [asset_path, regions.get_configuration_error()])
     assert(regions.has_region(region_id, 0.5), "Authored fine region was not exposed for " + asset_path)
+    assert(regions.has_region(overlap_id, 0.5), "Overlapping fine region was not exposed for " + asset_path)
     var samples := regions.get_region_surface_samples(region_id, 0.5)
     assert(samples.size() == 1, "Expected one synthetic authored sample for %s, got %d" % [asset_path, samples.size()])
     assert(int(samples[0]["vertex_index"]) == target_vertex, "Fine mask sample lost source vertex identity")
+    var overlap_samples := regions.get_region_surface_samples(overlap_id, 0.5)
+    assert(overlap_samples.size() == 1 and int(overlap_samples[0]["vertex_index"]) == target_vertex,
+        "A single source vertex must be queryable through two overlapping anatomical regions")
 
     var invalid_regions := CharacterSurfaceRegions.new()
     assert(not invalid_regions.configure(actor_root, body_root, [stale_signature], asset_path),

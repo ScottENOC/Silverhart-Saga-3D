@@ -4,8 +4,8 @@ extends Control
 
 const INPUT_ROUTER_SCRIPT = preload("res://tools/anatomy_surface_painter_input.gd")
 const BODY_OPTIONS := {
-    "Female Ara": "res://art/characters/ara_runtime/ara_person_body_anatomy.glb",
-    "Male Ara": "res://art/characters/ara_runtime/ara_person_male_body.glb"
+    "Wren (current native build)": "res://build/wren-native/Wren.glb",
+    "Aldric (current native build)": "res://build/aldric-native/Aldric.glb"
 }
 const LANDMARK_LABELS := {
     "sternum": "Sternum",
@@ -73,7 +73,7 @@ var _camera_target := Vector3(0.0, 0.85, 0.0)
 
 func _ready() -> void:
     _build_interface()
-    _load_body("Female Ara")
+    _load_body("Wren (current native build)")
 
 
 func _build_interface() -> void:
@@ -147,7 +147,7 @@ func _build_interface() -> void:
     column.add_theme_constant_override("separation", 8)
     scroll.add_child(column)
     var heading := Label.new()
-    heading.text = "Ara surface landmark editor"
+    heading.text = "Wren / Aldric surface landmark editor"
     heading.add_theme_font_size_override("font_size", 18)
     column.add_child(heading)
     _caption(column, "Tap/click the body to place one precise anatomical point. Drag with one finger or right mouse to orbit; pinch or wheel to zoom. The yellow line shows the surface normal.")
@@ -183,9 +183,9 @@ func _build_interface() -> void:
     column.add_child(save)
     _status = Label.new()
     _status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    _status.text = "Loading Ara body…"
+    _status.text = "Loading native companion…"
     column.add_child(_status)
-    _caption(column, "Male and female landmarks are authored separately. A semantic ID is shared vocabulary, not a claim that both bodies have identical geometry. Only save after checking the point from front, side and rear views.")
+    _caption(column, "Wren and Aldric landmarks are authored separately. A semantic ID is shared vocabulary, not a claim that both bodies have identical geometry. Only save after checking the point from front, side and rear views.")
 
 
 func _caption(parent: VBoxContainer, value: String) -> void:
@@ -209,7 +209,7 @@ func _load_body(body_name: String) -> void:
     _normal_mesh.clear_surfaces()
     var packed := load(String(BODY_OPTIONS.get(body_name, ""))) as PackedScene
     if packed == null:
-        _set_status("Could not load selected Ara body.")
+        _set_status("Could not load selected native companion body.")
         return
     _body_root = packed.instantiate() as Node3D
     if _body_root == null:
@@ -495,7 +495,7 @@ func _set_default_path() -> void:
         return
     var descriptor: Dictionary = _descriptors[_selected_descriptor]
     var mesh: MeshInstance3D = descriptor["mesh"]
-    var prefix := "female" if _body_option.get_item_text(_body_option.selected) == "Female Ara" else "male"
+    var prefix := "wren" if _body_option.get_item_text(_body_option.selected).begins_with("Wren") else "aldric"
     _save_path.text = "%s/%s_%s_surface_%d_%s.tres" % [
         LANDMARK_DIRECTORY, prefix, String(mesh.name).to_snake_case(),
         int(descriptor["surface_index"]), _selected_landmark_id()

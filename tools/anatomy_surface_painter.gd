@@ -3,6 +3,10 @@ extends Control
 ## Open res://tools/anatomy_surface_painter.tscn and run it from the editor.
 
 const MASK_SCRIPT = preload("res://scripts/characters/character_surface_region_mask.gd")
+const PARTITION_SCRIPT = preload("res://scripts/characters/character_surface_region_partition.gd")
+const PARTITION_REGION_IDS := PackedStringArray(["head_neck", "torso", "pelvis", "upper_arm_left", "upper_arm_right", "forearm_left", "forearm_right", "hand_left", "hand_right", "thigh_left", "thigh_right", "lower_leg_left", "lower_leg_right", "foot_left", "foot_right"])
+const PARTITION_REGION_LABELS := ["Head and neck", "Torso", "Pelvis", "Upper arm — left", "Upper arm — right", "Forearm — left", "Forearm — right", "Hand — left", "Hand — right", "Thigh — left", "Thigh — right", "Lower leg — left", "Lower leg — right", "Foot — left", "Foot — right"]
+const PARTITION_DIRECTORY := "res://data/characters/anatomy_partitions"
 const INPUT_ROUTER_SCRIPT = preload("res://tools/anatomy_surface_painter_input.gd")
 const BODY_OPTIONS := {
     "Wren (current native build)": "res://build/wren-native/Wren.glb",
@@ -84,11 +88,11 @@ const REGION_LABELS := {
     "foot_sole_right": "Sole — right"
 }
 const REGION_GROUPS := [
-    {"label": "HEAD AND NECK", "ids": ["face_front", "lips", "ear_left", "ear_right", "neck_front", "neck_back", "neck_left", "neck_right"]},
-    {"label": "TORSO AND CHEST", "ids": ["clavicle_left", "clavicle_right", "chest_front_left", "chest_front_right", "pectoral_left", "pectoral_right", "sternum", "ribcage_left", "ribcage_right", "lower_back", "breast_left", "breast_right", "areola_left", "areola_right", "nipple_left", "nipple_right", "underbust", "chest_back", "abdomen_upper", "abdomen_lower", "waist", "waist_front", "waist_back", "waist_left", "waist_right", "flank_left", "flank_right"]},
-    {"label": "PELVIS AND EXTERNAL ANATOMY", "ids": ["pelvis_front", "pelvis_back", "hip_left", "hip_right", "buttock_left", "buttock_right", "groin", "perineum", "anal_region", "vulva_external", "penis_external", "scrotum"]},
-    {"label": "ARMS AND HANDS", "ids": ["shoulder_left", "shoulder_right", "elbow_left", "elbow_right", "forearm_left", "forearm_right", "wrist_left", "wrist_right", "palm_left", "palm_right", "hand_back_left", "hand_back_right"]},
-    {"label": "LEGS AND FEET", "ids": ["thigh_inner_left", "thigh_inner_right", "thigh_outer_left", "thigh_outer_right", "knee_left", "knee_right", "calf_left", "calf_right", "ankle_left", "ankle_right", "foot_top_left", "foot_top_right", "foot_sole_left", "foot_sole_right"]}
+    {"label": "HEAD AND NECK", "ids": ["face_front", "head_top", "head_back", "head_left", "head_right", "forehead", "temple_left", "temple_right", "brow_left", "brow_right", "eye_socket_left", "eye_socket_right", "eyelid_upper_left", "eyelid_upper_right", "eyelid_lower_left", "eyelid_lower_right", "cheek_left", "cheek_right", "nose_bridge", "nose_tip", "nostril_left", "nostril_right", "jaw_left", "jaw_right", "chin", "face_side_left", "face_side_right", "lips", "ear_left", "ear_right", "ear_inner_left", "ear_inner_right", "ear_lobe_left", "ear_lobe_right", "neck_front", "neck_back", "neck_left", "neck_right", "upper_neck_front", "upper_neck_back", "throat", "nape"]},
+    {"label": "TORSO AND CHEST", "ids": ["clavicle_left", "clavicle_right", "chest_front_left", "chest_front_right", "pectoral_left", "pectoral_right", "sternum", "ribcage_left", "ribcage_right", "lower_back", "upper_back", "mid_back", "scapula_left", "scapula_right", "lumbar_back", "sacrum", "breast_left", "breast_right", "areola_left", "areola_right", "nipple_left", "nipple_right", "underbust", "chest_back", "abdomen_upper", "abdomen_lower", "upper_abdomen_left", "upper_abdomen_right", "lower_abdomen_left", "lower_abdomen_right", "waist", "waist_front", "waist_back", "waist_left", "waist_right", "flank_left", "flank_right"]},
+    {"label": "PELVIS AND EXTERNAL ANATOMY", "ids": ["pelvis_front", "pelvis_back", "hip_left", "hip_right", "iliac_crest_left", "iliac_crest_right", "buttock_left", "buttock_right", "gluteal_left", "gluteal_right", "inguinal_left", "inguinal_right", "groin", "perineum", "anal_region", "vulva_external", "penis_external", "scrotum"]},
+    {"label": "ARMS AND HANDS", "ids": ["shoulder_left", "shoulder_right", "upper_arm_left", "upper_arm_right", "bicep_left", "bicep_right", "tricep_left", "tricep_right", "elbow_left", "elbow_right", "forearm_left", "forearm_right", "wrist_left", "wrist_right", "palm_left", "palm_right", "hand_back_left", "hand_back_right", "thumb_left", "thumb_right", "index_finger_left", "index_finger_right", "middle_finger_left", "middle_finger_right", "ring_finger_left", "ring_finger_right", "little_finger_left", "little_finger_right"]},
+    {"label": "LEGS AND FEET", "ids": ["thigh_inner_left", "thigh_inner_right", "thigh_outer_left", "thigh_outer_right", "knee_left", "knee_right", "calf_left", "calf_right", "ankle_left", "ankle_right", "foot_top_left", "foot_top_right", "foot_sole_left", "foot_sole_right", "heel_left", "heel_right", "toes_left", "toes_right", "instep_left", "instep_right"]}
 ]
 const REGION_PAIRS := {
     "breast_left": "breast_right", "breast_right": "breast_left",
@@ -133,6 +137,9 @@ var _weights_by_region: Dictionary = {}
 var _mirror_map_cache: Dictionary = {}
 var _point_cloud: MultiMeshInstance3D
 var _region_option: OptionButton
+var _partition_mode_check: CheckButton
+var _partition_region_option: OptionButton
+var _partition_assignments := PackedInt32Array()
 var _surface_option: OptionButton
 var _body_option: OptionButton
 var _radius_spin: SpinBox
@@ -140,6 +147,9 @@ var _strength_slider: HSlider
 var _mirror_check: CheckButton
 var _mode_option: OptionButton
 var _status_label: Label
+var _inspect_check: CheckButton
+var _membership_label: Label
+var _inspected_point_marker: MeshInstance3D
 var _save_path_edit: LineEdit
 var _selected_region := "breast_left"
 var _brush_radius := 0.045
@@ -151,6 +161,10 @@ var _camera_pitch := 0.12
 var _camera_distance := 2.2
 var _camera_target := Vector3(0.0, 0.85, 0.0)
 var _last_paint_position := Vector2(-10000, -10000)
+var _touch_positions: Dictionary = {}
+var _touch_start_position := Vector2.ZERO
+var _touch_dragged := false
+var _pinch_distance := 0.0
 
 
 func _ready() -> void:
@@ -218,6 +232,19 @@ func _build_interface() -> void:
     _point_cloud.multimesh = multi
     _world_root.add_child(_point_cloud)
 
+    _inspected_point_marker = MeshInstance3D.new()
+    var inspected_sphere := SphereMesh.new()
+    inspected_sphere.radius = 0.014
+    inspected_sphere.height = 0.028
+    var inspected_material := StandardMaterial3D.new()
+    inspected_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    inspected_material.albedo_color = Color(1.0, 0.72, 0.12)
+    inspected_material.no_depth_test = true
+    inspected_sphere.material = inspected_material
+    _inspected_point_marker.mesh = inspected_sphere
+    _inspected_point_marker.visible = false
+    _world_root.add_child(_inspected_point_marker)
+
     var panel := PanelContainer.new()
     panel.anchor_left = 1.0
     panel.anchor_right = 1.0
@@ -256,12 +283,27 @@ func _build_interface() -> void:
     _surface_option.item_selected.connect(_on_surface_selected)
     column.add_child(_surface_option)
 
-    _add_caption(column, "Anatomical region")
+    _partition_mode_check = CheckButton.new()
+    _partition_mode_check.text = "Exclusive primary partition (draft)"
+    _partition_mode_check.tooltip_text = "Separate one-owner-per-vertex map. Does not alter overlapping feature masks."
+    _partition_mode_check.toggled.connect(_on_partition_mode_toggled)
+    column.add_child(_partition_mode_check)
+    _partition_region_option = OptionButton.new()
+    for label in PARTITION_REGION_LABELS:
+        _partition_region_option.add_item(label)
+    _partition_region_option.visible = false
+    _partition_region_option.item_selected.connect(func(index: int):
+        if index >= 0 and index < PARTITION_REGION_IDS.size():
+            _selected_region = String(PARTITION_REGION_IDS[index])
+            _rebuild_markers()
+    )
+    column.add_child(_partition_region_option)
+    _add_caption(column, "Overlapping anatomical feature")
     _region_option = OptionButton.new()
     for group in REGION_GROUPS:
         _region_option.get_popup().add_separator(String(group["label"]))
         for region_id in group["ids"]:
-            _region_option.add_item(REGION_LABELS[region_id])
+            _region_option.add_item(String(REGION_LABELS.get(region_id, region_id.replace("_", " ").capitalize())))
             _region_option.set_item_metadata(_region_option.get_item_count() - 1, region_id)
     _region_option.select(1)
     _region_option.item_selected.connect(_on_region_selected)
@@ -294,6 +336,19 @@ func _build_interface() -> void:
     _mirror_check.text = "Mirror paired left/right region"
     column.add_child(_mirror_check)
 
+    _inspect_check = CheckButton.new()
+    _inspect_check.text = "Inspect point memberships"
+    _inspect_check.tooltip_text = "Tap a surface point to inspect all authored region memberships at that location."
+    _inspect_check.toggled.connect(func(enabled: bool):
+        _painting = false
+        _set_status("Membership inspection enabled. Tap a point on the selected surface." if enabled else "Painting mode enabled.")
+    )
+    column.add_child(_inspect_check)
+    _membership_label = Label.new()
+    _membership_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    _membership_label.text = "Point inspector: no surface point selected."
+    column.add_child(_membership_label)
+
     var clear_button := Button.new()
     clear_button.text = "Clear selected region"
     clear_button.pressed.connect(_clear_selected_region)
@@ -318,7 +373,7 @@ func _build_interface() -> void:
 
     var help := Label.new()
     help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    help.text = "View: left-drag paints; right-drag orbits; wheel zooms. Paint the chosen side, then enable mirroring if appropriate. Blue markers show non-zero weights. Save each mesh surface to its own resource."
+    help.text = "Mouse: left-drag paints, right-drag orbits, wheel zooms. Touch: one-finger drag paints, two-finger drag orbits and pinches to zoom. Inspect point memberships to tap a point and see all overlapping authored regions. Blue markers show the selected region only."
     column.add_child(help)
 
 
@@ -327,6 +382,27 @@ func _add_caption(parent: VBoxContainer, text_value: String) -> void:
     label.text = text_value
     label.add_theme_color_override("font_color", Color(0.72, 0.78, 0.83))
     parent.add_child(label)
+
+
+func _on_partition_mode_toggled(enabled: bool) -> void:
+    _painting = false
+    _partition_region_option.visible = enabled
+    _region_option.visible = not enabled
+    _mirror_check.disabled = enabled
+    _inspect_check.button_pressed = false
+    if enabled:
+        _selected_region = String(PARTITION_REGION_IDS[_partition_region_option.selected])
+        if _selected_descriptor >= 0:
+            var descriptor: Dictionary = _descriptors[_selected_descriptor]
+            var body_prefix := "wren" if _body_asset_path.ends_with("/Wren.glb") else "aldric"
+            var mesh_name := String((descriptor["mesh"] as MeshInstance3D).name).to_snake_case()
+            _save_path_edit.text = "%s/%s_%s_surface_%d_primary.tres" % [PARTITION_DIRECTORY, body_prefix, mesh_name, int(descriptor["surface_index"])]
+        _set_status("Exclusive partition draft mode. Paint assigns one owner; erase leaves vertices unassigned. Save checks coverage and connectivity.")
+    else:
+        if _selected_descriptor >= 0:
+            _save_path_edit.text = _default_save_path(_descriptors[_selected_descriptor])
+        _set_status("Overlapping feature-mask mode restored.")
+    _rebuild_markers()
 
 
 func _on_body_selected(index: int) -> void:
@@ -361,7 +437,12 @@ func _load_body(body_name: String) -> void:
         ])
     _selected_descriptor = 0
     _surface_option.select(0)
-    _save_path_edit.text = _default_save_path(_descriptors[0])
+    if _partition_mode_check.button_pressed:
+        var body_prefix := "wren" if _body_asset_path.ends_with("/Wren.glb") else "aldric"
+        var mesh_name := String((_descriptors[0]["mesh"] as MeshInstance3D).name).to_snake_case()
+        _save_path_edit.text = "%s/%s_%s_surface_%d_primary.tres" % [PARTITION_DIRECTORY, body_prefix, mesh_name, int(_descriptors[0]["surface_index"])]
+    else:
+        _save_path_edit.text = _default_save_path(_descriptors[0])
     _frame_body()
     _load_current_mask()
     _rebuild_markers()
@@ -376,8 +457,13 @@ func _clear_body() -> void:
             child.queue_free()
     _descriptors.clear()
     _weights_by_region.clear()
+    _partition_assignments = PackedInt32Array()
     _mirror_map_cache.clear()
     _point_cloud.multimesh.instance_count = 0
+    if is_instance_valid(_inspected_point_marker):
+        _inspected_point_marker.visible = false
+    if is_instance_valid(_membership_label):
+        _membership_label.text = "Point inspector: no surface point selected."
 
 
 func _collect_surface_descriptors(node: Node) -> void:
@@ -400,10 +486,7 @@ func _collect_surface_descriptors(node: Node) -> void:
                         triangle_ids.append(vertex_index + 2)
                 else:
                     triangle_ids = indices
-                var faces := PackedVector3Array()
-                for vertex_id in triangle_ids:
-                    faces.append(vertices[vertex_id])
-                if faces.is_empty():
+                if triangle_ids.is_empty():
                     continue
                 var descriptor_index := _descriptors.size()
                 var descriptor := {
@@ -412,24 +495,30 @@ func _collect_surface_descriptors(node: Node) -> void:
                     "vertices": vertices,
                     "normals": normals,
                     "triangle_ids": triangle_ids,
-                    "weights": {},
-                    "faces": faces
+                    "weights": {}
                 }
                 _descriptors.append(descriptor)
 
-                var shape := ConcavePolygonShape3D.new()
-                shape.backface_collision = true
-                shape.set_faces(faces)
-                var collision_body := StaticBody3D.new()
-                collision_body.name = "PaintCollider_%d" % descriptor_index
-                collision_body.set_meta("descriptor_index", descriptor_index)
-                collision_body.collision_layer = 1
-                collision_body.collision_mask = 1
-                var collision_shape := CollisionShape3D.new()
-                collision_shape.shape = shape
-                collision_body.add_child(collision_shape)
-                _world_root.add_child(collision_body)
-                collision_body.global_transform = mesh_instance.global_transform
+                # Headless validation only needs the imported vertex/index data and
+                # must not cook a full concave physics collider for every GLB surface.
+                # The interactive painter still gets exact triangle picking in GUI runs.
+                if DisplayServer.get_name() != "headless":
+                    var faces := PackedVector3Array()
+                    for vertex_id in triangle_ids:
+                        faces.append(vertices[vertex_id])
+                    var shape := ConcavePolygonShape3D.new()
+                    shape.backface_collision = true
+                    shape.set_faces(faces)
+                    var collision_body := StaticBody3D.new()
+                    collision_body.name = "PaintCollider_%d" % descriptor_index
+                    collision_body.set_meta("descriptor_index", descriptor_index)
+                    collision_body.collision_layer = 1
+                    collision_body.collision_mask = 1
+                    var collision_shape := CollisionShape3D.new()
+                    collision_shape.shape = shape
+                    collision_body.add_child(collision_shape)
+                    _world_root.add_child(collision_body)
+                    collision_body.global_transform = mesh_instance.global_transform
     for child in node.get_children():
         _collect_surface_descriptors(child)
 
@@ -439,10 +528,16 @@ func _on_surface_selected(index: int) -> void:
         return
     _selected_descriptor = index
     _mirror_map_cache.erase(index)
+    _partition_assignments = PackedInt32Array()
     _load_current_mask()
     _rebuild_markers()
     var descriptor: Dictionary = _descriptors[index]
-    _save_path_edit.text = _default_save_path(descriptor)
+    if _partition_mode_check.button_pressed:
+        var body_prefix := "wren" if _body_asset_path.ends_with("/Wren.glb") else "aldric"
+        var mesh_name := String((descriptor["mesh"] as MeshInstance3D).name).to_snake_case()
+        _save_path_edit.text = "%s/%s_%s_surface_%d_primary.tres" % [PARTITION_DIRECTORY, body_prefix, mesh_name, int(descriptor["surface_index"])]
+    else:
+        _save_path_edit.text = _default_save_path(descriptor)
 
 
 func _on_region_selected(index: int) -> void:
@@ -494,9 +589,12 @@ func _on_viewport_gui_input(event: InputEvent) -> void:
             _orbiting = mouse_button.pressed
             _viewport.set_input_as_handled()
         elif mouse_button.button_index == MOUSE_BUTTON_LEFT:
-            _painting = mouse_button.pressed
+            _painting = mouse_button.pressed and not _inspect_check.button_pressed
             if mouse_button.pressed:
-                _paint_at(mouse_button.position)
+                if _inspect_check.button_pressed:
+                    _inspect_at(mouse_button.position)
+                else:
+                    _paint_at(mouse_button.position)
             _viewport.set_input_as_handled()
         elif mouse_button.button_index == MOUSE_BUTTON_WHEEL_UP and mouse_button.pressed:
             _camera_distance = maxf(0.7, _camera_distance * 0.9)
@@ -515,6 +613,141 @@ func _on_viewport_gui_input(event: InputEvent) -> void:
         elif _painting and motion.position.distance_to(_last_paint_position) >= 3.0:
             _paint_at(motion.position)
         _viewport.set_input_as_handled()
+    elif event is InputEventScreenTouch:
+        var touch := event as InputEventScreenTouch
+        if touch.pressed:
+            _touch_positions[touch.index] = touch.position
+            if _touch_positions.size() == 1:
+                _touch_start_position = touch.position
+                _touch_dragged = false
+            elif _touch_positions.size() == 2:
+                _painting = false
+                var values: Array = _touch_positions.values()
+                _pinch_distance = (values[0] as Vector2).distance_to(values[1])
+        else:
+            if _touch_positions.has(touch.index):
+                if _touch_positions.size() == 1 and not _touch_dragged:
+                    if _inspect_check.button_pressed:
+                        _inspect_at(touch.position)
+                    else:
+                        _paint_at(touch.position)
+                _touch_positions.erase(touch.index)
+                if _touch_positions.size() < 2:
+                    _pinch_distance = 0.0
+                    _painting = false
+        _viewport.set_input_as_handled()
+    elif event is InputEventScreenDrag:
+        var drag := event as InputEventScreenDrag
+        if _touch_positions.size() >= 2:
+            _touch_positions[drag.index] = drag.position
+            var values: Array = _touch_positions.values()
+            var distance: float = (values[0] as Vector2).distance_to(values[1])
+            if _pinch_distance > 1.0 and distance > 1.0:
+                _camera_distance = clampf(_camera_distance * _pinch_distance / distance, 0.7, 5.0)
+            _camera_yaw -= drag.relative.x * 0.004
+            _camera_pitch = clampf(_camera_pitch + drag.relative.y * 0.004, -1.1, 1.1)
+            _pinch_distance = distance
+            _update_camera()
+        elif _touch_positions.size() == 1:
+            _touch_positions[drag.index] = drag.position
+            if drag.position.distance_to(_touch_start_position) > 8.0:
+                _touch_dragged = true
+            if _touch_dragged:
+                if _inspect_check.button_pressed:
+                    _camera_yaw -= drag.relative.x * 0.008
+                    _camera_pitch = clampf(_camera_pitch + drag.relative.y * 0.008, -1.1, 1.1)
+                    _update_camera()
+                else:
+                    _paint_at(drag.position)
+        _viewport.set_input_as_handled()
+
+## Inspect a point on the selected native mesh and report all authored
+## semantic memberships using barycentric interpolation across its hit triangle.
+func _inspect_at(screen_position: Vector2) -> void:
+    if _selected_descriptor < 0 or _selected_descriptor >= _descriptors.size():
+        return
+    var ray_origin := _camera.project_ray_origin(screen_position)
+    var ray_direction := _camera.project_ray_normal(screen_position)
+    var query := PhysicsRayQueryParameters3D.create(ray_origin, ray_origin + ray_direction * 10.0)
+    query.collision_mask = 1
+    var hit := _viewport.world_3d.direct_space_state.intersect_ray(query)
+    if hit.is_empty():
+        _membership_label.text = "Point inspector: no surface hit."
+        _inspected_point_marker.visible = false
+        return
+    var collider := hit["collider"] as Node
+    if not collider.has_meta("descriptor_index") or int(collider.get_meta("descriptor_index")) != _selected_descriptor:
+        _membership_label.text = "Point inspector: select the mesh surface that was hit."
+        return
+    _inspected_point_marker.global_position = hit["position"]
+    _inspected_point_marker.visible = true
+    var descriptor: Dictionary = _descriptors[_selected_descriptor]
+    var triangle_ids: PackedInt32Array = descriptor["triangle_ids"]
+    var face_index := int(hit.get("face_index", -1))
+    var offset := face_index * 3
+    if face_index < 0 or offset + 2 >= triangle_ids.size():
+        _membership_label.text = "Point inspector: hit triangle could not be resolved."
+        return
+    var triangle := PackedInt32Array([triangle_ids[offset], triangle_ids[offset + 1], triangle_ids[offset + 2]])
+    var vertices: PackedVector3Array = descriptor["vertices"]
+    var mesh: MeshInstance3D = descriptor["mesh"]
+    var local_hit: Vector3 = mesh.global_transform.affine_inverse() * hit["position"]
+    var barycentric := _barycentric_weights(local_hit, vertices[triangle[0]], vertices[triangle[1]], vertices[triangle[2]])
+    if barycentric.is_empty():
+        _membership_label.text = "Point inspector: barycentric interpolation failed."
+        return
+    var membership_values: Array[Dictionary] = []
+    for region_variant in _weights_by_region:
+        var region_id := String(region_variant)
+        var values: PackedFloat32Array = _weights_by_region[region_id]
+        if values.size() != vertices.size():
+            continue
+        var interpolated := 0.0
+        for corner in range(3):
+            interpolated += values[triangle[corner]] * barycentric[corner]
+        if interpolated >= 0.05:
+            membership_values.append({"id": region_id, "weight": interpolated})
+    membership_values.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+        return float(a["weight"]) > float(b["weight"])
+    )
+    var memberships: Array[String] = []
+    for membership in membership_values:
+        memberships.append("%s %.2f" % [String(membership["id"]), float(membership["weight"])])
+    var point_text := "Surface point\nTriangle vertices: %d, %d, %d\nBarycentric: %.3f / %.3f / %.3f\n" % [
+        triangle[0], triangle[1], triangle[2], barycentric[0], barycentric[1], barycentric[2]
+    ]
+    if memberships.is_empty():
+        point_text += "No authored memberships at threshold 0.05."
+    else:
+        point_text += "Authored memberships (weight):\n" + "\n".join(memberships)
+    _membership_label.text = point_text
+    _set_status("Inspected %d authored region memberships on %s." % [membership_values.size(), String(mesh.name)])
+
+
+func _barycentric_weights(point: Vector3, a: Vector3, b: Vector3, c: Vector3) -> PackedFloat32Array:
+    var edge_0 := b - a
+    var edge_1 := c - a
+    var relative := point - a
+    var d00 := edge_0.dot(edge_0)
+    var d01 := edge_0.dot(edge_1)
+    var d11 := edge_1.dot(edge_1)
+    var d20 := relative.dot(edge_0)
+    var d21 := relative.dot(edge_1)
+    var denominator := d00 * d11 - d01 * d01
+    if absf(denominator) < 0.0000001:
+        return PackedFloat32Array()
+    var wb := (d11 * d20 - d01 * d21) / denominator
+    var wc := (d00 * d21 - d01 * d20) / denominator
+    var wa := 1.0 - wb - wc
+    if minf(wa, minf(wb, wc)) < -0.02:
+        return PackedFloat32Array()
+    var result := PackedFloat32Array([maxf(0.0, wa), maxf(0.0, wb), maxf(0.0, wc)])
+    var total := result[0] + result[1] + result[2]
+    if total <= 0.000001:
+        return PackedFloat32Array()
+    for index in range(3):
+        result[index] /= total
+    return result
 
 
 func _paint_at(screen_position: Vector2) -> void:
@@ -548,9 +781,12 @@ func _paint_at(screen_position: Vector2) -> void:
     var mesh_instance: MeshInstance3D = descriptor["mesh"]
     var mesh_transform := mesh_instance.global_transform
     var normal_transform := mesh_transform.basis.inverse().transposed()
+    if _partition_mode_check.button_pressed:
+        _paint_partition_vertices(descriptor, hit_position, hit_normal, screen_position)
+        return
     var weights: PackedFloat32Array = _get_or_create_weights(_selected_region, vertices.size())
     var erase_mode := _mode_option.selected == 1
-    var paired_region := String(REGION_PAIRS.get(_selected_region, _selected_region))
+    var paired_region := _paired_region_id(_selected_region)
     var paired_weights := _get_or_create_weights(paired_region, vertices.size()) if _mirror_check.button_pressed else PackedFloat32Array()
     var mirror_map: PackedInt32Array = _get_mirror_map(descriptor_index) if _mirror_check.button_pressed else PackedInt32Array()
     var touched := 0
@@ -580,6 +816,50 @@ func _paint_at(screen_position: Vector2) -> void:
     _set_status("Painted %s: %d vertices affected%s" % [
         _selected_region, touched, " (mirrored)" if _mirror_check.button_pressed else ""
     ])
+
+
+func _paint_partition_vertices(descriptor: Dictionary, hit_position: Vector3, hit_normal: Vector3, screen_position: Vector2) -> void:
+    var vertices: PackedVector3Array = descriptor["vertices"]
+    var normals: PackedVector3Array = descriptor["normals"]
+    if _partition_assignments.size() != vertices.size():
+        _partition_assignments.resize(vertices.size())
+        _partition_assignments.fill(-1)
+    var mesh_instance: MeshInstance3D = descriptor["mesh"]
+    var mesh_transform := mesh_instance.global_transform
+    var normal_transform := mesh_transform.basis.inverse().transposed()
+    var selected_owner := PARTITION_REGION_IDS.find(_selected_region)
+    if selected_owner < 0:
+        _set_status("Select a valid primary region")
+        return
+    var erase_mode := _mode_option.selected == 1
+    var touched := 0
+    for vertex_index in vertices.size():
+        var world_position: Vector3 = mesh_transform * vertices[vertex_index]
+        var distance := world_position.distance_to(hit_position)
+        if distance > _brush_radius:
+            continue
+        var world_normal := (normal_transform * normals[vertex_index]).normalized()
+        if world_normal.dot(hit_normal) < 0.15:
+            continue
+        _partition_assignments[vertex_index] = -1 if erase_mode else selected_owner
+        touched += 1
+    _last_paint_position = screen_position
+    _rebuild_markers()
+    _set_status("Primary partition: %s %d vertices %s." % [_selected_region, touched, "cleared" if erase_mode else "assigned"])
+
+
+func _paired_region_id(region_id: String) -> String:
+    if REGION_PAIRS.has(region_id):
+        return String(REGION_PAIRS[region_id])
+    if region_id.ends_with("_left"):
+        var candidate := region_id.trim_suffix("_left") + "_right"
+        if MASK_SCRIPT.REGION_IDS.has(candidate):
+            return candidate
+    elif region_id.ends_with("_right"):
+        var candidate := region_id.trim_suffix("_right") + "_left"
+        if MASK_SCRIPT.REGION_IDS.has(candidate):
+            return candidate
+    return region_id
 
 
 func _get_or_create_weights(region_id: String, vertex_count: int) -> PackedFloat32Array:
@@ -649,6 +929,27 @@ func _rebuild_markers() -> void:
         return
     var descriptor: Dictionary = _descriptors[_selected_descriptor]
     var vertices: PackedVector3Array = descriptor["vertices"]
+    if _partition_mode_check.button_pressed:
+        if _partition_assignments.size() != vertices.size():
+            _partition_assignments.resize(vertices.size())
+            _partition_assignments.fill(-1)
+        var multi_partition := _point_cloud.multimesh
+        var assigned_count := 0
+        for owner_index in _partition_assignments:
+            if owner_index >= 0:
+                assigned_count += 1
+        multi_partition.instance_count = assigned_count
+        var cursor := 0
+        var partition_transform: Transform3D = descriptor["mesh"].global_transform
+        for vertex_index in vertices.size():
+            var owner_index: int = _partition_assignments[vertex_index]
+            if owner_index < 0:
+                continue
+            var marker_position: Vector3 = partition_transform * vertices[vertex_index]
+            multi_partition.set_instance_transform(cursor, Transform3D(Basis().scaled(Vector3.ONE * 0.9), marker_position))
+            multi_partition.set_instance_color(cursor, Color.from_hsv(float(owner_index) / float(PARTITION_REGION_IDS.size()), 0.78, 1.0))
+            cursor += 1
+        return
     var weights: PackedFloat32Array = _get_or_create_weights(_selected_region, vertices.size())
     var mesh_instance: MeshInstance3D = descriptor["mesh"]
     var transform := mesh_instance.global_transform
@@ -675,6 +976,17 @@ func _clear_selected_region() -> void:
         return
     var descriptor: Dictionary = _descriptors[_selected_descriptor]
     var vertices: PackedVector3Array = descriptor["vertices"]
+    if _partition_mode_check.button_pressed:
+        if _partition_assignments.size() != vertices.size():
+            _partition_assignments.resize(vertices.size())
+            _partition_assignments.fill(-1)
+        var selected_owner := PARTITION_REGION_IDS.find(_selected_region)
+        for vertex_index in _partition_assignments.size():
+            if _partition_assignments[vertex_index] == selected_owner:
+                _partition_assignments[vertex_index] = -1
+        _rebuild_markers()
+        _set_status("Cleared %s; those vertices are now unassigned." % _selected_region)
+        return
     var empty := PackedFloat32Array()
     empty.resize(vertices.size())
     _weights_by_region[_selected_region] = empty
@@ -684,6 +996,9 @@ func _clear_selected_region() -> void:
 
 
 func _save_mask() -> void:
+    if _partition_mode_check.button_pressed:
+        _save_primary_partition()
+        return
     if _selected_descriptor < 0:
         _set_status("Select a skinned mesh surface first")
         return
@@ -737,6 +1052,41 @@ func _save_mask() -> void:
     _weights_by_region = nonempty
     descriptor["weights"] = _weights_by_region
     _set_status("Saved and validated %s (%d semantic regions)" % [path, nonempty.size()])
+
+
+func _save_primary_partition() -> void:
+    if _selected_descriptor < 0:
+        _set_status("Select a skinned mesh surface first")
+        return
+    var descriptor: Dictionary = _descriptors[_selected_descriptor]
+    var mesh_instance: MeshInstance3D = descriptor["mesh"]
+    var vertices: PackedVector3Array = descriptor["vertices"]
+    if _partition_assignments.size() != vertices.size():
+        _set_status("Partition not saved: no complete assignment array exists for this surface")
+        return
+    var partition := PARTITION_SCRIPT.new()
+    var setup_error: String = partition.configure_for_mesh(mesh_instance, _body_root, _body_asset_path, int(descriptor["surface_index"]), PARTITION_REGION_IDS)
+    if not setup_error.is_empty():
+        _set_status("Partition setup failed: " + setup_error)
+        return
+    partition.vertex_region_indices = _partition_assignments.duplicate()
+    var validation: String = partition.validate_for_mesh(mesh_instance, _body_root, _body_asset_path)
+    if not validation.is_empty():
+        _set_status("Partition not saved: " + validation)
+        return
+    var path := _save_path_edit.text.strip_edges()
+    if not path.begins_with(PARTITION_DIRECTORY + "/") or not path.ends_with(".tres"):
+        _set_status("Primary partitions must be saved under %s as a .tres resource" % PARTITION_DIRECTORY)
+        return
+    var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
+    if directory_error != OK and directory_error != ERR_ALREADY_EXISTS:
+        _set_status("Could not create partition directory (error %d)" % directory_error)
+        return
+    var save_error := ResourceSaver.save(partition, path)
+    if save_error != OK:
+        _set_status("Partition save failed (error %d)" % save_error)
+        return
+    _set_status("Saved validated draft primary partition: %s. Not registered for runtime use." % path)
 
 
 func _register_saved_mask(mask_path: String, saved_mask: CharacterSurfaceRegionMask) -> bool:

@@ -2,7 +2,9 @@ extends SceneTree
 
 const BODY_ASSETS := [
     "res://art/characters/ara_runtime/ara_person_body_anatomy.glb",
-    "res://art/characters/ara_runtime/ara_person_male_body.glb"
+    "res://art/characters/ara_runtime/ara_person_male_body.glb",
+    "res://build/wren-native/Wren.glb",
+    "res://build/aldric-native/Aldric.glb"
 ]
 
 
@@ -11,6 +13,11 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+    var generic_surface := CharacterBodySurface.new()
+    assert(not generic_surface.is_configured(),
+        "The generic body-surface contract must fail closed until an adapter is configured")
+    assert(generic_surface.get_surface_vertex_sample("Body", 0, 0).is_empty(),
+        "The generic body-surface contract must not fabricate samples")
     await process_frame
     for asset_path in BODY_ASSETS:
         await _test_body(asset_path)
@@ -104,6 +111,8 @@ func _test_body(asset_path: String) -> void:
         "Valid guide curve was rejected for %s" % asset_path)
 
     var regions := CharacterSurfaceRegions.new()
+    assert(regions is CharacterBodySurface,
+        "The Ara surface implementation must implement the model-independent body-surface contract")
     assert(regions.configure(actor_root, body_root), "Surface region setup failed: " + regions.get_configuration_error())
     var evaluated := curve.evaluate(regions)
     if evaluated.size() != 3:
@@ -123,6 +132,58 @@ func _test_body(asset_path: String) -> void:
         assert(frame.basis.x.is_finite() and frame.basis.y.is_finite() and frame.basis.z.is_finite(),
             "Guide frame basis is non-finite")
 
+    if asset_path.begins_with("res://build/"):
+        var arrays := target_mesh.mesh.surface_get_arrays(target_surface)
+        var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+        var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+        var route_anchors := _find_long_route_anchors(vertices, arrays, curve.surface_signature)
+        assert(route_anchors.has("start_triangle") and route_anchors.has("end_triangle"),
+            "Could not find two route anchors in one connected mesh component on " + asset_path)
+        triangle = route_anchors["start_triangle"]
+        var far_triangle: PackedInt32Array = route_anchors["end_triangle"]
+        var far_distance: float = route_anchors["distance"]
+        print("NATIVE_GUIDE_ROUTE_COMPONENT: asset=%s vertices=%d component_vertices=%d anchor_distance=%.4f" % [
+            asset_path, vertices.size(), int(route_anchors["component_vertex_count"]), sqrt(far_distance)
+        ])
+        assert(far_distance > 0.0001,
+            "Could not find a spatially separated connected route on " + asset_path)
+        curve.closed_loop = false
+        curve.points = [
+            {"triangle_indices": triangle, "barycentric": PackedFloat32Array([1.0, 0.0, 0.0])},
+            {"triangle_indices": far_triangle, "barycentric": PackedFloat32Array([0.0, 1.0, 0.0])}
+        ]
+        var dense_route := curve.evaluate_surface_path(regions)
+        if dense_route.size() < 3:
+            printerr("NATIVE_DENSE_GUIDE_ROUTE_ERROR asset=%s error=%s samples=%d" % [
+                asset_path, curve.last_evaluation_error, dense_route.size()
+            ])
+        assert(dense_route.size() >= 3,
+            "Native guide route must contain intermediate mesh-edge samples for %s: %s" % [
+                asset_path, curve.last_evaluation_error
+            ])
+        assert(dense_route.front().get("is_control_point", false),
+            "Dense route must preserve its first barycentric control point")
+        assert(dense_route.back().get("is_control_point", false),
+            "Dense route must preserve its final barycentric control point")
+        var intermediate_count := 0
+        for sample in dense_route:
+            var position: Vector3 = sample["position"]
+            var normal: Vector3 = sample["normal"]
+            assert(position.is_finite(), "Native dense route contains a non-finite position")
+            assert(normal.is_finite() and normal.length() > 0.5,
+                "Native dense route contains an invalid surface normal")
+            if not sample.get("is_control_point", false):
+                intermediate_count += 1
+                assert(sample.has("surface_vertex_index"),
+                    "Intermediate route sample is not attached to a source mesh vertex")
+                assert(int(sample["surface_vertex_index"]) >= 0
+                    and int(sample["surface_vertex_index"]) < vertices.size(),
+                    "Intermediate route sample references a vertex outside the native mesh")
+        assert(intermediate_count > 0, "Native route did not traverse the source mesh graph")
+        print("NATIVE_DENSE_GUIDE_ROUTE: PASS asset=%s vertices=%d samples=%d intermediates=%d" % [
+            asset_path, vertices.size(), dense_route.size(), intermediate_count
+        ])
+
     var stale := curve.duplicate() as CharacterGarmentGuideCurve
     stale.surface_signature = "stale-topology"
     assert(stale.validate_for_mesh(target_mesh, body_root, asset_path).contains("signature mismatch"),
@@ -138,6 +199,79 @@ func _test_body(asset_path: String) -> void:
     ])
     actor_root.queue_free()
     await process_frame
+
+
+
+func _find_long_route_anchors(vertices: PackedVector3Array, arrays: Array, signature: String) -> Dictionary:
+    var probe := CharacterSurfaceContactPath.new()
+    probe.vertex_count = vertices.size()
+    probe.surface_signature = signature
+    var graph: AStar3D = probe._get_surface_graph(vertices, arrays)
+    if graph == null:
+        return {}
+
+    # A single ArrayMesh surface can contain several disconnected islands.
+    # Select the largest edge-connected component before choosing endpoints.
+    var visited: Dictionary = {}
+    var largest_component: Dictionary = {}
+    for initial_vertex in range(vertices.size()):
+        if visited.has(initial_vertex):
+            continue
+        var queue: Array[int] = [initial_vertex]
+        var component: Dictionary = {}
+        component[initial_vertex] = true
+        visited[initial_vertex] = true
+        var cursor := 0
+        while cursor < queue.size():
+            var current_vertex := queue[cursor]
+            cursor += 1
+            for neighbour in graph.get_point_connections(current_vertex):
+                var neighbour_id := int(neighbour)
+                if visited.has(neighbour_id):
+                    continue
+                visited[neighbour_id] = true
+                component[neighbour_id] = true
+                queue.append(neighbour_id)
+        if component.size() > largest_component.size():
+            largest_component = component
+
+    var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+    var triangle_count := int(indices.size() / 3) if not indices.is_empty() else int(vertices.size() / 3)
+    var start_triangle := PackedInt32Array()
+    var end_triangle := PackedInt32Array()
+    var start_centre := Vector3.ZERO
+    var far_distance := -1.0
+    for triangle_index in range(triangle_count):
+        var offset := triangle_index * 3
+        var candidate := PackedInt32Array()
+        if indices.is_empty():
+            candidate = PackedInt32Array([offset, offset + 1, offset + 2])
+        else:
+            candidate = PackedInt32Array([indices[offset], indices[offset + 1], indices[offset + 2]])
+        if not largest_component.has(candidate[0]) or not largest_component.has(candidate[1]) or not largest_component.has(candidate[2]):
+            continue
+        var area := (vertices[candidate[1]] - vertices[candidate[0]]).cross(
+            vertices[candidate[2]] - vertices[candidate[0]]
+        ).length()
+        if area <= 0.000001:
+            continue
+        var centre := (vertices[candidate[0]] + vertices[candidate[1]] + vertices[candidate[2]]) / 3.0
+        if start_triangle.is_empty():
+            start_triangle = candidate
+            start_centre = centre
+        var distance := centre.distance_squared_to(start_centre)
+        if distance > far_distance:
+            far_distance = distance
+            end_triangle = candidate
+
+    if start_triangle.is_empty() or end_triangle.is_empty():
+        return {}
+    return {
+        "start_triangle": start_triangle,
+        "end_triangle": end_triangle,
+        "distance": far_distance,
+        "component_vertex_count": largest_component.size()
+    }
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:

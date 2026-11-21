@@ -1,11 +1,11 @@
 extends Control
-## Surface-attached garment guide authoring tool for the canonical Ara bodies.
+## Surface-attached garment guide authoring tool for current native Wren and Aldric builds.
 ## Click the body to add points; each point is saved as a triangle+barycentric attachment.
 
 const INPUT_ROUTER_SCRIPT = preload("res://tools/anatomy_surface_painter_input.gd")
 const BODY_OPTIONS := {
-    "Female Ara": "res://art/characters/ara_runtime/ara_person_body_anatomy.glb",
-    "Male Ara": "res://art/characters/ara_runtime/ara_person_male_body.glb"
+    "Wren (current native build)": "res://build/wren-native/Wren.glb",
+    "Aldric (current native build)": "res://build/aldric-native/Aldric.glb"
 }
 const GUIDE_LABELS := {
     "neckline": "Neckline circumference",
@@ -39,7 +39,14 @@ const GUIDE_LABELS := {
     "foot_opening_left": "Foot opening — left",
     "foot_opening_right": "Foot opening — right",
     "heel_alignment": "Heel alignment",
-    "toe_alignment": "Toe alignment"
+    "toe_alignment": "Toe alignment",
+    "cup_perimeter_left": "Bra cup perimeter — left (closed)",
+    "cup_perimeter_right": "Bra cup perimeter — right (closed)",
+    "centre_gore": "Bra centre gore boundary (closed)",
+    "underband_front": "Bra underband — front edge",
+    "underband_back": "Bra underband — back edge",
+    "strap_left": "Bra strap — left",
+    "strap_right": "Bra strap — right"
 }
 const GUIDE_PAIRS := {
     "shoulder_seam_left": "shoulder_seam_right", "shoulder_seam_right": "shoulder_seam_left",
@@ -51,7 +58,9 @@ const GUIDE_PAIRS := {
     "wrist_opening_left": "wrist_opening_right", "wrist_opening_right": "wrist_opening_left",
     "knee_opening_left": "knee_opening_right", "knee_opening_right": "knee_opening_left",
     "ankle_opening_left": "ankle_opening_right", "ankle_opening_right": "ankle_opening_left",
-    "foot_opening_left": "foot_opening_right", "foot_opening_right": "foot_opening_left"
+    "foot_opening_left": "foot_opening_right", "foot_opening_right": "foot_opening_left",
+    "cup_perimeter_left": "cup_perimeter_right", "cup_perimeter_right": "cup_perimeter_left",
+    "strap_left": "strap_right", "strap_right": "strap_left"
 }
 const GUIDE_DIRECTORY := "res://data/characters/garment_guides"
 const GUIDE_MANIFEST_PATH := GUIDE_DIRECTORY + "/manifest.tres"
@@ -63,6 +72,8 @@ var _body_root: Node3D
 var _descriptors: Array[Dictionary] = []
 var _selected_descriptor := -1
 var _guide_points: Array[Dictionary] = []
+var _surface_regions: CharacterSurfaceRegions
+var _preview_guide: CharacterGarmentGuideCurve
 var _line_instance: MeshInstance3D
 var _line_mesh: ImmediateMesh
 var _marker_cloud: MultiMeshInstance3D
@@ -85,7 +96,7 @@ var _camera_target := Vector3(0.0, 0.85, 0.0)
 
 func _ready() -> void:
     _build_interface()
-    _load_body("Female Ara")
+    _load_body("Wren (current native build)")
 
 
 func _build_interface() -> void:
@@ -172,7 +183,7 @@ func _build_interface() -> void:
     scroll.add_child(column)
 
     var heading := Label.new()
-    heading.text = "Ara garment guide editor"
+    heading.text = "Wren / Aldric garment guide editor"
     heading.add_theme_font_size_override("font_size", 18)
     column.add_child(heading)
     _caption(column, "Click or tap the body to place guide points. Right-drag / one-finger drag orbits; wheel / pinch zooms.")
@@ -221,9 +232,9 @@ func _build_interface() -> void:
 
     _status = Label.new()
     _status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-    _status.text = "Loading Ara body…"
+    _status.text = "Loading native companion…"
     column.add_child(_status)
-    _caption(column, "Trace a complete circumference or seam by clicking sequentially around the body. Each point stores its source triangle and barycentric position, so it follows skinning and supported body morphs. Review the line from several angles before saving. Male and female guides are authored separately.")
+    _caption(column, "Trace a complete circumference or seam by clicking sequentially around the body. Each point stores its source triangle and barycentric position, so it follows skinning and supported body morphs. Review the line from several angles before saving. Wren and Aldric guides are authored separately.")
 
 
 func _caption(parent: VBoxContainer, value: String) -> void:
@@ -252,10 +263,15 @@ func _load_body(body_name: String) -> void:
         return
     _body_root = packed.instantiate() as Node3D
     if _body_root == null:
-        _set_status("Ara body scene root is not Node3D")
+        _set_status("Native companion scene root is not Node3D")
         return
     _world_root.add_child(_body_root)
     _collect_surfaces(_body_root)
+    _surface_regions = CharacterSurfaceRegions.new()
+    var masks: Array[Resource] = CharacterSurfaceRegionMaskLibrary.load_for_body(asset_path)
+    if not _surface_regions.configure(_body_root, _body_root, masks, asset_path):
+        _set_status("Guide preview unavailable: " + _surface_regions.get_configuration_error())
+        _surface_regions = null
     _surface_option.clear()
     for descriptor in _descriptors:
         var mesh: MeshInstance3D = descriptor["mesh"]
@@ -487,24 +503,43 @@ func _refresh_guide_display() -> void:
     if _selected_descriptor >= 0 and _selected_descriptor < _descriptors.size():
         var descriptor: Dictionary = _descriptors[_selected_descriptor]
         var mesh: MeshInstance3D = descriptor["mesh"]
+        if _guide_points.size() >= 2 and _surface_regions != null:
+            if _preview_guide == null:
+                _preview_guide = CharacterGarmentGuideCurve.new()
+            var guide := _preview_guide
+            guide.body_asset_path = String(BODY_OPTIONS.get(_body_option.get_item_text(_body_option.selected), ""))
+            guide.mesh_node_path = _body_root.get_path_to(mesh)
+            guide.surface_index = int(descriptor["surface_index"])
+            guide.surface_name = mesh.mesh.surface_get_name(guide.surface_index)
+            guide.vertex_count = (descriptor["vertices"] as PackedVector3Array).size()
+            guide.surface_signature = CharacterSurfaceRegionMask.build_surface_signature(mesh.mesh, guide.surface_index)
+            guide.guide_id = _selected_guide_id()
+            guide.closed_loop = _closed_check.button_pressed
+            guide.points = _guide_points.duplicate(true)
+            var dense_path := guide.evaluate_surface_path(_surface_regions)
+            if dense_path.is_empty():
+                _set_status("Surface guide route could not be evaluated: " + guide.last_evaluation_error)
+            else:
+                for sample in dense_path:
+                    positions.append(_body_root.global_transform * sample["position"])
+    var multi := _marker_cloud.multimesh
+    multi.instance_count = _guide_points.size()
+    if _selected_descriptor >= 0 and _selected_descriptor < _descriptors.size():
+        var descriptor: Dictionary = _descriptors[_selected_descriptor]
+        var mesh: MeshInstance3D = descriptor["mesh"]
         var vertices: PackedVector3Array = descriptor["vertices"]
-        for point in _guide_points:
+        for index in range(_guide_points.size()):
+            var point: Dictionary = _guide_points[index]
             var triangle: PackedInt32Array = point["triangle_indices"]
             var barycentric: PackedFloat32Array = point["barycentric"]
             var local_position := Vector3.ZERO
             for corner in range(3):
                 local_position += vertices[triangle[corner]] * barycentric[corner]
-            positions.append(mesh.global_transform * local_position)
-    var multi := _marker_cloud.multimesh
-    multi.instance_count = positions.size()
-    for index in range(positions.size()):
-        multi.set_instance_transform(index, Transform3D(Basis.IDENTITY, positions[index]))
+            multi.set_instance_transform(index, Transform3D(Basis.IDENTITY, mesh.global_transform * local_position))
     if positions.size() >= 2:
         _line_mesh.surface_begin(Mesh.PRIMITIVE_LINE_STRIP, _line_instance.material_override)
         for position in positions:
             _line_mesh.surface_add_vertex(position)
-        if _closed_check.button_pressed and positions.size() >= 3:
-            _line_mesh.surface_add_vertex(positions[0])
         _line_mesh.surface_end()
 
 
@@ -577,7 +612,7 @@ func _set_default_save_path() -> void:
         return
     var descriptor: Dictionary = _descriptors[_selected_descriptor]
     var mesh: MeshInstance3D = descriptor["mesh"]
-    var prefix := "female" if _body_option.get_item_text(_body_option.selected) == "Female Ara" else "male"
+    var prefix := "wren" if _body_option.get_item_text(_body_option.selected).begins_with("Wren") else "aldric"
     _save_path_edit.text = "%s/%s_%s_surface_%d_%s.tres" % [
         GUIDE_DIRECTORY, prefix, String(mesh.name).to_snake_case(),
         int(descriptor["surface_index"]), _selected_guide_id()
