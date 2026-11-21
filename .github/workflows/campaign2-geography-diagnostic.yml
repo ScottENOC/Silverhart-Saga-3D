@@ -1,0 +1,57 @@
+name: Campaign 2 geography diagnostic
+
+on:
+  pull_request:
+    branches:
+      - "diagnostic/base"
+    paths:
+      - "tests/test_campaign2_geography_manifest.gd"
+      - "scripts/world/main_campaign_world_map_data.gd"
+      - "data/world/campaign2_geography.json"
+      - ".github/workflows/campaign2-geography-diagnostic.yml"
+  push:
+    branches:
+      - "diagnostic/**"
+    paths:
+      - "tests/test_campaign2_geography_manifest.gd"
+      - "scripts/world/main_campaign_world_map_data.gd"
+      - "data/world/campaign2_geography.json"
+      - ".github/workflows/campaign2-geography-diagnostic.yml"
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: "Branch or commit SHA to diagnose"
+        required: true
+        default: "diagnostic/campaign2-geography-test"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: campaign2-geography-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  geography-diagnostic:
+    name: Isolated geography manifest test
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out diagnostic target
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.target_ref || github.sha }}
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Run only Campaign 2 geography manifest test with timed checkpoints
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          timeout --signal=TERM --kill-after=15s 240s \
+            bash tools/ci/run_godot_checked.sh \
+            stdbuf -oL godot --headless --path . \
+            --script res://tests/test_campaign2_geography_manifest.gd
