@@ -147,6 +147,41 @@ func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
     return result
 
 
+
+## Densifies the authored guide by routing between anchors over the exact
+## source mesh's triangle-edge graph. This approximates a geodesic; it never
+## substitutes a straight chord through the body.
+func evaluate_surface_path(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
+    last_evaluation_error = ""
+    if surface_regions == null:
+        last_evaluation_error = "Surface-region evaluator is null"
+        return []
+    var mesh_instance := surface_regions.get_surface_mesh_instance(mesh_node_path, surface_index)
+    if mesh_instance == null or mesh_instance.mesh == null:
+        last_evaluation_error = "Garment guide source mesh is unavailable"
+        return []
+    var arrays := mesh_instance.mesh.surface_get_arrays(surface_index)
+    var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+    if vertices.size() != vertex_count:
+        last_evaluation_error = "Garment guide source vertex count changed"
+        return []
+    # Reuse the topology-constrained path solver while keeping guide resources
+    # separate from contact choreography resources.
+    var evaluator := CharacterSurfaceContactPath.new()
+    evaluator.body_asset_path = body_asset_path
+    evaluator.mesh_node_path = mesh_node_path
+    evaluator.surface_index = surface_index
+    evaluator.surface_name = surface_name
+    evaluator.vertex_count = vertex_count
+    evaluator.surface_signature = surface_signature
+    evaluator.path_id = "garment_guide_" + guide_id
+    evaluator.closed_loop = closed_loop
+    evaluator.points = points.duplicate(true)
+    var dense := evaluator.evaluate_surface_path(surface_regions)
+    last_evaluation_error = evaluator.last_evaluation_error
+    return dense
+
+
 func _triangle_exists(arrays: Array, triangle: PackedInt32Array, source_vertex_count: int) -> bool:
     var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
     if indices.is_empty():
