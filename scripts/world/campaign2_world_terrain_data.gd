@@ -174,7 +174,9 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var faction := String(source_cell.get("faction", ""))
 	# Port the original Campaign 2 local fallback for unpainted grassland.
 	# Strategic ocean, mountain, forest and hill bands remain macro overrides.
-	if base_terrain == "grass":
+	# Keep the strategic greenskin terrain/faction interaction intact; the source
+	# local fallback applies to the human/general wilderness grasslands.
+	if base_terrain == "grass" and faction != "orcs":
 		return LOCAL_TERRAIN_RULES.source_local_terrain(hex)
 	return LOCAL_TERRAIN_RULES.terrain_for_hex(hex, base_terrain, faction)
 
