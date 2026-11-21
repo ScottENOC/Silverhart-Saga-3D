@@ -19,6 +19,9 @@ on:
       - "tools/garment_guide_curve_editor.gd"
       - "tools/surface_landmark_editor.gd"
       - "tools/surface_landmark_editor.tscn"
+      - "tools/surface_contact_path_editor.gd"
+      - "tools/surface_contact_path_editor.tscn"
+      - "tests/test_surface_contact_path_editor_load.gd"
       - "tools/garment_guide_curve_editor.tscn"
       - "tools/review/capture_garment_guide_editor.gd"
       - ".github/workflows/godot-validation.yml"
@@ -134,6 +137,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_surface_landmarks.gd
       - name: Load Ara surface landmark editor
         run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_surface_landmark_editor_load.gd
+      - name: Load Ara surface contact path editor
+        run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_surface_contact_path_editor_load.gd
       - name: Load Ara garment guide curve editor
         run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_garment_guide_curve_editor_load.gd
       - name: Load Ara anatomy surface painter tool
