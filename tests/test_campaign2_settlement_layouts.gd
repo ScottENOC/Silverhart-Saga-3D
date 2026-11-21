@@ -8,7 +8,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 	var entries: Array = terrain.settlement_layouts
-	_check(entries.size() == 4, "Canonical registry should expose Hollowmere, Millbrook, Emberlode and Reddale")
+	_check(entries.size() == 5, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale and Old Mac's Farmstead")
 	var millbrook_entry := _entry_by_id(entries, "millbrook")
 	_check(not millbrook_entry.is_empty(), "Canonical Millbrook definition must be available")
 	if millbrook_entry.is_empty():
@@ -60,6 +60,7 @@ func _initialize() -> void:
 
 	_test_emberlode(terrain, entries)
 	_test_reddale(terrain, entries)
+	_test_old_mac_farmstead(terrain, entries)
 
 	var hollowmere_entry := _entry_by_id(entries, "hollowmere")
 	_check(not hollowmere_entry.is_empty(), "Canonical Hollowmere definition must remain available")
@@ -129,6 +130,32 @@ func _test_reddale(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
 	var registry = CHARACTER_REGISTRY.new()
 	_check(not registry.get_character("corran_vale").is_empty(), "Emberlode NPC profile must resolve through the character registry")
 	_check(not registry.get_character("captain_ilsa_rennick").is_empty(), "Reddale NPC profile must resolve through the character registry")
+
+
+func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "old_mac_farmstead")
+	_check(not entry.is_empty(), "Canonical Old Mac's Farmstead definition must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var layout: Dictionary = definition.get("layout", {})
+	_check(layout.get("buildings", []).size() == 1, "Old Mac's Farmstead must retain its source farmhouse")
+	_check(layout.get("paths", []).size() == 1, "Old Mac's Farmstead must retain its short road spur")
+	_check(layout.get("fields", []).size() == 7, "Old Mac's pasture and six fence runs must survive canonical adaptation")
+	_check(layout.get("props", []).size() == 1, "The broken fence rail must be retained as a quest prop")
+	var farmhouse := _find_record(layout.get("buildings", []), "old_mac_farmhouse")
+	_assert_axial(farmhouse.get("center", {}), Vector2i(0, 194), "Old Mac farmhouse centre")
+	_assert_axial(farmhouse.get("door", {}), Vector2i(3, 194), "Old Mac farmhouse door")
+	var actor := _find_record(definition.get("placements", {}).get("characters", []), "old_mac")
+	_assert_axial(actor.get("position", {}), Vector2i(1, 194), "Old Mac source placement")
+	_check(terrain.terrain_for_hex(Vector2i(0, 194)) == "authored", "Old Mac farmhouse must suppress procedural terrain")
+	_check(terrain.terrain_for_hex(Vector2i(4, 194)) == "path", "Old Mac farmhouse spur must be indexed as a path")
+	_check(BUILDING_FACTORY.supports_definition(farmhouse), "Old Mac farmhouse must use the shared cottage archetype")
+	var npc_registry = CHARACTER_REGISTRY.new()
+	_check(String(npc_registry.get_character("old_mac").get("dialogue_id", "")) == "old_mac", "Old Mac identity must resolve from the character catalogue")
+	var materials: Dictionary = definition.get("presentation", {}).get("materials", {})
+	_check(materials.get("agriculture", {}).has("pasture") and materials.get("agriculture", {}).has("fence"), "Farmstead agriculture must have shared material bindings")
+	_check(layout.get("fields", []).size() > 0 and layout.fields[0].get("corners", []).size() == 4, "Pasture boundary must remain a four-corner authored polygon")
 
 func _entry_by_id(entries: Array, settlement_id: String) -> Dictionary:
 	for entry in entries:
