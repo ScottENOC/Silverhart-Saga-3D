@@ -47,7 +47,7 @@ func _test_campaign2_layout_adapter() -> void:
 	_check(not settlements.is_empty(), "Campaign 2 source must include Millbrook")
 	for layout in settlements:
 		var canonical: Dictionary = adapters.adapt_campaign2_layout(layout)
-		var validation: Dictionary = ADAPTERS.validate_adapted(canonical)
+		var validation: Dictionary = adapters.validate_adapted(canonical)
 		_check(bool(validation.get("ok", false)), "%s canonical envelope should validate: %s" % [canonical.get("id", ""), validation.get("errors", [])])
 		_check(canonical.get("id", "") == "millbrook", "Millbrook ID must remain stable")
 		_check(canonical.get("layout", {}).get("buildings", []).size() == 1, "Millbrook house must be retained")
