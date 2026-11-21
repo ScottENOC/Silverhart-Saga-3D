@@ -34,6 +34,50 @@ func _initialize() -> void:
 		quit(1)
 		return
 
+	# Source-authored Emberlode and Reddale exteriors and surface actors must
+	# appear in the chunks that own their original global axial coordinates.
+	var emberlode_west_chunk := Node3D.new()
+	root.add_child(emberlode_west_chunk)
+	builder.add_settlements_in_chunk(emberlode_west_chunk, Vector2i(-264, 0), 24)
+	for node_name in ["emberlode_foremans_hall", "emberlode_mine_entrance", "NPC_corran_vale"]:
+		if emberlode_west_chunk.get_node_or_null(node_name) == null:
+			push_error("Emberlode source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	var emberlode_east_chunk := Node3D.new()
+	root.add_child(emberlode_east_chunk)
+	builder.add_settlements_in_chunk(emberlode_east_chunk, Vector2i(-264, 24), 24)
+	for node_name in ["emberlode_bunkhouse", "NPC_bettina_marrow", "NPC_rennik_coalmarrow"]:
+		if emberlode_east_chunk.get_node_or_null(node_name) == null:
+			push_error("Emberlode source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+
+	var reddale_southwest_chunk := Node3D.new()
+	root.add_child(reddale_southwest_chunk)
+	builder.add_settlements_in_chunk(reddale_southwest_chunk, Vector2i(120, 0), 24)
+	for node_name in ["reddale_reeve_house", "reddale_baron_manor", "NPC_reeve_aldous_finch", "NPC_baron_corwin_aldervale", "NPC_steward_halvard_greer"]:
+		if reddale_southwest_chunk.get_node_or_null(node_name) == null:
+			push_error("Reddale source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	var reddale_northwest_chunk := Node3D.new()
+	root.add_child(reddale_northwest_chunk)
+	builder.add_settlements_in_chunk(reddale_northwest_chunk, Vector2i(120, 24), 24)
+	for node_name in ["reddale_guardhouse", "reddale_inn", "reddale_smithy", "NPC_captain_ilsa_rennick", "NPC_watchman_bram_oswick", "NPC_nella_brook", "NPC_mira_selk", "NPC_mirella_thorn", "NPC_torvald_anvik"]:
+		if reddale_northwest_chunk.get_node_or_null(node_name) == null:
+			push_error("Reddale source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	var reddale_southeast_chunk := Node3D.new()
+	root.add_child(reddale_southeast_chunk)
+	builder.add_settlements_in_chunk(reddale_southeast_chunk, Vector2i(144, 24), 24)
+	for node_name in ["reddale_ironbond_guildhouse", "NPC_petra_voss", "NPC_osric_vane", "NPC_guild_watchman_corley"]:
+		if reddale_southeast_chunk.get_node_or_null(node_name) == null:
+			push_error("Reddale source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+
 	# Hollowmere ecology is now chunk-owned. The wilderness deer starts in this
 	# chunk and its gameplay state must survive presentation teardown/rebuild.
 	var simulation := WorldSimulation.new()
