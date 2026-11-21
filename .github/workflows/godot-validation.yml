@@ -5,6 +5,7 @@ on:
     branches: [dev, dev_2, "feature/**"]
     paths:
       - "project.godot"
+      - "docs/SHARED_CHARACTER_ANATOMY.md"
       - "export_presets.cfg"
       - "art/characters/**"
       - "art/ui/**"
@@ -15,11 +16,22 @@ on:
       - "data/**"
       - "tests/**"
       - "tools/ci/**"
+      - "tools/garment_guide_curve_editor.gd"
+      - "tools/surface_landmark_editor.gd"
+      - "tools/surface_landmark_editor.tscn"
+      - "tools/surface_contact_path_editor.gd"
+      - "tools/surface_contact_path_editor.tscn"
+      - "tests/test_surface_contact_path_editor_load.gd"
+      - "tools/garment_guide_curve_editor.tscn"
+      - "tools/review/capture_garment_guide_editor.gd"
+      - "tools/review/ara_contact_path_review.gd"
+      - "tools/review/ara_anatomy_region_review.gd"
       - ".github/workflows/godot-validation.yml"
   push:
     branches: [dev, dev_2, "feature/**"]
     paths:
       - "project.godot"
+      - "docs/SHARED_CHARACTER_ANATOMY.md"
       - "export_presets.cfg"
       - "art/characters/**"
       - "art/ui/**"
@@ -27,6 +39,13 @@ on:
       - "scripts/**"
       - "data/**"
       - "tests/**"
+      - "tools/garment_guide_curve_editor.gd"
+      - "tools/surface_landmark_editor.gd"
+      - "tools/surface_landmark_editor.tscn"
+      - "tools/garment_guide_curve_editor.tscn"
+      - "tools/review/capture_garment_guide_editor.gd"
+      - "tools/review/ara_contact_path_review.gd"
+      - ".github/workflows/ara-contact-path-visual-review.yml"
       - ".github/workflows/godot-validation.yml"
   workflow_dispatch:
     inputs:
@@ -37,6 +56,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -52,6 +72,23 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.target_ref || github.sha }}
+      - name: Fetch current native Wren and Aldric builds for anatomy validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/wren-native build/aldric-native
+          wren_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-wren-native-ara.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id')
+          aldric_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-aldric-native-ara.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id')
+          test "$wren_run" != "null" && test "$aldric_run" != "null"
+          wren_number=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$wren_run" --jq '.run_number')
+          aldric_number=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$aldric_run" --jq '.run_number')
+          gh run download "$wren_run" --name "wren-native-ara-$wren_number" --dir build/wren-download
+          gh run download "$aldric_run" --name "aldric-native-ara-$aldric_number" --dir build/aldric-download
+          cp build/wren-download/Wren.glb build/wren-native/Wren.glb
+          cp build/aldric-download/Aldric.glb build/aldric-native/Aldric.glb
+          test -s build/wren-native/Wren.glb
+          test -s build/aldric-native/Aldric.glb
       - name: Fetch verified Kenney Nature Kit models
         run: python tools/ci/fetch_kenney_nature_assets.py
       - name: Install Godot 4.7.2
@@ -97,7 +134,7 @@ jobs:
         run: godot --headless --path . --script res://tests/test_building_framework.gd
       # Keep presentation-component tests isolated from campaign simulation suites.
       - name: Run campaign UI tests
-        run: godot --headless --path . --script res://tests/test_campaign_ui.gd
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_ui.gd
       - name: Run SaveManager round-trip tests
         run: godot --headless --path . --script res://tests/test_save_manager.gd
       - name: Diagnose direct HollowTankard script load
@@ -114,14 +151,24 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/audit_ara_surface_channels.gd
       - name: Test deformation-aware Ara surface regions
         run: xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 bash tools/ci/run_godot_checked.sh godot --path . --rendering-method gl_compatibility --script res://tests/test_character_surface_regions.gd
-      - name: Test authored fine Ara surface mask contract
+      - name: Test authored fine Wren and Aldric surface mask contract
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_surface_region_masks.gd
-      - name: Load Ara anatomy surface painter tool
+      - name: Test topology-bound Ara garment guide curves
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_garment_guide_curves.gd
+      - name: Test topology-bound semantic Ara surface landmarks
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_surface_landmarks.gd
+      - name: Load Ara surface landmark editor
+        run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_surface_landmark_editor_load.gd
+      - name: Load Ara surface contact path editor
+        run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_surface_contact_path_editor_load.gd
+      - name: Load Ara garment guide curve editor
+        run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_garment_guide_curve_editor_load.gd
+      - name: Load Wren/Aldric anatomy surface painter tool
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_anatomy_surface_painter_load.gd
       - name: Audit fine Ara anatomy surface geometry
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/audit_ara_fine_surface_geometry.gd
       - name: Run character appearance tests
-        run: godot --headless --path . --script res://tests/test_character_appearance.gd
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_appearance.gd
       - name: Run equipment appearance and heraldry tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_equipment_appearance.gd
       - name: Run seasonal tree tests
@@ -131,7 +178,7 @@ jobs:
       - name: Run farm wolf quest and creature asset tests
         run: godot --headless --path . --script res://tests/test_farm_wolves_quest.gd
       - name: Run Hollowmere map and character profile tests
-        run: godot --headless --path . --script res://tests/test_hollowmere_village.gd
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_hollowmere_village.gd
       - name: Run Campaign 2 road manifest tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_road_paths.gd
       - name: Run Campaign 2 geography manifest tests
@@ -161,3 +208,46 @@ jobs:
         run: godot --headless --path . --scene res://scenes/main.tscn --quit-after 10
       - name: Smoke-test opening village
         run: godot --headless --path . --quit-after 10
+      - name: Render current Wren and Aldric surface-path review images
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+          xvfb-run -a -s "-screen 0 1400x1300x24" godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/ara_contact_path_review.gd
+          for character in wren aldric; do
+            for view in front side rear; do
+              test -s "build/ara-contact-path-review/$character/$view.png"
+            done
+            test -s "build/ara-contact-path-review/$character/report.json"
+          done
+      - name: Render broad Wren and Aldric torso region overlays
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s "-screen 0 1400x1300x24" godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/ara_anatomy_region_review.gd
+          for character in wren aldric; do
+            for view in front side rear; do
+              test -s "build/ara-anatomy-region-review/$character/$view.png"
+            done
+            test -s "build/ara-anatomy-region-review/$character/report.json"
+          done
+
+      - name: Upload Wren and Aldric anatomical region colour review
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-aldric-anatomical-region-colour-review
+          path: build/ara-anatomy-region-review/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Wren and Aldric visual review
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-aldric-native-mesh-visual-review
+          path: build/ara-contact-path-review/
+          if-no-files-found: error
+          retention-days: 30
+

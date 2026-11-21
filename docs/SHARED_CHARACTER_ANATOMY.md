@@ -55,6 +55,69 @@ The current Ara anatomy exports contain only a small set of explicit surface soc
 (ear, nose, necklace and anatomy-specific points). They do not yet contain the general
 surface-region data required for robust clothing fit or combat volumes.
 
+## Semantic skin-surface landmarks
+
+Rig landmarks and surface landmarks are different contracts. A rig landmark resolves to
+an animated joint; a skin-surface landmark resolves to a point on the deformed body mesh.
+The latter is required for precise contact choreography and for construction references
+that must remain attached to skin rather than drifting with a nearby bone origin.
+
+CharacterSurfaceLandmark stores:
+
+- canonical body asset path and relative mesh-node path;
+- surface index/name, vertex count and a SHA-256 topology signature;
+- one source triangle and barycentric coordinates within that triangle;
+- a semantic landmark ID, a triangle-edge tangent reference and optional normal offset.
+
+At runtime, CharacterSurfaceLandmarkLibrary loads only resources matching the actor's
+exact body asset and rejects stale topology, invalid triangles, duplicate IDs and invalid
+barycentric weights. AraCharacterActor.get_surface_landmark(id) evaluates the anchor
+through CharacterSurfaceRegions, so its position and local frame follow blend shapes
+and the current skeleton pose. get_surface_landmarks() exposes the validated resources.
+
+The point frame contains a surface normal and a stable tangent/binormal derived from the
+authored triangle edge. This is a local contact frame, not a complete animation solution:
+hand placement still needs IK, joint limits, approach direction, contact offsets and
+pose/scene constraints. A path traced over skin should use CharacterGarmentGuideCurve
+or a later general surface-path resource rather than a cloud of region samples.
+
+The initial semantic vocabulary includes torso landmarks (sternum, clavicles, breast
+apices, nipples, underbust, waist, iliac crest, hip front/side/back, sacrum and pubic
+symphysis), hand/fingertip landmarks, and heel/toe landmarks. Male/female resources are
+authored independently; a semantic ID does not imply identical coordinates or geometry.
+
+### Surface contact paths for animation
+
+CharacterSurfaceContactPath is a separate resource from garment construction guides.
+It stores an ordered set of topology-bound skin control points and evaluates each
+against the current deformed surface, returning a position, normal and local frame.
+AraCharacterActor.get_surface_contact_path(path_id) exposes the evaluated points to
+animation code.
+
+This is the data layer needed to describe a contact trajectory such as a fingertip
+moving along a short path over the chest. The visual authoring scene is
+`tools/surface_contact_path_editor.tscn`: choose a canonical Ara body and mesh surface,
+tap points in travel order, undo or clear points, optionally close a loop, then save the
+topology-validated resource into the contact-path manifest. The editor reuses the same
+triangle picking and touch orbit/zoom controls as the landmark editor.
+
+Two runtime queries are available. `get_surface_contact_path(path_id)` returns the
+evaluated authored control points. `get_surface_contact_path_samples(path_id)` returns
+a denser surface-following route: for each adjacent pair of anchors it finds a shortest
+route over the source mesh's triangle-edge graph, then evaluates those mesh vertices
+against the current deformed skin. The anchors and routed vertices receive local frames.
+This is constrained to the mesh surface rather than drawing straight chords through the
+body, but it is a mesh-edge approximation, not an exact continuous geodesic or a smooth,
+evenly spaced spline. It can follow a longer-than-ideal edge route on coarse or irregular
+topology, so the authored preview and eventual animation must be visually checked.
+
+The animation still has to provide a hand and finger rig, IK targets, joint limits,
+approach/withdrawal timing, speed profile, contact pressure/offset and collision or pose
+constraints. The manifest remains intentionally empty until paths are authored and
+reviewed. Synthetic tests validate topology, deformation-aware samples and the surface
+route on both canonical Ara bodies; they do not claim that a production contact path or
+anatomical landmark has been placed or visually reviewed yet.
+
 ## Surface regions: implementation and next requirements
 
 The first broad region layer is implemented by `CharacterSurfaceRegions` and validated against Godot's skinned-mesh bake for both canonical bodies. The next work is to extend the vocabulary with authored fine regions, not to replace the working broad rig-weight layer.
@@ -230,3 +293,28 @@ geometry-orientation audit to inform mask authoring, not an automatic anatomical
 classifier and not evidence that the fine masks already exist. Extreme body presets
 such as Reyna and Dagna still need to be validated after the masks and the missing female
 body morph support are addressed.
+
+### Garment guide curve runtime contract
+
+The first garment-fit guide runtime contract is now implemented separately from the painted surface masks. `CharacterGarmentGuideCurve` stores a named construction line for one exact canonical body, mesh node and surface. Every guide point is attached to a source triangle by three vertex indices and barycentric weights. The resource stores the same rest-mesh signature used by fine masks and rejects a different body, surface, vertex count, topology or triangle reference.
+
+At runtime, `CharacterSurfaceRegions.get_surface_vertex_sample()` evaluates each referenced vertex using current blend shapes and skeleton skinning. The guide interpolates the three evaluated positions and normals, then derives a local tangent, binormal and orthonormal frame along the curve. This means the guide follows the deformed skin instead of remaining at a static rest-pose coordinate. It also keeps the surface attachment stable through pose changes and supported morphs.
+
+The guide vocabulary covers neckline/collar, shoulder seams, armholes, chest line, cup apexes, underbust, natural waist, high/full hip, seat, crotch front/back, inseams/outseams, limb openings and foot alignment. Left/right guides can name their paired counterpart. `CharacterGarmentGuideLibrary` loads only resources matching the actor's exact body asset; `AraCharacterActor.get_garment_guide_curves()` exposes them to fitting systems.
+
+This is the data/runtime contract and CI validation only. The manifest is intentionally empty: **no production guide curves have been authored yet**. A valid curve must be visually traced and reviewed on each canonical body, independently. The automated test uses a temporary triangle fixture to verify barycentric attachment, deformation-aware evaluation, tangent frames and stale-topology rejection; it is not a usable neckline or garment pattern. The next authoring step is a visual curve editor with surface picking, point insertion/deletion, loop closure and left/right pairing, followed by guides reviewed against Reyna and Dagna.
+
+
+
+## Current companion anatomy authoring target: Wren and Aldric
+
+The older painter instructions above describe the canonical Ara prototype bodies. That is no longer the visual authoring target for the current companion/clothing review. The anatomy surface painter now offers only the latest native companion exports:
+
+- Wren: `res://build/wren-native/Wren.glb`
+- Aldric: `res://build/aldric-native/Aldric.glb`
+
+The Godot validation workflow downloads the latest successful native Wren and Aldric build artifacts from `dev` before running the fine-mask contract test and loading the painter. The painter saves topology-bound masks against the exact selected GLB, mesh path, surface, vertex count and surface signature. A mask authored for Wren is not reusable on Aldric, or on a later re-export whose topology changes.
+
+For the first clothing-relevant pass, author and visually review Wren's left/right breast surfaces, underbust, sternum/medial chest, upper/lower abdomen and ribcage; author Aldric's left/right pectoral surfaces, sternum, ribcage and upper/lower abdomen. Use the existing vocabulary where it fits, and add a new semantic ID only when the current vocabulary cannot express a real distinction. These are anatomical labels, not garment coverage definitions.
+
+**Important status:** the painter is now pointed at Wren and Aldric and CI exercises the real native mesh topology, but no production anatomical masks have been painted or approved yet. The synthetic CI masks only verify that topology-bound weights can be stored, validated and queried. Bra cups, centre gore, underband, straps and shirt panels still need their own garment coverage boundaries/guides; a breast mask alone does not tell the clothing system where a cup ends or whether fabric covers the sternum or abdomen.

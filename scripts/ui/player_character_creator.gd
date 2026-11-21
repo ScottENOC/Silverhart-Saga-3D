@@ -254,11 +254,11 @@ func _build_screen() -> void:
         density_slider.step = 0.05
         density_slider.value = 0.5
         density_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-        density_slider.disabled = true
+        density_slider.editable = false
         hair_row.add_child(density_slider)
         body_hair_checks[area] = hair_check
         body_hair_density_sliders[area] = density_slider
-        hair_check.toggled.connect(func(enabled: bool): density_slider.disabled = not enabled)
+        hair_check.toggled.connect(func(enabled: bool): density_slider.editable = enabled)
         hair_check.toggled.connect(func(_enabled: bool): _refresh_appearance_preview(0))
         density_slider.value_changed.connect(_refresh_appearance_preview_value)
     body_hair_style_select = _option_row(panel, "Pubic style", ["Natural", "Trimmed", "Landing strip", "Triangle", "Full"])
@@ -378,7 +378,7 @@ func _load_saved_profile() -> void:
         var density_slider := body_hair_density_sliders[area] as HSlider
         hair_check.button_pressed = enabled
         density_slider.value = clampf(float(area_settings.get("density", 0.5)), 0.0, 1.0)
-        density_slider.disabled = not enabled
+        density_slider.editable = enabled
     _select_text(body_hair_style_select, str(saved_body_hair.get("pubic_style", "Natural")))
     _refresh_character_preview(0)
     _update_mode_controls(game_mode_select.selected)

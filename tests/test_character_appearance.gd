@@ -72,10 +72,14 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	appearance.apply_to(body)
 	var dyed_bra := bra.get_active_material(0) as StandardMaterial3D
 	var dyed_briefs := briefs.get_active_material(0) as StandardMaterial3D
-	assert(dyed_bra.albedo_color.is_equal_approx(appearance.bra_tint))
+	assert(is_equal_approx(dyed_bra.albedo_color.r, appearance.bra_tint.r))
+	assert(is_equal_approx(dyed_bra.albedo_color.g, appearance.bra_tint.g))
+	assert(is_equal_approx(dyed_bra.albedo_color.b, appearance.bra_tint.b))
 	assert(is_equal_approx(dyed_bra.albedo_color.a, 0.6))
 	assert(not bra.visible)
-	assert(dyed_briefs.albedo_color.is_equal_approx(appearance.briefs_tint))
+	assert(is_equal_approx(dyed_briefs.albedo_color.r, appearance.briefs_tint.r))
+	assert(is_equal_approx(dyed_briefs.albedo_color.g, appearance.briefs_tint.g))
+	assert(is_equal_approx(dyed_briefs.albedo_color.b, appearance.briefs_tint.b))
 	assert(is_equal_approx(dyed_briefs.albedo_color.a, 0.8))
 
 	var path := "user://character_appearance_test.json"
@@ -94,25 +98,36 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	assert(restored.tattoo_ids == appearance.tattoo_ids)
 	restored.apply_to(body)
 	assert(not bra.visible)
-	assert((bra.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(appearance.bra_tint))
-	assert((briefs.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(appearance.briefs_tint))
+	var restored_bra_tint: Color = (bra.get_active_material(0) as StandardMaterial3D).albedo_color
+	assert(is_equal_approx(restored_bra_tint.r, appearance.bra_tint.r))
+	assert(is_equal_approx(restored_bra_tint.g, appearance.bra_tint.g))
+	assert(is_equal_approx(restored_bra_tint.b, appearance.bra_tint.b))
+	assert(is_equal_approx(restored_bra_tint.a, 0.6))
+	var restored_briefs_tint: Color = (briefs.get_active_material(0) as StandardMaterial3D).albedo_color
+	assert(is_equal_approx(restored_briefs_tint.r, appearance.briefs_tint.r))
+	assert(is_equal_approx(restored_briefs_tint.g, appearance.briefs_tint.g))
+	assert(is_equal_approx(restored_briefs_tint.b, appearance.briefs_tint.b))
+	assert(is_equal_approx(restored_briefs_tint.a, 0.8))
 	var after_reload := shirt.get_active_material(0) as StandardMaterial3D
 	assert(after_reload.albedo_color.r == appearance.shirt_tint.r)
 	assert(is_equal_approx(after_reload.albedo_color.a, 0.35))
 	assert(not shirt.visible)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	_release_test_mesh_resources(body)
 	body.free()
 
 func _test_materials_are_not_shared_between_characters() -> void:
 	var shared_material := StandardMaterial3D.new()
-	var shared_mesh := BoxMesh.new()
-	shared_mesh.material = shared_material
+	var shared_mesh_a := BoxMesh.new()
+	var shared_mesh_b := BoxMesh.new()
 	var a := MeshInstance3D.new()
 	a.name = "Shirt"
-	a.mesh = shared_mesh
+	a.mesh = shared_mesh_a
+	a.set_surface_override_material(0, shared_material)
 	var b := MeshInstance3D.new()
 	b.name = "Shirt"
-	b.mesh = shared_mesh
+	b.mesh = shared_mesh_b
+	b.set_surface_override_material(0, shared_material)
 	var root_a := Node3D.new()
 	var root_b := Node3D.new()
 	root_a.add_child(a)
@@ -127,6 +142,8 @@ func _test_materials_are_not_shared_between_characters() -> void:
 	assert((a.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(Color.RED))
 	assert((b.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(Color.BLUE))
 	assert(shared_material.albedo_color.is_equal_approx(Color.WHITE))
+	_release_test_mesh_resources(root_a)
+	_release_test_mesh_resources(root_b)
 	root_a.free()
 	root_b.free()
 
@@ -267,11 +284,18 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	assert(wren_model.current_hair_colour.is_equal_approx(Color("#252b62")))
 	assert(int(wren_model.get_meta("skin_surfaces_tinted", 0)) > 0, "Wren's skin tint did not reach a material surface")
 	assert(int(wren_model.get_meta("eye_surfaces_tinted", 0)) > 0, "Wren's eye tint did not reach a material surface")
+	# The pinned Ara base currently exposes facial blend shapes only. Do not
+	# report body parameters as blend-shape deformations until body shape keys
+	# exist; height is currently the only visible body adjustment (root scale).
 	var applied_morphs: Dictionary = wren_model.get_meta("body_morph_parameters_applied", {})
-	for morph_name in ["height", "muscle", "weight", "breasts", "legs", "proportions"]:
-		assert(applied_morphs.has(morph_name), "Ara body morph is missing: %s" % morph_name)
+	assert(applied_morphs.is_empty(), "Ara must not claim unsupported body blend shapes were applied")
+	for parameter in ["height", "muscle", "weight", "breasts", "legs", "proportions"]:
+		assert(body_parameters.has(parameter), "Ara body parameter was not retained: %s" % parameter)
 	assert(is_equal_approx(float(body_parameters.get("breasts", 0.0)), 0.76))
 	assert(is_equal_approx(float(body_parameters.get("legs", 0.0)), 0.62))
+	var base_scale: Vector3 = wren_model.get_meta("ara_base_model_scale", wren_model.model_root.scale)
+	var expected_height_scale := base_scale.y * lerpf(0.90, 1.10, 0.55)
+	assert(is_equal_approx(wren_model.model_root.scale.y, expected_height_scale), "Ara height setting must affect stature scale")
 	wren_actor.free()
 
 
@@ -283,3 +307,18 @@ func _collect_blend_shape_names(node: Node, output: Array[String]) -> void:
 				output.append(shape_name)
 	for child in node.get_children():
 		_collect_blend_shape_names(child, output)
+
+
+func _release_test_mesh_resources(root: Node) -> void:
+	# Headless's dummy renderer queries material shader parameters while a
+	# detached MeshInstance3D is destroyed. Detach the tested mesh resources
+	# explicitly after assertions so teardown does not emit a false null-RID
+	# material diagnostic.
+	if root is MeshInstance3D:
+		var mesh_instance := root as MeshInstance3D
+		if mesh_instance.mesh != null:
+			for surface in range(mesh_instance.mesh.get_surface_count()):
+				mesh_instance.set_surface_override_material(surface, null)
+			mesh_instance.mesh = null
+	for child in root.get_children():
+		_release_test_mesh_resources(child)

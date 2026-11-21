@@ -5,8 +5,8 @@ extends Control
 const MASK_SCRIPT = preload("res://scripts/characters/character_surface_region_mask.gd")
 const INPUT_ROUTER_SCRIPT = preload("res://tools/anatomy_surface_painter_input.gd")
 const BODY_OPTIONS := {
-    "Female Ara": "res://art/characters/ara_runtime/ara_person_body_anatomy.glb",
-    "Male Ara": "res://art/characters/ara_runtime/ara_person_male_body.glb"
+    "Wren (current native build)": "res://build/wren-native/Wren.glb",
+    "Aldric (current native build)": "res://build/aldric-native/Aldric.glb"
 }
 const REGION_LABELS := {
     "face_front": "Face — front",
@@ -156,7 +156,7 @@ var _last_paint_position := Vector2(-10000, -10000)
 func _ready() -> void:
     set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     _build_interface()
-    _load_body("Female Ara")
+    _load_body("Wren (current native build)")
 
 
 func _build_interface() -> void:
@@ -238,7 +238,7 @@ func _build_interface() -> void:
     scroll.add_child(column)
 
     var heading := Label.new()
-    heading.text = "Ara anatomy mask painter"
+    heading.text = "Wren / Aldric anatomy mask painter"
     heading.add_theme_font_size_override("font_size", 18)
     column.add_child(heading)
     _add_caption(column, "Paints exact imported GLB vertices. Start with one region and inspect from all angles.")
@@ -304,7 +304,7 @@ func _build_interface() -> void:
     save_heading.add_theme_font_size_override("font_size", 16)
     column.add_child(save_heading)
     _save_path_edit = LineEdit.new()
-    _save_path_edit.text = MASK_DIRECTORY + "/female_body_surface_0.tres"
+    _save_path_edit.text = MASK_DIRECTORY + "/wren_body_surface_0.tres"
     column.add_child(_save_path_edit)
     var save_button := Button.new()
     save_button.text = "Save validated .tres mask"
@@ -342,14 +342,14 @@ func _load_body(body_name: String) -> void:
         return
     _body_root = packed.instantiate() as Node3D
     if _body_root == null:
-        _set_status("Ara GLB root is not Node3D")
+        _set_status("Companion GLB root is not Node3D")
         return
     _world_root.add_child(_body_root)
     _descriptors.clear()
     _mirror_map_cache.clear()
     _collect_surface_descriptors(_body_root)
     if _descriptors.is_empty():
-        _set_status("No skinned mesh surfaces found in this Ara body")
+        _set_status("No skinned mesh surfaces found in this companion build")
         return
     _surface_option.clear()
     for descriptor in _descriptors:
@@ -361,10 +361,11 @@ func _load_body(body_name: String) -> void:
         ])
     _selected_descriptor = 0
     _surface_option.select(0)
+    _save_path_edit.text = _default_save_path(_descriptors[0])
     _frame_body()
     _load_current_mask()
     _rebuild_markers()
-    _set_status("Loaded %s. Choose a region and paint on the mesh." % body_name)
+    _set_status("Loaded %s. Choose a region and paint on the mesh. Masks are tied to this exact native build topology." % body_name)
 
 
 func _clear_body() -> void:
@@ -455,7 +456,7 @@ func _on_region_selected(index: int) -> void:
 
 
 func _default_save_path(descriptor: Dictionary) -> String:
-    var body_prefix := "female" if _body_asset_path.contains("anatomy.glb") else "male"
+    var body_prefix := "wren" if _body_asset_path.ends_with("/Wren.glb") else "aldric"
     var mesh_instance: MeshInstance3D = descriptor["mesh"]
     var mesh_name := String(mesh_instance.name).to_snake_case()
     return "%s/%s_%s_surface_%d.tres" % [

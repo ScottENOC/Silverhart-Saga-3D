@@ -1,0 +1,102 @@
+name: Ara garment guide visual preview
+on:
+  push:
+    branches: ["feature/ara-garment-fit-guides"]
+    paths:
+      - "tools/garment_guide_curve_editor.gd"
+      - "tools/garment_guide_curve_editor.tscn"
+      - "tools/review/capture_garment_guide_editor.gd"
+      - "art/characters/ara_runtime/**"
+      - "character-preview/canonical-*-ara.json"
+      - "tools/blender/add_adult_anatomy.py"
+      - "tools/blender/add_male_anatomy.py"
+      - ".github/actions/character-build-setup/action.yml"
+      - ".github/workflows/garment-guide-preview.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ara-garment-guide-preview
+  cancel-in-progress: true
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      ARA3D_CACHE: ${{ github.workspace }}/.cache/ara3d
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Validate neutral canonical profiles and anatomy scripts
+        run: |
+          set -euo pipefail
+          python -m json.tool character-preview/canonical-female-ara.json >/dev/null
+          python -m json.tool character-preview/canonical-male-ara.json >/dev/null
+          python -m py_compile tools/blender/add_adult_anatomy.py tools/blender/add_male_anatomy.py
+      - name: Prepare cached Ara and Blender toolchain
+        uses: ./.github/actions/character-build-setup
+      - name: Generate canonical Ara bodies through production anatomy passes
+        run: |
+          set -euo pipefail
+          mkdir -p build/canonical-ara/female-export build/canonical-ara/male-export
+          npx --yes ara3d@0.7.4 export \
+            --params character-preview/canonical-female-ara.json \
+            --detail high --no-animations --formats glb,zip \
+            --out build/canonical-ara/female-export
+          npx --yes ara3d@0.7.4 export \
+            --params character-preview/canonical-male-ara.json \
+            --detail high --no-animations --formats glb,zip \
+            --out build/canonical-ara/male-export
+          female_raw="$(find build/canonical-ara/female-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          male_raw="$(find build/canonical-ara/male-export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -s "$female_raw"
+          test -s "$male_raw"
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_adult_anatomy.py -- \
+            --input "$female_raw" \
+            --output build/canonical-ara/canonical-female.glb \
+            --profile female --adult --method integrated
+          PYTHONPATH=/usr/lib/python3/dist-packages blender --background --python-exit-code 1 \
+            --python tools/blender/add_male_anatomy.py -- \
+            --input "$male_raw" \
+            --output build/canonical-ara/canonical-male.glb \
+            --adult --profile-name "Canonical Male Ara" --anatomy-state flaccid
+          test -s build/canonical-ara/canonical-female.glb
+          test -s build/canonical-ara/canonical-male.glb
+          # The editor and runtime factory intentionally resolve the same asset paths.
+          # These replacements are CI-workspace-only until the visual review is approved.
+          cp build/canonical-ara/canonical-female.glb art/characters/ara_runtime/ara_person_body_anatomy.glb
+          cp build/canonical-ara/canonical-male.glb art/characters/ara_runtime/ara_person_male_body.glb
+          cat > build/canonical-ara/build-report.txt <<'EOF'
+          Canonical female: neutral Ara export -> add_adult_anatomy.py --profile female --adult --method integrated
+          Canonical male: neutral Ara export -> add_male_anatomy.py --adult --anatomy-state flaccid
+          Character-specific recolouring, hair, tattoos, piercings and physique passes are intentionally excluded.
+          Runtime/editor asset paths are identical; the generated binary assets remain CI-only pending visual approval.
+          EOF
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Import generated canonical bodies and project
+        run: godot --headless --editor --path . --quit
+      - name: Capture canonical female and male bodies
+        run: |
+          mkdir -p build/garment-guide-preview
+          timeout 240s xvfb-run -a env LIBGL_ALWAYS_SOFTWARE=1 godot --audio-driver Dummy --path . --rendering-method gl_compatibility --script res://tools/review/capture_garment_guide_editor.gd -- build/garment-guide-preview
+          for image in female-ara-front female-ara-side female-ara-rear male-ara-front male-ara-side male-ara-rear; do
+            test -s "build/garment-guide-preview/$image.png"
+          done
+      - name: Upload canonical models and visual review
+        uses: actions/upload-artifact@v4
+        with:
+          name: ara-canonical-garment-guide-review
+          path: |
+            build/canonical-ara/canonical-female.glb
+            build/canonical-ara/canonical-male.glb
+            build/canonical-ara/build-report.txt
+            build/garment-guide-preview/*.png
+          if-no-files-found: error
+          retention-days: 14

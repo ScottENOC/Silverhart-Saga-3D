@@ -114,6 +114,9 @@ static func remove_by_id(character_root: Node, accessory_id: String) -> bool:
 		return false
 	for node in character_root.find_children("*", "Node3D", true, false):
 		if str(node.get_meta("accessory_id", "")) == accessory_id:
+			var parent := node.get_parent()
+			if parent != null:
+				parent.remove_child(node)
 			node.queue_free()
 			return true
 	return false

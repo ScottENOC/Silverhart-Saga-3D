@@ -1,0 +1,1 @@
+[gd_resource type="Resource" script_class="CharacterSurfaceContactPathManifest" load_steps=2 format=3]\n\n[ext_resource type="Script" path="res://scripts/characters/character_surface_contact_path_manifest.gd" id="1"]\n\n[resource]\nscript = ExtResource("1")\npaths = []\n
