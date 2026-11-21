@@ -2,7 +2,7 @@ class_name Campaign2WorldTerrainData
 extends RefCounted
 ## Deterministic local-hex terrain for the streamed Campaign 2 world.
 ## The strategic map owns biome/faction placement; local noise adds detail.
-## Hollowmere is supplied by its authored settlement data within its local bounds.
+## Authored settlement terrain is resolved through the world manifest and generic provider.
 
 const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
 const ROAD_PATHS_PATH := "res://data/world/campaign2_road_paths.json"
