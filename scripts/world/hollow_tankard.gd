@@ -13,6 +13,8 @@ const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_ca
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
+const HOLLOWMERE_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
+const HOLLOWMERE_TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
 const WORLD_CELL_LOADER_SCRIPT = preload("res://scripts/world/campaign2_world_cell_loader.gd")
 const INTERIOR_LAYOUT_REGISTRAR = preload("res://scripts/world/world_interior_layout_registrar.gd")
 const INTERIOR_LAYOUT_PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
@@ -2248,7 +2250,7 @@ func _maybe_spawn_wilderness_creature(player_hex: Vector2i) -> void:
 	# Keep the authored settlement/farm quiet. Wildlife starts beyond the
 	# original 35-hex Hollowmere safety radius and is rolled by travel, not
 	# every frame, so it cannot spam into existence.
-	if HexGrid.distance(Vector2i.ZERO, player_hex) <= 35 or HollowmereVillageData.is_farm_land(player_hex):
+	if HexGrid.distance(Vector2i.ZERO, player_hex) <= 35 or HOLLOWMERE_TERRAIN_PROVIDER.is_farm_land(player_hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
 		return
 	wilderness_steps_since_spawn += 1
 	if wilderness_steps_since_spawn < 12:
@@ -2279,7 +2281,7 @@ func _maybe_spawn_wilderness_creature(player_hex: Vector2i) -> void:
 		var candidate := player_hex + Vector2i(ambient_rng.randi_range(-12, 12), ambient_rng.randi_range(-12, 12))
 		if HexGrid.distance(player_hex, candidate) < 7 or HexGrid.distance(player_hex, candidate) > 13:
 			continue
-		if HexGrid.distance(Vector2i.ZERO, candidate) <= 35 or HollowmereVillageData.is_farm_land(candidate):
+		if HexGrid.distance(Vector2i.ZERO, candidate) <= 35 or HOLLOWMERE_TERRAIN_PROVIDER.is_farm_land(candidate, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
 			continue
 		if not simulation.map_data.is_walkable(candidate) or simulation.is_hex_occupied(candidate):
 			continue
