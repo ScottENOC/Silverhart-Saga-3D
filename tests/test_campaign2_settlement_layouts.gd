@@ -176,3 +176,13 @@ func _check(condition: bool, message: String) -> void:
 	if not condition:
 		failures += 1
 		push_error(message)
+
+
+func _find_record(records: Array, record_id: String) -> Dictionary:
+	for record in records:
+		if not record is Dictionary:
+			continue
+		for key in ["id", "character_id", "building_id"]:
+			if String(record.get(key, "")) == record_id:
+				return record
+	return {}
