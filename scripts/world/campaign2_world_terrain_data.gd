@@ -9,7 +9,8 @@ const ROAD_PATHS_PATH := "res://data/world/campaign2_road_paths.json"
 const SETTLEMENT_LAYOUTS_PATH := "res://data/world/campaign2_settlement_layouts.json"
 const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
 const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
-const HOLLOWMERE_DATA = preload("res://scripts/world/hollowmere_village_data.gd")
+const HOLLOWMERE_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
+const HOLLOWMERE_TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
 
 var strategic_grid: Array = []
 var road_cells: Dictionary = {}
@@ -91,8 +92,8 @@ func _build_strategic_river() -> void:
 		river_points.append(HexGrid.axial_to_world(Vector2i(local_q, local_r), HexGrid.DEFAULT_RADIUS_M))
 
 func terrain_for_hex(hex: Vector2i) -> String:
-	if HOLLOWMERE_DATA.is_in_bounds(hex):
-		return HOLLOWMERE_DATA.terrain_id_at(hex)
+	if HOLLOWMERE_TERRAIN_PROVIDER.is_in_bounds(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
+		return HOLLOWMERE_TERRAIN_PROVIDER.terrain_id_at(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION)
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "authored"
 	if settlement_path_cells.has(_hex_key(hex)):
@@ -120,7 +121,7 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 
 func is_walkable_for_hex(hex: Vector2i) -> bool:
 	if HOLLOWMERE_DATA.is_in_bounds(hex):
-		return not HOLLOWMERE_DATA.is_blocked(hex)
+		return not HOLLOWMERE_TERRAIN_PROVIDER.is_blocked(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION)
 	var terrain := gameplay_terrain_for_hex(hex)
 	return terrain != "water" and terrain != "building"
 
@@ -131,7 +132,7 @@ func elevation_for_hex(hex: Vector2i) -> float:
 
 func has_tree(hex: Vector2i) -> bool:
 	if HOLLOWMERE_DATA.is_in_bounds(hex):
-		return HOLLOWMERE_DATA.has_tree(hex)
+		return HOLLOWMERE_TERRAIN_PROVIDER.has_tree(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION)
 	return LOCAL_TERRAIN_RULES.has_tree(hex, terrain_for_hex(hex))
 
 func has_rock_outcrop(hex: Vector2i) -> bool:
