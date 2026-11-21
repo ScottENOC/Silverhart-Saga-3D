@@ -70,7 +70,7 @@ func _render_body(body_key: String, asset_path: String) -> void:
     var bounds := _body_bounds(actor_root, meshes)
     var centre: Vector3 = bounds.get_center()
     var extent: Vector3 = bounds.size
-    var camera_size := maxf(extent.y * 1.12, extent.x * 1.5, 1.8)
+    var camera_size := maxf(maxf(extent.y * 1.12, extent.x * 1.5), 1.8)
     var views := {
         "front": [centre + Vector3(0, 0, maxf(extent.z * 3.0, 3.8)), centre],
         "side": [centre + Vector3(maxf(extent.z * 3.0, 3.8), 0, 0), centre],
@@ -110,7 +110,7 @@ func _render_body(body_key: String, asset_path: String) -> void:
     actor_root.queue_free()
     await process_frame
 
-func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance3D], asset_path: String) -> Resource:
+func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance3D], asset_path: String) -> CharacterSurfaceContactPath:
     var best: Dictionary = {}
     var best_score := -INF
     for mesh in meshes:
@@ -175,7 +175,7 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
     assert(selected.size() == 3, "Could not select three distinct surface triangles for the visual trace")
     var mesh: MeshInstance3D = best["mesh"]
     var surface_index: int = best["surface"]
-    var path = PATH_SCRIPT.new()
+    var path: CharacterSurfaceContactPath = PATH_SCRIPT.new()
     path.body_asset_path = asset_path
     path.mesh_node_path = body_root.get_path_to(mesh)
     path.surface_index = surface_index
