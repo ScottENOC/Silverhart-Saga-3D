@@ -36,6 +36,7 @@ func _run() -> void:
         {
             "part_id": "left_cup",
             "region_ids": PackedStringArray(["breast_left", "sternum"]),
+            "boundary_guide_ids": PackedStringArray(["cup_perimeter_left"]),
             "fit_mode": "support",
             "normal_offset_m": 0.003,
             "clearance_m": 0.002,
@@ -46,6 +47,10 @@ func _run() -> void:
     coverage.coverage_parts = coverage_parts
     assert(coverage.validate_definition().is_empty(),
         "A cup should allow overlapping breast/sternum coverage channels")
+    coverage.coverage_parts[0]["boundary_guide_ids"] = PackedStringArray(["unknown_bra_seam"])
+    assert(not coverage.validate_definition().is_empty(),
+        "Unknown garment boundary guides must be rejected")
+    coverage.coverage_parts[0]["boundary_guide_ids"] = PackedStringArray(["cup_perimeter_left"])
     coverage.coverage_parts[0]["region_ids"] = PackedStringArray(["not_an_anatomy_region"])
     assert(not coverage.validate_definition().is_empty(),
         "Unknown anatomical region IDs must be rejected")
