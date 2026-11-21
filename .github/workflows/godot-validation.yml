@@ -158,6 +158,10 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_settlement_definition_validator.gd
       - name: Run Campaign 2 settlement layout tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
+      - name: Run Campaign 2 character definition registry tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_character_definition_registry.gd
+      - name: Run Campaign 2 canonical settlement builder tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_builder.gd
       - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null
