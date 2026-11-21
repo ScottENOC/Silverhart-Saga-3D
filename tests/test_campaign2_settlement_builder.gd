@@ -13,6 +13,10 @@ func _initialize() -> void:
 		push_error("Canonical Millbrook building was not presented in its owning chunk.")
 		quit(1)
 		return
+	if parent.get_node_or_null("millbrook_house_spur_chunk_0") == null:
+		push_error("Millbrook authored road spur was not composed by the shared chunk feature pipeline.")
+		quit(1)
+		return
 	if parent.get_node_or_null("NPC_petra_hollis") == null:
 		push_error("Petra's actor was not resolved from the character definition registry.")
 		quit(1)
