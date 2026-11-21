@@ -103,6 +103,32 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 		if interior.has("center"):
 			interior["center"] = _read_axial(interior["center"])
 		interiors.append(interior)
+	var fields: Array = []
+	for source_field in layout.get("fields", []):
+		if not source_field is Dictionary:
+			continue
+		var field: Dictionary = _adapt_feature_coordinates(source_field)
+		field["feature_type"] = String(field.get("feature_type", "field"))
+		fields.append(field)
+	for source_row in layout.get("crop_rows", []):
+		if not source_row is Dictionary:
+			continue
+		var crop_row: Dictionary = _adapt_feature_coordinates(source_row)
+		crop_row["feature_type"] = "crop_row"
+		fields.append(crop_row)
+	for source_fence in layout.get("fences", []):
+		if not source_fence is Dictionary:
+			continue
+		var fence: Dictionary = _adapt_feature_coordinates(source_fence)
+		fence["feature_type"] = "fence"
+		fields.append(fence)
+	var props: Array = []
+	for source_prop in layout.get("props", []):
+		if not source_prop is Dictionary:
+			continue
+		var prop: Dictionary = _adapt_feature_coordinates(source_prop)
+		prop["feature_type"] = String(prop.get("feature_type", "quest_props"))
+		props.append(prop)
 	var min_q := int(centre.get("q", 0))
 	var max_q := min_q
 	var min_r := int(centre.get("r", 0))
@@ -126,6 +152,28 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 			max_q = maxi(max_q, int(point.get("q", 0)))
 			min_r = mini(min_r, int(point.get("r", 0)))
 			max_r = maxi(max_r, int(point.get("r", 0)))
+	for feature in fields:
+		for position_key in ["anchor"]:
+			if feature.has(position_key):
+				var point: Vector2i = feature[position_key]
+				min_q = mini(min_q, point.x)
+				max_q = maxi(max_q, point.x)
+				min_r = mini(min_r, point.y)
+				max_r = maxi(max_r, point.y)
+		for point_key in ["corners", "points"]:
+			for point_value in feature.get(point_key, []):
+				var point: Vector2i = point_value
+				min_q = mini(min_q, point.x)
+				max_q = maxi(max_q, point.x)
+				min_r = mini(min_r, point.y)
+				max_r = maxi(max_r, point.y)
+	for prop in props:
+		if prop.has("anchor"):
+			var point: Vector2i = prop.anchor
+			min_q = mini(min_q, point.x)
+			max_q = maxi(max_q, point.x)
+			min_r = mini(min_r, point.y)
+			max_r = maxi(max_r, point.y)
 	var canonical := {
 		"schema_version": 1,
 		"id": String(layout.get("id", "")),
@@ -135,14 +183,37 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 		"origin": {"q": 0, "r": 0},
 		"bounds": {"min_q": min_q - 2, "max_q": max_q + 2, "min_r": min_r - 2, "max_r": max_r + 2},
 		"terrain": {},
-		"layout": {"buildings": buildings, "paths": paths, "bridges": [], "fields": [], "props": []},
+		"layout": {"buildings": buildings, "paths": paths, "bridges": [], "fields": fields, "props": props},
 		# Only placement references survive this adapter. Identity, appearance,
 		# class progression, equipment and dialogue remain character-owned.
 		"placements": {"characters": characters, "creatures": []},
-		"presentation": {"mode": "chunked", "hex_radius": HexGrid.DEFAULT_RADIUS_M, "ground": {}, "palette": {}, "vegetation": {}},
+		"presentation": {"mode": "chunked", "hex_radius": HexGrid.DEFAULT_RADIUS_M, "ground": {}, "palette": layout.get("presentation", {}).get("palette", {}), "materials": layout.get("presentation", {}).get("materials", {}), "vegetation": {}},
 		"interiors": interiors
 	}
 	return canonical
+
+func _adapt_feature_coordinates(source: Dictionary) -> Dictionary:
+	var feature: Dictionary = source.duplicate(true)
+	for key in ["anchor", "center", "centre"]:
+		if feature.has(key):
+			feature[key] = _read_axial_vector(feature[key])
+	for key in ["corners", "points"]:
+		if feature.get(key) is Array:
+			var points: Array = []
+			for point in feature[key]:
+				points.append(_read_axial_vector(point))
+			feature[key] = points
+	for part in feature.get("parts", []):
+		if part is Dictionary and part.has("axial"):
+			part["axial"] = _read_axial_vector(part["axial"])
+	return feature
+
+func _read_axial_vector(value: Variant) -> Vector2i:
+	if value is Vector2i:
+		return value
+	if value is Dictionary:
+		return Vector2i(int(value.get("q", 0)), int(value.get("r", 0)))
+	return Vector2i.ZERO
 
 func validate_adapted(definition: Dictionary) -> Dictionary:
 	return VALIDATOR.validate(definition)
