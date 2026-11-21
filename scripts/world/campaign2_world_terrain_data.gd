@@ -98,7 +98,7 @@ func _build_strategic_river() -> void:
 func terrain_for_hex(hex: Vector2i) -> String:
 	var authored_settlement := authored_settlement_terrain_registry.resolve(hex)
 	if not authored_settlement.is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(hex, authored_settlement.definition)
+		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(hex, authored_settlement.local_hex, authored_settlement.definition)
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "authored"
 	if settlement_path_cells.has(_hex_key(hex)):
@@ -119,7 +119,7 @@ func terrain_for_hex(hex: Vector2i) -> String:
 func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	var authored_settlement := authored_settlement_terrain_registry.resolve(hex)
 	if not authored_settlement.is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(hex, authored_settlement.definition)
+		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(hex, authored_settlement.local_hex, authored_settlement.definition)
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "building"
 	var terrain := terrain_for_hex(hex)
@@ -128,20 +128,20 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 func is_walkable_for_hex(hex: Vector2i) -> bool:
 	var authored_settlement := authored_settlement_terrain_registry.resolve(hex)
 	if not authored_settlement.is_empty():
-		return not AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.is_blocked(hex, authored_settlement.definition)
+		return not AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.is_blocked(hex, authored_settlement.local_hex, authored_settlement.definition)
 	var terrain := gameplay_terrain_for_hex(hex)
 	return terrain != "water" and terrain != "building"
 
 func elevation_for_hex(hex: Vector2i) -> float:
 	var authored_settlement := authored_settlement_terrain_registry.resolve(hex)
 	if not authored_settlement.is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.elevation_for_hex(hex, authored_settlement.definition)
+		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.elevation_for_hex(hex, authored_settlement.local_hex, authored_settlement.definition)
 	return LOCAL_TERRAIN_RULES.elevation_for_hex(hex, terrain_for_hex(hex))
 
 func has_tree(hex: Vector2i) -> bool:
 	var authored_settlement := authored_settlement_terrain_registry.resolve(hex)
 	if not authored_settlement.is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.has_tree(hex, authored_settlement.definition)
+		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.has_tree(hex, authored_settlement.local_hex, authored_settlement.definition)
 	return LOCAL_TERRAIN_RULES.has_tree(hex, terrain_for_hex(hex))
 
 func has_rock_outcrop(hex: Vector2i) -> bool:
