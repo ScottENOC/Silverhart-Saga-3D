@@ -437,7 +437,12 @@ func _load_body(body_name: String) -> void:
         ])
     _selected_descriptor = 0
     _surface_option.select(0)
-    _save_path_edit.text = _default_save_path(_descriptors[0])
+    if _partition_mode_check.button_pressed:
+        var body_prefix := "wren" if _body_asset_path.ends_with("/Wren.glb") else "aldric"
+        var mesh_name := String((_descriptors[0]["mesh"] as MeshInstance3D).name).to_snake_case()
+        _save_path_edit.text = "%s/%s_%s_surface_%d_primary.tres" % [PARTITION_DIRECTORY, body_prefix, mesh_name, int(_descriptors[0]["surface_index"])]
+    else:
+        _save_path_edit.text = _default_save_path(_descriptors[0])
     _frame_body()
     _load_current_mask()
     _rebuild_markers()
