@@ -15,6 +15,9 @@ on:
       - "data/**"
       - "tests/**"
       - "tools/ci/**"
+      - "tools/garment_guide_curve_editor.gd"
+      - "tools/garment_guide_curve_editor.tscn"
+      - "tools/review/capture_garment_guide_editor.gd"
       - ".github/workflows/godot-validation.yml"
   push:
     branches: [dev, dev_2, "feature/**"]
@@ -27,6 +30,9 @@ on:
       - "scripts/**"
       - "data/**"
       - "tests/**"
+      - "tools/garment_guide_curve_editor.gd"
+      - "tools/garment_guide_curve_editor.tscn"
+      - "tools/review/capture_garment_guide_editor.gd"
       - ".github/workflows/godot-validation.yml"
   workflow_dispatch:
     inputs:
@@ -119,7 +125,7 @@ jobs:
       - name: Test topology-bound Ara garment guide curves
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_character_garment_guide_curves.gd
       - name: Load Ara garment guide curve editor
-        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_garment_guide_curve_editor_load.gd
+        run: timeout 120s bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_garment_guide_curve_editor_load.gd
       - name: Load Ara anatomy surface painter tool
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_anatomy_surface_painter_load.gd
       - name: Audit fine Ara anatomy surface geometry
