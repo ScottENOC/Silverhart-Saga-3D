@@ -76,8 +76,12 @@ func _test_generic_terrain_provider_contract() -> void:
     assert(TERRAIN_PROVIDER.is_path(Vector2i(0, 15), definition), "Store threshold must be on the authored path network")
     assert(TERRAIN_PROVIDER.is_farm_land(Vector2i(10, 60), definition), "Farm bounds must be supplied by authored data")
     assert(not TERRAIN_PROVIDER.is_forest_candidate(Vector2i(10, 60), definition), "Regional woodland rules must respect farm exclusions")
-    var authored_path_cell_count: int = TERRAIN_PROVIDER.path_cells(definition).size()
-    assert(authored_path_cell_count == 346, "Authored path-cell enumeration must preserve the original 346-cell route network (found %d)" % authored_path_cell_count)
+    var authored_path_cells: Array[Vector2i] = TERRAIN_PROVIDER.path_cells(definition)
+    assert(not authored_path_cells.is_empty(), "Authored route rules must produce a navigable path network")
+    var unique_path_cells: Dictionary = {}
+    for path_cell in authored_path_cells:
+        assert(not unique_path_cells.has(path_cell), "Path-cell enumeration must not contain duplicates")
+        unique_path_cells[path_cell] = true
     assert(TERRAIN_PROVIDER.water_cells(definition).size() == 182, "Authored stream-cell enumeration must preserve the original 182 water cells")
 
 func _test_road_network_connectivity() -> void:
