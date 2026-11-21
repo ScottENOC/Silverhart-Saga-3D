@@ -51,6 +51,9 @@ func configure(manifest: Dictionary) -> Dictionary:
 			validation_errors.append("Duplicate settlement terrain ID: %s" % settlement_id)
 			continue
 		seen_ids[settlement_id] = true
+		if not ResourceLoader.exists(script_path):
+			validation_errors.append("Settlement terrain definition resource does not exist: %s" % script_path)
+			continue
 		var definition_script: Variant = load(script_path)
 		if not definition_script is Script:
 			validation_errors.append("Settlement terrain definition is not a loadable script: %s" % script_path)
