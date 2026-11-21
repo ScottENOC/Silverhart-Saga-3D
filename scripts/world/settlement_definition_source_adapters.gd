@@ -204,8 +204,14 @@ func _adapt_feature_coordinates(source: Dictionary) -> Dictionary:
 				points.append(_read_axial_vector(point))
 			feature[key] = points
 	for part in feature.get("parts", []):
-		if part is Dictionary and part.has("axial"):
+		if not part is Dictionary:
+			continue
+		if part.has("axial"):
 			part["axial"] = _read_axial_vector(part["axial"])
+		for vector_key in ["position", "size"]:
+			if part.get(vector_key) is Dictionary:
+				var vector_value: Dictionary = part[vector_key]
+				part[vector_key] = Vector3(float(vector_value.get("x", 0.0)), float(vector_value.get("y", 0.0)), float(vector_value.get("z", 0.0)))
 	return feature
 
 func _read_axial_vector(value: Variant) -> Vector2i:
