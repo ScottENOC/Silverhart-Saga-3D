@@ -207,7 +207,7 @@ func _configure_location_simulation() -> void:
 	# Authored collision regions, upper-floor cells, building metadata and door
 	# state are registered by the shared logical interior-layout registrar.
 	if not INTERIOR_LAYOUT_REGISTRAR.register_layout(
-		simulation, HOLLOW_TANKARD_LAYOUT.LOGICAL_DEFINITION, HEX_RADIUS
+		simulation, HOLLOW_TANKARD_LAYOUT.get_script_constant_map().get("LOGICAL_DEFINITION", {}), HEX_RADIUS
 	):
 		push_error("Failed to register the Hollow Tankard logical interior layout.")
 		return
