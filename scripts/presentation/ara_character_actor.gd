@@ -139,12 +139,26 @@ func get_surface_contact_paths() -> Array[Resource]:
 
 
 func get_surface_contact_path(path_id: String) -> Array[Dictionary]:
+    ## Returns evaluated authoring control points for inspection and editing.
     var regions := get_surface_regions()
     if regions == null:
         return []
     for resource in get_surface_contact_paths():
         if resource is CharacterSurfaceContactPath and resource.path_id == path_id:
             return resource.evaluate(regions)
+    return []
+
+
+func get_surface_contact_path_samples(path_id: String) -> Array[Dictionary]:
+    ## Returns a dense, mesh-edge-constrained surface route with deformed frames.
+    ## This is suitable as the target trajectory for hand/finger IK; timing,
+    ## contact offset/pressure and collision constraints remain animation concerns.
+    var regions := get_surface_regions()
+    if regions == null:
+        return []
+    for resource in get_surface_contact_paths():
+        if resource is CharacterSurfaceContactPath and resource.path_id == path_id:
+            return resource.evaluate_surface_path(regions)
     return []
 
 
