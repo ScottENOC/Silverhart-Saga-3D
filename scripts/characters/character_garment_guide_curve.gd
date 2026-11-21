@@ -18,6 +18,17 @@ const VALID_GUIDE_IDS := [
     "underband_front", "underband_back", "strap_left", "strap_right"
 ]
 
+## Semantic closure rules for the first bra construction guides.
+const GUIDE_LOOP_REQUIREMENTS := {
+    "cup_perimeter_left": true,
+    "cup_perimeter_right": true,
+    "centre_gore": true,
+    "underband_front": false,
+    "underband_back": false,
+    "strap_left": false,
+    "strap_right": false
+}
+
 @export var body_asset_path: String = ""
 @export var mesh_node_path: NodePath
 @export_range(0, 255, 1) var surface_index: int = 0
@@ -33,6 +44,15 @@ const VALID_GUIDE_IDS := [
 
 var last_evaluation_error: String = ""
 var _surface_path_evaluator: CharacterSurfaceContactPath
+
+
+func validate_loop_semantics() -> String:
+    if not GUIDE_LOOP_REQUIREMENTS.has(guide_id):
+        return ""
+    var required_closed := bool(GUIDE_LOOP_REQUIREMENTS[guide_id])
+    if closed_loop != required_closed:
+        return "Guide %s must be %s" % [guide_id, "a closed loop" if required_closed else "an open path"]
+    return ""
 
 
 func validate_for_mesh(mesh_instance: MeshInstance3D, body_root: Node3D, expected_body_asset_path: String) -> String:
@@ -57,6 +77,9 @@ func validate_for_mesh(mesh_instance: MeshInstance3D, body_root: Node3D, expecte
         return "Unsupported garment guide ID: %s" % guide_id
     if not paired_guide_id.is_empty() and not VALID_GUIDE_IDS.has(paired_guide_id):
         return "Unsupported paired garment guide ID: %s" % paired_guide_id
+    var loop_error := validate_loop_semantics()
+    if not loop_error.is_empty():
+        return loop_error
     if points.size() < (3 if closed_loop else 2):
         return "A guide needs at least %d points" % (3 if closed_loop else 2)
     for point_index in range(points.size()):
