@@ -248,6 +248,16 @@ func get_region_surface_samples(
 ## Evaluates any source vertex on a configured skinned surface, not only vertices
 ## belonging to a named region. Garment guide curves use this to evaluate their
 ## barycentric triangle attachments after blend shapes and skinning.
+func get_surface_mesh_instance(mesh_node_path: NodePath, surface_index: int) -> MeshInstance3D:
+    if not is_configured():
+        return null
+    for surface in _surfaces:
+        var mesh_instance: MeshInstance3D = surface["mesh_instance"]
+        if _body_root.get_path_to(mesh_instance) == mesh_node_path and int(surface["surface_index"]) == surface_index:
+            return mesh_instance
+    return null
+
+
 func get_surface_vertex_sample(mesh_node_path: NodePath, surface_index: int, vertex_index: int) -> Dictionary:
     if not is_configured():
         return {}
