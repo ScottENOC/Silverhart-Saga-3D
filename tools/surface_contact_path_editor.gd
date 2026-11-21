@@ -1,6 +1,6 @@
 extends "res://tools/surface_landmark_editor.gd"
 ## Sequential authoring UI for topology-bound surface contact paths.
-## Inherits the canonical Ara body picker, triangle hit testing and touch orbit controls.
+## Inherits the native companion body picker, triangle hit testing and touch orbit controls.
 
 const CONTACT_MANIFEST_PATH := "res://data/characters/surface_contact_paths/manifest.tres"
 const CONTACT_DIRECTORY := "res://data/characters/surface_contact_paths"
@@ -42,7 +42,7 @@ func _build_contact_controls() -> void:
     heading.add_theme_font_size_override("font_size", 17)
     column.add_child(heading)
     var help := Label.new()
-    help.text = "Tap points in travel order. The cyan line joins the anchors; it is a control-point preview, not yet a skin-constrained spline."
+    help.text = "Tap points in travel order. The cyan preview follows the source mesh triangle-edge graph between anchors (a surface-constrained approximation, not an exact geodesic)."
     help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     column.add_child(help)
     _path_id_input = LineEdit.new()
@@ -113,14 +113,31 @@ func _refresh_marker() -> void:
         return
     _path_preview_mesh.clear_surfaces()
     if _path_points.size() >= 2 and _selected_descriptor >= 0:
-        _path_preview_mesh.surface_begin(Mesh.PRIMITIVE_LINES, _path_preview_instance.material_override)
-        for index in range(_path_points.size() - 1):
-            _path_preview_mesh.surface_add_vertex(_world_point(_path_points[index]))
-            _path_preview_mesh.surface_add_vertex(_world_point(_path_points[index + 1]))
-        if _path_closed and _path_points.size() >= 3:
-            _path_preview_mesh.surface_add_vertex(_world_point(_path_points[-1]))
-            _path_preview_mesh.surface_add_vertex(_world_point(_path_points[0]))
-        _path_preview_mesh.surface_end()
+        var descriptor: Dictionary = _descriptors[_selected_descriptor]
+        var mesh: MeshInstance3D = descriptor["mesh"]
+        var contact_path := CharacterSurfaceContactPath.new()
+        contact_path.body_asset_path = String(BODY_OPTIONS.get(_body_option.get_item_text(_body_option.selected), ""))
+        contact_path.mesh_node_path = _body_root.get_path_to(mesh)
+        contact_path.surface_index = int(descriptor["surface_index"])
+        contact_path.surface_name = mesh.mesh.surface_get_name(contact_path.surface_index)
+        contact_path.vertex_count = (descriptor["vertices"] as PackedVector3Array).size()
+        contact_path.surface_signature = CharacterSurfaceRegionMask.build_surface_signature(mesh.mesh, contact_path.surface_index)
+        contact_path.path_id = _path_id_input.text.strip_edges().to_snake_case()
+        contact_path.closed_loop = _path_closed
+        contact_path.points = _path_points.duplicate(true)
+        var surface_regions := CharacterSurfaceRegions.new()
+        var masks: Array[Resource] = CharacterSurfaceRegionMaskLibrary.load_for_body(contact_path.body_asset_path)
+        if surface_regions.configure(_body_root, _body_root, masks, contact_path.body_asset_path):
+            var dense_path := contact_path.evaluate_surface_path(surface_regions)
+            if not dense_path.is_empty():
+                _path_preview_mesh.surface_begin(Mesh.PRIMITIVE_LINE_STRIP, _path_preview_instance.material_override)
+                for sample in dense_path:
+                    _path_preview_mesh.surface_add_vertex(sample["position"])
+                _path_preview_mesh.surface_end()
+            else:
+                _set_status("Surface route could not be evaluated: " + contact_path.last_evaluation_error)
+        else:
+            _set_status("Surface route evaluator could not configure: " + surface_regions.get_configuration_error())
     _update_point_count()
 
 
@@ -177,7 +194,7 @@ func _set_contact_default_path() -> void:
         return
     var descriptor: Dictionary = _descriptors[_selected_descriptor]
     var mesh: MeshInstance3D = descriptor["mesh"]
-    var prefix := "female" if _body_option.get_item_text(_body_option.selected) == "Female Ara" else "male"
+    var prefix := "wren" if _body_option.get_item_text(_body_option.selected).begins_with("Wren") else "aldric"
     var safe_id := _path_id_input.text.strip_edges().to_snake_case()
     if safe_id.is_empty():
         safe_id = "contact_path_01"
