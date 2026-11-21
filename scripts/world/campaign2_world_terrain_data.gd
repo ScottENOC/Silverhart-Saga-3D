@@ -120,7 +120,7 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	return "building" if terrain == "authored" else terrain
 
 func is_walkable_for_hex(hex: Vector2i) -> bool:
-	if HOLLOWMERE_DATA.is_in_bounds(hex):
+	if HOLLOWMERE_TERRAIN_PROVIDER.is_in_bounds(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION):
 		return not HOLLOWMERE_TERRAIN_PROVIDER.is_blocked(hex, HOLLOWMERE_TERRAIN_DEFINITION.DEFINITION)
 	var terrain := gameplay_terrain_for_hex(hex)
 	return terrain != "water" and terrain != "building"
