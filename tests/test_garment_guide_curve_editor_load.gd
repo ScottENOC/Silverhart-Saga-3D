@@ -16,6 +16,16 @@ func _run() -> void:
     var constants: Dictionary = editor_script.get_script_constant_map()
     var labels: Dictionary = constants.get("GUIDE_LABELS", {})
     var pairs: Dictionary = constants.get("GUIDE_PAIRS", {})
+    var loop_requirements: Dictionary = constants.get("GUIDE_LOOP_REQUIREMENTS", {})
+    assert(loop_requirements.get("cup_perimeter_left", false) == true,
+        "Left bra cup perimeter must be a closed loop")
+    assert(loop_requirements.get("cup_perimeter_right", false) == true,
+        "Right bra cup perimeter must be a closed loop")
+    assert(loop_requirements.get("centre_gore", false) == true,
+        "Centre gore boundary must be a closed loop")
+    for open_guide in ["underband_front", "underband_back", "strap_left", "strap_right"]:
+        assert(loop_requirements.has(open_guide) and loop_requirements[open_guide] == false,
+            "Bra edge/strap guide must be an open path: " + open_guide)
     for guide_id in CharacterGarmentGuideCurve.VALID_GUIDE_IDS:
         assert(labels.has(guide_id), "Guide editor is missing selector label " + guide_id)
     assert(labels.size() == CharacterGarmentGuideCurve.VALID_GUIDE_IDS.size(),
