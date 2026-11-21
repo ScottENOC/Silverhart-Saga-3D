@@ -32,6 +32,16 @@ func _run() -> void:
         "disconnected surface islands"
     )
     _expect_contains(
+        "out-of-range triangle vertex rejected",
+        PARTITION_SCRIPT.validate_arrays(
+            4,
+            PackedInt32Array([0, 1, 9]),
+            regions,
+            valid
+        ),
+        "outside the partition"
+    )
+    _expect_contains(
         "duplicate region identifiers rejected",
         PARTITION_SCRIPT.validate_arrays(
             4,
@@ -50,7 +60,7 @@ func _run() -> void:
     if not boundary_report.get("valid", false):
         push_error("boundary diagnostics rejected valid partition: %s" % boundary_report.get("error", "unknown"))
         failed = true
-    elif int(boundary_report.get("boundary_edge_count", -1)) != 3 or int(boundary_report.get("mixed_triangle_count", -1)) != 2:
+    elif int(boundary_report.get("boundary_edge_count", -1)) != 3 or int(boundary_report.get("mixed_triangle_count", -1)) != 2 or int(boundary_report.get("region_adjacency_edge_counts", {}).get("chest_left|chest_right", -1)) != 3:
         push_error("shared boundary diagnostics returned unexpected counts: %s" % boundary_report)
         failed = true
     _expect_contains(
@@ -66,7 +76,7 @@ func _run() -> void:
     if failed:
         quit(1)
         return
-    print("SURFACE_REGION_PARTITION_TESTS_OK cases=7")
+    print("SURFACE_REGION_PARTITION_TESTS_OK cases=8")
     quit(0)
 
 
