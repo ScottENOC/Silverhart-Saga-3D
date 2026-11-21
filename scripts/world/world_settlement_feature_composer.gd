@@ -37,6 +37,7 @@ static func compose_chunk(
 		if building.has("door"):
 			building["door"] = _read_hex(building["door"]) + origin
 		building_anchors[String(building.get("id", ""))] = centre
+		building_anchors[String(building.get("node_name", building.get("id", "")))] = centre
 		if _contains_chunk(centre, chunk_min, chunk_size):
 			buildings.append(building)
 	var created_buildings := 0
@@ -142,6 +143,10 @@ static func _route_fragments_for_chunk(
 	var result: Array = []
 	var raw_points: Array = source.get("points", [])
 	var raw_widths: Array = source.get("widths", [])
+	if raw_points.is_empty() and source.has("from") and source.has("to"):
+		raw_points = [source.get("from"), source.get("to")]
+		var default_width := float(source.get("width", 2.2))
+		raw_widths = [default_width, default_width]
 	if raw_points.size() < 2 or raw_points.size() != raw_widths.size():
 		return result
 	var points: Array[Vector2i] = []
@@ -252,6 +257,11 @@ static func _resolve_material_groups(presentation: Dictionary) -> Dictionary:
 			if resolved_palette.has(palette_key):
 				group[String(material_name)] = resolved_palette[palette_key]
 		groups[String(category)] = group
+	if not groups.has("routes"):
+		var default_path := StandardMaterial3D.new()
+		default_path.albedo_color = Color(0.43, 0.34, 0.23)
+		default_path.roughness = 0.95
+		groups["routes"] = {"path": default_path, "road": default_path}
 	return groups
 
 static func _expected_bridge_count(definitions: Array, origin: Vector2i, chunk_min: Vector2i, chunk_size: int) -> int:
