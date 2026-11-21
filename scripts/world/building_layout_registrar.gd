@@ -29,8 +29,12 @@ static func register_layout(
     var seen_floor_hexes: Dictionary = {}
     for cell in floor_cells:
         var hex: Variant = cell.get("hex")
-        if not (hex is Vector2i) or seen_floor_hexes.has(hex) or simulation.map_data.has_cell(hex):
+        if not (hex is Vector2i) or seen_floor_hexes.has(hex):
             return false
+        # Regional terrain chunks may already have materialised cells beneath
+        # an authored upper floor. Interior registration explicitly overlays
+        # those generated terrain records with the authored floor records.
+        # This runs during world setup, before gameplay mutations are possible.
         seen_floor_hexes[hex] = true
 
     if not simulation.building_registry.register_building(building_definition):

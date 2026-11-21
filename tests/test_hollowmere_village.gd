@@ -1,39 +1,96 @@
 extends SceneTree
 
 const MAIN_CAMPAIGN_MAP = preload("res://scripts/world/main_campaign_world_map_data.gd")
-const HOLLOWMERE_VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
+const WORLD_SETTLEMENT_PRESENTER = preload("res://scripts/world/world_settlement_presenter.gd")
+const HOLLOWMERE_PRESENTATION = preload("res://data/settlements/hollowmere/presentation.gd")
+const WORLD_BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
+const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
+const HOLLOWMERE_TERRAIN = preload("res://data/settlements/hollowmere/terrain.gd")
+const HOLLOWMERE_SETTLEMENT = preload("res://data/settlements/hollowmere/settlement_definition.gd")
+const HOLLOWMERE_BUILDINGS = preload("res://data/settlements/hollowmere/buildings.gd")
+const TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
+
+# These test helpers deliberately exercise the generic provider directly. They
+# are local test conveniences, not a production compatibility API.
+static func _is_in_bounds(hex: Vector2i) -> bool:
+    return TERRAIN_PROVIDER.is_in_bounds(hex, HOLLOWMERE_TERRAIN.DEFINITION)
+static func _is_water(hex: Vector2i) -> bool:
+    return TERRAIN_PROVIDER.is_water(hex, HOLLOWMERE_TERRAIN.DEFINITION)
+static func _is_building(hex: Vector2i) -> bool:
+    return TERRAIN_PROVIDER.is_building(hex, HOLLOWMERE_TERRAIN.DEFINITION)
+static func _is_door(hex: Vector2i) -> bool:
+    return TERRAIN_PROVIDER.is_door(hex, HOLLOWMERE_TERRAIN.DEFINITION)
+static func _is_path(hex: Vector2i) -> bool:
+    return TERRAIN_PROVIDER.is_path(hex, HOLLOWMERE_TERRAIN.DEFINITION)
+static func _is_blocked(hex: Vector2i) -> bool:
+    return TERRAIN_PROVIDER.is_blocked(hex, HOLLOWMERE_TERRAIN.DEFINITION)
+static func _terrain_id_at(hex: Vector2i) -> String:
+    return TERRAIN_PROVIDER.terrain_id_at(hex, HOLLOWMERE_TERRAIN.DEFINITION)
+static func _is_farm_land(hex: Vector2i) -> bool:
+    return TERRAIN_PROVIDER.is_farm_land(hex, HOLLOWMERE_TERRAIN.DEFINITION)
+static func _is_forest_candidate(hex: Vector2i) -> bool:
+    return TERRAIN_PROVIDER.is_forest_candidate(hex, HOLLOWMERE_TERRAIN.DEFINITION)
+static func _path_cells() -> Array[Vector2i]:
+    return TERRAIN_PROVIDER.path_cells(HOLLOWMERE_TERRAIN.DEFINITION)
+static func _water_cells() -> Array[Vector2i]:
+    return TERRAIN_PROVIDER.water_cells(HOLLOWMERE_TERRAIN.DEFINITION)
+
 func _initialize() -> void:
     _test_village_uses_shared_vegetation_generator()
     _test_village_bounds_and_terrain()
+    _test_generic_terrain_provider_contract()
+    _test_main_campaign_world_map()
     _test_road_network_connectivity()
     _test_building_thresholds()
+    _test_building_definitions_use_shared_factory()
     _test_hollowmere_character_manifest()
     _test_animal_actor_registration()
     print("Hollowmere village tests passed.")
     quit()
 
 func _test_village_bounds_and_terrain() -> void:
-    assert(HollowmereVillageData.is_in_bounds(Vector2i(12, 26)), "Rowan's crossroads area must be inside the playable map")
-    assert(not HollowmereVillageData.is_in_bounds(Vector2i(60, 60)), "The expanded outer map boundary must still reject distant cells")
-    assert(HollowmereVillageData.is_water(Vector2i(0, HollowmereVillageData.STREAM_R)), "The stream should be water")
-    assert(HollowmereVillageData.is_blocked(Vector2i(0, HollowmereVillageData.STREAM_R)), "The stream must block movement")
-    assert(not HollowmereVillageData.is_water(HollowmereVillageData.BRIDGE), "The bridge must replace the water tile")
-    assert(HollowmereVillageData.is_in_bounds(HollowmereVillageData.FARMHOUSE), "The farmhouse must be inside the expanded local map")
-    assert(HollowmereVillageData.is_in_bounds(HollowmereVillageData.FARM_BARN), "The barn must be inside the expanded local map")
-    assert(HollowmereVillageData.is_building(HollowmereVillageData.FARMHOUSE), "The farmhouse footprint must block movement")
-    assert(HollowmereVillageData.is_building(HollowmereVillageData.FARM_BARN), "The barn footprint must block movement")
-    assert(HollowmereVillageData.is_farm_land(Vector2i(10, 60)), "Agricultural fields must be tagged as farm land")
-    assert(not HollowmereVillageData.is_forest_candidate(Vector2i(10, 60)), "Procedural trees must not grow through farm fields")
-    assert(not HollowmereVillageData.is_blocked(HollowmereVillageData.BRIDGE), "The bridge must be traversable")
-    assert(HollowmereVillageData.terrain_id_at(Vector2i(0, 15)) == "path", "The general-store threshold should be a path")
+    assert(_is_in_bounds(Vector2i(12, 26)), "Rowan's crossroads area must be inside the playable map")
+    assert(not _is_in_bounds(Vector2i(60, 60)), "The expanded outer map boundary must still reject distant cells")
+    assert(_is_water(Vector2i(0, HOLLOWMERE_SETTLEMENT.STREAM_R)), "The stream should be water")
+    assert(_is_blocked(Vector2i(0, HOLLOWMERE_SETTLEMENT.STREAM_R)), "The stream must block movement")
+    assert(not _is_water(HOLLOWMERE_SETTLEMENT.BRIDGE), "The bridge must replace the water tile")
+    assert(_is_in_bounds(HOLLOWMERE_SETTLEMENT.FARMHOUSE), "The farmhouse must be inside the expanded local map")
+    assert(_is_in_bounds(HOLLOWMERE_SETTLEMENT.FARM_BARN), "The barn must be inside the expanded local map")
+    assert(_is_building(HOLLOWMERE_SETTLEMENT.FARMHOUSE), "The farmhouse footprint must block movement")
+    assert(_is_building(HOLLOWMERE_SETTLEMENT.FARM_BARN), "The barn footprint must block movement")
+    assert(_is_farm_land(Vector2i(10, 60)), "Agricultural fields must be tagged as farm land")
+    assert(not _is_forest_candidate(Vector2i(10, 60)), "Procedural trees must not grow through farm fields")
+    assert(not _is_blocked(HOLLOWMERE_SETTLEMENT.BRIDGE), "The bridge must be traversable")
+    assert(_terrain_id_at(Vector2i(0, 15)) == "path", "The general-store threshold should be a path")
+
+func _test_generic_terrain_provider_contract() -> void:
+    var definition: Dictionary = HOLLOWMERE_TERRAIN.DEFINITION
+    assert(TERRAIN_PROVIDER.is_in_bounds(Vector2i(12, 26), definition), "Generic provider should include the authored playable area")
+    assert(not TERRAIN_PROVIDER.is_in_bounds(Vector2i(60, 60), definition), "Generic provider should reject distant cells")
+    assert(TERRAIN_PROVIDER.is_water(Vector2i(0, HOLLOWMERE_SETTLEMENT.STREAM_R), definition), "Generic provider should identify the stream")
+    assert(not TERRAIN_PROVIDER.is_water(HOLLOWMERE_SETTLEMENT.BRIDGE, definition), "The authored bridge must exempt its cell from water")
+    assert(TERRAIN_PROVIDER.is_building(HOLLOWMERE_SETTLEMENT.FARMHOUSE, definition), "Farmhouse footprint must be supplied by authored building data")
+    assert(TERRAIN_PROVIDER.is_building(HOLLOWMERE_SETTLEMENT.FARM_BARN, definition), "Barn footprint must be supplied by authored building data")
+    assert(TERRAIN_PROVIDER.is_door(HOLLOWMERE_SETTLEMENT.FARMHOUSE_DOOR, definition), "Farmhouse entrance must remain explicit")
+    assert(not TERRAIN_PROVIDER.is_blocked(HOLLOWMERE_SETTLEMENT.FARMHOUSE_DOOR, definition), "Authored entrances must remain traversable")
+    assert(TERRAIN_PROVIDER.is_path(Vector2i(0, 15), definition), "Store threshold must be on the authored path network")
+    assert(TERRAIN_PROVIDER.is_farm_land(Vector2i(10, 60), definition), "Farm bounds must be supplied by authored data")
+    assert(not TERRAIN_PROVIDER.is_forest_candidate(Vector2i(10, 60), definition), "Regional woodland rules must respect farm exclusions")
+    var authored_path_cells: Array[Vector2i] = TERRAIN_PROVIDER.path_cells(definition)
+    assert(not authored_path_cells.is_empty(), "Authored route rules must produce a navigable path network")
+    var unique_path_cells: Dictionary = {}
+    for path_cell in authored_path_cells:
+        assert(not unique_path_cells.has(path_cell), "Path-cell enumeration must not contain duplicates")
+        unique_path_cells[path_cell] = true
+    assert(TERRAIN_PROVIDER.water_cells(definition).size() == 182, "Authored stream-cell enumeration must preserve the original 182 water cells")
 
 func _test_road_network_connectivity() -> void:
-    var path_cells := HollowmereVillageData.path_cells()
+    var path_cells := _path_cells()
     var path_set: Dictionary = {}
     for cell in path_cells:
         path_set[cell] = true
-    assert(path_set.has(HollowmereVillageData.CROSSROADS), "The signposted crossroads must be on the road network")
-    assert(path_set.has(HollowmereVillageData.BRIDGE), "The north road must include the bridge")
+    assert(path_set.has(HOLLOWMERE_SETTLEMENT.CROSSROADS), "The signposted crossroads must be on the road network")
+    assert(path_set.has(HOLLOWMERE_SETTLEMENT.BRIDGE), "The north road must include the bridge")
     for road_end in [Vector2i(8, -40), Vector2i(8, 32), Vector2i(-40, 24), Vector2i(16, 24)]:
         assert(path_set.has(road_end), "Each of the four crossroads roads must reach its map edge")
 
@@ -50,8 +107,8 @@ func _test_road_network_connectivity() -> void:
                 queue.append(neighbour)
 
     for destination in [
-        HollowmereVillageData.CROSSROADS,
-        HollowmereVillageData.BRIDGE,
+        HOLLOWMERE_SETTLEMENT.CROSSROADS,
+        HOLLOWMERE_SETTLEMENT.BRIDGE,
         Vector2i(8, -40),
         Vector2i(8, 32),
         Vector2i(12, 54),
@@ -62,17 +119,46 @@ func _test_road_network_connectivity() -> void:
         Vector2i(0, -10),
         Vector2i(10, 9),
         Vector2i(-4, 9),
-        HollowmereVillageData.FARMHOUSE_DOOR,
-        HollowmereVillageData.FARM_BARN_DOOR
+        HOLLOWMERE_SETTLEMENT.FARMHOUSE_DOOR,
+        HOLLOWMERE_SETTLEMENT.FARM_BARN_DOOR
     ]:
         assert(visited.has(destination), "Village road does not connect to %s" % destination)
 
+func _test_building_definitions_use_shared_factory() -> void:
+    var ids: Dictionary = {}
+    var parent := Node3D.new()
+    var constructed := 0
+    for definition in HOLLOWMERE_BUILDINGS.BUILDINGS:
+        var building_id := String(definition.get("id", ""))
+        assert(not building_id.is_empty() and not ids.has(building_id), "Hollowmere building IDs must be unique")
+        ids[building_id] = true
+        assert(definition.has("center") and definition.has("half_q") and definition.has("half_r") and definition.has("door"), "%s must keep its logical footprint and entrance in the authored definition" % building_id)
+        assert(definition.has("dimensions") and definition.has("door_side"), "%s must define its visual geometry and entrance" % building_id)
+        var node := WORLD_BUILDING_FACTORY.create_building(parent, {"id": "hollowmere"}, definition)
+        assert(node != null, "%s should be constructible through the shared factory" % building_id)
+        assert(node.name == String(definition.get("node_name", building_id)), "The authored scene name should be preserved")
+        assert(node.get_meta("source_door_hex") == definition.get("door"), "The logical entrance must match the shared building definition")
+        if building_id == "old_mac_barn":
+            assert(node.find_child("DoorLeaf_Left", true, false) != null and node.find_child("DoorLeaf_Right", true, false) != null, "The barn should use the shared double-door feature")
+        constructed += 1
+    assert(constructed == 7, "All village and farm buildings should use the shared factory")
+    assert(parent.get_child_count() == constructed, "Each authored definition should create exactly one building root")
+    parent.free()
+
+    var village := WORLD_SETTLEMENT_PRESENTER.new() as Node3D
+    village.call("configure_location", HOLLOWMERE_PRESENTATION.DEFINITION)
+    village.call("_create_materials", HOLLOWMERE_PRESENTATION.DEFINITION.palette)
+    village.call("_present_authored_features", HOLLOWMERE_PRESENTATION.DEFINITION.features, HexGrid.DEFAULT_RADIUS_M)
+    assert(village.get_node_or_null("GeneralStore") != null, "The general store should be factory-built")
+    assert(village.get_node_or_null("GeneralStore/StoreSignPresentation/StoreSign") != null, "The store sign should remain a separate add-on feature")
+    assert(village.get_node_or_null("Chapel/ChapelBellTowerPresentation/BellTower") != null, "The chapel bell tower should remain a separate add-on feature")
+    village.free()
 func _test_building_thresholds() -> void:
-    assert(HollowmereVillageData.is_blocked(Vector2i(0, 18)), "General-store footprint should block movement")
-    assert(HollowmereVillageData.is_blocked(Vector2i(-14, 0)), "Chapel footprint should block movement")
-    assert(HollowmereVillageData.is_blocked(Vector2i(0, -12)), "Elder-house footprint should block movement")
-    for door in [Vector2i(0, 15), Vector2i(-11, 0), Vector2i(0, -10), Vector2i(10, 9), Vector2i(-4, 9), HollowmereVillageData.FARMHOUSE_DOOR, HollowmereVillageData.FARM_BARN_DOOR]:
-        assert(not HollowmereVillageData.is_blocked(door), "Building entrance should remain traversable: %s" % door)
+    assert(_is_blocked(Vector2i(0, 18)), "General-store footprint should block movement")
+    assert(_is_blocked(Vector2i(-14, 0)), "Chapel footprint should block movement")
+    assert(_is_blocked(Vector2i(0, -12)), "Elder-house footprint should block movement")
+    for door in [Vector2i(0, 15), Vector2i(-11, 0), Vector2i(0, -10), Vector2i(10, 9), Vector2i(-4, 9), HOLLOWMERE_SETTLEMENT.FARMHOUSE_DOOR, HOLLOWMERE_SETTLEMENT.FARM_BARN_DOOR]:
+        assert(not _is_blocked(door), "Building entrance should remain traversable: %s" % door)
 
 func _test_hollowmere_character_manifest() -> void:
     var file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
@@ -80,7 +166,7 @@ func _test_hollowmere_character_manifest() -> void:
     var manifest: Variant = JSON.parse_string(file.get_as_text())
     assert(manifest is Dictionary, "Hollowmere character manifest must be valid JSON")
     var characters: Array = manifest.get("characters", [])
-    assert(characters.size() == 21, "Expected 13 village profiles plus eight canonical campaign companions")
+    assert(characters.size() == 22, "Expected 13 village profiles, the player profile and eight canonical campaign companions")
     var ids: Dictionary = {}
     for profile in characters:
         assert(profile.has("id") and profile.has("game_id") and profile.has("params"))
@@ -90,20 +176,35 @@ func _test_hollowmere_character_manifest() -> void:
         for slider in ["gender", "age", "muscle", "weight", "height", "proportions"]:
             assert(params.has(slider), "%s is missing Ara slider %s" % [profile["id"], slider])
             assert(float(params[slider]) >= 0.0 and float(params[slider]) <= 1.0)
-        var coordinates: Array = profile["hex"]
-        var spawn := Vector2i(int(coordinates[0]), int(coordinates[1]))
-        assert(HollowmereVillageData.is_in_bounds(spawn), "%s spawn is outside Hollowmere" % profile["id"])
-        assert(not HollowmereVillageData.is_blocked(spawn), "%s spawn is not traversable" % profile["id"])
+        if String(profile["role"]) == "player avatar":
+            assert(not profile.has("hex"), "Character profile data must not duplicate world placement")
+            continue
+        assert(not profile.has("hex"), "Character profile data must not duplicate world placement")
+        var character_id := String(profile["id"])
+        if HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.has(character_id):
+            var spawn: Vector2i = HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS[character_id]
+            assert(_is_in_bounds(spawn), "%s spawn is outside Hollowmere" % character_id)
+            assert(not _is_blocked(spawn), "%s spawn is not traversable" % character_id)
+        else:
+            assert(HOLLOWMERE_PLACEMENTS.DEFERRED_COMPANIONS.has(character_id), "%s must have a local start or an explicit deferred recruitment-region marker" % character_id)
+    assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.size() == 14, "Only characters actually present in the opening settlement should have local starts")
+    assert(HOLLOWMERE_PLACEMENTS.DEFERRED_COMPANIONS.size() == 7, "Companions awaiting their real recruitment regions should remain explicitly deferred")
+    assert(HOLLOWMERE_PLACEMENTS.FARM_ANIMALS.size() == 6, "All six farm animal placements must remain authored")
+    assert(HOLLOWMERE_PLACEMENTS.WILDERNESS_ANIMALS.size() == 4, "All four ambient wildlife placements must remain authored")
     var companion_names := ["Ser Aldric Thorne", "Nix Sharpear", "Warlord Grukk Ironhide", "Reyna Fletcher", "Mirabel Quill", "Fenn Oakheart", "Brother Alden", "Snik Fangtooth"]
     var companion_count := 0
     for profile in characters:
         if String(profile.get("role", "")) != "companion":
             continue
         companion_count += 1
-        assert(profile.has("progression"), "%s must have source-authored progression" % profile.get("name", "companion"))
-        var progression: Dictionary = profile["progression"]
-        assert(not progression.get("class_levels", []).is_empty(), "Canonical companions need ordered class levels")
-        assert(not progression.get("skill_picks", []).is_empty(), "Canonical companions need authored skill preferences")
+        # Wren is the authored opening-party character and retains her separate
+        # starting-character setup. The eight recruitable campaign companions
+        # carry canonical runtime progression records in this manifest.
+        if String(profile.get("detail", "")) == "runtime":
+            assert(profile.has("progression"), "%s must have source-authored progression" % profile.get("name", "companion"))
+            var progression: Dictionary = profile["progression"]
+            assert(not progression.get("class_levels", []).is_empty(), "Canonical companions need ordered class levels")
+            assert(not progression.get("skill_picks", []).is_empty(), "Canonical companions need authored skill preferences")
     assert(companion_count == 9, "Wren plus eight original campaign companions should be staged in Hollowmere")
     for companion_name in companion_names:
         var found := false
@@ -119,7 +220,8 @@ func _test_main_campaign_world_map() -> void:
     for row in grid:
         assert(row.size() == 16, "Every strategic map row must have 16 cells")
 
-    assert(grid[0][0]["terrain"] == "ocean", "The western edge should be ocean")
+    for row in grid:
+        assert(row[0]["terrain"] == "ocean", "The western edge should be ocean")
     assert(grid[6][6]["faction"] == "humans", "Hollowmere should be in human lands")
     assert(grid[15][5]["faction"] == "elves", "The southern forest belt should be elven territory")
     assert(grid[1][14]["faction"] == "dwarves", "The north-east mountain block should be dwarven")
@@ -132,15 +234,16 @@ func _test_main_campaign_world_map() -> void:
     assert(grid[6][4]["poi"]["name"] == "Emberlode", "Emberlode should lie west of Hollowmere")
     assert(grid[7][6]["poi"]["name"] == "Old Mac's Farmstead", "The farmstead should lie south of Hollowmere")
 
-    assert(MAIN_CAMPAIGN_MAP.RIVER_PATH.size() == 15, "The source river path should contain 15 strategic cells")
-    assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[0] == Vector2i(1, 5))
-    assert(MAIN_CAMPAIGN_MAP.RIVER_PATH[14] == Vector2i(15, 4))
+    var river_path := MAIN_CAMPAIGN_MAP.strategic_river_path()
+    assert(river_path.size() == 15, "The source river path should contain 15 strategic cells")
+    assert(river_path[0] == Vector2i(1, 5))
+    assert(river_path[14] == Vector2i(15, 4))
     assert(MAIN_CAMPAIGN_MAP.world_cell_from_local_hex(Vector2i(8, 24)) == Vector2i(6, 6), "The local crossroads must map to Hollowmere's world cell")
 
 func _test_animal_actor_registration() -> void:
-    var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
-    village.call("_create_farm_animals")
-    village.call("_create_wilderness_animals")
+    var village := WORLD_SETTLEMENT_PRESENTER.new() as Node3D
+    village.call("configure_location", HOLLOWMERE_PRESENTATION.DEFINITION)
+    village.call("_spawn_authored_creatures", HOLLOWMERE_PRESENTATION.DEFINITION.creatures, HexGrid.DEFAULT_RADIUS_M)
     var simulation := WorldSimulation.new()
     # Simulate a saved animal already restored into WorldSimulation before
     # WorldRoot reconnects the exterior presentation actors.
@@ -186,8 +289,9 @@ func _test_animal_actor_registration() -> void:
     simulation.free()
 
 func _test_village_uses_shared_vegetation_generator() -> void:
-    var village := HOLLOWMERE_VILLAGE_SCRIPT.new() as Node3D
-    village.call("_create_forest")
+    var village := WORLD_SETTLEMENT_PRESENTER.new() as Node3D
+    village.call("configure_location", HOLLOWMERE_PRESENTATION.DEFINITION)
+    village.call("_generate_vegetation", HOLLOWMERE_PRESENTATION.DEFINITION.vegetation, HexGrid.DEFAULT_RADIUS_M)
     var canopy_count := 0
     var understorey_count := 0
     for child in village.get_children():

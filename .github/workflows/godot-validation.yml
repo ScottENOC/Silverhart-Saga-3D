@@ -95,6 +95,22 @@ jobs:
         run: godot --headless --path . --script res://tests/test_animals_and_riding.gd
       - name: Run reusable building and door tests
         run: godot --headless --path . --script res://tests/test_building_framework.gd
+      - name: Run reusable world building factory tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_building_factory.gd
+      - name: Run reusable world polyline feature tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_polyline_feature_factory.gd
+      - name: Run reusable world bridge feature tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_bridge_feature_factory.gd
+      - name: Run reusable agricultural feature tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_agricultural_feature_factory.gd
+      - name: Run reusable prop feature tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_prop_feature_factory.gd
+      - name: Run modular Hollowmere authored data tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_hollowmere_data_modules.gd
+      - name: Run generic authored settlement presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_authored_settlement_presenter.gd
+      - name: Run generic interior feature factory tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_interior_feature_factory.gd
       # Keep presentation-component tests isolated from campaign simulation suites.
       - name: Run campaign UI tests
         run: godot --headless --path . --script res://tests/test_campaign_ui.gd
@@ -124,8 +140,30 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_geography_manifest.gd
       - name: Run Campaign 2 world terrain tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_terrain.gd
+      - name: Run Campaign 2 authored settlement terrain registry tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_authored_settlement_terrain_registry.gd
+      - name: Run Campaign 2 logical world cell loader tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_world_cell_loader.gd
+      - name: Run Campaign 2 regional hydrology tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_regional_hydrology.gd
+      - name: Run Campaign 2 local terrain rule tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_local_terrain.gd
+      - name: Run Silverhart heartland biome tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_silverhart_heartland_biomes.gd
+      - name: Run canonical settlement definition registry tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_definition_registry.gd
+      - name: Run canonical settlement source adapter tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_settlement_definition_source_adapters.gd
+      - name: Run canonical settlement definition validator tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_settlement_definition_validator.gd
       - name: Run Campaign 2 settlement layout tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_layouts.gd
+      - name: Run Campaign 2 character definition registry tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_character_definition_registry.gd
+      - name: Run Campaign 2 canonical settlement builder tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_builder.gd
+      - name: Run chunk-aware settlement feature composer tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_settlement_feature_composer.gd
       - name: Validate Hollowmere and item data JSON
         run: |
           python -m json.tool data/characters/hollowmere_npcs.json > /dev/null

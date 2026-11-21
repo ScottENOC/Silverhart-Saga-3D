@@ -53,7 +53,7 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
     var character_id := String(npc.get("id", "campaign2_npc"))
     var display_name := String(npc.get("name", character_id))
     var appearance: Dictionary = npc.get("appearance", {})
-    var body_variant := String(appearance.get("body_variant", npc.get("body_variant", "")))
+    var body_variant := String(npc.get("body_base", npc.get("body_variant", appearance.get("body_variant", ""))))
     if body_variant.is_empty():
         var presentation := String(appearance.get("gender_presentation", "")).to_lower()
         body_variant = "male" if presentation in ["male", "masculine", "man"] else "female"

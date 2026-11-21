@@ -68,6 +68,75 @@ static func generate_hex_grid(
 				spawned += 1
 	return spawned
 
+## Generates only the deterministic vegetation candidates owned by one world
+## chunk. Candidate and biome rules remain in settlement data; the shared
+## generator owns stable placement, asset selection and instancing.
+static func generate_settlement_chunk(
+	parent: Node3D,
+	chunk_min: Vector2i,
+	chunk_size: int,
+	hex_radius: float,
+	vegetation: Dictionary,
+	origin: Vector2i = Vector2i.ZERO
+) -> Dictionary:
+	if parent == null or chunk_size <= 0 or hex_radius <= 0.0:
+		return {"ok": false, "forest": 0, "understorey": 0}
+	var counts := {"ok": true, "forest": 0, "understorey": 0}
+	for pass_name in ["forest", "understorey"]:
+		var pass_definition: Dictionary = vegetation.get(pass_name, {})
+		if pass_definition.is_empty():
+			continue
+		var candidate_script: Variant = pass_definition.get("candidate_script")
+		var selector_script: Variant = pass_definition.get("selector_script")
+		var candidate_method := String(pass_definition.get("candidate_method", ""))
+		var selector_method := String(pass_definition.get("selector_method", ""))
+		if not candidate_script is Script or not selector_script is Script or candidate_method.is_empty() or selector_method.is_empty():
+			counts["ok"] = false
+			continue
+		var candidate_filter := Callable(candidate_script, candidate_method).bind(pass_definition.get("candidate_context", {}))
+		var family_selector := Callable(selector_script, selector_method).bind(pass_definition.get("selector_context", {}))
+		var spacing := int(pass_definition.get("spacing", 1))
+		if spacing <= 0:
+			counts["ok"] = false
+			continue
+		var local_min := chunk_min - origin
+		var local_max := chunk_min + Vector2i(chunk_size - 1, chunk_size - 1) - origin
+		# Align each chunk to the same zero-anchored lattice as the former
+		# location-wide pass. Chunk boundaries therefore cannot shift candidates.
+		var first_q := ceili(float(local_min.x) / float(spacing)) * spacing
+		var first_r := ceili(float(local_min.y) / float(spacing)) * spacing
+		var spawned := 0
+		for q in range(first_q, local_max.x + 1, spacing):
+			for r in range(first_r, local_max.y + 1, spacing):
+				var local_hex := Vector2i(q, r)
+				if not bool(candidate_filter.call(local_hex)):
+					continue
+				var offset: Vector2i = pass_definition.get("density_offset", Vector2i.ZERO)
+				var density_roll := stable_noise(q + offset.x, r + offset.y)
+				if density_roll < float(pass_definition.get("density_threshold", 0.0)):
+					continue
+				var family := String(family_selector.call(local_hex, density_roll))
+				if family.is_empty():
+					continue
+				var size_roll := stable_noise(q + 811, r - 617)
+				var scale_factor := float(pass_definition.get("scale_min", 0.78)) + size_roll * float(pass_definition.get("scale_range", 0.46))
+				if family == "low_poly_tree":
+					scale_factor *= 0.92
+				elif family == "tree_fern":
+					scale_factor *= 0.88
+				var jitter_x := (stable_noise(q + 31, r + 19) - 0.5) * 1.5
+				var jitter_z := (stable_noise(q - 43, r + 71) - 0.5) * 1.5
+				var world_hex := local_hex + origin
+				var position := HexGrid.axial_to_world(world_hex, hex_radius) + Vector3(jitter_x, 0.0, jitter_z)
+				var seed_value := int(stable_noise(q + 137, r - 53) * 2147483646.0)
+				var rotation_y := stable_noise(q + 503, r - 907) * TAU
+				var prefix := String(pass_definition.get("node_prefix", "SettlementVegetation"))
+				var node_name := "%s_%d_%d" % [prefix, q, r]
+				if _spawn_model(parent, family, seed_value, position, scale_factor, rotation_y, node_name, world_hex, bool(pass_definition.get("understorey", pass_name == "understorey"))):
+					spawned += 1
+		counts[pass_name] = spawned
+	return counts
+
 static func generate_authored_placements(parent: Node3D, placements: Array[Dictionary]) -> int:
 	if parent == null:
 		return 0

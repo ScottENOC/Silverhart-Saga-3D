@@ -85,14 +85,17 @@ class WorldMapView extends Control:
 
     func _draw() -> void:
         var grid := DATA.generate_grid()
+        var dimensions := DATA.strategic_grid_size()
+        var river_path := DATA.strategic_river_path()
+        var locations := DATA.strategic_locations()
         var x_step := HEX_RADIUS * 1.5
         var y_step := sqrt(3.0) * HEX_RADIUS
-        var map_width := float(DATA.WORLD_SIZE - 1) * x_step + HEX_RADIUS * 2.0
-        var map_height := float(DATA.WORLD_SIZE - 1) * y_step + y_step
+        var map_width := float(dimensions.x - 1) * x_step + HEX_RADIUS * 2.0
+        var map_height := float(dimensions.y - 1) * y_step + y_step
         var origin := Vector2((size.x - map_width) * 0.5 + HEX_RADIUS, (size.y - map_height) * 0.5 + HEX_RADIUS)
 
-        for column in range(DATA.WORLD_SIZE):
-            for row in range(DATA.WORLD_SIZE):
+        for column in range(dimensions.x):
+            for row in range(dimensions.y):
                 var centre := _cell_centre(column, row, origin, x_step, y_step)
                 var points := _hex_points(centre)
                 var cell: Dictionary = grid[row][column]
@@ -102,11 +105,11 @@ class WorldMapView extends Control:
                 draw_polyline(outline, _faction_colour(String(cell["faction"])), 1.4, true)
 
         var river_points := PackedVector2Array()
-        for cell in DATA.RIVER_PATH:
+        for cell in river_path:
             river_points.append(_cell_centre(cell.x, cell.y, origin, x_step, y_step))
         draw_polyline(river_points, Color("#62c7e8"), 3.0, true)
 
-        for location in DATA.LOCATIONS:
+        for location in locations:
             var cell: Vector2i = location["cell"]
             var centre := _cell_centre(cell.x, cell.y, origin, x_step, y_step)
             draw_circle(centre, 6.0, Color("#f4d17a"))

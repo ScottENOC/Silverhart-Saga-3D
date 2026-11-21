@@ -96,8 +96,9 @@ func _material(colour: Color, roughness: float = 0.9) -> StandardMaterial3D:
 
 func _build_tiles() -> void:
 	var grid: Array = MAP_DATA.generate_grid()
-	for column in range(MAP_DATA.WORLD_SIZE):
-		for row in range(MAP_DATA.WORLD_SIZE):
+	var grid_size := MAP_DATA.strategic_grid_size()
+	for column in range(grid_size.x):
+		for row in range(grid_size.y):
 			var cell: Dictionary = grid[row][column]
 			var terrain := String(cell.get("terrain", "grass"))
 			var height := _terrain_height(terrain)
@@ -279,8 +280,11 @@ func _build_locations() -> void:
 		_add_location_marker(location, map_position, index)
 
 func _local_hex_to_map_position(local_q: int, local_r: int) -> Vector3:
-	var map_column := 6.0 + float(local_q - 8) / float(MAP_DATA.WORLD_HEX_SIZE)
-	var map_row := 6.0 + float(local_r - 24) / float(MAP_DATA.WORLD_HEX_SIZE)
+	var origin_cell := MAP_DATA.hollowmere_origin_cell()
+	var origin_hex := MAP_DATA.hollowmere_local_reference()
+	var scale := float(MAP_DATA.local_hexes_per_strategic_cell())
+	var map_column := float(origin_cell.x) + float(local_q - origin_hex.x) / scale
+	var map_row := float(origin_cell.y) + float(local_r - origin_hex.y) / scale
 	var nearest_column := roundi(map_column)
 	var nearest_row := roundi(map_row)
 	var base := _cell_position(nearest_column, nearest_row)
