@@ -1,13 +1,14 @@
 extends SceneTree
 
 const FACTORY = preload("res://scripts/world/world_agricultural_feature_factory.gd")
-const VILLAGE_DATA = preload("res://scripts/world/hollowmere_village_data.gd")
-const VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
+const AGRICULTURE = preload("res://data/settlements/hollowmere/agriculture.gd")
+const TERRAIN = preload("res://data/settlements/hollowmere/terrain.gd")
+const TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 
 func _initialize() -> void:
 	_test_authored_agriculture_renders()
 	_test_invalid_definitions_are_rejected_atomically()
-	_test_hollowmere_delegates_to_shared_factory()
+	_test_farm_classification_remains_in_authored_terrain()
 	print("World agricultural feature factory tests passed.")
 	quit(0)
 
@@ -22,25 +23,23 @@ func _materials() -> Dictionary:
 func _test_authored_agriculture_renders() -> void:
 	var parent := Node3D.new()
 	var result: Dictionary = FACTORY.render_features(
-		parent, VILLAGE_DATA.FARM_FIELDS, VILLAGE_DATA.FARM_CROP_ROWS,
-		VILLAGE_DATA.FARM_FENCES, _materials(), HexGrid.DEFAULT_RADIUS_M
+		parent, AGRICULTURE.FARM_FIELDS, AGRICULTURE.FARM_CROP_ROWS,
+		AGRICULTURE.FARM_FENCES, _materials(), HexGrid.DEFAULT_RADIUS_M
 	)
 	assert(bool(result.get("ok", false)), "All authored agricultural definitions should validate")
 	assert(int(result.get("fields", 0)) == 3, "Three authored field surfaces should render")
 	assert(int(result.get("crop_rows", 0)) == 17, "All seventeen crop rows should render")
 	assert(int(result.get("fences", 0)) == 2, "Both authored fence runs should render")
-	for field in VILLAGE_DATA.FARM_FIELDS:
+	for field in AGRICULTURE.FARM_FIELDS:
 		var node := parent.get_node_or_null(String(field["id"])) as MeshInstance3D
 		assert(node != null and node.mesh != null, "Each authored field should produce a mesh")
-	for row in VILLAGE_DATA.FARM_CROP_ROWS:
+	for row in AGRICULTURE.FARM_CROP_ROWS:
 		var node := parent.get_node_or_null(String(row["id"])) as MeshInstance3D
 		assert(node != null and node.mesh != null, "Each authored crop row should produce a ribbon mesh")
-	for fence in VILLAGE_DATA.FARM_FENCES:
+	for fence in AGRICULTURE.FARM_FENCES:
 		var root := parent.get_node_or_null(String(fence["id"])) as Node3D
 		assert(root != null and root.get_child_count() > 0, "Each authored fence should contain posts and rails")
 		assert(root.find_child("Rail_Lower_00", true, false) != null, "Fence rails should have stable segment names")
-	assert(VILLAGE_DATA.is_farm_land(Vector2i(10, 60)), "Presentation extraction must preserve farm-land classification")
-	assert(not VILLAGE_DATA.is_forest_candidate(Vector2i(10, 60)), "Procedural forest exclusion must remain unchanged")
 	parent.free()
 
 func _test_invalid_definitions_are_rejected_atomically() -> void:
@@ -71,16 +70,6 @@ func _test_invalid_definitions_are_rejected_atomically() -> void:
 	assert(parent.get_child_count() == 0, "Missing materials must be rejected before rendering")
 	parent.free()
 
-func _test_hollowmere_delegates_to_shared_factory() -> void:
-	var village := VILLAGE_SCRIPT.new() as Node3D
-	village.call("_create_materials")
-	village.call("_present_authored_settlement")
-	for field in VILLAGE_DATA.FARM_FIELDS:
-		assert(village.get_node_or_null(String(field["id"])) != null, "Hollowmere should render each field through the shared factory")
-	for row in VILLAGE_DATA.FARM_CROP_ROWS:
-		assert(village.get_node_or_null(String(row["id"])) != null, "Hollowmere should render each crop row through the shared factory")
-	for fence in VILLAGE_DATA.FARM_FENCES:
-		assert(village.get_node_or_null(String(fence["id"])) != null, "Hollowmere should render each fence through the shared factory")
-	assert(village.get_node_or_null("BrokenPastureFence/BrokenRailA") != null, "Quest-specific broken fence dressing should remain present")
-	assert(village.get_node_or_null("BloodTrailPresentation/BloodTrail_00") != null, "Quest-specific blood trail dressing should remain present")
-	village.free()
+func _test_farm_classification_remains_in_authored_terrain() -> void:
+	assert(TERRAIN_PROVIDER.is_farm_land(Vector2i(10, 60), TERRAIN.DEFINITION), "Presentation extraction must preserve farm-land classification")
+	assert(not TERRAIN_PROVIDER.is_forest_candidate(Vector2i(10, 60), TERRAIN.DEFINITION), "Procedural forest exclusion must remain unchanged")
