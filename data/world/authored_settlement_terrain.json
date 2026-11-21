@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "coordinate_system": "campaign2_local_axial_qr",
+  "settlements": [
+    {
+      "id": "hollowmere",
+      "definition_script": "res://data/settlements/hollowmere/terrain.gd",
+      "priority": 100
+    }
+  ]
+}
