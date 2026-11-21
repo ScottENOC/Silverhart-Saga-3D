@@ -33,7 +33,7 @@ func configure_simulation(source_simulation: WorldSimulation) -> void:
 ## Authored features, vegetation and actor placements are attached only to the
 ## chunk owning their canonical anchor/candidate. Chunk unloads retire presentation,
 ## not authored data or persistent simulation state.
-func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: int) -> void:
+func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: int, presentation_mode_override: String = "") -> void:
 	for entry in settlements:
 		if not entry is Dictionary:
 			continue
@@ -41,7 +41,8 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 		var origin: Vector2i = entry.get("origin", Vector2i.ZERO)
 		var definition: Dictionary = entry.get("definition", {})
 		var presentation: Dictionary = definition.get("presentation", {})
-		if String(presentation.get("mode", "chunked")) != "chunked":
+		var presentation_mode := String(presentation.get("mode", "chunked"))
+		if presentation_mode != "chunked" and presentation_mode_override != "chunked":
 			continue
 		var composition := FEATURE_COMPOSER.compose_chunk(
 			parent,
