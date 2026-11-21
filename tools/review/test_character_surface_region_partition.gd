@@ -51,7 +51,7 @@ func _run() -> void:
         PARTITION_SCRIPT.validate_arrays(
             4,
             quad_indices,
-            PackedStringArray(["chest", "unused"]),
+            PackedStringArray(["chest", "right", "unused"]),
             valid
         ),
         "has no assigned vertices"
