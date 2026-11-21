@@ -142,6 +142,7 @@ var _mode_option: OptionButton
 var _status_label: Label
 var _inspect_check: CheckButton
 var _membership_label: Label
+var _inspected_point_marker: MeshInstance3D
 var _save_path_edit: LineEdit
 var _selected_region := "breast_left"
 var _brush_radius := 0.045
@@ -223,6 +224,19 @@ func _build_interface() -> void:
     multi.mesh = marker_mesh
     _point_cloud.multimesh = multi
     _world_root.add_child(_point_cloud)
+
+    _inspected_point_marker = MeshInstance3D.new()
+    var inspected_sphere := SphereMesh.new()
+    inspected_sphere.radius = 0.014
+    inspected_sphere.height = 0.028
+    var inspected_material := StandardMaterial3D.new()
+    inspected_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    inspected_material.albedo_color = Color(1.0, 0.72, 0.12)
+    inspected_material.no_depth_test = true
+    inspected_sphere.material = inspected_material
+    _inspected_point_marker.mesh = inspected_sphere
+    _inspected_point_marker.visible = false
+    _world_root.add_child(_inspected_point_marker)
 
     var panel := PanelContainer.new()
     panel.anchor_left = 1.0
@@ -597,11 +611,14 @@ func _inspect_at(screen_position: Vector2) -> void:
     var hit := _viewport.world_3d.direct_space_state.intersect_ray(query)
     if hit.is_empty():
         _membership_label.text = "Point inspector: no surface hit."
+        _inspected_point_marker.visible = false
         return
     var collider := hit["collider"] as Node
     if not collider.has_meta("descriptor_index") or int(collider.get_meta("descriptor_index")) != _selected_descriptor:
         _membership_label.text = "Point inspector: select the mesh surface that was hit."
         return
+    _inspected_point_marker.global_position = hit["position"]
+    _inspected_point_marker.visible = true
     var descriptor: Dictionary = _descriptors[_selected_descriptor]
     var triangle_ids: PackedInt32Array = descriptor["triangle_ids"]
     var face_index := int(hit.get("face_index", -1))
