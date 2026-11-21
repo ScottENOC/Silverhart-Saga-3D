@@ -1,5 +1,5 @@
 extends SceneTree
-## Renders a technical surface-contact-path trace on each canonical Ara body.
+## Renders a technical surface-contact-path trace on the current native Wren and Aldric companion builds.
 ## The trace is deliberately generated from real source triangles at runtime; it
 ## is a topology/evaluation visual test, NOT an authored anatomical trajectory.
 
@@ -7,8 +7,8 @@ const REGION_SCRIPT := preload("res://scripts/characters/character_surface_regio
 const PATH_SCRIPT := preload("res://scripts/characters/character_surface_contact_path.gd")
 const SIZE := Vector2i(1280, 1200)
 const BODY_ASSETS := {
-    "female": "res://art/characters/ara_runtime/ara_person_body_anatomy.glb",
-    "male": "res://art/characters/ara_runtime/ara_person_male_body.glb"
+    "wren": "res://build/wren-native/Wren.glb",
+    "aldric": "res://build/aldric-native/Aldric.glb"
 }
 var _stage: Node3D
 var _camera: Camera3D
@@ -36,7 +36,7 @@ func _run() -> void:
 func _render_body(body_key: String, asset_path: String) -> void:
     var packed := load(asset_path) as PackedScene
     if packed == null:
-        _fail("Could not load canonical Ara asset: " + asset_path)
+        _fail("Could not load native companion asset: " + asset_path)
         return
     var actor_root := Node3D.new()
     actor_root.name = body_key + "_actor"
@@ -263,7 +263,7 @@ func _build_real_surface_test_path(body_root: Node3D, meshes: Array[MeshInstance
                     triangle_count / 3,
                     label.to_lower().contains("hair") or label.to_lower().contains("eye") or label.to_lower().contains("lash") or label.to_lower().contains("brow") or label.to_lower().contains("teeth") or label.to_lower().contains("tongue")
                 ])
-        _fail("No canonical Ara surface contained three valid, non-degenerate triangles; see ARA_SURFACE_DIAGNOSTIC inventory")
+        _fail("No native companion surface contained three valid, non-degenerate triangles; see ARA_SURFACE_DIAGNOSTIC inventory")
         return null
     var candidates: Array[Dictionary] = best["candidates"]
     var selected: Array[Dictionary] = []
