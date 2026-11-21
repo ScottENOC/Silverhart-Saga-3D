@@ -65,13 +65,12 @@ The legacy `HexWorldChunkStreamer` has been removed. Its logical-cell materialis
 - Split Hollowmere's authored buildings, routes, bridge, agriculture, props, placements, terrain and tavern interior into domain files.
 - Replaced the Hollowmere-specific exterior presenter with `WorldSettlementPresenter`.
 - Replaced the Hollow Tankard's static geometry and logical layout construction with shared presenters/registrars.
-- Added the generic `AuthoredSettlementTerrainProvider`. Hollowmere terrain/navigation data is now interpreted by that provider; the remaining `HollowmereVillageData` script is a compatibility facade only.
+- Added the generic `AuthoredSettlementTerrainProvider` and migrated all callers to authored modules/provider queries; removed the obsolete compatibility facade.
 - Routed both campaign and regional-preview Hollowmere terrain queries through the same authored terrain definition and provider.
 - Preserved authored NPC/animal positions and deferred companions whose actual recruitment regions have not yet been built.
 
 ## Remaining architecture work
 
-1. **Retire the compatibility facade safely.** Find and migrate every remaining `HollowmereVillageData` caller to the generic provider or a typed world-data interface. Delete the facade only after the dependency audit and regression tests prove it is unused.
 2. **Converge settlement definition formats.** Move the Millbrook/other `campaign2_settlement_layouts.json` path toward the same validated domain-data contract used by Hollowmere. Avoid a second settlement registry.
 3. **Consolidate presentation streaming.** Audit the regional preview renderer and promote/generalise it for production only after seam, negative-coordinate, load-order, unload/reload and persistent-state tests pass. Do not reintroduce a second logical streamer.
 4. **Complete source-world inventory.** Inspect the original Hex-crpg Campaign 2 content and record every region, settlement, building, route, landmark, encounter and interior with source IDs/provenance and port status.
@@ -90,9 +89,8 @@ The legacy `HexWorldChunkStreamer` has been removed. Its logical-cell materialis
 - Character appearance/identity and world placement remain separate data domains.
 - New settlements should be addable through validated data, not new location-specific construction scripts.
 
-## Acceptance gates before removing the compatibility facade or promoting streaming
+## Acceptance gates before promoting streaming
 
-- A code dependency audit proves no remaining caller relies on `HollowmereVillageData` static methods or constants.
 - Generic-provider parity tests cover stream boundaries, bridge exemption, buildings, doors, paths, farm bounds, forest exclusions and movement blocking.
 - Campaign and regional preview return identical terrain/elevation for the same global coordinates.
 - Adjacent chunks load in different orders without seams or changes to deterministic feature placement.
