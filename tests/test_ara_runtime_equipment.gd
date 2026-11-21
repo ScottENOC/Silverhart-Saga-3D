@@ -17,6 +17,22 @@ func _initialize() -> void:
     call_deferred("_run")
 
 func _run() -> void:
+    # Standalone garment GLBs can nest a skinned mesh below transformed nodes.
+    # Reparenting must preserve the full child-to-scene-root transform.
+    var source_root := Node3D.new()
+    source_root.transform = Transform3D(Basis.from_euler(Vector3(0.2, 0.4, -0.1)), Vector3(4.0, 2.0, -3.0))
+    var garment_group := Node3D.new()
+    garment_group.transform = Transform3D(Basis.from_euler(Vector3(0.0, 0.0, 0.3)), Vector3(0.0, 1.1, 0.2))
+    source_root.add_child(garment_group)
+    var source_mesh := MeshInstance3D.new()
+    source_mesh.transform = Transform3D(Basis.IDENTITY, Vector3(0.1, 0.2, 0.3))
+    garment_group.add_child(source_mesh)
+    var expected_relative := garment_group.transform * source_mesh.transform
+    var actual_relative: Transform3D = ACTOR_SCRIPT._relative_transform_to_root(source_mesh, source_root)
+    assert(actual_relative.is_equal_approx(expected_relative),
+        "Garment attachment lost a transformed parent node when reparenting the skinned mesh")
+    source_root.free()
+
     assert(ResourceLoader.exists(BODY_PATH), "Missing female Ara base body")
     assert(ResourceLoader.exists(MALE_BODY_PATH), "Missing male Ara base body")
 
