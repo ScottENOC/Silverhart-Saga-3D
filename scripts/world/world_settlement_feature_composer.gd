@@ -31,7 +31,7 @@ static func compose_chunk(
 	for source in layout.get("buildings", []):
 		if not source is Dictionary:
 			continue
-		var building := source.duplicate(true)
+		var building: Dictionary = source.duplicate(true)
 		var centre := _read_hex(building.get("center", Vector2i.ZERO)) + origin
 		building["center"] = centre
 		if building.has("door"):
@@ -58,7 +58,7 @@ static func compose_chunk(
 	for source_bridge in layout.get("bridges", []):
 		if not source_bridge is Dictionary:
 			continue
-		var bridge := source_bridge.duplicate(true)
+		var bridge: Dictionary = source_bridge.duplicate(true)
 		var centre := _read_hex(bridge.get("centre", Vector2i.ZERO)) + origin
 		bridge["centre"] = centre
 		if _contains_chunk(centre, chunk_min, chunk_size):
@@ -104,7 +104,7 @@ static func compose_chunk(
 			props_by_category[category].append(prop)
 	var props_ok := true
 	for category in props_by_category:
-		var material_key := "props" if category == "landmark_props" else category
+		var material_key: String = "props" if category == "landmark_props" else String(category)
 		var ok := PROP_FACTORY.render_features(
 			parent,
 			props_by_category[category],
