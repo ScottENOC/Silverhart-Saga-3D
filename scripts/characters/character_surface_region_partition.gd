@@ -157,3 +157,56 @@ static func _count_components_for_region(assignments: PackedInt32Array, adjacenc
                     visited[neighbour] = true
                     stack.append(neighbour)
     return components
+
+
+## Returns measurable shared-boundary diagnostics for preview tools. A mixed
+## triangle is a triangle whose corners have different primary owners; it is a
+## legitimate boundary cell, not duplicate ownership.
+static func build_boundary_diagnostics(
+    requested_vertex_count: int,
+    indices: PackedInt32Array,
+    requested_region_ids: PackedStringArray,
+    assignments: PackedInt32Array
+) -> Dictionary:
+    var error := validate_arrays(requested_vertex_count, indices, requested_region_ids, assignments)
+    if not error.is_empty():
+        return {"valid": false, "error": error}
+    var boundary_edges := 0
+    var mixed_triangles := 0
+    var adjacency_counts: Dictionary = {}
+    var triangle_counts: Dictionary = {}
+    for region_index in requested_region_ids.size():
+        triangle_counts[requested_region_ids[region_index]] = 0
+    var visited_edges := {}
+    for offset in range(0, indices.size(), 3):
+        var tri := [indices[offset], indices[offset + 1], indices[offset + 2]]
+        var labels := {}
+        for vertex_index in tri:
+            labels[assignments[vertex_index]] = true
+        if labels.size() > 1:
+            mixed_triangles += 1
+        for region_index in labels:
+            triangle_counts[requested_region_ids[int(region_index)]] += 1
+        for edge in [[tri[0], tri[1]], [tri[1], tri[2]], [tri[2], tri[0]]]:
+            var a: int = mini(edge[0], edge[1])
+            var b: int = maxi(edge[0], edge[1])
+            var edge_key := "%d:%d" % [a, b]
+            if visited_edges.has(edge_key):
+                continue
+            visited_edges[edge_key] = true
+            var owner_a: int = assignments[a]
+            var owner_b: int = assignments[b]
+            if owner_a == owner_b:
+                continue
+            boundary_edges += 1
+            var first_id: String = requested_region_ids[mini(owner_a, owner_b)]
+            var second_id: String = requested_region_ids[maxi(owner_a, owner_b)]
+            var pair_key := "%s|%s" % [first_id, second_id]
+            adjacency_counts[pair_key] = int(adjacency_counts.get(pair_key, 0)) + 1
+    return {
+        "valid": true,
+        "boundary_edge_count": boundary_edges,
+        "mixed_triangle_count": mixed_triangles,
+        "region_adjacency_edge_counts": adjacency_counts,
+        "region_triangle_membership_counts": triangle_counts
+    }
