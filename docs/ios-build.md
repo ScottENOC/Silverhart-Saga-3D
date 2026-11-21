@@ -30,3 +30,11 @@ Do not duplicate movement, interaction, or combat logic across input methods. Ma
 ## Rendering
 
 The project already declares Godot's Mobile renderer for mobile exports. Keep the desktop Forward+ and web Compatibility renderer settings separate. Validate visual effects, materials, shadows, and performance on real iPhone hardware; the iOS Simulator is not a substitute for device rendering/performance validation.
+
+
+### iOS texture import requirement
+
+The iOS export platform requires ETC2/ASTC texture variants to be imported. The project enables
+`rendering/textures/vram_compression/import_etc2_astc=true` so those variants are generated
+on the macOS CI runner as well as on developer machines. This is separate from Apple code signing
+and does not require a paid Apple Developer membership.
