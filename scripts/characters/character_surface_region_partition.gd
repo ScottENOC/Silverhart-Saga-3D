@@ -21,6 +21,54 @@ extends Resource
 @export var vertex_region_indices: PackedInt32Array = PackedInt32Array()
 
 
+func configure_for_mesh(
+    mesh_instance: MeshInstance3D,
+    body_root: Node3D,
+    requested_body_asset_path: String,
+    requested_surface_index: int,
+    requested_region_ids: PackedStringArray
+) -> String:
+    if mesh_instance == null or mesh_instance.mesh == null or body_root == null:
+        return "A valid mesh instance and body root are required"
+    if body_root != mesh_instance and not body_root.is_ancestor_of(mesh_instance):
+        return "Mesh instance must be inside the supplied body root"
+    if requested_surface_index < 0 or requested_surface_index >= mesh_instance.mesh.get_surface_count():
+        return "Requested surface index is outside the source mesh"
+    if requested_region_ids.is_empty():
+        return "At least one primary region ID is required"
+    var arrays := mesh_instance.mesh.surface_get_arrays(requested_surface_index)
+    var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+    if vertices.is_empty():
+        return "Requested surface has no vertices"
+    body_asset_path = requested_body_asset_path
+    mesh_node_path = body_root.get_path_to(mesh_instance)
+    surface_index = requested_surface_index
+    surface_name = mesh_instance.mesh.surface_get_name(requested_surface_index)
+    vertex_count = vertices.size()
+    surface_signature = build_surface_signature(mesh_instance.mesh, requested_surface_index)
+    region_ids = requested_region_ids.duplicate()
+    vertex_region_indices.resize(vertex_count)
+    vertex_region_indices.fill(-1)
+    return ""
+
+
+func assign_vertex_to_region(vertex_index: int, region_id: String) -> String:
+    if vertex_index < 0 or vertex_index >= vertex_count:
+        return "Vertex index is outside the configured source surface"
+    var region_index := region_ids.find(region_id)
+    if region_index < 0:
+        return "Unknown primary region ID: %s" % region_id
+    vertex_region_indices[vertex_index] = region_index
+    return ""
+
+
+func clear_vertex_assignment(vertex_index: int) -> String:
+    if vertex_index < 0 or vertex_index >= vertex_count:
+        return "Vertex index is outside the configured source surface"
+    vertex_region_indices[vertex_index] = -1
+    return ""
+
+
 static func build_surface_signature(mesh: Mesh, requested_surface_index: int) -> String:
     if mesh == null or requested_surface_index < 0 or requested_surface_index >= mesh.get_surface_count():
         return ""
