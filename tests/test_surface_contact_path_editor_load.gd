@@ -19,6 +19,20 @@ func _run() -> void:
     assert(editor.get("_path_preview_mesh") != null, "Contact path editor did not build its preview")
     assert(editor.get("_surface_regions") != null, "Contact editor did not configure the native body surface evaluator")
     assert(editor.get("_preview_contact_path") != null, "Contact editor did not create a reusable surface-route evaluator")
+    var first_descriptor: Dictionary = descriptors[0]
+    var triangle_ids: PackedInt32Array = first_descriptor["triangle_ids"]
+    assert(triangle_ids.size() >= 3, "Native contact surface has no source triangles")
+    var triangle := PackedInt32Array([triangle_ids[0], triangle_ids[1], triangle_ids[2]])
+    var preview_points: Array[Dictionary] = [
+        {"triangle_indices": triangle, "barycentric": PackedFloat32Array([1.0, 0.0, 0.0])},
+        {"triangle_indices": triangle, "barycentric": PackedFloat32Array([0.0, 1.0, 0.0])}
+    ]
+    editor.set("_path_points", preview_points)
+    editor.call("_refresh_marker")
+    var preview_mesh: ImmediateMesh = editor.get("_path_preview_mesh")
+    assert(preview_mesh.get_surface_count() == 1,
+        "Two points on one source triangle should produce a rendered surface-constrained route")
+    editor.call("_clear_path")
     var body_option: OptionButton = editor.get("_body_option")
     assert(body_option.get_item_count() == 2, "Contact editor should only offer current Wren and Aldric builds")
     assert(body_option.get_item_text(0) == "Wren (current native build)", "Wren must be the default contact-path target")
