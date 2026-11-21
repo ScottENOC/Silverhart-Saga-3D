@@ -53,6 +53,7 @@ func adapt_hollowmere() -> Dictionary:
 		},
 		"placements": {"characters": characters, "creatures": creatures},
 		"presentation": {
+			"mode": "location_presenter",
 			"hex_radius": source.get("hex_radius", HexGrid.DEFAULT_RADIUS_M),
 			"ground": source.get("ground", {}),
 			"palette": source.get("palette", {}),
@@ -126,7 +127,7 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 		# Only placement references survive this adapter. Identity, appearance,
 		# class progression, equipment and dialogue remain character-owned.
 		"placements": {"characters": characters, "creatures": []},
-		"presentation": {"hex_radius": HexGrid.DEFAULT_RADIUS_M, "ground": {}, "palette": {}, "vegetation": {}},
+		"presentation": {"mode": "chunked", "hex_radius": HexGrid.DEFAULT_RADIUS_M, "ground": {}, "palette": {}, "vegetation": {}},
 		"interiors": []
 	}
 	return canonical
