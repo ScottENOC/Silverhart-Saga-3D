@@ -78,7 +78,7 @@ There is one definition provider/registry and one validated in-memory contract.
 - The campaign root selects the active world and simulation. It does not construct settlement features.
 - Terrain, building/interior registration, NPC schedules, quests, occupancy and saves remain authoritative outside disposable presentation nodes.
 
-The full-settlement preview and streamed campaign must call the same feature factories with the same canonical feature records. They may differ in *when* and *which subset* they present, never in how a building, road or bridge is defined.
+The full-settlement preview and streamed campaign must call the same feature factories with the same canonical feature records. They may differ in *when* and *which subset* they present, never in how a building, road or bridge is defined. The initial `WorldSettlementFeatureComposer` implements the chunked path: point-anchored features have one owning chunk, while multi-chunk axial routes are split into chunk-local presentation fragments. These fragments are disposable and retain the authored route identity as their prefix; they do not become new logical roads.
 
 ## Migration sequence
 
@@ -88,7 +88,7 @@ The full-settlement preview and streamed campaign must call the same feature fac
 4. Move consumers to the canonical provider: terrain queries, full-settlement presentation, chunk presentation and logical registration. Consumers must stop loading source files independently.
 5. Move Campaign 2 NPC identity/appearance/equipment out of layout records through the separate character-data migration. Do not duplicate that migration here; settlement placements retain only character IDs and positions.
 6. Once all consumers use the provider, remove legacy format adapters and the terrain-only settlement catalogue. Keep domain-specific authoring modules where they provide useful ownership boundaries, but they must compose into the one canonical envelope.
-7. Consolidate full-settlement and streamed presentation on the same composition service. The stream controls lifecycle, not a second construction pipeline.
+7. Consolidate full-settlement and streamed presentation on the same composition service. The first shared `WorldSettlementFeatureComposer` now dispatches canonical chunked buildings, routes, bridges, agricultural features and prop assemblies to the existing shared factories; `Campaign2SettlementBuilder` delegates to it. Hollowmere still uses the full-location presenter while ground, vegetation and creature layers are migrated into chunk-scoped composition. The stream controls lifecycle, not a second construction pipeline.
 
 ## Invariants and acceptance criteria
 
