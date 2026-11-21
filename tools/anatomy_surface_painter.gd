@@ -437,10 +437,7 @@ func _collect_surface_descriptors(node: Node) -> void:
                         triangle_ids.append(vertex_index + 2)
                 else:
                     triangle_ids = indices
-                var faces := PackedVector3Array()
-                for vertex_id in triangle_ids:
-                    faces.append(vertices[vertex_id])
-                if faces.is_empty():
+                if triangle_ids.is_empty():
                     continue
                 var descriptor_index := _descriptors.size()
                 var descriptor := {
@@ -449,24 +446,30 @@ func _collect_surface_descriptors(node: Node) -> void:
                     "vertices": vertices,
                     "normals": normals,
                     "triangle_ids": triangle_ids,
-                    "weights": {},
-                    "faces": faces
+                    "weights": {}
                 }
                 _descriptors.append(descriptor)
 
-                var shape := ConcavePolygonShape3D.new()
-                shape.backface_collision = true
-                shape.set_faces(faces)
-                var collision_body := StaticBody3D.new()
-                collision_body.name = "PaintCollider_%d" % descriptor_index
-                collision_body.set_meta("descriptor_index", descriptor_index)
-                collision_body.collision_layer = 1
-                collision_body.collision_mask = 1
-                var collision_shape := CollisionShape3D.new()
-                collision_shape.shape = shape
-                collision_body.add_child(collision_shape)
-                _world_root.add_child(collision_body)
-                collision_body.global_transform = mesh_instance.global_transform
+                # Headless validation only needs the imported vertex/index data and
+                # must not cook a full concave physics collider for every GLB surface.
+                # The interactive painter still gets exact triangle picking in GUI runs.
+                if DisplayServer.get_name() != "headless":
+                    var faces := PackedVector3Array()
+                    for vertex_id in triangle_ids:
+                        faces.append(vertices[vertex_id])
+                    var shape := ConcavePolygonShape3D.new()
+                    shape.backface_collision = true
+                    shape.set_faces(faces)
+                    var collision_body := StaticBody3D.new()
+                    collision_body.name = "PaintCollider_%d" % descriptor_index
+                    collision_body.set_meta("descriptor_index", descriptor_index)
+                    collision_body.collision_layer = 1
+                    collision_body.collision_mask = 1
+                    var collision_shape := CollisionShape3D.new()
+                    collision_shape.shape = shape
+                    collision_body.add_child(collision_shape)
+                    _world_root.add_child(collision_body)
+                    collision_body.global_transform = mesh_instance.global_transform
     for child in node.get_children():
         _collect_surface_descriptors(child)
 
