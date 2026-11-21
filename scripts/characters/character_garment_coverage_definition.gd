@@ -77,7 +77,7 @@ func validate_definition() -> String:
 
 ## Validates that every requested anatomical channel has actually been authored
 ## on this exact character. It deliberately refuses to substitute rig weights.
-func validate_for_character(surface_regions: CharacterSurfaceRegions) -> String:
+func validate_for_character(surface_regions: CharacterBodySurface) -> String:
     var definition_error := validate_definition()
     if not definition_error.is_empty():
         return definition_error
