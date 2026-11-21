@@ -44,9 +44,20 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 		var presentation_mode := String(presentation.get("mode", "chunked"))
 		if presentation_mode != "chunked" and presentation_mode_override != "chunked":
 			continue
+		# The explicit override is the regional streamer's ownership decision.
+		# Pass that decision through to the composer as well; otherwise its
+		# canonical-mode guard silently skips location-presenter settlements.
+		var composition_entry: Dictionary = entry
+		if presentation_mode_override == "chunked" and presentation_mode != "chunked":
+			composition_entry = entry.duplicate(true)
+			var composition_definition: Dictionary = composition_entry.get("definition", {}).duplicate(true)
+			var composition_presentation: Dictionary = composition_definition.get("presentation", {}).duplicate(true)
+			composition_presentation["mode"] = "chunked"
+			composition_definition["presentation"] = composition_presentation
+			composition_entry["definition"] = composition_definition
 		var composition := FEATURE_COMPOSER.compose_chunk(
 			parent,
-			entry,
+			composition_entry,
 			chunk_min,
 			chunk_size,
 			HEX_RADIUS
