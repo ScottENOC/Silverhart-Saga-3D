@@ -60,13 +60,20 @@ func _build_ui() -> void:
     close_button.pressed.connect(_close)
     column.add_child(close_button)
 
+func _save_manager_service() -> Node:
+    return get_node_or_null("/root/SaveManager")
+
 func _refresh_slots() -> void:
+    var save_manager := _save_manager_service()
+    if save_manager == null:
+        status_label.text = "Save service is unavailable."
+        return
     for child in slot_list.get_children():
         child.queue_free()
     var heading := panel.find_child("Heading", true, false) as Label
     heading.text = "SAVE CAMPAIGN" if mode == "save" else "LOAD CAMPAIGN"
     status_label.text = "Choose a slot. Existing manual saves are only replaced when selected." if mode == "save" else "Choose a saved campaign to continue."
-    for entry in SaveManager.list_slots():
+    for entry in save_manager.call("list_slots"):
         var slot_id := String(entry.get("slot_id", ""))
         var metadata: Dictionary = entry.get("metadata", {})
         var occupied := bool(entry.get("occupied", false))
@@ -99,16 +106,24 @@ func _on_slot_pressed(slot_id: String, occupied: bool) -> void:
             return
         _write_slot(slot_id)
         return
-    var result := SaveManager.load_snapshot(slot_id)
+    var save_manager := _save_manager_service()
+    if save_manager == null:
+        status_label.text = "Save service is unavailable."
+        return
+    var result: Dictionary = save_manager.call("load_snapshot", slot_id)
     if not bool(result.get("ok", false)):
         status_label.text = "Could not load save: %s" % String(result.get("reason", "unknown error"))
         return
-    SaveManager.set_pending_load(result["snapshot"])
+    save_manager.call("set_pending_load", result["snapshot"])
     get_tree().change_scene_to_file("res://scenes/main.tscn")
     _close()
 
 func _write_slot(slot_id: String) -> void:
-    var result := SaveManager.save_snapshot(slot_id, snapshot)
+    var save_manager := _save_manager_service()
+    if save_manager == null:
+        status_label.text = "Save service is unavailable."
+        return
+    var result: Dictionary = save_manager.call("save_snapshot", slot_id, snapshot)
     if bool(result.get("ok", false)):
         _refresh_slots()
         status_label.text = "Saved successfully."

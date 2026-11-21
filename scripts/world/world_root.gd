@@ -1,14 +1,14 @@
 extends Node3D
 
-const HOLLOWMERE_VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
-const HOLLOW_TANKARD_SCRIPT = preload("res://scripts/world/hollow_tankard.gd")
+const LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
+const STARTING_LOCATION = preload("res://data/world/locations/hollowmere.gd")
 const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_creator.gd")
 const HOLLOWMERE_CAMPAIGN_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
 const COMPANION_CAMPAIGN_CONTENT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const FARM_WOLVES_QUEST = preload("res://scripts/simulation/farm_wolves_quest.gd")
 
 var simulation: WorldSimulation
-var village: Node3D
+var settlement_presentation: Node3D
 var tavern: Node3D
 var loading_layer: CanvasLayer
 var loading_label: Label
@@ -123,38 +123,40 @@ func _on_character_created(profile: Dictionary) -> void:
     # synchronous stages, so the displayed message identifies the operation
     # currently occupying the main thread; the bar advances at stage boundaries.
     _set_loading_stage(
-        "Generating Hollowmere village…",
-        "Creating terrain, roads, stream, buildings, bridge and surrounding forest.",
+        "Loading %s…" % STARTING_LOCATION.DISPLAY_NAME,
+        "Resolving the continuous world region and its authored location components.",
         25.0
     )
     await get_tree().process_frame
 
-    # The campaign composition root owns the shared simulation. Locations
-    # configure and present it, but do not create or own its lifecycle.
+    # The campaign composition root owns the shared simulation. Location
+    # components are instantiated by the generic data-driven location loader.
     simulation = WorldSimulation.new()
     simulation.name = "WorldSimulation"
     add_child(simulation)
     _initialize_campaign_simulation(profile)
 
-    village = HOLLOWMERE_VILLAGE_SCRIPT.new()
-    village.name = "HollowmereVillage"
-    add_child(village)
-
-    _set_loading_stage(
-        "Building the Hollow Tankard…",
-        "Creating the hex map, tavern interior, furniture and starting area.",
-        50.0
+    var location_result: Dictionary = LOCATION_LOADER.load_location(
+        self,
+        STARTING_LOCATION.DEFINITION,
+        simulation,
+        profile,
+        pending_save_data
     )
-    await get_tree().process_frame
-    tavern = HOLLOW_TANKARD_SCRIPT.new()
-    tavern.name = "HollowTankard"
-    tavern.configure_campaign(simulation, profile, pending_save_data)
-    add_child(tavern)
+    if not bool(location_result.get("ok", false)):
+        push_error("Could not load Campaign 2 location %s: %s" % [STARTING_LOCATION.LOCATION_ID, location_result])
+        return
+    var location_components: Dictionary = location_result.get("components", {})
+    settlement_presentation = location_components.get("settlement") as Node3D
+    tavern = location_components.get("interior_controller") as Node3D
+    if settlement_presentation == null or tavern == null:
+        push_error("Campaign 2 location %s did not provide its settlement and interior controller." % STARTING_LOCATION.LOCATION_ID)
+        return
 
     # Register the village's existing animal actors into the shared campaign
     # simulation after both location presentations have completed setup.
-    if village.has_method("register_animals_with_simulation"):
-        var animal_registration: Dictionary = village.call("register_animals_with_simulation", simulation)
+    if settlement_presentation.has_method("register_animals_with_simulation"):
+        var animal_registration: Dictionary = settlement_presentation.call("register_animals_with_simulation", simulation)
         if not bool(animal_registration.get("ok", false)):
             push_warning("Some Hollowmere animals were not registered: %s" % animal_registration.get("skipped", []))
 

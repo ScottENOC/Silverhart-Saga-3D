@@ -12,7 +12,11 @@
       "column": 6,
       "row": 6
     },
-    "placement_rule": "Map positions are derived from source local axial coordinates using the original 130:1 conversion. Small 3D offsets are permitted for legibility; no exact generated road wiggles are required."
+    "placement_rule": "Map positions are derived from source local axial coordinates using the original 130:1 conversion. Small 3D offsets are permitted for legibility; no exact generated road wiggles are required.",
+    "strategic_grid_dimensions": {
+      "columns": 16,
+      "rows": 16
+    }
   },
   "geography": {
     "ocean_columns": [
@@ -125,7 +129,43 @@
       "The west coast, human centre, orc-held east, north-east Deepholds and southern Sylvan forest follow Campaign 2 worldMap.js.",
       "The river path is the original 16x16 strategic-map path.",
       "Faction ownership and terrain are distinct; the north-east dwarf/orc border trades cells as in the source."
-    ]
+    ],
+    "faction_overrides": [
+      {
+        "columns": [
+          10,
+          11
+        ],
+        "rows": [
+          0,
+          1
+        ],
+        "faction": "dwarves",
+        "source_note": "Original Campaign 2 north-east border trade"
+      },
+      {
+        "columns": [
+          12,
+          15
+        ],
+        "rows": [
+          4,
+          4
+        ],
+        "faction": "orcs",
+        "source_note": "Original Campaign 2 north-east border trade"
+      }
+    ],
+    "terrain_variation": {
+      "strategic_hash": {
+        "x_scale": 2.3,
+        "x_offset": 5,
+        "y_scale": 1.7,
+        "y_offset": 3
+      },
+      "orc_mountain_threshold": 0.8,
+      "orc_hills_threshold": 0.6
+    }
   },
   "locations": [
     {
@@ -479,6 +519,32 @@
       "from": "emberwood_grove",
       "to": "unicorn_vale",
       "kind": "trail"
+    }
+  ],
+  "strategic_markers": [
+    {
+      "id": "silverhart",
+      "short": "K"
+    },
+    {
+      "id": "millbrook",
+      "short": "V"
+    },
+    {
+      "id": "emberlode",
+      "short": "V"
+    },
+    {
+      "id": "hollowmere",
+      "short": "V"
+    },
+    {
+      "id": "reddale",
+      "short": "T"
+    },
+    {
+      "id": "old_mac_farmstead",
+      "short": "F"
     }
   ]
 }

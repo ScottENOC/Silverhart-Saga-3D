@@ -16,7 +16,7 @@ signal movement_reaction_resolved(mover_id: String, halted: bool)
 var campaign_journal: CampaignJournal = CampaignJournal.new()
 var map_data: HexMapData = HexMapData.new()
 var building_registry: BuildingRegistry = BuildingRegistry.new()
-var world_chunks: HexWorldChunkStreamer = HexWorldChunkStreamer.new()
+var world_cell_loader: Campaign2WorldCellLoader = Campaign2WorldCellLoader.new()
 var wilderness_resources: WildernessResourceSystem = WildernessResourceSystem.new()
 var characters: Dictionary = {}
 var occupied_hexes: Dictionary = {}
@@ -1384,6 +1384,8 @@ func _submit_move(request: SimulationActionRequest) -> Dictionary:
     if state == null or not state.can_act():
         return {"ok": false, "reason": "actor_unavailable"}
     var movement_state := _movement_state_for(state)
+    if not _is_virtual_building_floor_hex(request.destination):
+        ensure_exploration_region(request.destination)
     if not _can_move_to(movement_state, request.destination):
         return {"ok": false, "reason": "invalid_destination"}
     if combat_step and is_in_combat:
@@ -1523,6 +1525,8 @@ func try_move_character(character_id: String, destination: Vector2i) -> bool:
     if state == null:
         return false
     var movement_state := _movement_state_for(state)
+    if not _is_virtual_building_floor_hex(destination):
+        ensure_exploration_region(destination)
     if not _can_move_to(movement_state, destination):
         return false
     _commit_move(movement_state, destination)
@@ -1531,8 +1535,8 @@ func try_move_character_action(character_id: String, destination: Vector2i, time
     var result := submit_action(SimulationActionRequest.move(character_id, destination, time_point_cost))
     return bool(result.get("ok", false))
 
-func ensure_exploration_region(centre: Vector2i, chunk_radius: int = HexWorldChunkStreamer.DEFAULT_LOAD_RADIUS) -> int:
-    return world_chunks.load_around(map_data, centre, chunk_radius)
+func ensure_exploration_region(centre: Vector2i, chunk_radius: int = Campaign2WorldCellLoader.DEFAULT_LOAD_RADIUS) -> int:
+    return world_cell_loader.load_around(map_data, centre, chunk_radius)
 
 func ensure_resource_at(hex: Vector2i) -> Dictionary:
     return wilderness_resources.ensure_node(hex, map_data.terrain_id_at(hex))

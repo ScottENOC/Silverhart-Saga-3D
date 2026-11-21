@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://silverhart-saga-3d.invalid/schemas/settlement-definition-v1.schema.json",
+  "title": "Silverhart authored settlement definition",
+  "description": "Canonical, presentation-independent settlement envelope. Runtime validation additionally checks cross-record references, uniqueness and coordinate bounds.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "coordinate_system",
+    "origin",
+    "bounds",
+    "layout",
+    "placements",
+    "presentation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coordinate_system": {
+      "const": "campaign2_local_axial_qr"
+    },
+    "origin": {
+      "$ref": "#/$defs/axial"
+    },
+    "bounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min_q",
+        "max_q",
+        "min_r",
+        "max_r"
+      ],
+      "properties": {
+        "min_q": {
+          "type": "integer"
+        },
+        "max_q": {
+          "type": "integer"
+        },
+        "min_r": {
+          "type": "integer"
+        },
+        "max_r": {
+          "type": "integer"
+        }
+      }
+    },
+    "terrain": {
+      "type": "object"
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "buildings": {
+          "$ref": "#/$defs/recordArray"
+        },
+        "paths": {
+          "$ref": "#/$defs/recordArray"
+        },
+        "bridges": {
+          "$ref": "#/$defs/recordArray"
+        },
+        "fields": {
+          "$ref": "#/$defs/recordArray"
+        },
+        "props": {
+          "$ref": "#/$defs/recordArray"
+        }
+      }
+    },
+    "placements": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "characters": {
+          "$ref": "#/$defs/recordArray"
+        },
+        "creatures": {
+          "$ref": "#/$defs/recordArray"
+        }
+      }
+    },
+    "presentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hex_radius": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "ground": {
+          "type": "object"
+        },
+        "palette": {
+          "type": "object"
+        },
+        "vegetation": {
+          "type": "object"
+        },
+        "materials": {
+          "type": "object"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["chunked", "location_presenter"]
+        }
+      }
+    },
+    "interiors": {
+      "$ref": "#/$defs/recordArray"
+    }
+  },
+  "$defs": {
+    "axial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "q",
+        "r"
+      ],
+      "properties": {
+        "q": {
+          "type": "integer"
+        },
+        "r": {
+          "type": "integer"
+        }
+      }
+    },
+    "recordArray": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

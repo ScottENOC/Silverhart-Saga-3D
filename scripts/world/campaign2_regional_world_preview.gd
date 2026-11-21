@@ -3,7 +3,7 @@ extends Node3D
 ## Hollowmere uses its authored exterior; surrounding local-hex terrain is streamed in chunks.
 
 const TERRAIN_DATA_SCRIPT = preload("res://scripts/world/campaign2_world_terrain_data.gd")
-const VILLAGE_SCRIPT = preload("res://scripts/world/hollowmere_village.gd")
+const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
 const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
@@ -13,6 +13,7 @@ const LOAD_RADIUS_CHUNKS := 1
 
 var terrain_data: Campaign2WorldTerrainData
 var settlement_builder: Campaign2SettlementBuilder
+var ecology_simulation: WorldSimulation
 var chunk_nodes: Dictionary = {}
 var camera: Camera3D
 var target := Vector3.ZERO
@@ -30,11 +31,13 @@ var marker_locations: Dictionary = {}
 
 func _ready() -> void:
 	terrain_data = TERRAIN_DATA_SCRIPT.new() as Campaign2WorldTerrainData
-	settlement_builder = SETTLEMENT_BUILDER_SCRIPT.new(terrain_data.settlement_layouts) as Campaign2SettlementBuilder
+	ecology_simulation = WorldSimulation.new()
+	ecology_simulation.name = "RegionalEcologySimulation"
+	add_child(ecology_simulation)
+	settlement_builder = SETTLEMENT_BUILDER_SCRIPT.new(terrain_data.settlement_layouts, null, ecology_simulation) as Campaign2SettlementBuilder
 	_create_environment()
 	_create_materials()
 	_create_camera()
-	_add_authored_hollowmere()
 	_build_interface()
 	jump_to_location("hollowmere")
 
@@ -92,13 +95,6 @@ func _create_camera() -> void:
 	camera.current = true
 	add_child(camera)
 	_update_camera()
-
-func _add_authored_hollowmere() -> void:
-	# Reuse the actual starting-village scene instead of drawing a second,
-	# approximate village over it. Its authored map occupies radius 96.
-	var village := VILLAGE_SCRIPT.new() as Node3D
-	village.name = "AuthoredHollowmereVillage"
-	add_child(village)
 
 func _build_interface() -> void:
 	var layer := CanvasLayer.new()
@@ -252,9 +248,9 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 				continue
 			var elevation := terrain_data.elevation_for_hex(hex)
 			_add_hex_to_surface(tools[terrain] as SurfaceTool, hex, elevation)
-			if terrain_data.has_tree(hex):
+			if terrain_data.has_tree(hex) and terrain_data.settlement_definition_registry.resolve(hex).is_empty():
 				var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
-				var size_roll := Campaign2WorldTerrainData._stable_roll(hex, 2909)
+				var size_roll := LOCAL_TERRAIN_RULES.stable_roll(hex, 2909)
 				var scale := 0.72 + size_roll * 0.5
 				var rotation := size_roll * TAU
 				var basis := Basis(Vector3.UP, rotation).scaled(Vector3(scale, scale, scale))
@@ -272,7 +268,7 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 	_add_multimesh(root, "ForestCrowns", tree_crown_mesh, tree_transforms)
 	_add_multimesh(root, "ForestTrunks", tree_trunk_mesh, trunk_transforms)
 	_add_chunk_locations(root, chunk)
-	settlement_builder.add_settlements_in_chunk(root, chunk_min, CHUNK_SIZE)
+	settlement_builder.add_settlements_in_chunk(root, chunk_min, CHUNK_SIZE, "chunked")
 	return root
 
 func _add_hex_to_surface(surface: SurfaceTool, hex: Vector2i, elevation: float) -> void:
