@@ -33,6 +33,8 @@ on:
       - "data/**"
       - "tests/**"
       - "tools/garment_guide_curve_editor.gd"
+      - "tools/surface_landmark_editor.gd"
+      - "tools/surface_landmark_editor.tscn"
       - "tools/garment_guide_curve_editor.tscn"
       - "tools/review/capture_garment_guide_editor.gd"
       - ".github/workflows/godot-validation.yml"
