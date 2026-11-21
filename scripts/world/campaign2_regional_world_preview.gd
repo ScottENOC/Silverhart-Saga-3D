@@ -13,6 +13,7 @@ const LOAD_RADIUS_CHUNKS := 1
 
 var terrain_data: Campaign2WorldTerrainData
 var settlement_builder: Campaign2SettlementBuilder
+var ecology_simulation: WorldSimulation
 var chunk_nodes: Dictionary = {}
 var camera: Camera3D
 var target := Vector3.ZERO
@@ -30,7 +31,10 @@ var marker_locations: Dictionary = {}
 
 func _ready() -> void:
 	terrain_data = TERRAIN_DATA_SCRIPT.new() as Campaign2WorldTerrainData
-	settlement_builder = SETTLEMENT_BUILDER_SCRIPT.new(terrain_data.settlement_layouts) as Campaign2SettlementBuilder
+	ecology_simulation = WorldSimulation.new()
+	ecology_simulation.name = "RegionalEcologySimulation"
+	add_child(ecology_simulation)
+	settlement_builder = SETTLEMENT_BUILDER_SCRIPT.new(terrain_data.settlement_layouts, null, ecology_simulation) as Campaign2SettlementBuilder
 	_create_environment()
 	_create_materials()
 	_create_camera()
