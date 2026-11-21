@@ -85,7 +85,7 @@ func _test_emberlode(terrain: Campaign2WorldTerrainData, entries: Array) -> void
 	var definition: Dictionary = entry.get("definition", {})
 	var layout: Dictionary = definition.get("layout", {})
 	_check(layout.get("buildings", []).size() == 3, "Emberlode must retain its foreman's hall, bunkhouse and mine entrance")
-	_check(layout.get("paths", []).size() == 3, "Emberlode must retain all three source road approaches")
+	_check(layout.get("paths", []).size() == 2, "Emberlode must retain its two authored mine and bunkhouse approaches")
 	_check(definition.get("placements", {}).get("characters", []).size() == 3, "Emberlode must retain Corran, Bettina and Rennik")
 	_check(definition.get("interiors", []).size() == 3, "Emberlode must retain all three interior definitions")
 	var mine := _find_record(definition.get("interiors", []), "emberlode_mine_interior")
