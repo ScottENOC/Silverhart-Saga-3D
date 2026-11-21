@@ -98,7 +98,11 @@ func _test_appearance_save_reload_and_material_application() -> void:
 	assert(restored.tattoo_ids == appearance.tattoo_ids)
 	restored.apply_to(body)
 	assert(not bra.visible)
-	assert((bra.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(appearance.bra_tint))
+	var restored_bra_tint: Color = (bra.get_active_material(0) as StandardMaterial3D).albedo_color
+	assert(is_equal_approx(restored_bra_tint.r, appearance.bra_tint.r))
+	assert(is_equal_approx(restored_bra_tint.g, appearance.bra_tint.g))
+	assert(is_equal_approx(restored_bra_tint.b, appearance.bra_tint.b))
+	assert(is_equal_approx(restored_bra_tint.a, 0.6))
 	assert((briefs.get_active_material(0) as StandardMaterial3D).albedo_color.is_equal_approx(appearance.briefs_tint))
 	var after_reload := shirt.get_active_material(0) as StandardMaterial3D
 	assert(after_reload.albedo_color.r == appearance.shirt_tint.r)
@@ -109,14 +113,16 @@ func _test_appearance_save_reload_and_material_application() -> void:
 
 func _test_materials_are_not_shared_between_characters() -> void:
 	var shared_material := StandardMaterial3D.new()
-	var shared_mesh := BoxMesh.new()
-	shared_mesh.material = shared_material
+	var shared_mesh_a := BoxMesh.new()
+	shared_mesh_a.material = shared_material
+	var shared_mesh_b := BoxMesh.new()
+	shared_mesh_b.material = shared_material
 	var a := MeshInstance3D.new()
 	a.name = "Shirt"
-	a.mesh = shared_mesh
+	a.mesh = shared_mesh_a
 	var b := MeshInstance3D.new()
 	b.name = "Shirt"
-	b.mesh = shared_mesh
+	b.mesh = shared_mesh_b
 	var root_a := Node3D.new()
 	var root_b := Node3D.new()
 	root_a.add_child(a)
