@@ -56,7 +56,10 @@ func _test_chunk_ownership_and_route_clipping() -> void:
 	assert(first_chunk.get_node_or_null("HouseA/HouseSign/SignBoard") != null, "Building-attached prop should follow its parent building")
 	assert(first_chunk.get_node_or_null("FieldA") != null, "Field centroid belongs to first chunk")
 	var first_routes := first_chunk.find_children("*", "MeshInstance3D", true, false).filter(func(node): return String(node.name).begins_with("CrossChunkRoad_chunk_"))
-	assert(first_routes.size() == 1, "Only the route segment inside this chunk should be emitted")
+	assert(first_routes.size() == 1, "Only the route segment owned by this chunk should be emitted")
+	var route_source: Dictionary = entry.definition.layout.paths[0]
+	var first_fragments: Array = COMPOSER._route_fragments_for_chunk(route_source, Vector2i.ZERO, Vector2i.ZERO, 4)
+	assert(first_fragments.size() == 1 and first_fragments[0].points.back() == Vector2i(4, 1), "First chunk must carry the boundary-crossing segment to the shared endpoint")
 	first_chunk.free()
 
 	var second_chunk := Node3D.new()
@@ -66,6 +69,8 @@ func _test_chunk_ownership_and_route_clipping() -> void:
 	assert(second_chunk.get_node_or_null("FieldA") == null, "Field must not be duplicated in adjacent chunk")
 	var second_routes := second_chunk.find_children("*", "MeshInstance3D", true, false).filter(func(node): return String(node.name).begins_with("CrossChunkRoad_chunk_"))
 	assert(second_routes.size() == 1, "Adjacent chunk should receive only its own clipped route segment")
+	var second_fragments: Array = COMPOSER._route_fragments_for_chunk(route_source, Vector2i.ZERO, Vector2i(4, 0), 4)
+	assert(second_fragments.size() == 1 and second_fragments[0].points.front() == Vector2i(4, 1), "Adjacent chunk must start at the same boundary endpoint")
 	second_chunk.free()
 
 func _test_empty_chunk_is_valid() -> void:
