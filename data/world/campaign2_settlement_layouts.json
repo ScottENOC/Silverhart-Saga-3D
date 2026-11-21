@@ -249,19 +249,6 @@
       ],
       "paths": [
         {
-          "id": "emberlode_hall_road_link",
-          "kind": "road",
-          "from": {
-            "q": -252,
-            "r": 22
-          },
-          "to": {
-            "q": -252,
-            "r": 22
-          },
-          "source": "buildEmberlode hall door spur; road endpoint"
-        },
-        {
           "id": "emberlode_bunkhouse_road_link",
           "kind": "road",
           "from": {
