@@ -130,7 +130,7 @@ func _test_body(asset_path: String) -> void:
     assert(contact_path.validate_for_mesh(target_mesh, body_root, asset_path).is_empty(),
         "Valid contact path rejected for " + asset_path)
     var evaluated_path := contact_path.evaluate(regions)
-    assert(evaluated_path.size() == 3, "Contact path did not evaluate all control points")
+    assert(evaluated_path.size() == 3, "Contact path did not evaluate all control points: " + contact_path.last_evaluation_error)
     for path_point in evaluated_path:
         assert(path_point["position"].is_finite() and path_point["normal"].is_finite(),
             "Contact path returned a non-finite surface sample")
