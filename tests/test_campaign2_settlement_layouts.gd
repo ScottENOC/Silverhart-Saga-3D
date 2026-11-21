@@ -123,7 +123,7 @@ func _test_reddale(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
 		_check(ids.has(required_id), "Reddale must retain source NPC " + required_id)
 	_check(terrain.terrain_for_hex(Vector2i(134, 24)) == "authored", "Reddale guardhouse must suppress procedural terrain")
 	_check(terrain.terrain_for_hex(Vector2i(138, 22)) == "path", "Reddale reeve approach must be indexed as a path")
-	var factory = preload("res://scripts/world/world_building_factory.gd")
+	var factory = BUILDING_FACTORY
 	for building in layout.get("buildings", []):
 		_check(factory.supports_definition(building), "Reddale building archetype must be supported: " + String(building.get("id", "")))
 	var registry = CHARACTER_REGISTRY.new()
