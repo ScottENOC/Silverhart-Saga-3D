@@ -57,7 +57,7 @@ func _run() -> void:
         "has no assigned vertices"
     )
     if failed:
-        failed = true
+        quit(1)
         return
     print("SURFACE_REGION_PARTITION_TESTS_OK cases=6")
     quit(0)
@@ -71,5 +71,5 @@ func _expect_empty(label: String, actual: String) -> void:
 
 func _expect_contains(label: String, actual: String, expected: String) -> void:
     if not actual.contains(expected):
-        push_error("%s failed: expected '%s', got '%s'" % [expected, actual])
-        quit(1)
+        push_error("%s failed: expected '%s', got '%s'" % [label, expected, actual])
+        failed = true
