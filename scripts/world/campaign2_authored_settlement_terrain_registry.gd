@@ -39,9 +39,14 @@ func configure(manifest: Dictionary) -> Dictionary:
 			continue
 		var settlement_id := String(entry.get("id", "")).strip_edges()
 		var script_path := String(entry.get("definition_script", "")).strip_edges()
-		if settlement_id.is_empty() or script_path.is_empty():
-			validation_errors.append("Settlement terrain entry %d requires an ID and definition script." % index)
+		var origin_value: Variant = entry.get("origin")
+		if settlement_id.is_empty() or script_path.is_empty() or not origin_value is Dictionary:
+			validation_errors.append("Settlement terrain entry %d requires an ID, definition script and axial origin." % index)
 			continue
+		if not origin_value.has("q") or not origin_value.has("r"):
+			validation_errors.append("Settlement terrain entry %d has an incomplete axial origin." % index)
+			continue
+		var origin := Vector2i(int(origin_value.get("q", 0)), int(origin_value.get("r", 0)))
 		if seen_ids.has(settlement_id):
 			validation_errors.append("Duplicate settlement terrain ID: %s" % settlement_id)
 			continue
@@ -68,7 +73,8 @@ func configure(manifest: Dictionary) -> Dictionary:
 			"id": settlement_id,
 			"priority": int(entry.get("priority", 0)),
 			"definition": definition,
-			"definition_script": script_path
+			"definition_script": script_path,
+			"origin": origin
 		})
 	if not validation_errors.is_empty():
 		_entries.clear()
@@ -79,8 +85,12 @@ func configure(manifest: Dictionary) -> Dictionary:
 func resolve(hex: Vector2i) -> Dictionary:
 	for entry in _entries:
 		var definition: Dictionary = entry.get("definition", {})
-		if TERRAIN_PROVIDER.is_in_bounds(hex, definition):
-			return entry
+		var origin: Vector2i = entry.get("origin", Vector2i.ZERO)
+		var local_hex := hex - origin
+		if TERRAIN_PROVIDER.is_in_bounds(local_hex, definition):
+			var resolved := entry.duplicate()
+			resolved["local_hex"] = local_hex
+			return resolved
 	return {}
 
 func settlement_ids() -> Array[String]:
