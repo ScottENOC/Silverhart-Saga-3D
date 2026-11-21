@@ -51,10 +51,18 @@ func _run() -> void:
         "Painter must expose barycentric multi-region point inspection")
     assert(painter_script.get_script_method_list().any(func(method: Dictionary): return method["name"] == "_barycentric_weights"),
         "Painter must interpolate region memberships at triangle surface points")
-    assert(painter_script.get_script_property_list().any(func(property: Dictionary): return property["name"] == "_inspect_check"),
-        "Painter must expose the membership inspection toggle")
     var painter_scene := load("res://tools/anatomy_surface_painter.tscn") as PackedScene
     assert(painter_scene != null, "Anatomy surface painter scene failed to load")
+    var painter_instance := painter_scene.instantiate() as Control
+    assert(painter_instance != null, "Anatomy painter scene root is not Control")
+    root.add_child(painter_instance)
+    await process_frame
+    await process_frame
+    assert(painter_instance.get("_body_root") != null, "Anatomy painter did not load the current Wren native build")
+    assert(painter_instance.get("_inspect_check") != null, "Anatomy painter did not build its membership inspection toggle")
+    assert(painter_instance.get("_inspected_point_marker") != null, "Anatomy painter did not build its inspected-point marker")
+    painter_instance.queue_free()
+    await process_frame
     var input_router := load("res://tools/anatomy_surface_painter_input.gd") as Script
     assert(input_router != null, "Anatomy surface painter input router failed to load")
     var manifest := load("res://data/characters/anatomy_masks/manifest.tres") as CharacterSurfaceRegionMaskManifest
