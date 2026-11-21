@@ -2,6 +2,7 @@ extends SceneTree
 
 const REGISTRY = preload("res://scripts/world/campaign2_authored_settlement_terrain_registry.gd")
 const WORLD_TERRAIN = preload("res://scripts/world/campaign2_world_terrain_data.gd")
+const TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 const HOLLOWMERE_TERRAIN = preload("res://data/settlements/hollowmere/terrain.gd")
 
 func _initialize() -> void:
@@ -19,6 +20,17 @@ func _test_manifest_loads_authored_definitions() -> void:
 	assert(String(inside.get("id", "")) == "hollowmere", "The registry should resolve cells inside an authored settlement")
 	assert(inside.get("definition", {}) == HOLLOWMERE_TERRAIN.DEFINITION, "The registry should return the loaded authored definition")
 	assert(registry.resolve(Vector2i(97, 0)).is_empty(), "The registry should not claim cells outside authored settlement bounds")
+	var overlap_result := registry.configure({
+		"schema_version": 1,
+		"coordinate_system": "campaign2_local_axial_qr",
+		"settlements": [
+			{"id": "hollowmere", "definition_script": "res://data/settlements/hollowmere/terrain.gd", "priority": 100},
+			{"id": "overlap_test", "definition_script": "res://tests/fixtures/test_overlapping_settlement_terrain.gd", "priority": 200}
+		]
+	})
+	assert(bool(overlap_result.get("ok", false)), "Valid overlapping settlement definitions should be accepted")
+	assert(String(registry.resolve(Vector2i.ZERO).get("id", "")) == "overlap_test", "Higher-priority authored settlement terrain must win overlaps")
+	assert(is_equal_approx(TERRAIN_PROVIDER.elevation_for_hex(Vector2i.ZERO, registry.resolve(Vector2i.ZERO).definition), 0.25), "Resolved terrain should retain the winning definition's elevation")
 
 func _test_registry_rejects_invalid_manifests() -> void:
 	var registry := REGISTRY.new()
