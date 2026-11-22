@@ -84,7 +84,7 @@ func _set_actor_floor_height(actor: Node3D, floor_number: int) -> void:
 	actor.global_position = actor_position
 
 func _sync_registered_character_actor_floors(floor_number: int) -> void:
-	for character_id_variant in character_actor_nodes:
+	for character_id_variant in character_actor_nodes.keys():
 		var character_id := String(character_id_variant)
 		var actor := character_actor_nodes[character_id] as Node3D
 		if actor == null or not is_instance_valid(actor):
