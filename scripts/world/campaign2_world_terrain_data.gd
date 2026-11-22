@@ -7,6 +7,7 @@ extends RefCounted
 const MANIFEST_PATH := "res://data/world/campaign2_geography.json"
 const ROAD_PATHS_PATH := "res://data/world/campaign2_road_paths.json"
 const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
+const REGIONAL_FEATURES = preload("res://data/world/regions/silverhart_heartland/features.gd")
 const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
 const AUTHORED_SETTLEMENT_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 const SETTLEMENT_DEFINITION_REGISTRY = preload("res://scripts/world/campaign2_settlement_definition_registry.gd")
@@ -154,6 +155,9 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
 		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
+	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
+	if not regional_override.is_empty():
+		return String(regional_override.get("terrain", "grass"))
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "authored"
 	if settlement_path_cells.has(_hex_key(hex)):
@@ -168,6 +172,12 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var source_cell: Dictionary = strategic_grid[strategic_cell.y][strategic_cell.x]
 	var base_terrain := String(source_cell.get("terrain", "grass"))
 	var faction := String(source_cell.get("faction", ""))
+	# Port the original Campaign 2 local fallback for unpainted grassland.
+	# Strategic ocean, mountain, forest and hill bands remain macro overrides.
+	# Keep the strategic greenskin terrain/faction interaction intact; the source
+	# local fallback applies to the human/general wilderness grasslands.
+	if base_terrain == "grass" and faction != "orcs":
+		return LOCAL_TERRAIN_RULES.source_local_terrain(hex)
 	return LOCAL_TERRAIN_RULES.terrain_for_hex(hex, base_terrain, faction)
 
 ## Gameplay terrain is resolved from authored settlement data first, then regional rules.

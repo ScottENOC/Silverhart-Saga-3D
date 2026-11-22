@@ -64,6 +64,9 @@ func _create_materials() -> void:
 		"hills": _material(Color("#9b8968")),
 		"mountain": _material(Color("#858b8e")),
 		"badlands": _material(Color("#a36f55")),
+		"sand": _material(Color("#cbb77f")),
+		"swamp": _material(Color("#56664a")),
+		"rocky_outcrop": _material(Color("#77756e")),
 		"water": _material(Color("#3d9fc2"), 0.28),
 		"path": _material(Color("#b79b70"))
 	}
