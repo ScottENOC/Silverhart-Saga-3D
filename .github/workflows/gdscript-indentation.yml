@@ -26,9 +26,9 @@ concurrency:
 
 jobs:
   check:
-    name: Enforce tab indentation in GDScript
+    name: Enforce four-space indentation in GDScript
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Check all GDScript files
+      - name: Check repository indentation conventions
         run: python tools/ci/check_gdscript_indentation.py
