@@ -42,6 +42,18 @@ Verify current merge status and branch ancestry before building on any PR. This 
 - [ ] Validate terrain collision, elevation, movement costs, climbing, pathfinding, chunk streaming and return transitions.
 - [ ] Record deliberate corrections to source geometry and test connectivity.
 
+## NPC authoring and complexity tiers
+
+The original game distinguishes NPCs by the amount of authored behaviour and narrative content they carry. Preserve that distinction rather than treating every NPC as either a generic villager or a full companion.
+
+- [ ] Audit the actual NPC complexity/type classifications and examples in Hex-crpg; use the source definitions rather than inventing a parallel tier system.
+- [ ] Preserve lightweight residents with simple authored identity and dialogue.
+- [ ] Preserve more involved named NPCs with their additional dialogue, routines, relationships and quest participation.
+- [ ] Preserve major non-companion characters (for example, the Queen) that may approach companion-level narrative complexity without party membership.
+- [ ] Preserve companions as the subset with party-specific systems such as recruitment, party banter and romance where authored.
+- [ ] Ensure complexity is data/content-driven and can be expanded incrementally; do not require every NPC to be fully authored at once.
+- [ ] Gradually reduce reliance on random NPC generation as authored settlement populations are ported. Do not replace all incidental populations in one disruptive pass; keep deterministic generation as a temporary fallback where authored residents are not yet available.
+
 ## Step 2 — Characters, companions and creatures
 
 - [ ] Inventory every authored named character, companion, merchant, quest giver, faction member, hostile, summon and ambient creature.
@@ -63,25 +75,19 @@ Companions are full narrative/gameplay characters, not merely party followers.
 - [ ] Preserve authored scenes and one-off narrative moments, with presentation separated from content and simulation state.
 - [ ] Ensure banter and ambient dialogue are contextual, interruptible where appropriate, and do not repeat indiscriminately.
 
-## Step 4 — NPC social relationships
+## Step 4 — NPC social relationships (direct port)
 
-Do not collapse all social behaviour into one approval number. Use a serialisable, directional relationship record between two character identities. Candidate dimensions:
+**This is a port of the existing Hex-crpg relationship system, not a new design exercise.** The 2D game already implements the relationship model. Its actual data fields, ranges, formulas, event modifiers, thresholds, directional semantics, decay (if any), dialogue hooks and save behaviour are authoritative.
 
-- Familiarity — how well the characters know one another.
-- Trust — willingness to rely on or believe the other.
-- Affection — warmth and personal attachment.
-- Respect — assessment of capability, judgement or conduct.
-- Attraction — romantic/physical interest where relevant to that character.
-- Fear — intimidation or perceived threat.
+- [ ] Locate and inventory the complete 2D relationship implementation and every caller/writer.
+- [ ] Port the existing fields and calculations faithfully; do not add, rename, merge or reinterpret relationship dimensions without a separately justified compatibility change.
+- [ ] Preserve the source's exact event effects, thresholds, gating and relationship-driven dialogue/romance consequences.
+- [ ] Preserve directional/asymmetric behaviour exactly as implemented by the 2D game; do not assume symmetry or invent directionality if the source does not use it.
+- [ ] Port existing persistence and ensure relationship state round-trips through the 3D save system.
+- [ ] Separate relationship state from other source systems (such as faction reputation or suspicion) only where the original game already distinguishes them.
+- [ ] Add source-derived regression tests comparing known 2D inputs/events with the Godot results.
 
-The final dimensions, ranges, decay rules and source compatibility must be confirmed against Hex-crpg before implementation. Not every NPC needs every dimension or a romantic route.
-
-- [ ] Audit all existing source relationship/approval/reputation variables and event modifiers.
-- [ ] Define per-character personality/values that weight how events affect each dimension.
-- [ ] Separate interpersonal relationships from faction reputation, law/guard suspicion and quest flags.
-- [ ] Support asymmetric relationships: A's trust in B need not equal B's trust in A.
-- [ ] Persist relationship changes and expose them to dialogue, commerce, recruitment, disguise detection and companion decisions.
-- [ ] Add tests for independent dimensions and source-derived event outcomes.
+No additional meters (for example fear, respect or affection) should be introduced simply because they seem useful. First reproduce the existing game.
 
 ## Step 5 — Disguise Self, identity and impersonation
 
