@@ -11,6 +11,8 @@ var _definition: Dictionary = {}
 var _floor_ids: Dictionary = {}
 var _transitions: Array[Dictionary] = []
 var _available_transitions: Dictionary = {}
+var _secret_ids: Dictionary = {}
+var _discovered_secrets: Dictionary = {}
 
 func configure(location_definition: Dictionary, saved_state: Dictionary = {}) -> Dictionary:
 	location_id = String(location_definition.get("id", "")).strip_edges()
@@ -20,11 +22,23 @@ func configure(location_definition: Dictionary, saved_state: Dictionary = {}) ->
 	_floor_ids.clear()
 	_transitions.clear()
 	_available_transitions.clear()
+	_secret_ids.clear()
+	_discovered_secrets.clear()
 	for floor_variant in _definition.get("floors", []):
 		if floor_variant is Dictionary:
 			_floor_ids[int(floor_variant.get("floor", 999999))] = true
 	if not _floor_ids.has(0):
 		return {"ok": false, "reason": "missing_surface_floor"}
+\tfor floor_variant in _definition.get("floors", []):
+\t\tif not floor_variant is Dictionary:
+\t\t\tcontinue
+\t\tfor object_variant in floor_variant.get("tile_objects", []):
+\t\t\tif not object_variant is Dictionary or String(object_variant.get("type", "")) != "secret_door":
+\t\t\t\tcontinue
+\t\t\tvar secret_id := String(object_variant.get("id", "")).strip_edges()
+\t\t\tif secret_id.is_empty() or _secret_ids.has(secret_id):
+\t\t\t\treturn {"ok": false, "reason": "missing_or_duplicate_secret_door_id"}
+\t\t\t_secret_ids[secret_id] = true
 	for transition_variant in _definition.get("transitions", []):
 		if not transition_variant is Dictionary:
 			continue
@@ -83,6 +97,18 @@ func complete_quest(quest_id: String) -> Dictionary:
 		revealed.append(transition.duplicate(true))
 	return {"ok": true, "revealed": revealed, "already_revealed": revealed.is_empty()}
 
+func discover_secret(secret_id: String) -> Dictionary:
+\tvar stable_id := secret_id.strip_edges()
+\tif not _secret_ids.has(stable_id):
+\t\treturn {"ok": false, "reason": "unknown_secret_door"}
+\tif _discovered_secrets.has(stable_id):
+\t\treturn {"ok": true, "already_discovered": true}
+\t_discovered_secrets[stable_id] = true
+\treturn {"ok": true, "already_discovered": false}
+
+func is_secret_discovered(secret_id: String) -> bool:
+\treturn bool(_discovered_secrets.get(secret_id, false))
+
 func is_transition_available(from_floor: int, to_floor: int, stair_position: Vector2i) -> bool:
 	for transition in _transitions:
 		if int(transition.get("from_floor", 999999)) != from_floor or int(transition.get("to_floor", 999999)) != to_floor:
@@ -94,19 +120,14 @@ func is_transition_available(from_floor: int, to_floor: int, stair_position: Vec
 
 func to_dict() -> Dictionary:
 	var unlocked: Array[String] = []
+	var discovered_secrets: Array[String] = []
 	for key in _available_transitions:
 		if bool(_available_transitions[key]):
 			var transition := _transition_by_key(String(key))
 			if not transition.is_empty() and transition.has("unlocked_by_quest"):
 				unlocked.append(String(key))
 	unlocked.sort()
-	return {
-		"schema_version": 1,
-		"location_id": location_id,
-		"current_floor": current_floor,
-		"unlocked_transitions": unlocked
-	}
-
+	for secret_id in _discovered_secrets:\n\t\tif bool(_discovered_secrets[secret_id]):\n\t\t\tdiscovered_secrets.append(String(secret_id))\n\tdiscovered_secrets.sort()\n\treturn {\n\t\t"schema_version": 1,\n\t\t"location_id": location_id,\n\t\t"current_floor": current_floor,\n\t\t"unlocked_transitions": unlocked,\n\t\t"discovered_secrets": discovered_secrets\n\t}\n
 func restore(saved_state: Dictionary) -> bool:
 	if String(saved_state.get("location_id", "")) != location_id or int(saved_state.get("schema_version", 0)) != 1:
 		return false
@@ -116,6 +137,15 @@ func restore(saved_state: Dictionary) -> bool:
 	var unlocked_variant: Variant = saved_state.get("unlocked_transitions", [])
 	if not unlocked_variant is Array:
 		return false
+	var restored_secrets_variant: Variant = saved_state.get("discovered_secrets", [])
+	if not restored_secrets_variant is Array:
+		return false
+	var restored_secrets: Dictionary = {}
+	for secret_variant in restored_secrets_variant:
+		var secret_id := String(secret_variant)
+		if not _secret_ids.has(secret_id) or restored_secrets.has(secret_id):
+			return false
+		restored_secrets[secret_id] = true
 	var restored_unlocks: Dictionary = {}
 	for key_variant in unlocked_variant:
 		var key := String(key_variant)
@@ -129,6 +159,7 @@ func restore(saved_state: Dictionary) -> bool:
 		if int(transition.get("to_floor", 999999)) == restored_floor and not initially_available and not restored_unlocks.has(String(key)):
 			return false
 		_available_transitions[key] = initially_available or restored_unlocks.has(String(key))
+	_discovered_secrets = restored_secrets
 	current_floor = restored_floor
 	return true
 
