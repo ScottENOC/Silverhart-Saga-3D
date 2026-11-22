@@ -34,6 +34,8 @@ static var _orc_approach_path_ready := false
 static func terrain_override_at(hex: Vector2i) -> Dictionary:
 	if hex == DRUID_GROVE_SPRING:
 		return {"terrain": "water", "feature_id": "emberwood_grove_spring"}
+	if hex == ORC_STRONGHOLD_GATE:
+		return {"terrain": "path", "feature_id": "skarnaks_hold_gate"}
 	if is_orc_approach_path(hex):
 		return {"terrain": "path", "feature_id": "skarnaks_hold_approach"}
 
@@ -62,11 +64,9 @@ static func terrain_override_at(hex: Vector2i) -> Dictionary:
 		return {"terrain": "dirt", "feature_id": "skarnaks_hold_clearing", "distance": orc_distance}
 	if orc_distance == ORC_STRONGHOLD_RADIUS + 1 and hex != ORC_STRONGHOLD_GATE:
 		return {"terrain": "climbable_wall", "feature_id": "skarnaks_hold_wall", "distance": orc_distance}
-	if hex == ORC_STRONGHOLD_GATE:
-		return {"terrain": "path", "feature_id": "skarnaks_hold_gate"}
 
 	var elven_path_start_r := ELVEN_CAPITAL_CENTRE.y - 6
-	var elven_path_end_r := ELVEN_CAPITAL_CENTRE.y - ELVEN_CANOPY_RADIUS - 4
+	var elven_path_end_r := ELVEN_CAPITAL_CENTRE.y - ELVEN_CANOPY_RADIUS - 9
 	if hex.x == ELVEN_CAPITAL_CENTRE.x and hex.y <= elven_path_start_r and hex.y >= elven_path_end_r:
 		return {"terrain": "path", "feature_id": "silthandriel_approach"}
 
