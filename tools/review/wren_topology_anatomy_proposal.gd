@@ -1,0 +1,292 @@
+extends SceneTree
+## Topology-aware, review-only proposal generator for Wren's first garment regions.
+##
+## Spatial seed volumes are hypotheses only. Candidate weights are propagated over
+## the source triangle-edge graph, not through Euclidean space. This avoids selecting
+## a nearby but disconnected skin surface (for example, front-to-back torso leakage).
+## It does not create production masks or modify the anatomy manifest.
+
+const MODEL_PATH := "res://build/wren-native/Wren.glb"
+const OUTPUT_PATH := "res://build/wren-anatomy-topology-proposal"
+const MASK_SCRIPT := preload("res://scripts/characters/character_surface_region_mask.gd")
+const SIZE := Vector2i(1200, 1000)
+const MAX_GRAPH_HOPS := 9
+const HOP_FALLOFF := 0.78
+const REGIONS := {
+    "breast_left": [Vector3(-0.115, 1.190, 0.175), Vector3(0.105, 0.105, 0.105), Color("#ef476f")],
+    "breast_right": [Vector3(0.115, 1.190, 0.175), Vector3(0.105, 0.105, 0.105), Color("#f78c6b")],
+    "chest_front_left": [Vector3(-0.115, 1.285, 0.105), Vector3(0.145, 0.105, 0.075), Color("#ffd166")],
+    "chest_front_right": [Vector3(0.115, 1.285, 0.105), Vector3(0.145, 0.105, 0.075), Color("#06d6a0")],
+    "pectoral_left": [Vector3(-0.145, 1.325, 0.055), Vector3(0.125, 0.095, 0.095), Color("#118ab2")],
+    "pectoral_right": [Vector3(0.145, 1.325, 0.055), Vector3(0.125, 0.095, 0.095), Color("#9b5de5")],
+    "sternum": [Vector3(0.0, 1.235, 0.155), Vector3(0.052, 0.165, 0.105), Color("#f4a261")],
+    "underbust": [Vector3(0.0, 1.075, 0.115), Vector3(0.245, 0.055, 0.095), Color("#e9c46a")],
+    "ribcage_left": [Vector3(-0.155, 1.105, 0.045), Vector3(0.115, 0.135, 0.115), Color("#2a9d8f")],
+    "ribcage_right": [Vector3(0.155, 1.105, 0.045), Vector3(0.115, 0.135, 0.115), Color("#457b9d")],
+    "clavicle_left": [Vector3(-0.105, 1.405, 0.025), Vector3(0.115, 0.045, 0.085), Color("#a8dadc")],
+    "clavicle_right": [Vector3(0.105, 1.405, 0.025), Vector3(0.115, 0.045, 0.085), Color("#ffafcc")]
+}
+
+var stage: Node3D
+var camera: Camera3D
+
+
+func _initialize() -> void:
+    call_deferred("_run")
+
+
+func _run() -> void:
+    root.size = SIZE
+    stage = Node3D.new()
+    root.add_child(stage)
+    _build_lighting()
+    camera = Camera3D.new()
+    camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+    camera.current = true
+    stage.add_child(camera)
+
+    var packed := load(MODEL_PATH) as PackedScene
+    if packed == null:
+        push_error("Missing native Wren build")
+        quit(1)
+        return
+    var body := packed.instantiate() as Node3D
+    stage.add_child(body)
+    await process_frame
+
+    var mesh_instance := _find_skin_mesh(body)
+    if mesh_instance == null:
+        push_error("Skin_Anatomy mesh not found")
+        quit(1)
+        return
+    var surface_index := _find_skin_surface(mesh_instance.mesh)
+    if surface_index < 0:
+        push_error("Skin_Anatomy surface not found")
+        quit(1)
+        return
+
+    var arrays := mesh_instance.mesh.surface_get_arrays(surface_index)
+    var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+    var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+    if vertices.is_empty() or indices.is_empty():
+        push_error("Source surface has no indexed geometry")
+        quit(1)
+        return
+
+    var adjacency := _build_adjacency(vertices.size(), indices)
+    var candidate_weights: Dictionary = {}
+    var counts: Dictionary = {}
+    var seeds: Dictionary = {}
+    for region_id in REGIONS:
+        var definition: Array = REGIONS[region_id]
+        var seed_vertices := _find_seed_vertices(vertices, definition[0], definition[1])
+        seeds[region_id] = seed_vertices.size()
+        var weights := _propagate_over_surface(adjacency, seed_vertices)
+        candidate_weights[region_id] = weights
+        var count := 0
+        for weight in weights:
+            if weight >= 0.15:
+                count += 1
+        counts[region_id] = count
+
+    var overlay := _build_overlay(mesh_instance, vertices, candidate_weights)
+    stage.add_child(overlay)
+    await process_frame
+
+    var output_directory := ProjectSettings.globalize_path(OUTPUT_PATH)
+    DirAccess.make_dir_recursive_absolute(output_directory)
+    var views := {
+        "front": [Vector3(0.0, 1.23, 4.2), Vector3(0.0, 1.23, 0.0), 0.78],
+        "side": [Vector3(4.2, 1.23, 0.0), Vector3(0.0, 1.23, 0.0), 0.78],
+        "rear": [Vector3(0.0, 1.23, -4.2), Vector3(0.0, 1.23, 0.0), 0.78]
+    }
+    for view_name in views:
+        var view: Array = views[view_name]
+        camera.position = view[0]
+        camera.look_at(view[1], Vector3.UP)
+        camera.size = view[2]
+        await process_frame
+        await process_frame
+        await RenderingServer.frame_post_draw
+        var image := root.get_texture().get_image()
+        if image.save_png(output_directory.path_join(view_name + "-topology-candidate.png")) != OK:
+            push_error("Failed to save " + view_name + " proposal render")
+            quit(1)
+            return
+
+    var report := {
+        "status": "DRAFT_TOPOLOGY_PROPOSAL_NOT_APPROVED",
+        "character": "Wren",
+        "model": MODEL_PATH,
+        "surface_name": mesh_instance.mesh.surface_get_name(surface_index),
+        "surface_index": surface_index,
+        "vertex_count": vertices.size(),
+        "triangle_count": indices.size() / 3,
+        "surface_signature": MASK_SCRIPT.build_surface_signature(mesh_instance.mesh, surface_index),
+        "region_seed_vertex_counts": seeds,
+        "candidate_vertex_counts_at_weight_0_15": counts,
+        "method": "Ellipsoidal seed hypotheses expanded only through adjacent source-mesh vertices for nine graph hops, with decaying weights.",
+        "limitations": [
+            "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
+            "Graph propagation prevents direct Euclidean leakage between disconnected surfaces but does not make the initial seed anatomical.",
+            "The fixed hop radius is a review heuristic and must be tuned against the native mesh.",
+            "Candidate weights are preview-only; no Resource or production manifest is written.",
+            "Only the 12 bra-relevant regions in this first tranche are proposed; the remaining semantic regions stay explicitly unauthored."
+        ]
+    }
+    var report_file := FileAccess.open(output_directory.path_join("proposal.json"), FileAccess.WRITE)
+    report_file.store_string(JSON.stringify(report, "\t"))
+    report_file.close()
+    print("WREN_TOPOLOGY_PROPOSAL_OK vertices=%d regions=%d" % [vertices.size(), REGIONS.size()])
+    quit(0)
+
+
+func _find_skin_mesh(node: Node) -> MeshInstance3D:
+    if node is MeshInstance3D and node.mesh != null and _find_skin_surface(node.mesh) >= 0:
+        return node
+    for child in node.get_children():
+        var found := _find_skin_mesh(child)
+        if found != null:
+            return found
+    return null
+
+
+func _find_skin_surface(mesh: Mesh) -> int:
+    if mesh == null:
+        return -1
+    for surface_index in mesh.get_surface_count():
+        if mesh.surface_get_name(surface_index) == "Skin_Anatomy":
+            return surface_index
+    return -1
+
+
+func _build_adjacency(vertex_count: int, indices: PackedInt32Array) -> Array[PackedInt32Array]:
+    var adjacency: Array[PackedInt32Array] = []
+    adjacency.resize(vertex_count)
+    for vertex_index in vertex_count:
+        adjacency[vertex_index] = PackedInt32Array()
+    for offset in range(0, indices.size(), 3):
+        var a := indices[offset]
+        var b := indices[offset + 1]
+        var c := indices[offset + 2]
+        _add_edge(adjacency, a, b)
+        _add_edge(adjacency, b, a)
+        _add_edge(adjacency, b, c)
+        _add_edge(adjacency, c, b)
+        _add_edge(adjacency, c, a)
+        _add_edge(adjacency, a, c)
+    return adjacency
+
+
+func _add_edge(adjacency: Array[PackedInt32Array], from_vertex: int, to_vertex: int) -> void:
+    if not adjacency[from_vertex].has(to_vertex):
+        adjacency[from_vertex].append(to_vertex)
+
+
+func _find_seed_vertices(vertices: PackedVector3Array, centre: Vector3, radii: Vector3) -> PackedInt32Array:
+    var result := PackedInt32Array()
+    for vertex_index in vertices.size():
+        var normalized := (vertices[vertex_index] - centre) / radii
+        if normalized.length() <= 1.0:
+            result.append(vertex_index)
+    return result
+
+
+func _propagate_over_surface(
+    adjacency: Array[PackedInt32Array],
+    seed_vertices: PackedInt32Array
+) -> PackedFloat32Array:
+    var weights := PackedFloat32Array()
+    weights.resize(adjacency.size())
+    if seed_vertices.is_empty():
+        return weights
+
+    var hop_distance := PackedInt32Array()
+    hop_distance.resize(adjacency.size())
+    hop_distance.fill(-1)
+    var queue := PackedInt32Array()
+    for seed_vertex in seed_vertices:
+        hop_distance[seed_vertex] = 0
+        weights[seed_vertex] = 1.0
+        queue.append(seed_vertex)
+
+    var queue_index := 0
+    while queue_index < queue.size():
+        var current := queue[queue_index]
+        queue_index += 1
+        var next_hop := hop_distance[current] + 1
+        if next_hop > MAX_GRAPH_HOPS:
+            continue
+        for neighbour in adjacency[current]:
+            if hop_distance[neighbour] >= 0:
+                continue
+            hop_distance[neighbour] = next_hop
+            weights[neighbour] = pow(HOP_FALLOFF, next_hop)
+            queue.append(neighbour)
+    return weights
+
+
+func _build_overlay(
+    mesh_instance: MeshInstance3D,
+    vertices: PackedVector3Array,
+    candidate_weights: Dictionary
+) -> MultiMeshInstance3D:
+    var marker := SphereMesh.new()
+    marker.radius = 0.0032
+    marker.height = 0.0064
+    marker.radial_segments = 5
+    marker.rings = 3
+    var material := StandardMaterial3D.new()
+    material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    material.vertex_color_use_as_albedo = true
+    material.no_depth_test = true
+    marker.material = material
+
+    var transforms: Array[Transform3D] = []
+    var colours: Array[Color] = []
+    for vertex_index in vertices.size():
+        var accumulated := Color(0.0, 0.0, 0.0, 0.0)
+        var strongest := 0.0
+        for region_id in REGIONS:
+            var weights: PackedFloat32Array = candidate_weights[region_id]
+            var weight := weights[vertex_index]
+            if weight < 0.15:
+                continue
+            var region_colour: Color = REGIONS[region_id][2]
+            accumulated += region_colour * weight
+            strongest = maxf(strongest, weight)
+        if strongest <= 0.0:
+            continue
+        var colour := accumulated / maxf(accumulated.r + accumulated.g + accumulated.b, 0.001)
+        colour.a = clampf(strongest, 0.35, 1.0)
+        transforms.append(mesh_instance.global_transform * Transform3D(Basis.IDENTITY, vertices[vertex_index]))
+        colours.append(colour)
+
+    var multi := MultiMesh.new()
+    multi.transform_format = MultiMesh.TRANSFORM_3D
+    multi.use_colors = true
+    multi.mesh = marker
+    multi.instance_count = transforms.size()
+    for index in transforms.size():
+        multi.set_instance_transform(index, transforms[index])
+        multi.set_instance_color(index, colours[index])
+    var overlay := MultiMeshInstance3D.new()
+    overlay.name = "TopologyAwareCandidateWeights"
+    overlay.multimesh = multi
+    return overlay
+
+
+func _build_lighting() -> void:
+    var environment := Environment.new()
+    environment.background_mode = Environment.BG_COLOR
+    environment.background_color = Color("#252a30")
+    environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+    environment.ambient_light_color = Color("#c5cbd2")
+    environment.ambient_light_energy = 0.7
+    var world := WorldEnvironment.new()
+    world.environment = environment
+    stage.add_child(world)
+    var light := DirectionalLight3D.new()
+    light.rotation_degrees = Vector3(-25.0, -25.0, 0.0)
+    light.light_energy = 1.3
+    stage.add_child(light)
