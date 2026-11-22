@@ -136,7 +136,34 @@
               "position": {
                 "q": 908,
                 "r": -627
-              }
+              },
+              "title": "King Under the Mountain",
+              "race": "dwarf",
+              "gender": "male",
+              "class_levels": [
+                "fighter",
+                "fighter"
+              ],
+              "skill_picks": [
+                "health",
+                "axe_hit",
+                "axe_dmg",
+                "heavy_armor_training"
+              ],
+              "equipment": [
+                "axe",
+                "heavy_armor",
+                "wooden_shield"
+              ],
+              "side": "neutral",
+              "faction_id": "dwarven_kingdom",
+              "color": "#8a6d4a",
+              "gold_gear": true,
+              "quest_hooks": [
+                "deepholds_infestation",
+                "deepholds_letter"
+              ],
+              "source": "campaign2Content.js:campaign2DwarfKing"
             },
             {
               "id": "hall_guard_01",
@@ -145,7 +172,25 @@
               "position": {
                 "q": 906,
                 "r": -624
-              }
+              },
+              "title": "Hall Guard",
+              "race": "dwarf",
+              "gender": "male",
+              "class_levels": [
+                "fighter"
+              ],
+              "skill_picks": [
+                "health",
+                "axe_hit"
+              ],
+              "equipment": [
+                "axe",
+                "medium_armor"
+              ],
+              "side": "neutral",
+              "faction_id": "dwarven_kingdom",
+              "color": "#6a5a4a",
+              "source": "campaign2Content.js:campaign2DwarfGuards[0]"
             },
             {
               "id": "hall_guard_02",
@@ -154,7 +199,25 @@
               "position": {
                 "q": 910,
                 "r": -624
-              }
+              },
+              "title": "Hall Guard",
+              "race": "dwarf",
+              "gender": "female",
+              "class_levels": [
+                "fighter"
+              ],
+              "skill_picks": [
+                "health",
+                "axe_dmg"
+              ],
+              "equipment": [
+                "axe",
+                "medium_armor"
+              ],
+              "side": "neutral",
+              "faction_id": "dwarven_kingdom",
+              "color": "#6a5a4a",
+              "source": "campaign2Content.js:campaign2DwarfGuards[1]"
             }
           ],
           "creatures": []
@@ -247,7 +310,31 @@
               "position": {
                 "q": 898,
                 "r": -625
-              }
+              },
+              "title": "Keeper of the Vault",
+              "race": "dwarf",
+              "gender": "female",
+              "class_levels": [
+                "fighter"
+              ],
+              "skill_picks": [
+                "health"
+              ],
+              "equipment": [
+                "dagger"
+              ],
+              "side": "neutral",
+              "faction_id": "dwarven_kingdom",
+              "color": "#5a4a3a",
+              "shop_inventory": [
+                "sword",
+                "axe",
+                "medium_armor",
+                "heavy_armor",
+                "wooden_shield",
+                "nasal_helm"
+              ],
+              "source": "campaign2Content.js:campaign2DwarfTrader"
             },
             {
               "id": "deepholds_runesmith",
@@ -257,7 +344,24 @@
               "position": {
                 "q": 890,
                 "r": -625
-              }
+              },
+              "title": "Master Runesmith",
+              "race": "dwarf",
+              "gender": "male",
+              "class_levels": [
+                "fighter"
+              ],
+              "skill_picks": [
+                "health"
+              ],
+              "equipment": [
+                "axe",
+                "medium_armor"
+              ],
+              "side": "neutral",
+              "faction_id": "dwarven_kingdom",
+              "color": "#7a4a2a",
+              "source": "campaign2Content.js:campaign2DwarfRunesmith"
             }
           ],
           "creatures": []
@@ -329,7 +433,23 @@
               "position": {
                 "q": 890,
                 "r": -615
-              }
+              },
+              "title": "Foreman of the Deep Mine",
+              "race": "dwarf",
+              "gender": "male",
+              "class_levels": [
+                "fighter"
+              ],
+              "skill_picks": [
+                "health"
+              ],
+              "equipment": [
+                "club"
+              ],
+              "side": "neutral",
+              "faction_id": "dwarven_kingdom",
+              "color": "#5a5a5a",
+              "source": "campaign2Content.js:campaign2DwarfForeman"
             }
           ],
           "creatures": []
@@ -386,7 +506,12 @@
               },
               "custom_skills": {
                 "health": 2
-              }
+              },
+              "monster_type": "spider",
+              "quest_tags": [
+                "deepholds_vermin"
+              ],
+              "source": "campaign2Content.js:campaign2DeepholdsVermin"
             },
             {
               "id": "deepholds_spider_02",
@@ -398,7 +523,12 @@
               },
               "custom_skills": {
                 "health": 2
-              }
+              },
+              "monster_type": "spider",
+              "quest_tags": [
+                "deepholds_vermin"
+              ],
+              "source": "campaign2Content.js:campaign2DeepholdsVermin"
             },
             {
               "id": "deepholds_broodmother",
@@ -410,8 +540,13 @@
               },
               "custom_skills": {
                 "health": 6,
-                "meleeDamage": 4
-              }
+                "melee_damage": 4
+              },
+              "monster_type": "spider",
+              "quest_tags": [
+                "deepholds_vermin"
+              ],
+              "source": "campaign2Content.js:campaign2DeepholdsVermin"
             }
           ]
         },
@@ -476,7 +611,7 @@
               },
               "custom_skills": {
                 "health": 10,
-                "meleeDamage": 6,
+                "melee_damage": 6,
                 "heavy_armor_training": 2
               },
               "health": 160,
@@ -485,7 +620,9 @@
                 "starmetal_ore",
                 "starmetal_ore",
                 "deep_crystal"
-              ]
+              ],
+              "monster_type": "dragon_young",
+              "source": "campaign2World.js:buildDwarvenKingdom.createMonster"
             }
           ]
         }
@@ -595,6 +732,131 @@
         "The Gate Hall is the surface floor at anchor plus (0,18); the solid massif radius is 25.",
         "The Sunken Deep is carved and populated at world-build time but its descending stair is absent until the Deepholds infestation quest is completed.",
         "Source stair transitions are one shaft per level; the Vault and Runeforge share floor -2 and the mine and Lower Tunnels are reached by walking through connected corridors."
+      ],
+      "quests": [
+        {
+          "id": "deepholds_infestation",
+          "title": "What Nests Below",
+          "giver": "King Balrik Deepholm",
+          "source": "campaign2Dialogue.js:npcDialogueTrees.dwarf_king",
+          "start_condition": {
+            "dialogue_id": "dwarf_king",
+            "requires_quest_absent": true,
+            "choice_label": "The Foreman mentioned trouble in the lower tunnels.",
+            "sets_status": "active"
+          },
+          "objective": {
+            "type": "defeat_all_creatures_with_tag",
+            "creature_tag": "deepholds_vermin"
+          },
+          "completion": {
+            "requires_all_tagged_creatures_dead": true,
+            "reputation": {
+              "faction_id": "dwarven_kingdom",
+              "standing_delta": 20,
+              "knowledge_delta": 20
+            },
+            "experience": 200,
+            "items": [
+              "deep_crystal"
+            ],
+            "reveal_transition": {
+              "from_floor": -4,
+              "to_floor": -5,
+              "position": {
+                "q": 890,
+                "r": -605
+              }
+            },
+            "completion_message": "Quest complete: What Nests Below. (+reputation with the Deepholds, +1 Deep Crystal)"
+          }
+        }
+      ],
+      "interaction_rules": [
+        {
+          "id": "dwarf_king",
+          "dialogue_id": "dwarf_king",
+          "source": "campaign2Dialogue.js:npcDialogueTrees.dwarf_king",
+          "opening_standing_thresholds": [
+            {
+              "minimum": 30,
+              "text": "You've done right by the Deepholds more than once now. Speak freely in my hall."
+            },
+            {
+              "maximum": -10,
+              "text": "I know your name, and not from anything I'd call good. Mind your tongue in my hall."
+            },
+            {
+              "default": true,
+              "text": "Few surface-dwellers find their way this deep. State your business."
+            }
+          ],
+          "quest_offer": "deepholds_infestation"
+        },
+        {
+          "id": "deepholds_foreman",
+          "dialogue_id": "deepholds_foreman",
+          "source": "campaign2Dialogue.js:npcDialogueTrees.deepholds_foreman",
+          "before_quest": "Third gallery's sealed off — something moved in a few weeks back, webbing thick as rope. Lost two crews before I called the retreat. Talk to the King if you're looking for real work.",
+          "active_quest_with_tagged_creatures_alive": "Sealed gallery's due north of the hall, straight tunnel. Whatever's in there, it's still in there.",
+          "after_tagged_creatures_cleared": "Crews are already back at the vein. Whatever you did down there, it worked."
+        },
+        {
+          "id": "deepholds_trader",
+          "dialogue_id": "deepholds_trader",
+          "source": "campaign2Dialogue.js:npcDialogueTrees.deepholds_trader",
+          "minimum_faction_standing": 10,
+          "shop_inventory": [
+            "sword",
+            "axe",
+            "medium_armor",
+            "heavy_armor",
+            "wooden_shield",
+            "nasal_helm"
+          ],
+          "mounts": false
+        },
+        {
+          "id": "deepholds_runesmith",
+          "dialogue_id": "deepholds_runesmith",
+          "source": "campaign2Dialogue.js:npcDialogueTrees.deepholds_runesmith",
+          "trust_quest": {
+            "id": "kragmoor_runesmith_trust",
+            "title": "The Forge Trusts a Stranger",
+            "minimum_faction_standing": 10,
+            "required_item": "starmetal_ore",
+            "required_quantity": 1,
+            "completion_reward": {
+              "faction_id": "dwarven_kingdom",
+              "standing_delta": 15,
+              "knowledge_delta": 15
+            }
+          },
+          "teaching_quest": {
+            "id": "kragmoor_runesmith_teach",
+            "title": "The Forge Remembers Its Own",
+            "offered_after": "kragmoor_runesmith_trust",
+            "dwarf": {
+              "required_starmetal_ore": 1,
+              "minimum_faction_standing_after_trust": 0
+            },
+            "other_races": {
+              "required_starmetal_ore": 2,
+              "minimum_faction_standing": 30
+            },
+            "completion_reward": {
+              "skill": "runesmithing",
+              "faction_id": "dwarven_kingdom",
+              "standing_delta": 10,
+              "knowledge_delta": 10
+            }
+          },
+          "crafting_service": {
+            "requires_completed_quest": "kragmoor_runesmith_trust",
+            "recipe_skill": "runesmithing",
+            "fee_multiplier_fallback": 1.5
+          }
+        }
       ]
     }
   ]
