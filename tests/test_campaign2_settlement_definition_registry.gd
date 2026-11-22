@@ -19,7 +19,7 @@ var failures := 0
 func _test_catalogue_loads_both_source_formats() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Unified settlement catalogue should validate: %s" % str(registry.validation_errors))
-	_check(registry.settlement_ids() == ["hollowmere", "millbrook", "emberlode", "reddale", "old_mac_farmstead", "kragmoor"], "Catalogue should load all five canonical settlements in deterministic priority order")
+	_check(registry.settlement_ids() == ["hollowmere", "millbrook", "emberlode", "reddale", "old_mac_farmstead", "kragmoor"], "Catalogue should load all six canonical settlements in deterministic priority order")
 	var hollowmere: Dictionary = registry.get_definition("hollowmere")
 	var millbrook: Dictionary = registry.get_definition("millbrook")
 	_check(not hollowmere.is_empty() and not millbrook.is_empty(), "Both canonical definitions should be retrievable")
@@ -30,7 +30,7 @@ func _test_catalogue_loads_both_source_formats() -> void:
 	_check(kragmoor.get("layout", {}).get("buildings", []).size() == 1, "Kragmoor should expose its authored Gate Hall")
 	_check(kragmoor.get("interiors", []).size() == 1, "Kragmoor should preserve the Gate Hall interior and stair metadata")
 	_check(BUILDING_FACTORY.supports_definition(kragmoor.get("layout", {}).get("buildings", [])[0]), "Kragmoor Gate Hall should resolve to a supported reusable building archetype")
-	_check(kragmoor.get("layout", {}).get("buildings", [])[0].get("center", {}) == Vector2i(908, -608), "Kragmoor Gate Hall must retain the source axial centre")
+	_check(int(kragmoor.get("layout", {}).get("buildings", [])[0].get("center", {}).get("q", 0)) == 908 and int(kragmoor.get("layout", {}).get("buildings", [])[0].get("center", {}).get("r", 0)) == -608, "Kragmoor Gate Hall must retain the source axial centre")
 
 func _test_resolution_uses_explicit_origin_and_bounds() -> void:
 	var registry = REGISTRY.new()
