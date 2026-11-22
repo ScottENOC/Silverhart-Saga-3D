@@ -596,6 +596,220 @@
         "The Sunken Deep is carved and populated at world-build time but its descending stair is absent until the Deepholds infestation quest is completed.",
         "Source stair transitions are one shaft per level; the Vault and Runeforge share floor -2 and the mine and Lower Tunnels are reached by walking through connected corridors."
       ]
+    },
+    {
+      "id": "silverhart_palace",
+      "name": "Silverhart Palace — Grand Hall",
+      "anchor": {
+        "q": 8,
+        "r": -496
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace throneRegion, throneSeat, throneDoor, palaceBuilding and carveFloorRoom",
+      "floor_generation": "source-authored grand hall and gallery rooms with shared axial stair",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Grand Hall",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "grand_hall",
+              "center": {
+                "q": 8,
+                "r": -496
+              },
+              "half_width": 7,
+              "half_height": 5
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "grand_hall_front_door",
+              "type": "door_closed",
+              "position": {
+                "q": 8,
+                "r": -491
+              },
+              "locked": true,
+              "access_faction": "silverhart_kingdom",
+              "access_threshold": 15
+            },
+            {
+              "id": "throne",
+              "type": "throne",
+              "position": {
+                "q": 8,
+                "r": -499
+              }
+            },
+            {
+              "id": "west_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 6,
+                "r": -499
+              },
+              "light_radius": 6
+            },
+            {
+              "id": "east_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 10,
+                "r": -501
+              },
+              "light_radius": 6
+            },
+            {
+              "id": "hall_table_1",
+              "type": "table",
+              "position": {
+                "q": 7,
+                "r": -497
+              }
+            },
+            {
+              "id": "hall_table_2",
+              "type": "table",
+              "position": {
+                "q": 9,
+                "r": -497
+              }
+            },
+            {
+              "id": "hall_table_3",
+              "type": "table",
+              "position": {
+                "q": 7,
+                "r": -495
+              }
+            },
+            {
+              "id": "hall_table_4",
+              "type": "table",
+              "position": {
+                "q": 9,
+                "r": -495
+              }
+            },
+            {
+              "id": "hall_bench_west",
+              "type": "bench",
+              "position": {
+                "q": 5,
+                "r": -496
+              }
+            },
+            {
+              "id": "hall_bench_east",
+              "type": "bench",
+              "position": {
+                "q": 11,
+                "r": -496
+              }
+            },
+            {
+              "id": "gallery_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": 8,
+                "r": -496
+              },
+              "to_floor": 1
+            }
+          ],
+          "actors": [
+            {
+              "id": "queen_seraphine_corrin",
+              "name": "Queen Seraphine Corrin",
+              "role": "queen",
+              "dialogue_id": "silverhart_queen",
+              "position": {
+                "q": 8,
+                "r": -498
+              }
+            },
+            {
+              "id": "royal_guard_denna",
+              "name": "Royal Guard Denna",
+              "role": "royal_guard",
+              "position": {
+                "q": 7,
+                "r": -498
+              }
+            },
+            {
+              "id": "royal_guard_corwin",
+              "name": "Royal Guard Corwin",
+              "role": "royal_guard",
+              "position": {
+                "q": 9,
+                "r": -498
+              }
+            },
+            {
+              "id": "royal_guard_ashe",
+              "name": "Royal Guard Ashe",
+              "role": "royal_guard",
+              "position": {
+                "q": 8,
+                "r": -492
+              }
+            }
+          ],
+          "creatures": []
+        },
+        {
+          "floor": 1,
+          "name": "Grand Hall Gallery",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "grand_hall_gallery",
+              "center": {
+                "q": 8,
+                "r": -496
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "gallery_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": 8,
+                "r": -496
+              },
+              "to_floor": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [
+        {
+          "from_floor": 0,
+          "to_floor": 1,
+          "position": {
+            "q": 8,
+            "r": -496
+          }
+        },
+        {
+          "from_floor": 1,
+          "to_floor": 0,
+          "position": {
+            "q": 8,
+            "r": -496
+          }
+        }
+      ],
+      "quest_gates": []
     }
   ]
 }
