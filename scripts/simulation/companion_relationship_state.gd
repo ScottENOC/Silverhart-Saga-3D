@@ -417,7 +417,12 @@ func record_outside_connection(companion_id: String, other_name: String, connect
 	var breaches: Array = agreement.get("breaches", [])
 	breaches.append(event)
 	agreement["breaches"] = breaches
-	var reason := "hid another " + connection_kind + " connection from " + String(PROFILES[companion_id]["name"]) if cnm_deception else "broke " + String(PROFILES[companion_id]["name"]) + "’s " + ("sexual" if connection_kind == "sex" else "romantic") + " exclusivity agreement"
+	var reason := ""
+	if cnm_deception:
+		reason = "hid another " + connection_kind + " connection from " + String(PROFILES[companion_id]["name"])
+	else:
+		var connection_label := "sexual" if connection_kind == "sex" else "romantic"
+		reason = "broke " + String(PROFILES[companion_id]["name"]) + "’s " + connection_label + " exclusivity agreement"
 	var response := String(PROFILES[companion_id]["relationship_style"].get("breach_response", "cnm"))
 	var changes: Dictionary = {}
 	match response:
