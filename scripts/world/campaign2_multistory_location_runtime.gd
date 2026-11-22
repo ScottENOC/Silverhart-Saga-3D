@@ -1,0 +1,262 @@
+class_name Campaign2MultiStoryLocationRuntime
+extends Node3D
+## Renders and controls one source-authored multi-story Campaign 2 location.
+## The host places this node at the location's world anchor; floor geometry is
+## built relative to that anchor while simulation cells retain global axial IDs.
+
+const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
+const FLOOR_HEIGHT: float = 3.2
+
+signal floor_changed(location_id: String, previous_floor: int, current_floor: int, stair_position: Vector2i)
+
+var definition: Dictionary = {}
+var simulation: WorldSimulation
+var location_state: Campaign2MultiStoryLocationState
+var floor_groups: Dictionary = {}
+var floor_hexes: Dictionary = {}
+var _active_floor_cells: Array[Vector2i] = []
+var _previous_map_cells: Dictionary = {}
+var _configured_location := false
+var _configured_campaign := false
+
+func configure_location(location_definition: Dictionary) -> void:
+	definition = location_definition.duplicate(true)
+	_configured_location = not definition.is_empty()
+
+func configure_campaign(campaign_simulation: WorldSimulation, _profile: Dictionary, save_data: Dictionary) -> void:
+	if campaign_simulation == null:
+		push_error("Multi-story location runtime requires the shared campaign simulation.")
+		return
+	simulation = campaign_simulation
+	var saved_locations: Variant = save_data.get("multistory_locations", {})
+	if saved_locations is Dictionary and not saved_locations.is_empty():
+		simulation.restore_multistory_location_states(saved_locations)
+	location_state = simulation.register_multistory_location_state(definition)
+	_configured_campaign = location_state != null
+
+func _ready() -> void:
+	if not _configured_location or not _configured_campaign:
+		push_error("Multi-story location runtime must be configured before entering the scene tree.")
+		return
+	_build_floor_presentations()
+	location_state.floor_changed.connect(_on_state_floor_changed)
+	simulation.multistory_transition_unlocked.connect(_on_transition_unlocked)
+	_activate_floor(location_state.current_floor)
+
+func _exit_tree() -> void:
+	_restore_active_map_cells()
+	if simulation != null and simulation.multistory_transition_unlocked.is_connected(_on_transition_unlocked):
+		simulation.multistory_transition_unlocked.disconnect(_on_transition_unlocked)
+	if location_state != null and location_state.floor_changed.is_connected(_on_state_floor_changed):
+		location_state.floor_changed.disconnect(_on_state_floor_changed)
+
+func get_current_floor() -> int:
+	return location_state.current_floor if location_state != null else 0
+
+func get_floor_tile_count(floor_number: int) -> int:
+	var cells: Array = floor_hexes.get(floor_number, [])
+	return cells.size()
+
+func is_floor_visible(floor_number: int) -> bool:
+	var group := floor_groups.get(floor_number) as Node3D
+	return group != null and group.visible
+
+## Interact with the nearest stair on the active floor. The character may stand
+## on the stair or one hex away; movement to the stair uses normal occupancy rules.
+func interact_with_stair(character_id: String) -> Dictionary:
+	if simulation == null or location_state == null:
+		return {"ok": false, "reason": "runtime_not_ready"}
+	var character := simulation.get_character(character_id)
+	if character == null:
+		return {"ok": false, "reason": "unknown_character"}
+	var candidate: Dictionary = {}
+	var nearest_distance := 2147483647
+	for transition in location_state._transitions:
+		if int(transition.get("from_floor", 999999)) != location_state.current_floor:
+			continue
+		var position: Dictionary = transition.get("position", {})
+		var stair := Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))
+		var distance := HexGrid.distance(character.axial, stair)
+		if distance <= 1 and distance < nearest_distance:
+			candidate = transition
+			nearest_distance = distance
+	if candidate.is_empty():
+		return {"ok": false, "reason": "no_stair_nearby"}
+	var stair_data: Dictionary = candidate.get("position", {})
+	var stair_hex := Vector2i(int(stair_data.get("q", 0)), int(stair_data.get("r", 0)))
+	if character.axial != stair_hex and not simulation.relocate_character(character_id, stair_hex):
+		return {"ok": false, "reason": "stair_occupied_or_unwalkable"}
+	return try_transition_at_stair(int(candidate.get("to_floor", 999999)), stair_hex)
+
+func try_transition_at_stair(to_floor: int, stair_position: Vector2i) -> Dictionary:
+	if location_state == null:
+		return {"ok": false, "reason": "runtime_not_ready"}
+	return location_state.try_transition(to_floor, stair_position)
+
+func _on_state_floor_changed(previous_floor: int, current_floor: int, stair_position: Vector2i) -> void:
+	_activate_floor(current_floor)
+	floor_changed.emit(String(definition.get("id", "")), previous_floor, current_floor, stair_position)
+
+func _on_transition_unlocked(location_id: String, _quest_id: String, _transitions: Array[Dictionary]) -> void:
+	if location_id != String(definition.get("id", "")):
+		return
+	# Stair interaction reads the authoritative unlocked state directly.
+
+func _build_floor_presentations() -> void:
+	var anchor_data: Dictionary = definition.get("anchor", {})
+	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
+	for floor_variant in definition.get("floors", []):
+		if not floor_variant is Dictionary:
+			continue
+		var floor_definition: Dictionary = floor_variant
+		var floor_number := int(floor_definition.get("floor", 0))
+		var group := Node3D.new()
+		group.name = "Floor_%d" % floor_number
+		group.position.y = float(floor_number) * FLOOR_HEIGHT
+		group.visible = false
+		add_child(group)
+		floor_groups[floor_number] = group
+		var hexes := _collect_floor_hexes(floor_definition)
+		floor_hexes[floor_number] = hexes
+		for hex in hexes:
+			var tile := MeshInstance3D.new()
+			var mesh := CylinderMesh.new()
+			mesh.top_radius = HEX_RADIUS * 0.96
+			mesh.bottom_radius = HEX_RADIUS * 0.96
+			mesh.height = 0.18
+			mesh.radial_segments = 6
+			tile.mesh = mesh
+			tile.material_override = _floor_material(floor_number)
+			tile.position = HexGrid.axial_to_world(hex - anchor, HEX_RADIUS)
+			tile.rotation.y = PI / 6.0
+			group.add_child(tile)
+		_present_floor_objects(group, floor_definition, anchor)
+
+func _collect_floor_hexes(floor_definition: Dictionary) -> Array[Vector2i]:
+	var unique: Dictionary = {}
+	for room_variant in floor_definition.get("rooms", []):
+		if not room_variant is Dictionary:
+			continue
+		var room: Dictionary = room_variant
+		var centre_data: Dictionary = room.get("center", {})
+		var centre := Vector2i(int(centre_data.get("q", 0)), int(centre_data.get("r", 0)))
+		var half_width := int(room.get("half_width", 0))
+		var half_height := int(room.get("half_height", 0))
+		for q in range(centre.x - half_width, centre.x + half_width + 1):
+			for r in range(centre.y - half_height, centre.y + half_height + 1):
+				unique[Vector2i(q, r)] = true
+	for corridor_variant in floor_definition.get("corridors", []):
+		if not corridor_variant is Dictionary:
+			continue
+		var corridor: Dictionary = corridor_variant
+		var from_data: Dictionary = corridor.get("from", {})
+		var to_data: Dictionary = corridor.get("to", {})
+		var cursor := Vector2i(int(from_data.get("q", 0)), int(from_data.get("r", 0)))
+		var destination := Vector2i(int(to_data.get("q", 0)), int(to_data.get("r", 0)))
+		unique[cursor] = true
+		while cursor.x != destination.x:
+			cursor.x += 1 if destination.x > cursor.x else -1
+			unique[cursor] = true
+		while cursor.y != destination.y:
+			cursor.y += 1 if destination.y > cursor.y else -1
+			unique[cursor] = true
+	var result: Array[Vector2i] = []
+	for hex in unique:
+		result.append(hex)
+	result.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return a.x < b.x if a.x != b.x else a.y < b.y
+	)
+	return result
+
+func _present_floor_objects(group: Node3D, floor_definition: Dictionary, anchor: Vector2i) -> void:
+	for object_variant in floor_definition.get("tile_objects", []):
+		if not object_variant is Dictionary:
+			continue
+		var object_data: Dictionary = object_variant
+		var position_data: Dictionary = object_data.get("position", {})
+		var hex := Vector2i(int(position_data.get("q", 0)), int(position_data.get("r", 0)))
+		var object_type := String(object_data.get("type", ""))
+		var marker := MeshInstance3D.new()
+		marker.name = String(object_data.get("id", object_type))
+		var material := StandardMaterial3D.new()
+		material.roughness = 0.82
+		match object_type:
+			"stair_up", "stair_down":
+				var stair_mesh := CylinderMesh.new()
+				stair_mesh.top_radius = HEX_RADIUS * 0.42
+				stair_mesh.bottom_radius = HEX_RADIUS * 0.42
+				stair_mesh.height = 0.28
+				stair_mesh.radial_segments = 6
+				marker.mesh = stair_mesh
+				material.albedo_color = Color(0.55, 0.48, 0.32)
+				material.metallic = 0.45
+			"fireplace", "rune_forge":
+				var forge_mesh := CylinderMesh.new()
+				forge_mesh.top_radius = HEX_RADIUS * 0.38
+				forge_mesh.bottom_radius = HEX_RADIUS * 0.48
+				forge_mesh.height = 0.72
+				forge_mesh.radial_segments = 8
+				marker.mesh = forge_mesh
+				material.albedo_color = Color(0.42, 0.19, 0.10) if object_type == "fireplace" else Color(0.42, 0.25, 0.16)
+				material.emission_enabled = true
+				material.emission = Color(0.65, 0.19, 0.04) if object_type == "fireplace" else Color(0.30, 0.12, 0.04)
+			"throne", "journal":
+				var object_mesh := BoxMesh.new()
+				object_mesh.size = Vector3(HEX_RADIUS * 0.7, 0.9, HEX_RADIUS * 0.7)
+				marker.mesh = object_mesh
+				material.albedo_color = Color(0.35, 0.26, 0.17) if object_type == "throne" else Color(0.36, 0.27, 0.16)
+			_:
+				var generic_mesh := BoxMesh.new()
+				generic_mesh.size = Vector3(HEX_RADIUS * 0.5, 0.4, HEX_RADIUS * 0.5)
+				marker.mesh = generic_mesh
+				material.albedo_color = Color(0.38, 0.36, 0.31)
+		marker.material_override = material
+		marker.position = HexGrid.axial_to_world(hex - anchor, HEX_RADIUS, 0.5)
+		group.add_child(marker)
+		if object_type in ["stair_up", "stair_down"]:
+			var label := Label3D.new()
+			label.text = "UP" if object_type == "stair_up" else "DOWN"
+			label.position = marker.position + Vector3(0.0, 0.65, 0.0)
+			label.font_size = 18
+			label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			group.add_child(label)
+
+func _floor_material(floor_number: int) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.roughness = 0.94
+	match floor_number:
+		0: material.albedo_color = Color(0.38, 0.39, 0.36)
+		-1: material.albedo_color = Color(0.34, 0.35, 0.34)
+		-2: material.albedo_color = Color(0.32, 0.31, 0.29)
+		-3: material.albedo_color = Color(0.29, 0.29, 0.27)
+		-4: material.albedo_color = Color(0.25, 0.25, 0.24)
+		-5: material.albedo_color = Color(0.22, 0.23, 0.23)
+		_: material.albedo_color = Color(0.31, 0.31, 0.30)
+	return material
+
+func _activate_floor(floor_number: int) -> void:
+	for floor_key in floor_groups:
+		var group := floor_groups[floor_key] as Node3D
+		group.visible = int(floor_key) == floor_number
+	_restore_active_map_cells()
+	if simulation == null:
+		return
+	for hex in floor_hexes.get(floor_number, []):
+		if not _previous_map_cells.has(hex):
+			_previous_map_cells[hex] = simulation.map_data.cells.get(hex, null)
+		simulation.map_data.add_cell(hex, 0.0, true, "cave_floor")
+		_active_floor_cells.append(hex)
+
+func _restore_active_map_cells() -> void:
+	if simulation == null:
+		_active_floor_cells.clear()
+		_previous_map_cells.clear()
+		return
+	for hex in _active_floor_cells:
+		var previous: Variant = _previous_map_cells.get(hex, null)
+		if previous == null:
+			simulation.map_data.cells.erase(hex)
+		else:
+			simulation.map_data.cells[hex] = previous
+	_active_floor_cells.clear()
+	_previous_map_cells.clear()
