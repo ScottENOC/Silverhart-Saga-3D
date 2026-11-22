@@ -184,6 +184,9 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	]:
 		_check(not _find_record(layout.get("paths", []), road_id).is_empty(), "Silverhart district street must be present: " + road_id)
 	_check(layout.get("paths", []).size() == 29, "Silverhart must retain palace routes and both quarter street grids")
+	for route in layout.get("paths", []):
+		if route.get("points") is Array:
+			_check(route.get("widths", []).size() == route.get("points", []).size(), "Every Silverhart polyline must define a width at each control point: " + String(route.get("id", "")))
 	for building_id in [
 		"silverhart_middle_ring_house_1", "silverhart_middle_ring_house_2", "silverhart_middle_ring_house_3",
 		"silverhart_middle_ring_house_4", "silverhart_middle_ring_house_5", "silverhart_middle_ring_house_6",
