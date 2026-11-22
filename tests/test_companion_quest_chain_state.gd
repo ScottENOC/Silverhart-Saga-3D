@@ -24,7 +24,9 @@ func _check(condition: bool, message: String = "Assertion failed") -> void:
 
 
 func _test_authored_chapter_catalogue() -> void:
-	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
+	var chains: Variant = _new_chain_state()
+	if chains == null:
+		return
 	_check(chains.all_chapters().size() == 9, "All nine authored personal quest chapters are loaded")
 	var mirabel: Variant = chains.chapter_for("mirabel_borrowed_voice")
 	_check(String(mirabel.get("previous", "")) == "mirabel_unquiet_concordance")
@@ -37,7 +39,9 @@ func _test_authored_chapter_catalogue() -> void:
 func _test_chapter_prerequisites_and_flow() -> void:
 	var journal := CampaignJournal.new()
 	_complete_previous(journal, "aldric_measure_of_oath", 100.0)
-	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
+	var chains: Variant = _new_chain_state()
+	if chains == null:
+		return
 	chains.register_quest_definitions(journal)
 	var absent: Variant = chains.can_start("aldric_weight_of_command", journal, [], 50000.0)
 	_check(String(absent.get("reason", "")) == "companion_not_in_party")
@@ -60,7 +64,9 @@ func _test_chapter_prerequisites_and_flow() -> void:
 func _test_companion_decision_and_relationship_effects() -> void:
 	var journal := CampaignJournal.new()
 	_complete_previous(journal, "aldric_measure_of_oath", 100.0)
-	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
+	var chains: Variant = _new_chain_state()
+	if chains == null:
+		return
 	chains.register_quest_definitions(journal)
 	var party_ids: Array[String] = ["ser_aldric_thorne"]
 	var relationships := CompanionRelationshipState.new()
@@ -87,7 +93,9 @@ func _test_companion_decision_and_relationship_effects() -> void:
 func _test_chapter_three_cooldown() -> void:
 	var journal := CampaignJournal.new()
 	_complete_previous(journal, "aldric_measure_of_oath", 1000.0)
-	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
+	var chains: Variant = _new_chain_state()
+	if chains == null:
+		return
 	chains.register_quest_definitions(journal)
 	var party_ids: Array[String] = ["ser_aldric_thorne"]
 	var too_soon: Variant = chains.can_start("aldric_weight_of_command", journal, party_ids, 2000.0)
@@ -97,14 +105,26 @@ func _test_chapter_three_cooldown() -> void:
 
 
 func _test_save_load() -> void:
-	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
+	var chains: Variant = _new_chain_state()
+	if chains == null:
+		return
 	chains.arc_states["fenn_oakheart"] = {"stewardship":22.0,"independence":16.0}
 	chains.personality_growth["fenn_oakheart"] = {"stewardship":1.0}
-	var restored: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
+	var restored: Variant = _new_chain_state()
+	if restored == null:
+		return
 	restored.from_dict(chains.to_dict())
 	_check(float(restored.arc_states["fenn_oakheart"].get("stewardship", 0.0)) == 22.0)
 	_check(float(restored.personality_growth["fenn_oakheart"].get("stewardship", 0.0)) == 1.0)
 
+
+func _new_chain_state() -> Variant:
+	var script: Script = load("res://scripts/simulation/companion_quest_chain_state.gd") as Script
+	if script == null or not script.can_instantiate():
+		_failures += 1
+		push_error("Companion quest chain state script failed to load or cannot be instantiated.")
+		return null
+	return script.new()
 
 func _complete_previous(journal: CampaignJournal, quest_id: String, completed_at: float) -> void:
 	journal.register_quest_definition({"id":quest_id,"title":"Previous chapter","objectives":[{"id":"done","target":1.0,"required":true}]})
