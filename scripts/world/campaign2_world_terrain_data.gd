@@ -25,6 +25,8 @@ var settlement_layouts: Array = []
 var settlement_definition_registry: Campaign2SettlementDefinitionRegistry
 var settlement_building_cells: Dictionary = {}
 var settlement_path_cells: Dictionary = {}
+var settlement_wall_cells: Dictionary = {}
+var settlement_ladder_cells: Dictionary = {}
 var river_points: Array[Vector3] = []
 
 func _init() -> void:
@@ -111,6 +113,15 @@ func _load_settlement_layouts() -> void:
 			for q in range(centre.x - half_q, centre.x + half_q + 1):
 				for r in range(centre.y - half_r, centre.y + half_r + 1):
 					settlement_building_cells[_hex_key(Vector2i(q, r))] = true
+		for prop in layout.get("props", []):
+			if not prop is Dictionary:
+				continue
+			var prop_id := String(prop.get("id", ""))
+			var anchor := _read_axial(prop.get("anchor", Vector2i.ZERO)) + origin
+			if prop_id.begins_with("silverhart_curtain_wall_") or prop_id.begins_with("silverhart_city_wall_"):
+				settlement_wall_cells[_hex_key(anchor)] = true
+			elif prop_id.begins_with("silverhart_wall_ladder_"):
+				settlement_ladder_cells[_hex_key(anchor)] = true
 		for path in layout.get("paths", []):
 			if not path is Dictionary:
 				continue
@@ -161,6 +172,8 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	# Explicit settlement buildings and roads are presentation overlays on
 	# the regional terrain. Resolve them before the broad authored biome
 	# provider so an authored palace road cannot be hidden by its grass base.
+	if settlement_wall_cells.has(_hex_key(hex)):
+		return "palisade_wall"
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "authored"
 	if settlement_path_cells.has(_hex_key(hex)):
@@ -194,6 +207,8 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		return String(regional_override.get("terrain", "grass"))
+	if settlement_wall_cells.has(_hex_key(hex)):
+		return "palisade_wall"
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "building"
 	if settlement_path_cells.has(_hex_key(hex)):
@@ -206,6 +221,10 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	return "building" if terrain == "authored" else terrain
 
 func is_walkable_for_hex(hex: Vector2i) -> bool:
+	if settlement_ladder_cells.has(_hex_key(hex)):
+		return true
+	if settlement_wall_cells.has(_hex_key(hex)):
+		return false
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
