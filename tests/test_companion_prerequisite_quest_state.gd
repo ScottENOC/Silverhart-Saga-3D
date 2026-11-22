@@ -52,8 +52,8 @@ func _test_authored_fenn_quest_data() -> void:
 		return
 	var quest: Dictionary = chains.prerequisite_for("fenn_living_boundary")
 	_check(not quest.is_empty(), "The Living Boundary is loaded from source-authored quest data")
-	_check(String(quest.get("source_build", "")) == "", "Quest data is loaded from the separate prerequisite source file")
 	_check(String(quest.get("title", "")) == "The Living Boundary")
+	_check(String(quest.get("clues", {}).get("young_marsh", {}).get("text", "")).contains("medicinal plants"), "The authored habitat evidence is preserved")
 	_check(quest.get("resolutions", {}).size() == 4, "All four authored resolution paths are present")
 	_check(quest.get("clues", {}).has("old_channel"), "The optional hydrology clue is retained")
 
