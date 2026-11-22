@@ -48,6 +48,7 @@ func configure(manifest: Dictionary) -> Dictionary:
 			validation_errors.append("%s: floors must be a non-empty array." % location_id)
 			continue
 		var floor_ids: Dictionary = {}
+		var secret_ids: Dictionary = {}
 		for floor_variant in floors:
 			if not floor_variant is Dictionary:
 				validation_errors.append("%s: floor entry must be an object." % location_id)
@@ -69,12 +70,26 @@ func configure(manifest: Dictionary) -> Dictionary:
 						continue
 					if record.has("position") and not _is_axial(record.get("position", {})):
 						validation_errors.append("%s floor %d: %s has invalid position." % [location_id, floor_number, collection_name])
+					if collection_name == "tile_objects" and String(record.get("type", "")) == "secret_door":
+						var secret_id := String(record.get("id", "")).strip_edges()
+						if secret_id.is_empty() or secret_ids.has(secret_id) or not _is_axial(record.get("position", {})):
+							validation_errors.append("%s floor %d: secret door requires a unique ID and valid position." % [location_id, floor_number])
+						else:
+							secret_ids[secret_id] = true
 					if collection_name == "rooms":
 						if not _is_axial(record.get("center", {})) or int(record.get("half_width", 0)) < 2 or int(record.get("half_height", 0)) < 2:
 							validation_errors.append("%s floor %d: room geometry is invalid." % [location_id, floor_number])
 					if collection_name == "corridors":
 						if not _is_axial(record.get("from", {})) or not _is_axial(record.get("to", {})):
 							validation_errors.append("%s floor %d: corridor endpoints are invalid." % [location_id, floor_number])
+		for floor_variant in floors:
+			if not floor_variant is Dictionary:
+				continue
+			for room_variant in floor_variant.get("rooms", []):
+				if room_variant is Dictionary:
+					var hidden_by_secret := String(room_variant.get("hidden_by_secret", "")).strip_edges()
+					if not hidden_by_secret.is_empty() and not secret_ids.has(hidden_by_secret):
+						validation_errors.append("%s: hidden room references unknown secret door %s." % [location_id, hidden_by_secret])
 		if not floor_ids.has(0):
 			validation_errors.append("%s: surface floor 0 is required." % location_id)
 		for transition_variant in location.get("transitions", []):
