@@ -6,12 +6,16 @@ on:
     paths:
       - ".github/workflows/wren-bra-attachment-review.yml"
       - "tools/review/wren_bra_attachment_review.gd"
+      - "tools/ara/assemble_modular_glb.py"
+      - "tools/ara/extract_garment_glb.py"
       - "scripts/presentation/ara_character_actor.gd"
   pull_request:
     branches: [feature/ara-garment-fit-guides]
     paths:
       - ".github/workflows/wren-bra-attachment-review.yml"
       - "tools/review/wren_bra_attachment_review.gd"
+      - "tools/ara/assemble_modular_glb.py"
+      - "tools/ara/extract_garment_glb.py"
       - "scripts/presentation/ara_character_actor.gd"
   workflow_dispatch:
 
