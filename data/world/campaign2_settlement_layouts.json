@@ -1569,6 +1569,65 @@
           "source": "campaign2World.js:buildFarmstead sheep[1]"
         }
       ]
+    },
+    {
+      "id": "kragmoor",
+      "name": "Kragmoor",
+      "location_id": "kragmoor",
+      "center": {
+        "q": 908,
+        "r": -626
+      },
+      "source_builder": "campaign2World.js:buildDwarvenKingdom",
+      "buildings": [
+        {
+          "id": "kragmoor_gate_hall",
+          "kind": "dwarven_gate_hall",
+          "archetype": "gate_hall",
+          "center": {
+            "q": 908,
+            "r": -608
+          },
+          "half_q": 4,
+          "half_r": 3,
+          "door": {
+            "q": 908,
+            "r": -605
+          },
+          "door_side": "south",
+          "door_width": 4.2,
+          "windows_per_side": 0,
+          "features": [
+            "double_door"
+          ],
+          "interior": {
+            "kind": "gate_hall",
+            "floor": 0,
+            "source": "buildDwarvenKingdom gateRegion"
+          }
+        }
+      ],
+      "paths": [],
+      "npcs": [],
+      "interiors": [
+        {
+          "id": "kragmoor_gate_hall_interior",
+          "building_id": "kragmoor_gate_hall",
+          "center": {
+            "q": 908,
+            "r": -608
+          },
+          "floor": 0,
+          "kind": "gate_hall",
+          "terrain": "cave_floor",
+          "stair_down": {
+            "q": 908,
+            "r": -610
+          },
+          "next_floor": -1,
+          "source": "campaign2World.js:buildDwarvenKingdom"
+        }
+      ]
     }
   ]
 }
