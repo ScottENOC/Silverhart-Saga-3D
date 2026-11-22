@@ -44,8 +44,10 @@ func _test_chapter_prerequisites_and_flow() -> void:
 	var party_ids: Array[String] = ["ser_aldric_thorne"]
 	var eligibility := chains.can_start("aldric_weight_of_command", journal, party_ids, 50000.0)
 	_check(bool(eligibility.get("ok", false)))
-	var started := chains.start("aldric_weight_of_command", journal, party_ids, 50000.0)
+	var companion_relationships := CompanionRelationshipState.new()
+	var started := chains.start("aldric_weight_of_command", journal, party_ids, companion_relationships, 50000.0)
 	_check(bool(started.get("ok", false)))
+	_check(float(companion_relationships.snapshot("ser_aldric_thorne").get("familiarity", 0.0)) == 13.0, "Opening a personal chapter records its one-time companion conversation")
 	_check(String(journal.quest_state("aldric_weight_of_command").get("chapter_stage", "")) == "consult")
 	var wrong_actor := chains.consult("aldric_weight_of_command", journal, "court_wizard_thessaly", 50100.0)
 	_check(String(wrong_actor.get("reason", "")) == "wrong_supporting_character")
@@ -61,11 +63,11 @@ func _test_companion_decision_and_relationship_effects() -> void:
 	var chains := CompanionQuestChainState.new()
 	chains.register_quest_definitions(journal)
 	var party_ids: Array[String] = ["ser_aldric_thorne"]
-	chains.start("aldric_weight_of_command", journal, party_ids, 50000.0)
-	chains.consult("aldric_weight_of_command", journal, "adelram", 50100.0)
-	chains.arc_states["ser_aldric_thorne"] = {"sharedBurden":10.0}
 	var relationships := CompanionRelationshipState.new()
 	relationships.ensure("ser_aldric_thorne", "feminine")
+	chains.start("aldric_weight_of_command", journal, party_ids, relationships, 50000.0)
+	chains.consult("aldric_weight_of_command", journal, "adelram", 50100.0)
+	chains.arc_states["ser_aldric_thorne"] = {"sharedBurden":10.0}
 	var result := chains.resolve("aldric_weight_of_command", "companion_decides", journal, relationships, 60000.0)
 	_check(bool(result.get("ok", false)))
 	_check(String(result.get("effective_resolution", "")) == "shared_command")
