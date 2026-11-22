@@ -216,10 +216,11 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
 			"helmet":
 				helmet_id = item_id
 
-	# Authored character GLBs may contain baked clothing. Hide those surfaces
-	# and render equipped garments from independent skinned GLBs. The base body
-	# remains visible; clothing never replaces or cuts holes in the skin.
-	if model_root != null:
+	# Shared Ara bases and unclothed native companions use modular equipment.
+	# Hollowmere NPC exports already contain their authored outfits; keep those
+	# baked surfaces visible because no separate male/female garment pack is
+	# installed for every village outfit yet.
+	if model_root != null and not loaded_asset_path.contains("/hollowmere/"):
 		var character_meshes: Array[MeshInstance3D] = []
 		_collect_meshes(model_root, character_meshes)
 		for mesh_instance in character_meshes:
