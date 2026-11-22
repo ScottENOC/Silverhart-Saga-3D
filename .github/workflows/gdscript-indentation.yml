@@ -1,0 +1,34 @@
+name: GDScript indentation
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - "**/*.gd"
+      - ".editorconfig"
+      - "tools/ci/check_gdscript_indentation.py"
+      - ".github/workflows/gdscript-indentation.yml"
+  push:
+    branches: [dev]
+    paths:
+      - "**/*.gd"
+      - ".editorconfig"
+      - "tools/ci/check_gdscript_indentation.py"
+      - ".github/workflows/gdscript-indentation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gdscript-indentation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Enforce tab indentation in GDScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check all GDScript files
+        run: python tools/ci/check_gdscript_indentation.py
