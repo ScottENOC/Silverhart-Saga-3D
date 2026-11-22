@@ -4,7 +4,7 @@ extends Node3D
 ## harvesting rules remain in WildernessResourceSystem; this script only draws it.
 
 const ASSET_ROOT := "res://art/environment/kenney_nature/"
-const TREE_SCRIPT = preload("res://scripts/presentation/seasonal_tree_visual.gd")
+const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
 
 var resource_state: Dictionary = {}
 var month_index: int = 0
@@ -48,13 +48,21 @@ func _build_tree(fruit_tree: bool, available: bool) -> void:
             _add_procedural_stump()
         return
 
-    var tree := TREE_SCRIPT.new() as SeasonalTreeVisual
-    tree.evergreen = false
-    tree.tree_seed = 71 if fruit_tree else 93
-    tree.tree_scale = 3.4
-    tree.species_variant = "oak" if fruit_tree else "default"
-    add_child(tree)
-    tree.refresh_month(month_index)
+    # Gatherable trees use the same committed GLB catalogue as ambient
+    # Hollowmere vegetation. Do not fall back to SeasonalTreeVisual's primitive
+    # cylinder/sphere construction: that produced two visibly mismatched trees
+    # beside the starting tavern whenever the Kenney seasonal model was absent.
+    var family := "cherry" if fruit_tree else "ash"
+    var tree_seed := 71 if fruit_tree else 93
+    var spawned := WORLD_VEGETATION_SCRIPT.generate_authored_placements(self, [{
+        "name": "GatherableTreeModel",
+        "family": family,
+        "seed": tree_seed,
+        "scale": 1.0
+    }])
+    if spawned != 1:
+        push_error("Could not create gatherable %s tree from the shared GLB vegetation catalogue." % family)
+        return
 
     if fruit_tree and available:
         var fruit_material := _material(Color(0.78, 0.16, 0.10))
