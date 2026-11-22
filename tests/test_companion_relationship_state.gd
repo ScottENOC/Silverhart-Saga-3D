@@ -8,6 +8,7 @@ func _initialize() -> void:
 	_test_hard_caps_and_companion_styles()
 	_test_idempotent_events_and_conversations()
 	_test_wren_source_events()
+	_test_relationship_progression_and_agreements()
 	_test_save_load()
 	if _failures > 0:
 		push_error("%d companion relationship assertion(s) failed." % _failures)
@@ -93,6 +94,37 @@ func _test_wren_source_events() -> void:
 	_check(float(betrayal.state.get("friendship", 0.0)) == 30.0)
 	var unknown := relationships.apply_wren_authored_event("not_a_real_event")
 	_check(String(unknown.get("reason", "")) == "unknown_wren_event")
+
+
+func _test_relationship_progression_and_agreements() -> void:
+	var relationships := CompanionRelationshipState.new()
+	for day in range(60):
+		relationships.note_personal_dialogue("wren_talbot", "topic_" + str(day))
+	_check(float(relationships.snapshot("wren_talbot").get("familiarity", 0.0)) == 60.0, "Unique personal dialogue familiarity is capped at 60")
+	var repeated_dialogue := relationships.note_personal_dialogue("wren_talbot", "topic_59")
+	_check(not bool(repeated_dialogue.get("changed", true)))
+	for day in range(60):
+		relationships.note_shared_party_day("mirabel_quill", "day_" + str(day))
+	_check(float(relationships.snapshot("mirabel_quill").get("familiarity", 0.0)) == 50.0, "Shared-party familiarity is capped at 50")
+
+	relationships.commit_relationship("wren_talbot", "committed", 100.0)
+	var wren_breach := relationships.record_outside_connection("wren_talbot", "Another person", "sex", true, 200.0, 10.0)
+	_check(bool(wren_breach.get("breach", false)))
+	_check(String(wren_breach.agreement.get("state", "")) == "strained", "Fear-bound Wren's breach response strains rather than ends the relationship")
+	_check(float(wren_breach.state.get("trust", 100.0)) == 0.0)
+
+	relationships.commit_relationship("brother_alden", "committed", 100.0)
+	var alden_sex := relationships.record_outside_connection("brother_alden", "Another person", "sex", true, 200.0)
+	_check(bool(alden_sex.get("allowed", false)), "Alden permits outside sexual connections under his agreement")
+	var alden_romance := relationships.record_outside_connection("brother_alden", "Another person", "romance", true, 300.0)
+	_check(bool(alden_romance.get("breach", false)), "A second romantic commitment breaches Alden's agreement")
+	_check(String(alden_romance.agreement.get("state", "")) == "ended")
+
+	relationships.commit_relationship("fenn_oakheart", "committed", 100.0)
+	var disclosed := relationships.record_outside_connection("fenn_oakheart", "Another person", "sex", true, 200.0)
+	_check(bool(disclosed.get("allowed", false)), "Disclosed connections are compatible with Fenn's open agreement")
+	var hidden := relationships.record_outside_connection("fenn_oakheart", "Another person", "sex", false, 300.0)
+	_check(bool(hidden.get("breach", false)), "Hiding an outside connection breaches an open agreement")
 
 
 func _test_save_load() -> void:
