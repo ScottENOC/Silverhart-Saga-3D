@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   check:
-    name: Enforce four-space indentation in GDScript
+    name: Enforce consistent GDScript indentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
