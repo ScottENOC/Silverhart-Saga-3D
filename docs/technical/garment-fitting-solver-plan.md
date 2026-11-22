@@ -82,6 +82,16 @@ A successful Blender process or successful GLB export is not a fit pass.
 5. Only then run the solver on the Wren bra panels and guides.
 6. Accept the bra only when the cups, gore, underband, neck straps, and back band are visually present and all fit-report constraints pass.
 
+## Implemented in the initial foundation PR
+
+- Stage 0 inventory: `inspect_fit_inputs.py` records materials, world transforms, mesh bounds, armature identity and bone names without changing the GLB.
+- Stage 1 core: `solver_core.py` implements bounded iterative projection against a caller-supplied outward-oriented surface query, with garment-edge correction smoothing and deterministic reports.
+- Blender adapter: `fit_glb.py` selects exactly one skin mesh by explicit material name, builds a skin-only world-space BVH, fits explicitly selected garment material groups, leaves the body untouched, and writes a candidate GLB plus JSON report.
+- Unit tests cover projection, unchanged vertices, pinned vertices, displacement limits, invalid edges, invalid normals, floating vertices, adjacency smoothing and deterministic results.
+- CI compiles the Blender scripts and runs the dependency-free unit tests.
+
+The adapter is intentionally not wired into the production Ara/Wren garment pipeline yet. Real-asset inventory must pass first, then the fitter must be trialled on a simple garment with visual and geometric review. Stage 2 strain constraints, Stage 3 layer collision and Stage 4 soft-tissue response remain future work.
+
 ## Immediate next implementation
 
-Build Stage 0 and Stage 1's deterministic geometric core as a separate module under `tools/blender/garment_fit/`. Keep the existing fitting routine available as a baseline until the new implementation demonstrates better results on the same input. Do not alter the current bra mesh or tune its global transform to compensate for missing garment geometry.
+Run the inventory against the exact current Ara body GLB and latest native Wren GLB. Confirm the material names, skin mesh uniqueness, coordinate transforms and skeleton compatibility. Then apply the new fitter to a simple garment on Wren, compare before/after reports and renders, and only after that proceed to bra-specific panels. Do not alter the current bra mesh or tune its global transform to compensate for missing garment geometry.
