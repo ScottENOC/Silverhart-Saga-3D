@@ -33,7 +33,6 @@ func _test_northwatch_wall_chunk() -> void:
 	_check(int(result.get("face_count", 0)) > 0, "Wall cells should produce vertical faces against non-wall neighbours")
 	_check(int(result.get("mesh_count", 0)) > 0, "Wall faces should be emitted as renderable meshes")
 	parent.free()
-	terrain_data.free()
 
 func _test_wall_heights() -> void:
 	_check(is_equal_approx(WALL_FACTORY.height_for_terrain("climbable_wall"), 2.8), "Climbable ramparts should use the shared rampart height")
