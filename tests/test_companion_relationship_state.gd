@@ -7,6 +7,7 @@ func _initialize() -> void:
 	_test_authored_starts_and_independent_axes()
 	_test_hard_caps_and_companion_styles()
 	_test_idempotent_events_and_conversations()
+	_test_wren_source_events()
 	_test_save_load()
 	if _failures > 0:
 		push_error("%d companion relationship assertion(s) failed." % _failures)
@@ -69,6 +70,29 @@ func _test_idempotent_events_and_conversations() -> void:
 	_check(bool(event.get("changed", false)))
 	_check(not bool(repeated_event.get("changed", true)), "Trust events are idempotent")
 	_check(float(repeated_event.state.get("trust", 0.0)) == 33.0)
+
+
+func _test_wren_source_events() -> void:
+	var relationships := CompanionRelationshipState.new()
+	var fight := relationships.apply_wren_authored_event("hollowmere_shakedown:fight")
+	_check(bool(fight.get("ok", false)), "Wren's original shakedown fight consequence is recognised")
+	_check(float(fight.state.get("approval", 0.0)) == 60.0)
+	_check(float(fight.state.get("trust", 0.0)) == 33.0)
+	_check(float(fight.state.get("friendship", 0.0)) == 41.0)
+	_check(float(fight.state.get("attraction", 0.0)) == 20.0)
+	var repeated := relationships.apply_wren_authored_event("hollowmere_shakedown:fight")
+	_check(not bool(repeated.get("changed", true)), "Wren's shakedown consequence cannot be applied twice")
+	var dialogue := relationships.apply_wren_authored_event("you_do_not_owe_me")
+	_check(bool(dialogue.get("ok", false)))
+	_check(float(dialogue.state.get("friendship", 0.0)) == 48.0)
+	_check(float(dialogue.state.get("romantic_bond", 0.0)) == 5.0)
+	var betrayal := relationships.apply_wren_authored_event("goblin_resolution:betrayal")
+	_check(bool(betrayal.get("ok", false)))
+	_check(float(betrayal.state.get("approval", 0.0)) == 20.0)
+	_check(float(betrayal.state.get("trust", 0.0)) == 0.0)
+	_check(float(betrayal.state.get("friendship", 0.0)) == 30.0)
+	var unknown := relationships.apply_wren_authored_event("not_a_real_event")
+	_check(String(unknown.get("reason", "")) == "unknown_wren_event")
 
 
 func _test_save_load() -> void:
