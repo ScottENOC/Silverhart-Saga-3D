@@ -30,6 +30,10 @@ var next_reaction_request_id: int = 1
 var pending_attack_context: Dictionary = {}
 var pending_move_context: Dictionary = {}
 var pending_spell_context: Dictionary = {}
+var multistory_location_states: Dictionary = {}
+var pending_multistory_location_saves: Dictionary = {}
+
+signal multistory_transition_unlocked(location_id: String, quest_id: String, transitions: Array[Dictionary])
 
 func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
@@ -38,7 +42,66 @@ func _init() -> void:
 
 func _on_campaign_journal_event(event: Dictionary) -> void:
     var event_type := String(event.get("event_type", "campaign_event"))
+    if event_type == "quest_completed":
+        var quest_id := String(event.get("quest_id", ""))
+        for location_id_variant in multistory_location_states:
+            var location_id := String(location_id_variant)
+            var state := multistory_location_states[location_id] as Campaign2MultiStoryLocationState
+            if state == null:
+                continue
+            var unlock_result: Dictionary = state.complete_quest(quest_id)
+            var revealed: Array[Dictionary] = unlock_result.get("revealed", [])
+            if not revealed.is_empty():
+                multistory_transition_unlocked.emit(location_id, quest_id, revealed)
     action_committed.emit(SimulationEvent.new(event_type, "", "", event))
+
+func register_multistory_location_state(location_definition: Dictionary) -> Campaign2MultiStoryLocationState:
+    var location_id := String(location_definition.get("id", "")).strip_edges()
+    if location_id.is_empty():
+        return null
+    if multistory_location_states.has(location_id):
+        return multistory_location_states[location_id] as Campaign2MultiStoryLocationState
+    var state := Campaign2MultiStoryLocationState.new()
+    var saved_state: Dictionary = pending_multistory_location_saves.get(location_id, {})
+    var configured: Dictionary = state.configure(location_definition, saved_state)
+    if not bool(configured.get("ok", false)):
+        push_error("Could not configure multi-story location state %s: %s" % [location_id, configured])
+        return null
+    multistory_location_states[location_id] = state
+    pending_multistory_location_saves.erase(location_id)
+    for quest_id_variant in campaign_journal.quests:
+        var quest: Dictionary = campaign_journal.quests[quest_id_variant]
+        if String(quest.get("status", "")) == "completed":
+            state.complete_quest(String(quest_id_variant))
+    return state
+
+func restore_multistory_location_states(saved_locations: Dictionary) -> bool:
+    var validated: Dictionary = {}
+    for location_id_variant in saved_locations:
+        var location_id := String(location_id_variant)
+        var saved_state: Variant = saved_locations[location_id_variant]
+        if location_id.is_empty() or not saved_state is Dictionary:
+            return false
+        validated[location_id] = saved_state.duplicate(true)
+    pending_multistory_location_saves = validated
+    for location_id_variant in multistory_location_states:
+        var location_id := String(location_id_variant)
+        if not pending_multistory_location_saves.has(location_id):
+            continue
+        var state := multistory_location_states[location_id] as Campaign2MultiStoryLocationState
+        if state == null or not state.restore(pending_multistory_location_saves[location_id]):
+            return false
+        pending_multistory_location_saves.erase(location_id)
+    return true
+
+func multistory_location_states_to_dict() -> Dictionary:
+    var result := pending_multistory_location_saves.duplicate(true)
+    for location_id_variant in multistory_location_states:
+        var location_id := String(location_id_variant)
+        var state := multistory_location_states[location_id] as Campaign2MultiStoryLocationState
+        if state != null:
+            result[location_id] = state.to_dict()
+    return result
 
 func _on_combat_turn_started(character_id: String) -> void:
     var state := get_character(character_id)
