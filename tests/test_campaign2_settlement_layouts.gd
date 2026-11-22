@@ -189,6 +189,37 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	for ring_corner in [Vector2i(38, -496), Vector2i(38, -526), Vector2i(8, -526), Vector2i(-22, -496), Vector2i(-22, -466), Vector2i(8, -466)]:
 		_check(terrain.terrain_for_hex(ring_corner) == "path", "Silverhart source outer ring road must be indexed at " + str(ring_corner))
 	_check(terrain.terrain_for_hex(Vector2i(8, -472)) == "path", "Silverhart gate exterior road must meet the southern ring-road corner")
+	var props: Array = layout.get("props", [])
+	_check(props.size() == 147, "Silverhart must include 138 curtain-wall sections, seven watchtowers and two ladders")
+	var wall_cells := 0
+	var tower_ids: Array[String] = []
+	var ladder_ids: Array[String] = []
+	for prop in props:
+		var prop_id := String(prop.get("id", ""))
+		if prop_id.begins_with("silverhart_curtain_wall_"):
+			wall_cells += 1
+		elif prop_id.begins_with("silverhart_watchtower_"):
+			tower_ids.append(prop_id)
+		elif prop_id.begins_with("silverhart_wall_ladder_"):
+			ladder_ids.append(prop_id)
+	_check(wall_cells == 138, "Curtain wall must follow every radius-23 source hex")
+	_check(tower_ids.size() == 7, "All seven source watchtower positions must be represented")
+	_check(ladder_ids.size() == 2, "Both source ladder access points must be represented")
+	for tower in [
+		Vector2i(10, -475), Vector2i(6, -473), Vector2i(31, -496),
+		Vector2i(-15, -496), Vector2i(8, -519), Vector2i(31, -519), Vector2i(-15, -473)
+	]:
+		var found := false
+		for prop in props:
+			if String(prop.get("id", "")).begins_with("silverhart_watchtower_") and prop.get("anchor", {}) == {"q": tower.x, "r": tower.y}:
+				found = true
+		_check(found, "Silverhart source watchtower must be positioned at " + str(tower))
+	for ladder in [Vector2i(20, -519), Vector2i(-4, -507)]:
+		var found := false
+		for prop in props:
+			if String(prop.get("id", "")).begins_with("silverhart_wall_ladder_") and prop.get("anchor", {}) == {"q": ladder.x, "r": ladder.y}:
+				found = true
+		_check(found, "Silverhart source ladder must be positioned at " + str(ladder))
 
 
 func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
