@@ -143,7 +143,23 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	var layout: Dictionary = definition.get("layout", {})
 	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Silverhart must be owned by the streamed chunk presenter")
 	_check(layout.get("buildings", []).size() == 5, "Silverhart first structural phase must retain five source palace buildings")
-	_check(layout.get("paths", []).size() == 6, "Silverhart palace core must retain its courtyard, gate and outer ring roads")
+	_check(layout.get("buildings", []).size() == 19, "Silverhart must include palace, merchant, noble and residential buildings")
+	for building_id in [
+		"silverhart_stables", "silverhart_general_goods", "silverhart_clothier", "silverhart_magic_shop",
+		"silverhart_corstane_manor", "silverhart_builder_house", "silverhart_neighbor_house",
+		"silverhart_north_cottage_1", "silverhart_north_cottage_2", "silverhart_north_cottage_3",
+		"silverhart_east_house_1", "silverhart_east_house_2", "silverhart_east_house_3", "silverhart_east_house_4"
+	]:
+		var district_building := _find_record(layout.get("buildings", []), building_id)
+		_check(not district_building.is_empty(), "Silverhart source district building must be present: " + building_id)
+		if not district_building.is_empty():
+			_check(BUILDING_FACTORY.supports_definition(district_building), "Silverhart district building archetype must be supported: " + building_id)
+	for road_id in [
+		"silverhart_merchant_near_street", "silverhart_merchant_far_street", "silverhart_merchant_cross_alley",
+		"silverhart_noble_near_street", "silverhart_noble_far_street", "silverhart_noble_cross_alley"
+	]:
+		_check(not _find_record(layout.get("paths", []), road_id).is_empty(), "Silverhart district street must be present: " + road_id)
+	_check(layout.get("paths", []).size() == 12, "Silverhart must retain palace routes and both quarter street grids")
 	var expected_centres := {
 		"silverhart_grand_hall": Vector2i(8, -496),
 		"silverhart_barracks": Vector2i(22, -494),
