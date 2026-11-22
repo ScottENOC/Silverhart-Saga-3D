@@ -438,13 +438,15 @@ func _request_travel_to_screen_position(screen_position: Vector2) -> void:
 
 func _add_hex_to_surface(surface: SurfaceTool, hex: Vector2i, elevation: float) -> void:
 	var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
-	var corners := HexGrid.corner_offsets(HEX_RADIUS * 1.005)
+	var corners := HexGrid.corner_offsets(HEX_RADIUS)
 	for index in range(HexGrid.SIDE_COUNT):
 		var next_index := (index + 1) % HexGrid.SIDE_COUNT
+		var next_vertex := Vector3(corners[next_index].x, terrain_data.shared_vertex_elevation(hex, next_index), corners[next_index].y)
+		var current_vertex := Vector3(corners[index].x, terrain_data.shared_vertex_elevation(hex, index), corners[index].y)
 		surface.set_normal(Vector3.UP)
 		surface.add_vertex(centre)
-		surface.add_vertex(centre + Vector3(corners[next_index].x, 0.0, corners[next_index].y))
-		surface.add_vertex(centre + Vector3(corners[index].x, 0.0, corners[index].y))
+		surface.add_vertex(HexGrid.axial_to_world(hex, HEX_RADIUS) + next_vertex)
+		surface.add_vertex(HexGrid.axial_to_world(hex, HEX_RADIUS) + current_vertex)
 
 func _add_multimesh(parent: Node3D, node_name: String, mesh: Mesh, transforms: Array[Transform3D]) -> void:
 	if transforms.is_empty() or mesh == null:
