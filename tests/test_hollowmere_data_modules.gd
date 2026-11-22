@@ -42,7 +42,7 @@ func _initialize() -> void:
 	assert(PLACEMENTS.MISSING_CHILD_START_HEX == PLACEMENTS.REYNA_SHELTER_HEX)
 	assert(PLACEMENTS.REYNA_CLUE_HEX == Vector2i(22, 61))
 	assert(PLACEMENTS.FARMSTEAD_DIRE_WOLF_HEX == Vector2i(30, 58))
-	assert(PLACEMENTS.FARM_WOLF_DEN_HEX == Vector2i(-42, 72))
+	assert(PLACEMENTS.FARM_WOLF_DEN_HEX == Vector2i(-59, 204), "Farm quest must use the source-authored global wolf-den coordinate")
 	assert(PLACEMENTS.FARM_WOLF_SPAWN_OFFSETS.size() == 3)
 	assert(PLACEMENTS.SHAKEDOWN_SOLDIER_WAIT_HEXES.size() == 3)
 	assert(PLACEMENTS.SHAKEDOWN_SOLDIER_INTERIOR_PREFERRED_HEXES.size() == 3)
