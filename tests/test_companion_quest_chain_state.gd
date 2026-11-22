@@ -24,7 +24,7 @@ func _check(condition: bool, message: String = "Assertion failed") -> void:
 
 
 func _test_authored_chapter_catalogue() -> void:
-	var chains := CompanionQuestChainState.new()
+	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
 	_check(chains.all_chapters().size() == 9, "All nine authored personal quest chapters are loaded")
 	var mirabel := chains.chapter_for("mirabel_borrowed_voice")
 	_check(String(mirabel.get("previous", "")) == "mirabel_unquiet_concordance")
@@ -37,7 +37,7 @@ func _test_authored_chapter_catalogue() -> void:
 func _test_chapter_prerequisites_and_flow() -> void:
 	var journal := CampaignJournal.new()
 	_complete_previous(journal, "aldric_measure_of_oath", 100.0)
-	var chains := CompanionQuestChainState.new()
+	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
 	chains.register_quest_definitions(journal)
 	var absent := chains.can_start("aldric_weight_of_command", journal, [], 50000.0)
 	_check(String(absent.get("reason", "")) == "companion_not_in_party")
@@ -60,7 +60,7 @@ func _test_chapter_prerequisites_and_flow() -> void:
 func _test_companion_decision_and_relationship_effects() -> void:
 	var journal := CampaignJournal.new()
 	_complete_previous(journal, "aldric_measure_of_oath", 100.0)
-	var chains := CompanionQuestChainState.new()
+	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
 	chains.register_quest_definitions(journal)
 	var party_ids: Array[String] = ["ser_aldric_thorne"]
 	var relationships := CompanionRelationshipState.new()
@@ -87,7 +87,7 @@ func _test_companion_decision_and_relationship_effects() -> void:
 func _test_chapter_three_cooldown() -> void:
 	var journal := CampaignJournal.new()
 	_complete_previous(journal, "aldric_measure_of_oath", 1000.0)
-	var chains := CompanionQuestChainState.new()
+	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
 	chains.register_quest_definitions(journal)
 	var party_ids: Array[String] = ["ser_aldric_thorne"]
 	var too_soon := chains.can_start("aldric_weight_of_command", journal, party_ids, 2000.0)
@@ -97,10 +97,10 @@ func _test_chapter_three_cooldown() -> void:
 
 
 func _test_save_load() -> void:
-	var chains := CompanionQuestChainState.new()
+	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
 	chains.arc_states["fenn_oakheart"] = {"stewardship":22.0,"independence":16.0}
 	chains.personality_growth["fenn_oakheart"] = {"stewardship":1.0}
-	var restored := CompanionQuestChainState.new()
+	var restored: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
 	restored.from_dict(chains.to_dict())
 	_check(float(restored.arc_states["fenn_oakheart"].get("stewardship", 0.0)) == 22.0)
 	_check(float(restored.personality_growth["fenn_oakheart"].get("stewardship", 0.0)) == 1.0)
