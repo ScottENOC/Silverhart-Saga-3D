@@ -31,6 +31,15 @@
           "corridors": [],
           "tile_objects": [
             {
+              "id": "gate_door",
+              "type": "door_open",
+              "position": {
+                "q": 908,
+                "r": -605
+              },
+              "light_radius": 0
+            },
+            {
               "id": "gate_stair_down",
               "type": "stair_down",
               "position": {
