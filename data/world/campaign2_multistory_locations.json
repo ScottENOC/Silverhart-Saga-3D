@@ -810,6 +810,405 @@
         }
       ],
       "quest_gates": []
+    },
+    {
+      "id": "silverhart_palace_barracks",
+      "name": "Silverhart Palace — Barracks and Loft",
+      "anchor": {
+        "q": 22,
+        "r": -494
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace barracksRegion, barracksBuilding and carveFloorRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Barracks Mess Hall",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "barracks",
+              "center": {
+                "q": 22,
+                "r": -494
+              },
+              "half_width": 4,
+              "half_height": 4
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "barracks_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 22,
+                "r": -494
+              },
+              "light_radius": 6
+            },
+            {
+              "id": "barracks_bench_north",
+              "type": "bench",
+              "position": {
+                "q": 22,
+                "r": -495
+              }
+            },
+            {
+              "id": "barracks_bench_south",
+              "type": "bench",
+              "position": {
+                "q": 22,
+                "r": -493
+              }
+            },
+            {
+              "id": "barracks_table",
+              "type": "table",
+              "position": {
+                "q": 21,
+                "r": -494
+              }
+            },
+            {
+              "id": "barracks_loft_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": 23,
+                "r": -494
+              },
+              "to_floor": 1
+            }
+          ],
+          "actors": [
+            {
+              "id": "royal_guard_petra",
+              "name": "Royal Guard Petra",
+              "role": "royal_guard",
+              "position": {
+                "q": 21,
+                "r": -494
+              }
+            },
+            {
+              "id": "royal_guard_osric",
+              "name": "Royal Guard Osric",
+              "role": "royal_guard",
+              "position": {
+                "q": 23,
+                "r": -494
+              }
+            },
+            {
+              "id": "royal_guard_isolde",
+              "name": "Royal Guard Isolde",
+              "role": "royal_guard",
+              "position": {
+                "q": 22,
+                "r": -496
+              }
+            }
+          ],
+          "creatures": []
+        },
+        {
+          "floor": 1,
+          "name": "Barracks Loft",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "barracks_loft",
+              "center": {
+                "q": 22,
+                "r": -494
+              },
+              "half_width": 4,
+              "half_height": 4
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "barracks_bed_1",
+              "type": "bed",
+              "position": {
+                "q": 21,
+                "r": -495
+              }
+            },
+            {
+              "id": "barracks_bed_2",
+              "type": "bed",
+              "position": {
+                "q": 23,
+                "r": -495
+              }
+            },
+            {
+              "id": "barracks_bed_3",
+              "type": "bed",
+              "position": {
+                "q": 21,
+                "r": -493
+              }
+            },
+            {
+              "id": "barracks_bed_4",
+              "type": "bed",
+              "position": {
+                "q": 23,
+                "r": -493
+              }
+            },
+            {
+              "id": "barracks_loft_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": 23,
+                "r": -494
+              },
+              "to_floor": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [
+        {
+          "from_floor": 0,
+          "to_floor": 1,
+          "position": {
+            "q": 23,
+            "r": -494
+          }
+        },
+        {
+          "from_floor": 1,
+          "to_floor": 0,
+          "position": {
+            "q": 23,
+            "r": -494
+          }
+        }
+      ],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_palace_wizard_tower",
+      "name": "Silverhart Palace — Wizard's Tower",
+      "anchor": {
+        "q": -7,
+        "r": -482
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace towerRegion, towerBuilding, studyFloor and observatoryFloor",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Wizard's Tower",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "wizard_tower",
+              "center": {
+                "q": -7,
+                "r": -482
+              },
+              "half_width": 3,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "wizard_tower_door",
+              "type": "door_open",
+              "position": {
+                "q": -7,
+                "r": -484
+              }
+            },
+            {
+              "id": "wizard_tower_table",
+              "type": "table",
+              "position": {
+                "q": -7,
+                "r": -482
+              }
+            },
+            {
+              "id": "wizard_tower_tome",
+              "type": "journal",
+              "read_id": "wizard_tower_tome",
+              "position": {
+                "q": -6,
+                "r": -482
+              }
+            },
+            {
+              "id": "wizard_tower_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": -8,
+                "r": -482
+              },
+              "light_radius": 5
+            },
+            {
+              "id": "wizard_corruption_ledger",
+              "type": "journal",
+              "read_id": "wizard_corruption_ledger",
+              "position": {
+                "q": -7,
+                "r": -481
+              }
+            },
+            {
+              "id": "wizard_study_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": -6,
+                "r": -481
+              },
+              "to_floor": 1
+            }
+          ],
+          "actors": [
+            {
+              "id": "court_wizard_thessaly",
+              "name": "Court Wizard Thessaly",
+              "role": "royal_wizard",
+              "dialogue_id": "court_wizard_thessaly",
+              "position": {
+                "q": -7,
+                "r": -481
+              }
+            }
+          ],
+          "creatures": []
+        },
+        {
+          "floor": 1,
+          "name": "Wizard's Study",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "wizard_study",
+              "center": {
+                "q": -7,
+                "r": -482
+              },
+              "half_width": 3,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "wizard_study_table",
+              "type": "table",
+              "position": {
+                "q": -8,
+                "r": -482
+              }
+            },
+            {
+              "id": "wizard_spire_notes",
+              "type": "journal",
+              "read_id": "wizard_spire_notes",
+              "position": {
+                "q": -6,
+                "r": -482
+              }
+            },
+            {
+              "id": "wizard_observatory_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": -7,
+                "r": -482
+              },
+              "to_floor": 2
+            },
+            {
+              "id": "wizard_study_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": -6,
+                "r": -481
+              },
+              "to_floor": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        },
+        {
+          "floor": 2,
+          "name": "Wizard's Observatory",
+          "terrain": "stone_floor",
+          "rooms": [
+            {
+              "id": "wizard_observatory",
+              "center": {
+                "q": -7,
+                "r": -482
+              },
+              "half_width": 3,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "wizard_observatory_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": -7,
+                "r": -482
+              },
+              "to_floor": 1
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [
+        {
+          "from_floor": 0,
+          "to_floor": 1,
+          "position": {
+            "q": -6,
+            "r": -481
+          }
+        },
+        {
+          "from_floor": 1,
+          "to_floor": 0,
+          "position": {
+            "q": -6,
+            "r": -481
+          }
+        },
+        {
+          "from_floor": 1,
+          "to_floor": 2,
+          "position": {
+            "q": -7,
+            "r": -482
+          }
+        },
+        {
+          "from_floor": 2,
+          "to_floor": 1,
+          "position": {
+            "q": -7,
+            "r": -482
+          }
+        }
+      ],
+      "quest_gates": []
     }
   ]
 }
