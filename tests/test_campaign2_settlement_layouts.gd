@@ -183,7 +183,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		"silverhart_ironbond_approach", "silverhart_cathedral_approach"
 	]:
 		_check(not _find_record(layout.get("paths", []), road_id).is_empty(), "Silverhart district street must be present: " + road_id)
-	_check(layout.get("paths", []).size() == 29, "Silverhart must retain palace routes and both quarter street grids")
+	_check(layout.get("paths", []).size() == 32, "Silverhart must retain palace routes and both quarter street grids")
 	for route in layout.get("paths", []):
 		if route.get("points") is Array:
 			_check(route.get("widths", []).size() == route.get("points", []).size(), "Every Silverhart polyline must define a width at each control point: " + String(route.get("id", "")))
@@ -235,6 +235,8 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	_check(terrain.terrain_for_hex(Vector2i(-35, -454)) == "path", "Middle-ring diagonal house spur must include its first cube-rounded intermediate hex")
 	_check(terrain.terrain_for_hex(Vector2i(-36, -452)) == "path", "Middle-ring diagonal house spur must remain continuous to the ring")
 	_check(terrain.terrain_for_hex(Vector2i(8, -436)) == "path", "Outer city gate approach must reach the three-cell gate")
+	for warrens_node in [Vector2i(2, -430), Vector2i(5, -430), Vector2i(11, -430)]:
+		_check(terrain.terrain_for_hex(warrens_node) == "path", "Source Warrens road node must remain paved at " + str(warrens_node))
 	_check(terrain.settlement_wall_cells.size() == 495, "Both Silverhart palisade rings must be indexed for gameplay traversal")
 	_check(terrain.settlement_ladder_cells.size() == 2, "The two inner-wall ladders must be registered as climbable crossings")
 	_check(terrain.terrain_for_hex(Vector2i(8, -473)) == "palisade_wall", "Inner curtain wall must be exposed as palisade terrain")
