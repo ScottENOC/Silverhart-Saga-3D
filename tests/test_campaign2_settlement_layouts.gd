@@ -142,15 +142,15 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	var definition: Dictionary = entry.get("definition", {})
 	var layout: Dictionary = definition.get("layout", {})
 	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Silverhart must be owned by the streamed chunk presenter")
-	_check(layout.get("buildings", []).size() == 5, "Silverhart first structural phase must retain five source palace buildings")
-	_check(layout.get("buildings", []).size() == 25, "Silverhart must include palace, merchant, noble and residential buildings")
+	_check(layout.get("buildings", []).size() == 29, "Silverhart must include palace, merchant, noble, diplomatic, commons and outer residential buildings")
 	for building_id in [
 		"silverhart_stables", "silverhart_general_goods", "silverhart_clothier", "silverhart_magic_shop",
 		"silverhart_corstane_manor", "silverhart_builder_house", "silverhart_neighbor_house",
 		"silverhart_north_cottage_1", "silverhart_north_cottage_2", "silverhart_north_cottage_3",
 		"silverhart_east_house_1", "silverhart_east_house_2", "silverhart_east_house_3", "silverhart_east_house_4",
 		"silverhart_elven_embassy", "silverhart_dwarven_embassy", "silverhart_aldenreach_embassy",
-		"silverhart_corvane_embassy", "silverhart_ironbond_office", "silverhart_grand_cathedral"
+		"silverhart_corvane_embassy", "silverhart_ironbond_office", "silverhart_grand_cathedral",
+		"silverhart_commons_inn", "silverhart_outlying_house_1", "silverhart_outlying_house_2", "silverhart_outlying_house_3"
 	]:
 		var district_building := _find_record(layout.get("buildings", []), building_id)
 		_check(not district_building.is_empty(), "Silverhart source district building must be present: " + building_id)
@@ -211,7 +211,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		_check(terrain.terrain_for_hex(ring_corner) == "path", "Silverhart source outer ring road must be indexed at " + str(ring_corner))
 	_check(terrain.terrain_for_hex(Vector2i(8, -472)) == "path", "Silverhart gate exterior road must meet the southern ring-road corner")
 	var props: Array = layout.get("props", [])
-	_check(props.size() == 147, "Silverhart must include 138 curtain-wall sections, seven watchtowers and two ladders")
+	_check(props.size() == 153, "Silverhart must include 138 curtain-wall sections, seven watchtowers, two ladders, a gate arch, fountain and bounty board")
 	var wall_cells := 0
 	var tower_ids: Array[String] = []
 	var ladder_ids: Array[String] = []
