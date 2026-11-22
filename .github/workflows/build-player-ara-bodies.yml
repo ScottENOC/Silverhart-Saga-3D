@@ -16,7 +16,7 @@ permissions:
 
 concurrency:
   group: player-ara-body-assets
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -180,10 +180,14 @@ jobs:
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
           git add art/characters/ara_runtime/ara_player_female_body.glb art/characters/ara_runtime/ara_player_female_body.glb.import
           git add art/characters/ara_runtime/ara_player_male_body.glb art/characters/ara_runtime/ara_player_male_body.glb.import
           git add art/characters/ara_runtime/manifest.json
+          if git diff --cached --quiet; then
+            echo "Player body assets are already current."
+            exit 0
+          fi
           git commit -m "Build player bodies with current gendered anatomy"
-          git fetch origin "${GITHUB_REF_NAME}"
-          git rebase "origin/${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
