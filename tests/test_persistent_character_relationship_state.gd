@@ -6,6 +6,7 @@ var _failures: int = 0
 func _initialize() -> void:
 	_test_authored_roster_and_initial_state()
 	_test_approval_bridge_and_independent_axes()
+	_test_campaign_journal_synchronisation()
 	_test_idempotent_conversations_and_events()
 	_test_friendship_only_profiles()
 	_test_save_load_and_history_bounds()
@@ -54,6 +55,23 @@ func _test_approval_bridge_and_independent_axes() -> void:
 	_check(not bool(relationships.pending_npc_standing_sync("petra_voss").get("pending", true)))
 	var refreshed := relationships.snapshot("petra_voss", 80.0)
 	_check(int(refreshed.get("approval", -1)) == 90, "A later journal standing refreshes approval when no local write is pending")
+
+
+func _test_campaign_journal_synchronisation() -> void:
+	var journal := CampaignJournal.new()
+	journal.seed_npc_reputation("petra_voss", -40.0)
+	var relationships := PersistentCharacterRelationshipState.new()
+	var initial := relationships.sync_with_journal("petra_voss", journal)
+	_check(bool(initial.get("ok", false)))
+	_check(int(initial.relationship.get("approval", -1)) == 30)
+	relationships.adjust_relationship("petra_voss", {"approval":20}, "earned the factor's confidence")
+	var pending := relationships.pending_npc_standing_sync("petra_voss")
+	_check(bool(pending.get("pending", false)))
+	var synced := relationships.sync_with_journal("petra_voss", journal)
+	_check(bool(synced.get("ok", false)))
+	_check(is_equal_approx(journal.npc_standing("petra_voss"), 0.0), "Approval changes update the authoritative campaign NPC standing")
+	_check(int(synced.relationship.get("approval", -1)) == 50)
+	_check(not bool(relationships.pending_npc_standing_sync("petra_voss").get("pending", true)))
 
 
 func _test_idempotent_conversations_and_events() -> void:
