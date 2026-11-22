@@ -226,7 +226,7 @@ def main() -> None:
         if metadata_key in manifest:
             output_manifest[metadata_key] = manifest[metadata_key]
     (args.out / "profiles.json").write_text(json.dumps(output_manifest, indent=2) + "\n")
-    print(f"\nBuilt {len(built)} Hollowmere resident/player Ara characters.", flush=True)
+    print(f"\nBuilt {len(built)} Ara characters from {args.profiles.name}.", flush=True)
 
 
 if __name__ == "__main__":
