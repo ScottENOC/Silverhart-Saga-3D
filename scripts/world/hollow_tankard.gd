@@ -962,8 +962,8 @@ func _apply_save_data(data: Dictionary) -> void:
 	if simulation.get_character("missing_child_tessa") != null:
 		_spawn_missing_child()
 	var multistory_data: Variant = data.get("multistory_locations", {})
-	if multistory_data is Dictionary:
-		simulation.restore_multistory_location_states(multistory_data)
+	if multistory_data is Dictionary and not simulation.restore_multistory_location_states(multistory_data):
+		push_warning("Some multi-story location state could not be restored; affected locations will use their validated defaults.")
 	var resource_data: Variant = data.get("wilderness_resources", {})
 	if resource_data is Dictionary:
 		simulation.wilderness_resources.load_dict(resource_data)
