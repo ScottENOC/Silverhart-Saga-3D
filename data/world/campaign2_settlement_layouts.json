@@ -1569,6 +1569,205 @@
           "source": "campaign2World.js:buildFarmstead sheep[1]"
         }
       ]
+    },
+    {
+      "id": "silverhart",
+      "name": "Silverhart Palace",
+      "location_id": "silverhart",
+      "center": {
+        "q": 8,
+        "r": -496
+      },
+      "road_endpoint": {
+        "q": 8,
+        "r": -496
+      },
+      "source_builder": "campaign2World.js:buildSilverhartPalace",
+      "buildings": [
+        {
+          "id": "silverhart_grand_hall",
+          "kind": "manor",
+          "archetype": "manor",
+          "center": {
+            "q": 8,
+            "r": -496
+          },
+          "half_q": 7,
+          "half_r": 5,
+          "door": {
+            "q": 8,
+            "r": -491
+          },
+          "door_side": "south",
+          "features": [
+            "fireplace"
+          ],
+          "interior": {
+            "kind": "grand_hall",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace throneRegion"
+        },
+        {
+          "id": "silverhart_barracks",
+          "kind": "guardhouse",
+          "archetype": "guardhouse",
+          "center": {
+            "q": 22,
+            "r": -494
+          },
+          "half_q": 4,
+          "half_r": 4,
+          "door": {
+            "q": 18,
+            "r": -494
+          },
+          "door_side": "west",
+          "features": [
+            "fireplace"
+          ],
+          "interior": {
+            "kind": "barracks",
+            "floor": "wood",
+            "upper_floor": 1
+          },
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace barracksRegion"
+        },
+        {
+          "id": "silverhart_council_chamber",
+          "kind": "manor",
+          "archetype": "manor",
+          "center": {
+            "q": -6,
+            "r": -494
+          },
+          "half_q": 4,
+          "half_r": 3,
+          "door": {
+            "q": -2,
+            "r": -494
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "council_chamber",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace councilRegion"
+        },
+        {
+          "id": "silverhart_royal_wizard_tower",
+          "kind": "manor",
+          "archetype": "manor",
+          "center": {
+            "q": -7,
+            "r": -482
+          },
+          "half_q": 3,
+          "half_r": 3,
+          "door": {
+            "q": -7,
+            "r": -484
+          },
+          "door_side": "north",
+          "features": [
+            "fireplace"
+          ],
+          "interior": {
+            "kind": "wizard_tower",
+            "floors": [
+              0,
+              1,
+              2
+            ]
+          },
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace towerRegion"
+        },
+        {
+          "id": "silverhart_queens_bedroom",
+          "kind": "house",
+          "archetype": "cottage",
+          "center": {
+            "q": 8,
+            "r": -505
+          },
+          "half_q": 3,
+          "half_r": 3,
+          "door": {
+            "q": 8,
+            "r": -502
+          },
+          "door_side": "south",
+          "features": [
+            "fireplace"
+          ],
+          "interior": {
+            "kind": "royal_bedroom",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace bedroomRegion"
+        }
+      ],
+      "paths": [
+        {
+          "id": "silverhart_palace_approach",
+          "kind": "road",
+          "from": {
+            "q": 8,
+            "r": -495
+          },
+          "to": {
+            "q": 8,
+            "r": -491
+          },
+          "width": 2.2,
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace entrance path"
+        },
+        {
+          "id": "silverhart_barracks_courtyard",
+          "kind": "road",
+          "from": {
+            "q": 9,
+            "r": -474
+          },
+          "to": {
+            "q": 18,
+            "r": -494
+          },
+          "width": 2.2,
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace courtyard and barracks spur"
+        },
+        {
+          "id": "silverhart_council_courtyard",
+          "kind": "road",
+          "from": {
+            "q": -2,
+            "r": -494
+          },
+          "to": {
+            "q": 8,
+            "r": -474
+          },
+          "width": 2.2,
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace council spur"
+        },
+        {
+          "id": "silverhart_wizard_tower_approach",
+          "kind": "road",
+          "from": {
+            "q": -7,
+            "r": -484
+          },
+          "to": {
+            "q": 8,
+            "r": -474
+          },
+          "width": 2.2,
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace tower approach"
+        }
+      ],
+      "npcs": [],
+      "creatures": [],
+      "interiors": []
     }
   ]
 }
