@@ -2,7 +2,7 @@ name: Companion anatomy region review
 
 on:
   push:
-    branches: [feature/ara-garment-fit-guides, feature/full-body-overlapping-anatomy-vocabulary]
+    branches: [feature/ara-garment-fit-guides, feature/full-body-overlapping-anatomy-vocabulary, feature/anatomy-region-authoring-progress]
     paths:
       - ".github/workflows/companion-anatomy-region-review.yml"
       - "tools/review/companion_surface_region_review.gd"
@@ -16,7 +16,7 @@ on:
       - "tools/anatomy_surface_painter.tscn"
       - "tools/anatomy_surface_painter_input.gd"
   pull_request:
-    branches: [feature/ara-garment-fit-guides]
+    branches: [feature/ara-garment-fit-guides, feature/full-body-overlapping-anatomy-vocabulary]
     paths:
       - ".github/workflows/companion-anatomy-region-review.yml"
       - "tools/review/companion_surface_region_review.gd"
