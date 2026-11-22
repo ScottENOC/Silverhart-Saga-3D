@@ -211,7 +211,7 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	assert(male_actor != null)
 	var male_model := male_actor.get_node_or_null("CharacterModel") as AraCharacterActor
 	assert(male_model != null)
-	assert(male_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_male_body.glb")
+	assert(male_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_player_male_body.glb")
 	male_actor.free()
 
 	var settlement_actor := CampaignCharacterActorFactory.create_settlement_actor({
@@ -227,10 +227,10 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	assert(settlement_actor != null)
 	var settlement_model := settlement_actor.get_node_or_null("CharacterModel") as AraCharacterActor
 	assert(settlement_model != null)
-	assert(settlement_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_male_body.glb")
+	assert(settlement_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_player_male_body.glb")
 	settlement_actor.free()
 
-	var wren_state := CharacterState.new("wren_test", "Wren", Vector2i.ZERO)
+	var wren_state := CharacterState.new("companion_wren_talbot", "Wren", Vector2i.ZERO)
 	var wren_profile := {
 		"params": {
 			"gender": 0,
@@ -253,23 +253,13 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	assert(wren_actor != null)
 	var wren_model := wren_actor.get_node_or_null("CharacterModel") as AraCharacterActor
 	assert(wren_model != null)
-	assert(wren_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_body_anatomy.glb")
-	var body_parameters: Dictionary = wren_model.get_meta("body_parameters", {})
-	var blend_shape_names: Array[String] = []
-	_collect_blend_shape_names(wren_model.model_root, blend_shape_names)
-	print("ARA_SHARED_BODY_BLEND_SHAPES: %s" % ", ".join(blend_shape_names))
-	print("ARA_WREN_MORPHS_APPLIED: %s" % str(wren_model.get_meta("body_morph_targets_applied", 0)))
-	print("ARA_WREN_HAIR_INSTANCES: %d" % wren_model.hair_instances.size())
-	print("ARA_WREN_SKIN_TINT: %s" % str(wren_model.current_hair_colour))
-	assert(not wren_model.hair_instances.is_empty(), "Wren's Ara braid did not attach")
-	assert(wren_model.current_hair_colour.is_equal_approx(Color("#252b62")))
-	assert(int(wren_model.get_meta("skin_surfaces_tinted", 0)) > 0, "Wren's skin tint did not reach a material surface")
-	assert(int(wren_model.get_meta("eye_surfaces_tinted", 0)) > 0, "Wren's eye tint did not reach a material surface")
-	var applied_morphs: Dictionary = wren_model.get_meta("body_morph_parameters_applied", {})
-	for morph_name in ["height", "muscle", "weight", "breasts", "legs", "proportions"]:
-		assert(applied_morphs.has(morph_name), "Ara body morph is missing: %s" % morph_name)
-	assert(is_equal_approx(float(body_parameters.get("breasts", 0.0)), 0.76))
-	assert(is_equal_approx(float(body_parameters.get("legs", 0.0)), 0.62))
+	assert(wren_model.loaded_asset_path == "res://art/characters/companions/wren.glb")
+	assert(wren_model.body_variant == "female")
+	assert(wren_model.hair_instances.is_empty(), "Approved Wren build should retain its baked braid, not attach a duplicate")
+	assert(not wren_model.has_meta("body_parameters"), "Approved Wren appearance must not be overwritten by generic NPC morphs")
+	assert(not wren_model.has_meta("skin_surfaces_tinted"), "Approved Wren complexion must remain baked into her accepted model")
+	CampaignCharacterActorFactory.apply_npc_parameters(wren_model, {"gender": 0, "skinTint": "#ffffff", "hairTint": "#ffffff"})
+	assert(not wren_model.has_meta("body_parameters"), "Generic NPC updates must not overwrite the approved Wren build")
 	wren_actor.free()
 
 
