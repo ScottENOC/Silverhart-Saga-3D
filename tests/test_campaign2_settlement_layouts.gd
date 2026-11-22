@@ -8,7 +8,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 	var entries: Array = terrain.settlement_layouts
-	_check(entries.size() == 5, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale and Old Mac's Farmstead")
+	_check(entries.size() == 6, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale, Silverhart and Old Mac's Farmstead")
 	var millbrook_entry := _entry_by_id(entries, "millbrook")
 	_check(not millbrook_entry.is_empty(), "Canonical Millbrook definition must be available")
 	if millbrook_entry.is_empty():
@@ -60,6 +60,7 @@ func _initialize() -> void:
 
 	_test_emberlode(terrain, entries)
 	_test_reddale(terrain, entries)
+	_test_silverhart(terrain, entries)
 	_test_old_mac_farmstead(terrain, entries)
 
 	var hollowmere_entry := _entry_by_id(entries, "hollowmere")
@@ -131,6 +132,33 @@ func _test_reddale(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
 	_check(not registry.get_character("corran_vale").is_empty(), "Emberlode NPC profile must resolve through the character registry")
 	_check(not registry.get_character("captain_ilsa_rennick").is_empty(), "Reddale NPC profile must resolve through the character registry")
 
+
+
+func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "silverhart")
+	_check(not entry.is_empty(), "Canonical Silverhart definition must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var layout: Dictionary = definition.get("layout", {})
+	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Silverhart must be owned by the streamed chunk presenter")
+	_check(layout.get("buildings", []).size() == 5, "Silverhart first structural phase must retain five source palace buildings")
+	_check(layout.get("paths", []).size() == 4, "Silverhart first structural phase must retain four authored approach/courtyard routes")
+	var expected_centres := {
+		"silverhart_grand_hall": Vector2i(8, -496),
+		"silverhart_barracks": Vector2i(22, -494),
+		"silverhart_council_chamber": Vector2i(-6, -494),
+		"silverhart_royal_wizard_tower": Vector2i(-7, -482),
+		"silverhart_queens_bedroom": Vector2i(8, -505)
+	}
+	for building_id in expected_centres:
+		var building := _find_record(layout.get("buildings", []), building_id)
+		_check(not building.is_empty(), "Silverhart source palace building must be present: " + building_id)
+		if not building.is_empty():
+			_assert_axial(building.get("center", {}), expected_centres[building_id], building_id + " source centre")
+			_check(BUILDING_FACTORY.supports_definition(building), "Silverhart building archetype must be supported: " + building_id)
+	_check(terrain.terrain_for_hex(Vector2i(8, -496)) == "authored", "Silverhart Grand Hall footprint must suppress procedural terrain")
+	_check(terrain.terrain_for_hex(Vector2i(8, -495)) == "path", "Silverhart palace approach must be indexed as authored path")
 
 func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
 	var entry := _entry_by_id(entries, "old_mac_farmstead")
