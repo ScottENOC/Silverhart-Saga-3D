@@ -17,6 +17,7 @@ func _initialize() -> void:
 	var down_to_hall: Dictionary = state.try_transition(-1, Vector2i(908, -610))
 	_check(bool(down_to_hall.get("ok", false)) and state.current_floor == -1, "The Gate Hall stair must reach the Great Hall")
 	_check(bool(state.try_transition(0, Vector2i(908, -610)).get("ok", false)), "The Great Hall stair must return to the Gate Hall")
+	_check(bool(state.try_transition(-1, Vector2i(908, -610)).get("ok", false)), "The Gate Hall stair must permit a return descent")
 	_check(bool(state.try_transition(-2, Vector2i(908, -626)).get("ok", false)), "The Great Hall stair must reach the Vault/Runeforge")
 	_check(bool(state.try_transition(-3, Vector2i(890, -627)).get("ok", false)), "The Runeforge stair must reach the Deep Mine")
 	_check(bool(state.try_transition(-4, Vector2i(890, -617)).get("ok", false)), "The mine stair must reach the Lower Tunnels")
