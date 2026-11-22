@@ -1,12 +1,14 @@
 extends SceneTree
 
 const TERRAIN_DATA = preload("res://scripts/world/campaign2_world_terrain_data.gd")
+const BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
+const CHARACTER_REGISTRY = preload("res://scripts/world/campaign2_character_definition_registry.gd")
 var failures: int = 0
 
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 	var entries: Array = terrain.settlement_layouts
-	_check(entries.size() == 2, "Canonical registry should expose Hollowmere and Millbrook")
+	_check(entries.size() == 5, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale and Old Mac's Farmstead")
 	var millbrook_entry := _entry_by_id(entries, "millbrook")
 	_check(not millbrook_entry.is_empty(), "Canonical Millbrook definition must be available")
 	if millbrook_entry.is_empty():
@@ -56,6 +58,10 @@ func _initialize() -> void:
 	_check(terrain.settlement_building_cells.has("1,-366"), "Canonical building occupancy must be indexed")
 	_check(terrain.settlement_path_cells.has("5,-366"), "Canonical path occupancy must be indexed")
 
+	_test_emberlode(terrain, entries)
+	_test_reddale(terrain, entries)
+	_test_old_mac_farmstead(terrain, entries)
+
 	var hollowmere_entry := _entry_by_id(entries, "hollowmere")
 	_check(not hollowmere_entry.is_empty(), "Canonical Hollowmere definition must remain available")
 	if not hollowmere_entry.is_empty():
@@ -70,6 +76,108 @@ func _initialize() -> void:
 		return
 	print("Canonical Campaign 2 settlement layout tests passed.")
 	quit(0)
+
+
+func _test_emberlode(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "emberlode")
+	_check(not entry.is_empty(), "Canonical Emberlode definition must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var layout: Dictionary = definition.get("layout", {})
+	_check(layout.get("buildings", []).size() == 3, "Emberlode must retain its foreman's hall, bunkhouse and mine entrance")
+	_check(layout.get("paths", []).size() == 2, "Emberlode must retain its two authored mine and bunkhouse approaches")
+	_check(definition.get("placements", {}).get("characters", []).size() == 3, "Emberlode must retain Corran, Bettina and Rennik")
+	_check(definition.get("interiors", []).size() == 3, "Emberlode must retain all three interior definitions")
+	var mine := _find_record(definition.get("interiors", []), "emberlode_mine_interior")
+	_check(mine.get("floors", []).size() == 3, "Emberlode mine must retain surface, -1 and -2 floors")
+	if mine.get("floors", []).size() == 3:
+		_check(String(mine.floors[1].get("objects", [])[0].get("ore_type", "")) == "ore_gold", "Working Vein must retain the gold ore node")
+		_check(String(mine.floors[2].get("objects", [])[0].get("ore_type", "")) == "gem_blue", "Old Seam must retain the blue gem node")
+		_check(mine.floors[2].get("creatures", []).size() == 2, "Old Seam must retain its two source spiders")
+	var actors: Array = definition.get("placements", {}).get("characters", [])
+	var ids: Dictionary = {}
+	for actor in actors:
+		ids[String(actor.get("character_id", ""))] = actor
+	_check(ids.has("corran_vale") and ids.has("bettina_marrow") and ids.has("rennik_coalmarrow"), "Emberlode character IDs must remain stable")
+	_check(terrain.terrain_for_hex(Vector2i(-256, 22)) == "authored", "Emberlode foreman's hall must suppress procedural terrain")
+	_check(terrain.terrain_for_hex(Vector2i(-252, 20)) == "path", "Emberlode mine approach must be indexed as a path")
+	var factory = BUILDING_FACTORY
+	for building in layout.get("buildings", []):
+		_check(factory.supports_definition(building), "Emberlode building archetype must be supported: " + String(building.get("id", "")))
+
+func _test_reddale(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "reddale")
+	_check(not entry.is_empty(), "Canonical Reddale definition must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var layout: Dictionary = definition.get("layout", {})
+	_check(layout.get("buildings", []).size() == 6, "Reddale must retain its guardhouse, reeve house, inn, guildhouse, manor and smithy")
+	_check(layout.get("paths", []).size() == 3, "Reddale must retain its authored road approaches")
+	_check(definition.get("placements", {}).get("characters", []).size() == 12, "Reddale must retain its twelve named surface NPC placements")
+	_check(definition.get("interiors", []).size() == 6, "Reddale must retain all six interior/service records")
+	var ids: Dictionary = {}
+	for actor in definition.get("placements", {}).get("characters", []):
+		ids[String(actor.get("character_id", ""))] = actor
+	for required_id in ["captain_ilsa_rennick", "watchman_bram_oswick", "reeve_aldous_finch", "nella_brook", "mira_selk", "mirella_thorn", "petra_voss", "osric_vane", "guild_watchman_corley", "baron_corwin_aldervale", "steward_halvard_greer", "torvald_anvik"]:
+		_check(ids.has(required_id), "Reddale must retain source NPC " + required_id)
+	_check(terrain.terrain_for_hex(Vector2i(134, 24)) == "authored", "Reddale guardhouse must suppress procedural terrain")
+	_check(terrain.terrain_for_hex(Vector2i(138, 22)) == "path", "Reddale reeve approach must be indexed as a path")
+	var factory = BUILDING_FACTORY
+	for building in layout.get("buildings", []):
+		_check(factory.supports_definition(building), "Reddale building archetype must be supported: " + String(building.get("id", "")))
+	var registry = CHARACTER_REGISTRY.new()
+	_check(not registry.get_character("corran_vale").is_empty(), "Emberlode NPC profile must resolve through the character registry")
+	_check(not registry.get_character("captain_ilsa_rennick").is_empty(), "Reddale NPC profile must resolve through the character registry")
+
+
+func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "old_mac_farmstead")
+	_check(not entry.is_empty(), "Canonical Old Mac's Farmstead definition must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var layout: Dictionary = definition.get("layout", {})
+	_check(layout.get("buildings", []).size() == 1, "Old Mac's Farmstead must retain its source farmhouse")
+	_check(layout.get("paths", []).size() == 1, "Old Mac's Farmstead must retain its short road spur")
+	_check(layout.get("fields", []).size() == 7, "Old Mac's pasture and six fence runs must survive canonical adaptation")
+	_check(layout.get("props", []).size() == 8, "The broken fence rail and seven blood-trail marks must be retained as quest props")
+	var blood_spatter_ids := [
+		"old_mac_blood_spatter_01", "old_mac_blood_spatter_02",
+		"old_mac_blood_spatter_03", "old_mac_blood_spatter_04",
+		"old_mac_blood_spatter_06", "old_mac_blood_spatter_08",
+		"old_mac_blood_spatter_10"
+	]
+	for index in range(blood_spatter_ids.size()):
+		var spatter := _find_record(layout.get("props", []), blood_spatter_ids[index])
+		_check(not spatter.is_empty(), "Source blood trail mark must be present: " + blood_spatter_ids[index])
+		if not spatter.is_empty():
+			var expected_q: int = [-10, -11, -12, -13, -15, -17, -19][index]
+			_assert_axial(spatter.get("anchor", {}), Vector2i(expected_q, 194), "Blood trail source step %s" % blood_spatter_ids[index])
+			var expected_visibility := "obvious" if index < 4 else "knowledge_nature"
+			_check(String(spatter.get("evidence_visibility", "")) == expected_visibility, "Blood trail evidence visibility must preserve source progression")
+	var farmhouse := _find_record(layout.get("buildings", []), "old_mac_farmhouse")
+	_assert_axial(farmhouse.get("center", {}), Vector2i(0, 194), "Old Mac farmhouse centre")
+	_assert_axial(farmhouse.get("door", {}), Vector2i(3, 194), "Old Mac farmhouse door")
+	var actor := _find_record(definition.get("placements", {}).get("characters", []), "old_mac")
+	_assert_axial(actor.get("position", {}), Vector2i(1, 194), "Old Mac source placement")
+	var sheep: Array = definition.get("placements", {}).get("creatures", [])
+	_check(sheep.size() == 2, "Old Mac's two source sheep must be retained as creature placements")
+	var sheep_a := _find_record(sheep, "OldMacSheepA")
+	var sheep_b := _find_record(sheep, "OldMacSheepB")
+	_check(String(sheep_a.get("kind", "")) == "sheep" and String(sheep_a.get("dialogue_id", "")) == "farm_sheep", "First sheep must retain its passive sheep profile and dialogue identity")
+	_check(String(sheep_b.get("kind", "")) == "sheep" and String(sheep_b.get("dialogue_id", "")) == "farm_sheep", "Second sheep must retain its passive sheep profile and dialogue identity")
+	_assert_axial(sheep_a.get("position", {}), Vector2i(-4, 193), "First sheep source position")
+	_assert_axial(sheep_b.get("position", {}), Vector2i(-5, 195), "Second sheep source position")
+	_check(terrain.terrain_for_hex(Vector2i(0, 194)) == "authored", "Old Mac farmhouse must suppress procedural terrain")
+	_check(terrain.terrain_for_hex(Vector2i(4, 194)) == "path", "Old Mac farmhouse spur must be indexed as a path")
+	_check(BUILDING_FACTORY.supports_definition(farmhouse), "Old Mac farmhouse must use the shared cottage archetype")
+	var npc_registry = CHARACTER_REGISTRY.new()
+	_check(String(npc_registry.get_character("old_mac").get("dialogue_id", "")) == "old_mac", "Old Mac identity must resolve from the character catalogue")
+	var materials: Dictionary = definition.get("presentation", {}).get("materials", {})
+	_check(materials.get("agriculture", {}).has("pasture") and materials.get("agriculture", {}).has("fence"), "Farmstead agriculture must have shared material bindings")
+	_check(layout.get("fields", []).size() > 0 and layout.fields[0].get("corners", []).size() == 4, "Pasture boundary must remain a four-corner authored polygon")
 
 func _entry_by_id(entries: Array, settlement_id: String) -> Dictionary:
 	for entry in entries:
@@ -90,3 +198,13 @@ func _check(condition: bool, message: String) -> void:
 	if not condition:
 		failures += 1
 		push_error(message)
+
+
+func _find_record(records: Array, record_id: String) -> Dictionary:
+	for record in records:
+		if not record is Dictionary:
+			continue
+		for key in ["id", "character_id", "building_id"]:
+			if String(record.get(key, "")) == record_id:
+				return record
+	return {}

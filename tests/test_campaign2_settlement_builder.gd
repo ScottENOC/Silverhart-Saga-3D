@@ -34,6 +34,96 @@ func _initialize() -> void:
 		quit(1)
 		return
 
+	# Source-authored Emberlode and Reddale exteriors and surface actors must
+	# appear in the chunks that own their original global axial coordinates.
+	var emberlode_west_chunk := Node3D.new()
+	root.add_child(emberlode_west_chunk)
+	builder.add_settlements_in_chunk(emberlode_west_chunk, Vector2i(-264, 0), 24)
+	for node_name in ["emberlode_foremans_hall", "emberlode_mine_entrance", "NPC_corran_vale"]:
+		if emberlode_west_chunk.get_node_or_null(node_name) == null:
+			push_error("Emberlode source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	var emberlode_east_chunk := Node3D.new()
+	root.add_child(emberlode_east_chunk)
+	builder.add_settlements_in_chunk(emberlode_east_chunk, Vector2i(-264, 24), 24)
+	for node_name in ["emberlode_bunkhouse", "NPC_bettina_marrow", "NPC_rennik_coalmarrow"]:
+		if emberlode_east_chunk.get_node_or_null(node_name) == null:
+			push_error("Emberlode source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+
+	var reddale_southwest_chunk := Node3D.new()
+	root.add_child(reddale_southwest_chunk)
+	builder.add_settlements_in_chunk(reddale_southwest_chunk, Vector2i(120, 0), 24)
+	for node_name in ["reddale_reeve_house", "NPC_reeve_aldous_finch"]:
+		if reddale_southwest_chunk.get_node_or_null(node_name) == null:
+			push_error("Reddale source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	var reddale_northwest_chunk := Node3D.new()
+	root.add_child(reddale_northwest_chunk)
+	builder.add_settlements_in_chunk(reddale_northwest_chunk, Vector2i(120, 24), 24)
+	for node_name in ["reddale_guardhouse", "reddale_inn", "reddale_smithy", "NPC_captain_ilsa_rennick", "NPC_watchman_bram_oswick", "NPC_nella_brook", "NPC_mira_selk", "NPC_mirella_thorn", "NPC_torvald_anvik"]:
+		if reddale_northwest_chunk.get_node_or_null(node_name) == null:
+			push_error("Reddale source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	var reddale_manor_chunk := Node3D.new()
+	root.add_child(reddale_manor_chunk)
+	builder.add_settlements_in_chunk(reddale_manor_chunk, Vector2i(144, 0), 24)
+	for node_name in ["reddale_baron_manor", "NPC_baron_corwin_aldervale", "NPC_steward_halvard_greer"]:
+		if reddale_manor_chunk.get_node_or_null(node_name) == null:
+			push_error("Reddale source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	var reddale_southeast_chunk := Node3D.new()
+	root.add_child(reddale_southeast_chunk)
+	builder.add_settlements_in_chunk(reddale_southeast_chunk, Vector2i(144, 24), 24)
+	for node_name in ["reddale_ironbond_guildhouse", "NPC_petra_voss", "NPC_osric_vane", "NPC_guild_watchman_corley"]:
+		if reddale_southeast_chunk.get_node_or_null(node_name) == null:
+			push_error("Reddale source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+
+	var farmstead_chunk := Node3D.new()
+	root.add_child(farmstead_chunk)
+	builder.add_settlements_in_chunk(farmstead_chunk, Vector2i(0, 192), 24)
+	for node_name in ["old_mac_farmhouse", "old_mac_farmhouse_road_spur_chunk_0", "NPC_old_mac"]:
+		if farmstead_chunk.get_node_or_null(node_name) == null:
+			push_error("Old Mac's source feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	var pasture_chunk := Node3D.new()
+	root.add_child(pasture_chunk)
+	builder.add_settlements_in_chunk(pasture_chunk, Vector2i(-24, 192), 24)
+	for node_name in ["old_mac_pasture", "old_mac_pasture_south_fence", "old_mac_pasture_west_fence_upper", "old_mac_pasture_west_fence_lower", "old_mac_broken_fence_rail", "old_mac_blood_spatter_01", "old_mac_blood_spatter_02", "old_mac_blood_spatter_03", "old_mac_blood_spatter_04", "old_mac_blood_spatter_06", "old_mac_blood_spatter_08", "old_mac_blood_spatter_10", "OldMacSheepA", "OldMacSheepB"]:
+		if pasture_chunk.get_node_or_null(node_name) == null:
+			push_error("Old Mac's source pasture feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	var pasture_north_chunk := Node3D.new()
+	root.add_child(pasture_north_chunk)
+	builder.add_settlements_in_chunk(pasture_north_chunk, Vector2i(-24, 168), 24)
+	for node_name in ["old_mac_pasture_north_fence", "old_mac_pasture_east_fence_upper"]:
+		if pasture_north_chunk.get_node_or_null(node_name) == null:
+			push_error("Old Mac's northern fence feature was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+	if pasture_chunk.get_node_or_null("old_mac_pasture_north_fence") != null:
+		push_error("Old Mac's northern fence must not be duplicated into the southern pasture chunk.")
+		quit(1)
+		return
+
+	# SceneTree._initialize runs before the first process frame; wait for the newly
+	# added CreatureActor nodes to enter the tree and execute _ready/_load_model.
+	await process_frame
+	var sheep_actor := pasture_chunk.get_node_or_null("OldMacSheepA") as CreatureActor
+	if sheep_actor == null or sheep_actor.model_root == null or sheep_actor.dialogue_id != "farm_sheep":
+		push_error("Old Mac's first sheep must load its generated 3D model and retain dialogue identity.")
+		quit(1)
+		return
+
 	# Hollowmere ecology is now chunk-owned. The wilderness deer starts in this
 	# chunk and its gameplay state must survive presentation teardown/rebuild.
 	var simulation := WorldSimulation.new()

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "coordinate_system": "local_axial_qr",
-  "source": "Hex-crpg Campaign 2 buildMillbrook() and campaign2Content.js",
+  "source": "Hex-crpg Campaign 2 source builders and campaign2Content.js; source-authored coordinates retained; Old Mac's Farmstead source builder",
   "settlements": [
     {
       "id": "millbrook",
@@ -156,6 +156,1417 @@
             }
           },
           "source": "campaign2Content.js:campaign2BorderWarQuartermaster"
+        }
+      ]
+    },
+    {
+      "id": "emberlode",
+      "name": "Emberlode",
+      "location_id": "emberlode",
+      "center": {
+        "q": -256,
+        "r": 22
+      },
+      "road_endpoint": {
+        "q": -252,
+        "r": 22
+      },
+      "source_builder": "campaign2World.js:buildEmberlode",
+      "buildings": [
+        {
+          "id": "emberlode_foremans_hall",
+          "kind": "foremans_hall",
+          "archetype": "manor",
+          "center": {
+            "q": -256,
+            "r": 22
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": -253,
+            "r": 22
+          },
+          "door_side": "east",
+          "features": [
+            "fireplace"
+          ],
+          "interior": {
+            "kind": "foremans_hall",
+            "floor": "wood"
+          },
+          "source": "campaign2World.js:buildEmberlode hallRegion"
+        },
+        {
+          "id": "emberlode_bunkhouse",
+          "kind": "bunkhouse",
+          "archetype": "cottage",
+          "center": {
+            "q": -252,
+            "r": 28
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": -252,
+            "r": 26
+          },
+          "door_side": "north",
+          "interior": {
+            "kind": "bunkhouse",
+            "floor": "wood"
+          },
+          "source": "campaign2World.js:buildEmberlode bunkRegion"
+        },
+        {
+          "id": "emberlode_mine_entrance",
+          "kind": "mine_entrance",
+          "archetype": "mine_entrance",
+          "center": {
+            "q": -252,
+            "r": 16
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": -252,
+            "r": 18
+          },
+          "door_side": "south",
+          "features": [
+            "ledger"
+          ],
+          "interior": {
+            "kind": "multi_level_mine",
+            "floors": [
+              0,
+              -1,
+              -2
+            ]
+          },
+          "source": "campaign2World.js:buildEmberlode mineRegion"
+        }
+      ],
+      "paths": [
+        {
+          "id": "emberlode_bunkhouse_road_link",
+          "kind": "road",
+          "from": {
+            "q": -252,
+            "r": 23
+          },
+          "to": {
+            "q": -252,
+            "r": 25
+          },
+          "source": "buildEmberlode bunkhouse approach"
+        },
+        {
+          "id": "emberlode_mine_road_link",
+          "kind": "road",
+          "from": {
+            "q": -252,
+            "r": 19
+          },
+          "to": {
+            "q": -252,
+            "r": 21
+          },
+          "source": "buildEmberlode mine approach"
+        }
+      ],
+      "npcs": [
+        {
+          "id": "corran_vale",
+          "name": "Corran Vale",
+          "title": "Foreman of Emberlode",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "sword_hit"
+          ],
+          "equipment": [
+            "sword",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "corran_vale",
+          "position": {
+            "q": -257,
+            "r": 22
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "bettina_marrow",
+          "name": "Bettina Marrow",
+          "title": "Miner",
+          "race": "dwarf",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [
+            "club"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "emberlode_miner",
+          "position": {
+            "q": -253,
+            "r": 28
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "rennik_coalmarrow",
+          "name": "Rennik Coalmarrow",
+          "title": "Fence",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "rogue"
+          ],
+          "skill_picks": [
+            "health",
+            "stealth_agility"
+          ],
+          "equipment": [
+            "dagger",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "thieves_guild_fence",
+          "position": {
+            "q": -251,
+            "r": 28
+          },
+          "source": "campaign2Content.js"
+        }
+      ],
+      "interiors": [
+        {
+          "id": "emberlode_foremans_hall_interior",
+          "building_id": "emberlode_foremans_hall",
+          "center": {
+            "q": -256,
+            "r": 22
+          },
+          "floor": 0,
+          "kind": "single_room",
+          "features": [
+            "fireplace"
+          ],
+          "source": "buildEmberlode hallRegion"
+        },
+        {
+          "id": "emberlode_bunkhouse_interior",
+          "building_id": "emberlode_bunkhouse",
+          "center": {
+            "q": -252,
+            "r": 28
+          },
+          "floor": 0,
+          "kind": "single_room",
+          "source": "buildEmberlode bunkRegion"
+        },
+        {
+          "id": "emberlode_mine_interior",
+          "building_id": "emberlode_mine_entrance",
+          "center": {
+            "q": -252,
+            "r": 16
+          },
+          "kind": "multi_level_mine",
+          "source": "campaign2World.js:buildEmberlode",
+          "floors": [
+            {
+              "floor": 0,
+              "terrain": "cave_floor",
+              "entrance": {
+                "q": -252,
+                "r": 18
+              },
+              "objects": [
+                {
+                  "type": "ledger",
+                  "id": "emberlode_ledger",
+                  "position": {
+                    "q": -252,
+                    "r": 16
+                  }
+                },
+                {
+                  "type": "stair_down",
+                  "to_floor": -1,
+                  "position": {
+                    "q": -252,
+                    "r": 15
+                  }
+                }
+              ]
+            },
+            {
+              "floor": -1,
+              "terrain": "cave_floor",
+              "objects": [
+                {
+                  "type": "ore_node",
+                  "ore_type": "ore_gold",
+                  "position": {
+                    "q": -252,
+                    "r": 16
+                  }
+                },
+                {
+                  "type": "stair_up",
+                  "to_floor": 0,
+                  "position": {
+                    "q": -252,
+                    "r": 15
+                  }
+                },
+                {
+                  "type": "stair_down",
+                  "to_floor": -2,
+                  "position": {
+                    "q": -252,
+                    "r": 17
+                  }
+                }
+              ]
+            },
+            {
+              "floor": -2,
+              "terrain": "cave_floor",
+              "objects": [
+                {
+                  "type": "ore_node",
+                  "ore_type": "gem_blue",
+                  "position": {
+                    "q": -252,
+                    "r": 16
+                  }
+                },
+                {
+                  "type": "stair_up",
+                  "to_floor": -1,
+                  "position": {
+                    "q": -252,
+                    "r": 17
+                  }
+                }
+              ],
+              "creatures": [
+                {
+                  "kind": "spider",
+                  "position": {
+                    "q": -253,
+                    "r": 16
+                  }
+                },
+                {
+                  "kind": "spider",
+                  "position": {
+                    "q": -251,
+                    "r": 16
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reddale",
+      "name": "Reddale",
+      "location_id": "reddale",
+      "center": {
+        "q": 138,
+        "r": 24
+      },
+      "road_endpoint": {
+        "q": 138,
+        "r": 24
+      },
+      "source_builder": "campaign2World.js:buildReddale",
+      "buildings": [
+        {
+          "id": "reddale_guardhouse",
+          "kind": "guardhouse",
+          "archetype": "guardhouse",
+          "center": {
+            "q": 134,
+            "r": 24
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 137,
+            "r": 24
+          },
+          "door_side": "east",
+          "features": [
+            "fireplace"
+          ],
+          "source": "buildReddale guardRegion"
+        },
+        {
+          "id": "reddale_reeve_house",
+          "kind": "reeve_house",
+          "archetype": "cottage",
+          "center": {
+            "q": 138,
+            "r": 18
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 138,
+            "r": 20
+          },
+          "door_side": "south",
+          "source": "buildReddale reeveRegion"
+        },
+        {
+          "id": "reddale_inn",
+          "kind": "inn",
+          "archetype": "inn",
+          "center": {
+            "q": 138,
+            "r": 30
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 138,
+            "r": 28
+          },
+          "door_side": "north",
+          "features": [
+            "fireplace"
+          ],
+          "source": "buildReddale innRegion"
+        },
+        {
+          "id": "reddale_ironbond_guildhouse",
+          "kind": "guildhouse",
+          "archetype": "shop",
+          "center": {
+            "q": 146,
+            "r": 34
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 143,
+            "r": 34
+          },
+          "door_side": "west",
+          "features": [
+            "fireplace"
+          ],
+          "source": "buildReddale guildRegion"
+        },
+        {
+          "id": "reddale_baron_manor",
+          "kind": "manor",
+          "archetype": "manor",
+          "center": {
+            "q": 146,
+            "r": 14
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 143,
+            "r": 14
+          },
+          "door_side": "west",
+          "features": [
+            "fireplace"
+          ],
+          "source": "buildReddale manorRegion"
+        },
+        {
+          "id": "reddale_smithy",
+          "kind": "smithy",
+          "archetype": "smithy",
+          "center": {
+            "q": 134,
+            "r": 32
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 137,
+            "r": 32
+          },
+          "door_side": "east",
+          "features": [
+            "fireplace"
+          ],
+          "source": "buildReddale smithyRegion"
+        }
+      ],
+      "paths": [
+        {
+          "id": "reddale_reeve_house_approach",
+          "kind": "road",
+          "from": {
+            "q": 138,
+            "r": 21
+          },
+          "to": {
+            "q": 138,
+            "r": 23
+          },
+          "source": "buildReddale reeve-house spur"
+        },
+        {
+          "id": "reddale_inn_approach",
+          "kind": "road",
+          "from": {
+            "q": 138,
+            "r": 25
+          },
+          "to": {
+            "q": 138,
+            "r": 27
+          },
+          "source": "buildReddale inn spur"
+        },
+        {
+          "id": "reddale_smithy_approach",
+          "kind": "road",
+          "from": {
+            "q": 134,
+            "r": 25
+          },
+          "to": {
+            "q": 134,
+            "r": 31
+          },
+          "source": "buildReddale smithy spur"
+        }
+      ],
+      "npcs": [
+        {
+          "id": "captain_ilsa_rennick",
+          "name": "Captain Ilsa Rennick",
+          "title": "Captain of the Watch",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "health",
+            "sword_hit",
+            "sword_dmg",
+            "heavy_armor_training",
+            "shield_proficiency"
+          ],
+          "equipment": [
+            "sword",
+            "wooden_shield",
+            "heavy_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "reddale_captain",
+          "position": {
+            "q": 133,
+            "r": 24
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "watchman_bram_oswick",
+          "name": "Watchman Bram Oswick",
+          "title": "Town Guard",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "spear_hit",
+            "spear_dmg",
+            "light_armor_training"
+          ],
+          "equipment": [
+            "spear",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "reddale_guard",
+          "position": {
+            "q": 135,
+            "r": 24
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "reeve_aldous_finch",
+          "name": "Reeve Aldous Finch",
+          "title": "Reeve of Reddale",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "reddale_reeve",
+          "position": {
+            "q": 138,
+            "r": 18
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "nella_brook",
+          "name": "Nella Brook",
+          "title": "Innkeeper",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "reddale_innkeeper",
+          "position": {
+            "q": 138,
+            "r": 30
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "mira_selk",
+          "name": "Mira Selk",
+          "title": "Fence",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "rogue"
+          ],
+          "skill_picks": [
+            "health",
+            "stealth_agility"
+          ],
+          "equipment": [
+            "dagger",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "thieves_guild_fence",
+          "position": {
+            "q": 137,
+            "r": 30
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "mirella_thorn",
+          "name": "Mirella Thorn",
+          "title": "Herbalist",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "necromancer_cult",
+          "dialogue_id": "reddale_disciple",
+          "position": {
+            "q": 139,
+            "r": 30
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "petra_voss",
+          "name": "Guildmaster Petra Voss",
+          "title": "Ironbond Factor",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [
+            "club"
+          ],
+          "side": "neutral",
+          "faction_id": "ironbond_company",
+          "dialogue_id": "reddale_guildmaster",
+          "position": {
+            "q": 146,
+            "r": 35
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "osric_vane",
+          "name": "Quartermaster Osric Vane",
+          "title": "Ironbond Quartermaster",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "ironbond_company",
+          "dialogue_id": "ironbond_merchant",
+          "position": {
+            "q": 147,
+            "r": 35
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "guild_watchman_corley",
+          "name": "Guild Watchman Corley",
+          "title": "Ironbond Watchman",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [
+            "club",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "ironbond_company",
+          "dialogue_id": "",
+          "position": {
+            "q": 145,
+            "r": 34
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "baron_corwin_aldervale",
+          "name": "Baron Corwin Aldervale",
+          "title": "Baron of Aldervale",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "sword_hit",
+            "sword_dmg"
+          ],
+          "equipment": [
+            "sword",
+            "medium_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "reddale_baron",
+          "position": {
+            "q": 146,
+            "r": 15
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "steward_halvard_greer",
+          "name": "Steward Halvard Greer",
+          "title": "Baron's Steward",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [
+            "sword",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "reddale_steward",
+          "position": {
+            "q": 145,
+            "r": 14
+          },
+          "source": "campaign2Content.js"
+        },
+        {
+          "id": "torvald_anvik",
+          "name": "Torvald Anvik",
+          "title": "Blacksmith",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [
+            "axe",
+            "medium_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "reddale_blacksmith",
+          "position": {
+            "q": 134,
+            "r": 33
+          },
+          "source": "campaign2Content.js"
+        }
+      ],
+      "interiors": [
+        {
+          "id": "reddale_guardhouse_interior",
+          "building_id": "reddale_guardhouse",
+          "center": {
+            "q": 134,
+            "r": 24
+          },
+          "floor": 0,
+          "kind": "guardhouse",
+          "features": [
+            "fireplace"
+          ],
+          "source": "buildReddale guardRegion"
+        },
+        {
+          "id": "reddale_reeve_house_interior",
+          "building_id": "reddale_reeve_house",
+          "center": {
+            "q": 138,
+            "r": 18
+          },
+          "floor": 0,
+          "kind": "residence",
+          "source": "buildReddale reeveRegion"
+        },
+        {
+          "id": "reddale_inn_interior",
+          "building_id": "reddale_inn",
+          "center": {
+            "q": 138,
+            "r": 30
+          },
+          "floor": 0,
+          "kind": "inn",
+          "features": [
+            "fireplace"
+          ],
+          "source": "buildReddale innRegion"
+        },
+        {
+          "id": "reddale_guildhouse_interior",
+          "building_id": "reddale_ironbond_guildhouse",
+          "center": {
+            "q": 146,
+            "r": 34
+          },
+          "floor": 0,
+          "kind": "guildhouse",
+          "features": [
+            "fireplace",
+            "table"
+          ],
+          "evidence": {
+            "id": "guild_ledgers",
+            "position": {
+              "q": 147,
+              "r": 33
+            }
+          },
+          "source": "buildReddale guildRegion"
+        },
+        {
+          "id": "reddale_manor_interior",
+          "building_id": "reddale_baron_manor",
+          "center": {
+            "q": 146,
+            "r": 14
+          },
+          "floor": 0,
+          "kind": "manor",
+          "features": [
+            "fireplace",
+            "table"
+          ],
+          "evidence": {
+            "id": "baron_tariffs",
+            "position": {
+              "q": 147,
+              "r": 13
+            }
+          },
+          "source": "buildReddale manorRegion"
+        },
+        {
+          "id": "reddale_smithy_interior",
+          "building_id": "reddale_smithy",
+          "center": {
+            "q": 134,
+            "r": 32
+          },
+          "floor": 0,
+          "kind": "smithy",
+          "features": [
+            "fireplace",
+            "bed"
+          ],
+          "service": {
+            "id": "blacksmith",
+            "inventory": [
+              "sword",
+              "axe",
+              "spear",
+              "medium_armor",
+              "nasal_helm",
+              "wooden_shield"
+            ]
+          },
+          "source": "buildReddale smithyRegion"
+        }
+      ]
+    },
+    {
+      "id": "old_mac_farmstead",
+      "name": "Old Mac's Farmstead",
+      "location_id": "old_mac_farmstead",
+      "center": {
+        "q": 0,
+        "r": 194
+      },
+      "road_endpoint": {
+        "q": 6,
+        "r": 194
+      },
+      "source_builder": "campaign2World.js:buildFarmstead",
+      "buildings": [
+        {
+          "id": "old_mac_farmhouse",
+          "kind": "house",
+          "archetype": "cottage",
+          "center": {
+            "q": 0,
+            "r": 194
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 3,
+            "r": 194
+          },
+          "door_side": "east",
+          "features": [],
+          "interior": {
+            "kind": "single_room",
+            "floor": "wood"
+          },
+          "source": "campaign2World.js:buildFarmstead carveBuilding(houseCenter,3,2)"
+        }
+      ],
+      "paths": [
+        {
+          "id": "old_mac_farmhouse_road_spur",
+          "kind": "road",
+          "from": {
+            "q": 4,
+            "r": 194
+          },
+          "to": {
+            "q": 5,
+            "r": 194
+          },
+          "source": "campaign2World.js:buildFarmstead door-to-road spur"
+        }
+      ],
+      "npcs": [
+        {
+          "id": "old_mac",
+          "name": "Old Mac",
+          "title": "Farmer",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [
+            "club"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "old_mac",
+          "position": {
+            "q": 1,
+            "r": 194
+          },
+          "source": "campaign2Content.js:campaign2OldMac"
+        }
+      ],
+      "fields": [
+        {
+          "id": "old_mac_pasture",
+          "feature_type": "field",
+          "corners": [
+            {
+              "q": -9,
+              "r": 190
+            },
+            {
+              "q": -3,
+              "r": 190
+            },
+            {
+              "q": -3,
+              "r": 198
+            },
+            {
+              "q": -9,
+              "r": 198
+            }
+          ],
+          "material": "pasture",
+          "elevation": -0.12,
+          "source": "campaign2World.js:buildFarmstead pasture bounds"
+        }
+      ],
+      "crop_rows": [],
+      "fences": [
+        {
+          "id": "old_mac_pasture_north_fence",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -9,
+              "r": 190
+            },
+            {
+              "q": -3,
+              "r": 190
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead pasture north boundary"
+        },
+        {
+          "id": "old_mac_pasture_south_fence",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -9,
+              "r": 198
+            },
+            {
+              "q": -3,
+              "r": 198
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead pasture south boundary"
+        },
+        {
+          "id": "old_mac_pasture_west_fence_upper",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -9,
+              "r": 190
+            },
+            {
+              "q": -9,
+              "r": 193
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead west fence; broken section below"
+        },
+        {
+          "id": "old_mac_pasture_west_fence_lower",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -9,
+              "r": 195
+            },
+            {
+              "q": -9,
+              "r": 198
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead west fence; broken section above"
+        },
+        {
+          "id": "old_mac_pasture_east_fence_upper",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -3,
+              "r": 190
+            },
+            {
+              "q": -3,
+              "r": 191
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead east fence outside farmhouse wall"
+        },
+        {
+          "id": "old_mac_pasture_east_fence_lower",
+          "feature_type": "fence",
+          "points": [
+            {
+              "q": -3,
+              "r": 197
+            },
+            {
+              "q": -3,
+              "r": 198
+            }
+          ],
+          "material": "fence",
+          "post_spacing": 2.5,
+          "source": "buildFarmstead east fence outside farmhouse wall"
+        }
+      ],
+      "props": [
+        {
+          "id": "old_mac_broken_fence_rail",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -9,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "FallenRail",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.12,
+                "z": 0
+              },
+              "size": {
+                "x": 1.4,
+                "y": 0.12,
+                "z": 0.14
+              },
+              "material": "fence"
+            }
+          ],
+          "source": "campaign2World.js:buildFarmstead brokenFenceHex"
+        },
+        {
+          "id": "old_mac_blood_spatter_01",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -10,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.42,
+                "y": 0.018,
+                "z": 0.28
+              },
+              "material": "blood"
+            }
+          ],
+          "evidence_visibility": "obvious",
+          "source": "campaign2World.js:buildFarmstead blood trail step 1"
+        },
+        {
+          "id": "old_mac_blood_spatter_02",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -11,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.42,
+                "y": 0.018,
+                "z": 0.28
+              },
+              "material": "blood"
+            }
+          ],
+          "evidence_visibility": "obvious",
+          "source": "campaign2World.js:buildFarmstead blood trail step 2"
+        },
+        {
+          "id": "old_mac_blood_spatter_03",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -12,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.42,
+                "y": 0.018,
+                "z": 0.28
+              },
+              "material": "blood"
+            }
+          ],
+          "evidence_visibility": "obvious",
+          "source": "campaign2World.js:buildFarmstead blood trail step 3"
+        },
+        {
+          "id": "old_mac_blood_spatter_04",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -13,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.42,
+                "y": 0.018,
+                "z": 0.28
+              },
+              "material": "blood"
+            }
+          ],
+          "evidence_visibility": "obvious",
+          "source": "campaign2World.js:buildFarmstead blood trail step 4"
+        },
+        {
+          "id": "old_mac_blood_spatter_06",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -15,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.22,
+                "y": 0.012,
+                "z": 0.16
+              },
+              "material": "blood_faint"
+            }
+          ],
+          "evidence_visibility": "knowledge_nature",
+          "source": "campaign2World.js:buildFarmstead blood trail step 6"
+        },
+        {
+          "id": "old_mac_blood_spatter_08",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -17,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.22,
+                "y": 0.012,
+                "z": 0.16
+              },
+              "material": "blood_faint"
+            }
+          ],
+          "evidence_visibility": "knowledge_nature",
+          "source": "campaign2World.js:buildFarmstead blood trail step 8"
+        },
+        {
+          "id": "old_mac_blood_spatter_10",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": -19,
+            "r": 194
+          },
+          "parts": [
+            {
+              "name": "BloodSpatter",
+              "type": "box",
+              "position": {
+                "x": 0,
+                "y": 0.012,
+                "z": 0
+              },
+              "size": {
+                "x": 0.22,
+                "y": 0.012,
+                "z": 0.16
+              },
+              "material": "blood_faint"
+            }
+          ],
+          "evidence_visibility": "knowledge_nature",
+          "source": "campaign2World.js:buildFarmstead blood trail step 10"
+        }
+      ],
+      "presentation": {
+        "palette": {
+          "path": "#6d5940",
+          "pasture": "#4d6335",
+          "fence": "#59402a",
+          "blood": "#641c19",
+          "blood_faint": "#4a2522"
+        },
+        "materials": {
+          "routes": {
+            "path": "path"
+          },
+          "agriculture": {
+            "pasture": "pasture",
+            "fence": "fence"
+          },
+          "props": {
+            "fence": "fence"
+          },
+          "quest_props": {
+            "fence": "fence",
+            "blood": "blood",
+            "blood_faint": "blood_faint"
+          }
+        }
+      },
+      "interiors": [
+        {
+          "id": "old_mac_farmhouse_interior",
+          "building_id": "old_mac_farmhouse",
+          "center": {
+            "q": 0,
+            "r": 194
+          },
+          "floor": 0,
+          "kind": "single_room",
+          "source": "campaign2World.js:buildFarmstead carveBuilding"
+        }
+      ],
+      "creatures": [
+        {
+          "id": "OldMacSheepA",
+          "kind": "sheep",
+          "behaviour": "farm",
+          "position": {
+            "q": -4,
+            "r": 193
+          },
+          "scale": 0.56,
+          "asset_path": "res://art/creatures/generated/Sheep.tscn",
+          "dialogue_id": "farm_sheep",
+          "source": "campaign2World.js:buildFarmstead sheep[0]"
+        },
+        {
+          "id": "OldMacSheepB",
+          "kind": "sheep",
+          "behaviour": "farm",
+          "position": {
+            "q": -5,
+            "r": 195
+          },
+          "scale": 0.56,
+          "asset_path": "res://art/creatures/generated/Sheep.tscn",
+          "dialogue_id": "farm_sheep",
+          "source": "campaign2World.js:buildFarmstead sheep[1]"
         }
       ]
     }

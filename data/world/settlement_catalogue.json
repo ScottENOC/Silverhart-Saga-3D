@@ -16,6 +16,33 @@
       "source_path": "res://data/world/campaign2_settlement_layouts.json",
       "source_collection": "settlements",
       "source_record_id": "millbrook"
+    },
+    {
+      "id": "emberlode",
+      "priority": 45,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "emberlode"
+    },
+    {
+      "id": "reddale",
+      "priority": 40,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "reddale"
+    },
+    {
+      "id": "old_mac_farmstead",
+      "priority": 35,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "old_mac_farmstead"
     }
   ]
 }

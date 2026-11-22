@@ -54,7 +54,7 @@ const SHAKEDOWN_SOLDIER_INTERIOR_FALLBACK_HEXES: Array[Vector2i] = [
 
 ## The farm-wolf quest is a dynamic encounter, but its den and initial
 ## formation are authored settlement locations rather than controller logic.
-const FARM_WOLF_DEN_HEX := Vector2i(-42, 72)
+const FARM_WOLF_DEN_HEX := Vector2i(-59, 204)
 const FARM_WOLF_SPAWN_OFFSETS: Array[Vector2i] = [
 	Vector2i(-1, -1), Vector2i(1, 0), Vector2i(0, 1)
 ]
