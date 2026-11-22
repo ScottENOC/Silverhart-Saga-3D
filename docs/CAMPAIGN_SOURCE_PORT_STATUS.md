@@ -42,7 +42,7 @@ Important source-specific rules retained in the data:
 - Relationship agreements record romantic exclusivity and sexual exclusivity separately. Breach handling preserves the different CNM, Aldric, Alden and Wren responses; Wren’s response receives her authored security value from the caller.
 - Unique personal-dialogue familiarity and shared-party-day familiarity have separate source-derived caps (60 and 50 respectively).
 
-The new class is deliberately not yet wired into `CharacterState`, `CampaignJournal`, the player save pipeline or the dialogue UI. That integration is a separate step and must be coordinated with the map/campaign architecture before altering shared runtime files.
+The companion relationship class is deliberately not yet wired into `CharacterState`, the player save pipeline or dialogue UI. The new non-companion model is also a separate serialisable owner and has an explicit approval/reputation synchronisation hand-off; it is not yet attached to the authoritative save owner. These integrations must be coordinated with the map/campaign architecture before altering shared runtime files.
 
 ## Source systems still requiring port work
 
@@ -54,11 +54,11 @@ The new class is deliberately not yet wired into `CharacterState`, `CampaignJour
 | `companionRelationships.js` | Familiarity, trust, conversation memory and clothing-boundary policy | Core relationship axes and unique conversation keys added; clothing-boundary baseline/enforcement remains unported. |
 | `companionRelationshipProgression.js` | Unique dialogue, shared time, trust events and Wren-specific story consequences | Only authored starting values and generic idempotent event APIs are in the new foundation. Full progression rules remain. |
 | `companionRomance.js` | Relationship interpretation, agreements, breach handling and Wren's love/desire conflict | Agreement data shape and authored voice-line/profile foundations are represented; interpretation, breach responses, reconciliation and Wren's authored conflict scenes remain. |
-| `companionQuestChains.js` | Multi-chapter personal quests with authored resolutions and arc changes | Not yet ported as a complete set. Existing 3D companion quests are initial recruitment hooks, not substitutes. |
+| `companionQuestChains.js` | Multi-chapter personal quests with authored resolutions and arc changes | All nine authored chapters and their dialogue/resolution data are now in `data/quests/companion_quest_chains.json`. `CompanionQuestChainState` handles prior-chapter gating, party presence, supporting-character consultation, companion-decided resolutions, journal completion, relationship/affinity effects, arc state, personality growth and chapter cooldowns. Runtime UI/event integration and earlier prerequisite companion arcs remain. |
 | `companionRelationshipMoments.js` | Contextual authored relationship scenes | Not yet ported. |
 | `companionMajorQuestReactivity.js` | Companion responses to major campaign decisions | Not yet ported comprehensively. |
 | `companionConversationMemory.js`, `persistentCharacterDialogueHooks.js` | Conversation/event memory and callbacks | Not yet ported comprehensively. |
-| `persistentCharacterRelationships.js` | Persistent non-companion relationship depth | Not yet ported. Existing NPC standing is only one dimension. |
+| `persistentCharacterRelationships.js` | Persistent non-companion relationship depth | A separate state model and tests now cover all nine authored NPC profiles, approval/standing conversion, familiarity, trust, friendship, idempotent conversations/events, history bounds and serialisation. Save-owner and dialogue integration remain. |
 | `persistentCharacterCrossReactivity.js`, `ordinaryDialogueConsequences.js` | NPC-to-NPC and ordinary dialogue consequences | Not yet ported comprehensively. |
 | `eventDrivenNpcSchedules.js`, `npcRoutineScheduler.js`, `civilianPersistence.js` | Schedules, persistent civilians and event-driven routine changes | Not yet ported comprehensively. |
 | `companionContextualBanter.js`, `characterBanter.js`, `ambientChatterRelationships.js` | Party banter and ambient conversation | Not yet ported comprehensively. |
@@ -70,9 +70,9 @@ The new class is deliberately not yet wired into `CharacterState`, `CampaignJour
 2. **Port Wren's opening relationship consequences.** The Ironbond choices must update Wren's approval, trust, friendship, romantic bond and attraction according to the original source tables, independently of faction/NPC reputation.
 3. **Port relationship progression and memory.** Unique personal conversations must not farm familiarity; trust changes only on authored reliability events; repeated event delivery/save-load must be idempotent.
 4. **Port romance semantics and agreements.** Implement interpretation, explicit consent/choice gates, separate romantic/sexual exclusivity, breach handling, reconciliation and Wren's specific love/desire conflict.
-5. **Port persistent non-companion relationships.** Important NPCs retain familiarity, trust, friendship and (only where authored) romantic/attraction dimensions while not spawned.
+5. **Port persistent non-companion relationships.** Important NPCs retain familiarity, trust, friendship and (only where authored) romantic/attraction dimensions while not spawned. The state model and source roster are now present; next integrate its reputation bridge and serialisation into the authoritative save owner.
 6. **Expand campaign dialogue and quest data.** Migrate the source trees branch by branch, preserving conditions, consequences, repeat dialogue and world-state memory.
-7. **Port companion quest chains and reactivity.** Preserve each companion's authored arc stats and resolution choices.
+7. **Port companion quest chains and reactivity.** The nine later personal-quest chapters are now data-backed and have a generic journal/state controller. The earlier chapter quests they depend on, world-event triggers, XP application, UI choices and authored major-quest reactivity still need porting.
 8. **Port schedules, banter and autonomous world agency.** Connect these to the agreed world event/location interfaces rather than scene-specific callbacks.
 
 ## Integration boundary
