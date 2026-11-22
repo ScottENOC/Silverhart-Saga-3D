@@ -16,6 +16,7 @@ var location_state: Campaign2MultiStoryLocationState
 var floor_groups: Dictionary = {}
 var floor_hexes: Dictionary = {}
 var floor_maps: Dictionary = {}
+var character_actor_nodes: Dictionary = {}
 var _active_floor_cells: Array[Vector2i] = []
 var _previous_map_cells: Dictionary = {}
 var _configured_location := false
@@ -63,6 +64,34 @@ func is_floor_visible(floor_number: int) -> bool:
 	var group := floor_groups.get(floor_number) as Node3D
 	return group != null and group.visible
 
+## Register an externally-owned player/companion actor so vertical floor changes
+## update its world height while its axial position remains on the shared stair.
+func register_character_actor(character_id: String, actor: Node3D) -> bool:
+	if character_id.strip_edges().is_empty() or actor == null or not is_instance_valid(actor):
+		return false
+	character_actor_nodes[character_id] = actor
+	_set_actor_floor_height(actor, get_current_floor())
+	return true
+
+func unregister_character_actor(character_id: String) -> void:
+	character_actor_nodes.erase(character_id)
+
+func _set_actor_floor_height(actor: Node3D, floor_number: int) -> void:
+	if actor == null or not is_instance_valid(actor):
+		return
+	var actor_position := actor.global_position
+	actor_position.y = global_position.y + float(floor_number) * FLOOR_HEIGHT + 0.1
+	actor.global_position = actor_position
+
+func _sync_registered_character_actor_floors(floor_number: int) -> void:
+	for character_id_variant in character_actor_nodes:
+		var character_id := String(character_id_variant)
+		var actor := character_actor_nodes[character_id] as Node3D
+		if actor == null or not is_instance_valid(actor):
+			character_actor_nodes.erase(character_id)
+			continue
+		_set_actor_floor_height(actor, floor_number)
+
 func has_floor_object(floor_number: int, object_id: String) -> bool:
 	var group := floor_groups.get(floor_number) as Node3D
 	if group == null:
@@ -106,6 +135,7 @@ func try_transition_at_stair(to_floor: int, stair_position: Vector2i) -> Diction
 
 func _on_state_floor_changed(previous_floor: int, current_floor: int, stair_position: Vector2i) -> void:
 	_activate_floor(current_floor)
+	_sync_registered_character_actor_floors(current_floor)
 	floor_changed.emit(String(definition.get("id", "")), previous_floor, current_floor, stair_position)
 
 func _on_transition_unlocked(location_id: String, _quest_id: String, transitions: Array[Dictionary]) -> void:
