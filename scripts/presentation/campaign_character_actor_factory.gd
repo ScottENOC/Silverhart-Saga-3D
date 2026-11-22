@@ -138,9 +138,7 @@ static func apply_npc_parameters(actor: Node3D, params: Dictionary) -> void:
 
 
 static func _safe_metadata_string(value: Variant, fallback: String = "") -> String:
-    if value is String:
-        return value
-    if value is StringName:
+    if value is String or value is StringName:
         return String(value)
     return fallback
 
