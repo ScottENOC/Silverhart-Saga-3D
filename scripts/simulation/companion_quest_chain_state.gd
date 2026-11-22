@@ -179,8 +179,8 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 
 	var arc_state: Dictionary = arc_states.get(companion_id, {})
 	for trait_value in effect.get("arc", {}).keys():
-		var trait := String(trait_value)
-		arc_state[trait] = float(arc_state.get(trait, 0.0)) + float(effect.arc[trait_value])
+		var arc_trait := String(trait_value)
+		arc_state[arc_trait] = float(arc_state.get(arc_trait, 0.0)) + float(effect.arc[trait_value])
 	arc_states[companion_id] = arc_state
 	var growth: Dictionary = personality_growth.get(companion_id, {})
 	for trait_pair_value in chapter.get("personality", []):
