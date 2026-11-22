@@ -126,7 +126,8 @@ static func create_building(parent: Node3D, settlement: Dictionary, definition: 
 		_build_mine_portal(root, config)
 	else:
 		_build_shell(root, config, definition)
-		_build_entrance(root, config, definition)
+		if bool(definition.get("door_enabled", true)):
+			_build_entrance(root, config, definition)
 		_build_windows(root, config, definition)
 		_build_roof(root, config)
 		if _has_feature(definition, "fireplace"):
