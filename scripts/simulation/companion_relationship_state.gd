@@ -219,6 +219,8 @@ func note_conversation(companion_id: String, conversation_key: String, familiari
 	if keys.has(conversation_key):
 		return {"ok": true, "changed": false, "state": snapshot(companion_id)}
 	keys.append(conversation_key)
+	if keys.size() > 80:
+		keys = keys.slice(keys.size() - 80)
 	state["known_conversation_keys"] = keys
 	states[companion_id] = state
 	var result := adjust(companion_id, {"familiarity": maxf(0.0, familiarity_gain)}, "conversation:" + conversation_key)
@@ -236,6 +238,8 @@ func record_event(companion_id: String, event_key: String, changes: Dictionary, 
 	if keys.has(event_key):
 		return {"ok": true, "changed": false, "state": snapshot(companion_id)}
 	keys.append(event_key)
+	if keys.size() > 100:
+		keys = keys.slice(keys.size() - 100)
 	state["known_event_keys"] = keys
 	states[companion_id] = state
 	var result := adjust(companion_id, changes, reason if not reason.is_empty() else "event:" + event_key)
@@ -253,6 +257,8 @@ func record_trust_event(companion_id: String, event_key: String, trust_delta: fl
 	if keys.has(event_key):
 		return {"ok": true, "changed": false, "state": snapshot(companion_id)}
 	keys.append(event_key)
+	if keys.size() > 80:
+		keys = keys.slice(keys.size() - 80)
 	state["known_trust_event_keys"] = keys
 	states[companion_id] = state
 	var result := adjust(companion_id, {"trust": trust_delta}, reason if not reason.is_empty() else "trust:" + event_key)
@@ -325,9 +331,10 @@ func get_relationship_state(companion_id: String) -> Dictionary:
 	var state := snapshot(companion_id)
 	if state.is_empty():
 		return {}
+	var agreement: Dictionary = state.get("agreement", {})
 	return {
 		"state": state,
-		"agreement": state.get("agreement", {}).duplicate(true),
+		"agreement": agreement.duplicate(true),
 		"interpretation": interpret_relationship(companion_id)
 	}
 
