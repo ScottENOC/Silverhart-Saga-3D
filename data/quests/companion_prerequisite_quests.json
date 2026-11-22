@@ -8,7 +8,6 @@
       "companion": "Fenn Oakheart",
       "companion_id": "fenn_oakheart",
       "chapter": 1,
-      "xp": 250,
       "description": "Find out what the changed drainage from Emberwood Grove is doing to Old Mac’s pasture, and decide with Fenn where the new boundary between farm and wetland should lie.",
       "opening": "Fenn has been quiet since the road passed near Emberwood. “The spring is running differently. Storm brought an alder down across the old channel, and the water’s spread into the low ground south of the grove. Nessa calls it a marsh now.” He glances toward the farm road. “That low ground keeps going. Straight into Mac’s pasture. I grew up being told that when water finds a new course, you listen before you move it back. I’m starting to think listening includes the people standing in it.”",
       "opening_choices": [
