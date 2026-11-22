@@ -141,6 +141,44 @@ func interact_with_stair(character_id: String) -> Dictionary:
 		return {"ok": false, "reason": "stair_occupied_or_unwalkable"}
 	return try_transition_at_stair(int(candidate.get("to_floor", 999999)), stair_hex)
 
+## Reveal a source-authored concealed door after the caller has completed its search/check.
+## The character must be beside the door; discovery is stored in the location state.
+func reveal_secret_door(character_id: String, secret_id: String) -> Dictionary:
+	if simulation == null or location_state == null:
+		return {"ok": false, "reason": "runtime_not_ready"}
+	var character := simulation.get_character(character_id)
+	if character == null:
+		return {"ok": false, "reason": "unknown_character"}
+	var secret_object: Dictionary = {}
+	var secret_floor := 999999
+	for floor_variant in definition.get("floors", []):
+		if not floor_variant is Dictionary:
+			continue
+		var floor_definition: Dictionary = floor_variant
+		for object_variant in floor_definition.get("tile_objects", []):
+			if not object_variant is Dictionary:
+				continue
+			var object_data: Dictionary = object_variant
+			if String(object_data.get("id", "")) == secret_id and String(object_data.get("type", "")) == "secret_door":
+				secret_object = object_data
+				secret_floor = int(floor_definition.get("floor", 999999))
+				break
+		if not secret_object.is_empty():
+			break
+	if secret_object.is_empty() or secret_floor != location_state.current_floor:
+		return {"ok": false, "reason": "secret_door_not_on_active_floor"}
+	var position_data: Dictionary = secret_object.get("position", {})
+	var secret_hex := Vector2i(int(position_data.get("q", 0)), int(position_data.get("r", 0)))
+	if HexGrid.distance(character.axial, secret_hex) > 1:
+		return {"ok": false, "reason": "secret_door_not_nearby"}
+	var discovery: Dictionary = location_state.discover_secret(secret_id)
+	if not bool(discovery.get("ok", false)):
+		return discovery
+	if not bool(discovery.get("already_discovered", false)):
+		_rebuild_floor_presentation(secret_floor)
+		_activate_floor(location_state.current_floor)
+	return {"ok": true, "already_discovered": bool(discovery.get("already_discovered", false)), "secret_id": secret_id}
+
 func try_transition_at_stair(to_floor: int, stair_position: Vector2i) -> Dictionary:
 	if location_state == null:
 		return {"ok": false, "reason": "runtime_not_ready"}
@@ -154,26 +192,31 @@ func _on_state_floor_changed(previous_floor: int, current_floor: int, stair_posi
 func _on_transition_unlocked(location_id: String, _quest_id: String, transitions: Array[Dictionary]) -> void:
 	if location_id != String(definition.get("id", "")):
 		return
-	var anchor_data: Dictionary = definition.get("anchor", {})
-	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
 	var rebuild_floors: Dictionary = {}
 	for transition in transitions:
 		rebuild_floors[int(transition.get("from_floor", 999999))] = true
 	for floor_number in rebuild_floors:
-		var old_group := floor_groups.get(floor_number) as Node3D
-		if old_group != null:
-			old_group.free()
-		floor_groups.erase(floor_number)
-		floor_hexes.erase(floor_number)
-		floor_maps.erase(floor_number)
-		var floor_definition := {}
-		for floor_variant in definition.get("floors", []):
-			if floor_variant is Dictionary and int(floor_variant.get("floor", 999999)) == int(floor_number):
-				floor_definition = floor_variant
-				break
-		if not floor_definition.is_empty():
-			_build_floor_presentation(floor_definition, anchor)
+		_rebuild_floor_presentation(int(floor_number))
 	_activate_floor(location_state.current_floor)
+
+func _rebuild_floor_presentation(floor_number: int) -> void:
+	_restore_active_map_cells()
+	var old_group := floor_groups.get(floor_number) as Node3D
+	if old_group != null:
+		old_group.free()
+	floor_groups.erase(floor_number)
+	floor_hexes.erase(floor_number)
+	floor_maps.erase(floor_number)
+	var floor_definition: Dictionary = {}
+	for floor_variant in definition.get("floors", []):
+		if floor_variant is Dictionary and int(floor_variant.get("floor", 999999)) == floor_number:
+			floor_definition = floor_variant
+			break
+	if floor_definition.is_empty():
+		return
+	var anchor_data: Dictionary = definition.get("anchor", {})
+	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
+	_build_floor_presentation(floor_definition, anchor)
 
 func _build_floor_presentations() -> void:
 	var anchor_data: Dictionary = definition.get("anchor", {})

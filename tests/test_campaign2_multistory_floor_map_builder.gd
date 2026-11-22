@@ -29,6 +29,22 @@ func _initialize() -> void:
 			var position: Dictionary = tile_object.get("position", {})
 			_check(map_data.is_walkable(Vector2i(int(position.get("q", 0)), int(position.get("r", 0)))), "Every tile object must be placed on a walkable floor hex")
 
+	var guild_definition: Dictionary = registry.get_definition("silverhart_thieves_guild")
+	var guild_state = LOCATION_STATE.new()
+	_check(bool(guild_state.configure(guild_definition).get("ok", false)), "Thieves' Guild state must configure with its hidden vault")
+	var concealed_guild: Dictionary = FLOOR_BUILDER.build_floor_map(guild_definition, 0, guild_state)
+	var concealed_map: HexMapData = concealed_guild.get("map_data") as HexMapData
+	_check(not _has_object(concealed_guild.get("tile_objects", []), "guild_hidden_vault_door"), "Undiscovered secret door must not be presented")
+	_check(not _has_object(concealed_guild.get("tile_objects", []), "guild_vault_chest"), "Undiscovered vault contents must not be presented")
+	_check(concealed_map.is_walkable(Vector2i(18, -426)), "The Guild's dead-end corridor must reach the concealed wall")
+	_check(not concealed_map.is_walkable(Vector2i(19, -426)) and not concealed_map.is_walkable(Vector2i(20, -426)), "Undiscovered vault must remain sealed and absent from the walkable map")
+	_check(bool(guild_state.discover_secret("guild_hidden_vault_door").get("ok", false)), "The Guild secret door must be discoverable in persistent location state")
+	var revealed_guild: Dictionary = FLOOR_BUILDER.build_floor_map(guild_definition, 0, guild_state)
+	var revealed_map: HexMapData = revealed_guild.get("map_data") as HexMapData
+	_check(_has_object(revealed_guild.get("tile_objects", []), "guild_hidden_vault_door"), "Discovered secret door must be presented")
+	_check(_has_object(revealed_guild.get("tile_objects", []), "guild_vault_chest"), "Discovered vault contents must be presented")
+	_check(revealed_map.is_walkable(Vector2i(19, -426)) and revealed_map.is_walkable(Vector2i(20, -426)), "Discovered vault must become walkable through its hidden door")
+
 	var gate_hall: Dictionary = FLOOR_BUILDER.build_floor_map(definition, 0, state)
 	var gate_map: HexMapData = gate_hall.get("map_data") as HexMapData
 	_check(gate_map.is_walkable(Vector2i(908, -605)), "The source Gate Hall entrance door must be walkable")

@@ -36,6 +36,23 @@ func _initialize() -> void:
 	_check(bool(restored.configure(definition, saved).get("ok", false)), "Location floor state must restore from its save representation")
 	_check(restored.current_floor == -5, "Save/load must preserve the current floor")
 	_check(restored.is_transition_available(-4, -5, Vector2i(890, -605)), "Save/load must preserve the revealed Sunken Deep passage")
+
+	var guild_definition: Dictionary = registry.get_definition("silverhart_thieves_guild")
+	var guild_state = LOCATION_STATE.new()
+	_check(bool(guild_state.configure(guild_definition).get("ok", false)), "Thieves' Guild state must configure its concealed vault")
+	_check(not bool(guild_state.discover_secret("unknown_secret").get("ok", false)), "Unknown secret doors must not be discoverable")
+	var secret_reveal: Dictionary = guild_state.discover_secret("guild_hidden_vault_door")
+	_check(bool(secret_reveal.get("ok", false)) and not bool(secret_reveal.get("already_discovered", true)), "Source hidden vault door must be discoverable once")
+	_check(bool(guild_state.discover_secret("guild_hidden_vault_door").get("already_discovered", false)), "Repeated secret discovery must be idempotent")
+	var guild_saved: Dictionary = guild_state.to_dict()
+	_check(guild_saved.get("discovered_secrets", []).has("guild_hidden_vault_door"), "Secret discovery must be included in the location save")
+	var guild_restored = LOCATION_STATE.new()
+	_check(bool(guild_restored.configure(guild_definition, guild_saved).get("ok", false)), "Guild secret state must restore from campaign save data")
+	_check(guild_restored.is_secret_discovered("guild_hidden_vault_door"), "Save/load must preserve discovered secret doors")
+	var invalid_secret_save := guild_saved.duplicate(true)
+	invalid_secret_save["discovered_secrets"] = ["not_a_real_secret"]
+	var invalid_secret_restore = LOCATION_STATE.new()
+	_check(not bool(invalid_secret_restore.configure(guild_definition, invalid_secret_save).get("ok", false)), "Unknown discovered secret IDs must be rejected during restore")
 	var invalid_save := saved.duplicate(true)
 	invalid_save["current_floor"] = -99
 	var rejected = LOCATION_STATE.new()

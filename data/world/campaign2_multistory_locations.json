@@ -1332,6 +1332,127 @@
       ],
       "transitions": [],
       "quest_gates": []
+    },
+    {
+      "id": "silverhart_thieves_guild",
+      "name": "Silverhart — Thieves' Guild and Hidden Vault",
+      "anchor": {
+        "q": 14,
+        "r": -426
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace thievesGuildCenter, vaultCenter and placeSecretDoor",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Thieves' Guild and concealed vault",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "thieves_guild",
+              "center": {
+                "q": 14,
+                "r": -426
+              },
+              "half_width": 3,
+              "half_height": 2
+            },
+            {
+              "id": "hidden_vault",
+              "center": {
+                "q": 21,
+                "r": -426
+              },
+              "half_width": 2,
+              "half_height": 2,
+              "hidden_by_secret": "guild_hidden_vault_door"
+            }
+          ],
+          "corridors": [
+            {
+              "id": "guild_vault_dead_end",
+              "from": {
+                "q": 16,
+                "r": -426
+              },
+              "to": {
+                "q": 18,
+                "r": -426
+              }
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "thieves_guild_front_door",
+              "type": "door_open",
+              "position": {
+                "q": 14,
+                "r": -428
+              }
+            },
+            {
+              "id": "guild_hidden_vault_door",
+              "type": "secret_door",
+              "position": {
+                "q": 19,
+                "r": -426
+              },
+              "hidden": true,
+              "concealment": 75,
+              "discovery_message": "A section of the wall doesn't quite match the rest — a hidden door swings open onto a guild vault."
+            },
+            {
+              "id": "guild_vault_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 21,
+                "r": -426
+              },
+              "light_radius": 6,
+              "lit": false,
+              "hidden_by_secret": "guild_hidden_vault_door"
+            },
+            {
+              "id": "guild_vault_chest",
+              "type": "storage_chest",
+              "position": {
+                "q": 22,
+                "r": -426
+              },
+              "items": [
+                "gem_blue",
+                "gem_red",
+                "silvertongue_ring"
+              ],
+              "hidden_by_secret": "guild_hidden_vault_door"
+            }
+          ],
+          "actors": [
+            {
+              "id": "tessa_nightshade",
+              "name": "Tessa Nightshade",
+              "role": "thieves_guild_fence",
+              "dialogue_id": "thieves_guild_fence",
+              "position": {
+                "q": 14,
+                "r": -425
+              }
+            },
+            {
+              "id": "corvin_ashe_guildmaster",
+              "name": "Corvin Ashe",
+              "role": "thieves_guildmaster",
+              "dialogue_id": "thieves_guildmaster",
+              "position": {
+                "q": 13,
+                "r": -426
+              }
+            }
+          ],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
     }
   ]
 }
