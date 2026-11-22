@@ -72,8 +72,10 @@ func apply_dialogue_choice(relationships: PersistentCharacterRelationshipState, 
 	var key := String(option.get("persistent_conversation_key", ""))
 	if key.is_empty():
 		return {"ok":true,"changed":false,"relationship":relationships.snapshot(character_id)}
+	var before := relationships.snapshot(character_id)
 	var delta: Dictionary = option.get("persistent_conversation_delta", {"familiarity":1})
-	return {"ok":true,"changed":true,"relationship":relationships.note_conversation(character_id, key, delta)}
+	var updated := relationships.note_conversation(character_id, key, delta)
+	return {"ok":true,"changed":before != updated,"relationship":updated}
 
 
 func seraphine_personal_response(relationships: PersistentCharacterRelationshipState) -> Dictionary:
