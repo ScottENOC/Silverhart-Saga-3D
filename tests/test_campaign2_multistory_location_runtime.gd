@@ -66,6 +66,21 @@ func _run() -> void:
     _check(restored_runtime.get_current_floor() == -5, "Save/load must restore the current underground floor")
     _check(restored_runtime.is_floor_visible(-5), "Save/load must restore the visible floor presentation")
 
+    # Silverhart's source-authored Grand Hall has a gallery on the floor above.
+    # Keep its separate floor stack in the same generic runtime used by Kragmoor.
+    var palace_load: Dictionary = LOCATION_LOADER.load_multistory_location(root, "silverhart_palace", restored_simulation)
+    _check(bool(palace_load.get("ok", false)), "Shared location loader must instantiate Silverhart Palace from the source floor registry")
+    var palace_runtime = palace_load.get("runtime")
+    _check(palace_runtime != null and palace_runtime.get_current_floor() == 0, "Silverhart Palace must begin on the Grand Hall floor")
+    if palace_runtime != null:
+        _check(palace_runtime.get_floor_tile_count(0) > 0 and palace_runtime.get_floor_tile_count(1) > 0, "Grand Hall and gallery must both build walkable floor geometry")
+        _check(palace_runtime.is_floor_visible(0) and not palace_runtime.is_floor_visible(1), "Only the Grand Hall may be visible on entry")
+        _check(palace_runtime.has_floor_object(0, "throne"), "The source throne must be presented in the Grand Hall")
+        _check(palace_runtime.has_floor_object(0, "grand_hall_front_door"), "The source Grand Hall entrance must be retained")
+        _check(bool(palace_runtime.try_transition_at_stair(1, Vector2i(8, -496)).get("ok", false)), "The Grand Hall stair must reach the gallery")
+        _check(palace_runtime.get_current_floor() == 1 and palace_runtime.is_floor_visible(1), "Gallery traversal must switch the active floor")
+        _check(bool(palace_runtime.try_transition_at_stair(0, Vector2i(8, -496)).get("ok", false)), "The gallery stair must return to the Grand Hall")
+
     if failures > 0:
         push_error("%d multi-story runtime integration test(s) failed." % failures)
         quit(1)
