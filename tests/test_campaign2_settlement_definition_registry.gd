@@ -26,7 +26,7 @@ func _test_catalogue_loads_both_source_formats() -> void:
 	_check(hollowmere.get("layout", {}).get("buildings", []).size() == 7, "Hollowmere canonical definition should include all buildings")
 	_check(millbrook.get("layout", {}).get("buildings", []).size() == 1, "Millbrook canonical definition should include its authored house")
 	_check(millbrook.get("placements", {}).get("characters", []).size() == 2, "Millbrook canonical definition should expose placements only")
-	_check(silverhart.get("layout", {}).get("buildings", []).size() == 5, "Silverhart canonical definition should expose all five source palace buildings")
+	_check(silverhart.get("layout", {}).get("buildings", []).size() == 40, "Silverhart canonical definition should expose the current palace, districts, middle ring and Warrens building set")
 
 func _test_resolution_uses_explicit_origin_and_bounds() -> void:
 	var registry = REGISTRY.new()
