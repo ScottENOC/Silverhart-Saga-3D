@@ -22,7 +22,7 @@ text = text.replace(signature, "function bikiniTop(g: GCtx, st: GarmentStyle, la
 old = """  if (cupMeshes.length) {
     parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!, material: { ...m, doubleSided: true }, hides });
     // Piping along the cups' edges, on the fabric.
-    parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: stringMat(st) });
+    parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: strapMaterial });
   }"""
 new = """  if (cupMeshes.length) {
     if (lace) {
@@ -51,7 +51,7 @@ new = """  if (cupMeshes.length) {
     } else {
       parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!, material: { ...m, doubleSided: true }, hides });
       // Piping along the cups' edges, on the fabric.
-      parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: stringMat(st) });
+      parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: strapMaterial });
     }
   }"""
 if text.count(old) != 1:
