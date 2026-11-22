@@ -267,7 +267,7 @@ func start_prerequisite(quest_id: String, journal: CampaignJournal, party_ids: A
 	return {"ok":true,"quest_id":quest_id,"quest":definition.duplicate(true),"quest_state":journal.quest_state(quest_id)}
 
 
-func add_prerequisite_clue(quest_id: String, clue_id: String, source: String, journal: CampaignJournal, world_seconds: float = 0.0) -> Dictionary:
+func add_prerequisite_clue(quest_id: String, clue_id: String, source: String, journal: CampaignJournal, world_seconds: float = 0.0, capabilities: Array[String] = []) -> Dictionary:
 	var definition: Dictionary = prerequisite_quests.get(quest_id, {})
 	if definition.is_empty() or journal == null:
 		return {"ok":false,"reason":"unknown_quest_or_missing_journal"}
@@ -281,6 +281,9 @@ func add_prerequisite_clue(quest_id: String, clue_id: String, source: String, jo
 	if clues.has(clue_id):
 		return {"ok":true,"changed":false,"clue":clues[clue_id].duplicate(true)}
 	var clue: Dictionary = clue_definitions[clue_id]
+	var skill_gate := String(clue.get("skill_gate", ""))
+	if skill_gate == "nature_or_perception" and not capabilities.has("nature") and not capabilities.has("perception"):
+		return {"ok":false,"reason":"skill_gate_not_met","required_capability":"nature_or_perception"}
 	clues[clue_id] = {
 		"found":true,
 		"source":source,
