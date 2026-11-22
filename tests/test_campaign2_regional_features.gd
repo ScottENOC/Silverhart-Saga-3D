@@ -81,6 +81,9 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(-252, 928)) == "path", "Elven capital north approach must start outside the tree clearing")
 	_check(terrain.terrain_for_hex(Vector2i(-252, 907)) == "path", "Elven capital north approach must reach its source endpoint")
 
+	_check(terrain.terrain_for_hex(Vector2i(-12, -8)) == "wood_floor", "Hollowmere Guild Den must retain its source timber floor")
+	_check(terrain.terrain_for_hex(Vector2i(-12, -6)) == "path", "Hollowmere Guild Den south door must remain open")
+
 	# Surface footprints for the abandoned house, crypt/barrow chain,
 	# chapterhouse, Thieves' Cove and Emberlode Mine.
 	_check(terrain.terrain_for_hex(Vector2i(14, -176)) == "wood_floor", "Abandoned House must retain its source timber floor")
