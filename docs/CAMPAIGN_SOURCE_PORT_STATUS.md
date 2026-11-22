@@ -28,7 +28,7 @@ Added `scripts/simulation/companion_relationship_state.gd`, based on the origina
 - `companionRelationshipProgression.js`
 - `companionRomance.js`
 
-It preserves separate axes for approval, familiarity, trust, friendship, romantic bond and attraction. It also carries authored presentation-dependent hard caps, companion-specific relationship styles, explicit agreements, idempotent conversation/event keys, bounded history and save/load support.
+It preserves separate axes for approval, familiarity, trust, friendship, romantic bond and attraction. It also carries authored presentation-dependent hard caps, companion-specific relationship styles, explicit agreements and breach responses, relationship interpretation/voice lines, idempotent conversation/event keys, bounded history and save/load support. Wren’s original shakedown, goblin-favour, goblin-resolution, personal-dialogue and parents-search affinity/disposition consequences are also migrated as keyed events.
 
 The six companions with authored affinity/romance profiles in the source are Wren Talbot, Ser Aldric Thorne, Fenn Oakheart, Reyna Fletcher, Mirabel Quill and Brother Alden. The source's other two recruitable companions, Warlord Grukk Ironhide and Snik Fangtooth, do not have equivalent profiles in `companionAffinity.js`; this port does not invent romance profiles for them.
 
@@ -39,7 +39,8 @@ Important source-specific rules retained in the data:
 - Fenn, Reyna and Mirabel have open relationship styles and authored casual/FWB/group-relationship support; their attraction/romantic caps differ by character.
 - Brother Alden has zero attraction caps but can form romantic bonds. His sexual exclusivity is open while romantic exclusivity is exclusive.
 - Attraction, romantic bond, friendship, approval, familiarity and trust are not interchangeable. A threshold or accumulated meter is not consent.
-- Relationship agreements record romantic exclusivity and sexual exclusivity separately.
+- Relationship agreements record romantic exclusivity and sexual exclusivity separately. Breach handling preserves the different CNM, Aldric, Alden and Wren responses; Wren’s response receives her authored security value from the caller.
+- Unique personal-dialogue familiarity and shared-party-day familiarity have separate source-derived caps (60 and 50 respectively).
 
 The new class is deliberately not yet wired into `CharacterState`, `CampaignJournal`, the player save pipeline or the dialogue UI. That integration is a separate step and must be coordinated with the map/campaign architecture before altering shared runtime files.
 
