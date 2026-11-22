@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Apply the project-local halter-lace garment extension to the pinned Ara source.
-
-The upstream repository is cloned at a fixed commit by the Wren Workshop workflow.
-This patch is deliberately narrow and fails closed if upstream code has drifted.
-"""
+"""Apply the project-local halter-lace garment extension to the pinned Ara source."""
 from pathlib import Path
 import sys
 
@@ -18,17 +14,20 @@ signature = "function bikiniTop(g: GCtx, st: GarmentStyle): GPart[] {"
 if text.count(signature) != 1:
     raise SystemExit("Expected exactly one pinned Ara bikiniTop signature; refusing to patch.")
 text = text.replace(signature, "function bikiniTop(g: GCtx, st: GarmentStyle, lace = false): GPart[] {", 1)
+text = text.replace(
+    "  const m = swimMat(g, 'Bikini top', st);",
+    "  const m = swimMat(g, 'Bikini top', st);\n  const strapMaterial = lace ? mat('Bikini strings', null, { color: '#3b2529', roughness: 0.72 }) : stringMat(st);",
+    1,
+)
 
 old = """  if (cupMeshes.length) {
     parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!, material: { ...m, doubleSided: true }, hides });
     // Piping along the cups' edges, on the fabric.
-    parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: strapMaterial });
+    parts.push({ mesh: merge(cupMeshes.map((gr) => cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.06))), cm(0.1), true, 5)))!, material: stringMat(st) });
   }"""
 new = """  if (cupMeshes.length) {
     if (lace) {
-      // Real openwork: two crossing families of fine cords follow the curved cup surface.
-      // There is deliberately no fabric panel behind them, so the skin remains visible
-      // through the diamond openings instead of relying on a transparent texture.
+      // Openwork lace: two crossing families of cords follow each curved cup.
       const laceStrands: PolyMesh[] = [];
       for (const gr of cupMeshes) {
         const rows = gr.length, cols = gr[0]?.length ?? 0;
@@ -43,7 +42,6 @@ new = """  if (cupMeshes.length) {
           if (down.length > 1) laceStrands.push(cord(down, cm(0.30), false, 6));
           if (up.length > 1) laceStrands.push(cord(up, cm(0.30), false, 6));
         }
-        // A fine scalloped-looking continuous edge keeps the open cups readable in profile.
         laceStrands.push(cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.10))), cm(0.22), true, 6));
       }
       const openwork = merge(laceStrands);
@@ -55,15 +53,17 @@ new = """  if (cupMeshes.length) {
     }
   }"""
 if text.count(old) != 1:
-    raise SystemExit("Expected exactly one pinned Ara cup-mesh block; refusing to patch.")
+    raise SystemExit("Expected exactly one pinned Ara bikiniTop cup-mesh block; refusing to patch.")
 text = text.replace(old, new, 1)
+# The shared back band, sternum bridge and halter straps use the same dark lace finish.
+start = text.index("function bikiniTop")
+end = text.index("function bikiniBottom", start)
+text = text[:start] + text[start:end].replace("material: stringMat(st)", "material: strapMaterial") + text[end:]
 
-entry = """  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },
-"""
+entry = "  { id: 'bikini_top', label: 'Bikini top (triangle)', slot: 'top', patterns: ['foil', 'solid', 'ankara', 'leopard'], color: '#c9963a', color2: '#fff1c4', build: bikiniTop },\n"
 if text.count(entry) != 1:
     raise SystemExit("Expected exactly one pinned Ara bikini_top catalog entry; refusing to patch.")
-text = text.replace(entry, entry + """  { id: 'halter_bra_lace', label: 'Halter bra (open lace)', slot: 'top', patterns: ['solid'], color: '#3b2529', color2: '#d6b5a5', build: (g, st) => bikiniTop(g, st, true) },
-""", 1)
+text = text.replace(entry, entry + "  { id: 'halter_bra_lace', label: 'Halter bra (open lace)', slot: 'top', patterns: ['solid'], color: '#3b2529', color2: '#d6b5a5', build: (g, st) => bikiniTop(g, st, true) },\n", 1)
 
 source.write_text(text, encoding="utf-8")
-print("Added halter_bra_lace as an independent top garment with open lace geometry.")
+print("Added halter_bra_lace with visible openwork cups and matching dark halter/band.")
