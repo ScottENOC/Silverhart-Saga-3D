@@ -3,7 +3,7 @@
 The mons, labial folds, clitoral structures, vestibule and external openings
 are surface deformations of the original skin mesh. Its material, UVs, vertex
 groups and rig remain in place; no genital object is attached. This is an
-anatomy sculpt pass requiring multi-angle visual review before acceptance.
+anatomy sculpt pass requiring multi-angle visual review before acceptance.\nFor comparison, apply this pass to the neutral Ara source mesh, never to an already-sculpted Wren export.
 On clothed exports, lower garments are fitted around the deformed body surface.
 
 Ara GLB axes after Blender import: Z up, character facing -Y.
