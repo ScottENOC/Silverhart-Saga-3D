@@ -184,4 +184,6 @@ jobs:
           git add art/characters/ara_runtime/ara_player_male_body.glb art/characters/ara_runtime/ara_player_male_body.glb.import
           git add art/characters/ara_runtime/manifest.json
           git commit -m "Build player bodies with current gendered anatomy"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
