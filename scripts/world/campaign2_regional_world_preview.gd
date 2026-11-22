@@ -425,7 +425,7 @@ func _request_travel_to_screen_position(screen_position: Vector2) -> void:
 	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
 	if player_state == null:
 		return
-	var ground_height := terrain_data.elevation_for_hex(player_state.axial)
+	var ground_height := _world_position_for_hex(player_state.axial).y
 	var hit: Variant = Plane(Vector3.UP, ground_height).intersects_ray(ray_origin, ray_direction)
 	if hit == null:
 		return
