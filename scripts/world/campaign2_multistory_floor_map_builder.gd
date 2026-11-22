@@ -35,11 +35,13 @@ static func build_floor_map(
 		var position := _position_from(tile_object.get("position", {}))
 		if not _is_valid_position(position):
 			return {"ok": false, "reason": "tile_object_missing_position"}
+		var hidden_by_secret := String(tile_object.get("hidden_by_secret", "")).strip_edges()
 		if String(tile_object.get("type", "")) == "secret_door" and bool(tile_object.get("hidden", true)):
-			var secret_id := String(tile_object.get("id", ""))
-			if not _is_secret_discovered(location_state, secret_id):
+			hidden_by_secret = String(tile_object.get("id", ""))
+		if not hidden_by_secret.is_empty() and not _is_secret_discovered(location_state, hidden_by_secret):
+			if String(tile_object.get("type", "")) == "secret_door":
 				wall_cells[position] = true
-				continue
+			continue
 		floor_cells[position] = true
 		wall_cells.erase(position)
 		tile_objects.append(tile_object)
