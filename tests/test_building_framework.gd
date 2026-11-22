@@ -100,6 +100,7 @@ func _test_building_layout_registration() -> void:
     var simulation = WORLD_SIM_SCRIPT.new()
     simulation.map_data.add_cell(Vector2i.ZERO, 0.0, true, "grass")
     simulation.map_data.add_cell(Vector2i(0, 1), 0.0, true, "path")
+    simulation.map_data.add_cell(Vector2i(0, 2), 0.0, true, "grass")
     var building_definition := {
         "id": "test_inn",
         "name": "Test Inn",
@@ -123,17 +124,20 @@ func _test_building_layout_registration() -> void:
     assert(not simulation.building_registry.get_door("test_inn_front").is_passable())
     assert(not simulation.map_data.is_walkable(Vector2i(0, 1)), "A closed starting door must block its map cell.")
     assert(bool(simulation.map_data.cells[Vector2i(0, 1)].get("blocks_vision", false)), "A closed door must block line of sight through its hex.")
+    assert(not VisionRules.has_line_of_sight(simulation.map_data, Vector2i.ZERO, Vector2i(0, 2)), "A closed door must obstruct a ray through its hex.")
     var door_id := "test_inn_front"
     assert(not simulation.building_registry.set_door_open(door_id, true), "A locked door cannot be opened.")
     assert(simulation.building_registry.unlock_door(door_id))
     assert(simulation.building_registry.set_door_open(door_id, true))
     assert(simulation.map_data.is_walkable(Vector2i(0, 1)), "Opening a door must immediately restore movement.")
     assert(not bool(simulation.map_data.cells[Vector2i(0, 1)].get("blocks_vision", true)), "Opening a door must immediately restore line of sight.")
+    assert(VisionRules.has_line_of_sight(simulation.map_data, Vector2i.ZERO, Vector2i(0, 2)), "An open door must allow a ray through its hex.")
     assert(simulation.building_registry.set_door_open(door_id, false))
     assert(not simulation.map_data.is_walkable(Vector2i(0, 1)), "Closing a door must immediately block movement again.")
     assert(simulation.building_registry.damage_door(door_id, 30))
     assert(simulation.map_data.is_walkable(Vector2i(0, 1)), "Breaking a door must leave its hex passable.")
     assert(not bool(simulation.map_data.cells[Vector2i(0, 1)].get("blocks_vision", true)), "A broken doorway must not block line of sight.")
+    assert(VisionRules.has_line_of_sight(simulation.map_data, Vector2i.ZERO, Vector2i(0, 2)), "A broken doorway must allow a ray through its hex.")
     assert(simulation.map_data.is_walkable(Vector2i(100, 100)))
     assert(not simulation.map_data.is_walkable(Vector2i(101, 100)))
     assert(is_equal_approx(simulation.map_data.elevation_at(Vector2i(100, 100)), 3.38))
