@@ -38,8 +38,8 @@ func _initialize() -> void:
 	# Sil'thandriel's canopy has an explicit grass arrival clearing, a dense
 	# source-noise woodland band, a foliage perimeter and a north approach.
 	_check(terrain.terrain_for_hex(Vector2i(-252, 934)) == "grass", "Elven capital must retain its arrival clearing")
-	_check(terrain.terrain_for_hex(Vector2i(-252, 916)) == "forest", "Elven capital outer canopy ring must be forest")
-	_check(terrain.terrain_for_hex(Vector2i(-252, 925)) == "forest", "Elven canopy's dense middle band must retain a source foliage cell")
+	_check(terrain.terrain_for_hex(Vector2i(-252, 916)) == "path", "Elven capital north approach must cut through the canopy ring")
+	_check(terrain.terrain_for_hex(Vector2i(-252, 923)) == "forest", "Elven canopy dense middle band must retain a source foliage cell")
 	_check(terrain.terrain_for_hex(Vector2i(-265, 934)) == "grass", "Elven canopy's sparse middle-band cells must remain clearing gaps")
 	_check(terrain.terrain_for_hex(Vector2i(-252, 928)) == "path", "Elven capital north approach must start outside the tree clearing")
 	_check(terrain.terrain_for_hex(Vector2i(-252, 907)) == "path", "Elven capital north approach must reach its source endpoint")
