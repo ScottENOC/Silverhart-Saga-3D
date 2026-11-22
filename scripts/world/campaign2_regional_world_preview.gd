@@ -245,7 +245,6 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 		surface.set_material(materials[terrain])
 		tools[terrain] = surface
 	var chunk_min := chunk * CHUNK_SIZE
-	var vegetation_placements: Array[Dictionary] = []
 	_populate_chunk_gameplay_cells(chunk)
 	for q in range(chunk_min.x, chunk_min.x + CHUNK_SIZE):
 		for r in range(chunk_min.y, chunk_min.y + CHUNK_SIZE):
@@ -256,24 +255,7 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 			var elevation := terrain_data.elevation_for_hex(hex)
 			var wall_height := WALL_FEATURE_FACTORY.height_for_terrain(terrain)
 			_add_hex_to_surface(tools[terrain] as SurfaceTool, hex, elevation + wall_height)
-			if terrain_data.has_tree(hex) and terrain_data.settlement_definition_registry.resolve(hex).is_empty():
-				var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
-				var size_roll := LOCAL_TERRAIN_RULES.stable_roll(hex, 2909)
-				var near_stream := HEARTLAND_BIOMES.is_near_stream(
-					hex,
-					6.0,
-					REGIONAL_HYDROLOGY.stream_centre_r(hex.x)
-				)
-				var family := HEARTLAND_BIOMES.select_tree_family(hex, near_stream)
-				var seed_value := int(LOCAL_TERRAIN_RULES.stable_roll(hex, 3047) * 2147483646.0)
-				vegetation_placements.append({
-					"name": "WildernessTree_%d_%d" % [hex.x, hex.y],
-					"position": centre,
-					"family": family,
-					"seed": seed_value,
-					"scale": 0.72 + size_roll * 0.5,
-					"rotation_y": LOCAL_TERRAIN_RULES.stable_roll(hex, 2909) * TAU
-				})
+
 	for terrain in tools:
 		var mesh := (tools[terrain] as SurfaceTool).commit()
 		if mesh == null:
@@ -283,6 +265,7 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 		instance.mesh = mesh
 		instance.material_override = materials[terrain]
 		root.add_child(instance)
+	var vegetation_placements := _wilderness_vegetation_placements_for_chunk(chunk_min, CHUNK_SIZE)
 	var vegetation_spawned := WORLD_VEGETATION_SCRIPT.generate_authored_placements(root, vegetation_placements)
 	if vegetation_spawned != vegetation_placements.size():
 		push_warning("Regional wilderness vegetation spawned %d of %d GLB models." % [vegetation_spawned, vegetation_placements.size()])
@@ -385,6 +368,36 @@ func _on_regional_location_floor_changed(_location_id: String, _previous_floor: 
 	_update_player_presentation(player_state.axial)
 	target = _world_position_for_hex(player_state.axial)
 	_update_camera()
+
+
+## Returns stable GLB placements for wilderness forest cells in one streamed chunk.
+## Density remains governed by the source terrain rules; this only replaces the
+## old shared cylinder/sphere tree silhouettes with the committed vegetation catalogue.
+func _wilderness_vegetation_placements_for_chunk(chunk_min: Vector2i, chunk_size: int) -> Array[Dictionary]:
+	var placements: Array[Dictionary] = []
+	for q in range(chunk_min.x, chunk_min.x + chunk_size):
+		for r in range(chunk_min.y, chunk_min.y + chunk_size):
+			var hex := Vector2i(q, r)
+			if not terrain_data.has_tree(hex) or not terrain_data.settlement_definition_registry.resolve(hex).is_empty() == false:
+				continue
+			var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, terrain_data.elevation_for_hex(hex))
+			var size_roll := LOCAL_TERRAIN_RULES.stable_roll(hex, 2909)
+			var near_stream := HEARTLAND_BIOMES.is_near_stream(
+				hex,
+				6.0,
+				REGIONAL_HYDROLOGY.stream_centre_r(hex.x)
+			)
+			var family := HEARTLAND_BIOMES.select_tree_family(hex, near_stream)
+			var seed_value := int(LOCAL_TERRAIN_RULES.stable_roll(hex, 3047) * 2147483646.0)
+			placements.append({
+				"name": "WildernessTree_%d_%d" % [hex.x, hex.y],
+				"position": centre,
+				"family": family,
+				"seed": seed_value,
+				"scale": 0.72 + size_roll * 0.5,
+				"rotation_y": LOCAL_TERRAIN_RULES.stable_roll(hex, 2909) * TAU
+			})
+	return placements
 
 func _populate_chunk_gameplay_cells(chunk: Vector2i) -> void:
 	var chunk_min := chunk * CHUNK_SIZE
