@@ -18,7 +18,7 @@ The surrounding wilderness is still partly generated from regional terrain rules
 
 ## Authored settlement and site content
 
-The canonical settlement registry currently contains five definitions. Kragmoor is a source-authored regional site tracked in the separate multi-story location registry.
+The canonical settlement registry currently contains six definitions (including the first structural phase of Silverhart). Kragmoor is a source-authored regional site tracked in the separate multi-story location registry.
 
 | Location | Migrated content | Still outstanding |
 |---|---|---|
@@ -27,6 +27,7 @@ The canonical settlement registry currently contains five definitions. Kragmoor 
 | Emberlode | Foreman's hall, bunkhouse, mine entrance, two road approaches and three named NPCs; source mine levels, stairs, ore, ledger and underground spiders retained as data | Playable interiors/floor transitions, ore interactions, spider spawning on floor -2, dialogue/quest consequences |
 | Reddale | Guardhouse, reeve's house, inn, Ironbond guildhouse, manor and smithy; three road approaches and twelve named NPCs; interior/evidence/service metadata | Playable interiors, merchant services, evidence reading, bribes, dialogue and espionage quest consequences |
 | Kragmoor | Surface Gate Hall plus source-derived floor definitions for levels 0 to -5: rooms, corridors, stairs, King Balrik and guards, Vault trader, runesmith, foreman, tunnel vermin and Ember-Wreathed Horror; Sunken Deep remains pre-carved and quest-sealed in the source data | Playable 3D floor presentation/transitions, floor-specific actor simulation, quest-journal integration and save/load persistence |
+| Silverhart | First structural phase: source-positioned Grand Hall, barracks, council chamber, Royal Wizard's Tower and Queen's bedroom are registered for 3D presentation. | Curtain wall/watchtowers/gate, full courtyard and diplomatic quarter, source actors, complete multi-floor interiors, services and kingdom interactions |
 | Old Mac's Farmstead | **Accepted as complete for this milestone.** Source farmhouse, road spur, pasture, fence/broken-fence clue, blood evidence and Old Mac placement are accepted; cows are an acceptable livestock substitute for source sheep. | None for this milestone; the wolf-den encounter remains a separate wilderness site |
 
 The shared chunk presenter renders exterior buildings and surface actors for canonical settlement definitions. Interior metadata is preserved by the adapter but is not yet a playable interior implementation. Kragmoor's source-authored floor data is now captured separately; the new manifest is not yet connected to playable 3D floor presentation, traversal or persistent floor-specific actors. Farmstead features are split across their owning chunks so fence segments are not duplicated at chunk boundaries.
@@ -37,7 +38,7 @@ The 24-anchor geography manifest has six authored settlement/site entries above:
 
 | Location | Source content still to port |
 |---|---|
-| Silverhart | Palace/capital layout, court, guards, services, population and kingdom interactions |
+| Silverhart | Palace core structures are now registered in the first structural phase. | Curtain wall/watchtowers/gate, diplomatic quarter, court actors, playable multi-floor interiors, services, population and kingdom interactions |
 | Skarn-tooth Camp | Goblin camp structures, chief, tribe roster, trade and negotiation/hostility branches |
 | Northwatch Fort | Star fort, keep, gate, garrison, siege actors and border-war interactions; source moat and connected waterway terrain are ported |
 | Ridgehold Fort | Fort and keep, patrols and faction consequences; source downstream waterway terrain is ported |
