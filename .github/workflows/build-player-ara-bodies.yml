@@ -194,8 +194,11 @@ jobs:
           manifest["package_version"] = "local-" + hashlib.sha256(version_source).hexdigest()[:16]
           path.write_text(json.dumps(manifest, indent=2) + chr(10))
           PY
-          git add art/characters/ara_runtime/ara_player_female_body.glb art/characters/ara_runtime/ara_player_female_body.glb.import
-          git add art/characters/ara_runtime/ara_player_male_body.glb art/characters/ara_runtime/ara_player_male_body.glb.import
+          # The runtime asset directory is intentionally gitignored because
+          # most generated exports are local-only. Explicitly force-add only
+          # the two validated player bodies and their Godot import sidecars.
+          git add -f art/characters/ara_runtime/ara_player_female_body.glb art/characters/ara_runtime/ara_player_female_body.glb.import
+          git add -f art/characters/ara_runtime/ara_player_male_body.glb art/characters/ara_runtime/ara_player_male_body.glb.import
           git add art/characters/ara_runtime/manifest.json
           if git diff --cached --quiet; then
             echo "Player body assets are already current."
