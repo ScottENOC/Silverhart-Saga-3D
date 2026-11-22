@@ -59,12 +59,14 @@ def check_file(path: Path) -> list[tuple[int, str]]:
 
 
 def main() -> int:
-    files = sorted(
+    requested = [Path(arg) for arg in sys.argv[1:]]
+    files = sorted((ROOT / path).resolve() for path in requested) if requested else sorted(
         path for path in ROOT.rglob("*")
         if path.is_file()
         and path.suffix.lower() in TAB_EXTENSIONS | {".gd", ".json"}
         and not any(part in {".git", ".godot"} for part in path.parts)
     )
+    files = [path for path in files if path.is_file() and path.is_relative_to(ROOT)]
     counts = {ext: 0 for ext in (".gd", ".tscn", ".tres", ".json")}
     failures = 0
 
