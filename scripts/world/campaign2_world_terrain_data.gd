@@ -197,7 +197,7 @@ func is_walkable_for_hex(hex: Vector2i) -> bool:
 	if not terrain_definition.is_empty():
 		return not AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.is_blocked(authored_settlement.local_hex, terrain_definition)
 	var terrain := gameplay_terrain_for_hex(hex)
-	return terrain != "water" and terrain != "building"
+	return terrain != "water" and terrain != "building" and terrain != "keep_wall"
 
 func elevation_for_hex(hex: Vector2i) -> float:
 	var authored_settlement := settlement_definition_registry.resolve(hex)
