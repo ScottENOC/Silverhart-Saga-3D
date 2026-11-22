@@ -20,9 +20,13 @@ func _run() -> void:
 
     var player_state := CharacterState.new("test_player", "Test Player", Vector2i(908, -609))
     simulation.register_character(player_state)
+    var player_actor := Node3D.new()
+    root.add_child(player_actor)
+    _check(runtime.register_character_actor("test_player", player_actor), "Runtime must accept the externally owned player actor")
     var down: Dictionary = runtime.interact_with_stair("test_player")
     _check(bool(down.get("ok", false)) and runtime.get_current_floor() == -1, "Interacting beside the Gate Hall stair must activate the Great Hall")
     _check(player_state.axial == Vector2i(908, -610), "Stair interaction must move the character onto the authored stair hex")
+    _check(is_equal_approx(player_actor.global_position.y, -3.1), "Player presentation must move vertically to the destination floor")
     _check(not runtime.is_floor_visible(0) and runtime.is_floor_visible(-1), "Floor presentation must switch with traversal")
     _check(simulation.map_data.is_walkable(Vector2i(908, -627)), "Active floor geometry must be registered as logical walkable cells")
     _check(not simulation.map_data.is_walkable(Vector2i(908, -608)), "Inactive floor-only cells must be removed from logical movement")
