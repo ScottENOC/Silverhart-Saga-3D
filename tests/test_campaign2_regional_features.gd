@@ -69,7 +69,7 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(407, 43)) == "path", "Ridgehold gate must be an open gap on the actual wall ring")
 	_check(terrain.terrain_for_hex(Vector2i(402, 33)) == "path", "Ridgehold's approach must use a continuous corrected hex line")
 	_check(terrain.terrain_for_hex(Vector2i(426, 45)) == "path", "Ridgehold keep must retain its open south door")
-	_check(terrain.terrain_for_hex(Vector2i(429, 43)) == "climbable_wall", "Ridgehold keep must retain its wall ring")
+	_check(terrain.terrain_for_hex(Vector2i(429, 43)) == "keep_wall", "Ridgehold keep must retain its wall ring")
 	_check(FEATURES.feature_id_at(Vector2i(407, 43)) == "ridgehold_gate", "Ridgehold gate must have its own feature identity")
 
 	# Sil'thandriel's canopy has an explicit grass arrival clearing, a dense
@@ -102,8 +102,10 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(72, -160)) == "cave_floor", "Corvin barrow sanctum must be cave floor")
 	_check(terrain.terrain_for_hex(Vector2i(67, -160)) == "cave_floor", "Barrow corridor must connect the two chambers")
 
+	_check(terrain.terrain_for_hex(Vector2i(267, -16)) == "keep_wall", "Northwatch keep must use its solid keep-wall ring")
 	_check(terrain.terrain_for_hex(Vector2i(-39, -346)) == "stone_floor", "Lich Chapterhouse must retain its source stone floor")
 	_check(terrain.terrain_for_hex(Vector2i(-36, -346)) == "path", "Lich Chapterhouse east door must remain open")
+	_check(terrain.terrain_for_hex(Vector2i(-43, -343)) == "keep_wall", "Lich Chapterhouse must retain its source keep-wall ring")
 	_check(terrain.terrain_for_hex(Vector2i(-274, 40)) == "cave_floor", "Thieves' Cove entrance must be cave floor")
 	_check(terrain.terrain_for_hex(Vector2i(-277, 40)) == "path", "Thieves' Cove entrance door must remain open")
 
