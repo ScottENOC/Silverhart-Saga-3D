@@ -153,7 +153,9 @@ static func apply_npc_parameters(actor: Node3D, params: Dictionary) -> void:
 	actor.set_meta("appearance_profile", params.duplicate(true))
 	var ara := _get_ara_actor(actor)
 	if ara != null:
-		ara.apply_npc_parameters(params)
+		var has_baked_appearance := ara.loaded_asset_path.contains("/companions/") or ara.loaded_asset_path.contains("/hollowmere/")
+		if not has_baked_appearance:
+			ara.apply_npc_parameters(params)
 
 
 
