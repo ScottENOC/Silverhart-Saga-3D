@@ -114,6 +114,36 @@ func _run() -> void:
             quit(1)
             return
 
+    stage.remove_child(overlay)
+    overlay.queue_free()
+    await process_frame
+
+    # Export each overlapping channel separately as well as the combined context
+    # views above. This makes boundaries reviewable without colour blending.
+    var isolated_root := output_directory.path_join("regions")
+    DirAccess.make_dir_recursive_absolute(isolated_root)
+    for region_id in REGIONS:
+        var region_directory := isolated_root.path_join(region_id)
+        DirAccess.make_dir_recursive_absolute(region_directory)
+        var region_overlay := _build_overlay(mesh_instance, vertices, candidate_weights, region_id)
+        stage.add_child(region_overlay)
+        for view_name in views:
+            var view: Array = views[view_name]
+            camera.position = view[0]
+            camera.look_at(view[1], Vector3.UP)
+            camera.size = view[2]
+            await process_frame
+            await process_frame
+            await RenderingServer.frame_post_draw
+            var region_image := root.get_texture().get_image()
+            if region_image.save_png(region_directory.path_join(view_name + ".png")) != OK:
+                push_error("Failed to save isolated " + region_id + " " + view_name + " render")
+                quit(1)
+                return
+        stage.remove_child(region_overlay)
+        region_overlay.queue_free()
+        await process_frame
+
     var report := {
         "status": "DRAFT_TOPOLOGY_PROPOSAL_NOT_APPROVED",
         "character": "Wren",
@@ -229,7 +259,8 @@ func _propagate_over_surface(
 func _build_overlay(
     mesh_instance: MeshInstance3D,
     vertices: PackedVector3Array,
-    candidate_weights: Dictionary
+    candidate_weights: Dictionary,
+    only_region: String = ""
 ) -> MultiMeshInstance3D:
     var marker := SphereMesh.new()
     marker.radius = 0.0032
@@ -248,6 +279,8 @@ func _build_overlay(
         var accumulated := Color(0.0, 0.0, 0.0, 0.0)
         var strongest := 0.0
         for region_id in REGIONS:
+            if not only_region.is_empty() and region_id != only_region:
+                continue
             var weights: PackedFloat32Array = candidate_weights[region_id]
             var weight := weights[vertex_index]
             if weight < 0.15:
