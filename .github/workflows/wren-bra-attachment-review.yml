@@ -125,6 +125,7 @@ jobs:
           blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- --input art/characters/ara_runtime/ara_person_body.glb --output /tmp/wren-bra-body.glb --profile female --adult
           python tools/ara/extract_garment_glb.py --body /tmp/wren-bra-body.glb --source /tmp/wren-bra-source.glb --selector "Halter lace*" --selector "Bikini strings*" --output /tmp/wren-bra-assembled.glb
           blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- --input /tmp/wren-bra-assembled.glb --output /tmp/wren-bra-fitted.glb --profile none --adult --fit-existing
+          mkdir -p art/characters/ara_runtime/garments
           python tools/ara/extract_garment_glb.py --strip-input /tmp/wren-bra-fitted.glb --keep-material "Halter lace" --keep-material "Bikini strings" --output art/characters/ara_runtime/garments/female_bra.glb
           test -s art/characters/ara_runtime/garments/female_bra.glb
 
