@@ -72,6 +72,7 @@ func _test_companion_decision_and_relationship_effects() -> void:
 	_check(bool(result.get("ok", false)))
 	_check(String(result.get("effective_resolution", "")) == "shared_command")
 	_check(bool(result.get("companion_decided", false)))
+	_check(String(result.get("line", "")).contains("chooses for himself."), "The source companion-decided closing line is retained")
 	_check(int(result.get("xp_reward", 0)) == 350)
 	_check(String(journal.quest_state("aldric_weight_of_command").get("status", "")) == "completed")
 	_check(float(relationships.snapshot("ser_aldric_thorne").get("approval", 0.0)) == 56.0, "Companion-decided choice uses its own authored relationship reward")
