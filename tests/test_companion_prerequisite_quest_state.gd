@@ -76,7 +76,11 @@ func _test_clue_gates_and_managed_spillway() -> void:
 	_check(not chains.can_resolve_prerequisite("fenn_living_boundary", journal), "Both affected parties must be heard")
 	chains.add_prerequisite_clue("fenn_living_boundary", "young_marsh", "Elder Nessa Wren", journal, 1200.0)
 	_check(chains.can_resolve_prerequisite("fenn_living_boundary", journal))
-	chains.add_prerequisite_clue("fenn_living_boundary", "old_channel", "Nature skill", journal, 1300.0)
+	var denied_channel := chains.add_prerequisite_clue("fenn_living_boundary", "old_channel", "Untrained inspection", journal, 1300.0)
+	_check(String(denied_channel.get("reason", "")) == "skill_gate_not_met", "The optional old-channel clue requires Nature or Perception")
+	var nature_capabilities: Array[String] = ["nature"]
+	var discovered_channel := chains.add_prerequisite_clue("fenn_living_boundary", "old_channel", "Nature skill", journal, 1300.0, nature_capabilities)
+	_check(bool(discovered_channel.get("changed", false)))
 	var player := CharacterState.new("player", "Player")
 	var result: Dictionary = chains.resolve_prerequisite("fenn_living_boundary", "managed_spillway", journal, relationships, 1400.0, player)
 	_check(bool(result.get("ok", false)))
