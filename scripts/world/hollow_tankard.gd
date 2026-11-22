@@ -878,6 +878,7 @@ func _build_save_snapshot() -> Dictionary:
 		"clock": simulation.clock.to_dict(),
 		"campaign_journal": simulation.campaign_journal.to_dict(),
 		"wilderness_resources": simulation.wilderness_resources.to_dict(),
+		"multistory_locations": simulation.multistory_location_states_to_dict(),
 		"buildings": simulation.building_registry.to_dict(),
 		"world_flags": {
 			"ambient_security": ambient_security,
@@ -960,6 +961,9 @@ func _apply_save_data(data: Dictionary) -> void:
 	# after the journal is restored, retaining her saved axial position.
 	if simulation.get_character("missing_child_tessa") != null:
 		_spawn_missing_child()
+	var multistory_data: Variant = data.get("multistory_locations", {})
+	if multistory_data is Dictionary:
+		simulation.restore_multistory_location_states(multistory_data)
 	var resource_data: Variant = data.get("wilderness_resources", {})
 	if resource_data is Dictionary:
 		simulation.wilderness_resources.load_dict(resource_data)
