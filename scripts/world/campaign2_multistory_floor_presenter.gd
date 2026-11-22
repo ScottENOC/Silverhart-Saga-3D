@@ -123,13 +123,13 @@ func get_map_data() -> HexMapData:
 	return current_map_data
 
 func get_tile_objects() -> Array[Dictionary]:
-	return current_tile_objects.duplicate(true)
+	return _copy_dictionary_array(current_tile_objects)
 
 func get_actor_placements() -> Array[Dictionary]:
-	return current_actors.duplicate(true)
+	return _copy_dictionary_array(current_actors)
 
 func get_creature_placements() -> Array[Dictionary]:
-	return current_creatures.duplicate(true)
+	return _copy_dictionary_array(current_creatures)
 
 func _copy_dictionary_array(values: Variant) -> Array[Dictionary]:
 	var copied: Array[Dictionary] = []
