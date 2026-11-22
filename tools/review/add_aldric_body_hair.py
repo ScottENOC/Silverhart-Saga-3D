@@ -77,6 +77,8 @@ def main():
                            donor_view.get("byteOffset", 0) + donor_view["byteLength"]]
     source = Image.open(BytesIO(raw)).convert("RGB")
     width, height = source.size
+    if args.base_texture_glb and source.size != Image.open(BytesIO(old_binary[view.get("byteOffset", 0):view.get("byteOffset", 0) + view["byteLength"]])).size:
+        raise RuntimeError("Clean donor skin texture dimensions do not match the target Wren texture")
 
     skin_primitive = next(p for m in doc["meshes"] for p in m["primitives"] if p.get("material") == skin_material)
     positions = accessor(doc, old_binary, skin_primitive["attributes"]["POSITION"]).astype(float)
