@@ -254,15 +254,15 @@ func _load_chapters() -> void:
 		push_error("Missing companion quest chain data: " + DATA_PATH)
 		return
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH))
-	if not parsed is Dictionary:
+	if not (parsed is Dictionary):
 		push_error("Invalid companion quest chain JSON.")
 		return
 	var chapter_list: Variant = parsed.get("chapters", [])
-	if not chapter_list is Array:
+	if not (chapter_list is Array):
 		push_error("Companion quest chain JSON has no chapter list.")
 		return
 	for chapter_value in chapter_list:
-		if not chapter_value is Dictionary:
+		if not (chapter_value is Dictionary):
 			continue
 		var chapter: Dictionary = chapter_value
 		var chapter_id := String(chapter.get("id", ""))
