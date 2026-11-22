@@ -38,14 +38,37 @@ const KRAGMOOR_GATE_DOOR := Vector2i(908, -605)
 const KRAGMOOR_APPROACH_TIP := Vector2i(908, -593)
 const CAMPAIGN2_CROSSROADS := Vector2i(8, 24)
 
+## Border forts use the source six-point star geometry (core radius 6,
+## twelve-hex points, four-hex lateral spread). Coordinates are the canonical
+## Campaign 2 POI anchors; gates and road approaches are separate features.
+const NORTHWATCH_CENTRE := Vector2i(268, -21)
+const NORTHWATCH_GATE := Vector2i(268, -2)
+const NORTHWATCH_SPUR_START := Vector2i(268, 22)
+const RIDGEHOLD_CENTRE := Vector2i(426, 43)
+const RIDGEHOLD_GATE := Vector2i(407, 43)
+const RIDGEHOLD_ROAD_END := Vector2i(398, 23)
+const STAR_FORT_CORE_RADIUS := 6
+const STAR_FORT_POINT_LENGTH := 12
+const STAR_FORT_POINT_WIDTH := 4
+const STAR_FORT_DIRECTIONS: Array[Vector2i] = [
+	Vector2i(1, 0), Vector2i(1, -1), Vector2i(0, -1),
+	Vector2i(-1, 0), Vector2i(-1, 1), Vector2i(0, 1)
+]
+
 static var _orc_approach_path_cells: Dictionary = {}
 static var _orc_approach_path_ready := false
 static var _kragmoor_approach_path_cells: Dictionary = {}
 static var _kragmoor_approach_path_ready := false
 static var _kragmoor_gate_floor_cells: Dictionary = {}
 static var _kragmoor_gate_floor_ready := false
+static var _northwatch_cells: Dictionary = {}
+static var _ridgehold_cells: Dictionary = {}
+static var _border_forts_ready := false
 
 static func terrain_override_at(hex: Vector2i) -> Dictionary:
+	var fort_override := _border_fort_override(hex)
+	if not fort_override.is_empty():
+		return fort_override
 	if _is_kragmoor_gate_floor(hex):
 		return {"terrain": "cave_floor", "feature_id": "kragmoor_gate_hall"}
 	if hex == KRAGMOOR_GATE_DOOR:
@@ -120,6 +143,111 @@ static func _is_kragmoor_gate_floor(hex: Vector2i) -> bool:
 	_ensure_kragmoor_gate_floor()
 	return _kragmoor_gate_floor_cells.has(_hex_key(hex))
 
+static func _border_fort_override(hex: Vector2i) -> Dictionary:
+	_ensure_border_fort_features()
+	var key := _hex_key(hex)
+	if _northwatch_cells.has(key):
+		return (_northwatch_cells[key] as Dictionary).duplicate()
+	if _ridgehold_cells.has(key):
+		return (_ridgehold_cells[key] as Dictionary).duplicate()
+	return {}
+
+static func _ensure_border_fort_features() -> void:
+	if _border_forts_ready:
+		return
+	_northwatch_cells = _build_star_fort_cells(NORTHWATCH_CENTRE, "northwatch")
+	_ridgehold_cells = _build_star_fort_cells(RIDGEHOLD_CENTRE, "ridgehold")
+
+	# Northwatch's south spur follows the source turn hex directly to the
+	# gate. The gate itself remains a closed-wall terrain cell, not a path.
+	for r in range(NORTHWATCH_SPUR_START.y - 1, NORTHWATCH_GATE.y - 1, -1):
+		var cell := Vector2i(NORTHWATCH_SPUR_START.x, r)
+		if cell == NORTHWATCH_GATE:
+			continue
+		_northwatch_cells[_hex_key(cell)] = {"terrain": "path", "feature_id": "northwatch_gate_approach"}
+
+	# The source Ridgehold road is a q-stepped approximation that stops several
+	# hexes short of its west gate. Replace that dotted/short spur with a
+	# cube-rounded, neighbour-contiguous connection to the authored gate.
+	var ridgehold_road: Dictionary = {}
+	_add_hex_line(ridgehold_road, RIDGEHOLD_ROAD_END, RIDGEHOLD_GATE)
+	for key in ridgehold_road:
+		_ridgehold_cells[key] = {"terrain": "path", "feature_id": "ridgehold_gate_approach"}
+
+	# Restore gate semantics after roads: Northwatch is a closable wall gate;
+	# Ridgehold's source gate is an open gap in the outer ring.
+	_northwatch_cells[_hex_key(NORTHWATCH_GATE)] = {"terrain": "climbable_wall", "feature_id": "northwatch_gate"}
+	_ridgehold_cells[_hex_key(RIDGEHOLD_GATE)] = {"terrain": "path", "feature_id": "ridgehold_gate"}
+
+	# Northwatch's inner keep is a radius-four hex disk, a real adjacency ring,
+	# and six open corner gaps at radius five.
+	var keep_floor := _hex_disk(NORTHWATCH_CENTRE, 4)
+	var keep_walls := _wall_ring(keep_floor)
+	for key in keep_floor:
+		_northwatch_cells[key] = {"terrain": "dirt", "feature_id": "northwatch_keep_floor"}
+	for key in keep_walls:
+		_northwatch_cells[key] = {"terrain": "climbable_wall", "feature_id": "northwatch_keep_wall"}
+	for direction in STAR_FORT_DIRECTIONS:
+		var gap := NORTHWATCH_CENTRE + direction * 5
+		_northwatch_cells[_hex_key(gap)] = {"terrain": "dirt", "feature_id": "northwatch_keep_gap"}
+
+	# Ridgehold's smaller keep is the source flat-room footprint. Its south
+	# threshold is the source open door at centre.r + 2.
+	var ridgehold_keep_floor: Dictionary = {}
+	for dq in range(-2, 3):
+		var row_shift := -floori(float(dq) / 2.0)
+		for dr in range(-1, 2):
+			var cell := RIDGEHOLD_CENTRE + Vector2i(dq, dr + row_shift)
+			ridgehold_keep_floor[_hex_key(cell)] = true
+	for key in ridgehold_keep_floor:
+		_ridgehold_cells[key] = {"terrain": "dirt", "feature_id": "ridgehold_keep_floor"}
+	var ridgehold_keep_walls := _wall_ring(ridgehold_keep_floor)
+	for key in ridgehold_keep_walls:
+		_ridgehold_cells[key] = {"terrain": "climbable_wall", "feature_id": "ridgehold_keep_wall"}
+	var ridgehold_keep_door := Vector2i(RIDGEHOLD_CENTRE.x, RIDGEHOLD_CENTRE.y + 2)
+	_ridgehold_cells[_hex_key(ridgehold_keep_door)] = {"terrain": "path", "feature_id": "ridgehold_keep_door"}
+	_border_forts_ready = true
+
+static func _build_star_fort_cells(centre: Vector2i, prefix: String) -> Dictionary:
+	var floor_cells := _hex_disk(centre, STAR_FORT_CORE_RADIUS)
+	for direction_index in range(STAR_FORT_DIRECTIONS.size()):
+		var direction := STAR_FORT_DIRECTIONS[direction_index]
+		var lateral_a := STAR_FORT_DIRECTIONS[(direction_index + 2) % 6]
+		var lateral_b := STAR_FORT_DIRECTIONS[(direction_index + 4) % 6]
+		for step in range(STAR_FORT_CORE_RADIUS + 1, STAR_FORT_CORE_RADIUS + STAR_FORT_POINT_LENGTH + 1):
+			var base := centre + direction * step
+			floor_cells[_hex_key(base)] = true
+			for width in range(1, STAR_FORT_POINT_WIDTH + 1):
+				floor_cells[_hex_key(base + lateral_a * width)] = true
+				floor_cells[_hex_key(base + lateral_b * width)] = true
+	var cells: Dictionary = {}
+	for key in floor_cells:
+		cells[key] = {"terrain": "dirt", "feature_id": prefix + "_fort_floor"}
+	for key in _wall_ring(floor_cells):
+		cells[key] = {"terrain": "climbable_wall", "feature_id": prefix + "_fort_wall"}
+	return cells
+
+static func _hex_disk(centre: Vector2i, radius: int) -> Dictionary:
+	var cells: Dictionary = {}
+	for q in range(centre.x - radius, centre.x + radius + 1):
+		for r in range(centre.y - radius, centre.y + radius + 1):
+			var cell := Vector2i(q, r)
+			if _axial_distance(cell, centre) <= radius:
+				cells[_hex_key(cell)] = true
+	return cells
+
+static func _wall_ring(floor_cells: Dictionary) -> Dictionary:
+	var walls: Dictionary = {}
+	for key in floor_cells:
+		var parts := String(key).split(",")
+		var cell := Vector2i(int(parts[0]), int(parts[1]))
+		for direction in STAR_FORT_DIRECTIONS:
+			var neighbour := cell + direction
+			var neighbour_key := _hex_key(neighbour)
+			if not floor_cells.has(neighbour_key):
+				walls[neighbour_key] = true
+	return walls
+
 static func _ensure_kragmoor_gate_floor() -> void:
 	if _kragmoor_gate_floor_ready:
 		return
@@ -169,6 +297,9 @@ static func _add_hex_line(target: Dictionary, start: Vector2i, finish: Vector2i)
 		target[_hex_key(Vector2i(rx, rz))] = true
 
 static func feature_id_at(hex: Vector2i) -> String:
+	var fort_override := _border_fort_override(hex)
+	if not fort_override.is_empty():
+		return String(fort_override.get("feature_id", ""))
 	if _is_kragmoor_gate_floor(hex):
 		return "kragmoor_gate_hall"
 	if hex == KRAGMOOR_GATE_DOOR:
