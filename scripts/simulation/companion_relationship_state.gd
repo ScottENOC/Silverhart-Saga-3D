@@ -28,6 +28,12 @@ const PROFILES := {
 		"name": "Wren Talbot",
 		"orientation_label": "straight",
 		"affinity_mode": "full",
+		"strong_physical_desire_threshold": 101,
+		"strong_physical_desire_threshold": 60,
+		"strong_physical_desire_threshold": 60,
+		"strong_physical_desire_threshold": 60,
+		"strong_physical_desire_threshold": 60,
+		"strong_physical_desire_threshold": 60,
 		"familiarity_start": 35,
 		"trust_start": 25,
 		"approval_start": 50,
@@ -192,8 +198,8 @@ func ensure(companion_id: String, presentation: String = "masculine") -> Diction
 		"trust": float(profile["trust_start"]),
 		"friendship": float(profile["friendship_start"]),
 		"romantic_bond": float(profile["romantic_bond_start"]),
-		"attraction": attraction_cap * float(profile["initial_attraction_fraction"]),
-		"romance_state": "none",
+		"attraction": float(roundi(attraction_cap * float(profile["initial_attraction_fraction"]))),
+		"romance_state": "unspoken",
 		"agreement": {
 			"state": "none",
 			"romantic_exclusivity": String(profile["relationship_style"].get("romantic_exclusivity", "unspoken")),
@@ -248,7 +254,7 @@ func adjust(companion_id: String, changes: Dictionary, reason: String = "") -> D
 		if axis == "romantic_bond" or axis == "attraction":
 			if String(PROFILES[companion_id]["affinity_mode"]) != "full":
 				continue
-		state[axis] = clampf(float(state.get(axis, 0.0)) + float(changes[axis_value]), 0.0, 100.0)
+		state[axis] = float(clampi(roundi(float(state.get(axis, 0.0)) + float(changes[axis_value])), 0, 100))
 	_apply_caps(companion_id, state)
 	states[companion_id] = state
 	var after := snapshot(companion_id)
@@ -491,6 +497,7 @@ func interpret_relationship(companion_id: String) -> Dictionary:
 		"trust": float(state.get("trust", 0.0)),
 		"familiarity": float(state.get("familiarity", 0.0)),
 		"relationship_style": style.duplicate(true),
+		"strong_physical_desire_threshold": int(profile.get("strong_physical_desire_threshold", 60)),
 		"line": String(lines.get(mode, ""))
 	}
 
@@ -534,8 +541,8 @@ func _apply_caps(companion_id: String, state: Dictionary) -> void:
 	var presentation := _normalise_presentation(String(state.get("presentation", "unknown")))
 	var attraction_caps: Dictionary = profile["attraction_caps"]
 	var romantic_caps: Dictionary = profile["romantic_caps"]
-	state["attraction"] = clampf(float(state.get("attraction", 0.0)), 0.0, float(attraction_caps.get(presentation, attraction_caps.get("unknown", 0))))
-	state["romantic_bond"] = clampf(float(state.get("romantic_bond", 0.0)), 0.0, float(romantic_caps.get(presentation, romantic_caps.get("unknown", 0))))
+	state["attraction"] = float(clampi(roundi(float(state.get("attraction", 0.0))), 0, int(attraction_caps.get(presentation, attraction_caps.get("unknown", 0)))))
+	state["romantic_bond"] = float(clampi(roundi(float(state.get("romantic_bond", 0.0))), 0, int(romantic_caps.get(presentation, romantic_caps.get("unknown", 0)))))
 
 
 func _append_history(state: Dictionary, entry: Dictionary) -> void:
