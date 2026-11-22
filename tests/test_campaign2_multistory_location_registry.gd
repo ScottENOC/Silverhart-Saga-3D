@@ -6,7 +6,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Source-authored multi-story locations must validate")
-	_check(registry.location_ids() == ["kragmoor", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower"], "Kragmoor and all source-authored Silverhart palace interiors must be registered")
+	_check(registry.location_ids() == ["kragmoor", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_thieves_guild"], "Kragmoor and all source-authored Silverhart interiors must be registered")
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
 	_check(palace.get("floors", []).size() == 2, "Silverhart Grand Hall must preserve its two source floors")
@@ -42,6 +42,17 @@ func _initialize() -> void:
 	_check(registry.get_floor_definition("silverhart_palace_wizard_tower", 0).get("actors", []).size() == 1, "Wizard's tower must retain Court Wizard Thessaly")
 	_check(_has_record(registry.get_floor_definition("silverhart_palace_wizard_tower", 0).get("tile_objects", []), "wizard_corruption_ledger"), "Wizard's tower must retain its source corruption ledger")
 	_check(_has_record(registry.get_floor_definition("silverhart_palace_wizard_tower", 1).get("tile_objects", []), "wizard_spire_notes"), "Wizard's study must retain its source notes")
+
+	var guild: Dictionary = registry.get_definition("silverhart_thieves_guild")
+	_check(int(guild.get("anchor", {}).get("q", 0)) == 14 and int(guild.get("anchor", {}).get("r", 0)) == -426, "Thieves' Guild anchor must match buildSilverhartPalace")
+	var guild_floor := registry.get_floor_definition("silverhart_thieves_guild", 0)
+	_check(guild_floor.get("actors", []).size() == 2, "Thieves' Guild must retain Tessa Nightshade and Guildmaster Corvin Ashe")
+	_check(_has_record(guild_floor.get("tile_objects", []), "thieves_guild_front_door"), "Thieves' Guild must retain its source entrance")
+	_check(_has_record(guild_floor.get("tile_objects", []), "guild_hidden_vault_door"), "The hidden vault door must be registered")
+	_check(guild_floor.get("rooms", []).size() == 2, "Guild and concealed vault must have separate source-authored rooms")
+	_check(String(guild_floor.get("rooms", [])[1].get("hidden_by_secret", "")) == "guild_hidden_vault_door", "Vault room must remain hidden behind its own secret door")
+	var guild_chest := _record_by_id(guild_floor.get("tile_objects", []), "guild_vault_chest")
+	_check(guild_chest.get("items", []) == ["gem_blue", "gem_red", "silvertongue_ring"], "Hidden vault must retain its three source treasure items")
 
 	var definition: Dictionary = registry.get_definition("kragmoor")
 	_check(int(definition.get("anchor", {}).get("q", 0)) == 908 and int(definition.get("anchor", {}).get("r", 0)) == -626, "Kragmoor anchor must match buildDwarvenKingdom")
@@ -81,6 +92,14 @@ func _initialize() -> void:
 		return
 	print("Kragmoor and Silverhart source-authored multi-story floor data validated.")
 	quit(0)
+
+
+func _record_by_id(records: Array, record_id: String) -> Dictionary:
+	for record in records:
+		if record is Dictionary and String(record.get("id", "")) == record_id:
+			return record
+	return {}
+
 
 func _has_record(records: Array, record_id: String) -> bool:
 	for record in records:
