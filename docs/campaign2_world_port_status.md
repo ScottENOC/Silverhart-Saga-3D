@@ -60,7 +60,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above.
 ## Next port order
 
 1. **Validate and refine the terrain foundation.** The source terrain rules, connected waterways, grove and major authored ground footprints are now ported; validate elevation shaping, vegetation density and visible material differentiation in the streamed 3D preview.
-2. **Finish Old Mac's Farmstead and wolf den.** Replace the sheep placeholder with final art/animation, add sheep interaction, Nature-gated evidence visibility, den dressing and quest persistence; reconcile the opening-scene Old Mac identity/placement. Preserve the source farmstead at (0,194) and wolf den at (-59,204).
+2. **Old Mac's Farmstead is accepted as complete for this milestone.** Cows are an acceptable livestock substitute for the source sheep; do not spend further time matching the animal species. The separate wolf-den encounter at (-59,204) remains a wilderness-site task.
 3. **Silverhart capital.** This is the kingdom's main hub and unlocks the royal court, services and major faction threads.
 4. **Northwatch, Ridgehold and the greenskin sites.** Port the connected border-road sequence, forts, strongholds, gates, garrisons and encounter state.
 5. **Kragmoor and Sil'thandriel.** Preserve their distinct vertical/architectural structures and faction populations.
