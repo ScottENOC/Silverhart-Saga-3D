@@ -185,11 +185,9 @@ jobs:
           for name in ("ara_player_female_body.glb", "ara_player_male_body.glb"):
               payload = (root / name).read_bytes()
               assets[name] = {"size_bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
-          version_source = "".join(f"{name}:{entry['sha256']}
-" for name, entry in sorted(assets.items())).encode()
+          version_source = "".join(f"{name}:{entry['sha256']}" + chr(10) for name, entry in sorted(assets.items())).encode()
           manifest["package_version"] = "local-" + hashlib.sha256(version_source).hexdigest()[:16]
-          path.write_text(json.dumps(manifest, indent=2) + "
-")
+          path.write_text(json.dumps(manifest, indent=2) + chr(10))
           PY
           git add art/characters/ara_runtime/ara_player_female_body.glb art/characters/ara_runtime/ara_player_female_body.glb.import
           git add art/characters/ara_runtime/ara_player_male_body.glb art/characters/ara_runtime/ara_player_male_body.glb.import
