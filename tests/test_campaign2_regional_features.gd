@@ -18,7 +18,7 @@ func _initialize() -> void:
 	assert(terrain.terrain_for_hex(Vector2i(203, 23)) == "dirt", "Goblin camp must have its source dirt clearing")
 	assert(terrain.terrain_for_hex(Vector2i(209, 23)) == "dirt", "Goblin camp clearing must include its radius-six edge")
 	assert(terrain.terrain_for_hex(Vector2i(428, 17)) == "dirt", "Orc stronghold must have its source dirt clearing")
-	assert(terrain.terrain_for_hex(Vector2i(420, 16)) == "climbable_wall", "Orc stronghold perimeter must retain its climbable wall ring")
+	assert(terrain.terrain_for_hex(Vector2i(420, 18)) == "climbable_wall", "Orc stronghold perimeter must retain its climbable wall ring")
 	assert(terrain.terrain_for_hex(Vector2i(420, 17)) == "path", "Orc stronghold's corrected west gate must be traversable")
 	assert(FEATURES.is_orc_approach_path(Vector2i(410, 20)), "Orc stronghold approach must be a connected hex line from the border road")
 
