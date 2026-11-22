@@ -6,7 +6,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Source-authored multi-story locations must validate")
-	_check(registry.location_ids() == ["kragmoor", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_wizard_tower"], "Kragmoor must be registered as the first source-authored multi-story location")
+	_check(registry.location_ids() == ["kragmoor", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower"], "Kragmoor and all source-authored Silverhart palace interiors must be registered")
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
 	_check(palace.get("floors", []).size() == 2, "Silverhart Grand Hall must preserve its two source floors")
@@ -16,6 +16,21 @@ func _initialize() -> void:
 	var gallery := registry.get_floor_definition("silverhart_palace", 1)
 	_check(gallery.get("rooms", []).size() == 1, "Grand Hall gallery must retain its source room")
 	_check(palace.get("transitions", []).size() == 2, "Grand Hall and gallery must retain reciprocal source stairs")
+
+	_check(palace.get("floors", [])[0].get("rooms", []).size() == 2, "Grand Hall floor must also contain the source Queen's private chambers")
+	_check(palace.get("floors", [])[0].get("corridors", []).size() == 1, "Queen's chambers must connect through the source rear passage")
+	var grand_hall_objects: Array = grand_hall.get("tile_objects", [])
+	_check(_has_record(grand_hall_objects, "queen_chambers_rear_door"), "Queen's chambers must retain the single rear door")
+	_check(_has_record(grand_hall_objects, "queen_chambers_bed"), "Queen's chambers must retain the source bed")
+	_check(_has_record(grand_hall_objects, "queen_chambers_fireplace"), "Queen's chambers must retain the source fireplace")
+
+	var council: Dictionary = registry.get_definition("silverhart_palace_council_chamber")
+	_check(int(council.get("anchor", {}).get("q", 0)) == -6 and int(council.get("anchor", {}).get("r", 0)) == -494, "Council chamber anchor must match buildSilverhartPalace")
+	var council_floor := registry.get_floor_definition("silverhart_palace_council_chamber", 0)
+	_check(council_floor.get("rooms", []).size() == 1, "Council chamber must retain its source-authored room")
+	_check(council_floor.get("actors", []).size() == 1 and String(council_floor.get("actors", [])[0].get("id", "")) == "chancellor_merric_vane", "Council chamber must retain Chancellor Merric Vane")
+	_check(_has_record(council_floor.get("tile_objects", []), "council_front_door"), "Council chamber must retain its source entrance")
+	_check(_has_record(council_floor.get("tile_objects", []), "council_table"), "Council chamber must retain its council table")
 
 	var barracks: Dictionary = registry.get_definition("silverhart_palace_barracks")
 	_check(barracks.get("floors", []).size() == 2, "Palace barracks must retain its mess hall and loft")
