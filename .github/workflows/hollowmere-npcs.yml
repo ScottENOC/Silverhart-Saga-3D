@@ -10,6 +10,8 @@ on:
       - "tools/ara/patch_layering.py"
       - "tools/ara/integrate_hollowmere_anatomy.py"
       - "tools/blender/add_adult_anatomy.py"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/plan_female_anatomy_subdivision.py"
       - "tools/blender/add_male_anatomy.py"
       - ".github/workflows/hollowmere-npcs.yml"
 
