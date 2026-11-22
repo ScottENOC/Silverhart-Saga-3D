@@ -66,7 +66,7 @@ func can_start(chapter_id: String, journal: CampaignJournal, party_ids: Array[St
 	return {"ok":true,"chapter_id":chapter_id,"companion_id":companion_id}
 
 
-func start(chapter_id: String, journal: CampaignJournal, party_ids: Array[String], world_seconds: float = 0.0, announce: bool = false) -> Dictionary:
+func start(chapter_id: String, journal: CampaignJournal, party_ids: Array[String], world_seconds: float = 0.0) -> Dictionary:
 	var eligibility := can_start(chapter_id, journal, party_ids, world_seconds)
 	if not bool(eligibility.get("ok", false)):
 		return eligibility
@@ -83,8 +83,6 @@ func start(chapter_id: String, journal: CampaignJournal, party_ids: Array[String
 	quest_state["effective_resolution"] = ""
 	quest_state["description"] = String(chapter.get("intro", "")) + " Speak with " + String(chapter.get("actor", "the supporting character")) + "."
 	journal.quests[chapter_id] = quest_state
-	if announce:
-		journal._emit_event("companion_chapter_started", {"quest_id":chapter_id,"companion_id":String(chapter.get("companion_id", ""))})
 	return {"ok":true,"quest_id":chapter_id,"chapter":chapter.duplicate(true),"stage":"consult"}
 
 
