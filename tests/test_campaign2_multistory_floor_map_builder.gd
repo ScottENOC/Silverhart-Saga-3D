@@ -45,6 +45,22 @@ func _initialize() -> void:
 	_check(_has_object(revealed_guild.get("tile_objects", []), "guild_vault_chest"), "Discovered vault contents must be presented")
 	_check(revealed_map.is_walkable(Vector2i(19, -426)) and revealed_map.is_walkable(Vector2i(20, -426)), "Discovered vault must become walkable through its hidden door")
 
+	var elven_definition: Dictionary = registry.get_definition("silthandriel")
+	var elven_state = LOCATION_STATE.new()
+	_check(bool(elven_state.configure(elven_definition).get("ok", false)), "Sil'thandriel traversal state must configure")
+	var tree_base: Dictionary = FLOOR_BUILDER.build_floor_map(elven_definition, 0, elven_state)
+	_check(bool(tree_base.get("ok", false)), "Sil'thandriel surface stair must build without inventing a room")
+	_check((tree_base.get("wall_hexes", []) as Array).is_empty(), "The open surface clearing must not acquire enclosing walls")
+	_check(_has_object(tree_base.get("tile_objects", []), "tree_stair_up"), "Surface tree stair must be presented")
+	var lower_canopy: Dictionary = FLOOR_BUILDER.build_floor_map(elven_definition, 1, elven_state)
+	_check(bool(lower_canopy.get("ok", false)), "Lower Canopy platforms and connecting corridors must build")
+	_check(_has_object(lower_canopy.get("tile_objects", []), "lodge_herb_patch_west"), "West lodge herb patch must be presented")
+	_check(_has_object(lower_canopy.get("tile_objects", []), "lodge_herb_patch_east"), "East lodge herb patch must be presented")
+	var upper_court: Dictionary = FLOOR_BUILDER.build_floor_map(elven_definition, 2, elven_state)
+	_check(bool(upper_court.get("ok", false)), "Upper Court pavilion must build")
+	_check((upper_court.get("wall_hexes", []) as Array).is_empty(), "Open-air Court must not generate a wall ring")
+	_check(_has_object(upper_court.get("tile_objects", []), "court_throne"), "Upper Court throne must be presented")
+
 	var gate_hall: Dictionary = FLOOR_BUILDER.build_floor_map(definition, 0, state)
 	var gate_map: HexMapData = gate_hall.get("map_data") as HexMapData
 	_check(gate_map.is_walkable(Vector2i(908, -605)), "The source Gate Hall entrance door must be walkable")

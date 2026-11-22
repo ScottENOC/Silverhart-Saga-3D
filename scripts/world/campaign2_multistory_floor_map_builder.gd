@@ -133,13 +133,17 @@ static func _add_room(room: Dictionary, floor_cells: Dictionary, wall_cells: Dic
 	var centre := _position_from(room.get("center", {}))
 	var half_width := int(room.get("half_width", 0))
 	var half_height := int(room.get("half_height", 0))
+	var room_cells: Dictionary = {}
 	for dq in range(-half_width + 1, half_width):
 		var row_shift := -floori(float(dq) / 2.0)
 		for dr in range(-half_height + 1, half_height):
 			var hex := Vector2i(centre.x + dq, centre.y + dr + row_shift)
 			floor_cells[hex] = true
+			room_cells[hex] = true
 			wall_cells.erase(hex)
-	for floor_hex in floor_cells.keys():
+	if String(room.get("wall_mode", "enclosed")) == "open":
+		return
+	for floor_hex in room_cells:
 		for neighbour in HexGrid.neighbors(floor_hex):
 			if not floor_cells.has(neighbour):
 				wall_cells[neighbour] = true

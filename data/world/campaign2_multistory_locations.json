@@ -598,6 +598,220 @@
       ]
     },
     {
+      "id": "silthandriel",
+      "name": "Sil'thandriel — Court of the Silver Leaf",
+      "anchor": {
+        "q": -252,
+        "r": 934
+      },
+      "source": "Hex-crpg/campaign2World.js:buildElvenCapital treeStairHex, archiveCenter, lodgeCenter and courtCenter",
+      "floor_generation": "source-authored tree base, lower canopy archive and lodge, rope-bridge corridor, and open upper court",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Tree Base and Arrival Clearing",
+          "terrain": "grass",
+          "rooms": [],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "tree_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": -252,
+                "r": 932
+              },
+              "to_floor": 1
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        },
+        {
+          "floor": 1,
+          "name": "Lower Canopy",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "canopy_archive",
+              "center": {
+                "q": -264,
+                "r": 936
+              },
+              "half_width": 3,
+              "half_height": 2
+            },
+            {
+              "id": "healer_lodge",
+              "center": {
+                "q": -240,
+                "r": 936
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [
+            {
+              "id": "tree_to_archive",
+              "from": {
+                "q": -252,
+                "r": 932
+              },
+              "to": {
+                "q": -264,
+                "r": 936
+              },
+              "algorithm": "q_then_r_dogleg"
+            },
+            {
+              "id": "archive_to_lodge_rope_bridge",
+              "from": {
+                "q": -264,
+                "r": 936
+              },
+              "to": {
+                "q": -240,
+                "r": 936
+              },
+              "algorithm": "q_then_r_dogleg",
+              "feature": "rope_bridge"
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "tree_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": -252,
+                "r": 932
+              },
+              "to_floor": 0
+            },
+            {
+              "id": "archive_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": -264,
+                "r": 935
+              },
+              "to_floor": 2
+            },
+            {
+              "id": "lodge_herb_patch_west",
+              "type": "herb_patch",
+              "position": {
+                "q": -240,
+                "r": 934
+              }
+            },
+            {
+              "id": "lodge_herb_patch_east",
+              "type": "herb_patch",
+              "position": {
+                "q": -239,
+                "r": 934
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        },
+        {
+          "floor": 2,
+          "name": "Upper Canopy — Court of the Silver Leaf",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "court_of_the_silver_leaf",
+              "center": {
+                "q": -252,
+                "r": 934
+              },
+              "half_width": 6,
+              "half_height": 4,
+              "wall_mode": "open"
+            }
+          ],
+          "corridors": [
+            {
+              "id": "archive_to_upper_court",
+              "from": {
+                "q": -264,
+                "r": 935
+              },
+              "to": {
+                "q": -252,
+                "r": 934
+              },
+              "algorithm": "q_then_r_dogleg"
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "archive_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": -264,
+                "r": 935
+              },
+              "to_floor": 1
+            },
+            {
+              "id": "court_throne",
+              "type": "throne",
+              "position": {
+                "q": -252,
+                "r": 936
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [
+        {
+          "from_floor": 0,
+          "to_floor": 1,
+          "position": {
+            "q": -252,
+            "r": 932
+          }
+        },
+        {
+          "from_floor": 1,
+          "to_floor": 0,
+          "position": {
+            "q": -252,
+            "r": 932
+          }
+        },
+        {
+          "from_floor": 1,
+          "to_floor": 2,
+          "position": {
+            "q": -264,
+            "r": 935
+          }
+        },
+        {
+          "from_floor": 2,
+          "to_floor": 1,
+          "position": {
+            "q": -264,
+            "r": 935
+          }
+        }
+      ],
+      "quest_gates": [],
+      "source_notes": [
+        "The surface arrival clearing and canopy are painted by buildElvenCapital; floor 0 only registers the tree stair so it does not invent enclosing walls around the open clearing.",
+        "The Lower Canopy connects the Archive and Healer Lodge with the source rope-bridge corridor; the two herb patches remain at their original lodge coordinates.",
+        "The Court of the Silver Leaf is an open throne pavilion, not an enclosed hall; its source room is explicitly wall-free."
+      ]
+    },
+    {
       "id": "silverhart_palace",
       "name": "Silverhart Palace — Grand Hall",
       "anchor": {
