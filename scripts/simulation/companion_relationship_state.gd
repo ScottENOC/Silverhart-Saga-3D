@@ -110,6 +110,52 @@ const PROFILES := {
 	}
 }
 
+const WREN_STORY_EVENTS := {
+	"hollowmere_shakedown:fight": {"friendship": 3, "attraction": 2, "reason": "stood up for Hollowmere under pressure"},
+	"hollowmere_shakedown:stay_out": {"friendship": -2, "attraction": -1, "reason": "stood aside while Hollowmere was threatened"},
+	"hollowmere_shakedown:encourage_pay": {"friendship": -4, "romantic_bond": -2, "attraction": -2, "reason": "backed Ironbond coercion against Wren’s home"},
+	"goblin_favour:scout": {"friendship": -6, "romantic_bond": -3, "attraction": -2, "reason": "scouted Wren’s home for raiders"},
+	"goblin_favour:steal": {"friendship": -4, "romantic_bond": -2, "attraction": -1, "reason": "stole from Wren’s community for raiders"},
+	"goblin_favour:raid_mine": {"friendship": -5, "romantic_bond": -3, "attraction": -2, "reason": "raided civilians for plunder"},
+	"goblin_resolution:assault": {"friendship": 3, "attraction": 2, "reason": "protected Hollowmere decisively"},
+	"goblin_resolution:stealth_succession": {"friendship": 4, "attraction": 3, "reason": "protected Hollowmere with nerve and restraint"},
+	"goblin_resolution:goblin_diplomacy": {"friendship": 4, "attraction": 1, "reason": "protected Hollowmere without needless bloodshed"},
+	"goblin_resolution:goblin_alliance": {"friendship": -3, "romantic_bond": -1, "reason": "accepted continuing danger to Wren’s home"},
+	"goblin_resolution:betrayal": {"friendship": -18, "romantic_bond": -14, "attraction": -12, "reason": "betrayed Wren and Hollowmere"},
+	"parents_search_promise": {"friendship": 2, "romantic_bond": 1, "reason": "offered to help with Wren’s missing parents"},
+	"parents_search_reached_millbrook": {"friendship": 6, "romantic_bond": 4, "reason": "remembered and kept a deeply personal promise"},
+	"parents_investigation:support": {"friendship": 8, "romantic_bond": 6, "reason": "stood beside Wren without taking her grief away from her"},
+	"parents_investigation:restore_names": {"friendship": 7, "romantic_bond": 5, "reason": "helped restore Wren’s parents’ names"},
+	"parents_investigation:closure": {"friendship": 6, "romantic_bond": 4, "reason": "helped Wren find closure"},
+	"player_became_lich": {"friendship": -22, "romantic_bond": -18, "attraction": -30, "reason": "chose lichdom despite its cost to the people beside them"}
+}
+
+const WREN_DISPOSITION_EVENTS := {
+	"hollowmere_shakedown:fight": {"approval": 10, "trust": 8, "reason": "stood with Hollowmere against the Ironbond shakedown"},
+	"hollowmere_shakedown:stay_out": {"approval": -4, "trust": -3, "reason": "stood aside while Ironbond threatened the Hollow Tankard"},
+	"hollowmere_shakedown:encourage_pay": {"approval": -10, "trust": -6, "reason": "backed Ironbond while they extorted Garrick"},
+	"goblin_favour:scout": {"approval": -12, "trust": -12, "reason": "gave Hollowmere scouting information to the goblins"},
+	"goblin_favour:steal": {"approval": -8, "trust": -6, "reason": "stole from Hollowmere folk for the goblins"},
+	"goblin_favour:raid_mine": {"approval": -15, "trust": -12, "reason": "helped the goblins raid Emberlode for plunder"},
+	"goblin_resolution:assault": {"approval": 10, "trust": 8, "reason": "broke the Skarn-tooth threat to Hollowmere"},
+	"goblin_resolution:stealth_succession": {"approval": 12, "trust": 8, "reason": "ended the Skarn-tooth threat without a massacre"},
+	"goblin_resolution:goblin_diplomacy": {"approval": 8, "trust": 6, "reason": "got the Skarn-tooth tribe away from Hollowmere peacefully"},
+	"goblin_resolution:goblin_alliance": {"approval": -10, "trust": -8, "reason": "let a raiding tribe settle permanently on Hollowmere’s doorstep"},
+	"goblin_resolution:betrayal": {"approval": -40, "trust": -35, "reason": "betrayed Wren and Hollowmere"},
+	"parents_search_promise": {"approval": 2, "trust": 1, "reason": "promised to help look for Wren’s parents in Millbrook"}
+}
+
+const WREN_DIALOGUE_EVENTS := {
+	"people_do_not_give_up": {"friendship": 4, "romantic_bond": 2, "reason": "affirmed that people should not give up on each other"},
+	"loyalty_has_limits": {"friendship": 5, "romantic_bond": 2, "reason": "invited Wren to challenge the player when they are wrong"},
+	"look_after_our_own": {"friendship": 2, "romantic_bond": 1, "attraction": 1, "reason": "defined the pair as people who protect their own"},
+	"you_do_not_owe_me": {"friendship": 7, "romantic_bond": 5, "reason": "made Wren’s loyalty a free choice rather than an obligation"},
+	"truth_even_when_it_hurts": {"friendship": 4, "romantic_bond": 2, "reason": "valued truth even when it hurts"},
+	"hurt_ours_no_second_chance": {"friendship": 1, "attraction": 1, "reason": "shared Wren’s protective anger"},
+	"do_not_become_them": {"friendship": 5, "romantic_bond": 3, "reason": "urged Wren not to let cruelty define her"},
+	"power_keeps_us_safe": {"friendship": 1, "attraction": 2, "reason": "made a forceful case for power as protection"}
+}
+
 var states: Dictionary = {}
 
 
@@ -207,6 +253,25 @@ func adjust(companion_id: String, changes: Dictionary, reason: String = "") -> D
 		_append_history(state, {"reason": reason, "state": after})
 		states[companion_id] = state
 	return {"ok": true, "state": after}
+
+
+func apply_wren_authored_event(event_key: String) -> Dictionary:
+	var story_event: Dictionary = WREN_STORY_EVENTS.get(event_key, {})
+	var disposition_event: Dictionary = WREN_DISPOSITION_EVENTS.get(event_key, {})
+	var dialogue_event: Dictionary = WREN_DIALOGUE_EVENTS.get(event_key, {})
+	if story_event.is_empty() and disposition_event.is_empty() and dialogue_event.is_empty():
+		return {"ok": false, "reason": "unknown_wren_event"}
+	var changes: Dictionary = {}
+	var reason := ""
+	for event_value in [story_event, disposition_event, dialogue_event]:
+		var event: Dictionary = event_value
+		for axis_value in event.keys():
+			var axis := String(axis_value)
+			if AXES.has(axis):
+				changes[axis] = float(changes.get(axis, 0.0)) + float(event[axis_value])
+		if reason.is_empty() and event.has("reason"):
+			reason = String(event["reason"])
+	return record_event("wren_talbot", event_key, changes, reason)
 
 
 func note_conversation(companion_id: String, conversation_key: String, familiarity_gain: float = 2.0) -> Dictionary:
