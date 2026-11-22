@@ -85,6 +85,7 @@ jobs:
                   "expression": "neutral",
                   "teeth": "teeth_base",
                   "tongue": True,
+                  "modifiers": {},
               })
               if gender == 1:
                   params.pop("breastSize", None)
