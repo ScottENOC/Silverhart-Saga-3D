@@ -155,6 +155,36 @@ func confirm_npc_standing_sync(character_id: String) -> bool:
 	return true
 
 
+func sync_with_journal(character_id: String, journal: CampaignJournal) -> Dictionary:
+	if journal == null or not PROFILES.has(character_id):
+		return {"ok":false,"reason":"missing_journal_or_unknown_character"}
+	var state := ensure(character_id, journal.npc_standing(character_id))
+	var pending := pending_npc_standing_sync(character_id)
+	if bool(pending.get("pending", false)):
+		var target_standing := int(pending.get("standing", 0))
+		var current_standing := journal.npc_standing(character_id)
+		var delta := target_standing - roundi(current_standing)
+		if delta != 0:
+			var changed := journal.adjust_npc_standing(character_id, delta, "persistent character approval synchronised")
+			if not bool(changed.get("ok", false)):
+				return changed
+		confirm_npc_standing_sync(character_id)
+		state = ensure(character_id, journal.npc_standing(character_id))
+	return {"ok":true,"relationship":snapshot(character_id, journal.npc_standing(character_id))}
+
+
+func sync_all_with_journal(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok":false,"reason":"missing_journal"}
+	var relationships: Dictionary = {}
+	for character_id in PROFILES:
+		var result := sync_with_journal(String(character_id), journal)
+		if not bool(result.get("ok", false)):
+			return result
+		relationships[String(character_id)] = result.get("relationship", {})
+	return {"ok":true,"relationships":relationships}
+
+
 func to_dict() -> Dictionary:
 	return {"version":1,"states":states.duplicate(true)}
 
