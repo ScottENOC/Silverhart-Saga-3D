@@ -23,6 +23,12 @@ func _initialize() -> void:
 		"garrick_holt": "res://art/characters/hollowmere/garrick_holt.glb",
 		"mira_ashbrook": "res://art/characters/hollowmere/mira_ashbrook.glb"
 	}
+	if FACTORY._hollowmere_body_variant_for("garrick_holt", "female") != "male":
+		_fail("Garrick's authored model was not identified as male")
+		return
+	if FACTORY._hollowmere_body_variant_for("mira_ashbrook", "male") != "female":
+		_fail("Mira's authored model was not identified as female")
+		return
 	for character_id in authored_npcs:
 		var expected_path := String(authored_npcs[character_id])
 		var resolved := FACTORY._resolve_character_model_path(
