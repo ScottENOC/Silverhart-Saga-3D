@@ -32,16 +32,15 @@ def check_file(path: Path) -> list[tuple[int, str]]:
         has_spaces = " " in prefix
 
         if extension == ".gd":
-            if has_tabs and has_spaces:
-                issues.append((number, "mixed tabs and spaces in indentation"))
+            if has_spaces:
+                reason = "mixed tabs and spaces in indentation" if has_tabs else "spaces used; expected tabs"
+                issues.append((number, reason))
             elif prefix:
-                line_style = "tabs" if has_tabs else "spaces"
+                line_style = "tabs"
                 if gdscript_style is None:
                     gdscript_style = line_style
                 elif line_style != gdscript_style:
                     issues.append((number, f"{line_style} used; this file uses {gdscript_style}"))
-                if line_style == "spaces" and len(prefix) % 4:
-                    issues.append((number, "indentation is not a multiple of 4 spaces"))
         elif extension in TAB_EXTENSIONS:
             if has_spaces:
                 reason = "mixed tabs and spaces" if has_tabs else "spaces used; expected tabs"
