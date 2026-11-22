@@ -21,7 +21,7 @@ func _run() -> void:
 
     var profiles: Array = generated.get("characters", [])
     if expected.size() != 14 or profiles.size() != expected.size() or not expected.has("player_avatar"):
-        _fail("Expected 13 Hollowmere residents plus the generated player_avatar Ara profile.")
+        _fail("Expected 13 Hollowmere residents plus player_avatar; found %d source residents and %d generated profiles (player_avatar in source: %s)." % [expected.size() - (1 if expected.has("player_avatar") else 0), profiles.size(), str(expected.has("player_avatar"))])
         return
 
     for profile_variant in profiles:
