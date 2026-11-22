@@ -16,6 +16,10 @@ func _initialize() -> void:
 
 	assert(TERRAIN.elevation_from_rolls("water", 0.5, 0.5) == 0.0)
 	assert(TERRAIN.elevation_from_rolls("path", 0.5, 0.5) == 0.0)
+	assert(TERRAIN.elevation_from_rolls("dirt", 0.5, 0.5) == 0.0)
+	assert(TERRAIN.elevation_from_rolls("wood_floor", 0.5, 0.5) == 0.0)
+	assert(TERRAIN.elevation_from_rolls("stone_floor", 0.5, 0.5) == 0.0)
+	assert(TERRAIN.elevation_from_rolls("cave_floor", 0.5, 0.5) == 0.0)
 	assert(is_equal_approx(TERRAIN.elevation_from_rolls("mountain", 0.5, 0.5), 4.95))
 	assert(is_equal_approx(TERRAIN.elevation_from_rolls("hills", 0.5, 0.5), 1.125))
 	assert(is_equal_approx(TERRAIN.elevation_from_rolls("badlands", 0.5, 0.5), 0.6))
