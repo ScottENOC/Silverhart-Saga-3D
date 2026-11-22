@@ -81,6 +81,26 @@ func _run() -> void:
         _check(palace_runtime.get_current_floor() == 1 and palace_runtime.is_floor_visible(1), "Gallery traversal must switch the active floor")
         _check(bool(palace_runtime.try_transition_at_stair(0, Vector2i(8, -496)).get("ok", false)), "The gallery stair must return to the Grand Hall")
 
+    var barracks_load: Dictionary = LOCATION_LOADER.load_multistory_location(root, "silverhart_palace_barracks", restored_simulation)
+    _check(bool(barracks_load.get("ok", false)), "Shared location loader must instantiate the palace barracks")
+    var barracks_runtime = barracks_load.get("runtime")
+    if barracks_runtime != null:
+        _check(barracks_runtime.get_floor_tile_count(0) > 0 and barracks_runtime.get_floor_tile_count(1) > 0, "Barracks mess hall and loft must both build floor geometry")
+        _check(barracks_runtime.has_floor_object(1, "barracks_bed_4"), "Barracks loft must present the fourth source bed")
+        _check(bool(barracks_runtime.try_transition_at_stair(1, Vector2i(23, -494)).get("ok", false)), "Barracks stair must reach the loft")
+        _check(bool(barracks_runtime.try_transition_at_stair(0, Vector2i(23, -494)).get("ok", false)), "Barracks loft stair must return to the mess hall")
+
+    var wizard_load: Dictionary = LOCATION_LOADER.load_multistory_location(root, "silverhart_palace_wizard_tower", restored_simulation)
+    _check(bool(wizard_load.get("ok", false)), "Shared location loader must instantiate the palace wizard tower")
+    var wizard_runtime = wizard_load.get("runtime")
+    if wizard_runtime != null:
+        _check(wizard_runtime.get_floor_tile_count(0) > 0 and wizard_runtime.get_floor_tile_count(1) > 0 and wizard_runtime.get_floor_tile_count(2) > 0, "Wizard tower, study and observatory must all build floor geometry")
+        _check(wizard_runtime.has_floor_object(0, "wizard_corruption_ledger"), "Wizard tower must present the source corruption ledger")
+        _check(bool(wizard_runtime.try_transition_at_stair(1, Vector2i(-6, -481)).get("ok", false)), "Wizard tower stair must reach the study")
+        _check(bool(wizard_runtime.try_transition_at_stair(2, Vector2i(-7, -482)).get("ok", false)), "Study stair must reach the observatory")
+        _check(bool(wizard_runtime.try_transition_at_stair(1, Vector2i(-7, -482)).get("ok", false)), "Observatory stair must return to the study")
+        _check(bool(wizard_runtime.try_transition_at_stair(0, Vector2i(-6, -481)).get("ok", false)), "Study stair must return to the tower")
+
     if failures > 0:
         push_error("%d multi-story runtime integration test(s) failed." % failures)
         quit(1)
