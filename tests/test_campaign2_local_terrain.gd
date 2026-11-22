@@ -22,6 +22,7 @@ func _initialize() -> void:
 	_check(TERRAIN.elevation_from_rolls("wood_floor", 0.5, 0.5) == 0.0)
 	_check(TERRAIN.elevation_from_rolls("stone_floor", 0.5, 0.5) == 0.0)
 	_check(TERRAIN.elevation_from_rolls("cave_floor", 0.5, 0.5) == 0.0)
+	_check(TERRAIN.elevation_from_rolls("keep_wall", 0.5, 0.5) == 0.0)
 	_check(is_equal_approx(TERRAIN.elevation_from_rolls("mountain", 0.5, 0.5), 4.95))
 	_check(is_equal_approx(TERRAIN.elevation_from_rolls("hills", 0.5, 0.5), 1.125))
 	_check(is_equal_approx(TERRAIN.elevation_from_rolls("badlands", 0.5, 0.5), 0.6))
