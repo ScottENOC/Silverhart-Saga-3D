@@ -122,6 +122,8 @@ jobs:
         run: timeout 180s godot --headless --path . res://tests/save_restore_boot.tscn
       - name: Run NPC pass-through tests
         run: godot --headless --path . --script res://tests/test_npc_pass_through.gd
+      - name: Run deterministic procedural NPC profile tests
+        run: timeout 30s godot --headless --path . --script res://tests/test_procedural_npc_profiles.gd
       - name: Run character appearance tests
         run: godot --headless --path . --script res://tests/test_character_appearance.gd
       - name: Run equipment appearance and heraldry tests
