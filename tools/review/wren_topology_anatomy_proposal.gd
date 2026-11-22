@@ -16,8 +16,8 @@ const PAIRED_REGION_MIDLINE_GAP := 0.008
 const REGIONS := {
     "breast_left": [Vector3(-0.115, 1.190, 0.175), Vector3(0.090, 0.095, 0.085), Color("#ef476f")],
     "breast_right": [Vector3(0.115, 1.190, 0.175), Vector3(0.090, 0.095, 0.085), Color("#f78c6b")],
-    "chest_front_left": [Vector3(-0.105, 1.285, 0.105), Vector3(0.095, 0.090, 0.065), Color("#ffd166")],
-    "chest_front_right": [Vector3(0.105, 1.285, 0.105), Vector3(0.095, 0.090, 0.065), Color("#06d6a0")],
+    "chest_front_left": [Vector3(-0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#ffd166")],
+    "chest_front_right": [Vector3(0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#06d6a0")],
     "pectoral_left": [Vector3(-0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#118ab2")],
     "pectoral_right": [Vector3(0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#9b5de5")],
     "sternum": [Vector3(0.0, 1.235, 0.155), Vector3(0.035, 0.120, 0.070), Color("#f4a261")],
@@ -165,7 +165,7 @@ func _run() -> void:
         "method": "Ellipsoidal seed hypotheses expanded only through adjacent source-mesh vertices for five graph hops, with decaying weights.",
         "limitations": [
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
-            "Graph propagation prevents direct Euclidean leakage between disconnected surfaces but does not make the initial seed anatomical.",
+            "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
             "The fixed hop radius is a review heuristic and must be tuned against the native mesh.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
             "Only the 12 bra-relevant regions in this first tranche are proposed; the remaining semantic regions stay explicitly unauthored."
@@ -258,6 +258,14 @@ func _matches_region_side(region_id: String, vertex: Vector3) -> bool:
     return true
 
 
+func _within_region_extent(region_id: String, vertex: Vector3) -> bool:
+    var definition: Array = REGIONS[region_id]
+    var centre: Vector3 = definition[0]
+    var radii: Vector3 = definition[1]
+    var normalized := (vertex - centre) / (radii * 1.25)
+    return normalized.length() <= 1.0
+
+
 func _propagate_over_surface(
     adjacency: Array[PackedInt32Array],
     vertices: PackedVector3Array,
@@ -287,6 +295,8 @@ func _propagate_over_surface(
             continue
         for neighbour in adjacency[current]:
             if not _matches_region_side(region_id, vertices[neighbour]):
+                continue
+            if not _within_region_extent(region_id, vertices[neighbour]):
                 continue
             if hop_distance[neighbour] >= 0:
                 continue
