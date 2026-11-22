@@ -10,17 +10,19 @@ const MODEL_PATH := "res://build/wren-native/Wren.glb"
 const OUTPUT_PATH := "res://build/wren-anatomy-topology-proposal"
 const MASK_SCRIPT := preload("res://scripts/characters/character_surface_region_mask.gd")
 const SIZE := Vector2i(1200, 1000)
-const MAX_GRAPH_HOPS := 5
+const MAX_GRAPH_HOPS := 4
 const HOP_FALLOFF := 0.68
 const PAIRED_REGION_MIDLINE_GAP := 0.008
 const REGIONS := {
-    "breast_left": [Vector3(-0.115, 1.190, 0.175), Vector3(0.090, 0.095, 0.085), Color("#ef476f")],
-    "breast_right": [Vector3(0.115, 1.190, 0.175), Vector3(0.090, 0.095, 0.085), Color("#f78c6b")],
-    "chest_front_left": [Vector3(-0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#ffd166")],
-    "chest_front_right": [Vector3(0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#06d6a0")],
+    "breast_left": [Vector3(-0.115, 1.190, 0.145), Vector3(0.070, 0.105, 0.065), Color("#ef476f")],
+    "breast_right": [Vector3(0.115, 1.190, 0.145), Vector3(0.070, 0.105, 0.065), Color("#f78c6b")],
+    "nipple_left": [Vector3(-0.115, 1.190, 0.193), Vector3(0.014, 0.014, 0.012), Color("#ff4d6d")],
+    "nipple_right": [Vector3(0.115, 1.190, 0.193), Vector3(0.014, 0.014, 0.012), Color("#c9184a")],
+    "chest_front_left": [Vector3(-0.090, 1.315, 0.125), Vector3(0.055, 0.040, 0.045), Color("#ffd166")],
+    "chest_front_right": [Vector3(0.090, 1.315, 0.125), Vector3(0.055, 0.040, 0.045), Color("#06d6a0")],
     "pectoral_left": [Vector3(-0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#118ab2")],
     "pectoral_right": [Vector3(0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#9b5de5")],
-    "sternum": [Vector3(0.0, 1.235, 0.155), Vector3(0.035, 0.120, 0.070), Color("#f4a261")],
+    "sternum": [Vector3(0.0, 1.235, 0.145), Vector3(0.020, 0.110, 0.055), Color("#f4a261")],
     "underbust": [Vector3(0.0, 1.085, 0.115), Vector3(0.220, 0.030, 0.060), Color("#e9c46a")],
     "ribcage_left": [Vector3(-0.145, 1.105, 0.045), Vector3(0.100, 0.120, 0.090), Color("#2a9d8f")],
     "ribcage_right": [Vector3(0.145, 1.105, 0.045), Vector3(0.100, 0.120, 0.090), Color("#457b9d")],
@@ -156,19 +158,20 @@ func _run() -> void:
         "triangle_count": indices.size() / 3,
         "surface_signature": MASK_SCRIPT.build_surface_signature(mesh_instance.mesh, surface_index),
         "max_graph_hops": MAX_GRAPH_HOPS,
+        "region_specific_graph_hops": {"nipple_left": 2, "nipple_right": 2, "sternum": 3, "chest_front_left": 3, "chest_front_right": 3},
         "hop_falloff": HOP_FALLOFF,
         "paired_region_midline_exclusion_m": PAIRED_REGION_MIDLINE_GAP,
         "candidate_weight_threshold": 0.15,
         "region_seed_vertex_counts": seeds,
         "candidate_vertex_counts_at_weight_0_15": counts,
         "candidate_to_seed_vertex_ratios": _build_candidate_seed_ratios(seeds, counts),
-        "method": "Ellipsoidal seed hypotheses expanded only through adjacent source-mesh vertices for five graph hops, with decaying weights.",
+        "method": "Ellipsoidal seed hypotheses expanded only through adjacent source-mesh vertices with decaying weights; breast channels use four hops, chest/sternum three hops, and nipple channels two hops.",
         "limitations": [
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
-            "The five-hop graph radius and expanded seed-volume limit are review heuristics; local mesh density affects physical reach and each boundary needs visual review.",
+            "Region-specific graph-hop limits and the expanded seed-volume limit are review heuristics; local mesh density affects physical reach and each boundary needs visual review.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
-            "Only the 12 bra-relevant regions in this first tranche are proposed; the remaining semantic regions stay explicitly unauthored."
+            "Only the 14 breast/chest-focused regions in this review tranche are proposed; the remaining semantic regions stay explicitly unauthored."
         ]
     }
     var report_file := FileAccess.open(output_directory.path_join("proposal.json"), FileAccess.WRITE)
@@ -266,6 +269,14 @@ func _within_region_extent(region_id: String, vertex: Vector3) -> bool:
     return normalized.length() <= 1.0
 
 
+func _max_graph_hops_for_region(region_id: String) -> int:
+    if region_id.begins_with("nipple_"):
+        return 2
+    if region_id.begins_with("chest_front_") or region_id == "sternum":
+        return 3
+    return MAX_GRAPH_HOPS
+
+
 func _propagate_over_surface(
     adjacency: Array[PackedInt32Array],
     vertices: PackedVector3Array,
@@ -291,7 +302,7 @@ func _propagate_over_surface(
         var current := queue[queue_index]
         queue_index += 1
         var next_hop := hop_distance[current] + 1
-        if next_hop > MAX_GRAPH_HOPS:
+        if next_hop > _max_graph_hops_for_region(region_id):
             continue
         for neighbour in adjacency[current]:
             if not _matches_region_side(region_id, vertices[neighbour]):
