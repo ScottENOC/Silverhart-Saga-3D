@@ -35,7 +35,7 @@ KNOWN_WEAPONS_FALLBACK = {"none", "rifle", "pistol", "sword", "knife"}
 KNOWN_CARRY_FALLBACK = {"none", "straw_tote", "handbag", "briefcase", "backpack"}
 
 def select_village_cast(manifest: dict) -> dict:
-    """Keep the 13 Hollowmere residents and player avatar in this model pack.
+    """Keep Wren, 12 Hollowmere residents and the player avatar in this model pack.
 
     Companion profiles share the source manifest but are built by their own
     character pipelines. They must not be exported as village residents.
@@ -43,7 +43,10 @@ def select_village_cast(manifest: dict) -> dict:
     characters = manifest.get("characters", [])
     if not isinstance(characters, list):
         raise ValueError("Character manifest must contain a characters array")
-    village_cast = [\n        profile for profile in characters\n        if profile.get("role") != "companion" or profile.get("id") == "wren_talbot"\n    ]
+    village_cast = [
+        profile for profile in characters
+        if profile.get("role") != "companion" or profile.get("id") == "wren_talbot"
+    ]
     ids = [str(profile.get("id", "")) for profile in village_cast]
     if len(village_cast) != 14 or len(set(ids)) != len(ids) or "player_avatar" not in ids:
         raise ValueError(
