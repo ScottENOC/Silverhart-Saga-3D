@@ -67,13 +67,27 @@ def build_world_surface_tree(skin):
     return tree
 
 
-def query_factory(tree):
+def query_factory(tree, skin):
+    normal_matrix = skin.matrix_world.to_3x3().inverted().transposed()
+
     def query(point):
         hit = tree.find_nearest(Vector(point))
-        if hit is None or hit[0] is None or hit[1] is None:
+        if hit is None or hit[0] is None or hit[2] is None:
             return None
-        location, normal, _face_index, _distance = hit
-        return (tuple(location), tuple(normal.normalized()))
+        location, _face_normal, face_index, _distance = hit
+        polygon = skin.data.polygons[face_index]
+        local_normal = sum(
+            (skin.data.vertices[index].normal for index in polygon.vertices),
+            Vector((0.0, 0.0, 0.0)),
+        )
+        if local_normal.length_squared <= 1e-16:
+            raise RuntimeError(
+                f"Degenerate smooth normal on skin polygon {face_index}"
+            )
+        # Vertex normals provide the consistently shaded surface direction;
+        # inverse-transpose handles non-uniform object transforms correctly.
+        normal = (normal_matrix @ local_normal.normalized()).normalized()
+        return (tuple(location), tuple(normal))
     return query
 
 
@@ -104,7 +118,7 @@ def main():
 
     skin, found_skin_materials = skin_matches[0]
     tree = build_world_surface_tree(skin)
-    query = query_factory(tree)
+    query = query_factory(tree, skin)
     config = FitConfig(
         target_clearance=args.clearance_mm / 1000.0,
         max_vertex_displacement=args.max_displacement_mm / 1000.0,
