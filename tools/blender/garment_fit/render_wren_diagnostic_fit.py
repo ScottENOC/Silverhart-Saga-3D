@@ -7,6 +7,7 @@ renders the result so the solver can be validated before real garment panels
 are introduced.
 """
 import argparse
+import csv
 import json
 import os
 import sys
@@ -128,23 +129,66 @@ def main():
         location, _face_normal, triangle_index, _distance = hit
         return tuple(location), tuple(interpolated_smooth_normal(triangle_index, location))
 
-    # Record the starting geometry and compare BVH face normals with the
-    # source mesh's smooth vertex normals. This distinguishes a solver issue
-    # from nearest-face normal/winding problems before any fitting occurs.
+    # Diagnose whether nearest-point queries jump to a different nearby body
+    # region. A shell point derived from a body vertex should normally hit the
+    # same vertex's local one-ring, not an unrelated surface across a fold.
+    body_neighbours = [set() for _ in body.data.vertices]
+    for edge in body.data.edges:
+        left, right = edge.vertices
+        body_neighbours[left].add(right)
+        body_neighbours[right].add(left)
+
     initial_signed = []
     initial_distances = []
     normal_alignment = []
+    source_normal_alignment = []
+    hit_topology = {"same_vertex": 0, "one_ring": 0, "nonlocal": 0}
+    diagnostic_rows = []
     for old, point in zip(used, start_world):
+        raw_hit = tree.find_nearest(Vector(point))
         hit = query(point)
-        if hit is None:
+        if hit is None or raw_hit is None:
             continue
         nearest, query_normal = hit
         delta = Vector(point) - Vector(nearest)
-        raw_hit = tree.find_nearest(Vector(point))
+        triangle_index = raw_hit[2]
+        hit_vertices = set(surface_triangles[triangle_index])
+        if old in hit_vertices:
+            topology = "same_vertex"
+        elif hit_vertices.intersection(body_neighbours[old]):
+            topology = "one_ring"
+        else:
+            topology = "nonlocal"
+        hit_topology[topology] += 1
         raw_face_normal = raw_hit[1].normalized()
-        initial_signed.append(delta.dot(Vector(query_normal)))
+        source_normal = (normal_matrix @ body.data.vertices[old].normal).normalized()
+        signed = delta.dot(Vector(query_normal))
+        initial_signed.append(signed)
         initial_distances.append(delta.length)
         normal_alignment.append(Vector(query_normal).dot(Vector(raw_face_normal)))
+        source_dot = Vector(query_normal).dot(source_normal)
+        source_normal_alignment.append(source_dot)
+        diagnostic_rows.append({
+            "source_vertex": old,
+            "hit_triangle": triangle_index,
+            "hit_vertices": ",".join(str(i) for i in surface_triangles[triangle_index]),
+            "topology": topology,
+            "signed_clearance_m": float(signed),
+            "nearest_distance_m": float(delta.length),
+            "source_to_hit_distance_m": float((Vector(world_vertices[old]) - Vector(nearest)).length),
+            "query_vs_source_normal_dot": float(source_dot),
+            "delta_vs_source_normal_dot": float(delta.normalized().dot(source_normal)) if delta.length > 1e-12 else 0.0,
+            "source_x": float(world_vertices[old].x),
+            "source_y": float(world_vertices[old].y),
+            "source_z": float(world_vertices[old].z),
+        })
+
+    diagnostic_rows.sort(key=lambda row: row["signed_clearance_m"])
+    csv_path = os.path.join(a.output_dir, "initial-clearance-diagnostics.csv")
+    with open(csv_path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(diagnostic_rows[0].keys()))
+        writer.writeheader()
+        writer.writerows(diagnostic_rows)
 
     def metric_summary(values):
         ordered = sorted(values)
@@ -163,7 +207,11 @@ def main():
         "raw_face_vs_smooth_query_normal_dot": metric_summary(normal_alignment),
         "raw_face_normals_opposed_to_smooth": sum(value < 0.0 for value in normal_alignment),
         "raw_face_normals_oblique_to_smooth": sum(value < 0.5 for value in normal_alignment),
+        "query_vs_source_normal_dot": metric_summary(source_normal_alignment),
+        "nearest_hit_topology": hit_topology,
+        "nonlocal_nearest_hits": hit_topology["nonlocal"],
         "measured_vertices": len(initial_signed),
+        "per_vertex_csv": "initial-clearance-diagnostics.csv",
     }
 
     fitted, report = fit_clearance(
