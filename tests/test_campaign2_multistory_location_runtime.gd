@@ -2,6 +2,7 @@ extends SceneTree
 
 const SIMULATION = preload("res://scripts/simulation/world_simulation.gd")
 const LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
+const REGIONAL_LOCATION_MANAGER = preload("res://scripts/world/campaign2_regional_location_manager.gd")
 
 var failures: int = 0
 
@@ -179,12 +180,54 @@ func _run() -> void:
         _check(bool(wizard_runtime.try_transition_at_stair(1, Vector2i(-7, -482)).get("ok", false)), "Observatory stair must return to the study")
         _check(bool(wizard_runtime.try_transition_at_stair(0, Vector2i(-6, -481)).get("ok", false)), "Study stair must return to the tower")
 
+    _test_regional_location_manager()
+
     if failures > 0:
         push_error("%d multi-story runtime integration test(s) failed." % failures)
         quit(1)
         return
     print("Kragmoor floor presentation, quest-gated traversal and campaign persistence validated.")
     quit(0)
+
+func _test_regional_location_manager() -> void:
+    var regional_simulation = SIMULATION.new()
+    root.add_child(regional_simulation)
+    var regional_player := CharacterState.new("regional_manager_player", "Regional Manager Player", Vector2i(-252, 933))
+    regional_simulation.map_data.add_cell(regional_player.axial, 0.0, true, "grass")
+    regional_simulation.register_character(regional_player)
+    var regional_actor := Node3D.new()
+    root.add_child(regional_actor)
+    var manager = REGIONAL_LOCATION_MANAGER.new()
+    root.add_child(manager)
+    _check(manager.configure(regional_simulation, regional_actor, regional_player.id, Callable(self, "_zero_elevation")), "Regional location manager must accept the shared simulation and player actor")
+
+    manager.update_for_player_hex(regional_player.axial)
+    _check(manager.get_loaded_location_ids().has("silthandriel"), "Sil'thandriel must stream in before the player reaches its great-tree stair")
+    _check(not manager.get_loaded_location_ids().has("kragmoor"), "Distant multi-story sites must remain unloaded")
+    var tree_entry: Dictionary = manager.interact_with_nearby_stair(regional_player.id)
+    _check(bool(tree_entry.get("ok", false)) and String(tree_entry.get("location_id", "")) == "silthandriel", "The shared interaction must resolve the nearby Sil'thandriel stair from the registry")
+    _check(manager.get_current_floor() == 1 and is_equal_approx(regional_actor.global_position.y, 3.3), "The shared actor must enter the Lower Canopy at the correct floor height")
+    var tree_exit: Dictionary = manager.interact_with_nearby_stair(regional_player.id)
+    _check(bool(tree_exit.get("ok", false)) and manager.get_current_floor() == 0, "The same shared interaction must return from Sil'thandriel to the surface")
+
+    regional_simulation.map_data.add_cell(Vector2i(908, -609), 0.0, true, "grass")
+    _check(regional_simulation.relocate_character(regional_player.id, Vector2i(908, -609)), "The shared player simulation must travel to the Kragmoor approach")
+    manager.update_for_player_hex(regional_player.axial)
+    _check(manager.get_loaded_location_ids().has("kragmoor"), "Kragmoor must stream in near its source-authored entrance")
+    _check(not manager.get_loaded_location_ids().has("silthandriel"), "Distant surface-level location runtimes must be retired")
+    var kragmoor_entry: Dictionary = manager.interact_with_nearby_stair(regional_player.id)
+    _check(bool(kragmoor_entry.get("ok", false)) and String(kragmoor_entry.get("location_id", "")) == "kragmoor", "The same shared interaction must resolve Kragmoor's Gate Hall stair")
+    _check(manager.get_current_floor() == -1 and is_equal_approx(regional_actor.global_position.y, -3.1), "Kragmoor traversal must lower the shared actor into the Great Hall")
+    var kragmoor_exit: Dictionary = manager.interact_with_nearby_stair(regional_player.id)
+    _check(bool(kragmoor_exit.get("ok", false)) and manager.get_current_floor() == 0, "The shared interaction must return from Kragmoor to its Gate Hall surface")
+
+    regional_simulation.map_data.add_cell(Vector2i(8, 24), 0.0, true, "grass")
+    _check(regional_simulation.relocate_character(regional_player.id, Vector2i(8, 24)), "The shared player simulation must be able to leave the regional location")
+    manager.update_for_player_hex(regional_player.axial)
+    _check(not manager.get_loaded_location_ids().has("kragmoor"), "A distant surface-level location must unload after the player leaves")
+
+func _zero_elevation(_hex: Vector2i) -> float:
+    return 0.0
 
 func _check(condition: bool, message: String) -> void:
     if condition:
