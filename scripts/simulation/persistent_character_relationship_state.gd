@@ -57,11 +57,8 @@ func ensure(character_id: String, npc_standing: Variant = null) -> Dictionary:
 		}
 	var state: Dictionary = states[character_id]
 	_normalise_state(state, profile)
-	if npc_standing != null:
-		if bool(state.get("pending_approval", false)) and state.get("approval") != null:
-			return _snapshot_and_sync(character_id, state, true)
+	if npc_standing != null and not bool(state.get("pending_approval", false)):
 		state["approval"] = _standing_to_approval(float(npc_standing))
-		state["pending_approval"] = false
 	states[character_id] = state
 	return state
 
@@ -142,6 +139,22 @@ func approval_to_standing(approval: float) -> int:
 	return int(clampi(_clamp_axis(approval) * 2 - 100, -100, 100))
 
 
+func pending_npc_standing_sync(character_id: String) -> Dictionary:
+	var state := ensure(character_id)
+	if state.is_empty() or not bool(state.get("pending_approval", false)) or state.get("approval") == null:
+		return {"pending":false}
+	return {"pending":true,"standing":approval_to_standing(float(state["approval"]))}
+
+
+func confirm_npc_standing_sync(character_id: String) -> bool:
+	var state := ensure(character_id)
+	if state.is_empty() or not bool(state.get("pending_approval", false)):
+		return false
+	state["pending_approval"] = false
+	states[character_id] = state
+	return true
+
+
 func to_dict() -> Dictionary:
 	return {"version":1,"states":states.duplicate(true)}
 
@@ -203,12 +216,6 @@ func _append_history(state: Dictionary, entry: Dictionary) -> void:
 		history = history.slice(history.size() - HISTORY_LIMIT)
 	state["history"] = history
 
-
-func _snapshot_and_sync(character_id: String, state: Dictionary, apply_pending: bool) -> Dictionary:
-	if apply_pending and state.get("approval") != null:
-		state["pending_approval"] = false
-	states[character_id] = state
-	return snapshot(character_id)
 
 
 func _standing_to_approval(standing: float) -> int:
