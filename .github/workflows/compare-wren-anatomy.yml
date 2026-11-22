@@ -182,7 +182,7 @@ jobs:
                       "method": "tools/blender/add_female_anatomy_surface.py",
                       "deformation_scale": 1.65
                   },
-                  "uploaded_script": {
+                  "uploaded-script": {
                       "method": "tools/blender/add_adult_anatomy_uploaded_comparison.py",
                       "profile": "female",
                       "method_mode": "integrated",
