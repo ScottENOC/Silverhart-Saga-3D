@@ -2,6 +2,13 @@ name: Build Hollowmere Ara characters
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [dev]
+    paths:
+      - "data/characters/hollowmere_npcs.json"
+      - "tools/ara/build_hollowmere_npcs.py"
+      - "tests/test_hollowmere_npc_builder.py"
+      - ".github/workflows/hollowmere-npcs.yml"
   push:
     branches: [dev, feature/opening-village]
     paths:
@@ -21,7 +28,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate-generator:
+    if: github.event_name == 'pull_request'
+    name: Validate Hollowmere cast selection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check generator and source roster
+        run: |
+          python -m py_compile tools/ara/build_hollowmere_npcs.py
+          python tests/test_hollowmere_npc_builder.py
+
   generate:
+    if: github.event_name != 'pull_request'
     name: Generate the Hollowmere cast with Ara
     runs-on: ubuntu-latest
     timeout-minutes: 90
