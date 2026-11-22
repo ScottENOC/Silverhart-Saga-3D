@@ -29,6 +29,17 @@ var settlement_wall_cells: Dictionary = {}
 var settlement_ladder_cells: Dictionary = {}
 var river_points: Array[Vector3] = []
 
+## The two neighbouring cell centres that share each flat-top hex vertex.
+## This table is indexed by the corner offsets returned by HexGrid.corner_offsets().
+const SHARED_VERTEX_NEIGHBOURS := [
+	[Vector2i(1, 0), Vector2i(1, -1)],
+	[Vector2i(1, 0), Vector2i(0, 1)],
+	[Vector2i(0, 1), Vector2i(-1, 1)],
+	[Vector2i(-1, 1), Vector2i(-1, 0)],
+	[Vector2i(-1, 0), Vector2i(0, -1)],
+	[Vector2i(0, -1), Vector2i(1, -1)],
+]
+
 func _init() -> void:
 	settlement_definition_registry = SETTLEMENT_DEFINITION_REGISTRY.new()
 	for validation_error in settlement_definition_registry.validation_errors:
@@ -271,6 +282,18 @@ func elevation_for_hex(hex: Vector2i) -> float:
 	if not terrain_definition.is_empty():
 		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.elevation_for_hex(authored_settlement.local_hex, terrain_definition)
 	return LOCAL_TERRAIN_RULES.elevation_for_hex(hex, terrain_for_hex(hex))
+
+## Returns a deterministic height shared by all cells meeting at one vertex.
+## Sampling the same three global cells makes independently streamed chunks
+## produce identical boundary vertices, rather than exposing vertical seams.
+func shared_vertex_elevation(hex: Vector2i, corner_index: int) -> float:
+	if corner_index < 0 or corner_index >= SHARED_VERTEX_NEIGHBOURS.size():
+		return elevation_for_hex(hex)
+	var neighbours: Array = SHARED_VERTEX_NEIGHBOURS[corner_index]
+	var total := elevation_for_hex(hex)
+	for offset in neighbours:
+		total += elevation_for_hex(hex + offset)
+	return total / 3.0
 
 func has_tree(hex: Vector2i) -> bool:
 	var authored_settlement := settlement_definition_registry.resolve(hex)
