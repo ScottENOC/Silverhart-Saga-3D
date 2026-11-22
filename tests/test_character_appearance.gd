@@ -191,6 +191,10 @@ func _test_campaign_character_actor_factory() -> void:
 	var model := actor.get_node_or_null("CharacterModel") as AraCharacterActor
 	assert(model != null)
 	assert(model.loaded_asset_path != "")
+	assert(not model.hair_instances.is_empty(), "The standalone player hairstyle must bind to the generated body skeleton")
+	var original_hair_count := model.hair_instances.size()
+	assert(model.set_hairstyle("res://art/characters/ara_runtime/hair/female_short02.glb"))
+	assert(model.hair_instances.size() == original_hair_count, "Replacing a hairstyle must not stack duplicate meshes")
 	actor.free()
 
 
