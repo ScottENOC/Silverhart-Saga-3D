@@ -80,8 +80,10 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 	var paths: Array = []
 	for source_path in layout.get("paths", []):
 		var path: Dictionary = source_path.duplicate(true)
-		path["from"] = _read_axial(path.get("from", {}))
-		path["to"] = _read_axial(path.get("to", {}))
+		if path.has("from"):
+			path["from"] = _read_axial(path["from"])
+		if path.has("to"):
+			path["to"] = _read_axial(path["to"])
 		if path.get("points") is Array:
 			var converted_points: Array = []
 			for point in path["points"]:
@@ -166,7 +168,9 @@ func adapt_campaign2_layout(layout: Dictionary) -> Dictionary:
 		max_r = maxi(max_r, int(point.get("r", 0)))
 	for path in paths:
 		for endpoint_name in ["from", "to"]:
-			var point: Dictionary = path.get(endpoint_name, {})
+			if not path.has(endpoint_name):
+				continue
+			var point: Dictionary = path[endpoint_name]
 			min_q = mini(min_q, int(point.get("q", 0)))
 			max_q = maxi(max_q, int(point.get("q", 0)))
 			min_r = mini(min_r, int(point.get("r", 0)))
