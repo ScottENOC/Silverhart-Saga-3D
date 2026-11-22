@@ -70,7 +70,9 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
         character_id = f"tavern_generated_{index + 1:03d}"
         person_seed = seed + index * 7919
         person = random.Random(person_seed)
-        # Names in this curated sample are gender-authored; do not randomise a\n        # body variant independently of the identity we assigned.\n        gender = 0 if first in FEMALE_FIRST_NAMES else 1
+        # Names in this curated sample are gender-authored; do not randomise a
+        # body variant independently of the identity we assigned.
+        gender = 0 if first in FEMALE_FIRST_NAMES else 1
         age = person.uniform(0.36, 0.88)
         complexion = [person.uniform(0.02, 0.92) for _ in range(3)]
         total = sum(complexion)
