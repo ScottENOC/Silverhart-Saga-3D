@@ -43,11 +43,11 @@ def select_village_cast(manifest: dict) -> dict:
     characters = manifest.get("characters", [])
     if not isinstance(characters, list):
         raise ValueError("Character manifest must contain a characters array")
-    village_cast = [profile for profile in characters if profile.get("role") != "companion"]
+    village_cast = [\n        profile for profile in characters\n        if profile.get("role") != "companion" or profile.get("id") == "wren_talbot"\n    ]
     ids = [str(profile.get("id", "")) for profile in village_cast]
     if len(village_cast) != 14 or len(set(ids)) != len(ids) or "player_avatar" not in ids:
         raise ValueError(
-            "Expected 13 Hollowmere residents plus player_avatar; "
+            "Expected Wren, 12 Hollowmere residents plus player_avatar; "
             f"found {len(village_cast)} records with IDs {ids!r}"
         )
     return {**manifest, "characters": village_cast}
