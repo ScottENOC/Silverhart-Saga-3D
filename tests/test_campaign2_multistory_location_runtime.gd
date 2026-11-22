@@ -18,7 +18,7 @@ func _run() -> void:
     _check(runtime.get_floor_tile_count(0) > 0 and runtime.get_floor_tile_count(-5) > 0, "All six source floors must build presentation tiles")
     _check(runtime.is_floor_visible(0) and not runtime.is_floor_visible(-1), "Only the active floor may be visible")
 
-    var down := runtime.try_transition_at_stair(-1, Vector2i(908, -610))
+    var down: Dictionary = runtime.try_transition_at_stair(-1, Vector2i(908, -610))
     _check(bool(down.get("ok", false)) and runtime.get_current_floor() == -1, "Gate Hall stair must activate the Great Hall")
     _check(not runtime.is_floor_visible(0) and runtime.is_floor_visible(-1), "Floor presentation must switch with traversal")
     _check(simulation.map_data.is_walkable(Vector2i(908, -627)), "Active floor geometry must be registered as logical walkable cells")
@@ -29,7 +29,7 @@ func _run() -> void:
     _check(bool(runtime.try_transition_at_stair(-2, Vector2i(908, -626)).get("ok", false)), "Great Hall must connect to the Vault and Runeforge")
     _check(bool(runtime.try_transition_at_stair(-3, Vector2i(890, -627)).get("ok", false)), "Runeforge must connect to the Deep Mine")
     _check(bool(runtime.try_transition_at_stair(-4, Vector2i(890, -617)).get("ok", false)), "Deep Mine must connect to the Lower Tunnels")
-    var sealed := runtime.try_transition_at_stair(-5, Vector2i(890, -605))
+    var sealed: Dictionary = runtime.try_transition_at_stair(-5, Vector2i(890, -605))
     _check(not bool(sealed.get("ok", false)) and String(sealed.get("reason", "")) == "transition_locked", "Sunken Deep must remain sealed until the quest is completed")
     _check(not runtime.has_floor_object(-4, "transition_-4_-5"), "The sealed passage must not be presented before quest completion")
 
