@@ -50,7 +50,7 @@ func can_start(chapter_id: String, journal: CampaignJournal, party_ids: Array[St
 	if chapter.is_empty():
 		return {"ok":false,"reason":"unknown_chapter"}
 	var companion_id := String(chapter.get("companion_id", ""))
-	if not party_ids.has(companion_id):
+	if not _party_contains_companion(party_ids, companion_id):
 		return {"ok":false,"reason":"companion_not_in_party","companion_id":companion_id}
 	if journal == null:
 		return {"ok":false,"reason":"missing_journal"}
@@ -209,6 +209,33 @@ func next_chapter_for(companion_id: String, journal: CampaignJournal, party_ids:
 		if bool(eligible.get("ok", false)):
 			return {"chapter":chapter.duplicate(true),"quest_state":{}}
 	return {}
+
+
+func active_chapter_for_actor(actor_id: String, journal: CampaignJournal) -> Dictionary:
+	if actor_id.is_empty() or journal == null:
+		return {}
+	for chapter_value in chapters.values():
+		var chapter: Dictionary = chapter_value
+		if String(chapter.get("actor_id", "")) != actor_id:
+			continue
+		var quest_state := journal.quest_state(String(chapter.get("id", "")))
+		if String(quest_state.get("status", "")) == "active" and not bool(quest_state.get("consulted", false)):
+			return {"chapter":chapter.duplicate(true),"quest_state":quest_state}
+	return {}
+
+
+func resolution_options(chapter_id: String) -> Array[Dictionary]:
+	var chapter: Dictionary = chapters.get(chapter_id, {})
+	var resolutions: Dictionary = chapter.get("resolutions", {})
+	var options: Array[Dictionary] = []
+	for resolution_id in resolutions:
+		var resolution: Dictionary = resolutions[resolution_id]
+		options.append({"id":String(resolution_id),"label":String(resolution.get("label", "")),"available":true})
+	return options
+
+
+func _party_contains_companion(party_ids: Array[String], companion_id: String) -> bool:
+	return party_ids.has(companion_id) or party_ids.has("companion_" + companion_id)
 
 
 func to_dict() -> Dictionary:
