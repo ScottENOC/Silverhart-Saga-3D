@@ -162,10 +162,11 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 	var companion_id := String(chapter.get("companion_id", ""))
 	var companion_name := String(chapter.get("companion", "your companion"))
 	var reason := String(effect.get("reason", chapter.get("title", "")))
+	var reward_reason := String(reward.get("reason", chapter.get("title", "")))
 	if companion_relationships != null:
 		var relationship_changes: Dictionary = reward.get("relationship", {})
 		if not relationship_changes.is_empty():
-			companion_relationships.record_event(companion_id, "quest_chain:" + chapter_id + ":relationship", relationship_changes, reason)
+			companion_relationships.record_event(companion_id, "quest_chain:" + chapter_id + ":relationship", relationship_changes, reward_reason)
 		var affinity_changes: Dictionary = reward.get("affinity", {})
 		var normalized_affinity: Dictionary = {}
 		for axis_value in affinity_changes:
@@ -174,7 +175,7 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 				"romanticBond": normalized_affinity["romantic_bond"] = affinity_changes[axis_value]
 				"friendship", "attraction": normalized_affinity[axis] = affinity_changes[axis_value]
 		if not normalized_affinity.is_empty():
-			companion_relationships.record_event(companion_id, "quest_chain:" + chapter_id + ":affinity", normalized_affinity, reason)
+			companion_relationships.record_event(companion_id, "quest_chain:" + chapter_id + ":affinity", normalized_affinity, reward_reason)
 
 	var arc_state: Dictionary = arc_states.get(companion_id, {})
 	for trait_value in effect.get("arc", {}).keys():
@@ -205,7 +206,7 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 		"affinity":reward.get("affinity", {}).duplicate(true),
 		"arc_state":arc_state.duplicate(true),
 		"personality_growth":growth.duplicate(true),
-		"requested_choice_reason":String(reward.get("reason", reason))
+		"requested_choice_reason":reward_reason
 	}
 
 
