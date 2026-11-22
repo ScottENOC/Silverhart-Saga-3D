@@ -4,7 +4,7 @@ extends RefCounted
 ## Simulation state and world placement remain owned by the caller.
 
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
-const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_body_anatomy.glb"
+const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_player_female_body.glb"
 const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
 const HOLLOWMERE_PROFILE_PATH := "res://art/characters/hollowmere/profiles.json"
 const COMPANION_ASSETS := {
