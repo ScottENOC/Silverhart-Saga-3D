@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - feature/garment-fit-solver-foundation
+      - feature/wren-diagnostic-fit-preview
     paths:
       - "tools/blender/garment_fit/**"
       - ".github/workflows/wren-garment-fit-preview.yml"
