@@ -170,11 +170,11 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin "\${GITHUB_REF_NAME}"
+          git fetch origin "${GITHUB_REF_NAME}"
           # The job checks out a detached trigger commit. Rebase alone does not
           # fast-forward an ancestor commit to the fetched branch tip, so create
           # the asset commit from the current remote branch explicitly.
-          git checkout -B "\${GITHUB_REF_NAME}" "origin/\${GITHUB_REF_NAME}"
+          git checkout -B "${GITHUB_REF_NAME}" "origin/${GITHUB_REF_NAME}"
           python - <<'PY'
           import hashlib, json
           from pathlib import Path
@@ -185,9 +185,11 @@ jobs:
           for name in ("ara_player_female_body.glb", "ara_player_male_body.glb"):
               payload = (root / name).read_bytes()
               assets[name] = {"size_bytes": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}
-          version_source = "".join(f"{name}:{entry['sha256']}\n" for name, entry in sorted(assets.items())).encode()
+          version_source = "".join(f"{name}:{entry['sha256']}
+" for name, entry in sorted(assets.items())).encode()
           manifest["package_version"] = "local-" + hashlib.sha256(version_source).hexdigest()[:16]
-          path.write_text(json.dumps(manifest, indent=2) + "\n")
+          path.write_text(json.dumps(manifest, indent=2) + "
+")
           PY
           git add art/characters/ara_runtime/ara_player_female_body.glb art/characters/ara_runtime/ara_player_female_body.glb.import
           git add art/characters/ara_runtime/ara_player_male_body.glb art/characters/ara_runtime/ara_player_male_body.glb.import
@@ -197,4 +199,4 @@ jobs:
             exit 0
           fi
           git commit -m "Build player bodies with current gendered anatomy"
-          git push origin "HEAD:\${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
