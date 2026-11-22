@@ -44,6 +44,18 @@ func _initialize() -> void:
 		_check(preview.materials.has(terrain_id), "Regional preview must render the %s terrain instead of leaving a hole" % terrain_id)
 	preview.free()
 	_check(terrain.terrain_for_hex(Vector2i(120, 40)) == terrain.terrain_for_hex(Vector2i(120, 40)), "Terrain must be deterministic")
+	# Shared terrain vertices must be identical when generated from either
+	# side of a chunk boundary. The same three global cells define each vertex.
+	var seam_hex := Vector2i(23, -11)
+	_check(is_equal_approx(
+		terrain.shared_vertex_elevation(seam_hex, 0),
+		terrain.shared_vertex_elevation(seam_hex + HexGrid.DIRECTIONS[0], 4)
+	), "Adjacent chunks must calculate the same shared boundary vertex height")
+	_check(is_equal_approx(
+		terrain.shared_vertex_elevation(seam_hex, 1),
+		terrain.shared_vertex_elevation(seam_hex + HexGrid.DIRECTIONS[5], 5)
+	), "Shared vertex heights must agree across a second axial edge orientation")
+	_check(terrain.shared_vertex_elevation(seam_hex, -1) == terrain.elevation_for_hex(seam_hex), "Invalid corner indices must safely fall back to the cell height")
 	_check(terrain.terrain_for_hex(Vector2i(-43, -343)) == "keep_wall", "Chapterhouse keep wall must resolve to its own terrain type")
 	_check(not terrain.is_walkable_for_hex(Vector2i(-43, -343)), "Keep-wall cells must block traversal")
 	if failures > 0:
