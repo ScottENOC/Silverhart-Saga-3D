@@ -117,6 +117,21 @@ def main() -> None:
     validate_profiles(manifest)
     args.out.mkdir(parents=True, exist_ok=True)
 
+    # The current source roster no longer stores world hexes. Preserve the
+    # authored placements from the existing model manifest where available;
+    # do not invent coordinates for newly added NPCs.
+    previous_hex_by_identity = {}
+    previous_manifest_path = args.out / "profiles.json"
+    if previous_manifest_path.is_file():
+        previous_manifest = json.loads(previous_manifest_path.read_text())
+        for previous in previous_manifest.get("characters", []):
+            previous_hex = previous.get("hex")
+            if not isinstance(previous_hex, list) or len(previous_hex) != 2:
+                continue
+            for identity in (previous.get("id", ""), previous.get("game_id", "")):
+                if identity:
+                    previous_hex_by_identity[identity] = previous_hex
+
     built = []
     for profile in manifest["characters"]:
         character_id = profile["id"]
@@ -159,17 +174,23 @@ def main() -> None:
         if target.stat().st_size < 100_000:
             raise SystemExit(f"{character_id}: suspiciously small GLB ({target.stat().st_size:,} bytes)")
         print(f"Built {profile['name']}: {target.stat().st_size:,} bytes", flush=True)
-        built.append({
+        character_record = {
             "id": character_id,
             "game_id": profile["game_id"],
             "name": profile["name"],
             "role": profile["role"],
             "dialogue_id": profile.get("dialogue_id", ""),
-            "hex": profile["hex"],
             "detail": detail,
             "model": f"{character_id}.glb",
             "params": params,
-        })
+        }
+        hex_value = profile.get(
+            "hex",
+            previous_hex_by_identity.get(character_id, previous_hex_by_identity.get(profile["game_id"])),
+        )
+        if isinstance(hex_value, list) and len(hex_value) == 2:
+            character_record["hex"] = hex_value
+        built.append(character_record)
         shutil.rmtree(export_dir)
 
     output_manifest = {
