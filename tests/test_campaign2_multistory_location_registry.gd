@@ -6,7 +6,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Source-authored multi-story locations must validate")
-	_check(registry.location_ids() == ["kragmoor", "silverhart_palace"], "Kragmoor must be registered as the first source-authored multi-story location")
+	_check(registry.location_ids() == ["kragmoor", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_wizard_tower"], "Kragmoor must be registered as the first source-authored multi-story location")
 	var definition: Dictionary = registry.get_definition("kragmoor")
 	_check(int(definition.get("anchor", {}).get("q", 0)) == 908 and int(definition.get("anchor", {}).get("r", 0)) == -626, "Kragmoor anchor must match buildDwarvenKingdom")
 	_check(int(definition.get("massif_radius", 0)) == 25, "Kragmoor must retain the source solid-massif radius")
