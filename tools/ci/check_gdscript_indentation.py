@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check indentation conventions declared in the repository .editorconfig."""
+"""Check that each GDScript file uses one consistent indentation style."""
 from __future__ import annotations
 
 import sys
@@ -7,39 +7,53 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 TAB_EXTENSIONS = {".tscn", ".tres"}
-SPACE_WIDTHS = {".gd": 4, ".json": 2}
+SPACE_WIDTHS = {".json": 2}
 
 
 def check_file(path: Path) -> list[tuple[int, str]]:
     issues: list[tuple[int, str]] = []
     extension = path.suffix.lower()
     in_multiline_string = False
+    gdscript_style: str | None = None
 
     for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         stripped = line.lstrip(" \t")
         if not stripped:
             continue
 
-        if extension == ".gd":
-            quote_count = line.count('"""')
-            if in_multiline_string:
-                if quote_count % 2:
-                    in_multiline_string = False
-                continue
+        quote_count = line.count('"""') if extension == ".gd" else 0
+        if in_multiline_string:
+            if quote_count % 2:
+                in_multiline_string = False
+            continue
 
         prefix = line[: len(line) - len(stripped)]
-        if extension in TAB_EXTENSIONS:
-            if " " in prefix:
-                reason = "mixed tabs and spaces" if "\t" in prefix else "spaces used; expected tabs"
+        has_tabs = "\t" in prefix
+        has_spaces = " " in prefix
+
+        if extension == ".gd":
+            if has_tabs and has_spaces:
+                issues.append((number, "mixed tabs and spaces in indentation"))
+            elif prefix:
+                line_style = "tabs" if has_tabs else "spaces"
+                if gdscript_style is None:
+                    gdscript_style = line_style
+                elif line_style != gdscript_style:
+                    issues.append((number, f"{line_style} used; this file uses {gdscript_style}"))
+                if line_style == "spaces" and len(prefix) % 4:
+                    issues.append((number, "indentation is not a multiple of 4 spaces"))
+        elif extension in TAB_EXTENSIONS:
+            if has_spaces:
+                reason = "mixed tabs and spaces" if has_tabs else "spaces used; expected tabs"
                 issues.append((number, reason))
         elif extension in SPACE_WIDTHS:
-            if "\t" in prefix:
+            if has_tabs:
                 issues.append((number, "tab used; expected spaces"))
             elif len(prefix) % SPACE_WIDTHS[extension]:
                 width = SPACE_WIDTHS[extension]
                 issues.append((number, f"indentation is not a multiple of {width} spaces"))
 
-        if extension == ".gd" and line.count('"""') % 2:
+        if quote_count % 2:
             in_multiline_string = True
 
     return issues
@@ -49,7 +63,7 @@ def main() -> int:
     files = sorted(
         path for path in ROOT.rglob("*")
         if path.is_file()
-        and path.suffix.lower() in TAB_EXTENSIONS | SPACE_WIDTHS.keys()
+        and path.suffix.lower() in TAB_EXTENSIONS | {".gd", ".json"}
         and not any(part in {".git", ".godot"} for part in path.parts)
     )
     counts = {ext: 0 for ext in (".gd", ".tscn", ".tres", ".json")}
@@ -68,7 +82,7 @@ def main() -> int:
     if failures:
         print(f"Found {failures} indentation issue(s).")
         return 1
-    print("All scanned files comply with their .editorconfig indentation rules.")
+    print("All scanned files use consistent indentation.")
     return 0
 
 
