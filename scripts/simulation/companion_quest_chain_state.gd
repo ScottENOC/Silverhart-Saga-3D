@@ -160,6 +160,7 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 	journal.quests[chapter_id] = quest_state
 
 	var companion_id := String(chapter.get("companion_id", ""))
+	var companion_name := String(chapter.get("companion", "your companion"))
 	var reason := String(effect.get("reason", chapter.get("title", "")))
 	if companion_relationships != null:
 		var relationship_changes: Dictionary = reward.get("relationship", {})
@@ -187,13 +188,17 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 			var trait_name := String(trait_pair[0])
 			growth[trait_name] = float(growth.get(trait_name, 0.0)) + float(trait_pair[1])
 	personality_growth[companion_id] = growth
+	var result_line := String(effect.get("line", "The decision is made."))
+	if requested_resolution == "companion_decides":
+		var pronoun := "himself" if companion_id in ["ser_aldric_thorne", "brother_alden", "fenn_oakheart"] else "herself"
+		result_line += "\n\nGiven the choice, " + companion_name + " chooses for " + pronoun + "."
 	return {
 		"ok":true,
 		"quest_id":chapter_id,
 		"requested_resolution":requested_resolution,
 		"effective_resolution":effective_resolution,
 		"reason":reason,
-		"line":String(effect.get("line", "The decision is made.")),
+		"line":result_line,
 		"companion_decided":requested_resolution == "companion_decides",
 		"xp_reward":int(chapter.get("xp", 0)),
 		"relationship":reward.get("relationship", {}).duplicate(true),
