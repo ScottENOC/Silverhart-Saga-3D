@@ -220,7 +220,7 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
 	# Hollowmere NPC exports already contain their authored outfits; keep those
 	# baked surfaces visible because no separate male/female garment pack is
 	# installed for every village outfit yet.
-	if model_root != null and not loaded_asset_path.contains("/hollowmere/"):
+	if model_root != null and not loaded_asset_path.contains("/hollowmere/") and not loaded_asset_path.contains("/companions/"):
 		var character_meshes: Array[MeshInstance3D] = []
 		_collect_meshes(model_root, character_meshes)
 		for mesh_instance in character_meshes:
