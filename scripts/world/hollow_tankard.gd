@@ -73,7 +73,7 @@ var rotate_left_button: Button
 var rotate_right_button: Button
 var tile_mesh: ArrayMesh
 var path_material: StandardMaterial3D
-var movement_controller: WorldPlayerMovementController
+var movement_controller: Node
 const INVALID_HEX := Vector2i(2147483647, 2147483647)
 
 var grass_material: StandardMaterial3D
@@ -126,7 +126,7 @@ func _ready() -> void:
 	add_child(spell_vfx)
 	_configure_location_simulation()
 	_present_interior_layout()
-	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new() as WorldPlayerMovementController
+	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new()
 	movement_controller.name = "WorldPlayerMovementController"
 	add_child(movement_controller)
 	movement_controller.configure(simulation, self, tile_mesh, path_material, Callable(self, "_hex_world_position"), active_character_id)

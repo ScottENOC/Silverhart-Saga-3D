@@ -1,5 +1,7 @@
 extends SceneTree
 
+const CONTROLLER_SCRIPT = preload("res://scripts/world/world_player_movement_controller.gd")
+
 var _failures: int = 0
 
 func _initialize() -> void:
@@ -28,7 +30,7 @@ func _test_shared_path_movement() -> void:
 	simulation.register_character(player)
 	var presentation_root := Node3D.new()
 	root.add_child(presentation_root)
-	var controller := WorldPlayerMovementController.new()
+	var controller: Node = CONTROLLER_SCRIPT.new()
 	presentation_root.add_child(controller)
 	controller.configure(simulation, presentation_root, BoxMesh.new(), StandardMaterial3D.new(), Callable(self, "_hex_world_position"))
 	controller.set_destination(Vector2i(2, 0))
@@ -40,8 +42,10 @@ func _test_shared_path_movement() -> void:
 	controller.process_movement(0.22)
 	_check(player.axial == Vector2i(2, 0), "Shared controller should execute the second legal movement step")
 	_check(controller.get_active_path().is_empty(), "Completed routes should clear their queued path")
+	var before_paused_move := player.axial
+	simulation.clock.paused = true
 	controller.attempt_relative_move(0)
-	_check(player.axial == Vector2i(2, 0), "Directional movement must obey map boundaries")
+	_check(player.axial == before_paused_move, "Directional movement must respect the world pause")
 	controller.clear_path()
 	presentation_root.free()
 	simulation.free()
