@@ -211,13 +211,13 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	]:
 		var found := false
 		for prop in props:
-			if String(prop.get("id", "")).begins_with("silverhart_watchtower_") and prop.get("anchor", {}) == {"q": tower.x, "r": tower.y}:
+			if String(prop.get("id", "")).begins_with("silverhart_watchtower_") and prop.get("anchor") == tower:
 				found = true
 		_check(found, "Silverhart source watchtower must be positioned at " + str(tower))
 	for ladder in [Vector2i(20, -519), Vector2i(-4, -507)]:
 		var found := false
 		for prop in props:
-			if String(prop.get("id", "")).begins_with("silverhart_wall_ladder_") and prop.get("anchor", {}) == {"q": ladder.x, "r": ladder.y}:
+			if String(prop.get("id", "")).begins_with("silverhart_wall_ladder_") and prop.get("anchor") == ladder:
 				found = true
 		_check(found, "Silverhart source ladder must be positioned at " + str(ladder))
 
