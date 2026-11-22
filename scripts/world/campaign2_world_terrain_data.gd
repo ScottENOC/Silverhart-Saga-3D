@@ -158,14 +158,17 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		return String(regional_override.get("terrain", "grass"))
-	var authored_settlement := settlement_definition_registry.resolve(hex)
-	var terrain_definition := _authored_terrain_definition(authored_settlement)
-	if not terrain_definition.is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
+	# Explicit settlement buildings and roads are presentation overlays on
+	# the regional terrain. Resolve them before the broad authored biome
+	# provider so an authored palace road cannot be hidden by its grass base.
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "authored"
 	if settlement_path_cells.has(_hex_key(hex)):
 		return "path"
+	var authored_settlement := settlement_definition_registry.resolve(hex)
+	var terrain_definition := _authored_terrain_definition(authored_settlement)
+	if not terrain_definition.is_empty():
+		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
 	if _is_local_stream(hex) or _is_strategic_river(hex):
 		return "water"
 	if road_cells.has(_hex_key(hex)):
@@ -191,12 +194,14 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		return String(regional_override.get("terrain", "grass"))
+	if settlement_building_cells.has(_hex_key(hex)):
+		return "building"
+	if settlement_path_cells.has(_hex_key(hex)):
+		return "path"
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
 		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
-	if settlement_building_cells.has(_hex_key(hex)):
-		return "building"
 	var terrain := terrain_for_hex(hex)
 	return "building" if terrain == "authored" else terrain
 
