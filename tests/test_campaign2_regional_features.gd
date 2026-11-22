@@ -3,9 +3,11 @@ extends SceneTree
 const TERRAIN_DATA = preload("res://scripts/world/campaign2_world_terrain_data.gd")
 const FEATURES = preload("res://data/world/regions/silverhart_heartland/features.gd")
 
+var failures: int = 0
+
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
-	var failures: int = 0
+
 	_check(FEATURES.DRUID_GROVE_CENTRE == Vector2i(-266, 10), "Grove centre must derive from the original west-road endpoint")
 	_check(terrain.terrain_for_hex(Vector2i(-266, 10)) == "grass", "Grove interior must be a grass clearing")
 	_check(terrain.terrain_for_hex(Vector2i(-266, 9)) == "water", "Grove spring must override local terrain as water")
