@@ -83,8 +83,8 @@ func _test_clue_gates_and_managed_spillway() -> void:
 	_check(String(result.get("line", "")).contains("Not restored. Not untouched. Managed."), "Hydrology knowledge changes the authored resolution line")
 	_check(float(result.get("arc_state", {}).get("stewardship", 0.0)) == 12.0)
 	_check(float(result.get("arc_state", {}).get("independence", 0.0)) == 13.0)
-	_check(float(journal.npc_standings.get("old_mac", 0.0)) == 6.0)
-	_check(float(journal.npc_standings.get("elder_nessa_wren", 0.0)) == 6.0)
+	_check(float(journal.npc_standings.get("old_mac_human_male", 0.0)) == 6.0)
+	_check(float(journal.npc_standings.get("elder_nessa_wren_elf_female", 0.0)) == 6.0)
 	_check(bool(result.get("outcome_flags", {}).get("managed_flow", false)))
 	_check(String(journal.quest_state("fenn_living_boundary").get("status", "")) == "completed")
 
