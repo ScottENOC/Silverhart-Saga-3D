@@ -35,7 +35,7 @@ concurrency:
 jobs:
   export-ios:
     name: Export and compile iOS project
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 45
     steps:
       - name: Check out Silverhart
@@ -53,6 +53,8 @@ jobs:
         run: |
           set -euo pipefail
           godot --version
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
           godot --headless --editor --path . --quit
 
       - name: Diagnose iOS export prerequisites
