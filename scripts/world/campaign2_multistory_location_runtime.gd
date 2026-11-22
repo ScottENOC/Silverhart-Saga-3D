@@ -4,6 +4,7 @@ extends Node3D
 ## The host places this node at the location's world anchor; floor geometry is
 ## built relative to that anchor while simulation cells retain global axial IDs.
 
+const FLOOR_MAP_BUILDER = preload("res://scripts/world/campaign2_multistory_floor_map_builder.gd")
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
 const FLOOR_HEIGHT: float = 3.2
 
@@ -14,6 +15,7 @@ var simulation: WorldSimulation
 var location_state: Campaign2MultiStoryLocationState
 var floor_groups: Dictionary = {}
 var floor_hexes: Dictionary = {}
+var floor_maps: Dictionary = {}
 var _active_floor_cells: Array[Vector2i] = []
 var _previous_map_cells: Dictionary = {}
 var _configured_location := false
@@ -97,40 +99,79 @@ func _on_state_floor_changed(previous_floor: int, current_floor: int, stair_posi
 	_activate_floor(current_floor)
 	floor_changed.emit(String(definition.get("id", "")), previous_floor, current_floor, stair_position)
 
-func _on_transition_unlocked(location_id: String, _quest_id: String, _transitions: Array[Dictionary]) -> void:
+func _on_transition_unlocked(location_id: String, _quest_id: String, transitions: Array[Dictionary]) -> void:
 	if location_id != String(definition.get("id", "")):
 		return
-	# Stair interaction reads the authoritative unlocked state directly.
+	var anchor_data: Dictionary = definition.get("anchor", {})
+	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
+	var rebuild_floors: Dictionary = {}
+	for transition in transitions:
+		rebuild_floors[int(transition.get("from_floor", 999999))] = true
+	for floor_number in rebuild_floors:
+		var old_group := floor_groups.get(floor_number) as Node3D
+		if old_group != null:
+			old_group.free()
+		floor_groups.erase(floor_number)
+		floor_hexes.erase(floor_number)
+		floor_maps.erase(floor_number)
+		var floor_definition := {}
+		for floor_variant in definition.get("floors", []):
+			if floor_variant is Dictionary and int(floor_variant.get("floor", 999999)) == int(floor_number):
+				floor_definition = floor_variant
+				break
+		if not floor_definition.is_empty():
+			_build_floor_presentation(floor_definition, anchor)
+	_activate_floor(location_state.current_floor)
 
 func _build_floor_presentations() -> void:
 	var anchor_data: Dictionary = definition.get("anchor", {})
 	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
 	for floor_variant in definition.get("floors", []):
-		if not floor_variant is Dictionary:
-			continue
-		var floor_definition: Dictionary = floor_variant
-		var floor_number := int(floor_definition.get("floor", 0))
-		var group := Node3D.new()
-		group.name = "Floor_%d" % floor_number
-		group.position.y = float(floor_number) * FLOOR_HEIGHT
-		group.visible = false
-		add_child(group)
-		floor_groups[floor_number] = group
-		var hexes := _collect_floor_hexes(floor_definition)
-		floor_hexes[floor_number] = hexes
-		for hex in hexes:
-			var tile := MeshInstance3D.new()
-			var mesh := CylinderMesh.new()
-			mesh.top_radius = HEX_RADIUS * 0.96
-			mesh.bottom_radius = HEX_RADIUS * 0.96
-			mesh.height = 0.18
-			mesh.radial_segments = 6
-			tile.mesh = mesh
-			tile.material_override = _floor_material(floor_number)
-			tile.position = HexGrid.axial_to_world(hex - anchor, HEX_RADIUS)
-			tile.rotation.y = PI / 6.0
-			group.add_child(tile)
-		_present_floor_objects(group, floor_definition, anchor)
+		if floor_variant is Dictionary:
+			_build_floor_presentation(floor_variant, anchor)
+
+func _build_floor_presentation(floor_definition: Dictionary, anchor: Vector2i) -> void:
+	var floor_number := int(floor_definition.get("floor", 0))
+	var build_result: Dictionary = FLOOR_MAP_BUILDER.build_floor_map(definition, floor_number, location_state)
+	if not bool(build_result.get("ok", false)):
+		push_error("Could not build %s floor %d: %s" % [String(definition.get("id", "")), floor_number, build_result])
+		return
+	var group := Node3D.new()
+	group.name = "Floor_%d" % floor_number
+	group.position.y = float(floor_number) * FLOOR_HEIGHT
+	group.visible = false
+	add_child(group)
+	floor_groups[floor_number] = group
+	var logical_map := build_result.get("map_data") as HexMapData
+	floor_maps[floor_number] = logical_map
+	var walkable_hexes: Array[Vector2i] = build_result.get("walkable_hexes", [])
+	var wall_hexes: Array[Vector2i] = build_result.get("wall_hexes", [])
+	floor_hexes[floor_number] = walkable_hexes
+	for hex in walkable_hexes:
+		var tile := MeshInstance3D.new()
+		var mesh := CylinderMesh.new()
+		mesh.top_radius = HEX_RADIUS * 0.96
+		mesh.bottom_radius = HEX_RADIUS * 0.96
+		mesh.height = 0.18
+		mesh.radial_segments = 6
+		tile.mesh = mesh
+		tile.material_override = _floor_material(floor_number)
+		tile.position = HexGrid.axial_to_world(hex - anchor, HEX_RADIUS)
+		tile.rotation.y = PI / 6.0
+		group.add_child(tile)
+	for hex in wall_hexes:
+		var wall := MeshInstance3D.new()
+		var wall_mesh := CylinderMesh.new()
+		wall_mesh.top_radius = HEX_RADIUS * 0.96
+		wall_mesh.bottom_radius = HEX_RADIUS * 0.96
+		wall_mesh.height = 2.4
+		wall_mesh.radial_segments = 6
+		wall.mesh = wall_mesh
+		wall.material_override = _wall_material()
+		wall.position = HexGrid.axial_to_world(hex - anchor, HEX_RADIUS, 1.15)
+		wall.rotation.y = PI / 6.0
+		group.add_child(wall)
+	_present_floor_objects(group, build_result.get("tile_objects", []), anchor)
 
 func _collect_floor_hexes(floor_definition: Dictionary) -> Array[Vector2i]:
 	var unique: Dictionary = {}
@@ -168,8 +209,8 @@ func _collect_floor_hexes(floor_definition: Dictionary) -> Array[Vector2i]:
 	)
 	return result
 
-func _present_floor_objects(group: Node3D, floor_definition: Dictionary, anchor: Vector2i) -> void:
-	for object_variant in floor_definition.get("tile_objects", []):
+func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i) -> void:
+	for object_variant in tile_objects:
 		if not object_variant is Dictionary:
 			continue
 		var object_data: Dictionary = object_variant
@@ -234,6 +275,12 @@ func _floor_material(floor_number: int) -> StandardMaterial3D:
 		_: material.albedo_color = Color(0.31, 0.31, 0.30)
 	return material
 
+func _wall_material() -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.19, 0.20, 0.20)
+	material.roughness = 0.98
+	return material
+
 func _activate_floor(floor_number: int) -> void:
 	for floor_key in floor_groups:
 		var group := floor_groups[floor_key] as Node3D
@@ -241,10 +288,13 @@ func _activate_floor(floor_number: int) -> void:
 	_restore_active_map_cells()
 	if simulation == null:
 		return
-	for hex in floor_hexes.get(floor_number, []):
+	var active_map := floor_maps.get(floor_number) as HexMapData
+	if active_map == null:
+		return
+	for hex in active_map.cells:
 		if not _previous_map_cells.has(hex):
 			_previous_map_cells[hex] = simulation.map_data.cells.get(hex, null)
-		simulation.map_data.add_cell(hex, 0.0, true, "cave_floor")
+		simulation.map_data.cells[hex] = (active_map.cells[hex] as Dictionary).duplicate(true)
 		_active_floor_cells.append(hex)
 
 func _restore_active_map_cells() -> void:
