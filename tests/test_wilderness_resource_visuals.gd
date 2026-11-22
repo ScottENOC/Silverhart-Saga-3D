@@ -16,6 +16,21 @@ func _initialize() -> void:
     fruit_visual.refresh(stored, 0)
     _check(fruit_visual.has_node("ResourceLabel"), "Fruit tree should have a visible label")
     _check(fruit_visual.get_child_count() > 1, "Fruit tree should render a tree and fruit")
+    var fruit_model := fruit_visual.get_node_or_null("GatherableTreeModel") as Node3D
+    _check(fruit_model != null, "Fruit tree should use the shared GLB vegetation model")
+    if fruit_model != null:
+        _check(String(fruit_model.get_meta("vegetation_family", "")) == "cherry", "Fruit tree should use the committed cherry GLB family")
+    _check(fruit_visual.get_node_or_null("GatherableTreeModel/ImportedTreeModel") == null, "Gatherable tree must not instantiate the legacy procedural seasonal-tree visual")
+
+    var timber_visual := WildernessResourceVisual.new()
+    root.add_child(timber_visual)
+    timber_visual.refresh({
+        "type": "timber_tree", "available": true, "regrow_at": 0.0
+    }, 0)
+    var timber_model := timber_visual.get_node_or_null("GatherableTreeModel") as Node3D
+    _check(timber_model != null, "Available timber tree should use a GLB vegetation model")
+    if timber_model != null:
+        _check(String(timber_model.get_meta("vegetation_family", "")) == "ash", "Timber tree should use the committed ash GLB family")
 
     var empty_fruit := stored.duplicate(true)
     empty_fruit["available"] = false
