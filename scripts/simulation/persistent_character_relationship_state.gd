@@ -158,7 +158,7 @@ func confirm_npc_standing_sync(character_id: String) -> bool:
 func sync_with_journal(character_id: String, journal: CampaignJournal) -> Dictionary:
 	if journal == null or not PROFILES.has(character_id):
 		return {"ok":false,"reason":"missing_journal_or_unknown_character"}
-	var state := ensure(character_id, journal.npc_standing(character_id))
+	ensure(character_id, journal.npc_standing(character_id))
 	var pending := pending_npc_standing_sync(character_id)
 	if bool(pending.get("pending", false)):
 		var target_standing := int(pending.get("standing", 0))
@@ -169,7 +169,6 @@ func sync_with_journal(character_id: String, journal: CampaignJournal) -> Dictio
 			if not bool(changed.get("ok", false)):
 				return changed
 		confirm_npc_standing_sync(character_id)
-		state = ensure(character_id, journal.npc_standing(character_id))
 	return {"ok":true,"relationship":snapshot(character_id, journal.npc_standing(character_id))}
 
 
