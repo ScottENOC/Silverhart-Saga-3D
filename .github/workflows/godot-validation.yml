@@ -57,7 +57,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.target_ref || github.sha }}
-      - name: Check repository indentation conventions (four-space GDScript)
+      - name: Check repository indentation conventions (consistent per-file GDScript)
         run: python tools/ci/check_gdscript_indentation.py
       - name: Fetch verified Kenney Nature Kit models
         run: python tools/ci/fetch_kenney_nature_assets.py
