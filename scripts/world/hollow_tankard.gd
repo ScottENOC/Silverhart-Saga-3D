@@ -2022,18 +2022,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 
-		var relative_step := -1
-		match key_event.keycode:
-			KEY_Q: relative_step = 5
-			KEY_W: relative_step = 0
-			KEY_E: relative_step = 1
-			KEY_A: relative_step = 4
-			KEY_S: relative_step = 3
-			KEY_D: relative_step = 2
-			_: return
-		_clear_path_markers()
-		_attempt_move(relative_step)
-		get_viewport().set_input_as_handled()
+		if movement_controller != null and movement_controller.handle_directional_key(key_event.keycode):
+			get_viewport().set_input_as_handled()
+			return
 
 func _screen_position_to_hex(screen_position: Vector2) -> Vector2i:
 	var camera := get_viewport().get_camera_3d()
@@ -2064,10 +2055,6 @@ func _set_move_destination(destination: Vector2i) -> void:
 func _clear_path_markers() -> void:
 	if movement_controller != null:
 		movement_controller.clear_path()
-
-func _attempt_move(relative_step: int) -> void:
-	if movement_controller != null:
-		movement_controller.attempt_relative_move(relative_step)
 
 func _rotate_active_character(steps: int) -> void:
 	var state := simulation.get_character(active_character_id)

@@ -44,8 +44,9 @@ func _test_shared_path_movement() -> void:
 	_check(controller.get_active_path().is_empty(), "Completed routes should clear their queued path")
 	var before_paused_move := player.axial
 	simulation.clock.paused = true
-	controller.attempt_relative_move(0)
+	_check(controller.handle_directional_key(KEY_W), "W should be handled by the shared directional input mapping")
 	_check(player.axial == before_paused_move, "Directional movement must respect the world pause")
+	_check(not controller.handle_directional_key(KEY_F), "Non-movement keys must be left to the location or UI controller")
 	controller.clear_path()
 	presentation_root.free()
 	simulation.free()

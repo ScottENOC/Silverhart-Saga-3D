@@ -49,6 +49,21 @@ func attempt_relative_move(relative_step: int) -> void:
 	var direction_index := posmod(state.facing_direction + relative_step, 6)
 	simulation.try_move_character_step(state.id, state.axial + HexGrid.DIRECTIONS[direction_index])
 
+func handle_directional_key(keycode: int) -> bool:
+	var relative_step := -1
+	match keycode:
+		KEY_Q: relative_step = 5
+		KEY_W: relative_step = 0
+		KEY_E: relative_step = 1
+		KEY_A: relative_step = 4
+		KEY_S: relative_step = 3
+		KEY_D: relative_step = 2
+		_:
+			return false
+	clear_path()
+	attempt_relative_move(relative_step)
+	return true
+
 func process_movement(delta: float) -> void:
 	if active_path.size() < 2:
 		return
