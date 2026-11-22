@@ -39,6 +39,32 @@ func _initialize() -> void:
 		if int(transition.get("from_floor", 999)) == -4 and int(transition.get("to_floor", 999)) == -5:
 			gated_transition = not bool(transition.get("initially_available", true)) and String(transition.get("unlocked_by_quest", "")) == "deepholds_infestation"
 	_check(gated_transition, "The -4 to -5 stair must be locked behind What Nests Below")
+	var king := great_hall.get("actors", []).filter(func(actor): return String(actor.get("id", "")) == "dwarf_king")[0]
+	_check(String(king.get("race", "")) == "dwarf" and String(king.get("gender", "")) == "male", "King Balrik must retain his source dwarf/male profile")
+	_check(king.get("class_levels", []) == ["fighter", "fighter"], "King Balrik must retain his two fighter levels")
+	_check(king.get("skill_picks", []) == ["health", "axe_hit", "axe_dmg", "heavy_armor_training"], "King Balrik must retain his source skill picks")
+	_check(king.get("equipment", []) == ["axe", "heavy_armor", "wooden_shield"] and bool(king.get("gold_gear", false)), "King Balrik must retain his source equipment and gold gear")
+	var guard_actors: Array = great_hall.get("actors", []).filter(func(actor): return String(actor.get("role", "")) == "guard")
+	_check(guard_actors.size() == 2 and guard_actors[0].get("gender") != guard_actors[1].get("gender"), "Kragmoor must retain its distinct male and female Hall Guard profiles")
+	var trader := vault.get("actors", []).filter(func(actor): return String(actor.get("id", "")) == "deepholds_trader")[0]
+	_check(trader.get("shop_inventory", []) == ["sword", "axe", "medium_armor", "heavy_armor", "wooden_shield", "nasal_helm"], "Ingra must retain the source Vault shop inventory")
+	var interactions: Array = definition.get("interaction_rules", [])
+	var trader_rule := interactions.filter(func(rule): return String(rule.get("id", "")) == "deepholds_trader")[0]
+	_check(int(trader_rule.get("minimum_faction_standing", 0)) == 10, "Ingra's shop must retain its +10 faction-standing gate")
+	var smith_rule := interactions.filter(func(rule): return String(rule.get("id", "")) == "deepholds_runesmith")[0]
+	_check(int(smith_rule.get("trust_quest", {}).get("minimum_faction_standing", 0)) == 10, "Thrain's trust quest must require +10 standing")
+	_check(int(smith_rule.get("teaching_quest", {}).get("dwarf", {}).get("required_starmetal_ore", 0)) == 1 and int(smith_rule.get("teaching_quest", {}).get("other_races", {}).get("required_starmetal_ore", 0)) == 2, "Thrain must preserve the source dwarf/non-dwarf ore requirements")
+	_check(int(smith_rule.get("teaching_quest", {}).get("other_races", {}).get("minimum_faction_standing", 0)) == 30, "Non-dwarves must retain the +30 teaching threshold")
+	var infestation: Dictionary = definition.get("quests", [])[0]
+	_check(String(infestation.get("title", "")) == "What Nests Below" and String(infestation.get("giver", "")) == "King Balrik Deepholm", "The infestation quest must retain its source title and giver")
+	_check(String(infestation.get("objective", {}).get("creature_tag", "")) == "deepholds_vermin", "The quest must target the source-tagged Lower Tunnels vermin")
+	_check(int(infestation.get("completion", {}).get("reputation", {}).get("standing_delta", 0)) == 20 and int(infestation.get("completion", {}).get("reputation", {}).get("knowledge_delta", 0)) == 20, "The quest must retain both source faction reputation deltas")
+	_check(int(infestation.get("completion", {}).get("experience", 0)) == 200 and infestation.get("completion", {}).get("items", []) == ["deep_crystal"], "The quest must retain its 200 XP and Deep Crystal reward")
+	var broodmother: Dictionary = tunnels.get("creatures", []).filter(func(creature): return String(creature.get("id", "")) == "deepholds_broodmother")[0]
+	_check(String(broodmother.get("monster_type", "")) == "spider" and broodmother.get("quest_tags", []) == ["deepholds_vermin"], "The Broodmother must retain its source spider type and quest tag")
+	_check(int(broodmother.get("custom_skills", {}).get("health", 0)) == 6 and int(broodmother.get("custom_skills", {}).get("melee_damage", 0)) == 4, "The Broodmother must retain its source custom skills")
+	_check(String(deep.get("creatures", [])[0].get("monster_type", "")) == "dragon_young", "The Horror must reuse the source young-dragon monster template")
+
 	if failures > 0:
 		push_error("%d multi-story location test(s) failed." % failures)
 		quit(1)
