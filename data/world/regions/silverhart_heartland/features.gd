@@ -162,7 +162,10 @@ static func _is_kragmoor_gate_floor(hex: Vector2i) -> bool:
 
 static func _dungeon_surface_override(hex: Vector2i) -> Dictionary:
 	_ensure_dungeon_surface_features()
-	return (_dungeon_surface_cells.get(_hex_key(hex), {}) as Dictionary).duplicate()
+	var key := _hex_key(hex)
+	if _dungeon_surface_cells.has(key):
+		return (_dungeon_surface_cells[key] as Dictionary).duplicate()
+	return {}
 
 static func _ensure_dungeon_surface_features() -> void:
 	if _dungeon_surface_ready:
