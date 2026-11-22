@@ -222,6 +222,14 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 			city_wall_cells += 1
 	_check(city_wall_cells == 357, "Outer city wall must preserve all 360 radius-60 cells except the three-cell south gate")
 	_check(city_towers == 2, "Outer city wall must include both source gate watchtowers")
+	var guild_vault := _find_record(layout.get("buildings", []), "silverhart_thieves_guild_vault")
+	_check(guild_vault.get("door_enabled", true) == false, "The guild vault must not expose a normal visible entrance")
+	var vault_interior := _find_record(definition.get("interiors", []), "silverhart_thieves_guild_vault_interior")
+	_check(not vault_interior.is_empty(), "Silverhart must retain the hidden guild vault interior definition")
+	if not vault_interior.is_empty():
+		_assert_axial(vault_interior.get("secret_entry", {}), Vector2i(19, -426), "Hidden guild vault secret door")
+		var vault_objects: Array = vault_interior.get("objects", [])
+		_check(vault_objects.size() == 1 and String(vault_objects[0].get("type", "")) == "storage_chest", "Hidden guild vault must retain its source treasure chest")
 	_check(not _find_record(props, "silverhart_city_gate_arch").is_empty(), "Outer city gate arch must be presented")
 	_check(terrain.terrain_for_hex(Vector2i(8, -541)) == "path", "Middle ring road must be indexed at its north corner")
 	_check(terrain.terrain_for_hex(Vector2i(-35, -454)) == "path", "Middle-ring diagonal house spur must include its first cube-rounded intermediate hex")
