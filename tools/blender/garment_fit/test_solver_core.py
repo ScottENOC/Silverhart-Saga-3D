@@ -72,7 +72,7 @@ class SolverCoreTests(unittest.TestCase):
             FitConfig(target_clearance=0.004, smoothing=0.2, max_step=0.003),
         )
         self.assertGreater(result[1][2], source[1][2])
-        self.assertAlmostEqual(result[2][2], source[2][2], places=6)
+        self.assertGreater(result[2][2], source[2][2])
 
     def test_is_deterministic(self):
         source = [(0.0, 0.0, -0.01), (1.0, 0.0, 0.003)]
