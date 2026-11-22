@@ -66,6 +66,7 @@ const BARROW_SANCTUM_CENTRE := Vector2i(72, -160)
 const LICH_CHAPTERHOUSE_CENTRE := Vector2i(-39, -346)
 const THIEVES_COVE_ENTRANCE_CENTRE := Vector2i(-274, 40)
 const EMBERLODE_MINE_CENTRE := Vector2i(-252, 16)
+const HOLLOWMERE_GUILD_DEN_CENTRE := Vector2i(-12, -8)
 
 static var _orc_approach_path_cells: Dictionary = {}
 static var _orc_approach_path_ready := false
@@ -170,6 +171,9 @@ static func _dungeon_surface_override(hex: Vector2i) -> Dictionary:
 static func _ensure_dungeon_surface_features() -> void:
 	if _dungeon_surface_ready:
 		return
+	# Hollowmere Guild Den: source carveBuilding footprint with a south door.
+	_add_source_building_surface_room(_dungeon_surface_cells, HOLLOWMERE_GUILD_DEN_CENTRE, 2, 2, HOLLOWMERE_GUILD_DEN_CENTRE + Vector2i(0, 2), "wood_floor", "hollowmere_guild_den")
+
 	# Abandoned house: a corrected flat-room footprint with a west door.
 	_add_flat_surface_room(_dungeon_surface_cells, ABANDONED_HOUSE_CENTRE, 3, 2, ABANDONED_HOUSE_CENTRE + Vector2i(-3, 0), "wood_floor", "abandoned_house")
 	for q in range(9, 11):
