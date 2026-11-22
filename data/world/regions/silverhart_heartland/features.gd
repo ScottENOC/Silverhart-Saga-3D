@@ -169,6 +169,7 @@ static func _ensure_dungeon_surface_features() -> void:
 		return
 	# Abandoned house: a corrected flat-room footprint with a west door.
 	_add_flat_surface_room(_dungeon_surface_cells, ABANDONED_HOUSE_CENTRE, 3, 2, ABANDONED_HOUSE_CENTRE + Vector2i(-3, 0), "wood_floor", "abandoned_house")
+	_add_surface_corridor(_dungeon_surface_cells, Vector2i(9, -176), Vector2i(10, -176), "abandoned_house_approach")
 
 	# Vessel-Seeker's Crypt: entrance, ossuary and ritual chamber, joined by
 	# the short source cave-floor corridors. Lower floors and actors are not
@@ -378,6 +379,9 @@ static func _add_hex_line(target: Dictionary, start: Vector2i, finish: Vector2i)
 	var z2 := finish.y
 	var y2 := -x2 - z2
 	var steps := maxi(absi(x2 - x1), maxi(absi(y2 - y1), absi(z2 - z1)))
+	if steps == 0:
+		target[_hex_key(start)] = true
+		return
 	for index in range(steps + 1):
 		var t := float(index) / float(steps)
 		var fx := lerpf(float(x1), float(x2), t)
