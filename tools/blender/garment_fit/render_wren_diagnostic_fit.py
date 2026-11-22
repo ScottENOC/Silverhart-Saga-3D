@@ -130,8 +130,9 @@ def main():
         poly.use_smooth = True
 
     scene = bpy.context.scene
-    scene.render.engine = "BLENDER_EEVEE_NEXT"
-    scene.eevee.taa_render_samples = 32
+    scene.render.engine = "BLENDER_EEVEE"
+    if hasattr(scene, "eevee") and hasattr(scene.eevee, "taa_render_samples"):
+        scene.eevee.taa_render_samples = 32
     scene.render.resolution_x = 768
     scene.render.resolution_y = 1024
     scene.render.resolution_percentage = 100
