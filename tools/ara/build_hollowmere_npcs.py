@@ -56,6 +56,13 @@ def select_village_cast(manifest: dict) -> dict:
     return {**manifest, "characters": village_cast}
 
 
+def select_profiles_for_build(manifest: dict, profiles_path: Path) -> dict:
+    """Apply Hollowmere-only roster rules only to the canonical village manifest."""
+    if profiles_path.resolve() == PROFILE_FILE.resolve():
+        return select_village_cast(manifest)
+    return manifest
+
+
 def output_profile_record(profile: dict, detail: str, model: str, params: dict) -> dict:
     """Build generated metadata without assuming source coordinates live here."""
     record = {
@@ -155,7 +162,7 @@ def main() -> None:
         raise SystemExit(f"Missing character profile file: {args.profiles}")
 
     source_manifest = json.loads(args.profiles.read_text())
-    manifest = select_village_cast(source_manifest)
+    manifest = select_profiles_for_build(source_manifest, args.profiles)
     validate_profiles(manifest)
     args.out.mkdir(parents=True, exist_ok=True)
 
