@@ -10,17 +10,18 @@ const MODEL_PATH := "res://build/wren-native/Wren.glb"
 const OUTPUT_PATH := "res://build/wren-anatomy-topology-proposal"
 const MASK_SCRIPT := preload("res://scripts/characters/character_surface_region_mask.gd")
 const SIZE := Vector2i(1200, 1000)
-const MAX_GRAPH_HOPS := 9
-const HOP_FALLOFF := 0.78
+const MAX_GRAPH_HOPS := 5
+const HOP_FALLOFF := 0.68
+const PAIRED_REGION_MIDLINE_GAP := 0.008
 const REGIONS := {
     "breast_left": [Vector3(-0.115, 1.190, 0.175), Vector3(0.090, 0.095, 0.085), Color("#ef476f")],
     "breast_right": [Vector3(0.115, 1.190, 0.175), Vector3(0.090, 0.095, 0.085), Color("#f78c6b")],
     "chest_front_left": [Vector3(-0.105, 1.285, 0.105), Vector3(0.095, 0.090, 0.065), Color("#ffd166")],
     "chest_front_right": [Vector3(0.105, 1.285, 0.105), Vector3(0.095, 0.090, 0.065), Color("#06d6a0")],
-    "pectoral_left": [Vector3(-0.125, 1.325, 0.055), Vector3(0.085, 0.075, 0.075), Color("#118ab2")],
-    "pectoral_right": [Vector3(0.125, 1.325, 0.055), Vector3(0.085, 0.075, 0.075), Color("#9b5de5")],
-    "sternum": [Vector3(0.0, 1.235, 0.155), Vector3(0.045, 0.140, 0.080), Color("#f4a261")],
-    "underbust": [Vector3(0.0, 1.085, 0.115), Vector3(0.220, 0.035, 0.070), Color("#e9c46a")],
+    "pectoral_left": [Vector3(-0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#118ab2")],
+    "pectoral_right": [Vector3(0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#9b5de5")],
+    "sternum": [Vector3(0.0, 1.235, 0.155), Vector3(0.035, 0.120, 0.070), Color("#f4a261")],
+    "underbust": [Vector3(0.0, 1.085, 0.115), Vector3(0.220, 0.030, 0.060), Color("#e9c46a")],
     "ribcage_left": [Vector3(-0.145, 1.105, 0.045), Vector3(0.100, 0.120, 0.090), Color("#2a9d8f")],
     "ribcage_right": [Vector3(0.145, 1.105, 0.045), Vector3(0.100, 0.120, 0.090), Color("#457b9d")],
     "clavicle_left": [Vector3(-0.105, 1.405, 0.025), Vector3(0.090, 0.035, 0.060), Color("#a8dadc")],
@@ -154,6 +155,10 @@ func _run() -> void:
         "vertex_count": vertices.size(),
         "triangle_count": indices.size() / 3,
         "surface_signature": MASK_SCRIPT.build_surface_signature(mesh_instance.mesh, surface_index),
+        "max_graph_hops": MAX_GRAPH_HOPS,
+        "hop_falloff": HOP_FALLOFF,
+        "paired_region_midline_exclusion_m": PAIRED_REGION_MIDLINE_GAP,
+        "candidate_weight_threshold": 0.15,
         "region_seed_vertex_counts": seeds,
         "candidate_vertex_counts_at_weight_0_15": counts,
         "method": "Ellipsoidal seed hypotheses expanded only through adjacent source-mesh vertices for nine graph hops, with decaying weights.",
@@ -237,9 +242,9 @@ func _filter_region_side(
 
 func _matches_region_side(region_id: String, vertex: Vector3) -> bool:
     if region_id.ends_with("_left"):
-        return vertex.x <= -0.008
+        return vertex.x <= -PAIRED_REGION_MIDLINE_GAP
     if region_id.ends_with("_right"):
-        return vertex.x >= 0.008
+        return vertex.x >= PAIRED_REGION_MIDLINE_GAP
     return true
 
 
