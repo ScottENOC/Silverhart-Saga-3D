@@ -10,7 +10,7 @@ const MODEL_PATH := "res://build/wren-native/Wren.glb"
 const OUTPUT_PATH := "res://build/wren-anatomy-topology-proposal"
 const MASK_SCRIPT := preload("res://scripts/characters/character_surface_region_mask.gd")
 const SIZE := Vector2i(1200, 1000)
-const MAX_GRAPH_HOPS := 4
+const MAX_GRAPH_HOPS := 5
 const HOP_FALLOFF := 0.68
 const PAIRED_REGION_MIDLINE_GAP := 0.008
 const REGIONS := {
@@ -18,16 +18,34 @@ const REGIONS := {
     "breast_right": [Vector3(0.115, 1.190, 0.145), Vector3(0.070, 0.105, 0.065), Color("#f78c6b")],
     "nipple_left": [Vector3(-0.115, 1.190, 0.193), Vector3(0.014, 0.014, 0.012), Color("#ff4d6d")],
     "nipple_right": [Vector3(0.115, 1.190, 0.193), Vector3(0.014, 0.014, 0.012), Color("#c9184a")],
-    "chest_front_left": [Vector3(-0.090, 1.315, 0.125), Vector3(0.055, 0.040, 0.045), Color("#ffd166")],
-    "chest_front_right": [Vector3(0.090, 1.315, 0.125), Vector3(0.055, 0.040, 0.045), Color("#06d6a0")],
+    "chest_front_left": [Vector3(-0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#ffd166")],
+    "chest_front_right": [Vector3(0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#06d6a0")],
     "pectoral_left": [Vector3(-0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#118ab2")],
     "pectoral_right": [Vector3(0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#9b5de5")],
-    "sternum": [Vector3(0.0, 1.235, 0.145), Vector3(0.020, 0.110, 0.055), Color("#f4a261")],
+    "sternum": [Vector3(0.0, 1.235, 0.155), Vector3(0.035, 0.120, 0.070), Color("#f4a261")],
     "underbust": [Vector3(0.0, 1.085, 0.115), Vector3(0.220, 0.030, 0.060), Color("#e9c46a")],
     "ribcage_left": [Vector3(-0.145, 1.105, 0.045), Vector3(0.100, 0.120, 0.090), Color("#2a9d8f")],
     "ribcage_right": [Vector3(0.145, 1.105, 0.045), Vector3(0.100, 0.120, 0.090), Color("#457b9d")],
     "clavicle_left": [Vector3(-0.105, 1.405, 0.025), Vector3(0.090, 0.035, 0.060), Color("#a8dadc")],
-    "clavicle_right": [Vector3(0.105, 1.405, 0.025), Vector3(0.090, 0.035, 0.060), Color("#ffafcc")]
+    "clavicle_right": [Vector3(0.105, 1.405, 0.025), Vector3(0.090, 0.035, 0.060), Color("#ffafcc")],
+    "shoulder_left": [Vector3(-0.205, 1.365, 0.015), Vector3(0.070, 0.075, 0.075), Color("#f4a261")],
+    "shoulder_right": [Vector3(0.205, 1.365, 0.015), Vector3(0.070, 0.075, 0.075), Color("#e76f51")],
+    "upper_arm_left": [Vector3(-0.275, 1.225, 0.000), Vector3(0.060, 0.145, 0.060), Color("#2a9d8f")],
+    "upper_arm_right": [Vector3(0.275, 1.225, 0.000), Vector3(0.060, 0.145, 0.060), Color("#457b9d")],
+    "bicep_left": [Vector3(-0.285, 1.245, 0.045), Vector3(0.043, 0.095, 0.043), Color("#e9c46a")],
+    "bicep_right": [Vector3(0.285, 1.245, 0.045), Vector3(0.043, 0.095, 0.043), Color("#f4a261")],
+    "tricep_left": [Vector3(-0.285, 1.245, -0.045), Vector3(0.043, 0.095, 0.043), Color("#90be6d")],
+    "tricep_right": [Vector3(0.285, 1.245, -0.045), Vector3(0.043, 0.095, 0.043), Color("#43aa8b")],
+    "elbow_left": [Vector3(-0.325, 1.075, 0.000), Vector3(0.050, 0.055, 0.055), Color("#577590")],
+    "elbow_right": [Vector3(0.325, 1.075, 0.000), Vector3(0.050, 0.055, 0.055), Color("#277da1")],
+    "forearm_left": [Vector3(-0.355, 0.925, 0.000), Vector3(0.050, 0.120, 0.050), Color("#f94144")],
+    "forearm_right": [Vector3(0.355, 0.925, 0.000), Vector3(0.050, 0.120, 0.050), Color("#f3722c")],
+    "wrist_left": [Vector3(-0.375, 0.790, 0.000), Vector3(0.035, 0.045, 0.035), Color("#f8961e")],
+    "wrist_right": [Vector3(0.375, 0.790, 0.000), Vector3(0.035, 0.045, 0.035), Color("#f9c74f")],
+    "palm_left": [Vector3(-0.385, 0.715, 0.010), Vector3(0.045, 0.050, 0.030), Color("#90be6d")],
+    "palm_right": [Vector3(0.385, 0.715, 0.010), Vector3(0.045, 0.050, 0.030), Color("#43aa8b")],
+    "hand_back_left": [Vector3(-0.385, 0.715, -0.018), Vector3(0.045, 0.050, 0.025), Color("#4d908e")],
+    "hand_back_right": [Vector3(0.385, 0.715, -0.018), Vector3(0.045, 0.050, 0.025), Color("#577590")]
 }
 
 var stage: Node3D
@@ -102,7 +120,9 @@ func _run() -> void:
     var views := {
         "front": [Vector3(0.0, 1.23, 4.2), Vector3(0.0, 1.23, 0.0), 0.78],
         "side": [Vector3(4.2, 1.23, 0.0), Vector3(0.0, 1.23, 0.0), 0.78],
-        "rear": [Vector3(0.0, 1.23, -4.2), Vector3(0.0, 1.23, 0.0), 0.78]
+        "rear": [Vector3(0.0, 1.23, -4.2), Vector3(0.0, 1.23, 0.0), 0.78],
+        "arms_front": [Vector3(0.0, 1.08, 4.2), Vector3(0.0, 1.08, 0.0), 1.30],
+        "arms_side": [Vector3(4.2, 1.08, 0.0), Vector3(0.0, 1.08, 0.0), 1.30]
     }
     for view_name in views:
         var view: Array = views[view_name]
@@ -131,8 +151,13 @@ func _run() -> void:
         DirAccess.make_dir_recursive_absolute(region_directory)
         var region_overlay := _build_overlay(mesh_instance, vertices, candidate_weights, region_id)
         stage.add_child(region_overlay)
-        for view_name in views:
-            var view: Array = views[view_name]
+        var region_views: Dictionary = views.duplicate()
+        if region_id.begins_with("nipple_"):
+            var nipple_x := -0.115 if region_id == "nipple_left" else 0.115
+            region_views["nipple_detail_front"] = [Vector3(nipple_x, 1.190, 1.8), Vector3(nipple_x, 1.190, 0.0), 0.24]
+            region_views["nipple_detail_side"] = [Vector3(nipple_x + 1.8, 1.190, 0.0), Vector3(nipple_x, 1.190, 0.0), 0.24]
+        for view_name in region_views:
+            var view: Array = region_views[view_name]
             camera.position = view[0]
             camera.look_at(view[1], Vector3.UP)
             camera.size = view[2]
@@ -158,20 +183,20 @@ func _run() -> void:
         "triangle_count": indices.size() / 3,
         "surface_signature": MASK_SCRIPT.build_surface_signature(mesh_instance.mesh, surface_index),
         "max_graph_hops": MAX_GRAPH_HOPS,
-        "region_specific_graph_hops": {"nipple_left": 2, "nipple_right": 2, "sternum": 3, "chest_front_left": 3, "chest_front_right": 3},
+        "region_specific_graph_hops": {"nipple_left": 2, "nipple_right": 2},
         "hop_falloff": HOP_FALLOFF,
         "paired_region_midline_exclusion_m": PAIRED_REGION_MIDLINE_GAP,
         "candidate_weight_threshold": 0.15,
         "region_seed_vertex_counts": seeds,
         "candidate_vertex_counts_at_weight_0_15": counts,
         "candidate_to_seed_vertex_ratios": _build_candidate_seed_ratios(seeds, counts),
-        "method": "Ellipsoidal seed hypotheses expanded only through adjacent source-mesh vertices with decaying weights; breast channels use four hops, chest/sternum three hops, and nipple channels two hops.",
+        "method": "Ellipsoidal seed hypotheses expanded only through adjacent source-mesh vertices with decaying weights; nipple channels use two graph hops and other channels use five.",
         "limitations": [
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
-            "Region-specific graph-hop limits and the expanded seed-volume limit are review heuristics; local mesh density affects physical reach and each boundary needs visual review.",
+            "The two-hop nipple radius and five-hop radius for other regions are review heuristics; local mesh density affects physical reach and each boundary needs visual review.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
-            "Only the 14 breast/chest-focused regions in this review tranche are proposed; the remaining semantic regions stay explicitly unauthored."
+            "This review includes the previously reviewed torso channels, refined breast channels, nipple channels and a first shoulder-to-hand arm tranche; all other semantic regions remain unauthored."
         ]
     }
     var report_file := FileAccess.open(output_directory.path_join("proposal.json"), FileAccess.WRITE)
@@ -272,9 +297,7 @@ func _within_region_extent(region_id: String, vertex: Vector3) -> bool:
 func _max_graph_hops_for_region(region_id: String) -> int:
     if region_id.begins_with("nipple_"):
         return 2
-    if region_id.begins_with("chest_front_") or region_id == "sternum":
-        return 3
-    return MAX_GRAPH_HOPS
+        return MAX_GRAPH_HOPS
 
 
 func _propagate_over_surface(
