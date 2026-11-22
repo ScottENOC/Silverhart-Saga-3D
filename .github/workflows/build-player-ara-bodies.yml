@@ -170,11 +170,16 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Preserve the freshly generated binaries outside the worktree while
+          # moving from the detached trigger commit to the latest branch tip.
+          mkdir -p /tmp/player-ara-assets
+          cp art/characters/ara_runtime/ara_player_female_body.glb /tmp/player-ara-assets/
+          cp art/characters/ara_runtime/ara_player_female_body.glb.import /tmp/player-ara-assets/
+          cp art/characters/ara_runtime/ara_player_male_body.glb /tmp/player-ara-assets/
+          cp art/characters/ara_runtime/ara_player_male_body.glb.import /tmp/player-ara-assets/
           git fetch origin
-          # The job checks out a detached trigger commit. Rebase alone does not
-          # fast-forward an ancestor commit to the fetched branch tip, so create
-          # the asset commit from the current remote branch explicitly.
           git checkout -B "${GITHUB_REF_NAME}" "origin/${GITHUB_REF_NAME}"
+          cp /tmp/player-ara-assets/* art/characters/ara_runtime/
           python - <<'PY'
           import hashlib, json
           from pathlib import Path
