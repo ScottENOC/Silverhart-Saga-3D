@@ -69,6 +69,8 @@ func decorate_seraphine_options(relationships: PersistentCharacterRelationshipSt
 func apply_dialogue_choice(relationships: PersistentCharacterRelationshipState, character_id: String, option: Dictionary) -> Dictionary:
 	if relationships == null:
 		return {"ok":false,"reason":"missing_relationship_state"}
+	if not relationships.is_persistent_character(character_id):
+		return {"ok":false,"reason":"unknown_persistent_character"}
 	var key := String(option.get("persistent_conversation_key", ""))
 	if key.is_empty():
 		return {"ok":true,"changed":false,"relationship":relationships.snapshot(character_id)}
@@ -82,6 +84,8 @@ func seraphine_personal_response(relationships: PersistentCharacterRelationshipS
 	if relationships == null:
 		return {"ok":false,"reason":"missing_relationship_state"}
 	var relationship := relationships.snapshot("seraphine_corrin")
+	if relationship.is_empty():
+		return {"ok":false,"reason":"unknown_persistent_character"}
 	var line_key := "trusted"
 	if int(relationship.get("trust", 0)) < 20:
 		line_key = "guarded"
