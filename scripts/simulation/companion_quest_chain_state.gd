@@ -67,7 +67,9 @@ func can_start(chapter_id: String, journal: CampaignJournal, party_ids: Array[St
 	return {"ok":true,"chapter_id":chapter_id,"companion_id":companion_id}
 
 
-func start(chapter_id: String, journal: CampaignJournal, party_ids: Array[String], world_seconds: float = 0.0) -> Dictionary:
+func start(chapter_id: String, journal: CampaignJournal, party_ids: Array[String], companion_relationships: CompanionRelationshipState, world_seconds: float = 0.0) -> Dictionary:
+	if companion_relationships == null:
+		return {"ok":false,"reason":"missing_companion_relationship_state"}
 	var eligibility := can_start(chapter_id, journal, party_ids, world_seconds)
 	if not bool(eligibility.get("ok", false)):
 		return eligibility
@@ -85,7 +87,9 @@ func start(chapter_id: String, journal: CampaignJournal, party_ids: Array[String
 	quest_state["effective_resolution"] = ""
 	quest_state["description"] = String(chapter.get("intro", "")) + " Speak with " + String(chapter.get("actor", "the supporting character")) + "."
 	journal.quests[chapter_id] = quest_state
-	return {"ok":true,"quest_id":chapter_id,"chapter":chapter.duplicate(true),"stage":"consult"}
+	var companion_id := String(chapter.get("companion_id", ""))
+	var opening_memory := companion_relationships.note_conversation(companion_id, chapter_id + ":opened", 3.0)
+	return {"ok":true,"quest_id":chapter_id,"chapter":chapter.duplicate(true),"stage":"consult","relationship":opening_memory}
 
 
 func consult(chapter_id: String, journal: CampaignJournal, actor_id: String = "", world_seconds: float = 0.0) -> Dictionary:
@@ -116,10 +120,12 @@ func consult(chapter_id: String, journal: CampaignJournal, actor_id: String = ""
 	}
 
 
-func resolve(chapter_id: String, requested_resolution: String, journal: CampaignJournal, companion_relationships: CompanionRelationshipState = null, world_seconds: float = 0.0) -> Dictionary:
+func resolve(chapter_id: String, requested_resolution: String, journal: CampaignJournal, companion_relationships: CompanionRelationshipState, world_seconds: float = 0.0) -> Dictionary:
 	var chapter: Dictionary = chapters.get(chapter_id, {})
 	if chapter.is_empty() or journal == null or not journal.quests.has(chapter_id):
 		return {"ok":false,"reason":"chapter_not_started"}
+	if companion_relationships == null:
+		return {"ok":false,"reason":"missing_companion_relationship_state"}
 	var quest_state: Dictionary = journal.quests[chapter_id]
 	if String(quest_state.get("status", "")) != "active":
 		return {"ok":false,"reason":"chapter_not_active"}
