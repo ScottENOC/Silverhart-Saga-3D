@@ -68,3 +68,53 @@ static func rock_outcrop_from_roll(terrain: String, density_roll: float) -> bool
 static func stable_roll(hex: Vector2i, seed_value: int) -> float:
 	var value := posmod(hex.x * 92837111 + hex.y * 689287499 + seed_value * 104729 + 1013904223, 2147483647)
 	return float(value) / 2147483647.0
+
+
+static func source_local_terrain(hex: Vector2i) -> String:
+	if absi(hex.x) <= 32 and absi(hex.y) <= 32:
+		return "grass"
+	var region_cell := _source_nearest_hex_cell(hex, 25)
+	var region_noise := _source_pseudo_random(float(region_cell.x) * 9.1 + 41.0, float(region_cell.y) * 6.7 + 23.0)
+	var cell := _source_nearest_hex_cell(hex, 5)
+	var cell_noise := _source_pseudo_random(float(cell.x) * 3.1 + 7.0, float(cell.y) * 4.3 + 13.0)
+	var hex_noise := _source_pseudo_random(float(hex.x) * 1.3 + 4.0, float(hex.y) * 1.7 + 9.0)
+	return source_terrain_from_rolls(false, region_noise, cell_noise, hex_noise)
+
+static func source_terrain_from_rolls(is_safe_radius: bool, region_noise: float, cell_noise: float, hex_noise: float) -> String:
+	if is_safe_radius:
+		return "grass"
+	var is_swamp_region := region_noise > 0.85
+	var is_sand_region := region_noise < 0.12
+	if is_swamp_region:
+		if cell_noise > 0.75:
+			return "swamp"
+		if cell_noise > 0.55 and hex_noise < 0.5:
+			return "forest"
+		return "grass"
+	if is_sand_region:
+		return "sand" if cell_noise > 0.7 else "grass"
+	if cell_noise > 0.88:
+		return "rocky_outcrop"
+	if cell_noise > 0.55 and hex_noise < 0.5:
+		return "forest"
+	return "grass"
+
+static func _source_nearest_hex_cell(hex: Vector2i, cell_size: int) -> Vector2i:
+	var fx := float(hex.x) / float(cell_size)
+	var fz := float(hex.y) / float(cell_size)
+	var fy := -fx - fz
+	var rx := roundi(fx)
+	var ry := roundi(fy)
+	var rz := roundi(fz)
+	var x_diff := absf(float(rx) - fx)
+	var y_diff := absf(float(ry) - fy)
+	var z_diff := absf(float(rz) - fz)
+	if x_diff > y_diff and x_diff > z_diff:
+		rx = -ry - rz
+	elif y_diff > z_diff:
+		ry = -rx - rz
+	return Vector2i(rx * cell_size, rz * cell_size)
+
+static func _source_pseudo_random(x: float, y: float) -> float:
+	var value := sin(x * 12.9898 + y * 78.233) * 43758.5453
+	return value - floorf(value)
