@@ -243,10 +243,13 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	_check(terrain.settlement_wall_cells.size() == 495, "Both Silverhart palisade rings must be indexed for gameplay traversal")
 	_check(terrain.settlement_ladder_cells.size() == 2, "The two inner-wall ladders must be registered as climbable crossings")
 	_check(terrain.terrain_for_hex(Vector2i(8, -473)) == "palisade_wall", "Inner curtain wall must be exposed as palisade terrain")
-	_check(not terrain.is_walkable_for_hex(Vector2i(8, -473)), "Palisade wall cells must block ordinary ground traversal")
+	_check(terrain.is_walkable_for_hex(Vector2i(8, -473)), "Palisade walls must remain traversable at a high movement cost, as in the source game")
+	_check(terrain.movement_multiplier_for_hex(Vector2i(8, -473)) == 15.0, "Unassisted palisade crossing must carry the source high movement cost")
 	_check(terrain.is_walkable_for_hex(Vector2i(20, -519)), "Authored ladder cells must allow wall crossing")
+	_check(terrain.movement_multiplier_for_hex(Vector2i(20, -519)) == 2.0, "A ladder must reduce its palisade crossing to the source low movement cost")
 	_check(terrain.terrain_for_hex(Vector2i(68, -496)) == "palisade_wall", "Outer city wall must be exposed as palisade terrain")
-	_check(not terrain.is_walkable_for_hex(Vector2i(68, -496)), "Outer city wall must block ordinary ground traversal")
+	_check(terrain.is_walkable_for_hex(Vector2i(68, -496)), "Outer city palisade must remain climbable at a high movement cost")
+	_check(terrain.movement_multiplier_for_hex(Vector2i(68, -496)) == 15.0, "Outer city palisade must retain its high movement cost")
 	var expected_centres := {
 		"silverhart_grand_hall": Vector2i(8, -496),
 		"silverhart_barracks": Vector2i(22, -494),
