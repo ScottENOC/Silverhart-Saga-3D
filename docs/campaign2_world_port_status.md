@@ -18,7 +18,7 @@ The surrounding wilderness is still partly generated from regional terrain rules
 
 ## Authored settlement and site content
 
-The canonical settlement registry currently contains five definitions. Kragmoor is a source-authored regional site tracked in the separate multi-story location registry.
+The canonical settlement registry currently contains six definitions (including the first structural phase of Silverhart). Kragmoor is a source-authored regional site tracked in the separate multi-story location registry.
 
 | Location | Migrated content | Still outstanding |
 |---|---|---|
@@ -37,7 +37,7 @@ The 24-anchor geography manifest has six authored settlement/site entries above:
 
 | Location | Source content still to port |
 |---|---|
-| Silverhart | Palace/capital layout, court, guards, services, population and kingdom interactions |
+| Silverhart | First structural phase: source-positioned Grand Hall, barracks, council chamber, Royal Wizard's Tower and Queen's bedroom are registered for 3D presentation. | Curtain wall/watchtowers/gate, full courtyard and diplomatic quarter, source actors, complete multi-floor interiors, services and kingdom interactions |
 | Skarn-tooth Camp | Goblin camp structures, chief, tribe roster, trade and negotiation/hostility branches |
 | Northwatch Fort | Star fort, keep, gate, garrison, siege actors and border-war interactions; source moat and connected waterway terrain are ported |
 | Ridgehold Fort | Fort and keep, patrols and faction consequences; source downstream waterway terrain is ported |
