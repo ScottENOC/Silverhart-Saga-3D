@@ -55,7 +55,10 @@ class HollowmereNpcBuilderTests(unittest.TestCase):
 
     def test_wrong_cast_size_is_rejected(self):
         broken = dict(self.source)
-        broken["characters"] = self.source["characters"][:-1]
+        broken["characters"] = [
+            profile for profile in self.source["characters"]
+            if profile["id"] != "garrick_holt"
+        ]
         with self.assertRaises(ValueError):
             builder.select_village_cast(broken)
 
