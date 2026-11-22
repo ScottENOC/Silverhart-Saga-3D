@@ -13,18 +13,18 @@ const SIZE := Vector2i(1200, 1000)
 const MAX_GRAPH_HOPS := 9
 const HOP_FALLOFF := 0.78
 const REGIONS := {
-    "breast_left": [Vector3(-0.115, 1.190, 0.175), Vector3(0.105, 0.105, 0.105), Color("#ef476f")],
-    "breast_right": [Vector3(0.115, 1.190, 0.175), Vector3(0.105, 0.105, 0.105), Color("#f78c6b")],
-    "chest_front_left": [Vector3(-0.115, 1.285, 0.105), Vector3(0.145, 0.105, 0.075), Color("#ffd166")],
-    "chest_front_right": [Vector3(0.115, 1.285, 0.105), Vector3(0.145, 0.105, 0.075), Color("#06d6a0")],
-    "pectoral_left": [Vector3(-0.145, 1.325, 0.055), Vector3(0.125, 0.095, 0.095), Color("#118ab2")],
-    "pectoral_right": [Vector3(0.145, 1.325, 0.055), Vector3(0.125, 0.095, 0.095), Color("#9b5de5")],
-    "sternum": [Vector3(0.0, 1.235, 0.155), Vector3(0.052, 0.165, 0.105), Color("#f4a261")],
-    "underbust": [Vector3(0.0, 1.075, 0.115), Vector3(0.245, 0.055, 0.095), Color("#e9c46a")],
-    "ribcage_left": [Vector3(-0.155, 1.105, 0.045), Vector3(0.115, 0.135, 0.115), Color("#2a9d8f")],
-    "ribcage_right": [Vector3(0.155, 1.105, 0.045), Vector3(0.115, 0.135, 0.115), Color("#457b9d")],
-    "clavicle_left": [Vector3(-0.105, 1.405, 0.025), Vector3(0.115, 0.045, 0.085), Color("#a8dadc")],
-    "clavicle_right": [Vector3(0.105, 1.405, 0.025), Vector3(0.115, 0.045, 0.085), Color("#ffafcc")]
+    "breast_left": [Vector3(-0.115, 1.190, 0.175), Vector3(0.090, 0.095, 0.085), Color("#ef476f")],
+    "breast_right": [Vector3(0.115, 1.190, 0.175), Vector3(0.090, 0.095, 0.085), Color("#f78c6b")],
+    "chest_front_left": [Vector3(-0.105, 1.285, 0.105), Vector3(0.095, 0.090, 0.065), Color("#ffd166")],
+    "chest_front_right": [Vector3(0.105, 1.285, 0.105), Vector3(0.095, 0.090, 0.065), Color("#06d6a0")],
+    "pectoral_left": [Vector3(-0.125, 1.325, 0.055), Vector3(0.085, 0.075, 0.075), Color("#118ab2")],
+    "pectoral_right": [Vector3(0.125, 1.325, 0.055), Vector3(0.085, 0.075, 0.075), Color("#9b5de5")],
+    "sternum": [Vector3(0.0, 1.235, 0.155), Vector3(0.045, 0.140, 0.080), Color("#f4a261")],
+    "underbust": [Vector3(0.0, 1.085, 0.115), Vector3(0.220, 0.035, 0.070), Color("#e9c46a")],
+    "ribcage_left": [Vector3(-0.145, 1.105, 0.045), Vector3(0.100, 0.120, 0.090), Color("#2a9d8f")],
+    "ribcage_right": [Vector3(0.145, 1.105, 0.045), Vector3(0.100, 0.120, 0.090), Color("#457b9d")],
+    "clavicle_left": [Vector3(-0.105, 1.405, 0.025), Vector3(0.090, 0.035, 0.060), Color("#a8dadc")],
+    "clavicle_right": [Vector3(0.105, 1.405, 0.025), Vector3(0.090, 0.035, 0.060), Color("#ffafcc")]
 }
 
 var stage: Node3D
@@ -81,7 +81,8 @@ func _run() -> void:
         var definition: Array = REGIONS[region_id]
         var seed_vertices := _find_seed_vertices(vertices, definition[0], definition[1])
         seeds[region_id] = seed_vertices.size()
-        var weights := _propagate_over_surface(adjacency, seed_vertices)
+        seed_vertices = _filter_region_side(vertices, seed_vertices, region_id)
+        var weights := _propagate_over_surface(adjacency, vertices, seed_vertices, region_id)
         candidate_weights[region_id] = weights
         var count := 0
         for weight in weights:
@@ -222,9 +223,31 @@ func _find_seed_vertices(vertices: PackedVector3Array, centre: Vector3, radii: V
     return result
 
 
+func _filter_region_side(
+    vertices: PackedVector3Array,
+    seed_vertices: PackedInt32Array,
+    region_id: String
+) -> PackedInt32Array:
+    var filtered := PackedInt32Array()
+    for vertex_index in seed_vertices:
+        if _matches_region_side(region_id, vertices[vertex_index]):
+            filtered.append(vertex_index)
+    return filtered
+
+
+func _matches_region_side(region_id: String, vertex: Vector3) -> bool:
+    if region_id.ends_with("_left"):
+        return vertex.x <= -0.008
+    if region_id.ends_with("_right"):
+        return vertex.x >= 0.008
+    return true
+
+
 func _propagate_over_surface(
     adjacency: Array[PackedInt32Array],
-    seed_vertices: PackedInt32Array
+    vertices: PackedVector3Array,
+    seed_vertices: PackedInt32Array,
+    region_id: String
 ) -> PackedFloat32Array:
     var weights := PackedFloat32Array()
     weights.resize(adjacency.size())
@@ -248,6 +271,8 @@ func _propagate_over_surface(
         if next_hop > MAX_GRAPH_HOPS:
             continue
         for neighbour in adjacency[current]:
+            if not _matches_region_side(region_id, vertices[neighbour]):
+                continue
             if hop_distance[neighbour] >= 0:
                 continue
             hop_distance[neighbour] = next_hop
