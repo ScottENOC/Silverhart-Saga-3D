@@ -235,16 +235,7 @@ static func _add_surface_corridor(target: Dictionary, start: Vector2i, finish: V
 	_add_hex_line(line, start, finish)
 	for key in line:
 		target[key] = {"terrain": "cave_floor", "feature_id": feature_id}
-	# Room thresholds remain explicit path cells after corridor carving.
-	for door in [
-		CRYPT_ENTRANCE_CENTRE + Vector2i(-3, 0),
-		CRYPT_OSSUARY_CENTRE + Vector2i(-3, 0),
-		CRYPT_RITUAL_CENTRE + Vector2i(-3, 0),
-		BARROW_ANTECHAMBER_CENTRE + Vector2i(-3, 0),
-		BARROW_SANCTUM_CENTRE + Vector2i(-3, 0)
-	]:
-		if target.has(_hex_key(door)):
-			target[_hex_key(door)] = {"terrain": "path", "feature_id": String(target[_hex_key(door)].get("feature_id", "dungeon"))}
+
 
 static func _border_fort_override(hex: Vector2i) -> Dictionary:
 	_ensure_border_fort_features()
