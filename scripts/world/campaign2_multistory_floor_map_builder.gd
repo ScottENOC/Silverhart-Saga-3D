@@ -17,7 +17,11 @@ static func build_floor_map(
 	for room_variant in floor_definition.get("rooms", []):
 		if not room_variant is Dictionary:
 			return {"ok": false, "reason": "invalid_room_definition"}
-		_add_room(room_variant, floor_cells, wall_cells)
+		var room: Dictionary = room_variant
+		var secret_id := String(room.get("hidden_by_secret", "")).strip_edges()
+		if not secret_id.is_empty() and not _is_secret_discovered(location_state, secret_id):
+			continue
+		_add_room(room, floor_cells, wall_cells)
 	for corridor_variant in floor_definition.get("corridors", []):
 		if not corridor_variant is Dictionary:
 			return {"ok": false, "reason": "invalid_corridor_definition"}
@@ -31,6 +35,11 @@ static func build_floor_map(
 		var position := _position_from(tile_object.get("position", {}))
 		if not _is_valid_position(position):
 			return {"ok": false, "reason": "tile_object_missing_position"}
+		if String(tile_object.get("type", "")) == "secret_door" and bool(tile_object.get("hidden", true)):
+			var secret_id := String(tile_object.get("id", ""))
+			if not _is_secret_discovered(location_state, secret_id):
+				wall_cells[position] = true
+				continue
 		floor_cells[position] = true
 		wall_cells.erase(position)
 		tile_objects.append(tile_object)
@@ -102,6 +111,11 @@ static func build_floor_map(
 		"wall_hexes": _keys_as_array(wall_cells),
 		"bounds": bounds
 	}
+
+static func _is_secret_discovered(location_state: Variant, secret_id: String) -> bool:
+	if secret_id.is_empty() or not location_state is Object or not location_state.has_method("is_secret_discovered"):
+		return false
+	return bool(location_state.call("is_secret_discovered", secret_id))
 
 static func _find_floor(location_definition: Dictionary, floor_number: int) -> Dictionary:
 	for floor_variant in location_definition.get("floors", []):
