@@ -6,7 +6,8 @@ on:
     paths:
       - ".github/workflows/companion-anatomy-region-review.yml"
       - "tools/review/companion_surface_region_review.gd"
-      - "tools/review/wren_bra_anatomy_proposal.gd"\n      - "tools/review/wren_topology_anatomy_proposal.gd"
+      - "tools/review/wren_bra_anatomy_proposal.gd"
+      - "tools/review/wren_topology_anatomy_proposal.gd"
       - "scripts/characters/character_body_surface.gd"
       - "scripts/characters/character_surface_regions.gd"
       - "scripts/characters/character_surface_region_mask.gd"
