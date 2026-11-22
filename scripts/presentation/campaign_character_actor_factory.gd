@@ -6,6 +6,18 @@ extends RefCounted
 const ARA_CHARACTER_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 const PLAYER_FEMALE_ASSET := "res://art/characters/ara_runtime/ara_person_body_anatomy.glb"
 const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
+const HOLLOWMERE_PROFILE_PATH := "res://art/characters/hollowmere/profiles.json"
+const COMPANION_ASSETS := {
+	"wren_talbot": {"path": "res://art/characters/companions/wren.glb", "body_variant": "female"},
+	"companion_wren_talbot": {"path": "res://art/characters/companions/wren.glb", "body_variant": "female"},
+	"ser_aldric_thorne": {"path": "res://art/characters/companions/aldric.glb", "body_variant": "male"},
+	"companion_ser_aldric_thorne": {"path": "res://art/characters/companions/aldric.glb", "body_variant": "male"},
+	"aldric_thorne": {"path": "res://art/characters/companions/aldric.glb", "body_variant": "male"},
+	"dagna_stoneward": {"path": "res://art/characters/companions/dagna.glb", "body_variant": "female"},
+	"companion_dagna_stoneward": {"path": "res://art/characters/companions/dagna.glb", "body_variant": "female"}
+}
+static var _hollowmere_model_index: Dictionary = {}
+static var _hollowmere_model_index_loaded := false
 
 
 static func create_actor(
@@ -23,11 +35,11 @@ static func create_actor(
 
 	var body_variant := String(player_profile.get("body_variant", "female")) if is_player else ("male" if int(npc_profile.get("params", {}).get("gender", 0)) == 1 else "female")
 	var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
-	# All campaign characters use the same gendered Ara runtime base as the
-	# player. Per-NPC GLBs bake in their own body, hair and materials, which
-	# prevents consistent runtime morphs and appearance customisation.
-	# Individual identity comes from each NPC's params and attached hair.
-	model_path = PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+	if not is_player:
+		var companion_asset := _companion_asset_definition(state.id)
+		if not companion_asset.is_empty():
+			body_variant = String(companion_asset.get("body_variant", body_variant))
+		model_path = _resolve_character_model_path(state.id, npc_profile, body_variant)
 
 	var hair_id := String(player_profile.get("hair_style_id", "short02")) if is_player else String(npc_profile.get("params", {}).get("hair", "short02"))
 	var appearance := player_profile if is_player else npc_profile
@@ -73,7 +85,10 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 		"gender_presentation": String(appearance.get("gender_presentation", "Androgynous")),
 		"pronouns": String(appearance.get("pronouns", "they/them"))
 	}
-	var model_path := PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+	var companion_asset := _companion_asset_definition(character_id)
+	if not companion_asset.is_empty():
+		body_variant = String(companion_asset.get("body_variant", body_variant))
+	var model_path := _resolve_character_model_path(character_id, npc, body_variant)
 	var equipment: Dictionary = npc.get("visual_equipment", {})
 	var actor := _create_actor_presentation(
 		character_id,
@@ -135,6 +150,61 @@ static func apply_npc_parameters(actor: Node3D, params: Dictionary) -> void:
 	var ara := _get_ara_actor(actor)
 	if ara != null:
 		ara.apply_npc_parameters(params)
+
+
+
+static func _companion_asset_definition(character_id: String) -> Dictionary:
+	return (COMPANION_ASSETS.get(character_id.to_lower(), {}) as Dictionary).duplicate(true)
+
+
+static func _resolve_character_model_path(character_id: String, profile: Dictionary, body_variant: String) -> String:
+	var companion_asset := _companion_asset_definition(character_id)
+	if not companion_asset.is_empty():
+		var companion_path := String(companion_asset.get("path", ""))
+		if ResourceLoader.exists(companion_path):
+			return companion_path
+		push_warning("Approved companion model is not installed for '%s': %s" % [character_id, companion_path])
+
+	var explicit_path := String(profile.get("model_path", profile.get("model", ""))).strip_edges()
+	if not explicit_path.is_empty():
+		var candidate := explicit_path if explicit_path.begins_with("res://") else "res://art/characters/hollowmere/" + explicit_path
+		if ResourceLoader.exists(candidate):
+			return candidate
+
+	_ensure_hollowmere_model_index()
+	var indexed_path := String(_hollowmere_model_index.get(character_id.to_lower(), ""))
+	if not indexed_path.is_empty() and ResourceLoader.exists(indexed_path):
+		return indexed_path
+
+	return PLAYER_MALE_ASSET if body_variant == "male" else PLAYER_FEMALE_ASSET
+
+
+static func _ensure_hollowmere_model_index() -> void:
+	if _hollowmere_model_index_loaded:
+		return
+	_hollowmere_model_index_loaded = true
+	if not FileAccess.file_exists(HOLLOWMERE_PROFILE_PATH):
+		return
+	var file := FileAccess.open(HOLLOWMERE_PROFILE_PATH, FileAccess.READ)
+	if file == null:
+		push_warning("Could not open Hollowmere character model index.")
+		return
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	if not parsed is Dictionary or not parsed.get("characters", []) is Array:
+		push_warning("Hollowmere character model index is invalid.")
+		return
+	for value in parsed.get("characters", []):
+		if not value is Dictionary:
+			continue
+		var character: Dictionary = value
+		var model_name := String(character.get("model", "")).strip_edges()
+		if model_name.is_empty():
+			continue
+		var model_path := "res://art/characters/hollowmere/" + model_name
+		for key in ["id", "game_id"]:
+			var identity := String(character.get(key, "")).strip_edges().to_lower()
+			if not identity.is_empty():
+				_hollowmere_model_index[identity] = model_path
 
 
 static func _safe_metadata_string(value: Variant, fallback: String = "") -> String:
