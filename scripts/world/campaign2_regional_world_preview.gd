@@ -6,7 +6,7 @@ const TERRAIN_DATA_SCRIPT = preload("res://scripts/world/campaign2_world_terrain
 const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
 const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
 const WALL_FEATURE_FACTORY = preload("res://scripts/world/world_wall_feature_factory.gd")
-const LOCATION_LOADER_SCRIPT = preload("res://scripts/world/campaign2_location_loader.gd")
+const LOCATION_MANAGER_SCRIPT = preload("res://scripts/world/campaign2_regional_location_manager.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
 const HEX_RADIUS := HexGrid.DEFAULT_RADIUS_M
@@ -32,7 +32,7 @@ var terrain_meshes: Dictionary = {}
 var marker_locations: Dictionary = {}
 var movement_controller: WorldPlayerMovementController
 var player_actor: Node3D
-var active_location_runtime: Campaign2MultiStoryLocationRuntime
+var location_manager: Campaign2RegionalLocationManager
 var mouse_travel_pressed := false
 
 func _ready() -> void:
@@ -344,32 +344,19 @@ func _create_player() -> void:
 	path_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	path_material.albedo_color.a = 0.78
 	movement_controller.configure(ecology_simulation, self, path_mesh, path_material, Callable(self, "_world_position_for_hex"), player.id)
-	_load_multistory_location("silthandriel")
-
-## The great-tree entrance is the first live connection between the regional
-## player simulation and the shared multi-story location runtime. Other authored
-## locations can be registered here as their entrances are brought online.
-func _load_multistory_location(location_id: String) -> void:
-	var load_result: Dictionary = LOCATION_LOADER_SCRIPT.load_multistory_location(self, location_id, ecology_simulation)
-	if not bool(load_result.get("ok", false)):
-		push_warning("Could not load regional location %s: %s" % [location_id, load_result])
-		return
-	active_location_runtime = load_result.get("runtime") as Campaign2MultiStoryLocationRuntime
-	if active_location_runtime == null:
-		return
-	var anchor_data: Dictionary = active_location_runtime.definition.get("anchor", {})
-	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
-	active_location_runtime.global_position = HexGrid.axial_to_world(anchor, HEX_RADIUS, terrain_data.elevation_for_hex(anchor))
-	active_location_runtime.floor_changed.connect(_on_regional_location_floor_changed)
-	active_location_runtime.register_character_actor(ecology_simulation.player_character_id, player_actor)
-	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
-	if player_state != null:
-		_update_player_presentation(player_state.axial)
+	location_manager = LOCATION_MANAGER_SCRIPT.new() as Campaign2RegionalLocationManager
+	location_manager.name = "RegionalMultiStoryLocationManager"
+	add_child(location_manager)
+	if not location_manager.configure(ecology_simulation, player_actor, player.id, Callable(terrain_data, "elevation_for_hex")):
+		push_warning("Could not configure regional multi-story location manager.")
+	else:
+		location_manager.floor_changed.connect(_on_regional_location_floor_changed)
+		location_manager.update_for_player_hex(start_hex)
 
 func _interact_with_regional_location() -> bool:
-	if active_location_runtime == null:
+	if location_manager == null:
 		return false
-	var result: Dictionary = active_location_runtime.interact_with_stair(ecology_simulation.player_character_id)
+	var result: Dictionary = location_manager.interact_with_nearby_stair(ecology_simulation.player_character_id)
 	if not bool(result.get("ok", false)):
 		return false
 	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
@@ -404,6 +391,8 @@ func _populate_chunk_gameplay_cells(chunk: Vector2i) -> void:
 func _on_world_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
 	if character_id != ecology_simulation.player_character_id:
 		return
+	if location_manager != null:
+		location_manager.update_for_player_hex(to_hex)
 	_update_player_presentation(to_hex)
 	target = _world_position_for_hex(to_hex)
 	_update_camera()
@@ -416,8 +405,9 @@ func _update_player_presentation(hex: Vector2i) -> void:
 
 func _world_position_for_hex(hex: Vector2i) -> Vector3:
 	var base_position := HexGrid.axial_to_world(hex, HEX_RADIUS, terrain_data.elevation_for_hex(hex))
-	if active_location_runtime != null and active_location_runtime.get_current_floor() > 0:
-		base_position.y = active_location_runtime.global_position.y + float(active_location_runtime.get_current_floor()) * 3.2 + 0.1
+	var active_runtime := location_manager.get_active_runtime() if location_manager != null else null
+	if active_runtime != null and active_runtime.get_current_floor() != 0:
+		base_position.y = active_runtime.global_position.y + float(active_runtime.get_current_floor()) * 3.2 + 0.1
 	return base_position
 
 func _request_travel_to_screen_position(screen_position: Vector2) -> void:
