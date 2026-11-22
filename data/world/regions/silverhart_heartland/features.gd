@@ -195,7 +195,7 @@ static func _ensure_dungeon_surface_features() -> void:
 	_add_surface_corridor(_dungeon_surface_cells, Vector2i(67, -160), Vector2i(68, -160), "corvin_barrow_corridor")
 
 	# Chapterhouse: source stone floor and keep-wall footprint.
-	_add_flat_surface_room(_dungeon_surface_cells, LICH_CHAPTERHOUSE_CENTRE, 4, 3, LICH_CHAPTERHOUSE_CENTRE + Vector2i(3, 0), "stone_floor", "lich_chapterhouse")
+	_add_flat_surface_room(_dungeon_surface_cells, LICH_CHAPTERHOUSE_CENTRE, 4, 3, LICH_CHAPTERHOUSE_CENTRE + Vector2i(3, 0), "stone_floor", "lich_chapterhouse", "keep_wall")
 
 	# Thieves' Cove's ground entrance. The two lower cave floors and tunnel
 	# network remain separate interior layers.
@@ -209,7 +209,7 @@ static func _ensure_dungeon_surface_features() -> void:
 
 	_dungeon_surface_ready = true
 
-static func _add_flat_surface_room(target: Dictionary, centre: Vector2i, half_width: int, half_height: int, door: Vector2i, floor_terrain: String, prefix: String) -> void:
+static func _add_flat_surface_room(target: Dictionary, centre: Vector2i, half_width: int, half_height: int, door: Vector2i, floor_terrain: String, prefix: String, wall_terrain: String = "climbable_wall") -> void:
 	var floor_cells: Dictionary = {}
 	for dq in range(-half_width + 1, half_width):
 		var row_shift := -floori(float(dq) / 2.0)
@@ -220,10 +220,10 @@ static func _add_flat_surface_room(target: Dictionary, centre: Vector2i, half_wi
 		target[key] = {"terrain": floor_terrain, "feature_id": prefix + "_floor"}
 	for key in _wall_ring(floor_cells):
 		if not target.has(key):
-			target[key] = {"terrain": "climbable_wall", "feature_id": prefix + "_wall"}
+			target[key] = {"terrain": wall_terrain, "feature_id": prefix + "_wall"}
 	target[_hex_key(door)] = {"terrain": "path", "feature_id": prefix + "_door"}
 
-static func _add_source_building_surface_room(target: Dictionary, centre: Vector2i, half_width: int, half_height: int, door: Vector2i, floor_terrain: String, prefix: String) -> void:
+static func _add_source_building_surface_room(target: Dictionary, centre: Vector2i, half_width: int, half_height: int, door: Vector2i, floor_terrain: String, prefix: String, wall_terrain: String = "climbable_wall") -> void:
 	var floor_cells: Dictionary = {}
 	for dq in range(-half_width + 1, half_width):
 		var row_shift := floori(float(dq) / 2.0)
@@ -234,7 +234,7 @@ static func _add_source_building_surface_room(target: Dictionary, centre: Vector
 		target[key] = {"terrain": floor_terrain, "feature_id": prefix + "_floor"}
 	for key in _wall_ring(floor_cells):
 		if not target.has(key):
-			target[key] = {"terrain": "climbable_wall", "feature_id": prefix + "_wall"}
+			target[key] = {"terrain": wall_terrain, "feature_id": prefix + "_wall"}
 	target[_hex_key(door)] = {"terrain": "path", "feature_id": prefix + "_door"}
 
 static func _add_surface_corridor(target: Dictionary, start: Vector2i, finish: Vector2i, feature_id: String) -> void:
@@ -287,7 +287,7 @@ static func _ensure_border_fort_features() -> void:
 	for key in keep_floor:
 		_northwatch_cells[key] = {"terrain": "dirt", "feature_id": "northwatch_keep_floor"}
 	for key in keep_walls:
-		_northwatch_cells[key] = {"terrain": "climbable_wall", "feature_id": "northwatch_keep_wall"}
+		_northwatch_cells[key] = {"terrain": "keep_wall", "feature_id": "northwatch_keep_wall"}
 	for direction in STAR_FORT_DIRECTIONS:
 		var gap := NORTHWATCH_CENTRE + direction * 5
 		_northwatch_cells[_hex_key(gap)] = {"terrain": "dirt", "feature_id": "northwatch_keep_gap"}
@@ -304,7 +304,7 @@ static func _ensure_border_fort_features() -> void:
 		_ridgehold_cells[key] = {"terrain": "dirt", "feature_id": "ridgehold_keep_floor"}
 	var ridgehold_keep_walls := _wall_ring(ridgehold_keep_floor)
 	for key in ridgehold_keep_walls:
-		_ridgehold_cells[key] = {"terrain": "climbable_wall", "feature_id": "ridgehold_keep_wall"}
+		_ridgehold_cells[key] = {"terrain": "keep_wall", "feature_id": "ridgehold_keep_wall"}
 	var ridgehold_keep_door := Vector2i(RIDGEHOLD_CENTRE.x, RIDGEHOLD_CENTRE.y + 2)
 	_ridgehold_cells[_hex_key(ridgehold_keep_door)] = {"terrain": "path", "feature_id": "ridgehold_keep_door"}
 	_border_forts_ready = true
