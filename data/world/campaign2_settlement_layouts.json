@@ -1796,6 +1796,65 @@
             2.2,
             2.2
           ]
+        },
+        {
+          "id": "silverhart_curtain_gate_approach",
+          "kind": "road",
+          "from": {
+            "q": 8,
+            "r": -490
+          },
+          "to": {
+            "q": 8,
+            "r": -474
+          },
+          "width": 2.2,
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace gate approach; WALL_RADIUS=23"
+        },
+        {
+          "id": "silverhart_outer_ring_road",
+          "kind": "road",
+          "points": [
+            {
+              "q": 38,
+              "r": -496
+            },
+            {
+              "q": 38,
+              "r": -526
+            },
+            {
+              "q": 8,
+              "r": -526
+            },
+            {
+              "q": -22,
+              "r": -496
+            },
+            {
+              "q": -22,
+              "r": -466
+            },
+            {
+              "q": 8,
+              "r": -466
+            },
+            {
+              "q": 38,
+              "r": -496
+            }
+          ],
+          "width": 2.2,
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace RING_ROAD_RADIUS=30",
+          "widths": [
+            2.2,
+            2.2,
+            2.2,
+            2.2,
+            2.2,
+            2.2,
+            2.2
+          ]
         }
       ],
       "npcs": [],
