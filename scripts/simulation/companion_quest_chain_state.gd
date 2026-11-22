@@ -47,12 +47,12 @@ func register_quest_definitions(journal: CampaignJournal) -> void:
 		})
 	for quest_value in prerequisite_quests.values():
 		var quest: Dictionary = quest_value
-		var quest_id := String(quest.get("id", ""))
-		if quest_id.is_empty() or journal.quest_definitions.has(quest_id):
+		var prerequisite_id := String(quest.get("id", ""))
+		if prerequisite_id.is_empty() or journal.quest_definitions.has(prerequisite_id):
 			continue
 		journal.register_quest_definition({
-			"id":quest_id,
-			"title":String(quest.get("title", quest_id)),
+			"id":prerequisite_id,
+			"title":String(quest.get("title", prerequisite_id)),
 			"description":String(quest.get("description", "")),
 			"objectives":[{"id":"resolution","description":"Investigate the companion’s concern and decide how it should be resolved.","target":1.0,"required":true}]
 		})
