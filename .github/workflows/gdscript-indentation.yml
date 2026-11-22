@@ -35,11 +35,12 @@ jobs:
       - name: Check changed GDScript files only
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CHECK_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
             BASE_SHA="$(git rev-parse HEAD^)"
           fi
-          mapfile -t changed < <(git diff --name-only "$BASE_SHA" "$GITHUB_SHA" -- '*.gd')
+          mapfile -t changed < <(git diff --name-only "$BASE_SHA" "$CHECK_SHA" -- '*.gd')
           if [ "${#changed[@]}" -gt 0 ]; then
             python tools/ci/check_gdscript_indentation.py "${changed[@]}"
           else
