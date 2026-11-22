@@ -21,6 +21,7 @@ const COMPANION_ASSETS := {
 	"companion_dagna_stoneward": {"path": "res://art/characters/companions/dagna.glb", "body_variant": "female"}
 }
 static var _hollowmere_model_index: Dictionary = {}
+static var _hollowmere_body_variant_index: Dictionary = {}
 static var _hollowmere_model_index_loaded := false
 
 
@@ -43,6 +44,8 @@ static func create_actor(
 		var companion_asset := _companion_asset_definition(state.id)
 		if not companion_asset.is_empty():
 			body_variant = String(companion_asset.get("body_variant", body_variant))
+		else:
+			body_variant = _hollowmere_body_variant_for(state.id, body_variant)
 		model_path = _resolve_character_model_path(state.id, npc_profile, body_variant)
 
 	var hair_id := String(player_profile.get("hair_style_id", "short02")) if is_player else String(npc_profile.get("params", {}).get("hair", "short02"))
@@ -92,6 +95,8 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 	var companion_asset := _companion_asset_definition(character_id)
 	if not companion_asset.is_empty():
 		body_variant = String(companion_asset.get("body_variant", body_variant))
+	else:
+		body_variant = _hollowmere_body_variant_for(character_id, body_variant)
 	var model_path := _resolve_character_model_path(character_id, npc, body_variant)
 	var equipment: Dictionary = npc.get("visual_equipment", {})
 	var actor := _create_actor_presentation(
@@ -207,10 +212,18 @@ static func _ensure_hollowmere_model_index() -> void:
 		if model_name.is_empty():
 			continue
 		var model_path := "res://art/characters/hollowmere/" + model_name
+		var params: Dictionary = character.get("params", {})
+		var character_body_variant := "male" if int(params.get("gender", 0)) == 1 else "female"
 		for key in ["id", "game_id"]:
 			var identity := String(character.get(key, "")).strip_edges().to_lower()
 			if not identity.is_empty():
 				_hollowmere_model_index[identity] = model_path
+				_hollowmere_body_variant_index[identity] = character_body_variant
+
+
+static func _hollowmere_body_variant_for(character_id: String, fallback: String) -> String:
+	_ensure_hollowmere_model_index()
+	return String(_hollowmere_body_variant_index.get(character_id.to_lower(), fallback))
 
 
 static func _safe_metadata_string(value: Variant, fallback: String = "") -> String:
