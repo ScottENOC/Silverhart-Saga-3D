@@ -45,7 +45,7 @@ jobs:
       - name: Install Blender
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender libegl1 libgl1-mesa-dri
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
 
       - name: Inventory actual Ara and Wren GLBs
         run: |
