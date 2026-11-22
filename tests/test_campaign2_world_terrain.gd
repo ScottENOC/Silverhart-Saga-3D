@@ -76,11 +76,15 @@ func _test_strategic_road_elevation(terrain) -> void:
 		if coordinates.size() != 2:
 			continue
 		var hex := Vector2i(int(coordinates[0]), int(coordinates[1]))
+		if terrain.terrain_for_hex(hex) != "path":
+			continue
 		var road_height := terrain.elevation_for_hex(hex)
 		highest_road_elevation = maxf(highest_road_elevation, road_height)
 		for direction in HexGrid.DIRECTIONS:
 			var neighbour := hex + direction
 			if not terrain.road_cells.has("%d,%d" % [neighbour.x, neighbour.y]):
+				continue
+			if terrain.terrain_for_hex(neighbour) != "path":
 				continue
 			maximum_adjacent_grade = maxf(
 				maximum_adjacent_grade,
