@@ -66,7 +66,7 @@ func _initialize() -> void:
 	assert(terrain.terrain_for_hex(Vector2i(407, 43)) == "path", "Ridgehold gate must be an open gap on the actual wall ring")
 	assert(terrain.terrain_for_hex(Vector2i(402, 33)) == "path", "Ridgehold's approach must use a continuous corrected hex line")
 	assert(terrain.terrain_for_hex(Vector2i(426, 45)) == "path", "Ridgehold keep must retain its open south door")
-	assert(terrain.terrain_for_hex(Vector2i(427, 44)) == "climbable_wall", "Ridgehold keep must retain its wall ring")
+	assert(terrain.terrain_for_hex(Vector2i(429, 43)) == "climbable_wall", "Ridgehold keep must retain its wall ring")
 	assert(FEATURES.feature_id_at(Vector2i(407, 43)) == "ridgehold_gate", "Ridgehold gate must have its own feature identity")
 
 	# Sil'thandriel's canopy has an explicit grass arrival clearing, a dense
