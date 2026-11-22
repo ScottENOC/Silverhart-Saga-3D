@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Integrate age-appropriate, gendered adult anatomy into each generated Hollowmere NPC GLB.
+"""Integrate the current gender-specific adult anatomy into raw Hollowmere Ara exports.
 
-The output remains the NPC's own deterministic Ara export: anatomy is integrated
-into its skin geometry in Blender, then the finished GLB is loaded by Godot.
+Every output is rebuilt from a fresh, unsculpted Ara export. Female anatomy uses
+the accepted surface-following/subdivision workflow; male anatomy uses the
+current dedicated male anatomy builder. Never run either sculpt on an already
+anatomy-integrated GLB.
 """
 import argparse
 import json
@@ -12,9 +14,18 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-FEMALE_TOOL = ROOT / "tools" / "blender" / "add_adult_anatomy.py"
+FEMALE_PLAN_TOOL = ROOT / "tools" / "blender" / "plan_female_anatomy_subdivision.py"
+FEMALE_TOOL = ROOT / "tools" / "blender" / "add_female_anatomy_surface.py"
 MALE_TOOL = ROOT / "tools" / "blender" / "add_male_anatomy.py"
 ADULT_AGE_THRESHOLD = 0.34375
+
+
+def run_blender(script: Path, *arguments: str) -> None:
+    command = [
+        "blender", "--background", "--python-exit-code", "1",
+        "--python", str(script), "--", *arguments,
+    ]
+    subprocess.run(command, cwd=ROOT, check=True)
 
 
 def main() -> None:
@@ -41,26 +52,41 @@ def main() -> None:
             raise SystemExit(f"Missing generated NPC model: {source}")
         output = source.with_name(source.stem + ".anatomy.glb")
         if int(params.get("gender", 0)) == 1:
-            command = [
-                "blender", "--background", "--python-exit-code", "1",
-                "--python", str(MALE_TOOL), "--",
-                "--input", str(source), "--output", str(output),
-                "--adult", "--profile-name", character_id,
-            ]
+            run_blender(
+                MALE_TOOL,
+                "--input", str(source),
+                "--output", str(output),
+                "--adult",
+                "--profile-name", character_id,
+            )
         else:
-            command = [
-                "blender", "--background", "--python-exit-code", "1",
-                "--python", str(FEMALE_TOOL), "--",
-                "--input", str(source), "--output", str(output),
-                "--profile", "female", "--adult",
-            ]
-        print(f"Integrating {'male' if int(params.get('gender', 0)) == 1 else 'female'} anatomy: {character_id}", flush=True)
-        subprocess.run(command, cwd=ROOT, check=True)
+            plan = source.with_name(source.stem + ".female-anatomy-plan.json")
+            report = source.with_name(source.stem + ".female-anatomy-report.json")
+            run_blender(
+                FEMALE_PLAN_TOOL,
+                "--input", str(source),
+                "--output", str(plan),
+            )
+            if not plan.is_file() or plan.stat().st_size == 0:
+                raise SystemExit(f"Female anatomy subdivision plan was not produced: {plan}")
+            run_blender(
+                FEMALE_TOOL,
+                "--input", str(source),
+                "--output", str(output),
+                "--report", str(report),
+                "--subdivision-plan", str(plan),
+                "--adult",
+                "--deformation-scale", "1.65",
+            )
+            if not report.is_file() or '"clothing_operations": "not run"' not in report.read_text():
+                raise SystemExit(f"Female anatomy report failed validation: {report}")
+            plan.unlink()
+            report.unlink()
         if not output.is_file() or output.stat().st_size < 100_000:
             raise SystemExit(f"Anatomy integration did not produce a valid GLB: {output}")
         os.replace(output, source)
         processed += 1
-    print(f"Integrated anatomy into {processed} adult Hollowmere models; skipped {skipped} non-adult models.", flush=True)
+    print(f"Integrated current gender-specific anatomy into {processed} adult Hollowmere models; skipped {skipped} non-adult models.", flush=True)
 
 
 if __name__ == "__main__":
