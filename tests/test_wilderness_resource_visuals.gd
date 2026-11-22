@@ -20,7 +20,7 @@ func _initialize() -> void:
     _check(fruit_model != null, "Fruit tree should use the shared GLB vegetation model")
     if fruit_model != null:
         _check(String(fruit_model.get_meta("vegetation_family", "")) == "cherry", "Fruit tree should use the committed cherry GLB family")
-    _check(fruit_visual.get_node_or_null("GatherableTreeModel/ImportedTreeModel") == null, "Gatherable tree must not instantiate the legacy procedural seasonal-tree visual")
+    _check(fruit_model != null and not fruit_model is SeasonalTreeVisual, "Gatherable tree must not instantiate the legacy procedural seasonal-tree visual")
 
     var timber_visual := WildernessResourceVisual.new()
     root.add_child(timber_visual)
