@@ -620,9 +620,30 @@
               },
               "half_width": 7,
               "half_height": 5
+            },
+            {
+              "id": "queen_private_chambers",
+              "center": {
+                "q": 8,
+                "r": -505
+              },
+              "half_width": 3,
+              "half_height": 3
             }
           ],
-          "corridors": [],
+          "corridors": [
+            {
+              "id": "grand_hall_rear_passage",
+              "from": {
+                "q": 8,
+                "r": -501
+              },
+              "to": {
+                "q": 8,
+                "r": -503
+              }
+            }
+          ],
           "tile_objects": [
             {
               "id": "grand_hall_front_door",
@@ -717,6 +738,39 @@
                 "r": -496
               },
               "to_floor": 1
+            },
+            {
+              "id": "queen_chambers_rear_door",
+              "type": "door_open",
+              "position": {
+                "q": 8,
+                "r": -501
+              }
+            },
+            {
+              "id": "queen_chambers_bed",
+              "type": "bed",
+              "position": {
+                "q": 8,
+                "r": -505
+              }
+            },
+            {
+              "id": "queen_chambers_table",
+              "type": "table",
+              "position": {
+                "q": 9,
+                "r": -505
+              }
+            },
+            {
+              "id": "queen_chambers_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 8,
+                "r": -506
+              },
+              "light_radius": 5
             }
           ],
           "actors": [
@@ -1208,6 +1262,75 @@
           }
         }
       ],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_palace_council_chamber",
+      "name": "Silverhart Palace — Council Chamber",
+      "anchor": {
+        "q": -6,
+        "r": -494
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace councilCenter, councilDoor and carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Council Chamber",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "council_chamber",
+              "center": {
+                "q": -6,
+                "r": -494
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "council_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -2,
+                "r": -494
+              }
+            },
+            {
+              "id": "council_table",
+              "type": "table",
+              "position": {
+                "q": -6,
+                "r": -494
+              }
+            },
+            {
+              "id": "council_bench",
+              "type": "bench",
+              "position": {
+                "q": -6,
+                "r": -495
+              }
+            }
+          ],
+          "actors": [
+            {
+              "id": "chancellor_merric_vane",
+              "name": "Chancellor Merric Vane",
+              "role": "palace_chancellor",
+              "dialogue_id": "palace_chancellor",
+              "position": {
+                "q": -6,
+                "r": -495
+              }
+            }
+          ],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
       "quest_gates": []
     }
   ]
