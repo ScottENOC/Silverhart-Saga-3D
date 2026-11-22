@@ -91,9 +91,9 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
     if actor != null:
         actor.name = "NPC_" + character_id
         actor.set_meta("campaign2_npc_id", character_id)
-        actor.set_meta("dialogue_id", String(npc.get("dialogue_id", "")))
-        actor.set_meta("faction_id", String(npc.get("faction_id", "")))
-        actor.set_meta("side", String(npc.get("side", "neutral")))
+        actor.set_meta("dialogue_id", _safe_metadata_string(npc.get("dialogue_id", "")))
+        actor.set_meta("faction_id", _safe_metadata_string(npc.get("faction_id", "")))
+        actor.set_meta("side", _safe_metadata_string(npc.get("side", "neutral"), "neutral"))
         actor.set_meta("class_levels", npc.get("class_levels", []))
         actor.set_meta("skill_picks", npc.get("skill_picks", []))
         actor.set_meta("quest_hooks", npc.get("quest_hooks", []))
@@ -135,6 +135,14 @@ static func apply_npc_parameters(actor: Node3D, params: Dictionary) -> void:
     var ara := _get_ara_actor(actor)
     if ara != null:
         ara.apply_npc_parameters(params)
+
+
+static func _safe_metadata_string(value: Variant, fallback: String = "") -> String:
+    if value is String:
+        return value
+    if value is StringName:
+        return String(value)
+    return fallback
 
 
 static func _get_ara_actor(actor: Node3D) -> AraCharacterActor:
