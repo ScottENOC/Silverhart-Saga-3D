@@ -22,7 +22,7 @@ func _run() -> void:
 
     var missing: Array[String] = []
     for garment_id in REQUIRED_GARMENTS:
-        var path := GARMENT_ROOT + "female_" + garment_id + ".glb"
+        var path: String = GARMENT_ROOT + "female_" + garment_id + ".glb"
         if not ResourceLoader.exists(path):
             missing.append(path)
     if not missing.is_empty():
@@ -69,7 +69,7 @@ func _run() -> void:
     assert(attachments.has("lace_briefs"), "Legacy briefs alias did not resolve to lace briefs")
     for garment_id in attachments:
         for mesh in attachments[garment_id]:
-            var expected_visible := garment_id in ["halter_bra_lace", "lace_briefs"]
+            var expected_visible: bool = garment_id in ["halter_bra_lace", "lace_briefs"]
             assert(mesh.visible == expected_visible, "Garment visibility did not follow equipment state: %s" % garment_id)
 
     var settlement_npc := {
