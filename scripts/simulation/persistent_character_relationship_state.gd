@@ -193,7 +193,7 @@ func from_dict(data: Dictionary) -> void:
 	var incoming: Variant = data.get("states", {})
 	states = incoming.duplicate(true) if incoming is Dictionary else {}
 	for character_id in states.keys():
-		if not PROFILES.has(String(character_id)) or not states[character_id] is Dictionary:
+		if not PROFILES.has(String(character_id)) or not (states[character_id] is Dictionary):
 			states.erase(character_id)
 			continue
 		_normalise_state(states[character_id], PROFILES[character_id])
@@ -234,7 +234,7 @@ func _normalise_state(state: Dictionary, profile: Dictionary) -> void:
 	if not state.has("pending_approval"):
 		state["pending_approval"] = false
 	for key in ["known_conversation_keys", "known_event_keys", "history"]:
-		if not state.get(key) is Array:
+		if not (state.get(key) is Array):
 			state[key] = []
 	state["history"] = state["history"].slice(maxi(0, state["history"].size() - HISTORY_LIMIT))
 
