@@ -378,7 +378,7 @@ func _wilderness_vegetation_placements_for_chunk(chunk_min: Vector2i, chunk_size
 	for q in range(chunk_min.x, chunk_min.x + chunk_size):
 		for r in range(chunk_min.y, chunk_min.y + chunk_size):
 			var hex := Vector2i(q, r)
-			if not terrain_data.has_tree(hex) or not terrain_data.settlement_definition_registry.resolve(hex).is_empty() == false:
+			if not terrain_data.has_tree(hex) or not terrain_data.settlement_definition_registry.resolve(hex).is_empty():
 				continue
 			var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, terrain_data.elevation_for_hex(hex))
 			var size_roll := LOCAL_TERRAIN_RULES.stable_roll(hex, 2909)
