@@ -6,8 +6,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-TAB_EXTENSIONS = {".gd", ".tscn", ".tres"}
-SPACE_EXTENSIONS = {".json"}
+TAB_EXTENSIONS = {".tscn", ".tres"}
+SPACE_WIDTHS = {".gd": 4, ".json": 2}
 
 
 def check_file(path: Path) -> list[tuple[int, str]]:
@@ -32,11 +32,12 @@ def check_file(path: Path) -> list[tuple[int, str]]:
             if " " in prefix:
                 reason = "mixed tabs and spaces" if "\t" in prefix else "spaces used; expected tabs"
                 issues.append((number, reason))
-        elif extension in SPACE_EXTENSIONS:
+        elif extension in SPACE_WIDTHS:
             if "\t" in prefix:
                 issues.append((number, "tab used; expected spaces"))
-            elif len(prefix) % 2:
-                issues.append((number, "indentation is not a multiple of 2 spaces"))
+            elif len(prefix) % SPACE_WIDTHS[extension]:
+                width = SPACE_WIDTHS[extension]
+                issues.append((number, f"indentation is not a multiple of {width} spaces"))
 
         if extension == ".gd" and line.count('"""') % 2:
             in_multiline_string = True
@@ -48,7 +49,7 @@ def main() -> int:
     files = sorted(
         path for path in ROOT.rglob("*")
         if path.is_file()
-        and path.suffix.lower() in TAB_EXTENSIONS | SPACE_EXTENSIONS
+        and path.suffix.lower() in TAB_EXTENSIONS | SPACE_WIDTHS.keys()
         and not any(part in {".git", ".godot"} for part in path.parts)
     )
     counts = {ext: 0 for ext in (".gd", ".tscn", ".tres", ".json")}
