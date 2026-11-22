@@ -143,7 +143,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	var layout: Dictionary = definition.get("layout", {})
 	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Silverhart must be owned by the streamed chunk presenter")
 	_check(layout.get("buildings", []).size() == 5, "Silverhart first structural phase must retain five source palace buildings")
-	_check(layout.get("paths", []).size() == 4, "Silverhart first structural phase must retain four authored approach/courtyard routes")
+	_check(layout.get("paths", []).size() == 6, "Silverhart palace core must retain its courtyard, gate and outer ring roads")
 	var expected_centres := {
 		"silverhart_grand_hall": Vector2i(8, -496),
 		"silverhart_barracks": Vector2i(22, -494),
@@ -175,6 +175,20 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	_check(terrain.terrain_for_hex(Vector2i(8, -495)) == "path", "Silverhart palace approach must be indexed as authored path")
 	_check(terrain.terrain_for_hex(Vector2i(9, -487)) == "path", "Silverhart courtyard must be indexed from source route geometry")
 	_check(terrain.terrain_for_hex(Vector2i(17, -494)) == "path", "Silverhart barracks door spur must reach its source door")
+	var ring_road := _find_record(layout.get("paths", []), "silverhart_outer_ring_road")
+	var ring_points: Array = ring_road.get("points", [])
+	_check(ring_points.size() == 7, "Silverhart outer ring road must preserve the six source hex-ring corners and closure")
+	if ring_points.size() == 7:
+		_assert_axial(ring_points[0], Vector2i(38, -496), "Outer ring east corner")
+		_assert_axial(ring_points[1], Vector2i(38, -526), "Outer ring north-east corner")
+		_assert_axial(ring_points[2], Vector2i(8, -526), "Outer ring north corner")
+		_assert_axial(ring_points[3], Vector2i(-22, -496), "Outer ring west corner")
+		_assert_axial(ring_points[4], Vector2i(-22, -466), "Outer ring south-west corner")
+		_assert_axial(ring_points[5], Vector2i(8, -466), "Outer ring south corner")
+		_assert_axial(ring_points[6], Vector2i(38, -496), "Outer ring closure")
+	for ring_corner in [Vector2i(38, -496), Vector2i(38, -526), Vector2i(8, -526), Vector2i(-22, -496), Vector2i(-22, -466), Vector2i(8, -466)]:
+		_check(terrain.terrain_for_hex(ring_corner) == "path", "Silverhart source outer ring road must be indexed at " + str(ring_corner))
+	_check(terrain.terrain_for_hex(Vector2i(8, -472)) == "path", "Silverhart gate exterior road must meet the southern ring-road corner")
 
 
 func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
