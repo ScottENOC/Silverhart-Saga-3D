@@ -26,10 +26,10 @@ The canonical settlement registry currently contains five definitions. Kragmoor 
 | Millbrook | One source-positioned house, road spur and two named NPC profiles/placements | Interior construction and services/interactions |
 | Emberlode | Foreman's hall, bunkhouse, mine entrance, two road approaches and three named NPCs; source mine levels, stairs, ore, ledger and underground spiders retained as data | Playable interiors/floor transitions, ore interactions, spider spawning on floor -2, dialogue/quest consequences |
 | Reddale | Guardhouse, reeve's house, inn, Ironbond guildhouse, manor and smithy; three road approaches and twelve named NPCs; interior/evidence/service metadata | Playable interiors, merchant services, evidence reading, bribes, dialogue and espionage quest consequences |
-| Kragmoor | Surface Gate Hall plus source-derived floor definitions for levels 0 to -5: rooms, corridors, stairs, King Balrik and guards, Vault trader, runesmith, foreman, tunnel vermin and Ember-Wreathed Horror; Sunken Deep remains pre-carved and quest-sealed in the source data | Playable 3D floor presentation/transitions, floor-specific actor simulation, quest-journal integration and save/load persistence |
+| Kragmoor | Source-derived floors 0 to -5, room/corridor geometry, stairs, named actor/creature placements, throne, fireplaces, runeforge, mine ledger and quest-sealed Sunken Deep; generic 3D floor presentation, stair traversal, quest-journal gate bridge and campaign save/load state | Actual Ara NPC/creature actors and behaviours, dialogue/trader/runesmith/mining/journal interactions, detailed room dressing/lighting, and connection to the campaign travel flow |
 | Old Mac's Farmstead | **Accepted as complete for this milestone.** Source farmhouse, road spur, pasture, fence/broken-fence clue, blood evidence and Old Mac placement are accepted; cows are an acceptable livestock substitute for source sheep. | None for this milestone; the wolf-den encounter remains a separate wilderness site |
 
-The shared chunk presenter renders exterior buildings and surface actors for canonical settlement definitions. Interior metadata is preserved by the adapter but is not yet a playable interior implementation. Kragmoor's source-authored floor data is now captured separately; the new manifest is not yet connected to playable 3D floor presentation, traversal or persistent floor-specific actors. Farmstead features are split across their owning chunks so fence segments are not duplicated at chunk boundaries.
+The shared chunk presenter renders exterior buildings and surface actors for canonical settlement definitions. Interior metadata is preserved by the adapter but is not yet a playable interior implementation. Kragmoor now has a generic source-driven floor runtime: it builds each floor's walkable geometry, switches the active floor at authored stairs, applies the What Nests Below quest gate and stores the current floor/unlocked stair state through the campaign snapshot adapter. The runtime loader is available, but campaign travel does not yet route the player into this site; named actors/creatures and their interactions are still to be integrated. Farmstead features are split across their owning chunks so fence segments are not duplicated at chunk boundaries.
 
 ## Remaining source-authored world locations
 
@@ -42,7 +42,7 @@ The 24-anchor geography manifest has six authored settlement/site entries above:
 | Northwatch Fort | Star fort, keep, gate, garrison, siege actors and border-war interactions; source moat and connected waterway terrain are ported |
 | Ridgehold Fort | Fort and keep, patrols and faction consequences; source downstream waterway terrain is ported |
 | Skarnak's Hold | Orc stronghold, huts, warlord, guards, trader and troll encounter |
-| Kragmoor | Source geometry and actor placements for floors 0 to -5 are captured; playable floor rendering/transitions, NPC/creature simulation, quest gate integration and persistence remain |
+| Kragmoor | Source geometry, six floor presentations, stair traversal, quest-gated Sunken Deep and floor-state save/load are implemented; player travel routing, named NPC/creature spawning, dialogue and location interactions remain |
 | Sil'thandriel | Sylvan Court capital, vertical/forest architecture, population and faction interactions |
 | Hollowmere Guild Den | Interior, guild contact, objects and recruitment/quest interactions |
 | Abandoned House | Building, hidden content, disciple/phylactery quest chain |
@@ -63,7 +63,7 @@ The 24-anchor geography manifest has six authored settlement/site entries above:
 2. **Old Mac's Farmstead is accepted as complete for this milestone.** Cows are an acceptable livestock substitute for the source sheep; do not spend further time matching the animal species. The separate wolf-den encounter at (-59,204) remains a wilderness-site task.
 3. **Silverhart capital.** This is the kingdom's main hub and unlocks the royal court, services and major faction threads.
 4. **Northwatch, Ridgehold and the greenskin sites.** Port the connected border-road sequence, forts, strongholds, gates, garrisons and encounter state.
-5. **Finish Kragmoor's runtime integration, then Sil'thandriel.** Use the new source-authored floor manifest to implement actual floor presentation, stair traversal, quest-gated access and persistence before expanding the elven capital.
+5. **Finish Kragmoor's gameplay content, then Sil'thandriel.** Add its named Ara actors, creatures, dialogue, trader/runeforge/mining/journal interactions and connect the site to campaign travel before expanding the elven capital.
 6. **Dungeons and wilderness sites.** Port interiors, encounter triggers, loot, patrols and quest consequences.
 7. **World simulation and persistence.** Validate travel, schedules, caravans, faction changes, save/reload and chunk unload/reload across the full map.
 
