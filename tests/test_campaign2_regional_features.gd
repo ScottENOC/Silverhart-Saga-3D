@@ -14,6 +14,10 @@ func _initialize() -> void:
 	assert(FEATURES.is_herb_patch(Vector2i(-267, 11)), "South-western herb patch must retain its source coordinate")
 	assert(not FEATURES.is_herb_patch(Vector2i(-266, 10)), "Clearing centre must not be misidentified as an herb patch")
 	assert(FEATURES.DRUID_GROVE_DEN == Vector2i(-269, 2), "Druid trial den anchor must be retained as separate encounter metadata")
+	assert(FEATURES.feature_id_at(Vector2i(-269, 2)) == "druid_grove_trial_den", "Druid trial den must retain its separate feature identity")
+	assert(FEATURES.feature_id_at(Vector2i(-265, 9)) == "emberwood_grove_herb_patch", "Herb patch anchors must expose their feature identity")
+	assert(FEATURES.ORC_STRONGHOLD_GATE == Vector2i(420, 17), "Orc stronghold gate must be on the actual west wall ring")
+	assert(FEATURES.feature_id_at(Vector2i(420, 17)) == "skarnaks_hold_gate", "Orc gate must retain its own feature identity")
 	# Source-authored Skarn-tooth camp and Skarnak's Hold ground.
 	assert(terrain.terrain_for_hex(Vector2i(203, 23)) == "dirt", "Goblin camp must have its source dirt clearing")
 	assert(terrain.terrain_for_hex(Vector2i(209, 23)) == "dirt", "Goblin camp clearing must include its radius-six edge")
