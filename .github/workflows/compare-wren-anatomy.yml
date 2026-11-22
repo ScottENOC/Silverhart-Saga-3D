@@ -55,7 +55,7 @@ jobs:
           from pathlib import Path
           profile = json.loads(Path("character-preview/wren-ara.json").read_text())
           Path("build/wren-anatomy/donor/profile.json").write_text(
-              json.dumps(profile["params"], indent=2) + "\\n"
+              json.dumps(profile["params"], indent=2) + "\n"
           )
           PY
           npx --yes ara3d@latest export \
@@ -158,12 +158,12 @@ jobs:
                   "glb_bytes": len(payload),
                   "glb_sha256": hashlib.sha256(payload).hexdigest()
               }
-          (root / "comparison-report.json").write_text(json.dumps(report, indent=2) + "\\n")
+          (root / "comparison-report.json").write_text(json.dumps(report, indent=2) + "\n")
           (root / "README.txt").write_text(
-              "WREN ACCEPTED-BUILD COMPARISON\\n\\n"
-              "current/Wren.glb: exact accepted Wren GLB from native build run 44452903123, with only the shared landing-strip texture correction applied.\\n"
-              "uploaded-script/Wren.glb: same accepted GLB with the uploaded anatomy script applied, then the same landing-strip correction.\\n\\n"
-              "Both use identical Godot 4.7.2 camera views. Neither candidate is promoted automatically.\\n"
+              "WREN ACCEPTED-BUILD COMPARISON\n\n"
+              "current/Wren.glb: exact accepted Wren GLB from native build run 44452903123, with only the shared landing-strip texture correction applied.\n"
+              "uploaded-script/Wren.glb: same accepted GLB with the uploaded anatomy script applied, then the same landing-strip correction.\n\n"
+              "Both use identical Godot 4.7.2 camera views. Neither candidate is promoted automatically.\n"
           )
           PY
 
