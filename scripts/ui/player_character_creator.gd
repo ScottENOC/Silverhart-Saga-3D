@@ -24,7 +24,7 @@ const BODY_BUILDS := ["Lean", "Average", "Broad", "Muscular", "Soft", "Androgyno
 const PRESENTATIONS := ["Masculine", "Feminine", "Androgynous", "Mixed", "Custom"]
 const PRONOUN_SETS := ["He / him", "She / her", "They / them", "Use my name", "Custom"]
 const FEMALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/ara_player_female_body.glb"
-const MALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/ara_person_male_body.glb"
+const MALE_PREVIEW_ASSET := "res://art/characters/ara_runtime/ara_player_male_body.glb"
 const ARA_ACTOR = preload("res://scripts/presentation/ara_character_actor.gd")
 
 var name_edit: LineEdit
