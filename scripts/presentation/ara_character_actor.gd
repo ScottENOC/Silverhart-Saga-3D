@@ -555,11 +555,11 @@ func _set_embedded_hair_visible(visible: bool) -> void:
 			var source := mesh_instance.get_active_material(surface)
 			var material_name := source.resource_name.to_lower() if source != null else ""
 			var mesh_name := mesh_instance.name.to_lower()
-			var surface_name := mesh_instance.mesh.surface_get_name(surface).to_lower()
+			var surface_name: String = String(mesh_instance.mesh.surface_get_name(surface)).to_lower()
 			# Ara exports do not always preserve a useful material resource name.
 			# Inspect the mesh and surface labels as well, otherwise the embedded
 			# default hairstyle can remain visible under the selected replacement.
-			var hair_identity := material_name + " " + mesh_name + " " + surface_name
+			var hair_identity: String = material_name + " " + mesh_name + " " + surface_name
 			if not _is_hair_material(hair_identity):
 				continue
 			var meta_key := "ara_embedded_hair_material_%d_%d" % [mesh_instance.get_instance_id(), surface]
