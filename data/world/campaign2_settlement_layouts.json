@@ -3093,6 +3093,48 @@
           },
           "width": 2,
           "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace road into Warrens"
+        },
+        {
+          "id": "silverhart_warrens_row_node_1",
+          "kind": "road",
+          "from": {
+            "q": 2,
+            "r": -430
+          },
+          "to": {
+            "q": 2,
+            "r": -430
+          },
+          "width": 1.4,
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace WarrensRow path node"
+        },
+        {
+          "id": "silverhart_warrens_row_node_2",
+          "kind": "road",
+          "from": {
+            "q": 5,
+            "r": -430
+          },
+          "to": {
+            "q": 5,
+            "r": -430
+          },
+          "width": 1.4,
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace WarrensRow path node"
+        },
+        {
+          "id": "silverhart_warrens_row_node_3",
+          "kind": "road",
+          "from": {
+            "q": 11,
+            "r": -430
+          },
+          "to": {
+            "q": 11,
+            "r": -430
+          },
+          "width": 1.4,
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace WarrensRow path node"
         }
       ],
       "npcs": [
