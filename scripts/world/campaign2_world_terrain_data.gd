@@ -97,6 +97,8 @@ func _load_settlement_layouts() -> void:
 	settlement_layouts.clear()
 	settlement_building_cells.clear()
 	settlement_path_cells.clear()
+	settlement_wall_cells.clear()
+	settlement_ladder_cells.clear()
 	if settlement_definition_registry == null:
 		return
 	settlement_layouts = settlement_definition_registry.get_definitions()
