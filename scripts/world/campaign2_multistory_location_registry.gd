@@ -134,8 +134,8 @@ func configure(manifest: Dictionary) -> Dictionary:
 					for transition_variant in location.get("transitions", []):
 						if not transition_variant is Dictionary:
 							continue
-						var transition: Dictionary = transition_variant
-						if int(transition.get("from_floor", 999999)) == int(reveal.get("from_floor", 999998)) and int(transition.get("to_floor", 999999)) == int(reveal.get("to_floor", 999998)) and transition.get("position", {}) == reveal.get("position", {}):
+						var candidate_transition: Dictionary = transition_variant
+						if int(candidate_transition.get("from_floor", 999999)) == int(reveal.get("from_floor", 999998)) and int(candidate_transition.get("to_floor", 999999)) == int(reveal.get("to_floor", 999998)) and candidate_transition.get("position", {}) == reveal.get("position", {}):
 							reveal_matches_transition = true
 					if not reveal_matches_transition:
 						validation_errors.append("%s: quest reveal must match a source stair transition." % location_id)
