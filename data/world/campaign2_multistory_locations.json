@@ -1408,7 +1408,8 @@
                 "r": -426
               },
               "light_radius": 6,
-              "lit": false
+              "lit": false,
+              "hidden_by_secret": "guild_hidden_vault_door"
             },
             {
               "id": "guild_vault_chest",
@@ -1421,7 +1422,8 @@
                 "gem_blue",
                 "gem_red",
                 "silvertongue_ring"
-              ]
+              ],
+              "hidden_by_secret": "guild_hidden_vault_door"
             }
           ],
           "actors": [
