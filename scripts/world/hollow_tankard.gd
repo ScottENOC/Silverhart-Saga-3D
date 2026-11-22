@@ -73,7 +73,7 @@ var rotate_left_button: Button
 var rotate_right_button: Button
 var tile_mesh: ArrayMesh
 var path_material: StandardMaterial3D
-var movement_controller: Node
+var movement_controller: Variant
 const INVALID_HEX := Vector2i(2147483647, 2147483647)
 
 var grass_material: StandardMaterial3D
