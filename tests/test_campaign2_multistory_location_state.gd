@@ -40,6 +40,11 @@ func _initialize() -> void:
 	invalid_save["current_floor"] = -99
 	var rejected = LOCATION_STATE.new()
 	_check(not bool(rejected.configure(definition, invalid_save).get("ok", false)), "Unknown saved floors must be rejected")
+	var sealed_save := saved.duplicate(true)
+	sealed_save["current_floor"] = -5
+	sealed_save["unlocked_transitions"] = []
+	var sealed_restore = LOCATION_STATE.new()
+	_check(not bool(sealed_restore.configure(definition, sealed_save).get("ok", false)), "A save must not place the player in the Sunken Deep without its quest gate unlocked")
 
 	if failures > 0:
 		push_error("%d multi-story location state test(s) failed." % failures)
