@@ -81,8 +81,8 @@ func _run() -> void:
     for region_id in REGIONS:
         var definition: Array = REGIONS[region_id]
         var seed_vertices := _find_seed_vertices(vertices, definition[0], definition[1])
-        seeds[region_id] = seed_vertices.size()
         seed_vertices = _filter_region_side(vertices, seed_vertices, region_id)
+        seeds[region_id] = seed_vertices.size()
         var weights := _propagate_over_surface(adjacency, vertices, seed_vertices, region_id)
         candidate_weights[region_id] = weights
         var count := 0
@@ -161,7 +161,8 @@ func _run() -> void:
         "candidate_weight_threshold": 0.15,
         "region_seed_vertex_counts": seeds,
         "candidate_vertex_counts_at_weight_0_15": counts,
-        "method": "Ellipsoidal seed hypotheses expanded only through adjacent source-mesh vertices for nine graph hops, with decaying weights.",
+        "candidate_to_seed_vertex_ratios": _build_candidate_seed_ratios(seeds, counts),
+        "method": "Ellipsoidal seed hypotheses expanded only through adjacent source-mesh vertices for five graph hops, with decaying weights.",
         "limitations": [
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation prevents direct Euclidean leakage between disconnected surfaces but does not make the initial seed anatomical.",
@@ -175,6 +176,15 @@ func _run() -> void:
     report_file.close()
     print("WREN_TOPOLOGY_PROPOSAL_OK vertices=%d regions=%d" % [vertices.size(), REGIONS.size()])
     quit(0)
+
+
+func _build_candidate_seed_ratios(seed_counts: Dictionary, candidate_counts: Dictionary) -> Dictionary:
+    var ratios: Dictionary = {}
+    for region_id in REGIONS:
+        var seed_count: int = seed_counts.get(region_id, 0)
+        var candidate_count: int = candidate_counts.get(region_id, 0)
+        ratios[region_id] = snappedf(float(candidate_count) / maxf(float(seed_count), 1.0), 0.01)
+    return ratios
 
 
 func _find_skin_mesh(node: Node) -> MeshInstance3D:
