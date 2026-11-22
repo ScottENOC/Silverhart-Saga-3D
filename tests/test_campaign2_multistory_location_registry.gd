@@ -1,85 +1,181 @@
-extends SceneTree
+class_name Campaign2MultiStoryLocationRegistry
+extends RefCounted
+## Validated source-authored floor stacks for Campaign 2 locations.
+## This registry preserves floor geometry and transition data; runtime traversal
+## and presentation are separate consumers.
 
-const REGISTRY = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
-var failures: int = 0
+const MANIFEST_PATH := "res://data/world/campaign2_multistory_locations.json"
+const COORDINATE_SYSTEM := "campaign2_local_axial_qr"
 
-func _initialize() -> void:
-	var registry = REGISTRY.new()
-	_check(registry.validation_errors.is_empty(), "Source-authored multi-story locations must validate")
-	_check(registry.location_ids() == ["kragmoor"], "Kragmoor must be registered as the first source-authored multi-story location")
-	var definition: Dictionary = registry.get_definition("kragmoor")
-	_check(int(definition.get("anchor", {}).get("q", 0)) == 908 and int(definition.get("anchor", {}).get("r", 0)) == -626, "Kragmoor anchor must match buildDwarvenKingdom")
-	_check(int(definition.get("massif_radius", 0)) == 25, "Kragmoor must retain the source solid-massif radius")
-	var expected_floors := [0, -1, -2, -3, -4, -5]
-	var actual_floors: Array[int] = []
-	for floor_variant in definition.get("floors", []):
-		actual_floors.append(int(floor_variant.get("floor", 999999)))
-	_check(actual_floors == expected_floors, "Kragmoor must preserve surface, four open underground levels and the sealed fifth level")
-	var great_hall := registry.get_floor_definition("kragmoor", -1)
-	_check(great_hall.get("actors", []).size() == 3, "Great Hall must contain King Balrik and both source guards")
-	_check(_has_record(great_hall.get("tile_objects", []), "throne"), "Great Hall must retain its throne")
-	var vault := registry.get_floor_definition("kragmoor", -2)
-	_check(vault.get("actors", []).size() == 2, "Vault/Runeforge must contain the trader and master runesmith")
-	_check(_has_record(vault.get("tile_objects", []), "rune_forge"), "Runeforge must retain its forge object")
-	var mine := registry.get_floor_definition("kragmoor", -3)
-	_check(_has_record(mine.get("tile_objects", []), "mine_ledger"), "Deep Mine must retain the foreman's ledger")
-	_check(mine.get("actors", []).size() == 1, "Deep Mine must contain Foreman Dornik")
-	var tunnels := registry.get_floor_definition("kragmoor", -4)
-	_check(tunnels.get("creatures", []).size() == 3, "Lower Tunnels must preserve two spiders and the Broodmother")
-	var deep := registry.get_floor_definition("kragmoor", -5)
-	_check(deep.get("creatures", []).size() == 1, "Sunken Deep must contain the Ember-Wreathed Horror")
-	_check(int(deep.get("creatures", [])[0].get("health", 0)) == 160, "The Horror must retain its source health")
-	_check(deep.get("creatures", [])[0].get("inventory", []).count("starmetal_ore") == 2, "The Horror must retain both source Starmetal drops")
-	var gate: Dictionary = definition.get("quest_gates", [])[0] if not definition.get("quest_gates", []).is_empty() else {}
-	_check(String(gate.get("quest_id", "")) == "deepholds_infestation", "Sunken Deep must be gated by the source infestation quest ID")
-	_check(String(gate.get("quest_title", "")) == "What Nests Below", "Sunken Deep must retain the source quest title")
-	_check(not bool(gate.get("initially_available", true)) and bool(gate.get("reveal_is_idempotent", false)), "Sunken Deep passage must begin sealed and reveal idempotently")
-	var gated_transition := false
-	for transition in definition.get("transitions", []):
-		if int(transition.get("from_floor", 999)) == -4 and int(transition.get("to_floor", 999)) == -5:
-			gated_transition = not bool(transition.get("initially_available", true)) and String(transition.get("unlocked_by_quest", "")) == "deepholds_infestation"
-	_check(gated_transition, "The -4 to -5 stair must be locked behind What Nests Below")
-	var king := great_hall.get("actors", []).filter(func(actor): return String(actor.get("id", "")) == "dwarf_king")[0]
-	_check(String(king.get("race", "")) == "dwarf" and String(king.get("gender", "")) == "male", "King Balrik must retain his source dwarf/male profile")
-	_check(king.get("class_levels", []) == ["fighter", "fighter"], "King Balrik must retain his two fighter levels")
-	_check(king.get("skill_picks", []) == ["health", "axe_hit", "axe_dmg", "heavy_armor_training"], "King Balrik must retain his source skill picks")
-	_check(king.get("equipment", []) == ["axe", "heavy_armor", "wooden_shield"] and bool(king.get("gold_gear", false)), "King Balrik must retain his source equipment and gold gear")
-	var guard_actors: Array = great_hall.get("actors", []).filter(func(actor): return String(actor.get("role", "")) == "guard")
-	_check(guard_actors.size() == 2 and guard_actors[0].get("gender") != guard_actors[1].get("gender"), "Kragmoor must retain its distinct male and female Hall Guard profiles")
-	var trader := vault.get("actors", []).filter(func(actor): return String(actor.get("id", "")) == "deepholds_trader")[0]
-	_check(trader.get("shop_inventory", []) == ["sword", "axe", "medium_armor", "heavy_armor", "wooden_shield", "nasal_helm"], "Ingra must retain the source Vault shop inventory")
-	var interactions: Array = definition.get("interaction_rules", [])
-	var trader_rule := interactions.filter(func(rule): return String(rule.get("id", "")) == "deepholds_trader")[0]
-	_check(int(trader_rule.get("minimum_faction_standing", 0)) == 10, "Ingra's shop must retain its +10 faction-standing gate")
-	var smith_rule := interactions.filter(func(rule): return String(rule.get("id", "")) == "deepholds_runesmith")[0]
-	_check(int(smith_rule.get("trust_quest", {}).get("minimum_faction_standing", 0)) == 10, "Thrain's trust quest must require +10 standing")
-	_check(int(smith_rule.get("teaching_quest", {}).get("dwarf", {}).get("required_starmetal_ore", 0)) == 1 and int(smith_rule.get("teaching_quest", {}).get("other_races", {}).get("required_starmetal_ore", 0)) == 2, "Thrain must preserve the source dwarf/non-dwarf ore requirements")
-	_check(int(smith_rule.get("teaching_quest", {}).get("other_races", {}).get("minimum_faction_standing", 0)) == 30, "Non-dwarves must retain the +30 teaching threshold")
-	var infestation: Dictionary = definition.get("quests", [])[0]
-	_check(String(infestation.get("title", "")) == "What Nests Below" and String(infestation.get("giver", "")) == "King Balrik Deepholm", "The infestation quest must retain its source title and giver")
-	_check(String(infestation.get("objective", {}).get("creature_tag", "")) == "deepholds_vermin", "The quest must target the source-tagged Lower Tunnels vermin")
-	_check(int(infestation.get("completion", {}).get("reputation", {}).get("standing_delta", 0)) == 20 and int(infestation.get("completion", {}).get("reputation", {}).get("knowledge_delta", 0)) == 20, "The quest must retain both source faction reputation deltas")
-	_check(int(infestation.get("completion", {}).get("experience", 0)) == 200 and infestation.get("completion", {}).get("items", []) == ["deep_crystal"], "The quest must retain its 200 XP and Deep Crystal reward")
-	var broodmother: Dictionary = tunnels.get("creatures", []).filter(func(creature): return String(creature.get("id", "")) == "deepholds_broodmother")[0]
-	_check(String(broodmother.get("monster_type", "")) == "spider" and broodmother.get("quest_tags", []) == ["deepholds_vermin"], "The Broodmother must retain its source spider type and quest tag")
-	_check(int(broodmother.get("custom_skills", {}).get("health", 0)) == 6 and int(broodmother.get("custom_skills", {}).get("melee_damage", 0)) == 4, "The Broodmother must retain its source custom skills")
-	_check(String(deep.get("creatures", [])[0].get("monster_type", "")) == "dragon_young", "The Horror must reuse the source young-dragon monster template")
+var _locations: Dictionary = {}
+var validation_errors: Array[String] = []
 
-	if failures > 0:
-		push_error("%d multi-story location test(s) failed." % failures)
-		quit(1)
+func _init(manifest_path: String = MANIFEST_PATH) -> void:
+	if not FileAccess.file_exists(manifest_path):
+		validation_errors.append("Multi-story location manifest is missing: %s" % manifest_path)
 		return
-	print("Kragmoor source-authored multi-story floor data validated.")
-	quit(0)
-
-func _has_record(records: Array, record_id: String) -> bool:
-	for record in records:
-		if record is Dictionary and String(record.get("id", "")) == record_id:
-			return true
-	return false
-
-func _check(condition: bool, message: String) -> void:
-	if condition:
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(manifest_path))
+	if not parsed is Dictionary:
+		validation_errors.append("Multi-story location manifest must be a JSON object.")
 		return
-	failures += 1
-	push_error(message)
+	configure(parsed)
+
+func configure(manifest: Dictionary) -> Dictionary:
+	_locations.clear()
+	validation_errors.clear()
+	if int(manifest.get("schema_version", 0)) != 1:
+		validation_errors.append("Unsupported multi-story location schema version.")
+	if String(manifest.get("coordinate_system", "")) != COORDINATE_SYSTEM:
+		validation_errors.append("Multi-story location coordinate system is invalid.")
+	var source_locations: Variant = manifest.get("locations", [])
+	if not source_locations is Array:
+		validation_errors.append("Multi-story locations must be an array.")
+		return {"ok": false, "errors": validation_errors.duplicate()}
+	for location_variant in source_locations:
+		if not location_variant is Dictionary:
+			validation_errors.append("Multi-story location entry must be an object.")
+			continue
+		var location: Dictionary = location_variant
+		var location_id := String(location.get("id", "")).strip_edges()
+		if location_id.is_empty() or _locations.has(location_id):
+			validation_errors.append("Multi-story location ID is empty or duplicated: %s" % location_id)
+			continue
+		if not _is_axial(location.get("anchor", {})):
+			validation_errors.append("%s: anchor must contain integer q/r coordinates." % location_id)
+			continue
+		var floors: Variant = location.get("floors", [])
+		if not floors is Array or floors.is_empty():
+			validation_errors.append("%s: floors must be a non-empty array." % location_id)
+			continue
+		var floor_ids: Dictionary = {}
+		for floor_variant in floors:
+			if not floor_variant is Dictionary:
+				validation_errors.append("%s: floor entry must be an object." % location_id)
+				continue
+			var floor_definition: Dictionary = floor_variant
+			var floor_number := int(floor_definition.get("floor", 999999))
+			if floor_number == 999999 or floor_ids.has(floor_number):
+				validation_errors.append("%s: floor number is missing or duplicated." % location_id)
+				continue
+			floor_ids[floor_number] = true
+			for collection_name in ["rooms", "corridors", "tile_objects", "actors", "creatures"]:
+				var collection: Variant = floor_definition.get(collection_name, [])
+				if not collection is Array:
+					validation_errors.append("%s floor %d: %s must be an array." % [location_id, floor_number, collection_name])
+					continue
+				for record in collection:
+					if not record is Dictionary:
+						validation_errors.append("%s floor %d: invalid %s record." % [location_id, floor_number, collection_name])
+						continue
+					if record.has("position") and not _is_axial(record.get("position", {})):
+						validation_errors.append("%s floor %d: %s has invalid position." % [location_id, floor_number, collection_name])
+					if collection_name == "rooms":
+						if not _is_axial(record.get("center", {})) or int(record.get("half_width", 0)) < 2 or int(record.get("half_height", 0)) < 2:
+							validation_errors.append("%s floor %d: room geometry is invalid." % [location_id, floor_number])
+					if collection_name == "corridors":
+						if not _is_axial(record.get("from", {})) or not _is_axial(record.get("to", {})):
+							validation_errors.append("%s floor %d: corridor endpoints are invalid." % [location_id, floor_number])
+					if collection_name == "actors":
+						for required_field in ["id", "name", "race", "gender", "class_levels", "skill_picks", "equipment", "side", "faction_id"]:
+							if not record.has(required_field):
+								validation_errors.append("%s floor %d: actor is missing %s." % [location_id, floor_number, required_field])
+						for array_field in ["class_levels", "skill_picks", "equipment"]:
+							if record.has(array_field) and not record.get(array_field) is Array:
+								validation_errors.append("%s floor %d: actor %s must be an array." % [location_id, floor_number, array_field])
+					if collection_name == "creatures":
+						if not record.has("monster_type") or not record.get("custom_skills", {}) is Dictionary:
+							validation_errors.append("%s floor %d: creature requires monster_type and custom_skills." % [location_id, floor_number])
+						if record.has("quest_tags") and not record.get("quest_tags") is Array:
+							validation_errors.append("%s floor %d: creature quest_tags must be an array." % [location_id, floor_number])
+		if not floor_ids.has(0):
+			validation_errors.append("%s: surface floor 0 is required." % location_id)
+		for transition_variant in location.get("transitions", []):
+			if not transition_variant is Dictionary:
+				validation_errors.append("%s: transition entry must be an object." % location_id)
+				continue
+			var transition: Dictionary = transition_variant
+			var from_floor := int(transition.get("from_floor", 999999))
+			var to_floor := int(transition.get("to_floor", 999999))
+			if not floor_ids.has(from_floor) or not floor_ids.has(to_floor) or not _is_axial(transition.get("position", {})):
+				validation_errors.append("%s: transition references a missing floor or invalid position." % location_id)
+			if transition.has("unlocked_by_quest") and String(transition.get("unlocked_by_quest", "")).is_empty():
+				validation_errors.append("%s: quest-gated transition requires a quest ID." % location_id)
+		for gate_variant in location.get("quest_gates", []):
+			if not gate_variant is Dictionary:
+				validation_errors.append("%s: quest gate entry must be an object." % location_id)
+				continue
+			var gate: Dictionary = gate_variant
+			if not floor_ids.has(int(gate.get("from_floor", 999999))) or not floor_ids.has(int(gate.get("to_floor", 999999))) or String(gate.get("quest_id", "")).is_empty():
+				validation_errors.append("%s: quest gate references missing floor(s) or quest ID." % location_id)
+			if bool(gate.get("initially_available", true)):
+				validation_errors.append("%s: source quest gate must remain initially unavailable." % location_id)
+		var quest_ids: Dictionary = {}
+		var quests: Variant = location.get("quests", [])
+		if not quests is Array:
+			validation_errors.append("%s: quests must be an array." % location_id)
+		else:
+			for quest_variant in quests:
+				if not quest_variant is Dictionary:
+					validation_errors.append("%s: quest definition must be an object." % location_id)
+					continue
+				var quest: Dictionary = quest_variant
+				var quest_id := String(quest.get("id", ""))
+				if quest_id.is_empty() or quest_ids.has(quest_id) or String(quest.get("title", "")).is_empty() or String(quest.get("giver", "")).is_empty():
+					validation_errors.append("%s: quest ID/title/giver is missing or duplicated." % location_id)
+				quest_ids[quest_id] = true
+				var objective: Variant = quest.get("objective", {})
+				var completion: Variant = quest.get("completion", {})
+				if not objective is Dictionary or not completion is Dictionary:
+					validation_errors.append("%s: quest objective and completion must be objects." % location_id)
+					continue
+				var reveal: Dictionary = completion.get("reveal_transition", {})
+				if not reveal.is_empty():
+					var reveal_matches_transition := false
+					for transition_variant in location.get("transitions", []):
+						if not transition_variant is Dictionary:
+							continue
+						var transition: Dictionary = transition_variant
+						if int(transition.get("from_floor", 999999)) == int(reveal.get("from_floor", 999998)) and int(transition.get("to_floor", 999999)) == int(reveal.get("to_floor", 999998)) and transition.get("position", {}) == reveal.get("position", {}):
+							reveal_matches_transition = true
+					if not reveal_matches_transition:
+						validation_errors.append("%s: quest reveal must match a source stair transition." % location_id)
+		var interactions: Variant = location.get("interaction_rules", [])
+		if not interactions is Array:
+			validation_errors.append("%s: interaction_rules must be an array." % location_id)
+		else:
+			var interaction_ids: Dictionary = {}
+			for interaction_variant in interactions:
+				if not interaction_variant is Dictionary:
+					validation_errors.append("%s: interaction rule must be an object." % location_id)
+					continue
+				var interaction: Dictionary = interaction_variant
+				var interaction_id := String(interaction.get("id", ""))
+				if interaction_id.is_empty() or interaction_ids.has(interaction_id) or String(interaction.get("dialogue_id", "")).is_empty():
+					validation_errors.append("%s: interaction rule ID/dialogue ID is missing or duplicated." % location_id)
+				interaction_ids[interaction_id] = true
+		if validation_errors.is_empty():
+			_locations[location_id] = location.duplicate(true)
+	if not validation_errors.is_empty():
+		_locations.clear()
+		return {"ok": false, "errors": validation_errors.duplicate()}
+	return {"ok": true, "errors": []}
+
+func get_definition(location_id: String) -> Dictionary:
+	return (_locations.get(location_id, {}) as Dictionary).duplicate(true)
+
+func get_floor_definition(location_id: String, floor_number: int) -> Dictionary:
+	var location := _locations.get(location_id, {}) as Dictionary
+	for floor_variant in location.get("floors", []):
+		if floor_variant is Dictionary and int(floor_variant.get("floor", 999999)) == floor_number:
+			return (floor_variant as Dictionary).duplicate(true)
+	return {}
+
+func location_ids() -> Array[String]:
+	var result: Array[String] = []
+	for location_id in _locations:
+		result.append(String(location_id))
+	result.sort()
+	return result
+
+func _is_axial(value: Variant) -> bool:
+	return value is Dictionary and value.has("q") and value.has("r") and int(value.get("q", 0)) == float(value.get("q", 0)) and int(value.get("r", 0)) == float(value.get("r", 0))
