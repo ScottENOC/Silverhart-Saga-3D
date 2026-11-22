@@ -1,7 +1,6 @@
 extends SceneTree
 
 const REGISTRY = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
-const RUNTIME = preload("res://scripts/world/campaign2_multistory_location_runtime.gd")
 const SIMULATION = preload("res://scripts/simulation/world_simulation.gd")
 const LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
 
@@ -17,7 +16,7 @@ func _run() -> void:
     root.add_child(simulation)
     var loaded: Dictionary = LOCATION_LOADER.load_multistory_location(root, "kragmoor", simulation)
     _check(bool(loaded.get("ok", false)), "Shared location loader must instantiate Kragmoor from the registry")
-    var runtime = loaded.get("runtime") as RUNTIME
+    var runtime = loaded.get("runtime")
     _check(runtime.get_current_floor() == 0, "Kragmoor runtime must begin on the Gate Hall surface")
     _check(runtime.get_floor_tile_count(0) > 0 and runtime.get_floor_tile_count(-5) > 0, "All six source floors must build presentation tiles")
     _check(runtime.is_floor_visible(0) and not runtime.is_floor_visible(-1), "Only the active floor may be visible")
@@ -49,7 +48,6 @@ func _run() -> void:
 
     var saved_locations: Dictionary = simulation.multistory_location_states_to_dict()
     var restored_simulation = SIMULATION.new()
-    var restored_registry = REGISTRY.new()
     restored_simulation.campaign_journal.register_quest_definition(quest)
     restored_simulation.campaign_journal.start_quest("deepholds_infestation")
     restored_simulation.campaign_journal.set_objective_progress("deepholds_infestation", "clear_the_nest", 1.0)
@@ -58,7 +56,7 @@ func _run() -> void:
     root.add_child(restored_simulation)
     var restored_load: Dictionary = LOCATION_LOADER.load_multistory_location(root, "kragmoor", restored_simulation, {"multistory_locations": saved_locations})
     _check(bool(restored_load.get("ok", false)), "Shared location loader must restore saved multi-story site state")
-    var restored_runtime = restored_load.get("runtime") as RUNTIME
+    var restored_runtime = restored_load.get("runtime")
     _check(restored_runtime.get_current_floor() == -5, "Save/load must restore the current underground floor")
     _check(restored_runtime.is_floor_visible(-5), "Save/load must restore the visible floor presentation")
 
