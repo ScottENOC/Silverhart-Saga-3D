@@ -55,7 +55,7 @@ func _initialize() -> void:
 	_check(FEATURES.NORTHWATCH_CENTRE == Vector2i(268, -21), "Northwatch centre must match the canonical geography anchor")
 	_check(terrain.terrain_for_hex(Vector2i(268, -21)) == "dirt", "Northwatch core must be a fort floor")
 	_check(terrain.terrain_for_hex(Vector2i(268, -3)) == "dirt", "Northwatch south star point must reach its source 18-hex tip")
-	_check(terrain.terrain_for_hex(Vector2i(268, -4)) == "climbable_wall", "Northwatch outer ring must wrap the star-fort point")
+	_check(terrain.terrain_for_hex(Vector2i(267, -2)) == "climbable_wall", "Northwatch outer ring must wrap the south gate")
 	_check(terrain.terrain_for_hex(Vector2i(268, -2)) == "climbable_wall", "Northwatch south gate must retain its closed wall terrain")
 	_check(terrain.terrain_for_hex(Vector2i(268, 10)) == "path", "Northwatch's south approach spur must reach the outer gate")
 	_check(terrain.terrain_for_hex(Vector2i(268, -21)) == "dirt", "Northwatch keep must retain its central floor")
