@@ -18,8 +18,11 @@ func _run() -> void:
     _check(runtime.get_floor_tile_count(0) > 0 and runtime.get_floor_tile_count(-5) > 0, "All six source floors must build presentation tiles")
     _check(runtime.is_floor_visible(0) and not runtime.is_floor_visible(-1), "Only the active floor may be visible")
 
-    var down: Dictionary = runtime.try_transition_at_stair(-1, Vector2i(908, -610))
-    _check(bool(down.get("ok", false)) and runtime.get_current_floor() == -1, "Gate Hall stair must activate the Great Hall")
+    var player_state := CharacterState.new("test_player", "Test Player", Vector2i(908, -609))
+    simulation.register_character(player_state)
+    var down: Dictionary = runtime.interact_with_stair("test_player")
+    _check(bool(down.get("ok", false)) and runtime.get_current_floor() == -1, "Interacting beside the Gate Hall stair must activate the Great Hall")
+    _check(player_state.axial == Vector2i(908, -610), "Stair interaction must move the character onto the authored stair hex")
     _check(not runtime.is_floor_visible(0) and runtime.is_floor_visible(-1), "Floor presentation must switch with traversal")
     _check(simulation.map_data.is_walkable(Vector2i(908, -627)), "Active floor geometry must be registered as logical walkable cells")
     _check(not simulation.map_data.is_walkable(Vector2i(908, -608)), "Inactive floor-only cells must be removed from logical movement")
