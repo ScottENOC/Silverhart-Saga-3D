@@ -2810,7 +2810,16 @@
             }
           ],
           "width": 2.2,
-          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace MIDDLE_RING_RADIUS=45"
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace MIDDLE_RING_RADIUS=45",
+          "widths": [
+            2.2,
+            2.2,
+            2.2,
+            2.2,
+            2.2,
+            2.2,
+            2.2
+          ]
         },
         {
           "id": "silverhart_middle_ring_south_connector",
@@ -2844,7 +2853,12 @@
             }
           ],
           "width": 1.5,
-          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 1 cube-rounded door-to-ring connector"
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 1 cube-rounded door-to-ring connector",
+          "widths": [
+            1.5,
+            1.5,
+            1.5
+          ]
         },
         {
           "id": "silverhart_middle_ring_house_spur_2",
@@ -2872,7 +2886,14 @@
             }
           ],
           "width": 1.5,
-          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 2 cube-rounded door-to-ring connector"
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 2 cube-rounded door-to-ring connector",
+          "widths": [
+            1.5,
+            1.5,
+            1.5,
+            1.5,
+            1.5
+          ]
         },
         {
           "id": "silverhart_middle_ring_house_spur_3",
@@ -2896,7 +2917,13 @@
             }
           ],
           "width": 1.5,
-          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 3 cube-rounded door-to-ring connector"
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 3 cube-rounded door-to-ring connector",
+          "widths": [
+            1.5,
+            1.5,
+            1.5,
+            1.5
+          ]
         },
         {
           "id": "silverhart_middle_ring_house_spur_4",
@@ -2920,7 +2947,13 @@
             }
           ],
           "width": 1.5,
-          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 4 cube-rounded door-to-ring connector"
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 4 cube-rounded door-to-ring connector",
+          "widths": [
+            1.5,
+            1.5,
+            1.5,
+            1.5
+          ]
         },
         {
           "id": "silverhart_middle_ring_house_spur_5",
@@ -2948,7 +2981,14 @@
             }
           ],
           "width": 1.5,
-          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 5 cube-rounded door-to-ring connector"
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 5 cube-rounded door-to-ring connector",
+          "widths": [
+            1.5,
+            1.5,
+            1.5,
+            1.5,
+            1.5
+          ]
         },
         {
           "id": "silverhart_middle_ring_house_spur_6",
@@ -3008,7 +3048,22 @@
             }
           ],
           "width": 1.5,
-          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 6 cube-rounded door-to-ring connector"
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace middle ring house 6 cube-rounded door-to-ring connector",
+          "widths": [
+            1.5,
+            1.5,
+            1.5,
+            1.5,
+            1.5,
+            1.5,
+            1.5,
+            1.5,
+            1.5,
+            1.5,
+            1.5,
+            1.5,
+            1.5
+          ]
         },
         {
           "id": "silverhart_city_gate_approach",
