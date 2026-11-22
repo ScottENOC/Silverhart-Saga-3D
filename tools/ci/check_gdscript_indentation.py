@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
-"""Reject space-based or mixed indentation in GDScript source files.
-
-Blank lines and the contents of triple-quoted multiline strings are ignored.
-The repository convention is one tab per indentation level.
-"""
+"""Check indentation conventions declared in the repository .editorconfig."""
 from __future__ import annotations
 
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+TAB_EXTENSIONS = {".gd", ".tscn", ".tres"}
+SPACE_EXTENSIONS = {".json"}
 
 
-def violations(path: Path) -> list[tuple[int, str]]:
-    found: list[tuple[int, str]] = []
+def check_file(path: Path) -> list[tuple[int, str]]:
+    issues: list[tuple[int, str]] = []
+    extension = path.suffix.lower()
     in_multiline_string = False
 
     for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
@@ -21,44 +20,54 @@ def violations(path: Path) -> list[tuple[int, str]]:
         if not stripped:
             continue
 
-        # GDScript multiline strings use triple double quotes. Their content is
-        # data, not code indentation, so do not inspect it.
-        quote_count = line.count('"""')
-        if in_multiline_string:
-            if quote_count % 2:
-                in_multiline_string = False
-            continue
+        if extension == ".gd":
+            quote_count = line.count('"""')
+            if in_multiline_string:
+                if quote_count % 2:
+                    in_multiline_string = False
+                continue
 
         prefix = line[: len(line) - len(stripped)]
-        if " " in prefix:
-            reason = "mixed tabs and spaces" if "\t" in prefix else "spaces used for indentation"
-            found.append((number, reason))
+        if extension in TAB_EXTENSIONS:
+            if " " in prefix:
+                reason = "mixed tabs and spaces" if "\t" in prefix else "spaces used; expected tabs"
+                issues.append((number, reason))
+        elif extension in SPACE_EXTENSIONS:
+            if "\t" in prefix:
+                issues.append((number, "tab used; expected spaces"))
+            elif len(prefix) % 2:
+                issues.append((number, "indentation is not a multiple of 2 spaces"))
 
-        if quote_count % 2:
+        if extension == ".gd" and line.count('"""') % 2:
             in_multiline_string = True
 
-    return found
+    return issues
 
 
 def main() -> int:
-    files = sorted(ROOT.rglob("*.gd"))
+    files = sorted(
+        path for path in ROOT.rglob("*")
+        if path.is_file()
+        and path.suffix.lower() in TAB_EXTENSIONS | SPACE_EXTENSIONS
+        and not any(part in {".git", ".godot"} for part in path.parts)
+    )
+    counts = {ext: 0 for ext in (".gd", ".tscn", ".tres", ".json")}
     failures = 0
+
     for path in files:
-        # Ignore generated/imported directories and Git metadata.
-        if any(part in {".git", ".godot"} for part in path.parts):
-            continue
-        issues = violations(path)
-        if issues:
-            failures += len(issues)
-            rel = path.relative_to(ROOT)
-            for line, reason in issues:
-                print(f"{rel}:{line}: {reason}")
+        counts[path.suffix.lower()] += 1
+        for line, reason in check_file(path):
+            failures += 1
+            print(f"{path.relative_to(ROOT)}:{line}: {reason}")
 
+    print(
+        "Scanned " + ", ".join(f"{ext}={counts[ext]}" for ext in counts)
+        + f" ({len(files)} files total)."
+    )
     if failures:
-        print(f"\nFound {failures} GDScript indentation issue(s). Use tabs, not spaces.")
+        print(f"Found {failures} indentation issue(s).")
         return 1
-
-    print(f"Checked {len(files)} GDScript files: indentation is tab-only.")
+    print("All scanned files comply with their .editorconfig indentation rules.")
     return 0
 
 
