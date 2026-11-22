@@ -22,10 +22,10 @@ class HollowmereNpcBuilderTests(unittest.TestCase):
         ids = [profile["id"] for profile in selected["characters"]]
         self.assertEqual(len(ids), 14)
         self.assertIn("player_avatar", ids)
-        self.assertNotIn("wren_talbot", ids)
+        self.assertIn("wren_talbot", ids)\n        self.assertNotIn("ser_aldric_thorne", ids)
         self.assertEqual(
             sum(1 for profile in self.source["characters"] if profile.get("role") == "companion"),
-            8,
+            9,
         )
 
     def test_current_source_placements_do_not_require_legacy_hex_field(self):
