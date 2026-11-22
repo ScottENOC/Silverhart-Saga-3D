@@ -107,8 +107,9 @@ def main():
                   smoothing=0.2, max_iterations=20,
                   floating_tolerance=0.015)
     )
-    if report["status"] != "PASS":
-        raise RuntimeError("Diagnostic shell did not pass clearance validation: " + json.dumps(report))
+    # Always render the fitted geometry, including failed fits. The report keeps
+    # the solver status so a diagnostic image can be inspected without implying
+    # that clearance validation passed.
 
     # Build fitted shell in world coordinates, retaining the extracted topology.
     mesh = bpy.data.meshes.new("Wren_Torso_Clearance_Test_Mesh")
@@ -163,7 +164,7 @@ def main():
         make_camera(name, location, aim, os.path.join(a.output_dir, name + ".png"))
 
     report_out = {
-        "status": "PASS",
+        "status": report["status"],
         "purpose": "diagnostic torso-shell clearance test; not a production garment",
         "source_body": "Wren",
         "armature_bones": len(armature.data.bones),
@@ -176,7 +177,7 @@ def main():
     }
     with open(os.path.join(a.output_dir, "fit-report.json"), "w", encoding="utf-8") as f:
         json.dump(report_out, f, indent=2)
-    print("GARMENT_PREVIEW " + json.dumps({"status": "PASS", "vertices": len(fitted), "faces": len(faces)}))
+    print("GARMENT_PREVIEW " + json.dumps({"status": report["status"], "vertices": len(fitted), "faces": len(faces)}))
 
 
 if __name__ == "__main__":
