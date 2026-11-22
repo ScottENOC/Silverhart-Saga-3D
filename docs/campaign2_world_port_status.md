@@ -37,7 +37,7 @@ The 24-anchor geography manifest has six authored settlement/site entries above:
 
 | Location | Source content still to port |
 |---|---|
-| Silverhart | First structural phase: source-positioned Grand Hall, barracks, council chamber, Royal Wizard's Tower and Queen's bedroom are registered for 3D presentation. | Curtain wall/watchtowers/gate, full courtyard and diplomatic quarter, source actors, complete multi-floor interiors, services and kingdom interactions |
+| Silverhart | Palace core: five source-positioned buildings, courtyard spurs, gate approach and radius-30 outer ring road are registered for streamed 3D presentation. | Radius-23 curtain wall, gate/watchtowers/ladder points, source actors and guards, inner ring road, Merchant/Noble/Diplomatic quarters, commons, outlying houses, multi-floor interiors and kingdom interactions |
 | Skarn-tooth Camp | Goblin camp structures, chief, tribe roster, trade and negotiation/hostility branches |
 | Northwatch Fort | Star fort, keep, gate, garrison, siege actors and border-war interactions; source moat and connected waterway terrain are ported |
 | Ridgehold Fort | Fort and keep, patrols and faction consequences; source downstream waterway terrain is ported |
