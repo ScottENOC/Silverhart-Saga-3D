@@ -9,6 +9,28 @@ func _initialize() -> void:
     call_deferred("_run")
 
 func _run() -> void:
+    # Sil'thandriel's great-tree stair must be usable by the same externally
+    # controlled player actor as the regional surface movement simulation.
+    var tree_simulation = SIMULATION.new()
+    root.add_child(tree_simulation)
+    var tree_player := CharacterState.new("tree_test_player", "Tree Test Player", Vector2i(-252, 933))
+    tree_simulation.register_character(tree_player)
+    tree_simulation.map_data.add_cell(Vector2i(-252, 933), 0.0, true, "grass")
+    var tree_load: Dictionary = LOCATION_LOADER.load_multistory_location(root, "silthandriel", tree_simulation)
+    _check(bool(tree_load.get("ok", false)), "Regional player must be able to load Sil'thandriel's source-authored tree interior")
+    var tree_runtime = tree_load.get("runtime")
+    var tree_actor := Node3D.new()
+    root.add_child(tree_actor)
+    _check(tree_runtime != null and tree_runtime.register_character_actor("tree_test_player", tree_actor), "Tree interior must register the regional player actor")
+    if tree_runtime != null:
+        var tree_entry: Dictionary = tree_runtime.interact_with_stair("tree_test_player")
+        _check(bool(tree_entry.get("ok", false)) and tree_runtime.get_current_floor() == 1, "Pressing the interaction action at the great-tree stair must enter the Lower Canopy")
+        _check(tree_player.axial == Vector2i(-252, 932), "Entering the tree must place the player on the authored entrance stair")
+        _check(is_equal_approx(tree_actor.global_position.y, 3.3), "Tree interior must raise the shared player actor to the authored upper floor")
+        var tree_exit: Dictionary = tree_runtime.interact_with_stair("tree_test_player")
+        _check(bool(tree_exit.get("ok", false)) and tree_runtime.get_current_floor() == 0, "The same stair must return the player from the Lower Canopy to the regional surface")
+        _check(is_equal_approx(tree_actor.global_position.y, 0.1), "Returning outside must restore the player actor to surface height")
+
     var simulation = SIMULATION.new()
     root.add_child(simulation)
     var loaded: Dictionary = LOCATION_LOADER.load_multistory_location(root, "kragmoor", simulation)
