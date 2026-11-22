@@ -100,6 +100,43 @@ def main():
             return None
         return tuple(hit[0]), tuple(hit[1].normalized())
 
+    # Record the starting geometry and compare BVH face normals with the
+    # source mesh's smooth vertex normals. This distinguishes a solver issue
+    # from nearest-face normal/winding problems before any fitting occurs.
+    initial_signed = []
+    initial_distances = []
+    normal_alignment = []
+    for old, point in zip(used, start_world):
+        hit = query(point)
+        if hit is None:
+            continue
+        nearest, face_normal = hit
+        delta = Vector(point) - Vector(nearest)
+        smooth_normal = (body.matrix_world.to_3x3() @ body.data.vertices[old].normal).normalized()
+        initial_signed.append(delta.dot(Vector(face_normal)))
+        initial_distances.append(delta.length)
+        normal_alignment.append(smooth_normal.dot(Vector(face_normal)))
+
+    def metric_summary(values):
+        ordered = sorted(values)
+        if not ordered:
+            return {"min": None, "median": None, "p95": None, "max": None}
+        return {
+            "min": ordered[0],
+            "median": ordered[len(ordered) // 2],
+            "p95": ordered[min(len(ordered) - 1, int(round((len(ordered) - 1) * 0.95)))],
+            "max": ordered[-1],
+        }
+
+    initial_diagnostics = {
+        "signed_clearance_m": metric_summary(initial_signed),
+        "nearest_distance_m": metric_summary(initial_distances),
+        "face_vs_smooth_normal_dot": metric_summary(normal_alignment),
+        "face_normals_opposed_to_smooth": sum(value < 0.0 for value in normal_alignment),
+        "face_normals_oblique_to_smooth": sum(value < 0.5 for value in normal_alignment),
+        "measured_vertices": len(initial_signed),
+    }
+
     fitted, report = fit_clearance(
         start_world, edges, query,
         FitConfig(target_clearance=a.clearance_mm / 1000.0,
@@ -173,6 +210,7 @@ def main():
         "shell_vertices": len(fitted),
         "shell_faces": len(faces),
         "body_modified": False,
+        "initial_diagnostics": initial_diagnostics,
         "solver_report": report,
         "views": ["front.png", "side.png", "threequarter.png"],
     }
