@@ -31,7 +31,7 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(528, 414)) == "badlands", "Greenskin macro terrain must retain faction-specific badlands variation")
 	var preview = REGIONAL_PREVIEW.new()
 	preview._create_materials()
-	for terrain_id in ["grass", "forest", "hills", "mountain", "badlands", "sand", "swamp", "rocky_outcrop", "water", "path"]:
+	for terrain_id in ["grass", "forest", "hills", "mountain", "badlands", "sand", "swamp", "rocky_outcrop", "dirt", "cave_floor", "climbable_wall", "water", "path"]:
 		_check(preview.materials.has(terrain_id), "Regional preview must render the %s terrain instead of leaving a hole" % terrain_id)
 	preview.free()
 	_check(terrain.terrain_for_hex(Vector2i(120, 40)) == terrain.terrain_for_hex(Vector2i(120, 40)), "Terrain must be deterministic")
