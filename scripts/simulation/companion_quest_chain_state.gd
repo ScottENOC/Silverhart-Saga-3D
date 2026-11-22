@@ -157,7 +157,7 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 	if companion_relationships != null:
 		var relationship_changes: Dictionary = effect.get("relationship", {})
 		if not relationship_changes.is_empty():
-			companion_relationships.adjust(companion_id, relationship_changes, reason)
+			companion_relationships.record_event(companion_id, "quest_chain:" + chapter_id + ":relationship", relationship_changes, reason)
 		var affinity_changes: Dictionary = effect.get("affinity", {})
 		var normalized_affinity: Dictionary = {}
 		for axis_value in affinity_changes:
@@ -166,7 +166,7 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 				"romanticBond": normalized_affinity["romantic_bond"] = affinity_changes[axis_value]
 				"friendship", "attraction": normalized_affinity[axis] = affinity_changes[axis_value]
 		if not normalized_affinity.is_empty():
-			companion_relationships.adjust(companion_id, normalized_affinity, reason)
+			companion_relationships.record_event(companion_id, "quest_chain:" + chapter_id + ":affinity", normalized_affinity, reason)
 
 	var arc_state: Dictionary = arc_states.get(companion_id, {})
 	for trait_value in effect.get("arc", {}).keys():
