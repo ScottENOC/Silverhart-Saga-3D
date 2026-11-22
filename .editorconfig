@@ -5,8 +5,9 @@ charset = utf-8
 end_of_line = lf
 insert_final_newline = true
 
+# Existing GDScript files use both tabs and spaces. Keep indentation consistent
+# within each file; the CI checker rejects mixed indentation in a script.
 [*.gd]
-indent_style = space
 indent_size = 4
 
 [*.tscn]
