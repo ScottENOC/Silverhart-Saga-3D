@@ -137,6 +137,7 @@ var _weights_by_region: Dictionary = {}
 var _mirror_map_cache: Dictionary = {}
 var _point_cloud: MultiMeshInstance3D
 var _region_option: OptionButton
+var _progress_label: Label
 var _partition_mode_check: CheckButton
 var _partition_region_option: OptionButton
 var _partition_assignments := PackedInt32Array()
@@ -308,6 +309,15 @@ func _build_interface() -> void:
     _region_option.select(1)
     _region_option.item_selected.connect(_on_region_selected)
     column.add_child(_region_option)
+
+    _progress_label = Label.new()
+    _progress_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+    _progress_label.text = "Mask authoring progress: loading…"
+    column.add_child(_progress_label)
+    var next_region_button := Button.new()
+    next_region_button.text = "Next region without weights"
+    next_region_button.pressed.connect(_select_next_region_without_weights)
+    column.add_child(next_region_button)
 
     _add_caption(column, "Brush radius (metres)")
     _radius_spin = SpinBox.new()
@@ -924,6 +934,7 @@ func _position_cell(position: Vector3, cell_size: float) -> Vector3i:
 
 
 func _rebuild_markers() -> void:
+    _update_region_progress()
     if _selected_descriptor < 0 or _selected_descriptor >= _descriptors.size():
         _point_cloud.multimesh.instance_count = 0
         return
@@ -969,6 +980,52 @@ func _rebuild_markers() -> void:
         multi.set_instance_transform(marker_index, Transform3D(Basis().scaled(Vector3.ONE * scale), position))
         multi.set_instance_color(marker_index, Color(0.05 + 0.1 * weight, 0.35 + 0.55 * weight, 1.0, 1.0))
         marker_index += 1
+
+
+func _update_region_progress() -> void:
+    if not is_instance_valid(_progress_label):
+        return
+    var total_regions := 0
+    var regions_with_weights := 0
+    var selected_vertex_count := 0
+    for group in REGION_GROUPS:
+        for region_variant in group["ids"]:
+            var region_id := String(region_variant)
+            total_regions += 1
+            var values: PackedFloat32Array = _weights_by_region.get(region_id, PackedFloat32Array())
+            var region_vertex_count := 0
+            for weight in values:
+                if weight > 0.015:
+                    region_vertex_count += 1
+            if region_vertex_count > 0:
+                regions_with_weights += 1
+            if region_id == _selected_region:
+                selected_vertex_count = region_vertex_count
+    _progress_label.text = "Mask authoring: %d / %d channels contain weights\nSelected: %s — %d vertices\nA non-empty channel is not yet anatomically reviewed or approved." % [
+        regions_with_weights, total_regions, _selected_region, selected_vertex_count
+    ]
+
+
+func _select_next_region_without_weights() -> void:
+    for group in REGION_GROUPS:
+        for region_variant in group["ids"]:
+            var region_id := String(region_variant)
+            var values: PackedFloat32Array = _weights_by_region.get(region_id, PackedFloat32Array())
+            var has_weights := false
+            for weight in values:
+                if weight > 0.015:
+                    has_weights = true
+                    break
+            if has_weights:
+                continue
+            for option_index in range(_region_option.get_item_count()):
+                if String(_region_option.get_item_metadata(option_index)) != region_id:
+                    continue
+                _region_option.select(option_index)
+                _on_region_selected(option_index)
+                _set_status("Next region without authored weights: " + region_id)
+                return
+    _set_status("Every listed region channel currently contains weights. Visual anatomical review is still required.")
 
 
 func _clear_selected_region() -> void:
@@ -1052,6 +1109,7 @@ func _save_mask() -> void:
     _weights_by_region = nonempty
     descriptor["weights"] = _weights_by_region
     _set_status("Saved and validated %s (%d semantic regions)" % [path, nonempty.size()])
+    _update_region_progress()
 
 
 func _save_primary_partition() -> void:
