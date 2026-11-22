@@ -212,10 +212,10 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	var city_towers := 0
 	for prop in props:
 		var prop_id := String(prop.get("id", ""))
-		if prop_id.begins_with("silverhart_city_wall_"):
-			city_wall_cells += 1
-		elif prop_id.begins_with("silverhart_city_wall_watchtower_"):
+		if prop_id.begins_with("silverhart_city_wall_watchtower_"):
 			city_towers += 1
+		elif prop_id.begins_with("silverhart_city_wall_"):
+			city_wall_cells += 1
 	_check(city_wall_cells == 357, "Outer city wall must preserve all 360 radius-60 cells except the three-cell south gate")
 	_check(city_towers == 2, "Outer city wall must include both source gate watchtowers")
 	_check(not _find_record(props, "silverhart_city_gate_arch").is_empty(), "Outer city gate arch must be presented")
