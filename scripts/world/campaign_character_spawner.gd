@@ -18,7 +18,8 @@ static func spawn_character(
     is_player: bool = false,
     ara_model_id: String = "",
     npc_profile: Dictionary = {},
-    ambient_role: String = ""
+    ambient_role: String = "",
+    occupy_hex: bool = true
 ) -> Node3D:
     if simulation == null or parent == null:
         push_error("Cannot spawn campaign character without a simulation and parent node.")
@@ -35,7 +36,7 @@ static func spawn_character(
         push_error("Campaign character factory failed to create state for '%s'." % character_id)
         return null
     state.time_points = state.max_time_points
-    simulation.register_character(state)
+    simulation.register_character(state, occupy_hex)
 
     var actor := CampaignCharacterActorFactory.create_actor(
         state,

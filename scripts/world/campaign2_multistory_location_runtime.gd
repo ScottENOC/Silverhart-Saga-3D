@@ -5,10 +5,13 @@ extends Node3D
 ## built relative to that anchor while simulation cells retain global axial IDs.
 
 const FLOOR_MAP_BUILDER = preload("res://scripts/world/campaign2_multistory_floor_map_builder.gd")
+const CHARACTER_SPAWNER = preload("res://scripts/world/campaign_character_spawner.gd")
+const CHARACTER_ACTOR_FACTORY = preload("res://scripts/presentation/campaign_character_actor_factory.gd")
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
 const FLOOR_HEIGHT: float = 3.2
 
 signal floor_changed(location_id: String, previous_floor: int, current_floor: int, stair_position: Vector2i)
+signal npc_interaction_requested(character_id: String)
 
 var definition: Dictionary = {}
 var simulation: WorldSimulation
@@ -16,6 +19,7 @@ var location_state: Campaign2MultiStoryLocationState
 var floor_groups: Dictionary = {}
 var floor_hexes: Dictionary = {}
 var floor_maps: Dictionary = {}
+var actor_by_id: Dictionary = {}
 var character_actor_nodes: Dictionary = {}
 var _active_floor_cells: Array[Vector2i] = []
 var _previous_map_cells: Dictionary = {}
@@ -55,6 +59,31 @@ func _exit_tree() -> void:
 
 func get_current_floor() -> int:
 	return location_state.current_floor if location_state != null else 0
+
+func get_actor_by_id(character_id: String) -> Node3D:
+	return actor_by_id.get(character_id) as Node3D
+
+func get_npc_interaction_context(character_id: String) -> Dictionary:
+	if simulation == null:
+		return {}
+	var state := simulation.get_character(character_id)
+	var actor := get_actor_by_id(character_id)
+	if state == null or actor == null or not is_instance_valid(actor):
+		return {}
+	return {
+		"character_id": character_id,
+		"display_name": state.display_name,
+		"dialogue_id": String(actor.get_meta("dialogue_id", "")),
+		"faction_id": String(actor.get_meta("faction_id", "")),
+		"role": String(actor.get_meta("campaign2_role", "")),
+		"floor": int(actor.get_meta("campaign2_floor", 0))
+	}
+
+func request_npc_interaction(character_id: String) -> bool:
+	if get_npc_interaction_context(character_id).is_empty():
+		return false
+	npc_interaction_requested.emit(character_id)
+	return true
 
 func get_floor_tile_count(floor_number: int) -> int:
 	var cells: Array = floor_hexes.get(floor_number, [])
@@ -211,6 +240,93 @@ func _build_floor_presentation(floor_definition: Dictionary, anchor: Vector2i) -
 		wall.rotation.y = PI / 6.0
 		group.add_child(wall)
 	_present_floor_objects(group, build_result.get("tile_objects", []), anchor)
+	_spawn_floor_actors(build_result.get("actors", []), group, anchor, floor_number)
+
+func _sync_floor_character_occupancy(active_floor: int) -> void:
+	if simulation == null:
+		return
+	for floor_variant in definition.get("floors", []):
+		if not floor_variant is Dictionary:
+			continue
+		var floor_definition: Dictionary = floor_variant
+		var floor_number := int(floor_definition.get("floor", 0))
+		for actor_variant in floor_definition.get("actors", []):
+			if not actor_variant is Dictionary:
+				continue
+			var actor_definition: Dictionary = actor_variant
+			var character_id := String(actor_definition.get("id", ""))
+			if simulation.get_character(character_id) == null:
+				continue
+			if not simulation.set_character_occupancy(character_id, floor_number == active_floor):
+				push_warning("Could not activate spatial occupancy for %s on Kragmoor floor %d." % [character_id, active_floor])
+
+func _spawn_floor_actors(actor_definitions: Array, floor_group: Node3D, anchor: Vector2i, floor_number: int) -> void:
+	if simulation == null:
+		return
+	for actor_variant in actor_definitions:
+		if not actor_variant is Dictionary:
+			continue
+		var actor_definition: Dictionary = actor_variant
+		var character_id := String(actor_definition.get("id", "")).strip_edges()
+		var display_name := String(actor_definition.get("name", character_id))
+		var npc_profile: Dictionary = actor_definition.get("npc_profile", {})
+		if character_id.is_empty() or npc_profile.is_empty():
+			push_warning("Skipping multi-story NPC with missing ID or authored profile: %s" % actor_definition)
+			continue
+		var position_data: Dictionary = actor_definition.get("position", {})
+		var spawn_hex := Vector2i(int(position_data.get("q", 0)), int(position_data.get("r", 0)))
+		var actor_position := HexGrid.axial_to_world(spawn_hex - anchor, HEX_RADIUS, 0.12)
+		var actor := actor_by_id.get(character_id) as Node3D
+		if actor != null and is_instance_valid(actor):
+			if actor.get_parent() != floor_group:
+				actor.reparent(floor_group)
+			actor.position = actor_position
+			continue
+		actor_by_id.erase(character_id)
+		var existing_state := simulation.get_character(character_id)
+		if existing_state != null:
+			simulation.set_character_occupancy(character_id, floor_number == location_state.current_floor)
+			actor = CHARACTER_ACTOR_FACTORY.create_actor(
+				existing_state,
+				actor_position,
+				false,
+				{},
+				npc_profile,
+				"",
+				String(actor_definition.get("role", "villager"))
+			)
+			if actor != null:
+				floor_group.add_child(actor)
+				actor_by_id[character_id] = actor
+		else:
+			var starting_loadouts := {
+				character_id: actor_definition.get("starting_equipment", [])
+			}
+			actor = CHARACTER_SPAWNER.spawn_character(
+				simulation,
+				floor_group,
+				actor_by_id,
+				{},
+				starting_loadouts,
+				character_id,
+				display_name,
+				spawn_hex,
+				actor_position,
+				false,
+				"",
+				npc_profile,
+				String(actor_definition.get("role", "villager")),
+				floor_number == location_state.current_floor
+			)
+		if actor == null:
+			push_error("Could not present Kragmoor NPC %s." % character_id)
+			continue
+		actor.set_meta("dialogue_id", String(actor_definition.get("dialogue_id", "")))
+		actor.set_meta("faction_id", String(actor_definition.get("faction_id", "")))
+		actor.set_meta("campaign2_role", String(actor_definition.get("role", "")))
+		actor.set_meta("campaign2_floor", floor_number)
+		actor.set_meta("title", String(actor_definition.get("title", "")))
+		actor.add_to_group("campaign2_npc")
 
 func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i) -> void:
 	for object_variant in tile_objects:
@@ -299,6 +415,7 @@ func _activate_floor(floor_number: int) -> void:
 			_previous_map_cells[hex] = simulation.map_data.cells.get(hex, null)
 		simulation.map_data.cells[hex] = (active_map.cells[hex] as Dictionary).duplicate(true)
 		_active_floor_cells.append(hex)
+	_sync_floor_character_occupancy(floor_number)
 
 func _restore_active_map_cells() -> void:
 	if simulation == null:

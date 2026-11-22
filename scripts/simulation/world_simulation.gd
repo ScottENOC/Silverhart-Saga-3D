@@ -139,23 +139,25 @@ func advance_world_seconds(delta_seconds: float) -> int:
             return 0
     return clock.advance_world_seconds(delta_seconds)
 
-func register_character(state: CharacterState) -> void:
+func register_character(state: CharacterState, occupy_hex: bool = true) -> void:
     if state.id.is_empty():
         push_error("Character IDs must have stable, non-empty IDs.")
         return
     if characters.has(state.id):
         push_error("Duplicate character ID: %s" % state.id)
         return
-    if occupied_hexes.has(state.axial):
+    if occupy_hex and occupied_hexes.has(state.axial):
         push_error("Cannot register %s: hex %s is already occupied." % [state.id, state.axial])
         return
+    state.occupies_world_hex = occupy_hex
     state.sync_skill_effects()
     # A combatant who enters an encounter after it has started joins with a
     # full turn available, matching the campaign's intended encounter rule.
     if is_in_combat and state.side != "neutral" and not state.combat_dormant:
         state.time_points = ActionEconomy.COMBAT_TURN_READY_TP
     characters[state.id] = state
-    occupied_hexes[state.axial] = state.id
+    if occupy_hex:
+        occupied_hexes[state.axial] = state.id
     if state.id == player_character_id or state.side == "player":
         if not party_member_ids.has(state.id):
             party_member_ids.append(state.id)
@@ -188,7 +190,7 @@ func restore_character_states(states: Array[CharacterState]) -> bool:
             if rider == null or rider.mounted_animal_id != state.id:
                 return false
         # A mounted rider shares the mount's hex and must not reserve it twice.
-        if not state.mounted_animal_id.is_empty():
+        if not state.mounted_animal_id.is_empty() or not state.occupies_world_hex:
             continue
         if rebuilt_occupancy.has(state.axial):
             return false
@@ -217,7 +219,7 @@ func unregister_character(character_id: String) -> bool:
         return false
     _detach_character_lifecycle(state)
     characters.erase(character_id)
-    if String(occupied_hexes.get(state.axial, "")) == character_id:
+    if state.occupies_world_hex and String(occupied_hexes.get(state.axial, "")) == character_id:
         occupied_hexes.erase(state.axial)
     party_member_ids.erase(character_id)
     return true
@@ -486,10 +488,29 @@ func reset_transient_combat_state() -> void:
 func get_character(character_id: String) -> CharacterState:
     return characters.get(character_id) as CharacterState
 
+## Toggle spatial occupancy without removing a character's persistent state.
+## Multi-storey locations keep residents on inactive floors registered/saved,
+## but exclude them from the active floor's pathfinding and collision checks.
+func set_character_occupancy(character_id: String, occupies_hex: bool) -> bool:
+    var state := get_character(character_id)
+    if state == null:
+        return false
+    var current_owner := String(occupied_hexes.get(state.axial, ""))
+    if occupies_hex:
+        if not current_owner.is_empty() and current_owner != character_id:
+            return false
+        occupied_hexes[state.axial] = character_id
+        state.occupies_world_hex = true
+        return true
+    if current_owner == character_id:
+        occupied_hexes.erase(state.axial)
+    state.occupies_world_hex = false
+    return true
+
 ## Move a character between connected building floors without spending movement TP.
 func relocate_character(character_id: String, destination: Vector2i) -> bool:
     var state := get_character(character_id)
-    if state == null or not map_data.is_walkable(destination) or occupied_hexes.has(destination):
+    if state == null or not state.occupies_world_hex or not map_data.is_walkable(destination) or occupied_hexes.has(destination):
         return false
     var origin := state.axial
     if origin == destination:
