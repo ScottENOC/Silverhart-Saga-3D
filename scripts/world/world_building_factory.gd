@@ -62,6 +62,13 @@ const ARCHETYPES := {
 		"door_colour": "#382719", "roof_colour": "#48443a",
 		"glass_colour": "#52717a", "roof_style": "gable"
 	},
+	"gate_hall": {
+		"width": 20.0, "depth": 16.0, "wall_height": 5.0, "roof_rise": 0.0,
+		"foundation_colour": "#4c5051", "floor_colour": "#35393a",
+		"wall_colour": "#777d80", "timber_colour": "#493d32",
+		"door_colour": "#292b2c", "roof_colour": "#3c4144",
+		"glass_colour": "#52717a", "roof_style": "none"
+	},
 	"mine_entrance": {
 		"width": 15.0, "depth": 13.0, "wall_height": 3.2, "roof_rise": 1.6,
 		"foundation_colour": "#555b5c", "floor_colour": "#343638",
@@ -86,7 +93,8 @@ const KIND_TO_ARCHETYPE := {
 	"inn": "inn",
 	"guardhouse": "guardhouse",
 	"smithy": "smithy",
-	"mine_entrance": "mine_entrance"
+	"mine_entrance": "mine_entrance",
+	"dwarven_gate_hall": "gate_hall"
 }
 
 ## Returns null for an invalid/unsupported definition instead of silently

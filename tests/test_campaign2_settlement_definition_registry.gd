@@ -1,6 +1,7 @@
 extends SceneTree
 
 const REGISTRY = preload("res://scripts/world/campaign2_settlement_definition_registry.gd")
+const BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
 
 func _initialize() -> void:
 	_test_catalogue_loads_both_source_formats()
@@ -18,13 +19,18 @@ var failures := 0
 func _test_catalogue_loads_both_source_formats() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Unified settlement catalogue should validate: %s" % str(registry.validation_errors))
-	_check(registry.settlement_ids() == ["hollowmere", "millbrook", "emberlode", "reddale", "old_mac_farmstead"], "Catalogue should load all five canonical settlements in deterministic priority order")
+	_check(registry.settlement_ids() == ["hollowmere", "millbrook", "emberlode", "reddale", "old_mac_farmstead", "kragmoor"], "Catalogue should load all six canonical settlements in deterministic priority order")
 	var hollowmere: Dictionary = registry.get_definition("hollowmere")
 	var millbrook: Dictionary = registry.get_definition("millbrook")
 	_check(not hollowmere.is_empty() and not millbrook.is_empty(), "Both canonical definitions should be retrievable")
 	_check(hollowmere.get("layout", {}).get("buildings", []).size() == 7, "Hollowmere canonical definition should include all buildings")
 	_check(millbrook.get("layout", {}).get("buildings", []).size() == 1, "Millbrook canonical definition should include its authored house")
 	_check(millbrook.get("placements", {}).get("characters", []).size() == 2, "Millbrook canonical definition should expose placements only")
+	var kragmoor: Dictionary = registry.get_definition("kragmoor")
+	_check(kragmoor.get("layout", {}).get("buildings", []).size() == 1, "Kragmoor should expose its authored Gate Hall")
+	_check(kragmoor.get("interiors", []).size() == 1, "Kragmoor should preserve the Gate Hall interior and stair metadata")
+	_check(BUILDING_FACTORY.supports_definition(kragmoor.get("layout", {}).get("buildings", [])[0]), "Kragmoor Gate Hall should resolve to a supported reusable building archetype")
+	_check(int(kragmoor.get("layout", {}).get("buildings", [])[0].get("center", {}).get("q", 0)) == 908 and int(kragmoor.get("layout", {}).get("buildings", [])[0].get("center", {}).get("r", 0)) == -608, "Kragmoor Gate Hall must retain the source axial centre")
 
 func _test_resolution_uses_explicit_origin_and_bounds() -> void:
 	var registry = REGISTRY.new()
@@ -34,6 +40,7 @@ func _test_resolution_uses_explicit_origin_and_bounds() -> void:
 	var millbrook: Dictionary = registry.resolve(Vector2i(1, -366))
 	_check(millbrook.get("id", "") == "millbrook", "Millbrook authored footprint should resolve")
 	_check(millbrook.get("local_hex", Vector2i.ZERO) == Vector2i(1, -366), "Millbrook origin transform must preserve existing coordinates")
+	_check(registry.resolve(Vector2i(908, -608)).get("id", "") == "kragmoor", "Kragmoor Gate Hall footprint should resolve from its source coordinate")
 	_check(registry.resolve(Vector2i(500, 500)).is_empty(), "Hexes outside all settlement bounds must not resolve")
 
 func _test_invalid_catalogue_is_atomic() -> void:
