@@ -31,6 +31,15 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(528, 24)) == "badlands", "Greenskin macro terrain must retain faction-specific badlands variation")
 	var preview = REGIONAL_PREVIEW.new()
 	preview._create_materials()
+	preview.terrain_data = terrain
+	preview.ecology_simulation = WorldSimulation.new()
+	preview._populate_chunk_gameplay_cells(Vector2i(0, 1))
+	_check(preview.ecology_simulation.map_data.is_walkable(Vector2i(8, 24)), "Regional streamed chunks must register authored roads in the shared gameplay map")
+	_check(preview.ecology_simulation.map_data.elevation_at(Vector2i(8, 24)) == terrain.elevation_for_hex(Vector2i(8, 24)), "Regional gameplay cells must retain source terrain elevation")
+	preview._populate_chunk_gameplay_cells(Vector2i(4, -2))
+	_check(preview.ecology_simulation.map_data.has_cell(Vector2i(100, -27)), "Regional streamed chunks must register local stream cells for movement rules")
+	_check(not preview.ecology_simulation.map_data.is_walkable(Vector2i(100, -27)), "Regional water cells must block player movement")
+	preview.ecology_simulation.free()
 	for terrain_id in ["grass", "forest", "hills", "mountain", "badlands", "sand", "swamp", "rocky_outcrop", "dirt", "wood_floor", "stone_floor", "cave_floor", "climbable_wall", "keep_wall", "water", "path"]:
 		_check(preview.materials.has(terrain_id), "Regional preview must render the %s terrain instead of leaving a hole" % terrain_id)
 	preview.free()
