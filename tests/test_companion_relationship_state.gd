@@ -92,6 +92,12 @@ func _test_wren_source_events() -> void:
 	_check(float(betrayal.state.get("approval", 0.0)) == 20.0)
 	_check(float(betrayal.state.get("trust", 0.0)) == 0.0)
 	_check(float(betrayal.state.get("friendship", 0.0)) == 30.0)
+	var millbrook := relationships.apply_wren_authored_event("parents_search_reached_millbrook")
+	_check(float(millbrook.state.get("approval", 0.0)) == 65.0)
+	_check(float(millbrook.state.get("trust", 0.0)) == 43.0)
+	var lichdom := relationships.apply_wren_authored_event("player_became_lich")
+	_check(float(lichdom.state.get("approval", 0.0)) == 15.0)
+	_check(float(lichdom.state.get("trust", 0.0)) == 0.0)
 	var unknown := relationships.apply_wren_authored_event("not_a_real_event")
 	_check(String(unknown.get("reason", "")) == "unknown_wren_event")
 
@@ -103,8 +109,13 @@ func _test_relationship_progression_and_agreements() -> void:
 	_check(float(relationships.snapshot("wren_talbot").get("familiarity", 0.0)) == 60.0, "Unique personal dialogue familiarity is capped at 60")
 	var repeated_dialogue := relationships.note_personal_dialogue("wren_talbot", "topic_59")
 	_check(not bool(repeated_dialogue.get("changed", true)))
-	for day in range(60):
-		relationships.note_shared_party_day("mirabel_quill", "day_" + str(day))
+	var first_day := relationships.tick_shared_familiarity("mirabel_quill", 10)
+	_check(not bool(first_day.get("changed", true)), "The first shared day establishes a baseline")
+	var elapsed_days := relationships.tick_shared_familiarity("mirabel_quill", 20)
+	_check(float(elapsed_days.state.get("familiarity", 0.0)) == 20.0, "Elapsed shared days add one familiarity per day")
+	var repeated_day := relationships.tick_shared_familiarity("mirabel_quill", 20)
+	_check(not bool(repeated_day.get("changed", true)), "Repeated world-day ticks do not duplicate familiarity")
+	relationships.tick_shared_familiarity("mirabel_quill", 100)
 	_check(float(relationships.snapshot("mirabel_quill").get("familiarity", 0.0)) == 50.0, "Shared-party familiarity is capped at 50")
 
 	relationships.commit_relationship("wren_talbot", "committed", 100.0)
