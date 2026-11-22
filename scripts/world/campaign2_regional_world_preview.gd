@@ -191,7 +191,7 @@ func _build_interface() -> void:
 	help.offset_right = -245.0
 	help.offset_top = -52.0
 	help.offset_bottom = -16.0
-	help.text = "Click: travel   •   QWE / ASD: move   •   E: use nearby stair / enter or exit   •   Middle-drag: orbit   •   Right-drag: pan   •   Wheel: zoom   •   Esc: macro map"
+	help.text = "Click: travel   •   QWE / ASD: move   •   F: use nearby stair / enter or exit   •   Middle-drag: orbit   •   Right-drag: pan   •   Wheel: zoom   •   Esc: macro map"
 	help.add_theme_font_size_override("font_size", 12)
 	help.add_theme_color_override("font_color", Color("#d2d8d9"))
 	root.add_child(help)
@@ -514,7 +514,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if key.keycode == KEY_ESCAPE:
 				get_tree().change_scene_to_file(MACRO_SCENE)
 				get_viewport().set_input_as_handled()
-			elif key.keycode == KEY_E and _interact_with_regional_location():
+			elif key.keycode == KEY_F and _interact_with_regional_location():
 				get_viewport().set_input_as_handled()
 			else:
 				var movement_key := key.keycode
