@@ -50,8 +50,10 @@ static func register_layout(
         simulation.building_registry.definitions.erase(building_id)
         return false
 
-    var registered_door := simulation.building_registry.get_door(door_id)
-    simulation.map_data.set_walkable(door_hex, registered_door.is_passable())
+    var door_cell: Dictionary = simulation.map_data.cells[door_hex]
+    door_cell["door_base_walkable"] = bool(door_cell.get("walkable", false))
+    simulation.map_data.cells[door_hex] = door_cell
+    simulation.sync_door_map_state(door_id)
 
     for cell in floor_cells:
         simulation.map_data.add_cell(

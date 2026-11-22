@@ -39,6 +39,27 @@ func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
     turn_scheduler.turn_started.connect(_on_combat_turn_started)
     campaign_journal.journal_event.connect(_on_campaign_journal_event)
+    building_registry.door_state_changed.connect(_on_door_state_changed)
+
+func _on_door_state_changed(door_id: String) -> void:
+    sync_door_map_state(door_id)
+
+## Apply authoritative door state to the shared gameplay cell. The underlying
+## walkability is captured when the authored layout registers the door, so
+## opening it restores the terrain's original movement rule rather than
+## blindly making every door hex walkable.
+func sync_door_map_state(door_id: String) -> bool:
+    var door := building_registry.get_door(door_id)
+    if door == null or not map_data.has_cell(door.hex):
+        return false
+    var cell: Dictionary = map_data.cells[door.hex]
+    var base_walkable := bool(cell.get("door_base_walkable", cell.get("walkable", false)))
+    cell["door_base_walkable"] = base_walkable
+    cell["walkable"] = base_walkable and door.is_passable()
+    cell["blocks_vision"] = not door.is_passable()
+    cell["vision_block_height"] = 2.2
+    map_data.cells[door.hex] = cell
+    return true
 
 func _on_campaign_journal_event(event: Dictionary) -> void:
     var event_type := String(event.get("event_type", "campaign_event"))
@@ -1738,9 +1759,8 @@ func load_dict(data: Dictionary) -> void:
     clock.load_dict(data.get("world_clock", {}))
     wilderness_resources.load_dict(data.get("wilderness_resources", {}))
     building_registry.load_dict(data.get("buildings", {}))
-    for door_value in building_registry.doors.values():
-        var building_door := door_value as BuildingDoorState
-        map_data.set_walkable(building_door.hex, building_door.is_passable())
+    for door_id_value in building_registry.doors.keys():
+        sync_door_map_state(String(door_id_value))
     is_in_combat = bool(data.get("is_in_combat", false))
     var saved_characters: Dictionary = data.get("characters", {})
     for character_id in saved_characters:
