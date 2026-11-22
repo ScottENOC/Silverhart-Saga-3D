@@ -16,6 +16,7 @@ const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placeme
 const HOLLOWMERE_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 const HOLLOWMERE_TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
 const WORLD_CELL_LOADER_SCRIPT = preload("res://scripts/world/campaign2_world_cell_loader.gd")
+const WORLD_PLAYER_MOVEMENT_CONTROLLER = preload("res://scripts/world/world_player_movement_controller.gd")
 const INTERIOR_LAYOUT_REGISTRAR = preload("res://scripts/world/world_interior_layout_registrar.gd")
 const INTERIOR_LAYOUT_PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
 const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
@@ -72,10 +73,7 @@ var rotate_left_button: Button
 var rotate_right_button: Button
 var tile_mesh: ArrayMesh
 var path_material: StandardMaterial3D
-var active_path: Array[Vector2i] = []
-var path_markers: Array[MeshInstance3D] = []
-var path_step_accumulator: float = 0.0
-const PATH_STEP_INTERVAL: float = 0.22
+var movement_controller: WorldPlayerMovementController
 const INVALID_HEX := Vector2i(2147483647, 2147483647)
 
 var grass_material: StandardMaterial3D
@@ -128,6 +126,10 @@ func _ready() -> void:
 	add_child(spell_vfx)
 	_configure_location_simulation()
 	_present_interior_layout()
+	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new() as WorldPlayerMovementController
+	movement_controller.name = "WorldPlayerMovementController"
+	add_child(movement_controller)
+	movement_controller.configure(simulation, self, tile_mesh, path_material, Callable(self, "_hex_world_position"), active_character_id)
 	_create_wilderness_gatherable_grove()
 	_create_characters()
 	_create_reyna_shelter()
@@ -1861,7 +1863,6 @@ func _on_reaction_resolved(_reactor_id: String, _choice_id: String, _request_id:
 
 func _on_movement_reaction_resolved(_mover_id: String, halted: bool) -> void:
 	if halted:
-		active_path.clear()
 		_clear_path_markers()
 
 func _on_zoom_slider_changed(value: float) -> void:
@@ -1875,11 +1876,12 @@ func _switch_party_member() -> void:
 	var party_ids := simulation.get_party_member_ids()
 	if party_ids.is_empty():
 		return
-	active_path.clear()
 	_clear_path_markers()
 	var current_index := party_ids.find(active_character_id)
 	active_party_index = (current_index + 1) % party_ids.size()
 	active_character_id = party_ids[active_party_index]
+	if movement_controller != null:
+		movement_controller.set_active_character_id(active_character_id)
 	var target: Node3D = actor_by_id.get(active_character_id) as Node3D
 	if target != null:
 		camera_rig.follow_target = target
@@ -1907,13 +1909,8 @@ func _process(delta: float) -> void:
 	if nearby_interaction_refresh >= 0.25:
 		nearby_interaction_refresh = 0.0
 		_refresh_nearby_interactions()
-	if active_path.size() < 2:
-		return
-	path_step_accumulator += delta
-	if path_step_accumulator < PATH_STEP_INTERVAL:
-		return
-	path_step_accumulator = 0.0
-	_advance_path_step()
+	if movement_controller != null:
+		movement_controller.process_movement(delta)
 
 func _gather_at_player() -> void:
 	var player := simulation.get_character("player")
@@ -2034,7 +2031,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_S: relative_step = 3
 			KEY_D: relative_step = 2
 			_: return
-		active_path.clear()
 		_clear_path_markers()
 		_attempt_move(relative_step)
 		get_viewport().set_input_as_handled()
@@ -2062,68 +2058,16 @@ func _screen_position_to_hex(screen_position: Vector2) -> Vector2i:
 	return hex
 
 func _set_move_destination(destination: Vector2i) -> void:
-	var path := simulation.find_path(active_character_id, destination)
-	if path.size() < 2:
-		active_path.clear()
-		_clear_path_markers()
-		return
-	active_path = path
-	path_step_accumulator = PATH_STEP_INTERVAL
-	_show_path_markers(path)
-
-func _advance_path_step() -> void:
-	if simulation.clock.paused or simulation.has_pending_reaction():
-		return
-	if active_path.size() < 2:
-		active_path.clear()
-		_clear_path_markers()
-		return
-	if simulation.is_in_combat:
-		var active_turn := simulation.get_current_turn_character()
-		if active_turn == null or active_turn.id != active_character_id:
-			return
-	var next_hex := active_path[1]
-	var active_state := simulation.get_character(active_character_id)
-	if active_state == null:
-		active_path.clear()
-		_clear_path_markers()
-		return
-	if not simulation.is_in_combat and active_state.time_points < simulation.movement_cost(active_character_id, next_hex):
-		return # Keep the route queued until exploration TP regenerates.
-	if not simulation.try_move_character_step(active_character_id, next_hex):
-		# A changed occupancy or depleted movement budget can invalidate the
-		# remaining route. Re-plan from the character's actual current hex.
-		var destination := active_path[active_path.size() - 1]
-		var replacement_path := simulation.find_path(active_character_id, destination)
-		if replacement_path.size() < 2:
-			active_path.clear()
-			_clear_path_markers()
-			return
-		active_path = replacement_path
-		_show_path_markers(active_path)
-		return
-	active_path.pop_front()
-	_show_path_markers(active_path)
-	if active_path.size() < 2:
-		active_path.clear()
-		_clear_path_markers()
-
-func _show_path_markers(path: Array[Vector2i]) -> void:
-	_clear_path_markers()
-	for i in range(1, path.size()):
-		var marker := MeshInstance3D.new()
-		marker.mesh = tile_mesh
-		marker.material_override = path_material
-		marker.position = _hex_world_position(path[i]) + Vector3(0.0, 0.10, 0.0)
-		marker.scale = Vector3(0.82, 0.25, 0.82)
-		add_child(marker)
-		path_markers.append(marker)
+	if movement_controller != null:
+		movement_controller.set_destination(destination)
 
 func _clear_path_markers() -> void:
-	for marker in path_markers:
-		if is_instance_valid(marker):
-			marker.queue_free()
-	path_markers.clear()
+	if movement_controller != null:
+		movement_controller.clear_path()
+
+func _attempt_move(relative_step: int) -> void:
+	if movement_controller != null:
+		movement_controller.attempt_relative_move(relative_step)
 
 func _rotate_active_character(steps: int) -> void:
 	var state := simulation.get_character(active_character_id)
@@ -2206,7 +2150,6 @@ func _interact_with_tavern_stairs() -> bool:
 	if HexGrid.distance(state.axial, stair_hex) > 1:
 		return false
 	var destination := TAVERN_STAIR_GROUND_HEX if upstairs else TAVERN_STAIR_UPPER_HEX
-	active_path.clear()
 	_clear_path_markers()
 	if not simulation.relocate_character(active_character_id, destination):
 		print("The staircase is blocked.")
