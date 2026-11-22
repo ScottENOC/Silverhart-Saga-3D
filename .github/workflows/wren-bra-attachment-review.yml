@@ -81,11 +81,18 @@ jobs:
           PY
           mkdir -p /tmp/wren-bra-export
           npm run export -- --params /tmp/wren-bra.params.json --detail high --formats glb --out /tmp/wren-bra-export
-          zip_file=$(find /tmp/wren-bra-export -maxdepth 1 -name '*.zip' -print -quit)
-          test -n "$zip_file"
-          entry=$(unzip -Z1 "$zip_file" | grep -E '\.glb$' | head -n 1)
-          test -n "$entry"
-          unzip -p "$zip_file" "$entry" > /tmp/wren-bra-source.glb
+          # Current exporter writes a GLB directly; older versions may emit a ZIP.
+          direct_glb=$(find /tmp/wren-bra-export -maxdepth 1 -name '*.glb' -print -quit)
+          if [ -n "$direct_glb" ]; then
+            cp "$direct_glb" /tmp/wren-bra-source.glb
+          else
+            zip_file=$(find /tmp/wren-bra-export -maxdepth 1 -name '*.zip' -print -quit)
+            test -n "$zip_file"
+            entry=$(unzip -Z1 "$zip_file" | grep -E '\.glb$' | head -n 1)
+            test -n "$entry"
+            unzip -p "$zip_file" "$entry" > /tmp/wren-bra-source.glb
+          fi
+          test -s /tmp/wren-bra-source.glb
           cd "$GITHUB_WORKSPACE"
           mkdir -p /tmp/wren-bra-build
           blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- --input art/characters/ara_runtime/ara_person_body.glb --output /tmp/wren-bra-body.glb --profile female --adult
