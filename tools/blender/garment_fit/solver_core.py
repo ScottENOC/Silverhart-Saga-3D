@@ -190,7 +190,7 @@ def fit_clearance(
         "at_displacement_limit": len(at_limit),
         "surface_query_misses": len(vertices) - len(valid_signed),
     }
-    converged = not below_target and not unresolved["surface_query_misses"]
+    converged = not below_target and not floating and not unresolved["surface_query_misses"]
     report = {
         "status": "PASS" if converged else "FAIL",
         "solver": "iterative_clearance_projection_v1",
