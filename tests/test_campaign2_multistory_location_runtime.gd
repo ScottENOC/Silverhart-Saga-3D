@@ -18,6 +18,26 @@ func _run() -> void:
     _check(runtime.get_floor_tile_count(0) > 0 and runtime.get_floor_tile_count(-5) > 0, "All six source floors must build presentation tiles")
     _check(runtime.is_floor_visible(0) and not runtime.is_floor_visible(-1), "Only the active floor may be visible")
 
+    var expected_npcs := {
+        "dwarf_king": -1,
+        "hall_guard_01": -1,
+        "hall_guard_02": -1,
+        "deepholds_trader": -2,
+        "deepholds_runesmith": -2,
+        "deepholds_foreman": -3
+    }
+    for character_id in expected_npcs:
+        var npc_state := simulation.get_character(character_id)
+        var npc_actor := runtime.get_actor_by_id(character_id)
+        _check(npc_state != null, "Source-authored Kragmoor NPC state must be registered: " + character_id)
+        _check(npc_state != null and npc_state.race == "dwarf", "Kragmoor NPC must retain its source dwarf race: " + character_id)
+        _check(npc_actor != null and is_instance_valid(npc_actor), "Kragmoor NPC must have an Ara presentation actor: " + character_id)
+        _check(npc_actor != null and int(npc_actor.get_meta("campaign2_floor", 999)) == int(expected_npcs[character_id]), "Kragmoor NPC must appear on its source floor: " + character_id)
+        _check(npc_actor != null and String(npc_actor.get_meta("faction_id", "")) == "dwarven_kingdom", "Kragmoor NPC must retain its source faction: " + character_id)
+    var king_state := simulation.get_character("dwarf_king")
+    _check(king_state != null and king_state.class_level_sequence.size() == 2, "King Balrik must retain his two fighter levels")
+    _check(king_state != null and String(king_state.equipment.get("weapon", "")) == "axe" and String(king_state.equipment.get("armor", "")) == "heavy_armor", "King Balrik must retain his source axe and heavy armour loadout")
+
     var player_state := CharacterState.new("test_player", "Test Player", Vector2i(908, -609))
     simulation.register_character(player_state)
     var player_actor := Node3D.new()
