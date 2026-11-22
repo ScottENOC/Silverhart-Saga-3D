@@ -242,6 +242,24 @@ func _build_floor_presentation(floor_definition: Dictionary, anchor: Vector2i) -
 	_present_floor_objects(group, build_result.get("tile_objects", []), anchor)
 	_spawn_floor_actors(build_result.get("actors", []), group, anchor, floor_number)
 
+func _sync_floor_character_occupancy(active_floor: int) -> void:
+	if simulation == null:
+		return
+	for floor_variant in definition.get("floors", []):
+		if not floor_variant is Dictionary:
+			continue
+		var floor_definition: Dictionary = floor_variant
+		var floor_number := int(floor_definition.get("floor", 0))
+		for actor_variant in floor_definition.get("actors", []):
+			if not actor_variant is Dictionary:
+				continue
+			var actor_definition: Dictionary = actor_variant
+			var character_id := String(actor_definition.get("id", ""))
+			if simulation.get_character(character_id) == null:
+				continue
+			if not simulation.set_character_occupancy(character_id, floor_number == active_floor):
+				push_warning("Could not activate spatial occupancy for %s on Kragmoor floor %d." % [character_id, active_floor])
+
 func _spawn_floor_actors(actor_definitions: Array, floor_group: Node3D, anchor: Vector2i, floor_number: int) -> void:
 	if simulation == null:
 		return
@@ -267,6 +285,7 @@ func _spawn_floor_actors(actor_definitions: Array, floor_group: Node3D, anchor: 
 		actor_by_id.erase(character_id)
 		var existing_state := simulation.get_character(character_id)
 		if existing_state != null:
+			simulation.set_character_occupancy(character_id, floor_number == location_state.current_floor)
 			actor = CHARACTER_ACTOR_FACTORY.create_actor(
 				existing_state,
 				actor_position,
@@ -296,7 +315,8 @@ func _spawn_floor_actors(actor_definitions: Array, floor_group: Node3D, anchor: 
 				false,
 				"",
 				npc_profile,
-				String(actor_definition.get("role", "villager"))
+				String(actor_definition.get("role", "villager")),
+				floor_number == location_state.current_floor
 			)
 		if actor == null:
 			push_error("Could not present Kragmoor NPC %s." % character_id)
@@ -395,6 +415,7 @@ func _activate_floor(floor_number: int) -> void:
 			_previous_map_cells[hex] = simulation.map_data.cells.get(hex, null)
 		simulation.map_data.cells[hex] = (active_map.cells[hex] as Dictionary).duplicate(true)
 		_active_floor_cells.append(hex)
+	_sync_floor_character_occupancy(floor_number)
 
 func _restore_active_map_cells() -> void:
 	if simulation == null:
