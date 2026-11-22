@@ -29,6 +29,17 @@ class HollowmereNpcBuilderTests(unittest.TestCase):
             9,
         )
 
+    def test_custom_profile_manifests_are_not_filtered_as_hollowmere(self):
+        custom = {
+            "characters": [
+                {"id": f"tavern_generated_{index:03d}", "role": "background patron"}
+                for index in range(1, 21)
+            ]
+        }
+        custom_path = ROOT / "art" / "characters" / "tavern_npcs" / "profiles.input.json"
+        selected = builder.select_profiles_for_build(custom, custom_path)
+        self.assertEqual(len(selected["characters"]), 20)
+
     def test_current_source_placements_do_not_require_legacy_hex_field(self):
         selected = builder.select_village_cast(self.source)
         for profile in selected["characters"]:
