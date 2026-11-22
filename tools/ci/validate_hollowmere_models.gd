@@ -1,5 +1,5 @@
 extends SceneTree
-## Loads every Ara GLB through Godot's importer and verifies that its rig animations survive import.
+## Loads every Ara GLB in the Hollowmere village cast and verifies imported animation tracks.
 
 func _initialize() -> void:
     call_deferred("_run")
@@ -13,11 +13,15 @@ func _run() -> void:
 
     var expected: Dictionary = {}
     for profile in source.get("characters", []):
+        # The source manifest also records companions whose Ara models are built
+        # by their own character pipelines. They are not part of the village cast.
+        if str(profile.get("role", "")) == "companion":
+            continue
         expected[str(profile.get("id", ""))] = true
 
     var profiles: Array = generated.get("characters", [])
     if expected.size() != 14 or profiles.size() != expected.size() or not expected.has("player_avatar"):
-        _fail("Expected 13 NPCs plus the generated player_avatar Ara profile.")
+        _fail("Expected 13 Hollowmere residents plus the generated player_avatar Ara profile.")
         return
 
     for profile_variant in profiles:
@@ -27,7 +31,7 @@ func _run() -> void:
         var profile: Dictionary = profile_variant
         var character_id := str(profile.get("id", ""))
         if not expected.has(character_id):
-            _fail("Unexpected generated character: " + character_id)
+            _fail("Unexpected generated village character: " + character_id)
             return
         var model_path := "res://art/characters/hollowmere/%s.glb" % character_id
         var packed := load(model_path) as PackedScene
@@ -45,7 +49,7 @@ func _run() -> void:
             return
         instance.free()
 
-    print("Godot imported all 14 Hollowmere Ara models (13 NPCs plus player avatar) with animation tracks.")
+    print("Godot imported all 14 Hollowmere Ara models (13 residents plus player avatar) with animation tracks.")
     quit(0)
 
 func _read_json(path: String) -> Dictionary:
