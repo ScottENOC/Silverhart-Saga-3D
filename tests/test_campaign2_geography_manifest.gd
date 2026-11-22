@@ -65,6 +65,17 @@ func _initialize() -> void:
 	assert(MAP_DATA.world_cell_from_local_hex(Vector2i(1, -366)) == Vector2i(6, 3))
 	assert(MAP_DATA.world_cell_from_local_hex(Vector2i(-256, 22)) == Vector2i(4, 6))
 
+	var terrain_data = preload("res://scripts/world/campaign2_world_terrain_data.gd").new()
+	for location in locations:
+		var visibility := String(location.get("visibility", ""))
+		var should_be_marked := visibility in ["settlement", "outpost", "fort", "stronghold", "capital", "local"]
+		assert(terrain_data.is_location_marker_visible(location) == should_be_marked,
+			"POI map-marker visibility must respect the source visibility field: " + String(location.get("id", "")))
+	assert(not terrain_data.is_location_marker_visible(location_by_id["abandoned_house"]),
+		"Quest locations must not be revealed by permanent world-map labels")
+	assert(not terrain_data.is_location_marker_visible(location_by_id["emberwood_grove"]),
+		"Exploration locations must remain unmarked until discovered")
+
 	var markers: Array = MAP_DATA.strategic_locations()
 	assert(markers.size() == 6, "Strategic marker selection must be manifest-authored")
 	var grid: Array = MAP_DATA.generate_grid()

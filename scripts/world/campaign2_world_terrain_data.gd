@@ -321,3 +321,11 @@ func _inside_strategic_map(cell: Vector2i) -> bool:
 
 static func _hex_key(hex: Vector2i) -> String:
 	return "%d,%d" % [hex.x, hex.y]
+
+
+## Only public destinations receive map-style POI markers. Quest and exploration
+## sites remain discoverable through the world itself rather than being given
+## away by permanent floating labels.
+func is_location_marker_visible(location: Dictionary) -> bool:
+	var visibility := String(location.get("visibility", "")).strip_edges()
+	return visibility in ["settlement", "outpost", "fort", "stronghold", "capital", "local"]
