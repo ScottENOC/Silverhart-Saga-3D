@@ -141,6 +141,7 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 		return {"ok":false,"reason":"companion_decision_unresolved"}
 	var requested_effect: Dictionary = resolutions[requested_resolution]
 	var effect: Dictionary = resolutions[effective_resolution]
+	var reward: Dictionary = requested_effect if requested_resolution == "companion_decides" else effect
 	var decision := journal.record_decision(chapter_id, "resolution", requested_resolution)
 	if not bool(decision.get("ok", false)):
 		return decision
@@ -161,10 +162,10 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 	var companion_id := String(chapter.get("companion_id", ""))
 	var reason := String(effect.get("reason", chapter.get("title", "")))
 	if companion_relationships != null:
-		var relationship_changes: Dictionary = effect.get("relationship", {})
+		var relationship_changes: Dictionary = reward.get("relationship", {})
 		if not relationship_changes.is_empty():
 			companion_relationships.record_event(companion_id, "quest_chain:" + chapter_id + ":relationship", relationship_changes, reason)
-		var affinity_changes: Dictionary = effect.get("affinity", {})
+		var affinity_changes: Dictionary = reward.get("affinity", {})
 		var normalized_affinity: Dictionary = {}
 		for axis_value in affinity_changes:
 			var axis := String(axis_value)
@@ -195,11 +196,11 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 		"line":String(effect.get("line", "The decision is made.")),
 		"companion_decided":requested_resolution == "companion_decides",
 		"xp_reward":int(chapter.get("xp", 0)),
-		"relationship":effect.get("relationship", {}).duplicate(true),
-		"affinity":effect.get("affinity", {}).duplicate(true),
+		"relationship":reward.get("relationship", {}).duplicate(true),
+		"affinity":reward.get("affinity", {}).duplicate(true),
 		"arc_state":arc_state.duplicate(true),
 		"personality_growth":growth.duplicate(true),
-		"requested_choice_reason":String(requested_effect.get("reason", reason))
+		"requested_choice_reason":String(reward.get("reason", reason))
 	}
 
 
