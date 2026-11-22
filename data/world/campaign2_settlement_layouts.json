@@ -2442,7 +2442,8 @@
               "r": -426
             }
           },
-          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace vaultCenter; concealed entry"
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace vaultCenter; concealed entry",
+          "door_enabled": false
         }
       ],
       "paths": [
