@@ -63,6 +63,15 @@ func is_floor_visible(floor_number: int) -> bool:
 	var group := floor_groups.get(floor_number) as Node3D
 	return group != null and group.visible
 
+func has_floor_object(floor_number: int, object_id: String) -> bool:
+	var group := floor_groups.get(floor_number) as Node3D
+	if group == null:
+		return false
+	for child in group.get_children():
+		if child.name == object_id:
+			return true
+	return false
+
 ## Interact with the nearest stair on the active floor. The character may stand
 ## on the stair or one hex away; movement to the stair uses normal occupancy rules.
 func interact_with_stair(character_id: String) -> Dictionary:
@@ -172,42 +181,6 @@ func _build_floor_presentation(floor_definition: Dictionary, anchor: Vector2i) -
 		wall.rotation.y = PI / 6.0
 		group.add_child(wall)
 	_present_floor_objects(group, build_result.get("tile_objects", []), anchor)
-
-func _collect_floor_hexes(floor_definition: Dictionary) -> Array[Vector2i]:
-	var unique: Dictionary = {}
-	for room_variant in floor_definition.get("rooms", []):
-		if not room_variant is Dictionary:
-			continue
-		var room: Dictionary = room_variant
-		var centre_data: Dictionary = room.get("center", {})
-		var centre := Vector2i(int(centre_data.get("q", 0)), int(centre_data.get("r", 0)))
-		var half_width := int(room.get("half_width", 0))
-		var half_height := int(room.get("half_height", 0))
-		for q in range(centre.x - half_width, centre.x + half_width + 1):
-			for r in range(centre.y - half_height, centre.y + half_height + 1):
-				unique[Vector2i(q, r)] = true
-	for corridor_variant in floor_definition.get("corridors", []):
-		if not corridor_variant is Dictionary:
-			continue
-		var corridor: Dictionary = corridor_variant
-		var from_data: Dictionary = corridor.get("from", {})
-		var to_data: Dictionary = corridor.get("to", {})
-		var cursor := Vector2i(int(from_data.get("q", 0)), int(from_data.get("r", 0)))
-		var destination := Vector2i(int(to_data.get("q", 0)), int(to_data.get("r", 0)))
-		unique[cursor] = true
-		while cursor.x != destination.x:
-			cursor.x += 1 if destination.x > cursor.x else -1
-			unique[cursor] = true
-		while cursor.y != destination.y:
-			cursor.y += 1 if destination.y > cursor.y else -1
-			unique[cursor] = true
-	var result: Array[Vector2i] = []
-	for hex in unique:
-		result.append(hex)
-	result.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		return a.x < b.x if a.x != b.x else a.y < b.y
-	)
-	return result
 
 func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i) -> void:
 	for object_variant in tile_objects:
