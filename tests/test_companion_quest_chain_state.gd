@@ -26,11 +26,11 @@ func _check(condition: bool, message: String = "Assertion failed") -> void:
 func _test_authored_chapter_catalogue() -> void:
 	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
 	_check(chains.all_chapters().size() == 9, "All nine authored personal quest chapters are loaded")
-	var mirabel := chains.chapter_for("mirabel_borrowed_voice")
+	var mirabel: Variant = chains.chapter_for("mirabel_borrowed_voice")
 	_check(String(mirabel.get("previous", "")) == "mirabel_unquiet_concordance")
 	_check(String(mirabel.get("actor_id", "")) == "court_wizard_thessaly")
 	_check(String(mirabel.get("reckoning", "")).contains("interpolate"), "Source-authored companion reckoning text is preserved")
-	var reyna := chains.chapter_for("reyna_shared_watch")
+	var reyna: Variant = chains.chapter_for("reyna_shared_watch")
 	_check(String(reyna.get("actor_id", "")) == "commander_hart", "Commander Hart has a stable actor identifier")
 
 
@@ -39,19 +39,19 @@ func _test_chapter_prerequisites_and_flow() -> void:
 	_complete_previous(journal, "aldric_measure_of_oath", 100.0)
 	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
 	chains.register_quest_definitions(journal)
-	var absent := chains.can_start("aldric_weight_of_command", journal, [], 50000.0)
+	var absent: Variant = chains.can_start("aldric_weight_of_command", journal, [], 50000.0)
 	_check(String(absent.get("reason", "")) == "companion_not_in_party")
 	var party_ids: Array[String] = ["ser_aldric_thorne"]
-	var eligibility := chains.can_start("aldric_weight_of_command", journal, party_ids, 50000.0)
+	var eligibility: Variant = chains.can_start("aldric_weight_of_command", journal, party_ids, 50000.0)
 	_check(bool(eligibility.get("ok", false)))
 	var companion_relationships := CompanionRelationshipState.new()
-	var started := chains.start("aldric_weight_of_command", journal, party_ids, companion_relationships, 50000.0)
+	var started: Variant = chains.start("aldric_weight_of_command", journal, party_ids, companion_relationships, 50000.0)
 	_check(bool(started.get("ok", false)))
 	_check(float(companion_relationships.snapshot("ser_aldric_thorne").get("familiarity", 0.0)) == 13.0, "Opening a personal chapter records its one-time companion conversation")
 	_check(String(journal.quest_state("aldric_weight_of_command").get("chapter_stage", "")) == "consult")
-	var wrong_actor := chains.consult("aldric_weight_of_command", journal, "court_wizard_thessaly", 50100.0)
+	var wrong_actor: Variant = chains.consult("aldric_weight_of_command", journal, "court_wizard_thessaly", 50100.0)
 	_check(String(wrong_actor.get("reason", "")) == "wrong_supporting_character")
-	var consulted := chains.consult("aldric_weight_of_command", journal, "adelram", 50200.0)
+	var consulted: Variant = chains.consult("aldric_weight_of_command", journal, "adelram", 50200.0)
 	_check(bool(consulted.get("ok", false)))
 	_check(String(consulted.get("prompt", "")).contains("Red Ford"))
 	_check(bool(journal.quest_state("aldric_weight_of_command").get("consulted", false)))
@@ -68,7 +68,7 @@ func _test_companion_decision_and_relationship_effects() -> void:
 	chains.start("aldric_weight_of_command", journal, party_ids, relationships, 50000.0)
 	chains.consult("aldric_weight_of_command", journal, "adelram", 50100.0)
 	chains.arc_states["ser_aldric_thorne"] = {"sharedBurden":10.0}
-	var result := chains.resolve("aldric_weight_of_command", "companion_decides", journal, relationships, 60000.0)
+	var result: Variant = chains.resolve("aldric_weight_of_command", "companion_decides", journal, relationships, 60000.0)
 	_check(bool(result.get("ok", false)))
 	_check(String(result.get("effective_resolution", "")) == "shared_command")
 	_check(bool(result.get("companion_decided", false)))
@@ -90,9 +90,9 @@ func _test_chapter_three_cooldown() -> void:
 	var chains: Variant = load("res://scripts/simulation/companion_quest_chain_state.gd").new()
 	chains.register_quest_definitions(journal)
 	var party_ids: Array[String] = ["ser_aldric_thorne"]
-	var too_soon := chains.can_start("aldric_weight_of_command", journal, party_ids, 2000.0)
+	var too_soon: Variant = chains.can_start("aldric_weight_of_command", journal, party_ids, 2000.0)
 	_check(String(too_soon.get("reason", "")) == "chapter_cooldown")
-	var ready := chains.can_start("aldric_weight_of_command", journal, party_ids, 44200.0)
+	var ready: Variant = chains.can_start("aldric_weight_of_command", journal, party_ids, 44200.0)
 	_check(bool(ready.get("ok", false)), "The chapter unlocks after the source-authored 12-hour cooldown")
 
 
