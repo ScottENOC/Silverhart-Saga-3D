@@ -350,6 +350,90 @@ func set_agreement(companion_id: String, updates: Dictionary, world_seconds: flo
 	return {"ok": true, "agreement": agreement.duplicate(true)}
 
 
+func note_personal_dialogue(companion_id: String, dialogue_key: String) -> Dictionary:
+	var state := ensure(companion_id)
+	if state.is_empty():
+		return {"ok": false, "reason": "unknown_companion"}
+	if float(state.get("familiarity", 0.0)) >= 60.0:
+		return {"ok": true, "changed": false, "state": snapshot(companion_id)}
+	return note_conversation(companion_id, "personal_dialogue:" + dialogue_key, minf(2.0, 60.0 - float(state.get("familiarity", 0.0))))
+
+
+func note_shared_party_day(companion_id: String, day_key: String) -> Dictionary:
+	var state := ensure(companion_id)
+	if state.is_empty():
+		return {"ok": false, "reason": "unknown_companion"}
+	if float(state.get("familiarity", 0.0)) >= 50.0:
+		return {"ok": true, "changed": false, "state": snapshot(companion_id)}
+	return note_conversation(companion_id, "shared_party_day:" + day_key, minf(1.0, 50.0 - float(state.get("familiarity", 0.0))))
+
+
+func commit_relationship(companion_id: String, relationship_state: String = "committed", world_seconds: float = 0.0) -> Dictionary:
+	var profile: Dictionary = PROFILES.get(companion_id, {})
+	if profile.is_empty():
+		return {"ok": false, "reason": "unknown_companion"}
+	var style: Dictionary = profile.get("relationship_style", {})
+	return set_agreement(companion_id, {
+		"state": relationship_state,
+		"romantic_exclusivity": style.get("romantic_exclusivity", "unspoken"),
+		"sexual_exclusivity": style.get("sexual_exclusivity", "unspoken"),
+		"group_relationships": bool(style.get("group_relationships", false))
+	}, world_seconds)
+
+
+func record_outside_connection(companion_id: String, other_name: String, connection_kind: String, disclosed: bool = true, world_seconds: float = 0.0, wren_security: float = 0.0) -> Dictionary:
+	var state := ensure(companion_id)
+	if state.is_empty():
+		return {"ok": false, "reason": "unknown_companion"}
+	var agreement: Dictionary = state.get("agreement", {})
+	var active := ["dating", "committed", "strained"].has(String(agreement.get("state", "none")))
+	var romantic_violation := active and connection_kind == "romance" and String(agreement.get("romantic_exclusivity", "unspoken")) == "exclusive"
+	var sexual_violation := active and connection_kind == "sex" and String(agreement.get("sexual_exclusivity", "unspoken")) == "exclusive"
+	var cnm_deception := active and not disclosed and (String(agreement.get("romantic_exclusivity", "")) == "open" or String(agreement.get("sexual_exclusivity", "")) == "open")
+	var breach := romantic_violation or sexual_violation or cnm_deception
+	var event := {
+		"other_name": other_name if not other_name.is_empty() else "someone else",
+		"kind": connection_kind if not connection_kind.is_empty() else "unknown",
+		"disclosed": disclosed,
+		"breach": breach,
+		"world_seconds": world_seconds
+	}
+	if not breach:
+		return {"ok": true, "allowed": true, "breach": false, "agreement": agreement.duplicate(true), "event": event}
+	var breaches: Array = agreement.get("breaches", [])
+	breaches.append(event)
+	agreement["breaches"] = breaches
+	var reason := "hid another " + connection_kind + " connection from " + String(PROFILES[companion_id]["name"]) if cnm_deception else "broke " + String(PROFILES[companion_id]["name"]) + "’s " + ("sexual" if connection_kind == "sex" else "romantic") + " exclusivity agreement"
+	var response := String(PROFILES[companion_id]["relationship_style"].get("breach_response", "cnm"))
+	var changes: Dictionary = {}
+	match response:
+		"cnm":
+			agreement["state"] = "strained"
+			changes = {"friendship": -6.0, "romantic_bond": -3.0, "trust": -8.0}
+		"aldric":
+			agreement["state"] = "ended"
+			state["romance_state"] = "ended_breach"
+			changes = {"friendship": -10.0, "romantic_bond": -15.0, "trust": -20.0}
+		"alden":
+			agreement["state"] = "ended"
+			state["romance_state"] = "ended_breach"
+			changes = {"friendship": -8.0, "romantic_bond": -12.0, "trust": -18.0}
+		"wren":
+			if wren_security >= 35.0:
+				agreement["state"] = "ended"
+				state["romance_state"] = "ended_breach"
+				changes = {"friendship": -10.0, "romantic_bond": -10.0, "trust": -22.0}
+			else:
+				agreement["state"] = "strained"
+				state["romance_state"] = "strained_breach"
+				changes = {"friendship": -10.0, "romantic_bond": -8.0, "trust": -25.0}
+	agreement["breaches"] = breaches
+	state["agreement"] = agreement
+	states[companion_id] = state
+	var applied := adjust(companion_id, changes, reason)
+	return {"ok": true, "allowed": false, "breach": true, "agreement": agreement.duplicate(true), "event": event, "state": applied.get("state", {})}
+
+
 func interpret_relationship(companion_id: String) -> Dictionary:
 	var state := ensure(companion_id)
 	if state.is_empty():
