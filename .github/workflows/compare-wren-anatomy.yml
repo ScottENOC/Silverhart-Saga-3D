@@ -1,15 +1,17 @@
-name: Compare Wren anatomy sculpt methods
+name: Compare accepted Wren with uploaded anatomy sculpt
 
 on:
   push:
     branches: [feature/wren-anatomy-comparison]
     paths:
       - "tools/blender/add_adult_anatomy_uploaded_comparison.py"
+      - "tools/review/add_aldric_body_hair.py"
       - ".github/workflows/compare-wren-anatomy.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: compare-wren-anatomy
@@ -24,104 +26,73 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      - uses: actions/setup-node@v6
+      - name: Download the exact accepted Wren build
+        uses: actions/download-artifact@v4
         with:
-          node-version: 20
+          name: wren-native-ara-90
+          run-id: 44452903123
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ScottENOC/Silverhart-Saga-3D
+          path: build/wren-anatomy/accepted-artifact
 
-      - name: Validate profiles and Blender scripts
+      - name: Preserve accepted Wren as the baseline
+        run: |
+          set -euo pipefail
+          mkdir -p build/wren-anatomy/current build/wren-anatomy/uploaded-script build/wren-anatomy/donor
+          source_glb="$(find build/wren-anatomy/accepted-artifact -maxdepth 2 -type f -name 'Wren.glb' -print -quit)"
+          test -n "$source_glb"
+          test -s "$source_glb"
+          cp "$source_glb" build/wren-anatomy/current/Wren.glb
+          cp "$source_glb" build/wren-anatomy/uploaded-script/Wren-input.glb
+          sha256sum build/wren-anatomy/current/Wren.glb | tee build/wren-anatomy/accepted-source.sha256
+
+      - name: Build a clean Wren skin texture donor from the same Ara profile
         run: |
           set -euo pipefail
           python -m json.tool character-preview/wren-ara.json >/dev/null
-          python -m py_compile \
-            tools/blender/add_female_anatomy_surface.py \
-            tools/blender/plan_female_anatomy_subdivision.py \
-            tools/blender/add_adult_anatomy_uploaded_comparison.py \
-            tools/blender/add_character_details.py \
-            tools/review/recolor_wren_glb.py \
-            tools/review/add_aldric_body_hair.py \
-            tools/review/add_aldric_body_hair.py
-
-      - name: Install Blender, numerical dependencies and preview display
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y blender python3-numpy python3-pil libegl1 libgl1-mesa-dri xvfb
-
-      - name: Generate one shared raw Wren body
-        run: |
-          set -euo pipefail
-          mkdir -p build/wren-anatomy/raw
           python - <<'PY'
           import json
           from pathlib import Path
           profile = json.loads(Path("character-preview/wren-ara.json").read_text())
-          params = profile["params"]
-          Path("build/wren-anatomy/raw/profile.json").write_text(json.dumps(params, indent=2) + "\n")
+          Path("build/wren-anatomy/donor/profile.json").write_text(
+              json.dumps(profile["params"], indent=2) + "\\n"
+          )
           PY
           npx --yes ara3d@latest export \
-            --params build/wren-anatomy/raw/profile.json \
+            --params build/wren-anatomy/donor/profile.json \
             --detail high --no-animations --formats glb \
-            --out build/wren-anatomy/raw/export
-          raw_glb="$(find build/wren-anatomy/raw/export -maxdepth 1 -type f -name '*.glb' -print -quit)"
-          test -n "$raw_glb"
-          test -s "$raw_glb"
-          cp "$raw_glb" build/wren-anatomy/raw/Wren_Ara_raw.glb
+            --out build/wren-anatomy/donor/export
+          donor="$(find build/wren-anatomy/donor/export -maxdepth 1 -type f -name '*.glb' -print -quit)"
+          test -n "$donor"
+          cp "$donor" build/wren-anatomy/donor/Wren_Ara_texture_source.glb
+          python tools/review/recolor_wren_glb.py \
+            --model build/wren-anatomy/donor/Wren_Ara_texture_source.glb \
+            --profile character-preview/wren-ara.json --hair-gamma 0.18
 
-      - name: Build the current accepted anatomy version
+      - name: Apply the uploaded anatomy script only to the comparison copy
         run: |
           set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy python3-pil libegl1 libgl1-mesa-dri xvfb
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          mkdir -p build/wren-anatomy/current
-          blender --background --python-exit-code 1 \
-            --python tools/blender/plan_female_anatomy_subdivision.py -- \
-            --input build/wren-anatomy/raw/Wren_Ara_raw.glb \
-            --output build/wren-anatomy/current/subdivision-plan.json
-          test -s build/wren-anatomy/current/subdivision-plan.json
-          blender --background --python-exit-code 1 \
-            --python tools/blender/add_female_anatomy_surface.py -- \
-            --input build/wren-anatomy/raw/Wren_Ara_raw.glb \
-            --output build/wren-anatomy/current/Wren.glb \
-            --report build/wren-anatomy/current/anatomy-report.json \
-            --subdivision-plan build/wren-anatomy/current/subdivision-plan.json \
-            --adult --deformation-scale 1.65 2>&1 | tee build/wren-anatomy/current/anatomy-build.log
-          test -s build/wren-anatomy/current/Wren.glb
-          grep -q '"clothing_operations": "not run"' build/wren-anatomy/current/anatomy-report.json
-
-      - name: Build the uploaded-script anatomy version
-        run: |
-          set -euo pipefail
-          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          mkdir -p build/wren-anatomy/uploaded-script
           blender --background --python-exit-code 1 \
             --python tools/blender/add_adult_anatomy_uploaded_comparison.py -- \
-            --input build/wren-anatomy/raw/Wren_Ara_raw.glb \
+            --input build/wren-anatomy/uploaded-script/Wren-input.glb \
             --output build/wren-anatomy/uploaded-script/Wren.glb \
             --profile female --adult --method integrated --deformation-scale 1.65 \
             2>&1 | tee build/wren-anatomy/uploaded-script/anatomy-build.log
           test -s build/wren-anatomy/uploaded-script/Wren.glb
           grep -q "Female anatomy v2:" build/wren-anatomy/uploaded-script/anatomy-build.log
 
-      - name: Apply identical Wren colours, hair detail and piercing to both versions
+      - name: Relocate Wren's blue landing strip above the anatomy on both copies
         run: |
           set -euo pipefail
-          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           for variant in current uploaded-script; do
-            folder="build/wren-anatomy/$variant"
-            python tools/review/recolor_wren_glb.py \
-              --model "$folder/Wren.glb" \
-              --profile character-preview/wren-ara.json \
-              --hair-gamma 0.18
             python tools/review/add_aldric_body_hair.py \
-              --model "$folder/Wren.glb" --seed 4404 \
-              --coverage wren --hair-colour "#287BFF"
-            blender --background --python-exit-code 1 \
-              --python tools/blender/add_character_details.py -- \
-              --input "$folder/Wren.glb" \
-              --output "$folder/Wren-details.glb" \
-              --profile character-preview/wren-ara.json \
-              2>&1 | tee "$folder/character-details-build.log"
-            test -s "$folder/Wren-details.glb"
-            grep -q "BAKED_PIERCING Piercing_SOCKET_Nipple_L" "$folder/character-details-build.log"
-            mv "$folder/Wren-details.glb" "$folder/Wren.glb"
+              --model "build/wren-anatomy/$variant/Wren.glb" \
+              --seed 4404 --coverage wren --hair-colour "#287BFF" \
+              --base-texture-glb build/wren-anatomy/donor/Wren_Ara_texture_source.glb \
+              --wren-y0 0.535 --wren-y1 0.565
           done
 
       - name: Install Godot 4.7.2
@@ -130,7 +101,7 @@ jobs:
           version: 4.7.2
           use-dotnet: false
 
-      - name: Render both candidates through the same Godot preview
+      - name: Render both copies through the same Godot preview
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
@@ -161,66 +132,53 @@ jobs:
             cp -R "$project/build/wren-native/preview" "build/wren-anatomy/$variant/godot-preview"
           done
 
-      - name: Write comparison notes and package the two candidates
+      - name: Write provenance report and package comparison
         run: |
           python - <<'PY'
           import hashlib, json
           from pathlib import Path
           root = Path("build/wren-anatomy")
-          profile = json.loads(Path("character-preview/wren-ara.json").read_text())
-          result = {
-              "purpose": "Side-by-side art review; neither candidate is automatically promoted.",
-              "shared_source": "One Ara-generated raw Wren body from character-preview/wren-ara.json",
-              "shared_downstream_steps": [
-                  "Wren skin and hair recolour",
-                  "Pubic/armpit hair detail (seed 4404)",
-                  "Left nipple piercing detail",
-                  "Godot 4.7.2 preview with identical lighting and camera views"
+          report = {
+              "purpose": "Compare the exact accepted Wren build with a copy receiving the uploaded anatomy script.",
+              "accepted_source_run_id": 44452903123,
+              "accepted_source_artifact": "wren-native-ara-90",
+              "accepted_source_commit": "a70421b41001bea4224bb08190ee3b184fe195aa",
+              "baseline": "Exact accepted Wren.glb copied from the 19 November native Ara workflow artifact; no anatomy pass rerun.",
+              "candidate": "A copy of that exact GLB, passed through add_adult_anatomy_uploaded_comparison.py only.",
+              "shared_post_steps": [
+                  "Rebake Wren landing strip at normalized body height 0.535-0.565 using the same clean Ara skin texture donor",
+                  "Godot 4.7.2 preview using identical lighting and camera views"
               ],
-              "candidates": {
-                  "current": {
-                      "method": "tools/blender/add_female_anatomy_surface.py",
-                      "deformation_scale": 1.65
-                  },
-                  "uploaded-script": {
-                      "method": "tools/blender/add_adult_anatomy_uploaded_comparison.py",
-                      "profile": "female",
-                      "method_mode": "integrated",
-                      "deformation_scale": 1.65
-                  }
-              },
-              "wren_profile": profile.get("params", {}).get("name", "Wren")
+              "hair_note": "Both copies receive the same revised landing-strip placement above the anatomy; the old blue texture patch is replaced from the clean donor texture.",
+              "candidates": {}
           }
           for name in ("current", "uploaded-script"):
               payload = (root / name / "Wren.glb").read_bytes()
-              result["candidates"][name]["glb_bytes"] = len(payload)
-              result["candidates"][name]["glb_sha256"] = hashlib.sha256(payload).hexdigest()
-          (root / "comparison-report.json").write_text(json.dumps(result, indent=2) + "\\n")
+              report["candidates"][name] = {
+                  "glb_bytes": len(payload),
+                  "glb_sha256": hashlib.sha256(payload).hexdigest()
+              }
+          (root / "comparison-report.json").write_text(json.dumps(report, indent=2) + "\\n")
           (root / "README.txt").write_text(
-              "WREN ANATOMY COMPARISON\\n\\n"
-              "current/Wren.glb: current accepted anatomy sculpt.\\n"
-              "uploaded-script/Wren.glb: candidate produced by the newly uploaded script.\\n\\n"
-              "Both use the same raw Ara Wren body, profile, hair, colours, piercing, "
-              "lighting and Godot camera positions. Compare front, side, threequarter "
-              "and pelvis views. No candidate is promoted automatically.\\n"
+              "WREN ACCEPTED-BUILD COMPARISON\\n\\n"
+              "current/Wren.glb: exact accepted Wren GLB from native build run 44452903123, with only the shared landing-strip texture correction applied.\\n"
+              "uploaded-script/Wren.glb: same accepted GLB with the uploaded anatomy script applied, then the same landing-strip correction.\\n\\n"
+              "Both use identical Godot 4.7.2 camera views. Neither candidate is promoted automatically.\\n"
           )
           PY
 
-      - name: Upload both GLBs, reports and matching visual reviews
+      - name: Upload both GLBs, reports and visual reviews
         uses: actions/upload-artifact@v7
         with:
-          name: wren-anatomy-comparison-${{ github.run_number }}
+          name: wren-accepted-build-comparison-${{ github.run_number }}
           path: |
             build/wren-anatomy/README.txt
             build/wren-anatomy/comparison-report.json
+            build/wren-anatomy/accepted-source.sha256
             build/wren-anatomy/current/Wren.glb
-            build/wren-anatomy/current/anatomy-report.json
-            build/wren-anatomy/current/anatomy-build.log
-            build/wren-anatomy/current/character-details-build.log
             build/wren-anatomy/current/godot-preview/
             build/wren-anatomy/uploaded-script/Wren.glb
             build/wren-anatomy/uploaded-script/anatomy-build.log
-            build/wren-anatomy/uploaded-script/character-details-build.log
             build/wren-anatomy/uploaded-script/godot-preview/
           if-no-files-found: error
           retention-days: 30
