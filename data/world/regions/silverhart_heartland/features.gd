@@ -55,6 +55,19 @@ const STAR_FORT_DIRECTIONS: Array[Vector2i] = [
 	Vector2i(-1, 0), Vector2i(-1, 1), Vector2i(0, 1)
 ]
 
+## Source-authored surface rooms for the northern crypt/barrow chain, the
+## abandoned house, Lich Chapterhouse, Thieves' Cove and Emberlode Mine.
+const ABANDONED_HOUSE_CENTRE := Vector2i(14, -176)
+const CRYPT_ENTRANCE_CENTRE := Vector2i(32, -154)
+const CRYPT_OSSUARY_CENTRE := Vector2i(40, -154)
+const CRYPT_RITUAL_CENTRE := Vector2i(49, -154)
+const BARROW_ANTECHAMBER_CENTRE := Vector2i(63, -160)
+const BARROW_SANCTUM_CENTRE := Vector2i(72, -160)
+const LICH_CHAPTERHOUSE_CENTRE := Vector2i(-39, -346)
+const THIEVES_COVE_ENTRANCE_CENTRE := Vector2i(-274, 40)
+const EMBERLODE_MINE_CENTRE := Vector2i(-252, 16)
+const HOLLOWMERE_GUILD_DEN_CENTRE := Vector2i(-12, -8)
+
 static var _orc_approach_path_cells: Dictionary = {}
 static var _orc_approach_path_ready := false
 static var _kragmoor_approach_path_cells: Dictionary = {}
@@ -64,8 +77,13 @@ static var _kragmoor_gate_floor_ready := false
 static var _northwatch_cells: Dictionary = {}
 static var _ridgehold_cells: Dictionary = {}
 static var _border_forts_ready := false
+static var _dungeon_surface_cells: Dictionary = {}
+static var _dungeon_surface_ready := false
 
 static func terrain_override_at(hex: Vector2i) -> Dictionary:
+	var dungeon_override := _dungeon_surface_override(hex)
+	if not dungeon_override.is_empty():
+		return dungeon_override
 	var fort_override := _border_fort_override(hex)
 	if not fort_override.is_empty():
 		return fort_override
@@ -143,6 +161,89 @@ static func _is_kragmoor_gate_floor(hex: Vector2i) -> bool:
 	_ensure_kragmoor_gate_floor()
 	return _kragmoor_gate_floor_cells.has(_hex_key(hex))
 
+static func _dungeon_surface_override(hex: Vector2i) -> Dictionary:
+	_ensure_dungeon_surface_features()
+	var key := _hex_key(hex)
+	if _dungeon_surface_cells.has(key):
+		return (_dungeon_surface_cells[key] as Dictionary).duplicate()
+	return {}
+
+static func _ensure_dungeon_surface_features() -> void:
+	if _dungeon_surface_ready:
+		return
+	# Hollowmere Guild Den: source carveBuilding footprint with a south door.
+	_add_source_building_surface_room(_dungeon_surface_cells, HOLLOWMERE_GUILD_DEN_CENTRE, 2, 2, HOLLOWMERE_GUILD_DEN_CENTRE + Vector2i(0, 2), "wood_floor", "hollowmere_guild_den")
+
+	# Abandoned house: a corrected flat-room footprint with a west door.
+	_add_flat_surface_room(_dungeon_surface_cells, ABANDONED_HOUSE_CENTRE, 3, 2, ABANDONED_HOUSE_CENTRE + Vector2i(-3, 0), "wood_floor", "abandoned_house")
+	for q in range(9, 11):
+		_dungeon_surface_cells[_hex_key(Vector2i(q, -176))] = {"terrain": "path", "feature_id": "abandoned_house_approach"}
+
+	# Vessel-Seeker's Crypt: entrance, ossuary and ritual chamber, joined by
+	# the short source cave-floor corridors. Lower floors and actors are not
+	# represented in this surface terrain layer.
+	_add_flat_surface_room(_dungeon_surface_cells, CRYPT_ENTRANCE_CENTRE, 3, 2, CRYPT_ENTRANCE_CENTRE + Vector2i(-3, 0), "cave_floor", "vessel_seeker_crypt_entrance")
+	_add_flat_surface_room(_dungeon_surface_cells, CRYPT_OSSUARY_CENTRE, 3, 3, CRYPT_OSSUARY_CENTRE + Vector2i(-3, 0), "cave_floor", "vessel_seeker_crypt_ossuary")
+	_add_flat_surface_room(_dungeon_surface_cells, CRYPT_RITUAL_CENTRE, 4, 3, CRYPT_RITUAL_CENTRE + Vector2i(-3, 0), "cave_floor", "vessel_seeker_crypt_ritual")
+	_add_surface_corridor(_dungeon_surface_cells, Vector2i(36, -154), Vector2i(36, -154), "vessel_seeker_crypt_corridor")
+	_add_surface_corridor(_dungeon_surface_cells, Vector2i(44, -154), Vector2i(45, -154), "vessel_seeker_crypt_corridor")
+
+	# Barrow of Corvin Ashgrave: antechamber and sanctum, also joined by the
+	# source horizontal cave-floor passage.
+	_add_flat_surface_room(_dungeon_surface_cells, BARROW_ANTECHAMBER_CENTRE, 3, 3, BARROW_ANTECHAMBER_CENTRE + Vector2i(-3, 0), "cave_floor", "corvin_barrow_antechamber")
+	_add_flat_surface_room(_dungeon_surface_cells, BARROW_SANCTUM_CENTRE, 4, 3, BARROW_SANCTUM_CENTRE + Vector2i(-3, 0), "cave_floor", "corvin_barrow_sanctum")
+	_add_surface_corridor(_dungeon_surface_cells, Vector2i(67, -160), Vector2i(68, -160), "corvin_barrow_corridor")
+
+	# Chapterhouse: source stone floor and keep-wall footprint.
+	_add_flat_surface_room(_dungeon_surface_cells, LICH_CHAPTERHOUSE_CENTRE, 4, 3, LICH_CHAPTERHOUSE_CENTRE + Vector2i(3, 0), "stone_floor", "lich_chapterhouse", "keep_wall")
+
+	# Thieves' Cove's ground entrance. The two lower cave floors and tunnel
+	# network remain separate interior layers.
+	_add_flat_surface_room(_dungeon_surface_cells, THIEVES_COVE_ENTRANCE_CENTRE, 3, 3, THIEVES_COVE_ENTRANCE_CENTRE + Vector2i(-3, 0), "cave_floor", "thieves_cove_entrance")
+
+	# Emberlode's source mine room uses carveBuilding's original positive row
+	# shift; retain that authored footprint rather than silently reshaping it.
+	_add_source_building_surface_room(_dungeon_surface_cells, EMBERLODE_MINE_CENTRE, 3, 2, EMBERLODE_MINE_CENTRE + Vector2i(0, 2), "cave_floor", "emberlode_mine")
+	for r in range(EMBERLODE_MINE_CENTRE.y + 3, 22):
+		_dungeon_surface_cells[_hex_key(Vector2i(EMBERLODE_MINE_CENTRE.x, r))] = {"terrain": "path", "feature_id": "emberlode_mine_approach"}
+
+	_dungeon_surface_ready = true
+
+static func _add_flat_surface_room(target: Dictionary, centre: Vector2i, half_width: int, half_height: int, door: Vector2i, floor_terrain: String, prefix: String, wall_terrain: String = "climbable_wall") -> void:
+	var floor_cells: Dictionary = {}
+	for dq in range(-half_width + 1, half_width):
+		var row_shift := -floori(float(dq) / 2.0)
+		for dr in range(-half_height + 1, half_height):
+			var cell := centre + Vector2i(dq, dr + row_shift)
+			floor_cells[_hex_key(cell)] = true
+	for key in floor_cells:
+		target[key] = {"terrain": floor_terrain, "feature_id": prefix + "_floor"}
+	for key in _wall_ring(floor_cells):
+		if not target.has(key):
+			target[key] = {"terrain": wall_terrain, "feature_id": prefix + "_wall"}
+	target[_hex_key(door)] = {"terrain": "path", "feature_id": prefix + "_door"}
+
+static func _add_source_building_surface_room(target: Dictionary, centre: Vector2i, half_width: int, half_height: int, door: Vector2i, floor_terrain: String, prefix: String, wall_terrain: String = "climbable_wall") -> void:
+	var floor_cells: Dictionary = {}
+	for dq in range(-half_width + 1, half_width):
+		var row_shift := floori(float(dq) / 2.0)
+		for dr in range(-half_height + 1, half_height):
+			var cell := centre + Vector2i(dq, dr + row_shift)
+			floor_cells[_hex_key(cell)] = true
+	for key in floor_cells:
+		target[key] = {"terrain": floor_terrain, "feature_id": prefix + "_floor"}
+	for key in _wall_ring(floor_cells):
+		if not target.has(key):
+			target[key] = {"terrain": wall_terrain, "feature_id": prefix + "_wall"}
+	target[_hex_key(door)] = {"terrain": "path", "feature_id": prefix + "_door"}
+
+static func _add_surface_corridor(target: Dictionary, start: Vector2i, finish: Vector2i, feature_id: String) -> void:
+	var line: Dictionary = {}
+	_add_hex_line(line, start, finish)
+	for key in line:
+		target[key] = {"terrain": "cave_floor", "feature_id": feature_id}
+
+
 static func _border_fort_override(hex: Vector2i) -> Dictionary:
 	_ensure_border_fort_features()
 	var key := _hex_key(hex)
@@ -186,7 +287,7 @@ static func _ensure_border_fort_features() -> void:
 	for key in keep_floor:
 		_northwatch_cells[key] = {"terrain": "dirt", "feature_id": "northwatch_keep_floor"}
 	for key in keep_walls:
-		_northwatch_cells[key] = {"terrain": "climbable_wall", "feature_id": "northwatch_keep_wall"}
+		_northwatch_cells[key] = {"terrain": "keep_wall", "feature_id": "northwatch_keep_wall"}
 	for direction in STAR_FORT_DIRECTIONS:
 		var gap := NORTHWATCH_CENTRE + direction * 5
 		_northwatch_cells[_hex_key(gap)] = {"terrain": "dirt", "feature_id": "northwatch_keep_gap"}
@@ -203,7 +304,7 @@ static func _ensure_border_fort_features() -> void:
 		_ridgehold_cells[key] = {"terrain": "dirt", "feature_id": "ridgehold_keep_floor"}
 	var ridgehold_keep_walls := _wall_ring(ridgehold_keep_floor)
 	for key in ridgehold_keep_walls:
-		_ridgehold_cells[key] = {"terrain": "climbable_wall", "feature_id": "ridgehold_keep_wall"}
+		_ridgehold_cells[key] = {"terrain": "keep_wall", "feature_id": "ridgehold_keep_wall"}
 	var ridgehold_keep_door := Vector2i(RIDGEHOLD_CENTRE.x, RIDGEHOLD_CENTRE.y + 2)
 	_ridgehold_cells[_hex_key(ridgehold_keep_door)] = {"terrain": "path", "feature_id": "ridgehold_keep_door"}
 	_border_forts_ready = true
@@ -277,6 +378,9 @@ static func _add_hex_line(target: Dictionary, start: Vector2i, finish: Vector2i)
 	var z2 := finish.y
 	var y2 := -x2 - z2
 	var steps := maxi(absi(x2 - x1), maxi(absi(y2 - y1), absi(z2 - z1)))
+	if steps == 0:
+		target[_hex_key(start)] = true
+		return
 	for index in range(steps + 1):
 		var t := float(index) / float(steps)
 		var fx := lerpf(float(x1), float(x2), t)
@@ -297,6 +401,9 @@ static func _add_hex_line(target: Dictionary, start: Vector2i, finish: Vector2i)
 		target[_hex_key(Vector2i(rx, rz))] = true
 
 static func feature_id_at(hex: Vector2i) -> String:
+	var dungeon_override := _dungeon_surface_override(hex)
+	if not dungeon_override.is_empty():
+		return String(dungeon_override.get("feature_id", ""))
 	var fort_override := _border_fort_override(hex)
 	if not fort_override.is_empty():
 		return String(fort_override.get("feature_id", ""))

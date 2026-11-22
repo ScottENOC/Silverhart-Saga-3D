@@ -68,8 +68,11 @@ func _create_materials() -> void:
 		"swamp": _material(Color("#56664a")),
 		"rocky_outcrop": _material(Color("#77756e")),
 		"dirt": _material(Color("#8b7453")),
+		"wood_floor": _material(Color("#947a59")),
+		"stone_floor": _material(Color("#77766f")),
 		"cave_floor": _material(Color("#554a3c")),
 		"climbable_wall": _material(Color("#4e5154")),
+		"keep_wall": _material(Color("#34383b")),
 		"water": _material(Color("#3d9fc2"), 0.28),
 		"path": _material(Color("#b79b70"))
 	}

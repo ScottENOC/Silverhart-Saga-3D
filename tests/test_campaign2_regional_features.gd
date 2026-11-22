@@ -69,7 +69,7 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(407, 43)) == "path", "Ridgehold gate must be an open gap on the actual wall ring")
 	_check(terrain.terrain_for_hex(Vector2i(402, 33)) == "path", "Ridgehold's approach must use a continuous corrected hex line")
 	_check(terrain.terrain_for_hex(Vector2i(426, 45)) == "path", "Ridgehold keep must retain its open south door")
-	_check(terrain.terrain_for_hex(Vector2i(429, 43)) == "climbable_wall", "Ridgehold keep must retain its wall ring")
+	_check(terrain.terrain_for_hex(Vector2i(429, 43)) == "keep_wall", "Ridgehold keep must retain its wall ring")
 	_check(FEATURES.feature_id_at(Vector2i(407, 43)) == "ridgehold_gate", "Ridgehold gate must have its own feature identity")
 
 	# Sil'thandriel's canopy has an explicit grass arrival clearing, a dense
@@ -80,6 +80,38 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(-265, 934)) == "grass", "Elven canopy's sparse middle-band cells must remain clearing gaps")
 	_check(terrain.terrain_for_hex(Vector2i(-252, 928)) == "path", "Elven capital north approach must start outside the tree clearing")
 	_check(terrain.terrain_for_hex(Vector2i(-252, 907)) == "path", "Elven capital north approach must reach its source endpoint")
+
+	_check(terrain.terrain_for_hex(Vector2i(-12, -8)) == "wood_floor", "Hollowmere Guild Den must retain its source timber floor")
+	_check(terrain.terrain_for_hex(Vector2i(-12, -6)) == "path", "Hollowmere Guild Den south door must remain open")
+
+	# Surface footprints for the abandoned house, crypt/barrow chain,
+	# chapterhouse, Thieves' Cove and Emberlode Mine.
+	_check(terrain.terrain_for_hex(Vector2i(14, -176)) == "wood_floor", "Abandoned House must retain its source timber floor")
+	_check(terrain.terrain_for_hex(Vector2i(14, -174)) == "climbable_wall", "Abandoned House must retain its surrounding wall ring")
+	_check(terrain.terrain_for_hex(Vector2i(11, -176)) == "path", "Abandoned House west door must remain open")
+	_check(terrain.terrain_for_hex(Vector2i(9, -176)) == "path", "Abandoned House must retain its short road approach")
+	_check(FEATURES.feature_id_at(Vector2i(14, -176)) == "abandoned_house_floor", "Abandoned House floor must expose its feature identity")
+
+	_check(terrain.terrain_for_hex(Vector2i(32, -154)) == "cave_floor", "Crypt entrance chamber must be cave floor")
+	_check(terrain.terrain_for_hex(Vector2i(40, -154)) == "cave_floor", "Crypt ossuary must be cave floor")
+	_check(terrain.terrain_for_hex(Vector2i(49, -154)) == "cave_floor", "Crypt ritual chamber must be cave floor")
+	_check(terrain.terrain_for_hex(Vector2i(36, -154)) == "cave_floor", "Crypt entrance corridor must connect to the ossuary")
+	_check(terrain.terrain_for_hex(Vector2i(29, -154)) == "path", "Crypt entrance door must remain open")
+
+	_check(terrain.terrain_for_hex(Vector2i(63, -160)) == "cave_floor", "Corvin barrow antechamber must be cave floor")
+	_check(terrain.terrain_for_hex(Vector2i(72, -160)) == "cave_floor", "Corvin barrow sanctum must be cave floor")
+	_check(terrain.terrain_for_hex(Vector2i(67, -160)) == "cave_floor", "Barrow corridor must connect the two chambers")
+
+	_check(terrain.terrain_for_hex(Vector2i(267, -16)) == "keep_wall", "Northwatch keep must use its solid keep-wall ring")
+	_check(terrain.terrain_for_hex(Vector2i(-39, -346)) == "stone_floor", "Lich Chapterhouse must retain its source stone floor")
+	_check(terrain.terrain_for_hex(Vector2i(-36, -346)) == "path", "Lich Chapterhouse east door must remain open")
+	_check(terrain.terrain_for_hex(Vector2i(-43, -343)) == "keep_wall", "Lich Chapterhouse must retain its source keep-wall ring")
+	_check(terrain.terrain_for_hex(Vector2i(-274, 40)) == "cave_floor", "Thieves' Cove entrance must be cave floor")
+	_check(terrain.terrain_for_hex(Vector2i(-277, 40)) == "path", "Thieves' Cove entrance door must remain open")
+
+	_check(terrain.terrain_for_hex(Vector2i(-252, 16)) == "cave_floor", "Emberlode Mine entrance must be cave floor")
+	_check(terrain.terrain_for_hex(Vector2i(-252, 18)) == "path", "Emberlode Mine south door must remain open")
+	_check(terrain.terrain_for_hex(Vector2i(-252, 20)) == "path", "Emberlode Mine approach must connect to the west road")
 
 	if failures > 0:
 		push_error("%d Campaign 2 regional feature test(s) failed." % failures)

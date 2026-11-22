@@ -39,7 +39,7 @@ static func elevation_for_hex(hex: Vector2i, terrain: String) -> float:
 	return elevation_from_rolls(terrain, broad, detail)
 
 static func elevation_from_rolls(terrain: String, broad: float, detail: float) -> float:
-	if terrain in ["water", "path", "authored", "void"]:
+	if terrain in ["water", "path", "authored", "void", "dirt", "wood_floor", "stone_floor", "cave_floor", "keep_wall"]:
 		return 0.0
 	match terrain:
 		"mountain":
