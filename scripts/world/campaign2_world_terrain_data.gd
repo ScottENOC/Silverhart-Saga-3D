@@ -9,6 +9,7 @@ const ROAD_PATHS_PATH := "res://data/world/campaign2_road_paths.json"
 const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
 const REGIONAL_FEATURES = preload("res://data/world/regions/silverhart_heartland/features.gd")
 const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
+const WATER_SURFACE_ELEVATION := 0.0
 const AUTHORED_SETTLEMENT_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 const SETTLEMENT_DEFINITION_REGISTRY = preload("res://scripts/world/campaign2_settlement_definition_registry.gd")
 
@@ -312,6 +313,14 @@ func shared_vertex_elevation(hex: Vector2i, corner_index: int) -> float:
 	if corner_index < 0 or corner_index >= SHARED_VERTEX_NEIGHBOURS.size():
 		return elevation_for_hex(hex)
 	var neighbours: Array = SHARED_VERTEX_NEIGHBOURS[corner_index]
+	# A shoreline vertex belongs to three cells. If any of them is water,
+	# keep the shared vertex at the water datum so the water surface stays flat
+	# and the adjoining land mesh forms the bank without a crack.
+	if terrain_for_hex(hex) == "water":
+		return WATER_SURFACE_ELEVATION
+	for offset in neighbours:
+		if terrain_for_hex(hex + offset) == "water":
+			return WATER_SURFACE_ELEVATION
 	var total := elevation_for_hex(hex)
 	for offset in neighbours:
 		total += elevation_for_hex(hex + offset)
