@@ -16,9 +16,9 @@ The current Campaign 2 world foundation contains:
 
 The surrounding wilderness is still partly generated from regional terrain rules. It is not yet a faithful, fully authored recreation of every source-world hex.
 
-## Canonical settlement content
+## Authored settlement and site content
 
-The registry on this branch contains six settlement definitions:
+The canonical settlement registry currently contains five definitions. Kragmoor is a source-authored regional site tracked in the separate multi-story location registry.
 
 | Location | Migrated content | Still outstanding |
 |---|---|---|
@@ -26,14 +26,14 @@ The registry on this branch contains six settlement definitions:
 | Millbrook | One source-positioned house, road spur and two named NPC profiles/placements | Interior construction and services/interactions |
 | Emberlode | Foreman's hall, bunkhouse, mine entrance, two road approaches and three named NPCs; source mine levels, stairs, ore, ledger and underground spiders retained as data | Playable interiors/floor transitions, ore interactions, spider spawning on floor -2, dialogue/quest consequences |
 | Reddale | Guardhouse, reeve's house, inn, Ironbond guildhouse, manor and smithy; three road approaches and twelve named NPCs; interior/evidence/service metadata | Playable interiors, merchant services, evidence reading, bribes, dialogue and espionage quest consequences |
-| Kragmoor | Source-positioned surface Gate Hall at (908,-608), south entrance at (908,-605), reusable stone dwarven gate-hall archetype and stair-down metadata | Playable underground floors -1 to -5, corridors, stair transitions, king/guards/trader/runesmith/foreman, vermin and Sunken Deep quest gate |
+| Kragmoor | Surface Gate Hall plus source-derived floor definitions for levels 0 to -5: rooms, corridors, stairs, King Balrik and guards, Vault trader, runesmith, foreman, tunnel vermin and Ember-Wreathed Horror; Sunken Deep remains pre-carved and quest-sealed in the source data | Playable 3D floor presentation/transitions, floor-specific actor simulation, quest-journal integration and save/load persistence |
 | Old Mac's Farmstead | Source farmhouse and road spur; pasture polygon, six fence segments and broken-fence clue; seven blood-spatter marks; Old Mac placement; two generated sheep placeholders | Final sheep art/animation, sheep interaction, Nature-gated faint evidence, den dressing/trigger/persistence and reconciliation of the opening-scene Old Mac identity |
 
-The shared chunk presenter renders exterior buildings and surface actors for these definitions. Interior metadata is preserved by the canonical adapter but is not yet a playable interior implementation. Kragmoor is currently a first structure slice: its surface Gate Hall is presented, while its descending Deepholds floors remain outstanding. Farmstead features are split across their owning chunks so fence segments are not duplicated at chunk boundaries.
+The shared chunk presenter renders exterior buildings and surface actors for canonical settlement definitions. Interior metadata is preserved by the adapter but is not yet a playable interior implementation. Kragmoor's source-authored floor data is now captured separately; the new manifest is not yet connected to playable 3D floor presentation, traversal or persistent floor-specific actors. Farmstead features are split across their owning chunks so fence segments are not duplicated at chunk boundaries.
 
 ## Remaining source-authored world locations
 
-The 24-anchor geography manifest has six canonical settlement definitions above. The following 18 other anchors have partial or no playable site implementations:
+The 24-anchor geography manifest has six authored settlement/site entries above: five canonical settlement definitions and the separately registered Kragmoor multi-story site. The following 18 other anchors have partial or no playable site implementations:
 
 | Location | Source content still to port |
 |---|---|
@@ -42,7 +42,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above.
 | Northwatch Fort | Star fort, keep, gate, garrison, siege actors and border-war interactions; source moat and connected waterway terrain are ported |
 | Ridgehold Fort | Fort and keep, patrols and faction consequences; source downstream waterway terrain is ported |
 | Skarnak's Hold | Orc stronghold, huts, warlord, guards, trader and troll encounter |
-| Kragmoor | Surface Gate Hall and stair-down marker are ported; the Deepholds mountain city, excavated rooms/tunnels, vertical layers, population and mine remain |
+| Kragmoor | Source geometry and actor placements for floors 0 to -5 are captured; playable floor rendering/transitions, NPC/creature simulation, quest gate integration and persistence remain |
 | Sil'thandriel | Sylvan Court capital, vertical/forest architecture, population and faction interactions |
 | Hollowmere Guild Den | Interior, guild contact, objects and recruitment/quest interactions |
 | Abandoned House | Building, hidden content, disciple/phylactery quest chain |
@@ -63,7 +63,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above.
 2. **Finish Old Mac's Farmstead and wolf den.** Replace the sheep placeholder with final art/animation, add sheep interaction, Nature-gated evidence visibility, den dressing and quest persistence; reconcile the opening-scene Old Mac identity/placement. Preserve the source farmstead at (0,194) and wolf den at (-59,204).
 3. **Silverhart capital.** This is the kingdom's main hub and unlocks the royal court, services and major faction threads.
 4. **Northwatch, Ridgehold and the greenskin sites.** Port the connected border-road sequence, forts, strongholds, gates, garrisons and encounter state.
-5. **Kragmoor and Sil'thandriel.** Preserve their distinct vertical/architectural structures and faction populations.
+5. **Finish Kragmoor's runtime integration, then Sil'thandriel.** Use the new source-authored floor manifest to implement actual floor presentation, stair traversal, quest-gated access and persistence before expanding the elven capital.
 6. **Dungeons and wilderness sites.** Port interiors, encounter triggers, loot, patrols and quest consequences.
 7. **World simulation and persistence.** Validate travel, schedules, caravans, faction changes, save/reload and chunk unload/reload across the full map.
 
