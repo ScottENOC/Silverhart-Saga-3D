@@ -40,14 +40,14 @@ new = """  if (cupMeshes.length) {
             const mirror = cols - 1 - j;
             if (mirror >= 0 && mirror < cols) up.push(gr[i][mirror]);
           }
-          if (down.length > 1) laceStrands.push(cord(down, cm(0.16), false, 5));
-          if (up.length > 1) laceStrands.push(cord(up, cm(0.16), false, 5));
+          if (down.length > 1) laceStrands.push(cord(down, cm(0.30), false, 6));
+          if (up.length > 1) laceStrands.push(cord(up, cm(0.30), false, 6));
         }
         // A fine scalloped-looking continuous edge keeps the open cups readable in profile.
-        laceStrands.push(cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.08))), cm(0.12), true, 5));
+        laceStrands.push(cord(gridOutline(gr).map((p) => v3.madd(p, OUTWARD.front, cm(0.10))), cm(0.22), true, 6));
       }
       const openwork = merge(laceStrands);
-      if (openwork) parts.push({ mesh: openwork, material: mat('Halter lace', null, { color: st.color2, roughness: 0.62 }) });
+      if (openwork) parts.push({ mesh: openwork, material: mat('Halter lace', null, { color: '#3b2529', roughness: 0.72 }) });
     } else {
       parts.push({ mesh: merge(cupMeshes.map((gr) => gridMesh(gr, 0.12)))!, material: { ...m, doubleSided: true }, hides });
       // Piping along the cups' edges, on the fabric.
