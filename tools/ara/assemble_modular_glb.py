@@ -96,19 +96,28 @@ def add(target,buf,source_path,selector):
     for k in ('translation','rotation','scale','matrix'):
         if tn.get(k)!=sn.get(k): raise ValueError(f'Rigged mesh {k} mismatch in {source_path}')
 
-    # Garment primitives must carry the same morph-target contract as the body.
-    # Ara exports facial blend shapes on every skinned primitive. Leaving the
-    # source target accessor indices untouched makes them point at unrelated
-    # accessors in the destination GLB (often scalar indices), which Blender
-    # then rejects while importing the assembled character.
+    # The body is the canonical morph-target contract. Garment exports may
+    # contain only a subset of those targets, so align by target name and insert
+    # empty per-primitive deltas for body targets the garment does not use.
     target_names=target_mesh.get('extras',{}).get('targetNames')
     source_names=source_mesh.get('extras',{}).get('targetNames')
     target_count=len(target_mesh.get('weights', target_names or []))
     source_count=len(source_mesh.get('weights', source_names or []))
-    if source_count != target_count:
-        raise ValueError(f'Morph target count differs in {source_path}: source={source_count}, target={target_count}')
-    if target_names is not None and source_names is not None and source_names != target_names:
-        raise ValueError(f'Morph target names differ in {source_path}')
+    if target_names is not None and len(target_names) != target_count:
+        raise ValueError(f'Body morph target metadata mismatch in {source_path}: weights={target_count}, names={len(target_names)}')
+    if source_names is not None and len(source_names) != source_count:
+        raise ValueError(f'Garment morph target metadata mismatch in {source_path}: weights={source_count}, names={len(source_names)}')
+    if target_count != source_count and (target_names is None or source_names is None):
+        raise ValueError(
+            f'Cannot safely align morph targets in {source_path}: source={source_count}, '
+            f'target={target_count}; both meshes must expose extras.targetNames'
+        )
+    if target_names is not None and source_names is not None:
+        if len(set(target_names)) != len(target_names) or len(set(source_names)) != len(source_names):
+            raise ValueError(f'Duplicate morph target names in {source_path}')
+        missing = [name for name in source_names if name not in target_names]
+        if missing:
+            raise ValueError(f'Garment morph targets are absent from canonical body in {source_path}: {missing}')
     target_name=None
     if '=' in selector: selector,target_name=selector.split('=',1)
     if selector.endswith('*'):
@@ -144,10 +153,17 @@ def add(target,buf,source_path,selector):
     # as the garment primitive. Accessor indices are document-local: they must
     # never be copied verbatim from the source GLB into the destination GLB.
     source_targets=p.get('targets', [])
-    if len(source_targets) != target_count:
-        raise ValueError(f'{selector}: expected {target_count} morph targets, found {len(source_targets)}')
+    if len(source_targets) != source_count:
+        raise ValueError(f'{selector}: expected {source_count} source morph targets, found {len(source_targets)}')
+    if target_count != source_count and (target_names is None or source_names is None):
+        raise ValueError(f'{selector}: cannot expand morph targets without names on both meshes')
+    if target_names is not None and source_names is not None:
+        source_by_name={name:index for index,name in enumerate(source_names)}
+        ordered_targets=[source_targets[source_by_name[name]] if name in source_by_name else {} for name in target_names]
+    else:
+        ordered_targets=source_targets
     remapped_targets=[]
-    for target_attrs in source_targets:
+    for target_attrs in ordered_targets:
         remapped={}
         for attr,old_ai in target_attrs.items():
             target,buf,new_ai=compact_accessor(src,sbuf,target,buf,old_ai,vertices)

@@ -2,12 +2,28 @@ name: Companion anatomy region review
 
 on:
   push:
+    branches: [feature/ara-garment-fit-guides, feature/full-body-overlapping-anatomy-vocabulary]
+    paths:
+      - ".github/workflows/companion-anatomy-region-review.yml"
+      - "tools/review/companion_surface_region_review.gd"
+      - "tools/review/wren_bra_anatomy_proposal.gd"
+      - "scripts/characters/character_body_surface.gd"
+      - "scripts/characters/character_surface_regions.gd"
+      - "scripts/characters/character_surface_region_mask.gd"
+      - "scripts/characters/character_surface_region_partition.gd"
+      - "tools/review/test_character_surface_region_partition.gd"
+      - "tools/anatomy_surface_painter.gd"
+      - "tools/anatomy_surface_painter.tscn"
+      - "tools/anatomy_surface_painter_input.gd"
+  pull_request:
     branches: [feature/ara-garment-fit-guides]
     paths:
       - ".github/workflows/companion-anatomy-region-review.yml"
       - "tools/review/companion_surface_region_review.gd"
       - "scripts/characters/character_surface_regions.gd"
       - "scripts/characters/character_surface_region_mask.gd"
+      - "scripts/characters/character_surface_region_partition.gd"
+      - "tools/review/test_character_surface_region_partition.gd"
   workflow_dispatch:
 
 permissions:
@@ -41,16 +57,30 @@ jobs:
           test -s build/aldric-native/Aldric.glb
           echo "WREN_RUN=$wren_run" >> "$GITHUB_ENV"
           echo "ALDRIC_RUN=$aldric_run" >> "$GITHUB_ENV"
+          wren_sha=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$wren_run" --jq '.head_sha')
+          aldric_sha=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$aldric_run" --jq '.head_sha')
+          echo "WREN_BUILD_SHA=$wren_sha" >> "$GITHUB_ENV"
+          echo "ALDRIC_BUILD_SHA=$aldric_sha" >> "$GITHUB_ENV"
       - name: Assemble isolated review project
         run: |
           set -euo pipefail
           p=build/anatomy-review-project
-          mkdir -p "$p/build/wren-native" "$p/build/aldric-native" "$p/tools/review" "$p/scripts/characters"
+          mkdir -p "$p/build/wren-native" "$p/build/aldric-native" "$p/tools/review" "$p/scripts/characters" "$p/data/characters"
+          cp -R data/characters/anatomy_masks "$p/data/characters/"
           cp build/wren-native/Wren.glb "$p/build/wren-native/"
           cp build/aldric-native/Aldric.glb "$p/build/aldric-native/"
           cp tools/review/companion_surface_region_review.gd "$p/tools/review/"
+          cp tools/review/wren_bra_anatomy_proposal.gd "$p/tools/review/"
+          cp scripts/characters/character_body_surface.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_regions.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_region_mask.gd "$p/scripts/characters/"
+          cp scripts/characters/character_surface_region_partition.gd "$p/scripts/characters/"
+          cp tools/review/test_character_surface_region_partition.gd "$p/tools/review/"
+          cp tools/anatomy_surface_painter.gd "$p/tools/"
+          cp tools/anatomy_surface_painter.tscn "$p/tools/"
+          cp tools/anatomy_surface_painter_input.gd "$p/tools/"
+          cp scripts/characters/character_surface_region_mask_library.gd "$p/scripts/characters/"
+          cp scripts/characters/character_surface_region_mask_manifest.gd "$p/scripts/characters/"
           cat > "$p/project.godot" <<'EOF'
           config_version=5
           [application]
@@ -68,21 +98,29 @@ jobs:
       - name: Import and render Wren and Aldric with region overlays
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
+          REVIEW_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dri
           p=build/anatomy-review-project
           godot --headless --editor --path "$p" --quit
+          godot --headless --path "$p" --script res://tools/review/test_character_surface_region_partition.gd
+          godot --headless --path "$p" res://tools/anatomy_surface_painter.tscn --quit-after 2
           for character in Wren Aldric; do
             xvfb-run -a -s "-screen 0 1280x1200x24" godot --path "$p" --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/companion_surface_region_review.gd -- "$character"
             for view in front side rear; do
               test -s "$p/build/anatomy-review/${character,,}/$view.png"
             done
           done
+          xvfb-run -a -s "-screen 0 1280x1200x24" godot --path "$p" --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/wren_bra_anatomy_proposal.gd
+          for view in front side rear; do
+            test -s "$p/build/wren-bra-proposal/$view-candidate.png"
+          done
           mkdir -p build/companion-anatomy-review
           cp -R "$p/build/anatomy-review/." build/companion-anatomy-review/
-          printf '{"wren_run":%s,"aldric_run":%s}\n' "$WREN_RUN" "$ALDRIC_RUN" > build/companion-anatomy-review/source-runs.json
+          cp -R "$p/build/wren-bra-proposal" build/companion-anatomy-review/
+          printf '{"wren_run":%s,"wren_build_sha":"%s","aldric_run":%s,"aldric_build_sha":"%s","review_source_sha":"%s"}\n' "$WREN_RUN" "$WREN_BUILD_SHA" "$ALDRIC_RUN" "$ALDRIC_BUILD_SHA" "$REVIEW_SOURCE_SHA" > build/companion-anatomy-review/source-runs.json
       - uses: actions/upload-artifact@v7
         with:
           name: companion-anatomy-region-review

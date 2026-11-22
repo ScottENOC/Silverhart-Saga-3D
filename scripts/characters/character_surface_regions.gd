@@ -1,5 +1,5 @@
 class_name CharacterSurfaceRegions
-extends RefCounted
+extends CharacterBodySurface
 ## Deformation-aware surface queries for broad regions shared by the two Ara bases.
 ##
 ## Region membership is derived from the mesh's skin-weight influences. Vertex positions
@@ -37,6 +37,7 @@ var _surfaces: Array[Dictionary] = []
 var _region_bone_indices: Dictionary = {}
 var _configured := false
 var _configuration_error := ""
+var _body_asset_path := ""
 
 
 func configure(
@@ -47,6 +48,7 @@ func configure(
 ) -> bool:
     _character_root = character_root
     _body_root = body_root
+    _body_asset_path = body_asset_path
     _skeleton = _find_skeleton(body_root) if body_root != null else null
     _surfaces.clear()
     _region_bone_indices.clear()
@@ -184,6 +186,14 @@ func get_skeleton() -> Skeleton3D:
     return _skeleton
 
 
+func get_body_asset_path() -> String:
+    return _body_asset_path
+
+
+func get_body_root() -> Node3D:
+    return _body_root
+
+
 func has_region(region_id: String, minimum_weight: float = 0.25) -> bool:
     if not is_configured() or not _is_known_region(region_id):
         return false
@@ -213,12 +223,35 @@ func get_region_surface_samples(
     minimum_weight: float = 0.25,
     max_samples: int = 0
 ) -> Array[Dictionary]:
+    return _get_surface_samples(region_id, minimum_weight, max_samples, false)
+
+
+## Returns only topology-bound authored mask samples. Broad rig channels are
+## deliberately excluded, even when a fine ID shares a name such as calf_left.
+func get_authored_region_surface_samples(
+    region_id: String,
+    minimum_weight: float = 0.25,
+    max_samples: int = 0
+) -> Array[Dictionary]:
+    return _get_surface_samples(region_id, minimum_weight, max_samples, true)
+
+
+func _get_surface_samples(
+    region_id: String,
+    minimum_weight: float,
+    max_samples: int,
+    authored_only: bool
+) -> Array[Dictionary]:
     var result: Array[Dictionary] = []
     if not is_configured() or not _is_known_region(region_id):
         return result
 
     for surface in _surfaces:
-        var region_values := _get_region_weights(surface, region_id)
+        var region_values: PackedFloat32Array
+        if authored_only:
+            region_values = _get_authored_region_weights(surface, region_id)
+        else:
+            region_values = _get_region_weights(surface, region_id)
         if region_values.is_empty():
             continue
         var qualifying: Array[int] = []
@@ -283,6 +316,61 @@ func get_surface_vertex_sample(mesh_node_path: NodePath, surface_index: int, ver
     return {}
 
 
+## True only when a topology-bound authored mask supplies this region on at least
+## one validated source surface. Broad rig channels are deliberately excluded.
+func has_authored_region(region_id: String, minimum_weight: float = 0.25) -> bool:
+    if not is_configured() or not CharacterSurfaceRegionMask.REGION_IDS.has(region_id):
+        return false
+    for surface in _surfaces:
+        var weights := _get_authored_region_weights(surface, region_id)
+        for weight in weights:
+            if weight >= minimum_weight:
+                return true
+    return false
+
+
+## Returns the union of independently authored channels. Vertices belonging to
+## multiple selected regions appear once, with all memberships retained. This is
+## the coverage primitive for garment panels; boundary overlap is intentional.
+func get_authored_region_union_samples(
+    region_ids: PackedStringArray,
+    minimum_weight: float = 0.25,
+    max_samples: int = 0
+) -> Array[Dictionary]:
+    var result: Array[Dictionary] = []
+    if not is_configured() or region_ids.is_empty():
+        return result
+    var by_vertex: Dictionary = {}
+    for region_id in region_ids:
+        if not CharacterSurfaceRegionMask.REGION_IDS.has(region_id):
+            continue
+        for sample in get_authored_region_surface_samples(region_id, minimum_weight, 0):
+            var mesh_instance: MeshInstance3D = sample["mesh_instance"]
+            var key := "%d:%d:%d" % [
+                mesh_instance.get_instance_id(), int(sample["surface_index"]), int(sample["vertex_index"])
+            ]
+            if not by_vertex.has(key):
+                sample["region_ids"] = PackedStringArray([region_id])
+                by_vertex[key] = sample
+            else:
+                var existing: Dictionary = by_vertex[key]
+                var memberships: PackedStringArray = existing["region_ids"]
+                if not memberships.has(region_id):
+                    memberships.append(region_id)
+                existing["region_ids"] = memberships
+                existing["weight"] = maxf(float(existing["weight"]), float(sample["weight"]))
+                by_vertex[key] = existing
+    for sample in by_vertex.values():
+        result.append(sample)
+    if max_samples > 0 and result.size() > max_samples:
+        var sampled: Array[Dictionary] = []
+        var stride := int(ceil(float(result.size()) / float(max_samples)))
+        for index in range(0, result.size(), stride):
+            sampled.append(result[index])
+        return sampled
+    return result
+
+
 func get_closest_region_sample(
     region_id: String,
     character_local_point: Vector3,
@@ -317,13 +405,19 @@ func _is_known_region(region_id: String) -> bool:
 
 
 func _get_region_weights(surface: Dictionary, region_id: String) -> PackedFloat32Array:
+    var authored_values := _get_authored_region_weights(surface, region_id)
+    if not authored_values.is_empty():
+        return authored_values
     if surface["region_weights"].has(region_id):
         var broad_values: PackedFloat32Array = surface["region_weights"][region_id]
         return broad_values
+    return PackedFloat32Array()
+
+
+func _get_authored_region_weights(surface: Dictionary, region_id: String) -> PackedFloat32Array:
     var fine_weights: Dictionary = surface.get("fine_region_weights", {})
     if fine_weights.has(region_id):
-        var authored_values: PackedFloat32Array = fine_weights[region_id]
-        return authored_values
+        return fine_weights[region_id] as PackedFloat32Array
     return PackedFloat32Array()
 
 

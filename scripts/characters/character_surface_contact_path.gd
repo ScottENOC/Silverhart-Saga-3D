@@ -64,7 +64,7 @@ func validate_for_mesh(mesh_instance: MeshInstance3D, body_root: Node3D, expecte
     return ""
 
 
-func evaluate(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
+func evaluate(surface_regions: CharacterBodySurface) -> Array[Dictionary]:
     var result: Array[Dictionary] = []
     last_evaluation_error = ""
     if surface_regions == null:
@@ -164,7 +164,7 @@ func _project_to_surface(vector: Vector3, normal: Vector3) -> Vector3:
 
 ## Returns a dense route constrained to the source mesh's triangle-edge graph.
 ## This is a surface-following approximation, not an exact continuous geodesic.
-func evaluate_surface_path(surface_regions: CharacterSurfaceRegions) -> Array[Dictionary]:
+func evaluate_surface_path(surface_regions: CharacterBodySurface) -> Array[Dictionary]:
     last_evaluation_error = ""
     if surface_regions == null:
         last_evaluation_error = "Surface-region evaluator is null"
@@ -225,7 +225,7 @@ func evaluate_surface_path(surface_regions: CharacterSurfaceRegions) -> Array[Di
     return dense
 
 
-func _evaluate_control_point(surface_regions: CharacterSurfaceRegions, point: Dictionary, point_index: int) -> Dictionary:
+func _evaluate_control_point(surface_regions: CharacterBodySurface, point: Dictionary, point_index: int) -> Dictionary:
     var triangle: PackedInt32Array = point["triangle_indices"]
     var weights: PackedFloat32Array = point["barycentric"]
     var position := Vector3.ZERO
