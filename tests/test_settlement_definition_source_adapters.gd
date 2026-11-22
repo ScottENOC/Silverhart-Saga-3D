@@ -44,7 +44,7 @@ func _test_campaign2_layout_adapter() -> void:
 	if not parsed is Dictionary:
 		return
 	var settlements: Array = parsed.get("settlements", [])
-	_check(settlements.size() == 4, "Campaign 2 source must include Millbrook, Emberlode, Reddale and Old Mac's Farmstead")
+	_check(settlements.size() == 5, "Campaign 2 source must include Millbrook, Emberlode, Reddale, Old Mac and Silverhart")
 	for layout in settlements:
 		var canonical: Dictionary = adapters.adapt_campaign2_layout(layout)
 		var validation: Dictionary = adapters.validate_adapted(canonical)
@@ -55,6 +55,16 @@ func _test_campaign2_layout_adapter() -> void:
 		_check(canonical.get("interiors", []).size() == layout.get("interiors", []).size(), "All source interior records must survive adaptation")
 		_check(canonical.get("layout", {}).get("fields", []).size() == layout.get("fields", []).size() + layout.get("crop_rows", []).size() + layout.get("fences", []).size(), "All source agricultural fields, crop rows and fences must survive adaptation")
 		_check(canonical.get("layout", {}).get("props", []).size() == layout.get("props", []).size(), "All source quest props must survive adaptation")
+		if String(layout.get("id", "")) == "silverhart":
+			var courtyard := _find_record(canonical.layout.paths, "silverhart_barracks_courtyard")
+			var points: Array = courtyard.get("points", [])
+			_check(points.size() == 3, "Silverhart polyline points must survive canonical adaptation")
+			if points.size() == 3:
+				_check(points[0] == {"q": 9, "r": -487}, "Silverhart polyline first point must be canonical axial coordinates")
+				_check(points[2] == {"q": 17, "r": -494}, "Silverhart polyline last point must be canonical axial coordinates")
+			var bounds: Dictionary = canonical.get("bounds", {})
+			_check(int(bounds.get("min_q", 0)) < 0 and int(bounds.get("max_q", 0)) > 20, "Silverhart bounds must include the full palace wings")
+			_check(int(bounds.get("max_r", 0)) < -450, "Points-only paths must not inject a false origin into Silverhart bounds")
 		if String(layout.get("id", "")) != "millbrook":
 			continue
 		var house := _find_record(canonical.layout.buildings, "millbrook_house")
