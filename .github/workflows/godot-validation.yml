@@ -84,6 +84,9 @@ jobs:
         run: |
           godot --version
           godot --headless --editor --path . --quit
+      - name: Run player body asset import regression test when generated assets are present
+        if: ${{ hashFiles('art/characters/ara_runtime/ara_player_female_body.glb', 'art/characters/ara_runtime/ara_player_male_body.glb') != '' }}
+        run: godot --headless --path . --script res://tests/test_player_body_assets.gd
       - name: Test MakeHuman target parser
         run: |
           python -m py_compile tools/makehuman/target_format.py
