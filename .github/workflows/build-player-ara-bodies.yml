@@ -170,7 +170,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin "${GITHUB_REF_NAME}"
+          git fetch origin
           # The job checks out a detached trigger commit. Rebase alone does not
           # fast-forward an ancestor commit to the fetched branch tip, so create
           # the asset commit from the current remote branch explicitly.
