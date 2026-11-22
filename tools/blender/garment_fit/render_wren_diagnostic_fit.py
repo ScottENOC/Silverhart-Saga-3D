@@ -94,11 +94,27 @@ def main():
         normal = (body.matrix_world.to_3x3() @ v.normal).normalized()
         start_world.append(tuple(world_vertices[old] + normal * 0.005))
 
+    normal_matrix = body.matrix_world.to_3x3().inverted().transposed()
+
+    def smooth_polygon_normal(face_index):
+        # BVHTree returns the polygon's geometric normal, which follows face
+        # winding and can be reversed on imported meshes. Use the source mesh's
+        # smooth vertex normals instead, transformed with the inverse transpose.
+        polygon = body.data.polygons[face_index]
+        local_normal = sum(
+            (body.data.vertices[index].normal for index in polygon.vertices),
+            Vector((0.0, 0.0, 0.0)),
+        )
+        if local_normal.length_squared <= 1e-16:
+            raise RuntimeError(f"Degenerate smooth normal on body polygon {face_index}")
+        return (normal_matrix @ local_normal.normalized()).normalized()
+
     def query(point):
         hit = tree.find_nearest(Vector(point))
-        if hit is None or hit[0] is None or hit[1] is None:
+        if hit is None or hit[0] is None or hit[1] is None or hit[2] is None:
             return None
-        return tuple(hit[0]), tuple(hit[1].normalized())
+        location, _face_normal, face_index, _distance = hit
+        return tuple(location), tuple(smooth_polygon_normal(face_index))
 
     # Record the starting geometry and compare BVH face normals with the
     # source mesh's smooth vertex normals. This distinguishes a solver issue
@@ -110,12 +126,13 @@ def main():
         hit = query(point)
         if hit is None:
             continue
-        nearest, face_normal = hit
+        nearest, query_normal = hit
         delta = Vector(point) - Vector(nearest)
-        smooth_normal = (body.matrix_world.to_3x3() @ body.data.vertices[old].normal).normalized()
-        initial_signed.append(delta.dot(Vector(face_normal)))
+        raw_hit = tree.find_nearest(Vector(point))
+        raw_face_normal = raw_hit[1].normalized()
+        initial_signed.append(delta.dot(Vector(query_normal)))
         initial_distances.append(delta.length)
-        normal_alignment.append(smooth_normal.dot(Vector(face_normal)))
+        normal_alignment.append(Vector(query_normal).dot(Vector(raw_face_normal)))
 
     def metric_summary(values):
         ordered = sorted(values)
@@ -131,9 +148,9 @@ def main():
     initial_diagnostics = {
         "signed_clearance_m": metric_summary(initial_signed),
         "nearest_distance_m": metric_summary(initial_distances),
-        "face_vs_smooth_normal_dot": metric_summary(normal_alignment),
-        "face_normals_opposed_to_smooth": sum(value < 0.0 for value in normal_alignment),
-        "face_normals_oblique_to_smooth": sum(value < 0.5 for value in normal_alignment),
+        "raw_face_vs_smooth_query_normal_dot": metric_summary(normal_alignment),
+        "raw_face_normals_opposed_to_smooth": sum(value < 0.0 for value in normal_alignment),
+        "raw_face_normals_oblique_to_smooth": sum(value < 0.5 for value in normal_alignment),
         "measured_vertices": len(initial_signed),
     }
 
