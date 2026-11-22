@@ -159,7 +159,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		"hollis_vane", "sergeant_bell", "nix_the_cutpurse", "osric_fenn", "greta_aldwyn", "tomlin_reed"
 	]:
 		_check(placement_ids.has(required_id), "Silverhart must preserve source NPC placement " + required_id)
-	_check(layout.get("buildings", []).size() == 29, "Silverhart must include palace, merchant, noble, diplomatic, commons and outer residential buildings")
+	_check(layout.get("buildings", []).size() == 40, "Silverhart must include palace, merchant, noble, diplomatic, commons, middle-ring and Warrens buildings")
 	_check(layout.get("buildings", []).size() == 29, "Silverhart must include palace, merchant, noble, diplomatic, commons and outer residential buildings")
 	for building_id in [
 		"silverhart_stables", "silverhart_general_goods", "silverhart_clothier", "silverhart_magic_shop",
@@ -182,7 +182,45 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		"silverhart_ironbond_approach", "silverhart_cathedral_approach"
 	]:
 		_check(not _find_record(layout.get("paths", []), road_id).is_empty(), "Silverhart district street must be present: " + road_id)
-	_check(layout.get("paths", []).size() == 19, "Silverhart must retain palace routes and both quarter street grids")
+	_check(layout.get("paths", []).size() == 29, "Silverhart must retain palace routes and both quarter street grids")
+	for building_id in [
+		"silverhart_middle_ring_house_1", "silverhart_middle_ring_house_2", "silverhart_middle_ring_house_3",
+		"silverhart_middle_ring_house_4", "silverhart_middle_ring_house_5", "silverhart_middle_ring_house_6",
+		"silverhart_warrens_shack_1", "silverhart_warrens_shack_2", "silverhart_warrens_shack_3",
+		"silverhart_thieves_guild", "silverhart_thieves_guild_vault"
+	]:
+		var outer_building := _find_record(layout.get("buildings", []), building_id)
+		_check(not outer_building.is_empty(), "Silverhart outer-city building must be present: " + building_id)
+		if not outer_building.is_empty():
+			_check(BUILDING_FACTORY.supports_definition(outer_building), "Silverhart outer-city building archetype must be supported: " + building_id)
+	for road_id in [
+		"silverhart_middle_ring_road", "silverhart_middle_ring_south_connector",
+		"silverhart_middle_ring_house_spur_1", "silverhart_middle_ring_house_spur_2",
+		"silverhart_middle_ring_house_spur_3", "silverhart_middle_ring_house_spur_4",
+		"silverhart_middle_ring_house_spur_5", "silverhart_middle_ring_house_spur_6",
+		"silverhart_city_gate_approach", "silverhart_warrens_approach"
+	]:
+		_check(not _find_record(layout.get("paths", []), road_id).is_empty(), "Silverhart outer-city route must be present: " + road_id)
+	var middle_road := _find_record(layout.get("paths", []), "silverhart_middle_ring_road")
+	var middle_points: Array = middle_road.get("points", [])
+	_check(middle_points.size() == 7, "Middle ring must retain its six source corners and closure")
+	if middle_points.size() == 7:
+		_assert_axial(middle_points[0], Vector2i(53, -496), "Middle ring east corner")
+		_assert_axial(middle_points[2], Vector2i(8, -541), "Middle ring north corner")
+		_assert_axial(middle_points[4], Vector2i(-37, -451), "Middle ring south-west corner")
+	var city_wall_cells := 0
+	var city_towers := 0
+	for prop in props:
+		var prop_id := String(prop.get("id", ""))
+		if prop_id.begins_with("silverhart_city_wall_"):
+			city_wall_cells += 1
+		elif prop_id.begins_with("silverhart_city_wall_watchtower_"):
+			city_towers += 1
+	_check(city_wall_cells == 357, "Outer city wall must preserve all 360 radius-60 cells except the three-cell south gate")
+	_check(city_towers == 2, "Outer city wall must include both source gate watchtowers")
+	_check(not _find_record(props, "silverhart_city_gate_arch").is_empty(), "Outer city gate arch must be presented")
+	_check(terrain.terrain_for_hex(Vector2i(8, -541)) == "path", "Middle ring road must be indexed at its north corner")
+	_check(terrain.terrain_for_hex(Vector2i(8, -436)) == "path", "Outer city gate approach must reach the three-cell gate")
 	var expected_centres := {
 		"silverhart_grand_hall": Vector2i(8, -496),
 		"silverhart_barracks": Vector2i(22, -494),
@@ -229,7 +267,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		_check(terrain.terrain_for_hex(ring_corner) == "path", "Silverhart source outer ring road must be indexed at " + str(ring_corner))
 	_check(terrain.terrain_for_hex(Vector2i(8, -472)) == "path", "Silverhart gate exterior road must meet the southern ring-road corner")
 	var props: Array = layout.get("props", [])
-	_check(props.size() == 153, "Silverhart must include 138 curtain-wall sections, seven watchtowers, two ladders, a gate arch, fountain and bounty board")
+	_check(props.size() == 513, "Silverhart must include both palisade rings, nine watchtowers, two ladders, two gate arches, fountain and bounty board")
 	var wall_cells := 0
 	var tower_ids: Array[String] = []
 	var ladder_ids: Array[String] = []
