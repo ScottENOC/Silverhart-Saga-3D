@@ -4210,7 +4210,49 @@
         }
       ],
       "creatures": [],
-      "interiors": [],
+      "interiors": [
+        {
+          "id": "silverhart_thieves_guild_interior",
+          "building_id": "silverhart_thieves_guild",
+          "center": {
+            "q": 14,
+            "r": -426
+          },
+          "floor": 0,
+          "kind": "thieves_guild",
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace thievesGuildCenter"
+        },
+        {
+          "id": "silverhart_thieves_guild_vault_interior",
+          "building_id": "silverhart_thieves_guild_vault",
+          "center": {
+            "q": 21,
+            "r": -426
+          },
+          "floor": 0,
+          "kind": "hidden_vault",
+          "secret_entry": {
+            "q": 19,
+            "r": -426
+          },
+          "objects": [
+            {
+              "type": "storage_chest",
+              "id": "silverhart_guild_vault_chest",
+              "position": {
+                "q": 22,
+                "r": -426
+              },
+              "items": [
+                "gem_blue",
+                "gem_red",
+                "silvertongue_ring"
+              ]
+            }
+          ],
+          "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace vaultCenter and placeSecretDoor"
+        }
+      ],
       "props": [
         {
           "id": "silverhart_curtain_wall_1",
