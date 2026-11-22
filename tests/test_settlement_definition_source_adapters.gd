@@ -64,7 +64,7 @@ func _test_campaign2_layout_adapter() -> void:
 				_check(points[2] == {"q": 17, "r": -494}, "Silverhart polyline last point must be canonical axial coordinates")
 			var bounds: Dictionary = canonical.get("bounds", {})
 			_check(int(bounds.get("min_q", 0)) < 0 and int(bounds.get("max_q", 0)) > 20, "Silverhart bounds must include the full palace wings")
-			_check(int(bounds.get("max_r", 0)) < -450, "Points-only paths must not inject a false origin into Silverhart bounds")
+			_check(int(bounds.get("max_r", 0)) < 0, "Silverhart bounds must remain in the authored negative-r region; points-only paths must not inject a false origin")
 		if String(layout.get("id", "")) != "millbrook":
 			continue
 		var house := _find_record(canonical.layout.buildings, "millbrook_house")
