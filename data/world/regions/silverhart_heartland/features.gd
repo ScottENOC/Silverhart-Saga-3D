@@ -28,10 +28,32 @@ const ELVEN_CAPITAL_CENTRE := Vector2i(-252, 934)
 const ELVEN_CANOPY_RADIUS := 18
 const ELVEN_CLEARING_RADIUS := 9
 
+## Kragmoor's source anchor is Hollowmere's crossroads plus (+900, -650).
+## The mountain is a solid 25-hex massif; only the surface Gate Hall and its
+## south approach are carved into it in this terrain-only pass.
+const KRAGMOOR_CENTRE := Vector2i(908, -626)
+const KRAGMOOR_MASSIF_RADIUS := 25
+const KRAGMOOR_GATE_HALL_CENTRE := Vector2i(908, -608)
+const KRAGMOOR_GATE_DOOR := Vector2i(908, -605)
+const KRAGMOOR_APPROACH_TIP := Vector2i(908, -593)
+const CAMPAIGN2_CROSSROADS := Vector2i(8, 24)
+
 static var _orc_approach_path_cells: Dictionary = {}
 static var _orc_approach_path_ready := false
+static var _kragmoor_approach_path_cells: Dictionary = {}
+static var _kragmoor_approach_path_ready := false
+static var _kragmoor_gate_floor_cells: Dictionary = {}
+static var _kragmoor_gate_floor_ready := false
 
 static func terrain_override_at(hex: Vector2i) -> Dictionary:
+	if _is_kragmoor_gate_floor(hex):
+		return {"terrain": "cave_floor", "feature_id": "kragmoor_gate_hall"}
+	if hex == KRAGMOOR_GATE_DOOR:
+		return {"terrain": "path", "feature_id": "kragmoor_gate"}
+	if is_kragmoor_approach_path(hex):
+		return {"terrain": "path", "feature_id": "kragmoor_approach"}
+	if _axial_distance(hex, KRAGMOOR_CENTRE) <= KRAGMOOR_MASSIF_RADIUS:
+		return {"terrain": "mountain", "feature_id": "kragmoor_massif", "distance": _axial_distance(hex, KRAGMOOR_CENTRE)}
 	if hex == DRUID_GROVE_SPRING:
 		return {"terrain": "water", "feature_id": "emberwood_grove_spring"}
 	if hex == ORC_STRONGHOLD_GATE:
@@ -90,7 +112,71 @@ static func is_orc_approach_path(hex: Vector2i) -> bool:
 	_ensure_orc_approach_path()
 	return _orc_approach_path_cells.has(_hex_key(hex))
 
+static func is_kragmoor_approach_path(hex: Vector2i) -> bool:
+	_ensure_kragmoor_approach_path()
+	return _kragmoor_approach_path_cells.has(_hex_key(hex))
+
+static func _is_kragmoor_gate_floor(hex: Vector2i) -> bool:
+	_ensure_kragmoor_gate_floor()
+	return _kragmoor_gate_floor_cells.has(_hex_key(hex))
+
+static func _ensure_kragmoor_gate_floor() -> void:
+	if _kragmoor_gate_floor_ready:
+		return
+	# Exact flat-room footprint from source carveFlatRoom(center, 4, 3).
+	for dq in range(-3, 4):
+		var row_shift := -floori(float(dq) / 2.0)
+		for dr in range(-2, 3):
+			var cell := KRAGMOOR_GATE_HALL_CENTRE + Vector2i(dq, dr + row_shift)
+			_kragmoor_gate_floor_cells[_hex_key(cell)] = true
+	_kragmoor_gate_floor_ready = true
+
+static func _ensure_kragmoor_approach_path() -> void:
+	if _kragmoor_approach_path_ready:
+		return
+	# Source paints a continuous cube-rounded hex line from Hollowmere's
+	# crossroads to the southern spur tip, then the 12-hex spur to the gate.
+	_add_hex_line(_kragmoor_approach_path_cells, CAMPAIGN2_CROSSROADS, KRAGMOOR_APPROACH_TIP)
+	for r in range(KRAGMOOR_GATE_DOOR.y + 1, KRAGMOOR_APPROACH_TIP.y + 1):
+		_kragmoor_approach_path_cells[_hex_key(Vector2i(KRAGMOOR_GATE_DOOR.x, r))] = true
+	_kragmoor_approach_path_ready = true
+
+static func _add_hex_line(target: Dictionary, start: Vector2i, finish: Vector2i) -> void:
+	var x1 := start.x
+	var z1 := start.y
+	var y1 := -x1 - z1
+	var x2 := finish.x
+	var z2 := finish.y
+	var y2 := -x2 - z2
+	var steps := maxi(absi(x2 - x1), maxi(absi(y2 - y1), absi(z2 - z1)))
+	for index in range(steps + 1):
+		var t := float(index) / float(steps)
+		var fx := lerpf(float(x1), float(x2), t)
+		var fy := lerpf(float(y1), float(y2), t)
+		var fz := lerpf(float(z1), float(z2), t)
+		var rx := floori(fx + 0.5)
+		var ry := floori(fy + 0.5)
+		var rz := floori(fz + 0.5)
+		var x_diff := absf(float(rx) - fx)
+		var y_diff := absf(float(ry) - fy)
+		var z_diff := absf(float(rz) - fz)
+		if x_diff > y_diff and x_diff > z_diff:
+			rx = -ry - rz
+		elif y_diff > z_diff:
+			ry = -rx - rz
+		else:
+			rz = -rx - ry
+		target[_hex_key(Vector2i(rx, rz))] = true
+
 static func feature_id_at(hex: Vector2i) -> String:
+	if _is_kragmoor_gate_floor(hex):
+		return "kragmoor_gate_hall"
+	if hex == KRAGMOOR_GATE_DOOR:
+		return "kragmoor_gate"
+	if is_kragmoor_approach_path(hex):
+		return "kragmoor_approach"
+	if _axial_distance(hex, KRAGMOOR_CENTRE) <= KRAGMOOR_MASSIF_RADIUS:
+		return "kragmoor_massif"
 	if hex == DRUID_GROVE_DEN:
 		return "druid_grove_trial_den"
 	if hex == DRUID_GROVE_SPRING:
