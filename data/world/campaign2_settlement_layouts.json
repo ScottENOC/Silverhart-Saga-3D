@@ -1999,6 +1999,132 @@
             "floor": "wood"
           },
           "source": "Hex-crpg/campaign2World.js:eastQuarterHouses[3]"
+        },
+        {
+          "id": "silverhart_elven_embassy",
+          "kind": "manor",
+          "archetype": "manor",
+          "center": {
+            "q": 0,
+            "r": -466
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 3,
+            "r": -466
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "elven_embassy",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:elvenCenter"
+        },
+        {
+          "id": "silverhart_dwarven_embassy",
+          "kind": "manor",
+          "archetype": "manor",
+          "center": {
+            "q": 16,
+            "r": -470
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 13,
+            "r": -470
+          },
+          "door_side": "west",
+          "interior": {
+            "kind": "dwarven_embassy",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:dwarvenCenter"
+        },
+        {
+          "id": "silverhart_aldenreach_embassy",
+          "kind": "manor",
+          "archetype": "manor",
+          "center": {
+            "q": 0,
+            "r": -460
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 3,
+            "r": -460
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "aldenreach_embassy",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:aldenreachCenter"
+        },
+        {
+          "id": "silverhart_corvane_embassy",
+          "kind": "manor",
+          "archetype": "manor",
+          "center": {
+            "q": 16,
+            "r": -462
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 13,
+            "r": -462
+          },
+          "door_side": "west",
+          "interior": {
+            "kind": "corvane_embassy",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:corvaneCenter"
+        },
+        {
+          "id": "silverhart_ironbond_office",
+          "kind": "shop",
+          "archetype": "shop",
+          "center": {
+            "q": 1,
+            "r": -454
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 4,
+            "r": -454
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "ironbond_office",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:ironbondOfficeCenter"
+        },
+        {
+          "id": "silverhart_grand_cathedral",
+          "kind": "chapel",
+          "archetype": "chapel",
+          "center": {
+            "q": 14,
+            "r": -451
+          },
+          "half_q": 4,
+          "half_r": 4,
+          "door": {
+            "q": 10,
+            "r": -451
+          },
+          "door_side": "west",
+          "interior": {
+            "kind": "grand_cathedral",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:cathedralCenter"
         }
       ],
       "paths": [
@@ -2233,6 +2359,104 @@
           },
           "width": 2,
           "source": "Hex-crpg/campaign2World.js:Silverhart Merchant and Noble Quarter street grid"
+        },
+        {
+          "id": "silverhart_diplomatic_main_road",
+          "kind": "road",
+          "from": {
+            "q": 8,
+            "r": -472
+          },
+          "to": {
+            "q": 8,
+            "r": -444
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Diplomatic Quarter road and embassy approaches"
+        },
+        {
+          "id": "silverhart_elven_embassy_approach",
+          "kind": "road",
+          "from": {
+            "q": 3,
+            "r": -466
+          },
+          "to": {
+            "q": 8,
+            "r": -466
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Diplomatic Quarter road and embassy approaches"
+        },
+        {
+          "id": "silverhart_dwarven_embassy_approach",
+          "kind": "road",
+          "from": {
+            "q": 13,
+            "r": -470
+          },
+          "to": {
+            "q": 8,
+            "r": -470
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Diplomatic Quarter road and embassy approaches"
+        },
+        {
+          "id": "silverhart_aldenreach_embassy_approach",
+          "kind": "road",
+          "from": {
+            "q": 3,
+            "r": -460
+          },
+          "to": {
+            "q": 8,
+            "r": -460
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Diplomatic Quarter road and embassy approaches"
+        },
+        {
+          "id": "silverhart_corvane_embassy_approach",
+          "kind": "road",
+          "from": {
+            "q": 8,
+            "r": -459
+          },
+          "to": {
+            "q": 13,
+            "r": -459
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Diplomatic Quarter road and embassy approaches"
+        },
+        {
+          "id": "silverhart_ironbond_approach",
+          "kind": "road",
+          "from": {
+            "q": 4,
+            "r": -454
+          },
+          "to": {
+            "q": 8,
+            "r": -454
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Diplomatic Quarter road and embassy approaches"
+        },
+        {
+          "id": "silverhart_cathedral_approach",
+          "kind": "road",
+          "from": {
+            "q": 8,
+            "r": -451
+          },
+          "to": {
+            "q": 10,
+            "r": -451
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Diplomatic Quarter road and embassy approaches"
         }
       ],
       "npcs": [],
@@ -5814,6 +6038,122 @@
               "position": {
                 "x": 0,
                 "y": 1.23,
+                "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_diplomatic_plaza_fountain",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 8,
+            "r": -455
+          },
+          "parts": [
+            {
+              "name": "FountainBasin",
+              "type": "cylinder",
+              "material": "stone",
+              "top_radius": 1.5,
+              "bottom_radius": 1.7,
+              "height": 0.35,
+              "position": {
+                "x": 0,
+                "y": 0.18,
+                "z": 0
+              }
+            },
+            {
+              "name": "FountainColumn",
+              "type": "cylinder",
+              "material": "stone",
+              "top_radius": 0.35,
+              "bottom_radius": 0.45,
+              "height": 1.5,
+              "position": {
+                "x": 0,
+                "y": 0.9,
+                "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_diplomatic_plaza_bench_west",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 6,
+            "r": -455
+          },
+          "parts": [
+            {
+              "name": "BenchSeat",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.8,
+                "y": 0.18,
+                "z": 0.55
+              },
+              "position": {
+                "x": 0,
+                "y": 0.45,
+                "z": 0
+              }
+            },
+            {
+              "name": "BenchLegs",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.16,
+                "y": 0.45,
+                "z": 0.16
+              },
+              "position": {
+                "x": -0.65,
+                "y": 0.22,
+                "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_diplomatic_plaza_bench_east",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 10,
+            "r": -455
+          },
+          "parts": [
+            {
+              "name": "BenchSeat",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.8,
+                "y": 0.18,
+                "z": 0.55
+              },
+              "position": {
+                "x": 0,
+                "y": 0.45,
+                "z": 0
+              }
+            },
+            {
+              "name": "BenchLegs",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.16,
+                "y": 0.45,
+                "z": 0.16
+              },
+              "position": {
+                "x": -0.65,
+                "y": 0.22,
                 "z": 0
               }
             }
