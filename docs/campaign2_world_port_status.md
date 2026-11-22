@@ -16,7 +16,7 @@ The surrounding wilderness is still partly generated from regional terrain rules
 
 ## Canonical settlement content
 
-The registry on this branch contains five settlement definitions:
+The registry on this branch contains six settlement definitions:
 
 | Location | Migrated content | Still outstanding |
 |---|---|---|
@@ -24,8 +24,9 @@ The registry on this branch contains five settlement definitions:
 | Millbrook | One source-positioned house, road spur and two named NPC profiles/placements | Interior construction and services/interactions |
 | Emberlode | Foreman's hall, bunkhouse, mine entrance, two road approaches and three named NPCs; source mine levels, stairs, ore, ledger and underground spiders retained as data | Playable interiors/floor transitions, ore interactions, spider spawning on floor -2, dialogue/quest consequences |
 | Reddale | Guardhouse, reeve's house, inn, Ironbond guildhouse, manor and smithy; three road approaches and twelve named NPCs; interior/evidence/service metadata | Playable interiors, merchant services, evidence reading, bribes, dialogue and espionage quest consequences |
+| Kragmoor | Source-positioned Gate Hall structure at (908,-608), south entrance at (908,-605), stone dwarven gate-hall archetype and ground-floor stair-down metadata | Full mountain interior, floors -1 to -5, corridors, stair transitions, king/guards/trader/runesmith/foreman, vermin and Sunken Deep quest gate |
 
-The shared chunk presenter renders the exterior buildings and surface actors for these definitions. Interior metadata is preserved by the canonical adapter but is not yet a playable interior implementation.
+The shared chunk presenter renders the exterior buildings and surface actors for these definitions. Interior metadata is preserved by the canonical adapter but is not yet a playable interior implementation. Kragmoor is currently a first structure slice: its surface Gate Hall is presented, while its descending Deepholds floors remain outstanding.
 
 ## Remaining source-authored world locations
 
