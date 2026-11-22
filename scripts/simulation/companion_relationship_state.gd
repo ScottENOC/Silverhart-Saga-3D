@@ -109,7 +109,8 @@ func has_profile(companion_id: String) -> bool:
 
 
 func profile_for(companion_id: String) -> Dictionary:
-	return (PROFILES.get(companion_id, {}) as Dictionary).duplicate(true)
+	var profile: Dictionary = PROFILES.get(companion_id, {})
+	return profile.duplicate(true)
 
 
 func ensure(companion_id: String, presentation: String = "masculine") -> Dictionary:
