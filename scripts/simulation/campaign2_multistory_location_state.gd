@@ -125,7 +125,10 @@ func restore(saved_state: Dictionary) -> bool:
 		restored_unlocks[key] = true
 	for key in _available_transitions:
 		var transition := _transition_by_key(String(key))
-		_available_transitions[key] = bool(transition.get("initially_available", true)) or restored_unlocks.has(String(key))
+		var initially_available := bool(transition.get("initially_available", true))
+		if int(transition.get("to_floor", 999999)) == restored_floor and not initially_available and not restored_unlocks.has(String(key)):
+			return false
+		_available_transitions[key] = initially_available or restored_unlocks.has(String(key))
 	current_floor = restored_floor
 	return true
 
