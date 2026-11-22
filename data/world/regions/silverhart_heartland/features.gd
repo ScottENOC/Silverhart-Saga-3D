@@ -45,7 +45,7 @@ const NORTHWATCH_CENTRE := Vector2i(268, -21)
 const NORTHWATCH_GATE := Vector2i(268, -2)
 const NORTHWATCH_SPUR_START := Vector2i(268, 22)
 const RIDGEHOLD_CENTRE := Vector2i(426, 43)
-const RIDGEHOLD_GATE := Vector2i(406, 35)
+const RIDGEHOLD_GATE := Vector2i(407, 43)
 const RIDGEHOLD_ROAD_END := Vector2i(398, 23)
 const STAR_FORT_CORE_RADIUS := 6
 const STAR_FORT_POINT_LENGTH := 12
@@ -160,7 +160,7 @@ static func _ensure_border_fort_features() -> void:
 
 	# Northwatch's south spur follows the source turn hex directly to the
 	# gate. The gate itself remains a closed-wall terrain cell, not a path.
-	for r in range(NORTHWATCH_SPUR_START.y, NORTHWATCH_GATE.y - 1, -1):
+	for r in range(NORTHWATCH_SPUR_START.y - 1, NORTHWATCH_GATE.y - 1, -1):
 		var cell := Vector2i(NORTHWATCH_SPUR_START.x, r)
 		if cell == NORTHWATCH_GATE:
 			continue
