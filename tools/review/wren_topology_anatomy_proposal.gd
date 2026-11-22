@@ -166,7 +166,7 @@ func _run() -> void:
         "limitations": [
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
-            "The fixed hop radius is a review heuristic and must be tuned against the native mesh.",
+            "The five-hop graph radius and expanded seed-volume limit are review heuristics; local mesh density affects physical reach and each boundary needs visual review.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
             "Only the 12 bra-relevant regions in this first tranche are proposed; the remaining semantic regions stay explicitly unauthored."
         ]
