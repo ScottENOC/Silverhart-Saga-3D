@@ -196,10 +196,13 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	# provider so an authored palace road cannot be hidden by its grass base.
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
-	if settlement_building_cells.has(_hex_key(hex)):
-		return "authored"
+	# Source paths are painted after building footprints in the original world
+	# builder. Preserve that ordering where an authored road reaches a doorway
+	# or skirts the edge of a building.
 	if settlement_path_cells.has(_hex_key(hex)):
 		return "path"
+	if settlement_building_cells.has(_hex_key(hex)):
+		return "authored"
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
@@ -238,10 +241,10 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
-	if settlement_building_cells.has(_hex_key(hex)):
-		return "building"
 	if settlement_path_cells.has(_hex_key(hex)):
 		return "path"
+	if settlement_building_cells.has(_hex_key(hex)):
+		return "building"
 	var terrain := terrain_for_hex(hex)
 	return "building" if terrain == "authored" else terrain
 
