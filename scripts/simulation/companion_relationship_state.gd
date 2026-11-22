@@ -142,7 +142,9 @@ const WREN_DISPOSITION_EVENTS := {
 	"goblin_resolution:goblin_diplomacy": {"approval": 8, "trust": 6, "reason": "got the Skarn-tooth tribe away from Hollowmere peacefully"},
 	"goblin_resolution:goblin_alliance": {"approval": -10, "trust": -8, "reason": "let a raiding tribe settle permanently on Hollowmere’s doorstep"},
 	"goblin_resolution:betrayal": {"approval": -40, "trust": -35, "reason": "betrayed Wren and Hollowmere"},
-	"parents_search_promise": {"approval": 2, "trust": 1, "reason": "promised to help look for Wren’s parents in Millbrook"}
+	"parents_search_promise": {"approval": 2, "trust": 1, "reason": "promised to help look for Wren’s parents in Millbrook"},
+	"parents_search_reached_millbrook": {"approval": 5, "trust": 10, "reason": "kept the promise to bring Wren to Millbrook and ask about her parents"},
+	"player_became_lich": {"approval": -50, "trust": -100, "reason": "chose lichdom and dragged Wren into its consequences"}
 }
 
 const WREN_DIALOGUE_EVENTS := {
@@ -204,6 +206,7 @@ func ensure(companion_id: String, presentation: String = "masculine") -> Diction
 		"known_conversation_keys": [],
 		"known_event_keys": [],
 		"known_trust_event_keys": [],
+		"last_shared_party_day": null,
 		"history": []
 	}
 	_apply_caps(companion_id, state)
@@ -359,14 +362,25 @@ func note_personal_dialogue(companion_id: String, dialogue_key: String) -> Dicti
 	return note_conversation(companion_id, "personal_dialogue:" + dialogue_key, minf(2.0, 60.0 - float(state.get("familiarity", 0.0))))
 
 
-func note_shared_party_day(companion_id: String, day_key: String) -> Dictionary:
+func tick_shared_familiarity(companion_id: String, day_index: int) -> Dictionary:
 	var state := ensure(companion_id)
 	if state.is_empty():
 		return {"ok": false, "reason": "unknown_companion"}
-	if float(state.get("familiarity", 0.0)) >= 50.0:
+	var previous_day: Variant = state.get("last_shared_party_day", null)
+	if previous_day == null:
+		state["last_shared_party_day"] = day_index
+		states[companion_id] = state
 		return {"ok": true, "changed": false, "state": snapshot(companion_id)}
-	return note_conversation(companion_id, "shared_party_day:" + day_key, minf(1.0, 50.0 - float(state.get("familiarity", 0.0))))
-
+	if day_index <= int(previous_day):
+		return {"ok": true, "changed": false, "state": snapshot(companion_id)}
+	var elapsed_days := day_index - int(previous_day)
+	state["last_shared_party_day"] = day_index
+	states[companion_id] = state
+	var current_familiarity := float(state.get("familiarity", 0.0))
+	if current_familiarity >= 50.0:
+		return {"ok": true, "changed": false, "state": snapshot(companion_id)}
+	var gain := minf(float(elapsed_days), 50.0 - current_familiarity)
+	return adjust(companion_id, {"familiarity": gain}, "shared_time:" + str(day_index))
 
 func commit_relationship(companion_id: String, relationship_state: String = "committed", world_seconds: float = 0.0) -> Dictionary:
 	var profile: Dictionary = PROFILES.get(companion_id, {})
