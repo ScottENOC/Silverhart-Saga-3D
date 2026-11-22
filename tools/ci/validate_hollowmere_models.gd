@@ -13,15 +13,16 @@ func _run() -> void:
 
     var expected: Dictionary = {}
     for profile in source.get("characters", []):
-        # The source manifest also records companions whose Ara models are built
-        # by their own character pipelines. They are not part of the village cast.
-        if str(profile.get("role", "")) == "companion":
+        # Wren is both a companion and part of the opening Hollowmere cast.
+        # Other companions are built by their own character pipelines.
+        var character_id := str(profile.get("id", ""))
+        if str(profile.get("role", "")) == "companion" and character_id != "wren_talbot":
             continue
-        expected[str(profile.get("id", ""))] = true
+        expected[character_id] = true
 
     var profiles: Array = generated.get("characters", [])
     if expected.size() != 14 or profiles.size() != expected.size() or not expected.has("player_avatar"):
-        _fail("Expected 13 Hollowmere residents plus the generated player_avatar Ara profile.")
+        _fail("Expected 12 Hollowmere residents, Wren, and the generated player_avatar Ara profiles.")
         return
 
     for profile_variant in profiles:
@@ -49,7 +50,7 @@ func _run() -> void:
             return
         instance.free()
 
-    print("Godot imported all 14 Hollowmere Ara models (13 residents plus player avatar) with animation tracks.")
+    print("Godot imported all 14 Hollowmere Ara models (12 residents, Wren and player avatar) with animation tracks.")
     quit(0)
 
 func _read_json(path: String) -> Dictionary:
