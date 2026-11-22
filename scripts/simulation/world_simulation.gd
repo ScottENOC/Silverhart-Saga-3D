@@ -1723,6 +1723,7 @@ func to_dict() -> Dictionary:
         "characters": character_data,
         "wilderness_resources": wilderness_resources.to_dict(),
         "buildings": building_registry.to_dict(),
+        "multistory_locations": multistory_location_states_to_dict(),
     }
 
 func load_dict(data: Dictionary) -> void:
@@ -1731,6 +1732,8 @@ func load_dict(data: Dictionary) -> void:
     # so stale lifecycle events cannot act on restored characters with the same ID.
     for value in characters.values():
         _detach_character_lifecycle(value as CharacterState)
+    multistory_location_states.clear()
+    pending_multistory_location_saves.clear()
     characters.clear()
     occupied_hexes.clear()
     party_member_ids.clear()
@@ -1787,4 +1790,10 @@ func load_dict(data: Dictionary) -> void:
     next_reaction_request_id = 1
     for value in characters.values():
         _attach_character_lifecycle(value as CharacterState)
+    var saved_multistory_locations: Variant = data.get("multistory_locations", {})
+    if saved_multistory_locations is Dictionary:
+        if not restore_multistory_location_states(saved_multistory_locations):
+            push_error("Campaign save contains invalid multi-story location state.")
+    else:
+        push_error("Campaign save multi-story location state must be a dictionary.")
     turn_scheduler.clear()
