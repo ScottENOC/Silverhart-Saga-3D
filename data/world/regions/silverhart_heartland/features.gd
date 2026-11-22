@@ -169,7 +169,8 @@ static func _ensure_dungeon_surface_features() -> void:
 		return
 	# Abandoned house: a corrected flat-room footprint with a west door.
 	_add_flat_surface_room(_dungeon_surface_cells, ABANDONED_HOUSE_CENTRE, 3, 2, ABANDONED_HOUSE_CENTRE + Vector2i(-3, 0), "wood_floor", "abandoned_house")
-	_add_surface_corridor(_dungeon_surface_cells, Vector2i(9, -176), Vector2i(10, -176), "abandoned_house_approach")
+	for q in range(9, 11):
+		_dungeon_surface_cells[_hex_key(Vector2i(q, -176))] = {"terrain": "path", "feature_id": "abandoned_house_approach"}
 
 	# Vessel-Seeker's Crypt: entrance, ossuary and ritual chamber, joined by
 	# the short source cave-floor corridors. Lower floors and actors are not
