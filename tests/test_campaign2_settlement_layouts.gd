@@ -221,6 +221,13 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	_check(not _find_record(props, "silverhart_city_gate_arch").is_empty(), "Outer city gate arch must be presented")
 	_check(terrain.terrain_for_hex(Vector2i(8, -541)) == "path", "Middle ring road must be indexed at its north corner")
 	_check(terrain.terrain_for_hex(Vector2i(8, -436)) == "path", "Outer city gate approach must reach the three-cell gate")
+	_check(terrain.settlement_wall_cells.size() == 495, "Both Silverhart palisade rings must be indexed for gameplay traversal")
+	_check(terrain.settlement_ladder_cells.size() == 2, "The two inner-wall ladders must be registered as climbable crossings")
+	_check(terrain.terrain_for_hex(Vector2i(8, -473)) == "palisade_wall", "Inner curtain wall must be exposed as palisade terrain")
+	_check(not terrain.is_walkable_for_hex(Vector2i(8, -473)), "Palisade wall cells must block ordinary ground traversal")
+	_check(terrain.is_walkable_for_hex(Vector2i(20, -519)), "Authored ladder cells must allow wall crossing")
+	_check(terrain.terrain_for_hex(Vector2i(68, -496)) == "palisade_wall", "Outer city wall must be exposed as palisade terrain")
+	_check(not terrain.is_walkable_for_hex(Vector2i(68, -496)), "Outer city wall must block ordinary ground traversal")
 	var expected_centres := {
 		"silverhart_grand_hall": Vector2i(8, -496),
 		"silverhart_barracks": Vector2i(22, -494),
