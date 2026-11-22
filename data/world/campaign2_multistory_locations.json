@@ -791,7 +791,8 @@
               "text": "Few surface-dwellers find their way this deep. State your business."
             }
           ],
-          "quest_offer": "deepholds_infestation"
+          "quest_offer": "deepholds_infestation",
+          "quest_completion_text": "The lower tunnels have gone quiet the right way, for once. The Deepholds don't forget a debt like that — take this, pulled from the same gallery you cleared. Dornik says it's grown deep enough to be worth something to the right hands."
         },
         {
           "id": "deepholds_foreman",
