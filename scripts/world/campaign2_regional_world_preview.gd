@@ -29,6 +29,9 @@ var tree_crown_mesh: Mesh
 var tree_trunk_mesh: Mesh
 var terrain_meshes: Dictionary = {}
 var marker_locations: Dictionary = {}
+var movement_controller: WorldPlayerMovementController
+var player_actor: Node3D
+var mouse_travel_pressed := false
 
 func _ready() -> void:
 	terrain_data = TERRAIN_DATA_SCRIPT.new() as Campaign2WorldTerrainData
@@ -39,6 +42,7 @@ func _ready() -> void:
 	_create_environment()
 	_create_materials()
 	_create_camera()
+	_create_player()
 	_build_interface()
 	jump_to_location("hollowmere")
 
@@ -185,7 +189,7 @@ func _build_interface() -> void:
 	help.offset_right = -245.0
 	help.offset_top = -52.0
 	help.offset_bottom = -16.0
-	help.text = "Left-drag: orbit   •   Right-drag: pan   •   Wheel: zoom   •   WASD / arrows: travel   •   Esc: macro map"
+	help.text = "Click: travel   •   QWE / ASD: hex movement   •   Middle-drag: orbit   •   Right-drag: pan   •   Wheel: zoom   •   Esc: macro map"
 	help.add_theme_font_size_override("font_size", 12)
 	help.add_theme_color_override("font_color", Color("#d2d8d9"))
 	root.add_child(help)
@@ -208,7 +212,9 @@ func jump_to_location(location_id: String) -> void:
 		_update_streamed_chunks(true)
 		return
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if movement_controller != null:
+		movement_controller.process_movement(delta)
 	_update_streamed_chunks(false)
 
 ## Chunk membership is keyed to the camera focus, not the map's gameplay regions.
@@ -250,6 +256,7 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 	var tree_transforms: Array[Transform3D] = []
 	var trunk_transforms: Array[Transform3D] = []
 	var chunk_min := chunk * CHUNK_SIZE
+	_populate_chunk_gameplay_cells(chunk)
 	for q in range(chunk_min.x, chunk_min.x + CHUNK_SIZE):
 		for r in range(chunk_min.y, chunk_min.y + CHUNK_SIZE):
 			var hex := Vector2i(q, r)
@@ -284,6 +291,103 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 	_add_chunk_locations(root, chunk)
 	settlement_builder.add_settlements_in_chunk(root, chunk_min, CHUNK_SIZE, "chunked")
 	return root
+
+
+func _create_player() -> void:
+	var start_hex := Vector2i(8, 24)
+	var player := CharacterState.new("player", "Player", start_hex)
+	player.side = "player"
+	player.time_points = 100.0
+	ecology_simulation.player_character_id = player.id
+	ecology_simulation.register_character(player)
+	ecology_simulation.character_moved.connect(_on_world_character_moved)
+
+	var actor_root := Node3D.new()
+	actor_root.name = "RegionalPlayerActor"
+	var body := MeshInstance3D.new()
+	var capsule := CapsuleMesh.new()
+	capsule.radius = 0.62
+	capsule.height = 2.2
+	body.mesh = capsule
+	var body_material := StandardMaterial3D.new()
+	body_material.albedo_color = Color("#d7bd8b")
+	body_material.roughness = 0.78
+	body.material_override = body_material
+	body.position.y = 1.1
+	actor_root.add_child(body)
+	var marker := MeshInstance3D.new()
+	var marker_mesh := CylinderMesh.new()
+	marker_mesh.top_radius = 0.12
+	marker_mesh.bottom_radius = 0.12
+	marker_mesh.height = 0.08
+	marker.mesh = marker_mesh
+	var marker_material := StandardMaterial3D.new()
+	marker_material.albedo_color = Color("#e8c76d")
+	marker.material_override = marker_material
+	marker.position.y = 0.08
+	actor_root.add_child(marker)
+	add_child(actor_root)
+	player_actor = actor_root
+	_update_player_presentation(start_hex)
+
+	movement_controller = WorldPlayerMovementController.new()
+	movement_controller.name = "RegionalPlayerMovementController"
+	add_child(movement_controller)
+	var path_mesh := CylinderMesh.new()
+	path_mesh.top_radius = 0.24
+	path_mesh.bottom_radius = 0.24
+	path_mesh.height = 0.06
+	var path_material := StandardMaterial3D.new()
+	path_material.albedo_color = Color("#f2d27a")
+	path_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	path_material.albedo_color.a = 0.78
+	movement_controller.configure(ecology_simulation, self, path_mesh, path_material, Callable(self, "_world_position_for_hex"), player.id)
+
+func _populate_chunk_gameplay_cells(chunk: Vector2i) -> void:
+	var chunk_min := chunk * CHUNK_SIZE
+	for q in range(chunk_min.x, chunk_min.x + CHUNK_SIZE):
+		for r in range(chunk_min.y, chunk_min.y + CHUNK_SIZE):
+			var hex := Vector2i(q, r)
+			if ecology_simulation.map_data.has_cell(hex):
+				continue
+			var terrain := terrain_data.terrain_for_hex(hex)
+			if terrain == "void":
+				continue
+			var walkable := terrain_data.is_walkable_for_hex(hex)
+			var movement_multiplier := terrain_data.movement_multiplier_for_hex(hex)
+			ecology_simulation.map_data.add_cell(hex, terrain_data.elevation_for_hex(hex), walkable, terrain, movement_multiplier)
+
+func _on_world_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
+	if character_id != ecology_simulation.player_character_id:
+		return
+	_update_player_presentation(to_hex)
+	target = _world_position_for_hex(to_hex)
+	_update_camera()
+	_update_streamed_chunks(false)
+
+func _update_player_presentation(hex: Vector2i) -> void:
+	if player_actor == null:
+		return
+	player_actor.position = _world_position_for_hex(hex)
+
+func _world_position_for_hex(hex: Vector2i) -> Vector3:
+	return HexGrid.axial_to_world(hex, HEX_RADIUS, terrain_data.elevation_for_hex(hex))
+
+func _request_travel_to_screen_position(screen_position: Vector2) -> void:
+	if camera == null or movement_controller == null:
+		return
+	var ray_origin := camera.project_ray_origin(screen_position)
+	var ray_direction := camera.project_ray_normal(screen_position)
+	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	if player_state == null:
+		return
+	var ground_height := terrain_data.elevation_for_hex(player_state.axial)
+	var hit: Variant = Plane(Vector3.UP, ground_height).intersects_ray(ray_origin, ray_direction)
+	if hit == null:
+		return
+	var destination := HexGrid.world_to_axial(hit, HEX_RADIUS)
+	if ecology_simulation.map_data.has_cell(destination) and ecology_simulation.map_data.is_walkable(destination):
+		movement_controller.set_destination(destination)
 
 func _add_hex_to_surface(surface: SurfaceTool, hex: Vector2i, elevation: float) -> void:
 	var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
@@ -364,20 +468,25 @@ func _unhandled_input(event: InputEvent) -> void:
 			if key.keycode == KEY_ESCAPE:
 				get_tree().change_scene_to_file(MACRO_SCENE)
 				get_viewport().set_input_as_handled()
-			elif key.keycode in [KEY_W, KEY_UP, KEY_S, KEY_DOWN, KEY_A, KEY_LEFT, KEY_D, KEY_RIGHT]:
-				var forward := Vector3(-sin(yaw), 0.0, -cos(yaw))
-				var right := Vector3(cos(yaw), 0.0, -sin(yaw))
-				var movement := Vector3.ZERO
-				if key.keycode in [KEY_W, KEY_UP]: movement += forward
-				if key.keycode in [KEY_S, KEY_DOWN]: movement -= forward
-				if key.keycode in [KEY_A, KEY_LEFT]: movement -= right
-				if key.keycode in [KEY_D, KEY_RIGHT]: movement += right
-				target += movement.normalized() * maxf(8.0, camera_distance * 0.12)
-				_update_camera()
-				get_viewport().set_input_as_handled()
+			else:
+				var movement_key := key.keycode
+				match key.keycode:
+					KEY_UP: movement_key = KEY_W
+					KEY_RIGHT: movement_key = KEY_E
+					KEY_DOWN: movement_key = KEY_S
+					KEY_LEFT: movement_key = KEY_A
+				if movement_controller != null and movement_controller.handle_directional_key(movement_key):
+					get_viewport().set_input_as_handled()
 	if event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_LEFT:
+			if button.pressed:
+				mouse_travel_pressed = true
+			elif mouse_travel_pressed:
+				mouse_travel_pressed = false
+				_request_travel_to_screen_position(button.position)
+				get_viewport().set_input_as_handled()
+		elif button.button_index == MOUSE_BUTTON_MIDDLE:
 			rotating = button.pressed
 		elif button.button_index == MOUSE_BUTTON_RIGHT:
 			panning = button.pressed
