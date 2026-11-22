@@ -136,14 +136,34 @@ func _load_settlement_layouts() -> void:
 				)
 
 func _rasterize_path_segment(start: Vector2i, finish: Vector2i) -> void:
+	# Interpolate in cube coordinates and correct the largest rounding error.
+	# Rounding q/r independently can create skipped or non-adjacent cells on
+	# diagonal roads, especially the long middle-ring house spurs.
+	var x1 := start.x
+	var z1 := start.y
+	var y1 := -x1 - z1
+	var x2 := finish.x
+	var z2 := finish.y
+	var y2 := -x2 - z2
 	var steps := maxi(1, HexGrid.distance(start, finish))
 	for step in range(steps + 1):
 		var t := float(step) / float(steps)
-		var cell := Vector2i(
-			roundi(lerpf(float(start.x), float(finish.x), t)),
-			roundi(lerpf(float(start.y), float(finish.y), t))
-		)
-		settlement_path_cells[_hex_key(cell)] = true
+		var x := lerpf(float(x1), float(x2), t)
+		var y := lerpf(float(y1), float(y2), t)
+		var z := lerpf(float(z1), float(z2), t)
+		var rx := roundi(x)
+		var ry := roundi(y)
+		var rz := roundi(z)
+		var dx := absf(float(rx) - x)
+		var dy := absf(float(ry) - y)
+		var dz := absf(float(rz) - z)
+		if dx > dy and dx > dz:
+			rx = -ry - rz
+		elif dy > dz:
+			ry = -rx - rz
+		else:
+			rz = -rx - ry
+		settlement_path_cells[_hex_key(Vector2i(rx, rz))] = true
 
 func _read_axial(value: Variant) -> Vector2i:
 	if value is Vector2i:
