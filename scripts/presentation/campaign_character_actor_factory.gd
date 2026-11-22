@@ -9,11 +9,15 @@ const PLAYER_MALE_ASSET := "res://art/characters/ara_runtime/ara_player_male_bod
 const HOLLOWMERE_PROFILE_PATH := "res://art/characters/hollowmere/profiles.json"
 const COMPANION_ASSETS := {
 	"wren_talbot": {"path": "res://art/characters/companions/wren.glb", "body_variant": "female"},
+	"wren": {"path": "res://art/characters/companions/wren.glb", "body_variant": "female"},
 	"companion_wren_talbot": {"path": "res://art/characters/companions/wren.glb", "body_variant": "female"},
 	"ser_aldric_thorne": {"path": "res://art/characters/companions/aldric.glb", "body_variant": "male"},
+	"ser_aldric_thorne_human_male": {"path": "res://art/characters/companions/aldric.glb", "body_variant": "male"},
 	"companion_ser_aldric_thorne": {"path": "res://art/characters/companions/aldric.glb", "body_variant": "male"},
 	"aldric_thorne": {"path": "res://art/characters/companions/aldric.glb", "body_variant": "male"},
 	"dagna_stoneward": {"path": "res://art/characters/companions/dagna.glb", "body_variant": "female"},
+	"dagna": {"path": "res://art/characters/companions/dagna.glb", "body_variant": "female"},
+	"companion_dagna": {"path": "res://art/characters/companions/dagna.glb", "body_variant": "female"},
 	"companion_dagna_stoneward": {"path": "res://art/characters/companions/dagna.glb", "body_variant": "female"}
 }
 static var _hollowmere_model_index: Dictionary = {}
