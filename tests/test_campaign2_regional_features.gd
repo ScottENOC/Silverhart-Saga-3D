@@ -35,6 +35,21 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(104, -366)) == "rocky_outcrop", "Dragon lair outer ring must be rocky outcrop")
 	_check(terrain.terrain_for_hex(Vector2i(108, -366)) != "rocky_outcrop", "Dragon lair rocky ring must stop at radius six")
 
+	# Kragmoor is a solid source-sized mountain with a carved surface Gate Hall.
+	_check(FEATURES.KRAGMOOR_CENTRE == Vector2i(908, -626), "Kragmoor anchor must derive from the crossroads plus the source offset")
+	_check(FEATURES.KRAGMOOR_MASSIF_RADIUS == 25, "Kragmoor massif must retain its source radius")
+	_check(terrain.terrain_for_hex(Vector2i(908, -626)) == "mountain", "Kragmoor centre must be solid mountain")
+	_check(terrain.terrain_for_hex(Vector2i(933, -626)) == "mountain", "Kragmoor massif must include its radius-25 edge")
+	_check(FEATURES.feature_id_at(Vector2i(934, -626)) != "kragmoor_massif", "Kragmoor massif must stop beyond radius 25")
+	_check(terrain.terrain_for_hex(Vector2i(908, -608)) == "cave_floor", "Surface Gate Hall must be excavated from the massif")
+	_check(terrain.terrain_for_hex(Vector2i(908, -610)) == "cave_floor", "Gate Hall must preserve the full source room footprint")
+	_check(terrain.terrain_for_hex(Vector2i(908, -605)) == "path", "Gate Hall door must remain an open traversable threshold")
+	_check(terrain.terrain_for_hex(Vector2i(908, -600)) == "path", "Kragmoor's south approach spur must connect to the gate")
+	_check(FEATURES.is_kragmoor_approach_path(Vector2i(8, 24)), "Kragmoor road must begin at Hollowmere's crossroads")
+	_check(FEATURES.is_kragmoor_approach_path(Vector2i(908, -593)), "Kragmoor road must reach the source spur tip")
+	_check(FEATURES.feature_id_at(Vector2i(908, -608)) == "kragmoor_gate_hall", "Gate Hall must expose its own feature identity")
+	_check(FEATURES.feature_id_at(Vector2i(908, -626)) == "kragmoor_massif", "Massif must expose its own feature identity")
+
 	# Sil'thandriel's canopy has an explicit grass arrival clearing, a dense
 	# source-noise woodland band, a foliage perimeter and a north approach.
 	_check(terrain.terrain_for_hex(Vector2i(-252, 934)) == "grass", "Elven capital must retain its arrival clearing")
