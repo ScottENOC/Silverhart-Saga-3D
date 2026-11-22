@@ -8,6 +8,7 @@ func _initialize() -> void:
     _test_action_movement_cost()
     _test_terrain_pathfinding()
     _test_elevation_rules()
+    _test_palisade_movement()
     _test_world_clock()
     _test_wilderness_resources()
     _test_vision_rules()
