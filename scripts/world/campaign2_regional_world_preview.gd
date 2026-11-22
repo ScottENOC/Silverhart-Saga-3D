@@ -6,6 +6,7 @@ const TERRAIN_DATA_SCRIPT = preload("res://scripts/world/campaign2_world_terrain
 const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
 const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
 const WALL_FEATURE_FACTORY = preload("res://scripts/world/world_wall_feature_factory.gd")
+const LOCATION_LOADER_SCRIPT = preload("res://scripts/world/campaign2_location_loader.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
 const HEX_RADIUS := HexGrid.DEFAULT_RADIUS_M
@@ -31,6 +32,7 @@ var terrain_meshes: Dictionary = {}
 var marker_locations: Dictionary = {}
 var movement_controller: WorldPlayerMovementController
 var player_actor: Node3D
+var active_location_runtime: Campaign2MultiStoryLocationRuntime
 var mouse_travel_pressed := false
 
 func _ready() -> void:
@@ -189,7 +191,7 @@ func _build_interface() -> void:
 	help.offset_right = -245.0
 	help.offset_top = -52.0
 	help.offset_bottom = -16.0
-	help.text = "Click: travel   •   QWE / ASD: hex movement   •   Middle-drag: orbit   •   Right-drag: pan   •   Wheel: zoom   •   Esc: macro map"
+	help.text = "Click: travel   •   QWE / ASD: move   •   E: use nearby stair / enter or exit   •   Middle-drag: orbit   •   Right-drag: pan   •   Wheel: zoom   •   Esc: macro map"
 	help.add_theme_font_size_override("font_size", 12)
 	help.add_theme_color_override("font_color", Color("#d2d8d9"))
 	root.add_child(help)
@@ -342,6 +344,45 @@ func _create_player() -> void:
 	path_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	path_material.albedo_color.a = 0.78
 	movement_controller.configure(ecology_simulation, self, path_mesh, path_material, Callable(self, "_world_position_for_hex"), player.id)
+	_load_multistory_location("silthandriel")
+
+## The great-tree entrance is the first live connection between the regional
+## player simulation and the shared multi-story location runtime. Other authored
+## locations can be registered here as their entrances are brought online.
+func _load_multistory_location(location_id: String) -> void:
+	var load_result: Dictionary = LOCATION_LOADER_SCRIPT.load_multistory_location(self, location_id, ecology_simulation)
+	if not bool(load_result.get("ok", false)):
+		push_warning("Could not load regional location %s: %s" % [location_id, load_result])
+		return
+	active_location_runtime = load_result.get("runtime") as Campaign2MultiStoryLocationRuntime
+	if active_location_runtime == null:
+		return
+	var anchor_data: Dictionary = active_location_runtime.definition.get("anchor", {})
+	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
+	active_location_runtime.global_position = HexGrid.axial_to_world(anchor, HEX_RADIUS, terrain_data.elevation_for_hex(anchor))
+	active_location_runtime.floor_changed.connect(_on_regional_location_floor_changed)
+	active_location_runtime.register_character_actor(ecology_simulation.player_character_id, player_actor)
+
+func _interact_with_regional_location() -> bool:
+	if active_location_runtime == null:
+		return false
+	var result: Dictionary = active_location_runtime.interact_with_stair(ecology_simulation.player_character_id)
+	if not bool(result.get("ok", false)):
+		return false
+	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	if player_state != null:
+		target = _world_position_for_hex(player_state.axial)
+		_update_player_presentation(player_state.axial)
+		_update_camera()
+	return true
+
+func _on_regional_location_floor_changed(_location_id: String, _previous_floor: int, _current_floor: int, _stair_position: Vector2i) -> void:
+	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	if player_state == null:
+		return
+	_update_player_presentation(player_state.axial)
+	target = _world_position_for_hex(player_state.axial)
+	_update_camera()
 
 func _populate_chunk_gameplay_cells(chunk: Vector2i) -> void:
 	var chunk_min := chunk * CHUNK_SIZE
@@ -371,7 +412,10 @@ func _update_player_presentation(hex: Vector2i) -> void:
 	player_actor.position = _world_position_for_hex(hex)
 
 func _world_position_for_hex(hex: Vector2i) -> Vector3:
-	return HexGrid.axial_to_world(hex, HEX_RADIUS, terrain_data.elevation_for_hex(hex))
+	var base_position := HexGrid.axial_to_world(hex, HEX_RADIUS, terrain_data.elevation_for_hex(hex))
+	if active_location_runtime != null and active_location_runtime.get_current_floor() > 0:
+		base_position.y = active_location_runtime.global_position.y + float(active_location_runtime.get_current_floor()) * 3.2 + 0.1
+	return base_position
 
 func _request_travel_to_screen_position(screen_position: Vector2) -> void:
 	if camera == null or movement_controller == null:
@@ -469,6 +513,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if key.pressed and not key.echo:
 			if key.keycode == KEY_ESCAPE:
 				get_tree().change_scene_to_file(MACRO_SCENE)
+				get_viewport().set_input_as_handled()
+			elif key.keycode == KEY_E and _interact_with_regional_location():
 				get_viewport().set_input_as_handled()
 			else:
 				var movement_key := key.keycode
