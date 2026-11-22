@@ -62,6 +62,25 @@ func _run() -> void:
             push_error("WREN_BRA_TEST_FAIL: could not save " + view_name + " render")
             quit(1)
             return
+    camera.size = 0.92
+    var close_views := {
+        "front-closeup": [Vector3(0.0, 1.24, 2.6), Vector3(0.0, 1.24, 0.0)],
+        "side-closeup": [Vector3(2.6, 1.24, 0.0), Vector3(0.0, 1.24, 0.0)],
+        "rear-closeup": [Vector3(0.0, 1.24, -2.6), Vector3(0.0, 1.24, 0.0)]
+    }
+    for view_name in close_views:
+        camera.position = close_views[view_name][0]
+        camera.look_at(close_views[view_name][1], Vector3.UP)
+        await process_frame
+        await process_frame
+        await RenderingServer.frame_post_draw
+        var close_image := root.get_texture().get_image()
+        var close_error := close_image.save_png(out.path_join(view_name + ".png"))
+        if close_error != OK:
+            push_error("WREN_BRA_TEST_FAIL: could not save " + view_name + " render")
+            quit(1)
+            return
+    camera.size = 2.15
     var report := {
         "status": "RENDERED_REQUIRES_VISUAL_REVIEW",
         "character_asset": WREN_PATH,
@@ -69,7 +88,7 @@ func _run() -> void:
         "garment_id": BRA_ID,
         "attachment_mesh_count": meshes.size(),
         "skeleton_bone_count": _find_skeleton(actor.model_root).get_bone_count(),
-        "views": ["front", "side", "rear"],
+        "views": ["front", "side", "rear"],\n        "close_up_views": ["front-closeup", "side-closeup", "rear-closeup"],
         "note": "Successful attachment proves skeleton acceptance and produces native Wren renders; it does not by itself prove anatomical fit."
     }
     var file := FileAccess.open(out.path_join("report.json"), FileAccess.WRITE)
