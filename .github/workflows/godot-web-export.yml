@@ -113,7 +113,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p art/characters/ara_runtime
-          unzip -q /tmp/workshop-package/ara-runtime-assets.zip -d art/characters/ara_runtime
+          unzip -oq /tmp/workshop-package/ara-runtime-assets.zip -d art/characters/ara_runtime
           if [ ! -s art/characters/ara_runtime/ara_person_male_body.glb ]; then
             echo "::warning::Workshop package does not yet contain ara_person_male_body.glb."
           fi
