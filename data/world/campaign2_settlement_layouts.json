@@ -2546,7 +2546,1001 @@
           "source": "Hex-crpg/campaign2World.js:Diplomatic Quarter road and embassy approaches"
         }
       ],
-      "npcs": [],
+      "npcs": [
+        {
+          "id": "queen_seraphine_corrin",
+          "name": "Queen Seraphine Corrin",
+          "title": "Queen of the Silverhart Kingdom",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "health",
+            "sword_hit",
+            "sword_dmg",
+            "heavy_armor_training"
+          ],
+          "equipment": [
+            "sword",
+            "heavy_armor",
+            "nasal_helm"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "silverhart_queen",
+          "position": {
+            "q": 8,
+            "r": -498
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "chancellor_merric_vane",
+          "name": "Chancellor Merric Vane",
+          "title": "The Queen's Chancellor",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "palace_chancellor",
+          "position": {
+            "q": -6,
+            "r": -495
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "court_wizard_thessaly",
+          "name": "Court Wizard Thessaly",
+          "title": "The Queen's Court Wizard",
+          "race": "elf",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "wizard"
+          ],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "royal_wizard",
+          "position": {
+            "q": -7,
+            "r": -481
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "wall_guard_brennan",
+          "name": "Wall Guard Brennan",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "health",
+            "spear_hit",
+            "spear_dmg",
+            "heavy_armor_training",
+            "shield_proficiency"
+          ],
+          "equipment": [
+            "spear",
+            "wooden_shield",
+            "heavy_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": 10,
+            "r": -476
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "wall_guard_yara",
+          "name": "Wall Guard Yara",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "health",
+            "sword_hit",
+            "sword_dmg",
+            "heavy_armor_training",
+            "shield_proficiency"
+          ],
+          "equipment": [
+            "sword",
+            "wooden_shield",
+            "heavy_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": 4,
+            "r": -474
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "wall_guard_tomas",
+          "name": "Wall Guard Tomas",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "spear_hit",
+            "light_armor_training"
+          ],
+          "equipment": [
+            "spear",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": 30,
+            "r": -496
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "wall_guard_sela",
+          "name": "Wall Guard Sela",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "sword_hit",
+            "light_armor_training"
+          ],
+          "equipment": [
+            "sword",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": -14,
+            "r": -496
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "wall_guard_draven",
+          "name": "Wall Guard Draven",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "health",
+            "sword_hit",
+            "sword_dmg",
+            "heavy_armor_training"
+          ],
+          "equipment": [
+            "sword",
+            "heavy_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": 8,
+            "r": -518
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "wall_guard_ottilie",
+          "name": "Wall Guard Ottilie",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "health",
+            "spear_hit",
+            "spear_dmg",
+            "heavy_armor_training"
+          ],
+          "equipment": [
+            "spear",
+            "heavy_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": 30,
+            "r": -518
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "royal_guard_denna",
+          "name": "Royal Guard Denna",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "health",
+            "sword_hit",
+            "sword_dmg",
+            "heavy_armor_training",
+            "shield_proficiency"
+          ],
+          "equipment": [
+            "sword",
+            "wooden_shield",
+            "heavy_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": 7,
+            "r": -498
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "royal_guard_corwin",
+          "name": "Royal Guard Corwin",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "health",
+            "spear_hit",
+            "spear_dmg",
+            "heavy_armor_training",
+            "shield_proficiency"
+          ],
+          "equipment": [
+            "spear",
+            "wooden_shield",
+            "heavy_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": 9,
+            "r": -498
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "royal_guard_ashe",
+          "name": "Royal Guard Ashe",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "health",
+            "sword_hit",
+            "sword_dmg",
+            "heavy_armor_training"
+          ],
+          "equipment": [
+            "sword",
+            "heavy_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": 8,
+            "r": -492
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "royal_guard_petra",
+          "name": "Royal Guard Petra",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "health",
+            "spear_hit",
+            "spear_dmg",
+            "heavy_armor_training"
+          ],
+          "equipment": [
+            "spear",
+            "heavy_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": 21,
+            "r": -494
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "royal_guard_osric",
+          "name": "Royal Guard Osric",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "sword_hit",
+            "light_armor_training"
+          ],
+          "equipment": [
+            "sword",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": 23,
+            "r": -494
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "royal_guard_isolde",
+          "name": "Royal Guard Isolde",
+          "title": "Royal Guard",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "spear_hit",
+            "light_armor_training"
+          ],
+          "equipment": [
+            "spear",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "",
+          "position": {
+            "q": 22,
+            "r": -496
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "ossian_fell",
+          "name": "Ossian Fell",
+          "title": "Stablehand",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "silverhart_stablehand",
+          "position": {
+            "q": -23,
+            "r": -503
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "perrin_vance",
+          "name": "Perrin Vance",
+          "title": "General Goods",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "silverhart_general_goods",
+          "position": {
+            "q": -22,
+            "r": -489
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "mirelle_sondhe",
+          "name": "Mirelle Sondhe",
+          "title": "Clothier",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "silverhart_clothier",
+          "position": {
+            "q": -29,
+            "r": -501
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "corvin_ashe",
+          "name": "Corvin Ashe",
+          "title": "Rare Goods Dealer",
+          "race": "elf",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "silverhart_magic_dealer",
+          "position": {
+            "q": -29,
+            "r": -489
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "lady_miriel_corstane",
+          "name": "Lady Miriel Corstane",
+          "title": "of House Corstane",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "lady_corstane",
+          "position": {
+            "q": 39,
+            "r": -501
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "master_builder_hallis",
+          "name": "Master Builder Hallis",
+          "title": "Builder",
+          "race": "dwarf",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "builder_tomas",
+          "position": {
+            "q": 38,
+            "r": -492
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "petra_ashfield",
+          "name": "Petra Ashfield",
+          "title": "Concerned Resident",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "silverhart_manor_neighbor",
+          "position": {
+            "q": 45,
+            "r": -501
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "ambassador_elarion",
+          "name": "Ambassador Elarion",
+          "title": "Envoy of the Sylvan Court",
+          "race": "elf",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": null,
+          "dialogue_id": "elven_ambassador",
+          "position": {
+            "q": 0,
+            "r": -469
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "ambassador_brokk_stonehammer",
+          "name": "Ambassador Brokk Stonehammer",
+          "title": "Envoy of the Deepholds",
+          "race": "dwarf",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": null,
+          "dialogue_id": "dwarven_ambassador",
+          "position": {
+            "q": 16,
+            "r": -469
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "ambassador_cassia_wren",
+          "name": "Ambassador Cassia Wren",
+          "title": "Envoy of Aldenreach",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": null,
+          "dialogue_id": "aldenreach_ambassador",
+          "position": {
+            "q": 0,
+            "r": -459
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "ambassador_toren_aldwyn",
+          "name": "Ambassador Toren Aldwyn",
+          "title": "Envoy of Corvane",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": null,
+          "dialogue_id": "corvane_ambassador",
+          "position": {
+            "q": 16,
+            "r": -461
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "factor_willem_drass",
+          "name": "Factor Willem Drass",
+          "title": "The Ironbond Company's Silverhart Envoy",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "ironbond_company",
+          "dialogue_id": "ironbond_envoy",
+          "position": {
+            "q": 1,
+            "r": -453
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "high_cleric_adelram",
+          "name": "High Cleric Adelram",
+          "title": "High Cleric of the Grand Cathedral",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "cleric"
+          ],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "high_cleric",
+          "position": {
+            "q": 14,
+            "r": -450
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "hollis_vane",
+          "name": "Hollis Vane",
+          "title": "Innkeeper",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "silverhart_innkeeper",
+          "position": {
+            "q": 8,
+            "r": -530
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "sergeant_bell",
+          "name": "Sergeant Bell",
+          "title": "City Watch",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter",
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "sword_hit"
+          ],
+          "equipment": [
+            "sword",
+            "medium_armor",
+            "nasal_helm"
+          ],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "silverhart_watch_sergeant",
+          "position": {
+            "q": 6,
+            "r": -521
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "nix_the_cutpurse",
+          "name": "Nix the Cutpurse",
+          "title": "Wanted: Thief",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "rogue",
+            "rogue"
+          ],
+          "skill_picks": [
+            "health",
+            "dagger_hit",
+            "stealth_agility"
+          ],
+          "equipment": [
+            "dagger",
+            "light_armor"
+          ],
+          "side": "enemy",
+          "faction_id": null,
+          "dialogue_id": "",
+          "position": {
+            "q": 11,
+            "r": -519
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "osric_fenn",
+          "name": "Osric Fenn",
+          "title": "Resident",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": null,
+          "dialogue_id": "silverhart_outlying_resident_1",
+          "position": {
+            "q": 23,
+            "r": -546
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "greta_aldwyn",
+          "name": "Greta Aldwyn",
+          "title": "Resident",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": null,
+          "dialogue_id": "silverhart_outlying_resident_2",
+          "position": {
+            "q": 48,
+            "r": -546
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "tomlin_reed",
+          "name": "Tomlin Reed",
+          "title": "Resident",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": null,
+          "dialogue_id": "silverhart_outlying_resident_3",
+          "position": {
+            "q": -32,
+            "r": -476
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js"
+        }
+      ],
       "creatures": [],
       "interiors": [],
       "props": [
