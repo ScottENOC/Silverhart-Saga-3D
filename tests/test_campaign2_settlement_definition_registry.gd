@@ -1,6 +1,7 @@
 extends SceneTree
 
 const REGISTRY = preload("res://scripts/world/campaign2_settlement_definition_registry.gd")
+const BUILDING_FACTORY = preload("res://scripts/world/world_building_factory.gd")
 
 func _initialize() -> void:
 	_test_catalogue_loads_both_source_formats()
@@ -28,6 +29,7 @@ func _test_catalogue_loads_both_source_formats() -> void:
 	var kragmoor: Dictionary = registry.get_definition("kragmoor")
 	_check(kragmoor.get("layout", {}).get("buildings", []).size() == 1, "Kragmoor should expose its authored Gate Hall")
 	_check(kragmoor.get("interiors", []).size() == 1, "Kragmoor should preserve the Gate Hall interior and stair metadata")
+	_check(BUILDING_FACTORY.supports_definition(kragmoor.get("layout", {}).get("buildings", [])[0]), "Kragmoor Gate Hall should resolve to a supported reusable building archetype")
 	_check(kragmoor.get("layout", {}).get("buildings", [])[0].get("center", {}) == Vector2i(908, -608), "Kragmoor Gate Hall must retain the source axial centre")
 
 func _test_resolution_uses_explicit_origin_and_bounds() -> void:
