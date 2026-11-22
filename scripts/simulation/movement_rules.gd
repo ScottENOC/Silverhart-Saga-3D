@@ -24,6 +24,8 @@ static func terrain_multiplier(map_data: HexMapData, destination: Vector2i, stat
     var terrain_id := map_data.terrain_id_at(destination)
     if terrain_id == "foliage" and (int(state.skills.get("elf_foliage_expertise", 0)) > 0 or int(state.skills.get("druid_foliage_expertise", 0)) > 0):
         multiplier = 1.0
+    elif terrain_id == "palisade_wall" and int(state.skills.get("agile_climber", 0)) > 0 and multiplier >= 15.0:
+        multiplier = 2.0
     return maxf(0.1, multiplier)
 
 static func step_cost(map_data: HexMapData, from_hex: Vector2i, to_hex: Vector2i, state: CharacterState) -> float:

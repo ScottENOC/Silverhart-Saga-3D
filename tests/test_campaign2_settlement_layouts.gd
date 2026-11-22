@@ -8,7 +8,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 	var entries: Array = terrain.settlement_layouts
-	_check(entries.size() == 5, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale and Old Mac's Farmstead")
+	_check(entries.size() == 6, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale, Silverhart and Old Mac's Farmstead")
 	var millbrook_entry := _entry_by_id(entries, "millbrook")
 	_check(not millbrook_entry.is_empty(), "Canonical Millbrook definition must be available")
 	if millbrook_entry.is_empty():
@@ -60,6 +60,7 @@ func _initialize() -> void:
 
 	_test_emberlode(terrain, entries)
 	_test_reddale(terrain, entries)
+	_test_silverhart(terrain, entries)
 	_test_old_mac_farmstead(terrain, entries)
 
 	var hollowmere_entry := _entry_by_id(entries, "hollowmere")
@@ -130,6 +131,200 @@ func _test_reddale(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
 	var registry = CHARACTER_REGISTRY.new()
 	_check(not registry.get_character("corran_vale").is_empty(), "Emberlode NPC profile must resolve through the character registry")
 	_check(not registry.get_character("captain_ilsa_rennick").is_empty(), "Reddale NPC profile must resolve through the character registry")
+
+
+
+func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "silverhart")
+	_check(not entry.is_empty(), "Canonical Silverhart definition must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var layout: Dictionary = definition.get("layout", {})
+	var props: Array = layout.get("props", [])
+	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Silverhart must be owned by the streamed chunk presenter")
+	var placements: Array = definition.get("placements", {}).get("characters", [])
+	_check(placements.size() == 38, "Silverhart must retain its 38 named palace, guard, merchant, diplomatic, residential and guild NPCs")
+	var character_registry = CHARACTER_REGISTRY.new()
+	var placement_ids: Dictionary = {}
+	for placement in placements:
+		var character_id := String(placement.get("character_id", ""))
+		placement_ids[character_id] = placement
+		_check(not character_registry.get_character(character_id).is_empty(), "Silverhart NPC profile must resolve through the character registry: " + character_id)
+	for required_id in [
+		"queen_seraphine_corrin", "chancellor_merric_vane", "court_wizard_thessaly",
+		"wall_guard_brennan", "royal_guard_denna", "ossian_fell", "perrin_vance",
+		"mirelle_sondhe", "corvin_ashe", "lady_miriel_corstane", "master_builder_hallis",
+		"ambassador_elarion", "ambassador_brokk_stonehammer", "ambassador_cassia_wren",
+		"ambassador_toren_aldwyn", "factor_willem_drass", "high_cleric_adelram",
+		"hollis_vane", "sergeant_bell", "nix_the_cutpurse", "osric_fenn", "greta_aldwyn", "tomlin_reed",
+		"tessa_nightshade", "corvin_ashe_guildmaster", "marsh_dobbins", "silas_crane"
+	]:
+		_check(placement_ids.has(required_id), "Silverhart must preserve source NPC placement " + required_id)
+	_check(layout.get("buildings", []).size() == 40, "Silverhart must include palace, merchant, noble, diplomatic, commons, middle-ring and Warrens buildings")
+	for building_id in [
+		"silverhart_stables", "silverhart_general_goods", "silverhart_clothier", "silverhart_magic_shop",
+		"silverhart_corstane_manor", "silverhart_builder_house", "silverhart_neighbor_house",
+		"silverhart_north_cottage_1", "silverhart_north_cottage_2", "silverhart_north_cottage_3",
+		"silverhart_east_house_1", "silverhart_east_house_2", "silverhart_east_house_3", "silverhart_east_house_4",
+		"silverhart_elven_embassy", "silverhart_dwarven_embassy", "silverhart_aldenreach_embassy",
+		"silverhart_corvane_embassy", "silverhart_ironbond_office", "silverhart_grand_cathedral",
+		"silverhart_commons_inn", "silverhart_outlying_house_1", "silverhart_outlying_house_2", "silverhart_outlying_house_3"
+	]:
+		var district_building := _find_record(layout.get("buildings", []), building_id)
+		_check(not district_building.is_empty(), "Silverhart source district building must be present: " + building_id)
+		if not district_building.is_empty():
+			_check(BUILDING_FACTORY.supports_definition(district_building), "Silverhart district building archetype must be supported: " + building_id)
+	for road_id in [
+		"silverhart_merchant_near_street", "silverhart_merchant_far_street", "silverhart_merchant_cross_alley",
+		"silverhart_noble_near_street", "silverhart_noble_far_street", "silverhart_noble_cross_alley",
+		"silverhart_diplomatic_main_road", "silverhart_elven_embassy_approach", "silverhart_dwarven_embassy_approach",
+		"silverhart_aldenreach_embassy_approach", "silverhart_corvane_embassy_approach",
+		"silverhart_ironbond_approach", "silverhart_cathedral_approach"
+	]:
+		_check(not _find_record(layout.get("paths", []), road_id).is_empty(), "Silverhart district street must be present: " + road_id)
+	_check(layout.get("paths", []).size() == 33, "Silverhart must retain palace routes and both quarter street grids")
+	for route in layout.get("paths", []):
+		if route.get("points") is Array:
+			_check(route.get("widths", []).size() == route.get("points", []).size(), "Every Silverhart polyline must define a width at each control point: " + String(route.get("id", "")))
+	for building_id in [
+		"silverhart_middle_ring_house_1", "silverhart_middle_ring_house_2", "silverhart_middle_ring_house_3",
+		"silverhart_middle_ring_house_4", "silverhart_middle_ring_house_5", "silverhart_middle_ring_house_6",
+		"silverhart_warrens_shack_1", "silverhart_warrens_shack_2", "silverhart_warrens_shack_3",
+		"silverhart_thieves_guild", "silverhart_thieves_guild_vault"
+	]:
+		var outer_building := _find_record(layout.get("buildings", []), building_id)
+		_check(not outer_building.is_empty(), "Silverhart outer-city building must be present: " + building_id)
+		if not outer_building.is_empty():
+			_check(BUILDING_FACTORY.supports_definition(outer_building), "Silverhart outer-city building archetype must be supported: " + building_id)
+	for road_id in [
+		"silverhart_middle_ring_road", "silverhart_middle_ring_south_connector",
+		"silverhart_middle_ring_house_spur_1", "silverhart_middle_ring_house_spur_2",
+		"silverhart_middle_ring_house_spur_3", "silverhart_middle_ring_house_spur_4",
+		"silverhart_middle_ring_house_spur_5", "silverhart_middle_ring_house_spur_6",
+		"silverhart_city_gate_approach", "silverhart_warrens_approach"
+	]:
+		_check(not _find_record(layout.get("paths", []), road_id).is_empty(), "Silverhart outer-city route must be present: " + road_id)
+	var middle_road := _find_record(layout.get("paths", []), "silverhart_middle_ring_road")
+	var middle_points: Array = middle_road.get("points", [])
+	_check(middle_points.size() == 7, "Middle ring must retain its six source corners and closure")
+	if middle_points.size() == 7:
+		_assert_axial(middle_points[0], Vector2i(53, -496), "Middle ring east corner")
+		_assert_axial(middle_points[2], Vector2i(8, -541), "Middle ring north corner")
+		_assert_axial(middle_points[4], Vector2i(-37, -451), "Middle ring south-west corner")
+	var city_wall_cells := 0
+	var city_towers := 0
+	for prop in props:
+		var prop_id := String(prop.get("id", ""))
+		if prop_id.begins_with("silverhart_city_wall_watchtower_"):
+			city_towers += 1
+		elif prop_id.begins_with("silverhart_city_wall_"):
+			city_wall_cells += 1
+	_check(city_wall_cells == 357, "Outer city wall must preserve all 360 radius-60 cells except the three-cell south gate")
+	_check(city_towers == 2, "Outer city wall must include both source gate watchtowers")
+	var guild_vault := _find_record(layout.get("buildings", []), "silverhart_thieves_guild_vault")
+	_check(guild_vault.get("door_enabled", true) == false, "The guild vault must not expose a normal visible entrance")
+	var vault_interior := _find_record(definition.get("interiors", []), "silverhart_thieves_guild_vault_interior")
+	_check(not vault_interior.is_empty(), "Silverhart must retain the hidden guild vault interior definition")
+	if not vault_interior.is_empty():
+		_assert_axial(vault_interior.get("secret_entry", {}), Vector2i(19, -426), "Hidden guild vault secret door")
+		var vault_objects: Array = vault_interior.get("objects", [])
+		_check(vault_objects.size() == 1 and String(vault_objects[0].get("type", "")) == "storage_chest", "Hidden guild vault must retain its source treasure chest")
+	_check(not _find_record(props, "silverhart_city_gate_arch").is_empty(), "Outer city gate arch must be presented")
+	_check(terrain.terrain_for_hex(Vector2i(8, -541)) == "path", "Middle ring road must be indexed at its north corner")
+	_check(terrain.terrain_for_hex(Vector2i(-35, -454)) == "path", "Middle-ring diagonal house spur must include its first cube-rounded intermediate hex")
+	_check(terrain.terrain_for_hex(Vector2i(-36, -452)) == "path", "Middle-ring diagonal house spur must remain continuous to the ring")
+	_check(terrain.terrain_for_hex(Vector2i(8, -436)) == "path", "Outer city gate approach must reach the three-cell gate")
+	_check(not _find_record(layout.get("paths", []), "silverhart_city_gate_span").is_empty(), "The three-cell outer gate must be represented by its own crossing route")
+	for gate_cell in [Vector2i(8, -436), Vector2i(7, -436), Vector2i(6, -436)]:
+		_check(terrain.terrain_for_hex(gate_cell) == "path", "Every source outer gate cell must be traversable path: " + str(gate_cell))
+	for warrens_node in [Vector2i(2, -430), Vector2i(5, -430), Vector2i(11, -430)]:
+		_check(terrain.terrain_for_hex(warrens_node) == "path", "Source Warrens road node must remain paved at " + str(warrens_node))
+	_check(terrain.settlement_wall_cells.size() == 495, "Both Silverhart palisade rings must be indexed for gameplay traversal")
+	_check(terrain.settlement_ladder_cells.size() == 2, "The two inner-wall ladders must be registered as climbable crossings")
+	_check(terrain.terrain_for_hex(Vector2i(8, -473)) == "palisade_wall", "Inner curtain wall must be exposed as palisade terrain")
+	_check(terrain.is_walkable_for_hex(Vector2i(8, -473)), "Palisade walls must remain traversable at a high movement cost, as in the source game")
+	_check(terrain.movement_multiplier_for_hex(Vector2i(8, -473)) == 15.0, "Unassisted palisade crossing must carry the source high movement cost")
+	_check(terrain.is_walkable_for_hex(Vector2i(20, -519)), "Authored ladder cells must allow wall crossing")
+	_check(terrain.movement_multiplier_for_hex(Vector2i(20, -519)) == 2.0, "A ladder must reduce its palisade crossing to the source low movement cost")
+	_check(terrain.terrain_for_hex(Vector2i(68, -496)) == "palisade_wall", "Outer city wall must be exposed as palisade terrain")
+	_check(terrain.is_walkable_for_hex(Vector2i(68, -496)), "Outer city palisade must remain climbable at a high movement cost")
+	_check(terrain.movement_multiplier_for_hex(Vector2i(68, -496)) == 15.0, "Outer city palisade must retain its high movement cost")
+	var expected_centres := {
+		"silverhart_grand_hall": Vector2i(8, -496),
+		"silverhart_barracks": Vector2i(22, -494),
+		"silverhart_council_chamber": Vector2i(-6, -494),
+		"silverhart_royal_wizard_tower": Vector2i(-7, -482),
+		"silverhart_queens_bedroom": Vector2i(8, -505)
+	}
+	for building_id in expected_centres:
+		var building := _find_record(layout.get("buildings", []), building_id)
+		_check(not building.is_empty(), "Silverhart source palace building must be present: " + building_id)
+		if not building.is_empty():
+			_assert_axial(building.get("center", {}), expected_centres[building_id], building_id + " source centre")
+			_check(BUILDING_FACTORY.supports_definition(building), "Silverhart building archetype must be supported: " + building_id)
+	var barracks_route := _find_record(layout.get("paths", []), "silverhart_barracks_courtyard")
+	var barracks_points: Array = barracks_route.get("points", [])
+	_check(barracks_points.size() == 3, "Barracks spur must preserve the source L-shaped courtyard route")
+	if barracks_points.size() == 3:
+		_assert_axial(barracks_points[0], Vector2i(9, -487), "Barracks spur courtyard start")
+		_assert_axial(barracks_points[1], Vector2i(17, -487), "Barracks spur east-west leg")
+		_assert_axial(barracks_points[2], Vector2i(17, -494), "Barracks spur barracks approach")
+	var council_route := _find_record(layout.get("paths", []), "silverhart_council_courtyard")
+	var council_points: Array = council_route.get("points", [])
+	_check(council_points.size() == 3, "Council spur must preserve the source L-shaped courtyard route")
+	if council_points.size() == 3:
+		_assert_axial(council_points[0], Vector2i(-1, -494), "Council spur chamber approach")
+		_assert_axial(council_points[1], Vector2i(-1, -487), "Council spur north-south leg")
+		_assert_axial(council_points[2], Vector2i(7, -487), "Council spur courtyard end")
+	_check(terrain.terrain_for_hex(Vector2i(8, -496)) == "authored", "Silverhart Grand Hall footprint must suppress procedural terrain")
+	_check(terrain.terrain_for_hex(Vector2i(8, -495)) == "path", "Silverhart palace approach must be indexed as authored path")
+	_check(terrain.terrain_for_hex(Vector2i(9, -487)) == "path", "Silverhart courtyard must be indexed from source route geometry")
+	_check(terrain.terrain_for_hex(Vector2i(17, -494)) == "path", "Silverhart barracks door spur must reach its source door")
+	var ring_road := _find_record(layout.get("paths", []), "silverhart_outer_ring_road")
+	var ring_points: Array = ring_road.get("points", [])
+	_check(ring_points.size() == 7, "Silverhart outer ring road must preserve the six source hex-ring corners and closure")
+	if ring_points.size() == 7:
+		_assert_axial(ring_points[0], Vector2i(38, -496), "Outer ring east corner")
+		_assert_axial(ring_points[1], Vector2i(38, -526), "Outer ring north-east corner")
+		_assert_axial(ring_points[2], Vector2i(8, -526), "Outer ring north corner")
+		_assert_axial(ring_points[3], Vector2i(-22, -496), "Outer ring west corner")
+		_assert_axial(ring_points[4], Vector2i(-22, -466), "Outer ring south-west corner")
+		_assert_axial(ring_points[5], Vector2i(8, -466), "Outer ring south corner")
+		_assert_axial(ring_points[6], Vector2i(38, -496), "Outer ring closure")
+	for ring_corner in [Vector2i(38, -496), Vector2i(38, -526), Vector2i(8, -526), Vector2i(-22, -496), Vector2i(-22, -466), Vector2i(8, -466)]:
+		_check(terrain.terrain_for_hex(ring_corner) == "path", "Silverhart source outer ring road must be indexed at " + str(ring_corner))
+	_check(terrain.terrain_for_hex(Vector2i(8, -472)) == "path", "Silverhart gate exterior road must meet the southern ring-road corner")
+	_check(props.size() == 513, "Silverhart must include both palisade rings, nine watchtowers, two ladders, two gate arches, fountain and bounty board")
+	var wall_cells := 0
+	var tower_ids: Array[String] = []
+	var ladder_ids: Array[String] = []
+	for prop in props:
+		var prop_id := String(prop.get("id", ""))
+		if prop_id.begins_with("silverhart_curtain_wall_"):
+			wall_cells += 1
+		elif prop_id.begins_with("silverhart_watchtower_"):
+			tower_ids.append(prop_id)
+		elif prop_id.begins_with("silverhart_wall_ladder_"):
+			ladder_ids.append(prop_id)
+	_check(wall_cells == 138, "Curtain wall must follow every radius-23 source hex")
+	_check(tower_ids.size() == 7, "All seven source watchtower positions must be represented")
+	_check(ladder_ids.size() == 2, "Both source ladder access points must be represented")
+	for tower in [
+		Vector2i(10, -475), Vector2i(6, -473), Vector2i(31, -496),
+		Vector2i(-15, -496), Vector2i(8, -519), Vector2i(31, -519), Vector2i(-15, -473)
+	]:
+		var found := false
+		for prop in props:
+			if String(prop.get("id", "")).begins_with("silverhart_watchtower_") and prop.get("anchor") == tower:
+				found = true
+		_check(found, "Silverhart source watchtower must be positioned at " + str(tower))
+	for ladder in [Vector2i(20, -519), Vector2i(-4, -507)]:
+		var found := false
+		for prop in props:
+			if String(prop.get("id", "")).begins_with("silverhart_wall_ladder_") and prop.get("anchor") == ladder:
+				found = true
+		_check(found, "Silverhart source ladder must be positioned at " + str(ladder))
 
 
 func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array) -> void:

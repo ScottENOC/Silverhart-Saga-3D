@@ -170,5 +170,31 @@ func _initialize() -> void:
 		quit(1)
 		return
 
+	# Silverhart's palace and outer Warrens are streamed from the same canonical
+	# settlement definition; named NPCs must resolve into their owning chunks.
+	var silverhart_palace_chunk := Node3D.new()
+	root.add_child(silverhart_palace_chunk)
+	builder.add_settlements_in_chunk(silverhart_palace_chunk, Vector2i(0, -504), 24)
+	for node_name in ["silverhart_grand_hall", "silverhart_barracks", "NPC_queen_seraphine_corrin", "NPC_royal_guard_denna"]:
+		if silverhart_palace_chunk.get_node_or_null(node_name) == null:
+			push_error("Silverhart palace feature or NPC was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+
+	var silverhart_warrens_chunk := Node3D.new()
+	root.add_child(silverhart_warrens_chunk)
+	builder.add_settlements_in_chunk(silverhart_warrens_chunk, Vector2i(0, -432), 24)
+	for node_name in ["silverhart_thieves_guild", "silverhart_thieves_guild_vault", "NPC_tessa_nightshade", "NPC_corvin_ashe_guildmaster", "NPC_marsh_dobbins", "NPC_silas_crane"]:
+		if silverhart_warrens_chunk.get_node_or_null(node_name) == null:
+			push_error("Silverhart Warrens feature or NPC was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+
+	var vault_building := silverhart_warrens_chunk.get_node_or_null("silverhart_thieves_guild_vault")
+	if vault_building != null and vault_building.get_node_or_null("DoorFrame") != null:
+		push_error("The Silverhart guild vault must not present a visible standard entrance.")
+		quit(1)
+		return
+
 	print("Campaign 2 canonical settlement builder tests passed.")
 	quit(0)

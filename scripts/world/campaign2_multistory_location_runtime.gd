@@ -5,12 +5,15 @@ extends Node3D
 ## built relative to that anchor while simulation cells retain global axial IDs.
 
 const FLOOR_MAP_BUILDER = preload("res://scripts/world/campaign2_multistory_floor_map_builder.gd")
+const CHARACTER_ACTOR_FACTORY = preload("res://scripts/presentation/campaign_character_actor_factory.gd")
+const CHARACTER_REGISTRY_SCRIPT = preload("res://scripts/world/campaign2_character_definition_registry.gd")
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
 const FLOOR_HEIGHT: float = 3.2
 
 signal floor_changed(location_id: String, previous_floor: int, current_floor: int, stair_position: Vector2i)
 
 var definition: Dictionary = {}
+var character_registry: Campaign2CharacterDefinitionRegistry
 var simulation: WorldSimulation
 var location_state: Campaign2MultiStoryLocationState
 var floor_groups: Dictionary = {}
@@ -41,6 +44,7 @@ func _ready() -> void:
 	if not _configured_location or not _configured_campaign:
 		push_error("Multi-story location runtime must be configured before entering the scene tree.")
 		return
+	character_registry = CHARACTER_REGISTRY_SCRIPT.new() as Campaign2CharacterDefinitionRegistry
 	_build_floor_presentations()
 	location_state.floor_changed.connect(_on_state_floor_changed)
 	simulation.multistory_transition_unlocked.connect(_on_transition_unlocked)
@@ -63,6 +67,15 @@ func get_floor_tile_count(floor_number: int) -> int:
 func is_floor_visible(floor_number: int) -> bool:
 	var group := floor_groups.get(floor_number) as Node3D
 	return group != null and group.visible
+
+func has_floor_actor(floor_number: int, character_id: String) -> bool:
+	var group := floor_groups.get(floor_number) as Node3D
+	if group == null:
+		return false
+	for child in group.get_children():
+		if child is Node3D and String(child.get_meta("campaign2_npc_id", "")) == character_id:
+			return true
+	return false
 
 ## Register an externally-owned player/companion actor so vertical floor changes
 ## update its world height while its axial position remains on the shared stair.
@@ -211,6 +224,31 @@ func _build_floor_presentation(floor_definition: Dictionary, anchor: Vector2i) -
 		wall.rotation.y = PI / 6.0
 		group.add_child(wall)
 	_present_floor_objects(group, build_result.get("tile_objects", []), anchor)
+	_present_floor_actors(group, build_result.get("actors", []), anchor, floor_number)
+
+func _present_floor_actors(group: Node3D, actors: Array, anchor: Vector2i, floor_number: int) -> void:
+	if character_registry == null:
+		return
+	for actor_variant in actors:
+		if not actor_variant is Dictionary:
+			continue
+		var actor_data: Dictionary = actor_variant
+		var character_id := String(actor_data.get("character_id", actor_data.get("id", ""))).strip_edges()
+		if character_id.is_empty():
+			continue
+		var character_definition := character_registry.get_character(character_id)
+		if character_definition.is_empty():
+			push_warning("Multi-story location %s references missing character %s." % [String(definition.get("id", "")), character_id])
+			continue
+		var position_data: Dictionary = actor_data.get("position", {})
+		var hex := Vector2i(int(position_data.get("q", 0)), int(position_data.get("r", 0)))
+		var local_position := HexGrid.axial_to_world(hex - anchor, HEX_RADIUS, 0.1)
+		var actor := CHARACTER_ACTOR_FACTORY.create_settlement_actor(character_definition, local_position)
+		if actor == null:
+			continue
+		actor.set_meta("multistory_location_id", String(definition.get("id", "")))
+		actor.set_meta("multistory_floor", floor_number)
+		group.add_child(actor)
 
 func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i) -> void:
 	for object_variant in tile_objects:

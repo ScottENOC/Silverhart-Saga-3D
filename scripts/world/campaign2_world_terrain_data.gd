@@ -25,6 +25,8 @@ var settlement_layouts: Array = []
 var settlement_definition_registry: Campaign2SettlementDefinitionRegistry
 var settlement_building_cells: Dictionary = {}
 var settlement_path_cells: Dictionary = {}
+var settlement_wall_cells: Dictionary = {}
+var settlement_ladder_cells: Dictionary = {}
 var river_points: Array[Vector3] = []
 
 func _init() -> void:
@@ -95,6 +97,8 @@ func _load_settlement_layouts() -> void:
 	settlement_layouts.clear()
 	settlement_building_cells.clear()
 	settlement_path_cells.clear()
+	settlement_wall_cells.clear()
+	settlement_ladder_cells.clear()
 	if settlement_definition_registry == null:
 		return
 	settlement_layouts = settlement_definition_registry.get_definitions()
@@ -111,6 +115,15 @@ func _load_settlement_layouts() -> void:
 			for q in range(centre.x - half_q, centre.x + half_q + 1):
 				for r in range(centre.y - half_r, centre.y + half_r + 1):
 					settlement_building_cells[_hex_key(Vector2i(q, r))] = true
+		for prop in layout.get("props", []):
+			if not prop is Dictionary:
+				continue
+			var prop_id := String(prop.get("id", ""))
+			var anchor := _read_axial(prop.get("anchor", Vector2i.ZERO)) + origin
+			if prop_id.begins_with("silverhart_curtain_wall_") or prop_id.begins_with("silverhart_city_wall_"):
+				settlement_wall_cells[_hex_key(anchor)] = true
+			elif prop_id.begins_with("silverhart_wall_ladder_"):
+				settlement_ladder_cells[_hex_key(anchor)] = true
 		for path in layout.get("paths", []):
 			if not path is Dictionary:
 				continue
@@ -125,14 +138,34 @@ func _load_settlement_layouts() -> void:
 				)
 
 func _rasterize_path_segment(start: Vector2i, finish: Vector2i) -> void:
+	# Interpolate in cube coordinates and correct the largest rounding error.
+	# Rounding q/r independently can create skipped or non-adjacent cells on
+	# diagonal roads, especially the long middle-ring house spurs.
+	var x1 := start.x
+	var z1 := start.y
+	var y1 := -x1 - z1
+	var x2 := finish.x
+	var z2 := finish.y
+	var y2 := -x2 - z2
 	var steps := maxi(1, HexGrid.distance(start, finish))
 	for step in range(steps + 1):
 		var t := float(step) / float(steps)
-		var cell := Vector2i(
-			roundi(lerpf(float(start.x), float(finish.x), t)),
-			roundi(lerpf(float(start.y), float(finish.y), t))
-		)
-		settlement_path_cells[_hex_key(cell)] = true
+		var x := lerpf(float(x1), float(x2), t)
+		var y := lerpf(float(y1), float(y2), t)
+		var z := lerpf(float(z1), float(z2), t)
+		var rx := roundi(x)
+		var ry := roundi(y)
+		var rz := roundi(z)
+		var dx := absf(float(rx) - x)
+		var dy := absf(float(ry) - y)
+		var dz := absf(float(rz) - z)
+		if dx > dy and dx > dz:
+			rx = -ry - rz
+		elif dy > dz:
+			ry = -rx - rz
+		else:
+			rz = -rx - ry
+		settlement_path_cells[_hex_key(Vector2i(rx, rz))] = true
 
 func _read_axial(value: Variant) -> Vector2i:
 	if value is Vector2i:
@@ -158,14 +191,22 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		return String(regional_override.get("terrain", "grass"))
+	# Explicit settlement buildings and roads are presentation overlays on
+	# the regional terrain. Resolve them before the broad authored biome
+	# provider so an authored palace road cannot be hidden by its grass base.
+	if settlement_wall_cells.has(_hex_key(hex)):
+		return "palisade_wall"
+	# Source paths are painted after building footprints in the original world
+	# builder. Preserve that ordering where an authored road reaches a doorway
+	# or skirts the edge of a building.
+	if settlement_path_cells.has(_hex_key(hex)):
+		return "path"
+	if settlement_building_cells.has(_hex_key(hex)):
+		return "authored"
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
 		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
-	if settlement_building_cells.has(_hex_key(hex)):
-		return "authored"
-	if settlement_path_cells.has(_hex_key(hex)):
-		return "path"
 	if _is_local_stream(hex) or _is_strategic_river(hex):
 		return "water"
 	if road_cells.has(_hex_key(hex)):
@@ -191,10 +232,17 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		return String(regional_override.get("terrain", "grass"))
+	# A settlement's own terrain rules (notably Hollowmere's stream and bridge)
+	# remain authoritative inside its bounds. Other settlements' explicit
+	# building, road and wall overlays are resolved only after that source terrain.
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
 		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
+	if settlement_wall_cells.has(_hex_key(hex)):
+		return "palisade_wall"
+	if settlement_path_cells.has(_hex_key(hex)):
+		return "path"
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "building"
 	var terrain := terrain_for_hex(hex)
@@ -207,6 +255,15 @@ func is_walkable_for_hex(hex: Vector2i) -> bool:
 		return not AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.is_blocked(authored_settlement.local_hex, terrain_definition)
 	var terrain := gameplay_terrain_for_hex(hex)
 	return terrain != "water" and terrain != "building" and terrain != "keep_wall"
+
+
+func movement_multiplier_for_hex(hex: Vector2i) -> float:
+	var key := _hex_key(hex)
+	if settlement_ladder_cells.has(key):
+		return 2.0
+	if settlement_wall_cells.has(key):
+		return 15.0
+	return -1.0
 
 func elevation_for_hex(hex: Vector2i) -> float:
 	var authored_settlement := settlement_definition_registry.resolve(hex)
