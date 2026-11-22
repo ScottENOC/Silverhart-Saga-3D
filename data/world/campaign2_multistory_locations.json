@@ -1,0 +1,592 @@
+{
+  "schema_version": 1,
+  "coordinate_system": "campaign2_local_axial_qr",
+  "source": "Hex-crpg/campaign2World.js:buildDwarvenKingdom, carveFloorRoom, paintFloorCorridor, revealSunkenDeepPassage; campaign2Content.js:campaign2DwarfKing/campaign2DwarfGuards/campaign2DwarfTrader/campaign2DwarfRunesmith/campaign2DwarfForeman/campaign2DeepholdsVermin",
+  "locations": [
+    {
+      "id": "kragmoor",
+      "name": "Kragmoor — the Deepholds",
+      "anchor": {
+        "q": 908,
+        "r": -626
+      },
+      "massif_radius": 25,
+      "floor_generation": "source-authored rooms and q_then_r_dogleg corridors",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Gate Hall",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "gate_hall",
+              "center": {
+                "q": 908,
+                "r": -608
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "gate_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": 908,
+                "r": -610
+              },
+              "to_floor": -1
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        },
+        {
+          "floor": -1,
+          "name": "Great Hall",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "great_hall",
+              "center": {
+                "q": 908,
+                "r": -626
+              },
+              "half_width": 6,
+              "half_height": 4
+            }
+          ],
+          "corridors": [
+            {
+              "id": "gate_to_hall",
+              "from": {
+                "q": 908,
+                "r": -610
+              },
+              "to": {
+                "q": 908,
+                "r": -623
+              },
+              "algorithm": "q_then_r_dogleg"
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "gate_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": 908,
+                "r": -610
+              },
+              "to_floor": 0
+            },
+            {
+              "id": "throne",
+              "type": "throne",
+              "position": {
+                "q": 908,
+                "r": -629
+              }
+            },
+            {
+              "id": "west_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 905,
+                "r": -626
+              },
+              "light_radius": 6
+            },
+            {
+              "id": "east_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 911,
+                "r": -626
+              },
+              "light_radius": 6
+            },
+            {
+              "id": "hall_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": 908,
+                "r": -626
+              },
+              "to_floor": -2
+            }
+          ],
+          "actors": [
+            {
+              "id": "dwarf_king",
+              "name": "King Balrik Deepholm",
+              "role": "king",
+              "dialogue_id": "dwarf_king",
+              "position": {
+                "q": 908,
+                "r": -627
+              }
+            },
+            {
+              "id": "hall_guard_01",
+              "name": "Hall Guard",
+              "role": "guard",
+              "position": {
+                "q": 906,
+                "r": -624
+              }
+            },
+            {
+              "id": "hall_guard_02",
+              "name": "Hall Guard",
+              "role": "guard",
+              "position": {
+                "q": 910,
+                "r": -624
+              }
+            }
+          ],
+          "creatures": []
+        },
+        {
+          "floor": -2,
+          "name": "Vault and Runeforge",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "vault",
+              "center": {
+                "q": 898,
+                "r": -626
+              },
+              "half_width": 3,
+              "half_height": 3
+            },
+            {
+              "id": "runeforge",
+              "center": {
+                "q": 890,
+                "r": -626
+              },
+              "half_width": 3,
+              "half_height": 3
+            }
+          ],
+          "corridors": [
+            {
+              "id": "hall_to_vault",
+              "from": {
+                "q": 908,
+                "r": -626
+              },
+              "to": {
+                "q": 898,
+                "r": -626
+              },
+              "algorithm": "q_then_r_dogleg"
+            },
+            {
+              "id": "vault_to_runeforge",
+              "from": {
+                "q": 898,
+                "r": -626
+              },
+              "to": {
+                "q": 890,
+                "r": -626
+              },
+              "algorithm": "q_then_r_dogleg"
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "hall_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": 908,
+                "r": -626
+              },
+              "to_floor": -1
+            },
+            {
+              "id": "rune_forge",
+              "type": "rune_forge",
+              "position": {
+                "q": 890,
+                "r": -626
+              },
+              "light_radius": 4
+            },
+            {
+              "id": "forge_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": 890,
+                "r": -627
+              },
+              "to_floor": -3
+            }
+          ],
+          "actors": [
+            {
+              "id": "deepholds_trader",
+              "name": "Ingra Silvertongue",
+              "role": "vault_trader",
+              "dialogue_id": "deepholds_trader",
+              "position": {
+                "q": 898,
+                "r": -625
+              }
+            },
+            {
+              "id": "deepholds_runesmith",
+              "name": "Thrain Emberhand",
+              "role": "master_runesmith",
+              "dialogue_id": "deepholds_runesmith",
+              "position": {
+                "q": 890,
+                "r": -625
+              }
+            }
+          ],
+          "creatures": []
+        },
+        {
+          "floor": -3,
+          "name": "Deep Mine",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "deep_mine",
+              "center": {
+                "q": 890,
+                "r": -616
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [
+            {
+              "id": "forge_to_mine",
+              "from": {
+                "q": 890,
+                "r": -627
+              },
+              "to": {
+                "q": 890,
+                "r": -616
+              },
+              "algorithm": "q_then_r_dogleg"
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "forge_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": 890,
+                "r": -627
+              },
+              "to_floor": -2
+            },
+            {
+              "id": "mine_ledger",
+              "type": "journal",
+              "position": {
+                "q": 890,
+                "r": -616
+              },
+              "read_id": "deepholds_mine_ledger"
+            },
+            {
+              "id": "mine_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": 890,
+                "r": -617
+              },
+              "to_floor": -4
+            }
+          ],
+          "actors": [
+            {
+              "id": "deepholds_foreman",
+              "name": "Foreman Dornik Coalbeard",
+              "role": "foreman",
+              "dialogue_id": "deepholds_foreman",
+              "position": {
+                "q": 890,
+                "r": -615
+              }
+            }
+          ],
+          "creatures": []
+        },
+        {
+          "floor": -4,
+          "name": "Lower Tunnels",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "lower_tunnels",
+              "center": {
+                "q": 890,
+                "r": -606
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [
+            {
+              "id": "mine_to_tunnels",
+              "from": {
+                "q": 890,
+                "r": -617
+              },
+              "to": {
+                "q": 890,
+                "r": -606
+              },
+              "algorithm": "q_then_r_dogleg"
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "mine_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": 890,
+                "r": -617
+              },
+              "to_floor": -3
+            }
+          ],
+          "actors": [],
+          "creatures": [
+            {
+              "id": "deepholds_spider_01",
+              "name": "Cave Spider",
+              "kind": "spider",
+              "position": {
+                "q": 889,
+                "r": -606
+              },
+              "custom_skills": {
+                "health": 2
+              }
+            },
+            {
+              "id": "deepholds_spider_02",
+              "name": "Cave Spider",
+              "kind": "spider",
+              "position": {
+                "q": 890,
+                "r": -606
+              },
+              "custom_skills": {
+                "health": 2
+              }
+            },
+            {
+              "id": "deepholds_broodmother",
+              "name": "Broodmother",
+              "kind": "spider",
+              "position": {
+                "q": 891,
+                "r": -606
+              },
+              "custom_skills": {
+                "health": 6,
+                "meleeDamage": 4
+              }
+            }
+          ]
+        },
+        {
+          "floor": -5,
+          "name": "Sunken Deep",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "sunken_deep",
+              "center": {
+                "q": 890,
+                "r": -602
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [
+            {
+              "id": "tunnels_to_sunken_deep",
+              "from": {
+                "q": 890,
+                "r": -605
+              },
+              "to": {
+                "q": 890,
+                "r": -602
+              },
+              "algorithm": "q_then_r_dogleg"
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "sunken_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": 890,
+                "r": -605
+              },
+              "to_floor": -4
+            },
+            {
+              "id": "sunken_warning",
+              "type": "journal",
+              "position": {
+                "q": 890,
+                "r": -603
+              },
+              "read_id": "sunken_deep_warning"
+            }
+          ],
+          "actors": [],
+          "creatures": [
+            {
+              "id": "ember_wreathed_horror",
+              "name": "The Ember-Wreathed Horror",
+              "kind": "dragon_young",
+              "position": {
+                "q": 890,
+                "r": -602
+              },
+              "custom_skills": {
+                "health": 10,
+                "meleeDamage": 6,
+                "heavy_armor_training": 2
+              },
+              "health": 160,
+              "max_health": 160,
+              "inventory": [
+                "starmetal_ore",
+                "starmetal_ore",
+                "deep_crystal"
+              ]
+            }
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "from_floor": 0,
+          "to_floor": -1,
+          "position": {
+            "q": 908,
+            "r": -610
+          }
+        },
+        {
+          "from_floor": -1,
+          "to_floor": 0,
+          "position": {
+            "q": 908,
+            "r": -610
+          }
+        },
+        {
+          "from_floor": -1,
+          "to_floor": -2,
+          "position": {
+            "q": 908,
+            "r": -626
+          }
+        },
+        {
+          "from_floor": -2,
+          "to_floor": -1,
+          "position": {
+            "q": 908,
+            "r": -626
+          }
+        },
+        {
+          "from_floor": -2,
+          "to_floor": -3,
+          "position": {
+            "q": 890,
+            "r": -627
+          }
+        },
+        {
+          "from_floor": -3,
+          "to_floor": -2,
+          "position": {
+            "q": 890,
+            "r": -627
+          }
+        },
+        {
+          "from_floor": -3,
+          "to_floor": -4,
+          "position": {
+            "q": 890,
+            "r": -617
+          }
+        },
+        {
+          "from_floor": -4,
+          "to_floor": -3,
+          "position": {
+            "q": 890,
+            "r": -617
+          }
+        },
+        {
+          "from_floor": -4,
+          "to_floor": -5,
+          "position": {
+            "q": 890,
+            "r": -605
+          },
+          "initially_available": false,
+          "unlocked_by_quest": "deepholds_infestation"
+        },
+        {
+          "from_floor": -5,
+          "to_floor": -4,
+          "position": {
+            "q": 890,
+            "r": -605
+          }
+        }
+      ],
+      "quest_gates": [
+        {
+          "id": "sunken_deep_passage",
+          "from_floor": -4,
+          "to_floor": -5,
+          "position": {
+            "q": 890,
+            "r": -605
+          },
+          "quest_id": "deepholds_infestation",
+          "quest_title": "What Nests Below",
+          "unlock_when": "completed",
+          "initially_available": false,
+          "reveal_is_idempotent": true,
+          "source_function": "revealSunkenDeepPassage"
+        }
+      ],
+      "source_notes": [
+        "The Gate Hall is the surface floor at anchor plus (0,18); the solid massif radius is 25.",
+        "The Sunken Deep is carved and populated at world-build time but its descending stair is absent until the Deepholds infestation quest is completed.",
+        "Source stair transitions are one shaft per level; the Vault and Runeforge share floor -2 and the mine and Lower Tunnels are reached by walking through connected corridors."
+      ]
+    }
+  ]
+}
