@@ -34,6 +34,44 @@ KNOWN_TATTOOS_FALLBACK = {
 KNOWN_WEAPONS_FALLBACK = {"none", "rifle", "pistol", "sword", "knife"}
 KNOWN_CARRY_FALLBACK = {"none", "straw_tote", "handbag", "briefcase", "backpack"}
 
+def select_village_cast(manifest: dict) -> dict:
+    """Keep the 13 Hollowmere residents and player avatar in this model pack.
+
+    Companion profiles share the source manifest but are built by their own
+    character pipelines. They must not be exported as village residents.
+    """
+    characters = manifest.get("characters", [])
+    if not isinstance(characters, list):
+        raise ValueError("Character manifest must contain a characters array")
+    village_cast = [profile for profile in characters if profile.get("role") != "companion"]
+    ids = [str(profile.get("id", "")) for profile in village_cast]
+    if len(village_cast) != 14 or len(set(ids)) != len(ids) or "player_avatar" not in ids:
+        raise ValueError(
+            "Expected 13 Hollowmere residents plus player_avatar; "
+            f"found {len(village_cast)} records with IDs {ids!r}"
+        )
+    return {**manifest, "characters": village_cast}
+
+
+def output_profile_record(profile: dict, detail: str, model: str, params: dict) -> dict:
+    """Build generated metadata without assuming source coordinates live here."""
+    record = {
+        "id": profile["id"],
+        "game_id": profile["game_id"],
+        "name": profile["name"],
+        "role": profile["role"],
+        "dialogue_id": profile.get("dialogue_id", ""),
+        "detail": detail,
+        "model": model,
+        "params": params,
+    }
+    # Older location-authored profiles may include a legacy hex field. Current
+    # source placements live in the settlement layouts, so it is optional.
+    if "hex" in profile:
+        record["hex"] = profile["hex"]
+    return record
+
+
 
 def source_ids(path: str, pattern: str) -> set[str]:
     file = ARA_ROOT / path
@@ -113,7 +151,8 @@ def main() -> None:
     if not args.profiles.exists():
         raise SystemExit(f"Missing character profile file: {args.profiles}")
 
-    manifest = json.loads(args.profiles.read_text())
+    source_manifest = json.loads(args.profiles.read_text())
+    manifest = select_village_cast(source_manifest)
     validate_profiles(manifest)
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -159,17 +198,12 @@ def main() -> None:
         if target.stat().st_size < 100_000:
             raise SystemExit(f"{character_id}: suspiciously small GLB ({target.stat().st_size:,} bytes)")
         print(f"Built {profile['name']}: {target.stat().st_size:,} bytes", flush=True)
-        built.append({
-            "id": character_id,
-            "game_id": profile["game_id"],
-            "name": profile["name"],
-            "role": profile["role"],
-            "dialogue_id": profile.get("dialogue_id", ""),
-            "hex": profile["hex"],
-            "detail": detail,
-            "model": f"{character_id}.glb",
-            "params": params,
-        })
+        built.append(output_profile_record(
+            profile,
+            detail,
+            f"{character_id}.glb",
+            params,
+        ))
         shutil.rmtree(export_dir)
 
     output_manifest = {
@@ -182,7 +216,7 @@ def main() -> None:
         if metadata_key in manifest:
             output_manifest[metadata_key] = manifest[metadata_key]
     (args.out / "profiles.json").write_text(json.dumps(output_manifest, indent=2) + "\n")
-    print(f"\nBuilt {len(built)} Hollowmere Ara characters.", flush=True)
+    print(f"\nBuilt {len(built)} Hollowmere resident/player Ara characters.", flush=True)
 
 
 if __name__ == "__main__":
