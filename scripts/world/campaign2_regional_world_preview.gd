@@ -5,6 +5,7 @@ extends Node3D
 const TERRAIN_DATA_SCRIPT = preload("res://scripts/world/campaign2_world_terrain_data.gd")
 const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
 const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
+const WALL_FEATURE_FACTORY = preload("res://scripts/world/world_wall_feature_factory.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
 const HEX_RADIUS := HexGrid.DEFAULT_RADIUS_M
@@ -256,7 +257,8 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 			if terrain == "authored" or terrain == "void" or not tools.has(terrain):
 				continue
 			var elevation := terrain_data.elevation_for_hex(hex)
-			_add_hex_to_surface(tools[terrain] as SurfaceTool, hex, elevation)
+			var wall_height := WALL_FEATURE_FACTORY.height_for_terrain(terrain)
+			_add_hex_to_surface(tools[terrain] as SurfaceTool, hex, elevation + wall_height)
 			if terrain_data.has_tree(hex) and terrain_data.settlement_definition_registry.resolve(hex).is_empty():
 				var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
 				var size_roll := LOCAL_TERRAIN_RULES.stable_roll(hex, 2909)
@@ -276,6 +278,9 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 		root.add_child(instance)
 	_add_multimesh(root, "ForestCrowns", tree_crown_mesh, tree_transforms)
 	_add_multimesh(root, "ForestTrunks", tree_trunk_mesh, trunk_transforms)
+	var wall_result: Dictionary = WALL_FEATURE_FACTORY.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS, materials)
+	if not bool(wall_result.get("ok", false)):
+		push_warning("Regional wall presentation failed: %s" % wall_result)
 	_add_chunk_locations(root, chunk)
 	settlement_builder.add_settlements_in_chunk(root, chunk_min, CHUNK_SIZE, "chunked")
 	return root
