@@ -6162,11 +6162,13 @@
       ],
       "presentation": {
         "palette": {
-          "timber": "#59402b"
+          "timber": "#59402b",
+          "stone": "#9b9587"
         },
         "materials": {
           "props": {
-            "timber": "timber"
+            "timber": "timber",
+            "stone": "stone"
           }
         }
       }
