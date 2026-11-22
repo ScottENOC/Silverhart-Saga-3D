@@ -91,7 +91,7 @@ jobs:
             exit 0
           fi
           git commit -m "Regenerate Hollowmere NPC models with current gendered anatomy"
-          git fetch origin "${GITHUB_REF_NAME}"
+          git fetch origin
           # Reapply the generated-model commit on top of the latest branch tip.
           # A plain rebase can silently leave HEAD behind when the trigger SHA
           # is an ancestor of a branch that advanced during the long build.
