@@ -241,16 +241,21 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	return "building" if terrain == "authored" else terrain
 
 func is_walkable_for_hex(hex: Vector2i) -> bool:
-	if settlement_ladder_cells.has(_hex_key(hex)):
-		return true
-	if settlement_wall_cells.has(_hex_key(hex)):
-		return false
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
 		return not AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.is_blocked(authored_settlement.local_hex, terrain_definition)
 	var terrain := gameplay_terrain_for_hex(hex)
 	return terrain != "water" and terrain != "building" and terrain != "keep_wall"
+
+
+func movement_multiplier_for_hex(hex: Vector2i) -> float:
+	var key := _hex_key(hex)
+	if settlement_ladder_cells.has(key):
+		return 2.0
+	if settlement_wall_cells.has(key):
+		return 15.0
+	return -1.0
 
 func elevation_for_hex(hex: Vector2i) -> float:
 	var authored_settlement := settlement_definition_registry.resolve(hex)
