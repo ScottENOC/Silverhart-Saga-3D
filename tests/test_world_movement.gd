@@ -131,21 +131,21 @@ func _test_elevation_rules() -> void:
 
 
 func _test_palisade_movement() -> void:
-	var map_data := HexMapData.new()
-	map_data.add_cell(Vector2i(0, 0))
-	map_data.add_cell(Vector2i(1, 0), 0.0, true, "palisade_wall", 15.0)
-	map_data.add_cell(Vector2i(2, 0))
-	map_data.add_cell(Vector2i(0, 1))
-	map_data.add_cell(Vector2i(1, 1), 0.0, true, "palisade_wall", 2.0)
-	var climber := CharacterState.new("palisade_climber", "Climber", Vector2i.ZERO)
-	var unassisted_cost := MovementRules.step_cost(map_data, Vector2i.ZERO, Vector2i(1, 0), climber)
-	_check(is_equal_approx(unassisted_cost, 75.0), "An unassisted palisade crossing should be possible but very costly")
-	climber.skills["agile_climber"] = 1
-	var skilled_cost := MovementRules.step_cost(map_data, Vector2i.ZERO, Vector2i(1, 0), climber)
-	_check(is_equal_approx(skilled_cost, 10.0), "Agile Climber should reduce palisade crossing to the source cost")
-	climber.skills.clear()
-	var ladder_cost := MovementRules.step_cost(map_data, Vector2i(0, 1), Vector2i(1, 1), climber)
-	_check(is_equal_approx(ladder_cost, 10.0), "A ladder should reduce the palisade crossing cost without requiring the skill")
+    var map_data := HexMapData.new()
+    map_data.add_cell(Vector2i(0, 0))
+    map_data.add_cell(Vector2i(1, 0), 0.0, true, "palisade_wall", 15.0)
+    map_data.add_cell(Vector2i(2, 0))
+    map_data.add_cell(Vector2i(0, 1))
+    map_data.add_cell(Vector2i(1, 1), 0.0, true, "palisade_wall", 2.0)
+    var climber := CharacterState.new("palisade_climber", "Climber", Vector2i.ZERO)
+    var unassisted_cost := MovementRules.step_cost(map_data, Vector2i.ZERO, Vector2i(1, 0), climber)
+    _check(is_equal_approx(unassisted_cost, 75.0), "An unassisted palisade crossing should be possible but very costly")
+    climber.skills["agile_climber"] = 1
+    var skilled_cost := MovementRules.step_cost(map_data, Vector2i.ZERO, Vector2i(1, 0), climber)
+    _check(is_equal_approx(skilled_cost, 10.0), "Agile Climber should reduce palisade crossing to the source cost")
+    climber.skills.clear()
+    var ladder_cost := MovementRules.step_cost(map_data, Vector2i(0, 1), Vector2i(1, 1), climber)
+    _check(is_equal_approx(ladder_cost, 10.0), "A ladder should reduce the palisade crossing cost without requiring the skill")
 
 func _test_world_clock() -> void:
     var clock := WorldClock.new()
