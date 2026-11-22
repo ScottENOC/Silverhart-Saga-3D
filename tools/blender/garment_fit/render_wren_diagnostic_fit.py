@@ -63,9 +63,11 @@ def main():
         raise RuntimeError("Expected Wren's 69-bone armature")
 
     world_vertices = [body.matrix_world @ v.co for v in body.data.vertices]
-    tree = BVHTree.FromPolygons(world_vertices, [list(p.vertices) for p in body.data.polygons], all_triangles=False)
+    body.data.calc_loop_triangles()
+    surface_triangles = [tuple(triangle.vertices) for triangle in body.data.loop_triangles]
+    tree = BVHTree.FromPolygons(world_vertices, [list(t) for t in surface_triangles], all_triangles=True)
     if tree is None:
-        raise RuntimeError("Could not build body BVH")
+        raise RuntimeError("Could not build triangulated body BVH")
 
     # Diagnostic region: central torso only, avoiding the head, limbs and legs.
     selected_faces = []
@@ -87,34 +89,44 @@ def main():
             edges_set.add(tuple(sorted((left, right))))
     edges = sorted(edges_set)
 
-    # Start 5 mm outside the body, then solve to the requested 4 mm clearance.
-    start_world = []
-    for old in used:
-        v = body.data.vertices[old]
-        normal = (body.matrix_world.to_3x3() @ v.normal).normalized()
-        start_world.append(tuple(world_vertices[old] + normal * 0.005))
-
     normal_matrix = body.matrix_world.to_3x3().inverted().transposed()
 
-    def smooth_polygon_normal(face_index):
-        # BVHTree returns the polygon's geometric normal, which follows face
-        # winding and can be reversed on imported meshes. Use the source mesh's
-        # smooth vertex normals instead, transformed with the inverse transpose.
-        polygon = body.data.polygons[face_index]
-        local_normal = sum(
-            (body.data.vertices[index].normal for index in polygon.vertices),
-            Vector((0.0, 0.0, 0.0)),
+    # Start 5 mm outside the body along correctly transformed smooth normals.
+    start_world = []
+    for old in used:
+        vertex = body.data.vertices[old]
+        normal = (normal_matrix @ vertex.normal).normalized()
+        start_world.append(tuple(world_vertices[old] + normal * 0.005))
+
+    def interpolated_smooth_normal(triangle_index, location):
+        # BVH face indices map directly to the triangulated surface list.
+        indices = surface_triangles[triangle_index]
+        a, b, c = (world_vertices[index] for index in indices)
+        p = Vector(location)
+        ab, ac, ap = b - a, c - a, p - a
+        d00, d01, d11 = ab.dot(ab), ab.dot(ac), ac.dot(ac)
+        d20, d21 = ap.dot(ab), ap.dot(ac)
+        denom = d00 * d11 - d01 * d01
+        if abs(denom) <= 1e-18:
+            raise RuntimeError(f"Degenerate body triangle {triangle_index}")
+        v = (d11 * d20 - d01 * d21) / denom
+        w = (d00 * d21 - d01 * d20) / denom
+        u = 1.0 - v - w
+        local_normal = (
+            body.data.vertices[indices[0]].normal * u
+            + body.data.vertices[indices[1]].normal * v
+            + body.data.vertices[indices[2]].normal * w
         )
         if local_normal.length_squared <= 1e-16:
-            raise RuntimeError(f"Degenerate smooth normal on body polygon {face_index}")
+            raise RuntimeError(f"Degenerate interpolated normal on triangle {triangle_index}")
         return (normal_matrix @ local_normal.normalized()).normalized()
 
     def query(point):
         hit = tree.find_nearest(Vector(point))
         if hit is None or hit[0] is None or hit[1] is None or hit[2] is None:
             return None
-        location, _face_normal, face_index, _distance = hit
-        return tuple(location), tuple(smooth_polygon_normal(face_index))
+        location, _face_normal, triangle_index, _distance = hit
+        return tuple(location), tuple(interpolated_smooth_normal(triangle_index, location))
 
     # Record the starting geometry and compare BVH face normals with the
     # source mesh's smooth vertex normals. This distinguishes a solver issue
