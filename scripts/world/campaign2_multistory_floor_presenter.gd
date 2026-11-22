@@ -131,6 +131,14 @@ func get_actor_placements() -> Array[Dictionary]:
 func get_creature_placements() -> Array[Dictionary]:
 	return current_creatures.duplicate(true)
 
+func _copy_dictionary_array(values: Variant) -> Array[Dictionary]:
+	var copied: Array[Dictionary] = []
+	if values is Array:
+		for value in values:
+			if value is Dictionary:
+				copied.append(value.duplicate(true))
+	return copied
+
 func _on_campaign_journal_event(event: Dictionary) -> void:
 	if String(event.get("event_type", "")) == "quest_completed":
 		var quest_id := String(event.get("quest_id", ""))
@@ -146,9 +154,9 @@ func _render_current_floor() -> Dictionary:
 	if not bool(result.get("ok", false)):
 		return result
 	current_map_data = result.get("map_data") as HexMapData
-	current_tile_objects = result.get("tile_objects", []).duplicate(true)
-	current_actors = result.get("actors", []).duplicate(true)
-	current_creatures = result.get("creatures", []).duplicate(true)
+	current_tile_objects = _copy_dictionary_array(result.get("tile_objects", []))
+	current_actors = _copy_dictionary_array(result.get("actors", []))
+	current_creatures = _copy_dictionary_array(result.get("creatures", []))
 	if current_map_data == null:
 		return {"ok": false, "reason": "floor_builder_returned_no_map"}
 	if terrain_renderer == null:
