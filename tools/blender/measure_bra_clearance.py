@@ -122,7 +122,13 @@ def main():
         "garment_vertex_count": len(distances),
         "nearest_skin_distance": stats(distances),
         "chest_band_distance": stats(chest_distances),
-        "signed_normal_offset_m": stats(signed_offsets),
+        "signed_normal_offset_m": {
+            "count": len(signed_offsets),
+            "min_m": round(min(signed_offsets), 6) if signed_offsets else None,
+            "median_m": round(sorted(signed_offsets)[(len(signed_offsets)-1)//2], 6) if signed_offsets else None,
+            "max_m": round(max(signed_offsets), 6) if signed_offsets else None,
+        },
+        "absolute_normal_offset_m": stats([abs(v) for v in signed_offsets]),
         "outlier_thresholds": "distance > 15 mm or < 1 mm",
         "outlier_examples": outliers[:100],
         "sample_vertices": samples,
@@ -135,6 +141,7 @@ def main():
         "nearest_skin": report["nearest_skin_distance"],
         "chest_band": report["chest_band_distance"],
         "signed_offset": report["signed_normal_offset_m"],
+        "absolute_offset": report["absolute_normal_offset_m"],
         "outliers": len(outliers),
     }, sort_keys=True))
 
