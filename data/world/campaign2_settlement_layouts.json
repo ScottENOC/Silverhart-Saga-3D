@@ -1859,7 +1859,3579 @@
       ],
       "npcs": [],
       "creatures": [],
-      "interiors": []
+      "interiors": [],
+      "props": [
+        {
+          "id": "silverhart_curtain_wall_1",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -496
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 270
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_2",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -495
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 267.5104470780009
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_3",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -494
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 265.0302592718897
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_4",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -493
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 262.5685920288275
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_5",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -492
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 260.13419305691565
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_6",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -491
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 257.73522627210764
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_7",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -490
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 255.37912601136833
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_8",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -489
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 253.07248693585296
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_9",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -488
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 250.8209919741893
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_10",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -487
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 248.6293777306568
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_11",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -486
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 246.50143432404792
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_12",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -485
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 244.4400348281762
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_13",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -484
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 242.4471884232822
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_14",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -483
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 240.52411099675425
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_15",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -482
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 238.67130713219584
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_16",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -481
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 236.88865803962798
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_17",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -480
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 235.1755108430432
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_18",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -479
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 233.53076560994813
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_19",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -478
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 231.95295746817393
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_20",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -477
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 230.4403320310055
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_21",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -476
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 228.99091309842976
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_22",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -475
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 227.6025622024998
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_23",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -474
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 226.27303002005672
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_24",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 225
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_25",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -14,
+            "r": -497
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -87.3974377975002
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_26",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -14,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 223.7269699799433
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_27",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -13,
+            "r": -498
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -84.55966796899452
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_28",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -13,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 222.3974377975002
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_29",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -12,
+            "r": -499
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -81.4692343900519
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_30",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -12,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 221.0090869015702
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_31",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -11,
+            "r": -500
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -78.11134196037202
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_32",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -11,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 219.5596679689945
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_33",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -10,
+            "r": -501
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -74.47588900324575
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_34",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -10,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 218.0470425318261
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_35",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -9,
+            "r": -502
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -70.55996517182382
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_36",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -9,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 216.4692343900519
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_37",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -8,
+            "r": -503
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -66.37062226934319
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_38",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -8,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 214.8244891569568
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_39",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -7,
+            "r": -504
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -61.927513064147064
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_40",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -7,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 213.11134196037204
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_41",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -6,
+            "r": -505
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -57.26477372789239
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_42",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -6,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 211.32869286780416
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_43",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -5,
+            "r": -506
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -52.43140797117252
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_44",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -5,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 209.47588900324575
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_45",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -4,
+            "r": -507
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -47.48955292199918
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_46",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -4,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 207.55281157671783
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_47",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -3,
+            "r": -508
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -42.51044707800085
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_48",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -3,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 205.55996517182382
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_49",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -2,
+            "r": -509
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -37.568592028827496
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_50",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -2,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 203.49856567595208
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_51",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -1,
+            "r": -510
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -32.73522627210761
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_52",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -1,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 201.3706222693432
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_53",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 0,
+            "r": -511
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -28.072486935852965
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_54",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 0,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 199.17900802581073
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_55",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 1,
+            "r": -512
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -23.629377730656813
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_56",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 1,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 196.92751306414704
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_57",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 2,
+            "r": -513
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -19.44003482817618
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_58",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 2,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 194.62087398863167
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_59",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 3,
+            "r": -514
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -15.52411099675426
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_60",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 3,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 192.26477372789242
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_61",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 4,
+            "r": -515
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -11.888658039627984
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_62",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 4,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 189.86580694308435
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_63",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 5,
+            "r": -516
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -8.530765609948133
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_64",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 5,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 187.43140797117252
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_65",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 6,
+            "r": -517
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -5.440332031005497
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_66",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 6,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 184.9697407281103
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_67",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 7,
+            "r": -518
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": -2.602562202499797
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_68",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 7,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 182.48955292199915
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_69",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 8,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 0
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_70",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 8,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 180
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_71",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 9,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 2.489552921999149
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_72",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 9,
+            "r": -474
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 177.39743779750017
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_73",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 10,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 4.96974072811031
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_74",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 10,
+            "r": -475
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 174.55966796899452
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_75",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 11,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 7.431407971172504
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_76",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 11,
+            "r": -476
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 171.4692343900519
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_77",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 12,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 9.865806943084365
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_78",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 12,
+            "r": -477
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 168.11134196037204
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_79",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 13,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 12.264773727892404
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_80",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 13,
+            "r": -478
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 164.47588900324575
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_81",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 14,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 14.620873988631658
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_82",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 14,
+            "r": -479
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 160.55996517182382
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_83",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 15,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 16.92751306414705
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_84",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 15,
+            "r": -480
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 156.3706222693432
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_85",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 16,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 19.179008025810717
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_86",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 16,
+            "r": -481
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 151.92751306414704
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_87",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 17,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 21.370622269343187
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_88",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 17,
+            "r": -482
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 147.26477372789242
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_89",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 18,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 23.498565675952094
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_90",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 18,
+            "r": -483
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 142.43140797117252
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_91",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 19,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 25.559965171823805
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_92",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 19,
+            "r": -484
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 137.48955292199918
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_93",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 20,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 27.552811576717794
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_94",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 20,
+            "r": -485
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 132.51044707800085
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_95",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 21,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 29.475889003245747
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_96",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 21,
+            "r": -486
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 127.5685920288275
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_97",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 22,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 31.328692867804165
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_98",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 22,
+            "r": -487
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 122.73522627210761
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_99",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 23,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 33.11134196037202
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_100",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 23,
+            "r": -488
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 118.07248693585295
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_101",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 24,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 34.824489156956794
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_102",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 24,
+            "r": -489
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 113.62937773065681
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_103",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 25,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 36.46923439005187
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_104",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 25,
+            "r": -490
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 109.4400348281762
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_105",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 26,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 38.04704253182609
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_106",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 26,
+            "r": -491
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 105.52411099675426
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_107",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 27,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 39.55966796899449
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_108",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 27,
+            "r": -492
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 101.88865803962797
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_109",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 28,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 41.009086901570214
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_110",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 28,
+            "r": -493
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 98.53076560994813
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_111",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 29,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 42.39743779750019
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_112",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 29,
+            "r": -494
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 95.44033203100551
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_113",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 30,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 43.726969979943284
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_114",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 30,
+            "r": -495
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 92.60256220249981
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_115",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 45
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_116",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -518
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 46.27303002005671
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_117",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -517
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 47.602562202499804
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_118",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -516
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 48.99091309842978
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_119",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -515
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 50.440332031005504
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_120",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -514
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 51.95295746817391
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_121",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -513
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 53.53076560994813
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_122",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -512
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 55.175510843043206
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_123",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -511
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 56.88865803962797
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_124",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -510
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 58.67130713219583
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_125",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -509
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 60.52411099675426
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_126",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -508
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 62.4471884232822
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_127",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -507
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 64.44003482817618
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_128",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -506
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 66.5014343240479
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_129",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -505
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 68.62937773065681
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_130",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -504
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 70.82099197418927
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_131",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -503
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 73.07248693585296
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_132",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -502
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 75.37912601136834
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_133",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -501
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 77.7352262721076
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_134",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -500
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 80.13419305691563
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_135",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -499
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 82.5685920288275
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_136",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -498
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 85.03025927188969
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_137",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -497
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 87.51044707800085
+            }
+          ]
+        },
+        {
+          "id": "silverhart_curtain_wall_138",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -496
+          },
+          "parts": [
+            {
+              "name": "Palisade",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.65,
+                "y": 2.8,
+                "z": 0.38
+              },
+              "rotation_degrees": 90
+            }
+          ]
+        },
+        {
+          "id": "silverhart_watchtower_1",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 10,
+            "r": -475
+          },
+          "parts": [
+            {
+              "name": "TowerBase",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 1.25,
+              "bottom_radius": 1.45,
+              "height": 0.45,
+              "position": {
+                "x": 0,
+                "y": 0.25,
+                "z": 0
+              }
+            },
+            {
+              "name": "TowerPost",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.22,
+              "bottom_radius": 0.22,
+              "height": 3.2,
+              "position": {
+                "x": 0,
+                "y": 1.9,
+                "z": 0
+              }
+            },
+            {
+              "name": "Lookout",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 3.1,
+                "y": 0.35,
+                "z": 3.1
+              },
+              "position": {
+                "x": 0,
+                "y": 3.45,
+                "z": 0
+              }
+            },
+            {
+              "name": "Roof",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.2,
+              "bottom_radius": 1.65,
+              "height": 1.2,
+              "position": {
+                "x": 0,
+                "y": 4.2,
+                "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_watchtower_2",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 6,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "TowerBase",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 1.25,
+              "bottom_radius": 1.45,
+              "height": 0.45,
+              "position": {
+                "x": 0,
+                "y": 0.25,
+                "z": 0
+              }
+            },
+            {
+              "name": "TowerPost",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.22,
+              "bottom_radius": 0.22,
+              "height": 3.2,
+              "position": {
+                "x": 0,
+                "y": 1.9,
+                "z": 0
+              }
+            },
+            {
+              "name": "Lookout",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 3.1,
+                "y": 0.35,
+                "z": 3.1
+              },
+              "position": {
+                "x": 0,
+                "y": 3.45,
+                "z": 0
+              }
+            },
+            {
+              "name": "Roof",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.2,
+              "bottom_radius": 1.65,
+              "height": 1.2,
+              "position": {
+                "x": 0,
+                "y": 4.2,
+                "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_watchtower_3",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -496
+          },
+          "parts": [
+            {
+              "name": "TowerBase",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 1.25,
+              "bottom_radius": 1.45,
+              "height": 0.45,
+              "position": {
+                "x": 0,
+                "y": 0.25,
+                "z": 0
+              }
+            },
+            {
+              "name": "TowerPost",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.22,
+              "bottom_radius": 0.22,
+              "height": 3.2,
+              "position": {
+                "x": 0,
+                "y": 1.9,
+                "z": 0
+              }
+            },
+            {
+              "name": "Lookout",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 3.1,
+                "y": 0.35,
+                "z": 3.1
+              },
+              "position": {
+                "x": 0,
+                "y": 3.45,
+                "z": 0
+              }
+            },
+            {
+              "name": "Roof",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.2,
+              "bottom_radius": 1.65,
+              "height": 1.2,
+              "position": {
+                "x": 0,
+                "y": 4.2,
+                "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_watchtower_4",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -496
+          },
+          "parts": [
+            {
+              "name": "TowerBase",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 1.25,
+              "bottom_radius": 1.45,
+              "height": 0.45,
+              "position": {
+                "x": 0,
+                "y": 0.25,
+                "z": 0
+              }
+            },
+            {
+              "name": "TowerPost",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.22,
+              "bottom_radius": 0.22,
+              "height": 3.2,
+              "position": {
+                "x": 0,
+                "y": 1.9,
+                "z": 0
+              }
+            },
+            {
+              "name": "Lookout",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 3.1,
+                "y": 0.35,
+                "z": 3.1
+              },
+              "position": {
+                "x": 0,
+                "y": 3.45,
+                "z": 0
+              }
+            },
+            {
+              "name": "Roof",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.2,
+              "bottom_radius": 1.65,
+              "height": 1.2,
+              "position": {
+                "x": 0,
+                "y": 4.2,
+                "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_watchtower_5",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 8,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "TowerBase",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 1.25,
+              "bottom_radius": 1.45,
+              "height": 0.45,
+              "position": {
+                "x": 0,
+                "y": 0.25,
+                "z": 0
+              }
+            },
+            {
+              "name": "TowerPost",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.22,
+              "bottom_radius": 0.22,
+              "height": 3.2,
+              "position": {
+                "x": 0,
+                "y": 1.9,
+                "z": 0
+              }
+            },
+            {
+              "name": "Lookout",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 3.1,
+                "y": 0.35,
+                "z": 3.1
+              },
+              "position": {
+                "x": 0,
+                "y": 3.45,
+                "z": 0
+              }
+            },
+            {
+              "name": "Roof",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.2,
+              "bottom_radius": 1.65,
+              "height": 1.2,
+              "position": {
+                "x": 0,
+                "y": 4.2,
+                "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_watchtower_6",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 31,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "TowerBase",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 1.25,
+              "bottom_radius": 1.45,
+              "height": 0.45,
+              "position": {
+                "x": 0,
+                "y": 0.25,
+                "z": 0
+              }
+            },
+            {
+              "name": "TowerPost",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.22,
+              "bottom_radius": 0.22,
+              "height": 3.2,
+              "position": {
+                "x": 0,
+                "y": 1.9,
+                "z": 0
+              }
+            },
+            {
+              "name": "Lookout",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 3.1,
+                "y": 0.35,
+                "z": 3.1
+              },
+              "position": {
+                "x": 0,
+                "y": 3.45,
+                "z": 0
+              }
+            },
+            {
+              "name": "Roof",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.2,
+              "bottom_radius": 1.65,
+              "height": 1.2,
+              "position": {
+                "x": 0,
+                "y": 4.2,
+                "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_watchtower_7",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -15,
+            "r": -473
+          },
+          "parts": [
+            {
+              "name": "TowerBase",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 1.25,
+              "bottom_radius": 1.45,
+              "height": 0.45,
+              "position": {
+                "x": 0,
+                "y": 0.25,
+                "z": 0
+              }
+            },
+            {
+              "name": "TowerPost",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.22,
+              "bottom_radius": 0.22,
+              "height": 3.2,
+              "position": {
+                "x": 0,
+                "y": 1.9,
+                "z": 0
+              }
+            },
+            {
+              "name": "Lookout",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 3.1,
+                "y": 0.35,
+                "z": 3.1
+              },
+              "position": {
+                "x": 0,
+                "y": 3.45,
+                "z": 0
+              }
+            },
+            {
+              "name": "Roof",
+              "type": "cylinder",
+              "material": "timber",
+              "top_radius": 0.2,
+              "bottom_radius": 1.65,
+              "height": 1.2,
+              "position": {
+                "x": 0,
+                "y": 4.2,
+                "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_wall_ladder_1",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 20,
+            "r": -519
+          },
+          "parts": [
+            {
+              "name": "LeftRail",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 3.2,
+                "z": 0.12
+              },
+              "rotation_degrees": 0
+            },
+            {
+              "name": "RightRail",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 3.2,
+                "z": 0.12
+              },
+              "rotation_degrees": 0
+            },
+            {
+              "name": "Rung1",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.9,
+                "y": 0.1,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0,
+                "y": -1.25,
+                "z": 0
+              }
+            },
+            {
+              "name": "Rung2",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.9,
+                "y": 0.1,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0,
+                "y": -0.63,
+                "z": 0
+              }
+            },
+            {
+              "name": "Rung3",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.9,
+                "y": 0.1,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0,
+                "y": -0.010000000000000009,
+                "z": 0
+              }
+            },
+            {
+              "name": "Rung4",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.9,
+                "y": 0.1,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0,
+                "y": 0.6099999999999999,
+                "z": 0
+              }
+            },
+            {
+              "name": "Rung5",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.9,
+                "y": 0.1,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0,
+                "y": 1.23,
+                "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_wall_ladder_2",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": -4,
+            "r": -507
+          },
+          "parts": [
+            {
+              "name": "LeftRail",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 3.2,
+                "z": 0.12
+              },
+              "rotation_degrees": 0
+            },
+            {
+              "name": "RightRail",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 3.2,
+                "z": 0.12
+              },
+              "rotation_degrees": 0
+            },
+            {
+              "name": "Rung1",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.9,
+                "y": 0.1,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0,
+                "y": -1.25,
+                "z": 0
+              }
+            },
+            {
+              "name": "Rung2",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.9,
+                "y": 0.1,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0,
+                "y": -0.63,
+                "z": 0
+              }
+            },
+            {
+              "name": "Rung3",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.9,
+                "y": 0.1,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0,
+                "y": -0.010000000000000009,
+                "z": 0
+              }
+            },
+            {
+              "name": "Rung4",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.9,
+                "y": 0.1,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0,
+                "y": 0.6099999999999999,
+                "z": 0
+              }
+            },
+            {
+              "name": "Rung5",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.9,
+                "y": 0.1,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0,
+                "y": 1.23,
+                "z": 0
+              }
+            }
+          ]
+        }
+      ],
+      "presentation": {
+        "palette": {
+          "timber": "#59402b"
+        },
+        "materials": {
+          "props": {
+            "timber": "timber"
+          }
+        }
+      }
     }
   ]
 }
