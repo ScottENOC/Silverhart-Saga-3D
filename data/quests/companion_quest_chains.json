@@ -576,7 +576,7 @@
         ]
       ],
       "companion_id": "reyna_fletcher",
-      "actor_id": "",
+      "actor_id": "commander_hart",
       "self_decision_expression": "Number(s?.interdependence||0)>=10&&Number(s?.institutionalTrust||0)>=0?'joint_watch':(Number(s?.interdependence||0)>=0?'private_network':'reyna_centre')"
     },
     {
@@ -674,7 +674,7 @@
         ]
       ],
       "companion_id": "reyna_fletcher",
-      "actor_id": "",
+      "actor_id": "commander_hart",
       "self_decision_expression": "Number(s?.institutionalTrust||0)>=20?(Number(s?.interdependence||0)>=20?'distributed_charter':'take_writ'):(Number(s?.institutionalTrust||0)>=0&&Number(s?.interdependence||0)>=10?'distributed_charter':'reject_writ')"
     },
     {
