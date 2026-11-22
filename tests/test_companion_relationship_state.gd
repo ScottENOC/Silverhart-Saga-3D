@@ -39,6 +39,9 @@ func _test_authored_starts_and_independent_axes() -> void:
 
 func _test_hard_caps_and_companion_styles() -> void:
 	var relationships := CompanionRelationshipState.new()
+	var feminine_start := relationships.ensure("wren_talbot", "feminine")
+	_check(float(feminine_start.get("attraction", 0.0)) == 5.0, "Wren’s initial attraction is rounded against the feminine-presentation cap")
+	_check(String(feminine_start.get("romance_state", "")) == "unspoken")
 	relationships.set_presentation("wren_talbot", "feminine")
 	var wren := relationships.adjust("wren_talbot", {"attraction": 100.0, "romantic_bond": 100.0})
 	_check(float(wren.state.get("attraction", 100.0)) == 30.0, "Wren's feminine-presentation attraction cap is 30")
@@ -54,6 +57,7 @@ func _test_hard_caps_and_companion_styles() -> void:
 	var fenn_style: Dictionary = fenn_profile.get("relationship_style", {})
 	_check(String(fenn_style.get("romantic_exclusivity", "")) == "open")
 	_check(bool(fenn_style.get("group_relationships", false)), "Fenn's authored relationship style permits group relationships")
+	_check(int(relationships.profile_for("brother_alden").get("strong_physical_desire_threshold", 0)) == 101, "Alden’s physical-desire threshold remains unreachable")
 	var reyna_profile := relationships.profile_for("reyna_fletcher")
 	var reyna_caps: Dictionary = reyna_profile.get("attraction_caps", {})
 	_check(float(reyna_caps.get("masculine", 100.0)) == 5.0, "Reyna's authored attraction cap is preserved")
