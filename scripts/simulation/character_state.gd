@@ -62,6 +62,8 @@ var max_health: int = 100
 ## Runtime-only portrait supplied by the 3D presentation layer when available.
 var portrait_texture: Texture2D
 var side: String = "neutral"
+## False for residents on an inactive floor of a multi-storey site.
+var occupies_world_hex: bool = true
 var base_damage: int = 1
 var to_hit_melee: float = 0.0
 var to_hit_ranged: float = 0.0
@@ -405,6 +407,7 @@ func to_dict() -> Dictionary:
         "health": health,
         "max_health": max_health,
         "side": side,
+        "occupies_world_hex": occupies_world_hex,
         "base_damage": base_damage,
         "to_hit_melee": to_hit_melee,
         "to_hit_ranged": to_hit_ranged,
@@ -533,6 +536,7 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.health = int(data.get("health", 100))
     state.max_health = int(data.get("max_health", 100))
     state.side = String(data.get("side", "neutral"))
+    state.occupies_world_hex = bool(data.get("occupies_world_hex", true))
     state.base_damage = int(data.get("base_damage", 1))
     state.to_hit_melee = float(data.get("to_hit_melee", 0.0))
     state.to_hit_ranged = float(data.get("to_hit_ranged", 0.0))
