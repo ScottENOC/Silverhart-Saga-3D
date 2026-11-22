@@ -9,6 +9,7 @@ on:
       - "tools/ara/assemble_modular_glb.py"
       - "tools/ara/extract_garment_glb.py"
       - "tools/ara/patch_halter_bra.py"
+      - "tools/blender/measure_bra_clearance.py"
       - "scripts/presentation/ara_character_actor.gd"
   pull_request:
     branches: [feature/ara-garment-fit-guides]
@@ -124,7 +125,10 @@ jobs:
           mkdir -p /tmp/wren-bra-build
           blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- --input art/characters/ara_runtime/ara_person_body.glb --output /tmp/wren-bra-body.glb --profile female --adult
           python tools/ara/extract_garment_glb.py --body /tmp/wren-bra-body.glb --source /tmp/wren-bra-source.glb --selector "Halter lace*" --selector "Bikini strings*" --output /tmp/wren-bra-assembled.glb
+          mkdir -p build/wren-bra-attachment-review
+          blender --background --python-exit-code 1 --python tools/blender/measure_bra_clearance.py -- --input /tmp/wren-bra-assembled.glb --output build/wren-bra-attachment-review/clearance-before-fit.json
           blender --background --python-exit-code 1 --python tools/blender/add_adult_anatomy.py -- --input /tmp/wren-bra-assembled.glb --output /tmp/wren-bra-fitted.glb --profile none --adult --fit-existing
+          blender --background --python-exit-code 1 --python tools/blender/measure_bra_clearance.py -- --input /tmp/wren-bra-fitted.glb --output build/wren-bra-attachment-review/clearance-after-fit.json
           mkdir -p art/characters/ara_runtime/garments
           python tools/ara/extract_garment_glb.py --strip-input /tmp/wren-bra-fitted.glb --keep-material "Halter lace" --keep-material "Bikini strings" --output art/characters/ara_runtime/garments/female_bra.glb
           test -s art/characters/ara_runtime/garments/female_bra.glb
