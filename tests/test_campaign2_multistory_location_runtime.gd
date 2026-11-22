@@ -74,6 +74,9 @@ func _run() -> void:
     _check(palace_runtime != null and palace_runtime.get_current_floor() == 0, "Silverhart Palace must begin on the Grand Hall floor")
     if palace_runtime != null:
         _check(palace_runtime.get_floor_tile_count(0) > 0 and palace_runtime.get_floor_tile_count(1) > 0, "Grand Hall and gallery must both build walkable floor geometry")
+        _check(palace_runtime.has_floor_object(0, "queen_chambers_bed"), "Queen's private chambers must be presented behind the Grand Hall")
+        _check(palace_runtime.has_floor_object(0, "queen_chambers_rear_door"), "Queen's private chambers must retain their internal rear door")
+        _check(palace_runtime.has_floor_object(0, "queen_chambers_fireplace"), "Queen's private chambers must present their fireplace")
         _check(palace_runtime.is_floor_visible(0) and not palace_runtime.is_floor_visible(1), "Only the Grand Hall may be visible on entry")
         _check(palace_runtime.has_floor_object(0, "throne"), "The source throne must be presented in the Grand Hall")
         _check(palace_runtime.has_floor_object(0, "grand_hall_front_door"), "The source Grand Hall entrance must be retained")
@@ -81,7 +84,25 @@ func _run() -> void:
         _check(palace_runtime.has_floor_actor(0, "royal_guard_denna"), "Royal Guard Denna must be presented beside the throne")
         _check(bool(palace_runtime.try_transition_at_stair(1, Vector2i(8, -496)).get("ok", false)), "The Grand Hall stair must reach the gallery")
         _check(palace_runtime.get_current_floor() == 1 and palace_runtime.is_floor_visible(1), "Gallery traversal must switch the active floor")
+        var palace_saved_locations: Dictionary = restored_simulation.multistory_location_states_to_dict()
+        var palace_restored_simulation = SIMULATION.new()
+        _check(palace_restored_simulation.restore_multistory_location_states(palace_saved_locations), "Palace floor state must be accepted by campaign save restoration")
+        root.add_child(palace_restored_simulation)
+        var palace_restored_load: Dictionary = LOCATION_LOADER.load_multistory_location(root, "silverhart_palace", palace_restored_simulation, {"multistory_locations": palace_saved_locations})
+        _check(bool(palace_restored_load.get("ok", false)), "Palace floor state must restore through the shared location loader")
+        var palace_restored_runtime = palace_restored_load.get("runtime")
+        _check(palace_restored_runtime != null and palace_restored_runtime.get_current_floor() == 1, "Save/load must restore the player's current Grand Hall gallery floor")
+        if palace_restored_runtime != null:
+            _check(palace_restored_runtime.is_floor_visible(1), "Restored gallery floor must be the visible presentation")
         _check(bool(palace_runtime.try_transition_at_stair(0, Vector2i(8, -496)).get("ok", false)), "The gallery stair must return to the Grand Hall")
+
+    var council_load: Dictionary = LOCATION_LOADER.load_multistory_location(root, "silverhart_palace_council_chamber", restored_simulation)
+    _check(bool(council_load.get("ok", false)), "Shared location loader must instantiate the source-authored council chamber")
+    var council_runtime = council_load.get("runtime")
+    if council_runtime != null:
+        _check(council_runtime.get_floor_tile_count(0) > 0, "Council chamber must build walkable floor geometry")
+        _check(council_runtime.has_floor_object(0, "council_table"), "Council chamber must present its source table")
+        _check(council_runtime.has_floor_actor(0, "chancellor_merric_vane"), "Chancellor Merric Vane must be presented inside the council chamber")
 
     var barracks_load: Dictionary = LOCATION_LOADER.load_multistory_location(root, "silverhart_palace_barracks", restored_simulation)
     _check(bool(barracks_load.get("ok", false)), "Shared location loader must instantiate the palace barracks")
