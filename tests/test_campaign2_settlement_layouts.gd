@@ -157,8 +157,24 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		if not building.is_empty():
 			_assert_axial(building.get("center", {}), expected_centres[building_id], building_id + " source centre")
 			_check(BUILDING_FACTORY.supports_definition(building), "Silverhart building archetype must be supported: " + building_id)
+	var barracks_route := _find_record(layout.get("paths", []), "silverhart_barracks_courtyard")
+	var barracks_points: Array = barracks_route.get("points", [])
+	_check(barracks_points.size() == 3, "Barracks spur must preserve the source L-shaped courtyard route")
+	if barracks_points.size() == 3:
+		_assert_axial(barracks_points[0], Vector2i(9, -487), "Barracks spur courtyard start")
+		_assert_axial(barracks_points[1], Vector2i(17, -487), "Barracks spur east-west leg")
+		_assert_axial(barracks_points[2], Vector2i(17, -494), "Barracks spur barracks approach")
+	var council_route := _find_record(layout.get("paths", []), "silverhart_council_courtyard")
+	var council_points: Array = council_route.get("points", [])
+	_check(council_points.size() == 3, "Council spur must preserve the source L-shaped courtyard route")
+	if council_points.size() == 3:
+		_assert_axial(council_points[0], Vector2i(-1, -494), "Council spur chamber approach")
+		_assert_axial(council_points[1], Vector2i(-1, -487), "Council spur north-south leg")
+		_assert_axial(council_points[2], Vector2i(7, -487), "Council spur courtyard end")
 	_check(terrain.terrain_for_hex(Vector2i(8, -496)) == "authored", "Silverhart Grand Hall footprint must suppress procedural terrain")
 	_check(terrain.terrain_for_hex(Vector2i(8, -495)) == "path", "Silverhart palace approach must be indexed as authored path")
+	_check(terrain.terrain_for_hex(Vector2i(9, -487)) == "path", "Silverhart courtyard must be indexed from source route geometry")
+	_check(terrain.terrain_for_hex(Vector2i(17, -494)) == "path", "Silverhart barracks door spur must reach its source door")
 
 
 func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
