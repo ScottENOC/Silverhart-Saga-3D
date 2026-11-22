@@ -58,22 +58,46 @@ def matching_material_faces(obj, tokens):
 
 def build_world_surface_tree(skin):
     world_vertices = [skin.matrix_world @ vertex.co for vertex in skin.data.vertices]
-    polygons = [list(poly.vertices) for poly in skin.data.polygons]
-    if not world_vertices or not polygons:
-        raise RuntimeError("Skin mesh has no usable vertices or faces")
-    tree = BVHTree.FromPolygons(world_vertices, polygons, all_triangles=False)
+    skin.data.calc_loop_triangles()
+    triangles = [tuple(triangle.vertices) for triangle in skin.data.loop_triangles]
+    if not world_vertices or not triangles:
+        raise RuntimeError("Skin mesh has no usable vertices or triangles")
+    tree = BVHTree.FromPolygons(world_vertices, [list(t) for t in triangles], all_triangles=True)
     if tree is None:
-        raise RuntimeError("Could not build BVH from skin-only surface")
-    return tree
+        raise RuntimeError("Could not build triangulated BVH from skin-only surface")
+    return tree, world_vertices, triangles
 
 
-def query_factory(tree):
+def query_factory(tree_data, skin):
+    tree, world_vertices, triangles = tree_data
+    normal_matrix = skin.matrix_world.to_3x3().inverted().transposed()
+
     def query(point):
         hit = tree.find_nearest(Vector(point))
-        if hit is None or hit[0] is None or hit[1] is None:
+        if hit is None or hit[0] is None or hit[2] is None:
             return None
-        location, normal, _face_index, _distance = hit
-        return (tuple(location), tuple(normal.normalized()))
+        location, _face_normal, triangle_index, _distance = hit
+        indices = triangles[triangle_index]
+        a, b, c = (world_vertices[index] for index in indices)
+        p = Vector(location)
+        ab, ac, ap = b - a, c - a, p - a
+        d00, d01, d11 = ab.dot(ab), ab.dot(ac), ac.dot(ac)
+        d20, d21 = ap.dot(ab), ap.dot(ac)
+        denom = d00 * d11 - d01 * d01
+        if abs(denom) <= 1e-18:
+            raise RuntimeError(f"Degenerate skin triangle {triangle_index}")
+        v = (d11 * d20 - d01 * d21) / denom
+        w = (d00 * d21 - d01 * d20) / denom
+        u = 1.0 - v - w
+        local_normal = (
+            skin.data.vertices[indices[0]].normal * u
+            + skin.data.vertices[indices[1]].normal * v
+            + skin.data.vertices[indices[2]].normal * w
+        )
+        if local_normal.length_squared <= 1e-16:
+            raise RuntimeError(f"Degenerate interpolated skin normal on triangle {triangle_index}")
+        normal = (normal_matrix @ local_normal.normalized()).normalized()
+        return (tuple(location), tuple(normal))
     return query
 
 
@@ -103,8 +127,8 @@ def main():
         )
 
     skin, found_skin_materials = skin_matches[0]
-    tree = build_world_surface_tree(skin)
-    query = query_factory(tree)
+    tree_data = build_world_surface_tree(skin)
+    query = query_factory(tree_data, skin)
     config = FitConfig(
         target_clearance=args.clearance_mm / 1000.0,
         max_vertex_displacement=args.max_displacement_mm / 1000.0,
