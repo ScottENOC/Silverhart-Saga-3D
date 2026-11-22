@@ -143,7 +143,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	var layout: Dictionary = definition.get("layout", {})
 	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Silverhart must be owned by the streamed chunk presenter")
 	var placements: Array = definition.get("placements", {}).get("characters", [])
-	_check(placements.size() == 34, "Silverhart must retain its 34 named palace, guard, merchant, diplomatic and residential NPCs")
+	_check(placements.size() == 38, "Silverhart must retain its 38 named palace, guard, merchant, diplomatic, residential and guild NPCs")
 	var character_registry = CHARACTER_REGISTRY.new()
 	var placement_ids: Dictionary = {}
 	for placement in placements:
@@ -156,7 +156,8 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		"mirelle_sondhe", "corvin_ashe", "lady_miriel_corstane", "master_builder_hallis",
 		"ambassador_elarion", "ambassador_brokk_stonehammer", "ambassador_cassia_wren",
 		"ambassador_toren_aldwyn", "factor_willem_drass", "high_cleric_adelram",
-		"hollis_vane", "sergeant_bell", "nix_the_cutpurse", "osric_fenn", "greta_aldwyn", "tomlin_reed"
+		"hollis_vane", "sergeant_bell", "nix_the_cutpurse", "osric_fenn", "greta_aldwyn", "tomlin_reed",
+		"tessa_nightshade", "corvin_ashe_guildmaster", "marsh_dobbins", "silas_crane"
 	]:
 		_check(placement_ids.has(required_id), "Silverhart must preserve source NPC placement " + required_id)
 	_check(layout.get("buildings", []).size() == 40, "Silverhart must include palace, merchant, noble, diplomatic, commons, middle-ring and Warrens buildings")
