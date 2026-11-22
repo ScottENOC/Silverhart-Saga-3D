@@ -1,5 +1,8 @@
 extends Node
 
+const MULTISTORY_REGISTRY = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
+const LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
+
 var failures := 0
 
 func _ready() -> void:
@@ -30,6 +33,14 @@ func _run() -> void:
     var journal_data := baseline.campaign_journal.to_dict()
     journal_data["faction_standings"] = {"restore_test_faction": -7.0}
 
+    var guild_registry = MULTISTORY_REGISTRY.new()
+    var guild_definition: Dictionary = guild_registry.get_definition("silverhart_thieves_guild")
+    var guild_state = baseline.register_multistory_location_state(guild_definition)
+    _check(guild_state != null, "Baseline simulation should register the source-authored Thieves' Guild location")
+    if guild_state != null:
+        _check(bool(guild_state.discover_secret("guild_hidden_vault_door").get("ok", false)), "Baseline simulation should record the discovered hidden vault door")
+    var multistory_locations: Dictionary = baseline.multistory_location_states_to_dict()
+
     var resource_data := baseline.wilderness_resources.to_dict()
     resource_data["nodes"] = {
         "10,10": {
@@ -54,6 +65,7 @@ func _run() -> void:
         "clock": clock_data,
         "campaign_journal": journal_data,
         "wilderness_resources": resource_data,
+        "multistory_locations": multistory_locations,
         "world_flags": {
             "ambient_security": 3,
             "shakedown_started": true,
@@ -107,6 +119,15 @@ func _run() -> void:
             _check(simulation.clock.tick_index == 123 and simulation.clock.paused, "Clock tick and pause state should be restored")
             _check(is_equal_approx(float(simulation.campaign_journal.faction_standings.get("restore_test_faction", 0.0)), -7.0), "Campaign journal standings should be restored")
             _check(simulation.wilderness_resources.nodes.has("10,10"), "Wilderness resource depletion data should be restored")
+            var restored_locations: Dictionary = simulation.multistory_location_states_to_dict()
+            var restored_guild_state: Dictionary = restored_locations.get("silverhart_thieves_guild", {})
+            _check(restored_guild_state.get("discovered_secrets", []).has("guild_hidden_vault_door"), "WorldRoot and HollowTankard must restore the discovered hidden vault from the real campaign snapshot")
+            var guild_load: Dictionary = LOCATION_LOADER.load_multistory_location(scene_root, "silverhart_thieves_guild", simulation)
+            _check(bool(guild_load.get("ok", false)), "A restored campaign must be able to load Silverhart's Guild interior")
+            var guild_runtime = guild_load.get("runtime")
+            _check(guild_runtime != null and guild_runtime.has_floor_object(0, "guild_hidden_vault_door"), "The restored Guild must present its already-discovered secret door")
+            _check(guild_runtime != null and guild_runtime.has_floor_object(0, "guild_vault_chest"), "The restored Guild must present its hidden vault treasure")
+            _check(simulation.map_data.is_walkable(Vector2i(20, -426)), "The restored campaign must retain walkable access into the hidden vault")
             _check(simulation.party_member_ids.size() == 1 and simulation.party_member_ids[0] == "player", "Simulation party membership should be restored")
             _check(simulation.campaign_journal.quest_definitions.has("hollowmere_ironbond_shakedown"), "WorldRoot should register the opening campaign quest")
             _check(simulation.campaign_journal.quest_definitions.has("farm_wolves"), "WorldRoot should register the farm quest")
