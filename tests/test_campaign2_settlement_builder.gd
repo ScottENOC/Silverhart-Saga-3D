@@ -190,5 +190,11 @@ func _initialize() -> void:
 			quit(1)
 			return
 
+	var vault_building := silverhart_warrens_chunk.get_node_or_null("silverhart_thieves_guild_vault")
+	if vault_building != null and vault_building.get_node_or_null("DoorFrame") != null:
+		push_error("The Silverhart guild vault must not present a visible standard entrance.")
+		quit(1)
+		return
+
 	print("Campaign 2 canonical settlement builder tests passed.")
 	quit(0)
