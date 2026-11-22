@@ -417,6 +417,8 @@ func _add_multimesh(parent: Node3D, node_name: String, mesh: Mesh, transforms: A
 func _add_chunk_locations(parent: Node3D, chunk: Vector2i) -> void:
 	var chunk_min := chunk * CHUNK_SIZE
 	for location in terrain_data.locations:
+		if not terrain_data.is_location_marker_visible(location):
+			continue
 		var hex := Vector2i(int(location.get("q", 8)), int(location.get("r", 24)))
 		if hex.x < chunk_min.x or hex.x >= chunk_min.x + CHUNK_SIZE or hex.y < chunk_min.y or hex.y >= chunk_min.y + CHUNK_SIZE:
 			continue
