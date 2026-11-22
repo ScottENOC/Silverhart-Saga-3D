@@ -1705,6 +1705,300 @@
             "floor": "wood"
           },
           "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace bedroomRegion"
+        },
+        {
+          "id": "silverhart_stables",
+          "kind": "barn",
+          "archetype": "barn",
+          "center": {
+            "q": -23,
+            "r": -502
+          },
+          "half_q": 4,
+          "half_r": 3,
+          "door": {
+            "q": -19,
+            "r": -502
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "stables",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:stableCenter"
+        },
+        {
+          "id": "silverhart_general_goods",
+          "kind": "shop",
+          "archetype": "shop",
+          "center": {
+            "q": -22,
+            "r": -490
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": -19,
+            "r": -490
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "general_goods",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:generalGoodsCenter"
+        },
+        {
+          "id": "silverhart_clothier",
+          "kind": "shop",
+          "archetype": "shop",
+          "center": {
+            "q": -29,
+            "r": -502
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": -32,
+            "r": -502
+          },
+          "door_side": "west",
+          "interior": {
+            "kind": "clothier",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:clothierCenter"
+        },
+        {
+          "id": "silverhart_magic_shop",
+          "kind": "shop",
+          "archetype": "shop",
+          "center": {
+            "q": -29,
+            "r": -490
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": -32,
+            "r": -490
+          },
+          "door_side": "west",
+          "interior": {
+            "kind": "magic_shop",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:magicShopCenter"
+        },
+        {
+          "id": "silverhart_corstane_manor",
+          "kind": "manor",
+          "archetype": "manor",
+          "center": {
+            "q": 39,
+            "r": -502
+          },
+          "half_q": 4,
+          "half_r": 3,
+          "door": {
+            "q": 36,
+            "r": -502
+          },
+          "door_side": "west",
+          "interior": {
+            "kind": "corstane_manor",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:manorCenter"
+        },
+        {
+          "id": "silverhart_builder_house",
+          "kind": "manor",
+          "archetype": "manor",
+          "center": {
+            "q": 38,
+            "r": -491
+          },
+          "half_q": 4,
+          "half_r": 4,
+          "door": {
+            "q": 34,
+            "r": -493
+          },
+          "door_side": "west",
+          "interior": {
+            "kind": "builder_house",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:builderHouseCorners"
+        },
+        {
+          "id": "silverhart_neighbor_house",
+          "kind": "house",
+          "archetype": "cottage",
+          "center": {
+            "q": 45,
+            "r": -502
+          },
+          "half_q": 3,
+          "half_r": 2,
+          "door": {
+            "q": 48,
+            "r": -502
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "neighbor_house",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:neighborHouseCenter"
+        },
+        {
+          "id": "silverhart_north_cottage_1",
+          "kind": "house",
+          "archetype": "cottage",
+          "center": {
+            "q": 35,
+            "r": -507
+          },
+          "half_q": 2,
+          "half_r": 2,
+          "door": {
+            "q": 37,
+            "r": -507
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "cottage",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:cottageCenters[0]"
+        },
+        {
+          "id": "silverhart_north_cottage_2",
+          "kind": "house",
+          "archetype": "cottage",
+          "center": {
+            "q": 35,
+            "r": -513
+          },
+          "half_q": 2,
+          "half_r": 2,
+          "door": {
+            "q": 37,
+            "r": -513
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "cottage",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:cottageCenters[1]"
+        },
+        {
+          "id": "silverhart_north_cottage_3",
+          "kind": "house",
+          "archetype": "cottage",
+          "center": {
+            "q": 35,
+            "r": -519
+          },
+          "half_q": 2,
+          "half_r": 2,
+          "door": {
+            "q": 37,
+            "r": -519
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "cottage",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:cottageCenters[2]"
+        },
+        {
+          "id": "silverhart_east_house_1",
+          "kind": "house",
+          "archetype": "cottage",
+          "center": {
+            "q": 26,
+            "r": -479
+          },
+          "half_q": 2,
+          "half_r": 2,
+          "door": {
+            "q": 28,
+            "r": -479
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "house",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:eastQuarterHouses[0]"
+        },
+        {
+          "id": "silverhart_east_house_2",
+          "kind": "house",
+          "archetype": "cottage",
+          "center": {
+            "q": 32,
+            "r": -480
+          },
+          "half_q": 2,
+          "half_r": 2,
+          "door": {
+            "q": 34,
+            "r": -480
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "house",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:eastQuarterHouses[1]"
+        },
+        {
+          "id": "silverhart_east_house_3",
+          "kind": "house",
+          "archetype": "cottage",
+          "center": {
+            "q": 23,
+            "r": -470
+          },
+          "half_q": 1,
+          "half_r": 2,
+          "door": {
+            "q": 24,
+            "r": -470
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "house",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:eastQuarterHouses[2]"
+        },
+        {
+          "id": "silverhart_east_house_4",
+          "kind": "house",
+          "archetype": "cottage",
+          "center": {
+            "q": 26,
+            "r": -471
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door": {
+            "q": 27,
+            "r": -471
+          },
+          "door_side": "east",
+          "interior": {
+            "kind": "house",
+            "floor": "wood"
+          },
+          "source": "Hex-crpg/campaign2World.js:eastQuarterHouses[3]"
         }
       ],
       "paths": [
@@ -1855,6 +2149,90 @@
             2.2,
             2.2
           ]
+        },
+        {
+          "id": "silverhart_merchant_near_street",
+          "kind": "road",
+          "from": {
+            "q": -19,
+            "r": -505
+          },
+          "to": {
+            "q": -19,
+            "r": -487
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Silverhart Merchant and Noble Quarter street grid"
+        },
+        {
+          "id": "silverhart_merchant_far_street",
+          "kind": "road",
+          "from": {
+            "q": -32,
+            "r": -505
+          },
+          "to": {
+            "q": -32,
+            "r": -487
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Silverhart Merchant and Noble Quarter street grid"
+        },
+        {
+          "id": "silverhart_merchant_cross_alley",
+          "kind": "road",
+          "from": {
+            "q": -32,
+            "r": -496
+          },
+          "to": {
+            "q": -22,
+            "r": -496
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Silverhart Merchant and Noble Quarter street grid"
+        },
+        {
+          "id": "silverhart_noble_near_street",
+          "kind": "road",
+          "from": {
+            "q": 35,
+            "r": -505
+          },
+          "to": {
+            "q": 35,
+            "r": -487
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Silverhart Merchant and Noble Quarter street grid"
+        },
+        {
+          "id": "silverhart_noble_far_street",
+          "kind": "road",
+          "from": {
+            "q": 48,
+            "r": -505
+          },
+          "to": {
+            "q": 48,
+            "r": -487
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Silverhart Merchant and Noble Quarter street grid"
+        },
+        {
+          "id": "silverhart_noble_cross_alley",
+          "kind": "road",
+          "from": {
+            "q": 38,
+            "r": -496
+          },
+          "to": {
+            "q": 48,
+            "r": -496
+          },
+          "width": 2,
+          "source": "Hex-crpg/campaign2World.js:Silverhart Merchant and Noble Quarter street grid"
         }
       ],
       "npcs": [],
