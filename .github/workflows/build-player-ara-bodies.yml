@@ -9,6 +9,9 @@ on:
       - "tools/blender/add_female_anatomy_surface.py"
       - "tools/blender/plan_female_anatomy_subdivision.py"
       - "tools/blender/add_male_anatomy.py"
+      - "scripts/presentation/ara_character_actor.gd"
+      - "scripts/presentation/campaign_character_actor_factory.gd"
+      - "tests/test_player_body_assets.gd"
   workflow_dispatch:
 
 permissions:
