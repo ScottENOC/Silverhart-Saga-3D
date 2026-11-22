@@ -362,6 +362,9 @@ func _load_multistory_location(location_id: String) -> void:
 	active_location_runtime.global_position = HexGrid.axial_to_world(anchor, HEX_RADIUS, terrain_data.elevation_for_hex(anchor))
 	active_location_runtime.floor_changed.connect(_on_regional_location_floor_changed)
 	active_location_runtime.register_character_actor(ecology_simulation.player_character_id, player_actor)
+	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	if player_state != null:
+		_update_player_presentation(player_state.axial)
 
 func _interact_with_regional_location() -> bool:
 	if active_location_runtime == null:
