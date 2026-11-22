@@ -1,0 +1,30 @@
+name: Garment fit solver core tests
+
+on:
+  push:
+    branches:
+      - feature/garment-fit-solver-foundation
+    paths:
+      - "tools/blender/garment_fit/**"
+      - ".github/workflows/garment-fit-core-tests.yml"
+  pull_request:
+    paths:
+      - "tools/blender/garment_fit/**"
+      - ".github/workflows/garment-fit-core-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  solver-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Run dependency-free solver tests
+        working-directory: tools/blender/garment_fit
+        run: python -m unittest -v test_solver_core.py
