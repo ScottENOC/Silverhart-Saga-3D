@@ -88,7 +88,8 @@ func _run() -> void:
         "garment_id": BRA_ID,
         "attachment_mesh_count": meshes.size(),
         "skeleton_bone_count": _find_skeleton(actor.model_root).get_bone_count(),
-        "views": ["front", "side", "rear"],\n        "close_up_views": ["front-closeup", "side-closeup", "rear-closeup"],
+        "views": ["front", "side", "rear"],
+        "close_up_views": ["front-closeup", "side-closeup", "rear-closeup"],
         "note": "Successful attachment proves skeleton acceptance and produces native Wren renders; it does not by itself prove anatomical fit."
     }
     var file := FileAccess.open(out.path_join("report.json"), FileAccess.WRITE)
