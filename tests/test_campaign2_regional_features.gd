@@ -47,6 +47,28 @@ func _initialize() -> void:
 	assert(FEATURES.feature_id_at(Vector2i(908, -608)) == "kragmoor_gate_hall", "Gate Hall must expose its own feature identity")
 	assert(FEATURES.feature_id_at(Vector2i(908, -626)) == "kragmoor_massif", "Massif must expose its own feature identity")
 
+	# Northwatch and Ridgehold preserve their source six-point star-fort ground,
+	# wall rings, keep footprints, gates and connected approaches.
+	assert(FEATURES.NORTHWATCH_CENTRE == Vector2i(268, -21), "Northwatch centre must match the canonical geography anchor")
+	assert(terrain.terrain_for_hex(Vector2i(268, -21)) == "dirt", "Northwatch core must be a fort floor")
+	assert(terrain.terrain_for_hex(Vector2i(268, -3)) == "dirt", "Northwatch south star point must reach its source 18-hex tip")
+	assert(terrain.terrain_for_hex(Vector2i(268, -4)) == "climbable_wall", "Northwatch outer ring must wrap the star-fort point")
+	assert(terrain.terrain_for_hex(Vector2i(268, -2)) == "climbable_wall", "Northwatch south gate must retain its closed wall terrain")
+	assert(terrain.terrain_for_hex(Vector2i(268, 10)) == "path", "Northwatch's south approach spur must reach the outer gate")
+	assert(terrain.terrain_for_hex(Vector2i(268, -21)) == "dirt", "Northwatch keep must retain its central floor")
+	assert(terrain.terrain_for_hex(Vector2i(268, -16)) == "dirt", "Northwatch keep must retain its six open corner gaps")
+	assert(FEATURES.feature_id_at(Vector2i(268, -2)) == "northwatch_gate", "Northwatch gate must have its own feature identity")
+
+	assert(FEATURES.RIDGEHOLD_CENTRE == Vector2i(426, 43), "Ridgehold centre must match the canonical geography anchor")
+	assert(FEATURES.RIDGEHOLD_GATE == Vector2i(407, 43), "Ridgehold gate must be corrected onto the actual west wall ring")
+	assert(terrain.terrain_for_hex(Vector2i(426, 43)) == "dirt", "Ridgehold core must be a fort floor")
+	assert(terrain.terrain_for_hex(Vector2i(408, 43)) == "dirt", "Ridgehold west star point must reach its source tip")
+	assert(terrain.terrain_for_hex(Vector2i(407, 43)) == "path", "Ridgehold gate must be an open gap on the actual wall ring")
+	assert(terrain.terrain_for_hex(Vector2i(402, 33)) == "path", "Ridgehold's approach must use a continuous corrected hex line")
+	assert(terrain.terrain_for_hex(Vector2i(426, 45)) == "path", "Ridgehold keep must retain its open south door")
+	assert(terrain.terrain_for_hex(Vector2i(427, 44)) == "climbable_wall", "Ridgehold keep must retain its wall ring")
+	assert(FEATURES.feature_id_at(Vector2i(407, 43)) == "ridgehold_gate", "Ridgehold gate must have its own feature identity")
+
 	# Sil'thandriel's canopy has an explicit grass arrival clearing, a dense
 	# source-noise woodland band, a foliage perimeter and a north approach.
 	assert(terrain.terrain_for_hex(Vector2i(-252, 934)) == "grass", "Elven capital must retain its arrival clearing")
