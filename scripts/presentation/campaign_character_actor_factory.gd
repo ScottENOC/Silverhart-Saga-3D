@@ -249,7 +249,15 @@ static func _create_actor_presentation(
 	actor.add_child(ara_model)
 
 	if ara_model.configure(model_path):
-		if appearance_profile.has("params"):
+		var has_baked_appearance := model_path.contains("/companions/") or model_path.contains("/hollowmere/")
+		if has_baked_appearance:
+			# Native companion and generated Hollowmere GLBs already contain
+			# their approved body proportions, skin/eye/hair colours and details.
+			# Reapplying procedural params here would overwrite that accepted look.
+			ara_model.body_variant = body_variant
+			ara_model.set_meta("body_variant", body_variant)
+			ara_model.set_meta("gender_presentation", "Masculine" if body_variant == "male" else "Feminine")
+		elif appearance_profile.has("params"):
 			ara_model.apply_npc_parameters(appearance_profile.get("params", {}))
 		else:
 			ara_model.apply_player_profile(appearance_profile)
