@@ -221,6 +221,8 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	_check(city_towers == 2, "Outer city wall must include both source gate watchtowers")
 	_check(not _find_record(props, "silverhart_city_gate_arch").is_empty(), "Outer city gate arch must be presented")
 	_check(terrain.terrain_for_hex(Vector2i(8, -541)) == "path", "Middle ring road must be indexed at its north corner")
+	_check(terrain.terrain_for_hex(Vector2i(-35, -454)) == "path", "Middle-ring diagonal house spur must include its first cube-rounded intermediate hex")
+	_check(terrain.terrain_for_hex(Vector2i(-36, -452)) == "path", "Middle-ring diagonal house spur must remain continuous to the ring")
 	_check(terrain.terrain_for_hex(Vector2i(8, -436)) == "path", "Outer city gate approach must reach the three-cell gate")
 	_check(terrain.settlement_wall_cells.size() == 495, "Both Silverhart palisade rings must be indexed for gameplay traversal")
 	_check(terrain.settlement_ladder_cells.size() == 2, "The two inner-wall ladders must be registered as climbable crossings")
