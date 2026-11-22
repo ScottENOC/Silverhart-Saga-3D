@@ -1,6 +1,5 @@
 extends SceneTree
 
-const REGISTRY = preload("res://scripts/world/campaign2_multistory_location_registry.gd")
 const SIMULATION = preload("res://scripts/simulation/world_simulation.gd")
 const LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.gd")
 
@@ -10,8 +9,6 @@ func _initialize() -> void:
     call_deferred("_run")
 
 func _run() -> void:
-    var registry = REGISTRY.new()
-    var definition: Dictionary = registry.get_definition("kragmoor")
     var simulation = SIMULATION.new()
     root.add_child(simulation)
     var loaded: Dictionary = LOCATION_LOADER.load_multistory_location(root, "kragmoor", simulation)
