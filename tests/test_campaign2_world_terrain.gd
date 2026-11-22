@@ -35,12 +35,12 @@ func _initialize() -> void:
 		_check(preview.materials.has(terrain_id), "Regional preview must render the %s terrain instead of leaving a hole" % terrain_id)
 	preview.free()
 	_check(terrain.terrain_for_hex(Vector2i(120, 40)) == terrain.terrain_for_hex(Vector2i(120, 40)), "Terrain must be deterministic")
+	_check(terrain.terrain_for_hex(Vector2i(-43, -343)) == "keep_wall", "Chapterhouse keep wall must resolve to its own terrain type")
+	_check(not terrain.is_walkable_for_hex(Vector2i(-43, -343)), "Keep-wall cells must block traversal")
 	if failures > 0:
 		push_error("%d Campaign 2 terrain test(s) failed." % failures)
 		quit(1)
 		return
-	assert(terrain.terrain_for_hex(Vector2i(-43, -343)) == "keep_wall")
-	assert(not terrain.is_walkable_for_hex(Vector2i(-43, -343)))
 	print("Campaign 2 world terrain tests passed.")
 	quit(0)
 
