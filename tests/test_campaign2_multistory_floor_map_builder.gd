@@ -40,7 +40,8 @@ func _initialize() -> void:
 
 	var sealed: Dictionary = FLOOR_BUILDER.build_floor_map(definition, -4, state)
 	_check(not _has_object(sealed.get("tile_objects", []), "transition_-4_-5"), "The final stair must not exist before the quest")
-	_check(not (sealed.get("map_data") as HexMapData).is_walkable(Vector2i(890, -605)) or not _has_object(sealed.get("tile_objects", []), "transition_-4_-5"), "The sealed passage must not be exposed before the quest")
+	_check((sealed.get("map_data") as HexMapData).is_walkable(Vector2i(890, -605)), "The hidden stair location remains part of the existing tunnel floor")
+	_check(not _has_object(sealed.get("tile_objects", []), "transition_-4_-5"), "The hidden floor hex must not expose a stair object before the quest")
 	state.complete_quest("deepholds_infestation")
 	var revealed: Dictionary = FLOOR_BUILDER.build_floor_map(definition, -4, state)
 	_check(_has_object(revealed.get("tile_objects", []), "transition_-4_-5"), "The quest must add the stair-down object to the Lower Tunnels")
