@@ -115,7 +115,11 @@ static func build_floor_map(
 	}
 
 static func _is_secret_discovered(location_state: Variant, secret_id: String) -> bool:
-	if secret_id.is_empty() or not location_state is Object or not location_state.has_method("is_secret_discovered"):
+	if secret_id.is_empty():
+		return false
+	if not (location_state is Object):
+		return false
+	if not location_state.has_method("is_secret_discovered"):
 		return false
 	return bool(location_state.call("is_secret_discovered", secret_id))
 
