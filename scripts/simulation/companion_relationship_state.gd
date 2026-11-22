@@ -5,6 +5,15 @@ extends RefCounted
 ## independent dimensions. Relationship/sexual agreements are explicit state,
 ## never inferred from a meter. This class is deliberately presentation-agnostic.
 
+const VOICE_LINES := {
+	"wren_talbot": {"love_desire_conflict": "I know what I feel for you. Knowing what to do with it is the difficult part.", "close_friend": "You’re stuck with me. Friendship has its hazards.", "romantic": "I’m here because I choose you. Don’t make me regret saying that out loud."},
+	"ser_aldric_thorne": {"restrained_attraction": "Finding someone attractive is not the same thing as making them a promise. I try not to confuse the two.", "close_friend": "I trust you at my back. That is not a small thing to me.", "romantic": "If I give you my heart, I mean to do it honestly and without keeping another in reserve."},
+	"fenn_oakheart": {"casual_hookup": "We can enjoy a night without asking it to become a lifetime.", "friends_with_benefits": "We’re friends, we want each other, and nobody needs to pretend that makes the friendship less real.", "romantic": "Love doesn’t become smaller because it isn’t fenced in.", "close_friend": "You’re easy company. I mean that as a much bigger compliment than it sounds."},
+	"reyna_fletcher": {"casual_hookup": "One night doesn’t have to become a ballad. Sometimes it can just be a very good night.", "friends_with_benefits": "We’re friends. We fancy each other. I don’t see why either fact needs to make the other complicated.", "romantic": "I’m serious about you. Serious doesn’t mean I own you.", "close_friend": "You’re one of the few people I’d choose beside me when the arrows start flying."},
+	"mirabel_quill": {"casual_hookup": "Desire is simple. It’s all the things people decide it has to mean afterwards that get tedious.", "friends_with_benefits": "I can stay for this without promising forever. Apparently I’m learning.", "romantic": "I always thought leaving was the easy part. You’ve made staying considerably more dangerous.", "close_friend": "I keep telling myself I travel light. You’re becoming inconvenient evidence to the contrary."},
+	"brother_alden": {"asexual_romance": "I don’t desire you sexually. I do choose you. Neither statement makes the other less true.", "close_friend": "Peace is easier around some people. I’ve noticed it is easier around you.", "romantic": "What I want is closeness, constancy, and a life shared honestly. I have never needed desire to know love."}
+}
+
 const AXES: Array[String] = [
 	"approval",
 	"familiarity",
@@ -268,6 +277,59 @@ func set_agreement(companion_id: String, updates: Dictionary, world_seconds: flo
 		state["romance_state"] = String(updates["state"])
 	states[companion_id] = state
 	return {"ok": true, "agreement": agreement.duplicate(true)}
+
+
+func interpret_relationship(companion_id: String) -> Dictionary:
+	var state := ensure(companion_id)
+	if state.is_empty():
+		return {}
+	var profile: Dictionary = PROFILES[companion_id]
+	var style: Dictionary = profile.get("relationship_style", {})
+	var friendship := float(state.get("friendship", 0.0))
+	var romantic_bond := float(state.get("romantic_bond", 0.0))
+	var attraction := float(state.get("attraction", 0.0))
+	var mode := "early"
+	if companion_id == "brother_alden" and romantic_bond >= 55.0 and friendship >= 50.0:
+		mode = "asexual_romance"
+	elif companion_id == "wren_talbot" and String(state.get("presentation", "")) == "feminine" and romantic_bond >= 60.0 and attraction <= 30.0 and friendship >= 60.0:
+		mode = "love_desire_conflict"
+	elif companion_id == "ser_aldric_thorne" and attraction >= 50.0 and romantic_bond < 30.0:
+		mode = "restrained_attraction"
+	elif romantic_bond >= 60.0 and friendship >= 50.0:
+		mode = "romantic"
+	elif attraction >= 60.0 and romantic_bond < 25.0 and friendship < 45.0 and bool(style.get("casual_sex", false)):
+		mode = "casual_hookup"
+	elif attraction >= 50.0 and romantic_bond < 35.0 and friendship >= 55.0 and bool(style.get("friends_with_benefits", false)):
+		mode = "friends_with_benefits"
+	elif friendship >= 65.0 and romantic_bond < 40.0:
+		mode = "close_friend"
+	elif romantic_bond >= 35.0 and attraction <= 30.0:
+		mode = "romantic_low_desire"
+	elif attraction >= 40.0:
+		mode = "attracted"
+	var lines: Dictionary = VOICE_LINES.get(companion_id, {})
+	return {
+		"companion_id": companion_id,
+		"mode": mode,
+		"friendship": friendship,
+		"romantic_bond": romantic_bond,
+		"attraction": attraction,
+		"trust": float(state.get("trust", 0.0)),
+		"familiarity": float(state.get("familiarity", 0.0)),
+		"relationship_style": style.duplicate(true),
+		"line": String(lines.get(mode, ""))
+	}
+
+
+func get_relationship_state(companion_id: String) -> Dictionary:
+	var state := snapshot(companion_id)
+	if state.is_empty():
+		return {}
+	return {
+		"state": state,
+		"agreement": state.get("agreement", {}).duplicate(true),
+		"interpretation": interpret_relationship(companion_id)
+	}
 
 
 func to_dict() -> Dictionary:
