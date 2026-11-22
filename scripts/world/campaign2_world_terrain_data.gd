@@ -281,7 +281,29 @@ func elevation_for_hex(hex: Vector2i) -> float:
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
 		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.elevation_for_hex(authored_settlement.local_hex, terrain_definition)
-	return LOCAL_TERRAIN_RULES.elevation_for_hex(hex, terrain_for_hex(hex))
+	var terrain := terrain_for_hex(hex)
+	if terrain == "path" and road_cells.has(_hex_key(hex)):
+		return _road_surface_elevation(hex)
+	return LOCAL_TERRAIN_RULES.elevation_for_hex(hex, terrain)
+
+
+## Strategic roads are painted over the source terrain, not cut into a zero-height
+## plane. Grade each road cell from its surrounding non-road land so routes follow
+## the local hills while retaining a deterministic profile across streamed chunks.
+## Settlement-authored paths keep their existing authored elevation.
+func _road_surface_elevation(hex: Vector2i) -> float:
+	var total := 0.0
+	var samples := 0
+	for direction in HexGrid.DIRECTIONS:
+		var neighbour := hex + direction
+		var neighbour_terrain := terrain_for_hex(neighbour)
+		if neighbour_terrain in ["water", "path", "authored", "void"]:
+			continue
+		total += LOCAL_TERRAIN_RULES.elevation_for_hex(neighbour, neighbour_terrain)
+		samples += 1
+	if samples == 0:
+		return 0.0
+	return total / float(samples)
 
 ## Returns a deterministic height shared by all cells meeting at one vertex.
 ## Sampling the same three global cells makes independently streamed chunks
