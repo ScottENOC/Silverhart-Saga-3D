@@ -297,7 +297,7 @@ func _within_region_extent(region_id: String, vertex: Vector3) -> bool:
 func _max_graph_hops_for_region(region_id: String) -> int:
     if region_id.begins_with("nipple_"):
         return 2
-        return MAX_GRAPH_HOPS
+    return MAX_GRAPH_HOPS
 
 
 func _propagate_over_surface(
