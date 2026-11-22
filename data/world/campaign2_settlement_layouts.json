@@ -4032,6 +4032,125 @@
             "pronouns": "he/him"
           },
           "source": "Hex-crpg/campaign2Content.js"
+        },
+        {
+          "id": "tessa_nightshade",
+          "name": "Tessa Nightshade",
+          "title": "Fence",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [],
+          "skill_picks": [],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": null,
+          "dialogue_id": "thieves_guild_fence",
+          "position": {
+            "q": 14,
+            "r": -425
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "Hex-crpg/campaign2Content.js:campaign2ThievesGuildFence"
+        },
+        {
+          "id": "corvin_ashe_guildmaster",
+          "name": "Corvin Ashe",
+          "title": "Guildmaster",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "rogue"
+          ],
+          "skill_picks": [
+            "health",
+            "dagger_hit",
+            "stealth_agility"
+          ],
+          "equipment": [
+            "dagger",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": null,
+          "dialogue_id": "thieves_guildmaster",
+          "position": {
+            "q": 13,
+            "r": -426
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js:campaign2ThievesGuildmaster"
+        },
+        {
+          "id": "marsh_dobbins",
+          "name": "Marsh Dobbins",
+          "title": "Debtor",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [
+            "club"
+          ],
+          "side": "neutral",
+          "faction_id": null,
+          "dialogue_id": "thieves_guild_debtor",
+          "position": {
+            "q": 18,
+            "r": -423
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js:campaign2ThievesGuildDebtor"
+        },
+        {
+          "id": "silas_crane",
+          "name": "Silas Crane",
+          "title": "Informant",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "rogue"
+          ],
+          "skill_picks": [
+            "health",
+            "dagger_hit"
+          ],
+          "equipment": [
+            "dagger",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": null,
+          "dialogue_id": "thieves_guild_informant",
+          "position": {
+            "q": 9,
+            "r": -421
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "Hex-crpg/campaign2Content.js:campaign2ThievesGuildInformant"
         }
       ],
       "creatures": [],
