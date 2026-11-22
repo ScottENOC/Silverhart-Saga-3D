@@ -33,7 +33,7 @@ func _test_catalogue_owns_authored_terrain() -> void:
 func _test_world_terrain_uses_canonical_registry() -> void:
 	var terrain = WORLD_TERRAIN.new()
 	_check(terrain.settlement_definition_registry.settlement_ids() == ["hollowmere", "silverhart", "millbrook", "emberlode", "reddale", "old_mac_farmstead"], "World terrain must use the shared settlement catalogue")
-	_check(terrain.terrain_for_hex(Vector2i(0, 18)) == "building", "Authored building terrain should be resolved through canonical terrain data")
+	_check(terrain.terrain_for_hex(Vector2i(0, 18)) == "authored", "Authored building terrain should be resolved through canonical terrain data")
 	_check(terrain.gameplay_terrain_for_hex(Vector2i(0, 18)) == "building", "Gameplay terrain should preserve authored building precedence")
 	_check(terrain.terrain_for_hex(Vector2i(0, 15)) == "path", "Authored entrances should remain paths")
 	_check(terrain.is_walkable_for_hex(Vector2i(0, 15)), "Authored entrances should remain walkable")
