@@ -141,6 +141,7 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 		return
 	var definition: Dictionary = entry.get("definition", {})
 	var layout: Dictionary = definition.get("layout", {})
+	var props: Array = layout.get("props", [])
 	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Silverhart must be owned by the streamed chunk presenter")
 	var placements: Array = definition.get("placements", {}).get("characters", [])
 	_check(placements.size() == 38, "Silverhart must retain its 38 named palace, guard, merchant, diplomatic, residential and guild NPCs")
@@ -161,7 +162,6 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	]:
 		_check(placement_ids.has(required_id), "Silverhart must preserve source NPC placement " + required_id)
 	_check(layout.get("buildings", []).size() == 40, "Silverhart must include palace, merchant, noble, diplomatic, commons, middle-ring and Warrens buildings")
-	_check(layout.get("buildings", []).size() == 29, "Silverhart must include palace, merchant, noble, diplomatic, commons and outer residential buildings")
 	for building_id in [
 		"silverhart_stables", "silverhart_general_goods", "silverhart_clothier", "silverhart_magic_shop",
 		"silverhart_corstane_manor", "silverhart_builder_house", "silverhart_neighbor_house",
@@ -289,7 +289,6 @@ func _test_silverhart(terrain: Campaign2WorldTerrainData, entries: Array) -> voi
 	for ring_corner in [Vector2i(38, -496), Vector2i(38, -526), Vector2i(8, -526), Vector2i(-22, -496), Vector2i(-22, -466), Vector2i(8, -466)]:
 		_check(terrain.terrain_for_hex(ring_corner) == "path", "Silverhart source outer ring road must be indexed at " + str(ring_corner))
 	_check(terrain.terrain_for_hex(Vector2i(8, -472)) == "path", "Silverhart gate exterior road must meet the southern ring-road corner")
-	var props: Array = layout.get("props", [])
 	_check(props.size() == 513, "Silverhart must include both palisade rings, nine watchtowers, two ladders, two gate arches, fountain and bounty board")
 	var wall_cells := 0
 	var tower_ids: Array[String] = []
