@@ -75,6 +75,7 @@ func start(chapter_id: String, journal: CampaignJournal, party_ids: Array[String
 	if not bool(started.get("ok", false)):
 		return started
 	var quest_state: Dictionary = journal.quests[chapter_id]
+	quest_state["started_at"] = world_seconds
 	quest_state["chapter"] = int(chapter.get("chapter", 1))
 	quest_state["chapter_stage"] = "consult"
 	quest_state["consulted"] = false
@@ -114,7 +115,7 @@ func consult(chapter_id: String, journal: CampaignJournal, actor_id: String = ""
 	}
 
 
-func resolve(chapter_id: String, requested_resolution: String, journal: CampaignJournal, companion_relationships: CompanionRelationshipState = null) -> Dictionary:
+func resolve(chapter_id: String, requested_resolution: String, journal: CampaignJournal, companion_relationships: CompanionRelationshipState = null, world_seconds: float = 0.0) -> Dictionary:
 	var chapter: Dictionary = chapters.get(chapter_id, {})
 	if chapter.is_empty() or journal == null or not journal.quests.has(chapter_id):
 		return {"ok":false,"reason":"chapter_not_started"}
@@ -144,6 +145,7 @@ func resolve(chapter_id: String, requested_resolution: String, journal: Campaign
 		return completion
 	quest_state = journal.quests[chapter_id]
 	quest_state["chapter_stage"] = "completed"
+	quest_state["completed_at"] = world_seconds
 	quest_state["resolution"] = requested_resolution
 	quest_state["effective_resolution"] = effective_resolution
 	quest_state["completion_reason"] = String(effect.get("reason", chapter.get("title", "")))
