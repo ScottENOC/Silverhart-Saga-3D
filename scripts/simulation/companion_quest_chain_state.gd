@@ -23,7 +23,8 @@ func chapter_for(chapter_id: String) -> Dictionary:
 func all_chapters() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for chapter_value in chapters.values():
-		result.append((chapter_value as Dictionary).duplicate(true))
+		var chapter: Dictionary = chapter_value
+		result.append(chapter.duplicate(true))
 	return result
 
 
