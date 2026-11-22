@@ -1,4 +1,5 @@
 name: Godot validation
+# Full validation is intentionally triggered on the reconciled terrain-chain head.
 
 on:
   pull_request:
