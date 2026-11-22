@@ -44,7 +44,7 @@ func _test_campaign2_layout_adapter() -> void:
 	if not parsed is Dictionary:
 		return
 	var settlements: Array = parsed.get("settlements", [])
-	_check(settlements.size() == 4, "Campaign 2 source must include Millbrook, Emberlode, Reddale and Old Mac's Farmstead")
+	_check(settlements.size() == 5, "Campaign 2 source must include Millbrook, Emberlode, Reddale, Old Mac's Farmstead and Kragmoor")
 	for layout in settlements:
 		var canonical: Dictionary = adapters.adapt_campaign2_layout(layout)
 		var validation: Dictionary = adapters.validate_adapted(canonical)
