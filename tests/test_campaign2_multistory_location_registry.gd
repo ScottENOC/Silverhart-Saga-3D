@@ -6,7 +6,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Source-authored multi-story locations must validate")
-	_check(registry.location_ids() == ["kragmoor"], "Kragmoor must be registered as the first source-authored multi-story location")
+	_check(registry.location_ids() == ["kragmoor", "silverhart_palace"], "Kragmoor must be registered as the first source-authored multi-story location")
 	var definition: Dictionary = registry.get_definition("kragmoor")
 	_check(int(definition.get("anchor", {}).get("q", 0)) == 908 and int(definition.get("anchor", {}).get("r", 0)) == -626, "Kragmoor anchor must match buildDwarvenKingdom")
 	_check(int(definition.get("massif_radius", 0)) == 25, "Kragmoor must retain the source solid-massif radius")
@@ -43,7 +43,7 @@ func _initialize() -> void:
 		push_error("%d multi-story location test(s) failed." % failures)
 		quit(1)
 		return
-	print("Kragmoor source-authored multi-story floor data validated.")
+	print("Kragmoor and Silverhart source-authored multi-story floor data validated.")
 	quit(0)
 
 func _has_record(records: Array, record_id: String) -> bool:
