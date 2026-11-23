@@ -185,6 +185,10 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -
 				continue
 			# A moving NPC can cross a chunk boundary while both chunks are
 			# resident. Transfer the one live actor to the newly owning chunk.
+			if not bool(existing_actor.get_meta("campaign2_streamed_npc", false)):
+				# Location-owned actors keep their location controller as parent;
+				# the shared registry simply recognises them as the same NPC.
+				return
 			if existing_actor.get_parent() != parent:
 				existing_actor.reparent(parent)
 			existing_actor.position = HexGrid.axial_to_world(actor_hex, HEX_RADIUS)
@@ -197,6 +201,7 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -
 	if actor == null:
 		return
 	actor.set_meta("campaign2_npc_id", character_id)
+	actor.set_meta("campaign2_streamed_npc", true)
 	actor.set_meta("dialogue_id", String(character.get("dialogue_id", "")))
 	actor.set_meta("faction_id", String(character.get("faction_id", "")))
 	actor.set_meta("side", String(character.get("side", "neutral")))
