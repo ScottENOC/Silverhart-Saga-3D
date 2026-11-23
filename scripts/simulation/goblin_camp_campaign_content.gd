@@ -97,6 +97,48 @@ static func _start_or_existing(journal: CampaignJournal, quest_id: String) -> Di
 		return {"ok": true, "already_started": true, "quest_id": quest_id}
 	return journal.start_quest(quest_id)
 
+
+static func mark_chief_assassinated(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok": false, "reason": "missing_journal"}
+	var started := _start_or_existing(journal, QUEST_ID)
+	if not bool(started.get("ok", false)):
+		return started
+	var state := journal.quest_state(QUEST_ID)
+	if state.get("decisions", {}).has("chief_assassinated"):
+		return {"ok": true, "already_recorded": true}
+	return journal.record_decision(QUEST_ID, "chief_assassinated", "silent_kill")
+
+static func nix_conversation(journal: CampaignJournal, party_ids: Array[String] = []) -> Dictionary:
+	if journal == null:
+		return {}
+	var state := journal.quest_state(QUEST_ID)
+	var decisions: Dictionary = state.get("decisions", {})
+	var resolution := String(decisions.get("resolution", ""))
+	if bool(decisions.get("chief_assassinated", false)) and resolution.is_empty():
+		return _conversation("Nix Sharpear", "You... you killed him. Skarnub was going to get us all killed clinging to this ground anyway. Truth told, I've wanted to move on for moons now. Let's not make enemies over this — we'll go, quietly, if you let us.", [_choice("resolve:stealth_succession", "Take your people and go."), _choice("continue", "...")])
+	if resolution == "goblin_alliance":
+		if party_ids.has("nix_sharpear") or party_ids.has("companion_nix_sharpear"):
+			return _conversation("Nix Sharpear", "Still watching your back. What is it?", [_choice("continue", "Nothing, carry on.")])
+		return _conversation("Nix Sharpear", "We're not going anywhere now — you saw to that. Skarnub speaks for us, but I never much liked sitting still watching a road. You're headed for more trouble than this camp's seen in years. Room for one more?", [_choice("recruit:nix_sharpear", "Come with me."), _choice("continue", "Not yet.")])
+	if not resolution.is_empty():
+		return _conversation("Nix Sharpear", "We're already gone from here, or will be soon enough.", [_choice("continue", "Good.")])
+	return _conversation("Nix Sharpear", "Something you need? Speak quick, this isn't a place for wandering humans.", [_choice("nix:ask_about_orders", "Why are you really this close to the village?"), _choice("continue", "Just passing through.")])
+
+static func nix_orders_response() -> Dictionary:
+	return _conversation("Nix Sharpear", "You think Skarnub chose this ground? We were told to sit here, watch the roads, count what comes and goes. Somebody's paying close attention to your precious Hollowmere, and it isn't us. I've said too much — forget I spoke.", [_choice("nix:press_for_identity", "Who told you to watch us?"), _choice("continue", "...")])
+
+static func nix_orders_identity_response() -> Dictionary:
+	return _conversation("Nix Sharpear", "Someone with a lot more banners than we've got. That's all you're getting from me.", [_choice("continue", "...")])
+
+static func grondle_conversation(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {}
+	var resolution := String(journal.quest_state(QUEST_ID).get("decisions", {}).get("resolution", ""))
+	if resolution != "goblin_alliance":
+		return _conversation("Grondle", "Nothing for you here, human.", [_choice("continue", "...")])
+	return _conversation("Grondle", "Ha! Ally's coin spends same as anyone's. Look, take, pay.", [_choice("open_goblin_shop", "Let me see your wares."), _choice("continue", "Just looking.")])
+
 static func chief_conversation(journal: CampaignJournal, gifted_in: bool = false) -> Dictionary:
 	if journal == null:
 		return {}
