@@ -38,6 +38,10 @@ jobs:
           echo "WREN_RUN=$wren_run" >> "$GITHUB_ENV"
           wren_sha=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$wren_run" --jq '.head_sha')
           echo "WREN_BUILD_SHA=$wren_sha" >> "$GITHUB_ENV"
+      - name: Validate anatomy mask Python scripts
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/blender/add_female_anatomy_surface.py tools/blender/paint_vulva_mons_region_mask.py
       - name: Paint Ara-derived vulva and mons pubis region mask
         run: |
           set -euo pipefail
