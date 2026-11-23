@@ -394,6 +394,7 @@ func _run() -> void:
         "surface_name": mesh_instance.mesh.surface_get_name(surface_index),
         "surface_index": surface_index,
         "skin_surface_count": skin_surfaces.size(),
+        "imported_surface_inventory": surface_inventory,
         "vertex_count": vertices.size(),
         "triangle_count": indices.size() / 3,
         "surface_signature": MASK_SCRIPT.build_surface_signature(mesh_instance.mesh, surface_index),
