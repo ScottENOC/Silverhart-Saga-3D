@@ -243,6 +243,12 @@ func _test_summon_animal_and_companion() -> void:
 		_check(restored_companion != null and restored_companion.is_animal_companion and restored_companion.summoned_by_id == druid.id, "Animal companion ownership should survive character save/load serialization")
 		var initiative := CombatInitiativeModel.build_entries([companion])
 		_check(initiative.size() == 1 and String(initiative[0].get("id", "")) == companion.id, "A permanent animal companion should appear in initiative")
+		var dismissal := companion_sim.dismiss_companion(companion.id, true)
+		_check(bool(dismissal.get("ok", false)) and not companion_sim.is_party_member(companion.id), "A permanent animal companion should be dismissible from the active party")
+		_check(companion_sim.get_character(companion.id) == companion, "Dismissing a permanent animal companion should not delete its persistent character state")
+		companion.apply_damage(companion.health)
+		var dead_companion := CharacterState.from_dict(companion.to_dict())
+		_check(dead_companion != null and not dead_companion.alive and dead_companion.is_animal_companion, "Animal companion death should persist through character save/load")
 	companion_sim.free()
 
 
