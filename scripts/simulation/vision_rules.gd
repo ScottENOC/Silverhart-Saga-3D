@@ -33,6 +33,9 @@ static func vision_range(
     if indoors:
         result += 4 * _skill_rank(observer, "deep_sense")
 
+    var curse := observer.get_spell_effect("curse")
+    result -= maxi(0, int(curse.get("vision_penalty", 0)))
+
     if low_light and not target_illuminated:
         var has_low_light_vision := (
             _skill_rank(observer, "elf_darkvision") > 0
