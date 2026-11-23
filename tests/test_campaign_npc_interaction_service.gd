@@ -37,12 +37,12 @@ func _initialize() -> void:
 	companion_actor.add_to_group("campaign2_npc")
 	root.add_child(companion_actor)
 
-	var nearby := NPC_INTERACTION_SERVICE.nearby_entries(simulation, "player", local_actors, root.get_tree(), 2)
+	var nearby := NPC_INTERACTION_SERVICE.nearby_entries(simulation, "player", local_actors, self, 2)
 	var ids: Array[String] = []
 	for entry in nearby:
 		ids.append(String(entry.get("id", "")))
 	if ids != ["queen_seraphine_corrin", "old_mac"]:
-		push_error("Shared NPC proximity must include nearby streamed and location-owned NPCs, sorted by distance/name. Got: %s" % ids)
+		push_error("Shared NPC proximity must include nearby streamed and location-owned NPCs, sorted by distance/name. Got: " + str(ids))
 		quit(1)
 		return
 	if NPC_INTERACTION_SERVICE.actor_for(root.get_tree(), local_actors, "queen_seraphine_corrin") != streamed_actor:
