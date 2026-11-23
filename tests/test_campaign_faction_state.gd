@@ -63,6 +63,12 @@ func _test_source_faction_seeds() -> void:
 	FACTION_SIMULATION.seed_faction_standings(undead, "undead")
 	_check(is_equal_approx(undead.faction_standing("necromancer_cult"), 5.0))
 
+	var restored := CampaignJournal.new()
+	restored.seed_faction_reputation("goblin_tribe", 42.0, 17.0)
+	FACTION_SIMULATION.seed_faction_standings(restored, "human")
+	_check(is_equal_approx(restored.faction_standing("goblin_tribe"), 42.0), "Initial faction seeding must not overwrite saved reputation")
+	_check(is_equal_approx(float(restored.faction_knowledge["goblin_tribe"]), 17.0), "Initial faction seeding must not overwrite saved knowledge")
+
 
 func _test_goblin_to_orc_reputation_cascade() -> void:
 	var journal := CampaignJournal.new()
