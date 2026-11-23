@@ -57,8 +57,8 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 	if body_variant.is_empty():
 		var presentation := String(appearance.get("gender_presentation", "")).to_lower()
 		body_variant = "male" if presentation in ["male", "masculine", "man"] else "female"
-	var height_scale := float(appearance.get("height_scale", 1.0))
-	var build_scale := float(appearance.get("build_scale", 1.0))
+	var height_scale := clampf(float(appearance.get("height_scale", 1.0)), 0.5, 1.25)
+	var body_scale := clampf(float(appearance.get("body_scale", appearance.get("build_scale", 1.0))), 0.5, 1.25)
 	var profile := {
 		"skin_colour": String(appearance.get("skin_colour", "#b9825f")),
 		"eye_colour": String(appearance.get("eye_colour", "Brown")),
@@ -89,7 +89,19 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 		deg_to_rad(180.0)
 	)
 	if actor != null:
-		actor.name = "NPC_" + character_id
+		# Explicit per-character scaling lets non-human races use the shared
+		# Ara rig as a temporary stand-in without changing identity, animation
+		# or equipment systems. The actor/nameplate stays at human world scale.
+		var ara_model := _get_ara_actor(actor)
+		if ara_model != null and ara_model.model_root != null:
+			ara_model.model_root.scale *= Vector3(body_scale, height_scale, body_scale)
+			ara_model.set_meta("campaign_body_scale", body_scale)
+			ara_model.set_meta("campaign_height_scale", height_scale)
+		var name_label := actor.get_node_or_null("CharacterNameLabel") as Label3D
+		if name_label != null:
+			name_label.position.y = 2.08 * height_scale
+		actor.set_meta("body_scale", body_scale)
+		actor.set_meta("height_scale", height_scale)
 		actor.set_meta("campaign2_npc_id", character_id)
 		actor.set_meta("dialogue_id", _safe_metadata_string(npc.get("dialogue_id", "")))
 		actor.set_meta("faction_id", _safe_metadata_string(npc.get("faction_id", "")))
