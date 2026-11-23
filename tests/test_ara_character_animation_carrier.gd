@@ -2,7 +2,10 @@ extends SceneTree
 ## Verifies that a real gameplay Ara body is bound to the shared animated rig.
 
 const ACTOR_SCRIPT = preload("res://scripts/presentation/ara_character_actor.gd")
-const BODY_PATH := "res://art/characters/ara_runtime/ara_player_female_body.glb"
+const BODY_PATHS := [
+	"res://art/characters/ara_runtime/ara_player_female_body.glb",
+	"res://art/characters/ara_runtime/ara_player_male_body.glb"
+]
 
 var failures: int = 0
 
@@ -12,7 +15,8 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	_check(ResourceLoader.exists(BODY_PATH), "Gameplay female Ara body asset is available")
+	for body_path in BODY_PATHS:
+		_check(ResourceLoader.exists(body_path), "Gameplay Ara body asset is available: " + body_path.get_file())
 	_check(ResourceLoader.exists("res://art/characters/ara_runtime/ara_person_benchmark.glb"),
 		"Animated Ara benchmark carrier is available")
 	if failures > 0:
@@ -21,13 +25,13 @@ func _run() -> void:
 
 	var actor := ACTOR_SCRIPT.new()
 	root.add_child(actor)
-	_check(actor.configure(BODY_PATH), "Ara gameplay actor configures from its body asset")
+	_check(actor.configure(BODY_PATHS[0]), "Ara female gameplay actor configures from its body asset")
 	await process_frame
 
 	var animation_player := actor.animation_player as AnimationPlayer
-	_check(animation_player != null, "Gameplay actor receives the benchmark AnimationPlayer")
+	_check(animation_player != null, "Female gameplay actor receives the benchmark AnimationPlayer")
 	var skeleton := _find_skeleton(actor.model_root)
-	_check(skeleton != null, "Gameplay actor has the animated carrier Skeleton3D")
+	_check(skeleton != null, "Female gameplay actor has the animated carrier Skeleton3D")
 	if animation_player == null or skeleton == null:
 		_finish()
 		return
@@ -65,6 +69,17 @@ func _run() -> void:
 		"Gameplay actor selects its idle clip")
 
 	actor.queue_free()
+	var male_actor := ACTOR_SCRIPT.new()
+	root.add_child(male_actor)
+	_check(male_actor.configure(BODY_PATHS[1]), "Ara male gameplay actor configures from its body asset")
+	await process_frame
+	var male_animation_player := male_actor.animation_player as AnimationPlayer
+	var male_skeleton := _find_skeleton(male_actor.model_root)
+	_check(male_animation_player != null, "Male gameplay actor receives the benchmark AnimationPlayer")
+	_check(male_skeleton != null, "Male gameplay actor has the animated carrier Skeleton3D")
+	if male_animation_player != null and male_skeleton != null:
+		_check(male_actor.set_moving(true), "Male gameplay actor selects a real locomotion clip")
+	male_actor.queue_free()
 	_finish()
 
 
