@@ -9,6 +9,7 @@ const VALIDATOR = preload("res://scripts/world/settlement_definition_validator.g
 
 var _entries: Array[Dictionary] = []
 var validation_errors: Array[String] = []
+var _resolve_cache: Dictionary = {}
 
 func _init(manifest_path: String = MANIFEST_PATH) -> void:
 	if not FileAccess.file_exists(manifest_path):
@@ -22,6 +23,7 @@ func _init(manifest_path: String = MANIFEST_PATH) -> void:
 
 func configure(manifest: Dictionary) -> Dictionary:
 	_entries.clear()
+	_resolve_cache.clear()
 	validation_errors.clear()
 	if int(manifest.get("schema_version", 0)) != 1:
 		validation_errors.append("Unsupported settlement catalogue schema version.")
@@ -123,6 +125,9 @@ func get_definitions() -> Array[Dictionary]:
 	return result
 
 func resolve(global_hex: Vector2i) -> Dictionary:
+	var cache_key := "%d,%d" % [global_hex.x, global_hex.y]
+	if _resolve_cache.has(cache_key):
+		return (_resolve_cache[cache_key] as Dictionary).duplicate(false)
 	for entry in _entries:
 		var definition: Dictionary = entry.get("definition", {})
 		var local_hex: Vector2i = global_hex - entry.get("origin", Vector2i.ZERO)
@@ -135,9 +140,13 @@ func resolve(global_hex: Vector2i) -> Dictionary:
 		var terrain_radius := int(terrain.get("map_radius", 0))
 		if terrain_radius > 0 and HexGrid.distance(Vector2i.ZERO, local_hex) > terrain_radius:
 			continue
-		var result := entry.duplicate()
+		# The canonical definition is immutable here. A shallow copy gives each
+		# caller its own local_hex without recursively copying hundreds of props.
+		var result := entry.duplicate(false)
 		result["local_hex"] = local_hex
-		return result
+		_resolve_cache[cache_key] = result
+		return result.duplicate(false)
+	_resolve_cache[cache_key] = {}
 	return {}
 
 func settlement_ids() -> Array[String]:
