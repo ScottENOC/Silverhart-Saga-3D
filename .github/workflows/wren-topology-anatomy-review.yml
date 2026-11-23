@@ -62,7 +62,9 @@ jobs:
           p=build/wren-topology-review-project
           mkdir -p "$p/build/wren-native" "$p/tools/review" "$p/scripts/characters"
           cp build/wren-native/Wren.glb "$p/build/wren-native/"
-          cp build/wren-native/vulva-mons-mask-report.json "$p/build/wren-native/"
+          cp build/wren-native/vulva-mons-mask-report.json "$p/vulva-mons-mask-report.json"
+          test -s "$p/vulva-mons-mask-report.json"
+          ls -l "$p/vulva-mons-mask-report.json"
           cp tools/review/wren_topology_anatomy_proposal.gd "$p/tools/review/"
           cp scripts/characters/character_surface_region_mask.gd "$p/scripts/characters/"
           cat > "$p/project.godot" <<'EOF'
