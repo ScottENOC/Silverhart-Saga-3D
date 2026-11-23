@@ -123,6 +123,6 @@ static func _make_part(part: Dictionary, materials: Dictionary, hex_radius: floa
 		instance.position.x += point.x - origin.x
 		instance.position.z += point.z - origin.z
 	instance.rotation.y = deg_to_rad(float(part.get("rotation_degrees", 0.0)))
-	if part_type != "label3d":
+	if part_type in ["box", "cylinder"]:
 		(instance as MeshInstance3D).material_override = materials[String(part["material"])]
 	return instance
