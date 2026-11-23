@@ -185,14 +185,21 @@ func _run() -> void:
             var max_weight := -INF
             var imported_vertex_count := 0
             var imported_surface_count := 0
-            for skin_surface in skin_surfaces:
-                var surface_uv2: PackedVector2Array = skin_surface["arrays"][Mesh.ARRAY_TEX_UV2]
-                var surface_vertices: PackedVector3Array = skin_surface["arrays"][Mesh.ARRAY_VERTEX]
+            # Correspondence IDs cover the complete Ara mesh, which Godot imports
+            # as multiple material surfaces (skin, mouth, eyes, teeth, etc.).
+            # Validate channel coverage across every surface on the same MeshInstance,
+            # while keeping the visual mask overlay restricted to Skin_Anatomy.
+            for index in mesh_instance.mesh.get_surface_count():
+                var surface_arrays: Array = mesh_instance.mesh.surface_get_arrays(index)
+                var surface_uv2_value: Variant = surface_arrays[Mesh.ARRAY_TEX_UV2]
+                if not (surface_uv2_value is PackedVector2Array):
+                    continue
+                var surface_uv2: PackedVector2Array = surface_uv2_value
+                var surface_vertices: PackedVector3Array = surface_arrays[Mesh.ARRAY_VERTEX]
+                if surface_uv2.is_empty():
+                    continue
                 if surface_uv2.size() != surface_vertices.size():
-                    push_error(
-                        "Ara mask TEXCOORD_1 missing/mismatched on Skin_Anatomy surface "
-                        + str(skin_surface["surface_index"])
-                    )
+                    push_error("Ara TEXCOORD_1 missing/mismatched on mesh surface " + str(index))
                     quit(1)
                     return
                 imported_surface_count += 1
@@ -201,7 +208,7 @@ func _run() -> void:
                     # TEXCOORD_1.x encodes (source vertex ID + 0.5) / source count.
                     var decoded_id := int(round(uv.x * expected_ids - 0.5))
                     if decoded_id < 0 or decoded_id >= expected_ids:
-                        push_error("Godot UV2.x is not the Ara CorrespondenceID channel")
+                        push_error("Godot UV2.x is not the Ara CorrespondenceID channel on surface " + str(index))
                         quit(1)
                         return
                     var weight := clampf(uv.y, 0.0, 1.0)
@@ -223,9 +230,12 @@ func _run() -> void:
             for uv in uv2:
                 ara_weights.append(clampf(uv.y, 0.0, 1.0))
             var unique_weighted := 0
+            var unique_nonzero := 0
             for weight in id_weights.values():
                 if float(weight) >= 0.15:
                     unique_weighted += 1
+                if float(weight) > 0.0:
+                    unique_nonzero += 1
             if id_weights.size() != expected_ids:
                 push_error("Godot imported %d correspondence IDs; expected %d" % [id_weights.size(), expected_ids])
                 quit(1)
@@ -234,7 +244,7 @@ func _run() -> void:
                 push_error("Godot imported %d weighted IDs; painter reported %d" % [unique_weighted, expected_weighted])
                 quit(1)
                 return
-            seeds[region_id] = nonzero_count
+            seeds[region_id] = unique_nonzero
             counts[region_id] = unique_weighted
             candidate_weights[region_id] = ara_weights
             mask_import_validation = {
@@ -463,7 +473,10 @@ func _collect_skin_surfaces(
             var material_name := material.resource_name if material != null else ""
             var surface_arrays := mesh_instance.mesh.surface_get_arrays(index)
             var surface_vertices: PackedVector3Array = surface_arrays[Mesh.ARRAY_VERTEX]
-            var surface_uv2: PackedVector2Array = surface_arrays[Mesh.ARRAY_TEX_UV2]
+            var surface_uv2_value: Variant = surface_arrays[Mesh.ARRAY_TEX_UV2]
+            var surface_uv2 := PackedVector2Array()
+            if surface_uv2_value is PackedVector2Array:
+                surface_uv2 = surface_uv2_value
             var entry := {
                 "node_name": str(mesh_instance.name),
                 "mesh_resource_name": mesh_instance.mesh.resource_name,
@@ -479,7 +492,7 @@ func _collect_skin_surfaces(
                 mesh_instance.mesh.resource_name + " " +
                 surface_name + " " + material_name
             ).to_lower()
-            if identity.contains("skin"):
+            if surface_name == "Skin_Anatomy" or material_name == "Skin_Anatomy":
                 result.append({
                     "mesh_instance": mesh_instance,
                     "surface_index": index,
