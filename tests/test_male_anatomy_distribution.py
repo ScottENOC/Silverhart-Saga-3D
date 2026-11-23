@@ -42,9 +42,13 @@ class MaleAnatomyDistributionTests(unittest.TestCase):
 
     def test_generated_profiles_store_sizes_for_males_only(self):
         with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory) / "profiles.json"
-            GENERATOR.generate(20261120, 40, output)
-            manifest = json.loads(output.read_text(encoding="utf-8"))
+            ara_root = Path(directory)
+            catalogue = ara_root / "src" / "core" / "garments"
+            catalogue.mkdir(parents=True)
+            (catalogue / "test_catalogue.ts").write_text(
+                "id: 'long_tunic'\\nid: 'trousers'\\n", encoding="utf-8"
+            )
+            manifest = GENERATOR.generate(40, 20261120, ara_root)
 
         male = [entry for entry in manifest["characters"] if int(entry["params"]["gender"]) == 1]
         female = [entry for entry in manifest["characters"] if int(entry["params"]["gender"]) == 0]
