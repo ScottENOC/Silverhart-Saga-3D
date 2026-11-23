@@ -17,8 +17,8 @@ const PAIRED_REGION_MIDLINE_GAP := 0.008
 const REGIONS := {
     "breast_left": [Vector3(-0.115, 1.190, 0.145), Vector3(0.070, 0.105, 0.065), Color("#ef476f")],
     "breast_right": [Vector3(0.115, 1.190, 0.145), Vector3(0.070, 0.105, 0.065), Color("#f78c6b")],
-    "nipple_left": [Vector3(-0.115, 1.190, 0.198), Vector3(0.008, 0.008, 0.005), Color("#ff4d6d")],
-    "nipple_right": [Vector3(0.115, 1.190, 0.198), Vector3(0.008, 0.008, 0.005), Color("#c9184a")],
+    "nipple_left": [Vector3(-0.115, 1.190, 0.193), Vector3(0.014, 0.014, 0.012), Color("#ff4d6d")],
+    "nipple_right": [Vector3(0.115, 1.190, 0.193), Vector3(0.014, 0.014, 0.012), Color("#c9184a")],
     "chest_front_left": [Vector3(-0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#ffd166")],
     "chest_front_right": [Vector3(0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#06d6a0")],
     "pectoral_left": [Vector3(-0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#118ab2")],
@@ -59,10 +59,22 @@ const REGIONS := {
     "little_finger_right": [Vector3(0.525, 0.930, 0.290), Vector3(0.075, 0.016, 0.008), Color("#7209b7")],
     "head": [Vector3(0.0, 1.585, 0.085), Vector3(0.095, 0.105, 0.090), Color("#f94144")],
     "face_front": [Vector3(0.0, 1.565, 0.145), Vector3(0.070, 0.070, 0.040), Color("#f3722c")],
+    "forehead": [Vector3(0.0, 1.625, 0.150), Vector3(0.050, 0.025, 0.025), Color("#e76f51")],
+    "eye_left": [Vector3(-0.031, 1.582, 0.195), Vector3(0.022, 0.010, 0.012), Color("#00b4d8")],
+    "eye_right": [Vector3(0.031, 1.582, 0.195), Vector3(0.022, 0.010, 0.012), Color("#0077b6")],
+    "nose": [Vector3(0.0, 1.545, 0.205), Vector3(0.018, 0.025, 0.014), Color("#f77f00")],
+    "mouth": [Vector3(0.0, 1.505, 0.190), Vector3(0.030, 0.012, 0.012), Color("#d00000")],
+    "cheek_left": [Vector3(-0.047, 1.535, 0.165), Vector3(0.025, 0.025, 0.020), Color("#ff70a6")],
+    "cheek_right": [Vector3(0.047, 1.535, 0.165), Vector3(0.025, 0.025, 0.020), Color("#ff4d6d")],
+    "chin": [Vector3(0.0, 1.480, 0.150), Vector3(0.035, 0.018, 0.018), Color("#9d4edd")],
+    "jaw_left": [Vector3(-0.045, 1.500, 0.115), Vector3(0.020, 0.030, 0.020), Color("#5a189a")],
+    "jaw_right": [Vector3(0.045, 1.500, 0.115), Vector3(0.020, 0.030, 0.020), Color("#3c096c")],
     "ear_left": [Vector3(-0.090, 1.575, 0.075), Vector3(0.020, 0.035, 0.035), Color("#f8961e")],
     "ear_right": [Vector3(0.090, 1.575, 0.075), Vector3(0.020, 0.035, 0.035), Color("#f9c74f")],
     "neck_front": [Vector3(0.0, 1.445, 0.065), Vector3(0.045, 0.060, 0.035), Color("#90be6d")],
     "neck_back": [Vector3(0.0, 1.445, -0.045), Vector3(0.050, 0.065, 0.035), Color("#43aa8b")],
+    "neck_side_left": [Vector3(-0.043, 1.445, 0.005), Vector3(0.018, 0.055, 0.050), Color("#43aa8b")],
+    "neck_side_right": [Vector3(0.043, 1.445, 0.005), Vector3(0.018, 0.055, 0.050), Color("#277da1")],
     "abdomen_front": [Vector3(0.0, 0.985, 0.105), Vector3(0.105, 0.090, 0.040), Color("#4d908e")],
     "flank_left": [Vector3(-0.125, 1.005, 0.005), Vector3(0.055, 0.125, 0.085), Color("#577590")],
     "flank_right": [Vector3(0.125, 1.005, 0.005), Vector3(0.055, 0.125, 0.085), Color("#277da1")],
@@ -97,6 +109,12 @@ const REGIONS := {
     "foot_right": [Vector3(0.115, 0.045, 0.105), Vector3(0.060, 0.040, 0.105), Color("#caffbf")],
     "toes_left": [Vector3(-0.115, 0.035, 0.185), Vector3(0.055, 0.025, 0.045), Color("#ffd6a5")],
     "toes_right": [Vector3(0.115, 0.035, 0.185), Vector3(0.055, 0.025, 0.045), Color("#ffadad")]
+}
+
+const REGION_GROUPS := {
+    "face": ["face_front", "forehead", "eye_left", "eye_right", "nose", "mouth", "cheek_left", "cheek_right", "chin", "jaw_left", "jaw_right", "ear_left", "ear_right"],
+    "head": ["head", "face", "ear_left", "ear_right"],
+    "neck": ["neck_front", "neck_back", "neck_side_left", "neck_side_right"]
 }
 
 var stage: Node3D
@@ -272,6 +290,14 @@ func _run() -> void:
                 count += 1
         counts[region_id] = count
 
+    var unassigned_surface_report := _build_unassigned_surface_report(adjacency, vertices, candidate_weights)
+    var nipple_seed_diagnostics := _build_nipple_seed_diagnostics(vertices)
+    var facial_seed_diagnostics := _build_region_seed_diagnostics(
+        vertices,
+        ["eye_left", "eye_right", "nose", "mouth", "cheek_left", "cheek_right", "chin", "forehead", "jaw_left", "jaw_right"]
+    )
+    var facial_surface_diagnostics := _build_facial_surface_diagnostics(mesh_instance.mesh)
+
     var overlay := _build_overlay(mesh_instance, vertices, candidate_weights)
     stage.add_child(overlay)
     var vulva_mask_overlay := _build_vulva_mask_overlay(skin_surfaces)
@@ -321,7 +347,7 @@ func _run() -> void:
             var hand_x := -0.490 if region_id.ends_with("_left") else 0.490
             region_views["hand_detail_front"] = [Vector3(0.0, 0.955, 2.0), Vector3(hand_x, 0.955, 0.0), 0.30]
             region_views["hand_detail_side"] = [Vector3(hand_x + (1.8 if hand_x > 0.0 else -1.8), 0.955, 0.25), Vector3(hand_x, 0.955, 0.25), 0.30]
-        if region_id == "head" or region_id == "face_front" or region_id.begins_with("ear_") or region_id.begins_with("neck_"):
+        if region_id == "head" or region_id == "face_front" or region_id in REGION_GROUPS["face"] or region_id.begins_with("ear_") or region_id.begins_with("neck_"):
             region_views["head_detail_front"] = [Vector3(0.0, 1.585, 1.15), Vector3(0.0, 1.585, 0.0), 0.27]
             region_views["head_detail_side"] = [Vector3(1.15, 1.585, 0.0), Vector3(0.0, 1.585, 0.0), 0.27]
         if region_id in ["abdomen_front", "flank_left", "flank_right", "upper_back_left", "upper_back_right", "lower_back_left", "lower_back_right", "sternum", "underbust", "ribcage_left", "ribcage_right", "chest_front_left", "chest_front_right", "pectoral_left", "pectoral_right", "breast_left", "breast_right"]:
@@ -362,6 +388,44 @@ func _run() -> void:
         region_overlay.queue_free()
         await process_frame
 
+    # The facial components are separate imported surfaces, not part of Skin_Anatomy.
+    # Render each surface independently so coverage is inspected against the geometry it owns.
+    var facial_surface_root := output_directory.path_join("facial-surfaces")
+    DirAccess.make_dir_recursive_absolute(facial_surface_root)
+    var facial_surface_specs := [
+        ["Eyes", "left"], ["Eyes", "right"],
+        ["Eyebrows", "left"], ["Eyebrows", "right"],
+        ["Eyelashes", "left"], ["Eyelashes", "right"],
+        ["Mouth", "all"], ["Teeth", "all"], ["Tongue", "all"],
+        ["Skin details", "all"]
+    ]
+    for spec in facial_surface_specs:
+        var facial_name: String = spec[0]
+        var facial_side: String = spec[1]
+        var facial_index := _find_named_surface(mesh_instance.mesh, facial_name)
+        if facial_index < 0:
+            push_warning("Facial surface missing from imported Wren mesh: " + facial_name)
+            continue
+        var facial_overlay := _build_facial_surface_overlay(mesh_instance, facial_index, facial_side)
+        if facial_overlay == null:
+            continue
+        stage.add_child(facial_overlay)
+        camera.position = Vector3(0.0, 1.585, 1.15)
+        camera.look_at(Vector3(0.0, 1.585, 0.0), Vector3.UP)
+        camera.size = 0.27
+        await process_frame
+        await process_frame
+        await RenderingServer.frame_post_draw
+        var facial_image := root.get_texture().get_image()
+        var facial_file_name := facial_name.to_lower().replace(" ", "_") + "_" + facial_side + ".png"
+        if facial_image.save_png(facial_surface_root.path_join(facial_file_name)) != OK:
+            push_error("Failed to save facial surface review: " + facial_file_name)
+            quit(1)
+            return
+        stage.remove_child(facial_overlay)
+        facial_overlay.queue_free()
+        await process_frame
+
     var report := {
         "status": "DRAFT_TOPOLOGY_PROPOSAL_NOT_APPROVED",
         "character": "Wren",
@@ -369,6 +433,7 @@ func _run() -> void:
         "surface_name": mesh_instance.mesh.surface_get_name(surface_index),
         "surface_index": surface_index,
         "skin_surface_count": skin_surfaces.size(),
+        "imported_surface_inventory": surface_inventory,
         "vertex_count": vertices.size(),
         "triangle_count": indices.size() / 3,
         "surface_signature": MASK_SCRIPT.build_surface_signature(mesh_instance.mesh, surface_index),
@@ -398,16 +463,20 @@ func _run() -> void:
             "note": "Ara already sculpts these external structures into the continuous skin surface. The first semantic mask intentionally groups the external vulva and mons pubis as one region; later subregions can be authored from the same surface-coordinate frame without changing the mask resource model."
         },
         "candidate_vertex_counts_at_weight_0_15": counts,
+        "region_groups": REGION_GROUPS,
+        "unassigned_surface_diagnostics": unassigned_surface_report,
+        "nipple_seed_diagnostics": nipple_seed_diagnostics,
+        "facial_seed_diagnostics": facial_seed_diagnostics,
+        "facial_surface_diagnostics": facial_surface_diagnostics,
         "ara_mask_import_validation": mask_import_validation,
         "candidate_to_seed_vertex_ratios": _build_candidate_seed_ratios(seeds, counts),
         "method": "Review-only Ara-authored vulva_external weights are read directly from TEXCOORD_1.y and include the mons pubis; remaining geometric hypotheses expand through adjacent source-mesh vertices with decaying weights.",
         "limitations": [
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
-            "Nipple channels are seed-only (zero graph hops); all other hop limits are review heuristics and local mesh density affects physical reach.",
             "The combined vulva_external mask is authored from Ara surface-following coordinates and includes the mons pubis; finer subregions are intentionally deferred until the basic body-region workflow is reviewed.",
             "Finger candidates use longer local-X seed corridors and up to 18 topology hops, constrained to a narrow per-digit depth corridor; the close-up renders must confirm continuous lengthwise coverage and separation.",
-            "Nipple candidates now use seed-only surface vertices (zero topology expansion) to avoid propagating onto the adjacent areolar/side-surface arc; the isolated renders must confirm the smaller island remains centred.",
+            "Nipple channels use the original authored-centre seed-only proposal (zero topology hops); the isolated close-up render is retained for review.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
             "This review includes provisional whole-body coverage: head/face/ears/neck, chest/abdomen/flanks/back, pelvis/glutes/pubic region, both legs and feet, and shoulder-to-individual-finger arm channels. The vulva_external region is the exception: its weights are derived from the Ara anatomy surface-coordinate method, with the mons pubis included."
         ]
@@ -417,6 +486,263 @@ func _run() -> void:
     report_file.close()
     print("WREN_TOPOLOGY_PROPOSAL_OK vertices=%d regions=%d" % [vertices.size(), REGIONS.size()])
     quit(0)
+
+
+func _find_named_surface(mesh: Mesh, requested_name: String) -> int:
+    if mesh == null:
+        return -1
+    for surface_index in mesh.get_surface_count():
+        if mesh.surface_get_name(surface_index) == requested_name:
+            return surface_index
+    return -1
+
+
+func _build_facial_surface_diagnostics(mesh: Mesh) -> Dictionary:
+    var result: Dictionary = {}
+    var facial_names := ["Eyes", "Mouth", "Teeth", "Tongue", "Eyebrows", "Eyelashes", "Skin details"]
+    for surface_name in facial_names:
+        var surface_index := _find_named_surface(mesh, surface_name)
+        if surface_index < 0:
+            result[surface_name] = {"status": "MISSING_SURFACE"}
+            continue
+        var arrays: Array = mesh.surface_get_arrays(surface_index)
+        var surface_vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+        var negative_x := 0
+        var positive_x := 0
+        var centreline := 0
+        var minimum := Vector3(INF, INF, INF)
+        var maximum := Vector3(-INF, -INF, -INF)
+        var centroid := Vector3.ZERO
+        for point in surface_vertices:
+            minimum = minimum.min(point)
+            maximum = maximum.max(point)
+            centroid += point
+            if point.x < -0.0001:
+                negative_x += 1
+            elif point.x > 0.0001:
+                positive_x += 1
+            else:
+                centreline += 1
+        if not surface_vertices.is_empty():
+            centroid /= float(surface_vertices.size())
+        result[surface_name] = {
+            "status": "SEPARATE_IMPORTED_SURFACE",
+            "surface_index": surface_index,
+            "vertex_count": surface_vertices.size(),
+            "left_vertex_count_x_negative": negative_x,
+            "right_vertex_count_x_positive": positive_x,
+            "centreline_vertex_count": centreline,
+            "bounds_min_local": [minimum.x, minimum.y, minimum.z],
+            "bounds_max_local": [maximum.x, maximum.y, maximum.z],
+            "centroid_local": [centroid.x, centroid.y, centroid.z],
+            "ownership": "facial_component_surface_not_skin_region",
+            "left_right_split": "local X sign; review overlay required before semantic use"
+        }
+    return result
+
+
+func _build_facial_surface_overlay(
+    mesh_instance: MeshInstance3D,
+    surface_index: int,
+    side: String
+) -> MultiMeshInstance3D:
+    var arrays: Array = mesh_instance.mesh.surface_get_arrays(surface_index)
+    var surface_vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+    var marker := SphereMesh.new()
+    marker.radius = 0.0025
+    marker.height = 0.005
+    marker.radial_segments = 5
+    marker.rings = 3
+    var material := StandardMaterial3D.new()
+    material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    material.albedo_color = Color("#00d4ff")
+    marker.material = material
+    var transforms: Array[Transform3D] = []
+    for point in surface_vertices:
+        if side == "left" and point.x >= -0.0001:
+            continue
+        if side == "right" and point.x <= 0.0001:
+            continue
+        transforms.append(mesh_instance.global_transform * Transform3D(Basis.IDENTITY, point))
+    if transforms.is_empty():
+        push_warning("No vertices for facial surface %s side %s" % [mesh_instance.mesh.surface_get_name(surface_index), side])
+        return null
+    var multi := MultiMesh.new()
+    multi.transform_format = MultiMesh.TRANSFORM_3D
+    multi.mesh = marker
+    multi.instance_count = transforms.size()
+    for index in transforms.size():
+        multi.set_instance_transform(index, transforms[index])
+    var overlay := MultiMeshInstance3D.new()
+    overlay.name = "FacialSurface_%s_%s" % [mesh_instance.mesh.surface_get_name(surface_index), side]
+    overlay.multimesh = multi
+    return overlay
+
+
+func _build_unassigned_surface_report(
+    adjacency: Array[PackedInt32Array],
+    vertices: PackedVector3Array,
+    candidate_weights: Dictionary
+) -> Dictionary:
+    var assigned := PackedByteArray()
+    assigned.resize(vertices.size())
+    var assigned_count := 0
+    for region_id in candidate_weights:
+        var weights: PackedFloat32Array = candidate_weights[region_id]
+        for vertex_index in mini(vertices.size(), weights.size()):
+            if weights[vertex_index] >= 0.15:
+                assigned[vertex_index] = 1
+    for value in assigned:
+        if value == 1:
+            assigned_count += 1
+
+    var visited := PackedByteArray()
+    visited.resize(vertices.size())
+    var components: Array[Dictionary] = []
+    var total_unassigned := 0
+    for start_index in vertices.size():
+        if assigned[start_index] == 1 or visited[start_index] == 1:
+            continue
+        var queue := PackedInt32Array([start_index])
+        visited[start_index] = 1
+        var queue_index := 0
+        var component_vertices := 0
+        var centroid := Vector3.ZERO
+        var minimum := Vector3(INF, INF, INF)
+        var maximum := Vector3(-INF, -INF, -INF)
+        var boundary_edges: Dictionary = {}
+        while queue_index < queue.size():
+            var current := queue[queue_index]
+            queue_index += 1
+            component_vertices += 1
+            total_unassigned += 1
+            var point := vertices[current]
+            centroid += point
+            minimum = minimum.min(point)
+            maximum = maximum.max(point)
+            for neighbour in adjacency[current]:
+                if assigned[neighbour] == 1:
+                    for region_id in candidate_weights:
+                        var weights: PackedFloat32Array = candidate_weights[region_id]
+                        if neighbour < weights.size() and weights[neighbour] >= 0.15:
+                            boundary_edges[region_id] = int(boundary_edges.get(region_id, 0)) + 1
+                elif visited[neighbour] == 0:
+                    visited[neighbour] = 1
+                    queue.append(neighbour)
+        var neighbour_candidates: Array[Dictionary] = []
+        for region_id in boundary_edges:
+            neighbour_candidates.append({
+                "region_id": region_id,
+                "shared_boundary_edges": int(boundary_edges[region_id])
+            })
+        neighbour_candidates.sort_custom(
+            func(a: Dictionary, b: Dictionary) -> bool:
+                return int(a["shared_boundary_edges"]) > int(b["shared_boundary_edges"])
+        )
+        var centre := centroid / maxf(float(component_vertices), 1.0)
+        components.append({
+            "component_id": components.size(),
+            "vertex_count": component_vertices,
+            "centroid_local": [centre.x, centre.y, centre.z],
+            "bounds_min_local": [minimum.x, minimum.y, minimum.z],
+            "bounds_max_local": [maximum.x, maximum.y, maximum.z],
+            "neighbour_candidates": neighbour_candidates.slice(0, mini(5, neighbour_candidates.size())),
+            "suggested_neighbour": neighbour_candidates[0]["region_id"] if not neighbour_candidates.is_empty() else "no_adjacent_region"
+        })
+    components.sort_custom(
+        func(a: Dictionary, b: Dictionary) -> bool:
+            return int(a["vertex_count"]) > int(b["vertex_count"])
+    )
+    var suggested_neighbour_vertex_totals: Dictionary = {}
+    for component in components:
+        var neighbour_id: String = component["suggested_neighbour"]
+        suggested_neighbour_vertex_totals[neighbour_id] = int(suggested_neighbour_vertex_totals.get(neighbour_id, 0)) + int(component["vertex_count"])
+    return {
+        "assigned_vertex_count": assigned_count,
+        "unassigned_vertex_count": total_unassigned,
+        "unassigned_component_count": components.size(),
+        "suggested_neighbour_vertex_totals": suggested_neighbour_vertex_totals,
+        "largest_unassigned_components": components.slice(0, mini(40, components.size())),
+        "all_unassigned_components": components,
+        "assignment_threshold": 0.15,
+        "neighbour_method": "rank adjacent assigned regions by shared mesh-boundary edge count; suggestions are review-only"
+    }
+
+
+func _build_nipple_seed_diagnostics(vertices: PackedVector3Array) -> Dictionary:
+    var result: Dictionary = {}
+    for region_id in ["nipple_left", "nipple_right"]:
+        var definition: Array = REGIONS[region_id]
+        var centre: Vector3 = definition[0]
+        var radii: Vector3 = definition[1]
+        var nearest_index := -1
+        var nearest_distance := INF
+        var counts_by_scale := {"1.0": 0, "1.5": 0, "2.0": 0, "3.0": 0}
+        for vertex_index in vertices.size():
+            var point := vertices[vertex_index]
+            var distance := point.distance_to(centre)
+            if distance < nearest_distance:
+                nearest_distance = distance
+                nearest_index = vertex_index
+            for scale_key in counts_by_scale:
+                var scale := float(scale_key)
+                var normalized := (point - centre) / (radii * scale)
+                if normalized.length() <= 1.0:
+                    counts_by_scale[scale_key] = int(counts_by_scale[scale_key]) + 1
+        var nearest_point := vertices[nearest_index] if nearest_index >= 0 else Vector3.ZERO
+        var nearest_centred_counts := {"1.0": 0, "1.5": 0, "2.0": 0, "3.0": 0}
+        for point in vertices:
+            for scale_key in nearest_centred_counts:
+                var scale := float(scale_key)
+                var normalized := (point - nearest_point) / (radii * scale)
+                if normalized.length() <= 1.0:
+                    nearest_centred_counts[scale_key] = int(nearest_centred_counts[scale_key]) + 1
+        result[region_id] = {
+            "seed_vertices_current": int(counts_by_scale["1.0"]),
+            "candidate_seed_vertices_by_radius_scale": counts_by_scale,
+            "candidate_seed_vertices_by_nearest_skin_vertex_radius_scale": nearest_centred_counts,
+            "nearest_skin_vertex_index": nearest_index,
+            "nearest_skin_vertex_distance_m": nearest_distance,
+            "nearest_skin_vertex_position_local": [nearest_point.x, nearest_point.y, nearest_point.z],
+            "current_seed_radius_m": [radii.x, radii.y, radii.z],
+            "status": "NO_SEED_VERTICES" if int(counts_by_scale["1.0"]) == 0 else "SEEDS_FOUND"
+        }
+    return result
+
+
+func _build_region_seed_diagnostics(
+    vertices: PackedVector3Array,
+    region_ids: Array
+) -> Dictionary:
+    var result: Dictionary = {}
+    for region_id in region_ids:
+        var definition: Array = REGIONS[region_id]
+        var centre: Vector3 = definition[0]
+        var radii: Vector3 = definition[1]
+        var nearest_index := -1
+        var nearest_distance := INF
+        var counts_by_scale := {"1.0": 0, "1.5": 0, "2.0": 0, "3.0": 0}
+        for vertex_index in vertices.size():
+            var point := vertices[vertex_index]
+            var distance := point.distance_to(centre)
+            if distance < nearest_distance:
+                nearest_distance = distance
+                nearest_index = vertex_index
+            for scale_key in counts_by_scale:
+                var scale := float(scale_key)
+                var normalized := (point - centre) / (radii * scale)
+                if normalized.length() <= 1.0:
+                    counts_by_scale[scale_key] = int(counts_by_scale[scale_key]) + 1
+        var nearest_point := vertices[nearest_index] if nearest_index >= 0 else Vector3.ZERO
+        result[region_id] = {
+            "seed_vertices_current": int(counts_by_scale["1.0"]),
+            "candidate_seed_vertices_by_radius_scale": counts_by_scale,
+            "nearest_skin_vertex_index": nearest_index,
+            "nearest_skin_vertex_distance_m": nearest_distance,
+            "nearest_skin_vertex_position_local": [nearest_point.x, nearest_point.y, nearest_point.z],
+            "current_seed_radius_m": [radii.x, radii.y, radii.z]
+        }
+    return result
 
 
 func _build_contact_anchor_report(
@@ -477,6 +803,23 @@ func _collect_skin_surfaces(
             var surface_uv2 := PackedVector2Array()
             if surface_uv2_value is PackedVector2Array:
                 surface_uv2 = surface_uv2_value
+            var bounds := AABB()
+            var centroid := Vector3.ZERO
+            var negative_x_count := 0
+            var positive_x_count := 0
+            for vertex_index in surface_vertices.size():
+                var point: Vector3 = surface_vertices[vertex_index]
+                if vertex_index == 0:
+                    bounds = AABB(point, Vector3.ZERO)
+                else:
+                    bounds = bounds.expand(point)
+                centroid += point
+                if point.x < 0.0:
+                    negative_x_count += 1
+                elif point.x > 0.0:
+                    positive_x_count += 1
+            if not surface_vertices.is_empty():
+                centroid /= float(surface_vertices.size())
             var entry := {
                 "node_name": str(mesh_instance.name),
                 "mesh_resource_name": mesh_instance.mesh.resource_name,
@@ -484,7 +827,12 @@ func _collect_skin_surfaces(
                 "surface_name": surface_name,
                 "material_name": material_name,
                 "vertex_count": surface_vertices.size(),
-                "texcoord_1_count": surface_uv2.size()
+                "texcoord_1_count": surface_uv2.size(),
+                "bounds_min_local": [bounds.position.x, bounds.position.y, bounds.position.z],
+                "bounds_max_local": [bounds.end.x, bounds.end.y, bounds.end.z],
+                "centroid_local": [centroid.x, centroid.y, centroid.z],
+                "negative_x_vertex_count": negative_x_count,
+                "positive_x_vertex_count": positive_x_count
             }
             inventory.append(entry)
             var identity: String = (
@@ -584,7 +932,11 @@ func _add_edge(adjacency: Array[PackedInt32Array], from_vertex: int, to_vertex: 
 
 
 func _requires_front_surface_normal(region_id: String) -> bool:
-    return region_id == "pubic_region" or region_id.begins_with("pelvic_")
+    return (
+        region_id == "pubic_region"
+        or region_id.begins_with("pelvic_")
+        or region_id in ["face_front", "forehead", "eye_left", "eye_right", "nose", "mouth", "cheek_left", "cheek_right", "chin", "jaw_left", "jaw_right"]
+    )
 
 
 func _find_seed_vertices(
@@ -636,7 +988,7 @@ func _within_region_extent(region_id: String, vertex: Vector3) -> bool:
 
 func _max_graph_hops_for_region(region_id: String) -> int:
     if region_id.begins_with("nipple_"):
-        return 0
+        return 2
     if region_id.ends_with("_finger_left") or region_id.ends_with("_finger_right"):
         return 18
     return MAX_GRAPH_HOPS
@@ -673,7 +1025,9 @@ func _propagate_over_surface(
         for neighbour in adjacency[current]:
             if not _matches_region_side(region_id, vertices[neighbour]):
                 continue
-            if not _within_region_extent(region_id, vertices[neighbour]):
+            # The first accepted nipple proposal used two topology hops without
+            # an ellipsoid clamp; retain that behaviour for these two small islands.
+            if not region_id.begins_with("nipple_") and not _within_region_extent(region_id, vertices[neighbour]):
                 continue
             if _requires_front_surface_normal(region_id):
                 if neighbour >= normals.size() or normals[neighbour].dot(Vector3(0.0, 0.0, 1.0)) < 0.25:
@@ -705,12 +1059,13 @@ func _build_overlay(
 
     var transforms: Array[Transform3D] = []
     var colours: Array[Color] = []
+    var selected_region_ids: Array = REGIONS.keys()
+    if not only_region.is_empty():
+        selected_region_ids = [only_region]
     for vertex_index in vertices.size():
         var accumulated := Color(0.0, 0.0, 0.0, 0.0)
         var strongest := 0.0
-        for region_id in REGIONS:
-            if not only_region.is_empty() and region_id != only_region:
-                continue
+        for region_id in selected_region_ids:
             if region_id == "vulva_external":
                 continue
             var weights: PackedFloat32Array = candidate_weights[region_id]
