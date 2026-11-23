@@ -2337,6 +2337,79 @@
         "The wilderness tunnel network endpoint is a separate one-cell floor -9 stub at (-274, 40), connected from the den. It is a travel junction, not a long physically painted tunnel.",
         "NPCs, guards, journal contents, evidence, loot and travel-menu behaviour remain campaign-owned and are intentionally excluded from this map-only definition."
       ]
+    },
+    {
+      "id": "corvin_ashgrave_barrow",
+      "name": "Barrow of Corvin Ashgrave",
+      "anchor": {
+        "q": 57,
+        "r": -160
+      },
+      "source": "Hex-crpg/campaign2World.js:buildLichBarrow; derived from campaign2NecromancerRitualCenter",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Antechamber and Lich Sanctum",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "lich_barrow_antechamber",
+              "center": {
+                "q": 57,
+                "r": -160
+              },
+              "half_width": 3,
+              "half_height": 3
+            },
+            {
+              "id": "corvin_lich_sanctum",
+              "center": {
+                "q": 66,
+                "r": -160
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [
+            {
+              "id": "antechamber_to_sanctum",
+              "from": {
+                "q": 61,
+                "r": -160
+              },
+              "to": {
+                "q": 63,
+                "r": -160
+              },
+              "algorithm": "source_straight_q"
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "barrow_entrance_door",
+              "type": "door_open",
+              "position": {
+                "q": 54,
+                "r": -160
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "lich_sanctum_door",
+              "type": "door_open",
+              "position": {
+                "q": 63,
+                "r": -160
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": []
     }
   ]
 }
