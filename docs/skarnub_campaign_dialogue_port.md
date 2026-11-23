@@ -19,7 +19,7 @@
 ## Remaining work
 - Wire the content into the future Skarn-tooth camp interaction and apply the gift transaction to player gold.
 - Apply the returned region-stat, XP, gold, Aldric rescue/attitude/departure effect descriptors in the campaign runtime; the content layer deliberately does not mutate scene-owned or CharacterState resources.
-- Connect Nix, guards, Grondle, Ser Aldric and the scout note to the resulting campaign state.
+- Connect the camp's chief, Nix, guards, Grondle, captive Ser Aldric and scout-note prop to the streamed world actor/interaction system. Nix's branching dialogue and recruitment profile, Grondle's alliance-gated stock, Aldric's captive dialogue/recruitment profile and the scout note's first-read security effect are now represented and tested as content.
 - Extend the post-Northwatch war-mission branch after its required siege systems are available.
 
 This is a content/state layer, not a claim that the Skarn-tooth camp is already a playable 3D location.
