@@ -69,15 +69,13 @@ def export_scene(path):
 
 
 def read_mask_from_uv2(mesh):
-    # Resolve the semantic layer by name, not Blender collection position.
-    layer = mesh.uv_layers.get("CorrespondenceID")
-    if layer is None:
-        names = [item.name for item in mesh.uv_layers]
-        raise RuntimeError("CorrespondenceID UV layer missing; available layers: " + repr(names))
+    # Blender's glTF importer may rename UV layers; the channel position
+    # follows the glTF TEXCOORD_n attribute, not the original Blender name.
     if len(mesh.uv_layers) < 2:
         raise RuntimeError(
             f"Expected TEXCOORD_1/CorrespondenceID; found {len(mesh.uv_layers)} UV channels"
         )
+    layer = mesh.uv_layers[1]
     values = [None] * len(mesh.vertices)
     for loop in mesh.loops:
         vertex_index = loop.vertex_index
@@ -112,19 +110,17 @@ def main():
     if len(weights) != len(skin.data.vertices):
         raise RuntimeError("Ara surface-coordinate mask does not match the Wren skin vertex count")
 
-    layer = skin.data.uv_layers.get("CorrespondenceID")
-    if layer is None:
-        raise RuntimeError("Wren GLB has no named CorrespondenceID UV layer")
+    if len(skin.data.uv_layers) < 2:
+        raise RuntimeError("Wren GLB has no TEXCOORD_1 correspondence/mask channel")
     # The glTF exporter emits the active-render UV map as TEXCOORD_0.
-    # Explicitly make the ordinary texture UV first and CorrespondenceID second.
-    base_layers = [item for item in skin.data.uv_layers if item.name != "CorrespondenceID"]
-    if not base_layers:
-        raise RuntimeError("Cannot export TEXCOORD_1 without an ordinary base UV map")
-    base_layers[0].active_render = True
+    # The imported glTF channel order is authoritative: UV layer 0 is TEXCOORD_0,
+    # UV layer 1 is TEXCOORD_1. Keep that order explicit for the re-export.
+    base_layer = skin.data.uv_layers[0]
+    layer = skin.data.uv_layers[1]
+    base_layer.active_render = True
     layer.active_render = False
     export_order = [item.name for item in skin.data.uv_layers]
-    if export_order.index("CorrespondenceID") != 1:
-        raise RuntimeError("CorrespondenceID must be second in UV layer order: " + repr(export_order))
+    print("glTF UV channel export order:", export_order)
     for loop in skin.data.loops:
         uv = layer.data[loop.index].uv.copy()
         uv.y = float(weights[loop.vertex_index])
@@ -186,11 +182,8 @@ def main():
         "source_method": "Ara add_female_anatomy_surface.py surface-following midline coordinates",
         "mask_channel": "TEXCOORD_1.y (Godot Mesh ARRAY_TEX_UV2.y)",
         "correspondence_channel": "TEXCOORD_1.x preserved unchanged",
-        "blender_uv_layer_order": [item.name for item in exported_skin.data.uv_layers],
-        "correspondence_uv_layer_index_after_reimport": next(
-            i for i, item in enumerate(exported_skin.data.uv_layers)
-            if item.name == "CorrespondenceID"
-        ),
+        "blender_uv_layer_order_after_reimport": [item.name for item in exported_skin.data.uv_layers],
+        "correspondence_gltf_texcoord_index": 1,
         "skin_mesh": exported_skin.name,
         "source_correspondence_vertex_count": len(source_by_id),
         "exported_mesh_vertex_count": len(exported_values),
