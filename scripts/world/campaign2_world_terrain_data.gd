@@ -260,6 +260,10 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 		return "path"
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "building"
+	# Match visual terrain precedence: a strategic road is a traversable
+	# crossing even when the underlying authored settlement terrain is water.
+	if road_cells.has(_hex_key(hex)):
+		return "path"
 	var terrain := terrain_for_hex(hex)
 	return "building" if terrain == "authored" else terrain
 
