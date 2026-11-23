@@ -5,6 +5,7 @@ extends Node3D
 ## built relative to that anchor while simulation cells retain global axial IDs.
 
 const FLOOR_MAP_BUILDER = preload("res://scripts/world/campaign2_multistory_floor_map_builder.gd")
+const CANOPY_PRESENTATION = preload("res://scripts/world/world_canopy_settlement_presentation.gd")
 const CHARACTER_ACTOR_FACTORY = preload("res://scripts/presentation/campaign_character_actor_factory.gd")
 const CHARACTER_REGISTRY_SCRIPT = preload("res://scripts/world/campaign2_character_definition_registry.gd")
 const HEX_RADIUS: float = HexGrid.DEFAULT_RADIUS_M
@@ -221,6 +222,7 @@ func _rebuild_floor_presentation(floor_number: int) -> void:
 func _build_floor_presentations() -> void:
 	var anchor_data: Dictionary = definition.get("anchor", {})
 	var anchor := Vector2i(int(anchor_data.get("q", 0)), int(anchor_data.get("r", 0)))
+	CANOPY_PRESENTATION.present_trunk(self, definition, anchor, HEX_RADIUS)
 	for floor_variant in definition.get("floors", []):
 		if floor_variant is Dictionary:
 			_build_floor_presentation(floor_variant, anchor)
@@ -267,6 +269,7 @@ func _build_floor_presentation(floor_definition: Dictionary, anchor: Vector2i) -
 		wall.rotation.y = PI / 6.0
 		group.add_child(wall)
 	_present_floor_objects(group, build_result.get("tile_objects", []), anchor)
+	CANOPY_PRESENTATION.present_floor(group, definition, floor_number, anchor, HEX_RADIUS)
 	_present_floor_actors(group, build_result.get("actors", []), anchor, floor_number)
 
 func _present_floor_actors(group: Node3D, actors: Array, anchor: Vector2i, floor_number: int) -> void:

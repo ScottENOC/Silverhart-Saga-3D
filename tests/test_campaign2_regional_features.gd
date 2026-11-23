@@ -120,6 +120,15 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(-252, 18)) == "path", "Emberlode Mine south door must remain open")
 	_check(terrain.terrain_for_hex(Vector2i(-252, 20)) == "path", "Emberlode Mine approach must connect to the west road")
 
+	# Sil'thandriel keeps the source arrival clearing, forest canopy and approach distinct.
+	_check(FEATURES.ELVEN_CAPITAL_CENTRE == Vector2i(-252, 934), "Sylvan Court anchor must match the source crossroads offset")
+	_check(terrain.terrain_for_hex(Vector2i(-252, 934)) == "grass", "Great-tree base must remain in the open arrival clearing")
+	_check(terrain.terrain_for_hex(Vector2i(-252, 932)) == "grass", "Tree stair must remain on the open ground-level clearing")
+	_check(FEATURES.feature_id_at(Vector2i(-270, 934)) == "silthandriel_canopy", "Outer canopy ring must retain its source feature identity away from the north approach")
+	_check(FEATURES.feature_id_at(Vector2i(-271, 934)) != "silthandriel_canopy", "Sylvan canopy must stop beyond its source radius")
+	_check(FEATURES.feature_id_at(Vector2i(-252, 907)) == "silthandriel_approach", "Elven approach must reach its source northward endpoint")
+	_check(FEATURES.feature_id_at(Vector2i(-252, 906)) != "silthandriel_approach", "Elven approach must stop at its source endpoint")
+
 	if failures > 0:
 		push_error("%d Campaign 2 regional feature test(s) failed." % failures)
 		quit(1)

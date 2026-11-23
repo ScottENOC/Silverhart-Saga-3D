@@ -1017,7 +1017,93 @@
         "The surface arrival clearing and canopy are painted by buildElvenCapital; floor 0 only registers the tree stair so it does not invent enclosing walls around the open clearing.",
         "The Lower Canopy connects the Archive and Healer Lodge with the source rope-bridge corridor; the two herb patches remain at their original lodge coordinates.",
         "The Court of the Silver Leaf is an open throne pavilion, not an enclosed hall; its source room is explicitly wall-free."
-      ]
+      ],
+      "canopy_presentation": {
+        "tree_trunk": {
+          "id": "silthandriel_great_tree_trunk",
+          "position": {
+            "q": -252,
+            "r": 934
+          },
+          "height": 10.2,
+          "base_radius": 1.65,
+          "top_radius": 0.82
+        },
+        "platforms": [
+          {
+            "id": "archive_platform",
+            "center": {
+              "q": -264,
+              "r": 936
+            },
+            "floor": 1,
+            "radius_hexes": 4.1,
+            "railings": true
+          },
+          {
+            "id": "healer_lodge_platform",
+            "center": {
+              "q": -240,
+              "r": 936
+            },
+            "floor": 1,
+            "radius_hexes": 4.1,
+            "railings": true
+          },
+          {
+            "id": "upper_court_platform",
+            "center": {
+              "q": -252,
+              "r": 934
+            },
+            "floor": 2,
+            "radius_hexes": 7,
+            "railings": true
+          }
+        ],
+        "bridges": [
+          {
+            "id": "archive_lodge_rope_bridge",
+            "from": {
+              "q": -264,
+              "r": 936
+            },
+            "to": {
+              "q": -240,
+              "r": 936
+            },
+            "floor": 1,
+            "width": 1.25,
+            "segments": 18
+          }
+        ],
+        "branches": [
+          {
+            "id": "tree_to_archive_branch",
+            "from": {
+              "q": -252,
+              "r": 934
+            },
+            "to": {
+              "q": -264,
+              "r": 936
+            },
+            "floor": 1
+          },
+          {
+            "id": "tree_to_lodge_branch",
+            "from": {
+              "q": -252,
+              "r": 934
+            },
+            "to": {
+              "q": -240,
+              "r": 936
+            },
+            "floor": 1
+          }
+        ]
+      }
     },
     {
       "id": "silverhart_palace",
