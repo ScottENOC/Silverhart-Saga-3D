@@ -15943,7 +15943,7 @@
             "club"
           ],
           "side": "neutral",
-          "faction_id": "",
+          "faction_id": null,
           "dialogue_id": "elder_nessa_wren",
           "position": {
             "q": -266,
@@ -15984,7 +15984,7 @@
           ],
           "equipment": [],
           "side": "neutral",
-          "faction_id": "",
+          "faction_id": null,
           "dialogue_id": "fenn_oakheart",
           "position": {
             "q": -265,
