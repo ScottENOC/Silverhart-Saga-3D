@@ -18,9 +18,7 @@ const IRONBOND_STANDING_THRESHOLD: float = 10.0
 const IRONBOND_INFLUENCE_DRIFT_PER_HOUR: float = 0.02
 const GOBLIN_REPORTING_FRACTION: float = 0.35
 
-var elapsed_agenda_seconds: float = 0.0
 var last_world_seconds: float = 0.0
-
 
 static func _seed_standing(faction_race: String, player_race: String) -> float:
 	if not faction_race.is_empty() and faction_race == player_race:
@@ -73,31 +71,21 @@ func advance_to(journal: CampaignJournal, world_seconds: float) -> void:
 	last_world_seconds = current_world_seconds
 	if delta_seconds <= 0.0:
 		return
-	elapsed_agenda_seconds += delta_seconds
-	while elapsed_agenda_seconds + 0.000001 >= AGENDA_INTERVAL_SECONDS:
-		elapsed_agenda_seconds -= AGENDA_INTERVAL_SECONDS
-		if elapsed_agenda_seconds < 0.0:
-			elapsed_agenda_seconds = 0.0
-		_tick_ironbond_agenda(journal)
-
-
-func _tick_ironbond_agenda(journal: CampaignJournal) -> void:
 	var standing := journal.faction_standing("ironbond_company")
-	var drift := 0.0
+	var drift_per_hour := 0.0
 	if standing > IRONBOND_STANDING_THRESHOLD:
-		drift = IRONBOND_INFLUENCE_DRIFT_PER_HOUR
+		drift_per_hour = IRONBOND_INFLUENCE_DRIFT_PER_HOUR
 	elif standing < -IRONBOND_STANDING_THRESHOLD:
-		drift = -IRONBOND_INFLUENCE_DRIFT_PER_HOUR
-	if is_zero_approx(drift):
+		drift_per_hour = -IRONBOND_INFLUENCE_DRIFT_PER_HOUR
+	if is_zero_approx(drift_per_hour):
 		return
-	var influence: Dictionary = journal.merchant_influence.get("ironbond_company", {})
+	var influence: Dictionary = journal.merchant_influence.get("ironbond_company", {}).duplicate(true)
+	var drift := drift_per_hour * delta_seconds / 3600.0
 	for kingdom_id_value in influence.keys():
-		journal.adjust_merchant_influence(
-			"ironbond_company",
-			String(kingdom_id_value),
-			drift,
-			"autonomous faction agenda"
-		)
+		var kingdom_id := String(kingdom_id_value)
+		var current := float(influence.get(kingdom_id, 0.0))
+		influence[kingdom_id] = clampf(current + drift, 0.0, 100.0)
+	journal.merchant_influence["ironbond_company"] = influence
 
 
 func to_dict() -> Dictionary:
