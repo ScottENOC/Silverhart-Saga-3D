@@ -24,6 +24,9 @@ const ORC_ROAD_END := Vector2i(398, 23)
 const DRAGON_LAIR_CENTRE := Vector2i(101, -366)
 const DRAGON_LAIR_DEN_RADIUS := 2
 const DRAGON_LAIR_OUTER_RADIUS := 6
+## Source buildSideQuestContent: Reddale guildhouse + (14, -10), radius 3.
+const MIRABEL_SPIDER_RUIN_CENTRE := Vector2i(160, 24)
+const MIRABEL_SPIDER_RUIN_RADIUS := 3
 const ELVEN_CAPITAL_CENTRE := Vector2i(-252, 934)
 const ELVEN_CANOPY_RADIUS := 18
 const ELVEN_CLEARING_RADIUS := 9
@@ -84,6 +87,9 @@ static func terrain_override_at(hex: Vector2i) -> Dictionary:
 	var dungeon_override := _dungeon_surface_override(hex)
 	if not dungeon_override.is_empty():
 		return dungeon_override
+	var spider_ruin_distance := _axial_distance(hex, MIRABEL_SPIDER_RUIN_CENTRE)
+	if spider_ruin_distance <= MIRABEL_SPIDER_RUIN_RADIUS:
+		return {"terrain": "rocky_outcrop", "feature_id": "reddale_mirabel_spider_ruin", "distance": spider_ruin_distance}
 	var fort_override := _border_fort_override(hex)
 	if not fort_override.is_empty():
 		return fort_override
@@ -404,6 +410,8 @@ static func feature_id_at(hex: Vector2i) -> String:
 	var dungeon_override := _dungeon_surface_override(hex)
 	if not dungeon_override.is_empty():
 		return String(dungeon_override.get("feature_id", ""))
+	if _axial_distance(hex, MIRABEL_SPIDER_RUIN_CENTRE) <= MIRABEL_SPIDER_RUIN_RADIUS:
+		return "reddale_mirabel_spider_ruin"
 	var fort_override := _border_fort_override(hex)
 	if not fort_override.is_empty():
 		return String(fort_override.get("feature_id", ""))
