@@ -54,7 +54,11 @@ func _test_campaign_building_services() -> void:
 	)
 	_check(bool(commission.get("ok", false)), "Clothier should accept a valid bespoke clothing design")
 	_check(float(commission.get("lead_seconds", 0.0)) == 14400.0, "Bra commissions should retain the source four-hour lead time")
-	_check(not buyer.inventory.any(func(item: Dictionary) -> bool: return String(item.get("id", "")) == "bra"), "A commission must not grant the garment before it is ready")
+	var bra_in_inventory := false
+	for carried_item in buyer.inventory:
+		if String(carried_item.get("id", "")) == "bra":
+			bra_in_inventory = true
+	_check(not bra_in_inventory, "A commission must not grant the garment before it is ready")
 	var saved_services := services.to_dict()
 	var restored_services := CampaignBuildingServices.new()
 	restored_services.load_dict(saved_services)
@@ -96,15 +100,17 @@ func _test_campaign_building_services() -> void:
 	_check(rider.gold == 625, "War-trained horse should cost the source-derived 375 gold")
 	var horse := simulation.get_character(String(horse_purchase.get("horse_id", "")))
 	_check(horse != null and horse.mountable and horse.side == "player", "Purchased horse should register in the shared simulation as an owned mount")
-	_check(horse.animal_attributes.get("coat_preset", "") == "chestnut", "Horse coat choice should persist in animal state")
-	_check(horse.animal_attributes.get("training_tier", "") == "war_trained", "Horse training tier should persist in animal state")
-	_check(String(horse.equipment.get("armour", "")) == "medium_barding", "War-trained horse should receive the source medium-barding fitting")
+	if horse != null:
+		_check(horse.animal_attributes.get("coat_preset", "") == "chestnut", "Horse coat choice should persist in animal state")
+		_check(horse.animal_attributes.get("training_tier", "") == "war_trained", "Horse training tier should persist in animal state")
+		_check(String(horse.equipment.get("armour", "")) == "medium_barding", "War-trained horse should receive the source medium-barding fitting")
 	var saved_simulation := simulation.to_dict()
 	var restored_simulation := WorldSimulation.new()
 	restored_simulation.load_dict(saved_simulation)
 	var restored_horse := restored_simulation.get_character(horse.id)
 	_check(restored_horse != null and restored_horse.animal_attributes.get("coat_preset", "") == "chestnut", "Purchased horse identity and coat should survive world save/load")
-	_check(String(restored_horse.equipment.get("armour", "")) == "medium_barding", "Purchased horse barding should survive world save/load")
+	if restored_horse != null:
+		_check(String(restored_horse.equipment.get("armour", "")) == "medium_barding", "Purchased horse barding should survive world save/load")
 
 	var untrained_buyer := CharacterState.new("untrained_buyer", "Untrained Buyer", Vector2i.ZERO)
 	untrained_buyer.gold = 1000
