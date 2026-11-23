@@ -15911,6 +15911,129 @@
           }
         }
       }
+    },
+    {
+      "id": "emberwood_grove",
+      "name": "Emberwood Grove",
+      "location_id": "emberwood_grove",
+      "center": {
+        "q": -266,
+        "r": 10
+      },
+      "source_builder": "campaign2World.js:buildDruidGrove",
+      "buildings": [],
+      "paths": [],
+      "npcs": [
+        {
+          "id": "elder_nessa_wren",
+          "name": "Elder Nessa Wren",
+          "title": "Warden of the Emberwood Grove",
+          "race": "elf",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "druid"
+          ],
+          "skill_picks": [
+            "health",
+            "barkskin_active",
+            "wild_shape_adaptation"
+          ],
+          "equipment": [
+            "club"
+          ],
+          "side": "neutral",
+          "faction_id": "",
+          "dialogue_id": "elder_nessa_wren",
+          "position": {
+            "q": -266,
+            "r": 11
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her",
+            "skin_colour": "#70452F",
+            "eye_colour": "darkbrown",
+            "hair_colour": "#17120F",
+            "hair_style": "short03",
+            "height": 0.37,
+            "muscle": 0.56,
+            "weight": 0.69,
+            "proportions": 0.39,
+            "breasts": 0.25,
+            "legs": 0.45
+          },
+          "source": "campaign2World.js:buildDruidGrove (centre + 0,1)"
+        },
+        {
+          "id": "fenn_oakheart",
+          "name": "Fenn Oakheart",
+          "title": "Grove Apprentice",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "druid"
+          ],
+          "skill_picks": [
+            "health",
+            "learn_summon_animal",
+            "barkskin_active",
+            "wild_shape_adaptation"
+          ],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "",
+          "dialogue_id": "fenn_oakheart",
+          "position": {
+            "q": -265,
+            "r": 12
+          },
+          "appearance": {
+            "params": {
+              "seed": 133322726,
+              "gender": 1,
+              "age": 0.43,
+              "muscle": 0.52,
+              "weight": 0.5,
+              "height": 0.6,
+              "proportions": 0.5,
+              "african": 0.05,
+              "asian": 0.12,
+              "caucasian": 0.83,
+              "eyes": "brownlight",
+              "hair": "short02",
+              "hairTint": "#87452D",
+              "facialHair": "none",
+              "tattoos": [],
+              "outfit": "none",
+              "top": "tunic",
+              "underTop": "none",
+              "underBottom": "none",
+              "jacket": "none",
+              "bottom": "trousers",
+              "underwear": false,
+              "shoes": "sandals",
+              "hat": "none",
+              "weapon": "none",
+              "carry": "none",
+              "accessories": [],
+              "hairColor": "#87452D",
+              "legs": 0.57,
+              "skinTint": "#E0B99B"
+            },
+            "hair_style": "short02",
+            "skin_colour": "#E0B99B",
+            "eye_colour": "brownlight",
+            "hair_colour": "#87452D",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him"
+          },
+          "source": "campaign2World.js:buildSideQuestContent (grove + 1,+2)"
+        }
+      ],
+      "interiors": []
     }
   ]
 }
