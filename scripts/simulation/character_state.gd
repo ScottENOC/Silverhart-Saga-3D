@@ -56,6 +56,9 @@ var difficulty_mode: String = "normal"
 var ironman_mode: bool = false
 var gender_presentation: String = "Masculine"
 var pronouns: String = "they/them"
+## Player-selected adult male anatomy multipliers; 1.0 is the measured population mean.
+var male_anatomy_length_scale: float = 1.0
+var male_anatomy_girth_scale: float = 1.0
 var facing_direction: int = 2 # HexGrid direction index; 2 initially faces the W key direction.
 var health: int = 100
 var max_health: int = 100
@@ -399,6 +402,8 @@ func to_dict() -> Dictionary:
         "ironman_mode": ironman_mode,
         "gender_presentation": gender_presentation,
         "pronouns": pronouns,
+        "male_anatomy_length_scale": male_anatomy_length_scale,
+        "male_anatomy_girth_scale": male_anatomy_girth_scale,
         "axial_q": axial.x,
         "axial_r": axial.y,
         "facing_direction": facing_direction,
@@ -530,6 +535,8 @@ static func from_dict(data: Dictionary) -> CharacterState:
     state.ironman_mode = bool(data.get("ironman_mode", false))
     state.gender_presentation = String(data.get("gender_presentation", "Masculine"))
     state.pronouns = String(data.get("pronouns", "they/them"))
+    state.male_anatomy_length_scale = clampf(float(data.get("male_anatomy_length_scale", 1.0)), 0.747, 1.253)
+    state.male_anatomy_girth_scale = clampf(float(data.get("male_anatomy_girth_scale", 1.0)), 0.811, 1.189)
     state.health = int(data.get("health", 100))
     state.max_health = int(data.get("max_health", 100))
     state.side = String(data.get("side", "neutral"))
