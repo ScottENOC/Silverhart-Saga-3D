@@ -496,15 +496,19 @@ def build_vulva_mons_region_weights(skin, hipline_z, height):
     t_vulva_hi = P["t_hood"] + 0.020
     t_top = P["t_mons"] + 0.055
     worlds = [mw @ vertex.co for vertex in skin.data.vertices]
-    s_values, distances = _project_many(
-        prep, [point.y for point in worlds], [point.z for point in worlds]
-    )
     weights = [0.0] * len(worlds)
-    for index, (vertex, point, surface_s, distance) in enumerate(
-        zip(skin.data.vertices, worlds, s_values, distances)
-    ):
-        if abs(point.x) > 0.070 * k or not (hip_lo <= point.z <= hip_hi) or point.y > 0.02:
-            continue
+    candidate_indices = [
+        index for index, point in enumerate(worlds)
+        if abs(point.x) <= 0.070 * k and hip_lo <= point.z <= hip_hi and point.y <= 0.02
+    ]
+    s_values, distances = _project_many(
+        prep,
+        [worlds[index].y for index in candidate_indices],
+        [worlds[index].z for index in candidate_indices],
+    )
+    for index, surface_s, distance in zip(candidate_indices, s_values, distances):
+        vertex = skin.data.vertices[index]
+        point = worlds[index]
         normal = (mw.to_3x3() @ vertex.normal).normalized()
         if normal.y > 0.35:
             continue
