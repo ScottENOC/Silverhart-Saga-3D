@@ -5,6 +5,7 @@ extends RefCounted
 const SETTLEMENT_PRESENTATION = preload("res://scripts/world/world_settlement_presenter.gd")
 const SETTLEMENT_PRESENTATION_DATA = preload("res://data/settlements/hollowmere/presentation.gd")
 const INTERIOR_CONTROLLER = preload("res://scripts/world/hollow_tankard.gd")
+const REGIONAL_TERRAIN_STREAM = preload("res://scripts/world/campaign2_campaign_terrain_stream.gd")
 
 const LOCATION_ID := "hollowmere"
 const DISPLAY_NAME := "Hollowmere"
@@ -23,6 +24,12 @@ const DEFINITION := {
 			"role": "interior_controller",
 			"node_name": "HollowTankard",
 			"script": INTERIOR_CONTROLLER,
+			"configure_campaign": true
+		},
+		{
+			"role": "regional_terrain_stream",
+			"node_name": "CampaignTerrainStream",
+			"script": REGIONAL_TERRAIN_STREAM,
 			"configure_campaign": true
 		}
 	]
