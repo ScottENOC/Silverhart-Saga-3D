@@ -99,7 +99,7 @@ jobs:
           # is an ancestor of a branch that advanced during the long build.
           for attempt in 1 2 3; do
             git fetch origin "${GITHUB_REF_NAME}"
-            git rebase --onto "origin/${GITHUB_REF_NAME}" "${GITHUB_SHA}" HEAD
+            git rebase "origin/${GITHUB_REF_NAME}"
             if git push origin "HEAD:${GITHUB_REF_NAME}"; then
               exit 0
             fi
