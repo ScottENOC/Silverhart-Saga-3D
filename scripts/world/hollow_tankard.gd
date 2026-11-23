@@ -10,6 +10,7 @@ const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_ge
 const RESOURCE_VISUAL_SCRIPT = preload("res://scripts/presentation/wilderness_resource_visual.gd")
 const HOLLOWMERE_ENCOUNTER_SCRIPT = preload("res://scripts/simulation/hollowmere_encounter.gd")
 const COMPANION_CAMPAIGN_SCRIPT = preload("res://scripts/simulation/companion_campaign_content.gd")
+const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
@@ -130,6 +131,7 @@ func _ready() -> void:
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
 	_configure_location_simulation()
+	COMPANION_RUNTIME_STORE.register_quest_definitions(simulation)
 	campaign_faction_simulation = CAMPAIGN_FACTION_SIMULATION_SCRIPT.new() as CampaignFactionSimulation
 	_present_interior_layout()
 	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new()
@@ -148,6 +150,7 @@ func _ready() -> void:
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		pending_save_data.clear()
+	_initialise_companion_relationship_context()
 	var initial_player_state := simulation.get_character("player")
 	var player_race := initial_player_state.race if initial_player_state != null else "human"
 	CAMPAIGN_FACTION_SIMULATION_SCRIPT.seed_faction_standings(simulation.campaign_journal, String(player_race))
@@ -162,6 +165,16 @@ func _ready() -> void:
 		if save_manager != null:
 			save_manager.call("save_autosave", _build_save_snapshot())
 		_run_opening_sequence()
+
+func _initialise_companion_relationship_context() -> void:
+	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
+	if relationships == null:
+		return
+	var presentation := String(player_profile.get("gender_presentation", "Masculine")).strip_edges().to_lower()
+	if not ["masculine", "feminine", "androgynous", "unknown"].has(presentation):
+		presentation = "unknown"
+	for companion_id in ["wren_talbot", "ser_aldric_thorne", "fenn_oakheart", "reyna_fletcher", "mirabel_quill", "brother_alden"]:
+		relationships.set_presentation(companion_id, presentation)
 
 func _create_materials() -> void:
 	grass_material = _material(Color(0.28, 0.38, 0.27))
@@ -899,6 +912,7 @@ func _build_save_snapshot() -> Dictionary:
 		"clock": simulation.clock.to_dict(),
 		"campaign_journal": simulation.campaign_journal.to_dict(),
 		"persistent_character_relationships": PERSISTENT_RELATIONSHIP_STORE.to_dict(simulation),
+		"companion_campaign_runtime": COMPANION_RUNTIME_STORE.to_dict(simulation),
 		"wilderness_resources": simulation.wilderness_resources.to_dict(),
 		"multistory_locations": simulation.multistory_location_states_to_dict(),
 		"buildings": simulation.building_registry.to_dict(),
@@ -983,6 +997,9 @@ func _apply_save_data(data: Dictionary) -> void:
 	if persistent_relationship_data is Dictionary:
 		if not PERSISTENT_RELATIONSHIP_STORE.restore(simulation, persistent_relationship_data):
 			push_warning("Persistent NPC relationship state could not be fully synchronised with the campaign journal.")
+	var companion_runtime_data: Variant = data.get("companion_campaign_runtime", {})
+	if companion_runtime_data is Dictionary and not COMPANION_RUNTIME_STORE.restore(simulation, companion_runtime_data):
+		push_warning("Companion relationship and personal quest state could not be fully restored.")
 	# Dynamic Tessa is saved as a full character record. Recreate her presentation
 	# after the journal is restored, retaining her saved axial position.
 	if simulation.get_character("missing_child_tessa") != null:
@@ -1369,13 +1386,26 @@ func _show_companion_dialogue(character_id: String) -> void:
 	)
 	if conversation.is_empty():
 		return
+	var canonical_id := character_id.trim_prefix("companion_")
+	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
+	var relationship_line := ""
+	if relationships != null and relationships.has_profile(canonical_id):
+		var conversation_key := "world_talk:" + str(int(simulation.clock.world_seconds))
+		if canonical_id == "wren_talbot":
+			relationships.note_personal_dialogue(canonical_id, conversation_key)
+		else:
+			relationships.note_conversation(canonical_id, conversation_key, 2.0)
+		relationship_line = String(relationships.interpret_relationship(canonical_id).get("line", ""))
+	var body := String(conversation.get("text", ""))
+	if not relationship_line.is_empty():
+		body += "\n\n" + relationship_line
 	var choices: Array[Dictionary] = []
 	for choice_value in conversation.get("choices", []):
 		var choice: Dictionary = choice_value.duplicate(true)
 		if String(choice.get("id", "")).begins_with("start:"):
 			choice["companion_id"] = character_id
 		choices.append(choice)
-	_show_dialogue(String(conversation.get("speaker", character_id)), String(conversation.get("text", "")), choices)
+	_show_dialogue(String(conversation.get("speaker", character_id)), body, choices)
 
 
 func _recruit_staged_companion(character_id: String) -> void:
@@ -1416,6 +1446,15 @@ func _resolve_shakedown(choice_id: String) -> void:
 	if not bool(result.get("ok", false)):
 		return
 	shakedown_resolved = true
+	_record_wren_authored_event("hollowmere_shakedown:" + choice_id)
+
+func _record_wren_authored_event(event_key: String) -> void:
+	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
+	if relationships == null:
+		return
+	var result := relationships.apply_wren_authored_event(event_key)
+	if not bool(result.get("ok", false)) and String(result.get("reason", "")) != "unknown_wren_event":
+		push_warning("Could not apply Wren campaign relationship event %s: %s" % [event_key, result])
 
 func _run_opening_sequence() -> void:
 	var player_state := simulation.get_character("player")
@@ -1603,6 +1642,7 @@ func _begin_shakedown_combat() -> void:
 		_show_dialogue("Hollowmere", "The choice could not be recorded: " + String(branch_result.get("reason", "unknown error")) + ".", [{"id": "continue", "label": "Continue", "text": ""}])
 		return
 	shakedown_resolved = true
+	_record_wren_authored_event("hollowmere_shakedown:fight")
 	var result := HOLLOWMERE_ENCOUNTER_SCRIPT.start(simulation)
 	if not bool(result.get("ok", false)):
 		simulation.campaign_journal.fail_quest(HollowmereCampaignContent.QUEST_ID, "The fight could not start: " + String(result.get("reason", "unknown error")))
