@@ -201,7 +201,7 @@ def main() -> None:
         "generator_commit": manifest["generator_commit"],
         "characters": built,
     }
-    for metadata_key in ("seed", "count", "rarity_policy"):
+    for metadata_key in ("seed", "count", "rarity_policy", "male_anatomy_distribution"):
         if metadata_key in manifest:
             output_manifest[metadata_key] = manifest[metadata_key]
     (args.out / "profiles.json").write_text(json.dumps(output_manifest, indent=2) + "\n")
