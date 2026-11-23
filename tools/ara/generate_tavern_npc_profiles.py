@@ -37,7 +37,7 @@ MALE_ANATOMY_CLIP_SD = 2.0
 
 
 def sample_male_anatomy_size(seed: int) -> dict:
-    """Deterministic, independent truncated-normal length and circumference draw."""
+    """Deterministic, independent Gaussian draws clipped at plus/minus two SD."""
     rng = random.Random(f"male-anatomy:{seed}")
     z_length = max(-MALE_ANATOMY_CLIP_SD, min(MALE_ANATOMY_CLIP_SD, rng.gauss(0.0, 1.0)))
     z_girth = max(-MALE_ANATOMY_CLIP_SD, min(MALE_ANATOMY_CLIP_SD, rng.gauss(0.0, 1.0)))
@@ -50,7 +50,7 @@ def sample_male_anatomy_size(seed: int) -> dict:
         "circumference_cm": round(circumference_cm, 2),
         "z_length": round(z_length, 3),
         "z_girth": round(z_girth, 3),
-        "distribution": "truncated_normal_2sd",
+        "distribution": "clipped_normal_2sd",
     }
 
 
