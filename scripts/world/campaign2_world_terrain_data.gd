@@ -203,27 +203,33 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		return String(regional_override.get("terrain", "grass"))
-	# Explicit settlement buildings and roads are presentation overlays on
-	# the regional terrain. Resolve them before the broad authored biome
-	# provider so an authored palace road cannot be hidden by its grass base.
+	# Settlement walls are solid presentation overlays. Strategic roads are
+	# source-painted over the underlying terrain, including stream crossings.
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
-	# Source paths are painted after building footprints in the original world
-	# builder. Preserve that ordering where an authored road reaches a doorway
-	# or skirts the edge of a building.
-	if settlement_path_cells.has(_hex_key(hex)):
-		return "path"
-	if settlement_building_cells.has(_hex_key(hex)):
-		return "authored"
-	# Strategic roads are painted after the underlying terrain in the source
-	# map. Keep crossings traversable even where a road overlaps an authored
-	# settlement's natural stream/biome provider.
 	if road_cells.has(_hex_key(hex)):
 		return "path"
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
+		var authored_terrain := AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
+		# Preserve the source terrain provider's water-first rule: incidental
+		# settlement path rasterisation must not turn stream banks/cells into
+		# walkable ground. The authored bridge remains a path because the
+		# provider explicitly excludes its bridge cell from water.
+		if authored_terrain == "water":
+			return "water"
+		# Source paths are painted after building footprints, so they remain
+		# visible at entrances and where they skirt building edges.
+		if settlement_path_cells.has(_hex_key(hex)):
+			return "path"
+		if settlement_building_cells.has(_hex_key(hex)):
+			return "authored"
+		return authored_terrain
+	if settlement_path_cells.has(_hex_key(hex)):
+		return "path"
+	if settlement_building_cells.has(_hex_key(hex)):
+		return "authored"
 	if _is_local_stream(hex) or _is_strategic_river(hex):
 		return "water"
 	var strategic_cell := MainCampaignWorldMapData.world_cell_from_local_hex(hex)
@@ -247,21 +253,27 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		return String(regional_override.get("terrain", "grass"))
-	# Explicit settlement structures and paths remain authoritative. Strategic
-	# roads then overlay the underlying authored settlement terrain, matching
-	# the visual terrain resolver and preserving traversable bridge crossings.
+	# Settlement walls remain blocked, while strategic roads overlay the
+	# underlying terrain (including streams) as in the source world painter.
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
-	if settlement_path_cells.has(_hex_key(hex)):
-		return "path"
-	if settlement_building_cells.has(_hex_key(hex)):
-		return "building"
 	if road_cells.has(_hex_key(hex)):
 		return "path"
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
+		var authored_terrain := AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
+		if authored_terrain == "water":
+			return "water"
+		if settlement_path_cells.has(_hex_key(hex)):
+			return "path"
+		if settlement_building_cells.has(_hex_key(hex)):
+			return "building"
+		return authored_terrain
+	if settlement_path_cells.has(_hex_key(hex)):
+		return "path"
+	if settlement_building_cells.has(_hex_key(hex)):
+		return "building"
 	var terrain := terrain_for_hex(hex)
 	return "building" if terrain == "authored" else terrain
 
@@ -272,10 +284,6 @@ func is_walkable_for_hex(hex: Vector2i) -> bool:
 		return override_terrain not in ["water", "building", "keep_wall", "climbable_wall", "palisade_wall"]
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return false
-	if settlement_path_cells.has(_hex_key(hex)):
-		return true
-	if settlement_building_cells.has(_hex_key(hex)):
-		return false
 	# Strategic roads are source-painted overlays, so their crossings remain
 	# walkable even when the underlying authored settlement provider is water.
 	if road_cells.has(_hex_key(hex)):
@@ -283,7 +291,18 @@ func is_walkable_for_hex(hex: Vector2i) -> bool:
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
+		var authored_terrain := AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
+		if authored_terrain == "water":
+			return false
+		if settlement_path_cells.has(_hex_key(hex)):
+			return true
+		if settlement_building_cells.has(_hex_key(hex)):
+			return false
 		return not AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.is_blocked(authored_settlement.local_hex, terrain_definition)
+	if settlement_path_cells.has(_hex_key(hex)):
+		return true
+	if settlement_building_cells.has(_hex_key(hex)):
+		return false
 	var terrain := gameplay_terrain_for_hex(hex)
 	return terrain != "water" and terrain != "building" and terrain != "keep_wall"
 
