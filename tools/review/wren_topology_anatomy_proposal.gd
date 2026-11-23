@@ -101,6 +101,7 @@ const REGIONS := {
 
 var stage: Node3D
 var camera: Camera3D
+var mask_import_validation: Dictionary = {}
 
 
 func _initialize() -> void:
@@ -160,19 +161,74 @@ func _run() -> void:
                 )
                 quit(1)
                 return
+            var mask_report_file := FileAccess.open("res://build/wren-native/vulva-mons-mask-report.json", FileAccess.READ)
+            if mask_report_file == null:
+                push_error("Painter mask report missing; cannot validate imported TEXCOORD_1")
+                quit(1)
+                return
+            var mask_report: Dictionary = JSON.parse_string(mask_report_file.get_as_text())
+            mask_report_file.close()
+            var expected_ids := int(mask_report.get("source_correspondence_vertex_count", 0))
+            var expected_weighted := int(mask_report.get("weighted_vertices_at_0_15", -1))
+            if expected_ids <= 0 or expected_weighted < 0:
+                push_error("Painter mask report has invalid correspondence or weight counts")
+                quit(1)
+                return
+            var id_weights: Dictionary = {}
             var ara_weights := PackedFloat32Array()
             var nonzero_count := 0
             var weighted_count := 0
+            var min_id := expected_ids
+            var max_id := -1
+            var min_weight := INF
+            var max_weight := -INF
             for uv in uv2:
+                # TEXCOORD_1.x encodes (source vertex ID + 0.5) / source count.
+                var decoded_id := int(round(uv.x * expected_ids - 0.5))
+                if decoded_id < 0 or decoded_id >= expected_ids:
+                    push_error("Godot UV2.x is not the Ara CorrespondenceID channel")
+                    quit(1)
+                    return
                 var weight := clampf(uv.y, 0.0, 1.0)
+                if id_weights.has(decoded_id) and absf(float(id_weights[decoded_id]) - weight) > 0.00001:
+                    push_error("Godot import has inconsistent mask values for a split correspondence vertex")
+                    quit(1)
+                    return
+                id_weights[decoded_id] = weight
                 ara_weights.append(weight)
+                min_id = mini(min_id, decoded_id)
+                max_id = maxi(max_id, decoded_id)
+                min_weight = minf(min_weight, weight)
+                max_weight = maxf(max_weight, weight)
                 if weight > 0.0:
                     nonzero_count += 1
                 if weight >= 0.15:
                     weighted_count += 1
+            var unique_weighted := 0
+            for weight in id_weights.values():
+                if float(weight) >= 0.15:
+                    unique_weighted += 1
+            if id_weights.size() != expected_ids:
+                push_error("Godot imported %d correspondence IDs; expected %d" % [id_weights.size(), expected_ids])
+                quit(1)
+                return
+            if unique_weighted != expected_weighted:
+                push_error("Godot imported %d weighted IDs; painter reported %d" % [unique_weighted, expected_weighted])
+                quit(1)
+                return
             seeds[region_id] = nonzero_count
             counts[region_id] = weighted_count
             candidate_weights[region_id] = ara_weights
+            mask_import_validation = {
+                "status": "PASS",
+                "unique_correspondence_ids": id_weights.size(),
+                "weighted_unique_ids_at_0_15": unique_weighted,
+                "expected_weighted_unique_ids_at_0_15": expected_weighted,
+                "min_decoded_id": min_id,
+                "max_decoded_id": max_id,
+                "min_uv2_y": min_weight,
+                "max_uv2_y": max_weight
+            }
             continue
         var definition: Array = REGIONS[region_id]
         var seed_vertices := _find_seed_vertices(vertices, normals, definition[0], definition[1], region_id)
@@ -240,10 +296,10 @@ func _run() -> void:
         if region_id in ["hip_left", "hip_right", "glute_left", "glute_right", "pubic_region", "inner_thigh_left", "inner_thigh_right"]:
             region_views["pelvis_detail_front"] = [Vector3(0.0, 0.835, 1.15), Vector3(0.0, 0.835, 0.0), 0.38]
             region_views["pelvis_detail_rear"] = [Vector3(0.0, 0.835, -1.15), Vector3(0.0, 0.835, 0.0), 0.38]
-            if region_id == "vulva_external":
-                region_views["vulva_detail_front"] = [Vector3(0.0, 0.835, 1.05), Vector3(0.0, 0.835, 0.0), 0.24]
-                region_views["vulva_detail_oblique"] = [Vector3(0.90, 0.835, 0.90), Vector3(0.0, 0.820, 0.0), 0.24]
-                region_views["vulva_detail_side"] = [Vector3(1.05, 0.835, 0.0), Vector3(0.0, 0.835, 0.0), 0.24]
+        if region_id == "vulva_external":
+            region_views["vulva_detail_front"] = [Vector3(0.0, 0.835, 1.05), Vector3(0.0, 0.835, 0.0), 0.24]
+            region_views["vulva_detail_oblique"] = [Vector3(0.90, 0.835, 0.90), Vector3(0.0, 0.820, 0.0), 0.24]
+            region_views["vulva_detail_side"] = [Vector3(1.05, 0.835, 0.0), Vector3(0.0, 0.835, 0.0), 0.24]
         if region_id.begins_with("thigh_") or region_id.begins_with("knee_") or region_id.begins_with("calf_") or region_id.begins_with("ankle_"):
             region_views["leg_detail_front"] = [Vector3(0.0, 0.45, 1.6), Vector3(0.0, 0.45, 0.0), 0.72]
             region_views["leg_detail_side"] = [Vector3(1.6, 0.45, 0.0), Vector3(0.0, 0.45, 0.0), 0.72]
@@ -307,6 +363,7 @@ func _run() -> void:
             "note": "Ara already sculpts these external structures into the continuous skin surface. The first semantic mask intentionally groups the external vulva and mons pubis as one region; later subregions can be authored from the same surface-coordinate frame without changing the mask resource model."
         },
         "candidate_vertex_counts_at_weight_0_15": counts,
+        "ara_mask_import_validation": mask_import_validation,
         "candidate_to_seed_vertex_ratios": _build_candidate_seed_ratios(seeds, counts),
         "method": "Review-only Ara-authored vulva_external weights are read directly from TEXCOORD_1.y and include the mons pubis; remaining geometric hypotheses expand through adjacent source-mesh vertices with decaying weights.",
         "limitations": [
