@@ -368,10 +368,10 @@ func _target_candidates(caster: CharacterState, spell_id: String) -> Array[Chara
             valid = candidate.id == caster.id
         elif spell_id in ["firebolt", "curse", "counterspell"]:
             valid = candidate.side != caster.side
-        elif spell_id in ["heal", "divine_protection", "divine_strength", "wild_fury"]:
+        elif spell_id in ["heal", "divine_protection", "divine_strength"]:
             valid = candidate.side == caster.side
         if spell_id == "wild_fury":
-            valid = valid and candidate.tags.has("animal") and not candidate.tags.has("fey") and not candidate.tags.has("dragon")
+            valid = candidate == caster or (candidate.side == caster.side and candidate.summoned_by_id == caster.id)
         elif spell_id == "calm_animal":
             valid = valid and candidate.tags.has("animal") and not candidate.tags.has("fey") and not candidate.tags.has("dragon")
         if valid:
