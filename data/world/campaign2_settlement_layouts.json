@@ -1151,6 +1151,86 @@
             "r": 194
           },
           "source": "campaign2Content.js:campaign2OldMac"
+        },
+        {
+          "id": "reyna_fletcher",
+          "name": "Reyna Fletcher",
+          "title": "Huntress",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "bow_hit",
+            "bow_dmg",
+            "fastMovement"
+          ],
+          "equipment": [
+            "sword"
+          ],
+          "side": "neutral",
+          "dialogue_id": "reyna_fletcher",
+          "position": {
+            "q": 6,
+            "r": 198
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her",
+            "hair_style": "braid01",
+            "params": {
+              "seed": 1112680012,
+              "gender": 0,
+              "age": 0.34,
+              "muscle": 0.78,
+              "weight": 0.25,
+              "height": 0.56,
+              "proportions": 0.62,
+              "african": 0.82,
+              "asian": 0.12,
+              "caucasian": 0.06,
+              "eyes": "brown",
+              "hair": "braid01",
+              "hairTint": "#17120F",
+              "facialHair": "none",
+              "tattoos": [],
+              "outfit": "none",
+              "top": "tunic",
+              "underTop": "none",
+              "underBottom": "none",
+              "jacket": "none",
+              "bottom": "trousers",
+              "underwear": false,
+              "shoes": "sandals",
+              "hat": "none",
+              "weapon": "none",
+              "carry": "none",
+              "accessories": [],
+              "hairColor": "#17120F",
+              "legs": 0.7,
+              "breasts": 0.2,
+              "skinTint": "#5A3426"
+            }
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2World.js:buildSideQuestContent; farm centre + (6,4)"
         }
       ],
       "fields": [
