@@ -21,6 +21,23 @@ const GARMENT_ASSET_ROOT := "res://art/characters/ara_runtime/garments/"
 const EQUIPMENT_PROP_ROOT := "res://art/characters/ara_runtime/props/"
 const GARMENT_VISUALS := ["bra", "briefs", "long_tunic", "trousers", "tunic", "wrapper_long", "uniform_shirt", "fatigue_pants", "wrapper_knee", "tattered_shirt", "fatigue_shirt", "sandals", "combat_boots", "leather armor"]
 var current_hair_colour: Color = Color("#49372a")
+var body_pressure_controller := BodyPressureController.new()
+
+func _physics_process(delta: float) -> void:
+	body_pressure_controller.step(delta)
+
+## Register a named deformable region. Matching mesh blend shapes are named
+## Pressure_<RegionName>, such as Pressure_LeftChest.
+func register_body_pressure_region(region_id: StringName, profile: BodyRegionProfile) -> void:
+	body_pressure_controller.register_region(region_id, profile)
+	if model_root != null:
+		body_pressure_controller.bind_model(model_root)
+
+func apply_body_pressure(region_id: StringName, force_n: float) -> void:
+	body_pressure_controller.apply_pressure(region_id, force_n)
+
+func get_body_pressure_m(region_id: StringName) -> float:
+	return body_pressure_controller.get_compression_m(region_id)
 
 func configure(glb_path: String) -> bool:
 	if model_root != null and is_instance_valid(model_root):
@@ -95,6 +112,7 @@ func configure(glb_path: String) -> bool:
 	model_root.rotation.y += MODEL_FORWARD_YAW_OFFSET
 	add_child(model_root)
 	loaded_asset_path = glb_path
+	body_pressure_controller.bind_model(model_root)
 	if portrait_renderer == null:
 		portrait_renderer = CharacterPortraitRenderer.new()
 		portrait_renderer.name = "PortraitRenderer"
