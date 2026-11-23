@@ -56,8 +56,8 @@ func _test_northwatch_oil_barrels() -> void:
 	var parent := Node3D.new()
 	root.add_child(parent)
 	var result := _present_at(data, parent, hex)
-	_check(int(result.get("props", 0)) == 2, "The two Northwatch oil barrels should share their authored chunk")
-	_check(_count_named_prefix(parent, "NorthwatchOilBarrel_") == 2, "Both Northwatch oil barrels should be rendered")
+	_check(int(result.get("props", 0)) >= 2, "Northwatch oil-barrel chunk should include both authored barrels (and may include other fort props)")
+	_check(_count_named_prefix(parent, "NorthwatchOilBarrel_") == 2, "Both Northwatch oil barrels should be rendered in their shared authored chunk")
 	parent.free()
 
 func _test_ridgehold_keep_dressing() -> void:
