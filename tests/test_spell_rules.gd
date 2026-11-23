@@ -30,7 +30,19 @@ func _run() -> void:
 
 func _test_catalogue_loads() -> void:
     var catalogue := SPELL_RULES.base_spells()
-    _check(catalogue.size() == 15, "The source-derived base spell catalogue should load all 15 spells")
+    var official_ids := [
+        "firebolt", "counterspell", "feather_fall", "disguise_self",
+        "heal", "divine_protection", "divine_strength", "curse",
+        "summon_animal", "entangle", "calm_animal", "wild_fury"
+    ]
+    _check(catalogue.size() == 12, "The authoritative catalogue should contain exactly 12 spells")
+    for spell_id in official_ids:
+        _check(catalogue.has(spell_id), "The official catalogue should contain %s" % spell_id)
+        var variant: Dictionary = SPELL_RULES.compute_variant(spell_id)
+        _check(bool(variant.get("ok", false)), "The official spell %s should have a valid default variant" % spell_id)
+    for obsolete_id in ["smite_evil", "divine_silence", "sanctuary", "dragon_breath", "temporal_rift"]:
+        _check(not catalogue.has(obsolete_id), "Obsolete spell %s must not appear in the official catalogue" % obsolete_id)
+        _check(not bool(SPELL_RULES.compute_variant(obsolete_id).get("ok", true)), "Obsolete spell %s must not produce a valid variant" % obsolete_id)
 
 
 func _test_default_variant() -> void:
@@ -100,7 +112,7 @@ func _test_touch_and_mana_floor() -> void:
 func _test_invalid_combinations() -> void:
     var unknown := SPELL_RULES.compute_variant("not_a_spell")
     _check(not bool(unknown.get("ok", true)), "Unknown base spell should be rejected")
-    var invalid_burst := SPELL_RULES.compute_variant("sanctuary", {"burst": true})
+    var invalid_burst := SPELL_RULES.compute_variant("divine_protection", {"burst": true})
     _check(not bool(invalid_burst.get("ok", true)), "Burst should reject unsupported base spell types")
     var invalid_subtle := SPELL_RULES.compute_variant("firebolt", {"subtle": true})
     _check(not bool(invalid_subtle.get("ok", true)), "Subtle direct damage should be rejected")
