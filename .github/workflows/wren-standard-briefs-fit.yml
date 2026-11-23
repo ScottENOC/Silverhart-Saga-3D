@@ -1,4 +1,5 @@
 name: Fit standard Ara briefs to Wren
+# Re-run on workflow-file updates so the first real-asset fit is observable.
 
 on:
   workflow_dispatch:
