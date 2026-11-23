@@ -111,6 +111,10 @@ def build_shell(
 
     def edge_intersection(a: int, b: int) -> SourceRef:
         va, vb = field_values[a], field_values[b]
+        if va == 0:
+            return ("vertex", a)
+        if vb == 0:
+            return ("vertex", b)
         t = va / (va - vb)
         if a < b:
             ref = ("edge", a, b, t)
@@ -124,14 +128,14 @@ def build_shell(
             raise ValueError("each face must contain at least three distinct vertices")
         if any(v < 0 or v >= count for v in face):
             raise ValueError("face references an out-of-range vertex")
-        if not any(field_values[v] > 0 for v in face):
+        if not any(field_values[v] >= 0 for v in face):
             continue
         # Sutherland-Hodgman clipping against the linearly interpolated field.
         clipped: list[SourceRef] = []
         for k, a in enumerate(face):
             b = face[(k + 1) % len(face)]
-            inside_a = field_values[a] > 0
-            inside_b = field_values[b] > 0
+            inside_a = field_values[a] >= 0
+            inside_b = field_values[b] >= 0
             if inside_a:
                 clipped.append(("vertex", a))
             if inside_a != inside_b:
