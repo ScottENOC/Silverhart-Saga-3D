@@ -8,6 +8,7 @@ add_female_anatomy_surface.py. TEXCOORD_1.x (CorrespondenceID) is preserved.
 import argparse
 import json
 import os
+import struct
 import sys
 
 import bpy
@@ -91,6 +92,84 @@ def read_mask_from_uv2(mesh):
     return values
 
 
+
+def inspect_glb_texcoord1(path, source_vertex_count):
+    """Read TEXCOORD_1 directly from the exported GLB binary, before any importer."""
+    with open(path, "rb") as handle:
+        blob = handle.read()
+    if len(blob) < 20:
+        raise RuntimeError("Exported GLB is too small to contain a JSON chunk")
+    magic, version, total_length = struct.unpack_from("<4sII", blob, 0)
+    if magic != b"glTF" or version != 2 or total_length != len(blob):
+        raise RuntimeError("Exported file is not a valid GLB 2.0 container")
+    offset = 12
+    document = None
+    binary_chunk = None
+    while offset + 8 <= len(blob):
+        chunk_length, chunk_type = struct.unpack_from("<II", blob, offset)
+        offset += 8
+        chunk = blob[offset:offset + chunk_length]
+        offset += chunk_length
+        if chunk_type == 0x4E4F534A:
+            document = json.loads(chunk.decode("utf-8"))
+        elif chunk_type == 0x004E4942:
+            binary_chunk = chunk
+    if document is None or binary_chunk is None:
+        raise RuntimeError("Exported GLB is missing JSON or BIN chunk")
+
+    primitives = []
+    all_ids = set()
+    for mesh_index, mesh in enumerate(document.get("meshes", [])):
+        for primitive_index, primitive in enumerate(mesh.get("primitives", [])):
+            accessor_index = primitive.get("attributes", {}).get("TEXCOORD_1")
+            if accessor_index is None:
+                continue
+            accessor = document["accessors"][accessor_index]
+            if accessor.get("componentType") != 5126 or accessor.get("type") != "VEC2":
+                raise RuntimeError(
+                    f"GLB mesh {mesh_index} primitive {primitive_index} TEXCOORD_1 "
+                    "is not FLOAT VEC2"
+                )
+            view = document["bufferViews"][accessor["bufferView"]]
+            stride = view.get("byteStride", 8)
+            start = view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
+            count = accessor["count"]
+            ids = set()
+            weighted_ids = set()
+            invalid = 0
+            min_id = source_vertex_count
+            max_id = -1
+            for index in range(count):
+                x, y = struct.unpack_from("<ff", binary_chunk, start + index * stride)
+                correspondence_id = int(round(x * source_vertex_count - 0.5))
+                if correspondence_id < 0 or correspondence_id >= source_vertex_count:
+                    invalid += 1
+                    continue
+                ids.add(correspondence_id)
+                if y >= 0.15:
+                    weighted_ids.add(correspondence_id)
+                min_id = min(min_id, correspondence_id)
+                max_id = max(max_id, correspondence_id)
+            all_ids.update(ids)
+            primitives.append({
+                "mesh_index": mesh_index,
+                "primitive_index": primitive_index,
+                "material_index": primitive.get("material"),
+                "accessor_index": accessor_index,
+                "accessor_count": count,
+                "unique_correspondence_ids": len(ids),
+                "weighted_unique_ids_at_0_15": len(weighted_ids),
+                "min_decoded_id": min_id if ids else None,
+                "max_decoded_id": max_id if ids else None,
+                "invalid_decoded_values": invalid,
+            })
+    return {
+        "glb_mesh_count": len(document.get("meshes", [])),
+        "glb_texcoord1_primitives": primitives,
+        "glb_unique_correspondence_ids_union": len(all_ids),
+        "glb_missing_correspondence_ids": source_vertex_count - len(all_ids),
+    }
+
 def main():
     args = parse_args()
     clear_scene()
@@ -152,6 +231,7 @@ def main():
         raise RuntimeError("Combined vulva/mons pubis mask contains no weighted vertices")
 
     export_scene(args.output)
+    raw_glb_validation = inspect_glb_texcoord1(args.output, len(source_by_id))
 
     # Re-import the GLB to verify that TEXCOORD_1.y survived export and that
     # the existing correspondence IDs in TEXCOORD_1.x were not changed.
@@ -194,6 +274,7 @@ def main():
         "hipline_z": hipline_z,
         "output": os.path.abspath(args.output),
         "output_bytes": os.path.getsize(args.output),
+        "raw_glb_validation_before_import": raw_glb_validation,
     }
     os.makedirs(os.path.dirname(os.path.abspath(args.report)), exist_ok=True)
     with open(args.report, "w", encoding="utf-8") as handle:
