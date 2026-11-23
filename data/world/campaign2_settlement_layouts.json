@@ -16053,15 +16053,15 @@
             "q": 203,
             "r": 21
           },
-          "half_q": 2,
-          "half_r": 2,
+          "half_q": 0,
+          "half_r": 0,
           "door": {
             "q": 203,
-            "r": 23
+            "r": 22
           },
           "door_side": "south",
           "windows_per_side": 0,
-          "source": "buildGoblinCamp chief hut at centre + (0,-2)"
+          "source": "buildGoblinCamp chief hut at centre + (0,-2); one-hex footprint mirrors source tile object"
         },
         {
           "id": "skarn_tooth_hut_west_north",
@@ -16071,8 +16071,8 @@
             "q": 200,
             "r": 22
           },
-          "half_q": 1,
-          "half_r": 1,
+          "half_q": 0,
+          "half_r": 0,
           "door_side": "south",
           "windows_per_side": 0,
           "dimensions": {
@@ -16091,8 +16091,8 @@
             "q": 206,
             "r": 22
           },
-          "half_q": 1,
-          "half_r": 1,
+          "half_q": 0,
+          "half_r": 0,
           "door_side": "south",
           "windows_per_side": 0,
           "dimensions": {
@@ -16111,8 +16111,8 @@
             "q": 200,
             "r": 25
           },
-          "half_q": 1,
-          "half_r": 1,
+          "half_q": 0,
+          "half_r": 0,
           "door_side": "south",
           "windows_per_side": 0,
           "dimensions": {
@@ -16131,8 +16131,8 @@
             "q": 206,
             "r": 25
           },
-          "half_q": 1,
-          "half_r": 1,
+          "half_q": 0,
+          "half_r": 0,
           "door_side": "south",
           "windows_per_side": 0,
           "dimensions": {
@@ -16151,8 +16151,8 @@
             "q": 203,
             "r": 26
           },
-          "half_q": 1,
-          "half_r": 1,
+          "half_q": 0,
+          "half_r": 0,
           "door_side": "south",
           "windows_per_side": 0,
           "dimensions": {
@@ -16222,7 +16222,18 @@
               "id": "wooden_shield"
             }
           },
-          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js",
+          "wants": {
+            "type": "gold",
+            "amount": 60,
+            "offer_label": "gift",
+            "description": "A show of good faith so the tribe is not driven off",
+            "full_hint": "Skarnub sizes up strangers by what they are willing to give up front, not just what they say.",
+            "partial_hint": "He watches your hands more than your face, weighing whether you came empty-handed."
+          },
+          "quest_hooks": [
+            "goblin_threat"
+          ]
         },
         {
           "id": "nix_sharpear",
@@ -16276,7 +16287,10 @@
               "id": "light_armor"
             }
           },
-          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js",
+          "quest_hooks": [
+            "goblin_threat"
+          ]
         },
         {
           "id": "gralk_bonecaster",
@@ -16366,7 +16380,10 @@
             "body_scale": 0.8
           },
           "visual_equipment": {},
-          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js",
+          "quest_hooks": [
+            "goblin_trader"
+          ]
         },
         {
           "id": "skarn_tooth_guard_01",
@@ -16555,7 +16572,10 @@
             "height_scale": 1,
             "body_scale": 1
           },
-          "source": "campaign2World.js:buildGoblinCamp captive"
+          "source": "campaign2World.js:buildGoblinCamp captive; campaign2Content.js:campaign2Paladin",
+          "quest_hooks": [
+            "rescue_aldric"
+          ]
         }
       ],
       "props": [
