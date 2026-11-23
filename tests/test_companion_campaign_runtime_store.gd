@@ -30,6 +30,7 @@ func _test_runtime_registration_and_save_restore() -> void:
 	_check(source.campaign_journal.quest_definitions.has("aldric_weight_of_command"), "Companion chapter quests are available to the campaign journal")
 
 	var relationships := RUNTIME_STORE.relationship_state_for(source)
+	relationships.set_presentation("wren_talbot", "feminine")
 	relationships.record_event("ser_aldric_thorne", "runtime_test:trust", {"trust": 12.0}, "proved trustworthy")
 	source_quest_state.arc_states["ser_aldric_thorne"] = {"sharedBurden": 18.0}
 	source_quest_state.personality_growth["ser_aldric_thorne"] = {"delegation": 4.0}
@@ -43,6 +44,7 @@ func _test_runtime_registration_and_save_restore() -> void:
 	var restored_relationships := RUNTIME_STORE.relationship_state_for(restored)
 	var restored_quest_state := RUNTIME_STORE.quest_chain_state_for(restored)
 	_check(float(restored_relationships.snapshot("ser_aldric_thorne").get("trust", 0.0)) == 22.0, "Companion trust survives save/load")
+	_check(String(restored_relationships.snapshot("wren_talbot").get("presentation", "")) == "feminine", "Player gender presentation survives companion save/load")
 	_check(float(restored_quest_state.arc_states["ser_aldric_thorne"].get("sharedBurden", 0.0)) == 18.0, "Companion arc state survives save/load")
 	_check(float(restored_quest_state.personality_growth["ser_aldric_thorne"].get("delegation", 0.0)) == 4.0, "Companion personality growth survives save/load")
 	var repeated := restored_relationships.record_event("ser_aldric_thorne", "runtime_test:trust", {"trust": 12.0}, "proved trustworthy")
