@@ -4,6 +4,7 @@ extends Node3D
 const REACTION_PROMPT_SCRIPT = preload("res://scripts/ui/reaction_prompt.gd")
 const INITIATIVE_TIMELINE_SCRIPT = preload("res://scripts/ui/combat_initiative_timeline.gd")
 const CHARACTER_PANEL_SCRIPT = preload("res://scripts/ui/character_panel.gd")
+const SPELLBOOK_PANEL_SCRIPT = preload("res://scripts/ui/spellbook_panel.gd")
 const WORLD_MAP_PANEL_SCRIPT = preload("res://scripts/ui/main_campaign_world_map.gd")
 const AMBIENT_CHATTER_SCRIPT = preload("res://scripts/simulation/ambient_chatter.gd")
 const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
@@ -23,6 +24,7 @@ const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interio
 const COMBAT_AI_SCRIPT = preload("res://scripts/simulation/combat_ai.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controller.gd")
+const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_creator.gd")
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
@@ -52,6 +54,8 @@ const ROOM_HALF_DEPTH: float = HOLLOW_TANKARD_LAYOUT.ROOM_HALF_DEPTH
 var simulation: WorldSimulation
 var world_cell_loader: Campaign2WorldCellLoader
 var spell_vfx: Node3D
+var disguise_creator: CanvasLayer
+var active_disguise_profile: Dictionary = {}
 var save_load_menu: CanvasLayer
 var pending_save_data: Dictionary = {}
 var initial_character_baselines: Dictionary = {}
@@ -60,6 +64,7 @@ var autosave_accumulator: float = 0.0
 var reaction_prompt: CanvasLayer
 var initiative_timeline: CombatInitiativeTimeline
 var character_panel: CharacterPanel
+var spellbook_panel: SpellbookPanel
 var world_map_panel: CanvasLayer
 var camera_rig: OrbitCameraRig
 var roof_group: Node3D
@@ -223,7 +228,25 @@ func _configure_location_simulation() -> void:
 
 
 func _on_simulation_action_committed(event: SimulationEvent) -> void:
-	if event == null or spell_vfx == null:
+	if event == null:
+		return
+	if event.event_type == "summon_expired":
+		var expired_actor := actor_by_id.get(event.actor_id) as Node3D
+		if is_instance_valid(expired_actor):
+			expired_actor.queue_free()
+		actor_by_id.erase(event.actor_id)
+	elif event.event_type == "spell_cast" and String(event.payload.get("spell_id", "")) == "summon_animal":
+		var summoned_id := String(event.payload.get("summoned_id", ""))
+		if not summoned_id.is_empty():
+			_ensure_summoned_animal_actor(simulation.get_character(summoned_id))
+	if event.event_type == "spell_cast" and event.actor_id == "player" and String(event.payload.get("spell_id", "")) == "disguise_self":
+		_open_disguise_creator()
+	elif event.event_type == "spell_countered" and not active_disguise_profile.is_empty():
+		var player_state := simulation.get_character("player")
+		if player_state == null or not player_state.has_spell_effect("disguise_self"):
+			active_disguise_profile.clear()
+			apply_player_profile(player_profile)
+	if spell_vfx == null:
 		return
 	# A selected Counterspell reaction is emitted as spell_countered rather
 	# than spell_cast, but it still needs the same visible counter-pulse.
@@ -262,6 +285,98 @@ func _on_simulation_action_committed(event: SimulationEvent) -> void:
 		payload,
 		affected_actors
 	)
+
+func _ensure_summoned_animal_actor(state: CharacterState) -> void:
+	if state == null or (not state.is_summoned and not state.is_animal_companion) or actor_by_id.has(state.id):
+		return
+	var kind := state.creature_kind.to_lower()
+	var model_path := ""
+	var actor_kind := kind
+	if kind == "wolf":
+		model_path = "res://art/creatures/quaternius/Wolf.gltf"
+	elif kind == "horse":
+		model_path = "res://art/creatures/quaternius/Horse.gltf"
+	elif kind == "unicorn":
+		model_path = "res://art/creatures/quaternius/Horse_White.gltf"
+		actor_kind = "horse"
+	if not model_path.is_empty() and ResourceLoader.exists(model_path):
+		var creature := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
+		creature.name = state.id
+		creature.creature_kind = actor_kind
+		creature.behaviour = "mount" if state.mountable else "predator"
+		creature.model_path = model_path
+		creature.model_scale = 0.9 if kind == "horse" or kind == "unicorn" else 0.82
+		creature.position = _hex_world_position(state.axial)
+		creature.set_meta("character_id", state.id)
+		creature.set_meta("summoned_kind", kind)
+		add_child(creature)
+		actor_by_id[state.id] = creature
+		return
+
+	# Boar, tiger and eagle currently use visible placeholders until dedicated
+	# creature meshes are added; they remain real simulation characters.
+	var placeholder := Node3D.new()
+	placeholder.name = state.id
+	placeholder.position = _hex_world_position(state.axial)
+	placeholder.set_meta("character_id", state.id)
+	placeholder.set_meta("summoned_kind", kind)
+	var body := MeshInstance3D.new()
+	var body_mesh := CapsuleMesh.new()
+	body_mesh.radius = 0.34 if kind != "eagle" else 0.22
+	body_mesh.height = 0.95 if kind != "eagle" else 0.62
+	body.mesh = body_mesh
+	body.rotation.x = PI * 0.5
+	body.position.y = 0.58
+	var material := StandardMaterial3D.new()
+	match kind:
+		"boar": material.albedo_color = Color(0.34, 0.20, 0.12)
+		"tiger": material.albedo_color = Color(0.88, 0.43, 0.12)
+		"eagle": material.albedo_color = Color(0.40, 0.29, 0.16)
+		_: material.albedo_color = Color(0.48, 0.48, 0.48)
+	body.material_override = material
+	placeholder.add_child(body)
+	var head := MeshInstance3D.new()
+	var head_mesh := SphereMesh.new()
+	head_mesh.radius = 0.23
+	head_mesh.height = 0.46
+	head.mesh = head_mesh
+	head.position = Vector3(0.0, 0.82, -0.38)
+	head.material_override = material
+	placeholder.add_child(head)
+	var label := Label3D.new()
+	label.text = state.display_name
+	label.position.y = 1.35
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.font_size = 22
+	label.outline_size = 4
+	placeholder.add_child(label)
+	add_child(placeholder)
+	actor_by_id[state.id] = placeholder
+
+
+func _open_disguise_creator() -> void:
+	if disguise_creator != null and is_instance_valid(disguise_creator):
+		return
+	disguise_creator = CHARACTER_CREATOR_SCRIPT.new() as CanvasLayer
+	disguise_creator.name = "DisguiseSelfCreator"
+	disguise_creator.configure_disguise(active_disguise_profile if not active_disguise_profile.is_empty() else player_profile)
+	disguise_creator.completed.connect(_on_disguise_profile_completed)
+	add_child(disguise_creator)
+
+
+func _on_disguise_profile_completed(profile: Dictionary) -> void:
+	disguise_creator = null
+	active_disguise_profile = profile.duplicate(true)
+	var player_state := simulation.get_character("player") if simulation != null else null
+	if player_state != null:
+		var effect := player_state.get_spell_effect("disguise_self")
+		if not effect.is_empty():
+			effect["profile"] = active_disguise_profile.duplicate(true)
+			player_state.add_spell_effect(effect)
+	var actor := actor_by_id.get("player") as Node3D
+	if actor != null:
+		CampaignCharacterActorFactory.apply_player_profile(actor, active_disguise_profile)
+
 
 func _create_wilderness_gatherable_grove() -> void:
 	# These authored trees use the same shared generator and committed Cosmo
@@ -661,6 +776,19 @@ func _create_hud() -> void:
 	inventory_panel_button.pressed.connect(_open_inventory_panel)
 	layer.add_child(inventory_panel_button)
 
+	var spellbook_button := Button.new()
+	spellbook_button.text = "Spellbook  [M]"
+	spellbook_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	spellbook_button.offset_left = -158.0
+	spellbook_button.offset_top = 68.0
+	spellbook_button.offset_right = -18.0
+	spellbook_button.offset_bottom = 110.0
+	spellbook_button.pressed.connect(func():
+		if spellbook_panel != null:
+			spellbook_panel.toggle_for_character(active_character_id)
+	)
+	layer.add_child(spellbook_button)
+
 	var world_map_button := Button.new()
 	world_map_button.text = "World Map"
 	world_map_button.position = Vector2(690.0, 18.0)
@@ -748,6 +876,11 @@ func _create_hud() -> void:
 	layer.add_child(character_panel)
 	character_panel.configure(simulation, active_character_id)
 	character_panel.equipment_changed.connect(_on_character_equipment_changed)
+
+	spellbook_panel = SPELLBOOK_PANEL_SCRIPT.new() as SpellbookPanel
+	spellbook_panel.name = "SpellbookPanel"
+	add_child(spellbook_panel)
+	spellbook_panel.configure(simulation, active_character_id)
 	_create_dialogue_panel(layer)
 	nearby_interaction_panel = PanelContainer.new()
 	nearby_interaction_panel.name = "NearbyNPCInteractions"
@@ -925,6 +1058,9 @@ func _apply_save_data(data: Dictionary) -> void:
 	if not simulation.restore_character_states(restored_states):
 		push_error("Saved character states could not be restored without invalid occupancy or mount links.")
 		return
+	for restored_state in restored_states:
+		if restored_state != null and (restored_state.is_summoned or restored_state.is_animal_companion):
+			_ensure_summoned_animal_actor(restored_state)
 	var appearance_diffs: Variant = data.get("appearance_diffs", {})
 	if appearance_diffs is Dictionary:
 		for actor_id_variant in appearance_diffs.keys():
@@ -1897,6 +2033,8 @@ func _switch_party_member() -> void:
 	_refresh_tavern_floor_presentation()
 	if character_panel != null:
 		character_panel.set_character(active_character_id)
+	if spellbook_panel != null:
+		spellbook_panel.set_character(active_character_id)
 
 func _process(delta: float) -> void:
 	if not simulation.is_in_combat and not simulation.has_pending_reaction() and not dialogue_open and not (shakedown_started and not shakedown_resolved):
@@ -1968,6 +2106,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mouse_event := event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
 			var clicked_hex: Vector2i = _screen_position_to_hex(mouse_event.position)
+			if spellbook_panel != null and spellbook_panel.is_awaiting_hex_target():
+				if clicked_hex != INVALID_HEX:
+					spellbook_panel.handle_hex_click(clicked_hex)
+				get_viewport().set_input_as_handled()
+				return
 			if clicked_hex != INVALID_HEX:
 				_set_move_destination(clicked_hex)
 				get_viewport().set_input_as_handled()
@@ -1975,6 +2118,15 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		var key_event := event as InputEventKey
+		if key_event.keycode == KEY_ESCAPE and spellbook_panel != null and spellbook_panel.is_awaiting_hex_target():
+			spellbook_panel.cancel_hex_targeting()
+			get_viewport().set_input_as_handled()
+			return
+		if key_event.keycode == KEY_M:
+			if spellbook_panel != null:
+				spellbook_panel.toggle_for_character(active_character_id)
+			get_viewport().set_input_as_handled()
+			return
 		if key_event.keycode == KEY_F5:
 			_quick_save()
 			get_viewport().set_input_as_handled()
@@ -2279,4 +2431,12 @@ func apply_player_profile(profile: Dictionary) -> void:
 	var actor := actor_by_id.get("player") as Node3D
 	if actor == null:
 		return
-	CampaignCharacterActorFactory.apply_player_profile(actor, profile)
+	var effective_profile := profile.duplicate(true)
+	var player_state := simulation.get_character("player") if simulation != null else null
+	if player_state != null:
+		var disguise := player_state.get_spell_effect("disguise_self")
+		var saved_profile: Variant = disguise.get("profile", {})
+		if saved_profile is Dictionary and not saved_profile.is_empty():
+			active_disguise_profile = saved_profile.duplicate(true)
+			effective_profile.merge(active_disguise_profile, true)
+	CampaignCharacterActorFactory.apply_player_profile(actor, effective_profile)
