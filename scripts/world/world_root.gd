@@ -177,8 +177,8 @@ func _on_character_created(profile: Dictionary) -> void:
 	spellcasting_controller = SPELLCASTING_CONTROLLER_SCRIPT.new()
 	spellcasting_controller.name = "CampaignSpellcastingController"
 	add_child(spellcasting_controller)
-	spellcasting_controller.configure(simulation, tavern)
-	spellcasting_controller.restore_from_save_data(pending_save_data)
+	spellcasting_controller.call("configure", simulation, tavern)
+	spellcasting_controller.call("restore_from_save_data", pending_save_data)
 
 	_set_loading_stage(
 		"Hollowmere is ready",

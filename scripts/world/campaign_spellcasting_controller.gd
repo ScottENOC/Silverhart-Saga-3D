@@ -31,8 +31,6 @@ func configure(campaign_simulation: WorldSimulation, location: Node3D) -> void:
 	if not simulation.action_committed.is_connected(_on_action_committed):
 		simulation.action_committed.connect(_on_action_committed)
 	SaveManager.register_snapshot_extension(SPELL_TERRAIN_SAVE_KEY, Callable(self, "_spell_terrain_save_data"))
-	_restore_disguise_from_character_state()
-	_restore_summoned_actors()
 
 
 func _exit_tree() -> void:
