@@ -120,6 +120,7 @@ const REGION_GROUPS := {
 var stage: Node3D
 var camera: Camera3D
 var mask_import_validation: Dictionary = {}
+var nipple_anchor_positions: Dictionary = {}
 
 
 func _initialize() -> void:
@@ -279,6 +280,10 @@ func _run() -> void:
             }
             continue
         var definition: Array = REGIONS[region_id]
+        if region_id.begins_with("nipple_"):
+            var anchor_index := _find_nearest_vertex_index(vertices, definition[0])
+            if anchor_index >= 0:
+                nipple_anchor_positions[region_id] = vertices[anchor_index]
         var seed_vertices := _find_seed_vertices(vertices, normals, definition[0], definition[1], region_id)
         seed_vertices = _filter_region_side(vertices, seed_vertices, region_id)
         seeds[region_id] = seed_vertices.size()
@@ -291,7 +296,7 @@ func _run() -> void:
         counts[region_id] = count
 
     var unassigned_surface_report := _build_unassigned_surface_report(adjacency, vertices, candidate_weights)
-    var nipple_seed_diagnostics := _build_nipple_seed_diagnostics(vertices)
+    var nipple_seed_diagnostics := _build_nipple_seed_diagnostics(vertices, normals, candidate_weights, seeds, counts)
     var facial_seed_diagnostics := _build_region_seed_diagnostics(
         vertices,
         ["eye_left", "eye_right", "nose", "mouth", "cheek_left", "cheek_right", "chin", "forehead", "jaw_left", "jaw_right"]
@@ -438,7 +443,7 @@ func _run() -> void:
         "triangle_count": indices.size() / 3,
         "surface_signature": MASK_SCRIPT.build_surface_signature(mesh_instance.mesh, surface_index),
         "max_graph_hops": MAX_GRAPH_HOPS,
-        "region_specific_graph_hops": {"nipple_left": 0, "nipple_right": 0, "individual_fingers": 18},
+        "region_specific_graph_hops": {"nipple_left": 2, "nipple_right": 2, "individual_fingers": 18},
         "hop_falloff": HOP_FALLOFF,
         "paired_region_midline_exclusion_m": PAIRED_REGION_MIDLINE_GAP,
         "candidate_weight_threshold": 0.15,
@@ -474,10 +479,10 @@ func _run() -> void:
         "limitations": [
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
-            "Nipple channels are seed-only (zero graph hops); all other hop limits are review heuristics and local mesh density affects physical reach.",
+            "Nipple channels use nearest-skin-vertex anchoring and two constrained adjacency hops; their overlays remain review-only and must be visually checked for local extent and jewellery exclusion.",
             "The combined vulva_external mask is authored from Ara surface-following coordinates and includes the mons pubis; finer subregions are intentionally deferred until the basic body-region workflow is reviewed.",
             "Finger candidates use longer local-X seed corridors and up to 18 topology hops, constrained to a narrow per-digit depth corridor; the close-up renders must confirm continuous lengthwise coverage and separation.",
-            "Nipple candidates now use seed-only surface vertices (zero topology expansion) to avoid propagating onto the adjacent areolar/side-surface arc; the isolated renders must confirm the smaller island remains centred.",
+            "Nipple candidates are recentered on the nearest actual skin vertex, filtered by side and front-facing normal, then expanded by at most two adjacency hops inside a 1.5x anchored ellipsoid; the isolated renders must confirm the island stays local and excludes jewellery.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
             "This review includes provisional whole-body coverage: head/face/ears/neck, chest/abdomen/flanks/back, pelvis/glutes/pubic region, both legs and feet, and shoulder-to-individual-finger arm channels. The vulva_external region is the exception: its weights are derived from the Ara anatomy surface-coordinate method, with the mons pubis included."
         ]
@@ -670,45 +675,72 @@ func _build_unassigned_surface_report(
     }
 
 
-func _build_nipple_seed_diagnostics(vertices: PackedVector3Array) -> Dictionary:
+func _build_nipple_seed_diagnostics(
+    vertices: PackedVector3Array,
+    normals: PackedVector3Array,
+    candidate_weights: Dictionary,
+    seed_counts: Dictionary,
+    candidate_counts: Dictionary
+) -> Dictionary:
     var result: Dictionary = {}
     for region_id in ["nipple_left", "nipple_right"]:
         var definition: Array = REGIONS[region_id]
-        var centre: Vector3 = definition[0]
+        var authored_centre: Vector3 = definition[0]
         var radii: Vector3 = definition[1]
-        var nearest_index := -1
-        var nearest_distance := INF
-        var counts_by_scale := {"1.0": 0, "1.5": 0, "2.0": 0, "3.0": 0}
-        for vertex_index in vertices.size():
-            var point := vertices[vertex_index]
-            var distance := point.distance_to(centre)
-            if distance < nearest_distance:
-                nearest_distance = distance
-                nearest_index = vertex_index
-            for scale_key in counts_by_scale:
-                var scale := float(scale_key)
-                var normalized := (point - centre) / (radii * scale)
-                if normalized.length() <= 1.0:
-                    counts_by_scale[scale_key] = int(counts_by_scale[scale_key]) + 1
+        var nearest_index := _find_nearest_vertex_index(vertices, authored_centre)
         var nearest_point := vertices[nearest_index] if nearest_index >= 0 else Vector3.ZERO
-        var nearest_centred_counts := {"1.0": 0, "1.5": 0, "2.0": 0, "3.0": 0}
+        var nearest_distance := nearest_point.distance_to(authored_centre) if nearest_index >= 0 else INF
+        var nearest_normal := normals[nearest_index] if nearest_index >= 0 and nearest_index < normals.size() else Vector3.ZERO
+        var front_normal_dot := nearest_normal.dot(Vector3(0.0, 0.0, 1.0))
+        var side_ok := nearest_index >= 0 and _matches_region_side(region_id, nearest_point)
+        var front_ok := nearest_index >= 0 and nearest_index < normals.size() and front_normal_dot >= 0.25
+        var counts_by_scale := {"1.0": 0, "1.5": 0, "2.0": 0, "3.0": 0}
+        var anchored_counts := {"1.0": 0, "1.5": 0, "2.0": 0, "3.0": 0}
         for point in vertices:
-            for scale_key in nearest_centred_counts:
+            var original_normalized := (point - authored_centre) / radii
+            if original_normalized.length() <= 1.0:
+                counts_by_scale["1.0"] = int(counts_by_scale["1.0"]) + 1
+            for scale_key in anchored_counts:
                 var scale := float(scale_key)
-                var normalized := (point - nearest_point) / (radii * scale)
-                if normalized.length() <= 1.0:
-                    nearest_centred_counts[scale_key] = int(nearest_centred_counts[scale_key]) + 1
+                if ((point - nearest_point) / (radii * scale)).length() <= 1.0:
+                    anchored_counts[scale_key] = int(anchored_counts[scale_key]) + 1
+        var weights: PackedFloat32Array = candidate_weights.get(region_id, PackedFloat32Array())
+        var max_weight := 0.0
+        for weight in weights:
+            max_weight = maxf(max_weight, weight)
         result[region_id] = {
-            "seed_vertices_current": int(counts_by_scale["1.0"]),
-            "candidate_seed_vertices_by_radius_scale": counts_by_scale,
-            "candidate_seed_vertices_by_nearest_skin_vertex_radius_scale": nearest_centred_counts,
+            "status": "ANCHORED_REVIEW_ONLY" if side_ok and front_ok else "ANCHOR_REQUIRES_REVIEW",
+            "anchor_type": "nearest_skin_vertex",
+            "authored_seed_centre_local": [authored_centre.x, authored_centre.y, authored_centre.z],
             "nearest_skin_vertex_index": nearest_index,
             "nearest_skin_vertex_distance_m": nearest_distance,
             "nearest_skin_vertex_position_local": [nearest_point.x, nearest_point.y, nearest_point.z],
+            "nearest_skin_vertex_normal_local": [nearest_normal.x, nearest_normal.y, nearest_normal.z],
+            "front_normal_dot_positive_z": front_normal_dot,
+            "front_normal_eligible": front_ok,
+            "side_filter_eligible": side_ok,
+            "seed_vertices_original_centre": int(counts_by_scale["1.0"]),
+            "seed_vertices_anchored": int(seed_counts.get(region_id, 0)),
+            "anchored_ellipsoid_candidate_counts_by_scale": anchored_counts,
+            "propagated_candidate_vertices_at_0_15": int(candidate_counts.get(region_id, 0)),
+            "max_propagated_weight": max_weight,
+            "max_graph_hops": _max_graph_hops_for_region(region_id),
+            "extent_radius_scale": 1.5,
             "current_seed_radius_m": [radii.x, radii.y, radii.z],
-            "status": "NO_SEED_VERTICES" if int(counts_by_scale["1.0"]) == 0 else "SEEDS_FOUND"
+            "jewellery_handling": "skin surface only; accessory meshes are not included"
         }
     return result
+
+
+func _find_nearest_vertex_index(vertices: PackedVector3Array, target: Vector3) -> int:
+    var nearest_index := -1
+    var nearest_distance_squared := INF
+    for vertex_index in vertices.size():
+        var distance_squared := vertices[vertex_index].distance_squared_to(target)
+        if distance_squared < nearest_distance_squared:
+            nearest_distance_squared = distance_squared
+            nearest_index = vertex_index
+    return nearest_index
 
 
 func _build_region_seed_diagnostics(
@@ -948,6 +980,8 @@ func _find_seed_vertices(
     region_id: String
 ) -> PackedInt32Array:
     var result := PackedInt32Array()
+    if region_id.begins_with("nipple_") and nipple_anchor_positions.has(region_id):
+        centre = nipple_anchor_positions[region_id]
     for vertex_index in vertices.size():
         var normalized := (vertices[vertex_index] - centre) / radii
         if normalized.length() > 1.0:
@@ -982,14 +1016,17 @@ func _matches_region_side(region_id: String, vertex: Vector3) -> bool:
 func _within_region_extent(region_id: String, vertex: Vector3) -> bool:
     var definition: Array = REGIONS[region_id]
     var centre: Vector3 = definition[0]
+    if region_id.begins_with("nipple_") and nipple_anchor_positions.has(region_id):
+        centre = nipple_anchor_positions[region_id]
     var radii: Vector3 = definition[1]
-    var normalized := (vertex - centre) / (radii * 1.25)
+    var extent_scale := 1.5 if region_id.begins_with("nipple_") else 1.25
+    var normalized := (vertex - centre) / (radii * extent_scale)
     return normalized.length() <= 1.0
 
 
 func _max_graph_hops_for_region(region_id: String) -> int:
     if region_id.begins_with("nipple_"):
-        return 0
+        return 2
     if region_id.ends_with("_finger_left") or region_id.ends_with("_finger_right"):
         return 18
     return MAX_GRAPH_HOPS
