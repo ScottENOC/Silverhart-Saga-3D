@@ -48,8 +48,8 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 | Sil'thandriel | Sylvan Court capital, vertical/forest architecture, population and faction interactions |
 | Hollowmere Guild Den | Interior, guild contact, objects and recruitment/quest interactions |
 | Abandoned House | Building, hidden content, disciple/phylactery quest chain |
-| Vessel-Seeker's Crypt | Multi-room dungeon, ritual chamber, floors, actors and progression |
-| Barrow of Corvin Ashgrave | Barrow rooms, undead encounters and linked quest content |
+| Vessel-Seeker's Crypt | Source-authored three-room floor, connecting corridors and explicit one-cell wall-ring apertures are registered and map-tested |
+| Barrow of Corvin Ashgrave | Source-authored antechamber and sanctum, connecting corridor and door openings are registered and map-tested |
 | Ashveil's Dragon Lair | Source-authored radius-six rocky outcrop and radius-two open cave den now receive chunk-scoped rock dressing; dragon actor and encounter are campaign-owned |
 | Lich Chapterhouse | Chapterhouse layout, necromancer/lich faction content and encounters |
 | Emberwood Grove | Terrain clearing, foliage perimeter, spring stone rim and both source herb-patch visuals are ported; inhabitants, gathering and quest behaviour are campaign-owned |
