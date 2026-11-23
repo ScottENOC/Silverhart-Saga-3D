@@ -207,7 +207,7 @@ jobs:
               "size_bytes": len(payload),
               "sha256": hashlib.sha256(payload).hexdigest(),
           }
-          manifest_path.write_text(json.dumps(manifest, indent=2) + "\\n")
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
           PY
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
