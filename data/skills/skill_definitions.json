@@ -6,7 +6,7 @@
     "file": "skills.js",
     "note": "Includes the 186 direct skill declarations plus 71 unique skills expanded by generateWeaponSkills() and generateMagicSkills(). Metadata only; behavioural functions and apply effects require explicit GDScript ports and tests."
   },
-  "count": 257,
+  "count": 258,
   "skills": [
     {
       "id": "acrobatics",
@@ -263,7 +263,7 @@
     {
       "id": "armistice",
       "name": "Armistice",
-      "description": "Passive: When a trigger spell activates, the attacker must spend 5 extra TP before their next attack (once per activation).",
+      "description": "Passive: When Curse activates, the target must spend 5 extra TP before their next attack (once per activation). This TP-cost hook is not yet ported.",
       "tree": "cleric",
       "max_ranks": 1,
       "prerequisite": "cleric_trigger_damage",
@@ -444,7 +444,7 @@
     {
       "id": "cleric_trigger_damage",
       "name": "Divine Retribution",
-      "description": "Whenever your trigger spells (Divine Silence, Sanctuary) activate, the target takes 1 damage immediately per rank.",
+      "description": "Whenever Curse activates, the target takes 1 divine damage immediately per rank.",
       "tree": "cleric",
       "max_ranks": 2,
       "prerequisite": null,
@@ -456,7 +456,7 @@
     {
       "id": "cleric_trigger_dmg_red",
       "name": "Feeble Strike",
-      "description": "Whenever your trigger spells activate, reduce target damage dealt by 1 per rank (stacks 3x).",
+      "description": "Whenever Curse is cast, reduce the target's damage dealt by 1 per rank while the curse lasts (stacks 3x).",
       "tree": "cleric",
       "max_ranks": 2,
       "prerequisite": null,
@@ -468,7 +468,7 @@
     {
       "id": "cleric_trigger_heal_red",
       "name": "Severed Grace",
-      "description": "Whenever your trigger spells activate, reduce incoming healing by 50% per rank (Max 100%).",
+      "description": "Whenever Curse is cast, reduce the target's incoming healing by 50% per rank while the curse lasts (max 100%).",
       "tree": "cleric",
       "max_ranks": 2,
       "prerequisite": null,
@@ -480,7 +480,7 @@
     {
       "id": "cleric_trigger_mana",
       "name": "Divine Drain",
-      "description": "Whenever your trigger spells activate, the target loses 1 mana immediately per rank.",
+      "description": "Whenever Curse is cast, the target loses 1 mana immediately per rank.",
       "tree": "cleric",
       "max_ranks": 2,
       "prerequisite": null,
@@ -492,7 +492,7 @@
     {
       "id": "cleric_trigger_vision",
       "name": "Clouded Mind",
-      "description": "Whenever your trigger spells activate, reduce target vision range by 1 hex per rank (stacks 3x).",
+      "description": "Whenever Curse is cast, reduce the target's vision range by 1 hex per rank (stacks 3x). The vision-system hook is not yet ported.",
       "tree": "cleric",
       "max_ranks": 2,
       "prerequisite": null,
@@ -1013,7 +1013,7 @@
     {
       "id": "extended_sentence",
       "name": "Extended Sentence",
-      "description": "Passive: Your trigger spell effects last 2 additional TP ticks per rank.",
+      "description": "Passive: Your Curse effect lasts 2 additional ticks per rank.",
       "tree": "cleric",
       "max_ranks": 2,
       "prerequisite": "cleric_trigger_damage",
@@ -1429,7 +1429,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_blink",
@@ -1441,7 +1442,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_boar_summon",
@@ -1465,7 +1467,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_calm_animal",
@@ -1489,7 +1492,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_chain_lightning",
@@ -1501,7 +1505,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_command",
@@ -1513,7 +1518,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_condemn",
@@ -1525,7 +1531,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_counterspell",
@@ -1576,6 +1583,17 @@
       "requires_runtime_port": true
     },
     {
+      "id": "learn_divine_strength",
+      "name": "Learn Divine Strength",
+      "description": "Unlocks Divine Strength: target ally gains +3 damage for 20 ticks (8 mana, 10 TP).",
+      "tree": "divine",
+      "max_ranks": 1,
+      "active": false,
+      "reaction": false,
+      "dynamic_prerequisite": false,
+      "requires_runtime_port": true
+    },
+    {
       "id": "learn_divine_silence",
       "name": "Learn Divine Silence",
       "description": "Unlocks the Divine Silence base spell.",
@@ -1585,7 +1603,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_divine_wrath",
@@ -1597,7 +1616,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_eagle_summon",
@@ -1621,7 +1641,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_entangle",
@@ -1645,7 +1666,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_feather_fall",
@@ -1681,7 +1703,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_gravity_well",
@@ -1693,7 +1716,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_haste",
@@ -1705,7 +1729,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_heal",
@@ -1729,7 +1754,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_natures_vigor",
@@ -1741,7 +1767,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_root",
@@ -1753,7 +1780,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_sanctuary",
@@ -1765,7 +1793,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_slow",
@@ -1777,7 +1806,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_smite_evil",
@@ -1789,7 +1819,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_spore_cloud",
@@ -1801,7 +1832,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_summon_animal",
@@ -1825,7 +1857,8 @@
       "active": false,
       "reaction": false,
       "dynamic_prerequisite": false,
-      "requires_runtime_port": true
+      "requires_runtime_port": true,
+      "disabled": true
     },
     {
       "id": "learn_tiger_summon",

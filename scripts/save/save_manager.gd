@@ -7,6 +7,26 @@ const MANUAL_SLOT_COUNT := 8
 const QUICK_SLOT := "quicksave"
 const AUTOSAVE_SLOTS := ["autosave_01", "autosave_02", "autosave_03"]
 var pending_load_data: Dictionary = {}
+var snapshot_extension_providers: Dictionary = {}
+
+## Independent campaign systems can contribute serialisable fields without
+## coupling their persistence code to a location scene/controller.
+func register_snapshot_extension(key: String, provider: Callable) -> void:
+	if key.is_empty() or not provider.is_valid():
+		return
+	snapshot_extension_providers[key] = provider
+
+func unregister_snapshot_extension(key: String) -> void:
+	snapshot_extension_providers.erase(key)
+
+func _snapshot_with_extensions(snapshot: Dictionary) -> Dictionary:
+	var result := snapshot.duplicate(true)
+	for key_variant in snapshot_extension_providers.keys():
+		var key := String(key_variant)
+		var provider: Callable = snapshot_extension_providers[key_variant]
+		if provider.is_valid():
+			result[key] = provider.call()
+	return result
 
 func _slot_path(slot_id: String) -> String:
     return "%s/%s.sav" % [SAVE_ROOT, slot_id]
@@ -33,11 +53,11 @@ func save_snapshot(slot_id: String, snapshot: Dictionary, label: String = "Manua
         "saved_at_unix": int(Time.get_unix_time_from_system()),
         "game_version": str(ProjectSettings.get_setting("application/config/version", "0.1.0")),
         "format_version": FORMAT_VERSION,
-        "location": str(snapshot.get("location", "Unknown location")),
-        "character_name": str(snapshot.get("player_profile", {}).get("name", "Adventurer")),
-        "playtime_seconds": float(snapshot.get("playtime_seconds", 0.0))
+        "location": str(persisted_snapshot.get("location", "Unknown location")),
+        "character_name": str(persisted_snapshot.get("player_profile", {}).get("name", "Adventurer")),
+        "playtime_seconds": float(persisted_snapshot.get("playtime_seconds", 0.0))
     }
-    var envelope := {"metadata": metadata, "snapshot": snapshot}
+    var envelope := {"metadata": metadata, "snapshot": persisted_snapshot}
     var target := _slot_path(slot_id)
     var temporary := target + ".tmp"
     var file := FileAccess.open(temporary, FileAccess.WRITE)

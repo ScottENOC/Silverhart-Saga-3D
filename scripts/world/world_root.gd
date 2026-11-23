@@ -6,10 +6,12 @@ const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_crea
 const HOLLOWMERE_CAMPAIGN_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
 const COMPANION_CAMPAIGN_CONTENT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const FARM_WOLVES_QUEST = preload("res://scripts/simulation/farm_wolves_quest.gd")
+const SPELLCASTING_CONTROLLER_SCRIPT = preload("res://scripts/world/campaign_spellcasting_controller.gd")
 
 var simulation: WorldSimulation
 var settlement_presentation: Node3D
 var tavern: Node3D
+var spellcasting_controller: Node
 var loading_layer: CanvasLayer
 var loading_label: Label
 var loading_bar: ProgressBar
@@ -168,6 +170,15 @@ func _on_character_created(profile: Dictionary) -> void:
 	await get_tree().process_frame
 	if tavern.has_method("apply_player_profile"):
 		tavern.apply_player_profile(profile)
+
+	# Spellcasting is campaign-level orchestration, not a responsibility of the
+	# Hollow Tankard location controller. Keep the UI, disguise and summon actors
+	# in a dedicated controller owned by this composition root.
+	spellcasting_controller = SPELLCASTING_CONTROLLER_SCRIPT.new()
+	spellcasting_controller.name = "CampaignSpellcastingController"
+	add_child(spellcasting_controller)
+	spellcasting_controller.configure(simulation, tavern)
+	spellcasting_controller.restore_from_save_data(pending_save_data)
 
 	_set_loading_stage(
 		"Hollowmere is ready",
