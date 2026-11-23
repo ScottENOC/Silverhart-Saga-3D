@@ -13,7 +13,6 @@ const FACTION_RACES := {
 	"elven_realm": "elf",
 	"thieves_guild": ""
 }
-const AGENDA_INTERVAL_SECONDS: float = 3600.0
 const IRONBOND_STANDING_THRESHOLD: float = 10.0
 const IRONBOND_INFLUENCE_DRIFT_PER_HOUR: float = 0.02
 const GOBLIN_REPORTING_FRACTION: float = 0.35
@@ -87,14 +86,3 @@ func advance_to(journal: CampaignJournal, world_seconds: float) -> void:
 		influence[kingdom_id] = clampf(current + drift, 0.0, 100.0)
 	journal.merchant_influence["ironbond_company"] = influence
 
-
-func to_dict() -> Dictionary:
-	return {"version": 1, "elapsed_agenda_seconds": elapsed_agenda_seconds}
-
-
-func from_dict(data: Dictionary) -> void:
-	elapsed_agenda_seconds = clampf(
-		float(data.get("elapsed_agenda_seconds", 0.0)),
-		0.0,
-		AGENDA_INTERVAL_SECONDS - 0.000001
-	)
