@@ -75,3 +75,7 @@ The earlier terrain and settlement commits passed Godot 4.7.2 validation, but th
 ## Acceptance rule
 
 A location is not marked ported merely because its marker appears on the macro map. It needs source-traceable data, a 3D presentation, correctly placed actors, working traversal/interactions and automated parity tests for the source behaviours that matter. Visual inspection is an additional requirement, not a substitute for those tests.
+
+## Temporary creature and race presentation policy
+
+Campaign content parity takes priority over bespoke creature modelling. Where a dedicated model would delay a playable port, use the closest existing rig as a clearly documented temporary stand-in. Goblins use the shared Ara male rig with green skin and per-character short/slim scaling; their campaign IDs, faction, side, dialogue, equipment and quest metadata remain independent of that visual choice. Replace the model later without changing those systems. Do not let missing spider, goblin or orc models block the source content port.
