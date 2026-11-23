@@ -1219,6 +1219,62 @@
             "r": 194
           },
           "source": "campaign2Content.js:campaign2OldMac"
+        },
+        {
+          "id": "reyna_fletcher",
+          "name": "Reyna Fletcher",
+          "title": "Huntress",
+          "race": "human",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "bow_hit",
+            "bow_dmg",
+            "fastMovement"
+          ],
+          "equipment": [
+            "sword"
+          ],
+          "side": "neutral",
+          "dialogue_id": "reyna_fletcher",
+          "position": {
+            "q": 6,
+            "r": 198
+          },
+          "appearance": {
+            "body_variant": "female",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her",
+            "skin_colour": "#5A3426",
+            "eye_colour": "brown",
+            "hair_colour": "#17120F",
+            "hair_style": "braid01",
+            "height": 0.56,
+            "muscle": 0.78,
+            "weight": 0.25,
+            "proportions": 0.62,
+            "breasts": 0.2,
+            "legs": 0.7
+          },
+          "visual_equipment": {
+            "shirt": {
+              "id": "tunic",
+              "garment_visual": "tunic"
+            },
+            "pants": {
+              "id": "trousers",
+              "garment_visual": "trousers"
+            },
+            "shoes": {
+              "id": "sandals",
+              "garment_visual": "sandals"
+            }
+          },
+          "source": "Hex-crpg/campaign2World.js:buildSideQuestContent; farm centre + (6,4)"
         }
       ],
       "fields": [

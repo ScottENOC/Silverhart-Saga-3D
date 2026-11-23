@@ -18,12 +18,11 @@ const CHARACTER_STARTS := {
 	"tavern_patron": Vector2i(3, -2),
 	"elder_marta": Vector2i(0, -9),
 	"rowan_fletcher": Vector2i(12, 26),
-	"reyna_fletcher": Vector2i(17, 57),
 }
 
-## These companions have recruitment arcs, but their home/recruitment regions are
-## not part of the opening world yet. They must not be staged at arbitrary
-## Hollowmere coordinates; their actual placements will be authored with those regions.
+## These companions are not members of Hollowmere’s opening cast. Keep them
+## out of its local starts; their authored placements belong to their own campaign
+## regions (including Reyna at Old Mac’s Farmstead).
 const DEFERRED_COMPANIONS := {
 	"ser_aldric_thorne": "awaiting_recruitment_region",
 	"nix_sharpear": "awaiting_recruitment_region",
@@ -31,7 +30,8 @@ const DEFERRED_COMPANIONS := {
 	"mirabel_quill": "awaiting_recruitment_region",
 	"fenn_oakheart": "awaiting_recruitment_region",
 	"brother_alden": "awaiting_recruitment_region",
-	"snik_fangtooth": "awaiting_recruitment_region"
+	"snik_fangtooth": "awaiting_recruitment_region",
+	"reyna_fletcher": "placed_at_old_mac_farmstead"
 }
 const OLD_MAC_START_HEX := Vector2i(12, 58)
 const MISSING_CHILD_START_HEX := Vector2i(27, 62)
