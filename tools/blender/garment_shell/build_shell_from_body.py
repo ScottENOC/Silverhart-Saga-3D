@@ -174,7 +174,7 @@ def main():
     garment_mesh.materials.append(make_material(args.material_name, args.colour, source_material))
 
     copy_skinning(body, garment, shell)
-    copy_shape_keys(mesh, garment_mesh, shell)
+    copy_shape_keys(body, garment, shell)
 
     # Keep the exported garment attached to the same armature, but omit the body.
     armatures = [m.object for m in body.modifiers if m.type == "ARMATURE" and m.object]
