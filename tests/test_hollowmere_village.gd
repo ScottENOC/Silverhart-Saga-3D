@@ -187,8 +187,8 @@ func _test_hollowmere_character_manifest() -> void:
             assert(not _is_blocked(spawn), "%s spawn is not traversable" % character_id)
         else:
             assert(HOLLOWMERE_PLACEMENTS.DEFERRED_COMPANIONS.has(character_id), "%s must have a local start or an explicit deferred recruitment-region marker" % character_id)
-    assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.size() == 14, "Only characters actually present in the opening settlement should have local starts")
-    assert(HOLLOWMERE_PLACEMENTS.DEFERRED_COMPANIONS.size() == 7, "Companions awaiting their real recruitment regions should remain explicitly deferred")
+    assert(HOLLOWMERE_PLACEMENTS.CHARACTER_STARTS.size() == 13, "Only characters actually present in the opening settlement should have local starts; Reyna is placed at Old Mac’s Farmstead")
+    assert(HOLLOWMERE_PLACEMENTS.DEFERRED_COMPANIONS.size() == 8, "Companions outside the opening settlement should remain explicitly deferred or retain their authored external placement")
     assert(HOLLOWMERE_PLACEMENTS.FARM_ANIMALS.size() == 6, "All six farm animal placements must remain authored")
     assert(HOLLOWMERE_PLACEMENTS.WILDERNESS_ANIMALS.size() == 4, "All four ambient wildlife placements must remain authored")
     var companion_names := ["Ser Aldric Thorne", "Nix Sharpear", "Warlord Grukk Ironhide", "Reyna Fletcher", "Mirabel Quill", "Fenn Oakheart", "Brother Alden", "Snik Fangtooth"]
