@@ -162,7 +162,7 @@ func _run() -> void:
                 )
                 quit(1)
                 return
-            var mask_report_file := FileAccess.open("res://build/wren-native/vulva-mons-mask-report.json", FileAccess.READ)
+            var mask_report_file := FileAccess.open("res://vulva-mons-mask-report.json", FileAccess.READ)
             if mask_report_file == null:
                 push_error("Painter mask report missing; cannot validate imported TEXCOORD_1")
                 quit(1)
