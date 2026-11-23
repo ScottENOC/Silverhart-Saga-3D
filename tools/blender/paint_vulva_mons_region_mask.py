@@ -69,7 +69,7 @@ def export_scene(path):
     )
 
 
-def read_mask_from_uv2(mesh):
+def read_mask_from_uv2(mesh, invert_v=False):
     # Blender's glTF importer may rename UV layers; the channel position
     # follows the glTF TEXCOORD_n attribute, not the original Blender name.
     if len(mesh.uv_layers) < 2:
@@ -81,7 +81,8 @@ def read_mask_from_uv2(mesh):
     for loop in mesh.loops:
         vertex_index = loop.vertex_index
         uv = layer.data[loop.index].uv
-        pair = (round(float(uv.x), 7), round(float(uv.y), 6))
+        mask_value = 1.0 - float(uv.y) if invert_v else float(uv.y)
+        pair = (round(float(uv.x), 7), round(mask_value, 6))
         if values[vertex_index] is not None and values[vertex_index] != pair:
             raise RuntimeError(
                 f"Vertex {vertex_index} has inconsistent TEXCOORD_1 identity/mask values"
@@ -226,13 +227,15 @@ def main():
     print("glTF UV channel export order:", export_order)
     for loop in skin.data.loops:
         uv = layer.data[loop.index].uv.copy()
-        uv.y = float(weights[loop.vertex_index])
+        # Blender flips glTF V coordinates on export. Store the complement so
+        # the exported TEXCOORD_1.y is the intended mask weight in Godot.
+        uv.y = 1.0 - float(weights[loop.vertex_index])
         layer.data[loop.index].uv = uv
     skin.data.update()
     skin["anatomy_region_mask"] = "vulva_external_including_mons_pubis"
     skin["anatomy_region_mask_channel"] = "TEXCOORD_1.y"
 
-    source_values = read_mask_from_uv2(skin.data)
+    source_values = read_mask_from_uv2(skin.data, invert_v=True)
 
     def canonical_by_correspondence(values):
         canonical = {}
@@ -262,7 +265,7 @@ def main():
     clear_scene()
     bpy.ops.import_scene.gltf(filepath=os.path.abspath(args.output))
     _meshes, exported_skin, _armature = find_skin_and_rig()
-    exported_values = read_mask_from_uv2(exported_skin.data)
+    exported_values = read_mask_from_uv2(exported_skin.data, invert_v=True)
     exported_by_id = canonical_by_correspondence(exported_values)
     if set(exported_by_id) != set(source_by_id):
         missing = len(set(source_by_id) - set(exported_by_id))
@@ -285,6 +288,8 @@ def main():
         "region_label": "External vulva including mons pubis",
         "source_method": "Ara add_female_anatomy_surface.py surface-following midline coordinates",
         "mask_channel": "TEXCOORD_1.y (Godot Mesh ARRAY_TEX_UV2.y)",
+        "blender_uv_v_encoded_inverted_for_gltf": True,
+        "glTF_export_v_conversion": "Blender UV1.v = 1 - mask weight; exported TEXCOORD_1.y = mask weight",
         "correspondence_channel": "TEXCOORD_1.x preserved unchanged",
         "blender_uv_layer_order_after_reimport": [item.name for item in exported_skin.data.uv_layers],
         "correspondence_gltf_texcoord_index": 1,
