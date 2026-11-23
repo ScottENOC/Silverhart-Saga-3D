@@ -10,7 +10,8 @@ func _initialize() -> void:
 		return
 	var petra := registry.get_character("petra_hollis")
 	var quartermaster := registry.get_character("border_war_quartermaster")
-	if petra.is_empty() or quartermaster.is_empty():
+	var reyna := registry.get_character("reyna_fletcher")
+	if petra.is_empty() or quartermaster.is_empty() or reyna.is_empty():
 		push_error("Millbrook character-owned profiles must resolve independently of settlement placements.")
 		quit(1)
 		return
@@ -22,8 +23,13 @@ func _initialize() -> void:
 		push_error("Quartermaster identity was not preserved.")
 		quit(1)
 		return
-	if petra.get("appearance", {}).is_empty() or quartermaster.get("appearance", {}).is_empty():
+	if petra.get("appearance", {}).is_empty() or quartermaster.get("appearance", {}).is_empty() or reyna.get("appearance", {}).is_empty():
 		push_error("Character appearance must remain in character-owned definitions.")
+		quit(1)
+		return
+	var reyna_params: Dictionary = reyna.get("appearance", {}).get("params", {})
+	if String(reyna.get("dialogue_id", "")) != "reyna_fletcher" or String(reyna_params.get("hair", "")) != "braid01":
+		push_error("Reyna's source dialogue and appearance profile must be preserved at her new location.")
 		quit(1)
 		return
 	print("Campaign 2 character definition registry tests passed.")
