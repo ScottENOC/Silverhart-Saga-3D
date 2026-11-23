@@ -179,6 +179,28 @@ func _run() -> void:
         _check(bool(wizard_runtime.try_transition_at_stair(1, Vector2i(-7, -482)).get("ok", false)), "Observatory stair must return to the study")
         _check(bool(wizard_runtime.try_transition_at_stair(0, Vector2i(-6, -481)).get("ok", false)), "Study stair must return to the tower")
 
+# Emberlode uses the same multi-story runtime for its surface mine, Working Vein and Old Seam.
+    var mine_simulation = SIMULATION.new()
+    root.add_child(mine_simulation)
+    var mine_load: Dictionary = LOCATION_LOADER.load_multistory_location(root, "emberlode_mine", mine_simulation)
+    _check(bool(mine_load.get("ok", false)), "Shared location loader must instantiate the source-authored Emberlode Mine")
+    var mine_runtime = mine_load.get("runtime")
+    if mine_runtime != null:
+        _check(mine_runtime.get_floor_tile_count(0) > 0 and mine_runtime.get_floor_tile_count(-1) > 0 and mine_runtime.get_floor_tile_count(-2) > 0, "Emberlode must present its surface entrance and both underground floors")
+        _check(mine_runtime.has_floor_object(0, "emberlode_ledger"), "Emberlode surface must present the source ledger")
+        _check(mine_runtime.has_floor_object(-1, "working_vein_gold"), "Working Vein must present the gold deposit")
+        _check(mine_runtime.has_floor_object(-2, "old_seam_blue_gem"), "Old Seam must present the blue-gem deposit")
+        var mine_player := CharacterState.new("emberlode_test_player", "Mine Test Player", Vector2i(-252, 15))
+        mine_simulation.register_character(mine_player)
+        var mine_descent: Dictionary = mine_runtime.interact_with_stair("emberlode_test_player")
+        _check(bool(mine_descent.get("ok", false)) and mine_runtime.get_current_floor() == -1, "Emberlode surface stair must enter the Working Vein")
+        _check(mine_player.axial == Vector2i(-252, 15), "Mine descent must preserve the source stair position")
+        _check(bool(mine_simulation.relocate_character("emberlode_test_player", Vector2i(-252, 17))), "Mine test character must be able to reach the Old Seam stair")
+        var seam_descent: Dictionary = mine_runtime.interact_with_stair("emberlode_test_player")
+        _check(bool(seam_descent.get("ok", false)) and mine_runtime.get_current_floor() == -2, "Working Vein stair must enter the Old Seam")
+        _check(mine_runtime.is_floor_visible(-2) and not mine_runtime.is_floor_visible(-1), "Only the active Emberlode mine floor may be visible")
+
+    
     if failures > 0:
         push_error("%d multi-story runtime integration test(s) failed." % failures)
         quit(1)
