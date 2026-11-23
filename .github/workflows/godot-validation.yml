@@ -123,6 +123,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_persistent_character_dialogue_content.gd
       - name: Run campaign faction state tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_faction_state.gd
+      - name: Run campaign faction state tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_faction_state.gd
       - name: Run Skarn-tooth campaign content tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_goblin_threat_campaign_content.gd
       - name: Run Skarn-tooth follow-up content tests
