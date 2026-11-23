@@ -75,6 +75,7 @@ const REGIONS := {
     "glute_left": [Vector3(-0.095, 0.865, -0.075), Vector3(0.090, 0.085, 0.045), Color("#80ed99")],
     "glute_right": [Vector3(0.095, 0.865, -0.075), Vector3(0.090, 0.085, 0.045), Color("#b8f2e6")],
     "pubic_region": [Vector3(0.0, 0.815, 0.090), Vector3(0.075, 0.050, 0.035), Color("#ffd6a5")],
+    "vulva_external": [Vector3(0.0, 0.835, 0.105), Vector3(0.070, 0.105, 0.065), Color("#f15bb5")],
     "pelvic_mons_pubis": [Vector3(0.0, 0.850, 0.120), Vector3(0.045, 0.025, 0.025), Color("#f4a261")],
     "pelvic_labia_majora_left": [Vector3(-0.030, 0.795, 0.105), Vector3(0.020, 0.030, 0.018), Color("#e76f51")],
     "pelvic_labia_majora_right": [Vector3(0.030, 0.795, 0.105), Vector3(0.020, 0.030, 0.018), Color("#2a9d8f")],
@@ -140,6 +141,7 @@ func _run() -> void:
     var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
     var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
     var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+    var uv2: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2]
     if vertices.is_empty() or indices.is_empty():
         push_error("Source surface has no indexed geometry")
         quit(1)
@@ -150,6 +152,28 @@ func _run() -> void:
     var counts: Dictionary = {}
     var seeds: Dictionary = {}
     for region_id in REGIONS:
+        if region_id == "vulva_external":
+            if uv2.size() != vertices.size():
+                push_error(
+                    "Ara vulva/mons mask TEXCOORD_1.y missing or mismatched: "
+                    + str(uv2.size()) + " UV2 values for " + str(vertices.size()) + " vertices"
+                )
+                quit(1)
+                return
+            var ara_weights := PackedFloat32Array()
+            var nonzero_count := 0
+            var weighted_count := 0
+            for uv in uv2:
+                var weight := clampf(uv.y, 0.0, 1.0)
+                ara_weights.append(weight)
+                if weight > 0.0:
+                    nonzero_count += 1
+                if weight >= 0.15:
+                    weighted_count += 1
+            seeds[region_id] = nonzero_count
+            counts[region_id] = weighted_count
+            candidate_weights[region_id] = ara_weights
+            continue
         var definition: Array = REGIONS[region_id]
         var seed_vertices := _find_seed_vertices(vertices, normals, definition[0], definition[1], region_id)
         seed_vertices = _filter_region_side(vertices, seed_vertices, region_id)
@@ -216,6 +240,10 @@ func _run() -> void:
         if region_id in ["hip_left", "hip_right", "glute_left", "glute_right", "pubic_region", "inner_thigh_left", "inner_thigh_right"]:
             region_views["pelvis_detail_front"] = [Vector3(0.0, 0.835, 1.15), Vector3(0.0, 0.835, 0.0), 0.38]
             region_views["pelvis_detail_rear"] = [Vector3(0.0, 0.835, -1.15), Vector3(0.0, 0.835, 0.0), 0.38]
+            if region_id == "vulva_external":
+                region_views["vulva_detail_front"] = [Vector3(0.0, 0.835, 1.05), Vector3(0.0, 0.835, 0.0), 0.24]
+                region_views["vulva_detail_oblique"] = [Vector3(0.90, 0.835, 0.90), Vector3(0.0, 0.820, 0.0), 0.24]
+                region_views["vulva_detail_side"] = [Vector3(1.05, 0.835, 0.0), Vector3(0.0, 0.835, 0.0), 0.24]
         if region_id.begins_with("thigh_") or region_id.begins_with("knee_") or region_id.begins_with("calf_") or region_id.begins_with("ankle_"):
             region_views["leg_detail_front"] = [Vector3(0.0, 0.45, 1.6), Vector3(0.0, 0.45, 0.0), 0.72]
             region_views["leg_detail_side"] = [Vector3(1.6, 0.45, 0.0), Vector3(0.0, 0.45, 0.0), 0.72]
@@ -271,22 +299,25 @@ func _run() -> void:
             "warning": "The current contact proxy is not a validated anatomical landmark and must not drive a shipped intimate animation."
         },
         "anatomical_detail_assessment": {
-            "surface_proxy_channels": ["pelvic_mons_pubis", "pelvic_labia_majora_left", "pelvic_labia_majora_right", "pelvic_clitoral_contact_proxy", "pelvic_perineal_surface", "pelvic_inguinal_fold_left", "pelvic_inguinal_fold_right"],
-            "not_identifiable_from_current_surface_topology": ["clitoral_glans", "labia_minora_left", "labia_minora_right", "vaginal_opening"],
-            "note": "The current Skin_Anatomy surface supports coarse front-surface coverage and a provisional clitoral contact proxy, but does not expose distinct mesh topology for the listed fine structures. These are deliberately not fabricated as production masks."
+            "surface_proxy_channels": ["vulva_external"],
+            "combined_region_includes": ["external_vulva", "mons_pubis"],
+            "source": "Ara add_female_anatomy_surface.py surface-following midline coordinates",
+            "mask_storage": "TEXCOORD_1.y / Godot ARRAY_TEX_UV2.y; CorrespondenceID remains in TEXCOORD_1.x",
+            "subregions_deferred": ["clitoral_hood", "clitoral_glans", "labia_majora_left", "labia_majora_right", "labia_minora_left", "labia_minora_right", "urethral_meatus", "vaginal_introitus", "mons_pubis"],
+            "note": "Ara already sculpts these external structures into the continuous skin surface. The first semantic mask intentionally groups the external vulva and mons pubis as one region; later subregions can be authored from the same surface-coordinate frame without changing the mask resource model."
         },
         "candidate_vertex_counts_at_weight_0_15": counts,
         "candidate_to_seed_vertex_ratios": _build_candidate_seed_ratios(seeds, counts),
-        "method": "Review-only ellipsoidal seed hypotheses expanded through adjacent source-mesh vertices with decaying weights; pelvic detail channels are constrained by front-facing vertex normals, nipple channels use zero hops, finger channels use up to 18 hops within a local extent, and other channels use five.",
+        "method": "Review-only Ara-authored vulva_external weights are read directly from TEXCOORD_1.y and include the mons pubis; remaining geometric hypotheses expand through adjacent source-mesh vertices with decaying weights.",
         "limitations": [
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
             "Nipple channels are seed-only (zero graph hops); all other hop limits are review heuristics and local mesh density affects physical reach.",
-            "Pelvic detail proposals are front-surface-only using vertex normals and depth-tested overlays; named fine structures without distinct source-surface topology remain unresolved rather than being assigned invented masks.",
+            "The combined vulva_external mask is authored from Ara surface-following coordinates and includes the mons pubis; finer subregions are intentionally deferred until the basic body-region workflow is reviewed.",
             "Finger candidates use longer local-X seed corridors and up to 18 topology hops, constrained to a narrow per-digit depth corridor; the close-up renders must confirm continuous lengthwise coverage and separation.",
             "Nipple candidates now use seed-only surface vertices (zero topology expansion) to avoid propagating onto the adjacent areolar/side-surface arc; the isolated renders must confirm the smaller island remains centred.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
-            "This review includes provisional whole-body coverage: head/face/ears/neck, chest/abdomen/flanks/back, pelvis/glutes/pubic region, both legs and feet, and shoulder-to-individual-finger arm channels. Every region remains a geometric seed hypothesis pending visual review."
+            "This review includes provisional whole-body coverage: head/face/ears/neck, chest/abdomen/flanks/back, pelvis/glutes/pubic region, both legs and feet, and shoulder-to-individual-finger arm channels. The vulva_external region is the exception: its weights are derived from the Ara anatomy surface-coordinate method, with the mons pubis included."
         ]
     }
     var report_file := FileAccess.open(output_directory.path_join("proposal.json"), FileAccess.WRITE)
