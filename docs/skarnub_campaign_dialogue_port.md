@@ -13,10 +13,12 @@
 - CampaignJournal registration/start for `goblin_threat` when the player opens favour negotiations.
 - Source-authored favour menu, including the Hollowmere raid option only at goblin standing 25 or higher.
 - Initial post-alliance dialogue for the mine raid and scout-note / Northwatch follow-up.
+- `resolve_favour` now applies the source-authored kingdom/goblin reputation changes for scouting, stealing supplies and raiding Emberlode; each favour is keyed in the quest journal to prevent repeat farming. It returns explicit region, reward and Aldric-attitude effect descriptors.
+- `resolve_threat` now applies the mutually exclusive diplomacy, permanent-alliance, assault, stealth-succession and betrayal reputation outcomes, completes `goblin_threat`, and returns the source-authored region/XP/Aldric consequence descriptors. Diplomacy requires goblin standing 40; alliance requires the recorded 60-gold gift.
 
 ## Remaining work
 - Wire the content into the future Skarn-tooth camp interaction and apply the gift transaction to player gold.
-- Implement the favour outcomes, diplomacy resolution, assault and stealth succession state changes.
+- Apply the returned region-stat, XP, gold, Aldric rescue/attitude/departure effect descriptors in the campaign runtime; the content layer deliberately does not mutate scene-owned or CharacterState resources.
 - Connect Nix, guards, Grondle, Ser Aldric and the scout note to the resulting campaign state.
 - Extend the post-Northwatch war-mission branch after its required siege systems are available.
 
