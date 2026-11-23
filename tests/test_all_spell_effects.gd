@@ -255,6 +255,7 @@ func _test_summon_animal_and_companion() -> void:
 		companion.apply_damage(companion.health)
 		var dead_companion := CharacterState.from_dict(companion.to_dict())
 		_check(dead_companion != null and not dead_companion.alive and dead_companion.is_animal_companion, "Animal companion death should persist through character save/load")
+		_check(not companion_sim.is_party_member(companion.id), "A dead permanent animal companion should be removed from the active party")
 	companion_sim.free()
 
 
