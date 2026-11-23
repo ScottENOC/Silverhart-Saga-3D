@@ -49,6 +49,22 @@ func _test_authored_prop_assemblies() -> void:
 	var signpost := parent.get_node_or_null("CrossroadsSignpost") as Node3D
 	assert(signpost != null and signpost.get_node_or_null("NorthSouthLabel") is Label3D, "Crossroads signpost should retain both text labels")
 	assert(signpost.position.distance_to(HexGrid.axial_to_world(SETTLEMENT.CROSSROADS, HexGrid.DEFAULT_RADIUS_M, 0.0)) < 0.001, "Signpost should retain the crossroads anchor")
+	var campfire_definition := [{
+		"id":"SkarnCampfire",
+		"anchor":Vector2i(203, 23),
+		"parts":[{
+			"name":"CampfireGlow",
+			"type":"omni_light",
+			"position":Vector3(0.0, 0.8, 0.0),
+			"color":"#ff8738",
+			"energy":2.0,
+			"range":21.0,
+			"shadow_enabled":false
+		}]
+	}]
+	assert(FACTORY.render_features(parent, campfire_definition, materials, HexGrid.DEFAULT_RADIUS_M), "Authored campfire omni light should render")
+	var campfire_light := parent.get_node_or_null("SkarnCampfire/CampfireGlow") as OmniLight3D
+	assert(campfire_light != null and is_equal_approx(campfire_light.omni_range, 21.0), "Campfire light should preserve its authored radius")
 	parent.free()
 
 func _test_invalid_prop_data_is_rejected_atomically() -> void:
