@@ -63,6 +63,21 @@ func apply_story_event(event_key: String, relationships: CompanionRelationshipSt
 		return {"ok": false, "reason": "unknown_story_event"}
 	return _apply(event_key, STORY_INFLUENCE[event_key], "story", relationships)
 
+func sync_story_events(relationships: CompanionRelationshipState) -> int:
+	if relationships == null:
+		return 0
+	var wren_state: Dictionary = relationships.states.get("wren_talbot", {})
+	var keys: Array = wren_state.get("known_event_keys", [])
+	var applied := 0
+	for key_value in keys:
+		var key := String(key_value)
+		if STORY_INFLUENCE.has(key):
+			var result := apply_story_event(key, relationships)
+			if bool(result.get("changed", false)):
+				applied += 1
+	return applied
+
+
 func apply_dialogue_choice(choice_id: String, relationships: CompanionRelationshipState) -> Dictionary:
 	if not DIALOGUE_CHOICES.has(choice_id):
 		return {"ok": false, "reason": "unknown_dialogue_choice"}
