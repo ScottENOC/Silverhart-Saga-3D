@@ -128,7 +128,9 @@ func _run() -> void:
     await process_frame
 
     var skin_surfaces: Array[Dictionary] = []
-    _collect_skin_surfaces(body, skin_surfaces)
+    var surface_inventory: Array[Dictionary] = []
+    _collect_skin_surfaces(body, skin_surfaces, surface_inventory)
+    print("GODOT_IMPORTED_SURFACE_INVENTORY=", JSON.stringify(surface_inventory))
     if skin_surfaces.is_empty():
         push_error("Skin_Anatomy surface not found")
         quit(1)
@@ -448,20 +450,43 @@ func _build_candidate_seed_ratios(seed_counts: Dictionary, candidate_counts: Dic
     return ratios
 
 
-func _collect_skin_surfaces(node: Node, result: Array[Dictionary]) -> void:
+func _collect_skin_surfaces(
+    node: Node,
+    result: Array[Dictionary],
+    inventory: Array[Dictionary]
+) -> void:
     if node is MeshInstance3D and node.mesh != null:
         var mesh_instance := node as MeshInstance3D
         for index in mesh_instance.mesh.get_surface_count():
-            if mesh_instance.mesh.surface_get_name(index) != "Skin_Anatomy":
-                continue
+            var surface_name := mesh_instance.mesh.surface_get_name(index)
+            var material := mesh_instance.mesh.surface_get_material(index)
+            var material_name := material.resource_name if material != null else ""
             var surface_arrays := mesh_instance.mesh.surface_get_arrays(index)
-            result.append({
-                "mesh_instance": mesh_instance,
+            var surface_vertices: PackedVector3Array = surface_arrays[Mesh.ARRAY_VERTEX]
+            var surface_uv2: PackedVector2Array = surface_arrays[Mesh.ARRAY_TEX_UV2]
+            var entry := {
+                "node_name": str(mesh_instance.name),
+                "mesh_resource_name": mesh_instance.mesh.resource_name,
                 "surface_index": index,
-                "arrays": surface_arrays
-            })
+                "surface_name": surface_name,
+                "material_name": material_name,
+                "vertex_count": surface_vertices.size(),
+                "texcoord_1_count": surface_uv2.size()
+            }
+            inventory.append(entry)
+            var identity := (
+                str(mesh_instance.name) + " " +
+                mesh_instance.mesh.resource_name + " " +
+                surface_name + " " + material_name
+            ).to_lower()
+            if identity.contains("skin"):
+                result.append({
+                    "mesh_instance": mesh_instance,
+                    "surface_index": index,
+                    "arrays": surface_arrays
+                })
     for child in node.get_children():
-        _collect_skin_surfaces(child, result)
+        _collect_skin_surfaces(child, result, inventory)
 
 
 func _build_vulva_mask_overlay(skin_surfaces: Array[Dictionary]) -> MultiMeshInstance3D:
