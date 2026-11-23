@@ -18,13 +18,13 @@ The surrounding wilderness is still partly generated from regional terrain rules
 
 ## Authored settlement and site content
 
-The canonical settlement registry currently contains six definitions (including the first structural phase of Silverhart). Kragmoor is a source-authored regional site tracked in the separate multi-story location registry.
+The canonical settlement registry currently contains six definitions (including the first structural phase of Silverhart). Kragmoor and Emberlode Mine are source-authored regional sites tracked in the separate multi-story location registry.
 
 | Location | Migrated content | Still outstanding |
 |---|---|---|
 | Hollowmere | Seven authored buildings, routes, bridge, fields/crops/fences, props, actor placements, terrain and ecology inputs | Full visual/gameplay review; remaining source event, interior and persistence parity |
 | Millbrook | One source-positioned house, road spur and two named NPC profiles/placements | Interior construction and services/interactions |
-| Emberlode | Foreman's hall, bunkhouse, mine entrance, two road approaches and three named NPCs; source mine levels, stairs, ore, ledger and underground spiders retained as data | Playable interiors/floor transitions, ore interactions, spider spawning on floor -2, dialogue/quest consequences |
+| Emberlode | Foreman's hall, bunkhouse, mine entrance and two road approaches; source-authored three-floor mine stack with surface ledger, reciprocal stairs, gold and blue-gem ore nodes, and two Old Seam spider placement coordinates | Exterior-to-interior entry/exit wiring and visual review; creature spawning and ore interactions remain outside map scope |
 | Reddale | Guardhouse, reeve's house, inn, Ironbond guildhouse, manor and smithy; three road approaches and twelve town NPCs; Mirabel Quill placed at the source-authored rocky outcrop ruin to the east | Spider defenders still need a 3D spider asset and actor-kind support; playable interiors, merchant services, evidence reading, bribes, dialogue and espionage quest consequences |
 | Kragmoor | Source-derived floors 0 to -5, validated walkable/wall HexMapData, generic 3D floor presentation, authored stair traversal, quest-journal gate bridge and campaign save/load state | Named Ara NPC/creature actors and behaviour, dialogue/trader/runesmith/mining/journal interactions, detailed dressing/lighting, and connection to campaign travel |
 | Old Mac's Farmstead | **Accepted as complete for this milestone.** Source farmhouse, road spur, pasture, fence/broken-fence clue, blood evidence and Old Mac placement are accepted; cows are an acceptable livestock substitute for source sheep. Reyna Fletcher is placed at source-derived position (6,198), relative to farmstead centre (0,194), and removed from Hollowmere's opening roster to prevent duplicate actors. | Reyna's dialogue/recruitment state and persistent CharacterState integration still need runtime wiring; the wolf-den encounter remains a separate wilderness site |
@@ -33,7 +33,7 @@ The shared chunk presenter renders exterior buildings and surface actors for can
 
 ## Remaining source-authored world locations
 
-The 24-anchor geography manifest has six canonical settlement definitions above; Kragmoor is additionally registered as a separate multi-story site. The following 18 other anchors have partial or no playable site implementations:
+The 24-anchor geography manifest has six canonical settlement definitions above; Kragmoor and Emberlode Mine are additionally registered as separate multi-story sites. The following 18 other anchors have partial or no playable site implementations:
 
 | Location | Source content still to port |
 |---|---|
@@ -55,7 +55,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 | Thieves' Cove Caves | Cave network, guild residents, services and quest content |
 | Old Mac's Wolf Den | Canonical encounter-site anchor at (-59,204) is registered and the live farm-wolf quest uses that source coordinate; den dressing, trigger and quest persistence remain |
 | Unicorn Vale | Roaming encounter area and its eight-waypoint patrol loop |
-| Emberlode Mine | Partial: its three-level floor, stairs, ore, ledger and spider records are captured under Emberlode but not playable |
+| Emberlode Mine | Source-authored surface entrance, Working Vein (-1), Old Seam (-2), stairs, gold/blue-gem ore nodes, ledger and two spider spawn coordinates are registered with the shared multi-story floor builder; exterior entry/exit wiring remains |
 
 ## Next port order
 
