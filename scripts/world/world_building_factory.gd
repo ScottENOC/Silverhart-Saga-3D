@@ -68,9 +68,7 @@ const ARCHETYPES := {
 		"wall_colour": "#777b78", "timber_colour": "#514638",
 		"door_colour": "#302a22", "roof_colour": "#424547",
 		"glass_colour": "#52717a", "roof_style": "none"
-	}
-}
-
+	},
 	"hut": {
 		"width": 7.2, "depth": 6.6, "wall_height": 1.9, "roof_rise": 1.35,
 		"foundation_colour": "#594a35", "floor_colour": "#4c3827",
@@ -85,6 +83,8 @@ const ARCHETYPES := {
 		"door_colour": "#302319", "roof_colour": "#80643a",
 		"glass_colour": "#52717a", "roof_style": "gable"
 	}
+}
+
 }
 
 const KIND_TO_ARCHETYPE := {
@@ -102,7 +102,9 @@ const KIND_TO_ARCHETYPE := {
 	"inn": "inn",
 	"guardhouse": "guardhouse",
 	"smithy": "smithy",
-	"mine_entrance": "mine_entrance"
+	"mine_entrance": "mine_entrance",
+	"hut": "hut",
+	"large_hut": "large_hut"
 }
 
 ## Returns null for an invalid/unsupported definition instead of silently
