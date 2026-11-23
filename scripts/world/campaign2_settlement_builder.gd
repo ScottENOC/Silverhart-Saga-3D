@@ -9,6 +9,7 @@ const FEATURE_COMPOSER = preload("res://scripts/world/world_settlement_feature_c
 const VEGETATION_GENERATOR = preload("res://scripts/world/world_vegetation_generator.gd")
 const CREATURE_ACTOR_SCRIPT = preload("res://scripts/presentation/creature_actor.gd")
 const CHARACTER_REGISTRY_SCRIPT = preload("res://scripts/world/campaign2_character_definition_registry.gd")
+const NPC_SKILL_SPENDING = preload("res://scripts/simulation/npc_skill_spending.gd")
 
 var settlements: Array = []
 var character_registry: Campaign2CharacterDefinitionRegistry
@@ -24,11 +25,83 @@ func _init(
 	simulation = source_simulation
 	if character_registry == null:
 		character_registry = CHARACTER_REGISTRY_SCRIPT.new()
+	_register_campaign_characters()
 
 ## The simulation outlives chunk nodes. Reattaching it here restores animal
 ## positions after a chunk is rebuilt instead of resetting them to authored starts.
 func configure_simulation(source_simulation: WorldSimulation) -> void:
 	simulation = source_simulation
+	_register_campaign_characters()
+
+
+## Named campaign characters belong to the shared simulation, not to the chunk
+## that happens to display them. Register every canonical placement once so
+## NPC state survives chunk unloads and movement away from its authored site.
+func _register_campaign_characters() -> void:
+	if simulation == null or character_registry == null:
+		return
+	for entry in settlements:
+		if not entry is Dictionary:
+			continue
+		var definition: Dictionary = entry.get("definition", {})
+		var origin: Vector2i = entry.get("origin", Vector2i.ZERO)
+		var placements: Dictionary = definition.get("placements", {})
+		for placement_value in placements.get("characters", []):
+			if not placement_value is Dictionary:
+				continue
+			var placement: Dictionary = placement_value
+			var character_id := String(placement.get("character_id", placement.get("id", ""))).strip_edges()
+			if character_id.is_empty() or character_id == "player" or simulation.get_character(character_id) != null:
+				continue
+			var profile := character_registry.get_character(character_id)
+			if profile.is_empty():
+				continue
+			var start_hex := _read_hex(placement.get("position", Vector2i.ZERO)) + origin
+			var display_name := String(profile.get("name", profile.get("display_name", character_id)))
+			var state := CharacterState.new(character_id, display_name, start_hex)
+			var race := String(profile.get("race", "human"))
+			state.race = race
+			state.side = String(profile.get("side", "neutral"))
+			state.combat_dormant = true
+			state.time_points = 0.0
+			state.health = maxi(1, int(profile.get("max_health", 100)))
+			state.max_health = state.health
+			state.tags.append("campaign2_npc")
+			var faction_id := String(profile.get("faction_id", ""))
+			if not faction_id.is_empty():
+				state.tags.append("faction:" + faction_id)
+			var dialogue_id := String(profile.get("dialogue_id", ""))
+			if not dialogue_id.is_empty():
+				state.tags.append("dialogue:" + dialogue_id)
+			if bool(profile.get("tied_up", false)):
+				state.tags.append("tied_up")
+			var class_sequence: Array[String] = []
+			for class_id_value in profile.get("class_levels", []):
+				class_sequence.append(String(class_id_value))
+			var preferred_skills: Dictionary = {}
+			for skill_id_value in profile.get("skill_picks", []):
+				var skill_id := String(skill_id_value)
+				preferred_skills[skill_id] = int(preferred_skills.get(skill_id, 0)) + 1
+			var custom_skills: Dictionary = profile.get("source_custom_skills", {})
+			if not custom_skills.is_empty():
+				state.character_class = class_sequence[0] if not class_sequence.is_empty() else "fighter"
+				state.class_level_sequence = class_sequence.duplicate()
+				for class_id in class_sequence:
+					state.class_levels[class_id] = int(state.class_levels.get(class_id, 0)) + 1
+				state.level = maxi(1, class_sequence.size())
+				state.skills = custom_skills.duplicate(true)
+				state.sync_skill_effects()
+			elif not class_sequence.is_empty():
+				var build_result: Dictionary = NPC_SKILL_SPENDING.build_authored(
+					state, race, class_sequence, preferred_skills, "campaign2:" + character_id
+				)
+				if not bool(build_result.get("ok", false)):
+					push_warning("Could not build authored campaign NPC %s: %s" % [character_id, build_result])
+			else:
+				NPC_SKILL_SPENDING.build_civilian(state, race)
+			var registration := simulation.register_character(state)
+			if simulation.get_character(character_id) == null:
+				push_warning("Could not register persistent campaign NPC %s at %s: %s" % [character_id, start_hex, registration])
 
 ## Authored features, vegetation and actor placements are attached only to the
 ## chunk owning their canonical anchor/candidate. Chunk unloads retire presentation,
@@ -80,9 +153,11 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 			var character_id := String(placement.get("character_id", placement.get("id", "")))
 			if character_id.is_empty() or character_id == "player":
 				continue
-			var world_hex := _read_hex(placement.get("position", Vector2i.ZERO)) + origin
-			if _contains_chunk(world_hex, chunk_min, chunk_size):
-				_add_character(parent, character_id, world_hex)
+			var authored_hex := _read_hex(placement.get("position", Vector2i.ZERO)) + origin
+			var character_state: CharacterState = simulation.get_character(character_id) if simulation != null else null
+			var presentation_hex := character_state.axial if character_state != null else authored_hex
+			if _contains_chunk(presentation_hex, chunk_min, chunk_size):
+				_add_character(parent, character_id, presentation_hex)
 
 func _add_creatures_in_chunk(
 	parent: Node3D,
@@ -160,6 +235,8 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -
 	)
 	if actor == null:
 		return
+	actor.set_meta("campaign2_npc_id", character_id)
+	actor.add_to_group("campaign2_npc_actors")
 	parent.add_child(actor)
 
 func _contains_chunk(hex: Vector2i, chunk_min: Vector2i, chunk_size: int) -> bool:
