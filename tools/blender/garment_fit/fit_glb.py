@@ -31,6 +31,7 @@ def parse_args():
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--report", required=True)
+    parser.add_argument("--fit-mode", choices=("existing", "new"), default="existing")
     parser.add_argument("--skin-material", action="append", required=True)
     parser.add_argument("--garment-material", action="append", required=True)
     parser.add_argument("--clearance-mm", type=float, default=4.0)
