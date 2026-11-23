@@ -196,40 +196,30 @@ func _build_strategic_river() -> void:
 		river_points.append(HexGrid.axial_to_world(Vector2i(local_q, local_r), HexGrid.DEFAULT_RADIUS_M))
 
 func terrain_for_hex(hex: Vector2i) -> String:
-	# Source-authored regional site footprints (dungeons, forts, lairs and
-	# carved entrances) must be able to replace the underlying settlement
-	# terrain domain where their coordinates overlap it, as the original
-	# Campaign 2 world painter did.
+	# Regional authored sites take precedence over underlying settlement terrain.
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		return String(regional_override.get("terrain", "grass"))
-	# Settlement walls are solid presentation overlays. Strategic roads are
-	# source-painted over the underlying terrain, including stream crossings.
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
-	if road_cells.has(_hex_key(hex)):
-		return "path"
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
+	var authored_terrain := ""
 	if not terrain_definition.is_empty():
-		var authored_terrain := AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
-		# Preserve the source terrain provider's water-first rule: incidental
-		# settlement path rasterisation must not turn stream banks/cells into
-		# walkable ground. The authored bridge remains a path because the
-		# provider explicitly excludes its bridge cell from water.
-		if authored_terrain == "water":
-			return "water"
-		# Source paths are painted after building footprints, so they remain
-		# visible at entrances and where they skirt building edges.
-		if settlement_path_cells.has(_hex_key(hex)):
-			return "path"
-		if settlement_building_cells.has(_hex_key(hex)):
-			return "authored"
-		return authored_terrain
+		authored_terrain = AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
+	# Explicit source roads can cross authored streams, but must not erase
+	# authored settlement paths or building footprints. Stream water wins over
+	# incidental path rasterisation; the bridge is excluded by the provider.
+	if authored_terrain == "water" and not road_cells.has(_hex_key(hex)):
+		return "water"
 	if settlement_path_cells.has(_hex_key(hex)):
 		return "path"
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "authored"
+	if road_cells.has(_hex_key(hex)):
+		return "path"
+	if not authored_terrain.is_empty():
+		return authored_terrain
 	if _is_local_stream(hex) or _is_strategic_river(hex):
 		return "water"
 	var strategic_cell := MainCampaignWorldMapData.world_cell_from_local_hex(hex)
@@ -238,42 +228,32 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var source_cell: Dictionary = strategic_grid[strategic_cell.y][strategic_cell.x]
 	var base_terrain := String(source_cell.get("terrain", "grass"))
 	var faction := String(source_cell.get("faction", ""))
-	# Port the original Campaign 2 local fallback for unpainted grassland.
-	# Strategic ocean, mountain, forest and hill bands remain macro overrides.
-	# Keep the strategic greenskin terrain/faction interaction intact; the source
-	# local fallback applies to the human/general wilderness grasslands.
 	if base_terrain == "grass" and faction != "orcs":
 		return LOCAL_TERRAIN_RULES.source_local_terrain(hex)
 	return LOCAL_TERRAIN_RULES.terrain_for_hex(hex, base_terrain, faction)
 
-## Gameplay terrain is resolved from authored settlement data first, then regional rules.
+## Gameplay terrain follows the same precedence as the visual terrain query.
 func gameplay_terrain_for_hex(hex: Vector2i) -> String:
-	# Keep regional authored structures consistent across visual and gameplay
-	# terrain queries, including sites carved into settlement footprints.
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		return String(regional_override.get("terrain", "grass"))
-	# Settlement walls remain blocked, while strategic roads overlay the
-	# underlying terrain (including streams) as in the source world painter.
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
-	if road_cells.has(_hex_key(hex)):
-		return "path"
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
+	var authored_terrain := ""
 	if not terrain_definition.is_empty():
-		var authored_terrain := AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
-		if authored_terrain == "water":
-			return "water"
-		if settlement_path_cells.has(_hex_key(hex)):
-			return "path"
-		if settlement_building_cells.has(_hex_key(hex)):
-			return "building"
-		return authored_terrain
+		authored_terrain = AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
+	if authored_terrain == "water" and not road_cells.has(_hex_key(hex)):
+		return "water"
 	if settlement_path_cells.has(_hex_key(hex)):
 		return "path"
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "building"
+	if road_cells.has(_hex_key(hex)):
+		return "path"
+	if not authored_terrain.is_empty():
+		return authored_terrain
 	var terrain := terrain_for_hex(hex)
 	return "building" if terrain == "authored" else terrain
 
@@ -281,11 +261,9 @@ func is_walkable_for_hex(hex: Vector2i) -> bool:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		var override_terrain := String(regional_override.get("terrain", "grass"))
-		return override_terrain not in ["water", "building", "keep_wall", "climbable_wall", "palisade_wall"]
-	if settlement_wall_cells.has(_hex_key(hex)):
-		return false
-	# Strategic roads are source-painted overlays, so their crossings remain
-	# walkable even when the underlying authored settlement provider is water.
+		return override_terrain not in ["water", "building", "keep_wall", "climbable_wall"]
+	# Strategic roads are explicit source-painted crossings, including roads
+	# over streams. Settlement palisades remain climbable at their movement cost.
 	if road_cells.has(_hex_key(hex)):
 		return true
 	var authored_settlement := settlement_definition_registry.resolve(hex)
