@@ -55,6 +55,8 @@ var male_anatomy_summary: Label
 var preview_status: Label
 var preview_actor: AraCharacterActor
 var preview_variant_loaded: String = ""
+## Tests can disable asynchronous model loading while still exercising the real form and profile flow.
+var preview_enabled: bool = true
 var ear_piercing_check: CheckBox
 var nipple_piercing_check: CheckBox
 var clit_piercing_check: CheckBox
@@ -67,7 +69,7 @@ func _ready() -> void:
 	layer = 100
 	_build_screen()
 	_load_saved_profile()
-	call_deferred("_refresh_appearance_preview", 0)
+	_refresh_character_preview(0)
 
 func _build_screen() -> void:
 	var backdrop := ColorRect.new()
@@ -208,7 +210,6 @@ func _build_screen() -> void:
 	rules_preview.add_theme_font_size_override("font_size", 13)
 	rules_preview.add_theme_color_override("font_color", Color(0.82, 0.82, 0.78))
 	panel.add_child(rules_preview)
-	_refresh_character_preview(0)
 	body_variant_select = _option_row(panel, "Body model", ["Female", "Male"])
 	body_variant_select.item_selected.connect(_refresh_appearance_preview)
 	presentation_select = _option_row(panel, "Gender presentation", PRESENTATIONS)
@@ -428,7 +429,6 @@ func _load_saved_profile() -> void:
 		density_slider.value = clampf(float(area_settings.get("density", 0.5)), 0.0, 1.0)
 		density_slider.editable = not enabled
 	_select_text(body_hair_style_select, str(saved_body_hair.get("pubic_style", "Natural")))
-	_refresh_character_preview(0)
 	_update_mode_controls(game_mode_select.selected)
 
 func _select_metadata(select: OptionButton, value: String) -> void:
@@ -449,7 +449,7 @@ func _refresh_character_preview(_index: int) -> void:
 
 	var variant := "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female"
 	male_anatomy_section.visible = variant == "male"
-	if preview_actor == null or not is_instance_valid(preview_actor):
+	if not preview_enabled or preview_actor == null or not is_instance_valid(preview_actor):
 		return
 	var asset_path := MALE_PREVIEW_ASSET if variant == "male" else FEMALE_PREVIEW_ASSET
 	if not ResourceLoader.exists(asset_path):
@@ -585,6 +585,10 @@ func _load_preview_asset(path: String, description: String, loaded_count: int, t
 func _rotate_preview(degrees: float) -> void:
 	if preview_actor != null and is_instance_valid(preview_actor):
 		preview_actor.rotate_y(deg_to_rad(degrees))
+
+func _refresh_appearance_preview(_index: int) -> void:
+	_refresh_character_preview(_index)
+
 
 func _refresh_appearance_preview_value(_value: float) -> void:
 	_refresh_appearance_preview(0)

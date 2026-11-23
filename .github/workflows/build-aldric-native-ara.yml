@@ -217,6 +217,15 @@ jobs:
             exit 0
           fi
           git commit -m "Rebuild Aldric with measured male anatomy size"
+          # Godot's import pass can leave tracked import metadata modified after
+          # the asset commit. This is an ephemeral CI checkout: keep the commit
+          # and discard only those post-commit working-tree changes before rebasing.
+          git reset --hard HEAD
+          if ! git diff --quiet || ! git diff --cached --quiet; then
+            git status --short
+            echo "Aldric install checkout is not clean after committing the generated asset."
+            exit 1
+          fi
           for attempt in 1 2 3; do
             git fetch origin dev
             git rebase origin/dev
