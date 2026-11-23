@@ -2455,16 +2455,28 @@
           ],
           "corridors": [
             {
-              "id": "entrance_to_ossuary",
+              "id": "entrance_wall_ring_connector",
               "from": {
                 "q": 35,
+                "r": -155
+              },
+              "to": {
+                "q": 36,
+                "r": -154
+              },
+              "algorithm": "q_then_r_dogleg"
+            },
+            {
+              "id": "entrance_to_ossuary",
+              "from": {
+                "q": 36,
                 "r": -154
               },
               "to": {
                 "q": 37,
                 "r": -154
               },
-              "algorithm": "source_straight_q_with_wall_aperture"
+              "algorithm": "source_straight_q"
             },
             {
               "id": "ossuary_to_ritual",
@@ -2494,7 +2506,7 @@
               "type": "door_open",
               "position": {
                 "q": 35,
-                "r": -154
+                "r": -155
               },
               "light_radius": 0
             },
