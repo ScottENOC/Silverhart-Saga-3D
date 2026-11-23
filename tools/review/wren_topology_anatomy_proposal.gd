@@ -258,6 +258,17 @@ func _run() -> void:
         "paired_region_midline_exclusion_m": PAIRED_REGION_MIDLINE_GAP,
         "candidate_weight_threshold": 0.15,
         "region_seed_vertex_counts": seeds,
+        "animation_contact_anchor_review": {
+            "coordinate_space": "Wren Skin_Anatomy local mesh space",
+            "anchors": _build_contact_anchor_report(vertices, normals),
+            "production_requirements": [
+                "Replace nearest-vertex review anchors with barycentric triangle anchors bound to the validated surface signature.",
+                "Store contact frames in participant-local rig space and solve hand placement with IK.",
+                "Retarget interaction paths against actual arm length, shoulder width, torso depth, hip width and participant height.",
+                "Use collision and contact constraints to prevent hand-through-body intersections."
+            ],
+            "warning": "The current contact proxy is not a validated anatomical landmark and must not drive a shipped intimate animation."
+        },
         "anatomical_detail_assessment": {
             "surface_proxy_channels": ["pelvic_mons_pubis", "pelvic_labia_majora_left", "pelvic_labia_majora_right", "pelvic_clitoral_contact_proxy", "pelvic_perineal_surface", "pelvic_inguinal_fold_left", "pelvic_inguinal_fold_right"],
             "not_identifiable_from_current_surface_topology": ["clitoral_glans", "labia_minora_left", "labia_minora_right", "vaginal_opening"],
@@ -281,6 +292,38 @@ func _run() -> void:
     report_file.close()
     print("WREN_TOPOLOGY_PROPOSAL_OK vertices=%d regions=%d" % [vertices.size(), REGIONS.size()])
     quit(0)
+
+
+func _build_contact_anchor_report(
+    vertices: PackedVector3Array,
+    normals: PackedVector3Array
+) -> Dictionary:
+    var requested_targets := {
+        "pelvic_clitoral_contact_proxy": Vector3(0.0, 0.824, 0.108)
+    }
+    var result: Dictionary = {}
+    for target_id in requested_targets:
+        var requested: Vector3 = requested_targets[target_id]
+        var nearest_index := -1
+        var nearest_distance_squared := INF
+        for vertex_index in vertices.size():
+            var distance_squared := vertices[vertex_index].distance_squared_to(requested)
+            if distance_squared < nearest_distance_squared:
+                nearest_distance_squared = distance_squared
+                nearest_index = vertex_index
+        if nearest_index < 0:
+            result[target_id] = {"status": "UNAVAILABLE"}
+            continue
+        var normal := normals[nearest_index] if nearest_index < normals.size() else Vector3.ZERO
+        result[target_id] = {
+            "status": "PROVISIONAL_SURFACE_PROXY_NOT_ANATOMICAL_LANDMARK",
+            "anchor_type": "nearest_vertex_review_only",
+            "vertex_index": nearest_index,
+            "position_local": [vertices[nearest_index].x, vertices[nearest_index].y, vertices[nearest_index].z],
+            "normal_local": [normal.x, normal.y, normal.z],
+            "distance_from_requested_point_m": sqrt(nearest_distance_squared)
+        }
+    return result
 
 
 func _build_candidate_seed_ratios(seed_counts: Dictionary, candidate_counts: Dictionary) -> Dictionary:
