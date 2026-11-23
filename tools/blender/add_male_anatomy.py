@@ -893,6 +893,12 @@ def create_symmetric_phallus(skin, material, armature, pelvis_bone,
 
     obj = create_mesh_object("Male anatomy · symmetric shaft and glans", [tuple(v) for v in erect_v],
                              faces, material, armature, pelvis_bone)
+    # The shaft is driven entirely by the pelvis-parented anatomy bone chain.
+    # Remove the default pelvis influence so AnatomyRoot scaling remains exact
+    # instead of being diluted by a second, overlapping pelvis weight.
+    pelvis_group = obj.vertex_groups.get(pelvis_bone)
+    if pelvis_group is not None:
+        pelvis_group.remove(list(range(len(erect_v))))
     shaft_groups = [obj.vertex_groups.new(name=n) for n in ("AnatomyRoot", "AnatomyMid", "AnatomyTip")]
     for vi in range(len(erect_v)):
         t = 0.0 if vi == root_idx else (P["tip_end"] if vi == apex_idx else ring_t[vi // segs])
@@ -1324,9 +1330,9 @@ MALE_TRANSITION = {
     "clip_frames": (1, 24),
     # flaccid derivation (phallus)
     "glans_start": 0.79,         # where the glans begins along the erect mesh (0..1)
-    "shaft_compress": 0.74,      # flaccid shaft arc length / erect shaft arc length
+    "shaft_compress": 0.639,     # calibrated so the derived flaccid length is ~9.16 cm at the erect mean
     "glans_length_scale": 0.92,  # the glans keeps most of its length
-    "shaft_girth": 0.80,         # radial scale of the shaft vs erect (9.31 / 11.66 cm: pooled flaccid / erect circumference)
+    "shaft_girth": 0.7985,       # 9.31 / 11.66 cm: pooled flaccid / erect circumference
     "glans_girth": 0.845,        # radial scale of the glans vs erect (keeps the original glans:shaft ratio of 1.056)
     "root_flare": 0.0,           # (the phallus fillet now handles the body blend)
     "angle_root_deg": 36.0,      # centre line direction below horizontal at the root ...
@@ -1462,6 +1468,8 @@ SIZE = {
     "reference_height_m": 1.676,
     "erect_length_cm": 13.12, "erect_length_sd_cm": 1.66,
     "erect_circumference_cm": 11.66, "erect_circumference_sd_cm": 1.10,
+    "flaccid_length_cm": 9.16, "flaccid_length_sd_cm": 1.57,
+    "flaccid_circumference_cm": 9.31, "flaccid_circumference_sd_cm": 0.90,
     "mesh_length_fraction": 0.074,          # base mesh length / body height (the T["erect_length_scale"] = 1 mesh)
     "circumference_measured_at_t": 0.5,     # mid-shaft, as in the source studies (not under the corona)
     "variation_clip_sd": 2.0,               # per-character draws are clipped to +/- this many SDs
@@ -1489,9 +1497,13 @@ def resolve_penis_size(length_scale, girth_scale, seed, strength, body_height):
     MALE_TRANSITION["erect_girth_scale"] = circ_cm / base_circ_cm
     pct = lambda z: 100.0 * 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
     flaccid_circ = MALE_TRANSITION["shaft_girth"] * circ_cm
+    flaccid_length = length_cm * (
+        MALE_TRANSITION["glans_start"] * MALE_TRANSITION["shaft_compress"]
+        + (1.0 - MALE_TRANSITION["glans_start"]) * MALE_TRANSITION["glans_length_scale"]
+    )
     print(f"Penis size (absolute adult measurements; body height {body_height:.3f} m affects placement only): "
-          f"erect length {length_cm:.2f} cm, erect circumference {circ_cm:.2f} cm, "
-          f"flaccid circumference {flaccid_circ:.2f} cm "
+          f"erect {length_cm:.2f} cm / {circ_cm:.2f} cm circumference; "
+          f"flaccid approx. {flaccid_length:.2f} cm / {flaccid_circ:.2f} cm circumference "
           f"(mesh multipliers: length x{MALE_TRANSITION['erect_length_scale']:.3f}, "
           f"girth x{MALE_TRANSITION['erect_girth_scale']:.3f})")
     if seed is not None and strength > 0.0:
