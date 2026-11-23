@@ -85,8 +85,6 @@ const ARCHETYPES := {
 	}
 }
 
-}
-
 const KIND_TO_ARCHETYPE := {
 	"house": "cottage",
 	"cottage": "cottage",
