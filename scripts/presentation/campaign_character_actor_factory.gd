@@ -297,11 +297,15 @@ static func _create_actor_presentation(
 		# named companions may supply an authored override (e.g. Aldric).
 		if body_variant == "male" and not is_player:
 			var authored_size: Dictionary = appearance_profile.get("anatomy_size", {})
-			if not authored_size.is_empty() and not model_path.contains("/hollowmere/"):
-				ara_model.apply_male_anatomy_size(
-					float(authored_size.get("length_scale", 1.0)),
-					float(authored_size.get("girth_scale", 1.0))
-				)
+			if not authored_size.is_empty():
+				# Named companion/Hollowmere meshes bake this override during their
+				# Blender build. Keep the requested values on the actor for inspection.
+				ara_model.set_meta("male_anatomy_size_requested", authored_size.duplicate(true))
+				if model_path == PLAYER_MALE_ASSET:
+					ara_model.apply_male_anatomy_size(
+						float(authored_size.get("length_scale", 1.0)),
+						float(authored_size.get("girth_scale", 1.0))
+					)
 			elif model_path == PLAYER_MALE_ASSET:
 				var generated_size := _male_anatomy_scales_for_id(character_id)
 				ara_model.apply_male_anatomy_size(
