@@ -8,7 +8,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 	var entries: Array = terrain.settlement_layouts
-	_check(entries.size() == 6, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale, Silverhart and Old Mac's Farmstead")
+	_check(entries.size() == 7, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale, Silverhart and Old Mac's Farmstead")
 	var millbrook_entry := _entry_by_id(entries, "millbrook")
 	_check(not millbrook_entry.is_empty(), "Canonical Millbrook definition must be available")
 	if millbrook_entry.is_empty():
@@ -62,6 +62,7 @@ func _initialize() -> void:
 	_test_reddale(terrain, entries)
 	_test_silverhart(terrain, entries)
 	_test_old_mac_farmstead(terrain, entries)
+	_test_skarn_tooth_camp(terrain, entries)
 
 	var hollowmere_entry := _entry_by_id(entries, "hollowmere")
 	_check(not hollowmere_entry.is_empty(), "Canonical Hollowmere definition must remain available")
@@ -380,6 +381,34 @@ func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array)
 	var materials: Dictionary = definition.get("presentation", {}).get("materials", {})
 	_check(materials.get("agriculture", {}).has("pasture") and materials.get("agriculture", {}).has("fence"), "Farmstead agriculture must have shared material bindings")
 	_check(layout.get("fields", []).size() > 0 and layout.fields[0].get("corners", []).size() == 4, "Pasture boundary must remain a four-corner authored polygon")
+
+
+func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "skarn_tooth_camp")
+	_check(not entry.is_empty(), "Canonical Skarn-tooth Camp definition must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var buildings: Array = definition.get("layout", {}).get("buildings", [])
+	_check(buildings.size() == 7, "Skarn-tooth Camp must retain its chief hut, five huts and central campfire")
+	var expected := {
+		"skarn_tooth_chiefs_hut": Vector2i(203, 21),
+		"skarn_tooth_hut_nw": Vector2i(200, 22),
+		"skarn_tooth_hut_ne": Vector2i(206, 22),
+		"skarn_tooth_hut_sw": Vector2i(200, 25),
+		"skarn_tooth_hut_se": Vector2i(206, 25),
+		"skarn_tooth_hut_south": Vector2i(203, 26),
+		"skarn_tooth_campfire": Vector2i(203, 23)
+	}
+	for building_id in expected:
+		var building := _find_record(buildings, building_id)
+		_check(not building.is_empty(), "Source goblin camp structure must be present: " + building_id)
+		if not building.is_empty():
+			_assert_axial(building.get("center", {}), expected[building_id], building_id + " source position")
+			_check(BUILDING_FACTORY.supports_definition(building), "Goblin camp structure must use a supported shared archetype: " + building_id)
+	_check(terrain.terrain_for_hex(Vector2i(203, 21)) == "authored", "Chief hut footprint must suppress procedural terrain")
+	_check(terrain.settlement_building_cells.has("203,21"), "Chief hut occupancy must be indexed by streamed world terrain")
+	_check(String(definition.get("source", "")).contains("buildGoblinCamp"), "Goblin camp must retain source traceability")
 
 func _entry_by_id(entries: Array, settlement_id: String) -> Dictionary:
 	for entry in entries:
