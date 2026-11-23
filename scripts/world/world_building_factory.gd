@@ -68,6 +68,27 @@ const ARCHETYPES := {
 		"wall_colour": "#777b78", "timber_colour": "#514638",
 		"door_colour": "#302a22", "roof_colour": "#424547",
 		"glass_colour": "#52717a", "roof_style": "none"
+	},
+	"hut": {
+		"width": 10.0, "depth": 8.5, "wall_height": 2.8, "roof_rise": 1.5,
+		"foundation_colour": "#665a46", "floor_colour": "#493323",
+		"wall_colour": "#8b7955", "timber_colour": "#4e3825",
+		"door_colour": "#382719", "roof_colour": "#62523a",
+		"glass_colour": "#52717a", "roof_style": "gable"
+	},
+	"hut_large": {
+		"width": 14.0, "depth": 11.5, "wall_height": 3.2, "roof_rise": 1.8,
+		"foundation_colour": "#665a46", "floor_colour": "#493323",
+		"wall_colour": "#765c3d", "timber_colour": "#38291e",
+		"door_colour": "#30251c", "roof_colour": "#493a2c",
+		"glass_colour": "#52717a", "roof_style": "gable"
+	},
+	"campfire": {
+		"width": 3.5, "depth": 3.5, "wall_height": 1.8, "roof_rise": 0.0,
+		"foundation_colour": "#625b50", "floor_colour": "#343638",
+		"wall_colour": "#e36c2f", "timber_colour": "#493020",
+		"door_colour": "#302a22", "roof_colour": "#424547",
+		"glass_colour": "#52717a", "roof_style": "none"
 	}
 }
 
@@ -86,7 +107,10 @@ const KIND_TO_ARCHETYPE := {
 	"inn": "inn",
 	"guardhouse": "guardhouse",
 	"smithy": "smithy",
-	"mine_entrance": "mine_entrance"
+	"mine_entrance": "mine_entrance",
+	"hut": "hut",
+	"hut_large": "hut_large",
+	"campfire": "campfire"
 }
 
 ## Returns null for an invalid/unsupported definition instead of silently
@@ -124,6 +148,8 @@ static func create_building(parent: Node3D, settlement: Dictionary, definition: 
 
 	if archetype == "mine_entrance":
 		_build_mine_portal(root, config)
+	elif archetype == "campfire":
+		_build_campfire(root, config)
 	else:
 		_build_shell(root, config, definition)
 		if bool(definition.get("door_enabled", true)):
@@ -302,6 +328,37 @@ static func _build_mine_portal(root: Node3D, config: Dictionary) -> void:
 	_add_box(root, "MineTimberRight", Vector3(opening_width * 0.5 - 0.16, 2.05, portal_z + 0.22), Vector3(0.28, 3.8, 0.3), timber)
 	_add_box(root, "MineTimberHeader", Vector3(0.0, 3.9, portal_z + 0.22), Vector3(opening_width, 0.3, 0.3), timber)
 	_add_box(root, "MineThreshold", Vector3(0.0, 0.42, portal_z + 0.65), Vector3(opening_width, 0.22, 1.4), foundation)
+
+static func _build_campfire(root: Node3D, config: Dictionary) -> void:
+	var stone := _material(Color(config.foundation_colour))
+	var timber := _material(Color(config.timber_colour))
+	var flame := _material(Color(config.wall_colour), 0.45)
+	for index in range(8):
+		var angle := TAU * float(index) / 8.0
+		var rock := _add_box(root, "FireStone_%02d" % index, Vector3(cos(angle) * 1.05, 0.22, sin(angle) * 1.05), Vector3(0.72, 0.42, 0.58), stone)
+		rock.rotation.y = angle
+	var log_a := _add_box(root, "FireLogA", Vector3(0.0, 0.48, 0.0), Vector3(1.65, 0.18, 0.22), timber)
+	log_a.rotation.y = deg_to_rad(35.0)
+	var log_b := _add_box(root, "FireLogB", Vector3(0.0, 0.50, 0.0), Vector3(1.55, 0.18, 0.22), timber)
+	log_b.rotation.y = deg_to_rad(-35.0)
+	var fire := MeshInstance3D.new()
+	fire.name = "Flame"
+	var cone := CylinderMesh.new()
+	cone.top_radius = 0.08
+	cone.bottom_radius = 0.48
+	cone.height = 1.25
+	cone.radial_segments = 9
+	fire.mesh = cone
+	fire.position = Vector3(0.0, 1.0, 0.0)
+	fire.material_override = flame
+	root.add_child(fire)
+	var light := OmniLight3D.new()
+	light.name = "CampfireLight"
+	light.position = Vector3(0.0, 1.0, 0.0)
+	light.light_color = Color("#ff8a43")
+	light.light_energy = 1.4
+	light.omni_range = 8.0
+	root.add_child(light)
 
 static func _build_fireplace(root: Node3D, config: Dictionary) -> void:
 	var stone := _material(Color(config.foundation_colour))
