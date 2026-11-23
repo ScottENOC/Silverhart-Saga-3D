@@ -133,6 +133,7 @@ func _initialize() -> void:
 	_check(bool(barrow_result.get("ok", false)), "Corvin Ashgrave source floor must build")
 	if bool(barrow_result.get("ok", false)):
 		var barrow_map: HexMapData = barrow_result.get("map_data") as HexMapData
+		_check(_has_walkable_path(barrow_map, Vector2i(60, -160), Vector2i(72, -160)), "Barrow antechamber and sanctum must form one connected walkable layout")
 		_check(barrow_map.is_walkable(Vector2i(60, -160)), "Barrow entrance doorway must be walkable")
 		_check(barrow_map.is_walkable(Vector2i(63, -160)), "Barrow antechamber centre must be walkable")
 		_check(barrow_map.is_walkable(Vector2i(66, -160)) and barrow_map.is_walkable(Vector2i(67, -160)) and barrow_map.is_walkable(Vector2i(68, -160)) and barrow_map.is_walkable(Vector2i(69, -160)), "Source corridor must connect the antechamber to the sanctum doorway")
