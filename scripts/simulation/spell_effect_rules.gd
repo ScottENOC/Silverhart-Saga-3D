@@ -236,10 +236,14 @@ func apply(
 			for victim in affected:
 				if victim.side == caster.side:
 					continue
-				_add_effect(victim, "entangled", caster.id)
+				_add_effect(victim, "entangled", caster.id, {"ticks_remaining": 20, "zone_id": cast_id})
 				entangled.append(victim.id)
+			var affected_hexes: Array[Vector2i] = simulation.apply_entangle_zone(target_hex, radius, caster.id, 20, cast_id)
 			payload["affected_ids"] = entangled
+			payload["affected_hexes"] = affected_hexes
 			payload["radius"] = radius
+			payload["duration_ticks"] = 20
+			payload["zone_id"] = cast_id
 		"wild_fury":
 			for animal in selected_targets:
 				_add_effect(animal, "wild_fury", caster.id, {"magnitude": magnitude, "ticks_remaining": 200.0})
