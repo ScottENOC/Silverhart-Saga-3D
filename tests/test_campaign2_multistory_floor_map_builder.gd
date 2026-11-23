@@ -123,10 +123,10 @@ func _initialize() -> void:
 	_check(bool(barrow_result.get("ok", false)), "Corvin Ashgrave source floor must build")
 	if bool(barrow_result.get("ok", false)):
 		var barrow_map: HexMapData = barrow_result.get("map_data") as HexMapData
-		_check(barrow_map.is_walkable(Vector2i(54, -160)), "Barrow entrance doorway must be walkable")
-		_check(barrow_map.is_walkable(Vector2i(57, -160)), "Barrow antechamber centre must be walkable")
-		_check(barrow_map.is_walkable(Vector2i(61, -160)) and barrow_map.is_walkable(Vector2i(62, -160)) and barrow_map.is_walkable(Vector2i(63, -160)), "Source corridor must connect the antechamber to the sanctum doorway")
-		_check(barrow_map.is_walkable(Vector2i(66, -160)), "Lich sanctum centre must be walkable")
+		_check(barrow_map.is_walkable(Vector2i(60, -160)), "Barrow entrance doorway must be walkable")
+		_check(barrow_map.is_walkable(Vector2i(63, -160)), "Barrow antechamber centre must be walkable")
+		_check(barrow_map.is_walkable(Vector2i(66, -160)) and barrow_map.is_walkable(Vector2i(67, -160)) and barrow_map.is_walkable(Vector2i(68, -160)) and barrow_map.is_walkable(Vector2i(69, -160)), "Source corridor must connect the antechamber to the sanctum doorway")
+		_check(barrow_map.is_walkable(Vector2i(72, -160)), "Lich sanctum centre must be walkable")
 		_check(_has_object(barrow_result.get("tile_objects", []), "barrow_entrance_door") and _has_object(barrow_result.get("tile_objects", []), "lich_sanctum_door"), "Both source door openings must be emitted")
 		_check(barrow_result.get("actors", []).is_empty() and barrow_result.get("creatures", []).is_empty(), "Map-only barrow floor must leave encounters to campaign systems")
 
