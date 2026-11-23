@@ -16124,6 +16124,200 @@
       "npcs": [],
       "creatures": [],
       "source_note": "Map-only first pass. Named goblin actors, trader, scout note and faction/quest behaviours remain campaign-owned."
+    },
+    {
+      "id": "skarnaks_hold",
+      "name": "Skarnak's Hold",
+      "location_id": "skarnaks_hold",
+      "center": {
+        "q": 428,
+        "r": 17
+      },
+      "road_endpoint": {
+        "q": 398,
+        "r": 23
+      },
+      "source_builder": "campaign2World.js:buildOrcStronghold",
+      "buildings": [
+        {
+          "id": "skarnaks_warlord_hut",
+          "kind": "hut_large",
+          "archetype": "hut_large",
+          "center": {
+            "q": 428,
+            "r": 14
+          },
+          "half_q": 0,
+          "half_r": 0,
+          "door_enabled": false,
+          "dimensions": {
+            "width": 14,
+            "depth": 11.5,
+            "wall_height": 3.2,
+            "roof_rise": 1.8
+          },
+          "materials": {
+            "wall_colour": "#765c3d",
+            "timber_colour": "#38291e",
+            "roof_colour": "#493a2c"
+          },
+          "source": "buildOrcStronghold:warlord hut"
+        },
+        {
+          "id": "skarnaks_hut_west_north",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 424,
+            "r": 16
+          },
+          "half_q": 0,
+          "half_r": 0,
+          "door_enabled": false,
+          "materials": {
+            "wall_colour": "#765c3d",
+            "timber_colour": "#38291e",
+            "roof_colour": "#493a2c"
+          },
+          "source": "buildOrcStronghold:hut"
+        },
+        {
+          "id": "skarnaks_hut_east_north",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 432,
+            "r": 16
+          },
+          "half_q": 0,
+          "half_r": 0,
+          "door_enabled": false,
+          "materials": {
+            "wall_colour": "#765c3d",
+            "timber_colour": "#38291e",
+            "roof_colour": "#493a2c"
+          },
+          "source": "buildOrcStronghold:hut"
+        },
+        {
+          "id": "skarnaks_hut_west_south",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 424,
+            "r": 19
+          },
+          "half_q": 0,
+          "half_r": 0,
+          "door_enabled": false,
+          "materials": {
+            "wall_colour": "#765c3d",
+            "timber_colour": "#38291e",
+            "roof_colour": "#493a2c"
+          },
+          "source": "buildOrcStronghold:hut"
+        },
+        {
+          "id": "skarnaks_hut_east_south",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 432,
+            "r": 19
+          },
+          "half_q": 0,
+          "half_r": 0,
+          "door_enabled": false,
+          "materials": {
+            "wall_colour": "#765c3d",
+            "timber_colour": "#38291e",
+            "roof_colour": "#493a2c"
+          },
+          "source": "buildOrcStronghold:hut"
+        },
+        {
+          "id": "skarnaks_hut_south",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 428,
+            "r": 20
+          },
+          "half_q": 0,
+          "half_r": 0,
+          "door_enabled": false,
+          "materials": {
+            "wall_colour": "#765c3d",
+            "timber_colour": "#38291e",
+            "roof_colour": "#493a2c"
+          },
+          "source": "buildOrcStronghold:hut"
+        },
+        {
+          "id": "skarnaks_hut_southwest",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 426,
+            "r": 20
+          },
+          "half_q": 0,
+          "half_r": 0,
+          "door_enabled": false,
+          "materials": {
+            "wall_colour": "#765c3d",
+            "timber_colour": "#38291e",
+            "roof_colour": "#493a2c"
+          },
+          "source": "buildOrcStronghold:hut"
+        },
+        {
+          "id": "skarnaks_hut_northeast",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 430,
+            "r": 14
+          },
+          "half_q": 0,
+          "half_r": 0,
+          "door_enabled": false,
+          "materials": {
+            "wall_colour": "#765c3d",
+            "timber_colour": "#38291e",
+            "roof_colour": "#493a2c"
+          },
+          "source": "buildOrcStronghold:hut"
+        },
+        {
+          "id": "skarnaks_central_fire",
+          "kind": "campfire",
+          "archetype": "campfire",
+          "center": {
+            "q": 428,
+            "r": 17
+          },
+          "half_q": 0,
+          "half_r": 0,
+          "door_enabled": false,
+          "dimensions": {
+            "width": 3.5,
+            "depth": 3.5,
+            "wall_height": 1.8,
+            "roof_rise": 0
+          },
+          "materials": {
+            "foundation_colour": "#625b50",
+            "wall_colour": "#e36c2f",
+            "timber_colour": "#493020"
+          },
+          "source": "buildOrcStronghold:central fireplace"
+        }
+      ],
+      "paths": [],
+      "npcs": [],
+      "creatures": [],
+      "source_note": "Map-only exterior pass. Warlord, Kesh the trader, orc guards, troll, faction relations and trust quest remain campaign-owned."
     }
   ]
 }
