@@ -27,6 +27,7 @@ var pending_target_mode: String = ""
 func _ready() -> void:
     layer = 70
     _build_shell()
+    get_viewport().size_changed.connect(_layout_shell)
     visible = false
 
 
@@ -139,12 +140,8 @@ func refresh() -> void:
 func _build_shell() -> void:
     _panel = PanelContainer.new()
     _panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-    _panel.offset_left = -520.0
-    _panel.offset_right = -18.0
-    _panel.offset_top = 72.0
-    _panel.offset_bottom = 850.0
-    _panel.custom_minimum_size = Vector2(490.0, 620.0)
     add_child(_panel)
+    _layout_shell()
 
     var stack := VBoxContainer.new()
     stack.add_theme_constant_override("separation", 8)
@@ -157,6 +154,19 @@ func _build_shell() -> void:
     _content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     _content.add_theme_constant_override("separation", 7)
     scroll.add_child(_content)
+
+
+func _layout_shell() -> void:
+    if _panel == null:
+        return
+    var viewport_size := get_viewport().get_visible_rect().size
+    var panel_width := maxf(240.0, minf(490.0, viewport_size.x - 24.0))
+    var panel_height := maxf(300.0, minf(780.0, viewport_size.y - 96.0))
+    _panel.offset_left = -panel_width - 12.0
+    _panel.offset_right = -12.0
+    _panel.offset_top = 72.0
+    _panel.offset_bottom = 72.0 + panel_height
+    _panel.custom_minimum_size = Vector2(panel_width, panel_height)
 
 
 func _build_spell_builder(state: CharacterState) -> void:
