@@ -1284,15 +1284,16 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 			"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
 			"goblin_standing": journal.faction_standing("goblin_tribe"),
 			"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
-			"necromancer_standing": journal.faction_standing("necromancer_cult"),
-			"wizard_vendetta_active": String(journal.quest_state("wizard_vendetta").get("status", "")) == "active",
-			"has_wizard_corruption_evidence": _player_has_item("wizard_corruption_evidence"),
-			"chancellor_tunnel_discovered": bool(simulation.get_meta("chancellor_tunnel_discovered", false)),
-			"chancellor_tunnel_reported": bool(simulation.get_meta("chancellor_tunnel_reported_to_queen", false))
+			"necromancer_standing": journal.faction_standing("necromancer_cult")
 		}
 		var conversation: Dictionary = content.seraphine_greeting(context, relationships)
 		if bool(conversation.get("ok", false)):
-			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), conversation.get("choices", []))
+			var supported_choices: Array[Dictionary] = []
+			for choice_value in conversation.get("choices", []):
+				var choice: Dictionary = choice_value
+				if String(choice.get("id", "")) in ["seraphine_topic_greenskins", "seraphine_topic_ironbond", "seraphine_topic_necromancy", "seraphine_personal_burden", "seraphine_leave"]:
+					supported_choices.append(choice)
+			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), supported_choices)
 		else:
 			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "The Queen has no audience for you.")), conversation.get("choices", [{"id":"continue","label":"Leave","kind":"leave"}]))
 		return
