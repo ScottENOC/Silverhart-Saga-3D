@@ -71,8 +71,12 @@ func configure(glb_path: String) -> bool:
 				attached_mesh.skeleton = attached_mesh.get_path_to(carrier_skeleton)
 			attached_mesh.visible = true
 			attached_mesh_count += 1
-		body_root.free()
-		if attached_mesh_count > 0:
+		var skinned_mesh_count := 0
+		for attached_mesh in carrier_root.get_children():
+			if attached_mesh is MeshInstance3D and (attached_mesh as MeshInstance3D).skin != null:
+				skinned_mesh_count += 1
+		if attached_mesh_count > 0 and skinned_mesh_count > 0:
+			body_root.free()
 			model_root = carrier_root
 		else:
 			carrier_root.free()
