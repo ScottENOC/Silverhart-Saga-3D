@@ -1667,6 +1667,223 @@
       ],
       "transitions": [],
       "quest_gates": []
+    },
+    {
+      "id": "silverhart_stables",
+      "name": "Silverhart — Royal Stables",
+      "anchor": {
+        "q": -23,
+        "r": -502
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace stableCenter and carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Royal Stables",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "stables",
+              "center": {
+                "q": -23,
+                "r": -502
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "stables_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -19,
+                "r": -502
+              }
+            },
+            {
+              "id": "stables_pen",
+              "type": "fence_h",
+              "position": {
+                "q": -23,
+                "r": -502
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_general_goods",
+      "name": "Silverhart — General Goods",
+      "anchor": {
+        "q": -22,
+        "r": -490
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace generalGoodsCenter and carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "General Goods",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "general_goods",
+              "center": {
+                "q": -22,
+                "r": -490
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "general_goods_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -19,
+                "r": -490
+              }
+            },
+            {
+              "id": "guild_initiation_prize",
+              "type": "evidence",
+              "evidence_key": "guild_initiation_prize",
+              "position": {
+                "q": -24,
+                "r": -491
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_clothier",
+      "name": "Silverhart — Clothier",
+      "anchor": {
+        "q": -29,
+        "r": -502
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace clothierCenter and carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Clothier",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "clothier",
+              "center": {
+                "q": -29,
+                "r": -502
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "clothier_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -32,
+                "r": -502
+              }
+            },
+            {
+              "id": "clothier_counter",
+              "type": "table",
+              "position": {
+                "q": -29,
+                "r": -501
+              }
+            },
+            {
+              "id": "clothier_bed",
+              "type": "bed",
+              "position": {
+                "q": -29,
+                "r": -503
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_magic_shop",
+      "name": "Silverhart — Magic Shop",
+      "anchor": {
+        "q": -29,
+        "r": -490
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace magicShopCenter and carveFlatRoom",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Magic Shop",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "magic_shop",
+              "center": {
+                "q": -29,
+                "r": -490
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "magic_shop_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -32,
+                "r": -490
+              }
+            },
+            {
+              "id": "magic_shop_counter",
+              "type": "table",
+              "position": {
+                "q": -29,
+                "r": -489
+              }
+            },
+            {
+              "id": "magic_shop_bed",
+              "type": "bed",
+              "position": {
+                "q": -29,
+                "r": -491
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
     }
   ]
 }
