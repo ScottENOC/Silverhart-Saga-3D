@@ -52,6 +52,24 @@
       "source_path": "res://data/world/campaign2_settlement_layouts.json",
       "source_collection": "settlements",
       "source_record_id": "old_mac_farmstead"
+    },
+    {
+      "id": "emberwood_grove",
+      "priority": 30,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "emberwood_grove"
+    },
+    {
+      "id": "skarn_tooth_camp",
+      "priority": 28,
+      "adapter_script": "res://scripts/world/settlement_definition_source_adapters.gd",
+      "adapter_method": "adapt_campaign2_layout",
+      "source_path": "res://data/world/campaign2_settlement_layouts.json",
+      "source_collection": "settlements",
+      "source_record_id": "skarn_tooth_camp"
     }
   ]
 }
