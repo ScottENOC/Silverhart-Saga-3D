@@ -1,0 +1,134 @@
+name: Fit standard Ara briefs to Wren
+# Re-run on workflow-file updates so the first real-asset fit is observable.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/wren-standard-briefs-fit]
+    paths:
+      - ".github/workflows/wren-standard-briefs-fit.yml"
+      - "tools/blender/garment_fit/**"
+      - "tools/ara/assemble_modular_glb.py"
+      - "tools/review/render_wren_briefs_fit.py"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  fit-and-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download latest successful native Wren build from dev
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/wren-native build/wren-briefs-fit
+          run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-wren-native-ara.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id')
+          test "$run_id" != "null"
+          run_number=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id" --jq '.run_number')
+          gh run download "$run_id" --name "wren-native-ara-$run_number" --dir build/wren-native
+          test -s build/wren-native/Wren.glb
+          echo "WREN_BUILD_RUN=$run_id" >> "$GITHUB_ENV"
+          echo "WREN_BUILD_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run_id" --jq '.head_sha')" >> "$GITHUB_ENV"
+
+      - name: Validate inputs and solver tests
+        run: |
+          set -euo pipefail
+          test -s art/characters/ara_runtime/ara_person_modular_underwear.glb
+          python -m py_compile tools/ara/assemble_modular_glb.py tools/blender/garment_fit/solver_core.py tools/blender/garment_fit/fit_glb.py tools/review/render_wren_briefs_fit.py
+          PYTHONPATH=tools/blender/garment_fit python -m unittest discover -s tools/blender/garment_fit -p 'test_solver_core.py' -v
+
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+
+      - name: Assemble standard Briefs onto Wren's exact native rig
+        run: |
+          set -euo pipefail
+          python tools/ara/assemble_modular_glb.py \
+            build/wren-native/Wren.glb \
+            build/wren-briefs-fit/wren-briefs-source.glb \
+            art/characters/ara_runtime/ara_person_modular_underwear.glb "Briefs"
+          test -s build/wren-briefs-fit/wren-briefs-source.glb
+
+      - name: Render unmodified assembled briefs baseline
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 \
+            --python tools/review/render_wren_briefs_fit.py -- \
+            build/wren-briefs-fit/wren-briefs-source.glb \
+            build/wren-briefs-fit/review/source standard_briefs
+          for view in front side rear; do
+            test -s "build/wren-briefs-fit/review/source/standard_briefs/$view.png"
+          done
+
+      - name: Fit briefs to Wren's skin surface
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          fit_status=0
+          blender --background --python-exit-code 1 \
+            --python tools/blender/garment_fit/fit_glb.py -- \
+            --input build/wren-briefs-fit/wren-briefs-source.glb \
+            --output build/wren-briefs-fit/wren-standard-briefs-fitted.glb \
+            --report build/wren-briefs-fit/fit-report.json \
+            --skin-material Skin_Anatomy --garment-material Briefs \
+            --fit-mode existing || fit_status=$?
+          test -s build/wren-briefs-fit/wren-standard-briefs-fitted.glb
+          test -s build/wren-briefs-fit/fit-report.json
+          echo "FIT_STATUS=$fit_status" >> "$GITHUB_ENV"
+          if [ "$fit_status" -ne 0 ]; then
+            echo "Fit quality gate failed; retaining geometry and report for visual diagnosis."
+          fi
+
+      - name: Render front, side and rear fit review
+        if: always() && hashFiles('build/wren-briefs-fit/wren-standard-briefs-fitted.glb') != ''
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 \
+            --python tools/review/render_wren_briefs_fit.py -- \
+            build/wren-briefs-fit/wren-standard-briefs-fitted.glb \
+            build/wren-briefs-fit/review/fitted standard_briefs
+          for view in front side rear; do
+            test -s "build/wren-briefs-fit/review/fitted/standard_briefs/$view.png"
+          done
+          test -s build/wren-briefs-fit/review/fitted/standard_briefs/report.json
+
+      - name: Upload fit diagnostics, including failed fits
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-standard-briefs-fit-diagnostics
+          path: build/wren-briefs-fit/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Enforce fit quality gate
+        if: always()
+        run: |
+          test "${FIT_STATUS:-1}" -eq 0
+
+      - name: Verify source Wren and underwear assets are unchanged
+        run: |
+          git diff --exit-code -- art/characters/ara_runtime/ara_person_modular_underwear.glb
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wren-standard-briefs-fit-review
+          path: build/wren-briefs-fit/
+          if-no-files-found: error
+          retention-days: 30
