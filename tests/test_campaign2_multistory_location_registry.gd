@@ -155,6 +155,15 @@ func _initialize() -> void:
 	_check(tunnel_stub.get("rooms", [])[0].get("half_width", 0) == 1 and tunnel_stub.get("rooms", [])[0].get("half_height", 0) == 1, "The wilderness tunnel endpoint must remain a one-cell stub, not an invented large room")
 	_check(thieves_cove.get("transitions", []).size() == 6, "Thieves' Cove must retain reciprocal stairs between all four source levels")
 
+	var barrow: Dictionary = registry.get_definition("corvin_ashgrave_barrow")
+	_check(int(barrow.get("anchor", {}).get("q", 0)) == 57 and int(barrow.get("anchor", {}).get("r", 0)) == -160, "Corvin Ashgrave barrow anchor must derive from the source necromancer ritual centre")
+	_check(barrow.get("floors", []).size() == 1, "Corvin Ashgrave barrow must remain a single source floor, not invented vertical levels")
+	var barrow_floor := registry.get_floor_definition("corvin_ashgrave_barrow", 0)
+	_check(barrow_floor.get("rooms", []).size() == 2, "Barrow must retain its source antechamber and lich sanctum")
+	_check(barrow_floor.get("corridors", []).size() == 1, "Barrow must retain the straight source corridor between rooms")
+	_check(_has_record(barrow_floor.get("tile_objects", []), "barrow_entrance_door") and _has_record(barrow_floor.get("tile_objects", []), "lich_sanctum_door"), "Barrow must retain both source door openings")
+	_check(barrow_floor.get("actors", []).is_empty() and barrow_floor.get("creatures", []).is_empty(), "Barrow map port must not pull campaign-owned actors or encounters into map data")
+
 	var emberlode_mine: Dictionary = registry.get_definition("emberlode_mine")
 	_check(int(emberlode_mine.get("anchor", {}).get("q", 0)) == -252 and int(emberlode_mine.get("anchor", {}).get("r", 0)) == 16, "Emberlode Mine anchor must match buildEmberlode mineCenter")
 	_check(emberlode_mine.get("floors", []).size() == 3, "Emberlode Mine must retain its surface entrance and two underground levels")
