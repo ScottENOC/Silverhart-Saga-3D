@@ -59,6 +59,10 @@ func _test_source_faction_seeds() -> void:
 	FACTION_SIMULATION.seed_faction_standings(dwarf, "dwarf")
 	_check(is_equal_approx(dwarf.faction_standing("dwarven_kingdom"), 5.0))
 
+	var undead := CampaignJournal.new()
+	FACTION_SIMULATION.seed_faction_standings(undead, "undead")
+	_check(is_equal_approx(undead.faction_standing("necromancer_cult"), 5.0))
+
 
 func _test_goblin_to_orc_reputation_cascade() -> void:
 	var journal := CampaignJournal.new()
@@ -89,6 +93,8 @@ func _test_autonomous_ironbond_influence() -> void:
 	journal.adjust_faction_reputation("ironbond_company", 40.0, 0.0, "the Company recovered")
 	agenda.advance_to(journal, 5400.0)
 	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 100.0), "Autonomous influence remains clamped to 0..100")
+	journal.adjust_merchant_influence("ironbond_company", "silverhart_kingdom", -200.0, "lower clamp test")
+	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 0.0), "Merchant influence cannot fall below zero")
 
 
 func _test_agenda_progress_survives_save_load() -> void:
