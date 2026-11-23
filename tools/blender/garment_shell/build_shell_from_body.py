@@ -26,6 +26,7 @@ def parse_args():
     parser.add_argument("--field-json", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--body-object", default="")
+    parser.add_argument("--source-material", default="Skin_Anatomy")
     parser.add_argument("--material-name", default="GarmentShell")
     parser.add_argument("--offset-m", type=float, default=0.003)
     parser.add_argument("--hem-depth-m", type=float, default=0.0015)
@@ -160,7 +161,12 @@ def main():
 
     vertices = [tuple(v.co) for v in mesh.vertices]
     normals = [tuple(v.normal) for v in mesh.vertices]
-    faces = [tuple(poly.vertices) for poly in mesh.polygons]
+    faces = [tuple(poly.vertices) for poly in mesh.polygons
+             if poly.material_index < len(mesh.materials)
+             and mesh.materials[poly.material_index]
+             and mesh.materials[poly.material_index].name == args.source_material]
+    if not faces:
+        raise RuntimeError(f"No body faces use source material {args.source_material!r}")
     shell = build_shell(vertices, normals, faces, field_values, args.offset_m, args.hem_depth_m)
 
     garment_mesh = bpy.data.meshes.new(args.material_name + "Mesh")
@@ -190,6 +196,8 @@ def main():
     report = {
         "body_object": body.name,
         "body_vertices": len(mesh.vertices),
+        "source_material": args.source_material,
+        "source_faces": len(faces),
         "coverage_vertices": sum(1 for value in field_values if value >= 0),
         "garment_vertices": len(shell.positions),
         "surface_faces": shell.surface_face_count,
