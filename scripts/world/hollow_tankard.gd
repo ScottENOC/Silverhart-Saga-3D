@@ -1044,6 +1044,7 @@ func _build_save_snapshot() -> Dictionary:
 		"wilderness_resources": simulation.wilderness_resources.to_dict(),
 		"multistory_locations": simulation.multistory_location_states_to_dict(),
 		"buildings": simulation.building_registry.to_dict(),
+		"spell_terrain_effects": simulation.spell_terrain_effects_to_dict(),
 		"world_flags": {
 			"ambient_security": ambient_security,
 			"shakedown_started": shakedown_started,
@@ -1085,6 +1086,9 @@ func _apply_save_data(data: Dictionary) -> void:
 	if not simulation.restore_character_states(restored_states):
 		push_error("Saved character states could not be restored without invalid occupancy or mount links.")
 		return
+	var saved_spell_terrain: Variant = data.get("spell_terrain_effects", [])
+	if saved_spell_terrain is Array:
+		simulation.restore_spell_terrain_effects(saved_spell_terrain)
 	for restored_state in restored_states:
 		if restored_state != null and (restored_state.is_summoned or restored_state.is_animal_companion):
 			_ensure_summoned_animal_actor(restored_state)
