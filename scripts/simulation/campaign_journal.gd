@@ -12,6 +12,12 @@ var faction_knowledge: Dictionary = {}
 var npc_standings: Dictionary = {}
 var npc_knowledge: Dictionary = {}
 var merchant_influence: Dictionary = {}
+var faction_agenda_elapsed_seconds: float = 0.0
+
+const FACTION_AGENDA_INTERVAL_SECONDS: float = 3600.0
+const FACTION_AGENDAS: Dictionary = {
+    "ironbond_company": {"standing_threshold": 10.0, "merchant_influence_drift_per_hour": 0.02}
+}
 
 
 func register_quest_definition(definition: Dictionary) -> Dictionary:
@@ -192,7 +198,16 @@ func adjust_faction_reputation(faction_id: String, standing_delta: float, knowle
     faction_standings[faction_id] = next_value
     faction_knowledge[faction_id] = next_knowledge
     _emit_event("faction_reputation_changed", {"faction_id": faction_id, "previous": previous, "current": next_value, "delta": applied_delta, "knowledge": next_knowledge, "reason": reason})
-    return {"ok": true, "previous": previous, "current": next_value, "delta": applied_delta, "knowledge": next_knowledge}
+    var result := {"ok": true, "previous": previous, "current": next_value, "delta": applied_delta, "knowledge": next_knowledge}
+    # The Skarn-tooth tribe is a scouting warband for the orc raiders. The
+    # source game forwards 35% of every goblin standing/knowledge change to
+    # the wider raider faction, using the same knowledge dampening rules.
+    if faction_id == "goblin_tribe":
+        result["cascade"] = adjust_faction_reputation(
+            "orc_raiders", standing_delta * 0.35, knowledge_delta * 0.35,
+            reason + " (reported from the Skarn-tooth tribe)"
+        )
+    return result
 
 
 func adjust_npc_reputation(npc_id: String, standing_delta: float, knowledge_delta: float, reason: String = "") -> Dictionary:
@@ -225,6 +240,39 @@ func adjust_merchant_influence(faction_id: String, kingdom_id: String, amount: f
 func merchant_influence_for(faction_id: String, kingdom_id: String) -> float:
     var influence: Dictionary = merchant_influence.get(faction_id, {})
     return float(influence.get(kingdom_id, 0.0))
+
+
+## Advance source-authored autonomous faction agendas. The Ironbond Company
+## gains or loses 0.02 influence per in-game hour when its own standing is
+## above +10 or below -10 respectively. Accumulation is saved so a campaign
+## save/load cannot discard a partially elapsed agenda hour.
+func advance_faction_agendas(delta_seconds: float) -> void:
+    if not is_finite(delta_seconds) or delta_seconds <= 0.0:
+        return
+    faction_agenda_elapsed_seconds += delta_seconds
+    while faction_agenda_elapsed_seconds + 0.000001 >= FACTION_AGENDA_INTERVAL_SECONDS:
+        faction_agenda_elapsed_seconds -= FACTION_AGENDA_INTERVAL_SECONDS
+        if faction_agenda_elapsed_seconds < 0.0:
+            faction_agenda_elapsed_seconds = 0.0
+        _tick_faction_agendas_one_hour()
+
+
+func _tick_faction_agendas_one_hour() -> void:
+    for faction_id_value in FACTION_AGENDAS:
+        var faction_id := String(faction_id_value)
+        var agenda: Dictionary = FACTION_AGENDAS[faction_id]
+        var standing := float(faction_standings.get(faction_id, 0.0))
+        var threshold := float(agenda.get("standing_threshold", 10.0))
+        var drift_per_hour := float(agenda.get("merchant_influence_drift_per_hour", 0.0))
+        var drift := drift_per_hour if standing > threshold else (-drift_per_hour if standing < -threshold else 0.0)
+        if is_zero_approx(drift):
+            continue
+        var influence: Dictionary = merchant_influence.get(faction_id, {})
+        for kingdom_id_value in influence.keys():
+            adjust_merchant_influence(
+                faction_id, String(kingdom_id_value), drift,
+                "autonomous faction agenda"
+            )
 
 
 func adjust_faction_standing(faction_id: String, amount: int, reason: String = "") -> Dictionary:
@@ -281,7 +329,8 @@ func to_dict() -> Dictionary:
         "npc_standings": npc_standings.duplicate(true),
         "faction_knowledge": faction_knowledge.duplicate(true),
         "npc_knowledge": npc_knowledge.duplicate(true),
-        "merchant_influence": merchant_influence.duplicate(true)
+        "merchant_influence": merchant_influence.duplicate(true),
+        "faction_agenda_elapsed_seconds": faction_agenda_elapsed_seconds
     }
 
 
@@ -292,6 +341,7 @@ func load_dict(data: Dictionary) -> void:
     faction_knowledge.clear()
     npc_knowledge.clear()
     merchant_influence.clear()
+    faction_agenda_elapsed_seconds = maxf(0.0, float(data.get("faction_agenda_elapsed_seconds", 0.0)))
     var saved_quests: Variant = data.get("quests", {})
     if saved_quests is Dictionary:
         for quest_id_value in saved_quests.keys():
