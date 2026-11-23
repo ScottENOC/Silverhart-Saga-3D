@@ -23,11 +23,11 @@ If a particular character GLB has no locomotion clip, the actor will still move 
 
 Group movement should be layered above the existing pathfinder and simulation rather than moving actors directly. The planned behaviour is:
 
-1. A Group Move control toggles formation movement for the current party.
+1. A Group Move control toggles formation movement for the current party during exploration only.
 2. The selected character remains the formation leader; companions receive destination hexes relative to the leader's destination and facing.
 3. Each companion uses the existing pathfinder and movement rules. Impassable terrain, elevation, doors and occupied hexes remain authoritative.
 4. Followers re-plan when the leader changes direction, a destination becomes blocked, or a companion falls behind.
 5. Followers use the same movement event and presentation path as ordinary player/NPC movement.
-6. Combat keeps its existing turn economy. Formation movement is an exploration command; during combat, each character must still spend its own movement allowance on its own turn.
+6. Group movement is completely disabled in turn-based combat. There is no group command, formation-following behaviour, shared movement action or movement-allowance bypass in combat. Every combatant moves individually on its own turn using the existing combat rules.
 
-Formation slots must be treated as desired positions, not guaranteed teleport destinations. When a slot is blocked, the follower should choose the nearest valid reachable hex and continue to seek its assigned slot.
+Formation slots must be treated as desired positions, not guaranteed teleport destinations. When a slot is blocked, the follower should choose the nearest valid reachable hex and continue to seek its assigned slot. This entire formation system is an exploration-only convenience; it must not run during combat.
