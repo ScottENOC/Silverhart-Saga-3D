@@ -116,7 +116,7 @@ func read_chief(relationships: PersistentCharacterRelationshipState) -> Dictiona
 ## Resolve one of the mutually exclusive campaign outcomes. Reputation changes
 ## are applied to CampaignJournal here; scene-level consequences are returned
 ## as descriptors for the campaign runtime to enact exactly once.
-func resolve_threat(journal: CampaignJournal, resolution: String) -> Dictionary:
+func resolve_threat(journal: CampaignJournal, resolution: String, relationships: PersistentCharacterRelationshipState = null) -> Dictionary:
 	if journal == null:
 		return {"ok":false,"reason":"missing_campaign_journal"}
 	var outcomes := {
@@ -145,7 +145,7 @@ func resolve_threat(journal: CampaignJournal, resolution: String) -> Dictionary:
 		return {"ok":false,"reason":"unknown_resolution"}
 	if resolution == "goblin_diplomacy" and journal.faction_standing("goblin_tribe") < 40.0:
 		return {"ok":false,"reason":"insufficient_goblin_standing","required":40}
-	if resolution == "goblin_alliance" and not _relationship_has_gifted_chief():
+	if resolution == "goblin_alliance" and (relationships == null or not relationships.has_recorded_event(CHIEF_ID, GIFT_EVENT_KEY)):
 		return {"ok":false,"reason":"chief_gift_required"}
 	var started := _ensure_threat_quest_started(journal)
 	if not bool(started.get("ok", false)):
@@ -211,10 +211,6 @@ func _ensure_threat_quest_started(journal: CampaignJournal) -> Dictionary:
 	if not journal.quests.has(QUEST_ID):
 		return journal.start_quest(QUEST_ID)
 	return {"ok":true,"quest_id":QUEST_ID}
-
-
-func _relationship_has_gifted_chief() -> bool:
-	return false
 
 
 func _alliance_greeting(context: Dictionary) -> Dictionary:
