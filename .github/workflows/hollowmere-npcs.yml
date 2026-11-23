@@ -81,7 +81,7 @@ jobs:
           retention-days: 90
 
       - name: Commit regenerated Hollowmere models to the integration branch
-        if: github.event_name == 'push' && github.ref_name == 'feature/character-runtime-asset-integration'
+        if: github.event_name == 'push' && (github.ref_name == 'feature/character-runtime-asset-integration' || github.ref_name == 'dev')
         shell: bash
         run: |
           set -euo pipefail
@@ -97,5 +97,14 @@ jobs:
           # Reapply the generated-model commit on top of the latest branch tip.
           # A plain rebase can silently leave HEAD behind when the trigger SHA
           # is an ancestor of a branch that advanced during the long build.
-          git rebase --onto "origin/${GITHUB_REF_NAME}" "${GITHUB_SHA}" HEAD
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase --onto "origin/${GITHUB_REF_NAME}" "${GITHUB_SHA}" HEAD
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Unable to push regenerated Hollowmere models after three retries."
+              exit 1
+            fi
+          done
