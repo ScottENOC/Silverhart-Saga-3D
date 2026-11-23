@@ -109,7 +109,8 @@ static func _make_part(part: Dictionary, materials: Dictionary, hex_radius: floa
 		instance = label
 	else:
 		var light := OmniLight3D.new()
-		light.light_color = part.get("color", Color("#ff8738"))
+		var light_color_value: Variant = part.get("color", Color("#ff8738"))
+		light.light_color = Color.from_string(String(light_color_value), Color("#ff8738")) if light_color_value is String else light_color_value
 		light.light_energy = float(part.get("energy", 1.0))
 		light.omni_range = float(part.get("range", 8.0))
 		light.shadow_enabled = bool(part.get("shadow_enabled", false))
