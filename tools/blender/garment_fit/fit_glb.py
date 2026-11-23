@@ -159,8 +159,28 @@ def main():
         })
 
     if not object_reports:
+        diagnostics = []
+        for obj in meshes:
+            if obj == skin:
+                continue
+            slots = [
+                slot.material.name if slot.material else None
+                for slot in obj.material_slots
+            ]
+            used_indices = sorted({poly.material_index for poly in obj.data.polygons})
+            diagnostics.append({
+                "object": obj.name,
+                "data_materials": [
+                    material.name if material else None
+                    for material in obj.data.materials
+                ],
+                "slot_materials": slots,
+                "used_polygon_material_indices": used_indices,
+                "polygon_count": len(obj.data.polygons),
+            })
         raise RuntimeError(
-            f"No garment faces matched explicit materials {sorted(garment_tokens)}"
+            f"No garment faces matched explicit materials {sorted(garment_tokens)}; "
+            f"imported mesh material diagnostics={diagnostics}"
         )
 
     bpy.ops.object.select_all(action="DESELECT")
