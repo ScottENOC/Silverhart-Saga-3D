@@ -21,7 +21,7 @@ class ShellCoreTests(unittest.TestCase):
         vertices = self.vertices + [(2, 0, 0), (2, 1, 0)]
         normals = [(0, 0, 1)] * 6
         shell = build_shell(vertices, normals, [(0, 1, 2, 3), (1, 4, 5, 2)],
-                            [-1, 1, 1, -1, 1, -1], 0.01)
+                            [-1, -0.3, 0.7, -1, 1, -1], 0.01)
         self.assertEqual(shell.surface_face_count, 2)
         self.assertEqual(len(shell.boundary_edges), 7)
         self.assertEqual(len(shell.positions), 7 + 7)
