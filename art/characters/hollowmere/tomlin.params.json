@@ -49,7 +49,7 @@
   "speechShapes": false,
   "expression": "neutral",
   "hairColor": "#2B1B16",
-  "name": "Tomlin Brask",
+  "legs": 0.6,
   "skinTint": "#8F6045",
-  "legs": 0.38
+  "name": "Tomlin Brask"
 }

@@ -50,7 +50,7 @@
   "speechShapes": false,
   "expression": "neutral",
   "hairColor": "#87452D",
-  "name": "Garrick Holt",
+  "legs": 0.68,
   "skinTint": "#DDAE8D",
-  "legs": 0.73
+  "name": "Garrick Holt"
 }

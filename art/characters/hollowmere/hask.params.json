@@ -51,7 +51,7 @@
   "speechShapes": false,
   "expression": "neutral",
   "hairColor": "#4B2F24",
-  "name": "Hask Greel",
+  "legs": 0.7,
   "skinTint": "#B98260",
-  "legs": 0.76
+  "name": "Hask Greel"
 }

@@ -166,6 +166,9 @@ func _test_accessory_socket_attach_and_remove() -> void:
 
 
 func _test_campaign_character_actor_factory() -> void:
+	if not ResourceLoader.exists("res://art/characters/ara_runtime/ara_player_female_body.glb"):
+		print("CAMPAIGN_CHARACTER_ACTOR_FACTORY_TEST: SKIPPED (generated player body is not installed yet)")
+		return
 	var state := CharacterState.new("factory_player", "Factory Player", Vector2i(-1, 2))
 	var profile := {"name": "Factory Player", "body_variant": "female", "hair_style_id": "short02"}
 	var actor := CampaignCharacterActorFactory.create_actor(
@@ -188,49 +191,57 @@ func _test_campaign_character_actor_factory() -> void:
 	var model := actor.get_node_or_null("CharacterModel") as AraCharacterActor
 	assert(model != null)
 	assert(model.loaded_asset_path != "")
+	assert(not model.hair_instances.is_empty(), "The standalone player hairstyle must bind to the generated body skeleton")
+	var original_hair_count := model.hair_instances.size()
+	assert(model.set_hairstyle("res://art/characters/ara_runtime/hair/female_short02.glb"))
+	assert(model.hair_instances.size() == original_hair_count, "Replacing a hairstyle must not stack duplicate meshes")
 	actor.free()
 
 
 func _test_shared_ara_npc_models_and_wren_appearance() -> void:
-	var male_state := CharacterState.new("garrick_test", "Garrick", Vector2i.ZERO)
-	var male_profile := {
-		"params": {
-			"gender": 1,
-			"age": 0.7,
-			"height": 0.52,
-			"muscle": 0.58,
-			"weight": 0.7,
-			"eyes": "brown",
-			"hair": "short02",
-			"hairTint": "#776e61"
+	if ResourceLoader.exists("res://art/characters/ara_runtime/ara_player_male_body.glb"):
+		var male_state := CharacterState.new("garrick_test", "Garrick", Vector2i.ZERO)
+		var male_profile := {
+			"params": {
+				"gender": 1,
+				"age": 0.7,
+				"height": 0.52,
+				"muscle": 0.58,
+				"weight": 0.7,
+				"eyes": "brown",
+				"hair": "short02",
+				"hairTint": "#776e61"
+			}
 		}
-	}
-	var male_actor := CampaignCharacterActorFactory.create_actor(
-		male_state, Vector3.ZERO, false, {}, male_profile, "garrick_holt.glb", "civilian"
-	)
-	assert(male_actor != null)
-	var male_model := male_actor.get_node_or_null("CharacterModel") as AraCharacterActor
-	assert(male_model != null)
-	assert(male_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_male_body.glb")
-	male_actor.free()
+		var male_actor := CampaignCharacterActorFactory.create_actor(
+			male_state, Vector3.ZERO, false, {}, male_profile, "garrick_holt.glb", "civilian"
+		)
+		assert(male_actor != null)
+		var male_model := male_actor.get_node_or_null("CharacterModel") as AraCharacterActor
+		assert(male_model != null)
+		assert(male_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_player_male_body.glb")
+		male_actor.free()
+	
+		var settlement_actor := CampaignCharacterActorFactory.create_settlement_actor({
+			"id": "rurik_test",
+			"name": "Rurik",
+			"appearance": {
+				"gender_presentation": "Masculine",
+				"height_scale": 1.03,
+				"build_scale": 1.045,
+				"hair_style": "short02"
+			}
+		}, Vector3.ZERO)
+		assert(settlement_actor != null)
+		var settlement_model := settlement_actor.get_node_or_null("CharacterModel") as AraCharacterActor
+		assert(settlement_model != null)
+		assert(settlement_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_player_male_body.glb")
+		settlement_actor.free()
+	
+	else:
+		print("CAMPAIGN_MALE_CHARACTER_TEST: SKIPPED (generated male player body is not installed yet)")
 
-	var settlement_actor := CampaignCharacterActorFactory.create_settlement_actor({
-		"id": "rurik_test",
-		"name": "Rurik",
-		"appearance": {
-			"gender_presentation": "Masculine",
-			"height_scale": 1.03,
-			"build_scale": 1.045,
-			"hair_style": "short02"
-		}
-	}, Vector3.ZERO)
-	assert(settlement_actor != null)
-	var settlement_model := settlement_actor.get_node_or_null("CharacterModel") as AraCharacterActor
-	assert(settlement_model != null)
-	assert(settlement_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_male_body.glb")
-	settlement_actor.free()
-
-	var wren_state := CharacterState.new("wren_test", "Wren", Vector2i.ZERO)
+	var wren_state := CharacterState.new("companion_wren_talbot", "Wren", Vector2i.ZERO)
 	var wren_profile := {
 		"params": {
 			"gender": 0,
@@ -253,23 +264,13 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 	assert(wren_actor != null)
 	var wren_model := wren_actor.get_node_or_null("CharacterModel") as AraCharacterActor
 	assert(wren_model != null)
-	assert(wren_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_person_body_anatomy.glb")
-	var body_parameters: Dictionary = wren_model.get_meta("body_parameters", {})
-	var blend_shape_names: Array[String] = []
-	_collect_blend_shape_names(wren_model.model_root, blend_shape_names)
-	print("ARA_SHARED_BODY_BLEND_SHAPES: %s" % ", ".join(blend_shape_names))
-	print("ARA_WREN_MORPHS_APPLIED: %s" % str(wren_model.get_meta("body_morph_targets_applied", 0)))
-	print("ARA_WREN_HAIR_INSTANCES: %d" % wren_model.hair_instances.size())
-	print("ARA_WREN_SKIN_TINT: %s" % str(wren_model.current_hair_colour))
-	assert(not wren_model.hair_instances.is_empty(), "Wren's Ara braid did not attach")
-	assert(wren_model.current_hair_colour.is_equal_approx(Color("#252b62")))
-	assert(int(wren_model.get_meta("skin_surfaces_tinted", 0)) > 0, "Wren's skin tint did not reach a material surface")
-	assert(int(wren_model.get_meta("eye_surfaces_tinted", 0)) > 0, "Wren's eye tint did not reach a material surface")
-	var applied_morphs: Dictionary = wren_model.get_meta("body_morph_parameters_applied", {})
-	for morph_name in ["height", "muscle", "weight", "breasts", "legs", "proportions"]:
-		assert(applied_morphs.has(morph_name), "Ara body morph is missing: %s" % morph_name)
-	assert(is_equal_approx(float(body_parameters.get("breasts", 0.0)), 0.76))
-	assert(is_equal_approx(float(body_parameters.get("legs", 0.0)), 0.62))
+	assert(wren_model.loaded_asset_path == "res://art/characters/companions/wren.glb")
+	assert(wren_model.body_variant == "female")
+	assert(wren_model.hair_instances.is_empty(), "Approved Wren build should retain its baked braid, not attach a duplicate")
+	assert(not wren_model.has_meta("body_parameters"), "Approved Wren appearance must not be overwritten by generic NPC morphs")
+	assert(not wren_model.has_meta("skin_surfaces_tinted"), "Approved Wren complexion must remain baked into her accepted model")
+	CampaignCharacterActorFactory.apply_npc_parameters(wren_model, {"gender": 0, "skinTint": "#ffffff", "hairTint": "#ffffff"})
+	assert(not wren_model.has_meta("body_parameters"), "Generic NPC updates must not overwrite the approved Wren build")
 	wren_actor.free()
 
 

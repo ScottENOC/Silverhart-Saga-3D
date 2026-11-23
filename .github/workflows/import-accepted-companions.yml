@@ -1,0 +1,106 @@
+name: Import approved native companion models
+
+on:
+  push:
+    branches: [feature/character-runtime-asset-integration]
+    paths:
+      - ".github/workflows/import-accepted-companions.yml"
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: import-approved-companion-models
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: true
+
+      - name: Download the accepted Wren build #111
+        uses: actions/download-artifact@v8
+        with:
+          name: wren-native-ara-111
+          repository: ${{ github.repository }}
+          run-id: 44489910457
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/accepted-wren
+
+      - name: Download the accepted Aldric build #125
+        uses: actions/download-artifact@v8
+        with:
+          name: aldric-native-ara-125
+          repository: ${{ github.repository }}
+          run-id: 44641513062
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/accepted-aldric
+
+      - name: Download the accepted Dagna build #56
+        uses: actions/download-artifact@v8
+        with:
+          name: dagna-native-ara-56
+          repository: ${{ github.repository }}
+          run-id: 44489910404
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/accepted-dagna
+
+      - name: Install the exact accepted GLBs and record provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p art/characters/companions
+          test -s /tmp/accepted-wren/Wren.glb
+          test -s /tmp/accepted-aldric/Aldric.glb
+          test -s /tmp/accepted-dagna/Dagna.glb
+          cp /tmp/accepted-wren/Wren.glb art/characters/companions/wren.glb
+          cp /tmp/accepted-aldric/Aldric.glb art/characters/companions/aldric.glb
+          cp /tmp/accepted-dagna/Dagna.glb art/characters/companions/dagna.glb
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path("art/characters/companions")
+          sources = {
+              "wren.glb": {"character": "Wren Talbot", "workflow_run": 44489910457, "build": 111, "accepted_source_commit": "912093e383ac802285d7d3491ffd9affed572b51"},
+              "aldric.glb": {"character": "Ser Aldric Thorne", "workflow_run": 44641513062, "build": 125, "accepted_source_commit": "8681bc9f6ad4e2c651d6fd8bf937fdfc95538555"},
+              "dagna.glb": {"character": "Dagna Stoneward", "workflow_run": 44489910404, "build": 56, "accepted_source_commit": "912093e383ac802285d7d3491ffd9affed572b51"},
+          }
+          manifest = {"schema_version": 1, "assets": {}}
+          for filename, provenance in sources.items():
+              payload = (root / filename).read_bytes()
+              if len(payload) < 1_000_000:
+                  raise SystemExit(f"Unexpectedly small companion GLB: {filename}")
+              manifest["assets"][filename] = {
+                  **provenance,
+                  "size_bytes": len(payload),
+                  "sha256": hashlib.sha256(payload).hexdigest(),
+              }
+          (root / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+          PY
+
+      - name: Install Godot 4.7.2 and import the recovered GLBs
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+
+      - name: Generate Godot import metadata for companion assets
+        run: godot --headless --editor --path . --quit
+
+      - name: Commit approved companion assets to the integration branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add art/characters/companions/
+          git commit -m "Install approved Wren, Aldric and Dagna native models"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
