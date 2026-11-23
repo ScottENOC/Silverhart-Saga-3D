@@ -76,10 +76,10 @@ func _test_clue_gates_and_managed_spillway() -> void:
 	_check(not chains.can_resolve_prerequisite("fenn_living_boundary", journal), "Both affected parties must be heard")
 	chains.add_prerequisite_clue("fenn_living_boundary", "young_marsh", "Elder Nessa Wren", journal, 1200.0)
 	_check(chains.can_resolve_prerequisite("fenn_living_boundary", journal))
-	var denied_channel := chains.add_prerequisite_clue("fenn_living_boundary", "old_channel", "Untrained inspection", journal, 1300.0)
+	var denied_channel: Dictionary = chains.add_prerequisite_clue("fenn_living_boundary", "old_channel", "Untrained inspection", journal, 1300.0)
 	_check(String(denied_channel.get("reason", "")) == "skill_gate_not_met", "The optional old-channel clue requires Nature or Perception")
 	var nature_capabilities: Array[String] = ["nature"]
-	var discovered_channel := chains.add_prerequisite_clue("fenn_living_boundary", "old_channel", "Nature skill", journal, 1300.0, nature_capabilities)
+	var discovered_channel: Dictionary = chains.add_prerequisite_clue("fenn_living_boundary", "old_channel", "Nature skill", journal, 1300.0, nature_capabilities)
 	_check(bool(discovered_channel.get("changed", false)))
 	var player := CharacterState.new("player", "Player")
 	var result: Dictionary = chains.resolve_prerequisite("fenn_living_boundary", "managed_spillway", journal, relationships, 1400.0, player)
@@ -109,12 +109,12 @@ func _test_compensation_cost_is_atomic() -> void:
 		if String(option.get("id", "")) == "compensate_preserve":
 			compensation = option
 	_check(not bool(compensation.get("available", true)), "The compensation choice is disabled when the player cannot afford it")
-	var insufficient := chains.resolve_prerequisite("fenn_living_boundary", "compensate_preserve", journal, relationships, 1500.0, player)
+	var insufficient: Dictionary = chains.resolve_prerequisite("fenn_living_boundary", "compensate_preserve", journal, relationships, 1500.0, player)
 	_check(String(insufficient.get("reason", "")) == "insufficient_gold")
 	_check(player.gold == 40, "Failed resolution does not spend gold")
 	_check(String(journal.quest_state("fenn_living_boundary").get("status", "")) == "active")
 	player.gold = 60
-	var completed := chains.resolve_prerequisite("fenn_living_boundary", "compensate_preserve", journal, relationships, 1600.0, player)
+	var completed: Dictionary = chains.resolve_prerequisite("fenn_living_boundary", "compensate_preserve", journal, relationships, 1600.0, player)
 	_check(bool(completed.get("ok", false)))
 	_check(player.gold == 0, "The 60 gold compensation is deducted exactly once")
 	_check(bool(completed.get("outcome_flags", {}).get("compensated_farm", false)))
