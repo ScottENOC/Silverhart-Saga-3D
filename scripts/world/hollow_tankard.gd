@@ -1455,6 +1455,9 @@ func _record_wren_authored_event(event_key: String) -> void:
 	var result := relationships.apply_wren_authored_event(event_key)
 	if not bool(result.get("ok", false)) and String(result.get("reason", "")) != "unknown_wren_event":
 		push_warning("Could not apply Wren campaign relationship event %s: %s" % [event_key, result])
+	var character_arc := COMPANION_RUNTIME_STORE.wren_arc_state_for(simulation)
+	if character_arc != null:
+		character_arc.sync_story_events(relationships)
 
 func _run_opening_sequence() -> void:
 	var player_state := simulation.get_character("player")
