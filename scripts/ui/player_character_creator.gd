@@ -76,6 +76,7 @@ func _ready() -> void:
 	_build_screen()
 	_load_saved_profile()
 	if disguise_mode:
+		_apply_disguise_mode_visibility()
 		_apply_disguise_initial_profile()
 	_refresh_character_preview(0)
 
@@ -617,6 +618,20 @@ func _select_text(select: OptionButton, value: String) -> void:
 		if select.get_item_text(index) == value:
 			select.select(index)
 			return
+
+func _apply_disguise_mode_visibility() -> void:
+	for selector in [game_mode_select, campaign_select, difficulty_select, name_edit, race_select, class_select]:
+		if selector != null and selector.get_parent() is Control:
+			(selector.get_parent() as Control).visible = false
+	if ironman_check != null:
+		ironman_check.visible = false
+	if arena_rewards_check != null:
+		arena_rewards_check.visible = false
+	if mode_note != null:
+		mode_note.visible = false
+	if rules_preview != null:
+		rules_preview.visible = false
+
 
 func _apply_disguise_initial_profile() -> void:
     var data := disguise_initial_profile
