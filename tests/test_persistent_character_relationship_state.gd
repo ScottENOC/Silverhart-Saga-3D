@@ -1,5 +1,7 @@
 extends SceneTree
 
+const RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
+
 var _failures: int = 0
 
 
@@ -114,16 +116,17 @@ func _test_save_load_and_history_bounds() -> void:
 func _test_world_simulation_save_bridge() -> void:
 	var source := WorldSimulation.new()
 	source.campaign_journal.seed_npc_reputation("seraphine_corrin", 20.0)
-	source.persistent_character_relationships.sync_all_with_journal(source.campaign_journal)
-	source.persistent_character_relationships.adjust_relationship(
+	var source_relationships := RELATIONSHIP_STORE.state_for(source)
+	source_relationships.sync_all_with_journal(source.campaign_journal)
+	source_relationships.adjust_relationship(
 		"seraphine_corrin", {"trust": 27, "friendship": 11}, "test persistent NPC save bridge"
 	)
-	var saved := source.persistent_character_relationships_to_dict()
+	var saved := RELATIONSHIP_STORE.to_dict(source)
 
 	var restored := WorldSimulation.new()
 	restored.campaign_journal.seed_npc_reputation("seraphine_corrin", 20.0)
-	_check(restored.restore_persistent_character_relationships(saved), "WorldSimulation should restore persistent NPC relationship state")
-	var queen := restored.persistent_character_relationships.snapshot("seraphine_corrin", restored.campaign_journal.npc_standing("seraphine_corrin"))
+	_check(RELATIONSHIP_STORE.restore(restored, saved), "The campaign simulation should restore persistent NPC relationship state")
+	var queen := RELATIONSHIP_STORE.state_for(restored).snapshot("seraphine_corrin", restored.campaign_journal.npc_standing("seraphine_corrin"))
 	_check(int(queen.get("trust", -1)) == 37, "Queen's trust should survive the authoritative save/restore bridge")
 	_check(int(queen.get("friendship", -1)) == 11, "Queen's friendship should survive the authoritative save/restore bridge")
 	_check(int(queen.get("approval", -1)) == 60, "Queen's approval should remain synchronised with campaign NPC standing")
