@@ -1447,6 +1447,10 @@ func _resolve_attack_action(attacker_id: String, target_id: String, options: Dic
     var resolved_options := options.duplicate(true)
     if not strength.is_empty():
         resolved_options["bonus_damage"] = int(resolved_options.get("bonus_damage", 0)) + int(strength.get("magnitude", 0))
+    var curse := attacker.get_spell_effect("curse")
+    var armistice_cost := maxi(0, int(curse.get("armistice_next_attack_tp", 0)))
+    if armistice_cost > 0:
+        resolved_options["time_point_cost"] = float(resolved_options.get("time_point_cost", 0.0)) + float(armistice_cost)
     var weapon_id := String(attacker.equipment.get("weapon", ""))
     if not fury.is_empty() and weapon_id.is_empty():
         resolved_options["wild_fury_bonus"] = int(fury.get("magnitude", 0))
