@@ -29,23 +29,21 @@ func _run() -> void:
     host.add_child(ally)
 
     var spell_ids: Array[String] = [
-        "firebolt", "heal", "smite_evil", "divine_silence", "sanctuary",
-        "divine_protection", "summon_animal", "counterspell", "dragon_breath",
-        "entangle", "wild_fury", "calm_animal", "disguise_self",
-        "temporal_rift", "feather_fall"
+        "firebolt", "counterspell", "feather_fall", "disguise_self",
+        "heal", "divine_protection", "divine_strength", "curse",
+        "summon_animal", "entangle", "calm_animal", "wild_fury"
     ]
-    var affected_actors: Array[Node3D] = [target, ally]
     for spell_id in spell_ids:
-        controller.call("play_spell", spell_id, caster, target, target.global_position, {}, affected_actors)
+        controller.call("play_spell", spell_id, caster, target, target.global_position, {}, [target, ally])
 
     await process_frame
     _check(controller.get_child_count() > 0, "Casting spells should create visible 3D effect nodes.")
-    _check(spell_ids.size() == 15, "The VFX catalogue should cover all 15 base spells.")
+    _check(spell_ids.size() == 12, "The VFX catalogue should cover all 12 official spells.")
     if failures > 0:
         push_error("%d spell VFX test(s) failed." % failures)
         quit(1)
         return
-    print("All spell VFX handlers created their presentation nodes.")
+    print("All 12 official spell VFX handlers created their presentation nodes.")
     quit(0)
 
 
