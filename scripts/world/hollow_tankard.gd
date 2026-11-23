@@ -359,8 +359,8 @@ func _open_disguise_creator() -> void:
 		return
 	disguise_creator = CHARACTER_CREATOR_SCRIPT.new() as CanvasLayer
 	disguise_creator.name = "DisguiseSelfCreator"
-	disguise_creator.configure_disguise(active_disguise_profile if not active_disguise_profile.is_empty() else player_profile)
-	disguise_creator.completed.connect(_on_disguise_profile_completed)
+	disguise_creator.call("configure_disguise", active_disguise_profile if not active_disguise_profile.is_empty() else player_profile)
+	disguise_creator.connect("completed", Callable(self, "_on_disguise_profile_completed"))
 	add_child(disguise_creator)
 
 
@@ -1153,6 +1153,8 @@ func _apply_save_data(data: Dictionary) -> void:
 			camera_rig.rotation = camera_data["rotation"]
 	if character_panel != null:
 		character_panel.set_character(active_character_id)
+	if spellbook_panel != null:
+		spellbook_panel.set_character(active_character_id)
 	_update_combat_ui()
 	_refresh_resource_visuals()
 
