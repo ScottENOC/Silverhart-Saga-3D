@@ -37,9 +37,9 @@ func _test_shared_path_movement() -> void:
 	var route: Array[Vector2i] = controller.get_active_path()
 	_check(route.size() == 3, "Shared controller should request a complete path from WorldSimulation")
 	_check(route[0] == Vector2i.ZERO and route[2] == Vector2i(2, 0), "Shared route should preserve origin and destination")
-	controller.process_movement(0.22)
+	controller.process_movement(0.40)
 	_check(player.axial == Vector2i(1, 0), "Shared controller should execute the first legal movement step")
-	controller.process_movement(0.22)
+	controller.process_movement(0.40)
 	_check(player.axial == Vector2i(2, 0), "Shared controller should execute the second legal movement step")
 	_check(controller.get_active_path().is_empty(), "Completed routes should clear their queued path")
 	var before_paused_move := player.axial
