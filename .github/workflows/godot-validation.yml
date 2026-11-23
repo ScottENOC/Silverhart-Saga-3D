@@ -154,6 +154,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_building_factory.gd
       - name: Run reusable wall feature factory tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_wall_feature_factory.gd
+      - name: Run border fort presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_border_fort_presentation.gd
       - name: Run reusable world polyline feature tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_polyline_feature_factory.gd
       - name: Run reusable world bridge feature tests
