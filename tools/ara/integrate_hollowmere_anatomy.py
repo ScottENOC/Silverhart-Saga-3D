@@ -104,7 +104,7 @@ def main() -> None:
                     "--adult",
                     "--profile-name", character_id,
                 ]
-                authored_size = profile.get("anatomy_size", {})
+                authored_size = character.get("anatomy_size", {})
                 if isinstance(authored_size, dict) and authored_size:
                     # Explicit sizes are sampled by the profile generator or
                     # authored for named characters (e.g. Aldric); bake them once.
