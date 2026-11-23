@@ -173,6 +173,51 @@ def main():
             1 for before, after in zip(source_world, fitted_world)
             if (Vector(after) - Vector(before)).length > 1e-7
         )
+        vertex_diagnostics = []
+        for local_index, (vertex_index, before, after) in enumerate(
+            zip(indices, source_world, fitted_world)
+        ):
+            hit = query(after)
+            if hit is None:
+                nearest_point = None
+                surface_normal = None
+                signed_clearance = None
+                nearest_distance = None
+                issue = "surface_query_miss"
+            else:
+                nearest_point, surface_normal = hit
+                delta = Vector(after) - Vector(nearest_point)
+                signed_clearance = float(delta.dot(Vector(surface_normal)))
+                nearest_distance = float(delta.length)
+                displacement = float((Vector(after) - Vector(before)).length)
+                if signed_clearance < 0.0:
+                    issue = "penetrating"
+                elif signed_clearance < config.target_clearance - 0.00025:
+                    issue = "below_target_clearance"
+                elif signed_clearance > config.floating_tolerance:
+                    issue = "floating"
+                elif displacement >= config.max_vertex_displacement - 1e-7:
+                    issue = "at_displacement_limit"
+                else:
+                    issue = "ok"
+            displacement = float((Vector(after) - Vector(before)).length)
+            vertex_diagnostics.append({
+                "vertex_index": int(vertex_index),
+                "original_world_m": [float(value) for value in before],
+                "fitted_world_m": [float(value) for value in after],
+                "displacement_m": displacement,
+                "nearest_surface_point_world_m": (
+                    [float(value) for value in nearest_point]
+                    if nearest_point is not None else None
+                ),
+                "surface_normal_world": (
+                    [float(value) for value in surface_normal]
+                    if surface_normal is not None else None
+                ),
+                "signed_clearance_m": signed_clearance,
+                "nearest_distance_m": nearest_distance,
+                "issue": issue,
+            })
         total_selected += len(indices)
         total_moved += moved
         object_reports.append({
@@ -181,6 +226,7 @@ def main():
             "selected_vertices": len(indices),
             "selected_edges": len(selected_edges),
             "moved_vertices": moved,
+            "vertex_diagnostics": vertex_diagnostics,
             **report,
         })
 
