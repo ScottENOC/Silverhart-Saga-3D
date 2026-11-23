@@ -449,7 +449,8 @@ func _request_travel_to_screen_position(screen_position: Vector2) -> void:
 		movement_controller.set_destination(destination)
 
 func _add_hex_to_surface(surface: SurfaceTool, hex: Vector2i, elevation: float) -> void:
-	var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
+	var centre_elevation := terrain_data.WATER_SURFACE_ELEVATION if terrain_data.terrain_for_hex(hex) == "water" else elevation
+	var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, centre_elevation)
 	var corners := HexGrid.corner_offsets(HEX_RADIUS)
 	for index in range(HexGrid.SIDE_COUNT):
 		var next_index := (index + 1) % HexGrid.SIDE_COUNT
