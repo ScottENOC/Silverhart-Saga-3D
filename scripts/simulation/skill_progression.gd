@@ -8,12 +8,20 @@ const STANDARD_TREES := [
     "fighter", "rogue", "cleric", "wizard", "druid", "monk", "Way of the open palm",
     "dwarf", "elf", "goblin", "orc"
 ]
+const OFFICIAL_SPELL_IDS := [
+    "firebolt", "counterspell", "feather_fall", "disguise_self",
+    "heal", "divine_protection", "divine_strength", "curse",
+    "summon_animal", "entangle", "calm_animal", "wild_fury"
+]
 const NON_PURCHASABLE_TREES := [
     "monster_skills", "paladin", "lich", "runesmith", "leatherworker"
 ]
 
 static func initialise(character: CharacterState) -> void:
-    if character == null or character.skill_progression_initialized:
+    if character == null:
+        return
+    _sync_spell_unlocks(character)
+    if character.skill_progression_initialized:
         return
     character.skill_budget_by_pool = {}
     character.skill_spent_by_pool = {}
@@ -24,6 +32,18 @@ static func initialise(character: CharacterState) -> void:
         character.skill_budget_by_pool[String(pool)] = remaining
         character.skill_spent_by_pool[String(pool)] = 0
     character.skill_progression_initialized = true
+
+static func _sync_spell_unlocks(character: CharacterState) -> void:
+    if character == null:
+        return
+    for skill_id_value in character.skills.keys():
+        var skill_id := String(skill_id_value)
+        if not skill_id.begins_with("learn_"):
+            continue
+        var spell_id := skill_id.trim_prefix("learn_")
+        if OFFICIAL_SPELL_IDS.has(spell_id) and int(character.skills.get(skill_id, 0)) > 0 and not character.unlocked_base_spells.has(spell_id):
+            character.unlocked_base_spells.append(spell_id)
+
 
 static func available_points(character: CharacterState) -> int:
     if character == null:
@@ -75,6 +95,8 @@ static func can_purchase(character: CharacterState, skill_id: String, context: D
     var skill := SkillCatalog.get_skill(skill_id)
     if skill.is_empty():
         return {"ok": false, "reason": "unknown_skill"}
+    if bool(skill.get("disabled", false)):
+        return {"ok": false, "reason": "skill_not_in_official_spell_catalogue"}
     var tree := String(skill.get("tree", ""))
     if NON_PURCHASABLE_TREES.has(tree):
         return {"ok": false, "reason": "skill_tree_not_player_purchasable"}
@@ -117,6 +139,7 @@ static func purchase(character: CharacterState, skill_id: String, funding_pool: 
     character.attributes[pool] = int(character.attributes.get(pool, 0)) - 1
     character.skills[skill_id] = int(character.skills.get(skill_id, 0)) + 1
     character.sync_skill_effects()
+    _sync_spell_unlocks(character)
     character.skill_spent_by_pool[pool] = int(character.skill_spent_by_pool.get(pool, 0)) + 1
     character.skill_spent_by_id[skill_id] = int(character.skill_spent_by_id.get(skill_id, 0)) + 1
     return {
