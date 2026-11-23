@@ -297,7 +297,7 @@ static func _create_actor_presentation(
 		# named companions may supply an authored override (e.g. Aldric).
 		if body_variant == "male" and not is_player:
 			var authored_size: Dictionary = appearance_profile.get("anatomy_size", {})
-			if not authored_size.is_empty():
+			if not authored_size.is_empty() and not model_path.contains("/hollowmere/"):
 				ara_model.apply_male_anatomy_size(
 					float(authored_size.get("length_scale", 1.0)),
 					float(authored_size.get("girth_scale", 1.0))
