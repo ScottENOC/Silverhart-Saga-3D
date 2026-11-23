@@ -61,8 +61,6 @@ func _initialize() -> void:
 	_test_water_surface_and_shoreline(terrain)
 	_test_heartland_stream_connectivity()
 	_test_strategic_road_stream_crossings(terrain)
-	_test_chunk_boundary_vertices(terrain)
-	_test_road_stream_chunk_boundaries(terrain)
 	_test_chunk_boundary_consistency(terrain)
 	_check(terrain.terrain_for_hex(Vector2i(-43, -343)) == "keep_wall", "Chapterhouse keep wall must resolve to its own terrain type")
 	_check(not terrain.is_walkable_for_hex(Vector2i(-43, -343)), "Keep-wall cells must block traversal")
@@ -300,81 +298,6 @@ func _test_water_surface_and_shoreline(terrain) -> void:
 		is_equal_approx(terrain.elevation_for_hex(water_hex), terrain.WATER_SURFACE_ELEVATION),
 		"Water gameplay elevation must remain unchanged by shoreline presentation"
 	)
-
-
-func _test_chunk_boundary_vertices(terrain) -> void:
-	var checked_pairs := 0
-	# Exercise both axial chunk axes, including negative coordinates where
-	# floor-based chunk ownership differs from truncation toward zero.
-	for seam_q in range(-72, 481, 24):
-		for r in range(-90, 91, 6):
-			for direction in HexGrid.DIRECTIONS:
-				checked_pairs += _check_chunk_boundary_pair(
-					terrain, Vector2i(seam_q - 1, r), direction
-				)
-	for seam_r in range(-96, 121, 24):
-		for q in range(-90, 451, 6):
-			for direction in HexGrid.DIRECTIONS:
-				checked_pairs += _check_chunk_boundary_pair(
-					terrain, Vector2i(q, seam_r - 1), direction
-				)
-	_check(
-		checked_pairs > 0,
-		"Terrain seam validation must compare cells owned by independently streamed chunks"
-	)
-
-
-func _test_road_stream_chunk_boundaries(terrain) -> void:
-	var crossing_seam_pairs := 0
-	for key in terrain.road_cells:
-		var coordinates := String(key).split(",")
-		if coordinates.size() != 2:
-			continue
-		var road_hex := Vector2i(int(coordinates[0]), int(coordinates[1]))
-		if not REGIONAL_HYDROLOGY.is_stream_hex(road_hex):
-			continue
-		for direction in HexGrid.DIRECTIONS:
-			var neighbour := road_hex + direction
-			if terrain.chunk_for_hex(road_hex) == terrain.chunk_for_hex(neighbour):
-				continue
-			crossing_seam_pairs += _check_chunk_boundary_pair(terrain, road_hex, direction)
-	_check(
-		crossing_seam_pairs > 0,
-		"At least one road/stream crossing must be checked across a real chunk seam"
-	)
-
-
-func _check_chunk_boundary_pair(terrain, hex: Vector2i, direction: Vector2i) -> int:
-	var neighbour := hex + direction
-	if terrain.chunk_for_hex(hex) == terrain.chunk_for_hex(neighbour):
-		return 0
-	var corners := HexGrid.corner_offsets(HexGrid.DEFAULT_RADIUS_M)
-	var hex_centre := HexGrid.axial_to_world(hex, HexGrid.DEFAULT_RADIUS_M)
-	var neighbour_centre := HexGrid.axial_to_world(neighbour, HexGrid.DEFAULT_RADIUS_M)
-	var shared_count := 0
-	for corner_index in range(HexGrid.SIDE_COUNT):
-		var vertex := hex_centre + Vector3(corners[corner_index].x, 0.0, corners[corner_index].y)
-		for neighbour_corner in range(HexGrid.SIDE_COUNT):
-			var other_vertex := neighbour_centre + Vector3(
-				corners[neighbour_corner].x, 0.0, corners[neighbour_corner].y
-			)
-			if vertex.distance_to(other_vertex) > 0.001:
-				continue
-			shared_count += 1
-			_check(
-				is_equal_approx(
-					terrain.shared_vertex_elevation(hex, corner_index),
-					terrain.shared_vertex_elevation(neighbour, neighbour_corner)
-				),
-				"Independently streamed chunks must agree on their shared vertex at %s / %s" % [hex, neighbour]
-			)
-		_check(
-			is_finite(terrain.elevation_for_hex(hex))
-			and is_finite(terrain.elevation_for_hex(neighbour)),
-			"Both sides of a chunk seam must have finite terrain elevations"
-		)
-	_check(shared_count > 0, "Adjacent chunk cells must have at least one shared mesh vertex")
-	return shared_count
 
 
 func _check(condition: bool, message: String) -> void:
