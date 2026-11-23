@@ -3,6 +3,8 @@ extends Node3D
 
 const ARA_CHARACTER_DETAILS = preload("res://scripts/presentation/ara_character_details.gd")
 const ARA_ANIMATION_CARRIER_PATH := "res://art/characters/ara_runtime/ara_person_benchmark.glb"
+## Ara GLB exports face +Z; the world actor convention faces -Z at zero yaw.
+const MODEL_FORWARD_YAW_OFFSET: float = PI
 ## Runtime wrapper for generated Ara GLBs. The selected body asset is supplied
 ## by the player profile so Workshop exports can be replaced without code edits.
 
@@ -40,10 +42,10 @@ func configure(glb_path: String) -> bool:
 		push_warning("Ara character root is not Node3D: " + glb_path)
 		return false
 
-	# The gameplay body exports are modular, skinned meshes. Their shared 69-bone
-	# rig is compatible with the animated benchmark export, which carries the
-	# actual Ara locomotion and combat clips. Use that rig as the animation
-	# driver and bind the selected body meshes to its Skeleton3D.
+	# All gameplay bodies share the benchmark's core animation rig. Male body
+	# exports additionally contain anatomy bones for independently controlled
+	# anatomy poses. Preserve source-only bones on the carrier so the same
+	# locomotion/combat system supports both body variants without separate clips.
 	var carrier_root: Node3D
 	if ResourceLoader.exists(ARA_ANIMATION_CARRIER_PATH):
 		var carrier_packed := load(ARA_ANIMATION_CARRIER_PATH) as PackedScene
@@ -51,7 +53,7 @@ func configure(glb_path: String) -> bool:
 			carrier_root = carrier_packed.instantiate() as Node3D
 	var body_skeleton := _find_skeleton(body_root)
 	var carrier_skeleton := _find_skeleton(carrier_root) if carrier_root != null else null
-	if carrier_root != null and carrier_skeleton != null and body_skeleton != null and _same_skeleton(carrier_skeleton, body_skeleton):
+	if carrier_root != null and carrier_skeleton != null and body_skeleton != null and _extend_animation_carrier_skeleton(carrier_skeleton, body_skeleton):
 		var carrier_meshes: Array[MeshInstance3D] = []
 		_collect_meshes(carrier_root, carrier_meshes)
 		for mesh in carrier_meshes:
@@ -89,6 +91,7 @@ func configure(glb_path: String) -> bool:
 			push_warning("Ara body rig is not compatible with the animated benchmark; retaining its native presentation: " + glb_path)
 
 	model_root.name = "AraModel"
+	model_root.rotation.y += MODEL_FORWARD_YAW_OFFSET
 	add_child(model_root)
 	loaded_asset_path = glb_path
 	animation_player = _find_animation_player(model_root)
@@ -603,6 +606,37 @@ func _find_bone_case_insensitive(skeleton: Skeleton3D, requested_name: String) -
 		if candidate == wanted or candidate.ends_with(wanted) or wanted.ends_with(candidate):
 			return bone_index
 	return -1
+
+## Extend the shared animation rig with source-only character bones.
+## Male body exports append anatomy bones for independently controlled poses;
+## ordinary clips leave these bones alone unless they contain explicit tracks.
+## Keeping the shared prefix unchanged preserves the Skin's original bone indices.
+func _extend_animation_carrier_skeleton(carrier: Skeleton3D, source: Skeleton3D) -> bool:
+	if carrier.get_bone_count() > source.get_bone_count():
+		return false
+	var shared_bone_count := carrier.get_bone_count()
+	for index in range(shared_bone_count):
+		if carrier.get_bone_name(index) != source.get_bone_name(index):
+			return false
+	for source_index in range(shared_bone_count, source.get_bone_count()):
+		var bone_name := source.get_bone_name(source_index)
+		if carrier.find_bone(bone_name) >= 0:
+			return false
+		var source_parent_index := source.get_bone_parent(source_index)
+		var carrier_parent_index := -1
+		if source_parent_index >= 0:
+			carrier_parent_index = carrier.find_bone(source.get_bone_name(source_parent_index))
+			if carrier_parent_index < 0:
+				return false
+		carrier.add_bone(bone_name)
+		var carrier_bone_index := carrier.find_bone(bone_name)
+		if carrier_bone_index < 0:
+			return false
+		carrier.set_bone_parent(carrier_bone_index, carrier_parent_index)
+		carrier.set_bone_rest(carrier_bone_index, source.get_bone_rest(source_index))
+		carrier.set_bone_pose(carrier_bone_index, source.get_bone_pose(source_index))
+	return true
+
 
 func _same_skeleton(a: Skeleton3D, b: Skeleton3D) -> bool:
 	if a.get_bone_count() != b.get_bone_count():

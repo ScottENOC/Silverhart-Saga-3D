@@ -55,6 +55,9 @@ func _run() -> void:
 	root.add_child(actor)
 	var female_configured: bool = actor.configure(BODY_PATHS[0])
 	_check(female_configured, "Ara female gameplay actor configures from its body asset")
+	if female_configured:
+		_check(absf(wrapf(actor.model_root.rotation.y - PI, -PI, PI)) < 0.001,
+			"Ara female model forward axis is aligned with the world actor heading")
 	if not female_configured:
 		actor.free()
 		_finish()
@@ -105,6 +108,9 @@ func _run() -> void:
 	root.add_child(male_actor)
 	var male_configured: bool = male_actor.configure(BODY_PATHS[1])
 	_check(male_configured, "Ara male gameplay actor configures from its body asset")
+	if male_configured:
+		_check(absf(wrapf(male_actor.model_root.rotation.y - PI, -PI, PI)) < 0.001,
+			"Ara male model forward axis is aligned with the world actor heading")
 	if not male_configured:
 		male_actor.free()
 		_finish()
@@ -115,6 +121,11 @@ func _run() -> void:
 	_check(male_animation_player != null, "Male gameplay actor receives the benchmark AnimationPlayer")
 	_check(male_skeleton != null, "Male gameplay actor has the animated carrier Skeleton3D")
 	if male_animation_player != null and male_skeleton != null:
+		_check(male_skeleton.get_bone_count() >= 72,
+			"Male gameplay rig retains shared animation bones and additional anatomy bones")
+		for anatomy_bone in ["AnatomyRoot", "AnatomyMid", "AnatomyTip"]:
+			_check(male_skeleton.find_bone(anatomy_bone) >= 0,
+				"Male gameplay rig preserves independently controlled " + anatomy_bone)
 		var male_locomotion_selected := male_actor.set_moving(true)
 		_check(male_locomotion_selected, "Male gameplay actor selects a real locomotion clip")
 		if male_locomotion_selected:
@@ -176,6 +187,9 @@ func _assert_character_asset_animated(asset_path: String, label: String) -> void
 	root.add_child(actor)
 	var configured: bool = actor.configure(asset_path)
 	_check(configured, label + " configures")
+	if configured:
+		_check(absf(wrapf(actor.model_root.rotation.y - PI, -PI, PI)) < 0.001,
+			label + " model forward axis is aligned with the world actor heading")
 	if not configured:
 		actor.free()
 		return
