@@ -810,6 +810,24 @@ def main():
     )
     if exported_colour is None:
         raise RuntimeError("Anatomy pigmentation did not survive GLB export/re-import")
+    if len(exported_skin.data.uv_layers) < 2:
+        raise RuntimeError("Vulva/mons semantic mask TEXCOORD_1 did not survive GLB export/re-import")
+    exported_mask_layer = exported_skin.data.uv_layers[1]
+    exported_mask_by_vertex = [None] * len(exported_skin.data.vertices)
+    for loop in exported_skin.data.loops:
+        uv = exported_mask_layer.data[loop.index].uv
+        value = (round(float(uv.x), 7), round(float(uv.y), 6))
+        previous = exported_mask_by_vertex[loop.vertex_index]
+        if previous is not None and previous != value:
+            raise RuntimeError(
+                f"Exported TEXCOORD_1 identity/mask differs across loops for vertex {loop.vertex_index}"
+            )
+        exported_mask_by_vertex[loop.vertex_index] = value
+    if any(value is None for value in exported_mask_by_vertex):
+        raise RuntimeError("Exported TEXCOORD_1 does not identify every skin vertex")
+    exported_mask_weighted = sum(value[1] >= 0.15 for value in exported_mask_by_vertex)
+    if exported_mask_weighted == 0:
+        raise RuntimeError("Vulva/mons semantic mask is empty after GLB export/re-import")
     exported_nonwhite = 0
     for item in exported_colour.data:
         rgba = item.color
@@ -833,6 +851,14 @@ def main():
         "exported_colour_vertices": len(exported_colour.data),
         "exported_nonwhite_colour_vertices": exported_nonwhite,
         "anatomy_pigmented_vertex_count": original_pigmented_vertices,
+        "semantic_region_masks": {
+            "vulva_external": {
+                "includes": ["external_vulva", "mons_pubis"],
+                "channel": "TEXCOORD_1.y",
+                "weighted_vertices_at_0_15": exported_mask_weighted,
+                "vertex_count": len(exported_mask_by_vertex)
+            }
+        },
         "vertex_colour_export_mode": "ACTIVE",
         "anatomy_profile": original_anatomy_profile,
         "anatomy_method": original_anatomy_method,
