@@ -903,6 +903,10 @@
       "name": "Ser Aldric Thorne",
       "role": "companion",
       "detail": "runtime",
+      "anatomy_size": {
+        "length_scale": 1.10,
+        "girth_scale": 1.10
+      },
       "progression": {
         "race": "human",
         "class_levels": [
