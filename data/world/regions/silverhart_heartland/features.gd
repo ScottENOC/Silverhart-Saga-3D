@@ -191,7 +191,7 @@ static func _ensure_dungeon_surface_features() -> void:
 	_add_flat_surface_room(_dungeon_surface_cells, CRYPT_ENTRANCE_CENTRE, 3, 2, CRYPT_ENTRANCE_CENTRE + Vector2i(-3, 0), "cave_floor", "vessel_seeker_crypt_entrance")
 	_add_flat_surface_room(_dungeon_surface_cells, CRYPT_OSSUARY_CENTRE, 3, 3, CRYPT_OSSUARY_CENTRE + Vector2i(-3, 0), "cave_floor", "vessel_seeker_crypt_ossuary")
 	_add_flat_surface_room(_dungeon_surface_cells, CRYPT_RITUAL_CENTRE, 4, 3, CRYPT_RITUAL_CENTRE + Vector2i(-3, 0), "cave_floor", "vessel_seeker_crypt_ritual")
-	_add_surface_corridor(_dungeon_surface_cells, Vector2i(35, -154), Vector2i(36, -154), "vessel_seeker_crypt_corridor")
+	_add_surface_corridor(_dungeon_surface_cells, Vector2i(35, -155), Vector2i(36, -154), "vessel_seeker_crypt_corridor")
 	_add_surface_corridor(_dungeon_surface_cells, Vector2i(43, -154), Vector2i(45, -154), "vessel_seeker_crypt_corridor")
 
 	# Barrow of Corvin Ashgrave: antechamber and sanctum, also joined by the
