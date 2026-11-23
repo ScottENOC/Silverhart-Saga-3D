@@ -183,6 +183,7 @@ func _test_curse() -> void:
     caster.skills["extended_sentence"] = 1
     caster.skills["armistice"] = 1
     sim.register_character(enemy)
+    var vision_before := VisionRules.vision_range(enemy)
     var result := _cast(sim, caster, enemy, "curse")
     var before := enemy.health
     var attack := sim.submit_action(SimulationActionRequest.new(SimulationActionRequest.ActionType.ATTACK, enemy.id, caster.id, Vector2i.ZERO, 0.0, {}), 88)
@@ -190,6 +191,7 @@ func _test_curse() -> void:
     _check(int(enemy.current_mana) == 8, "Divine Drain should remove mana when Curse is applied")
     _check(int(enemy.get_spell_effect("curse").get("ticks_remaining", 0)) == 22, "Extended Sentence should extend Curse duration")
     _check(int(enemy.get_spell_effect("curse").get("vision_penalty", 0)) == 1, "Clouded Mind should record its vision penalty on the curse")
+    _check(VisionRules.vision_range(enemy) == vision_before - 1, "Clouded Mind should reduce the cursed target's actual vision range")
     _check(bool(attack.get("ok", false)) and int(attack.get("raw_damage", -1)) == 6, "Feeble Strike should reduce the cursed target's outgoing damage")
     _check(is_equal_approx(enemy.time_points, 495.0), "Armistice should add five TP to the cursed target's next attack")
     _check(before - enemy.health == 2, "Curse should punish the enemy's next hostile action")
