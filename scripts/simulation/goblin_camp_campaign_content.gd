@@ -82,6 +82,8 @@ static func start_northwatch_spy(journal: CampaignJournal) -> Dictionary:
 static func complete_mine_raid(journal: CampaignJournal) -> Dictionary:
 	if journal == null:
 		return {"ok": false, "reason": "missing_journal"}
+	if _completed(journal, MINE_QUEST_ID):
+		return {"ok": false, "reason": "mine_raid_already_completed"}
 	var raid := resolve_favor(journal, "raid_mine")
 	if not bool(raid.get("ok", false)):
 		return raid
@@ -262,7 +264,22 @@ static func resolve_threat(journal: CampaignJournal, resolution: String) -> Dict
 	var goblins: Array = effects.goblins
 	journal.adjust_faction_reputation("silverhart_kingdom", float(kingdom[0]), float(kingdom[1]), "resolved the Skarn-tooth threat: " + resolution)
 	journal.adjust_faction_reputation("goblin_tribe", float(goblins[0]), float(goblins[1]), "resolved the Skarn-tooth threat: " + resolution)
+	if bool(effects.get("aldric_rescued", false)):
+		var rescue := mark_aldric_rescued(journal)
+		if not bool(rescue.get("ok", false)):
+			return rescue
 	return {"ok": true, "resolution": resolution, "effects": effects}
+
+
+static func mark_aldric_rescued(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok": false, "reason": "missing_journal"}
+	if _completed(journal, "aldric_rescue"):
+		return {"ok": true, "already_completed": true}
+	var started := _start_or_existing(journal, "aldric_rescue")
+	if not bool(started.get("ok", false)):
+		return started
+	return CompanionCampaignContent.complete_objective(journal, "aldric_rescue", "freed")
 
 static func mark_scout_note_read(journal: CampaignJournal) -> Dictionary:
 	if journal == null:
@@ -277,6 +294,8 @@ static func mark_scout_note_read(journal: CampaignJournal) -> Dictionary:
 static func mark_mine_raid_complete(journal: CampaignJournal) -> Dictionary:
 	if journal == null:
 		return {"ok": false, "reason": "missing_journal"}
+	if _completed(journal, MINE_QUEST_ID):
+		return {"ok": true, "already_completed": true}
 	var started := _start_or_existing(journal, MINE_QUEST_ID)
 	if not bool(started.get("ok", false)) and String(started.get("reason", "")) != "quest_already_started":
 		return started
@@ -285,6 +304,8 @@ static func mark_mine_raid_complete(journal: CampaignJournal) -> Dictionary:
 static func mark_northwatch_taken(journal: CampaignJournal) -> Dictionary:
 	if journal == null:
 		return {"ok": false, "reason": "missing_journal"}
+	if _completed(journal, SPY_QUEST_ID):
+		return {"ok": true, "already_completed": true}
 	var started := _start_or_existing(journal, SPY_QUEST_ID)
 	if not bool(started.get("ok", false)) and String(started.get("reason", "")) != "quest_already_started":
 		return started
