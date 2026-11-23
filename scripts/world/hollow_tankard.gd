@@ -1028,11 +1028,38 @@ func _create_dialogue_panel(layer: CanvasLayer) -> void:
 	layer.add_child(dialogue_panel)
 
 
-func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary]) -> void:
+func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary], expression: String = "neutral") -> void:
 	if dialogue_panel == null:
 		return
 	dialogue_open = true
-	dialogue_panel.present(speaker, body, choices)
+	var speaker_actor := _portrait_actor_for_speaker(speaker)
+	dialogue_panel.present(speaker, body, choices, null, speaker_actor, expression)
+
+
+func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
+	if simulation == null:
+		return null
+	var speaker_key := speaker.strip_edges().to_lower()
+	var speaker_id_key := speaker_key.replace(" ", "_").replace("'", "")
+	if speaker_key.is_empty():
+		return null
+	for actor_id_value in actor_by_id.keys():
+		var actor_id := String(actor_id_value)
+		var state := simulation.get_character(actor_id)
+		if state == null:
+			continue
+		var state_name := state.display_name.strip_edges().to_lower()
+		var matches_name := state_name == speaker_key or state_name.begins_with(speaker_key)
+		var matches_id := actor_id.to_lower().contains(speaker_id_key)
+		if not matches_name and not matches_id:
+			continue
+		var actor := actor_by_id.get(actor_id) as Node3D
+		if actor == null:
+			continue
+		var character_model := actor.get_node_or_null("CharacterModel") as AraCharacterActor
+		if character_model != null and character_model.get_portrait_texture() != null:
+			return character_model
+	return null
 
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
@@ -1138,9 +1165,9 @@ func _interact_with_character(character_id: String) -> void:
 		return
 	if character_id == "missing_child_tessa":
 		if _reyna_objective_done("child_rescued"):
-			_show_dialogue("Tessa", "Reyna said you were the one who got me out. I don't think I'll ever forget that.", [{"id":"continue","label":"You're safe now","text":""}])
+			_show_dialogue("Tessa", "Reyna said you were the one who got me out. I don't think I'll ever forget that.", [{"id":"continue","label":"You're safe now","text":""}], "smile")
 		else:
-			_show_dialogue("Tessa", "Please... it's outside. I can hear it moving around. Reyna said to stay quiet.", [{"id":"reyna_rescue_child","label":"Come with me. We'll get you home.","text":""}])
+			_show_dialogue("Tessa", "Please... it's outside. I can hear it moving around. Reyna said to stay quiet.", [{"id":"reyna_rescue_child","label":"Come with me. We'll get you home.","text":""}], "afraid")
 		return
 	if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(character_id):
 		_show_companion_dialogue(character_id)

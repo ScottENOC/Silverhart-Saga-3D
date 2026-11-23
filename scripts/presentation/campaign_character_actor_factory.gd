@@ -50,7 +50,7 @@ static func create_actor(
 
 	var hair_id := String(player_profile.get("hair_style_id", "short02")) if is_player else String(npc_profile.get("params", {}).get("hair", "short02"))
 	var appearance := player_profile if is_player else npc_profile
-	return _create_actor_presentation(
+	var actor := _create_actor_presentation(
 		state.id,
 		state.display_name,
 		world_position,
@@ -63,6 +63,10 @@ static func create_actor(
 		hair_id,
 		deg_to_rad(float(state.facing_direction - 2) * 60.0)
 	)
+	var ara_model := _get_ara_actor(actor) if actor != null else null
+	if ara_model != null:
+		state.portrait_texture = ara_model.get_portrait_texture()
+	return actor
 
 
 ## Settlement NPCs use the same Ara renderer, equipment mapping, hair
