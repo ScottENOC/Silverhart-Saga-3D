@@ -240,7 +240,7 @@ func _create_streamed_npc_state(character: Dictionary, character_id: String, wor
 		return null
 	state.side = String(character.get("side", "neutral"))
 	state.race = String(character.get("race", "human"))
-	state.combat_dormant = state.side == "neutral"
+	state.combat_dormant = true
 	state.progression_mode = "npc"
 	state.gender_presentation = String(character.get("appearance", {}).get("gender_presentation", "Masculine" if String(character.get("gender", "male")) == "male" else "Feminine"))
 	state.pronouns = String(character.get("appearance", {}).get("pronouns", "they/them"))
