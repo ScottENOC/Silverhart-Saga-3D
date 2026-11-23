@@ -495,9 +495,19 @@ func _remap_hair_skin_to_skeleton(mesh_instance: MeshInstance3D, source_skeleton
 		else:
 			remapped_count += 1
 		remapped_skin.set_bind_bone(bind_index, target_bone_index)
-		# Rebuild the inverse bind transform against the target skeleton rest
-		# pose; reusing an auxiliary rig's inverse bind can offset the hair.
-		remapped_skin.set_bind_pose(bind_index, target_skeleton.get_bone_global_rest(target_bone_index).affine_inverse())
+		# Convert the original bind pose from the source rig into the target
+		# rig's rest space. Replacing it with only target_rest.affine_inverse()
+		# loses any mesh-space offset encoded by the source GLB's inverse bind
+		# matrix; that can make an otherwise valid hairstyle float above the
+		# scalp. At rest, target_rest * converted_bind must equal the original
+		# source_rest * source_bind transform.
+		var source_rest := target_skeleton.get_bone_global_rest(target_bone_index)
+		if source_bone_index >= 0 and source_bone_index < source_skeleton.get_bone_count():
+			source_rest = source_skeleton.get_bone_global_rest(source_bone_index)
+		var source_bind := remapped_skin.get_bind_pose(bind_index)
+		var target_rest := target_skeleton.get_bone_global_rest(target_bone_index)
+		var converted_bind := target_rest.affine_inverse() * source_rest * source_bind
+		remapped_skin.set_bind_pose(bind_index, converted_bind)
 
 	mesh_instance.skin = remapped_skin
 	if fallback_count > 0:
