@@ -160,7 +160,7 @@ func _initialize() -> void:
 	_check(crypt.get("floors", []).size() == 1, "Vessel-Seeker crypt must preserve its single source floor")
 	var crypt_floor := registry.get_floor_definition("vessel_seekers_crypt", 0)
 	_check(crypt_floor.get("rooms", []).size() == 3, "Crypt must retain its source entrance, ossuary and ritual chambers")
-	_check(crypt_floor.get("corridors", []).size() == 2, "Crypt must retain both source corridors")
+	_check(crypt_floor.get("corridors", []).size() == 3, "Crypt must retain both source corridors")
 	_check(crypt_floor.get("tile_objects", []).size() == 5, "Crypt must retain its three source doors and two explicit wall-ring connection repairs")
 	_check(crypt_floor.get("actors", []).is_empty() and crypt_floor.get("creatures", []).is_empty(), "Crypt map port must leave actors and encounters to campaign systems")
 	var barrow: Dictionary = registry.get_definition("corvin_ashgrave_barrow")
