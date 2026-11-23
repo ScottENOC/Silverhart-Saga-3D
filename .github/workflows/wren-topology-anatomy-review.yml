@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/wren-topology-anatomy-review.yml"
       - "tools/review/wren_topology_anatomy_proposal.gd"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/paint_vulva_mons_region_mask.py"
       - "scripts/characters/character_surface_region_mask.gd"
   workflow_dispatch:
 
@@ -36,6 +38,20 @@ jobs:
           echo "WREN_RUN=$wren_run" >> "$GITHUB_ENV"
           wren_sha=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$wren_run" --jq '.head_sha')
           echo "WREN_BUILD_SHA=$wren_sha" >> "$GITHUB_ENV"
+      - name: Paint Ara-derived vulva and mons pubis region mask
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \
+            --python tools/blender/paint_vulva_mons_region_mask.py -- \
+            --input build/wren-native/Wren.glb \
+            --output build/wren-native/Wren_masked.glb \
+            --report build/wren-native/vulva-mons-mask-report.json
+          test -s build/wren-native/Wren_masked.glb
+          test -s build/wren-native/vulva-mons-mask-report.json
+          mv build/wren-native/Wren_masked.glb build/wren-native/Wren.glb
       - name: Assemble minimal topology review project
         run: |
           set -euo pipefail
@@ -76,6 +92,7 @@ jobs:
           test -s "$out/proposal.json"
           mkdir -p build/wren-topology-anatomy-review
           cp -R "$out/." build/wren-topology-anatomy-review/
+          cp build/wren-native/vulva-mons-mask-report.json build/wren-topology-anatomy-review/
           printf '{"wren_run":%s,"wren_build_sha":"%s","review_source_sha":"%s"}\n' "$WREN_RUN" "$WREN_BUILD_SHA" "$REVIEW_SOURCE_SHA" > build/wren-topology-anatomy-review/source-runs.json
       - uses: actions/upload-artifact@v7
         with:
