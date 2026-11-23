@@ -98,6 +98,18 @@ static func _start_or_existing(journal: CampaignJournal, quest_id: String) -> Di
 	return journal.start_quest(quest_id)
 
 
+
+static func mark_chief_killed_in_assault(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok": false, "reason": "missing_journal"}
+	var started := _start_or_existing(journal, QUEST_ID)
+	if not bool(started.get("ok", false)):
+		return started
+	var state := journal.quest_state(QUEST_ID)
+	if state.get("decisions", {}).has("chief_killed_in_assault"):
+		return {"ok": true, "already_recorded": true}
+	return journal.record_decision(QUEST_ID, "chief_killed_in_assault", "killed")
+
 static func mark_chief_assassinated(journal: CampaignJournal) -> Dictionary:
 	if journal == null:
 		return {"ok": false, "reason": "missing_journal"}
@@ -214,6 +226,8 @@ static func resolve_favor(journal: CampaignJournal, kind: String) -> Dictionary:
 			_apply_reputation(journal, 15.0, 15.0, -15.0, 15.0, "helped goblins raid Emberlode")
 			effects = {"region": {"emberlode": {"security": -20, "prosperity": -25}}, "experience": 50, "gold": 60, "aldric_attitude": -15, "emberlode_raided": true}
 		"raid":
+			if journal.faction_standing("goblin_tribe") < 25.0:
+				return {"ok": false, "reason": "insufficient_goblin_standing"}
 			var completed := resolve_threat(journal, "betrayal")
 			if not bool(completed.get("ok", false)):
 				return completed
@@ -224,8 +238,22 @@ static func resolve_favor(journal: CampaignJournal, kind: String) -> Dictionary:
 	return {"ok": true, "effects": effects}
 
 static func resolve_threat(journal: CampaignJournal, resolution: String) -> Dictionary:
+	if journal == null:
+		return {"ok": false, "reason": "missing_journal"}
 	if not RESOLUTION_EFFECTS.has(resolution):
 		return {"ok": false, "reason": "unknown_resolution"}
+	var current_state := journal.quest_state(QUEST_ID)
+	var decisions: Dictionary = current_state.get("decisions", {})
+	if resolution == "goblin_diplomacy" and journal.faction_standing("goblin_tribe") < 40.0:
+		return {"ok": false, "reason": "insufficient_goblin_standing"}
+	if resolution == "goblin_alliance" and String(decisions.get("chief_gifted_in", "")) != "gifted":
+		return {"ok": false, "reason": "chief_gift_required"}
+	if resolution == "assault" and String(decisions.get("chief_killed_in_assault", "")) != "killed":
+		return {"ok": false, "reason": "chief_not_killed_in_assault"}
+	if resolution == "stealth_succession" and String(decisions.get("chief_assassinated", "")) != "silent_kill":
+		return {"ok": false, "reason": "chief_not_assassinated"}
+	if resolution == "betrayal" and journal.faction_standing("goblin_tribe") < 25.0:
+		return {"ok": false, "reason": "insufficient_goblin_standing"}
 	var effects: Dictionary = RESOLUTION_EFFECTS[resolution].duplicate(true)
 	var completed := _resolve_threat(journal, resolution)
 	if not bool(completed.get("ok", false)):
