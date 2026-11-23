@@ -121,6 +121,11 @@ func _run() -> void:
 	_check(male_animation_player != null, "Male gameplay actor receives the benchmark AnimationPlayer")
 	_check(male_skeleton != null, "Male gameplay actor has the animated carrier Skeleton3D")
 	if male_animation_player != null and male_skeleton != null:
+		_check(male_skeleton.get_bone_count() >= 72,
+			"Male gameplay rig retains shared animation bones and additional anatomy bones")
+		for anatomy_bone in ["AnatomyRoot", "AnatomyMid", "AnatomyTip"]:
+			_check(male_skeleton.find_bone(anatomy_bone) >= 0,
+				"Male gameplay rig preserves independently controlled " + anatomy_bone)
 		var male_locomotion_selected := male_actor.set_moving(true)
 		_check(male_locomotion_selected, "Male gameplay actor selects a real locomotion clip")
 		if male_locomotion_selected:
@@ -194,12 +199,6 @@ func _assert_character_asset_animated(asset_path: String, label: String) -> void
 	_check(player != null, label + " has an animation player")
 	_check(skeleton != null, label + " has a skeleton")
 	if player != null and skeleton != null:
-		if label == "aldric":
-			_check(skeleton.get_bone_count() == 72,
-				"Aldric retains the 69 shared rig bones plus his three anatomy bones")
-			for anatomy_bone in ["AnatomyRoot", "AnatomyMid", "AnatomyTip"]:
-				_check(skeleton.find_bone(anatomy_bone) >= 0,
-					"Aldric animation carrier preserves " + anatomy_bone)
 		var locomotion_selected := actor.set_moving(true)
 		_check(locomotion_selected, label + " selects a locomotion clip")
 		var bound_mesh_found := false
