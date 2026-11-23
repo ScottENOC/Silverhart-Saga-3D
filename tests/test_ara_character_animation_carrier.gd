@@ -80,6 +80,13 @@ func _run() -> void:
 	if male_animation_player != null and male_skeleton != null:
 		_check(male_actor.set_moving(true), "Male gameplay actor selects a real locomotion clip")
 	male_actor.queue_free()
+
+	await _assert_character_asset_animated(
+		"res://art/characters/companions/wren.glb", "Wren companion"
+	)
+	await _assert_character_asset_animated(
+		"res://art/characters/hollowmere/reyna_fletcher.glb", "Reyna NPC"
+	)
 	_finish()
 
 
@@ -115,3 +122,25 @@ func _finish() -> void:
 		return
 	print("Ara gameplay animation carrier integration tests passed.")
 	quit(0)
+
+
+func _assert_character_asset_animated(asset_path: String, label: String) -> void:
+	var actor := ACTOR_SCRIPT.new()
+	root.add_child(actor)
+	_check(actor.configure(asset_path), label + " configures")
+	await process_frame
+	var player := actor.animation_player as AnimationPlayer
+	var skeleton := _find_skeleton(actor.model_root)
+	_check(player != null, label + " has an animation player")
+	_check(skeleton != null, label + " has a skeleton")
+	if player != null and skeleton != null:
+		_check(actor.set_moving(true), label + " selects a locomotion clip")
+		var bound_mesh_found := false
+		var meshes: Array[MeshInstance3D] = []
+		_collect_meshes(actor.model_root, meshes)
+		for mesh in meshes:
+			if mesh.visible and mesh.skin != null and mesh.get_node_or_null(mesh.skeleton) == skeleton:
+				bound_mesh_found = true
+				break
+		_check(bound_mesh_found, label + " has a visible skinned mesh bound to its animated skeleton")
+	actor.free()
