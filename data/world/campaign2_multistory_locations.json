@@ -2345,7 +2345,7 @@
         "q": 63,
         "r": -160
       },
-      "source": "Hex-crpg/campaign2World.js:buildLichBarrow; derived from campaign2NecromancerRitualCenter",
+      "source": "Hex-crpg/campaign2World.js:buildLichBarrow; source corridor q67..68; the 3D map extends it one cell west to open the source room wall ring and keep both rooms connected",
       "floors": [
         {
           "floor": 0,
@@ -2375,7 +2375,7 @@
             {
               "id": "antechamber_to_sanctum",
               "from": {
-                "q": 67,
+                "q": 66,
                 "r": -160
               },
               "to": {
