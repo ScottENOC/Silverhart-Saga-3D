@@ -3,6 +3,8 @@ extends Node3D
 
 const ARA_CHARACTER_DETAILS = preload("res://scripts/presentation/ara_character_details.gd")
 const ARA_ANIMATION_CARRIER_PATH := "res://art/characters/ara_runtime/ara_person_benchmark.glb"
+## Ara GLB exports face +Z; the world actor convention faces -Z at zero yaw.
+const MODEL_FORWARD_YAW_OFFSET: float = PI
 ## Runtime wrapper for generated Ara GLBs. The selected body asset is supplied
 ## by the player profile so Workshop exports can be replaced without code edits.
 
@@ -89,6 +91,7 @@ func configure(glb_path: String) -> bool:
 			push_warning("Ara body rig is not compatible with the animated benchmark; retaining its native presentation: " + glb_path)
 
 	model_root.name = "AraModel"
+	model_root.rotation.y += MODEL_FORWARD_YAW_OFFSET
 	add_child(model_root)
 	loaded_asset_path = glb_path
 	animation_player = _find_animation_player(model_root)
