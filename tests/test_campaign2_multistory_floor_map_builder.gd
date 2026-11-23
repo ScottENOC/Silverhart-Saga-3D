@@ -116,6 +116,16 @@ func _initialize() -> void:
 	var cove_tunnel: Dictionary = FLOOR_BUILDER.build_floor_map(cove_definition, -9, cove_state)
 	_check(cove_tunnel.get("walkable_hexes", []).size() == 1, "Wilderness tunnel junction must remain a one-cell stub")
 
+	var crypt_definition: Dictionary = registry.get_definition("vessel_seekers_crypt")
+	var crypt_state = LOCATION_STATE.new()
+	_check(bool(crypt_state.configure(crypt_definition).get("ok", false)), "Vessel-Seeker crypt state must configure")
+	var crypt_result: Dictionary = FLOOR_BUILDER.build_floor_map(crypt_definition, 0, crypt_state)
+	_check(bool(crypt_result.get("ok", false)), "Vessel-Seeker crypt source floor must build")
+	if bool(crypt_result.get("ok", false)):
+		var crypt_map: HexMapData = crypt_result.get("map_data") as HexMapData
+		_check(_has_walkable_path(crypt_map, Vector2i(29, -154), Vector2i(49, -154)), "Crypt entrance, ossuary and ritual chambers must form one connected walkable layout")
+		_check(_has_object(crypt_result.get("tile_objects", []), "crypt_entrance_door") and _has_object(crypt_result.get("tile_objects", []), "crypt_ossuary_door") and _has_object(crypt_result.get("tile_objects", []), "crypt_ritual_door"), "Crypt must emit all three source door openings")
+		_check(crypt_result.get("actors", []).is_empty() and crypt_result.get("creatures", []).is_empty(), "Map-only crypt floor must leave encounters to campaign systems")
 	var barrow_definition: Dictionary = registry.get_definition("corvin_ashgrave_barrow")
 	var barrow_state = LOCATION_STATE.new()
 	_check(bool(barrow_state.configure(barrow_definition).get("ok", false)), "Corvin Ashgrave barrow state must configure")
@@ -170,6 +180,22 @@ func _initialize() -> void:
 		return
 	print("Kragmoor source-authored floor maps validated.")
 	quit(0)
+
+func _has_walkable_path(map_data: HexMapData, start: Vector2i, goal: Vector2i) -> bool:
+	if map_data == null or not map_data.is_walkable(start) or not map_data.is_walkable(goal):
+		return false
+	var queue: Array[Vector2i] = [start]
+	var visited: Dictionary = {start: true}
+	while not queue.is_empty():
+		var current: Vector2i = queue.pop_front()
+		if current == goal:
+			return true
+		for neighbour in HexGrid.neighbors(current):
+			if visited.has(neighbour) or not map_data.is_walkable(neighbour):
+				continue
+			visited[neighbour] = true
+			queue.append(neighbour)
+	return false
 
 func _has_object(objects: Array, object_id: String) -> bool:
 	for object in objects:
