@@ -960,6 +960,74 @@
             "r": 33
           },
           "source": "campaign2Content.js"
+        },
+        {
+          "id": "mirabel_quill",
+          "name": "Mirabel Quill",
+          "title": "Wizard Companion",
+          "race": "elf",
+          "gender": "female",
+          "body_variant": "female",
+          "class_levels": [
+            "wizard"
+          ],
+          "skill_picks": [
+            "health",
+            "learn_firebolt",
+            "arcane_mana",
+            "firebolt_hit",
+            "firebolt_dmg"
+          ],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "mirabel_quill",
+          "position": {
+            "q": 156,
+            "r": 26
+          },
+          "appearance": {
+            "params": {
+              "seed": 2014858941,
+              "gender": 0,
+              "age": 0.63,
+              "muscle": 0.3,
+              "weight": 0.32,
+              "height": 0.58,
+              "proportions": 0.5,
+              "african": 0.38,
+              "asian": 0.4,
+              "caucasian": 0.22,
+              "eyes": "bluegreen",
+              "hair": "long01",
+              "hairTint": "#5A3826",
+              "facialHair": "none",
+              "tattoos": [],
+              "outfit": "none",
+              "top": "long_tunic",
+              "underTop": "none",
+              "underBottom": "none",
+              "jacket": "none",
+              "bottom": "wrapper_long",
+              "underwear": false,
+              "shoes": "sandals",
+              "hat": "none",
+              "weapon": "none",
+              "carry": "none",
+              "accessories": [],
+              "hairColor": "#5A3826",
+              "legs": 0.46,
+              "skinTint": "#B98260",
+              "breasts": 0.7
+            },
+            "hair_style": "long01",
+            "skin_colour": "#B98260",
+            "eye_colour": "Blue-green",
+            "hair_colour": "#5A3826",
+            "gender_presentation": "Feminine",
+            "pronouns": "she/her"
+          },
+          "source": "campaign2World.js:buildSideQuestContent Mirabel spider ruin"
         }
       ],
       "interiors": [
