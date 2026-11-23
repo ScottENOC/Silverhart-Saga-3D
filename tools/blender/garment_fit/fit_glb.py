@@ -78,16 +78,64 @@ def matching_material_vertices(obj, tokens):
 
 
 def build_world_surface_tree(skin, skin_tokens):
-    world_vertices = [skin.matrix_world @ vertex.co for vertex in skin.data.vertices]
-    polygons = matching_material_polygons(skin, skin_tokens)
-    if not world_vertices or not polygons:
-        raise RuntimeError(
-            f"Skin mesh {skin.name} has no faces matching {sorted(skin_tokens)}"
-        )
-    tree = BVHTree.FromPolygons(world_vertices, polygons, all_triangles=False)
-    if tree is None:
-        raise RuntimeError("Could not build BVH from skin-only surface")
-    return tree
+    """Build the BVH from evaluated shape keys in the neutral, unposed body."""
+    armature_modifiers = [
+        modifier for modifier in skin.modifiers
+        if modifier.type == "ARMATURE" and modifier.show_viewport
+    ]
+    try:
+        for modifier in armature_modifiers:
+            modifier.show_viewport = False
+        bpy.context.view_layer.update()
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        evaluated = skin.evaluated_get(depsgraph)
+        mesh = evaluated.to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
+        try:
+            world_vertices = [skin.matrix_world @ vertex.co for vertex in mesh.vertices]
+            polygons = [
+                list(poly.vertices) for poly in mesh.polygons
+                if poly.material_index < len(skin.material_slots)
+                and skin.material_slots[poly.material_index].material is not None
+                and skin.material_slots[poly.material_index].material.name in skin_tokens
+            ]
+            if not world_vertices or not polygons:
+                raise RuntimeError(
+                    f"Evaluated skin mesh {skin.name} has no faces matching {sorted(skin_tokens)}"
+                )
+            tree = BVHTree.FromPolygons(world_vertices, polygons, all_triangles=False)
+            if tree is None:
+                raise RuntimeError("Could not build BVH from evaluated skin-only surface")
+            shape_keys = skin.data.shape_keys.key_blocks if skin.data.shape_keys else []
+            diagnostics = {
+                "evaluated_vertex_count": len(mesh.vertices),
+                "evaluated_polygon_count": len(mesh.polygons),
+                "shape_keys": [{"name": key.name, "value": float(key.value)} for key in shape_keys],
+                "armature_pose_excluded": bool(armature_modifiers),
+            }
+            return tree, diagnostics
+        finally:
+            evaluated.to_mesh_clear()
+    finally:
+        for modifier in armature_modifiers:
+            modifier.show_viewport = True
+        bpy.context.view_layer.update()
+
+
+def apply_world_offsets(obj, indices, before, after):
+    """Apply identical positional offsets to Basis and all garment shape keys."""
+    inverse = obj.matrix_world.inverted()
+    offsets = {
+        index: inverse.to_3x3() @ (Vector(fitted) - Vector(source))
+        for index, source, fitted in zip(indices, before, after)
+    }
+    if obj.data.shape_keys and obj.data.shape_keys.key_blocks:
+        for key_block in obj.data.shape_keys.key_blocks:
+            for index, offset in offsets.items():
+                key_block.data[index].co += offset
+    else:
+        for index, offset in offsets.items():
+            obj.data.vertices[index].co += offset
+    obj.data.update()
 
 
 def query_factory(tree):
@@ -126,14 +174,21 @@ def main():
         )
 
     skin, found_skin_materials = skin_matches[0]
-    tree = build_world_surface_tree(skin, skin_tokens)
+    tree, surface_diagnostics = build_world_surface_tree(skin, skin_tokens)
     query = query_factory(tree)
+    presets = {
+        "existing": {"clearance_mm": 1.0, "max_displacement_mm": 10.0,
+                     "max_step_mm": 1.0, "smoothing": 0.08, "iterations": 15},
+        "new": {"clearance_mm": 4.0, "max_displacement_mm": 50.0,
+                "max_step_mm": 3.0, "smoothing": 0.2, "iterations": 25},
+    }
+    preset = presets[args.fit_mode]
     config = FitConfig(
-        target_clearance=args.clearance_mm / 1000.0,
-        max_vertex_displacement=args.max_displacement_mm / 1000.0,
-        max_step=args.max_step_mm / 1000.0,
-        smoothing=args.smoothing,
-        max_iterations=args.iterations,
+        target_clearance=(args.clearance_mm if args.clearance_mm is not None else preset["clearance_mm"]) / 1000.0,
+        max_vertex_displacement=(args.max_displacement_mm if args.max_displacement_mm is not None else preset["max_displacement_mm"]) / 1000.0,
+        max_step=(args.max_step_mm if args.max_step_mm is not None else preset["max_step_mm"]) / 1000.0,
+        smoothing=args.smoothing if args.smoothing is not None else preset["smoothing"],
+        max_iterations=args.iterations if args.iterations is not None else preset["iterations"],
         floating_tolerance=args.floating_tolerance_mm / 1000.0,
     )
 
@@ -164,10 +219,7 @@ def main():
         fitted_world, report = fit_clearance(
             source_world, selected_edges, query, config
         )
-        inverse = obj.matrix_world.inverted()
-        for old_index, world_position in zip(indices, fitted_world):
-            obj.data.vertices[old_index].co = inverse @ Vector(world_position)
-        obj.data.update()
+        apply_world_offsets(obj, indices, source_world, fitted_world)
 
         moved = sum(
             1 for before, after in zip(source_world, fitted_world)
@@ -274,7 +326,9 @@ def main():
     overall_pass = all(item["status"] == "PASS" for item in object_reports)
     report = {
         "status": "PASS" if overall_pass else "FAIL",
-        "solver": "iterative_clearance_projection_v1",
+        "solver": "iterative_clearance_projection_v2",
+        "fit_mode": args.fit_mode,
+        "surface_evaluation": surface_diagnostics,
         "input": os.path.basename(args.input),
         "output": os.path.basename(args.output),
         "blender_version": bpy.app.version_string,
