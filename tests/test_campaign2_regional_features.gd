@@ -108,7 +108,7 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(63, -160)) == "cave_floor", "Corvin barrow antechamber must be cave floor")
 	_check(terrain.terrain_for_hex(Vector2i(72, -160)) == "cave_floor", "Corvin barrow sanctum must be cave floor")
 	_check(terrain.terrain_for_hex(Vector2i(66, -160)) == "cave_floor", "Corvin barrow corridor must open the antechamber wall-ring gap to preserve room connectivity")
-	_check(terrain.terrain_for_hex(Vector2i(35, -154)) == "cave_floor", "Vessel-Seeker entrance corridor must open the entrance chamber wall ring")
+	_check(terrain.terrain_for_hex(Vector2i(35, -155)) == "cave_floor", "Vessel-Seeker entrance corridor must open the entrance chamber wall ring")
 	_check(terrain.terrain_for_hex(Vector2i(43, -154)) == "cave_floor", "Vessel-Seeker second corridor must open the ossuary wall ring")
 	_check(terrain.terrain_for_hex(Vector2i(67, -160)) == "cave_floor", "Barrow corridor must connect the two chambers")
 
