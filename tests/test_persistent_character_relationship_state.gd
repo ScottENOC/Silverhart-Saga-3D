@@ -1,0 +1,110 @@
+extends SceneTree
+
+var _failures: int = 0
+
+
+func _initialize() -> void:
+	_test_authored_roster_and_initial_state()
+	_test_approval_bridge_and_independent_axes()
+	_test_campaign_journal_synchronisation()
+	_test_idempotent_conversations_and_events()
+	_test_friendship_only_profiles()
+	_test_save_load_and_history_bounds()
+	if _failures > 0:
+		push_error("%d persistent NPC relationship assertion(s) failed." % _failures)
+		quit(1)
+		return
+	print("Persistent NPC relationship tests passed.")
+	quit(0)
+
+
+func _check(condition: bool, message: String = "Assertion failed") -> void:
+	if not condition:
+		_failures += 1
+		push_error(message)
+
+
+func _test_authored_roster_and_initial_state() -> void:
+	var relationships := PersistentCharacterRelationshipState.new()
+	_check(relationships.roster().size() == 9, "All nine source-authored persistent NPCs are registered")
+	var seraphine := relationships.snapshot("seraphine_corrin")
+	_check(String(seraphine.get("name", "")) == "Queen Seraphine Corrin")
+	_check(String(seraphine.get("affinity_mode", "")) == "full")
+	_check(int(seraphine.get("familiarity", -1)) == 5)
+	_check(int(seraphine.get("trust", -1)) == 10)
+	var nessa := relationships.snapshot("nessa_wren")
+	_check(int(nessa.get("familiarity", -1)) == 4)
+	_check(int(nessa.get("trust", -1)) == 7)
+	_check(int(nessa.get("friendship", -1)) == 2)
+
+
+func _test_approval_bridge_and_independent_axes() -> void:
+	var relationships := PersistentCharacterRelationshipState.new()
+	var initial := relationships.snapshot("petra_voss", -40.0)
+	_check(int(initial.get("approval", -1)) == 30, "NPC standing -40 maps to approval 30")
+	var adjusted := relationships.adjust_relationship("petra_voss", {"trust":12,"friendship":8}, "negotiated honestly")
+	_check(int(adjusted.get("trust", -1)) == 16)
+	_check(int(adjusted.get("friendship", -1)) == 8)
+	_check(int(adjusted.get("approval", -1)) == 30, "Trust and friendship do not change approval")
+	var approval := relationships.adjust_relationship("petra_voss", {"approval":20}, "earned confidence")
+	_check(int(approval.get("approval", -1)) == 50)
+	var pending := relationships.pending_npc_standing_sync("petra_voss")
+	_check(bool(pending.get("pending", false)))
+	_check(int(pending.get("standing", 999)) == 0, "Approval 50 maps back to journal standing 0")
+	_check(relationships.confirm_npc_standing_sync("petra_voss"))
+	_check(not bool(relationships.pending_npc_standing_sync("petra_voss").get("pending", true)))
+	var refreshed := relationships.snapshot("petra_voss", 80.0)
+	_check(int(refreshed.get("approval", -1)) == 90, "A later journal standing refreshes approval when no local write is pending")
+
+
+func _test_campaign_journal_synchronisation() -> void:
+	var journal := CampaignJournal.new()
+	journal.seed_npc_reputation("petra_voss", -40.0)
+	var relationships := PersistentCharacterRelationshipState.new()
+	var initial := relationships.sync_with_journal("petra_voss", journal)
+	_check(bool(initial.get("ok", false)))
+	_check(int(initial.relationship.get("approval", -1)) == 30)
+	relationships.adjust_relationship("petra_voss", {"approval":20}, "earned the factor's confidence")
+	var pending := relationships.pending_npc_standing_sync("petra_voss")
+	_check(bool(pending.get("pending", false)))
+	var synced := relationships.sync_with_journal("petra_voss", journal)
+	_check(bool(synced.get("ok", false)))
+	_check(is_equal_approx(journal.npc_standing("petra_voss"), 0.0), "Approval changes update the authoritative campaign NPC standing")
+	_check(int(synced.relationship.get("approval", -1)) == 50)
+	_check(not bool(relationships.pending_npc_standing_sync("petra_voss").get("pending", true)))
+
+
+func _test_idempotent_conversations_and_events() -> void:
+	var relationships := PersistentCharacterRelationshipState.new()
+	var first := relationships.note_conversation("ilsa_rennick", "captain:opening", {"familiarity":2,"trust":1})
+	var repeated := relationships.note_conversation("ilsa_rennick", "captain:opening", {"familiarity":2,"trust":1})
+	_check(int(first.get("familiarity", -1)) == 6)
+	_check(int(first.get("trust", -1)) == 9)
+	_check(repeated == first, "A repeated conversation key has no additional effect")
+	var event := relationships.record_event("thrain_emberhand", "runesmith:returned_ore", {"trust":8,"friendship":3})
+	var repeated_event := relationships.record_event("thrain_emberhand", "runesmith:returned_ore", {"trust":8,"friendship":3})
+	_check(int(event.get("trust", -1)) == 14)
+	_check(int(event.get("friendship", -1)) == 4)
+	_check(repeated_event == event, "A repeated authored event key has no additional effect")
+
+
+func _test_friendship_only_profiles() -> void:
+	var relationships := PersistentCharacterRelationshipState.new()
+	var aelwen := relationships.adjust_relationship("aelwen_silthandriel", {"friendship":25,"romantic_bond":90,"attraction":90})
+	_check(int(aelwen.get("friendship", -1)) == 25)
+	_check(int(aelwen.get("romantic_bond", -1)) == 0, "Friendship-only profiles do not acquire unauthored romance")
+	_check(int(aelwen.get("attraction", -1)) == 0)
+	_check(relationships.snapshot("unknown_character").is_empty())
+
+
+func _test_save_load_and_history_bounds() -> void:
+	var relationships := PersistentCharacterRelationshipState.new()
+	for index in range(150):
+		relationships.note_conversation("seraphine_corrin", "audience:" + str(index), {"familiarity":1})
+	var saved := relationships.to_dict()
+	var restored := PersistentCharacterRelationshipState.new()
+	restored.from_dict(saved)
+	var state := restored.snapshot("seraphine_corrin")
+	_check(int(state.get("familiarity", -1)) == 100, "Familiarity is clamped at 100")
+	_check(restored.states["seraphine_corrin"].get("known_conversation_keys", []).size() == 120)
+	_check(restored.states["seraphine_corrin"].get("history", []).size() <= 40)
