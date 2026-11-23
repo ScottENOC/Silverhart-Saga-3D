@@ -115,12 +115,11 @@ def build_shell(
             return ("vertex", a)
         if vb == 0:
             return ("vertex", b)
-        t = va / (va - vb)
-        if a < b:
-            ref = ("edge", a, b, t)
-        else:
-            ref = ("edge", b, a, 1.0 - t)
-        return ref
+        lo, hi = (a, b) if a < b else (b, a)
+        # Always calculate from the canonical endpoint order. Computing 1-t
+        # from the reversed edge can differ by one ULP and create a seam.
+        t = field_values[lo] / (field_values[lo] - field_values[hi])
+        return ("edge", lo, hi, t)
 
     for raw_face in faces:
         face = tuple(int(v) for v in raw_face)
