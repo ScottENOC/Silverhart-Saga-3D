@@ -6,6 +6,11 @@ extends RefCounted
 ## This is intentionally separate from casting/effect resolution.
 
 const DATA_PATH := "res://data/magic/base_spells.json"
+const OFFICIAL_SPELL_IDS := [
+    "firebolt", "counterspell", "feather_fall", "disguise_self",
+    "heal", "divine_protection", "divine_strength", "curse",
+    "summon_animal", "entangle", "calm_animal", "wild_fury"
+]
 static var _base_spells: Dictionary = {}
 static var _load_error: String = ""
 
@@ -39,6 +44,17 @@ static func base_spells() -> Dictionary:
     if int(parsed.get("count", -1)) != loaded.size():
         _load_error = "spell_count_mismatch"
         return {}
+    if loaded.size() != OFFICIAL_SPELL_IDS.size():
+        _load_error = "official_spell_count_mismatch"
+        return {}
+    for official_id in OFFICIAL_SPELL_IDS:
+        if not loaded.has(official_id):
+            _load_error = "missing_official_spell:%s" % official_id
+            return {}
+    for loaded_id in loaded.keys():
+        if not OFFICIAL_SPELL_IDS.has(String(loaded_id)):
+            _load_error = "obsolete_spell_in_catalogue:%s" % String(loaded_id)
+            return {}
     _base_spells = loaded
     _load_error = ""
     return _base_spells
@@ -178,12 +194,7 @@ static func compute_variant(
 static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool:
     if not bool(variant.get("ok", false)):
         return false
-    const IMPLEMENTED_IDS := [
-        "firebolt", "heal", "smite_evil", "divine_silence", "sanctuary",
-        "divine_protection", "summon_animal", "counterspell", "dragon_breath",
-        "entangle", "wild_fury", "calm_animal", "disguise_self",
-        "temporal_rift", "feather_fall"
-    ]
+    const IMPLEMENTED_IDS := OFFICIAL_SPELL_IDS
     if not IMPLEMENTED_IDS.has(spell_id):
         return false
     if int(variant.get("extra_targets", 0)) > 0:
