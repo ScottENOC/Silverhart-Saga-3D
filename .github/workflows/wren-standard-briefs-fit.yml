@@ -63,6 +63,7 @@ jobs:
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
           export EGL_PLATFORM=surfaceless
           export LIBGL_ALWAYS_SOFTWARE=1
+          fit_status=0
           blender --background --python-exit-code 1 \
             --python tools/blender/garment_fit/fit_glb.py -- \
             --input build/wren-briefs-fit/wren-briefs-source.glb \
@@ -70,11 +71,16 @@ jobs:
             --report build/wren-briefs-fit/fit-report.json \
             --skin-material Skin_Anatomy --garment-material Briefs \
             --clearance-mm 4 --max-displacement-mm 25 --max-step-mm 2 \
-            --smoothing 0.15 --iterations 25 --floating-tolerance-mm 15
+            --smoothing 0.15 --iterations 25 --floating-tolerance-mm 15 || fit_status=$?
           test -s build/wren-briefs-fit/wren-standard-briefs-fitted.glb
           test -s build/wren-briefs-fit/fit-report.json
+          echo "FIT_STATUS=$fit_status" >> "$GITHUB_ENV"
+          if [ "$fit_status" -ne 0 ]; then
+            echo "Fit quality gate failed; retaining geometry and report for visual diagnosis."
+          fi
 
       - name: Render front, side and rear fit review
+        if: always() && hashFiles('build/wren-briefs-fit/wren-standard-briefs-fitted.glb') != ''
         run: |
           set -euo pipefail
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
@@ -88,6 +94,20 @@ jobs:
             test -s "build/wren-briefs-fit/review/standard_briefs/$view.png"
           done
           test -s build/wren-briefs-fit/review/standard_briefs/report.json
+
+      - name: Upload fit diagnostics, including failed fits
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: wren-standard-briefs-fit-diagnostics
+          path: build/wren-briefs-fit/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Enforce fit quality gate
+        if: always()
+        run: |
+          test "${FIT_STATUS:-1}" -eq 0
 
       - name: Verify source Wren and underwear assets are unchanged
         run: |
