@@ -98,13 +98,32 @@ def main() -> None:
                 raise SystemExit(f"Missing generated NPC model: {source}")
             output = source.with_name(source.stem + ".anatomy.glb")
             if int(params.get("gender", 0)) == 1:
-                run_blender(
-                    MALE_TOOL,
+                # Character ID is the stable seed: regeneration preserves the
+                # same normally distributed measurements for each NPC.
+                is_aldric = (
+                    character_id.casefold() == "aldric"
+                    or str(character.get("name", "")).casefold() == "aldric"
+                )
+                male_args = [
                     "--input", str(source),
                     "--output", str(output),
                     "--adult",
                     "--profile-name", character_id,
-                )
+                ]
+                if is_aldric:
+                    # Aldric is authored at approximately 10% above the
+                    # population mean in both measured dimensions.
+                    male_args.extend([
+                        "--length-scale", "1.10",
+                        "--girth-scale", "1.10",
+                        "--variation-strength", "0",
+                    ])
+                else:
+                    male_args.extend([
+                        "--variation-seed", character_id,
+                        "--variation-strength", "1",
+                    ])
+                run_blender(MALE_TOOL, *male_args)
             else:
                 if not female_plan_ready:
                     run_blender(
