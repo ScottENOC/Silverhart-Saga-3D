@@ -54,7 +54,8 @@ func step(delta: float) -> void:
 			mesh.set_blend_shape_value(shape_index, clampf(base_value + amount * gain, -1.0, 1.0))
 
 func get_bound_target_count(region_id: StringName) -> int:
-	return (_targets.get(region_id, []) as Array).size()
+	var matches: Array = _targets.get(region_id, [])
+	return matches.size()
 
 func _bind_region_targets(region_id: StringName) -> void:
 	var matches: Array[Dictionary] = []
@@ -75,11 +76,7 @@ func _bind_region_targets(region_id: StringName) -> void:
 	_targets[region_id] = matches
 
 func _normalise_shape_name(value: String) -> String:
-	var result := ""
-	for character in value.to_lower():
-		if character >= "a" and character <= "z" or character >= "0" and character <= "9":
-			result += character
-	return result
+	return value.to_lower().replace("_", "").replace("-", "").replace(" ", "")
 
 func _collect_meshes(node: Node, output: Array[MeshInstance3D]) -> void:
 	if node is MeshInstance3D:
