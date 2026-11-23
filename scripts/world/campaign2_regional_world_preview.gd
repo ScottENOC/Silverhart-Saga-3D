@@ -36,6 +36,15 @@ var player_actor: Node3D
 var active_location_runtime: Campaign2MultiStoryLocationRuntime
 var mouse_travel_pressed := false
 
+# Lightweight runtime diagnostics. Reports slow frames and the cost of each
+# streamed chunk stage without printing every frame.
+var _perf_sample_elapsed := 0.0
+var _perf_sample_frames := 0
+var _perf_sample_frame_usec := 0
+var _perf_sample_max_frame_usec := 0
+var _perf_sample_slowest_stage := ""
+var _perf_sample_slowest_usec := 0
+
 func _ready() -> void:
 	terrain_data = TERRAIN_DATA_SCRIPT.new() as Campaign2WorldTerrainData
 	ecology_simulation = WorldSimulation.new()
@@ -204,13 +213,61 @@ func jump_to_location(location_id: String) -> void:
 		return
 
 func _process(delta: float) -> void:
+	var frame_start := Time.get_ticks_usec()
 	if movement_controller != null:
 		movement_controller.process_movement(delta)
 	_update_streamed_chunks(false)
+	_record_perf_frame(Time.get_ticks_usec() - frame_start, delta)
+
+func _record_perf_frame(frame_usec: int, delta: float) -> void:
+	_perf_sample_elapsed += delta
+	_perf_sample_frames += 1
+	_perf_sample_frame_usec += frame_usec
+	_perf_sample_max_frame_usec = maxi(_perf_sample_max_frame_usec, frame_usec)
+	if _perf_sample_elapsed < 5.0:
+		return
+	var average_ms := float(_perf_sample_frame_usec) / float(maxi(1, _perf_sample_frames)) / 1000.0
+	var maximum_ms := float(_perf_sample_max_frame_usec) / 1000.0
+	var slowest_ms := float(_perf_sample_slowest_usec) / 1000.0
+	var engine_process_ms := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	var physics_process_ms := Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	var render_objects := int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))
+	var render_primitives := int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
+	var physics_bodies := int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS))
+	print("[WorldPerf] fps=%.1f script_avg=%.2fms script_max=%.2fms engine_process=%.2fms physics=%.2fms nodes=%d objects=%d render_objects=%d primitives=%d physics_bodies=%d chunks=%d slowest_chunk_stage=%s(%.2fms)" % [
+		float(_perf_sample_frames) / _perf_sample_elapsed,
+		average_ms,
+		maximum_ms,
+		engine_process_ms,
+		physics_process_ms,
+		get_tree().get_node_count(),
+		int(Performance.get_monitor(Performance.OBJECT_COUNT)),
+		render_objects,
+		render_primitives,
+		physics_bodies,
+		chunk_nodes.size(),
+		_perf_sample_slowest_stage,
+		slowest_ms
+	])
+	_perf_sample_elapsed = 0.0
+	_perf_sample_frames = 0
+	_perf_sample_frame_usec = 0
+	_perf_sample_max_frame_usec = 0
+	_perf_sample_slowest_stage = ""
+	_perf_sample_slowest_usec = 0
+
+func _record_chunk_stage(stage: String, started_usec: int) -> void:
+	var elapsed_usec := Time.get_ticks_usec() - started_usec
+	if elapsed_usec > _perf_sample_slowest_usec:
+		_perf_sample_slowest_usec = elapsed_usec
+		_perf_sample_slowest_stage = stage
+	if elapsed_usec >= 50000:
+		print("[WorldPerf] chunk_stage=%s elapsed=%.2fms" % [stage, float(elapsed_usec) / 1000.0])
 
 ## Chunk membership is keyed to the camera focus, not the map's gameplay regions.
 ## Crossing a chunk boundary loads the new 3x3 neighbourhood and retires stale chunks.
 func _update_streamed_chunks(force: bool) -> void:
+	var stream_started := Time.get_ticks_usec()
 	var centre_hex := HexGrid.world_to_axial(Vector3(target.x, 0.0, target.z), HEX_RADIUS)
 	var centre_chunk := terrain_data.chunk_for_hex(centre_hex, CHUNK_SIZE)
 	if not force and centre_chunk == last_stream_centre:
@@ -233,8 +290,10 @@ func _update_streamed_chunks(force: bool) -> void:
 		if is_instance_valid(node):
 			node.queue_free()
 		chunk_nodes.erase(key)
+	_record_chunk_stage("stream_update", stream_started)
 
 func _build_chunk(chunk: Vector2i) -> Node3D:
+	var chunk_started := Time.get_ticks_usec()
 	var root := Node3D.new()
 	root.name = "TerrainChunk_%d_%d" % [chunk.x, chunk.y]
 	add_child(root)
@@ -245,7 +304,10 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 		surface.set_material(materials[terrain])
 		tools[terrain] = surface
 	var chunk_min := chunk * CHUNK_SIZE
+	var gameplay_started := Time.get_ticks_usec()
 	_populate_chunk_gameplay_cells(chunk)
+	_record_chunk_stage("gameplay_cells", gameplay_started)
+	var mesh_started := Time.get_ticks_usec()
 	for q in range(chunk_min.x, chunk_min.x + CHUNK_SIZE):
 		for r in range(chunk_min.y, chunk_min.y + CHUNK_SIZE):
 			var hex := Vector2i(q, r)
@@ -265,15 +327,23 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 		instance.mesh = mesh
 		instance.material_override = materials[terrain]
 		root.add_child(instance)
+	_record_chunk_stage("terrain_mesh", mesh_started)
+	var vegetation_started := Time.get_ticks_usec()
 	var vegetation_placements := _wilderness_vegetation_placements_for_chunk(chunk_min, CHUNK_SIZE)
 	var vegetation_spawned := WORLD_VEGETATION_SCRIPT.generate_authored_placements(root, vegetation_placements)
+	_record_chunk_stage("vegetation", vegetation_started)
 	if vegetation_spawned != vegetation_placements.size():
 		push_warning("Regional wilderness vegetation spawned %d of %d GLB models." % [vegetation_spawned, vegetation_placements.size()])
+	var walls_started := Time.get_ticks_usec()
 	var wall_result: Dictionary = WALL_FEATURE_FACTORY.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS, materials)
+	_record_chunk_stage("walls", walls_started)
 	if not bool(wall_result.get("ok", false)):
 		push_warning("Regional wall presentation failed: %s" % wall_result)
 	_add_chunk_locations(root, chunk)
+	var settlement_started := Time.get_ticks_usec()
 	settlement_builder.add_settlements_in_chunk(root, chunk_min, CHUNK_SIZE, "chunked")
+	_record_chunk_stage("settlements", settlement_started)
+	_record_chunk_stage("chunk_total_%d_%d" % [chunk.x, chunk.y], chunk_started)
 	return root
 
 

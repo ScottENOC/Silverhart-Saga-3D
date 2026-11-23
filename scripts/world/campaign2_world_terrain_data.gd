@@ -30,6 +30,14 @@ var settlement_wall_cells: Dictionary = {}
 var settlement_ladder_cells: Dictionary = {}
 var river_points: Array[Vector3] = []
 
+# Terrain queries are deterministic and heavily reused by mesh generation.
+# Cache per-hex results so neighbouring vertices do not repeat full geography,
+# settlement-registry and river-path resolution.
+var _terrain_cache: Dictionary = {}
+var _elevation_cache: Dictionary = {}
+var _shared_vertex_cache: Dictionary = {}
+var _tree_cache: Dictionary = {}
+
 ## The two neighbouring cell centres that share each flat-top hex vertex.
 ## This table is indexed by the corner offsets returned by HexGrid.corner_offsets().
 const SHARED_VERTEX_NEIGHBOURS := [
@@ -196,6 +204,14 @@ func _build_strategic_river() -> void:
 		river_points.append(HexGrid.axial_to_world(Vector2i(local_q, local_r), HexGrid.DEFAULT_RADIUS_M))
 
 func terrain_for_hex(hex: Vector2i) -> String:
+	var key := _hex_key(hex)
+	if _terrain_cache.has(key):
+		return String(_terrain_cache[key])
+	var result := _terrain_for_hex_uncached(hex)
+	_terrain_cache[key] = result
+	return result
+
+func _terrain_for_hex_uncached(hex: Vector2i) -> String:
 	# Source-authored regional site footprints (dungeons, forts, lairs and
 	# carved entrances) must be able to replace the underlying settlement
 	# terrain domain where their coordinates overlap it, as the original
@@ -278,6 +294,14 @@ func movement_multiplier_for_hex(hex: Vector2i) -> float:
 	return -1.0
 
 func elevation_for_hex(hex: Vector2i) -> float:
+	var key := _hex_key(hex)
+	if _elevation_cache.has(key):
+		return float(_elevation_cache[key])
+	var result := _elevation_for_hex_uncached(hex)
+	_elevation_cache[key] = result
+	return result
+
+func _elevation_for_hex_uncached(hex: Vector2i) -> float:
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
@@ -310,6 +334,14 @@ func _road_surface_elevation(hex: Vector2i) -> float:
 ## Sampling the same three global cells makes independently streamed chunks
 ## produce identical boundary vertices, rather than exposing vertical seams.
 func shared_vertex_elevation(hex: Vector2i, corner_index: int) -> float:
+	var key := "%s:%d" % [_hex_key(hex), corner_index]
+	if _shared_vertex_cache.has(key):
+		return float(_shared_vertex_cache[key])
+	var result := _shared_vertex_elevation_uncached(hex, corner_index)
+	_shared_vertex_cache[key] = result
+	return result
+
+func _shared_vertex_elevation_uncached(hex: Vector2i, corner_index: int) -> float:
 	if corner_index < 0 or corner_index >= SHARED_VERTEX_NEIGHBOURS.size():
 		return elevation_for_hex(hex)
 	var neighbours: Array = SHARED_VERTEX_NEIGHBOURS[corner_index]
@@ -327,6 +359,14 @@ func shared_vertex_elevation(hex: Vector2i, corner_index: int) -> float:
 	return total / 3.0
 
 func has_tree(hex: Vector2i) -> bool:
+	var key := _hex_key(hex)
+	if _tree_cache.has(key):
+		return bool(_tree_cache[key])
+	var result := _has_tree_uncached(hex)
+	_tree_cache[key] = result
+	return result
+
+func _has_tree_uncached(hex: Vector2i) -> bool:
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
