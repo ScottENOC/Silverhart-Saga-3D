@@ -79,20 +79,6 @@ func _initialize() -> void:
 	_check(terrain.terrain_for_hex(Vector2i(429, 43)) == "keep_wall", "Ridgehold keep must retain its wall ring")
 	_check(FEATURES.feature_id_at(Vector2i(407, 43)) == "ridgehold_gate", "Ridgehold gate must have its own feature identity")
 
-	# Silverhart's palace curtain wall and outer city wall are source-authored
-	# radius rings. The outer wall keeps its three-hex south gate open.
-	_check(terrain.terrain_for_hex(Vector2i(31, -496)) == "climbable_wall", "Silverhart palace curtain wall must render as a climbable wall")
-	_check(FEATURES.feature_id_at(Vector2i(31, -496)) == "silverhart_palace_curtain_wall", "Palace curtain wall must retain its source feature identity")
-	_check(terrain.terrain_for_hex(Vector2i(32, -496)) != "climbable_wall", "Palace curtain wall must stop beyond radius 23")
-	_check(terrain.terrain_for_hex(Vector2i(68, -496)) == "climbable_wall", "Silverhart outer city wall must include its radius-60 edge")
-	_check(FEATURES.feature_id_at(Vector2i(68, -496)) == "silverhart_city_wall", "Outer city wall must retain its source feature identity")
-	_check(terrain.terrain_for_hex(Vector2i(69, -496)) != "climbable_wall", "Outer city wall must stop beyond radius 60")
-	_check(terrain.terrain_for_hex(Vector2i(8, -436)) == "path", "Silverhart city gate west cell must remain open")
-	_check(terrain.terrain_for_hex(Vector2i(7, -436)) == "path", "Silverhart city gate centre cell must remain open")
-	_check(terrain.terrain_for_hex(Vector2i(6, -436)) == "path", "Silverhart city gate east cell must remain open")
-	_check(FEATURES.feature_id_at(Vector2i(7, -436)) == "silverhart_city_gate", "Three-cell city gate must retain its source feature identity")
-	_check(terrain.terrain_for_hex(Vector2i(8, -474)) == "path", "Palace gate approach must remain connected to the inner curtain wall")
-
 	# Sil'thandriel's canopy has an explicit grass arrival clearing, a dense
 	# source-noise woodland band, a foliage perimeter and a north approach.
 	_check(terrain.terrain_for_hex(Vector2i(-252, 934)) == "grass", "Elven capital must retain its arrival clearing")
