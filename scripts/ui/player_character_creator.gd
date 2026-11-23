@@ -69,8 +69,7 @@ func _ready() -> void:
 	layer = 100
 	_build_screen()
 	_load_saved_profile()
-	if preview_enabled:
-		call_deferred("_refresh_appearance_preview", 0)
+	_refresh_character_preview(0)
 
 func _build_screen() -> void:
 	var backdrop := ColorRect.new()
@@ -346,7 +345,6 @@ func _build_screen() -> void:
 	start_button.pressed.connect(_finish)
 	panel.add_child(start_button)
 	_update_mode_controls(game_mode_select.selected)
-	_refresh_character_preview(0)
 
 func _section(parent: VBoxContainer, text_value: String) -> void:
 	var label := Label.new()
@@ -431,7 +429,6 @@ func _load_saved_profile() -> void:
 		density_slider.value = clampf(float(area_settings.get("density", 0.5)), 0.0, 1.0)
 		density_slider.editable = not enabled
 	_select_text(body_hair_style_select, str(saved_body_hair.get("pubic_style", "Natural")))
-	_refresh_character_preview(0)
 	_update_mode_controls(game_mode_select.selected)
 
 func _select_metadata(select: OptionButton, value: String) -> void:
