@@ -898,7 +898,6 @@ func _build_save_snapshot() -> Dictionary:
 		"active_party_index": active_party_index,
 		"clock": simulation.clock.to_dict(),
 		"campaign_journal": simulation.campaign_journal.to_dict(),
-		"campaign_faction_simulation": campaign_faction_simulation.to_dict() if campaign_faction_simulation != null else {},
 		"persistent_character_relationships": PERSISTENT_RELATIONSHIP_STORE.to_dict(simulation),
 		"wilderness_resources": simulation.wilderness_resources.to_dict(),
 		"multistory_locations": simulation.multistory_location_states_to_dict(),
@@ -980,9 +979,6 @@ func _apply_save_data(data: Dictionary) -> void:
 	var journal_data: Variant = data.get("campaign_journal", {})
 	if journal_data is Dictionary:
 		simulation.campaign_journal.load_dict(journal_data)
-	var faction_simulation_data: Variant = data.get("campaign_faction_simulation", {})
-	if faction_simulation_data is Dictionary and campaign_faction_simulation != null:
-		campaign_faction_simulation.from_dict(faction_simulation_data)
 	var persistent_relationship_data: Variant = data.get("persistent_character_relationships", {})
 	if persistent_relationship_data is Dictionary:
 		if not PERSISTENT_RELATIONSHIP_STORE.restore(simulation, persistent_relationship_data):
