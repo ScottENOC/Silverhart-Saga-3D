@@ -7,6 +7,7 @@ const QUEST_ID := "goblin_threat"
 const CHIEF_ID := "chief_skarnub"
 const GIFT_EVENT_KEY := "skarnub:gift:60_gold"
 const GIFT_COST := 60
+const FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
 
 const OPENING_GREETING := "Another human, come to gawk or to fight? Speak quick."
 const GIFT_RESPONSE := "Huh. Didn't expect that. Maybe you're not just another human come to run us off."
@@ -160,7 +161,7 @@ func resolve_threat(journal: CampaignJournal, resolution: String, relationships:
 	var outcome: Dictionary = outcomes[resolution]
 	var effects: Dictionary = outcome.get("effects", {})
 	var kingdom_change := journal.adjust_faction_reputation("silverhart_kingdom", float(outcome.kingdom), 15.0, "goblin_threat:" + resolution)
-	var goblin_change := journal.adjust_faction_reputation("goblin_tribe", float(outcome.goblin), 20.0, "goblin_threat:" + resolution)
+	var goblin_change := FACTION_SIMULATION_SCRIPT.adjust_goblin_reputation(journal, float(outcome.goblin), 20.0, "goblin_threat:" + resolution)
 	var completed := journal.complete_quest(QUEST_ID)
 	if not bool(completed.get("ok", false)):
 		return completed
@@ -200,7 +201,7 @@ func resolve_favour(journal: CampaignJournal, favour: String) -> Dictionary:
 		return recorded
 	var outcome: Dictionary = outcomes[favour]
 	var effects: Dictionary = outcome.get("effects", {})
-	var goblin_change := journal.adjust_faction_reputation("goblin_tribe", float(outcome.goblin), float(outcome.knowledge), "goblin_favour:" + favour)
+	var goblin_change := FACTION_SIMULATION_SCRIPT.adjust_goblin_reputation(journal, float(outcome.goblin), float(outcome.knowledge), "goblin_favour:" + favour)
 	var kingdom_change := journal.adjust_faction_reputation("silverhart_kingdom", float(outcome.kingdom), float(outcome.knowledge), "goblin_favour:" + favour)
 	return {"ok":true,"applied":true,"favour":favour,"reputation":{"goblin_tribe":goblin_change,"silverhart_kingdom":kingdom_change},"effects":effects.duplicate(true)}
 

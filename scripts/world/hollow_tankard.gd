@@ -28,6 +28,7 @@ const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
 const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
+const CAMPAIGN_FACTION_SIMULATION_SCRIPT = preload("res://scripts/simulation/campaign_faction_simulation.gd")
 const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
 const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
 const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
@@ -56,6 +57,7 @@ var world_cell_loader: Campaign2WorldCellLoader
 var spell_vfx: Node3D
 var save_load_menu: CanvasLayer
 var pending_save_data: Dictionary = {}
+var campaign_faction_simulation: CampaignFactionSimulation
 var initial_character_baselines: Dictionary = {}
 
 var autosave_accumulator: float = 0.0
@@ -128,6 +130,7 @@ func _ready() -> void:
 	spell_vfx.name = "SpellVisualEffects"
 	add_child(spell_vfx)
 	_configure_location_simulation()
+	campaign_faction_simulation = CAMPAIGN_FACTION_SIMULATION_SCRIPT.new() as CampaignFactionSimulation
 	_present_interior_layout()
 	movement_controller = WORLD_PLAYER_MOVEMENT_CONTROLLER.new()
 	movement_controller.name = "WorldPlayerMovementController"
@@ -141,9 +144,17 @@ func _ready() -> void:
 	_create_hud()
 	ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
 	ambient_rng.randomize()
-	if not pending_save_data.is_empty():
+	var restored_from_save := not pending_save_data.is_empty()
+	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		pending_save_data.clear()
+	var initial_player_state := simulation.get_character("player")
+	var player_race := initial_player_state.race if initial_player_state != null else "human"
+	CAMPAIGN_FACTION_SIMULATION_SCRIPT.seed_faction_standings(simulation.campaign_journal, String(player_race))
+	campaign_faction_simulation.reset_world_time(simulation.clock.world_seconds)
+	if not simulation.clock.time_advanced.is_connected(_on_campaign_world_time_advanced):
+		simulation.clock.time_advanced.connect(_on_campaign_world_time_advanced)
+	if restored_from_save:
 		if not shakedown_started:
 			_run_opening_sequence()
 	else:
@@ -223,6 +234,11 @@ func _configure_location_simulation() -> void:
 	simulation.movement_reaction_resolved.connect(_on_movement_reaction_resolved)
 	simulation.turn_scheduler.turn_started.connect(_on_combat_turn_started)
 
+
+func _on_campaign_world_time_advanced(world_seconds: float) -> void:
+	if campaign_faction_simulation == null or simulation == null:
+		return
+	campaign_faction_simulation.advance_to(simulation.campaign_journal, world_seconds)
 
 func _on_simulation_action_committed(event: SimulationEvent) -> void:
 	if event == null or spell_vfx == null:
