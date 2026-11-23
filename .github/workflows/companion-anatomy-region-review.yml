@@ -68,11 +68,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
           export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
-          blender --background --python-exit-code 1 \\
-            --python tools/blender/paint_vulva_mons_region_mask.py -- \\
-            --input build/wren-native/Wren.glb \\
-            --output build/wren-native/Wren_masked.glb \\
-            --report build/vulva-mons-mask-report.json
+          blender --background --python-exit-code 1 --python tools/blender/paint_vulva_mons_region_mask.py -- --input build/wren-native/Wren.glb --output build/wren-native/Wren_masked.glb --report build/vulva-mons-mask-report.json
           test -s build/wren-native/Wren_masked.glb
           test -s build/vulva-mons-mask-report.json
           mv build/wren-native/Wren_masked.glb build/wren-native/Wren.glb
