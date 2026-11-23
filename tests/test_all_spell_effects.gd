@@ -174,27 +174,43 @@ func _test_curse() -> void:
     enemy.side = "enemy"
     enemy.to_hit_melee = 100.0
     enemy.base_damage = 8
+    enemy.health = 50
     enemy.current_mana = 10
     enemy.max_mana = 10
     caster.skills["cleric_trigger_damage"] = 1
     caster.skills["cleric_trigger_dmg_red"] = 2
+    caster.skills["cleric_trigger_heal_red"] = 1
     caster.skills["cleric_trigger_mana"] = 2
     caster.skills["cleric_trigger_vision"] = 1
     caster.skills["extended_sentence"] = 1
     caster.skills["armistice"] = 1
     sim.register_character(enemy)
     var vision_before := VisionRules.vision_range(enemy)
+    var health_before_curse := enemy.health
     var result := _cast(sim, caster, enemy, "curse")
-    var before := enemy.health
-    var attack := sim.submit_action(SimulationActionRequest.new(SimulationActionRequest.ActionType.ATTACK, enemy.id, caster.id, Vector2i.ZERO, 0.0, {}), 88)
     _check(bool(result.get("ok", false)) and enemy.has_spell_effect("curse"), "Curse should mark an enemy")
+    _check(enemy.health == health_before_curse - 1, "Divine Retribution should damage the target when Curse is applied")
     _check(int(enemy.current_mana) == 8, "Divine Drain should remove mana when Curse is applied")
     _check(int(enemy.get_spell_effect("curse").get("ticks_remaining", 0)) == 22, "Extended Sentence should extend Curse duration")
     _check(int(enemy.get_spell_effect("curse").get("vision_penalty", 0)) == 1, "Clouded Mind should record its vision penalty on the curse")
     _check(VisionRules.vision_range(enemy) == vision_before - 1, "Clouded Mind should reduce the cursed target's actual vision range")
+
+    var healer := CharacterState.new("enemy_healer", "Enemy Healer", Vector2i(2, 0))
+    healer.side = "enemy"
+    healer.current_mana = 20
+    healer.max_mana = 20
+    healer.time_points = 100.0
+    healer.unlocked_base_spells = ["heal"]
+    sim.register_character(healer)
+    var health_before_heal := enemy.health
+    var heal_result := _cast(sim, healer, enemy, "heal")
+    _check(bool(heal_result.get("ok", false)) and enemy.health - health_before_heal == 2, "Severed Grace should halve healing received by the cursed target")
+
+    var before_attack := enemy.health
+    var attack := sim.submit_action(SimulationActionRequest.new(SimulationActionRequest.ActionType.ATTACK, enemy.id, caster.id, Vector2i.ZERO, 0.0, {}), 88)
     _check(bool(attack.get("ok", false)) and int(attack.get("raw_damage", -1)) == 6, "Feeble Strike should reduce the cursed target's outgoing damage")
-    _check(is_equal_approx(enemy.time_points, 495.0), "Armistice should add five TP to the cursed target's next attack")
-    _check(before - enemy.health == 2, "Curse should punish the enemy's next hostile action")
+    _check(is_equal_approx(enemy.time_points, 95.0), "Armistice should add five TP to the cursed target's next attack")
+    _check(before_attack - enemy.health == 2, "Curse should punish the enemy's next hostile action")
     _check(not enemy.has_spell_effect("curse"), "Curse should be consumed by the hostile action")
     sim.free()
 
