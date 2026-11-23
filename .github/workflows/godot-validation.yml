@@ -230,6 +230,8 @@ jobs:
       - name: Run Campaign 2 character definition registry tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_character_definition_registry.gd
       - name: Run Campaign 2 canonical settlement builder tests
+      - name: Run restored Emberwood and Skarn-tooth site presentation tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_restored_regional_site_presentation.gd
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign2_settlement_builder.gd
       - name: Run chunk-aware settlement feature composer tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_world_settlement_feature_composer.gd
