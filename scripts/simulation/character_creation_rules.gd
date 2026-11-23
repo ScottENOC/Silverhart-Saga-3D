@@ -65,6 +65,10 @@ static func create_player_state(profile: Dictionary, character_id: String, start
     state.ironman_mode = bool(profile.get("ironman_mode", false))
     state.gender_presentation = String(profile.get("gender_presentation", "Masculine"))
     state.pronouns = String(profile.get("pronouns", "they/them"))
+    # Character-creation profile values are multipliers around the measured
+    # population means, bounded to +/-2 SD at the 1.676 m reference height.
+    state.male_anatomy_length_scale = clampf(float(profile.get("male_anatomy_length_scale", 1.0)), 0.747, 1.253)
+    state.male_anatomy_girth_scale = clampf(float(profile.get("male_anatomy_girth_scale", 1.0)), 0.811, 1.189)
     state.class_levels = {class_id: 1}
     state.class_level_sequence = [class_id]
     state.gold = int(_data().get("starting_resources", {}).get(state.campaign_id, 0))
