@@ -54,20 +54,45 @@ static func shakedown_choices() -> Array[Dictionary]:
     ]
 
 
+const FACTION_RACES := {
+    "silverhart_kingdom": "human",
+    "ironbond_company": "human",
+    "goblin_tribe": "goblin",
+    "necromancer_cult": "undead",
+    "orc_raiders": "orc",
+    "dwarven_kingdom": "dwarf",
+    "elven_realm": "elf",
+    "thieves_guild": ""
+}
+
+
+static func _source_faction_seed_standing(faction_race: String, player_race: String) -> float:
+    if not faction_race.is_empty() and faction_race == player_race:
+        return 5.0
+    if player_race == "goblin" or player_race == "orc":
+        if faction_race == "goblin" or faction_race == "orc":
+            return 15.0
+        if faction_race == "human" or faction_race == "elf" or faction_race == "dwarf":
+            return -15.0
+    return 0.0
+
+
 static func initialize_social_standings(journal: CampaignJournal, player_race: String = "human") -> void:
     if journal == null:
         return
     var normalized_race := player_race.to_lower()
-    var human_standing := 5.0 if normalized_race == "human" else 0.0
-    if normalized_race == "goblin" or normalized_race == "orc":
-        human_standing = -15.0
+    var human_standing := _source_faction_seed_standing("human", normalized_race)
     journal.seed_npc_reputation("garrick_holt", human_standing, 0.0)
     journal.seed_npc_reputation("mira_ashbrook", human_standing, 0.0)
     journal.seed_npc_reputation("oskar_vinn", human_standing, 0.0)
     journal.seed_npc_reputation("hollowmere_elder", human_standing, 0.0)
     journal.seed_npc_reputation("hollowmere_baron", human_standing, 0.0)
-    journal.seed_faction_reputation("ironbond_company", human_standing, 0.0)
-    journal.seed_faction_reputation("silverhart_kingdom", human_standing, 0.0)
+    for faction_id_value in FACTION_RACES:
+        var faction_id := String(faction_id_value)
+        var faction_race := String(FACTION_RACES[faction_id])
+        journal.seed_faction_reputation(
+            faction_id, _source_faction_seed_standing(faction_race, normalized_race), 0.0
+        )
     journal.seed_merchant_influence("ironbond_company", "silverhart_kingdom", 30.0)
 
 
