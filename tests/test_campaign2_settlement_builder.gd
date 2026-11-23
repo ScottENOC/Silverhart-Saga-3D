@@ -184,6 +184,9 @@ func _initialize() -> void:
 	# The main campaign supplies its shared simulation to the same streamed
 	# settlement builder. Named NPCs must become persistent simulation entities,
 	# not presentation-only meshes that disappear when their chunk unloads.
+	# Retire the presentation-only copy above before exercising the
+	# simulation-backed path; the live game never keeps both presenters.
+	silverhart_palace_chunk.free()
 	var palace_simulation := WorldSimulation.new()
 	var palace_simulation_builder = SETTLEMENT_BUILDER.new(terrain.settlement_layouts, null, palace_simulation)
 	var palace_runtime_chunk := Node3D.new()
