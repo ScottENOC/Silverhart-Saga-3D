@@ -114,10 +114,16 @@ func _test_disguise_self() -> void:
 	var setup := _new_sim()
 	var sim: WorldSimulation = setup.sim
 	var caster: CharacterState = setup.caster
-	var prepared := PreparedSpell.new("disguise_self", {}, {"profile_id": "merchant"})
+	var prepared := PreparedSpell.new("disguise_self", {}, {"profile_id": "merchant", "copy_character_id": "old_mac"})
 	caster.prepared_spells.append(prepared.to_dict())
 	var result := sim.submit_action(SimulationActionRequest.cast_spell(caster.id, caster.id, prepared))
 	_check(bool(result.get("ok", false)) and caster.has_spell_effect("disguise_self"), "Disguise Self should apply to its caster")
+	var disguise := caster.get_spell_effect("disguise_self")
+	_check(String(disguise.get("copy_character_id", "")) == "old_mac", "Disguise Self should retain the selected encountered character")
+	disguise["profile"] = {"hair_colour": "Silver", "hair_style": "Braid"}
+	caster.add_spell_effect(disguise)
+	var restored := CharacterState.from_dict(caster.to_dict())
+	_check(restored != null and String(restored.get_spell_effect("disguise_self").get("profile", {}).get("hair_colour", "")) == "Silver", "The chosen disguise appearance should persist through character save/load")
 	sim.free()
 
 
