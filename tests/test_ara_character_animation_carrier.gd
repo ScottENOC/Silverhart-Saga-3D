@@ -25,7 +25,12 @@ func _run() -> void:
 
 	var actor := ACTOR_SCRIPT.new()
 	root.add_child(actor)
-	_check(actor.configure(BODY_PATHS[0]), "Ara female gameplay actor configures from its body asset")
+	var female_configured: bool = actor.configure(BODY_PATHS[0])
+	_check(female_configured, "Ara female gameplay actor configures from its body asset")
+	if not female_configured:
+		actor.free()
+		_finish()
+		return
 	await process_frame
 
 	var animation_player := actor.animation_player as AnimationPlayer
@@ -54,8 +59,7 @@ func _run() -> void:
 	var starting_poses: Array[Transform3D] = []
 	for bone_index in range(skeleton.get_bone_count()):
 		starting_poses.append(skeleton.get_bone_global_pose(bone_index))
-	for frame in range(20):
-		await process_frame
+	await create_timer(0.3).timeout
 	var changed_bones := 0
 	for bone_index in range(skeleton.get_bone_count()):
 		if not skeleton.get_bone_global_pose(bone_index).is_equal_approx(starting_poses[bone_index]):
@@ -68,10 +72,15 @@ func _run() -> void:
 		or animation_player.current_animation.to_lower().contains("stand"),
 		"Gameplay actor selects its idle clip")
 
-	actor.queue_free()
+	actor.free()
 	var male_actor := ACTOR_SCRIPT.new()
 	root.add_child(male_actor)
-	_check(male_actor.configure(BODY_PATHS[1]), "Ara male gameplay actor configures from its body asset")
+	var male_configured: bool = male_actor.configure(BODY_PATHS[1])
+	_check(male_configured, "Ara male gameplay actor configures from its body asset")
+	if not male_configured:
+		male_actor.free()
+		_finish()
+		return
 	await process_frame
 	var male_animation_player := male_actor.animation_player as AnimationPlayer
 	var male_skeleton := _find_skeleton(male_actor.model_root)
@@ -79,7 +88,7 @@ func _run() -> void:
 	_check(male_skeleton != null, "Male gameplay actor has the animated carrier Skeleton3D")
 	if male_animation_player != null and male_skeleton != null:
 		_check(male_actor.set_moving(true), "Male gameplay actor selects a real locomotion clip")
-	male_actor.queue_free()
+	male_actor.free()
 
 	await _assert_character_asset_animated(
 		"res://art/characters/companions/wren.glb", "Wren companion"
@@ -91,6 +100,8 @@ func _run() -> void:
 
 
 func _find_skeleton(node: Node) -> Skeleton3D:
+	if node == null:
+		return null
 	if node is Skeleton3D:
 		return node as Skeleton3D
 	for child in node.get_children():
@@ -127,7 +138,11 @@ func _finish() -> void:
 func _assert_character_asset_animated(asset_path: String, label: String) -> void:
 	var actor := ACTOR_SCRIPT.new()
 	root.add_child(actor)
-	_check(actor.configure(asset_path), label + " configures")
+	var configured: bool = actor.configure(asset_path)
+	_check(configured, label + " configures")
+	if not configured:
+		actor.free()
+		return
 	await process_frame
 	var player := actor.animation_player as AnimationPlayer
 	var skeleton := _find_skeleton(actor.model_root)
