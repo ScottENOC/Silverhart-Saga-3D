@@ -129,11 +129,6 @@ func _load_settlement_layouts() -> void:
 		for building in layout.get("buildings", []):
 			if not building is Dictionary:
 				continue
-			# Campfires are ground props, not building footprints. Keeping them out
-			# of occupancy lets the authored dirt clearing remain the underlying
-			# terrain while the settlement presenter still renders the fire.
-			if String(building.get("kind", "")) == "campfire":
-				continue
 			var centre := _read_axial(building.get("center", Vector2i.ZERO)) + origin
 			var half_q := int(building.get("half_q", 0))
 			var half_r := int(building.get("half_r", 0))
