@@ -18,7 +18,8 @@ const PROFILES := {
 	"petra_voss": {"name":"Guildmaster Petra Voss","title":"Ironbond Factor","race":"human","gender":"female","home":"Reddale","faction_id":"ironbond_company","role":"merchant_factor","affinity_mode":"friendship","familiarity_start":4,"trust_start":4,"friendship_start":0},
 	"adelram": {"name":"High Cleric Adelram","title":"High Cleric of the Grand Cathedral","race":"human","gender":"male","home":"Silverhart","faction_id":"silverhart_kingdom","role":"high_cleric","affinity_mode":"friendship","familiarity_start":3,"trust_start":7,"friendship_start":0},
 	"thrain_emberhand": {"name":"Thrain Emberhand","title":"Master Runesmith","race":"dwarf","gender":"male","home":"Kragmoor","faction_id":"dwarven_kingdom","role":"master_runesmith","affinity_mode":"friendship","familiarity_start":3,"trust_start":6,"friendship_start":1},
-	"ilsa_rennick": {"name":"Captain Ilsa Rennick","title":"Captain of the Watch","race":"human","gender":"female","home":"Reddale","faction_id":"silverhart_kingdom","role":"watch_captain","affinity_mode":"friendship","familiarity_start":4,"trust_start":8,"friendship_start":1}
+	"ilsa_rennick": {"name":"Captain Ilsa Rennick","title":"Captain of the Watch","race":"human","gender":"female","home":"Reddale","faction_id":"silverhart_kingdom","role":"watch_captain","affinity_mode":"friendship","familiarity_start":4,"trust_start":8,"friendship_start":1},
+	"chief_skarnub": {"name":"Chief Skarnub","title":"Chief of the Skarn-tooth Tribe","race":"goblin","gender":"male","home":"Skarn-tooth Camp","faction_id":"goblin_tribe","role":"goblin_chief","affinity_mode":"friendship","familiarity_start":0,"trust_start":0,"friendship_start":0}
 }
 
 var states: Dictionary = {}
@@ -125,6 +126,13 @@ func note_conversation(character_id: String, conversation_key: String, delta: Di
 
 func record_event(character_id: String, event_key: String, delta: Dictionary = {}) -> Dictionary:
 	return _record_keyed_change(character_id, event_key, delta, "event")
+
+
+func has_recorded_event(character_id: String, event_key: String) -> bool:
+	var state := ensure(character_id)
+	if state.is_empty():
+		return false
+	return event_key in state.get("known_event_keys", [])
 
 
 func is_persistent_character(character_id: String) -> bool:
