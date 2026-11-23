@@ -296,6 +296,7 @@ func _run() -> void:
         vertices,
         ["eye_left", "eye_right", "nose", "mouth", "cheek_left", "cheek_right", "chin", "forehead", "jaw_left", "jaw_right"]
     )
+    var facial_surface_diagnostics := _build_facial_surface_diagnostics(mesh_instance.mesh)
 
     var overlay := _build_overlay(mesh_instance, vertices, candidate_weights)
     stage.add_child(overlay)
@@ -387,6 +388,44 @@ func _run() -> void:
         region_overlay.queue_free()
         await process_frame
 
+    # The facial components are separate imported surfaces, not part of Skin_Anatomy.
+    # Render each surface independently so coverage is inspected against the geometry it owns.
+    var facial_surface_root := output_directory.path_join("facial-surfaces")
+    DirAccess.make_dir_recursive_absolute(facial_surface_root)
+    var facial_surface_specs := [
+        ["Eyes", "left"], ["Eyes", "right"],
+        ["Eyebrows", "left"], ["Eyebrows", "right"],
+        ["Eyelashes", "left"], ["Eyelashes", "right"],
+        ["Mouth", "all"], ["Teeth", "all"], ["Tongue", "all"],
+        ["Skin details", "all"]
+    ]
+    for spec in facial_surface_specs:
+        var facial_name: String = spec[0]
+        var facial_side: String = spec[1]
+        var facial_index := _find_named_surface(mesh_instance.mesh, facial_name)
+        if facial_index < 0:
+            push_warning("Facial surface missing from imported Wren mesh: " + facial_name)
+            continue
+        var facial_overlay := _build_facial_surface_overlay(mesh_instance, facial_index, facial_side)
+        if facial_overlay == null:
+            continue
+        stage.add_child(facial_overlay)
+        camera.position = Vector3(0.0, 1.585, 1.15)
+        camera.look_at(Vector3(0.0, 1.585, 0.0), Vector3.UP)
+        camera.size = 0.27
+        await process_frame
+        await process_frame
+        await RenderingServer.frame_post_draw
+        var facial_image := root.get_texture().get_image()
+        var facial_file_name := facial_name.to_lower().replace(" ", "_") + "_" + facial_side + ".png"
+        if facial_image.save_png(facial_surface_root.path_join(facial_file_name)) != OK:
+            push_error("Failed to save facial surface review: " + facial_file_name)
+            quit(1)
+            return
+        stage.remove_child(facial_overlay)
+        facial_overlay.queue_free()
+        await process_frame
+
     var report := {
         "status": "DRAFT_TOPOLOGY_PROPOSAL_NOT_APPROVED",
         "character": "Wren",
@@ -428,6 +467,7 @@ func _run() -> void:
         "unassigned_surface_diagnostics": unassigned_surface_report,
         "nipple_seed_diagnostics": nipple_seed_diagnostics,
         "facial_seed_diagnostics": facial_seed_diagnostics,
+        "facial_surface_diagnostics": facial_surface_diagnostics,
         "ara_mask_import_validation": mask_import_validation,
         "candidate_to_seed_vertex_ratios": _build_candidate_seed_ratios(seeds, counts),
         "method": "Review-only Ara-authored vulva_external weights are read directly from TEXCOORD_1.y and include the mons pubis; remaining geometric hypotheses expand through adjacent source-mesh vertices with decaying weights.",
@@ -447,6 +487,97 @@ func _run() -> void:
     report_file.close()
     print("WREN_TOPOLOGY_PROPOSAL_OK vertices=%d regions=%d" % [vertices.size(), REGIONS.size()])
     quit(0)
+
+
+func _find_named_surface(mesh: Mesh, requested_name: String) -> int:
+    if mesh == null:
+        return -1
+    for surface_index in mesh.get_surface_count():
+        if mesh.surface_get_name(surface_index) == requested_name:
+            return surface_index
+    return -1
+
+
+func _build_facial_surface_diagnostics(mesh: Mesh) -> Dictionary:
+    var result: Dictionary = {}
+    var facial_names := ["Eyes", "Mouth", "Teeth", "Tongue", "Eyebrows", "Eyelashes", "Skin details"]
+    for surface_name in facial_names:
+        var surface_index := _find_named_surface(mesh, surface_name)
+        if surface_index < 0:
+            result[surface_name] = {"status": "MISSING_SURFACE"}
+            continue
+        var arrays: Array = mesh.surface_get_arrays(surface_index)
+        var surface_vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+        var negative_x := 0
+        var positive_x := 0
+        var centreline := 0
+        var minimum := Vector3(INF, INF, INF)
+        var maximum := Vector3(-INF, -INF, -INF)
+        var centroid := Vector3.ZERO
+        for point in surface_vertices:
+            minimum = minimum.min(point)
+            maximum = maximum.max(point)
+            centroid += point
+            if point.x < -0.0001:
+                negative_x += 1
+            elif point.x > 0.0001:
+                positive_x += 1
+            else:
+                centreline += 1
+        if not surface_vertices.is_empty():
+            centroid /= float(surface_vertices.size())
+        result[surface_name] = {
+            "status": "SEPARATE_IMPORTED_SURFACE",
+            "surface_index": surface_index,
+            "vertex_count": surface_vertices.size(),
+            "left_vertex_count_x_negative": negative_x,
+            "right_vertex_count_x_positive": positive_x,
+            "centreline_vertex_count": centreline,
+            "bounds_min_local": [minimum.x, minimum.y, minimum.z],
+            "bounds_max_local": [maximum.x, maximum.y, maximum.z],
+            "centroid_local": [centroid.x, centroid.y, centroid.z],
+            "ownership": "facial_component_surface_not_skin_region",
+            "left_right_split": "local X sign; review overlay required before semantic use"
+        }
+    return result
+
+
+func _build_facial_surface_overlay(
+    mesh_instance: MeshInstance3D,
+    surface_index: int,
+    side: String
+) -> MultiMeshInstance3D:
+    var arrays: Array = mesh_instance.mesh.surface_get_arrays(surface_index)
+    var surface_vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+    var marker := SphereMesh.new()
+    marker.radius = 0.0025
+    marker.height = 0.005
+    marker.radial_segments = 5
+    marker.rings = 3
+    var material := StandardMaterial3D.new()
+    material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    material.albedo_color = Color("#00d4ff")
+    marker.material = material
+    var transforms: Array[Transform3D] = []
+    for point in surface_vertices:
+        if side == "left" and point.x >= -0.0001:
+            continue
+        if side == "right" and point.x <= 0.0001:
+            continue
+        transforms.append(mesh_instance.global_transform * Transform3D(Basis.IDENTITY, point))
+    if transforms.is_empty():
+        push_warning("No vertices for facial surface %s side %s" % [mesh_instance.mesh.surface_get_name(surface_index), side])
+        return null
+    var multi := MultiMesh.new()
+    multi.transform_format = MultiMesh.TRANSFORM_3D
+    multi.mesh = marker
+    multi.instance_count = transforms.size()
+    for index in transforms.size():
+        multi.set_instance_transform(index, transforms[index])
+    var overlay := MultiMeshInstance3D.new()
+    overlay.name = "FacialSurface_%s_%s" % [mesh_instance.mesh.surface_get_name(surface_index), side]
+    overlay.multimesh = multi
+    return overlay
 
 
 func _build_unassigned_surface_report(
