@@ -134,8 +134,9 @@ static func _add_room(room: Dictionary, floor_cells: Dictionary, wall_cells: Dic
 	var half_width := int(room.get("half_width", 0))
 	var half_height := int(room.get("half_height", 0))
 	var room_cells: Dictionary = {}
+	var row_shift_mode := String(room.get("row_shift_mode", "flat"))
 	for dq in range(-half_width + 1, half_width):
-		var row_shift := -floori(float(dq) / 2.0)
+		var row_shift := floori(float(dq) / 2.0) if row_shift_mode == "source_building" else -floori(float(dq) / 2.0)
 		for dr in range(-half_height + 1, half_height):
 			var hex := Vector2i(centre.x + dq, centre.y + dr + row_shift)
 			floor_cells[hex] = true
