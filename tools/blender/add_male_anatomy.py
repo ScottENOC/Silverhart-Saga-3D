@@ -3,8 +3,9 @@
 This replaces the former broad surface-displacement blockout with explicit,
 smooth anatomical geometry: a tapered flaccid shaft, defined glans/corona,
 subtle meatus, and a scrotal form with paired testicular lobes. All geometry
-uses the Ara skin material and is skinned to the pelvis bone. It is scaled from
-the imported body's measured bounds and pelvis landmark, not fixed world units.
+uses the Ara skin material and is skinned to the pelvis bone. Placement is derived
+from measured body bounds and pelvis landmarks; genital dimensions use absolute
+clinical measurements rather than height scaling.
 
 Size: defaults to the published population mean (13.12 cm erect length, 11.66 cm erect circumference).
 Use --length-scale / --girth-scale (independent) and, for per-character variation, --variation-seed.
@@ -543,8 +544,8 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
 # symmetric about the midline. The flaccid pose is generated from the SAME rings, so both
 # states share one topology and form the phallus half of the `Anatomy_Erect` morph target.
 #
-# Radii are millimetres for a 1.676 m body and scale with body height (and the
-# MALE_TRANSITION erect_length_scale / erect_girth_scale). Edit this block to fine-tune.
+# Radii are millimetres calibrated to the measured 1.676 m reference body.
+# They remain absolute across body heights; edit this block only to fine-tune shape.
 # ---------------------------------------------------------------------------
 PHALLUS = {
     # (t along the erect length, radius mm). t < 0.2 is the buried root and flares into the body.
@@ -1314,8 +1315,8 @@ def masculinise_body_mesh(skin):
 # the erect form: weight 0 = flaccid, weight 1 = erect, anything between is a
 # continuous transition. The scrotum shares the same key (it draws up and tightens).
 #
-# Lengths are fractions of the erect mesh, so everything scales with the body.
-# Edit this block to fine-tune; no other code needs to change.
+# The penis uses absolute clinical dimensions; body height determines placement only.
+# The scrotum retains its existing body-proportion scaling.
 # ---------------------------------------------------------------------------
 MALE_TRANSITION = {
     "shape_key": "Anatomy_Erect",
@@ -1481,6 +1482,8 @@ def resolve_penis_size(length_scale, girth_scale, seed, strength, body_height):
     """Turn CLI scales + optional seed into the mesh multipliers in MALE_TRANSITION. Returns a summary dict."""
     if length_scale <= 0.0 or girth_scale <= 0.0:
         raise SystemExit("--length-scale and --girth-scale must be positive")
+    if not 0.0 <= strength <= 1.0:
+        raise SystemExit("--variation-strength must be between 0 and 1 for realistic population variation")
     S = SIZE
     z_len = z_circ = 0.0
     if seed is not None and strength > 0.0:
@@ -1503,7 +1506,9 @@ def resolve_penis_size(length_scale, girth_scale, seed, strength, body_height):
     if seed is not None and strength > 0.0:
         print(f"  seed {seed!r}: length {z_len:+.2f} SD (~{pct(z_len):.0f}th percentile), "
               f"girth {z_circ:+.2f} SD (~{pct(z_circ):.0f}th percentile), strength {strength:g}")
-    return {"length_cm": length_cm, "circumference_cm": circ_cm, "z_length": z_len, "z_girth": z_circ}
+    return {"length_cm": length_cm, "circumference_cm": circ_cm,
+            "flaccid_length_cm": flaccid_length, "flaccid_circumference_cm": flaccid_circ,
+            "z_length": z_len, "z_girth": z_circ}
 
 
 # ---------------------------------------------------------------------------
@@ -1728,6 +1733,8 @@ def main():
     skin = merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone)
     skin["penis_erect_length_cm"] = size["length_cm"]
     skin["penis_erect_circumference_cm"] = size["circumference_cm"]
+    skin["penis_flaccid_length_cm"] = size["flaccid_length_cm"]
+    skin["penis_flaccid_circumference_cm"] = size["flaccid_circumference_cm"]
     skin["penis_size_seed"] = "" if args.variation_seed is None else str(args.variation_seed)
     if len(skin.data.vertices) - first_anatomy_vertex != len(erect_world):
         raise RuntimeError("Anatomy vertex count changed while joining; the erect morph target would be misaligned")
