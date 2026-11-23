@@ -20,7 +20,7 @@ var failures := 0
 func _test_catalogue_owns_authored_terrain() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Unified settlement catalogue should validate: " + str(registry.validation_errors))
-	_check(registry.settlement_ids() == ["hollowmere", "silverhart", "millbrook", "emberlode", "reddale", "old_mac_farmstead"], "Terrain and layout settlements must share one catalogue")
+	_check(registry.settlement_ids() == ["hollowmere", "silverhart", "millbrook", "emberlode", "reddale", "old_mac_farmstead", "emberwood_grove"], "Terrain and layout settlements must share one catalogue")
 	var inside := registry.resolve(Vector2i(0, 18))
 	var canonical: Dictionary = inside.get("definition", {})
 	var terrain: Dictionary = canonical.get("terrain", {})
