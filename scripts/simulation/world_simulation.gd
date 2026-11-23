@@ -14,7 +14,6 @@ signal reaction_resolved(reactor_id: String, choice_id: String, request_id: int,
 signal movement_reaction_resolved(mover_id: String, halted: bool)
 
 var campaign_journal: CampaignJournal = CampaignJournal.new()
-var persistent_character_relationships: PersistentCharacterRelationshipState = PersistentCharacterRelationshipState.new()
 var map_data: HexMapData = HexMapData.new()
 var building_registry: BuildingRegistry = BuildingRegistry.new()
 var world_cell_loader: Campaign2WorldCellLoader = Campaign2WorldCellLoader.new()
@@ -41,17 +40,6 @@ func _init() -> void:
     turn_scheduler.turn_started.connect(_on_combat_turn_started)
     campaign_journal.journal_event.connect(_on_campaign_journal_event)
     building_registry.door_state_changed.connect(_on_door_state_changed)
-
-func persistent_character_relationships_to_dict() -> Dictionary:
-    var sync_result: Dictionary = persistent_character_relationships.sync_all_with_journal(campaign_journal)
-    if not bool(sync_result.get("ok", false)):
-        push_warning("Could not synchronise all persistent NPC relationships before saving: %s" % sync_result)
-    return persistent_character_relationships.to_dict()
-
-func restore_persistent_character_relationships(saved_state: Dictionary) -> bool:
-    persistent_character_relationships.from_dict(saved_state)
-    var sync_result: Dictionary = persistent_character_relationships.sync_all_with_journal(campaign_journal)
-    return bool(sync_result.get("ok", false))
 
 func _on_door_state_changed(door_id: String) -> void:
     sync_door_map_state(door_id)
