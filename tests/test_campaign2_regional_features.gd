@@ -8,6 +8,11 @@ var failures: int = 0
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 
+	_check(FEATURES.MIRABEL_SPIDER_RUIN_CENTRE == Vector2i(160, 24), "Mirabel ruin centre must derive from Reddale guildhouse + (14, -10)")
+	_check(terrain.terrain_for_hex(Vector2i(160, 24)) == "rocky_outcrop", "Mirabel ruin centre must be source rocky outcrop")
+	_check(FEATURES.feature_id_at(Vector2i(163, 24)) == "reddale_mirabel_spider_ruin", "Mirabel ruin must include its radius-three edge")
+	_check(FEATURES.feature_id_at(Vector2i(164, 24)) != "reddale_mirabel_spider_ruin", "Mirabel ruin must stop beyond source radius three")
+
 	_check(FEATURES.DRUID_GROVE_CENTRE == Vector2i(-266, 10), "Grove centre must derive from the original west-road endpoint")
 	_check(terrain.terrain_for_hex(Vector2i(-266, 10)) == "grass", "Grove interior must be a grass clearing")
 	_check(terrain.terrain_for_hex(Vector2i(-266, 9)) == "water", "Grove spring must override local terrain as water")
