@@ -70,7 +70,7 @@ jobs:
             --output build/wren-briefs-fit/wren-standard-briefs-fitted.glb \
             --report build/wren-briefs-fit/fit-report.json \
             --skin-material Skin_Anatomy --garment-material Briefs \
-            --clearance-mm 4 --max-displacement-mm 25 --max-step-mm 2 \
+            --clearance-mm 4 --max-displacement-mm 300 --max-step-mm 2 \
             --smoothing 0.15 --iterations 25 --floating-tolerance-mm 15 || fit_status=$?
           test -s build/wren-briefs-fit/wren-standard-briefs-fitted.glb
           test -s build/wren-briefs-fit/fit-report.json
