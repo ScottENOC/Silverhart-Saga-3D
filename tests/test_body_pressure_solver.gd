@@ -12,7 +12,7 @@ func _initialize() -> void:
 	print("BODY_PRESSURE_SOLVER_TEST: PASS")
 	quit(0)
 
-func _make_profile(stiffness: float, max_compression: float = 0.04) -> Resource:
+func _make_profile(stiffness: float, max_compression: float = 0.04) -> BodyRegionProfile:
 	var profile = PROFILE.new()
 	profile.stiffness_n_per_m = stiffness
 	profile.damping_ns_per_m = 35.0
