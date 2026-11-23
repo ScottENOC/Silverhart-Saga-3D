@@ -24,7 +24,7 @@ The canonical settlement registry currently contains six definitions (including 
 |---|---|---|
 | Hollowmere | Seven authored buildings, routes, bridge, fields/crops/fences, props, actor placements, terrain and ecology inputs | Full visual/gameplay review; remaining source event, interior and persistence parity |
 | Millbrook | One source-positioned house, road spur and two named NPC profiles/placements | Interior construction and services/interactions |
-| Emberlode | Foreman's hall, bunkhouse, mine entrance, two road approaches and three named NPCs; source mine levels, stairs, ore, ledger and underground spiders retained as data | Playable interiors/floor transitions, ore interactions, spider spawning on floor -2, dialogue/quest consequences |
+| Emberlode | Foreman's hall, bunkhouse, mine entrance, two road approaches and three named NPCs; source-authored three-floor mine stack now registered with surface ledger, reciprocal stairs, gold and blue-gem ore nodes, and two Old Seam spider placements | Exterior-to-interior entry/exit wiring, persistent ore interactions, campaign-owned spider spawning on floor -2, dialogue/quest consequences |
 | Reddale | Guardhouse, reeve's house, inn, Ironbond guildhouse, manor and smithy; three road approaches and twelve named NPCs; interior/evidence/service metadata | Playable interiors, merchant services, evidence reading, bribes, dialogue and espionage quest consequences |
 | Kragmoor | Source-derived floors 0 to -5, validated walkable/wall HexMapData, generic 3D floor presentation, authored stair traversal, quest-journal gate bridge and campaign save/load state | Named Ara NPC/creature actors and behaviour, dialogue/trader/runesmith/mining/journal interactions, detailed dressing/lighting, and connection to campaign travel |
 | Old Mac's Farmstead | **Accepted as complete for this milestone.** Source farmhouse, road spur, pasture, fence/broken-fence clue, blood evidence and Old Mac placement are accepted; cows are an acceptable livestock substitute for source sheep. | None for this milestone; the wolf-den encounter remains a separate wilderness site |
@@ -55,7 +55,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 | Thieves' Cove Caves | Cave network, guild residents, services and quest content |
 | Old Mac's Wolf Den | Canonical encounter-site anchor at (-59,204) is registered and the live farm-wolf quest uses that source coordinate; den dressing, trigger and quest persistence remain |
 | Unicorn Vale | Roaming encounter area and its eight-waypoint patrol loop |
-| Emberlode Mine | Partial: its three-level floor, stairs, ore, ledger and spider records are captured under Emberlode but not playable |
+| Emberlode Mine | Source-authored surface entrance, Working Vein (-1), Old Seam (-2), stairs, gold/blue-gem ore nodes, ledger and two spider spawn placements are registered with the shared multi-story floor builder; exterior entry and campaign creature/ore interactions remain |
 
 ## Next port order
 
