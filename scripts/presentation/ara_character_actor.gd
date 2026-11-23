@@ -42,10 +42,10 @@ func configure(glb_path: String) -> bool:
 		push_warning("Ara character root is not Node3D: " + glb_path)
 		return false
 
-	# Gameplay bodies share the benchmark's core rig. Some male exports add
-	# character-specific anatomy bones after the shared bones; copy those extra
-	# bones and their rest/pose transforms onto the carrier before binding so the
-	# animation drives the common body while the anatomy chain remains intact.
+	# All gameplay bodies share the benchmark's core animation rig. Male body
+	# exports additionally contain anatomy bones for independently controlled
+	# anatomy poses. Preserve source-only bones on the carrier so the same
+	# locomotion/combat system supports both body variants without separate clips.
 	var carrier_root: Node3D
 	if ResourceLoader.exists(ARA_ANIMATION_CARRIER_PATH):
 		var carrier_packed := load(ARA_ANIMATION_CARRIER_PATH) as PackedScene
@@ -607,9 +607,9 @@ func _find_bone_case_insensitive(skeleton: Skeleton3D, requested_name: String) -
 			return bone_index
 	return -1
 
-## Extend the benchmark rig with source-only bones after its shared prefix.
-## Ara male anatomy exports append AnatomyRoot/Mid/Tip; these bones are not
-## animated by locomotion, but must remain in the skeleton for the skinned mesh.
+## Extend the shared animation rig with source-only character bones.
+## Male body exports append anatomy bones for independently controlled poses;
+## ordinary clips leave these bones alone unless they contain explicit tracks.
 ## Keeping the shared prefix unchanged preserves the Skin's original bone indices.
 func _extend_animation_carrier_skeleton(carrier: Skeleton3D, source: Skeleton3D) -> bool:
 	if carrier.get_bone_count() > source.get_bone_count():
