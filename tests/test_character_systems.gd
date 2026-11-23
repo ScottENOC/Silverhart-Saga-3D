@@ -72,8 +72,19 @@ func _test_character_round_trip() -> void:
 
 func _test_skill_catalogue_and_progression() -> void:
     var definitions := SkillCatalog.definitions()
-    _check(definitions.size() == 257, "The source skill catalogue should contain all 186 unique entries")
+    _check(definitions.size() == 258, "The skill catalogue should include the Divine Strength unlock")
     _check(int(SkillCatalog.get_skill("health").get("max_ranks", -1)) == 0, "A zero rank cap means unlimited ranks")
+    _check(not SkillCatalog.get_skill("learn_divine_strength").is_empty(), "Divine Strength should have a learn skill")
+    _check(bool(SkillCatalog.get_skill("learn_smite_evil").get("disabled", false)), "Retired spell unlocks should remain archived but disabled")
+    var disabled_spell_character := CharacterState.new("disabled_spell_skill", "Disabled Spell Skill")
+    var disabled_spell_result := SkillProgression.can_purchase(disabled_spell_character, "learn_smite_evil")
+    _check(not bool(disabled_spell_result.get("ok", true)) and String(disabled_spell_result.get("reason", "")) == "skill_not_in_official_spell_catalogue", "Retired spell unlocks must not be purchasable")
+    var divine_spell_character := CharacterState.new("divine_spell_test", "Divine Spell Test")
+    divine_spell_character.attributes = {"divine": 1}
+    SkillProgression.initialise(divine_spell_character)
+    var learned_divine_strength := SkillProgression.purchase(divine_spell_character, "learn_divine_strength")
+    _check(bool(learned_divine_strength.get("ok", false)), "A character should be able to purchase Learn Divine Strength")
+    _check(divine_spell_character.unlocked_base_spells.has("divine_strength"), "Purchasing Learn Divine Strength should unlock the official base spell")
 
     var character := CharacterState.new("skill_test", "Skill Test")
     character.attributes = {"endurance": 3, "strength": 0, "wildcard": 1, "nature": 1, "druid": 1, "elf": 1}
