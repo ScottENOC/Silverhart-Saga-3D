@@ -80,18 +80,14 @@ func _test_autonomous_ironbond_influence() -> void:
 	journal.seed_merchant_influence("ironbond_company", "silverhart_kingdom", 30.0)
 	var agenda := FACTION_SIMULATION.new()
 	agenda.reset_world_time(0.0)
-	agenda.advance_to(journal, 3599.6)
-	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.0))
-	agenda.advance_to(journal, 3600.0)
-	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.02), "A thriving Ironbond agenda adds 0.02 influence per hour")
-
+	agenda.advance_to(journal, 1800.0)
+	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.01), "A thriving Ironbond agenda gains 0.02 influence per in-game hour")
 	journal.adjust_faction_reputation("ironbond_company", -40.0, 0.0, "the Company lost standing")
-	agenda.advance_to(journal, 7200.0)
-	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.0), "A struggling Ironbond agenda loses 0.02 influence per hour")
-
+	agenda.advance_to(journal, 3600.0)
+	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.0), "A struggling Ironbond agenda loses 0.02 influence per in-game hour")
 	journal.adjust_merchant_influence("ironbond_company", "silverhart_kingdom", 69.99, "clamp test")
 	journal.adjust_faction_reputation("ironbond_company", 40.0, 0.0, "the Company recovered")
-	agenda.advance_to(journal, 10800.0)
+	agenda.advance_to(journal, 5400.0)
 	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 100.0), "Autonomous influence remains clamped to 0..100")
 
 
@@ -99,17 +95,26 @@ func _test_agenda_progress_survives_save_load() -> void:
 	var journal := CampaignJournal.new()
 	journal.seed_faction_reputation("ironbond_company", 20.0, 0.0)
 	journal.seed_merchant_influence("ironbond_company", "silverhart_kingdom", 30.0)
+	var source_clock := WorldClock.new()
 	var source_agenda := FACTION_SIMULATION.new()
-	source_agenda.reset_world_time(0.0)
-	source_agenda.advance_to(journal, 1800.0)
+	source_agenda.reset_world_time(source_clock.world_seconds)
+	source_clock.time_advanced.connect(func(world_seconds: float) -> void:
+		source_agenda.advance_to(journal, world_seconds)
+	)
+	source_clock.advance_world_seconds(1800.0)
+	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.01))
 
-	var saved_agenda := source_agenda.to_dict()
+	var restored_journal := CampaignJournal.new()
+	restored_journal.load_dict(journal.to_dict())
+	var restored_clock := WorldClock.new()
+	restored_clock.load_dict(source_clock.to_dict())
 	var restored_agenda := FACTION_SIMULATION.new()
-	restored_agenda.from_dict(saved_agenda)
-	restored_agenda.reset_world_time(1800.0)
-	restored_agenda.advance_to(journal, 3600.0)
-	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.02), "Partial agenda time survives campaign save/load")
-	_check(is_equal_approx(restored_agenda.elapsed_agenda_seconds, 0.0))
+	restored_agenda.reset_world_time(restored_clock.world_seconds)
+	restored_clock.time_advanced.connect(func(world_seconds: float) -> void:
+		restored_agenda.advance_to(restored_journal, world_seconds)
+	)
+	restored_clock.advance_world_seconds(1800.0)
+	_check(is_equal_approx(restored_journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 30.02), "Merchant influence and elapsed world time survive campaign save/load")
 
 
 func _test_world_clock_drives_agendas() -> void:
