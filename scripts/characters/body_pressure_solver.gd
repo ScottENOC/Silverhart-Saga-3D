@@ -76,3 +76,9 @@ func clear_region(region_id: StringName) -> void:
 	state["compression_m"] = 0.0
 	state["velocity_m_per_s"] = 0.0
 	_regions[region_id] = state
+
+func get_max_compression_m(region_id: StringName) -> float:
+	if not _regions.has(region_id):
+		return 0.0
+	var profile := _regions[region_id]["profile"] as BodyRegionProfile
+	return profile.max_compression_m
