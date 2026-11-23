@@ -112,10 +112,12 @@ def main() -> None:
                         "--variation-strength", "0",
                     ])
                 else:
-                    # Stable per-character Gaussian draw: rebuilding the same NPC
-                    # preserves their anatomy; new IDs receive independent draws.
+                    # Use the profile's own seed when available. This makes the
+                    # anatomy draw stable for a generated profile, and changing
+                    # the generic NPC generator seed produces a fresh population.
+                    variation_seed = str(params.get("seed", character_id))
                     male_arguments.extend([
-                        "--variation-seed", character_id,
+                        "--variation-seed", variation_seed,
                         "--variation-strength", "1.0",
                     ])
                 run_blender(MALE_TOOL, *male_arguments)
