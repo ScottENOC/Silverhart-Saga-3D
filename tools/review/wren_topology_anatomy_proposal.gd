@@ -1,5 +1,6 @@
 extends SceneTree
 ## Topology-aware, review-only proposal generator for Wren's first garment regions.
+## Re-run trigger: validate mesh-landmark seed corrections and oblique nipple review.
 ##
 ## Spatial seed volumes are hypotheses only. Candidate weights are propagated over
 ## the source triangle-edge graph, not through Euclidean space. This avoids selecting
