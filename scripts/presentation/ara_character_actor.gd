@@ -597,21 +597,49 @@ func _tint_attached_hair(colour: Color) -> void:
 			material.albedo_color = Color(colour.r, colour.g, colour.b, material.albedo_color.a)
 			mesh_instance.set_surface_override_material(surface, material)
 
+## Switches the imported Ara rig between locomotion and its resting pose.
+## Clip lookup is deliberately semantic and case-insensitive because the
+## Workshop exports may change clip casing or add suffixes between versions.
+func set_moving(is_moving: bool) -> bool:
+	if animation_player == null or not is_instance_valid(animation_player):
+		return false
+	var clip := _find_animation_clip(["walk", "locomotion", "run"]) if is_moving else _find_animation_clip(["idle", "stand"])
+	if clip.is_empty():
+		return false
+	if animation_player.current_animation == clip and animation_player.is_playing():
+		return true
+	animation_player.play(clip, 0.12)
+	return true
+
+
+func play_walk() -> bool:
+	return set_moving(true)
+
+
+func play_idle() -> bool:
+	return set_moving(false)
+
+
+func _find_animation_clip(preferred_tokens: Array[String]) -> String:
+	if animation_player == null:
+		return ""
+	var available := animation_player.get_animation_list()
+	for token in preferred_tokens:
+		for animation_name in available:
+			if String(animation_name).to_lower() == token:
+				return String(animation_name)
+		for animation_name in available:
+			if String(animation_name).to_lower().contains(token):
+				return String(animation_name)
+	return ""
+
+
 func _play_idle_if_available() -> void:
 	if animation_player == null or not is_instance_valid(animation_player):
 		push_warning("Ara character has no AnimationPlayer; it will remain in its exported rest pose.")
 		return
-	var idle_clip := ""
-	for animation_name in animation_player.get_animation_list():
-		if String(animation_name).to_lower() == "idle":
-			idle_clip = String(animation_name)
-			break
-		if idle_clip.is_empty() and String(animation_name).to_lower().contains("idle"):
-			idle_clip = String(animation_name)
-	if idle_clip.is_empty():
+	if not play_idle():
 		push_warning("Ara character has no idle animation. Available clips: %s" % [", ".join(animation_player.get_animation_list())])
-		return
-	animation_player.play(idle_clip)
 
 func _find_animation_player(node: Node) -> AnimationPlayer:
 	if node is AnimationPlayer:
