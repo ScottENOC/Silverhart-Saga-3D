@@ -174,11 +174,13 @@ func _fit_camera_to_model() -> void:
 	_collect_meshes(_portrait_model, meshes)
 	var bounds := AABB()
 	var has_bounds := false
-	var model_inverse := _portrait_model.global_transform.affine_inverse()
 	for mesh in meshes:
 		if mesh.mesh == null or not mesh.visible:
 			continue
-		var relative_transform := model_inverse * mesh.global_transform
+		# Portraits are often configured before their owning actor enters the
+		# world tree. Compose local transforms instead of querying global_transform,
+		# which is unavailable until the actor is inside the SceneTree.
+		var relative_transform := _relative_transform_to_ancestor(mesh, _portrait_model)
 		var local_bounds := mesh.get_aabb()
 		for corner in range(8):
 			var point := relative_transform * local_bounds.get_endpoint(corner)
@@ -193,8 +195,18 @@ func _fit_camera_to_model() -> void:
 	var height := maxf(bounds.size.y, 0.8)
 	var focus := Vector3(bounds.get_center().x, bounds.position.y + height * 0.80, bounds.get_center().z)
 	_camera.position = focus + Vector3(height * 0.10, height * 0.07, height * 1.55)
-	_camera.look_at(focus, Vector3.UP)
+	_camera.basis = Basis.looking_at(focus - _camera.position, Vector3.UP)
 	_base_rotation = _portrait_model.rotation.y
+
+
+func _relative_transform_to_ancestor(node: Node3D, ancestor: Node3D) -> Transform3D:
+	var relative := Transform3D.IDENTITY
+	var current: Node = node
+	while current != null and current != ancestor:
+		if current is Node3D:
+			relative = (current as Node3D).transform * relative
+		current = current.get_parent()
+	return relative
 
 
 func _play_idle_if_available() -> void:
