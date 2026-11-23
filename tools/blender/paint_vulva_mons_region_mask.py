@@ -93,8 +93,9 @@ def read_mask_from_uv2(mesh):
 
 
 
-def inspect_glb_texcoord1(path, source_vertex_count):
-    """Read TEXCOORD_1 directly from the exported GLB binary, before any importer."""
+def inspect_glb_texcoord1(path, source_by_id):
+    """Read TEXCOORD_1 directly from GLB and compare its V channel to source weights."""
+    source_vertex_count = len(source_by_id)
     with open(path, "rb") as handle:
         blob = handle.read()
     if len(blob) < 20:
@@ -137,6 +138,12 @@ def inspect_glb_texcoord1(path, source_vertex_count):
             ids = set()
             weighted_ids = set()
             invalid = 0
+            direct_weight_matches = 0
+            inverted_weight_matches = 0
+            direct_weighted_ids = set()
+            inverted_weighted_ids = set()
+            min_y = float("inf")
+            max_y = float("-inf")
             min_id = source_vertex_count
             max_id = -1
             for index in range(count):
@@ -146,8 +153,17 @@ def inspect_glb_texcoord1(path, source_vertex_count):
                     invalid += 1
                     continue
                 ids.add(correspondence_id)
+                min_y = min(min_y, y)
+                max_y = max(max_y, y)
+                expected_weight = float(source_by_id[correspondence_id])
+                if abs(y - expected_weight) <= 1e-5:
+                    direct_weight_matches += 1
+                if abs(y - (1.0 - expected_weight)) <= 1e-5:
+                    inverted_weight_matches += 1
                 if y >= 0.15:
                     weighted_ids.add(correspondence_id)
+                if (1.0 - y) >= 0.15:
+                    inverted_weighted_ids.add(correspondence_id)
                 min_id = min(min_id, correspondence_id)
                 max_id = max(max_id, correspondence_id)
             all_ids.update(ids)
@@ -159,6 +175,11 @@ def inspect_glb_texcoord1(path, source_vertex_count):
                 "accessor_count": count,
                 "unique_correspondence_ids": len(ids),
                 "weighted_unique_ids_at_0_15": len(weighted_ids),
+                "inverted_weighted_unique_ids_at_0_15": len(inverted_weighted_ids),
+                "direct_weight_matches": direct_weight_matches,
+                "inverted_weight_matches": inverted_weight_matches,
+                "min_texcoord_1_y": min_y if ids else None,
+                "max_texcoord_1_y": max_y if ids else None,
                 "min_decoded_id": min_id if ids else None,
                 "max_decoded_id": max_id if ids else None,
                 "invalid_decoded_values": invalid,
@@ -231,7 +252,7 @@ def main():
         raise RuntimeError("Combined vulva/mons pubis mask contains no weighted vertices")
 
     export_scene(args.output)
-    raw_glb_validation = inspect_glb_texcoord1(args.output, len(source_by_id))
+    raw_glb_validation = inspect_glb_texcoord1(args.output, source_by_id)
 
     # Re-import the GLB to verify that TEXCOORD_1.y survived export and that
     # the existing correspondence IDs in TEXCOORD_1.x were not changed.
