@@ -16034,6 +16034,702 @@
         }
       ],
       "interiors": []
+    },
+    {
+      "id": "skarn_tooth_camp",
+      "name": "Skarn-tooth Camp",
+      "location_id": "skarn_tooth_camp",
+      "center": {
+        "q": 203,
+        "r": 23
+      },
+      "source_builder": "campaign2World.js:buildGoblinCamp",
+      "buildings": [
+        {
+          "id": "skarn_tooth_chiefs_hut",
+          "kind": "hut_large",
+          "archetype": "large_hut",
+          "center": {
+            "q": 203,
+            "r": 21
+          },
+          "half_q": 2,
+          "half_r": 2,
+          "door": {
+            "q": 203,
+            "r": 23
+          },
+          "door_side": "south",
+          "windows_per_side": 0,
+          "source": "buildGoblinCamp chief hut at centre + (0,-2)"
+        },
+        {
+          "id": "skarn_tooth_hut_west_north",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 200,
+            "r": 22
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door_side": "south",
+          "windows_per_side": 0,
+          "dimensions": {
+            "width": 7.2,
+            "depth": 6.6,
+            "wall_height": 1.9,
+            "roof_rise": 1.35
+          },
+          "source": "buildGoblinCamp hut ring"
+        },
+        {
+          "id": "skarn_tooth_hut_east_north",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 206,
+            "r": 22
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door_side": "south",
+          "windows_per_side": 0,
+          "dimensions": {
+            "width": 7.2,
+            "depth": 6.6,
+            "wall_height": 1.9,
+            "roof_rise": 1.35
+          },
+          "source": "buildGoblinCamp hut ring"
+        },
+        {
+          "id": "skarn_tooth_hut_west_south",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 200,
+            "r": 25
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door_side": "south",
+          "windows_per_side": 0,
+          "dimensions": {
+            "width": 7.2,
+            "depth": 6.6,
+            "wall_height": 1.9,
+            "roof_rise": 1.35
+          },
+          "source": "buildGoblinCamp hut ring"
+        },
+        {
+          "id": "skarn_tooth_hut_east_south",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 206,
+            "r": 25
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door_side": "south",
+          "windows_per_side": 0,
+          "dimensions": {
+            "width": 7.2,
+            "depth": 6.6,
+            "wall_height": 1.9,
+            "roof_rise": 1.35
+          },
+          "source": "buildGoblinCamp hut ring"
+        },
+        {
+          "id": "skarn_tooth_hut_south",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 203,
+            "r": 26
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door_side": "south",
+          "windows_per_side": 0,
+          "dimensions": {
+            "width": 7.2,
+            "depth": 6.6,
+            "wall_height": 1.9,
+            "roof_rise": 1.35
+          },
+          "source": "buildGoblinCamp hut ring"
+        }
+      ],
+      "paths": [],
+      "npcs": [
+        {
+          "id": "chief_skarnub",
+          "name": "Chief Skarnub",
+          "title": "Goblin Chief",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "axe_hit",
+            "axe_dmg",
+            "stealth_rogue"
+          ],
+          "equipment": [
+            "axe",
+            "medium_armor",
+            "wooden_shield"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "chief_skarnub",
+          "position": {
+            "q": 203,
+            "r": 22
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#5a7a3a",
+            "eye_colour": "Brown",
+            "hair_colour": "#3b3025",
+            "hair_style": "short02",
+            "height": 0.12,
+            "muscle": 0.16,
+            "weight": 0.12,
+            "proportions": 0.32,
+            "breasts": 0,
+            "legs": 0.34,
+            "height_scale": 0.78,
+            "body_scale": 0.8
+          },
+          "visual_equipment": {
+            "weapon": {
+              "id": "axe"
+            },
+            "armour": {
+              "id": "medium_armor"
+            },
+            "offhand": {
+              "id": "wooden_shield"
+            }
+          },
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+        },
+        {
+          "id": "nix_sharpear",
+          "name": "Nix Sharpear",
+          "title": "Goblin Lieutenant",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "rogue"
+          ],
+          "skill_picks": [
+            "health",
+            "dagger_hit",
+            "stealth_rogue",
+            "stealth_agility"
+          ],
+          "equipment": [
+            "dagger",
+            "light_armor"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "nix_sharpear",
+          "position": {
+            "q": 201,
+            "r": 23
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#527543",
+            "eye_colour": "Brown",
+            "hair_colour": "#3b3025",
+            "hair_style": "short02",
+            "height": 0.12,
+            "muscle": 0.16,
+            "weight": 0.12,
+            "proportions": 0.32,
+            "breasts": 0,
+            "legs": 0.34,
+            "height_scale": 0.78,
+            "body_scale": 0.8
+          },
+          "visual_equipment": {
+            "weapon": {
+              "id": "dagger"
+            },
+            "armour": {
+              "id": "light_armor"
+            }
+          },
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+        },
+        {
+          "id": "gralk_bonecaster",
+          "name": "Gralk the Bonecaster",
+          "title": "Goblin Shaman",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "cleric"
+          ],
+          "skill_picks": [
+            "health",
+            "learn_heal",
+            "club_hit"
+          ],
+          "equipment": [
+            "club"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "",
+          "position": {
+            "q": 205,
+            "r": 23
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#6a8150",
+            "eye_colour": "Brown",
+            "hair_colour": "#3b3025",
+            "hair_style": "short02",
+            "height": 0.12,
+            "muscle": 0.16,
+            "weight": 0.12,
+            "proportions": 0.32,
+            "breasts": 0,
+            "legs": 0.34,
+            "height_scale": 0.78,
+            "body_scale": 0.8
+          },
+          "visual_equipment": {
+            "weapon": {
+              "id": "club"
+            }
+          },
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+        },
+        {
+          "id": "grondle",
+          "name": "Grondle",
+          "title": "Camp Trader",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "rogue"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "goblin_trader",
+          "position": {
+            "q": 202,
+            "r": 25
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#5a7a3a",
+            "eye_colour": "Brown",
+            "hair_colour": "#3b3025",
+            "hair_style": "short02",
+            "height": 0.12,
+            "muscle": 0.16,
+            "weight": 0.12,
+            "proportions": 0.32,
+            "breasts": 0,
+            "legs": 0.34,
+            "height_scale": 0.78,
+            "body_scale": 0.8
+          },
+          "visual_equipment": {},
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+        },
+        {
+          "id": "skarn_tooth_guard_01",
+          "name": "Goblin Warrior",
+          "title": "Goblin Warrior",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "sword_hit",
+            "sword_dmg"
+          ],
+          "equipment": [
+            "sword"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "",
+          "position": {
+            "q": 200,
+            "r": 24
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#5a7a3a",
+            "eye_colour": "Brown",
+            "hair_colour": "#3b3025",
+            "hair_style": "short02",
+            "height": 0.12,
+            "muscle": 0.16,
+            "weight": 0.12,
+            "proportions": 0.32,
+            "breasts": 0,
+            "legs": 0.34,
+            "height_scale": 0.78,
+            "body_scale": 0.8
+          },
+          "visual_equipment": {
+            "weapon": {
+              "id": "sword"
+            }
+          },
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+        },
+        {
+          "id": "skarn_tooth_guard_02",
+          "name": "Goblin Warrior",
+          "title": "Goblin Warrior",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter"
+          ],
+          "skill_picks": [
+            "health",
+            "spear_hit",
+            "spear_dmg"
+          ],
+          "equipment": [
+            "spear"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "",
+          "position": {
+            "q": 206,
+            "r": 24
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#3a6a4a",
+            "eye_colour": "Brown",
+            "hair_colour": "#3b3025",
+            "hair_style": "short02",
+            "height": 0.12,
+            "muscle": 0.16,
+            "weight": 0.12,
+            "proportions": 0.32,
+            "breasts": 0,
+            "legs": 0.34,
+            "height_scale": 0.78,
+            "body_scale": 0.8
+          },
+          "visual_equipment": {
+            "weapon": {
+              "id": "spear"
+            }
+          },
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+        },
+        {
+          "id": "skarn_tooth_skulker",
+          "name": "Goblin Skulker",
+          "title": "Goblin Skulker",
+          "race": "goblin",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "rogue"
+          ],
+          "skill_picks": [
+            "health",
+            "bow_hit",
+            "stealth_rogue"
+          ],
+          "equipment": [
+            "bow"
+          ],
+          "side": "neutral",
+          "faction_id": "goblin_tribe",
+          "dialogue_id": "",
+          "position": {
+            "q": 203,
+            "r": 24
+          },
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#6a5a2a",
+            "eye_colour": "Brown",
+            "hair_colour": "#3b3025",
+            "hair_style": "short02",
+            "height": 0.12,
+            "muscle": 0.16,
+            "weight": 0.12,
+            "proportions": 0.32,
+            "breasts": 0,
+            "legs": 0.34,
+            "height_scale": 0.78,
+            "body_scale": 0.8
+          },
+          "visual_equipment": {
+            "weapon": {
+              "id": "bow"
+            }
+          },
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+        },
+        {
+          "id": "ser_aldric_thorne",
+          "name": "Ser Aldric Thorne",
+          "title": "Wandering Paladin",
+          "race": "human",
+          "gender": "male",
+          "body_variant": "male",
+          "class_levels": [
+            "fighter",
+            "cleric"
+          ],
+          "skill_picks": [
+            "health"
+          ],
+          "equipment": [],
+          "side": "neutral",
+          "faction_id": "silverhart_kingdom",
+          "dialogue_id": "ser_aldric_captive",
+          "position": {
+            "q": 204,
+            "r": 22
+          },
+          "tied_up": true,
+          "appearance": {
+            "body_variant": "male",
+            "gender_presentation": "Masculine",
+            "pronouns": "he/him",
+            "skin_colour": "#d4b08c",
+            "eye_colour": "Brown",
+            "hair_colour": "#806044",
+            "hair_style": "short02",
+            "height": 0.5,
+            "muscle": 0.5,
+            "weight": 0.45,
+            "proportions": 0.5,
+            "breasts": 0,
+            "legs": 0.5,
+            "height_scale": 1,
+            "body_scale": 1
+          },
+          "source": "campaign2World.js:buildGoblinCamp captive"
+        }
+      ],
+      "props": [
+        {
+          "id": "skarn_tooth_campfire",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 203,
+            "r": 23
+          },
+          "parts": [
+            {
+              "name": "FireStone_1",
+              "type": "cylinder",
+              "material": "stone",
+              "top_radius": 0.32,
+              "bottom_radius": 0.38,
+              "height": 0.22,
+              "position": {
+                "x": -0.75,
+                "y": 0.11,
+                "z": 0
+              }
+            },
+            {
+              "name": "FireStone_2",
+              "type": "cylinder",
+              "material": "stone",
+              "top_radius": 0.32,
+              "bottom_radius": 0.38,
+              "height": 0.22,
+              "position": {
+                "x": 0.75,
+                "y": 0.11,
+                "z": 0
+              }
+            },
+            {
+              "name": "FireStone_3",
+              "type": "cylinder",
+              "material": "stone",
+              "top_radius": 0.32,
+              "bottom_radius": 0.38,
+              "height": 0.22,
+              "position": {
+                "x": 0,
+                "y": 0.11,
+                "z": -0.72
+              }
+            },
+            {
+              "name": "FireStone_4",
+              "type": "cylinder",
+              "material": "stone",
+              "top_radius": 0.32,
+              "bottom_radius": 0.38,
+              "height": 0.22,
+              "position": {
+                "x": 0,
+                "y": 0.11,
+                "z": 0.72
+              }
+            },
+            {
+              "name": "Log_1",
+              "type": "box",
+              "material": "wood",
+              "size": {
+                "x": 1.7,
+                "y": 0.18,
+                "z": 0.2
+              },
+              "position": {
+                "x": 0,
+                "y": 0.18,
+                "z": 0
+              },
+              "rotation_degrees": 35
+            },
+            {
+              "name": "Log_2",
+              "type": "box",
+              "material": "wood",
+              "size": {
+                "x": 1.7,
+                "y": 0.18,
+                "z": 0.2
+              },
+              "position": {
+                "x": 0,
+                "y": 0.2,
+                "z": 0
+              },
+              "rotation_degrees": -35
+            },
+            {
+              "name": "Flame",
+              "type": "cylinder",
+              "material": "fire",
+              "top_radius": 0.12,
+              "bottom_radius": 0.42,
+              "height": 0.9,
+              "position": {
+                "x": 0,
+                "y": 0.62,
+                "z": 0
+              }
+            }
+          ],
+          "source": "buildGoblinCamp central fireplace; source light radius 6"
+        },
+        {
+          "id": "goblin_scout_note_prop",
+          "feature_type": "quest_props",
+          "anchor": {
+            "q": 204,
+            "r": 21
+          },
+          "parts": [
+            {
+              "name": "NoteCover",
+              "type": "box",
+              "material": "leather",
+              "size": {
+                "x": 0.55,
+                "y": 0.08,
+                "z": 0.42
+              },
+              "position": {
+                "x": 0,
+                "y": 0.08,
+                "z": 0
+              }
+            },
+            {
+              "name": "NotePage",
+              "type": "box",
+              "material": "paper",
+              "size": {
+                "x": 0.47,
+                "y": 0.025,
+                "z": 0.34
+              },
+              "position": {
+                "x": 0,
+                "y": 0.135,
+                "z": 0
+              }
+            }
+          ],
+          "read_id": "goblin_scout_note",
+          "source": "buildGoblinCamp journal by chief hut; readGoblinScoutNote in campaign2Dialogue.js"
+        }
+      ],
+      "presentation": {
+        "palette": {
+          "stone": "#827d70",
+          "wood": "#59402b",
+          "fire": "#e56b24",
+          "leather": "#493426",
+          "paper": "#d8c89b"
+        },
+        "materials": {
+          "props": {
+            "stone": "stone",
+            "wood": "wood",
+            "fire": "fire"
+          },
+          "quest_props": {
+            "leather": "leather",
+            "paper": "paper"
+          }
+        }
+      }
     }
   ]
 }
