@@ -17,8 +17,8 @@ const PAIRED_REGION_MIDLINE_GAP := 0.008
 const REGIONS := {
     "breast_left": [Vector3(-0.115, 1.190, 0.145), Vector3(0.070, 0.105, 0.065), Color("#ef476f")],
     "breast_right": [Vector3(0.115, 1.190, 0.145), Vector3(0.070, 0.105, 0.065), Color("#f78c6b")],
-    "nipple_left": [Vector3(-0.115, 1.190, 0.198), Vector3(0.008, 0.008, 0.005), Color("#ff4d6d")],
-    "nipple_right": [Vector3(0.115, 1.190, 0.198), Vector3(0.008, 0.008, 0.005), Color("#c9184a")],
+    "nipple_left": [Vector3(-0.115, 1.190, 0.193), Vector3(0.014, 0.014, 0.012), Color("#ff4d6d")],
+    "nipple_right": [Vector3(0.115, 1.190, 0.193), Vector3(0.014, 0.014, 0.012), Color("#c9184a")],
     "chest_front_left": [Vector3(-0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#ffd166")],
     "chest_front_right": [Vector3(0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#06d6a0")],
     "pectoral_left": [Vector3(-0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#118ab2")],
@@ -988,7 +988,7 @@ func _within_region_extent(region_id: String, vertex: Vector3) -> bool:
 
 func _max_graph_hops_for_region(region_id: String) -> int:
     if region_id.begins_with("nipple_"):
-        return 0
+        return 2
     if region_id.ends_with("_finger_left") or region_id.ends_with("_finger_right"):
         return 18
     return MAX_GRAPH_HOPS
@@ -1025,7 +1025,9 @@ func _propagate_over_surface(
         for neighbour in adjacency[current]:
             if not _matches_region_side(region_id, vertices[neighbour]):
                 continue
-            if not _within_region_extent(region_id, vertices[neighbour]):
+            # The first accepted nipple proposal used two topology hops without
+            # an ellipsoid clamp; retain that behaviour for these two small islands.
+            if not region_id.begins_with("nipple_") and not _within_region_extent(region_id, vertices[neighbour]):
                 continue
             if _requires_front_surface_normal(region_id):
                 if neighbour >= normals.size() or normals[neighbour].dot(Vector3(0.0, 0.0, 1.0)) < 0.25:
