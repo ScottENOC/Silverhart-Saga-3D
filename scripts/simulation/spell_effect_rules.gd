@@ -83,7 +83,7 @@ func validate(
 		if target_ids.size() > int(variant.get("extra_targets", 0)) + 1:
 			return {"ok": false, "reason": "too_many_targets"}
 		for target_id_value in target_ids:
-			var selected := simulation.get_character(String(target_id_value))
+			var selected: CharacterState = simulation.get_character(String(target_id_value)) as CharacterState
 			if selected == null or not selected.can_be_targeted():
 				return {"ok": false, "reason": "target_unavailable"}
 			if spell_id in ["firebolt", "curse"] and selected.side == caster.side:
@@ -280,7 +280,7 @@ func _selected_targets(simulation: Variant, request: SimulationActionRequest, fa
 			result.append(fallback)
 		return result
 	for target_id_value in target_ids:
-		var selected := simulation.get_character(String(target_id_value))
+		var selected: CharacterState = simulation.get_character(String(target_id_value)) as CharacterState
 		if selected != null:
 			result.append(selected)
 	return result
@@ -324,7 +324,7 @@ func _calm_animal_target(simulation: Variant, target: CharacterState) -> Charact
 	if target.tags.has("animal") and not target.tags.has("fey") and not target.tags.has("dragon"):
 		return target
 	if not target.mounted_animal_id.is_empty():
-		var mount := simulation.get_character(target.mounted_animal_id)
+		var mount: CharacterState = simulation.get_character(target.mounted_animal_id) as CharacterState
 		if mount != null and mount.tags.has("animal") and not mount.tags.has("fey") and not mount.tags.has("dragon"):
 			return mount
 	return null

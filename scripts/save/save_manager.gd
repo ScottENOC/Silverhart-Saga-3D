@@ -47,6 +47,7 @@ func save_snapshot(slot_id: String, snapshot: Dictionary, label: String = "Manua
 	var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SAVE_ROOT))
 	if directory_error != OK and directory_error != ERR_ALREADY_EXISTS:
 		return {"ok": false, "reason": "directory_error", "error": directory_error}
+	var persisted_snapshot := _snapshot_with_extensions(snapshot)
 	var metadata := {
 		"slot_id": slot_id,
 		"label": label,
