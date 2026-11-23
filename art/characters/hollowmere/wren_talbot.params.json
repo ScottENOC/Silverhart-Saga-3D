@@ -57,8 +57,8 @@
   "speechShapes": false,
   "expression": "neutral",
   "hairColor": "#38251D",
-  "name": "Wren Talbot",
+  "legs": 0.62,
+  "breasts": 0.76,
   "skinTint": "#A77A55",
-  "breasts": 0.28,
-  "legs": 0.46
+  "name": "Wren Talbot"
 }

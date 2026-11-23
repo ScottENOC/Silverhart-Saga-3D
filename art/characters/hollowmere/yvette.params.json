@@ -52,8 +52,8 @@
   "speechShapes": false,
   "expression": "neutral",
   "hairColor": "#5A3826",
-  "name": "Yvette Marlow",
+  "legs": 0.48,
+  "breasts": 0.58,
   "skinTint": "#D0A17D",
-  "breasts": 0.39,
-  "legs": 0.38
+  "name": "Yvette Marlow"
 }

@@ -48,7 +48,7 @@
   "speechShapes": false,
   "expression": "neutral",
   "hairColor": "#17120F",
-  "name": "Wick Hallow",
+  "legs": 0.4,
   "skinTint": "#70452F",
-  "legs": 0.7
+  "name": "Wick Hallow"
 }

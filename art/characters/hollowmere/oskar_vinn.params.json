@@ -50,7 +50,7 @@
   "speechShapes": false,
   "expression": "neutral",
   "hairColor": "#4B2F24",
-  "name": "Oskar Vinn",
+  "legs": 0.64,
   "skinTint": "#B98260",
-  "legs": 0.68
+  "name": "Oskar Vinn"
 }

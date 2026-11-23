@@ -49,8 +49,8 @@
   "speechShapes": false,
   "expression": "neutral",
   "hairColor": "#38251D",
-  "name": "Mira Ashbrook",
+  "legs": 0.43,
+  "breasts": 0.43,
   "skinTint": "#C99A75",
-  "breasts": 0.41,
-  "legs": 0.43
+  "name": "Mira Ashbrook"
 }

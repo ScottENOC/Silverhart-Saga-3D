@@ -53,7 +53,7 @@
   "speechShapes": false,
   "expression": "determined",
   "hairColor": "#2B1B16",
-  "name": "Dray Coltayne",
+  "legs": 0.74,
   "skinTint": "#8F6045",
-  "legs": 0.5
+  "name": "Dray Coltayne"
 }
