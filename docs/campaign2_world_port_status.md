@@ -10,7 +10,7 @@ The current Campaign 2 world foundation contains:
 - 24 named global axial location anchors and 22 strategic connections.
 - Source-derived strategic road traces and a macro-world preview.
 - A continuous local axial coordinate frame, deterministic regional terrain, chunk loading and a regional streamed preview.
-- A canonical settlement definition registry and shared chunk presenter.
+- A canonical settlement/regional-site definition registry and shared chunk presenter.
 - Source local terrain noise, the Silverhart heartland stream, Northwatch/Ridgehold waterway and Emberwood Grove terrain are ported. The fort waterway includes a small continuity repair where the original source leaves a gap.
 - Authored ground footprints for Skarn-tooth Camp, Skarnak's Hold, Ashveil's Dragon Lair, Sil'thandriel, Kragmoor, Northwatch, Ridgehold and the northern dungeon chain are represented in the regional terrain layer.
 
