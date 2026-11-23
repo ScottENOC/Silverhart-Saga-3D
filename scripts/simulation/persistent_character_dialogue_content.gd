@@ -121,6 +121,143 @@ func apply_wizard_vendetta_resolution(relationships: PersistentCharacterRelation
 	return {"ok":true,"applied":true,"events":results}
 
 
+## Build Queen Seraphine's source-authored audience from campaign state. The
+## caller supplies world flags and player inventory facts; this content layer
+## never reaches into scene nodes or duplicates campaign state.
+func seraphine_greeting(context: Dictionary, relationships: PersistentCharacterRelationshipState) -> Dictionary:
+	if relationships == null:
+		return {"ok":false,"reason":"missing_relationship_state"}
+	var is_greenskin := bool(context.get("player_is_greenskin", false))
+	if is_greenskin and not bool(context.get("goblin_vouched_by_marta", false)):
+		return {
+			"ok":false,
+			"reason":"greenskin_not_vouched",
+			"speaker":"Queen Seraphine Corrin",
+			"text":"Guards! Get that thing out of my hall before I have it removed the hard way.",
+			"choices":[{"id":"seraphine_leave","label":"..."}]
+		}
+	note_audience(relationships, "silverhart_queen")
+	var standing := float(context.get("silverhart_standing", 0.0))
+	var greeting := "Another face passing through court. Say your piece, if you have one."
+	if is_greenskin:
+		greeting = "Elder Marta vouches for you, of all things. I still don't trust a greenskin in my hall, but I trust her judgment more than I distrust you. Speak your piece."
+	elif standing >= 40.0:
+		greeting = "So — you're the one Reddale and Hollowmere keep writing to me about. Good work, whatever you've been doing out there. The crown remembers those who make its work easier."
+	elif standing >= 10.0:
+		greeting = "You've kept my barony's business in decent order, from what reaches my desk. Keep it that way."
+	elif standing <= -20.0:
+		greeting = "I know your name, and not from anything I'd call flattering. Mind yourself in my hall."
+	var options: Array[Dictionary] = []
+	if context.has("goblin_standing"):
+		options.append({"id":"seraphine_topic_greenskins","label":"What of the greenskins?","kind":"seraphine_topic"})
+	if context.has("ironbond_influence"):
+		options.append({"id":"seraphine_topic_ironbond","label":"What of the Ironbond Company?","kind":"seraphine_topic"})
+	options.append({"id":"seraphine_topic_necromancy","label":"Rumors of necromancy in Reddale?","kind":"seraphine_topic"})
+	if bool(context.get("manor_granted", false)):
+		options.append({"id":"seraphine_manor_followup","label":"About the manor you granted me...","kind":"seraphine_manor_followup"})
+	elif standing >= 60.0:
+		options.append({"id":"seraphine_request_favour","label":"Your Majesty, might I ask a favor?","kind":"seraphine_manor_request"})
+	if bool(context.get("wizard_vendetta_active", false)) and bool(context.get("has_wizard_corruption_evidence", false)):
+		options.append({"id":"seraphine_wizard_evidence","label":"I have evidence concerning your Court Wizard.","kind":"seraphine_wizard_evidence"})
+	if bool(context.get("chancellor_tunnel_discovered", false)) and not bool(context.get("chancellor_tunnel_reported", false)):
+		options.append({"id":"seraphine_report_chancellor_tunnel","label":"Your Majesty, I must tell you something about your Chancellor.","kind":"seraphine_chancellor_tunnel"})
+	options.append({"id":"seraphine_leave","label":"Just paying my respects, Your Majesty.","kind":"leave"})
+	options = decorate_seraphine_options(relationships, options)
+	return {"ok":true,"speaker":"Queen Seraphine Corrin","text":greeting,"choices":options,"relationship":relationships.snapshot("seraphine_corrin")}
+
+
+func seraphine_topic_response(topic: String, context: Dictionary, relationships: PersistentCharacterRelationshipState) -> Dictionary:
+	if relationships == null:
+		return {"ok":false,"reason":"missing_relationship_state"}
+	var text := ""
+	match topic:
+		"greenskins":
+			if not context.has("goblin_standing"):
+				return {"ok":false,"reason":"topic_unavailable"}
+			var standing := float(context.get("goblin_standing", 0.0))
+			if standing >= 30.0:
+				text = "Peace with the goblin tribe, brokered by your hand — I still find it strange to say aloud. Strange, and better than another decade of border war. Don't think it makes you popular with everyone at this court, though."
+			elif standing <= -30.0:
+				text = "Whatever's left of that tribe won't trouble the border again, thanks to you. My generals sleep easier. I'm less sure I do — that kind of ending always seems to breed another one somewhere else."
+			else:
+				text = "Orc raiders past Aldervale, bigger warbands than the old stories tell. If you've dealt with any of it personally, the crown hasn't heard the particulars yet. I'd like to."
+		"ironbond":
+			if not context.has("ironbond_influence"):
+				return {"ok":false,"reason":"topic_unavailable"}
+			var influence := float(context.get("ironbond_influence", 0.0))
+			if influence >= 60.0:
+				text = "The Company's coin runs through half my treasury's ledgers these days. Convenient, until the day it isn't. I'd sleep better if the crown owed them less."
+			elif influence <= 10.0:
+				text = "Ironbond's grip on this kingdom has loosened lately — your doing, more than once, if the reports are honest. Good. A crown that answers to merchants isn't much of a crown."
+			else:
+				text = "The Ironbond Company minds its manners at court and does as it pleases everywhere else. A tolerable arrangement, for now."
+		"necromancy":
+			if bool(context.get("phylactery_returned", false)):
+				text = "You brought that horror to my Chancellor's desk yourself, and I've had priests sworn to secrecy about it ever since. Whatever that thing was building toward, you closed the door on it. I don't forget that kind of favor."
+			elif bool(context.get("has_phylactery_shard", false)):
+				text = "You carry something you shouldn't, if half of what my Chancellor whispers to me is true. I won't ask what you mean to do with it — but know that I'll hear of it, whatever it is."
+			elif float(context.get("necromancer_standing", 0.0)) > 0.0:
+				text = "There's talk of a cult working old, ugly magic somewhere near Reddale. Talk only, so far — but talk that keeps reaching my court from too many separate mouths to be nothing."
+			else:
+				text = "Nothing on my desk about necromancers, thank the gods. Should that change, I trust you'll be one of the first to hear of it — and one of the first I'd ask to do something about it."
+		_:
+			return {"ok":false,"reason":"unknown_topic"}
+	var choice := {
+		"persistent_conversation_key":"seraphine:topic:" + topic,
+		"persistent_conversation_delta":{"familiarity":1}
+	}
+	var relationship_result := apply_dialogue_choice(relationships, "seraphine_corrin", choice)
+	return {"ok":true,"speaker":"Queen Seraphine Corrin","text":text,"response_label":"I'll keep you informed." if topic == "greenskins" else ("Understood." if topic == "ironbond" else "I'll watch for it."),"relationship":relationship_result.get("relationship", relationships.snapshot("seraphine_corrin"))}
+
+
+func seraphine_manor_request_response() -> Dictionary:
+	return {
+		"ok":true,
+		"speaker":"Queen Seraphine Corrin",
+		"text":"Few enough have earned the right to ask. Go on.",
+		"choices":[
+			{"id":"seraphine_manor_accept","label":"That empty manor near the inner city — could it be mine?","effect":"grant_silverhart_manor"},
+			{"id":"seraphine_leave","label":"Never mind, Your Majesty.","kind":"leave"}
+		]
+	}
+
+
+func seraphine_manor_granted_response() -> Dictionary:
+	return {
+		"ok":true,
+		"speaker":"Queen Seraphine Corrin",
+		"text":"Done. It's stood empty long enough, and you've more than earned an address inside these walls. See that it doesn't sit derelict a day longer than it has to.",
+		"response_label":"I won't waste it.",
+		"effect":"grant_silverhart_manor"
+	}
+
+
+func seraphine_wizard_evidence_response() -> Dictionary:
+	return {
+		"ok":true,
+		"speaker":"Queen Seraphine Corrin",
+		"text":"Show me.",
+		"choices":[
+			{"id":"seraphine_hand_over_wizard_evidence","label":"Hand it over.","effect":"resolve_wizard_vendetta_queen"},
+			{"id":"seraphine_keep_wizard_evidence","label":"On second thought, no.","kind":"leave"}
+		]
+	}
+
+
+func seraphine_chancellor_tunnel_response() -> Dictionary:
+	return {
+		"ok":true,
+		"speaker":"Queen Seraphine Corrin",
+		"text":"A tunnel — into MY council chamber? Guards! Seal it, brick by brick if you must, and find out who dug it. You've done the crown a real service, coming to me with this instead of using it yourself.",
+		"response_label":"Just doing my part, Your Majesty.",
+		"effects":[
+			{"type":"set_world_flag","flag":"chancellor_tunnel_reported_to_queen","value":true},
+			{"type":"adjust_faction_standing","faction_id":"silverhart_kingdom","delta":15},
+			{"type":"adjust_faction_standing","faction_id":"thieves_guild","delta":-20}
+		]
+	}
+
+
 func _has_label(options: Array[Dictionary], target: String) -> bool:
 	for option in options:
 		if String(option.get("label", "")) == target:
