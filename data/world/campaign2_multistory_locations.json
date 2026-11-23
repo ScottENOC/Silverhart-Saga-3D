@@ -2342,7 +2342,7 @@
       "id": "corvin_ashgrave_barrow",
       "name": "Barrow of Corvin Ashgrave",
       "anchor": {
-        "q": 57,
+        "q": 63,
         "r": -160
       },
       "source": "Hex-crpg/campaign2World.js:buildLichBarrow; derived from campaign2NecromancerRitualCenter",
@@ -2355,7 +2355,7 @@
             {
               "id": "lich_barrow_antechamber",
               "center": {
-                "q": 57,
+                "q": 63,
                 "r": -160
               },
               "half_width": 3,
@@ -2364,7 +2364,7 @@
             {
               "id": "corvin_lich_sanctum",
               "center": {
-                "q": 66,
+                "q": 72,
                 "r": -160
               },
               "half_width": 4,
@@ -2375,11 +2375,11 @@
             {
               "id": "antechamber_to_sanctum",
               "from": {
-                "q": 61,
+                "q": 67,
                 "r": -160
               },
               "to": {
-                "q": 63,
+                "q": 69,
                 "r": -160
               },
               "algorithm": "source_straight_q"
@@ -2390,7 +2390,7 @@
               "id": "barrow_entrance_door",
               "type": "door_open",
               "position": {
-                "q": 54,
+                "q": 60,
                 "r": -160
               },
               "light_radius": 0
@@ -2399,7 +2399,7 @@
               "id": "lich_sanctum_door",
               "type": "door_open",
               "position": {
-                "q": 63,
+                "q": 69,
                 "r": -160
               },
               "light_radius": 0
