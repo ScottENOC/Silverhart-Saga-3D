@@ -172,7 +172,7 @@ static func _add_wheel(parent: Node3D, node_name: String, position: Vector3, rad
 static func _add_beam(parent: Node3D, node_name: String, start: Vector3, finish: Vector3, thickness: float, material: Material) -> void:
 	var direction := finish - start
 	var beam := _add_box(parent, node_name, (start + finish) * 0.5, Vector3(thickness, direction.length(), thickness), material)
-	beam.basis = Basis.looking_at(direction.normalized(), Vector3.UP).rotated(Vector3.RIGHT, PI * 0.5)
+	beam.quaternion = Quaternion(Vector3.UP, direction.normalized())
 
 static func _add_mesh(parent: Node3D, node_name: String, mesh: Mesh, position: Vector3, material: Material) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
