@@ -184,6 +184,8 @@ def main() -> None:
             "model": f"{character_id}.glb",
             "params": params,
         }
+        if isinstance(profile.get("anatomy_size"), dict):
+            character_record["anatomy_size"] = dict(profile["anatomy_size"])
         hex_value = profile.get(
             "hex",
             previous_hex_by_identity.get(character_id, previous_hex_by_identity.get(profile["game_id"])),
