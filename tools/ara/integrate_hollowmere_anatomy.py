@@ -98,13 +98,27 @@ def main() -> None:
                 raise SystemExit(f"Missing generated NPC model: {source}")
             output = source.with_name(source.stem + ".anatomy.glb")
             if int(params.get("gender", 0)) == 1:
-                run_blender(
-                    MALE_TOOL,
+                male_arguments = [
                     "--input", str(source),
                     "--output", str(output),
                     "--adult",
                     "--profile-name", character_id,
-                )
+                ]
+                if character_id == "ser_aldric_thorne":
+                    # Aldric is intentionally authored 10% above the measured mean.
+                    male_arguments.extend([
+                        "--length-scale", "1.10",
+                        "--girth-scale", "1.10",
+                        "--variation-strength", "0",
+                    ])
+                else:
+                    # Stable per-character Gaussian draw: rebuilding the same NPC
+                    # preserves their anatomy; new IDs receive independent draws.
+                    male_arguments.extend([
+                        "--variation-seed", character_id,
+                        "--variation-strength", "1.0",
+                    ])
+                run_blender(MALE_TOOL, *male_arguments)
             else:
                 if not female_plan_ready:
                     run_blender(
