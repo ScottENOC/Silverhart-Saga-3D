@@ -252,10 +252,18 @@ func _test_summon_animal_and_companion() -> void:
 		var dismissal := companion_sim.dismiss_companion(companion.id, true)
 		_check(bool(dismissal.get("ok", false)) and not companion_sim.is_party_member(companion.id), "A permanent animal companion should be dismissible from the active party")
 		_check(companion_sim.get_character(companion.id) == companion, "Dismissing a permanent animal companion should not delete its persistent character state")
-		companion.apply_damage(companion.health)
-		var dead_companion := CharacterState.from_dict(companion.to_dict())
+		var doomed_companion := CharacterState.new("doomed_wolf_companion", "Doomed Wolf", Vector2i(3, 0))
+		doomed_companion.side = "player"
+		doomed_companion.tags.append("animal")
+		doomed_companion.is_animal_companion = true
+		doomed_companion.summoned_by_id = druid.id
+		doomed_companion.creature_kind = "wolf"
+		companion_sim.register_character(doomed_companion)
+		_check(companion_sim.is_party_member(doomed_companion.id), "A living permanent animal companion should join the active party")
+		doomed_companion.apply_damage(doomed_companion.health)
+		var dead_companion := CharacterState.from_dict(doomed_companion.to_dict())
 		_check(dead_companion != null and not dead_companion.alive and dead_companion.is_animal_companion, "Animal companion death should persist through character save/load")
-		_check(not companion_sim.is_party_member(companion.id), "A dead permanent animal companion should be removed from the active party")
+		_check(not companion_sim.is_party_member(doomed_companion.id), "A dead permanent animal companion should be removed from the active party")
 	companion_sim.free()
 
 
