@@ -127,6 +127,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_goblin_threat_followup_content.gd
       - name: Run companion quest chain tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_quest_chain_state.gd
+      - name: Run companion campaign runtime tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_campaign_runtime_store.gd
       - name: Run companion prerequisite quest tests
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_prerequisite_quest_state.gd
       - name: Run split items and equipment tests
