@@ -29,12 +29,15 @@ func _check(condition: bool, message: String = "Assertion failed") -> void:
 
 func _test_authored_roster_and_initial_state() -> void:
 	var relationships := PersistentCharacterRelationshipState.new()
-	_check(relationships.roster().size() == 9, "All nine source-authored persistent NPCs are registered")
+	_check(relationships.roster().size() == 10, "All ten source-authored persistent NPCs are registered")
 	var seraphine := relationships.snapshot("seraphine_corrin")
 	_check(String(seraphine.get("name", "")) == "Queen Seraphine Corrin")
 	_check(String(seraphine.get("affinity_mode", "")) == "full")
 	_check(int(seraphine.get("familiarity", -1)) == 5)
 	_check(int(seraphine.get("trust", -1)) == 10)
+	var skarnub := relationships.snapshot("chief_skarnub")
+	_check(String(skarnub.get("name", "")) == "Chief Skarnub")
+	_check(int(skarnub.get("trust", -1)) == 0)
 	var nessa := relationships.snapshot("nessa_wren")
 	_check(int(nessa.get("familiarity", -1)) == 4)
 	_check(int(nessa.get("trust", -1)) == 7)
