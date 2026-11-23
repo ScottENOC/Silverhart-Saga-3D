@@ -346,8 +346,6 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 	var fort_presentation: Dictionary = BORDER_FORT_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
 	if not bool(fort_presentation.get("ok", false)):
 		push_warning("Regional border fort presentation failed: %s" % fort_presentation)
-	if not bool(fort_presentation.get("ok", false)):
-		push_warning("Regional border fort presentation failed: %s" % fort_presentation)
 	var dragon_lair_presentation: Dictionary = DRAGON_LAIR_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
 	if not bool(dragon_lair_presentation.get("ok", false)):
 		push_warning("Regional dragon lair presentation failed: %s" % dragon_lair_presentation)
