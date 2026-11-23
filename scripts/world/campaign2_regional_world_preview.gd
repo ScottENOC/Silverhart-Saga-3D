@@ -414,12 +414,21 @@ func _populate_chunk_gameplay_cells(chunk: Vector2i) -> void:
 			ecology_simulation.map_data.add_cell(hex, terrain_data.elevation_for_hex(hex), walkable, terrain, movement_multiplier)
 
 func _on_world_character_moved(character_id: String, _from_hex: Vector2i, to_hex: Vector2i) -> void:
-	if character_id != ecology_simulation.player_character_id:
+	if character_id == ecology_simulation.player_character_id:
+		_update_player_presentation(to_hex)
+		target = _world_position_for_hex(to_hex)
+		_update_camera()
+		_update_streamed_chunks(false)
 		return
-	_update_player_presentation(to_hex)
-	target = _world_position_for_hex(to_hex)
-	_update_camera()
-	_update_streamed_chunks(false)
+	# NPC simulation state outlives its chunk actor. If the actor is currently
+	# streamed, follow the authoritative axial position; otherwise the builder
+	# will restore it at that position when its destination chunk loads.
+	for actor_value in get_tree().get_nodes_in_group("campaign2_npc_actors"):
+		var actor := actor_value as Node3D
+		if actor == null or String(actor.get_meta("campaign2_npc_id", "")) != character_id:
+			continue
+		actor.position = _world_position_for_hex(to_hex)
+		break
 
 func _update_player_presentation(hex: Vector2i) -> void:
 	if player_actor == null:
