@@ -7,6 +7,8 @@ func _initialize() -> void:
 	_test_opening_dialogue_and_gift()
 	_test_favour_negotiation_and_options()
 	_test_alliance_follow_up_dialogue()
+	_test_threat_resolution_paths()
+	_test_favour_consequences()
 	if _failures > 0:
 		push_error("%d Skarn-tooth campaign assertion(s) failed." % _failures)
 		quit(1)
@@ -86,3 +88,71 @@ func _test_alliance_follow_up_dialogue() -> void:
 	_check(str(completed_mine.get("text", "")).contains("We're settled here"))
 	var available_mine := content.chief_greeting(relationships, {"quest_resolution":"goblin_alliance"})
 	_check(str(available_mine.choices[0].get("id", "")) == "skarnub_start_mine_raid")
+
+
+func _test_threat_resolution_paths() -> void:
+	var content := GoblinThreatCampaignContent.new()
+	var diplomacy_journal := CampaignJournal.new()
+	diplomacy_journal.seed_faction_reputation("goblin_tribe", 45.0)
+	var diplomacy := content.resolve_threat(diplomacy_journal, "goblin_diplomacy")
+	_check(bool(diplomacy.get("ok", false)), "High-standing diplomacy resolves the threat")
+	_check(bool(diplomacy.get("applied", false)))
+	_check(str(diplomacy_journal.quest_state("goblin_threat").get("status", "")) == "completed")
+	_check(str(diplomacy_journal.quest_state("goblin_threat").get("decisions", {}).get("resolution", "")) == "goblin_diplomacy")
+	_check(int(diplomacy.get("effects", {}).get("experience", 0)) == 150)
+	var repeated := content.resolve_threat(diplomacy_journal, "assault")
+	_check(bool(repeated.get("ok", false)))
+	_check(not bool(repeated.get("applied", true)), "A resolved threat cannot be resolved a second time")
+	_check(str(repeated.get("resolution", "")) == "goblin_diplomacy")
+
+	var blocked_diplomacy := content.resolve_threat(CampaignJournal.new(), "goblin_diplomacy")
+	_check(not bool(blocked_diplomacy.get("ok", true)))
+	_check(str(blocked_diplomacy.get("reason", "")) == "insufficient_goblin_standing")
+
+	var alliance_journal := CampaignJournal.new()
+	var relationships := PersistentCharacterRelationshipState.new()
+	var blocked_alliance := content.resolve_threat(alliance_journal, "goblin_alliance", relationships)
+	_check(not bool(blocked_alliance.get("ok", true)))
+	_check(str(blocked_alliance.get("reason", "")) == "chief_gift_required")
+	content.give_chief_gift(relationships, 60)
+	var alliance := content.resolve_threat(alliance_journal, "goblin_alliance", relationships)
+	_check(bool(alliance.get("ok", false)), "A recorded gift unlocks the alliance resolution")
+	_check(int(alliance.get("effects", {}).get("experience", 0)) == 100)
+	_check(int(alliance.get("effects", {}).get("region_security", {}).get("hollowmere", 0)) == -10)
+
+	for resolution in ["assault", "stealth_succession", "betrayal"]:
+		var journal := CampaignJournal.new()
+		var result := content.resolve_threat(journal, resolution)
+		_check(bool(result.get("ok", false)), "Resolution path should apply: " + resolution)
+		_check(str(journal.quest_state("goblin_threat").get("decisions", {}).get("resolution", "")) == resolution)
+		_check(bool(result.get("effects", {}).get("rescue_aldric", false)) == (resolution != "betrayal"))
+
+
+func _test_favour_consequences() -> void:
+	var content := GoblinThreatCampaignContent.new()
+	var scout_journal := CampaignJournal.new()
+	var scout := content.resolve_favour(scout_journal, "scout")
+	_check(bool(scout.get("ok", false)))
+	_check(int(scout.get("effects", {}).get("experience", 0)) == 40)
+	var repeated_scout := content.resolve_favour(scout_journal, "scout")
+	_check(bool(repeated_scout.get("ok", false)))
+	_check(not bool(repeated_scout.get("applied", true)), "A favour cannot be farmed by repeating the same choice")
+
+	var steal := content.resolve_favour(CampaignJournal.new(), "steal")
+	_check(bool(steal.get("ok", false)))
+	_check(int(steal.get("effects", {}).get("region_prosperity", {}).get("hollowmere", 0)) == -5)
+
+	var mine := content.resolve_favour(CampaignJournal.new(), "raid_mine")
+	_check(bool(mine.get("ok", false)))
+	_check(int(mine.get("effects", {}).get("player_gold", 0)) == 60)
+	_check(bool(mine.get("effects", {}).get("emberlode_raided", false)))
+
+	var low_standing_journal := CampaignJournal.new()
+	var blocked_raid := content.resolve_favour(low_standing_journal, "raid")
+	_check(not bool(blocked_raid.get("ok", true)))
+	_check(str(blocked_raid.get("reason", "")) == "insufficient_goblin_standing")
+	var raid_journal := CampaignJournal.new()
+	raid_journal.seed_faction_reputation("goblin_tribe", 30.0)
+	var raid := content.resolve_favour(raid_journal, "raid")
+	_check(bool(raid.get("ok", false)))
+	_check(str(raid_journal.quest_state("goblin_threat").get("decisions", {}).get("resolution", "")) == "betrayal")

@@ -112,6 +112,109 @@ func read_chief(relationships: PersistentCharacterRelationshipState) -> Dictiona
 	return {"ok":true,"speaker":"Chief Skarnub","text":text,"relationship":relationship}
 
 
+
+## Resolve one of the mutually exclusive campaign outcomes. Reputation changes
+## are applied to CampaignJournal here; scene-level consequences are returned
+## as descriptors for the campaign runtime to enact exactly once.
+func resolve_threat(journal: CampaignJournal, resolution: String, relationships: PersistentCharacterRelationshipState = null) -> Dictionary:
+	if journal == null:
+		return {"ok":false,"reason":"missing_campaign_journal"}
+	var outcomes := {
+		"goblin_diplomacy":{
+			"kingdom":-10.0,"goblin":15.0,
+			"effects":{"region_security":{"hollowmere":8},"experience":150,"rescue_aldric":true,"aldric_attitude":-10,"message":"The Skarn-tooth tribe breaks camp and moves on."}
+		},
+		"goblin_alliance":{
+			"kingdom":-20.0,"goblin":25.0,
+			"effects":{"region_security":{"hollowmere":-10},"experience":100,"rescue_aldric":true,"aldric_attitude":-20,"message":"The Skarn-tooth tribe stays, with your blessing."}
+		},
+		"assault":{
+			"kingdom":20.0,"goblin":-30.0,
+			"effects":{"region_security":{"hollowmere":15},"experience":300,"rescue_aldric":true,"aldric_attitude":25,"message":"With Chief Skarnub fallen and the camp broken, the threat is over."}
+		},
+		"stealth_succession":{
+			"kingdom":15.0,"goblin":5.0,
+			"effects":{"region_security":{"hollowmere":12},"experience":250,"rescue_aldric":true,"aldric_attitude":20,"message":"Under Nix's lead, the tribe leaves the area peacefully."}
+		},
+		"betrayal":{
+			"kingdom":-60.0,"goblin":30.0,
+			"effects":{"region_security":{"hollowmere":-30},"region_prosperity":{"hollowmere":-30},"aldric_attitude":0,"aldric_leaves_if_recruited":true,"message":"You lead the goblins toward Hollowmere. There is no going back."}
+		}
+	}
+	if not outcomes.has(resolution):
+		return {"ok":false,"reason":"unknown_resolution"}
+	if resolution == "goblin_diplomacy" and journal.faction_standing("goblin_tribe") < 40.0:
+		return {"ok":false,"reason":"insufficient_goblin_standing","required":40}
+	if resolution == "goblin_alliance" and (relationships == null or not relationships.has_recorded_event(CHIEF_ID, GIFT_EVENT_KEY)):
+		return {"ok":false,"reason":"chief_gift_required"}
+	var started := _ensure_threat_quest_started(journal)
+	if not bool(started.get("ok", false)):
+		return started
+	var current := journal.quest_state(QUEST_ID)
+	var decisions: Dictionary = current.get("decisions", {})
+	if String(current.get("status", "")) == "completed":
+		return {"ok":true,"applied":false,"reason":"already_resolved","resolution":String(decisions.get("resolution", ""))}
+	var recorded := journal.record_decision(QUEST_ID, "resolution", resolution)
+	if not bool(recorded.get("ok", false)):
+		return recorded
+	var outcome: Dictionary = outcomes[resolution]
+	var effects: Dictionary = outcome.get("effects", {})
+	var kingdom_change := journal.adjust_faction_reputation("silverhart_kingdom", float(outcome.kingdom), 15.0, "goblin_threat:" + resolution)
+	var goblin_change := journal.adjust_faction_reputation("goblin_tribe", float(outcome.goblin), 20.0, "goblin_threat:" + resolution)
+	var completed := journal.complete_quest(QUEST_ID)
+	if not bool(completed.get("ok", false)):
+		return completed
+	return {
+		"ok":true,"applied":true,"resolution":resolution,
+		"reputation":{"silverhart_kingdom":kingdom_change,"goblin_tribe":goblin_change},
+		"effects":effects.duplicate(true)
+	}
+
+
+func resolve_favour(journal: CampaignJournal, favour: String) -> Dictionary:
+	if journal == null:
+		return {"ok":false,"reason":"missing_campaign_journal"}
+	var started := _ensure_threat_quest_started(journal)
+	if not bool(started.get("ok", false)):
+		return started
+	var quest := journal.quest_state(QUEST_ID)
+	if String(quest.get("status", "")) != "active":
+		return {"ok":false,"reason":"quest_not_active"}
+	if favour == "raid":
+		if journal.faction_standing("goblin_tribe") < 25.0:
+			return {"ok":false,"reason":"insufficient_goblin_standing","required":25}
+		return resolve_threat(journal, "betrayal")
+	var outcomes := {
+		"scout":{"goblin":10.0,"kingdom":-8.0,"knowledge":10.0,"effects":{"region_security":{"hollowmere":-4},"experience":40,"aldric_attitude":-8,"message":"You pass word of Hollowmere's patrol routes to the goblins."}},
+		"steal":{"goblin":8.0,"kingdom":-5.0,"knowledge":10.0,"effects":{"region_prosperity":{"hollowmere":-5},"experience":30,"aldric_attitude":-5,"message":"You raid Old Mac's stores and bring the goods back to the tribe."}},
+		"raid_mine":{"goblin":15.0,"kingdom":-15.0,"knowledge":15.0,"effects":{"region_security":{"emberlode":-20},"region_prosperity":{"emberlode":-25},"emberlode_raided":true,"player_gold":60,"experience":50,"aldric_attitude":-15,"message":"You lead the raid on Emberlode. Its strongbox and ore stores are taken."}}
+	}
+	if not outcomes.has(favour):
+		return {"ok":false,"reason":"unknown_favour"}
+	var decision_id := "favour_" + favour
+	var decisions: Dictionary = quest.get("decisions", {})
+	if decisions.has(decision_id):
+		return {"ok":true,"applied":false,"reason":"favour_already_resolved","favour":favour}
+	var recorded := journal.record_decision(QUEST_ID, decision_id, favour)
+	if not bool(recorded.get("ok", false)):
+		return recorded
+	var outcome: Dictionary = outcomes[favour]
+	var effects: Dictionary = outcome.get("effects", {})
+	var goblin_change := journal.adjust_faction_reputation("goblin_tribe", float(outcome.goblin), float(outcome.knowledge), "goblin_favour:" + favour)
+	var kingdom_change := journal.adjust_faction_reputation("silverhart_kingdom", float(outcome.kingdom), float(outcome.knowledge), "goblin_favour:" + favour)
+	return {"ok":true,"applied":true,"favour":favour,"reputation":{"goblin_tribe":goblin_change,"silverhart_kingdom":kingdom_change},"effects":effects.duplicate(true)}
+
+
+func _ensure_threat_quest_started(journal: CampaignJournal) -> Dictionary:
+	if not journal.quest_definitions.has(QUEST_ID):
+		var registered := journal.register_quest_definition(quest_definition())
+		if not bool(registered.get("ok", false)):
+			return registered
+	if not journal.quests.has(QUEST_ID):
+		return journal.start_quest(QUEST_ID)
+	return {"ok":true,"quest_id":QUEST_ID}
+
+
 func _alliance_greeting(context: Dictionary) -> Dictionary:
 	var mine_completed := bool(context.get("mine_raid_completed", false))
 	var mine_started := bool(context.get("mine_raid_started", false))
