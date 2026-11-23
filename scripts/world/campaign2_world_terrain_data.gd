@@ -219,10 +219,13 @@ func terrain_for_hex(hex: Vector2i) -> String:
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
 		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
-	if _is_local_stream(hex) or _is_strategic_river(hex):
-		return "water"
+	# The authored strategic road manifest is painted over the underlying
+	# regional watercourse, matching the source map's road-over-terrain order.
+	# This makes the explicit road/stream intersections traversable crossings.
 	if road_cells.has(_hex_key(hex)):
 		return "path"
+	if _is_local_stream(hex) or _is_strategic_river(hex):
+		return "water"
 	var strategic_cell := MainCampaignWorldMapData.world_cell_from_local_hex(hex)
 	if not _inside_strategic_map(strategic_cell):
 		return "void"
