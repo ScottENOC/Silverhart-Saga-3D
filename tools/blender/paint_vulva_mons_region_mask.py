@@ -117,9 +117,25 @@ def main():
     skin["anatomy_region_mask"] = "vulva_external_including_mons_pubis"
     skin["anatomy_region_mask_channel"] = "TEXCOORD_1.y"
 
-    source_ids = read_mask_from_uv2(skin.data)
-    weighted_vertices = sum(value[1] >= 0.15 for value in source_ids)
-    nonzero_vertices = sum(value[1] > 0.0 for value in source_ids)
+    source_values = read_mask_from_uv2(skin.data)
+
+    def canonical_by_correspondence(values):
+        canonical = {}
+        for correspondence_id, weight in values:
+            previous = canonical.get(correspondence_id)
+            if previous is not None and abs(previous - weight) > 1e-5:
+                raise RuntimeError(
+                    f"CorrespondenceID {correspondence_id} carries inconsistent region weights"
+                )
+            canonical[correspondence_id] = weight
+        return canonical
+
+    # glTF may split vertices at material/UV seams. TEXCOORD_1.x is the
+    # stable original vertex ID, so compare canonical IDs rather than raw
+    # imported vertex counts.
+    source_by_id = canonical_by_correspondence(source_values)
+    weighted_vertices = sum(weight >= 0.15 for weight in source_by_id.values())
+    nonzero_vertices = sum(weight > 0.0 for weight in source_by_id.values())
     if weighted_vertices == 0:
         raise RuntimeError("Combined vulva/mons pubis mask contains no weighted vertices")
 
@@ -131,19 +147,21 @@ def main():
     bpy.ops.import_scene.gltf(filepath=os.path.abspath(args.output))
     _meshes, exported_skin, _armature = find_skin_and_rig()
     exported_values = read_mask_from_uv2(exported_skin.data)
-    exported_weighted = sum(value[1] >= 0.15 for value in exported_values)
-    if exported_weighted != weighted_vertices:
+    exported_by_id = canonical_by_correspondence(exported_values)
+    if set(exported_by_id) != set(source_by_id):
+        missing = len(set(source_by_id) - set(exported_by_id))
+        extra = len(set(exported_by_id) - set(source_by_id))
         raise RuntimeError(
-            "Export/re-import changed the mask coverage count: "
-            f"{weighted_vertices} before, {exported_weighted} after"
+            "Export/re-import changed CorrespondenceID coverage: "
+            f"{missing} IDs missing, {extra} unexpected IDs"
         )
-    if len(exported_values) != len(source_ids):
-        raise RuntimeError("Export/re-import changed the skin vertex count")
-    for index, (before, after) in enumerate(zip(source_ids, exported_values)):
-        if before[0] != after[0]:
-            raise RuntimeError(f"Export/re-import changed CorrespondenceID at vertex {index}")
-        if abs(before[1] - after[1]) > 1e-5:
-            raise RuntimeError(f"Export/re-import changed mask weight at vertex {index}")
+    for correspondence_id, before_weight in source_by_id.items():
+        after_weight = exported_by_id[correspondence_id]
+        if abs(before_weight - after_weight) > 1e-5:
+            raise RuntimeError(
+                f"Export/re-import changed mask weight for CorrespondenceID {correspondence_id}"
+            )
+    exported_weighted = sum(weight >= 0.15 for weight in exported_by_id.values())
 
     report = {
         "status": "REVIEW_MASK_PAINTED_NOT_PRODUCTION_APPROVED",
@@ -153,9 +171,10 @@ def main():
         "mask_channel": "TEXCOORD_1.y (Godot Mesh ARRAY_TEX_UV2.y)",
         "correspondence_channel": "TEXCOORD_1.x preserved unchanged",
         "skin_mesh": exported_skin.name,
-        "vertex_count": len(exported_values),
+        "source_correspondence_vertex_count": len(source_by_id),
+        "exported_mesh_vertex_count": len(exported_values),
         "weighted_vertices_at_0_15": exported_weighted,
-        "nonzero_vertices": sum(value[1] > 0.0 for value in exported_values),
+        "nonzero_vertices": sum(weight > 0.0 for weight in exported_by_id.values()),
         "maximum_weight": max(value[1] for value in exported_values),
         "height_metres": height,
         "hipline_z": hipline_z,
