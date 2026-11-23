@@ -220,6 +220,10 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 		var male_model := male_actor.get_node_or_null("CharacterModel") as AraCharacterActor
 		assert(male_model != null)
 		assert(male_model.loaded_asset_path == "res://art/characters/ara_runtime/ara_player_male_body.glb")
+		assert(male_model.apply_male_anatomy_size(1.10, 1.10), "Male anatomy size controls must bind to AnatomyRoot")
+		var applied_size: Dictionary = male_model.get_meta("male_anatomy_size_scales", {})
+		assert(is_equal_approx(float(applied_size.get("length", 0.0)), 1.10))
+		assert(is_equal_approx(float(applied_size.get("girth", 0.0)), 1.10))
 		male_actor.free()
 	
 		var settlement_actor := CampaignCharacterActorFactory.create_settlement_actor({
