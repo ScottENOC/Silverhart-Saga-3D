@@ -879,6 +879,7 @@ func _build_save_snapshot() -> Dictionary:
 		"active_party_index": active_party_index,
 		"clock": simulation.clock.to_dict(),
 		"campaign_journal": simulation.campaign_journal.to_dict(),
+		"persistent_character_relationships": simulation.persistent_character_relationships_to_dict(),
 		"wilderness_resources": simulation.wilderness_resources.to_dict(),
 		"multistory_locations": simulation.multistory_location_states_to_dict(),
 		"buildings": simulation.building_registry.to_dict(),
@@ -959,6 +960,10 @@ func _apply_save_data(data: Dictionary) -> void:
 	var journal_data: Variant = data.get("campaign_journal", {})
 	if journal_data is Dictionary:
 		simulation.campaign_journal.load_dict(journal_data)
+	var persistent_relationship_data: Variant = data.get("persistent_character_relationships", {})
+	if persistent_relationship_data is Dictionary:
+		if not simulation.restore_persistent_character_relationships(persistent_relationship_data):
+			push_warning("Persistent NPC relationship state could not be fully synchronised with the campaign journal.")
 	# Dynamic Tessa is saved as a full character record. Recreate her presentation
 	# after the journal is restored, retaining her saved axial position.
 	if simulation.get_character("missing_child_tessa") != null:
