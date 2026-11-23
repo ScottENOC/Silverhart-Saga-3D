@@ -90,6 +90,7 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 		deg_to_rad(180.0)
 	)
 	if actor != null:
+		actor.name = "NPC_" + character_id
 		# Explicit per-character scaling lets non-human races use the shared
 		# Ara rig as a temporary stand-in without changing identity, animation
 		# or equipment systems. The actor/nameplate stays at human world scale.
