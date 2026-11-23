@@ -247,23 +247,21 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
 		return String(regional_override.get("terrain", "grass"))
-	# A settlement's own terrain rules (notably Hollowmere's stream and bridge)
-	# remain authoritative inside its bounds. Other settlements' explicit
-	# building, road and wall overlays are resolved only after that source terrain.
-	var authored_settlement := settlement_definition_registry.resolve(hex)
-	var terrain_definition := _authored_terrain_definition(authored_settlement)
-	if not terrain_definition.is_empty():
-		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
+	# Explicit settlement structures and paths remain authoritative. Strategic
+	# roads then overlay the underlying authored settlement terrain, matching
+	# the visual terrain resolver and preserving traversable bridge crossings.
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
 	if settlement_path_cells.has(_hex_key(hex)):
 		return "path"
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "building"
-	# Match visual terrain precedence: a strategic road is a traversable
-	# crossing even when the underlying authored settlement terrain is water.
 	if road_cells.has(_hex_key(hex)):
 		return "path"
+	var authored_settlement := settlement_definition_registry.resolve(hex)
+	var terrain_definition := _authored_terrain_definition(authored_settlement)
+	if not terrain_definition.is_empty():
+		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
 	var terrain := terrain_for_hex(hex)
 	return "building" if terrain == "authored" else terrain
 
