@@ -16,6 +16,7 @@ var simulation: WorldSimulation
 var character_id: String = "player"
 var selected_spell_id: String = ""
 var selected_modifiers: Dictionary = {}
+var selected_disguise_copy_id: String = ""
 var feedback_message: String = ""
 var _panel: PanelContainer
 var _body: VBoxContainer
@@ -226,6 +227,35 @@ func _build_spell_builder(state: CharacterState) -> void:
 			_set_modifiers(modifiers)
 		)
 		_content.add_child(touch)
+
+	if selected_spell_id == "disguise_self":
+		var copy_row := HBoxContainer.new()
+		_content.add_child(copy_row)
+		var copy_label := Label.new()
+		copy_label.text = "Copy appearance"
+		copy_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		copy_row.add_child(copy_label)
+		var copy_selector := OptionButton.new()
+		copy_selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		copy_selector.add_item("Your own appearance")
+		copy_selector.set_item_metadata(0, "")
+		if get_parent() != null and get_parent().has_method("get_disguise_copy_profiles"):
+			var copy_profiles: Array = get_parent().call("get_disguise_copy_profiles")
+			for profile in copy_profiles:
+				if not profile is Dictionary:
+					continue
+				copy_selector.add_item(String(profile.get("name", profile.get("id", "Unknown"))))
+				copy_selector.set_item_metadata(copy_selector.item_count - 1, String(profile.get("id", "")))
+		var selected_copy_index := 0
+		for index in range(copy_selector.item_count):
+			if String(copy_selector.get_item_metadata(index)) == selected_disguise_copy_id:
+				selected_copy_index = index
+				break
+		copy_selector.select(selected_copy_index)
+		copy_selector.item_selected.connect(func(index: int):
+			selected_disguise_copy_id = String(copy_selector.get_item_metadata(index))
+		)
+		copy_row.add_child(copy_selector)
 
 	if selected_spell_id == "summon_animal":
 		var summon_selector := _option_row(_content, "Summon", ["wolf", "boar", "tiger", "eagle", "unicorn", "horse"], String(modifiers.get("summon_id", "wolf")))
@@ -504,6 +534,8 @@ func _prepare_spell(modifiers: Dictionary) -> void:
 		refresh()
 		return
 	var prepared := PreparedSpell.create(selected_spell_id, modifiers)
+	if selected_spell_id == "disguise_self":
+		prepared.presentation["copy_character_id"] = selected_disguise_copy_id
 	for saved in state.prepared_spells:
 		var existing := PreparedSpell.from_dict(saved)
 		if existing != null and existing.base_spell_id == prepared.base_spell_id and existing.modifiers == prepared.modifiers:
@@ -525,6 +557,8 @@ func _remove_prepared(index: int) -> void:
 
 
 func _select_spell(spell_id: String) -> void:
+	if selected_spell_id != spell_id:
+		selected_disguise_copy_id = ""
 	selected_spell_id = spell_id
 	selected_modifiers = { "base_spell_id": spell_id }
 	feedback_message = ""
