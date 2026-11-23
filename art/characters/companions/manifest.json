@@ -11,11 +11,11 @@
     },
     "aldric.glb": {
       "character": "Ser Aldric Thorne",
-      "workflow_run": 44641513062,
-      "build": 125,
-      "accepted_source_commit": "8681bc9f6ad4e2c651d6fd8bf937fdfc95538555",
-      "size_bytes": 32384528,
-      "sha256": "8b395bc6d7061ff9f4ce4d3b84f3537c926f0a3ee56e32161e36503592d7c22b"
+      "workflow_run": 45117533492,
+      "build": 164,
+      "source_commit": "9754b7f53a4de8dd082080e8d451b980cf9be68f",
+      "size_bytes": 32492740,
+      "sha256": "dc0d29fb624614bec6354c2c760afe92adf9f6c1a83ea532a80420d914529be7"
     },
     "dagna.glb": {
       "character": "Dagna Stoneward",
