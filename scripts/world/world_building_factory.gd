@@ -76,6 +76,13 @@ const ARCHETYPES := {
 		"door_colour": "#382719", "roof_colour": "#62523a",
 		"glass_colour": "#52717a", "roof_style": "gable"
 	},
+	"hut_large": {
+		"width": 14.0, "depth": 11.5, "wall_height": 3.2, "roof_rise": 1.8,
+		"foundation_colour": "#665a46", "floor_colour": "#493323",
+		"wall_colour": "#765c3d", "timber_colour": "#38291e",
+		"door_colour": "#30251c", "roof_colour": "#493a2c",
+		"glass_colour": "#52717a", "roof_style": "gable"
+	},
 	"campfire": {
 		"width": 3.5, "depth": 3.5, "wall_height": 1.8, "roof_rise": 0.0,
 		"foundation_colour": "#625b50", "floor_colour": "#343638",
@@ -102,6 +109,7 @@ const KIND_TO_ARCHETYPE := {
 	"smithy": "smithy",
 	"mine_entrance": "mine_entrance",
 	"hut": "hut",
+	"hut_large": "hut_large",
 	"campfire": "campfire"
 }
 
