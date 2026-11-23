@@ -53,5 +53,17 @@ class ShellCoreTests(unittest.TestCase):
             build_shell(self.vertices, self.normals[:-1], [(0, 1, 2, 3)], [1] * 4, 0.01)
 
 
+    def test_exact_zero_cutline_uses_the_existing_body_vertex(self):
+        shell = build_shell(self.vertices, self.normals, [(0, 1, 2, 3)],
+                            [-1, 0, 1, -1], 0.01)
+        self.assertEqual(shell.surface_face_count, 1)
+        self.assertIn(("vertex", 1), shell.source_refs)
+
+    def test_rim_winding_faces_outward_from_the_cloth(self):
+        shell = build_shell(self.vertices, self.normals, [(0, 1, 2, 3)],
+                            [-1, 1, 1, -1], 0.01)
+        self.assertEqual(shell.faces[1], (1, 0, 4, 5))
+
+
 if __name__ == "__main__":
     unittest.main()
