@@ -8,7 +8,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 	var entries: Array = terrain.settlement_layouts
-	_check(entries.size() == 7, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale, Silverhart and Old Mac's Farmstead")
+	_check(entries.size() == 8, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale, Silverhart and Old Mac's Farmstead")
 	var millbrook_entry := _entry_by_id(entries, "millbrook")
 	_check(not millbrook_entry.is_empty(), "Canonical Millbrook definition must be available")
 	if millbrook_entry.is_empty():
@@ -63,6 +63,7 @@ func _initialize() -> void:
 	_test_silverhart(terrain, entries)
 	_test_old_mac_farmstead(terrain, entries)
 	_test_skarn_tooth_camp(terrain, entries)
+	_test_skarnaks_hold(terrain, entries)
 
 	var hollowmere_entry := _entry_by_id(entries, "hollowmere")
 	_check(not hollowmere_entry.is_empty(), "Canonical Hollowmere definition must remain available")
@@ -409,6 +410,37 @@ func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) 
 	_check(terrain.terrain_for_hex(Vector2i(203, 21)) == "authored", "Chief hut footprint must suppress procedural terrain")
 	_check(terrain.settlement_building_cells.has("203,21"), "Chief hut occupancy must be indexed by streamed world terrain")
 	_check(String(definition.get("source", "")).contains("buildGoblinCamp"), "Goblin camp must retain source traceability")
+
+
+func _test_skarnaks_hold(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "skarnaks_hold")
+	_check(not entry.is_empty(), "Canonical Skarnak's Hold definition must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var buildings: Array = definition.get("layout", {}).get("buildings", [])
+	_check(buildings.size() == 9, "Skarnak's Hold must retain its warlord hut, seven huts and central fire")
+	var expected := {
+		"skarnaks_warlord_hut": Vector2i(428, 14),
+		"skarnaks_hut_west_north": Vector2i(424, 16),
+		"skarnaks_hut_east_north": Vector2i(432, 16),
+		"skarnaks_hut_west_south": Vector2i(424, 19),
+		"skarnaks_hut_east_south": Vector2i(432, 19),
+		"skarnaks_hut_south": Vector2i(428, 20),
+		"skarnaks_hut_southwest": Vector2i(426, 20),
+		"skarnaks_hut_northeast": Vector2i(430, 14),
+		"skarnaks_central_fire": Vector2i(428, 17)
+	}
+	for building_id in expected:
+		var building := _find_record(buildings, building_id)
+		_check(not building.is_empty(), "Source orc stronghold structure must be present: " + building_id)
+		if not building.is_empty():
+			_assert_axial(building.get("center", {}), expected[building_id], building_id + " source position")
+			_check(BUILDING_FACTORY.supports_definition(building), "Orc stronghold structure must use a supported shared archetype: " + building_id)
+	_check(terrain.terrain_for_hex(Vector2i(428, 14)) == "authored", "Warlord hut must occupy its clearing footprint")
+	_check(terrain.terrain_for_hex(Vector2i(420, 17)) == "path", "Stronghold west gate must connect to the authored road approach")
+	_check(terrain.terrain_for_hex(Vector2i(436, 17)) == "climbable_wall", "Orc stronghold perimeter must remain a climbable wall")
+	_check(String(definition.get("source", "")).contains("buildOrcStronghold"), "Orc stronghold must retain source traceability")
 
 func _entry_by_id(entries: Array, settlement_id: String) -> Dictionary:
 	for entry in entries:
