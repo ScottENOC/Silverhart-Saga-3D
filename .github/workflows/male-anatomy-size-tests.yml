@@ -1,0 +1,28 @@
+name: Male anatomy size tests
+
+on:
+  pull_request:
+    paths:
+      - "tools/blender/add_male_anatomy.py"
+      - "tools/ara/integrate_hollowmere_anatomy.py"
+      - "tests/test_male_anatomy_*.py"
+      - ".github/workflows/male-anatomy-size-tests.yml"
+  push:
+    branches:
+      - dev
+    paths:
+      - "tools/blender/add_male_anatomy.py"
+      - "tools/ara/integrate_hollowmere_anatomy.py"
+      - "tests/test_male_anatomy_*.py"
+      - ".github/workflows/male-anatomy-size-tests.yml"
+
+jobs:
+  male-anatomy-size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run male anatomy size and NPC integration tests
+        run: python -m unittest discover -s tests -p "test_male_anatomy_*.py" -v
