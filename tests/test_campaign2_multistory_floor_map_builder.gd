@@ -116,6 +116,20 @@ func _initialize() -> void:
 	var cove_tunnel: Dictionary = FLOOR_BUILDER.build_floor_map(cove_definition, -9, cove_state)
 	_check(cove_tunnel.get("walkable_hexes", []).size() == 1, "Wilderness tunnel junction must remain a one-cell stub")
 
+	var barrow_definition: Dictionary = registry.get_definition("corvin_ashgrave_barrow")
+	var barrow_state = LOCATION_STATE.new()
+	_check(bool(barrow_state.configure(barrow_definition).get("ok", false)), "Corvin Ashgrave barrow state must configure")
+	var barrow_result: Dictionary = FLOOR_BUILDER.build_floor_map(barrow_definition, 0, barrow_state)
+	_check(bool(barrow_result.get("ok", false)), "Corvin Ashgrave source floor must build")
+	if bool(barrow_result.get("ok", false)):
+		var barrow_map: HexMapData = barrow_result.get("map_data") as HexMapData
+		_check(barrow_map.is_walkable(Vector2i(54, -160)), "Barrow entrance doorway must be walkable")
+		_check(barrow_map.is_walkable(Vector2i(57, -160)), "Barrow antechamber centre must be walkable")
+		_check(barrow_map.is_walkable(Vector2i(61, -160)) and barrow_map.is_walkable(Vector2i(62, -160)) and barrow_map.is_walkable(Vector2i(63, -160)), "Source corridor must connect the antechamber to the sanctum doorway")
+		_check(barrow_map.is_walkable(Vector2i(66, -160)), "Lich sanctum centre must be walkable")
+		_check(_has_object(barrow_result.get("tile_objects", []), "barrow_entrance_door") and _has_object(barrow_result.get("tile_objects", []), "lich_sanctum_door"), "Both source door openings must be emitted")
+		_check(barrow_result.get("actors", []).is_empty() and barrow_result.get("creatures", []).is_empty(), "Map-only barrow floor must leave encounters to campaign systems")
+
 	var elven_definition: Dictionary = registry.get_definition("silthandriel")
 	var elven_state = LOCATION_STATE.new()
 	_check(bool(elven_state.configure(elven_definition).get("ok", false)), "Sil'thandriel traversal state must configure")
