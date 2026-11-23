@@ -48,6 +48,10 @@ var hair_style_select: OptionButton
 var body_select: OptionButton
 var body_variant_select: OptionButton
 var height_slider: HSlider
+var anatomy_length_slider: HSlider
+var anatomy_girth_slider: HSlider
+var anatomy_length_value: Label
+var anatomy_girth_value: Label
 var preview_status: Label
 var preview_actor: AraCharacterActor
 var preview_variant_loaded: String = ""
@@ -207,6 +211,20 @@ func _build_screen() -> void:
 	_refresh_character_preview(0)
 	body_variant_select = _option_row(panel, "Body model", ["Female", "Male"])
 	body_variant_select.item_selected.connect(_refresh_appearance_preview)
+	body_variant_select.item_selected.connect(_update_anatomy_controls)
+	_section(panel, "ADULT MALE ANATOMY")
+	var anatomy_note := Label.new()
+	anatomy_note.text = "Optional adult body-profile settings. Values are measured at the reference height and limited to the pooled adult population range (approximately ±2 standard deviations). These settings are saved with your character profile; the current Ara preview asset does not yet contain independent size morph targets."
+	anatomy_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	anatomy_note.add_theme_color_override("font_color", Color(0.78, 0.82, 0.76))
+	panel.add_child(anatomy_note)
+	anatomy_length_slider = _anatomy_slider_row(panel, "Erect length", 9.80, 16.44)
+	anatomy_length_value = panel.get_child(panel.get_child_count() - 1).get_node("Value") as Label
+	anatomy_girth_slider = _anatomy_slider_row(panel, "Erect circumference", 9.46, 13.86)
+	anatomy_girth_value = panel.get_child(panel.get_child_count() - 1).get_node("Value") as Label
+	anatomy_length_slider.value_changed.connect(_on_anatomy_size_changed)
+	anatomy_girth_slider.value_changed.connect(_on_anatomy_size_changed)
+	_update_anatomy_controls(0)
 	presentation_select = _option_row(panel, "Gender presentation", PRESENTATIONS)
 	pronoun_select = _option_row(panel, "Pronouns", PRONOUN_SETS)
 	custom_pronouns = _line_edit(panel, "Custom pronouns (optional)", "e.g. xe / xem / xyr")
@@ -299,6 +317,54 @@ func _build_screen() -> void:
 	panel.add_child(start_button)
 	_update_mode_controls(game_mode_select.selected)
 
+
+func _anatomy_slider_row(parent: VBoxContainer, label_text: String, minimum_cm: float, maximum_cm: float) -> HSlider:
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+	var label := Label.new()
+	label.text = label_text
+	label.custom_minimum_size.x = 170
+	row.add_child(label)
+	var slider := HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.01
+	slider.value = 0.5
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(slider)
+	var value_label := Label.new()
+	value_label.name = "Value"
+	value_label.custom_minimum_size.x = 105
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(value_label)
+	return slider
+
+
+func _male_anatomy_length_scale() -> float:
+	return lerpf(0.747, 1.253, anatomy_length_slider.value)
+
+
+func _male_anatomy_girth_scale() -> float:
+	return lerpf(0.811, 1.189, anatomy_girth_slider.value)
+
+
+func _on_anatomy_size_changed(_value: float) -> void:
+	_update_anatomy_controls(0)
+	_refresh_appearance_preview(0)
+
+
+func _update_anatomy_controls(_index: int) -> void:
+	if anatomy_length_slider == null or anatomy_girth_slider == null:
+		return
+	var male := body_variant_select.get_item_text(body_variant_select.selected) == "Male"
+	for control in [anatomy_length_slider, anatomy_girth_slider]:
+		control.get_parent().visible = male
+	var length_cm := lerpf(9.80, 16.44, anatomy_length_slider.value)
+	var girth_cm := lerpf(9.46, 13.86, anatomy_girth_slider.value)
+	anatomy_length_value.text = "%.1f cm" % length_cm
+	anatomy_girth_value.text = "%.1f cm" % girth_cm
+
+
 func _section(parent: VBoxContainer, text_value: String) -> void:
 	var label := Label.new()
 	label.text = text_value
@@ -361,6 +427,9 @@ func _load_saved_profile() -> void:
 	_select_text(hair_style_select, str(data.get("hair_style", "Short 2")))
 	_select_text(body_select, str(data.get("body_build", "Average")))
 	height_slider.value = clampf(float(data.get("height_scale", 1.0)), 0.90, 1.10)
+	anatomy_length_slider.value = clampf((float(data.get("male_anatomy_length_scale", 1.0)) - 0.747) / (1.253 - 0.747), 0.0, 1.0)
+	anatomy_girth_slider.value = clampf((float(data.get("male_anatomy_girth_scale", 1.0)) - 0.811) / (1.189 - 0.811), 0.0, 1.0)
+	_update_anatomy_controls(0)
 	var saved_details: Dictionary = data.get("character_details", {})
 	var saved_piercings: Array = saved_details.get("piercings", [])
 	ear_piercing_check.button_pressed = saved_piercings.has("earrings")
@@ -423,7 +492,9 @@ func _refresh_appearance_preview(_index: int) -> void:
 		"build_scale": float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)),
 		"body_variant": variant,
 		"gender_presentation": presentation_select.get_item_text(presentation_select.selected),
-		"pronouns": "they/them"
+		"pronouns": "they/them",
+		"male_anatomy_length_scale": _male_anatomy_length_scale(),
+		"male_anatomy_girth_scale": _male_anatomy_girth_scale()
 	}
 	profile["height"] = inverse_lerp(0.90, 1.10, height_slider.value)
 	profile["muscle"] = inverse_lerp(0.96, 1.055, float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)))
@@ -578,7 +649,9 @@ func _finish() -> void:
 		"hair_colour": hair_colour_select.get_item_text(hair_colour_select.selected),
 		"hair_style": hair_style_select.get_item_text(hair_style_select.selected),
 		"hair_style_id": String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02")),
-		"body_build": body_select.get_item_text(body_select.selected)
+		"body_build": body_select.get_item_text(body_select.selected),
+		"male_anatomy_length_scale": _male_anatomy_length_scale(),
+		"male_anatomy_girth_scale": _male_anatomy_girth_scale()
 	}
 	profile.merge(_appearance_detail_profile(), true)
 	profile["body_hair"] = _body_hair_profile()
