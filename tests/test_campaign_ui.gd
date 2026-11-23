@@ -2,75 +2,104 @@ extends SceneTree
 
 
 func _initialize() -> void:
-    await process_frame
-    _test_combat_hud_presentation_and_actions()
-    _test_dialogue_panel_presentation_and_choice_signal()
-    print("Campaign UI tests passed.")
-    quit()
+	await process_frame
+	_test_combat_hud_presentation_and_actions()
+	_test_dialogue_panel_presentation_and_choice_signal()
+	_test_character_portrait_renderer()
+	print("Campaign UI and character portrait tests passed.")
+	quit()
 
 
 func _test_combat_hud_presentation_and_actions() -> void:
-    var hud := CampaignCombatHud.new()
-    root.add_child(hud)
-    assert(not hud.visible)
-    assert(hud.attack_button != null)
-    assert(hud.end_turn_button != null)
-    assert(hud.status_label != null)
+	var hud := CampaignCombatHud.new()
+	root.add_child(hud)
+	assert(not hud.visible)
+	assert(hud.attack_button != null)
+	assert(hud.end_turn_button != null)
+	assert(hud.status_label != null)
 
-    var attack_requested := false
-    var end_turn_requested := false
-    hud.attack_requested.connect(func(): attack_requested = true)
-    hud.end_turn_requested.connect(func(): end_turn_requested = true)
-    hud.attack_button.emit_signal("pressed")
-    hud.end_turn_button.emit_signal("pressed")
-    assert(attack_requested)
-    assert(end_turn_requested)
+	var attack_requested := false
+	var end_turn_requested := false
+	hud.attack_requested.connect(func(): attack_requested = true)
+	hud.end_turn_requested.connect(func(): end_turn_requested = true)
+	hud.attack_button.emit_signal("pressed")
+	hud.end_turn_button.emit_signal("pressed")
+	assert(attack_requested)
+	assert(end_turn_requested)
 
-    hud.present(true, false, false, "Not your turn.")
-    assert(hud.visible)
-    assert(hud.end_turn_button.disabled)
-    assert(hud.attack_button.disabled)
-    assert(hud.status_label.text == "Not your turn.")
+	hud.present(true, false, false, "Not your turn.")
+	assert(hud.visible)
+	assert(hud.end_turn_button.disabled)
+	assert(hud.attack_button.disabled)
+	assert(hud.status_label.text == "Not your turn.")
 
-    hud.present(true, true, true, "Ready.")
-    assert(not hud.end_turn_button.disabled)
-    assert(not hud.attack_button.disabled)
-    assert(hud.status_label.text == "Ready.")
-    hud.set_status_text("Attack resolved.")
-    assert(hud.status_label.text == "Attack resolved.")
+	hud.present(true, true, true, "Ready.")
+	assert(not hud.end_turn_button.disabled)
+	assert(not hud.attack_button.disabled)
+	assert(hud.status_label.text == "Ready.")
+	hud.set_status_text("Attack resolved.")
+	assert(hud.status_label.text == "Attack resolved.")
 
-    hud.present(false, false, false, "")
-    assert(not hud.visible)
-    hud.free()
+	hud.present(false, false, false, "")
+	assert(not hud.visible)
+	hud.free()
 
 
 
 func _test_dialogue_panel_presentation_and_choice_signal() -> void:
-    var panel := CampaignDialoguePanel.new()
-    root.add_child(panel)
-    assert(not panel.visible)
+	var panel := CampaignDialoguePanel.new()
+	root.add_child(panel)
+	assert(not panel.visible)
 
-    var selected_choice: Dictionary = {}
-    panel.choice_selected.connect(func(choice: Dictionary): selected_choice = choice)
-    var choices: Array[Dictionary] = [
-        {"id": "start:quest_intro", "label": "Hear the offer", "available": true},
-        {"id": "locked", "label": "Not yet", "available": false, "unavailable_reason": "Requires a key."}
-    ]
-    panel.present("Mara", "There is work to be done.", choices)
-    assert(panel.visible)
-    assert(panel.speaker_text == "Mara")
-    assert(panel.speaker_label.text == "Mara")
-    assert(panel.body_label.text == "There is work to be done.")
-    assert(panel.choices_box.get_child_count() == 2)
+	var selected_choice: Dictionary = {}
+	panel.choice_selected.connect(func(choice: Dictionary): selected_choice = choice)
+	var choices: Array[Dictionary] = [
+		{"id": "start:quest_intro", "label": "Hear the offer", "available": true},
+		{"id": "locked", "label": "Not yet", "available": false, "unavailable_reason": "Requires a key."}
+	]
+	var portrait_image := Image.create(4, 4, false, Image.FORMAT_RGBA8)
+	portrait_image.fill(Color("#b69b67"))
+	var portrait_texture := ImageTexture.create_from_image(portrait_image)
+	panel.present("Mara", "There is work to be done.", choices, portrait_texture)
+	assert(panel.visible)
+	assert(panel.speaker_text == "Mara")
+	assert(panel.speaker_label.text == "Mara")
+	assert(panel.body_label.text == "There is work to be done.")
+	assert(panel.portrait_frame.visible)
+	assert(panel.portrait_texture_rect.texture == portrait_texture)
+	assert(panel.choices_box.get_child_count() == 2)
 
-    var available_button := panel.choices_box.get_child(0) as Button
-    var unavailable_button := panel.choices_box.get_child(1) as Button
-    assert(not available_button.disabled)
-    assert(unavailable_button.disabled)
-    assert(unavailable_button.tooltip_text == "Requires a key.")
-    available_button.emit_signal("pressed")
-    assert(selected_choice == choices[0])
+	var available_button := panel.choices_box.get_child(0) as Button
+	var unavailable_button := panel.choices_box.get_child(1) as Button
+	assert(not available_button.disabled)
+	assert(unavailable_button.disabled)
+	assert(unavailable_button.tooltip_text == "Requires a key.")
+	available_button.emit_signal("pressed")
+	assert(selected_choice == choices[0])
 
-    panel.dismiss()
-    assert(not panel.visible)
-    panel.free()
+	panel.dismiss()
+	assert(not panel.visible)
+	assert(not panel.portrait_frame.visible)
+	panel.free()
+
+
+func _test_character_portrait_renderer() -> void:
+	var source := Node3D.new()
+	source.name = "PortraitTestSource"
+	var mesh := MeshInstance3D.new()
+	mesh.mesh = SphereMesh.new()
+	source.add_child(mesh)
+	root.add_child(source)
+
+	var renderer := CharacterPortraitRenderer.new()
+	root.add_child(renderer)
+	assert(renderer.configure(source), "Portrait renderer accepts a valid 3D model")
+	assert(renderer.get_texture() != null, "Portrait renderer exposes its SubViewport texture")
+	assert(renderer.get_facial_blend_shape_names().is_empty(), "Portrait renderer safely supports models without facial morphs")
+	renderer.set_expression("smile")
+	renderer.set_live(true)
+	assert(renderer.is_live(), "Portrait renderer can enable live dialogue animation")
+	renderer.set_live(false)
+	assert(not renderer.is_live(), "Portrait renderer can pause outside dialogue")
+	renderer.free()
+	source.free()

@@ -10,6 +10,7 @@ const MODEL_FORWARD_YAW_OFFSET: float = PI
 
 var model_root: Node3D
 var animation_player: AnimationPlayer
+var portrait_renderer: CharacterPortraitRenderer
 var loaded_asset_path: String = ""
 var hair_instances: Array[MeshInstance3D] = []
 var garment_attachments: Dictionary = {}
@@ -94,6 +95,11 @@ func configure(glb_path: String) -> bool:
 	model_root.rotation.y += MODEL_FORWARD_YAW_OFFSET
 	add_child(model_root)
 	loaded_asset_path = glb_path
+	if portrait_renderer == null:
+		portrait_renderer = CharacterPortraitRenderer.new()
+		portrait_renderer.name = "PortraitRenderer"
+		add_child(portrait_renderer)
+	portrait_renderer.configure(model_root)
 	animation_player = _find_animation_player(model_root)
 	call_deferred("_play_idle_if_available")
 	call_deferred("_dump_garment_surface_report")
@@ -291,6 +297,7 @@ func apply_equipment_visuals(equipped_item_data: Dictionary) -> void:
 	var shield_prop := "round_shield" if offhand_id == "wooden_shield" else ( "kite_shield" if offhand_id == "bulwark_shield" else "")
 	_set_equipment_prop("offhand", shield_prop, "WeaponL")
 	_set_equipment_prop("helmet", _helmet_prop_id(helmet_id), "Head")
+	refresh_portrait()
 
 
 func _garment_asset_id(value: String) -> String:
@@ -455,6 +462,7 @@ func apply_player_profile(profile: Dictionary) -> void:
 			float(profile.get("male_anatomy_length_scale", 1.0)),
 			float(profile.get("male_anatomy_girth_scale", 1.0))
 		)
+	refresh_portrait()
 
 ## Apply independent, measured-range size multipliers to the dedicated anatomy rig.
 ## AnatomyRoot is the parent of the shaft chain, so one local scale affects both
@@ -531,6 +539,7 @@ func set_hairstyle(glb_path: String) -> bool:
 		_set_embedded_hair_visible(true)
 		return false
 	_tint_attached_hair(current_hair_colour)
+	refresh_portrait()
 	return true
 
 func clear_hairstyle() -> void:
@@ -539,6 +548,7 @@ func clear_hairstyle() -> void:
 			instance.queue_free()
 	hair_instances.clear()
 	_set_embedded_hair_visible(true)
+	refresh_portrait()
 
 func _remap_hair_skin_to_skeleton(mesh_instance: MeshInstance3D, source_skeleton: Skeleton3D, target_skeleton: Skeleton3D) -> bool:
 	if mesh_instance == null or mesh_instance.skin == null:
@@ -707,6 +717,26 @@ func _tint_attached_hair(colour: Color) -> void:
 			var material := source.duplicate() as StandardMaterial3D if source is StandardMaterial3D else StandardMaterial3D.new()
 			material.albedo_color = Color(colour.r, colour.g, colour.b, material.albedo_color.a)
 			mesh_instance.set_surface_override_material(surface, material)
+
+
+func get_portrait_texture() -> Texture2D:
+	return portrait_renderer.get_texture() if portrait_renderer != null else null
+
+
+func set_portrait_live(enabled: bool) -> void:
+	if portrait_renderer != null:
+		portrait_renderer.set_live(enabled)
+
+
+func set_portrait_expression(expression: String) -> void:
+	if portrait_renderer != null:
+		portrait_renderer.set_expression(expression)
+
+
+func refresh_portrait() -> void:
+	if portrait_renderer != null and model_root != null and is_instance_valid(model_root):
+		portrait_renderer.refresh_source(model_root)
+
 
 func set_moving(is_moving: bool) -> bool:
 	if animation_player == null or not is_instance_valid(animation_player):
@@ -908,3 +938,4 @@ func apply_npc_parameters(params: Dictionary) -> void:
 		hair_tint.to_html(false), hair_surfaces_tinted, str(params.get("hair", "short02"))
 	])
 	_apply_appearance_details(params)
+	refresh_portrait()

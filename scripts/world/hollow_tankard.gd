@@ -17,6 +17,7 @@ const HOLLOWMERE_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settle
 const HOLLOWMERE_TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
 const WORLD_CELL_LOADER_SCRIPT = preload("res://scripts/world/campaign2_world_cell_loader.gd")
 const WORLD_PLAYER_MOVEMENT_CONTROLLER = preload("res://scripts/world/world_player_movement_controller.gd")
+const NPC_INTERACTION_SERVICE = preload("res://scripts/world/campaign_npc_interaction_service.gd")
 const INTERIOR_LAYOUT_REGISTRAR = preload("res://scripts/world/world_interior_layout_registrar.gd")
 const INTERIOR_LAYOUT_PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
 const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
@@ -26,6 +27,7 @@ const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controlle
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
+const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
 const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
 const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
 const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
@@ -1028,15 +1030,44 @@ func _create_dialogue_panel(layer: CanvasLayer) -> void:
 	layer.add_child(dialogue_panel)
 
 
-func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary]) -> void:
+func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary], expression: String = "neutral") -> void:
 	if dialogue_panel == null:
 		return
 	dialogue_open = true
-	dialogue_panel.present(speaker, body, choices)
+	var speaker_actor := _portrait_actor_for_speaker(speaker)
+	dialogue_panel.present(speaker, body, choices, null, speaker_actor, expression)
+
+
+func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
+	if simulation == null:
+		return null
+	var speaker_key := speaker.strip_edges().to_lower()
+	var speaker_id_key := speaker_key.replace(" ", "_").replace("'", "")
+	if speaker_key.is_empty():
+		return null
+	for actor_id_value in actor_by_id.keys():
+		var actor_id := String(actor_id_value)
+		var state := simulation.get_character(actor_id)
+		if state == null:
+			continue
+		var state_name := state.display_name.strip_edges().to_lower()
+		var matches_name := state_name == speaker_key or state_name.begins_with(speaker_key)
+		var matches_id := actor_id.to_lower().contains(speaker_id_key)
+		if not matches_name and not matches_id:
+			continue
+		var actor := actor_by_id.get(actor_id) as Node3D
+		if actor == null:
+			continue
+		var character_model := actor.get_node_or_null("CharacterModel") as AraCharacterActor
+		if character_model != null and character_model.get_portrait_texture() != null:
+			return character_model
+	return null
 
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if _handle_seraphine_choice(choice):
+		return
 	if choice_id.begins_with("start:"):
 		var quest_id := choice_id.trim_prefix("start:")
 		var start_result := simulation.campaign_journal.start_quest(quest_id)
@@ -1090,6 +1121,64 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		response_text += "\n\nA full sparring encounter is not connected to the 3D combat interface yet."
 	_show_dialogue(dialogue_panel.speaker_text, response_text, [{"id": "continue", "label": "Continue", "text": ""}])
 
+func _handle_seraphine_choice(choice: Dictionary) -> bool:
+	var choice_id := String(choice.get("id", ""))
+	if not choice_id.begins_with("seraphine_"):
+		return false
+	if choice_id == "seraphine_leave":
+		_close_dialogue()
+		return true
+	var content := PERSISTENT_DIALOGUE_CONTENT.new()
+	var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
+	var journal := simulation.campaign_journal
+	var context := {
+		"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
+		"goblin_standing": journal.faction_standing("goblin_tribe"),
+		"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
+		"necromancer_standing": journal.faction_standing("necromancer_cult"),
+		"phylactery_returned": bool(simulation.get_meta("phylactery_returned", false)),
+		"has_phylactery_shard": _player_has_item("phylactery_shard"),
+		"wizard_vendetta_active": String(journal.quest_state("wizard_vendetta").get("status", "")) == "active",
+		"has_wizard_corruption_evidence": _player_has_item("wizard_corruption_evidence"),
+		"chancellor_tunnel_discovered": bool(simulation.get_meta("chancellor_tunnel_discovered", false)),
+		"chancellor_tunnel_reported": bool(simulation.get_meta("chancellor_tunnel_reported_to_queen", false))
+	}
+	var response: Dictionary = {}
+	match choice_id:
+		"seraphine_topic_greenskins":
+			response = content.seraphine_topic_response("greenskins", context, relationships)
+		"seraphine_topic_ironbond":
+			response = content.seraphine_topic_response("ironbond", context, relationships)
+		"seraphine_topic_necromancy":
+			response = content.seraphine_topic_response("necromancy", context, relationships)
+		"seraphine_personal_burden":
+			response = content.seraphine_personal_response(relationships)
+		"seraphine_request_favour":
+			response = content.seraphine_manor_request_response()
+		"seraphine_manor_accept":
+			simulation.set_meta("silverhart_manor_granted", true)
+			response = content.seraphine_manor_granted_response()
+		"seraphine_wizard_evidence":
+			response = content.seraphine_wizard_evidence_response()
+		"seraphine_report_chancellor_tunnel":
+			response = content.seraphine_chancellor_tunnel_response()
+			if bool(response.get("ok", false)):
+				simulation.set_meta("chancellor_tunnel_reported_to_queen", true)
+				journal.adjust_faction_standing("silverhart_kingdom", 15, "reported_chancellor_tunnel_to_queen")
+				journal.adjust_faction_standing("thieves_guild", -20, "reported_chancellor_tunnel_to_queen")
+		_:
+			return false
+	if not bool(response.get("ok", false)):
+		_show_dialogue("Queen Seraphine Corrin", "That matter cannot be discussed just now.", [{"id":"continue","label":"Understood","kind":"leave"}])
+		return true
+	_show_dialogue(
+		String(response.get("speaker", "Queen Seraphine Corrin")),
+		String(response.get("text", "")),
+		[{"id":"continue","label":String(response.get("response_label", "Continue")),"kind":"leave"}]
+	)
+	return true
+
+
 func _close_dialogue() -> void:
 	dialogue_open = false
 	if dialogue_panel != null:
@@ -1138,12 +1227,16 @@ func _interact_with_character(character_id: String) -> void:
 		return
 	if character_id == "missing_child_tessa":
 		if _reyna_objective_done("child_rescued"):
-			_show_dialogue("Tessa", "Reyna said you were the one who got me out. I don't think I'll ever forget that.", [{"id":"continue","label":"You're safe now","text":""}])
+			_show_dialogue("Tessa", "Reyna said you were the one who got me out. I don't think I'll ever forget that.", [{"id":"continue","label":"You're safe now","text":""}], "smile")
 		else:
-			_show_dialogue("Tessa", "Please... it's outside. I can hear it moving around. Reyna said to stay quiet.", [{"id":"reyna_rescue_child","label":"Come with me. We'll get you home.","text":""}])
+			_show_dialogue("Tessa", "Please... it's outside. I can hear it moving around. Reyna said to stay quiet.", [{"id":"reyna_rescue_child","label":"Come with me. We'll get you home.","text":""}], "afraid")
 		return
 	if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(character_id):
 		_show_companion_dialogue(character_id)
+		return
+	var streamed_actor := _find_streamed_npc_actor(character_id)
+	if streamed_actor != null and not actor_by_id.has(character_id):
+		_show_streamed_npc_dialogue(streamed_actor, target_state)
 		return
 	if character_id == "old_mac":
 		var farm_conversation := FARM_WOLVES_QUEST_SCRIPT.greeting(simulation.campaign_journal, _farm_wolves_remaining())
@@ -1166,29 +1259,18 @@ func _refresh_nearby_interactions() -> void:
 	if dialogue_open or encounter_active or simulation.is_in_combat:
 		nearby_interaction_panel.visible = false
 		return
-	var active_state := simulation.get_character(active_character_id)
-	if active_state == null:
-		nearby_interaction_panel.visible = false
-		return
-	var nearby: Array[Dictionary] = []
-	for actor_id_value in actor_by_id.keys():
-		var actor_id := String(actor_id_value)
-		if actor_id == active_character_id or simulation.is_party_member(actor_id):
-			continue
-		var state := simulation.get_character(actor_id)
-		if state == null or not state.can_act():
-			continue
-		var hostile := state.side == "enemy"
-		if hostile and actor_id != FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
-			continue
-		var distance := HexGrid.distance(active_state.axial, state.axial)
-		if distance <= 2:
-			nearby.append({"id":actor_id,"name":state.display_name,"distance":distance,"hostile":hostile})
-	nearby.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		if int(a.distance) == int(b.distance):
-			return String(a.name) < String(b.name)
-		return int(a.distance) < int(b.distance)
+	var nearby: Array[Dictionary] = NPC_INTERACTION_SERVICE.nearby_entries(
+		simulation,
+		active_character_id,
+		actor_by_id,
+		get_tree(),
+		2
 	)
+	# Hostile campaign actors are handled by their encounter-specific systems;
+	# the existing dire wolf is the one local exception with a direct engage UI.
+	for index in range(nearby.size() - 1, -1, -1):
+		if bool(nearby[index].get("hostile", false)) and String(nearby[index].get("id", "")) != FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
+			nearby.remove_at(index)
 	for child in nearby_interaction_box.get_children():
 		child.free()
 	if nearby.is_empty():
@@ -1208,8 +1290,55 @@ func _refresh_nearby_interactions() -> void:
 		nearby_interaction_box.add_child(talk_button)
 	nearby_interaction_panel.visible = true
 
+
 func _on_nearby_interaction_pressed(character_id: String) -> void:
 	_interact_with_character(character_id)
+
+
+func _find_streamed_npc_actor(character_id: String) -> Node3D:
+	return NPC_INTERACTION_SERVICE.actor_for(get_tree(), actor_by_id, character_id)
+
+
+func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) -> void:
+	if actor == null or target_state == null:
+		return
+	var dialogue_id := String(actor.get_meta("dialogue_id", ""))
+	if dialogue_id == "silverhart_queen":
+		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
+		var content := PERSISTENT_DIALOGUE_CONTENT.new()
+		var journal := simulation.campaign_journal
+		var context := {
+			"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
+			"goblin_standing": journal.faction_standing("goblin_tribe"),
+			"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
+			"necromancer_standing": journal.faction_standing("necromancer_cult")
+		}
+		var conversation: Dictionary = content.seraphine_greeting(context, relationships)
+		if bool(conversation.get("ok", false)):
+			var supported_choices: Array[Dictionary] = []
+			for choice_value in conversation.get("choices", []):
+				var choice: Dictionary = choice_value
+				if String(choice.get("id", "")) in ["seraphine_topic_greenskins", "seraphine_topic_ironbond", "seraphine_topic_necromancy", "seraphine_personal_burden", "seraphine_leave"]:
+					supported_choices.append(choice)
+			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), supported_choices)
+		else:
+			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "The Queen has no audience for you.")), conversation.get("choices", [{"id":"continue","label":"Leave","kind":"leave"}]))
+		return
+	var title := String(actor.get_meta("title", ""))
+	var body := "They regard you with measured curiosity, but have little to say just now."
+	if not title.is_empty():
+		body = "%s acknowledges you. Their duties leave little time for conversation." % title
+	_show_dialogue(target_state.display_name, body, [{"id":"continue","label":"Continue","kind":"leave"}])
+
+
+func _player_has_item(item_id: String) -> bool:
+	var player := simulation.get_character(simulation.player_character_id)
+	if player == null:
+		return false
+	for item in player.inventory:
+		if String(item.get("id", "")) == item_id:
+			return true
+	return false
 
 
 func _show_companion_dialogue(character_id: String) -> void:

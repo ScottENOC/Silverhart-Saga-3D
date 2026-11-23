@@ -49,7 +49,30 @@ func _initialize() -> void:
 				_fail("Male player body is missing the flaccid/erect Anatomy_Erect morph target.")
 				return
 		instance.free()
-	print("PLAYER_BODY_ASSET_TEST: PASS (female and male body scenes load with Ara skeletons)")
+
+		var portrait_actor := AraCharacterActor.new()
+		root.add_child(portrait_actor)
+		if not portrait_actor.configure(asset_path):
+			portrait_actor.free()
+			_fail("Portrait-enabled Ara actor could not load: " + asset_path)
+			return
+		if portrait_actor.get_portrait_texture() == null:
+			portrait_actor.free()
+			_fail("Ara actor did not expose a portrait texture: " + asset_path)
+			return
+		if portrait_actor.portrait_renderer.get_facial_blend_shape_names().is_empty():
+			portrait_actor.free()
+			_fail("Portrait renderer did not discover facial blend shapes: " + asset_path)
+			return
+		portrait_actor.set_portrait_expression("smile")
+		portrait_actor.set_portrait_live(true)
+		if not portrait_actor.portrait_renderer.is_live():
+			portrait_actor.free()
+			_fail("Portrait renderer did not enter live dialogue mode: " + asset_path)
+			return
+		portrait_actor.set_portrait_live(false)
+		portrait_actor.free()
+	print("PLAYER_BODY_ASSET_TEST: PASS (female and male Ara bodies load with skeletons and portrait rendering)")
 	quit(0)
 
 
