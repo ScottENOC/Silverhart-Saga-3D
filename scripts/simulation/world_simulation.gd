@@ -37,9 +37,13 @@ signal multistory_transition_unlocked(location_id: String, quest_id: String, tra
 
 func _init() -> void:
     clock.ticked.connect(_on_clock_ticked)
+    clock.ticked.connect(_on_faction_agenda_clock_tick)
     turn_scheduler.turn_started.connect(_on_combat_turn_started)
     campaign_journal.journal_event.connect(_on_campaign_journal_event)
     building_registry.door_state_changed.connect(_on_door_state_changed)
+
+func _on_faction_agenda_clock_tick(_tick_index: int, _world_seconds: float) -> void:
+    campaign_journal.advance_faction_agendas(WorldClock.SIMULATION_STEP_SECONDS)
 
 func _on_door_state_changed(door_id: String) -> void:
     sync_door_map_state(door_id)
