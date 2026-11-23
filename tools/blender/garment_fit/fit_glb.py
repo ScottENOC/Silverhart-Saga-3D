@@ -15,6 +15,9 @@ import json
 import os
 import sys
 
+# Blender does not consistently add the --python script directory to sys.path.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import bpy
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
