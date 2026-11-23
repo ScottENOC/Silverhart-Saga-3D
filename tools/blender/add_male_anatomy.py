@@ -12,6 +12,7 @@ import argparse
 import os
 import sys
 import math
+import random
 
 import bpy
 from mathutils import Vector
@@ -25,6 +26,14 @@ def arguments():
     parser.add_argument("--output", required=True)
     parser.add_argument("--adult", action="store_true")
     parser.add_argument("--profile-name", default="adult_male")
+    parser.add_argument("--length-scale", type=float, default=1.0,
+                        help="Erect length multiplier relative to the population mean.")
+    parser.add_argument("--girth-scale", type=float, default=1.0,
+                        help="Erect circumference multiplier relative to the population mean.")
+    parser.add_argument("--variation-seed", default=None,
+                        help="Stable per-character seed for normally distributed NPC variation.")
+    parser.add_argument("--variation-strength", type=float, default=1.0,
+                        help="Multiplier on NPC population standard deviations (0 disables variation).")
     parser.add_argument(
         "--anatomy-state", choices=("erect", "flaccid"), default="erect",
         help="Initial morph weight only: flaccid = 0, erect = 1. Both forms are always in the file (Anatomy_Erect morph target).",
@@ -599,7 +608,8 @@ def create_symmetric_phallus(skin, material, armature, pelvis_bone,
     H = body_height
     k = H / 1.676
     length = H * 0.074 * T["erect_length_scale"]
-    girth = k * T["erect_length_scale"] * T["erect_girth_scale"]
+    # Circumference is independently scaled: do not couple it to length.
+    girth = k * T["erect_girth_scale"]
     axis = Vector((0.0, -0.985, -0.17)).normalized()
     base = Vector((centre_x, anchor_y + H * 0.016, anatomy_z + H * 0.004))
     x_axis = Vector((1.0, 0.0, 0.0))
@@ -934,6 +944,69 @@ def _catmull(points, t):
     p3 = vs[min(i + 2, len(vs) - 1)]
     return 0.5 * ((2 * p1) + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u
                   + (-p0 + 3 * p1 - 3 * p2 + p3) * u ** 3)
+
+
+# Veale et al., BJU International 2015;115:978 systematic review.
+# Length and circumference are independent draws unless a correlation is
+# explicitly selected; the review does not establish an individual-level link.
+SIZE = {
+    "reference_height_m": 1.676,
+    "erect_length_cm": 13.12,
+    "erect_length_sd_cm": 1.66,
+    "erect_circumference_cm": 11.66,
+    "erect_circumference_sd_cm": 1.10,
+    "mesh_length_fraction": 0.074,
+    "circumference_measured_at_t": 0.50,
+    "variation_clip_sd": 2.0,
+    "length_girth_correlation": 0.0,
+}
+
+
+def resolve_penis_size(length_scale, girth_scale, seed, strength, body_height):
+    """Resolve mean/custom size or a reproducible, truncated normal NPC draw."""
+    if length_scale <= 0.0 or girth_scale <= 0.0:
+        raise SystemExit("--length-scale and --girth-scale must be positive")
+    if strength < 0.0:
+        raise SystemExit("--variation-strength cannot be negative")
+    S = SIZE
+    z_len = z_circ = 0.0
+    if seed is not None and strength > 0.0:
+        rng = random.Random(str(seed))
+        clip, rho = S["variation_clip_sd"], S["length_girth_correlation"]
+        z_len = max(-clip, min(clip, rng.gauss(0.0, 1.0)))
+        z_circ = max(-clip, min(clip,
+            rho * z_len + math.sqrt(max(0.0, 1.0 - rho * rho)) * rng.gauss(0.0, 1.0)))
+    length_cm = length_scale * (S["erect_length_cm"] + z_len * strength * S["erect_length_sd_cm"])
+    circumference_cm = girth_scale * (
+        S["erect_circumference_cm"] + z_circ * strength * S["erect_circumference_sd_cm"])
+    # Keep custom player values and authored overrides within +/-2 SD of the
+    # measured adult population distribution.
+    length_min = S["erect_length_cm"] - S["variation_clip_sd"] * S["erect_length_sd_cm"]
+    length_max = S["erect_length_cm"] + S["variation_clip_sd"] * S["erect_length_sd_cm"]
+    girth_min = S["erect_circumference_cm"] - S["variation_clip_sd"] * S["erect_circumference_sd_cm"]
+    girth_max = S["erect_circumference_cm"] + S["variation_clip_sd"] * S["erect_circumference_sd_cm"]
+    if not (length_min <= length_cm <= length_max):
+        raise SystemExit(f"Erect length must be within {length_min:.2f}–{length_max:.2f} cm at reference height")
+    if not (girth_min <= circumference_cm <= girth_max):
+        raise SystemExit(f"Erect circumference must be within {girth_min:.2f}–{girth_max:.2f} cm at reference height")
+    base_length_cm = S["mesh_length_fraction"] * S["reference_height_m"] * 100.0
+    base_circumference_cm = 2.0 * math.pi * _catmull(
+        PHALLUS["profile_mm"], S["circumference_measured_at_t"]) / 10.0
+    MALE_TRANSITION["erect_length_scale"] = length_cm / base_length_cm
+    MALE_TRANSITION["erect_girth_scale"] = circumference_cm / base_circumference_cm
+    height_scale = body_height / S["reference_height_m"]
+    result = {
+        "length_cm": length_cm * height_scale,
+        "circumference_cm": circumference_cm * height_scale,
+        "z_length": z_len,
+        "z_girth": z_circ,
+    }
+    print(f"Male anatomy size: {result['length_cm']:.2f} cm erect length; "
+          f"{result['circumference_cm']:.2f} cm erect circumference "
+          f"(reference-height values {length_cm:.2f}/{circumference_cm:.2f} cm)")
+    if seed is not None:
+        print(f"  deterministic seed={seed!r}; z_length={z_len:+.2f}; z_circumference={z_circ:+.2f}")
+    return result
 
 
 def _lattice(i, j):
@@ -1443,6 +1516,8 @@ def main():
 
     # Fail early if the front pelvis surface cannot be sampled.
     pelvic_surface_y = front_surface_y(surface_tree, centre_x, anatomy_z)
+    size = resolve_penis_size(args.length_scale, args.girth_scale, args.variation_seed,
+                              args.variation_strength, height)
     # The accepted erect surface is the master mesh. The flaccid pose is derived from
     # it (same topology), and the two are linked by one morph target.
     PHALLUS["style"] = args.penis_style
@@ -1481,6 +1556,10 @@ def main():
     # full-rig skin rather than a separate pelvis-only skeleton palette.
     first_anatomy_vertex = len(skin.data.vertices)
     skin = merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone)
+    skin["penis_erect_length_cm"] = size["length_cm"]
+    skin["penis_erect_circumference_cm"] = size["circumference_cm"]
+    skin["penis_size_seed"] = "" if args.variation_seed is None else str(args.variation_seed)
+    skin["penis_size_reference"] = "Veale et al. 2015 pooled adult mean and SD"
     if len(skin.data.vertices) - first_anatomy_vertex != len(erect_world):
         raise RuntimeError("Anatomy vertex count changed while joining; the erect morph target would be misaligned")
     add_erect_morph(skin, first_anatomy_vertex, erect_world, args.anatomy_state, args.author_transition_clip)
