@@ -194,8 +194,7 @@ static func compute_variant(
 static func supports_initial_cast(spell_id: String, variant: Dictionary) -> bool:
     if not bool(variant.get("ok", false)):
         return false
-    const IMPLEMENTED_IDS := OFFICIAL_SPELL_IDS
-    if not IMPLEMENTED_IDS.has(spell_id):
+    if not OFFICIAL_SPELL_IDS.has(spell_id):
         return false
     if int(variant.get("extra_targets", 0)) > 0:
         return false
