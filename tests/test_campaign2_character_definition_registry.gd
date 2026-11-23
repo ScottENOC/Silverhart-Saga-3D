@@ -13,7 +13,10 @@ func _initialize() -> void:
 	var mirabel := registry.get_character("mirabel_quill")
 	var nessa := registry.get_character("elder_nessa_wren")
 	var fenn := registry.get_character("fenn_oakheart")
-	if petra.is_empty() or quartermaster.is_empty() or mirabel.is_empty() or nessa.is_empty() or fenn.is_empty():
+	var goblin_chief := registry.get_character("chief_skarnub")
+	var goblin_lieutenant := registry.get_character("nix_sharpear")
+	var aldric := registry.get_character("ser_aldric_thorne")
+	if petra.is_empty() or quartermaster.is_empty() or mirabel.is_empty() or nessa.is_empty() or fenn.is_empty() or goblin_chief.is_empty() or goblin_lieutenant.is_empty() or aldric.is_empty():
 		push_error("Millbrook character-owned profiles must resolve independently of settlement placements.")
 		quit(1)
 		return
@@ -38,6 +41,15 @@ func _initialize() -> void:
 	var fenn_appearance: Dictionary = fenn.get("appearance", {})
 	if String(nessa_appearance.get("hair_style", "")) != "short03" or String(fenn_appearance.get("hair_style", "")) != "short02":
 		push_error("Elder Nessa and Fenn must retain their authored Ara hairstyles.")
+		quit(1)
+		return
+	var goblin_appearance: Dictionary = goblin_chief.get("appearance", {})
+	if String(goblin_chief.get("dialogue_id", "")) != "chief_skarnub" or float(goblin_appearance.get("height_scale", 1.0)) >= 1.0 or float(goblin_appearance.get("body_scale", 1.0)) >= 1.0:
+		push_error("Chief Skarnub must retain his identity and visibly smaller temporary Ara appearance.")
+		quit(1)
+		return
+	if not bool(aldric.get("tied_up", false)) or String(aldric.get("dialogue_id", "")) != "ser_aldric_captive":
+		push_error("Ser Aldric must retain his captive state and rescue dialogue identity.")
 		quit(1)
 		return
 	print("Campaign 2 character definition registry tests passed.")
