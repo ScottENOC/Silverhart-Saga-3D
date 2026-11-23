@@ -230,7 +230,7 @@ func _configure_location_simulation() -> void:
 func _on_simulation_action_committed(event: SimulationEvent) -> void:
 	if event == null:
 		return
-	if event.event_type == "summon_expired":
+	if event.event_type in ["summon_expired", "animal_companion_died"]:
 		var expired_actor := actor_by_id.get(event.actor_id) as Node3D
 		if is_instance_valid(expired_actor):
 			expired_actor.queue_free()
@@ -287,7 +287,7 @@ func _on_simulation_action_committed(event: SimulationEvent) -> void:
 	)
 
 func _ensure_summoned_animal_actor(state: CharacterState) -> void:
-	if state == null or (not state.is_summoned and not state.is_animal_companion) or actor_by_id.has(state.id):
+	if state == null or not state.alive or (not state.is_summoned and not state.is_animal_companion) or actor_by_id.has(state.id):
 		return
 	var kind := state.creature_kind.to_lower()
 	var model_path := ""
@@ -1090,8 +1090,15 @@ func _apply_save_data(data: Dictionary) -> void:
 	if saved_spell_terrain is Array:
 		simulation.restore_spell_terrain_effects(saved_spell_terrain)
 	for restored_state in restored_states:
-		if restored_state != null and (restored_state.is_summoned or restored_state.is_animal_companion):
+		if restored_state == null or (not restored_state.is_summoned and not restored_state.is_animal_companion):
+			continue
+		if restored_state.alive:
 			_ensure_summoned_animal_actor(restored_state)
+		else:
+			var dead_actor := actor_by_id.get(restored_state.id) as Node3D
+			if is_instance_valid(dead_actor):
+				dead_actor.queue_free()
+			actor_by_id.erase(restored_state.id)
 	var appearance_diffs: Variant = data.get("appearance_diffs", {})
 	if appearance_diffs is Dictionary:
 		for actor_id_variant in appearance_diffs.keys():
