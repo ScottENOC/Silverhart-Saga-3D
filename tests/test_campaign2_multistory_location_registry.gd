@@ -6,7 +6,26 @@ var failures: int = 0
 func _initialize() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Source-authored multi-story locations must validate")
-	_check(registry.location_ids() == ["kragmoor", "silthandriel", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_thieves_guild"], "Kragmoor and all source-authored Silverhart interiors must be registered")
+	var invalid_row_shift_registry = REGISTRY.new()
+	var invalid_row_shift_result: Dictionary = invalid_row_shift_registry.configure({
+		"schema_version": 1,
+		"coordinate_system": "campaign2_local_axial_qr",
+		"locations": [{
+			"id": "invalid_row_shift_test",
+			"anchor": {"q": 0, "r": 0},
+			"floors": [{
+				"floor": 0,
+				"rooms": [{"center": {"q": 0, "r": 0}, "half_width": 2, "half_height": 2, "row_shift_mode": "unknown"}],
+				"corridors": [],
+				"tile_objects": [],
+				"actors": [],
+				"creatures": []
+			}],
+			"transitions": []
+		}]
+	})
+	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
+	_check(registry.location_ids() == ["emberlode_mine", "kragmoor", "silthandriel", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_thieves_guild"], "Emberlode Mine, Kragmoor and all source-authored Silverhart interiors must be registered")
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
 	_check(palace.get("floors", []).size() == 2, "Silverhart Grand Hall must preserve its two source floors")
@@ -53,6 +72,21 @@ func _initialize() -> void:
 	_check(String(guild_floor.get("rooms", [])[1].get("hidden_by_secret", "")) == "guild_hidden_vault_door", "Vault room must remain hidden behind its own secret door")
 	var guild_chest := _record_by_id(guild_floor.get("tile_objects", []), "guild_vault_chest")
 	_check(guild_chest.get("items", []) == ["gem_blue", "gem_red", "silvertongue_ring"], "Hidden vault must retain its three source treasure items")
+
+	var emberlode_mine: Dictionary = registry.get_definition("emberlode_mine")
+	_check(int(emberlode_mine.get("anchor", {}).get("q", 0)) == -252 and int(emberlode_mine.get("anchor", {}).get("r", 0)) == 16, "Emberlode Mine anchor must match buildEmberlode mineCenter")
+	_check(emberlode_mine.get("floors", []).size() == 3, "Emberlode Mine must retain its surface entrance and two underground levels")
+	var mine_surface := registry.get_floor_definition("emberlode_mine", 0)
+	_check(String(mine_surface.get("rooms", [])[0].get("row_shift_mode", "")) == "source_building", "Emberlode surface mine must retain the original carveBuilding row shift")
+	_check(_has_record(mine_surface.get("tile_objects", []), "emberlode_ledger"), "Emberlode surface must retain its source ledger")
+	_check(_has_record(mine_surface.get("tile_objects", []), "mine_stair_down"), "Emberlode surface must retain its source stair to the Working Vein")
+	var working_vein := registry.get_floor_definition("emberlode_mine", -1)
+	_check(_has_record(working_vein.get("tile_objects", []), "working_vein_gold"), "Working Vein must retain the source gold ore node")
+	_check(_has_record(working_vein.get("tile_objects", []), "old_seam_stair_down"), "Working Vein must retain its stair to the Old Seam")
+	var old_seam := registry.get_floor_definition("emberlode_mine", -2)
+	_check(_has_record(old_seam.get("tile_objects", []), "old_seam_blue_gem"), "Old Seam must retain the source blue-gem ore node")
+	_check(old_seam.get("creatures", []).size() == 2, "Old Seam must preserve both source spider placements as campaign-owned spawn data")
+	_check(emberlode_mine.get("transitions", []).size() == 4, "Emberlode Mine must retain reciprocal transitions between all three levels")
 
 	var elven_capital: Dictionary = registry.get_definition("silthandriel")
 	_check(int(elven_capital.get("anchor", {}).get("q", 0)) == -252 and int(elven_capital.get("anchor", {}).get("r", 0)) == 934, "Sil'thandriel anchor must match buildElvenCapital")
