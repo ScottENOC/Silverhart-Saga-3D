@@ -132,7 +132,7 @@ func has_recorded_event(character_id: String, event_key: String) -> bool:
 	var state := ensure(character_id)
 	if state.is_empty():
 		return false
-	return String(event_key) in state.get("known_event_keys", [])
+	return event_key in state.get("known_event_keys", [])
 
 
 func is_persistent_character(character_id: String) -> bool:
