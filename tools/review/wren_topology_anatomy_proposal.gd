@@ -966,7 +966,8 @@ func _add_edge(adjacency: Array[PackedInt32Array], from_vertex: int, to_vertex: 
 
 func _requires_front_surface_normal(region_id: String) -> bool:
     return (
-        region_id == "pubic_region"
+        region_id.begins_with("nipple_")
+        or region_id == "pubic_region"
         or region_id.begins_with("pelvic_")
         or region_id in ["face_front", "forehead", "eye_left", "eye_right", "nose", "mouth", "cheek_left", "cheek_right", "chin", "jaw_left", "jaw_right"]
     )
