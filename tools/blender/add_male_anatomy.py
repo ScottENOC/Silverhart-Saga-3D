@@ -46,13 +46,13 @@ def arguments():
     )
     parser.add_argument(
         "--length-scale", type=float, default=1.0,
-        help="Erect length relative to the population mean (1.0 = the mean, 13.12 cm at the 1.676 m reference "
-             "height; larger bodies scale up with height). Independent of --girth-scale.",
+        help="Erect length relative to the population mean (1.0 = 13.12 cm). Absolute measurement, "
+             "independent of character height and of --girth-scale.",
     )
     parser.add_argument(
         "--girth-scale", type=float, default=1.0,
-        help="Erect circumference relative to the population mean (1.0 = 11.66 cm at the reference height). "
-             "Independent of --length-scale.",
+        help="Erect circumference relative to the population mean (1.0 = 11.66 cm). "
+             "Absolute measurement, independent of character height and of --length-scale.",
     )
     parser.add_argument(
         "--variation-seed", default=None,
@@ -465,7 +465,7 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
         base_depth_offset = body_height * 0.003
     else:
         target_axis = Vector((0.0, -0.985, -0.17)).normalized()
-        target_length = body_height * 0.074 * MALE_TRANSITION["erect_length_scale"]
+        target_length = SIZE["reference_height_m"] * SIZE["mesh_length_fraction"] * MALE_TRANSITION["erect_length_scale"]
         base_depth_offset = body_height * 0.016
     radial_factor = 1.16
     rotation = source_axis.rotation_difference(target_axis)
