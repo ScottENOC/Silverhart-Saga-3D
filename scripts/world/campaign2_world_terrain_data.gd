@@ -215,15 +215,15 @@ func terrain_for_hex(hex: Vector2i) -> String:
 		return "path"
 	if settlement_building_cells.has(_hex_key(hex)):
 		return "authored"
+	# Strategic roads are painted after the underlying terrain in the source
+	# map. Keep crossings traversable even where a road overlaps an authored
+	# settlement's natural stream/biome provider.
+	if road_cells.has(_hex_key(hex)):
+		return "path"
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
 		return AUTHORED_SETTLEMENT_TERRAIN_PROVIDER.terrain_id_at(authored_settlement.local_hex, terrain_definition)
-	# The authored strategic road manifest is painted over the underlying
-	# regional watercourse, matching the source map's road-over-terrain order.
-	# This makes the explicit road/stream intersections traversable crossings.
-	if road_cells.has(_hex_key(hex)):
-		return "path"
 	if _is_local_stream(hex) or _is_strategic_river(hex):
 		return "water"
 	var strategic_cell := MainCampaignWorldMapData.world_cell_from_local_hex(hex)
