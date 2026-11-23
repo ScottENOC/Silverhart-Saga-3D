@@ -105,6 +105,7 @@ func _initialize() -> void:
 		_check(cove_map != null and not cove_map.cells.is_empty(), "Every Thieves' Cove level must contain a logical map")
 		_check(cove_map.is_walkable(Vector2i(-274, 40)), "Every Thieves' Cove level must preserve its source stair/junction anchor")
 	var cove_surface: Dictionary = FLOOR_BUILDER.build_floor_map(cove_definition, 0, cove_state)
+	_check(_has_object(cove_surface.get("tile_objects", []), "sunken_cave_front_door"), "Cove entrance must retain its source west-facing door")
 	_check(_has_object(cove_surface.get("tile_objects", []), "transition_0_-1"), "Cove entrance must connect down to the den")
 	var cove_den: Dictionary = FLOOR_BUILDER.build_floor_map(cove_definition, -1, cove_state)
 	_check(_has_object(cove_den.get("tile_objects", []), "transition_-1_0"), "Den must connect back to the entrance")
