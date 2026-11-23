@@ -154,13 +154,99 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -
 		push_warning("Settlement placement references missing character definition: %s" % character_id)
 		return
 	character["id"] = character_id
+
+	# Streamed NPCs are not disposable scenery. Their simulation state outlives
+	# the chunk presentation, so movement, faction state, relationships and
+	# save/load all use the same CharacterState registry as the player.
+	var state: CharacterState = simulation.get_character(character_id) if simulation != null else null
+	if simulation != null and state == null:
+		state = _create_streamed_npc_state(character, character_id, world_hex)
+		if state == null:
+			return
+		if simulation.characters.has(character_id):
+			state = simulation.get_character(character_id)
+		else:
+			simulation.register_character(state)
+			state = simulation.get_character(character_id)
+	if simulation != null and state == null:
+		push_warning("Could not register streamed campaign NPC: %s" % character_id)
+		return
+
+	var actor_hex := state.axial if state != null else world_hex
 	var actor := CHARACTER_ACTOR_FACTORY.create_settlement_actor(
 		character,
-		HexGrid.axial_to_world(world_hex, HEX_RADIUS)
+		HexGrid.axial_to_world(actor_hex, HEX_RADIUS)
 	)
 	if actor == null:
 		return
+	actor.set_meta("campaign2_npc_id", character_id)
+	actor.set_meta("dialogue_id", String(character.get("dialogue_id", "")))
+	actor.set_meta("faction_id", String(character.get("faction_id", "")))
+	actor.set_meta("side", String(character.get("side", "neutral")))
+	actor.set_meta("title", String(character.get("title", "")))
+	actor.set_meta("class_levels", character.get("class_levels", []))
+	actor.set_meta("skill_picks", character.get("skill_picks", []))
+	actor.set_meta("quest_hooks", character.get("quest_hooks", []))
+	actor.add_to_group("campaign2_npc")
 	parent.add_child(actor)
+
+
+func _create_streamed_npc_state(character: Dictionary, character_id: String, world_hex: Vector2i) -> CharacterState:
+	var progression := {
+		"race": String(character.get("race", "human")),
+		"class_levels": character.get("class_levels", []),
+		"skill_picks": character.get("skill_picks", [])
+	}
+	var equipment: Array = character.get("equipment", [])
+	var profile := {
+		"progression": progression,
+		"extra_inventory": equipment,
+		"party": {"starts_in_party": false}
+	}
+	var spawn_hex := _resolve_npc_spawn_hex(world_hex, character_id)
+	if spawn_hex == Vector2i(2147483647, 2147483647):
+		push_warning("No free simulation hex is available for streamed NPC %s." % character_id)
+		return null
+	var state := CampaignCharacterFactory.create_npc_state(
+		character_id,
+		String(character.get("name", character_id)),
+		spawn_hex,
+		profile,
+		{}
+	)
+	if state == null:
+		return null
+	state.side = String(character.get("side", "neutral"))
+	state.race = String(character.get("race", "human"))
+	state.combat_dormant = state.side == "neutral"
+	state.progression_mode = "npc"
+	state.gender_presentation = String(character.get("appearance", {}).get("gender_presentation", "Masculine" if String(character.get("gender", "male")) == "male" else "Feminine"))
+	state.pronouns = String(character.get("appearance", {}).get("pronouns", "they/them"))
+	state.tags.append("campaign2_streamed_npc")
+	state.tags.append("faction:" + String(character.get("faction_id", "")))
+	return state
+
+
+func _resolve_npc_spawn_hex(origin: Vector2i, character_id: String) -> Vector2i:
+	if simulation == null:
+		return origin
+	if not simulation.occupied_hexes.has(origin) or String(simulation.occupied_hexes.get(origin, "")) == character_id:
+		return origin
+	for radius in range(1, 4):
+		var candidates: Array[Vector2i] = [origin]
+		var frontier: Array[Vector2i] = [origin]
+		for _step in range(radius):
+			var next_frontier: Array[Vector2i] = []
+			for hex in frontier:
+				for neighbour in HexGrid.neighbors(hex):
+					if not candidates.has(neighbour):
+						candidates.append(neighbour)
+						next_frontier.append(neighbour)
+			frontier = next_frontier
+		for candidate in candidates:
+			if not simulation.occupied_hexes.has(candidate):
+				return candidate
+	return Vector2i(2147483647, 2147483647)
 
 func _contains_chunk(hex: Vector2i, chunk_min: Vector2i, chunk_size: int) -> bool:
 	return hex.x >= chunk_min.x and hex.x < chunk_min.x + chunk_size and hex.y >= chunk_min.y and hex.y < chunk_min.y + chunk_size
