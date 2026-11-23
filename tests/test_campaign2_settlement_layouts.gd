@@ -8,7 +8,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 	var entries: Array = terrain.settlement_layouts
-	_check(entries.size() == 6, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale, Silverhart and Old Mac's Farmstead")
+	_check(entries.size() == 7, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale, Silverhart and Old Mac's Farmstead")
 	var millbrook_entry := _entry_by_id(entries, "millbrook")
 	_check(not millbrook_entry.is_empty(), "Canonical Millbrook definition must be available")
 	if millbrook_entry.is_empty():
@@ -59,6 +59,7 @@ func _initialize() -> void:
 	_check(terrain.settlement_path_cells.has("5,-366"), "Canonical path occupancy must be indexed")
 
 	_test_emberlode(terrain, entries)
+	_test_emberwood_grove(terrain, entries)
 	_test_reddale(terrain, entries)
 	_test_silverhart(terrain, entries)
 	_test_old_mac_farmstead(terrain, entries)
@@ -78,6 +79,29 @@ func _initialize() -> void:
 	print("Canonical Campaign 2 settlement layout tests passed.")
 	quit(0)
 
+
+func _test_emberwood_grove(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "emberwood_grove")
+	_check(not entry.is_empty(), "Canonical Emberwood Grove site must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var placements: Array = definition.get("placements", {}).get("characters", [])
+	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Emberwood Grove actors must use the shared chunk presenter")
+	_check(definition.get("layout", {}).get("buildings", []).is_empty(), "The grove must not gain fabricated settlement buildings")
+	_check(placements.size() == 2, "Emberwood Grove must contain Elder Nessa and Fenn only")
+	var ids: Dictionary = {}
+	for placement in placements:
+		ids[String(placement.get("character_id", ""))] = placement
+	_check(ids.has("elder_nessa_wren") and ids.has("fenn_oakheart"), "Both source-authored grove residents must be placed")
+	if ids.has("elder_nessa_wren"):
+		_assert_axial(ids["elder_nessa_wren"].get("position", {}), Vector2i(-266, 11), "Elder Nessa source position")
+	if ids.has("fenn_oakheart"):
+		_assert_axial(ids["fenn_oakheart"].get("position", {}), Vector2i(-265, 12), "Fenn source position")
+	var registry = CHARACTER_REGISTRY.new()
+	_check(not registry.get_character("elder_nessa_wren").is_empty(), "Elder Nessa's Ara appearance profile must resolve")
+	_check(not registry.get_character("fenn_oakheart").is_empty(), "Fenn's Ara appearance profile must resolve")
+	_check(terrain.terrain_for_hex(Vector2i(-266, 10)) == "grass", "The grove clearing terrain must remain unchanged")
 
 func _test_emberlode(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
 	var entry := _entry_by_id(entries, "emberlode")
