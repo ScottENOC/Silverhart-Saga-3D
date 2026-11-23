@@ -60,6 +60,7 @@ func _initialize() -> void:
 	_test_strategic_road_elevation(terrain)
 	_test_water_surface_and_shoreline(terrain)
 	_test_heartland_stream_connectivity()
+	_test_strategic_road_stream_crossings(terrain)
 	_check(terrain.terrain_for_hex(Vector2i(-43, -343)) == "keep_wall", "Chapterhouse keep wall must resolve to its own terrain type")
 	_check(not terrain.is_walkable_for_hex(Vector2i(-43, -343)), "Keep-wall cells must block traversal")
 	if failures > 0:
@@ -140,6 +141,34 @@ func _test_heartland_stream_connectivity() -> void:
 		and REGIONAL_HYDROLOGY.is_stream_hex(Vector2i(290, 1))
 		and REGIONAL_HYDROLOGY.is_stream_hex(Vector2i(426, 37)),
 		"The Northwatch moat and Ridgehold connector must remain part of the continuous stream"
+	)
+
+
+func _test_strategic_road_stream_crossings(terrain) -> void:
+	var crossing_count := 0
+	for key in terrain.road_cells:
+		var coordinates := String(key).split(",")
+		if coordinates.size() != 2:
+			continue
+		var hex := Vector2i(int(coordinates[0]), int(coordinates[1]))
+		if not REGIONAL_HYDROLOGY.is_stream_hex(hex):
+			continue
+		crossing_count += 1
+		_check(
+			terrain.terrain_for_hex(hex) == "path",
+			"An authored strategic road must remain visible where it crosses the local stream at %s" % key
+		)
+		_check(
+			terrain.is_walkable_for_hex(hex),
+			"Strategic road/stream crossings must remain traversable at %s" % key
+		)
+		_check(
+			is_finite(terrain.elevation_for_hex(hex)),
+			"Strategic road/stream crossing elevation must remain finite at %s" % key
+		)
+	_check(
+		crossing_count > 0,
+		"The authored strategic road network must retain at least one explicit local-stream crossing"
 	)
 
 
