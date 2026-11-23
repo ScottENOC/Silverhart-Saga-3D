@@ -293,9 +293,25 @@ func _test_entangle() -> void:
 	enemy.side = "enemy"
 	sim.register_character(enemy)
 	var result := _cast_at(sim, caster, enemy.axial, "entangle")
+	var effect := enemy.get_spell_effect("entangled")
+	var zone_id := String(effect.get("zone_id", ""))
 	_check(bool(result.get("ok", false)) and enemy.has_spell_effect("entangled"), "Entangle should apply its movement restriction in the area")
-	sim.free()
+	_check(int(effect.get("ticks_remaining", 0)) == 20 and not zone_id.is_empty(), "Entangle should have a finite duration and a stable zone identifier")
+	var affected_cell: Dictionary = sim.map_data.cells.get(enemy.axial, {})
+	_check(int(affected_cell.get("spell_entangle_ticks", 0)) == 20, "Entangle should mark affected terrain cells")
+	var normal_cost := MovementRules.step_cost(sim.map_data, Vector2i.ZERO, Vector2i(1, 0), caster)
+	var entangled_cost := MovementRules.step_cost(sim.map_data, Vector2i(1, 0), enemy.axial, caster)
+	_check(entangled_cost > normal_cost, "Entangled terrain should increase movement cost for other characters")
+	_check(sim.dispel_entangle_zone(zone_id), "An Entangle zone should be explicitly dispellable")
+	_check(not enemy.has_spell_effect("entangled") and int(sim.map_data.cells[enemy.axial].get("spell_entangle_ticks", 0)) == 0, "Dispelling should remove both character and terrain effects")
 
+	var second_cast := _cast_at(sim, caster, enemy.axial, "entangle")
+	_check(bool(second_cast.get("ok", false)), "Entangle should be recast after its previous zone is dispelled")
+	for _tick in range(20):
+		sim._advance_spell_terrain_effects()
+		sim._advance_character_spell_effects(enemy, 1.0)
+	_check(not enemy.has_spell_effect("entangled") and int(sim.map_data.cells[enemy.axial].get("spell_entangle_ticks", 0)) == 0, "Entangle should clean up its status and terrain when its duration expires")
+	sim.free()
 
 func _test_calm_animal() -> void:
 	var setup := _new_sim()
