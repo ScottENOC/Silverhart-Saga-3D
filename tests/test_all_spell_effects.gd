@@ -302,13 +302,18 @@ func _test_calm_animal() -> void:
 	var sim: WorldSimulation = setup.sim
 	var caster: CharacterState = setup.caster
 	var animal := CharacterState.new("calmable_animal", "Wolf", Vector2i(2, 0))
-	animal.side = "neutral"
+	animal.side = "enemy"
 	animal.tags.append("animal")
+	animal.time_points = 100.0
 	sim.register_character(animal)
 	var result := _cast(sim, caster, animal, "calm_animal", {"calm_mode": "come"})
 	_check(bool(result.get("ok", false)) and String(animal.get_spell_effect("calmed").get("mode", "")) == "come", "Calm Animal should apply its selected mode to a mundane animal")
+	var restored := CharacterState.from_dict(animal.to_dict())
+	_check(restored != null and String(restored.get_spell_effect("calmed").get("mode", "")) == "come", "Calm Animal behaviour should persist through character save/load")
+	var distance_before := HexGrid.distance(animal.axial, caster.axial)
+	CombatAI.take_turn(sim, animal, ["caster"], ["calmable_animal"])
+	_check(HexGrid.distance(animal.axial, caster.axial) < distance_before, "A calmed animal in come mode should move towards its caster instead of attacking")
 	sim.free()
-
 
 func _test_wild_fury() -> void:
 	var setup := _new_sim()
