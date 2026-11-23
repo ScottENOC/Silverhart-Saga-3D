@@ -255,7 +255,7 @@ def main():
         "status": report["status"],
         "selected_vertices": total_selected,
         "moved_vertices": total_moved,
-        "objects": len(object_reports),
+        "objects": object_reports,
     }, sort_keys=True))
     if not overall_pass:
         raise SystemExit(2)
