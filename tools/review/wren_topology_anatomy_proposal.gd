@@ -458,7 +458,7 @@ func _collect_skin_surfaces(
     if node is MeshInstance3D and node.mesh != null:
         var mesh_instance := node as MeshInstance3D
         for index in mesh_instance.mesh.get_surface_count():
-            var surface_name := mesh_instance.mesh.surface_get_name(index)
+            var surface_name: String = mesh_instance.mesh.surface_get_name(index)
             var material := mesh_instance.mesh.surface_get_material(index)
             var material_name := material.resource_name if material != null else ""
             var surface_arrays := mesh_instance.mesh.surface_get_arrays(index)
@@ -474,7 +474,7 @@ func _collect_skin_surfaces(
                 "texcoord_1_count": surface_uv2.size()
             }
             inventory.append(entry)
-            var identity := (
+            var identity: String = (
                 str(mesh_instance.name) + " " +
                 mesh_instance.mesh.resource_name + " " +
                 surface_name + " " + material_name
