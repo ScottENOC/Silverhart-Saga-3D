@@ -116,13 +116,15 @@ func _test_reddale(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
 	var layout: Dictionary = definition.get("layout", {})
 	_check(layout.get("buildings", []).size() == 6, "Reddale must retain its guardhouse, reeve house, inn, guildhouse, manor and smithy")
 	_check(layout.get("paths", []).size() == 3, "Reddale must retain its authored road approaches")
-	_check(definition.get("placements", {}).get("characters", []).size() == 12, "Reddale must retain its twelve named surface NPC placements")
+	_check(definition.get("placements", {}).get("characters", []).size() == 13, "Reddale must retain its twelve existing NPCs plus Mirabel at the nearby source ruin")
 	_check(definition.get("interiors", []).size() == 6, "Reddale must retain all six interior/service records")
 	var ids: Dictionary = {}
 	for actor in definition.get("placements", {}).get("characters", []):
 		ids[String(actor.get("character_id", ""))] = actor
-	for required_id in ["captain_ilsa_rennick", "watchman_bram_oswick", "reeve_aldous_finch", "nella_brook", "mira_selk", "mirella_thorn", "petra_voss", "osric_vane", "guild_watchman_corley", "baron_corwin_aldervale", "steward_halvard_greer", "torvald_anvik"]:
+	for required_id in ["captain_ilsa_rennick", "watchman_bram_oswick", "reeve_aldous_finch", "nella_brook", "mira_selk", "mirella_thorn", "petra_voss", "osric_vane", "guild_watchman_corley", "baron_corwin_aldervale", "steward_halvard_greer", "torvald_anvik", "mirabel_quill"]:
 		_check(ids.has(required_id), "Reddale must retain source NPC " + required_id)
+	if ids.has("mirabel_quill"):
+		_assert_axial(ids["mirabel_quill"].get("position", {}), Vector2i(156, 26), "Mirabel source position beside Reddale")
 	_check(terrain.terrain_for_hex(Vector2i(134, 24)) == "authored", "Reddale guardhouse must suppress procedural terrain")
 	_check(terrain.terrain_for_hex(Vector2i(138, 22)) == "path", "Reddale reeve approach must be indexed as a path")
 	var factory = BUILDING_FACTORY
