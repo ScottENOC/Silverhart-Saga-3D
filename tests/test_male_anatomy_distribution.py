@@ -45,7 +45,7 @@ class MaleAnatomyDistributionTests(unittest.TestCase):
             catalogue = ara_root / "src" / "core" / "garments"
             catalogue.mkdir(parents=True)
             (catalogue / "test_catalogue.ts").write_text(
-                "id: 'long_tunic'\nid: 'trousers'\\n", encoding="utf-8"
+                "id: 'long_tunic'\nid: 'trousers'\n", encoding="utf-8"
             )
             manifest = GENERATOR.generate(40, 20261120, ara_root)
 
