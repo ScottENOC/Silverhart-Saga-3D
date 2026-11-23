@@ -279,7 +279,11 @@ static func _create_actor_presentation(
 	actor.add_child(ara_model)
 
 	if ara_model.configure(model_path):
-		var has_baked_appearance := model_path.contains("/companions/") or model_path.contains("/hollowmere/")
+		var has_baked_appearance := (
+		model_path.contains("/companions/")
+		or model_path.contains("/hollowmere/")
+		or model_path.contains("/tavern_npcs/generated/")
+	)
 		if has_baked_appearance:
 			# Native companion and generated Hollowmere GLBs already contain
 			# their approved body proportions, skin/eye/hair colours and details.
