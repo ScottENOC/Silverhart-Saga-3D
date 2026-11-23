@@ -1,12 +1,21 @@
 name: Build Ara body-derived briefs on Wren
 
 on:
+  push:
+    branches: [feature/body-derived-garment-shell]
+    paths:
+      - "tools/blender/garment_shell/**"
+      - ".github/workflows/build-wren-ara-briefs-shell.yml"
   pull_request:
     branches: [dev]
     paths:
       - "tools/blender/garment_shell/**"
       - ".github/workflows/build-wren-ara-briefs-shell.yml"
   workflow_dispatch:
+
+concurrency:
+  group: wren-ara-briefs-shell-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   actions: read
