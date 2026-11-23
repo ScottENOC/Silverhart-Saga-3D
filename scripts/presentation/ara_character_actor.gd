@@ -399,7 +399,38 @@ func apply_player_profile(profile: Dictionary) -> void:
 	set_meta("body_variant", body_variant)
 	set_meta("gender_presentation", str(profile.get("gender_presentation", "Feminine")))
 	set_meta("pronouns", str(profile.get("pronouns", "they/them")))
+	_apply_male_anatomy_size(profile)
 	_apply_appearance_details(profile)
+
+
+## Scale the dedicated anatomy bone chain, not the whole character mesh.
+## Ara's AnatomyRoot/Mid/Tip bones use local Y along the shaft and X/Z across it.
+func _apply_male_anatomy_size(profile: Dictionary) -> void:
+	if body_variant != "male" or model_root == null:
+		return
+	var length_scale := clampf(float(profile.get("male_anatomy_length_scale", 1.0)), 0.747, 1.253)
+	var girth_scale := clampf(float(profile.get("male_anatomy_girth_scale", 1.0)), 0.811, 1.189)
+	var skeleton := _find_skeleton(model_root)
+	if skeleton == null:
+		if not has_meta("male_anatomy_size_warning_shown"):
+			push_warning("Male anatomy size settings could not be applied: Ara model has no Skeleton3D.")
+			set_meta("male_anatomy_size_warning_shown", true)
+		return
+	var applied := 0
+	for bone_name in ["AnatomyRoot", "AnatomyMid", "AnatomyTip"]:
+		var bone_index := skeleton.find_bone(bone_name)
+		if bone_index < 0:
+			continue
+		skeleton.set_bone_pose_scale(bone_index, Vector3(girth_scale, length_scale, girth_scale))
+		applied += 1
+	if applied == 0:
+		if not has_meta("male_anatomy_size_warning_shown"):
+			push_warning("Male anatomy size settings could not be applied: dedicated AnatomyRoot/Mid/Tip bones are missing from this Ara asset.")
+			set_meta("male_anatomy_size_warning_shown", true)
+		return
+	set_meta("male_anatomy_length_scale", length_scale)
+	set_meta("male_anatomy_girth_scale", girth_scale)
+	set_meta("male_anatomy_size_bones_applied", applied)
 
 ## Attach a standalone Ara hair GLB to this character's existing skeleton.
 ## Both exports must use the same pinned Ara rig and bone ordering.
