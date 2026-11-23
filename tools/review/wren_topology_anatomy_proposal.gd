@@ -211,7 +211,7 @@ func _run() -> void:
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
             "The two-hop nipple radius and five-hop radius for other regions are review heuristics; local mesh density affects physical reach and each boundary needs visual review.",
             "Hand and finger seed positions are approximate and must be checked in the dedicated close-up views; a zero seed count means the hypothesis missed the mesh and must be repositioned.",
-            "The small disconnected-looking arc in the nipple preview may be a second seed patch or a disconnected topology island; it is not treated as part of an accepted nipple boundary until inspected."
+            "The small disconnected-looking arc in the nipple preview may be a second seed patch or a disconnected topology island; it is not treated as part of an accepted nipple boundary until inspected.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
             "This review includes the previously reviewed torso channels, refined breast channels, nipple channels and a first shoulder-to-individual-finger arm tranche; finger channels are separate per digit and side, but remain provisional seed hypotheses."
         ]
