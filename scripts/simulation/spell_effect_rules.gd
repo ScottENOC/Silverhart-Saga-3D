@@ -375,7 +375,7 @@ func _create_summon(simulation: Variant, caster: CharacterState, prepared: Prepa
 	summon.is_summoned = not becomes_companion
 	summon.summoned_by_id = caster.id
 	summon.time_points = 100.0
-	var registration := simulation.register_animal(summon)
+	var registration: Dictionary = simulation.register_animal(summon)
 	if not bool(registration.get("ok", false)):
 		push_error("Failed to register summoned animal: %s" % String(registration.get("reason", "unknown")))
 		return null
