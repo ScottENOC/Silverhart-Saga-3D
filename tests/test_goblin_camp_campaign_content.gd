@@ -40,6 +40,8 @@ func _test_goblin_quest_definitions_and_gift_alliance() -> void:
 	_check(journal.quest_definitions.has("greenskin_spy"), "The Northwatch spy follow-up must be registered")
 	_check(journal.quest_definitions.has("goblin_scout_note"), "The foreign scout note must have persistent journal state")
 
+	_check(String(GOBLIN_CONTENT.resolve_threat(journal, "goblin_alliance").get("reason", "")) == "chief_gift_required", "Alliance must reject an unpaid chief")
+	_check(String(GOBLIN_CONTENT.resolve_threat(journal, "goblin_diplomacy").get("reason", "")) == "insufficient_goblin_standing", "Diplomacy must reject insufficient standing")
 	var initial := GOBLIN_CONTENT.chief_conversation(journal)
 	_check(_choice_exists(initial, "start:goblin_threat"), "Chief should offer the source 'right price' route")
 	_check(not _choice_exists(initial, "resolve:goblin_alliance"), "Alliance must not be available before the chief's gift")
@@ -91,6 +93,7 @@ func _test_diplomacy_assault_and_stealth_resolutions() -> void:
 func _test_favors_and_follow_on_quests() -> void:
 	var journal := _new_journal()
 	GOBLIN_CONTENT.start_threat(journal)
+	_check(String(GOBLIN_CONTENT.resolve_favor(journal, "raid").get("reason", "")) == "insufficient_goblin_standing", "Direct assault favor must reject insufficient standing")
 	var favors := GOBLIN_CONTENT.offer_favors(journal)
 	_check(_choice_exists(favors, "favor:scout"), "Scout favor should be offered")
 	_check(_choice_exists(favors, "favor:steal"), "Farm supply favor should be offered")
