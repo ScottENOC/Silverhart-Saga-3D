@@ -2,7 +2,7 @@ name: Build current player Ara body assets
 
 on:
   push:
-    branches: [feature/character-runtime-asset-integration]
+    branches: [dev, feature/character-runtime-asset-integration]
     paths:
       - ".github/workflows/build-player-ara-bodies.yml"
       - "character-preview/wren-ara.json"
