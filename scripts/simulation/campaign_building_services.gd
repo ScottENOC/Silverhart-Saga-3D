@@ -11,7 +11,7 @@ const HORSE_TIERS := {
 	"war_trained": {"price": 375, "barding": "medium_barding"}
 }
 const CLOTHING_BASE_PRICES := {
-	"bra": 12, "briefs": 7, "long_tunic": 48, "trousers": 22,
+	"bra": 12, "briefs": 7, "long_tunic": 26, "trousers": 22,
 	"tunic": 28, "wrapper_long": 22, "uniform_shirt": 26,
 	"fatigue_pants": 22, "wrapper_knee": 18, "tattered_shirt": 26,
 	"fatigue_shirt": 26, "sandals": 18, "combat_boots": 30
@@ -269,6 +269,16 @@ func purchase_horse(
 	horse.animal_attributes["owner_character_id"] = buyer_id
 	horse.animal_attributes["coat_preset"] = coat
 	horse.animal_attributes["training_tier"] = training_tier
+	var training_skills: Dictionary = {}
+	match training_tier:
+		"trained":
+			training_skills = {"light_armor_training": 1, "health": 1}
+		"war_trained":
+			training_skills = {"light_armor_training": 1, "medium_armor_training": 1, "health": 2, "meleeDamage": 1}
+	for skill_id_value in training_skills.keys():
+		var skill_id := String(skill_id_value)
+		horse.skills[skill_id] = int(horse.skills.get(skill_id, 0)) + int(training_skills[skill_id_value])
+	horse.sync_skill_effects()
 	var barding_id := String(tier.get("barding", ""))
 	if not barding_id.is_empty():
 		var barding := ItemCatalog.create_instance(barding_id, "%s_barding" % horse_id)
@@ -419,8 +429,6 @@ func _commission_lead_seconds(kind: String, item: Dictionary) -> float:
 	var item_id := String(item.get("id", ""))
 	if item_id in ["bra", "briefs"]:
 		return 4.0 * 3600.0
-	if item_id in ["long_tunic"]:
-		return 18.0 * 3600.0
 	return 10.0 * 3600.0
 
 
