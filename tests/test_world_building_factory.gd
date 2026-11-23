@@ -19,7 +19,9 @@ func _test_supported_archetypes() -> void:
 		{"id": "shop_01", "archetype": "shop", "center": {"q": 5, "r": 2}},
 		{"id": "chapel_01", "archetype": "chapel", "center": {"q": 9, "r": 2}},
 		{"id": "barn_01", "kind": "barn", "center": {"q": 13, "r": 2}, "features": ["double_door"], "door_side": "north", "door_width": 3.1},
-		{"id": "manor_01", "archetype": "manor", "center": {"q": 17, "r": 2}}
+		{"id": "manor_01", "archetype": "manor", "center": {"q": 17, "r": 2}},
+		{"id": "small_hut_01", "archetype": "hut", "center": {"q": 21, "r": 2}},
+		{"id": "chief_hut_01", "archetype": "large_hut", "center": {"q": 25, "r": 2}}
 	]
 	for definition in definitions:
 		assert(FACTORY.supports_definition(definition), "Expected supported archetype for %s" % definition.id)
