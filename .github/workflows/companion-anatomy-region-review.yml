@@ -2,7 +2,7 @@ name: Companion anatomy region review
 
 on:
   push:
-    branches: [feature/ara-garment-fit-guides, feature/full-body-overlapping-anatomy-vocabulary, feature/anatomy-region-authoring-progress, feature/topology-aware-anatomy-proposals]
+    branches: [feature/ara-garment-fit-guides, feature/full-body-overlapping-anatomy-vocabulary, feature/anatomy-region-authoring-progress, feature/topology-aware-anatomy-proposals, feature/anatomy-coverage-face-nipple-diagnostics]
     paths:
       - ".github/workflows/companion-anatomy-region-review.yml"
       - "tools/blender/add_female_anatomy_surface.py"
