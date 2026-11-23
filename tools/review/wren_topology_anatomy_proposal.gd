@@ -199,6 +199,21 @@ func _run() -> void:
             var hand_x := -0.490 if region_id.ends_with("_left") else 0.490
             region_views["hand_detail_front"] = [Vector3(0.0, 0.955, 2.0), Vector3(hand_x, 0.955, 0.0), 0.30]
             region_views["hand_detail_side"] = [Vector3(hand_x + (1.8 if hand_x > 0.0 else -1.8), 0.955, 0.25), Vector3(hand_x, 0.955, 0.25), 0.30]
+        if region_id == "head" or region_id == "face_front" or region_id.begins_with("ear_") or region_id.begins_with("neck_"):
+            region_views["head_detail_front"] = [Vector3(0.0, 1.585, 1.15), Vector3(0.0, 1.585, 0.0), 0.27]
+            region_views["head_detail_side"] = [Vector3(1.15, 1.585, 0.0), Vector3(0.0, 1.585, 0.0), 0.27]
+        if region_id in ["abdomen_front", "flank_left", "flank_right", "upper_back_left", "upper_back_right", "lower_back_left", "lower_back_right", "sternum", "underbust", "ribcage_left", "ribcage_right", "chest_front_left", "chest_front_right", "pectoral_left", "pectoral_right", "breast_left", "breast_right"]:
+            region_views["torso_detail_front"] = [Vector3(0.0, 1.105, 1.35), Vector3(0.0, 1.105, 0.0), 0.52]
+            region_views["torso_detail_rear"] = [Vector3(0.0, 1.105, -1.35), Vector3(0.0, 1.105, 0.0), 0.52]
+        if region_id in ["hip_left", "hip_right", "glute_left", "glute_right", "pubic_region", "inner_thigh_left", "inner_thigh_right"]:
+            region_views["pelvis_detail_front"] = [Vector3(0.0, 0.835, 1.15), Vector3(0.0, 0.835, 0.0), 0.38]
+            region_views["pelvis_detail_rear"] = [Vector3(0.0, 0.835, -1.15), Vector3(0.0, 0.835, 0.0), 0.38]
+        if region_id.begins_with("thigh_") or region_id.begins_with("knee_") or region_id.begins_with("calf_") or region_id.begins_with("ankle_"):
+            region_views["leg_detail_front"] = [Vector3(0.0, 0.45, 1.6), Vector3(0.0, 0.45, 0.0), 0.72]
+            region_views["leg_detail_side"] = [Vector3(1.6, 0.45, 0.0), Vector3(0.0, 0.45, 0.0), 0.72]
+        if region_id.begins_with("foot_") or region_id.begins_with("toes_"):
+            region_views["foot_detail_front"] = [Vector3(0.0, 0.28, 1.2), Vector3(0.0, 0.045, 0.10), 0.34]
+            region_views["foot_detail_side"] = [Vector3(1.2, 0.28, 0.10), Vector3(0.0, 0.045, 0.10), 0.34]
         if region_id.begins_with("nipple_"):
             var nipple_x := -0.115 if region_id == "nipple_left" else 0.115
             region_views["nipple_detail_front"] = [Vector3(nipple_x, 1.190, 1.8), Vector3(nipple_x, 1.190, 0.0), 0.24]
