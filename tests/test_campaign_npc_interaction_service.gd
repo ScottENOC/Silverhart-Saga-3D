@@ -37,6 +37,11 @@ func _initialize() -> void:
 	companion_actor.add_to_group("campaign2_npc")
 	root.add_child(companion_actor)
 
+	# SceneTree._initialize runs before the newly added nodes have completed
+	# their first tree-entry cycle; wait so group-based streamed actor discovery
+	# is tested under the same resident-tree conditions as gameplay.
+	await process_frame
+
 	var nearby := NPC_INTERACTION_SERVICE.nearby_entries(simulation, "player", local_actors, self, 2)
 	var ids: Array[String] = []
 	for entry in nearby:
