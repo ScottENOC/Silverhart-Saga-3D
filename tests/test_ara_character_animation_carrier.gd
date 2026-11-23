@@ -7,6 +7,34 @@ const BODY_PATHS := [
 	"res://art/characters/ara_runtime/ara_player_male_body.glb"
 ]
 
+const CHARACTER_ASSET_PATHS := [
+	"res://art/characters/companions/aldric.glb",
+	"res://art/characters/companions/dagna.glb",
+	"res://art/characters/companions/wren.glb",
+	"res://art/characters/hollowmere/brother_alden.glb",
+	"res://art/characters/hollowmere/dray.glb",
+	"res://art/characters/hollowmere/elder_marta.glb",
+	"res://art/characters/hollowmere/fenn_oakheart.glb",
+	"res://art/characters/hollowmere/garrick_holt.glb",
+	"res://art/characters/hollowmere/hask.glb",
+	"res://art/characters/hollowmere/hendra.glb",
+	"res://art/characters/hollowmere/mira_ashbrook.glb",
+	"res://art/characters/hollowmere/mirabel_quill.glb",
+	"res://art/characters/hollowmere/nix_sharpear.glb",
+	"res://art/characters/hollowmere/oskar_vinn.glb",
+	"res://art/characters/hollowmere/player_avatar.glb",
+	"res://art/characters/hollowmere/reyna_fletcher.glb",
+	"res://art/characters/hollowmere/rowan_fletcher.glb",
+	"res://art/characters/hollowmere/ser_aldric_thorne.glb",
+	"res://art/characters/hollowmere/snik_fangtooth.glb",
+	"res://art/characters/hollowmere/tavern_patron.glb",
+	"res://art/characters/hollowmere/tomlin.glb",
+	"res://art/characters/hollowmere/warlord_grukk_ironhide.glb",
+	"res://art/characters/hollowmere/wick_hallow.glb",
+	"res://art/characters/hollowmere/wren_talbot.glb",
+	"res://art/characters/hollowmere/yvette.glb"
+]
+
 var failures: int = 0
 
 
@@ -90,12 +118,8 @@ func _run() -> void:
 		_check(male_actor.set_moving(true), "Male gameplay actor selects a real locomotion clip")
 	male_actor.free()
 
-	await _assert_character_asset_animated(
-		"res://art/characters/companions/wren.glb", "Wren companion"
-	)
-	await _assert_character_asset_animated(
-		"res://art/characters/hollowmere/reyna_fletcher.glb", "Reyna NPC"
-	)
+	for asset_path in CHARACTER_ASSET_PATHS:
+		await _assert_character_asset_animated(asset_path, asset_path.get_file().get_basename())
 	_finish()
 
 
@@ -149,7 +173,8 @@ func _assert_character_asset_animated(asset_path: String, label: String) -> void
 	_check(player != null, label + " has an animation player")
 	_check(skeleton != null, label + " has a skeleton")
 	if player != null and skeleton != null:
-		_check(actor.set_moving(true), label + " selects a locomotion clip")
+		var locomotion_selected := actor.set_moving(true)
+		_check(locomotion_selected, label + " selects a locomotion clip")
 		var bound_mesh_found := false
 		var meshes: Array[MeshInstance3D] = []
 		_collect_meshes(actor.model_root, meshes)
@@ -158,4 +183,14 @@ func _assert_character_asset_animated(asset_path: String, label: String) -> void
 				bound_mesh_found = true
 				break
 		_check(bound_mesh_found, label + " has a visible skinned mesh bound to its animated skeleton")
+		if locomotion_selected:
+			var starting_poses: Array[Transform3D] = []
+			for bone_index in range(skeleton.get_bone_count()):
+				starting_poses.append(skeleton.get_bone_global_pose(bone_index))
+			await create_timer(0.18).timeout
+			var changed_bones := 0
+			for bone_index in range(skeleton.get_bone_count()):
+				if not skeleton.get_bone_global_pose(bone_index).is_equal_approx(starting_poses[bone_index]):
+					changed_bones += 1
+			_check(changed_bones >= 5, label + " walk animation drives its visible skeleton (%d changed bones)" % changed_bones)
 	actor.free()
