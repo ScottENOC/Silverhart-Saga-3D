@@ -30,6 +30,7 @@ The current Hollow Tankard adapter stores:
 - NPC appearance parameter overrides relative to their authored params profile.
 - Party membership and active party member.
 - World clock and campaign journal state.
+- Persistent non-companion NPC relationship state (approval, familiarity, trust, friendship, authored romance/attraction where permitted, keyed conversation/event memory and bounded history), synchronised with campaign NPC standing.
 - Opening-quest / farm-wolf progression flags.
 - Camera zoom and rotation.
 
@@ -53,8 +54,7 @@ contract. In particular:
   during combat and pending reactions.
 - Autosaves are time-based for now; additional quest/area transition checkpoints should
   be added as those systems stabilise.
-- Format version 1 currently supports the first snapshot schema. Future changes must add
-  explicit migrations rather than silently reinterpret older saves.
+- Format version 1 currently supports the first snapshot schema. Persistent NPC relationship data is an additive optional field, so older version-1 saves load with each authored NPC's initial relationship profile and existing journal standing. Future incompatible changes must add explicit migrations rather than silently reinterpret older saves.
 
 ## Validation checklist
 
