@@ -184,6 +184,8 @@ def main() -> None:
             "model": f"{character_id}.glb",
             "params": params,
         }
+        if isinstance(profile.get("anatomy_size"), dict):
+            character_record["anatomy_size"] = dict(profile["anatomy_size"])
         hex_value = profile.get(
             "hex",
             previous_hex_by_identity.get(character_id, previous_hex_by_identity.get(profile["game_id"])),
@@ -199,7 +201,7 @@ def main() -> None:
         "generator_commit": manifest["generator_commit"],
         "characters": built,
     }
-    for metadata_key in ("seed", "count", "rarity_policy"):
+    for metadata_key in ("seed", "count", "rarity_policy", "male_anatomy_distribution"):
         if metadata_key in manifest:
             output_manifest[metadata_key] = manifest[metadata_key]
     (args.out / "profiles.json").write_text(json.dumps(output_manifest, indent=2) + "\n")

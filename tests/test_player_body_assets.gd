@@ -29,6 +29,25 @@ func _initialize() -> void:
 			instance.free()
 			_fail("Player body asset contains no meshes: " + asset_path)
 			return
+		if asset_path.ends_with("ara_player_male_body.glb"):
+			var anatomy_root := skeleton.find_bone("AnatomyRoot")
+			if anatomy_root < 0:
+				instance.free()
+				_fail("Male player body is missing the AnatomyRoot size-control bone.")
+				return
+			var has_erect_morph := false
+			for mesh_instance in meshes:
+				if mesh_instance.mesh == null:
+					continue
+				for shape_index in range(mesh_instance.mesh.get_blend_shape_count()):
+					if String(mesh_instance.mesh.get_blend_shape_name(shape_index)) == "Anatomy_Erect":
+						has_erect_morph = true
+				if has_erect_morph:
+					break
+			if not has_erect_morph:
+				instance.free()
+				_fail("Male player body is missing the flaccid/erect Anatomy_Erect morph target.")
+				return
 		instance.free()
 	print("PLAYER_BODY_ASSET_TEST: PASS (female and male body scenes load with Ara skeletons)")
 	quit(0)

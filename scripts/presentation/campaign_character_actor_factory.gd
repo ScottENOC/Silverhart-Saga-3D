@@ -226,6 +226,17 @@ static func _hollowmere_body_variant_for(character_id: String, fallback: String)
 	return String(_hollowmere_body_variant_index.get(character_id.to_lower(), fallback))
 
 
+static func _male_anatomy_scales_for_id(character_id: String) -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(character_id)
+	var z_length := clampf(rng.randfn(0.0, 1.0), -2.0, 2.0)
+	var z_girth := clampf(rng.randfn(0.0, 1.0), -2.0, 2.0)
+	return {
+		"length_scale": (13.12 + z_length * 1.66) / 13.12,
+		"girth_scale": (11.66 + z_girth * 1.10) / 11.66
+	}
+
+
 static func _safe_metadata_string(value: Variant, fallback: String = "") -> String:
 	if value is String or value is StringName:
 		return String(value)
@@ -268,7 +279,11 @@ static func _create_actor_presentation(
 	actor.add_child(ara_model)
 
 	if ara_model.configure(model_path):
-		var has_baked_appearance := model_path.contains("/companions/") or model_path.contains("/hollowmere/")
+		var has_baked_appearance := (
+		model_path.contains("/companions/")
+		or model_path.contains("/hollowmere/")
+		or model_path.contains("/tavern_npcs/generated/")
+	)
 		if has_baked_appearance:
 			# Native companion and generated Hollowmere GLBs already contain
 			# their approved body proportions, skin/eye/hair colours and details.
@@ -280,6 +295,29 @@ static func _create_actor_presentation(
 			ara_model.apply_npc_parameters(appearance_profile.get("params", {}))
 		else:
 			ara_model.apply_player_profile(appearance_profile)
+
+		# Individually generated Hollowmere NPCs already have their seeded size
+		# baked into the GLB. Shared generic male bases need a stable runtime draw;
+		# named companions may supply an authored override (e.g. Aldric).
+		if body_variant == "male" and not is_player:
+			var authored_size: Dictionary = appearance_profile.get("anatomy_size", {})
+			if not authored_size.is_empty():
+				# Named companion/Hollowmere meshes bake this override during their
+				# Blender build. Keep the requested values on the actor for inspection.
+				ara_model.set_meta("male_anatomy_size_requested", authored_size.duplicate(true))
+				if model_path == PLAYER_MALE_ASSET:
+					ara_model.apply_male_anatomy_size(
+						float(authored_size.get("length_scale", 1.0)),
+						float(authored_size.get("girth_scale", 1.0))
+					)
+			elif model_path == PLAYER_MALE_ASSET:
+				var profile_params: Dictionary = appearance_profile.get("params", {})
+				var variation_seed := str(profile_params.get("seed", character_id))
+				var generated_size := _male_anatomy_scales_for_id(variation_seed)
+				ara_model.apply_male_anatomy_size(
+					float(generated_size.length_scale),
+					float(generated_size.girth_scale)
+				)
 		if model_path.contains("/ara_runtime/"):
 			_attach_ara_hair(ara_model, body_variant, hair_id)
 		ara_model.apply_equipment_visuals(equipped_item_data)
