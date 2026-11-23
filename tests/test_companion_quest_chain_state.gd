@@ -43,7 +43,8 @@ func _test_chapter_prerequisites_and_flow() -> void:
 	if chains == null:
 		return
 	chains.register_quest_definitions(journal)
-	var absent: Variant = chains.can_start("aldric_weight_of_command", journal, [], 50000.0)
+	var empty_party_ids: Array[String] = []
+	var absent: Variant = chains.can_start("aldric_weight_of_command", journal, empty_party_ids, 50000.0)
 	_check(String(absent.get("reason", "")) == "companion_not_in_party")
 	var party_ids: Array[String] = ["ser_aldric_thorne"]
 	var eligibility: Variant = chains.can_start("aldric_weight_of_command", journal, party_ids, 50000.0)
