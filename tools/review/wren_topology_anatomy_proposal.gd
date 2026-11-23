@@ -79,7 +79,7 @@ const REGIONS := {
     "pelvic_labia_majora_left": [Vector3(-0.030, 0.795, 0.105), Vector3(0.020, 0.030, 0.018), Color("#e76f51")],
     "pelvic_labia_majora_right": [Vector3(0.030, 0.795, 0.105), Vector3(0.020, 0.030, 0.018), Color("#2a9d8f")],
     "pelvic_clitoral_contact_proxy": [Vector3(0.0, 0.824, 0.108), Vector3(0.012, 0.012, 0.012), Color("#e63946")],
-    "pelvic_perineal_surface": [Vector3(0.0, 0.755, 0.095), Vector3(0.018, 0.015, 0.012), Color("#9b5de5")],
+    "pelvic_perineal_surface": [Vector3(0.0, 0.765, 0.080), Vector3(0.040, 0.020, 0.030), Color("#9b5de5")],
     "pelvic_inguinal_fold_left": [Vector3(-0.105, 0.805, 0.115), Vector3(0.025, 0.045, 0.025), Color("#457b9d")],
     "pelvic_inguinal_fold_right": [Vector3(0.105, 0.805, 0.115), Vector3(0.025, 0.045, 0.025), Color("#06d6a0")],
     "inner_thigh_left": [Vector3(-0.075, 0.690, 0.025), Vector3(0.050, 0.145, 0.060), Color("#fdffb6")],
@@ -138,6 +138,7 @@ func _run() -> void:
 
     var arrays := mesh_instance.mesh.surface_get_arrays(surface_index)
     var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+    var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
     var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
     if vertices.is_empty() or indices.is_empty():
         push_error("Source surface has no indexed geometry")
