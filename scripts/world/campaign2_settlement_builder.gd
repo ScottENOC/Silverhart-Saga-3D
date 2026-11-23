@@ -57,30 +57,30 @@ func _register_campaign_characters() -> void:
 			if profile.is_empty():
 				continue
 			var start_hex := _read_hex(placement.get("position", Vector2i.ZERO)) + origin
-			var display_name := String(profile.get("name", profile.get("display_name", character_id)))
+			var display_name := str(profile.get("name", profile.get("display_name", character_id)))
 			var state := CharacterState.new(character_id, display_name, start_hex)
-			var race := String(profile.get("race", "human"))
+			var race := str(profile.get("race", "human"))
 			state.race = race
-			state.side = String(profile.get("side", "neutral"))
+			state.side = str(profile.get("side", "neutral"))
 			state.combat_dormant = true
 			state.time_points = 0.0
 			state.health = maxi(1, int(profile.get("max_health", 100)))
 			state.max_health = state.health
 			state.tags.append("campaign2_npc")
-			var faction_id := String(profile.get("faction_id", ""))
+			var faction_id := str(profile.get("faction_id", ""))
 			if not faction_id.is_empty():
 				state.tags.append("faction:" + faction_id)
-			var dialogue_id := String(profile.get("dialogue_id", ""))
+			var dialogue_id := str(profile.get("dialogue_id", ""))
 			if not dialogue_id.is_empty():
 				state.tags.append("dialogue:" + dialogue_id)
 			if bool(profile.get("tied_up", false)):
 				state.tags.append("tied_up")
 			var class_sequence: Array[String] = []
 			for class_id_value in profile.get("class_levels", []):
-				class_sequence.append(String(class_id_value))
+				class_sequence.append(str(class_id_value))
 			var preferred_skills: Dictionary = {}
 			for skill_id_value in profile.get("skill_picks", []):
-				var skill_id := String(skill_id_value)
+				var skill_id := str(skill_id_value)
 				preferred_skills[skill_id] = int(preferred_skills.get(skill_id, 0)) + 1
 			var custom_skills: Dictionary = profile.get("source_custom_skills", {})
 			if not custom_skills.is_empty():
