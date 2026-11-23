@@ -1371,13 +1371,26 @@ func _show_companion_dialogue(character_id: String) -> void:
 	)
 	if conversation.is_empty():
 		return
+	var canonical_id := character_id.trim_prefix("companion_")
+	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
+	var relationship_line := ""
+	if relationships != null and relationships.has_profile(canonical_id):
+		var conversation_key := "world_talk:" + str(int(simulation.clock.world_seconds))
+		if canonical_id == "wren_talbot":
+			relationships.note_personal_dialogue(canonical_id, conversation_key)
+		else:
+			relationships.note_conversation(canonical_id, conversation_key, 2.0)
+		relationship_line = String(relationships.interpret_relationship(canonical_id).get("line", ""))
+	var body := String(conversation.get("text", ""))
+	if not relationship_line.is_empty():
+		body += "\n\n" + relationship_line
 	var choices: Array[Dictionary] = []
 	for choice_value in conversation.get("choices", []):
 		var choice: Dictionary = choice_value.duplicate(true)
 		if String(choice.get("id", "")).begins_with("start:"):
 			choice["companion_id"] = character_id
 		choices.append(choice)
-	_show_dialogue(String(conversation.get("speaker", character_id)), String(conversation.get("text", "")), choices)
+	_show_dialogue(String(conversation.get("speaker", character_id)), body, choices)
 
 
 func _recruit_staged_companion(character_id: String) -> void:
