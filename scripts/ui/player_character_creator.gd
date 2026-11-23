@@ -48,6 +48,7 @@ var hair_style_select: OptionButton
 var body_select: OptionButton
 var body_variant_select: OptionButton
 var height_slider: HSlider
+var male_anatomy_section: VBoxContainer
 var male_anatomy_length_slider: HSlider
 var male_anatomy_girth_slider: HSlider
 var male_anatomy_summary: Label
@@ -234,12 +235,15 @@ func _build_screen() -> void:
 	height_row.add_child(height_slider)
 	panel.add_child(height_row)
 
-	_section(panel, "MALE ANATOMY")
+	male_anatomy_section = VBoxContainer.new()
+	male_anatomy_section.add_theme_constant_override("separation", 6)
+	panel.add_child(male_anatomy_section)
+	_section(male_anatomy_section, "MALE ANATOMY")
 	var male_anatomy_note := Label.new()
 	male_anatomy_note.text = "Optional adult anatomy customisation. Sliders cover the measured 5th–95th percentile range; the midpoint is the population average."
 	male_anatomy_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	male_anatomy_note.add_theme_color_override("font_color", Color(0.78, 0.82, 0.76))
-	panel.add_child(male_anatomy_note)
+	male_anatomy_section.add_child(male_anatomy_note)
 	male_anatomy_length_slider = HSlider.new()
 	male_anatomy_length_slider.min_value = 0.0
 	male_anatomy_length_slider.max_value = 1.0
@@ -252,7 +256,7 @@ func _build_screen() -> void:
 	male_length_label.custom_minimum_size.x = 135
 	male_length_row.add_child(male_length_label)
 	male_length_row.add_child(male_anatomy_length_slider)
-	panel.add_child(male_length_row)
+	male_anatomy_section.add_child(male_length_row)
 	male_anatomy_girth_slider = HSlider.new()
 	male_anatomy_girth_slider.min_value = 0.0
 	male_anatomy_girth_slider.max_value = 1.0
@@ -265,10 +269,10 @@ func _build_screen() -> void:
 	male_girth_label.custom_minimum_size.x = 135
 	male_girth_row.add_child(male_girth_label)
 	male_girth_row.add_child(male_anatomy_girth_slider)
-	panel.add_child(male_girth_row)
+	male_anatomy_section.add_child(male_girth_row)
 	male_anatomy_summary = Label.new()
 	male_anatomy_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	panel.add_child(male_anatomy_summary)
+	male_anatomy_section.add_child(male_anatomy_summary)
 	male_anatomy_length_slider.value_changed.connect(_refresh_appearance_preview_value)
 	male_anatomy_girth_slider.value_changed.connect(_refresh_appearance_preview_value)
 
@@ -445,8 +449,7 @@ func _refresh_character_preview(_index: int) -> void:
 
 func _refresh_appearance_preview(_index: int) -> void:
 	var variant := "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female"
-	for control in [male_anatomy_length_slider, male_anatomy_girth_slider, male_anatomy_summary]:
-		control.visible = variant == "male"
+	male_anatomy_section.visible = variant == "male"
 	if preview_actor == null or not is_instance_valid(preview_actor):
 		return
 	var asset_path := MALE_PREVIEW_ASSET if variant == "male" else FEMALE_PREVIEW_ASSET
