@@ -18,7 +18,6 @@ const CHARACTER_STARTS := {
 	"tavern_patron": Vector2i(3, -2),
 	"elder_marta": Vector2i(0, -9),
 	"rowan_fletcher": Vector2i(12, 26),
-	"reyna_fletcher": Vector2i(17, 57),
 }
 
 ## These companions have recruitment arcs, but their home/recruitment regions are
