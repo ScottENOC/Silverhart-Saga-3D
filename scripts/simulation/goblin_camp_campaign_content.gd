@@ -175,7 +175,7 @@ static func chief_conversation(journal: CampaignJournal, gifted_in: bool = false
 	if goblin_standing >= 40.0:
 		return _conversation("Chief Skarnub", "You've done right by us. Truth told, this land's more trouble than it's worth — humans always come eventually. Guarantee us safe passage and supplies, and we'll move on. No more blood spilled, on either side.", [_choice("resolve:goblin_diplomacy", "Agreed. Take what you need and go."), _choice("continue", "Not yet.")])
 	var choices: Array[Dictionary] = []
-	if gifted_in or bool(quest.get("decisions", {}).get("chief_gifted_in", false)):
+	if gifted_in or String(quest.get("decisions", {}).get("chief_gifted_in", "")) == "gifted":
 		choices.append(_choice("resolve:goblin_alliance", "You don't have to leave. Stay."))
 	choices.append(_choice("start:" + QUEST_ID, "I could help you, for the right price."))
 	choices.append(_choice("read_the_room", "Try to read him."))
@@ -291,8 +291,8 @@ static func mark_northwatch_taken(journal: CampaignJournal) -> Dictionary:
 	return CompanionCampaignContent.complete_objective(journal, SPY_QUEST_ID, "northwatch_taken")
 
 static func _resolve_threat(journal: CampaignJournal, resolution: String) -> Dictionary:
-	var started := _ensure_started(journal, QUEST_ID)
-	if not bool(started.get("ok", false)) and String(started.get("reason", "")) != "quest_already_started":
+	var started := _start_or_existing(journal, QUEST_ID)
+	if not bool(started.get("ok", false)):
 		return started
 	return CompanionCampaignContent.complete_with_decision(journal, QUEST_ID, "resolved", "resolution", resolution)
 
