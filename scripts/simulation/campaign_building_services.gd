@@ -102,7 +102,7 @@ func get_daily_stock(building_id: String, world_seconds: float) -> Array[Diction
 	for item_id_value in item_ids:
 		var item_id := String(item_id_value)
 		var definition := ItemCatalog.get_definition(item_id)
-		if definition.is_empty() or not definition.has("buyPrice") or int(definition.get("buyPrice", 0)) <= 0:
+		if definition.is_empty() or _base_item_price(item_id, definition) <= 0:
 			continue
 		var variant_count := 1
 		if kind == "clothier":
@@ -253,7 +253,7 @@ func purchase_horse(
 	var price := int(tier.get("price", HORSE_BASE_PRICE))
 	if buyer.gold < price:
 		return _failure("insufficient_gold", {"price": price})
-	var spawn_hex := _find_clear_neighbour(simulation, buyer.axial)
+	var spawn_hex: Variant = _find_clear_neighbour(simulation, buyer.axial)
 	if spawn_hex == null:
 		return _failure("no_clear_spawn_hex")
 	var horse_id := "owned_horse_%04d" % next_horse_id
@@ -325,7 +325,7 @@ func _make_stock_entry(
 	var item := ItemCatalog.get_definition(item_id)
 	var appearance: Dictionary = {}
 	var design_name := "Standard"
-	var price := int(item.get("buyPrice", 0))
+	var price := _base_item_price(item_id, item)
 	if service_kind == "clothier":
 		appearance = _random_clothing_appearance(building_id, day_index, item_id, variant_index)
 		design_name = _appearance_name(appearance, "clothing")
@@ -386,6 +386,13 @@ func _validate_commission_appearance(kind: String, appearance: Dictionary) -> Di
 	return {"ok": true}
 
 
+func _base_item_price(item_id: String, item: Dictionary) -> int:
+	var catalogue_price := int(item.get("buyPrice", 0))
+	if catalogue_price > 0:
+		return catalogue_price
+	return int(CLOTHING_BASE_PRICES.get(item_id, 0))
+
+
 func _commission_price(kind: String, item: Dictionary, appearance: Dictionary) -> int:
 	var item_id := String(item.get("id", ""))
 	var base_price := int(item.get("buyPrice", CLOTHING_BASE_PRICES.get(item_id, 20)))
@@ -432,9 +439,9 @@ func _create_styled_instance(item_id: String, design_name: String, appearance: D
 func _appearance_name(appearance: Dictionary, section_name: String) -> String:
 	var section: Dictionary = appearance.get(section_name, {})
 	var names: Array[String] = []
-	for layer_value in section.values():
-		var layer: Dictionary = layer_value
-		if section_name == "armour" and String(layer_value) == "metal":
+	for layer_key in section.keys():
+		var layer: Dictionary = section[layer_key]
+		if section_name == "armour" and String(layer_key) == "metal":
 			continue
 		var nearest := "Custom"
 		var best_distance := INF
@@ -445,7 +452,12 @@ func _appearance_name(appearance: Dictionary, section_name: String) -> String:
 				best_distance = distance
 				nearest = String(palette.name)
 		names.append(nearest)
-	return " / ".join(names) if not names.is_empty() else "Standard"
+	var result := ""
+	for name in names:
+		if not result.is_empty():
+			result += " / "
+		result += name
+	return result if not result.is_empty() else "Standard"
 
 
 func _appearance_price_multiplier(appearance: Dictionary) -> float:
