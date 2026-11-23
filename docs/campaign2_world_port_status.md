@@ -80,6 +80,11 @@ A location is not marked ported merely because its marker appears on the macro m
 
 Campaign content parity takes priority over bespoke creature modelling. Where a dedicated model would delay a playable port, use the closest existing rig as a clearly documented temporary stand-in. Goblins use the shared Ara male rig with green skin and per-character short/slim scaling; their campaign IDs, faction, side, dialogue, equipment and quest metadata remain independent of that visual choice. Replace the model later without changing those systems. Do not let missing spider, goblin or orc models block the source content port.
 
+
+## Persistent settlement character state
+
+The streamed settlement builder now registers canonical named NPCs with the shared `WorldSimulation` before their presentation chunks are loaded. Their `CharacterState` records retain stable IDs, race, faction/dialogue tags, authored progression or source monster skills, neutral/dormant starting state and captive tags. Chunk actors are disposable presentation: they follow simulation movement while loaded and are recreated at the saved axial position after chunk unload/reload. This is the foundation for connecting NPC interactions, combat activation, patrols and rescues without making the presentation chunk own character identity.
+
 ## Skarn-tooth campaign logic port
 
 The source-backed `GoblinCampCampaignContent` now defines the chief's initial dialogue choices, the 60-gold gift gate, favor choices, and persistent quest outcomes for diplomacy, permanent alliance, assault, stealth succession and betrayal. It also registers the Emberlode mine-raid, foreign scout-note and Northwatch spy follow-ups. Faction reputation and quest decisions are written to the existing `CampaignJournal`; region-stat, XP, gold, Aldric-rescue and companion-departure effects are returned to the campaign composition layer rather than applied by the dialogue panel.
