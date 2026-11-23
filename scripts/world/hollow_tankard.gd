@@ -164,14 +164,6 @@ func _ready() -> void:
 		_run_opening_sequence()
 
 func _create_materials() -> void:
-			_run_opening_sequence()
-	else:
-		var save_manager := _save_manager_service()
-		if save_manager != null:
-			save_manager.call("save_autosave", _build_save_snapshot())
-		_run_opening_sequence()
-
-func _create_materials() -> void:
 	grass_material = _material(Color(0.28, 0.38, 0.27))
 	floor_material = _material(Color(0.35, 0.25, 0.16))
 	blocked_material = _material(Color(0.30, 0.29, 0.25))
