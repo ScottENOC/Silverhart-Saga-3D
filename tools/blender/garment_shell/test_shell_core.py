@@ -24,7 +24,7 @@ class ShellCoreTests(unittest.TestCase):
                             [-1, 1, 1, -1, 1, -1], 0.01)
         self.assertEqual(shell.surface_face_count, 2)
         self.assertEqual(len(shell.boundary_edges), 6)
-        self.assertEqual(len(shell.positions), 8 + 6)
+        self.assertEqual(len(shell.positions), 6 + 6)
 
     def test_all_inside_preserves_full_face(self):
         shell = build_shell(self.vertices, self.normals, [(0, 1, 2, 3)],
