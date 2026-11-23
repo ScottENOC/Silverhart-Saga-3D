@@ -20,7 +20,7 @@ func _test_player_male_anatomy_creation_save_restore() -> void:
 
 	var creator_script := load("res://scripts/ui/player_character_creator.gd") as Script
 	assert(creator_script != null, "Player character creator script must load")
-	var creator := creator_script.new() as CanvasLayer
+	var creator: Variant = creator_script.new()
 	creator.preview_enabled = false
 	root.add_child(creator)
 	assert(creator.male_anatomy_length_slider != null)
@@ -50,7 +50,7 @@ func _test_player_male_anatomy_creation_save_restore() -> void:
 	assert(is_equal_approx(float(profile.get("male_anatomy_length_scale", 0.0)), expected_length))
 	assert(is_equal_approx(float(profile.get("male_anatomy_girth_scale", 0.0)), expected_girth))
 
-	var restored := creator_script.new() as CanvasLayer
+	var restored: Variant = creator_script.new()
 	restored.preview_enabled = false
 	root.add_child(restored)
 	assert(restored.body_variant_select.get_item_text(restored.body_variant_select.selected) == "Male")
