@@ -69,6 +69,34 @@ static func register_quest_definitions(journal: CampaignJournal) -> void:
 		if not journal.quest_definitions.has(quest_id):
 			journal.register_quest_definition(definition)
 
+
+static func start_threat(journal: CampaignJournal) -> Dictionary:
+	return _start_or_existing(journal, QUEST_ID)
+
+static func start_mine_raid(journal: CampaignJournal) -> Dictionary:
+	return _start_or_existing(journal, MINE_QUEST_ID)
+
+static func start_northwatch_spy(journal: CampaignJournal) -> Dictionary:
+	return _start_or_existing(journal, SPY_QUEST_ID)
+
+static func complete_mine_raid(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok": false, "reason": "missing_journal"}
+	var raid := resolve_favor(journal, "raid_mine")
+	if not bool(raid.get("ok", false)):
+		return raid
+	var completed := mark_mine_raid_complete(journal)
+	if not bool(completed.get("ok", false)):
+		return completed
+	return {"ok": true, "effects": raid.get("effects", {})}
+
+static func _start_or_existing(journal: CampaignJournal, quest_id: String) -> Dictionary:
+	if journal == null:
+		return {"ok": false, "reason": "missing_journal"}
+	if not journal.quest_state(quest_id).is_empty():
+		return {"ok": true, "already_started": true, "quest_id": quest_id}
+	return journal.start_quest(quest_id)
+
 static func chief_conversation(journal: CampaignJournal, gifted_in: bool = false) -> Dictionary:
 	if journal == null:
 		return {}
@@ -89,7 +117,7 @@ static func chief_conversation(journal: CampaignJournal, gifted_in: bool = false
 			return _conversation("Chief Skarnub", "We're settled here, thanks to you. That mine haul didn't hurt either.", [_choice("continue", "Good.")])
 		if mine.is_empty():
 			return _conversation("Chief Skarnub", "Since you've let us stay... there's a mining camp down the west road. Rich pickings, if you're willing to lead us there.", [_choice("start:" + MINE_QUEST_ID, "I'll help you raid it."), _choice("continue", "Not yet.")])
-		return _conversation("Chief Skarnub", "Well? Are we raiding that mine or not?", [_choice("resolve_favor:raid_mine", "Lead the raid now."), _choice("continue", "Not yet.")])
+		return _conversation("Chief Skarnub", "Well? Are we raiding that mine or not?", [_choice("complete_mine_raid", "Lead the raid now."), _choice("continue", "Not yet.")])
 	if goblin_standing >= 40.0:
 		return _conversation("Chief Skarnub", "You've done right by us. Truth told, this land's more trouble than it's worth — humans always come eventually. Guarantee us safe passage and supplies, and we'll move on. No more blood spilled, on either side.", [_choice("resolve:goblin_diplomacy", "Agreed. Take what you need and go."), _choice("continue", "Not yet.")])
 	var choices: Array[Dictionary] = []
@@ -144,7 +172,6 @@ static func resolve_favor(journal: CampaignJournal, kind: String) -> Dictionary:
 			_apply_reputation(journal, 15.0, 15.0, -15.0, 15.0, "helped goblins raid Emberlode")
 			effects = {"region": {"emberlode": {"security": -20, "prosperity": -25}}, "experience": 50, "gold": 60, "aldric_attitude": -15, "emberlode_raided": true}
 		"raid":
-			_apply_reputation(journal, 30.0, 20.0, -60.0, 30.0, "led goblins against Hollowmere")
 			var completed := _resolve_threat(journal, "betrayal")
 			if not bool(completed.get("ok", false)):
 				return completed
