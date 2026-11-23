@@ -1,0 +1,93 @@
+{
+  "source": "Hex-crpg/fennLivingBoundary.js",
+  "source_build": "20260930-fenn-living-boundary-v1",
+  "quests": [
+    {
+      "id": "fenn_living_boundary",
+      "title": "The Living Boundary",
+      "companion": "Fenn Oakheart",
+      "companion_id": "fenn_oakheart",
+      "chapter": 1,
+      "description": "Find out what the changed drainage from Emberwood Grove is doing to Old Mac’s pasture, and decide with Fenn where the new boundary between farm and wetland should lie.",
+      "opening": "Fenn has been quiet since the road passed near Emberwood. “The spring is running differently. Storm brought an alder down across the old channel, and the water’s spread into the low ground south of the grove. Nessa calls it a marsh now.” He glances toward the farm road. “That low ground keeps going. Straight into Mac’s pasture. I grew up being told that when water finds a new course, you listen before you move it back. I’m starting to think listening includes the people standing in it.”",
+      "opening_choices": [
+        {"id":"hear_both_sides","label":"“We should hear what both sides are losing.”"},
+        {"id":"nature_not_interference","label":"“A new marsh is still nature. Why interfere?”","response":"Fenn rubs a thumb over a leaf stem. “Maybe we shouldn’t. But Mac’s sheep are nature too, if we’re being honest, and so is the old man trying to keep them fed. I’d rather know the cost before pretending doing nothing has none.”"}
+      ],
+      "clues": {
+        "changed_flow": {
+          "label":"The grove spring has changed course",
+          "text":"Fenn has noticed that water leaving Emberwood Grove is spreading south instead of following its old narrow drainage line. A storm-felled alder appears to have changed the flow.",
+          "automatic":true
+        },
+        "flooded_pasture": {
+          "label":"Old Mac’s lower pasture is waterlogged",
+          "text":"The new flow has saturated Old Mac’s lower meadow. If it stays wet through the season, he will lose much of his hay crop and have less safe grazing for the sheep.",
+          "required":true,
+          "actor_id":"old_mac_human_male",
+          "speaker":"Old Mac",
+          "dialogue":"Mac points toward the lower meadow. Water gleams between the grass stems where the ground should be firm. “Pretty from a distance. Useless for hay. Another month and I’ll be buying winter feed I can’t afford, assuming the sheep don’t start rotting their feet first.” He squints toward the tree line. “I’m not asking to pave the grove. I’m asking for the ditch that kept my field dry for thirty years.”",
+          "response":"We’ll hear the grove out as well."
+        },
+        "young_marsh": {
+          "label":"The blockage has created a young reed-marsh",
+          "text":"Elder Nessa explains that the new wet ground is already holding frogs, insects and medicinal plants, and slowing dirty runoff before it reaches the grove spring. Removing it completely would restore the old drainage but destroy an emerging habitat.",
+          "required":true,
+          "actor_id":"elder_nessa_wren_elf_female",
+          "speaker":"Elder Nessa Wren",
+          "dialogue":"Nessa does not pretend the marsh is ancient. “It is one season old. That does not make it imaginary.” She lists what has already appeared there: frogs, sedges, medicinal watermint, dragonflies, nesting reed birds. “The slow water is also catching farm runoff before it reaches our spring. Cut the alder out and scour the old ditch clean, and Mac gets his meadow back. We lose what has begun here.”",
+          "response":"So doing nothing has a cost, and undoing it has a cost."
+        },
+        "old_channel": {
+          "label":"The old channel could carry a controlled spillway",
+          "text":"Careful reading of the banks shows the former drainage line still exists beneath the reeds. A narrow maintained spillway could lower the pasture water without draining the entire marsh, though both farm and grove would have to accept a changed boundary.",
+          "optional":true,
+          "skill_gate":"nature_or_perception",
+          "dialogue":"You and Fenn trace the bank until the reeds thin. The former channel is still there, shallow but continuous. Fenn crouches over it. “A narrow spillway could take the worst water off the pasture without emptying the whole marsh. Not free. Not untouched. But possible.”"
+        }
+      },
+      "required_clues": ["flooded_pasture", "young_marsh"],
+      "resolutions": {
+        "preserve_marsh": {
+          "label":"Preserve the marsh. Mac will have to adapt.",
+          "relationship":{"approval":6,"trust":6,"familiarity":4},
+          "affinity":{"friendship":5,"romanticBond":1},
+          "arc":{"stewardship":-15,"independence":-4},
+          "line":"Fenn watches the reeds move in the breeze. “Nessa will say we listened. Mac will say we listened to everyone except him.” He exhales. “I think preserving something can still be the right choice. I just don’t want to call the cost nothing.”",
+          "npc_reputation":{"old_mac_human_male":{"standing":-10,"knowledge":8},"elder_nessa_wren_elf_female":{"standing":10,"knowledge":8}},
+          "flags":{"pasture_protected":false,"marsh_preserved":true,"managed_flow":false,"compensated_farm":false}
+        },
+        "drain_marsh": {
+          "label":"Restore the old drainage and give Mac his pasture back.",
+          "relationship":{"approval":-6,"trust":3,"familiarity":5},
+          "affinity":{"friendship":-2,"romanticBond":-1},
+          "arc":{"stewardship":18,"independence":10},
+          "line":"Fenn is unhappy, but not evasive. “I wouldn’t have chosen to lose the marsh. But Mac’s winter is real, and you heard Nessa before deciding.” He looks back at the water. “If I’m going to disagree with you, I’d rather disagree about an honest choice than a convenient one.”",
+          "npc_reputation":{"old_mac_human_male":{"standing":10,"knowledge":8},"elder_nessa_wren_elf_female":{"standing":-12,"knowledge":8}},
+          "flags":{"pasture_protected":true,"marsh_preserved":false,"managed_flow":false,"compensated_farm":false}
+        },
+        "compensate_preserve": {
+          "label":"Keep the marsh and spend 60 gold helping Mac protect higher ground.",
+          "cost_gold":60,
+          "relationship":{"approval":9,"trust":9,"familiarity":5},
+          "affinity":{"friendship":7,"romanticBond":2},
+          "arc":{"stewardship":-8,"independence":7},
+          "line":"Fenn smiles at last. “Keep the marsh, help Mac move the pressure somewhere else. Expensive answer.” He nudges your shoulder. “I’m learning you have a weakness for expensive answers that let two stubborn people both keep breathing.”",
+          "npc_reputation":{"old_mac_human_male":{"standing":10,"knowledge":8},"elder_nessa_wren_elf_female":{"standing":8,"knowledge":8}},
+          "flags":{"pasture_protected":true,"marsh_preserved":true,"managed_flow":false,"compensated_farm":true}
+        },
+        "managed_spillway": {
+          "label":"Build a controlled spillway: preserve most of the marsh and protect the pasture.",
+          "relationship":{"approval":11,"trust":12,"familiarity":6},
+          "affinity":{"friendship":8,"romanticBond":3,"attraction":1},
+          "arc":{"stewardship":12,"independence":13},
+          "line":"Fenn watches the first controlled flow pull away from the pasture without emptying the marsh. “Messier than Nessa wanted. Less dry than Mac wanted.” A grin. “Which may be how you know nobody was simply ignored.”",
+          "line_with_channel":"Fenn looks over the narrow spillway, then the standing reeds beyond it. “Not restored. Not untouched. Managed.” He smiles, a little surprised by the word. “The grove taught me change isn’t the same thing as damage. I suppose that applies when people are part of the change too.”",
+          "channel_relationship_bonus":{"trust":2},
+          "npc_reputation":{"old_mac_human_male":{"standing":6,"knowledge":8},"elder_nessa_wren_elf_female":{"standing":6,"knowledge":8}},
+          "flags":{"pasture_protected":true,"marsh_preserved":true,"managed_flow":true,"compensated_farm":false}
+        }
+      }
+    }
+  ]
+}
