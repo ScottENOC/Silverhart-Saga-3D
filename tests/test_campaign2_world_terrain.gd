@@ -44,6 +44,20 @@ func _initialize() -> void:
 		_check(preview.materials.has(terrain_id), "Regional preview must render the %s terrain instead of leaving a hole" % terrain_id)
 	preview.free()
 	_check(terrain.terrain_for_hex(Vector2i(120, 40)) == terrain.terrain_for_hex(Vector2i(120, 40)), "Terrain must be deterministic")
+	# Shared terrain vertices must be identical when generated from either
+	# side of a chunk boundary. The same three global cells define each vertex.
+	var seam_hex := Vector2i(23, -11)
+	_check(is_equal_approx(
+		terrain.shared_vertex_elevation(seam_hex, 0),
+		terrain.shared_vertex_elevation(seam_hex + HexGrid.DIRECTIONS[0], 4)
+	), "Adjacent chunks must calculate the same shared boundary vertex height")
+	_check(is_equal_approx(
+		terrain.shared_vertex_elevation(seam_hex, 1),
+		terrain.shared_vertex_elevation(seam_hex + HexGrid.DIRECTIONS[5], 5)
+	), "Shared vertex heights must agree across a second axial edge orientation")
+	_check(terrain.shared_vertex_elevation(seam_hex, -1) == terrain.elevation_for_hex(seam_hex), "Invalid corner indices must safely fall back to the cell height")
+	_test_strategic_road_elevation(terrain)
+	_test_water_surface_and_shoreline(terrain)
 	_check(terrain.terrain_for_hex(Vector2i(-43, -343)) == "keep_wall", "Chapterhouse keep wall must resolve to its own terrain type")
 	_check(not terrain.is_walkable_for_hex(Vector2i(-43, -343)), "Keep-wall cells must block traversal")
 	if failures > 0:
@@ -52,6 +66,78 @@ func _initialize() -> void:
 		return
 	print("Campaign 2 world terrain tests passed.")
 	quit(0)
+
+
+func _test_strategic_road_elevation(terrain) -> void:
+	_check(not terrain.road_cells.is_empty(), "The source road manifest should populate strategic road cells")
+	var highest_road_elevation := 0.0
+	var maximum_adjacent_grade := 0.0
+	for key in terrain.road_cells:
+		var coordinates := String(key).split(",")
+		if coordinates.size() != 2:
+			continue
+		var hex := Vector2i(int(coordinates[0]), int(coordinates[1]))
+		if terrain.terrain_for_hex(hex) != "path":
+			continue
+		var road_height: float = terrain.elevation_for_hex(hex)
+		highest_road_elevation = maxf(highest_road_elevation, road_height)
+		for direction in HexGrid.DIRECTIONS:
+			var neighbour := hex + direction
+			if not terrain.road_cells.has("%d,%d" % [neighbour.x, neighbour.y]):
+				continue
+			if terrain.terrain_for_hex(neighbour) != "path":
+				continue
+			maximum_adjacent_grade = maxf(
+				maximum_adjacent_grade,
+				absf(road_height - terrain.elevation_for_hex(neighbour))
+			)
+	_check(
+		highest_road_elevation > 0.05,
+		"Strategic roads outside the flat village should inherit some surrounding terrain elevation"
+	)
+	_check(
+		maximum_adjacent_grade <= 2.0,
+		"Adjacent strategic road cells should not form abrupt vertical steps (max observed %.2fm)" % maximum_adjacent_grade
+	)
+
+
+func _test_water_surface_and_shoreline(terrain) -> void:
+	var water_hex := Vector2i(100, -27)
+	_check(terrain.terrain_for_hex(water_hex) == "water", "The shoreline test anchor must remain a stream cell")
+	for corner_index in range(HexGrid.SIDE_COUNT):
+		_check(
+			is_equal_approx(terrain.shared_vertex_elevation(water_hex, corner_index), terrain.WATER_SURFACE_ELEVATION),
+			"Every vertex around a water hex must remain on the same flat water datum"
+		)
+	var found_land_boundary := false
+	var corners := HexGrid.corner_offsets(HexGrid.DEFAULT_RADIUS_M)
+	for direction in HexGrid.DIRECTIONS:
+		var neighbour := water_hex + direction
+		if terrain.terrain_for_hex(neighbour) in ["water", "void"]:
+			continue
+		for water_corner in range(HexGrid.SIDE_COUNT):
+			var water_vertex := HexGrid.axial_to_world(water_hex, HexGrid.DEFAULT_RADIUS_M) + Vector3(
+				corners[water_corner].x, 0.0, corners[water_corner].y
+			)
+			for land_corner in range(HexGrid.SIDE_COUNT):
+				var land_vertex := HexGrid.axial_to_world(neighbour, HexGrid.DEFAULT_RADIUS_M) + Vector3(
+					corners[land_corner].x, 0.0, corners[land_corner].y
+				)
+				if water_vertex.distance_to(land_vertex) > 0.001:
+					continue
+				found_land_boundary = true
+				_check(
+					is_equal_approx(
+						terrain.shared_vertex_elevation(water_hex, water_corner),
+						terrain.shared_vertex_elevation(neighbour, land_corner)
+					),
+					"Water and adjoining land must share exactly the same shoreline vertex height"
+				)
+	_check(found_land_boundary, "The stream test anchor must include an adjoining land shoreline")
+	_check(
+		is_equal_approx(terrain.elevation_for_hex(water_hex), terrain.WATER_SURFACE_ELEVATION),
+		"Water gameplay elevation must remain unchanged by shoreline presentation"
+	)
 
 func _check(condition: bool, message: String) -> void:
 	if not condition:

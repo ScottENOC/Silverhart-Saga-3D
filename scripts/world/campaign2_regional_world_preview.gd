@@ -4,6 +4,9 @@ extends Node3D
 
 const TERRAIN_DATA_SCRIPT = preload("res://scripts/world/campaign2_world_terrain_data.gd")
 const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_terrain.gd")
+const WORLD_VEGETATION_SCRIPT = preload("res://scripts/world/world_vegetation_generator.gd")
+const HEARTLAND_BIOMES = preload("res://data/world/regions/silverhart_heartland/biomes.gd")
+const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
 const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
 const WALL_FEATURE_FACTORY = preload("res://scripts/world/world_wall_feature_factory.gd")
 const LOCATION_LOADER_SCRIPT = preload("res://scripts/world/campaign2_location_loader.gd")
@@ -26,8 +29,6 @@ var rotating := false
 var panning := false
 var last_stream_centre := Vector2i(999999, 999999)
 var materials: Dictionary = {}
-var tree_crown_mesh: Mesh
-var tree_trunk_mesh: Mesh
 var terrain_meshes: Dictionary = {}
 var marker_locations: Dictionary = {}
 var movement_controller: WorldPlayerMovementController
@@ -83,18 +84,6 @@ func _create_materials() -> void:
 		"water": _material(Color("#3d9fc2"), 0.28),
 		"path": _material(Color("#b79b70"))
 	}
-	var crown := CylinderMesh.new()
-	crown.bottom_radius = 0.82
-	crown.top_radius = 0.02
-	crown.height = 2.8
-	crown.radial_segments = 6
-	tree_crown_mesh = crown
-	var trunk := CylinderMesh.new()
-	trunk.top_radius = 0.12
-	trunk.bottom_radius = 0.17
-	trunk.height = 0.9
-	trunk.radial_segments = 6
-	tree_trunk_mesh = trunk
 
 func _material(colour: Color, roughness: float = 0.92) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
@@ -255,8 +244,6 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 		surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 		surface.set_material(materials[terrain])
 		tools[terrain] = surface
-	var tree_transforms: Array[Transform3D] = []
-	var trunk_transforms: Array[Transform3D] = []
 	var chunk_min := chunk * CHUNK_SIZE
 	_populate_chunk_gameplay_cells(chunk)
 	for q in range(chunk_min.x, chunk_min.x + CHUNK_SIZE):
@@ -268,14 +255,7 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 			var elevation := terrain_data.elevation_for_hex(hex)
 			var wall_height := WALL_FEATURE_FACTORY.height_for_terrain(terrain)
 			_add_hex_to_surface(tools[terrain] as SurfaceTool, hex, elevation + wall_height)
-			if terrain_data.has_tree(hex) and terrain_data.settlement_definition_registry.resolve(hex).is_empty():
-				var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
-				var size_roll := LOCAL_TERRAIN_RULES.stable_roll(hex, 2909)
-				var scale := 0.72 + size_roll * 0.5
-				var rotation := size_roll * TAU
-				var basis := Basis(Vector3.UP, rotation).scaled(Vector3(scale, scale, scale))
-				tree_transforms.append(Transform3D(basis, centre + Vector3(0.0, 1.35 * scale, 0.0)))
-				trunk_transforms.append(Transform3D(Basis(Vector3.UP, rotation).scaled(Vector3(scale, scale, scale)), centre + Vector3(0.0, 0.45 * scale, 0.0)))
+
 	for terrain in tools:
 		var mesh := (tools[terrain] as SurfaceTool).commit()
 		if mesh == null:
@@ -285,8 +265,10 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 		instance.mesh = mesh
 		instance.material_override = materials[terrain]
 		root.add_child(instance)
-	_add_multimesh(root, "ForestCrowns", tree_crown_mesh, tree_transforms)
-	_add_multimesh(root, "ForestTrunks", tree_trunk_mesh, trunk_transforms)
+	var vegetation_placements := _wilderness_vegetation_placements_for_chunk(chunk_min, CHUNK_SIZE)
+	var vegetation_spawned := WORLD_VEGETATION_SCRIPT.generate_authored_placements(root, vegetation_placements)
+	if vegetation_spawned != vegetation_placements.size():
+		push_warning("Regional wilderness vegetation spawned %d of %d GLB models." % [vegetation_spawned, vegetation_placements.size()])
 	var wall_result: Dictionary = WALL_FEATURE_FACTORY.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS, materials)
 	if not bool(wall_result.get("ok", false)):
 		push_warning("Regional wall presentation failed: %s" % wall_result)
@@ -387,6 +369,36 @@ func _on_regional_location_floor_changed(_location_id: String, _previous_floor: 
 	target = _world_position_for_hex(player_state.axial)
 	_update_camera()
 
+
+## Returns stable GLB placements for wilderness forest cells in one streamed chunk.
+## Density remains governed by the source terrain rules; this only replaces the
+## old shared cylinder/sphere tree silhouettes with the committed vegetation catalogue.
+func _wilderness_vegetation_placements_for_chunk(chunk_min: Vector2i, chunk_size: int) -> Array[Dictionary]:
+	var placements: Array[Dictionary] = []
+	for q in range(chunk_min.x, chunk_min.x + chunk_size):
+		for r in range(chunk_min.y, chunk_min.y + chunk_size):
+			var hex := Vector2i(q, r)
+			if not terrain_data.has_tree(hex) or not terrain_data.settlement_definition_registry.resolve(hex).is_empty():
+				continue
+			var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, terrain_data.elevation_for_hex(hex))
+			var size_roll := LOCAL_TERRAIN_RULES.stable_roll(hex, 2909)
+			var near_stream := HEARTLAND_BIOMES.is_near_stream(
+				hex,
+				6.0,
+				REGIONAL_HYDROLOGY.stream_centre_r(hex.x)
+			)
+			var family := HEARTLAND_BIOMES.select_tree_family(hex, near_stream)
+			var seed_value := int(LOCAL_TERRAIN_RULES.stable_roll(hex, 3047) * 2147483646.0)
+			placements.append({
+				"name": "WildernessTree_%d_%d" % [hex.x, hex.y],
+				"position": centre,
+				"family": family,
+				"seed": seed_value,
+				"scale": 0.72 + size_roll * 0.5,
+				"rotation_y": LOCAL_TERRAIN_RULES.stable_roll(hex, 2909) * TAU
+			})
+	return placements
+
 func _populate_chunk_gameplay_cells(chunk: Vector2i) -> void:
 	var chunk_min := chunk * CHUNK_SIZE
 	for q in range(chunk_min.x, chunk_min.x + CHUNK_SIZE):
@@ -437,29 +449,17 @@ func _request_travel_to_screen_position(screen_position: Vector2) -> void:
 		movement_controller.set_destination(destination)
 
 func _add_hex_to_surface(surface: SurfaceTool, hex: Vector2i, elevation: float) -> void:
-	var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, elevation)
-	var corners := HexGrid.corner_offsets(HEX_RADIUS * 1.005)
+	var centre_elevation := terrain_data.WATER_SURFACE_ELEVATION if terrain_data.terrain_for_hex(hex) == "water" else elevation
+	var centre := HexGrid.axial_to_world(hex, HEX_RADIUS, centre_elevation)
+	var corners := HexGrid.corner_offsets(HEX_RADIUS)
 	for index in range(HexGrid.SIDE_COUNT):
 		var next_index := (index + 1) % HexGrid.SIDE_COUNT
+		var next_vertex := Vector3(corners[next_index].x, terrain_data.shared_vertex_elevation(hex, next_index), corners[next_index].y)
+		var current_vertex := Vector3(corners[index].x, terrain_data.shared_vertex_elevation(hex, index), corners[index].y)
 		surface.set_normal(Vector3.UP)
 		surface.add_vertex(centre)
-		surface.add_vertex(centre + Vector3(corners[next_index].x, 0.0, corners[next_index].y))
-		surface.add_vertex(centre + Vector3(corners[index].x, 0.0, corners[index].y))
-
-func _add_multimesh(parent: Node3D, node_name: String, mesh: Mesh, transforms: Array[Transform3D]) -> void:
-	if transforms.is_empty() or mesh == null:
-		return
-	var multi := MultiMesh.new()
-	multi.transform_format = MultiMesh.TRANSFORM_3D
-	multi.mesh = mesh
-	multi.instance_count = transforms.size()
-	for index in range(transforms.size()):
-		multi.set_instance_transform(index, transforms[index])
-	var instance := MultiMeshInstance3D.new()
-	instance.name = node_name
-	instance.multimesh = multi
-	instance.material_override = _material(Color("#315b38") if node_name == "ForestCrowns" else Color("#5b402b"))
-	parent.add_child(instance)
+		surface.add_vertex(HexGrid.axial_to_world(hex, HEX_RADIUS) + next_vertex)
+		surface.add_vertex(HexGrid.axial_to_world(hex, HEX_RADIUS) + current_vertex)
 
 func _add_chunk_locations(parent: Node3D, chunk: Vector2i) -> void:
 	var chunk_min := chunk * CHUNK_SIZE
