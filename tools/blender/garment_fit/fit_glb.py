@@ -34,11 +34,11 @@ def parse_args():
     parser.add_argument("--fit-mode", choices=("existing", "new"), default="existing")
     parser.add_argument("--skin-material", action="append", required=True)
     parser.add_argument("--garment-material", action="append", required=True)
-    parser.add_argument("--clearance-mm", type=float, default=4.0)
-    parser.add_argument("--max-displacement-mm", type=float, default=25.0)
-    parser.add_argument("--max-step-mm", type=float, default=3.0)
-    parser.add_argument("--smoothing", type=float, default=0.2)
-    parser.add_argument("--iterations", type=int, default=20)
+    parser.add_argument("--clearance-mm", type=float, default=None)
+    parser.add_argument("--max-displacement-mm", type=float, default=None)
+    parser.add_argument("--max-step-mm", type=float, default=None)
+    parser.add_argument("--smoothing", type=float, default=None)
+    parser.add_argument("--iterations", type=int, default=None)
     parser.add_argument("--floating-tolerance-mm", type=float, default=15.0)
     return parser.parse_args(raw)
 
@@ -81,18 +81,19 @@ def matching_material_vertices(obj, tokens):
 def build_world_surface_tree(skin, skin_tokens):
     """Build the BVH from evaluated shape keys in the neutral, unposed body."""
     armature_modifiers = [
-        modifier for modifier in skin.modifiers
-        if modifier.type == "ARMATURE" and modifier.show_viewport
+        (modifier, modifier.show_viewport)
+        for modifier in skin.modifiers
+        if modifier.type == "ARMATURE"
     ]
     try:
-        for modifier in armature_modifiers:
+        for modifier, _was_visible in armature_modifiers:
             modifier.show_viewport = False
         bpy.context.view_layer.update()
         depsgraph = bpy.context.evaluated_depsgraph_get()
         evaluated = skin.evaluated_get(depsgraph)
         mesh = evaluated.to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
         try:
-            world_vertices = [skin.matrix_world @ vertex.co for vertex in mesh.vertices]
+            world_vertices = [evaluated.matrix_world @ vertex.co for vertex in mesh.vertices]
             polygons = [
                 list(poly.vertices) for poly in mesh.polygons
                 if poly.material_index < len(skin.material_slots)
@@ -117,8 +118,8 @@ def build_world_surface_tree(skin, skin_tokens):
         finally:
             evaluated.to_mesh_clear()
     finally:
-        for modifier in armature_modifiers:
-            modifier.show_viewport = True
+        for modifier, was_visible in armature_modifiers:
+            modifier.show_viewport = was_visible
         bpy.context.view_layer.update()
 
 
