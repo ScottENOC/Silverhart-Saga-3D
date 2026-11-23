@@ -57,6 +57,20 @@ jobs:
             art/characters/ara_runtime/ara_person_modular_underwear.glb "Briefs"
           test -s build/wren-briefs-fit/wren-briefs-source.glb
 
+      - name: Render unmodified assembled briefs baseline
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 \
+            --python tools/review/render_wren_briefs_fit.py -- \
+            build/wren-briefs-fit/wren-briefs-source.glb \
+            build/wren-briefs-fit/review/source standard_briefs
+          for view in front side rear; do
+            test -s "build/wren-briefs-fit/review/source/standard_briefs/$view.png"
+          done
+
       - name: Fit briefs to Wren's skin surface
         run: |
           set -euo pipefail
@@ -70,8 +84,7 @@ jobs:
             --output build/wren-briefs-fit/wren-standard-briefs-fitted.glb \
             --report build/wren-briefs-fit/fit-report.json \
             --skin-material Skin_Anatomy --garment-material Briefs \
-            --clearance-mm 4 --max-displacement-mm 300 --max-step-mm 2 \
-            --smoothing 0.15 --iterations 25 --floating-tolerance-mm 15 || fit_status=$?
+            --fit-mode existing || fit_status=$?
           test -s build/wren-briefs-fit/wren-standard-briefs-fitted.glb
           test -s build/wren-briefs-fit/fit-report.json
           echo "FIT_STATUS=$fit_status" >> "$GITHUB_ENV"
@@ -89,11 +102,11 @@ jobs:
           blender --background --python-exit-code 1 \
             --python tools/review/render_wren_briefs_fit.py -- \
             build/wren-briefs-fit/wren-standard-briefs-fitted.glb \
-            build/wren-briefs-fit/review standard_briefs
+            build/wren-briefs-fit/review/fitted standard_briefs
           for view in front side rear; do
-            test -s "build/wren-briefs-fit/review/standard_briefs/$view.png"
+            test -s "build/wren-briefs-fit/review/fitted/standard_briefs/$view.png"
           done
-          test -s build/wren-briefs-fit/review/standard_briefs/report.json
+          test -s build/wren-briefs-fit/review/fitted/standard_briefs/report.json
 
       - name: Upload fit diagnostics, including failed fits
         if: always()
