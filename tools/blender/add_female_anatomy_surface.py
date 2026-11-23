@@ -478,13 +478,65 @@ def apply_anatomy_pigmentation(skin, anatomy_z, width, height):
     print(f"Anatomy pigmentation assigned to {painted} skin vertices")
     return colour
 
-def add_correspondence_uv_layer(mesh, name="CorrespondenceID"):
-    """Encode each pre-export vertex index in a dedicated UV channel.
+def build_vulva_mons_region_weights(skin, hipline_z, height):
+    """Build one combined external vulva + mons pubis surface mask.
 
-    GLB exporters may split/reorder vertices at UV/material seams. TEXCOORD_1
-    carries a stable identity shared by every loop belonging to one Blender
-    vertex, allowing the morph builder to recover exact correspondence.
+    Uses the same midline arc-length coordinate system as the Ara anatomy
+    sculpt. The result is one [0, 1] weight per skin vertex, with soft edges.
     """
+    P = FEMALE_ANATOMY
+    k = height / 1.687
+    line, arc = _surface_midline(skin, hipline_z, k)
+    introitus_index = _locate_introitus(line, arc, k)
+    sA = arc[introitus_index]
+    prep = _prep_line(line, arc)
+    mw = skin.matrix_world
+    hip_lo, hip_hi = hipline_z - 0.15 * k, hipline_z + 0.10 * k
+    t_lo = P["t_fourchette"] - 0.025
+    t_vulva_hi = P["t_hood"] + 0.020
+    t_top = P["t_mons"] + 0.055
+    worlds = [mw @ vertex.co for vertex in skin.data.vertices]
+    weights = [0.0] * len(worlds)
+    candidate_indices = [
+        index for index, point in enumerate(worlds)
+        if abs(point.x) <= 0.070 * k and hip_lo <= point.z <= hip_hi and point.y <= 0.02
+    ]
+    s_values, distances = _project_many(
+        prep,
+        [worlds[index].y for index in candidate_indices],
+        [worlds[index].z for index in candidate_indices],
+    )
+    for index, surface_s, distance in zip(candidate_indices, s_values, distances):
+        vertex = skin.data.vertices[index]
+        point = worlds[index]
+        normal = (mw.to_3x3() @ vertex.normal).normalized()
+        if normal.y > 0.35:
+            continue
+        t = (sA - surface_s) / k
+        x = point.x / k
+        surface_distance = distance / k
+        if t < t_lo or t > t_top or surface_distance > 0.035:
+            continue
+        vulva_envelope = _env(t, t_lo, t_vulva_hi, 0.012)
+        vulva_lateral = math.exp(-0.5 * (x / 0.038) ** 2)
+        mons = _g2(x, t - P["t_mons"], 0.052, 0.050)
+        lateral_fade = 1.0 - _ss(0.055, 0.070, abs(x))
+        surface_fade = 1.0 - _ss(0.015, 0.035, surface_distance)
+        weights[index] = max(vulva_envelope * vulva_lateral, mons) * lateral_fade * surface_fade
+    return weights
+
+
+def add_correspondence_uv_layer(mesh, name="CorrespondenceID", region_weights=None):
+    """Encode stable vertex identity in TEXCOORD_1.x and one region mask in .y.
+
+    The morph builder intentionally reads only .x for CorrespondenceID. The
+    second component is therefore available for a semantic mask without
+    changing the existing vertex-correspondence contract.
+    """
+    if region_weights is not None and len(region_weights) != len(mesh.vertices):
+        raise RuntimeError(
+            f"Region mask has {len(region_weights)} weights for {len(mesh.vertices)} vertices"
+        )
     layer = mesh.uv_layers.get(name)
     if layer is not None:
         mesh.uv_layers.remove(layer)
@@ -492,10 +544,15 @@ def add_correspondence_uv_layer(mesh, name="CorrespondenceID"):
     count = max(len(mesh.vertices), 1)
     for loop in mesh.loops:
         vertex_id = int(loop.vertex_index)
-        layer.data[loop.index].uv = ((vertex_id + 0.5) / count, 0.375)
+        weight = float(region_weights[vertex_id]) if region_weights is not None else 0.0
+        layer.data[loop.index].uv = ((vertex_id + 0.5) / count, weight)
     mesh.update()
     mesh["correspondence_uv_layer"] = name
-    print(f"Added {name} TEXCOORD identity for {len(mesh.vertices)} source vertices")
+    mesh["region_mask_uv_component"] = "TEXCOORD_1.y"
+    print(
+        f"Added {name} TEXCOORD identity and vulva_mons_pubis mask "
+        f"for {len(mesh.vertices)} source vertices"
+    )
 
 
 def build_bvh(obj):
@@ -702,8 +759,13 @@ def main():
                          if b.name.lower() in ("hips", "hip", "pelvis")), "Hips")
         create_socket(armature, "SOCKET_ClitoralHood", hood_location, hood_normal, hip_name)
 
-    # Preserve shared-subdivision vertex identity through GLB indexed export.
-    add_correspondence_uv_layer(skin.data)
+    # Preserve shared-subdivision vertex identity and carry the combined
+    # vulva + mons pubis semantic mask in TEXCOORD_1.y. TEXCOORD_1.x remains
+    # the exact correspondence ID consumed by the morph builder.
+    vulva_mons_weights = build_vulva_mons_region_weights(skin, hipline_z, height)
+    add_correspondence_uv_layer(skin.data, region_weights=vulva_mons_weights)
+    skin["anatomy_region_mask"] = "vulva_external_including_mons_pubis"
+    skin["anatomy_region_mask_channel"] = "TEXCOORD_1.y"
 
     bpy.ops.object.select_all(action="DESELECT")
     for obj in bpy.context.scene.objects:
@@ -752,6 +814,24 @@ def main():
     )
     if exported_colour is None:
         raise RuntimeError("Anatomy pigmentation did not survive GLB export/re-import")
+    if len(exported_skin.data.uv_layers) < 2:
+        raise RuntimeError("Vulva/mons semantic mask TEXCOORD_1 did not survive GLB export/re-import")
+    exported_mask_layer = exported_skin.data.uv_layers[1]
+    exported_mask_by_vertex = [None] * len(exported_skin.data.vertices)
+    for loop in exported_skin.data.loops:
+        uv = exported_mask_layer.data[loop.index].uv
+        value = (round(float(uv.x), 7), round(float(uv.y), 6))
+        previous = exported_mask_by_vertex[loop.vertex_index]
+        if previous is not None and previous != value:
+            raise RuntimeError(
+                f"Exported TEXCOORD_1 identity/mask differs across loops for vertex {loop.vertex_index}"
+            )
+        exported_mask_by_vertex[loop.vertex_index] = value
+    if any(value is None for value in exported_mask_by_vertex):
+        raise RuntimeError("Exported TEXCOORD_1 does not identify every skin vertex")
+    exported_mask_weighted = sum(value[1] >= 0.15 for value in exported_mask_by_vertex)
+    if exported_mask_weighted == 0:
+        raise RuntimeError("Vulva/mons semantic mask is empty after GLB export/re-import")
     exported_nonwhite = 0
     for item in exported_colour.data:
         rgba = item.color
@@ -775,6 +855,14 @@ def main():
         "exported_colour_vertices": len(exported_colour.data),
         "exported_nonwhite_colour_vertices": exported_nonwhite,
         "anatomy_pigmented_vertex_count": original_pigmented_vertices,
+        "semantic_region_masks": {
+            "vulva_external": {
+                "includes": ["external_vulva", "mons_pubis"],
+                "channel": "TEXCOORD_1.y",
+                "weighted_vertices_at_0_15": exported_mask_weighted,
+                "vertex_count": len(exported_mask_by_vertex)
+            }
+        },
         "vertex_colour_export_mode": "ACTIVE",
         "anatomy_profile": original_anatomy_profile,
         "anatomy_method": original_anatomy_method,

@@ -2,11 +2,14 @@ name: Companion anatomy region review
 
 on:
   push:
-    branches: [feature/ara-garment-fit-guides, feature/full-body-overlapping-anatomy-vocabulary, feature/anatomy-region-authoring-progress]
+    branches: [feature/ara-garment-fit-guides, feature/full-body-overlapping-anatomy-vocabulary, feature/anatomy-region-authoring-progress, feature/topology-aware-anatomy-proposals]
     paths:
       - ".github/workflows/companion-anatomy-region-review.yml"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/paint_vulva_mons_region_mask.py"
       - "tools/review/companion_surface_region_review.gd"
       - "tools/review/wren_bra_anatomy_proposal.gd"
+      - "tools/review/wren_topology_anatomy_proposal.gd"
       - "scripts/characters/character_body_surface.gd"
       - "scripts/characters/character_surface_regions.gd"
       - "scripts/characters/character_surface_region_mask.gd"
@@ -33,7 +36,7 @@ permissions:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 26
     steps:
       - uses: actions/checkout@v6
         with:
@@ -61,6 +64,16 @@ jobs:
           aldric_sha=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$aldric_run" --jq '.head_sha')
           echo "WREN_BUILD_SHA=$wren_sha" >> "$GITHUB_ENV"
           echo "ALDRIC_BUILD_SHA=$aldric_sha" >> "$GITHUB_ENV"
+      - name: Paint Ara-derived vulva and mons pubis region mask for Wren
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 --python tools/blender/paint_vulva_mons_region_mask.py -- --input build/wren-native/Wren.glb --output build/wren-native/Wren_masked.glb --report build/vulva-mons-mask-report.json
+          test -s build/wren-native/Wren_masked.glb
+          test -s build/vulva-mons-mask-report.json
+          mv build/wren-native/Wren_masked.glb build/wren-native/Wren.glb
       - name: Assemble isolated review project
         run: |
           set -euo pipefail
@@ -68,9 +81,12 @@ jobs:
           mkdir -p "$p/build/wren-native" "$p/build/aldric-native" "$p/tools/review" "$p/scripts/characters" "$p/data/characters"
           cp -R data/characters/anatomy_masks "$p/data/characters/"
           cp build/wren-native/Wren.glb "$p/build/wren-native/"
+          cp build/vulva-mons-mask-report.json "$p/vulva-mons-mask-report.json"
+          test -s "$p/vulva-mons-mask-report.json"
           cp build/aldric-native/Aldric.glb "$p/build/aldric-native/"
           cp tools/review/companion_surface_region_review.gd "$p/tools/review/"
           cp tools/review/wren_bra_anatomy_proposal.gd "$p/tools/review/"
+          cp tools/review/wren_topology_anatomy_proposal.gd "$p/tools/review/"
           cp scripts/characters/character_body_surface.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_regions.gd "$p/scripts/characters/"
           cp scripts/characters/character_surface_region_mask.gd "$p/scripts/characters/"
@@ -120,6 +136,9 @@ jobs:
           mkdir -p build/companion-anatomy-review
           cp -R "$p/build/anatomy-review/." build/companion-anatomy-review/
           cp -R "$p/build/wren-bra-proposal" build/companion-anatomy-review/
+          xvfb-run -a -s "-screen 0 1280x1200x24" godot --path "$p" --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/wren_topology_anatomy_proposal.gd
+          for view in front side rear; do test -s "$p/build/wren-anatomy-topology-proposal/$view-topology-candidate.png"; done
+          cp -R "$p/build/wren-anatomy-topology-proposal" build/companion-anatomy-review/
           printf '{"wren_run":%s,"wren_build_sha":"%s","aldric_run":%s,"aldric_build_sha":"%s","review_source_sha":"%s"}\n' "$WREN_RUN" "$WREN_BUILD_SHA" "$ALDRIC_RUN" "$ALDRIC_BUILD_SHA" "$REVIEW_SOURCE_SHA" > build/companion-anatomy-review/source-runs.json
       - uses: actions/upload-artifact@v7
         with:

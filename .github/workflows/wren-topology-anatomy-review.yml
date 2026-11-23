@@ -1,0 +1,109 @@
+name: Wren topology anatomy review
+
+on:
+  push:
+    branches: [feature/topology-aware-anatomy-proposals]
+    paths:
+      - ".github/workflows/wren-topology-anatomy-review.yml"
+      - "tools/review/wren_topology_anatomy_proposal.gd"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/paint_vulva_mons_region_mask.py"
+      - "scripts/characters/character_surface_region_mask.gd"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+      - name: Download latest successful Wren native build from dev
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/wren-native
+          wren_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-wren-native-ara.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id')
+          test "$wren_run" != "null"
+          wren_number=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$wren_run" --jq '.run_number')
+          gh run download "$wren_run" --name "wren-native-ara-$wren_number" --dir build/wren-download
+          cp build/wren-download/Wren.glb build/wren-native/Wren.glb
+          test -s build/wren-native/Wren.glb
+          echo "WREN_RUN=$wren_run" >> "$GITHUB_ENV"
+          wren_sha=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$wren_run" --jq '.head_sha')
+          echo "WREN_BUILD_SHA=$wren_sha" >> "$GITHUB_ENV"
+      - name: Validate anatomy mask Python scripts
+        run: |
+          set -euo pipefail
+          python -m py_compile tools/blender/add_female_anatomy_surface.py tools/blender/paint_vulva_mons_region_mask.py
+      - name: Paint Ara-derived vulva and mons pubis region mask
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \
+            --python tools/blender/paint_vulva_mons_region_mask.py -- \
+            --input build/wren-native/Wren.glb \
+            --output build/wren-native/Wren_masked.glb \
+            --report build/wren-native/vulva-mons-mask-report.json
+          test -s build/wren-native/Wren_masked.glb
+          test -s build/wren-native/vulva-mons-mask-report.json
+          mv build/wren-native/Wren_masked.glb build/wren-native/Wren.glb
+      - name: Assemble minimal topology review project
+        run: |
+          set -euo pipefail
+          p=build/wren-topology-review-project
+          mkdir -p "$p/build/wren-native" "$p/tools/review" "$p/scripts/characters"
+          cp build/wren-native/Wren.glb "$p/build/wren-native/"
+          cp build/wren-native/vulva-mons-mask-report.json "$p/vulva-mons-mask-report.json"
+          test -s "$p/vulva-mons-mask-report.json"
+          ls -l "$p/vulva-mons-mask-report.json"
+          cp tools/review/wren_topology_anatomy_proposal.gd "$p/tools/review/"
+          cp scripts/characters/character_surface_region_mask.gd "$p/scripts/characters/"
+          cat > "$p/project.godot" <<'EOF'
+          config_version=5
+          [application]
+          config/name="Wren Topology Anatomy Review"
+          [rendering]
+          renderer/rendering_method="gl_compatibility"
+          renderer/rendering_method.mobile="gl_compatibility"
+          renderer/rendering_method.web="gl_compatibility"
+          EOF
+      - name: Install Godot 4.7.2
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+      - name: Render topology proposal
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          REVIEW_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+          p=build/wren-topology-review-project
+          godot --headless --editor --path "$p" --quit
+          xvfb-run -a -s "-screen 0 1280x1200x24" godot --path "$p" --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/wren_topology_anatomy_proposal.gd
+          out="$p/build/wren-anatomy-topology-proposal"
+          for view in front side rear arms_front arms_side; do
+            test -s "$out/$view-topology-candidate.png"
+          done
+          test -s "$out/proposal.json"
+          mkdir -p build/wren-topology-anatomy-review
+          cp -R "$out/." build/wren-topology-anatomy-review/
+          cp build/wren-native/vulva-mons-mask-report.json build/wren-topology-anatomy-review/
+          printf '{"wren_run":%s,"wren_build_sha":"%s","review_source_sha":"%s"}\n' "$WREN_RUN" "$WREN_BUILD_SHA" "$REVIEW_SOURCE_SHA" > build/wren-topology-anatomy-review/source-runs.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wren-topology-anatomy-review
+          path: build/wren-topology-anatomy-review/
+          if-no-files-found: error
+          retention-days: 30

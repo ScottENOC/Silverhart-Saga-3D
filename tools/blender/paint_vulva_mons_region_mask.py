@@ -1,0 +1,316 @@
+#!/usr/bin/env python3
+"""Paint the combined Ara vulva + mons pubis region into TEXCOORD_1.y.
+
+This is a review-pipeline adapter for an already anatomy-integrated Wren GLB.
+It reuses the exact surface-coordinate helpers and anatomical parameters from
+add_female_anatomy_surface.py. TEXCOORD_1.x (CorrespondenceID) is preserved.
+"""
+import argparse
+import json
+import os
+import struct
+import sys
+
+import bpy
+from mathutils import Vector
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from add_female_anatomy_surface import (
+    build_vulva_mons_region_weights,
+    material_name,
+    mesh_world_bounds,
+    pelvis_landmark_from_leg_roots,
+)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--report", required=True)
+    return parser.parse_args(sys.argv[sys.argv.index("--") + 1:])
+
+
+def clear_scene():
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.object.delete(use_global=False)
+
+
+def find_skin_and_rig():
+    meshes = [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
+    armature = next((obj for obj in bpy.context.scene.objects if obj.type == "ARMATURE"), None)
+    skin = max(
+        (obj for obj in meshes if "skin" in material_name(obj)),
+        key=lambda obj: len(obj.data.polygons),
+        default=None,
+    )
+    if skin is None or armature is None:
+        raise RuntimeError("Wren GLB is missing its skin mesh or armature")
+    return meshes, skin, armature
+
+
+def export_scene(path):
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in bpy.context.scene.objects:
+        if obj.type in {"MESH", "ARMATURE", "EMPTY"}:
+            obj.select_set(True)
+    armature = next((obj for obj in bpy.context.scene.objects if obj.type == "ARMATURE"), None)
+    if armature:
+        bpy.context.view_layer.objects.active = armature
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    bpy.ops.export_scene.gltf(
+        filepath=os.path.abspath(path),
+        export_format="GLB",
+        use_selection=True,
+        export_skins=True,
+        export_morph=True,
+        export_animations=True,
+        export_apply=False,
+    )
+
+
+def read_mask_from_uv2(mesh, invert_v=False):
+    # Blender's glTF importer may rename UV layers; the channel position
+    # follows the glTF TEXCOORD_n attribute, not the original Blender name.
+    if len(mesh.uv_layers) < 2:
+        raise RuntimeError(
+            f"Expected TEXCOORD_1/CorrespondenceID; found {len(mesh.uv_layers)} UV channels"
+        )
+    layer = mesh.uv_layers[1]
+    values = [None] * len(mesh.vertices)
+    for loop in mesh.loops:
+        vertex_index = loop.vertex_index
+        uv = layer.data[loop.index].uv
+        mask_value = 1.0 - float(uv.y) if invert_v else float(uv.y)
+        pair = (round(float(uv.x), 7), round(mask_value, 6))
+        if values[vertex_index] is not None and values[vertex_index] != pair:
+            raise RuntimeError(
+                f"Vertex {vertex_index} has inconsistent TEXCOORD_1 identity/mask values"
+            )
+        values[vertex_index] = pair
+    if any(value is None for value in values):
+        raise RuntimeError("TEXCOORD_1 does not identify every skin vertex")
+    return values
+
+
+
+def inspect_glb_texcoord1(path, source_by_id):
+    """Read TEXCOORD_1 directly from GLB and compare its V channel to source weights."""
+    source_vertex_count = len(source_by_id)
+    expected_weights_by_id = {
+        int(round(float(encoded_id) * source_vertex_count - 0.5)): float(weight)
+        for encoded_id, weight in source_by_id.items()
+    }
+    with open(path, "rb") as handle:
+        blob = handle.read()
+    if len(blob) < 20:
+        raise RuntimeError("Exported GLB is too small to contain a JSON chunk")
+    magic, version, total_length = struct.unpack_from("<4sII", blob, 0)
+    if magic != b"glTF" or version != 2 or total_length != len(blob):
+        raise RuntimeError("Exported file is not a valid GLB 2.0 container")
+    offset = 12
+    document = None
+    binary_chunk = None
+    while offset + 8 <= len(blob):
+        chunk_length, chunk_type = struct.unpack_from("<II", blob, offset)
+        offset += 8
+        chunk = blob[offset:offset + chunk_length]
+        offset += chunk_length
+        if chunk_type == 0x4E4F534A:
+            document = json.loads(chunk.decode("utf-8"))
+        elif chunk_type == 0x004E4942:
+            binary_chunk = chunk
+    if document is None or binary_chunk is None:
+        raise RuntimeError("Exported GLB is missing JSON or BIN chunk")
+
+    primitives = []
+    all_ids = set()
+    for mesh_index, mesh in enumerate(document.get("meshes", [])):
+        for primitive_index, primitive in enumerate(mesh.get("primitives", [])):
+            accessor_index = primitive.get("attributes", {}).get("TEXCOORD_1")
+            if accessor_index is None:
+                continue
+            accessor = document["accessors"][accessor_index]
+            if accessor.get("componentType") != 5126 or accessor.get("type") != "VEC2":
+                raise RuntimeError(
+                    f"GLB mesh {mesh_index} primitive {primitive_index} TEXCOORD_1 "
+                    "is not FLOAT VEC2"
+                )
+            view = document["bufferViews"][accessor["bufferView"]]
+            stride = view.get("byteStride", 8)
+            start = view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
+            count = accessor["count"]
+            ids = set()
+            weighted_ids = set()
+            invalid = 0
+            direct_weight_matches = 0
+            inverted_weight_matches = 0
+            inverted_weighted_ids = set()
+            min_y = float("inf")
+            max_y = float("-inf")
+            min_id = source_vertex_count
+            max_id = -1
+            for index in range(count):
+                x, y = struct.unpack_from("<ff", binary_chunk, start + index * stride)
+                correspondence_id = int(round(x * source_vertex_count - 0.5))
+                if correspondence_id < 0 or correspondence_id >= source_vertex_count:
+                    invalid += 1
+                    continue
+                ids.add(correspondence_id)
+                min_y = min(min_y, y)
+                max_y = max(max_y, y)
+                expected_weight = expected_weights_by_id[correspondence_id]
+                if abs(y - expected_weight) <= 1e-5:
+                    direct_weight_matches += 1
+                if abs(y - (1.0 - expected_weight)) <= 1e-5:
+                    inverted_weight_matches += 1
+                if y >= 0.15:
+                    weighted_ids.add(correspondence_id)
+                if (1.0 - y) >= 0.15:
+                    inverted_weighted_ids.add(correspondence_id)
+                min_id = min(min_id, correspondence_id)
+                max_id = max(max_id, correspondence_id)
+            all_ids.update(ids)
+            primitives.append({
+                "mesh_index": mesh_index,
+                "primitive_index": primitive_index,
+                "material_index": primitive.get("material"),
+                "accessor_index": accessor_index,
+                "accessor_count": count,
+                "unique_correspondence_ids": len(ids),
+                "weighted_unique_ids_at_0_15": len(weighted_ids),
+                "inverted_weighted_unique_ids_at_0_15": len(inverted_weighted_ids),
+                "direct_weight_matches": direct_weight_matches,
+                "inverted_weight_matches": inverted_weight_matches,
+                "min_texcoord_1_y": min_y if ids else None,
+                "max_texcoord_1_y": max_y if ids else None,
+                "min_decoded_id": min_id if ids else None,
+                "max_decoded_id": max_id if ids else None,
+                "invalid_decoded_values": invalid,
+            })
+    return {
+        "glb_mesh_count": len(document.get("meshes", [])),
+        "glb_texcoord1_primitives": primitives,
+        "glb_unique_correspondence_ids_union": len(all_ids),
+        "glb_missing_correspondence_ids": source_vertex_count - len(all_ids),
+    }
+
+def main():
+    args = parse_args()
+    clear_scene()
+    bpy.ops.import_scene.gltf(filepath=os.path.abspath(args.input))
+    meshes, skin, armature = find_skin_and_rig()
+    if len(skin.data.uv_layers) < 2:
+        raise RuntimeError("Ara anatomy GLB has no TEXCOORD_1 CorrespondenceID channel")
+
+    bounds = [mesh_world_bounds(obj) for obj in meshes]
+    minimum = Vector(tuple(min(bound[0][axis] for bound in bounds) for axis in range(3)))
+    maximum = Vector(tuple(max(bound[1][axis] for bound in bounds) for axis in range(3)))
+    height = maximum.z - minimum.z
+    if height <= 0:
+        raise RuntimeError(f"Invalid Wren character height: {height}")
+    hipline_z = pelvis_landmark_from_leg_roots(armature, height)
+    weights = build_vulva_mons_region_weights(skin, hipline_z, height)
+    if len(weights) != len(skin.data.vertices):
+        raise RuntimeError("Ara surface-coordinate mask does not match the Wren skin vertex count")
+
+    if len(skin.data.uv_layers) < 2:
+        raise RuntimeError("Wren GLB has no TEXCOORD_1 correspondence/mask channel")
+    # The glTF exporter emits the active-render UV map as TEXCOORD_0.
+    # The imported glTF channel order is authoritative: UV layer 0 is TEXCOORD_0,
+    # UV layer 1 is TEXCOORD_1. Keep that order explicit for the re-export.
+    base_layer = skin.data.uv_layers[0]
+    layer = skin.data.uv_layers[1]
+    base_layer.active_render = True
+    layer.active_render = False
+    export_order = [item.name for item in skin.data.uv_layers]
+    print("glTF UV channel export order:", export_order)
+    for loop in skin.data.loops:
+        uv = layer.data[loop.index].uv.copy()
+        # Blender flips glTF V coordinates on export. Store the complement so
+        # the exported TEXCOORD_1.y is the intended mask weight in Godot.
+        uv.y = 1.0 - float(weights[loop.vertex_index])
+        layer.data[loop.index].uv = uv
+    skin.data.update()
+    skin["anatomy_region_mask"] = "vulva_external_including_mons_pubis"
+    skin["anatomy_region_mask_channel"] = "TEXCOORD_1.y"
+
+    source_values = read_mask_from_uv2(skin.data, invert_v=True)
+
+    def canonical_by_correspondence(values):
+        canonical = {}
+        for correspondence_id, weight in values:
+            previous = canonical.get(correspondence_id)
+            if previous is not None and abs(previous - weight) > 1e-5:
+                raise RuntimeError(
+                    f"CorrespondenceID {correspondence_id} carries inconsistent region weights"
+                )
+            canonical[correspondence_id] = weight
+        return canonical
+
+    # glTF may split vertices at material/UV seams. TEXCOORD_1.x is the
+    # stable original vertex ID, so compare canonical IDs rather than raw
+    # imported vertex counts.
+    source_by_id = canonical_by_correspondence(source_values)
+    weighted_vertices = sum(weight >= 0.15 for weight in source_by_id.values())
+    nonzero_vertices = sum(weight > 0.0 for weight in source_by_id.values())
+    if weighted_vertices == 0:
+        raise RuntimeError("Combined vulva/mons pubis mask contains no weighted vertices")
+
+    export_scene(args.output)
+    raw_glb_validation = inspect_glb_texcoord1(args.output, source_by_id)
+
+    # Re-import the GLB to verify that TEXCOORD_1.y survived export and that
+    # the existing correspondence IDs in TEXCOORD_1.x were not changed.
+    clear_scene()
+    bpy.ops.import_scene.gltf(filepath=os.path.abspath(args.output))
+    _meshes, exported_skin, _armature = find_skin_and_rig()
+    exported_values = read_mask_from_uv2(exported_skin.data, invert_v=True)
+    exported_by_id = canonical_by_correspondence(exported_values)
+    if set(exported_by_id) != set(source_by_id):
+        missing = len(set(source_by_id) - set(exported_by_id))
+        extra = len(set(exported_by_id) - set(source_by_id))
+        raise RuntimeError(
+            "Export/re-import changed CorrespondenceID coverage: "
+            f"{missing} IDs missing, {extra} unexpected IDs"
+        )
+    for correspondence_id, before_weight in source_by_id.items():
+        after_weight = exported_by_id[correspondence_id]
+        if abs(before_weight - after_weight) > 1e-5:
+            raise RuntimeError(
+                f"Export/re-import changed mask weight for CorrespondenceID {correspondence_id}"
+            )
+    exported_weighted = sum(weight >= 0.15 for weight in exported_by_id.values())
+
+    report = {
+        "status": "REVIEW_MASK_PAINTED_NOT_PRODUCTION_APPROVED",
+        "region_id": "vulva_external",
+        "region_label": "External vulva including mons pubis",
+        "source_method": "Ara add_female_anatomy_surface.py surface-following midline coordinates",
+        "mask_channel": "TEXCOORD_1.y (Godot Mesh ARRAY_TEX_UV2.y)",
+        "blender_uv_v_encoded_inverted_for_gltf": True,
+        "glTF_export_v_conversion": "Blender UV1.v = 1 - mask weight; exported TEXCOORD_1.y = mask weight",
+        "correspondence_channel": "TEXCOORD_1.x preserved unchanged",
+        "blender_uv_layer_order_after_reimport": [item.name for item in exported_skin.data.uv_layers],
+        "correspondence_gltf_texcoord_index": 1,
+        "skin_mesh": exported_skin.name,
+        "source_correspondence_vertex_count": len(source_by_id),
+        "exported_mesh_vertex_count": len(exported_values),
+        "weighted_vertices_at_0_15": exported_weighted,
+        "nonzero_vertices": sum(weight > 0.0 for weight in exported_by_id.values()),
+        "maximum_weight": max(value[1] for value in exported_values),
+        "height_metres": height,
+        "hipline_z": hipline_z,
+        "output": os.path.abspath(args.output),
+        "output_bytes": os.path.getsize(args.output),
+        "raw_glb_validation_before_import": raw_glb_validation,
+    }
+    os.makedirs(os.path.dirname(os.path.abspath(args.report)), exist_ok=True)
+    with open(args.report, "w", encoding="utf-8") as handle:
+        json.dump(report, handle, indent=2)
+        handle.write("\n")
+    print(json.dumps(report, indent=2))
+
+
+if __name__ == "__main__":
+    main()
