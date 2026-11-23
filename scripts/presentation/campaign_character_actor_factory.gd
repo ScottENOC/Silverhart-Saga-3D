@@ -76,8 +76,9 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 	if body_variant.is_empty():
 		var presentation := String(appearance.get("gender_presentation", "")).to_lower()
 		body_variant = "male" if presentation in ["male", "masculine", "man"] else "female"
-	var height_scale := float(appearance.get("height_scale", 1.0))
+	var height_scale := clampf(float(appearance.get("height_scale", 1.0)), 0.5, 1.25)
 	var build_scale := float(appearance.get("build_scale", 1.0))
+	var body_scale := clampf(float(appearance.get("body_scale", build_scale)), 0.5, 1.25)
 	var profile := {
 		"skin_colour": String(appearance.get("skin_colour", "#b9825f")),
 		"eye_colour": String(appearance.get("eye_colour", "Brown")),
@@ -114,6 +115,19 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 	)
 	if actor != null:
 		actor.name = "NPC_" + character_id
+		# Non-human source races use the shared Ara rig as a temporary visual
+		# stand-in. Scale the model root only; world interaction and nameplate
+		# anchors remain at the character's authored world position.
+		var ara_model := _get_ara_actor(actor)
+		if ara_model != null and ara_model.model_root != null:
+			ara_model.model_root.scale *= Vector3(body_scale, height_scale, body_scale)
+			ara_model.set_meta("campaign_body_scale", body_scale)
+			ara_model.set_meta("campaign_height_scale", height_scale)
+		var name_label := actor.get_node_or_null("CharacterNameLabel") as Label3D
+		if name_label != null:
+			name_label.position.y = 2.08 * height_scale
+		actor.set_meta("body_scale", body_scale)
+		actor.set_meta("height_scale", height_scale)
 		actor.set_meta("campaign2_npc_id", character_id)
 		actor.set_meta("dialogue_id", _safe_metadata_string(npc.get("dialogue_id", "")))
 		actor.set_meta("faction_id", _safe_metadata_string(npc.get("faction_id", "")))
@@ -121,6 +135,19 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 		actor.set_meta("class_levels", npc.get("class_levels", []))
 		actor.set_meta("skill_picks", npc.get("skill_picks", []))
 		actor.set_meta("quest_hooks", npc.get("quest_hooks", []))
+		actor.set_meta("race", _safe_metadata_string(npc.get("race", "human"), "human"))
+		actor.set_meta("title", _safe_metadata_string(npc.get("title", "")))
+		actor.set_meta("tied_up", bool(npc.get("tied_up", false)))
+		actor.set_meta("source_monster_type", _safe_metadata_string(npc.get("source_monster_type", "")))
+		actor.set_meta("source_custom_skills", npc.get("source_custom_skills", {}).duplicate(true))
+		actor.set_meta("source_custom_equipment", npc.get("source_custom_equipment", []).duplicate(true))
+		actor.set_meta("behavior_type", _safe_metadata_string(npc.get("behavior_type", "")))
+		if npc.has("home_position"):
+			actor.set_meta("home_position", npc.get("home_position", {}).duplicate(true))
+		if npc.has("camp_spots"):
+			actor.set_meta("camp_spots", npc.get("camp_spots", []).duplicate(true))
+		if npc.has("wants"):
+			actor.set_meta("wants", npc.get("wants", {}).duplicate(true))
 		actor.set_meta("ambient_enabled", false)
 		actor.add_to_group("campaign2_npc")
 	return actor
