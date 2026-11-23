@@ -181,6 +181,51 @@ func _initialize() -> void:
 			quit(1)
 			return
 
+	# The main campaign supplies its shared simulation to the same streamed
+	# settlement builder. Named NPCs must become persistent simulation entities,
+	# not presentation-only meshes that disappear when their chunk unloads.
+	var palace_simulation := WorldSimulation.new()
+	var palace_simulation_builder = SETTLEMENT_BUILDER.new(terrain.settlement_layouts, null, palace_simulation)
+	var palace_runtime_chunk := Node3D.new()
+	root.add_child(palace_runtime_chunk)
+	palace_simulation_builder.add_settlements_in_chunk(palace_runtime_chunk, Vector2i(0, -504), 24)
+	var queen_actor := palace_runtime_chunk.get_node_or_null("NPC_queen_seraphine_corrin") as Node3D
+	var queen_state := palace_simulation.get_character("queen_seraphine_corrin")
+	if queen_actor == null or queen_state == null:
+		push_error("Streamed Queen Seraphine must have both a presentation actor and persistent CharacterState.")
+		quit(1)
+		return
+	if not queen_actor.is_in_group("campaign2_npc") or String(queen_actor.get_meta("dialogue_id", "")) != "silverhart_queen":
+		push_error("Streamed NPC actors must expose stable interaction identity and dialogue metadata.")
+		quit(1)
+		return
+	if queen_state.side != "neutral" or not queen_state.combat_dormant:
+		push_error("Non-hostile streamed NPCs must not join combat automatically.")
+		quit(1)
+		return
+	# Simulate the NPC moving into an adjacent streamed chunk. The original
+	# authored placement must no longer create a duplicate actor.
+	var old_queen_hex := queen_state.axial
+	palace_simulation.occupied_hexes.erase(old_queen_hex)
+	queen_state.axial = Vector2i(30, -498)
+	palace_simulation.occupied_hexes[queen_state.axial] = queen_state.id
+	palace_runtime_chunk.free()
+	var moved_queen_chunk := Node3D.new()
+	root.add_child(moved_queen_chunk)
+	palace_simulation_builder.add_settlements_in_chunk(moved_queen_chunk, Vector2i(24, -504), 24)
+	var moved_queen_actor := moved_queen_chunk.get_node_or_null("NPC_queen_seraphine_corrin") as Node3D
+	if moved_queen_actor == null or moved_queen_actor.position.distance_to(HexGrid.axial_to_world(queen_state.axial, HexGrid.DEFAULT_RADIUS_M)) > 0.01:
+		push_error("Streamed NPC actor must respawn at its persistent simulation position after chunk movement.")
+		quit(1)
+		return
+	var old_queen_chunk := Node3D.new()
+	root.add_child(old_queen_chunk)
+	palace_simulation_builder.add_settlements_in_chunk(old_queen_chunk, Vector2i(0, -504), 24)
+	if old_queen_chunk.get_node_or_null("NPC_queen_seraphine_corrin") != null:
+		push_error("A moved streamed NPC must not be duplicated at its authored starting chunk.")
+		quit(1)
+		return
+
 	var silverhart_warrens_chunk := Node3D.new()
 	root.add_child(silverhart_warrens_chunk)
 	builder.add_settlements_in_chunk(silverhart_warrens_chunk, Vector2i(0, -432), 24)
