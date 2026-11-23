@@ -5,6 +5,7 @@ const ROOT := "res://art/characters/ara_runtime/hair"
 const ACTOR_SCRIPT := preload("res://scripts/presentation/ara_character_actor.gd")
 
 func _initialize() -> void:
+    _test_bind_pose_conversion()
     var manifest_path := ROOT + "/manifest.json"
     assert(FileAccess.file_exists(manifest_path), "Missing Ara hair manifest")
     var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(manifest_path))
@@ -72,3 +73,39 @@ func _collect(node: Node, skeletons: Array[Skeleton3D], meshes: Array[MeshInstan
         meshes.append(node as MeshInstance3D)
     for child in node.get_children():
         _collect(child, skeletons, meshes)
+
+ 
+func _test_bind_pose_conversion() -> void:
+    # The source GLB may encode a mesh-space offset in its inverse bind matrix.
+    # Retargeting to a body with a different Head rest transform must preserve
+    # the complete source rest-pose transform, not discard that offset.
+    var source_skeleton := Skeleton3D.new()
+    source_skeleton.add_bone("Head")
+    var source_rest := Transform3D(Basis.IDENTITY, Vector3(0.0, 1.6, 0.0))
+    source_skeleton.set_bone_rest(0, source_rest)
+
+    var target_skeleton := Skeleton3D.new()
+    target_skeleton.add_bone("Head")
+    var target_rest := Transform3D(Basis.IDENTITY, Vector3(0.0, 1.75, 0.0))
+    target_skeleton.set_bone_rest(0, target_rest)
+
+    var mesh_space_offset := Transform3D(Basis.IDENTITY, Vector3(0.0, 0.15, 0.0))
+    var original_bind := source_rest.affine_inverse() * mesh_space_offset
+    var skin := Skin.new()
+    skin.set_bind_count(1)
+    skin.set_bind_bone(0, 0)
+    skin.set_bind_pose(0, original_bind)
+    var hair_mesh := MeshInstance3D.new()
+    hair_mesh.skin = skin
+
+    var actor := ACTOR_SCRIPT.new() as AraCharacterActor
+    assert(actor._remap_hair_skin_to_skeleton(hair_mesh, source_skeleton, target_skeleton),
+        "Hair bind pose could not be converted to the target skeleton")
+    var expected := source_rest * original_bind
+    var actual := target_rest * hair_mesh.skin.get_bind_pose(0)
+    assert(actual.is_equal_approx(expected),
+        "Hair retargeting discarded the source mesh-space bind offset")
+    actor.free()
+    hair_mesh.free()
+    source_skeleton.free()
+    target_skeleton.free()
