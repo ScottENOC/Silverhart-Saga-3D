@@ -32,6 +32,13 @@ func _choice_exists(conversation: Dictionary, choice_id: String) -> bool:
 			return true
 	return false
 
+
+func _choice_by_id(conversation: Dictionary, choice_id: String) -> Dictionary:
+	for choice_value in conversation.get("choices", []):
+		if String(choice_value.get("id", "")) == choice_id:
+			return choice_value
+	return {}
+
 func _test_goblin_quest_definitions_and_gift_alliance() -> void:
 	var journal := _new_journal()
 	_check(journal.quest_definitions.has("goblin_threat"), "Goblin threat quest must reuse the companion campaign definition")
@@ -45,6 +52,11 @@ func _test_goblin_quest_definitions_and_gift_alliance() -> void:
 	var initial := GOBLIN_CONTENT.chief_conversation(journal)
 	_check(_choice_exists(initial, "start:goblin_threat"), "Chief should offer the source 'right price' route")
 	_check(not _choice_exists(initial, "resolve:goblin_alliance"), "Alliance must not be available before the chief's gift")
+	var no_gold_gift := GOBLIN_CONTENT.chief_conversation(journal, false, 59)
+	var gift_locked := _choice_by_id(no_gold_gift, "gift:chief")
+	_check(not bool(gift_locked.get("available", true)), "The chief's 60-gold gift must remain disabled when the player has only 59 gold")
+	var enough_gold_gift := GOBLIN_CONTENT.chief_conversation(journal, false, 60)
+	_check(bool(_choice_by_id(enough_gold_gift, "gift:chief").get("available", false)), "The chief's gift should unlock at exactly 60 gold")
 	var gift := GOBLIN_CONTENT.gift_chief(journal, 100)
 	_check(bool(gift.get("ok", false)) and int(gift.get("gold_remaining", -1)) == 40, "The source gift costs 60 gold")
 	_check(not bool(GOBLIN_CONTENT.gift_chief(journal, 100).get("ok", false)), "The chief must not accept the same gift twice")
