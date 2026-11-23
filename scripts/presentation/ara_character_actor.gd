@@ -95,7 +95,6 @@ func configure(glb_path: String) -> bool:
 	call_deferred("_play_idle_if_available")
 	call_deferred("_dump_garment_surface_report")
 	return true
-
 func _dump_garment_surface_report() -> void:
 	if has_meta("ara_garment_surface_reported"):
 		return
@@ -448,6 +447,36 @@ func apply_player_profile(profile: Dictionary) -> void:
 	set_meta("gender_presentation", str(profile.get("gender_presentation", "Feminine")))
 	set_meta("pronouns", str(profile.get("pronouns", "they/them")))
 	_apply_appearance_details(profile)
+	if body_variant == "male":
+		apply_male_anatomy_size(
+			float(profile.get("male_anatomy_length_scale", 1.0)),
+			float(profile.get("male_anatomy_girth_scale", 1.0))
+		)
+
+## Apply independent, measured-range size multipliers to the dedicated anatomy rig.
+## AnatomyRoot is the parent of the shaft chain, so one local scale affects both
+## flaccid and erect morph states without changing the rest of the body.
+func apply_male_anatomy_size(length_scale: float, girth_scale: float) -> bool:
+	if model_root == null or body_variant != "male":
+		return false
+	var skeleton := _find_skeleton(model_root)
+	if skeleton == null:
+		return false
+	var root_bone := skeleton.find_bone("AnatomyRoot")
+	if root_bone < 0:
+		push_warning("Male anatomy size controls unavailable: AnatomyRoot is missing from %s" % loaded_asset_path)
+		return false
+	var base_scale: Vector3
+	if has_meta("male_anatomy_base_pose_scale"):
+		base_scale = get_meta("male_anatomy_base_pose_scale")
+	else:
+		base_scale = skeleton.get_bone_pose_scale(root_bone)
+		set_meta("male_anatomy_base_pose_scale", base_scale)
+	var safe_length := clampf(length_scale, 0.70, 1.30)
+	var safe_girth := clampf(girth_scale, 0.70, 1.30)
+	skeleton.set_bone_pose_scale(root_bone, base_scale * Vector3(safe_girth, safe_length, safe_girth))
+	set_meta("male_anatomy_size_scales", {"length": safe_length, "girth": safe_girth})
+	return true
 
 ## Attach a standalone Ara hair GLB to this character's existing skeleton.
 ## Both exports must use the same pinned Ara rig and bone ordering.
@@ -645,9 +674,6 @@ func _tint_attached_hair(colour: Color) -> void:
 			material.albedo_color = Color(colour.r, colour.g, colour.b, material.albedo_color.a)
 			mesh_instance.set_surface_override_material(surface, material)
 
-## Switches the imported Ara rig between locomotion and its resting pose.
-## Clip lookup is deliberately semantic and case-insensitive because the
-## Workshop exports may change clip casing or add suffixes between versions.
 func set_moving(is_moving: bool) -> bool:
 	if animation_player == null or not is_instance_valid(animation_player):
 		return false
@@ -659,14 +685,11 @@ func set_moving(is_moving: bool) -> bool:
 	animation_player.play(clip, 0.12)
 	return true
 
-
 func play_walk() -> bool:
 	return set_moving(true)
 
-
 func play_idle() -> bool:
 	return set_moving(false)
-
 
 func _find_animation_clip(preferred_tokens: Array[String]) -> String:
 	if animation_player == null:
@@ -681,14 +704,12 @@ func _find_animation_clip(preferred_tokens: Array[String]) -> String:
 				return String(animation_name)
 	return ""
 
-
 func _play_idle_if_available() -> void:
 	if animation_player == null or not is_instance_valid(animation_player):
 		push_warning("Ara character has no AnimationPlayer; it will remain in its exported rest pose.")
 		return
 	if not play_idle():
 		push_warning("Ara character has no idle animation. Available clips: %s" % [", ".join(animation_player.get_animation_list())])
-
 func _find_animation_player(node: Node) -> AnimationPlayer:
 	if node is AnimationPlayer:
 		return node as AnimationPlayer
