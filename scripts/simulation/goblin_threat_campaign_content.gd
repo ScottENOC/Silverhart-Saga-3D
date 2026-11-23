@@ -26,7 +26,7 @@ static func quest_definition() -> Dictionary:
 func chief_greeting(relationships: PersistentCharacterRelationshipState, context: Dictionary) -> Dictionary:
 	if relationships == null:
 		return {"ok":false,"reason":"missing_relationship_state"}
-	var quest_resolution := String(context.get("quest_resolution", ""))
+	var quest_resolution := str(context.get("quest_resolution", ""))
 	if not quest_resolution.is_empty() and quest_resolution != "goblin_alliance":
 		return _conversation("We have nothing left to discuss.", [{"id":"skarnub_leave","label":"..."}])
 	if quest_resolution == "goblin_alliance":
