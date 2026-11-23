@@ -8,7 +8,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 	var entries: Array = terrain.settlement_layouts
-	_check(entries.size() == 8, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale, Silverhart and Old Mac's Farmstead")
+	_check(entries.size() == 8, "Canonical registry should expose Hollowmere, Silverhart, Millbrook, Emberlode, Reddale, Old Mac's Farmstead and both greenskin sites")
 	var millbrook_entry := _entry_by_id(entries, "millbrook")
 	_check(not millbrook_entry.is_empty(), "Canonical Millbrook definition must be available")
 	if millbrook_entry.is_empty():
