@@ -15967,6 +15967,163 @@
           }
         }
       }
+    },
+    {
+      "id": "skarn_tooth_camp",
+      "name": "Skarn-tooth Camp",
+      "location_id": "skarn_tooth_camp",
+      "center": {
+        "q": 203,
+        "r": 23
+      },
+      "road_endpoint": {
+        "q": 203,
+        "r": 23
+      },
+      "source_builder": "campaign2World.js:buildGoblinCamp",
+      "buildings": [
+        {
+          "id": "skarn_tooth_chiefs_hut",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 203,
+            "r": 21
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door": {
+            "q": 203,
+            "r": 22
+          },
+          "door_side": "south",
+          "dimensions": {
+            "width": 10.5,
+            "depth": 8.5,
+            "wall_height": 2.8,
+            "roof_rise": 1.5
+          },
+          "materials": {
+            "wall_colour": "#8b7955",
+            "timber_colour": "#4e3825",
+            "roof_colour": "#62523a"
+          },
+          "source": "buildGoblinCamp:chief hut"
+        },
+        {
+          "id": "skarn_tooth_hut_nw",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 200,
+            "r": 22
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door": {
+            "q": 201,
+            "r": 22
+          },
+          "door_side": "east",
+          "source": "buildGoblinCamp:hut"
+        },
+        {
+          "id": "skarn_tooth_hut_ne",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 206,
+            "r": 22
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door": {
+            "q": 205,
+            "r": 22
+          },
+          "door_side": "west",
+          "source": "buildGoblinCamp:hut"
+        },
+        {
+          "id": "skarn_tooth_hut_sw",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 200,
+            "r": 25
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door": {
+            "q": 201,
+            "r": 25
+          },
+          "door_side": "east",
+          "source": "buildGoblinCamp:hut"
+        },
+        {
+          "id": "skarn_tooth_hut_se",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 206,
+            "r": 25
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door": {
+            "q": 205,
+            "r": 25
+          },
+          "door_side": "west",
+          "source": "buildGoblinCamp:hut"
+        },
+        {
+          "id": "skarn_tooth_hut_south",
+          "kind": "hut",
+          "archetype": "hut",
+          "center": {
+            "q": 203,
+            "r": 26
+          },
+          "half_q": 1,
+          "half_r": 1,
+          "door": {
+            "q": 203,
+            "r": 25
+          },
+          "door_side": "north",
+          "source": "buildGoblinCamp:hut"
+        },
+        {
+          "id": "skarn_tooth_campfire",
+          "kind": "campfire",
+          "archetype": "campfire",
+          "center": {
+            "q": 203,
+            "r": 23
+          },
+          "half_q": 0,
+          "half_r": 0,
+          "door_enabled": false,
+          "dimensions": {
+            "width": 3.5,
+            "depth": 3.5,
+            "wall_height": 1.8,
+            "roof_rise": 0
+          },
+          "materials": {
+            "foundation_colour": "#625b50",
+            "wall_colour": "#e36c2f",
+            "timber_colour": "#493020"
+          },
+          "source": "buildGoblinCamp:central campfire"
+        }
+      ],
+      "paths": [],
+      "npcs": [],
+      "creatures": [],
+      "source_note": "Map-only first pass. Named goblin actors, trader, scout note and faction/quest behaviours remain campaign-owned."
     }
   ]
 }
