@@ -198,7 +198,7 @@ static func _ensure_dungeon_surface_features() -> void:
 	# source horizontal cave-floor passage.
 	_add_flat_surface_room(_dungeon_surface_cells, BARROW_ANTECHAMBER_CENTRE, 3, 3, BARROW_ANTECHAMBER_CENTRE + Vector2i(-3, 0), "cave_floor", "corvin_barrow_antechamber")
 	_add_flat_surface_room(_dungeon_surface_cells, BARROW_SANCTUM_CENTRE, 4, 3, BARROW_SANCTUM_CENTRE + Vector2i(-3, 0), "cave_floor", "corvin_barrow_sanctum")
-	_add_surface_corridor(_dungeon_surface_cells, Vector2i(67, -160), Vector2i(68, -160), "corvin_barrow_corridor")
+	_add_surface_corridor(_dungeon_surface_cells, Vector2i(66, -160), Vector2i(68, -160), "corvin_barrow_corridor")
 
 	# Chapterhouse: source stone floor and keep-wall footprint.
 	_add_flat_surface_room(_dungeon_surface_cells, LICH_CHAPTERHOUSE_CENTRE, 4, 3, LICH_CHAPTERHOUSE_CENTRE + Vector2i(3, 0), "stone_floor", "lich_chapterhouse", "keep_wall")
