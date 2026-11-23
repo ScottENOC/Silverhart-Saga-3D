@@ -81,7 +81,9 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 			if character_id.is_empty() or character_id == "player":
 				continue
 			var world_hex := _read_hex(placement.get("position", Vector2i.ZERO)) + origin
-			if _contains_chunk(world_hex, chunk_min, chunk_size):
+			var existing_state: CharacterState = simulation.get_character(character_id) if simulation != null else null
+			var presentation_hex := existing_state.axial if existing_state != null else world_hex
+			if _contains_chunk(presentation_hex, chunk_min, chunk_size):
 				_add_character(parent, character_id, world_hex)
 
 func _add_creatures_in_chunk(
