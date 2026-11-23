@@ -58,7 +58,8 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 		var presentation := String(appearance.get("gender_presentation", "")).to_lower()
 		body_variant = "male" if presentation in ["male", "masculine", "man"] else "female"
 	var height_scale := clampf(float(appearance.get("height_scale", 1.0)), 0.5, 1.25)
-	var body_scale := clampf(float(appearance.get("body_scale", appearance.get("build_scale", 1.0))), 0.5, 1.25)
+	var build_scale := float(appearance.get("build_scale", 1.0))
+	var body_scale := clampf(float(appearance.get("body_scale", build_scale)), 0.5, 1.25)
 	var profile := {
 		"skin_colour": String(appearance.get("skin_colour", "#b9825f")),
 		"eye_colour": String(appearance.get("eye_colour", "Brown")),
