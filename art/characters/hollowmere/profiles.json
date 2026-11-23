@@ -1027,6 +1027,10 @@
         "faceShapes": true,
         "speechShapes": false,
         "expression": "neutral"
+      },
+      "anatomy_size": {
+        "length_scale": 1.1,
+        "girth_scale": 1.1
       }
     },
     {
