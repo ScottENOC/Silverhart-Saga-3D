@@ -23,21 +23,18 @@ func play_spell(
             _play_projectile(origin, impact, Color(1.0, 0.29, 0.055), 0.34, 0.52)
         "heal":
             _play_heal(impact)
-        "smite_evil":
-            _play_projectile(origin, impact, Color(1.0, 0.82, 0.30), 0.30, 0.48)
-        "divine_silence":
-            _play_aura(impact, Color(0.30, 0.18, 0.62), 1.25, 1.0)
-            _play_ring(impact, Color(0.56, 0.43, 0.86), 0.2, 1.3, 0.85)
-        "sanctuary":
-            _play_dome(impact, Color(1.0, 0.82, 0.38), 1.15)
         "divine_protection":
             _play_shield(impact, Color(0.42, 0.75, 1.0), 1.1)
+        "divine_strength":
+            _play_aura(impact, Color(1.0, 0.72, 0.24), 1.15, 1.0)
+            _play_ring(impact, Color(1.0, 0.88, 0.48), 0.2, 1.4, 0.9)
+        "curse":
+            _play_aura(impact, Color(0.42, 0.16, 0.62), 1.05, 1.0)
+            _play_ring(impact, Color(0.68, 0.34, 0.82), 0.15, 1.25, 0.8)
         "summon_animal":
             _play_summon_circle(target_position, Color(0.68, 0.78, 0.94))
         "counterspell":
             _play_counterspell(origin, impact)
-        "dragon_breath":
-            _play_breath(origin, impact)
         "entangle":
             _play_entangle(target_position, affected_actors)
         "wild_fury":
@@ -48,8 +45,6 @@ func play_spell(
             _play_ring(impact, Color(0.70, 0.92, 0.62), 0.2, 1.1, 0.8)
         "disguise_self":
             _play_shimmer(impact)
-        "temporal_rift":
-            _play_rift(impact)
         "feather_fall":
             _play_feather_fall(impact)
         _:
@@ -57,7 +52,7 @@ func play_spell(
 
     # Area spells give each affected character a small, readable confirmation
     # in addition to the central area effect.
-    if spell_id in ["firebolt", "heal", "dragon_breath", "entangle"]:
+    if spell_id in ["firebolt", "heal", "entangle"]:
         for actor in affected_actors:
             if actor == null or actor == target:
                 continue
@@ -69,10 +64,10 @@ func _spell_colour(spell_id: String) -> Color:
     match spell_id:
         "heal":
             return Color(0.28, 0.68, 1.0)
-        "smite_evil", "sanctuary":
-            return Color(1.0, 0.78, 0.28)
-        "divine_silence", "temporal_rift":
-            return Color(0.53, 0.31, 0.88)
+        "divine_strength":
+            return Color(1.0, 0.72, 0.24)
+        "curse":
+            return Color(0.53, 0.31, 0.72)
         "entangle", "calm_animal":
             return Color(0.36, 0.78, 0.40)
         "divine_protection", "feather_fall":
