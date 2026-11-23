@@ -11,3 +11,13 @@ The player creator now offers the curated style list and maps each selection to 
 The workflow runs Ara's TypeScript type-check, generates the base bodies and hairstyle meshes, imports them in Godot 4.7.2, and checks that each hairstyle has a Skin resource and non-empty skeleton. This is a structural check, not proof of visual fit or correct animation deformation. Review the generated styles in the Workshop before treating them as final. If a style fails the actor's skeleton check, it is rejected rather than attached to the wrong rig.
 
 The generated GLBs are committed to the feature branch only after the Godot import test passes, and are also uploaded as a versioned Actions artifact.
+
+## Runtime attachment and bind-pose contract
+
+The standalone hair GLB is retargeted onto the selected player's body skeleton at runtime. Bone names are mapped by identity, including the fallback of auxiliary hair-only influences to the target Head bone. When a bind is remapped, the actor must convert the original source inverse-bind transform into the target skeleton's rest space:
+
+`target_rest.affine_inverse() * source_rest * source_bind`
+
+Do not replace the source bind with only the target rest inverse. That shortcut discards any mesh-space offset carried by the source GLB and can visibly separate the hairstyle from the scalp. The mesh's imported scene-root transform must also be retained when flattening the hair scene into the actor.
+
+The hair asset test now includes a synthetic source/target Head-rest mismatch and a non-identity source bind offset. It verifies that the target rest-pose transform exactly preserves the source rest-pose result. This supplements the per-style import/skinning checks; it still does not replace visual review of every hairstyle in the running game.
