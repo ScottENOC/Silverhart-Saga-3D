@@ -17,13 +17,13 @@ const PAIRED_REGION_MIDLINE_GAP := 0.008
 const REGIONS := {
     "breast_left": [Vector3(-0.115, 1.190, 0.145), Vector3(0.070, 0.105, 0.065), Color("#ef476f")],
     "breast_right": [Vector3(0.115, 1.190, 0.145), Vector3(0.070, 0.105, 0.065), Color("#f78c6b")],
-    "nipple_left": [Vector3(-0.115, 1.190, 0.193), Vector3(0.014, 0.014, 0.012), Color("#ff4d6d")],
-    "nipple_right": [Vector3(0.115, 1.190, 0.193), Vector3(0.014, 0.014, 0.012), Color("#c9184a")],
+    "nipple_left": [Vector3(-0.115, 1.190, 0.198), Vector3(0.010, 0.010, 0.007), Color("#ff4d6d")],
+    "nipple_right": [Vector3(0.115, 1.190, 0.198), Vector3(0.010, 0.010, 0.007), Color("#c9184a")],
     "chest_front_left": [Vector3(-0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#ffd166")],
     "chest_front_right": [Vector3(0.090, 1.255, 0.145), Vector3(0.070, 0.060, 0.055), Color("#06d6a0")],
     "pectoral_left": [Vector3(-0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#118ab2")],
     "pectoral_right": [Vector3(0.125, 1.290, 0.055), Vector3(0.065, 0.055, 0.065), Color("#9b5de5")],
-    "sternum": [Vector3(0.0, 1.235, 0.155), Vector3(0.035, 0.120, 0.070), Color("#f4a261")],
+    "sternum": [Vector3(0.0, 1.285, 0.155), Vector3(0.043, 0.155, 0.070), Color("#f4a261")],
     "underbust": [Vector3(0.0, 1.085, 0.115), Vector3(0.220, 0.030, 0.060), Color("#e9c46a")],
     "ribcage_left": [Vector3(-0.145, 1.105, 0.045), Vector3(0.100, 0.120, 0.090), Color("#2a9d8f")],
     "ribcage_right": [Vector3(0.145, 1.105, 0.045), Vector3(0.100, 0.120, 0.090), Color("#457b9d")],
@@ -47,16 +47,16 @@ const REGIONS := {
     "palm_right": [Vector3(0.490, 0.960, 0.245), Vector3(0.025, 0.035, 0.045), Color("#43aa8b")],
     "hand_back_left": [Vector3(-0.470, 0.960, 0.245), Vector3(0.012, 0.035, 0.035), Color("#4d908e")],
     "hand_back_right": [Vector3(0.470, 0.960, 0.245), Vector3(0.012, 0.035, 0.035), Color("#577590")],
-    "thumb_left": [Vector3(-0.470, 0.985, 0.170), Vector3(0.025, 0.025, 0.018), Color("#f94144")],
-    "thumb_right": [Vector3(0.470, 0.985, 0.170), Vector3(0.025, 0.025, 0.018), Color("#f3722c")],
-    "index_finger_left": [Vector3(-0.500, 0.930, 0.215), Vector3(0.018, 0.030, 0.012), Color("#f8961e")],
-    "index_finger_right": [Vector3(0.500, 0.930, 0.215), Vector3(0.018, 0.030, 0.012), Color("#f9c74f")],
-    "middle_finger_left": [Vector3(-0.500, 0.930, 0.240), Vector3(0.018, 0.030, 0.012), Color("#90be6d")],
-    "middle_finger_right": [Vector3(0.500, 0.930, 0.240), Vector3(0.018, 0.030, 0.012), Color("#43aa8b")],
-    "ring_finger_left": [Vector3(-0.500, 0.930, 0.265), Vector3(0.018, 0.030, 0.012), Color("#4d908e")],
-    "ring_finger_right": [Vector3(0.500, 0.930, 0.265), Vector3(0.018, 0.030, 0.012), Color("#577590")],
-    "little_finger_left": [Vector3(-0.490, 0.930, 0.290), Vector3(0.018, 0.030, 0.014), Color("#277da1")],
-    "little_finger_right": [Vector3(0.490, 0.930, 0.290), Vector3(0.018, 0.030, 0.014), Color("#7209b7")]
+    "thumb_left": [Vector3(-0.485, 0.985, 0.175), Vector3(0.035, 0.020, 0.014), Color("#f94144")],
+    "thumb_right": [Vector3(0.485, 0.985, 0.175), Vector3(0.035, 0.020, 0.014), Color("#f3722c")],
+    "index_finger_left": [Vector3(-0.535, 0.930, 0.215), Vector3(0.045, 0.012, 0.010), Color("#f8961e")],
+    "index_finger_right": [Vector3(0.535, 0.930, 0.215), Vector3(0.045, 0.012, 0.010), Color("#f9c74f")],
+    "middle_finger_left": [Vector3(-0.540, 0.930, 0.240), Vector3(0.050, 0.012, 0.010), Color("#90be6d")],
+    "middle_finger_right": [Vector3(0.540, 0.930, 0.240), Vector3(0.050, 0.012, 0.010), Color("#43aa8b")],
+    "ring_finger_left": [Vector3(-0.535, 0.930, 0.265), Vector3(0.045, 0.012, 0.010), Color("#4d908e")],
+    "ring_finger_right": [Vector3(0.535, 0.930, 0.265), Vector3(0.045, 0.012, 0.010), Color("#577590")],
+    "little_finger_left": [Vector3(-0.525, 0.930, 0.290), Vector3(0.035, 0.012, 0.010), Color("#277da1")],
+    "little_finger_right": [Vector3(0.525, 0.930, 0.290), Vector3(0.035, 0.012, 0.010), Color("#7209b7")]
 }
 
 var stage: Node3D
@@ -211,8 +211,8 @@ func _run() -> void:
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
             "The two-hop nipple radius and five-hop radius for other regions are review heuristics; local mesh density affects physical reach and each boundary needs visual review.",
-            "Hand and finger seed positions were relocated using measured Wren Skin_Anatomy vertex bounds; digit channels remain geometric hypotheses and must be checked for separation and anatomical coverage in the dedicated close-up views.",
-            "The nipple seed vertices form one connected component in the source mesh; the apparent arc must be assessed in oblique views and is not assumed to be a separate topology island.",
+            "Finger seeds are elongated along the hand-extension axis (local X) rather than vertically, with separate depth offsets per digit; their close-up renders must confirm continuous lengthwise coverage and separation.",
+            "Nipple seed volumes have been tightened to reduce inclusion of the adjacent areolar/side-surface arc; the isolated nipple renders must confirm whether the arc remains.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
             "This review includes the previously reviewed torso channels, refined breast channels, nipple channels and a first shoulder-to-individual-finger arm tranche; finger channels are separate per digit and side, but remain provisional seed hypotheses."
         ]
