@@ -129,6 +129,8 @@ jobs:
         run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_companion_prerequisite_quest_state.gd
       - name: Run split items and equipment tests
         run: godot --headless --path . --script res://tests/test_items_and_equipment.gd
+      - name: Run campaign building services tests
+        run: bash tools/ci/run_godot_checked.sh godot --headless --path . --script res://tests/test_campaign_building_services.gd
       - name: Run split world and movement tests
         run: godot --headless --path . --script res://tests/test_world_movement.gd
       - name: Run shared player movement controller tests
