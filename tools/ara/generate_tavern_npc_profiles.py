@@ -29,6 +29,30 @@ HAIR_STYLES = ["braid01", "short02", "short03", "short04", "long01", "bob02", "b
 EYES_FALLBACK = ["blackbrown", "darkbrown", "brown", "brownlight", "green", "bluegreen", "grey", "blue", "lightblue", "deepblue", "ice"]
 TATTOOS_FALLBACK = ["armband_l", "sleeve_r", "forearm_l", "chest", "back", "face_marks"]
 
+MALE_ANATOMY_MEAN_LENGTH_CM = 13.12
+MALE_ANATOMY_SD_LENGTH_CM = 1.66
+MALE_ANATOMY_MEAN_CIRCUMFERENCE_CM = 11.66
+MALE_ANATOMY_SD_CIRCUMFERENCE_CM = 1.10
+MALE_ANATOMY_CLIP_SD = 2.0
+
+
+def sample_male_anatomy_size(seed: int) -> dict:
+    """Deterministic, independent Gaussian draws clipped at plus/minus two SD."""
+    rng = random.Random(f"male-anatomy:{seed}")
+    z_length = max(-MALE_ANATOMY_CLIP_SD, min(MALE_ANATOMY_CLIP_SD, rng.gauss(0.0, 1.0)))
+    z_girth = max(-MALE_ANATOMY_CLIP_SD, min(MALE_ANATOMY_CLIP_SD, rng.gauss(0.0, 1.0)))
+    length_cm = MALE_ANATOMY_MEAN_LENGTH_CM + z_length * MALE_ANATOMY_SD_LENGTH_CM
+    circumference_cm = MALE_ANATOMY_MEAN_CIRCUMFERENCE_CM + z_girth * MALE_ANATOMY_SD_CIRCUMFERENCE_CM
+    return {
+        "length_scale": round(length_cm / MALE_ANATOMY_MEAN_LENGTH_CM, 5),
+        "girth_scale": round(circumference_cm / MALE_ANATOMY_MEAN_CIRCUMFERENCE_CM, 5),
+        "length_cm": round(length_cm, 2),
+        "circumference_cm": round(circumference_cm, 2),
+        "z_length": round(z_length, 3),
+        "z_girth": round(z_girth, 3),
+        "distribution": "clipped_normal_2sd",
+    }
+
 
 def ids_from(root: Path, relative: str, pattern: str, fallback: list[str]) -> list[str]:
     path = root / relative
@@ -137,17 +161,29 @@ def generate(count: int, seed: int, ara_root: Path) -> dict:
             "breasts": round(person.uniform(0.20, 0.78), 3) if gender == 0 else 0.0,
             "skinTint": person.choice(SKIN_TINTS),
         }
-        characters.append({
+        character = {
             "id": character_id, "game_id": character_id, "name": f"{first} {last}",
             "role": "tavern patron", "hex": [index % 5, index // 5],
             "detail": "medium", "params": params,
-        })
+        }
+        if gender == 1:
+            character["anatomy_size"] = sample_male_anatomy_size(person_seed)
+        characters.append(character)
     return {
         "schema_version": 1,
         "generator": "Ara 3D Gen + Silverhart seeded tavern profile generator",
         "generator_commit": "b60b5bece6d383d2cbb7067fd50e7c8e68b5a395",
         "seed": seed,
         "count": count,
+        "male_anatomy_distribution": {
+            "length_mean_cm": MALE_ANATOMY_MEAN_LENGTH_CM,
+            "length_sd_cm": MALE_ANATOMY_SD_LENGTH_CM,
+            "circumference_mean_cm": MALE_ANATOMY_MEAN_CIRCUMFERENCE_CM,
+            "circumference_sd_cm": MALE_ANATOMY_SD_CIRCUMFERENCE_CM,
+            "clip_sd": MALE_ANATOMY_CLIP_SD,
+            "length_girth_correlation": 0.0,
+            "seed_policy": "independent deterministic draw from each character's person_seed",
+        },
         "rarity_policy": {
             "unnatural_hair": 0.015, "tattoos": 0.07,
             "non_ear_piercings": 0.004, "additional_clitoral_piercing": 0.001,

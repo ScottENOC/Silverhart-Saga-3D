@@ -33,10 +33,9 @@ func _initialize() -> void:
 	# Only characters who actually belong in the opening settlement receive
 	# Hollowmere starts. Other companions wait for their recruitment regions.
 	assert(PLACEMENTS.CHARACTER_STARTS.has("wren_talbot"), "Starting party member Wren must be present")
-	assert(PLACEMENTS.CHARACTER_STARTS.has("reyna_fletcher"), "Reyna's Hollowmere quest placement must be present")
+	assert(not PLACEMENTS.CHARACTER_STARTS.has("reyna_fletcher"), "Reyna belongs at Old Mac's Farmstead, not in Hollowmere's opening placements")
 	assert(PLACEMENTS.CHARACTER_STARTS["wren_talbot"] == Vector2i(-2, 1))
 	assert(PLACEMENTS.CHARACTER_STARTS["garrick_holt"] == Vector2i(-3, -2))
-	assert(PLACEMENTS.CHARACTER_STARTS["reyna_fletcher"] == Vector2i(17, 57), "Preserve Reyna's actual story spawn, not the stale manifest coordinate")
 	assert(PLACEMENTS.OLD_MAC_START_HEX == Vector2i(12, 58))
 	assert(PLACEMENTS.REYNA_SHELTER_HEX == Vector2i(27, 62))
 	assert(PLACEMENTS.MISSING_CHILD_START_HEX == PLACEMENTS.REYNA_SHELTER_HEX)
@@ -66,7 +65,8 @@ func _initialize() -> void:
 	assert(not PLACEMENTS.CHARACTER_STARTS.has("fenn_oakheart"))
 	assert(not PLACEMENTS.CHARACTER_STARTS.has("brother_alden"))
 	assert(not PLACEMENTS.CHARACTER_STARTS.has("snik_fangtooth"))
-	assert(PLACEMENTS.DEFERRED_COMPANIONS.size() == 7, "Unbuilt recruitment regions must not be assigned fabricated local starts")
+	assert(PLACEMENTS.DEFERRED_COMPANIONS.size() == 8, "Non-local companions must not be assigned fabricated Hollowmere starts")
+	assert(PLACEMENTS.DEFERRED_COMPANIONS.get("reyna_fletcher", "") == "placed_at_old_mac_farmstead", "Reyna is authored at Old Mac’s Farmstead, not in Hollowmere")
 	var manifest_file := FileAccess.open("res://data/characters/hollowmere_npcs.json", FileAccess.READ)
 	assert(manifest_file != null, "Hollowmere character manifest must be readable")
 	var manifest: Dictionary = JSON.parse_string(manifest_file.get_as_text())

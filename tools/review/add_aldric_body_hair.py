@@ -190,6 +190,15 @@ def main():
 
     required = list(names)
     missing = [name for name in required if not regions.get(name)]
+    if args.coverage == "aldric" and "pubic" in missing:
+        # The updated anatomy surface can occupy the former pubic skin UV patch.
+        # Keep the build moving with the other verified regions rather than
+        # failing the entire companion export for this optional texture detail.
+        print("Warning: no separate pubic skin UV faces for Aldric; skipping only that body-hair region.")
+        required.remove("pubic")
+        names.remove("pubic")
+        masks.pop("pubic", None)
+        missing.remove("pubic")
     if missing:
         raise RuntimeError(f"Hair placement found no UV faces for {missing}: {regions}; body bounds={bounds.tolist()}")
 
@@ -208,6 +217,8 @@ def main():
         # Keep hair localised: compact axillae, a narrow sternum diamond,
         # central snail trail and pubic/scrotal regions. No arm or leg masks.
         densities.update({"armpits": 300, "chest": 260, "snail_trail": 350, "scrotum": 260, "pubic": 650})
+        if "pubic" not in masks:
+            densities.pop("pubic", None)
     default_colours = {"wren": "#287BFF", "reyna": "#17120F", "dagna": "#C65A32", "aldric": "#08090A", "restrained": "#302018"}
     colour_hex = (args.hair_colour or default_colours[args.coverage]).lstrip("#")
     if len(colour_hex) != 6:

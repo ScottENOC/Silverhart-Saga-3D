@@ -2,7 +2,7 @@ name: Build current player Ara body assets
 
 on:
   push:
-    branches: [feature/character-runtime-asset-integration]
+    branches: [dev, feature/character-runtime-asset-integration]
     paths:
       - ".github/workflows/build-player-ara-bodies.yml"
       - "character-preview/wren-ara.json"
@@ -205,4 +205,14 @@ jobs:
             exit 0
           fi
           git commit -m "Build player bodies with current gendered anatomy"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Unable to push player body assets after three retries."
+              exit 1
+            fi
+          done

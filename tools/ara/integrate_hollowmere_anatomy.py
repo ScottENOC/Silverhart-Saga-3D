@@ -98,13 +98,31 @@ def main() -> None:
                 raise SystemExit(f"Missing generated NPC model: {source}")
             output = source.with_name(source.stem + ".anatomy.glb")
             if int(params.get("gender", 0)) == 1:
-                run_blender(
-                    MALE_TOOL,
+                male_arguments = [
                     "--input", str(source),
                     "--output", str(output),
                     "--adult",
                     "--profile-name", character_id,
-                )
+                ]
+                authored_size = character.get("anatomy_size", {})
+                if isinstance(authored_size, dict) and authored_size:
+                    # Explicit sizes are sampled by the profile generator or
+                    # authored for named characters (e.g. Aldric); bake them once.
+                    male_arguments.extend([
+                        "--length-scale", str(authored_size.get("length_scale", 1.0)),
+                        "--girth-scale", str(authored_size.get("girth_scale", 1.0)),
+                        "--variation-strength", "0",
+                    ])
+                else:
+                    # Use the profile's own seed when available. This makes the
+                    # anatomy draw stable for a generated profile, and changing
+                    # the generic NPC generator seed produces a fresh population.
+                    variation_seed = str(params.get("seed", character_id))
+                    male_arguments.extend([
+                        "--variation-seed", variation_seed,
+                        "--variation-strength", "1.0",
+                    ])
+                run_blender(MALE_TOOL, *male_arguments)
             else:
                 if not female_plan_ready:
                     run_blender(

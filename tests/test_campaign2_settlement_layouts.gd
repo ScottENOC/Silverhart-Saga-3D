@@ -70,6 +70,7 @@ func _initialize() -> void:
 		_check(String(hollowmere.get("presentation", {}).get("mode", "")) == "location_presenter", "Hollowmere must remain owned by its location presenter")
 		_check(hollowmere.get("layout", {}).get("buildings", []).size() > 0, "Hollowmere authored buildings must survive adaptation")
 		_check(hollowmere.get("placements", {}).get("characters", []).size() >= 10, "Hollowmere authored character placements must survive adaptation")
+		_check(_find_record(hollowmere.get("placements", {}).get("characters", []), "reyna_fletcher").is_empty(), "Reyna must not remain duplicated in Hollowmere after moving to the farmstead")
 
 	if failures > 0:
 		push_error("%d canonical settlement layout test(s) failed." % failures)
@@ -116,13 +117,15 @@ func _test_reddale(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
 	var layout: Dictionary = definition.get("layout", {})
 	_check(layout.get("buildings", []).size() == 6, "Reddale must retain its guardhouse, reeve house, inn, guildhouse, manor and smithy")
 	_check(layout.get("paths", []).size() == 3, "Reddale must retain its authored road approaches")
-	_check(definition.get("placements", {}).get("characters", []).size() == 12, "Reddale must retain its twelve named surface NPC placements")
+	_check(definition.get("placements", {}).get("characters", []).size() == 13, "Reddale must retain its twelve existing NPCs plus Mirabel at the nearby source ruin")
 	_check(definition.get("interiors", []).size() == 6, "Reddale must retain all six interior/service records")
 	var ids: Dictionary = {}
 	for actor in definition.get("placements", {}).get("characters", []):
 		ids[String(actor.get("character_id", ""))] = actor
-	for required_id in ["captain_ilsa_rennick", "watchman_bram_oswick", "reeve_aldous_finch", "nella_brook", "mira_selk", "mirella_thorn", "petra_voss", "osric_vane", "guild_watchman_corley", "baron_corwin_aldervale", "steward_halvard_greer", "torvald_anvik"]:
+	for required_id in ["captain_ilsa_rennick", "watchman_bram_oswick", "reeve_aldous_finch", "nella_brook", "mira_selk", "mirella_thorn", "petra_voss", "osric_vane", "guild_watchman_corley", "baron_corwin_aldervale", "steward_halvard_greer", "torvald_anvik", "mirabel_quill"]:
 		_check(ids.has(required_id), "Reddale must retain source NPC " + required_id)
+	if ids.has("mirabel_quill"):
+		_assert_axial(ids["mirabel_quill"].get("position", {}), Vector2i(156, 26), "Mirabel source position beside Reddale")
 	_check(terrain.terrain_for_hex(Vector2i(134, 24)) == "authored", "Reddale guardhouse must suppress procedural terrain")
 	_check(terrain.terrain_for_hex(Vector2i(138, 22)) == "path", "Reddale reeve approach must be indexed as a path")
 	var factory = BUILDING_FACTORY
@@ -355,8 +358,12 @@ func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array)
 	var farmhouse := _find_record(layout.get("buildings", []), "old_mac_farmhouse")
 	_assert_axial(farmhouse.get("center", {}), Vector2i(0, 194), "Old Mac farmhouse centre")
 	_assert_axial(farmhouse.get("door", {}), Vector2i(3, 194), "Old Mac farmhouse door")
-	var actor := _find_record(definition.get("placements", {}).get("characters", []), "old_mac")
+	var farmstead_characters: Array = definition.get("placements", {}).get("characters", [])
+	var actor := _find_record(farmstead_characters, "old_mac")
 	_assert_axial(actor.get("position", {}), Vector2i(1, 194), "Old Mac source placement")
+	_check(farmstead_characters.size() == 2, "Old Mac and Reyna must be the two source-authored farmstead character placements")
+	var reyna_actor := _find_record(farmstead_characters, "reyna_fletcher")
+	_assert_axial(reyna_actor.get("position", {}), Vector2i(6, 198), "Reyna source placement relative to the farm centre")
 	var sheep: Array = definition.get("placements", {}).get("creatures", [])
 	_check(sheep.size() == 2, "Old Mac's two source sheep must be retained as creature placements")
 	var sheep_a := _find_record(sheep, "OldMacSheepA")

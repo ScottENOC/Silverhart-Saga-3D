@@ -262,3 +262,12 @@ For migration tracking, each source dialogue ID should have:
 ## Status
 
 Index generated from source literals and first-pass pattern scans. Names and IDs should be reconciled with actual spawn sites, builders and tests before marking any character or quest as migrated. This file is an inventory aid, not proof of parity.
+
+### Queen Seraphine — logic port in progress
+
+- The reusable `PersistentCharacterDialogueContent` now builds the source-authored Silverhart Queen audience greeting from supplied campaign context, including greenskin access, kingdom-standing greeting tiers, the three campaign topics, manor eligibility, wizard evidence and the Chancellor tunnel report.
+- Source-authored topic responses are represented as data and topic conversations award familiarity idempotently through the existing persistent relationship state.
+- The manor, wizard-evidence and tunnel branches expose explicit effect descriptors for the campaign interaction layer; this keeps scene/world mutations out of the content class.
+- The existing personal-burden question remains gated by familiarity and its response varies with trust/friendship.
+- Godot tests cover the audience gates, topic conditions, relationship memory and effect descriptors.
+- **Not yet runtime-wired:** the Silverhart Palace / Queen actor is not currently part of the opening Hollowmere scene. The next integration step is to connect these tested content results to the generic world dialogue interaction and implement the effect descriptors against campaign journal/world state when the palace location is ported.

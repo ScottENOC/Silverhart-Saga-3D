@@ -27,7 +27,7 @@ func _test_hollowmere_adapter() -> void:
 	_check(canonical.get("layout", {}).get("fields", []).size() == 22, "Fields, crop rows and fences must be represented once in the canonical layout")
 	_check(canonical.get("layout", {}).get("props", []).size() == 5, "All authored prop groups must be represented once")
 	_check(canonical.get("presentation", {}).has("materials") and not canonical.get("presentation", {}).has("feature_data"), "Presentation material bindings must not duplicate the authored feature payload")
-	_check(canonical.get("placements", {}).get("characters", []).size() == 15, "Player start and fourteen authored character placements must adapt")
+	_check(canonical.get("placements", {}).get("characters", []).size() == 14, "Player start and thirteen remaining Hollowmere character placements must adapt after Reyna moves to Old Mac’s Farmstead")
 	var wren := _find_record(canonical.placements.characters, "wren_talbot")
 	_check(wren.get("position", Vector2i.ZERO) == Vector2i(-2, 1), "Wren's authored start must remain unchanged")
 	var player := _find_record(canonical.placements.characters, "player_start")

@@ -3,8 +3,12 @@
 This replaces the former broad surface-displacement blockout with explicit,
 smooth anatomical geometry: a tapered flaccid shaft, defined glans/corona,
 subtle meatus, and a scrotal form with paired testicular lobes. All geometry
-uses the Ara skin material and is skinned to the pelvis bone. It is scaled from
-the imported body's measured bounds and pelvis landmark, not fixed world units.
+uses the Ara skin material and is skinned to the pelvis bone. Placement is derived
+from measured body bounds and pelvis landmarks; genital dimensions use absolute
+clinical measurements rather than height scaling.
+
+Size: defaults to the published population mean (13.12 cm erect length, 11.66 cm erect circumference).
+Use --length-scale / --girth-scale (independent) and, for per-character variation, --variation-seed.
 
 Ara GLB axes after Blender import: Z up, character facing -Y.
 """
@@ -12,6 +16,7 @@ import argparse
 import os
 import sys
 import math
+import random
 
 import bpy
 from mathutils import Vector
@@ -38,6 +43,26 @@ def arguments():
         "--author-transition-clip", action="store_true",
         help="Also author a 24-frame MaleAnatomy_Erection clip (weight 0 -> 1). The Anatomy_Erect morph target "
              "is always written and is the primary interface; drive its weight directly in the engine.",
+    )
+    parser.add_argument(
+        "--length-scale", type=float, default=1.0,
+        help="Erect length relative to the population mean (1.0 = 13.12 cm). Absolute measurement, "
+             "independent of character height and of --girth-scale.",
+    )
+    parser.add_argument(
+        "--girth-scale", type=float, default=1.0,
+        help="Erect circumference relative to the population mean (1.0 = 11.66 cm). "
+             "Absolute measurement, independent of character height and of --length-scale.",
+    )
+    parser.add_argument(
+        "--variation-seed", default=None,
+        help="Per-character size variation. Any string or number (e.g. the character id): the same seed always "
+             "gives the same size. Omit it to get the exact population mean.",
+    )
+    parser.add_argument(
+        "--variation-strength", type=float, default=1.0,
+        help="Multiplier on the population standard deviations used by --variation-seed "
+             "(0 = none, 1 = realistic spread, clipped at +/-SIZE['variation_clip_sd']).",
     )
     return parser.parse_args(raw)
 
@@ -440,7 +465,7 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
         base_depth_offset = body_height * 0.003
     else:
         target_axis = Vector((0.0, -0.985, -0.17)).normalized()
-        target_length = body_height * 0.074 * MALE_TRANSITION["erect_length_scale"]
+        target_length = SIZE["reference_height_m"] * SIZE["mesh_length_fraction"] * MALE_TRANSITION["erect_length_scale"]
         base_depth_offset = body_height * 0.016
     radial_factor = 1.16
     rotation = source_axis.rotation_difference(target_axis)
@@ -519,8 +544,8 @@ def create_finger_derived_phallus(skin, material, armature, pelvis_bone,
 # symmetric about the midline. The flaccid pose is generated from the SAME rings, so both
 # states share one topology and form the phallus half of the `Anatomy_Erect` morph target.
 #
-# Radii are millimetres for a 1.676 m body and scale with body height (and the
-# MALE_TRANSITION erect_length_scale / erect_girth_scale). Edit this block to fine-tune.
+# Radii are millimetres calibrated to the measured 1.676 m reference body.
+# They remain absolute across body heights; edit this block only to fine-tune shape.
 # ---------------------------------------------------------------------------
 PHALLUS = {
     # (t along the erect length, radius mm). t < 0.2 is the buried root and flares into the body.
@@ -597,9 +622,11 @@ def create_symmetric_phallus(skin, material, armature, pelvis_bone,
     pucker_eff = F["pucker_mm"] * (0.5 + 0.5 * cov)
     peek = max(0.0, min(1.0, (0.7 - cov) / 0.7))                    # below ~0.7 coverage the glans tip shows through
     H = body_height
-    k = H / 1.676
-    length = H * 0.074 * T["erect_length_scale"]
-    girth = k * T["erect_length_scale"] * T["erect_girth_scale"]
+    # Clinical averages are measured in centimetres, not height-normalised.
+    # Keep the mesh dimensions absolute across tall/short body variants.
+    k = 1.0
+    length = SIZE["reference_height_m"] * SIZE["mesh_length_fraction"] * T["erect_length_scale"]
+    girth = T["erect_girth_scale"]               # radius multiplier; independent of the length scale
     axis = Vector((0.0, -0.985, -0.17)).normalized()
     base = Vector((centre_x, anchor_y + H * 0.016, anatomy_z + H * 0.004))
     x_axis = Vector((1.0, 0.0, 0.0))
@@ -867,6 +894,11 @@ def create_symmetric_phallus(skin, material, armature, pelvis_bone,
 
     obj = create_mesh_object("Male anatomy · symmetric shaft and glans", [tuple(v) for v in erect_v],
                              faces, material, armature, pelvis_bone)
+    # The shaft is driven entirely by the pelvis-parented anatomy bone chain.
+    # Remove the default pelvis influence so AnatomyRoot scaling remains exact.
+    pelvis_group = obj.vertex_groups.get(pelvis_bone)
+    if pelvis_group is not None:
+        pelvis_group.remove(list(range(len(erect_v))))
     shaft_groups = [obj.vertex_groups.new(name=n) for n in ("AnatomyRoot", "AnatomyMid", "AnatomyTip")]
     for vi in range(len(erect_v)):
         t = 0.0 if vi == root_idx else (P["tip_end"] if vi == apex_idx else ring_t[vi // segs])
@@ -889,7 +921,12 @@ def create_symmetric_phallus(skin, material, armature, pelvis_bone,
     obj["anatomy_parts"] = "flared_root,symmetric_shaft,sulcus,corona,rounded_glans"
     obj["anatomy_method"] = "symmetric_parametric_loft_fitted_to_accepted_erect_v1"
     obj["flaccid_positions"] = [float(c) for v in flaccid_v for c in v]
-    print(f"Symmetric phallus: {len(erect_v)} vertices, erect length {length:.4f} m, max radius "
+    visible_erect = P["tip_end"] * length - exit_e      # from where the centre line leaves the skin
+    visible_flaccid = s_total - exit_f
+    obj["visible_erect_length_m"] = float(visible_erect)
+    obj["visible_flaccid_length_m"] = float(visible_flaccid)
+    print(f"Symmetric phallus: {len(erect_v)} vertices, erect length {length:.4f} m "
+          f"(visible {visible_erect * 100:.1f} cm erect, {visible_flaccid * 100:.1f} cm flaccid), max radius "
           f"{max(p[1] for p in P['profile_mm']) * 0.001 * girth:.4f} m")
     return obj
 
@@ -1111,7 +1148,8 @@ def add_meatus_detail(tree, skin_material, armature, pelvis_bone, height, tip_z,
 
 
 
-def paint_male_anatomy_detail(obj, centre_x, anatomy_z, height, anchor_y, state, part):
+def paint_male_anatomy_detail(obj, centre_x, anatomy_z, height, anchor_y, state, part,
+                              length_factor=1.0, girth_factor=1.0):
     mesh = obj.data
     if (part == 'scrotum' and obj.get('scrotum_colour_painted')):
         return
@@ -1120,7 +1158,7 @@ def paint_male_anatomy_detail(obj, centre_x, anatomy_z, height, anchor_y, state,
     colour = mesh.color_attributes.new(name='Color', type='FLOAT_COLOR', domain='POINT')
     if part == 'phallus':
         axis = Vector((0.0, -0.43, -0.90)).normalized() if state == 'flaccid' else Vector((0.0, -0.985, -0.17)).normalized()
-        length = height * (0.038 if state == 'flaccid' else 0.074)
+        length = height * (0.038 if state == 'flaccid' else 0.074) * length_factor
         base = Vector((centre_x, anchor_y + height * (0.003 if state == 'flaccid' else 0.016), anatomy_z + height * 0.004))
         for vertex in mesh.vertices:
             point = obj.matrix_world @ vertex.co
@@ -1128,7 +1166,7 @@ def paint_male_anatomy_detail(obj, centre_x, anatomy_z, height, anchor_y, state,
             along = relative.dot(axis)
             t = max(0.0, min(1.0, along / length))
             radial = (relative - axis * along).length
-            radius = height * (0.0085 if state == 'flaccid' else 0.010)
+            radius = height * (0.0085 if state == 'flaccid' else 0.010) * girth_factor
             glans = math.exp(-0.5 * ((t - 0.88) / 0.085) ** 2) * max(0.0, 1.0 - radial / (radius * 1.8))
             groove = math.exp(-0.5 * ((t - 0.785) / 0.028) ** 2) * max(0.0, 1.0 - radial / (radius * 1.5))
             strength = min(1.0, 0.58 * glans + 0.20 * groove)
@@ -1278,23 +1316,25 @@ def masculinise_body_mesh(skin):
 # the erect form: weight 0 = flaccid, weight 1 = erect, anything between is a
 # continuous transition. The scrotum shares the same key (it draws up and tightens).
 #
-# Lengths are fractions of the erect mesh, so everything scales with the body.
-# Edit this block to fine-tune; no other code needs to change.
+# The penis uses absolute clinical dimensions; body height determines placement only.
+# The scrotum retains its existing body-proportion scaling.
 # ---------------------------------------------------------------------------
 MALE_TRANSITION = {
     "shape_key": "Anatomy_Erect",
-    # Erect size. 1.0 = the accepted erect (12.4 cm total, ~9 cm visible at 1.68 m). The flaccid pose
-    # is derived from the erect mesh, so changing these scales both states consistently.
-    "erect_length_scale": 1.0,   # e.g. 1.3 for a ~12 cm visible erect length
-    "erect_girth_scale": 1.0,    # extra girth on top of the uniform length scaling
+    # Erect size multipliers on the base mesh (12.4 cm long, 9.3 cm mid-shaft circumference at 1.676 m).
+    # Do not edit these: resolve_penis_size() sets them at run time from SIZE and the CLI
+    # (--length-scale / --girth-scale / --variation-seed). Length and girth are independent.
+    # The flaccid pose is derived from the erect mesh, so both states follow.
+    "erect_length_scale": 1.0,
+    "erect_girth_scale": 1.0,
     "clip": "MaleAnatomy_Erection",   # 24-frame clip: 0 -> 1 (play backwards for the return)
     "clip_frames": (1, 24),
     # flaccid derivation (phallus)
     "glans_start": 0.79,         # where the glans begins along the erect mesh (0..1)
-    "shaft_compress": 0.74,      # flaccid shaft arc length / erect shaft arc length
+    "shaft_compress": 0.639,     # calibrated so the derived flaccid length is ~9.16 cm at the erect mean
     "glans_length_scale": 0.92,  # the glans keeps most of its length
-    "shaft_girth": 0.90,         # radial scale of the shaft vs erect
-    "glans_girth": 0.95,         # radial scale of the glans vs erect
+    "shaft_girth": 0.7985,       # 9.31 / 11.66 cm: pooled flaccid / erect circumference
+    "glans_girth": 0.845,        # radial scale of the glans vs erect (keeps the original glans:shaft ratio of 1.056)
     "root_flare": 0.0,           # (the phallus fillet now handles the body blend)
     "angle_root_deg": 36.0,      # centre line direction below horizontal at the root ...
     "angle_tip_deg": 84.0,       # ... and at the tip (hangs under gravity)
@@ -1418,6 +1458,212 @@ def add_erect_morph(skin, first_vertex, erect_world, state, author_clip):
     return key
 
 
+# ---------------------------------------------------------------------------
+# Size: population mean, caller scales, optional seeded per-character variation.
+#
+# Reference values are the pooled means / SDs of Veale et al., BJU Int 2015;115:978
+# (systematic review, up to 15,521 men). At scale 1.0 and no seed the model is the mean.
+# The clinical measurements are absolute adult averages; body height changes placement, not genital dimensions.
+# ---------------------------------------------------------------------------
+SIZE = {
+    "reference_height_m": 1.676,
+    "erect_length_cm": 13.12, "erect_length_sd_cm": 1.66,
+    "erect_circumference_cm": 11.66, "erect_circumference_sd_cm": 1.10,
+    "flaccid_length_cm": 9.16, "flaccid_length_sd_cm": 1.57,
+    "flaccid_circumference_cm": 9.31, "flaccid_circumference_sd_cm": 0.90,
+    "mesh_length_fraction": 0.074,          # base mesh length / body height (the T["erect_length_scale"] = 1 mesh)
+    "circumference_measured_at_t": 0.5,     # mid-shaft, as in the source studies (not under the corona)
+    "variation_clip_sd": 2.0,               # per-character draws are clipped to +/- this many SDs
+    "length_girth_correlation": 0.0,        # 0 = independent draws; my assumption, not from the review. Raise it
+                                            # (0.3-0.5) if you want longer characters to also tend to be thicker.
+}
+
+
+def resolve_penis_size(length_scale, girth_scale, seed, strength, body_height):
+    """Turn CLI scales + optional seed into the mesh multipliers in MALE_TRANSITION. Returns a summary dict."""
+    if length_scale <= 0.0 or girth_scale <= 0.0:
+        raise SystemExit("--length-scale and --girth-scale must be positive")
+    if not 0.0 <= strength <= 1.0:
+        raise SystemExit("--variation-strength must be between 0 and 1 for realistic population variation")
+    S = SIZE
+    z_len = z_circ = 0.0
+    if seed is not None and strength > 0.0:
+        rng = random.Random(str(seed))                       # string seeds are deterministic across runs
+        clip, rho = S["variation_clip_sd"], S["length_girth_correlation"]
+        z_len = max(-clip, min(clip, rng.gauss(0.0, 1.0)))
+        z_circ = max(-clip, min(clip, rho * z_len + math.sqrt(max(0.0, 1.0 - rho * rho)) * rng.gauss(0.0, 1.0)))
+    length_cm = length_scale * (S["erect_length_cm"] + z_len * strength * S["erect_length_sd_cm"])
+    circ_cm = girth_scale * (S["erect_circumference_cm"] + z_circ * strength * S["erect_circumference_sd_cm"])
+    base_length_cm = S["mesh_length_fraction"] * S["reference_height_m"] * 100.0
+    base_circ_cm = 2.0 * math.pi * _catmull(PHALLUS["profile_mm"], S["circumference_measured_at_t"]) / 10.0
+    MALE_TRANSITION["erect_length_scale"] = length_cm / base_length_cm
+    MALE_TRANSITION["erect_girth_scale"] = circ_cm / base_circ_cm
+    pct = lambda z: 100.0 * 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+    flaccid_circ = MALE_TRANSITION["shaft_girth"] * circ_cm
+    flaccid_length = length_cm * (MALE_TRANSITION["glans_start"] * MALE_TRANSITION["shaft_compress"] + (1.0 - MALE_TRANSITION["glans_start"]) * MALE_TRANSITION["glans_length_scale"])
+    print(f"Penis size (absolute adult measurements; body height {body_height:.3f} m affects placement only): erect {length_cm:.2f} cm / {circ_cm:.2f} cm circumference; flaccid approx. {flaccid_length:.2f} cm / {flaccid_circ:.2f} cm circumference "
+          f"(mesh multipliers: length x{MALE_TRANSITION['erect_length_scale']:.3f}, "
+          f"girth x{MALE_TRANSITION['erect_girth_scale']:.3f})")
+    if seed is not None and strength > 0.0:
+        print(f"  seed {seed!r}: length {z_len:+.2f} SD (~{pct(z_len):.0f}th percentile), "
+              f"girth {z_circ:+.2f} SD (~{pct(z_circ):.0f}th percentile), strength {strength:g}")
+    return {"length_cm": length_cm, "circumference_cm": circ_cm,
+            "flaccid_length_cm": flaccid_length, "flaccid_circumference_cm": flaccid_circ,
+            "z_length": z_len, "z_girth": z_circ}
+
+
+# ---------------------------------------------------------------------------
+# Skin texture / colour continuity.
+#
+# The anatomy meshes are built from raw vertices and have no UVs. After joining they would all sample
+# one texel of the skin texture (UV 0,0), which reads as flat, mismatched colour. Each anatomy vertex
+# therefore borrows the UV of the nearest point on the body, restricted to the UV island the pelvis front
+# belongs to, so one continuous patch of the real skin texture is used and nothing smears across seams.
+# ---------------------------------------------------------------------------
+def ensure_skin_colour_layer(skin):
+    """The joined mesh needs one consistent 'Color' layer (POINT / FLOAT_COLOR). Body vertices are white."""
+    import numpy as np
+    mesh = skin.data
+    attr = mesh.color_attributes.get("Color")
+    nv = len(mesh.vertices)
+    if attr is not None and attr.domain == "POINT" and attr.data_type == "FLOAT_COLOR":
+        return
+    if attr is None:
+        vertex_colour = np.ones((nv, 4), dtype=np.float32)
+    else:
+        raw = np.empty(len(attr.data) * 4, dtype=np.float32)
+        attr.data.foreach_get("color", raw)
+        raw = raw.reshape(-1, 4)
+        if attr.domain == "CORNER":
+            loop_v = np.empty(len(mesh.loops), dtype=np.int32)
+            mesh.loops.foreach_get("vertex_index", loop_v)
+            sums = np.zeros((nv, 4), dtype=np.float64)
+            np.add.at(sums, loop_v, raw)
+            vertex_colour = (sums / np.maximum(np.bincount(loop_v, minlength=nv), 1)[:, None]).astype(np.float32)
+        else:
+            vertex_colour = raw
+        mesh.color_attributes.remove(attr)
+    new = mesh.color_attributes.new(name="Color", type="FLOAT_COLOR", domain="POINT")
+    new.data.foreach_set("color", vertex_colour.reshape(-1))
+    mesh.update()
+
+
+def _uv_island_ids(loop_vertex, loop_edge, loop_start, uv, eps=1e-5):
+    """Island id per polygon: faces are in one island when the UVs match on both ends of their shared edge."""
+    import numpy as np
+    n_loops, n_poly = len(loop_vertex), len(loop_start)
+    loop_total = np.diff(np.append(loop_start, n_loops))
+    poly_of_loop = np.repeat(np.arange(n_poly), loop_total)
+    nxt = np.arange(n_loops) + 1
+    nxt[loop_start + loop_total - 1] = loop_start
+    order = np.argsort(loop_edge, kind="stable")
+    sorted_edge = loop_edge[order]
+    cut = np.flatnonzero(np.diff(sorted_edge)) + 1
+    first = np.concatenate(([0], cut))
+    last = np.concatenate((cut, [len(sorted_edge)]))
+    pairs = np.flatnonzero(last - first == 2)                      # interior (manifold) edges only
+    la, lb = order[first[pairs]], order[first[pairs] + 1]
+    opposed = loop_vertex[la] == loop_vertex[nxt[lb]]              # normal winding: neighbours traverse the edge in opposite directions
+    b_at_a0 = np.where(opposed[:, None], uv[nxt[lb]], uv[lb])
+    b_at_a1 = np.where(opposed[:, None], uv[lb], uv[nxt[lb]])
+    same = (np.abs(uv[la] - b_at_a0).max(1) <= eps) & (np.abs(uv[nxt[la]] - b_at_a1).max(1) <= eps)
+    parent = list(range(n_poly))
+
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    for a, b in zip(poly_of_loop[la[same]].tolist(), poly_of_loop[lb[same]].tolist()):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+    return np.array([find(i) for i in range(n_poly)], dtype=np.int64)
+
+
+def _barycentric_batch(a, b, c, p):
+    """Barycentric weights (n,3) of points p (n,3) on triangles a,b,c (n,3 each); clamped to the triangle."""
+    import numpy as np
+    v0, v1, v2 = b - a, c - a, p - a
+    d00, d01, d11 = (v0 * v0).sum(1), (v0 * v1).sum(1), (v1 * v1).sum(1)
+    d20, d21 = (v2 * v0).sum(1), (v2 * v1).sum(1)
+    den = d00 * d11 - d01 * d01
+    den = np.where(np.abs(den) < 1e-20, 1e-20, den)
+    v = (d11 * d20 - d01 * d21) / den
+    w = (d00 * d21 - d01 * d20) / den
+    weights = np.clip(np.stack([1.0 - v - w, v, w], axis=1), 0.0, None)
+    return weights / np.maximum(weights.sum(1, keepdims=True), 1e-12)
+
+
+def transfer_skin_uvs(skin, anatomy, anchor_world):
+    """Give every vertex of `anatomy` the UVs of the nearest point on the skin's anchor UV island."""
+    import numpy as np
+    smesh, amesh = skin.data, anatomy.data
+    if not smesh.uv_layers:
+        print("WARNING: skin mesh has no UV map; anatomy keeps default UVs")
+        return 0
+    n_l, n_p = len(smesh.loops), len(smesh.polygons)
+
+    def world_positions(obj, mesh):
+        co = np.empty(len(mesh.vertices) * 3, dtype=np.float64)
+        mesh.vertices.foreach_get("co", co)
+        m = np.array([list(row) for row in obj.matrix_world], dtype=np.float64)
+        return co.reshape(-1, 3) @ m[:3, :3].T + m[:3, 3]
+
+    def uv_array(layer):
+        arr = np.empty(n_l * 2, dtype=np.float32)
+        layer.data.foreach_get("uv", arr)
+        return arr.reshape(-1, 2).astype(np.float64)
+
+    skin_world = world_positions(skin, smesh)
+    loop_v = np.empty(n_l, dtype=np.int32); smesh.loops.foreach_get("vertex_index", loop_v)
+    loop_e = np.empty(n_l, dtype=np.int32); smesh.loops.foreach_get("edge_index", loop_e)
+    loop_start = np.empty(n_p, dtype=np.int32); smesh.polygons.foreach_get("loop_start", loop_start)
+    layers = list(smesh.uv_layers)
+    active = smesh.uv_layers.active or layers[0]
+    smesh.calc_loop_triangles()
+    n_t = len(smesh.loop_triangles)
+    tri_v = np.empty(n_t * 3, dtype=np.int32); smesh.loop_triangles.foreach_get("vertices", tri_v); tri_v = tri_v.reshape(-1, 3)
+    tri_l = np.empty(n_t * 3, dtype=np.int32); smesh.loop_triangles.foreach_get("loops", tri_l); tri_l = tri_l.reshape(-1, 3)
+    tri_p = np.empty(n_t, dtype=np.int32); smesh.loop_triangles.foreach_get("polygon_index", tri_p)
+
+    island_of_poly = _uv_island_ids(loop_v, loop_e, loop_start, uv_array(active))
+    verts = [Vector(p) for p in skin_world.tolist()]
+    everything = BVHTree.FromPolygons(verts, tri_v.tolist(), all_triangles=True)
+    _loc, _nrm, anchor_tri, _dist = everything.find_nearest(Vector(anchor_world))
+    if anchor_tri is None:
+        print("WARNING: could not find skin near the anatomy anchor; anatomy keeps default UVs")
+        return 0
+    island = island_of_poly[tri_p[anchor_tri]]
+    chosen = np.flatnonzero(island_of_poly[tri_p] == island)
+    tree = BVHTree.FromPolygons(verts, tri_v[chosen].tolist(), all_triangles=True)
+
+    points = world_positions(anatomy, amesh)
+    hit_tri = np.empty(len(points), dtype=np.int64)
+    hit_loc = np.empty((len(points), 3), dtype=np.float64)
+    hit_dist = np.empty(len(points), dtype=np.float64)
+    for i, point in enumerate(points.tolist()):
+        loc, _n, idx, dist = tree.find_nearest(Vector(point))
+        hit_tri[i], hit_loc[i], hit_dist[i] = chosen[idx], (loc[0], loc[1], loc[2]), dist
+    weights = _barycentric_batch(skin_world[tri_v[hit_tri, 0]], skin_world[tri_v[hit_tri, 1]],
+                                 skin_world[tri_v[hit_tri, 2]], hit_loc)
+
+    a_loop_v = np.empty(len(amesh.loops), dtype=np.int32)
+    amesh.loops.foreach_get("vertex_index", a_loop_v)
+    for layer in layers:                                   # same names / order as the skin so the join lines up
+        src = uv_array(layer)
+        per_vertex = sum(weights[:, j, None] * src[tri_l[hit_tri, j]] for j in range(3))
+        target = amesh.uv_layers.get(layer.name) or amesh.uv_layers.new(name=layer.name)
+        target.data.foreach_set("uv", per_vertex[a_loop_v].astype(np.float32).reshape(-1))
+        if layer.name == active.name:
+            amesh.uv_layers.active = target
+    amesh.update()
+    print(f"Anatomy UVs: {len(points)} vertices sampled from UV island of {len(chosen)} skin triangles "
+          f"(mean distance {hit_dist.mean() * 1000:.1f} mm, max {hit_dist.max() * 1000:.1f} mm)")
+    return len(points)
+
+
 def main():
     args = arguments()
     if not args.adult:
@@ -1445,6 +1691,8 @@ def main():
     pelvic_surface_y = front_surface_y(surface_tree, centre_x, anatomy_z)
     # The accepted erect surface is the master mesh. The flaccid pose is derived from
     # it (same topology), and the two are linked by one morph target.
+    size = resolve_penis_size(args.length_scale, args.girth_scale, args.variation_seed,
+                              args.variation_strength, height)
     PHALLUS["style"] = args.penis_style
     phallus = create_symmetric_phallus(
         skin, skin_material, armature, pelvis_bone, height, anatomy_z,
@@ -1455,7 +1703,8 @@ def main():
         pelvic_surface_y, "erect", centre_x
     )
     # Colour is painted by vertex membership, so it follows the vertices through the morph.
-    paint_male_anatomy_detail(phallus, centre_x, anatomy_z, height, pelvic_surface_y, "erect", "phallus")
+    paint_male_anatomy_detail(phallus, centre_x, anatomy_z, height, pelvic_surface_y, "erect", "phallus",
+                              MALE_TRANSITION["erect_length_scale"], MALE_TRANSITION["erect_girth_scale"])
     paint_male_anatomy_detail(scrotum, centre_x, anatomy_z, height, pelvic_surface_y, "erect", "scrotum")
 
     ph_erect = [phallus.matrix_world @ v.co for v in phallus.data.vertices]
@@ -1479,8 +1728,15 @@ def main():
     anatomy["anatomy_state"] = args.anatomy_state
     # Join into the original Ara body mesh so the exported GLB retains one
     # full-rig skin rather than a separate pelvis-only skeleton palette.
+    ensure_skin_colour_layer(skin)
+    transfer_skin_uvs(skin, anatomy, Vector((centre_x, pelvic_surface_y, anatomy_z)))
     first_anatomy_vertex = len(skin.data.vertices)
     skin = merge_anatomy_into_skin(skin, anatomy, armature, pelvis_bone)
+    skin["penis_erect_length_cm"] = size["length_cm"]
+    skin["penis_erect_circumference_cm"] = size["circumference_cm"]
+    skin["penis_flaccid_length_cm"] = size["flaccid_length_cm"]
+    skin["penis_flaccid_circumference_cm"] = size["flaccid_circumference_cm"]
+    skin["penis_size_seed"] = "" if args.variation_seed is None else str(args.variation_seed)
     if len(skin.data.vertices) - first_anatomy_vertex != len(erect_world):
         raise RuntimeError("Anatomy vertex count changed while joining; the erect morph target would be misaligned")
     add_erect_morph(skin, first_anatomy_vertex, erect_world, args.anatomy_state, args.author_transition_clip)
