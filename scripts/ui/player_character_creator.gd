@@ -64,11 +64,19 @@ var tattoo_style_select: OptionButton
 var body_hair_checks: Dictionary = {}
 var body_hair_density_sliders: Dictionary = {}
 var body_hair_style_select: OptionButton
+var disguise_mode: bool = false
+var disguise_initial_profile: Dictionary = {}
+
+func configure_disguise(initial_profile: Dictionary) -> void:
+	disguise_mode = true
+	disguise_initial_profile = initial_profile.duplicate(true)
 
 func _ready() -> void:
 	layer = 100
 	_build_screen()
 	_load_saved_profile()
+	if disguise_mode:
+		_apply_disguise_initial_profile()
 	_refresh_character_preview(0)
 
 func _build_screen() -> void:
@@ -96,13 +104,13 @@ func _build_screen() -> void:
 	centre.add_child(panel)
 
 	var title := Label.new()
-	title.text = "CREATE YOUR CHARACTER"
+	title.text = "CREATE YOUR DISGUISE" if disguise_mode else "CREATE YOUR CHARACTER"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 30)
 	panel.add_child(title)
 
 	var intro := Label.new()
-	intro.text = "Choose who arrives in Hollowmere, the opening village of the Main Campaign. Identity, presentation and appearance are independent."
+	intro.text = "Choose the appearance you present to others. This changes appearance only; it does not change identity, skills, equipment or attributes." if disguise_mode else "Choose who arrives in Hollowmere, the opening village of the Main Campaign. Identity, presentation and appearance are independent."
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	intro.add_theme_color_override("font_color", Color(0.78, 0.79, 0.78))
@@ -340,7 +348,7 @@ func _build_screen() -> void:
 	panel.add_child(note)
 
 	start_button = Button.new()
-	start_button.text = "BEGIN MAIN CAMPAIGN"
+	start_button.text = "APPLY DISGUISE" if disguise_mode else "BEGIN MAIN CAMPAIGN"
 	start_button.custom_minimum_size = Vector2(0, 52)
 	start_button.pressed.connect(_finish)
 	panel.add_child(start_button)
@@ -610,7 +618,283 @@ func _select_text(select: OptionButton, value: String) -> void:
 			select.select(index)
 			return
 
+func _apply_disguise_initial_profile() -> void:
+    var data := disguise_initial_profile
+    if data.is_empty():
+        return
+    _select_text(body_variant_select, "Male" if String(data.get("body_variant", "female")) == "male" else "Female")
+    _select_text(presentation_select, String(data.get("gender_presentation", "Masculine")))
+    _select_text(pronoun_select, String(data.get("pronoun_preset", "They / them")))
+    custom_pronouns.text = String(data.get("custom_pronouns", ""))
+    _select_text(skin_select, String(data.get("skin_tone", "Medium")))
+    _select_text(eye_select, String(data.get("eye_colour", "Brown")))
+    _select_text(hair_colour_select, String(data.get("hair_colour", "Dark brown")))
+    _select_text(hair_style_select, String(data.get("hair_style", "Short 2")))
+    _select_text(body_select, String(data.get("body_build", "Average")))
+    height_slider.value = clampf(float(data.get("height_scale", 1.0)), 0.90, 1.10)
+    var details: Dictionary = data.get("character_details", {})
+    var piercings: Array = details.get("piercings", [])
+    ear_piercing_check.button_pressed = piercings.has("earrings")
+    nipple_piercing_check.button_pressed = piercings.has("nipple_left")
+    clit_piercing_check.button_pressed = piercings.has("clit")
+    var tattoos: Array = details.get("tattoos", [])
+    var design := String(tattoos[0].get("design", "")) if not tattoos.is_empty() and tattoos[0] is Dictionary else ""
+    _select_text(tattoo_style_select, "Arcane constellation" if design == "mirabel_arcane" else ("Shoulder-back motif" if design == "reyna_shoulder_back" else "None"))
+
+
+func _finish_disguise() -> void:
+    var build_factors := {"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04, "Androgynous": 1.0}
+    var body_build := body_select.get_item_text(body_select.selected)
+    var pronoun_value := pronoun_select.get_item_text(pronoun_select.selected)
+    var custom_value := custom_pronouns.text.strip_edges()
+    var profile := {
+        "body_variant": "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female",
+        "height_scale": height_slider.value,
+        "height": inverse_lerp(0.90, 1.10, height_slider.value),
+        "build_scale": float(build_factors.get(body_build, 1.0)),
+        "muscle": float({"Lean": 0.42, "Average": 0.5, "Broad": 0.62, "Muscular": 0.88, "Soft": 0.3, "Androgynous": 0.5}.get(body_build, 0.5)),
+        "weight": float({"Lean": 0.28, "Average": 0.5, "Broad": 0.72, "Muscular": 0.38, "Soft": 0.82, "Androgynous": 0.5}.get(body_build, 0.5)),
+        "proportions": 0.5,
+        "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
+        "pronoun_preset": pronoun_value,
+        "pronouns": custom_value if pronoun_value == "Custom" else _pronouns_for(pronoun_value),
+        "custom_pronouns": custom_value,
+        "skin_tone": skin_select.get_item_text(skin_select.selected),
+        "skin_colour": SKIN_COLOURS[skin_select.selected],
+        "eye_colour": eye_select.get_item_text(eye_select.selected),
+        "hair_colour": hair_colour_select.get_item_text(hair_colour_select.selected),
+        "hair_style": hair_style_select.get_item_text(hair_style_select.selected),
+        "hair_style_id": String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02")),
+        "body_build": body_build
+    }
+    profile.merge(_appearance_detail_profile(), true)
+    completed.emit(profile)
+    queue_free()
+
+
+func _section(parent: VBoxContainer, text_value: String) -> void:
+    var label := Label.new()
+    label.text = text_value
+    label.add_theme_font_size_override("font_size", 19)
+    label.add_theme_color_override("font_color", Color(0.83, 0.72, 0.49))
+    parent.add_child(label)
+
+func _line_edit(parent: VBoxContainer, label_text: String, placeholder: String) -> LineEdit:
+    var row := HBoxContainer.new()
+    parent.add_child(row)
+    var label := Label.new()
+    label.text = label_text
+    label.custom_minimum_size.x = 120
+    row.add_child(label)
+    var field := LineEdit.new()
+    field.placeholder_text = placeholder
+    field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    row.add_child(field)
+    return field
+
+func _option_row(parent: VBoxContainer, label_text: String, values: Array) -> OptionButton:
+    var row := HBoxContainer.new()
+    parent.add_child(row)
+    var label := Label.new()
+    label.text = label_text
+    label.custom_minimum_size.x = 135
+    row.add_child(label)
+    var select := OptionButton.new()
+    select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+    for value in values:
+        select.add_item(str(value))
+    row.add_child(select)
+    return select
+
+func _load_saved_profile() -> void:
+    if not FileAccess.file_exists(SAVE_PATH):
+        return
+    var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+    if file == null:
+        return
+    var parsed: Variant = JSON.parse_string(file.get_as_text())
+    if not parsed is Dictionary:
+        return
+    var data: Dictionary = parsed
+    name_edit.text = str(data.get("name", ""))
+    _select_metadata(race_select, str(data.get("race", "human")))
+    _select_metadata(class_select, str(data.get("character_class", "fighter")))
+    _select_text(game_mode_select, "Campaign" if str(data.get("game_mode", "campaign")) == "campaign" else "Arena")
+    _select_metadata(difficulty_select, str(data.get("difficulty_mode", "normal")))
+    ironman_check.button_pressed = bool(data.get("ironman_mode", false))
+    _select_metadata(campaign_select, str(data.get("campaign_id", "2")))
+    arena_rewards_check.button_pressed = bool(data.get("arena_roguelike_rewards", true))
+    _select_text(body_variant_select, "Male" if str(data.get("body_variant", "female")) == "male" else "Female")
+    _select_text(presentation_select, str(data.get("gender_presentation", "Masculine")))
+    _select_text(pronoun_select, str(data.get("pronoun_preset", "They / them")))
+    custom_pronouns.text = str(data.get("custom_pronouns", ""))
+    _select_text(skin_select, str(data.get("skin_tone", "Medium")))
+    _select_text(eye_select, str(data.get("eye_colour", "Brown")))
+    _select_text(hair_colour_select, str(data.get("hair_colour", "Dark brown")))
+    _select_text(hair_style_select, str(data.get("hair_style", "Short 2")))
+    _select_text(body_select, str(data.get("body_build", "Average")))
+    height_slider.value = clampf(float(data.get("height_scale", 1.0)), 0.90, 1.10)
+    var saved_details: Dictionary = data.get("character_details", {})
+    var saved_piercings: Array = saved_details.get("piercings", [])
+    ear_piercing_check.button_pressed = saved_piercings.has("earrings")
+    nipple_piercing_check.button_pressed = saved_piercings.has("nipple_left")
+    clit_piercing_check.button_pressed = saved_piercings.has("clit")
+    var saved_tattoos: Array = saved_details.get("tattoos", [])
+    var saved_design := str(saved_tattoos[0].get("design", "")) if not saved_tattoos.is_empty() and saved_tattoos[0] is Dictionary else ""
+    _select_text(tattoo_style_select, "Arcane constellation" if saved_design == "mirabel_arcane" else ("Shoulder-back motif" if saved_design == "reyna_shoulder_back" else "None"))
+    _refresh_character_preview(0)
+    _update_mode_controls(game_mode_select.selected)
+
+func _select_metadata(select: OptionButton, value: String) -> void:
+    for index in range(select.item_count):
+        if String(select.get_item_metadata(index)) == value:
+            select.select(index)
+            return
+
+func _selected_id(select: OptionButton, fallback: String) -> String:
+    if select == null or select.selected < 0:
+        return fallback
+    var value: Variant = select.get_item_metadata(select.selected)
+    return String(value) if value != null else fallback
+
+func _refresh_character_preview(_index: int) -> void:
+    if rules_preview != null:
+        rules_preview.text = RULES.preview_text(_selected_id(race_select, "human"), _selected_id(class_select, "fighter"), _selected_id(difficulty_select, "normal"))
+
+func _refresh_appearance_preview(_index: int) -> void:
+    if preview_actor == null or not is_instance_valid(preview_actor):
+        return
+    var variant := "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female"
+    var asset_path := MALE_PREVIEW_ASSET if variant == "male" else FEMALE_PREVIEW_ASSET
+    if not ResourceLoader.exists(asset_path):
+        preview_status.text = "Preview asset not found: %s. Your appearance choices can still be saved." % asset_path
+        return
+    if preview_variant_loaded != variant:
+        var body_resource := await _load_preview_asset(asset_path, "%s Ara body model" % variant.capitalize(), 0, 2)
+        if body_resource == null or not preview_actor.configure(asset_path):
+            preview_status.text = "Preview asset unavailable or failed to instantiate: %s. Your appearance choices can still be saved." % asset_path
+            preview_variant_loaded = ""
+            return
+        preview_variant_loaded = variant
+    var build_factors := {"Lean": 0.96, "Average": 1.0, "Broad": 1.045, "Muscular": 1.055, "Soft": 1.04, "Androgynous": 1.0}
+    var profile := {
+        "skin_colour": SKIN_COLOURS[skin_select.selected],
+        "eye_colour": eye_select.get_item_text(eye_select.selected),
+        "hair_colour": hair_colour_select.get_item_text(hair_colour_select.selected),
+        "height_scale": height_slider.value,
+        "build_scale": float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)),
+        "body_variant": variant,
+        "gender_presentation": presentation_select.get_item_text(presentation_select.selected),
+        "pronouns": "they/them"
+    }
+    profile["height"] = inverse_lerp(0.90, 1.10, height_slider.value)
+    profile["muscle"] = inverse_lerp(0.96, 1.055, float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)))
+    profile.merge(_appearance_detail_profile(), true)
+    preview_actor.apply_player_profile(profile)
+    preview_actor.apply_equipment_visuals(_preview_equipment_for_class())
+    var hair_id := String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02"))
+    var hair_path := "res://art/characters/ara_runtime/hair/%s_%s.glb" % [variant, hair_id]
+    var using_ara_base := preview_actor.loaded_asset_path.contains("/ara_runtime/")
+    var hair_loaded := false
+    if using_ara_base:
+        if hair_id == "none":
+            preview_actor.clear_hairstyle()
+            hair_loaded = true
+            preview_status.text = "Loaded 2 of 2 assets · %s body ready · no separate hairstyle required." % variant.capitalize()
+        elif ResourceLoader.exists(hair_path):
+            var hair_resource := await _load_preview_asset(hair_path, "%s hairstyle (%s)" % [hair_style_select.get_item_text(hair_style_select.selected), hair_id], 1, 2)
+            hair_loaded = hair_resource != null and preview_actor.set_hairstyle(hair_path)
+    if using_ara_base and hair_loaded:
+        preview_status.text = "Loaded 2 of 2 assets · %s body and %s hairstyle ready. Hair colour is independently tintable." % [variant.capitalize(), hair_style_select.get_item_text(hair_style_select.selected)]
+    elif using_ara_base:
+        preview_status.text = "Loaded 1 of 2 assets · %s body ready. FAILED: hairstyle asset %s is missing or incompatible with the body skeleton." % [variant.capitalize(), hair_id]
+    else:
+        preview_status.text = "Loaded 1 of 1 assets · Legacy preview model ready. Install the Ara hair bundle to enable separate hairstyles."
+
+
+func _appearance_detail_profile() -> Dictionary:
+    var piercings: Array[String] = []
+    if ear_piercing_check != null and ear_piercing_check.button_pressed:
+        piercings.append("earrings")
+    if nipple_piercing_check != null and nipple_piercing_check.button_pressed:
+        piercings.append("nipple_left")
+    if clit_piercing_check != null and clit_piercing_check.button_pressed:
+        piercings.append("clit")
+    var tattoos: Array[Dictionary] = []
+    if tattoo_style_select != null:
+        match tattoo_style_select.get_item_text(tattoo_style_select.selected):
+            "Arcane constellation":
+                tattoos.append({"design": "mirabel_arcane"})
+            "Shoulder-back motif":
+                tattoos.append({"design": "reyna_shoulder_back"})
+    return {"character_details": {"piercings": piercings, "tattoos": tattoos, "tattoo_ink": "#30283D"}}
+
+func _preview_equipment_for_class() -> Dictionary:
+    # The creator is an appearance preview, not an equipment/loadout preview.
+    # Keep the character unclothed here; the actual starting inventory and
+    # equipped state are assigned by campaign setup after creation.
+    return {}
+
+
+func _load_preview_asset(path: String, description: String, loaded_count: int, total_count: int) -> Resource:
+    if ResourceLoader.has_cached(path):
+        preview_status.text = "Loaded %d of %d assets · Currently loading: %s (cached)" % [loaded_count + 1, total_count, description]
+        return load(path)
+    var request_error := ResourceLoader.load_threaded_request(path)
+    if request_error != OK and request_error != ERR_BUSY:
+        preview_status.text = "FAILED to start loading %s (error %d)." % [description, request_error]
+        return null
+    var progress: Array = []
+    var status := ResourceLoader.load_threaded_get_status(path, progress)
+    while status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+        var percent := int(round(float(progress[0]) * 100.0)) if not progress.is_empty() else 0
+        preview_status.text = "Loaded %d of %d assets\nCurrently loading: %s (%d%%)" % [loaded_count, total_count, description, percent]
+        await get_tree().process_frame
+        progress.clear()
+        status = ResourceLoader.load_threaded_get_status(path, progress)
+    if status != ResourceLoader.THREAD_LOAD_LOADED:
+        preview_status.text = "FAILED loading %s (status %d). Check the Godot Output panel for the resource error." % [description, status]
+        return null
+    var resource := ResourceLoader.load_threaded_get(path)
+    if resource == null:
+        preview_status.text = "FAILED loading %s: Godot returned an empty resource." % description
+        return null
+    preview_status.text = "Loaded %d of %d assets · Finished: %s" % [loaded_count + 1, total_count, description]
+    return resource
+
+func _rotate_preview(degrees: float) -> void:
+    if preview_actor != null and is_instance_valid(preview_actor):
+        preview_actor.rotate_y(deg_to_rad(degrees))
+
+func _refresh_appearance_preview_value(_value: float) -> void:
+    _refresh_appearance_preview(0)
+
+func _update_mode_controls(_index: int) -> void:
+    if disguise_mode:
+        if start_button != null:
+            start_button.text = "APPLY DISGUISE"
+            start_button.disabled = false
+        return
+    if game_mode_select == null:
+        return
+    var arena := game_mode_select.get_item_text(game_mode_select.selected) == "Arena"
+    campaign_select.visible = not arena
+    arena_rewards_check.visible = arena
+    mode_note.text = "Arena is selected, but its lobby and combat loop have not yet been ported. Select Campaign to begin the playable Hollowmere opening." if arena else "The Main Campaign opens in Hollowmere using the original Campaign 2 village and regional map. The wider campaign is being migrated in stages. Ironman save enforcement is still pending."
+    if start_button != null:
+        start_button.disabled = arena
+        start_button.text = "ARENA MODE NOT YET AVAILABLE" if arena else "BEGIN MAIN CAMPAIGN"
+
+func _select_text(select: OptionButton, value: String) -> void:
+    for index in range(select.item_count):
+        if select.get_item_text(index) == value:
+            select.select(index)
+            return
+
 func _finish() -> void:
+	if disguise_mode:
+		_finish_disguise()
+		return
 	if game_mode_select.get_item_text(game_mode_select.selected) == "Arena":
 		mode_note.text = "Arena is not yet playable. Choose Campaign to start."
 		return
