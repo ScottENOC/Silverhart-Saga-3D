@@ -622,7 +622,20 @@
               "row_shift_mode": "source_building"
             }
           ],
-          "corridors": [],
+          "corridors": [
+            {
+              "id": "mine_entry_apron",
+              "from": {
+                "q": -252,
+                "r": 18
+              },
+              "to": {
+                "q": -252,
+                "r": 15
+              },
+              "algorithm": "q_then_r_dogleg"
+            }
+          ],
           "tile_objects": [
             {
               "id": "mine_front_door",
@@ -801,7 +814,8 @@
       "source_notes": [
         "The surface mine entrance is the source carveBuilding footprint at mineCenter (-252,16), with its south door at (-252,18), ledger at the centre and stair down at (-252,15).",
         "The Working Vein at floor -1 contains the source gold ore node at mineCenter and connects back to the surface and down to the Old Seam.",
-        "The Old Seam at floor -2 contains the source blue-gem ore node and two source spider placements at q offsets -1 and +1; creature spawning and combat remain campaign-owned."
+        "The Old Seam at floor -2 contains the source blue-gem ore node and two source spider placements at q offsets -1 and +1; creature spawning and combat remain campaign-owned.",
+        "A short walkable apron connects the source door at r+2 through the generated wall-ring cell to the source stair at r-1, preserving the intended mine entrance traversal."
       ]
     },
     {
