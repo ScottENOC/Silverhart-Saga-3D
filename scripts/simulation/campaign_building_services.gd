@@ -125,7 +125,7 @@ func purchase_stock(
 ) -> Dictionary:
 	if buyer == null:
 		return _failure("missing_buyer")
-	var entries := get_daily_stock(building_id, world_seconds)
+	get_daily_stock(building_id, world_seconds)
 	var saved: Dictionary = daily_stock.get(building_id, {})
 	var stored_entries: Array = saved.get("entries", [])
 	for index in range(stored_entries.size()):
@@ -166,7 +166,7 @@ func place_commission(
 	var item := ItemCatalog.get_definition(item_id)
 	if kind == "clothier" and String(item.get("type", "")) != "clothing":
 		return _failure("clothier_requires_clothing")
-	if kind == "armourer" and (String(item.get("type", "")) != "armor" or item_id not in ARMOUR_ITEMS):
+	if kind == "armourer" and (String(item.get("type", "")) != "armor" or not (item_id in ARMOUR_ITEMS)):
 		return _failure("armourer_requires_standard_armour")
 	if kind != "clothier" and kind != "armourer":
 		return _failure("commissions_unavailable")
@@ -232,7 +232,7 @@ func purchase_horse(
 	var buyer := simulation.get_character(buyer_id)
 	if buyer == null:
 		return _failure("unknown_buyer")
-	if coat not in HORSE_COATS:
+	if not (coat in HORSE_COATS):
 		return _failure("invalid_horse_coat")
 	if not HORSE_TIERS.has(training_tier):
 		return _failure("invalid_training_tier")
