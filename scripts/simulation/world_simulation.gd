@@ -1577,6 +1577,66 @@ func _advance_character_spell_effects(state: CharacterState, gained_tp: float) -
 		state.spell_effects[index] = effect
 
 
+func apply_entangle_zone(center: Vector2i, radius: int, source_id: String, duration_ticks: int, zone_id: String) -> Array[Vector2i]:
+	var affected_hexes: Array[Vector2i] = []
+	if map_data == null or radius < 0 or zone_id.is_empty():
+		return affected_hexes
+	for q in range(center.x - radius, center.x + radius + 1):
+		for r in range(center.y - radius, center.y + radius + 1):
+			var hex := Vector2i(q, r)
+			if HexGrid.distance(center, hex) > radius or not map_data.has_cell(hex) or not map_data.is_walkable(hex):
+				continue
+			var cell: Dictionary = map_data.cells.get(hex, {})
+			cell["spell_entangle_source"] = source_id
+			cell["spell_entangle_zone_id"] = zone_id
+			cell["spell_entangle_ticks"] = maxi(duration_ticks, int(cell.get("spell_entangle_ticks", 0)))
+			map_data.cells[hex] = cell
+			affected_hexes.append(hex)
+	return affected_hexes
+
+
+func dispel_entangle_zone(zone_id: String) -> bool:
+	if zone_id.is_empty() or map_data == null:
+		return false
+	var removed := false
+	for hex_value in map_data.cells.keys():
+		var cell: Dictionary = map_data.cells[hex_value]
+		if String(cell.get("spell_entangle_zone_id", "")) != zone_id:
+			continue
+		cell.erase("spell_entangle_source")
+		cell.erase("spell_entangle_zone_id")
+		cell.erase("spell_entangle_ticks")
+		map_data.cells[hex_value] = cell
+		removed = true
+	for value in characters.values():
+		var state := value as CharacterState
+		if state == null:
+			continue
+		for index in range(state.spell_effects.size() - 1, -1, -1):
+			var effect: Dictionary = state.spell_effects[index]
+			if String(effect.get("effect_id", "")) == "entangled" and String(effect.get("zone_id", "")) == zone_id:
+				state.spell_effects.remove_at(index)
+	return removed
+
+
+func _advance_spell_terrain_effects() -> void:
+	if map_data == null:
+		return
+	for hex_value in map_data.cells.keys():
+		var cell: Dictionary = map_data.cells[hex_value]
+		var remaining := int(cell.get("spell_entangle_ticks", 0))
+		if remaining <= 0:
+			continue
+		remaining -= 1
+		if remaining <= 0:
+			cell.erase("spell_entangle_source")
+			cell.erase("spell_entangle_zone_id")
+			cell.erase("spell_entangle_ticks")
+		else:
+			cell["spell_entangle_ticks"] = remaining
+		map_data.cells[hex_value] = cell
+
+
 func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
 	# Guard direct/test-driven clock advancement as well as the normal
 	# _process freeze: no TP or world tick work occurs during an active turn.
@@ -1608,6 +1668,7 @@ func _on_clock_ticked(tick_index: int, world_seconds: float) -> void:
 			elif state.health >= state.max_health:
 				state.health_regen_remainder = 0.0
 
+	_advance_spell_terrain_effects()
 	wilderness_resources.advance_time(world_seconds)
 	world_tick.emit(tick_index, world_seconds)
 
