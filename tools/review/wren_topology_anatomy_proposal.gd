@@ -280,7 +280,8 @@ func _run() -> void:
         "limitations": [
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
-            "Nipple channels are seed-only (zero graph hops); all other hop limits are review heuristics and local mesh density affects physical reach.",\n            "Pelvic detail proposals are front-surface-only using vertex normals and depth-tested overlays; named fine structures without distinct source-surface topology remain unresolved rather than being assigned invented masks.",
+            "Nipple channels are seed-only (zero graph hops); all other hop limits are review heuristics and local mesh density affects physical reach.",
+            "Pelvic detail proposals are front-surface-only using vertex normals and depth-tested overlays; named fine structures without distinct source-surface topology remain unresolved rather than being assigned invented masks.",
             "Finger candidates use longer local-X seed corridors and up to 18 topology hops, constrained to a narrow per-digit depth corridor; the close-up renders must confirm continuous lengthwise coverage and separation.",
             "Nipple candidates now use seed-only surface vertices (zero topology expansion) to avoid propagating onto the adjacent areolar/side-surface arc; the isolated renders must confirm the smaller island remains centred.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
