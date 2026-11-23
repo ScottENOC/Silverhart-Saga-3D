@@ -153,7 +153,7 @@ static func grondle_conversation(journal: CampaignJournal) -> Dictionary:
 		return _conversation("Grondle", "Nothing for you here, human.", [_choice("continue", "...")])
 	return _conversation("Grondle", "Ha! Ally's coin spends same as anyone's. Look, take, pay.", [_choice("open_goblin_shop", "Let me see your wares."), _choice("continue", "Just looking.")])
 
-static func chief_conversation(journal: CampaignJournal, gifted_in: bool = false) -> Dictionary:
+static func chief_conversation(journal: CampaignJournal, gifted_in: bool = false, available_gold: int = 0) -> Dictionary:
 	if journal == null:
 		return {}
 	var quest := journal.quest_state(QUEST_ID)
@@ -177,8 +177,11 @@ static func chief_conversation(journal: CampaignJournal, gifted_in: bool = false
 	if goblin_standing >= 40.0:
 		return _conversation("Chief Skarnub", "You've done right by us. Truth told, this land's more trouble than it's worth — humans always come eventually. Guarantee us safe passage and supplies, and we'll move on. No more blood spilled, on either side.", [_choice("resolve:goblin_diplomacy", "Agreed. Take what you need and go."), _choice("continue", "Not yet.")])
 	var choices: Array[Dictionary] = []
-	if gifted_in or String(quest.get("decisions", {}).get("chief_gifted_in", "")) == "gifted":
+	var has_gifted := gifted_in or String(quest.get("decisions", {}).get("chief_gifted_in", "")) == "gifted"
+	if has_gifted:
 		choices.append(_choice("resolve:goblin_alliance", "You don't have to leave. Stay."))
+	else:
+		choices.append(_choice("gift:chief", "Offer Chief Skarnub 60 gold.", available_gold >= 60, "Chief Skarnub expects a gift of 60 gold." if available_gold < 60 else ""))
 	choices.append(_choice("start:" + QUEST_ID, "I could help you, for the right price."))
 	choices.append(_choice("read_the_room", "Try to read him."))
 	choices.append(_choice("threaten", "Leave this land, or face us."))
