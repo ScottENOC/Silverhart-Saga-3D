@@ -27,8 +27,8 @@ func _initialize() -> void:
 		push_error("Character appearance must remain in character-owned definitions.")
 		quit(1)
 		return
-	var reyna_params: Dictionary = reyna.get("appearance", {}).get("params", {})
-	if String(reyna.get("dialogue_id", "")) != "reyna_fletcher" or String(reyna_params.get("hair", "")) != "braid01":
+	var reyna_appearance: Dictionary = reyna.get("appearance", {})
+	if String(reyna.get("dialogue_id", "")) != "reyna_fletcher" or String(reyna_appearance.get("hair_style", "")) != "braid01":
 		push_error("Reyna's source dialogue and appearance profile must be preserved at her new location.")
 		quit(1)
 		return
