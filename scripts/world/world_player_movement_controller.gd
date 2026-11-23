@@ -1,7 +1,9 @@
 extends Node
 class_name WorldPlayerMovementController
 
-const PATH_STEP_INTERVAL: float = 0.22
+## Keep logical path steps just slower than the 0.36s actor tween so a character
+## reaches each hex centre before the next movement event interrupts its animation.
+const PATH_STEP_INTERVAL: float = 0.40
 
 var simulation: WorldSimulation
 var presentation_root: Node3D

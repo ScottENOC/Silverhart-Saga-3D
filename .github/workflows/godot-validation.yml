@@ -135,6 +135,15 @@ jobs:
         run: godot --headless --path . --script res://tests/test_world_movement.gd
       - name: Run shared player movement controller tests
         run: godot --headless --path . --script res://tests/test_world_player_movement_controller.gd
+      - name: Run continuous character movement and animation tests
+        run: godot --headless --path . --script res://tests/test_hex_actor_presentation.gd
+      - name: Run gameplay Ara animation carrier integration tests when assets are present
+        run: |
+          if [[ -f art/characters/ara_runtime/ara_person_benchmark.glb && -f art/characters/ara_runtime/ara_player_female_body.glb ]]; then
+            godot --headless --path . --script res://tests/test_ara_character_animation_carrier.gd
+          else
+            echo "Ara runtime body or animation carrier assets are not installed; skipping integration test."
+          fi
       - name: Run split combat and reaction tests
         run: godot --headless --path . --script res://tests/test_combat_and_reactions.gd
       - name: Run split animal and riding tests

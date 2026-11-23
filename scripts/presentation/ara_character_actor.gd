@@ -2,6 +2,7 @@ class_name AraCharacterActor
 extends Node3D
 
 const ARA_CHARACTER_DETAILS = preload("res://scripts/presentation/ara_character_details.gd")
+const ARA_ANIMATION_CARRIER_PATH := "res://art/characters/ara_runtime/ara_person_benchmark.glb"
 ## Runtime wrapper for generated Ara GLBs. The selected body asset is supplied
 ## by the player profile so Workshop exports can be replaced without code edits.
 
@@ -30,24 +31,70 @@ func configure(glb_path: String) -> bool:
 	if not ResourceLoader.exists(glb_path):
 		push_warning("Ara character asset is not installed: " + glb_path)
 		return false
-	var packed := load(glb_path) as PackedScene
-	if packed == null:
+	var body_packed := load(glb_path) as PackedScene
+	if body_packed == null:
 		push_warning("Ara character GLB could not be loaded: " + glb_path)
 		return false
-	model_root = packed.instantiate() as Node3D
-	if model_root == null:
+	var body_root := body_packed.instantiate() as Node3D
+	if body_root == null:
 		push_warning("Ara character root is not Node3D: " + glb_path)
 		return false
+
+	# The gameplay body exports are modular, skinned meshes. Their shared 69-bone
+	# rig is compatible with the animated benchmark export, which carries the
+	# actual Ara locomotion and combat clips. Use that rig as the animation
+	# driver and bind the selected body meshes to its Skeleton3D.
+	var carrier_root: Node3D
+	if ResourceLoader.exists(ARA_ANIMATION_CARRIER_PATH):
+		var carrier_packed := load(ARA_ANIMATION_CARRIER_PATH) as PackedScene
+		if carrier_packed != null:
+			carrier_root = carrier_packed.instantiate() as Node3D
+	var body_skeleton := _find_skeleton(body_root)
+	var carrier_skeleton := _find_skeleton(carrier_root) if carrier_root != null else null
+	if carrier_root != null and carrier_skeleton != null and body_skeleton != null and _same_skeleton(carrier_skeleton, body_skeleton):
+		var carrier_meshes: Array[MeshInstance3D] = []
+		_collect_meshes(carrier_root, carrier_meshes)
+		for mesh in carrier_meshes:
+			mesh.visible = false
+		var body_meshes: Array[MeshInstance3D] = []
+		_collect_meshes(body_root, body_meshes)
+		var attached_mesh_count := 0
+		for source_mesh in body_meshes:
+			if source_mesh.mesh == null:
+				continue
+			var attached_mesh := source_mesh.duplicate() as MeshInstance3D
+			if attached_mesh == null:
+				continue
+			attached_mesh.transform = _transform_from_scene_root(source_mesh, body_root)
+			carrier_root.add_child(attached_mesh)
+			if attached_mesh.skin != null:
+				attached_mesh.skeleton = attached_mesh.get_path_to(carrier_skeleton)
+			attached_mesh.visible = true
+			attached_mesh_count += 1
+		var skinned_mesh_count := 0
+		for attached_mesh in carrier_root.get_children():
+			if attached_mesh is MeshInstance3D and (attached_mesh as MeshInstance3D).skin != null:
+				skinned_mesh_count += 1
+		if attached_mesh_count > 0 and skinned_mesh_count > 0:
+			body_root.free()
+			model_root = carrier_root
+		else:
+			carrier_root.free()
+			model_root = body_root
+	else:
+		if carrier_root != null:
+			carrier_root.free()
+		model_root = body_root
+		if body_skeleton != null and ResourceLoader.exists(ARA_ANIMATION_CARRIER_PATH):
+			push_warning("Ara body rig is not compatible with the animated benchmark; retaining its native presentation: " + glb_path)
+
 	model_root.name = "AraModel"
 	add_child(model_root)
 	loaded_asset_path = glb_path
 	animation_player = _find_animation_player(model_root)
 	call_deferred("_play_idle_if_available")
-	# Report the loaded character model regardless of whether the separate
-	# modular-clothing export is available or successfully attached.
 	call_deferred("_dump_garment_surface_report")
 	return true
-
 func _dump_garment_surface_report() -> void:
 	if has_meta("ara_garment_surface_reported"):
 		return
@@ -627,22 +674,42 @@ func _tint_attached_hair(colour: Color) -> void:
 			material.albedo_color = Color(colour.r, colour.g, colour.b, material.albedo_color.a)
 			mesh_instance.set_surface_override_material(surface, material)
 
+func set_moving(is_moving: bool) -> bool:
+	if animation_player == null or not is_instance_valid(animation_player):
+		return false
+	var clip := _find_animation_clip(["walk", "locomotion", "run"]) if is_moving else _find_animation_clip(["idle", "stand"])
+	if clip.is_empty():
+		return false
+	if animation_player.current_animation == clip and animation_player.is_playing():
+		return true
+	animation_player.play(clip, 0.12)
+	return true
+
+func play_walk() -> bool:
+	return set_moving(true)
+
+func play_idle() -> bool:
+	return set_moving(false)
+
+func _find_animation_clip(preferred_tokens: Array[String]) -> String:
+	if animation_player == null:
+		return ""
+	var available := animation_player.get_animation_list()
+	for token in preferred_tokens:
+		for animation_name in available:
+			if String(animation_name).to_lower() == token:
+				return String(animation_name)
+		for animation_name in available:
+			if String(animation_name).to_lower().contains(token):
+				return String(animation_name)
+	return ""
+
 func _play_idle_if_available() -> void:
 	if animation_player == null or not is_instance_valid(animation_player):
 		push_warning("Ara character has no AnimationPlayer; it will remain in its exported rest pose.")
 		return
-	var idle_clip := ""
-	for animation_name in animation_player.get_animation_list():
-		if String(animation_name).to_lower() == "idle":
-			idle_clip = String(animation_name)
-			break
-		if idle_clip.is_empty() and String(animation_name).to_lower().contains("idle"):
-			idle_clip = String(animation_name)
-	if idle_clip.is_empty():
+	if not play_idle():
 		push_warning("Ara character has no idle animation. Available clips: %s" % [", ".join(animation_player.get_animation_list())])
-		return
-	animation_player.play(idle_clip)
-
 func _find_animation_player(node: Node) -> AnimationPlayer:
 	if node is AnimationPlayer:
 		return node as AnimationPlayer
