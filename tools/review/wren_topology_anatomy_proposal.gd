@@ -673,6 +673,23 @@ func _collect_skin_surfaces(
             var surface_uv2 := PackedVector2Array()
             if surface_uv2_value is PackedVector2Array:
                 surface_uv2 = surface_uv2_value
+            var bounds := AABB()
+            var centroid := Vector3.ZERO
+            var negative_x_count := 0
+            var positive_x_count := 0
+            for vertex_index in surface_vertices.size():
+                var point: Vector3 = surface_vertices[vertex_index]
+                if vertex_index == 0:
+                    bounds = AABB(point, Vector3.ZERO)
+                else:
+                    bounds = bounds.expand(point)
+                centroid += point
+                if point.x < 0.0:
+                    negative_x_count += 1
+                elif point.x > 0.0:
+                    positive_x_count += 1
+            if not surface_vertices.is_empty():
+                centroid /= float(surface_vertices.size())
             var entry := {
                 "node_name": str(mesh_instance.name),
                 "mesh_resource_name": mesh_instance.mesh.resource_name,
@@ -680,7 +697,12 @@ func _collect_skin_surfaces(
                 "surface_name": surface_name,
                 "material_name": material_name,
                 "vertex_count": surface_vertices.size(),
-                "texcoord_1_count": surface_uv2.size()
+                "texcoord_1_count": surface_uv2.size(),
+                "bounds_min_local": [bounds.position.x, bounds.position.y, bounds.position.z],
+                "bounds_max_local": [bounds.end.x, bounds.end.y, bounds.end.z],
+                "centroid_local": [centroid.x, centroid.y, centroid.z],
+                "negative_x_vertex_count": negative_x_count,
+                "positive_x_vertex_count": positive_x_count
             }
             inventory.append(entry)
             var identity: String = (
