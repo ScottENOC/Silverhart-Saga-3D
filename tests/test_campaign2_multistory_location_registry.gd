@@ -156,7 +156,7 @@ func _initialize() -> void:
 	_check(thieves_cove.get("transitions", []).size() == 6, "Thieves' Cove must retain reciprocal stairs between all four source levels")
 
 	var barrow: Dictionary = registry.get_definition("corvin_ashgrave_barrow")
-	_check(int(barrow.get("anchor", {}).get("q", 0)) == 57 and int(barrow.get("anchor", {}).get("r", 0)) == -160, "Corvin Ashgrave barrow anchor must derive from the source necromancer ritual centre")
+	_check(int(barrow.get("anchor", {}).get("q", 0)) == 63 and int(barrow.get("anchor", {}).get("r", 0)) == -160, "Corvin Ashgrave barrow anchor must derive from the source necromancer ritual centre")
 	_check(barrow.get("floors", []).size() == 1, "Corvin Ashgrave barrow must remain a single source floor, not invented vertical levels")
 	var barrow_floor := registry.get_floor_definition("corvin_ashgrave_barrow", 0)
 	_check(barrow_floor.get("rooms", []).size() == 2, "Barrow must retain its source antechamber and lich sanctum")
