@@ -51,6 +51,7 @@ func _test_player_male_anatomy_creation_save_restore() -> void:
 	assert(is_equal_approx(float(profile.get("male_anatomy_girth_scale", 0.0)), expected_girth))
 
 	var restored := creator_script.new() as CanvasLayer
+	restored.preview_enabled = false
 	root.add_child(restored)
 	assert(restored.body_variant_select.get_item_text(restored.body_variant_select.selected) == "Male")
 	assert(restored.male_anatomy_section.visible, "Male anatomy controls must be visible after restoring a male profile")
