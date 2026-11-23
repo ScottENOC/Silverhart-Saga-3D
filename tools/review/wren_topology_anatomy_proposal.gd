@@ -360,7 +360,6 @@ func _run() -> void:
         "vertex_count": vertices.size(),
         "triangle_count": indices.size() / 3,
         "surface_signature": MASK_SCRIPT.build_surface_signature(mesh_instance.mesh, surface_index),
-        "ara_mask_import_validation": mask_import_validation,
         "max_graph_hops": MAX_GRAPH_HOPS,
         "region_specific_graph_hops": {"nipple_left": 0, "nipple_right": 0, "individual_fingers": 18},
         "hop_falloff": HOP_FALLOFF,
