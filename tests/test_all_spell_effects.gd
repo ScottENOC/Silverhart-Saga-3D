@@ -282,12 +282,9 @@ func _test_wild_fury() -> void:
     var setup := _new_sim()
     var sim: WorldSimulation = setup.sim
     var caster: CharacterState = setup.caster
-    var animal := CharacterState.new("fury_animal", "Wolf", Vector2i(1, 0))
-    animal.side = "player"
-    animal.tags.append("animal")
-    sim.register_character(animal)
-    var result := _cast(sim, caster, animal, "wild_fury")
-    _check(bool(result.get("ok", false)) and animal.has_spell_effect("wild_fury"), "Wild Fury should buff an allied animal")
+    var result := _cast(sim, caster, caster, "wild_fury")
+    _check(bool(result.get("ok", false)) and caster.has_spell_effect("wild_fury"), "Wild Fury should apply to its caster")
+    _check(int(caster.get_spell_effect("wild_fury").get("magnitude", 0)) == 3, "Wild Fury should preserve its unarmed damage bonus")
     sim.free()
 
 func _test_counterspell_reaction() -> void:
