@@ -158,6 +158,7 @@ func resolve_threat(journal: CampaignJournal, resolution: String, relationships:
 	if not bool(recorded.get("ok", false)):
 		return recorded
 	var outcome: Dictionary = outcomes[resolution]
+	var effects: Dictionary = outcome.get("effects", {})
 	var kingdom_change := journal.adjust_faction_reputation("silverhart_kingdom", float(outcome.kingdom), 15.0, "goblin_threat:" + resolution)
 	var goblin_change := journal.adjust_faction_reputation("goblin_tribe", float(outcome.goblin), 20.0, "goblin_threat:" + resolution)
 	var completed := journal.complete_quest(QUEST_ID)
@@ -166,7 +167,7 @@ func resolve_threat(journal: CampaignJournal, resolution: String, relationships:
 	return {
 		"ok":true,"applied":true,"resolution":resolution,
 		"reputation":{"silverhart_kingdom":kingdom_change,"goblin_tribe":goblin_change},
-		"effects":(outcome.effects as Dictionary).duplicate(true)
+		"effects":effects.duplicate(true)
 	}
 
 
@@ -198,9 +199,10 @@ func resolve_favour(journal: CampaignJournal, favour: String) -> Dictionary:
 	if not bool(recorded.get("ok", false)):
 		return recorded
 	var outcome: Dictionary = outcomes[favour]
+	var effects: Dictionary = outcome.get("effects", {})
 	var goblin_change := journal.adjust_faction_reputation("goblin_tribe", float(outcome.goblin), float(outcome.knowledge), "goblin_favour:" + favour)
 	var kingdom_change := journal.adjust_faction_reputation("silverhart_kingdom", float(outcome.kingdom), float(outcome.knowledge), "goblin_favour:" + favour)
-	return {"ok":true,"applied":true,"favour":favour,"reputation":{"goblin_tribe":goblin_change,"silverhart_kingdom":kingdom_change},"effects":(outcome.effects as Dictionary).duplicate(true)}
+	return {"ok":true,"applied":true,"favour":favour,"reputation":{"goblin_tribe":goblin_change,"silverhart_kingdom":kingdom_change},"effects":effects.duplicate(true)}
 
 
 func _ensure_threat_quest_started(journal: CampaignJournal) -> Dictionary:
