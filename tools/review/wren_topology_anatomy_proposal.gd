@@ -334,12 +334,26 @@ func _add_edge(adjacency: Array[PackedInt32Array], from_vertex: int, to_vertex: 
         adjacency[from_vertex].append(to_vertex)
 
 
-func _find_seed_vertices(vertices: PackedVector3Array, centre: Vector3, radii: Vector3) -> PackedInt32Array:
+func _requires_front_surface_normal(region_id: String) -> bool:
+    return region_id == "pubic_region" or region_id.begins_with("pelvic_")
+
+
+func _find_seed_vertices(
+    vertices: PackedVector3Array,
+    normals: PackedVector3Array,
+    centre: Vector3,
+    radii: Vector3,
+    region_id: String
+) -> PackedInt32Array:
     var result := PackedInt32Array()
     for vertex_index in vertices.size():
         var normalized := (vertices[vertex_index] - centre) / radii
-        if normalized.length() <= 1.0:
-            result.append(vertex_index)
+        if normalized.length() > 1.0:
+            continue
+        if _requires_front_surface_normal(region_id):
+            if vertex_index >= normals.size() or normals[vertex_index].dot(Vector3(0.0, 0.0, 1.0)) < 0.25:
+                continue
+        result.append(vertex_index)
     return result
 
 
@@ -382,6 +396,7 @@ func _max_graph_hops_for_region(region_id: String) -> int:
 func _propagate_over_surface(
     adjacency: Array[PackedInt32Array],
     vertices: PackedVector3Array,
+    normals: PackedVector3Array,
     seed_vertices: PackedInt32Array,
     region_id: String
 ) -> PackedFloat32Array:
@@ -411,6 +426,9 @@ func _propagate_over_surface(
                 continue
             if not _within_region_extent(region_id, vertices[neighbour]):
                 continue
+            if _requires_front_surface_normal(region_id):
+                if neighbour >= normals.size() or normals[neighbour].dot(Vector3(0.0, 0.0, 1.0)) < 0.25:
+                    continue
             if hop_distance[neighbour] >= 0:
                 continue
             hop_distance[neighbour] = next_hop
