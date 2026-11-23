@@ -40,10 +40,10 @@ static func _validate_definition(parent: Node3D, definition: Variant, materials:
 		if part_name.is_empty() or names.has(part_name):
 			return false
 		names[part_name] = true
-		if part_type not in ["box", "cylinder", "label3d"]:
+		if part_type not in ["box", "cylinder", "label3d", "omni_light"]:
 			return false
 		var material_key := String(part.get("material", ""))
-		if part_type != "label3d":
+		if part_type not in ["label3d", "omni_light"]:
 			if not materials.has(material_key) or not (materials[material_key] is Material) or materials[material_key] == null:
 				return false
 		var position: Variant = part.get("position", Vector3.ZERO)
@@ -58,7 +58,9 @@ static func _validate_definition(parent: Node3D, definition: Variant, materials:
 		elif part_type == "cylinder":
 			if float(part.get("top_radius", 0.0)) <= 0.0 or float(part.get("bottom_radius", 0.0)) <= 0.0 or float(part.get("height", 0.0)) <= 0.0:
 				return false
-		elif String(part.get("text", "")).is_empty():
+		elif part_type == "label3d" and String(part.get("text", "")).is_empty():
+			return false
+		elif part_type == "omni_light" and float(part.get("range", 0.0)) <= 0.0:
 			return false
 	return true
 
@@ -97,7 +99,7 @@ static func _make_part(part: Dictionary, materials: Dictionary, hex_radius: floa
 		mesh.radial_segments = int(part.get("radial_segments", 12))
 		cylinder.mesh = mesh
 		instance = cylinder
-	else:
+	elif part_type == "label3d":
 		var label := Label3D.new()
 		label.text = String(part["text"])
 		label.font_size = int(part.get("font_size", 24))
@@ -105,6 +107,14 @@ static func _make_part(part: Dictionary, materials: Dictionary, hex_radius: floa
 		label.modulate = part.get("modulate", Color.WHITE)
 		label.outline_size = int(part.get("outline_size", 0))
 		instance = label
+	else:
+		var light := OmniLight3D.new()
+		var light_color_value: Variant = part.get("color", Color("#ff8738"))
+		light.light_color = Color.from_string(String(light_color_value), Color("#ff8738")) if light_color_value is String else light_color_value
+		light.light_energy = float(part.get("energy", 1.0))
+		light.omni_range = float(part.get("range", 8.0))
+		light.shadow_enabled = bool(part.get("shadow_enabled", false))
+		instance = light
 	instance.name = String(part["name"])
 	instance.position = part.get("position", Vector3.ZERO)
 	if part.has("axial"):
@@ -114,6 +124,6 @@ static func _make_part(part: Dictionary, materials: Dictionary, hex_radius: floa
 		instance.position.x += point.x - origin.x
 		instance.position.z += point.z - origin.z
 	instance.rotation.y = deg_to_rad(float(part.get("rotation_degrees", 0.0)))
-	if part_type != "label3d":
+	if part_type in ["box", "cylinder"]:
 		(instance as MeshInstance3D).material_override = materials[String(part["material"])]
 	return instance
