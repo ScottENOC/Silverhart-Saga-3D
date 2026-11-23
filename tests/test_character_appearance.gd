@@ -225,7 +225,24 @@ func _test_shared_ara_npc_models_and_wren_appearance() -> void:
 		assert(is_equal_approx(float(applied_size.get("length", 0.0)), 1.10))
 		assert(is_equal_approx(float(applied_size.get("girth", 0.0)), 1.10))
 		male_actor.free()
-	
+
+		var aldric_state := CharacterState.new("companion_ser_aldric_thorne", "Ser Aldric Thorne", Vector2i.ZERO)
+		var aldric_profile := {
+			"params": {"gender": 1, "age": 0.62, "height": 0.68, "muscle": 0.72, "weight": 0.58},
+			"anatomy_size": {"length_scale": 1.10, "girth_scale": 1.10}
+		}
+		var aldric_actor := CampaignCharacterActorFactory.create_actor(
+			aldric_state, Vector3.ZERO, false, {}, aldric_profile, "aldric.glb", "companion"
+		)
+		assert(aldric_actor != null)
+		var aldric_model := aldric_actor.get_node_or_null("CharacterModel") as AraCharacterActor
+		assert(aldric_model != null)
+		assert(aldric_model.apply_male_anatomy_size(1.10, 1.10), "Aldric's accepted model must expose the anatomy size rig")
+		var aldric_size: Dictionary = aldric_model.get_meta("male_anatomy_size_scales", {})
+		assert(is_equal_approx(float(aldric_size.get("length", 0.0)), 1.10))
+		assert(is_equal_approx(float(aldric_size.get("girth", 0.0)), 1.10))
+		aldric_actor.free()
+
 		var settlement_actor := CampaignCharacterActorFactory.create_settlement_actor({
 			"id": "rurik_test",
 			"name": "Rurik",
