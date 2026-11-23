@@ -80,7 +80,7 @@ func _test_seraphine_campaign_dialogue() -> void:
 	var content := PersistentCharacterDialogueContent.new()
 	var blocked := content.seraphine_greeting({"player_is_greenskin":true}, relationships)
 	_check(not bool(blocked.get("ok", true)), "An unvouched greenskin cannot enter Seraphine's audience")
-	_check(String(blocked.get("reason", "")) == "greenskin_not_vouched")
+	_check(str(blocked.get("reason", "")) == "greenskin_not_vouched")
 	_check(int(relationships.snapshot("seraphine_corrin").get("familiarity", -1)) == 5, "A refused audience must not build familiarity")
 
 	var context := {
@@ -94,43 +94,43 @@ func _test_seraphine_campaign_dialogue() -> void:
 	}
 	var audience := content.seraphine_greeting(context, relationships)
 	_check(bool(audience.get("ok", false)))
-	_check(String(audience.get("text", "")).contains("crown remembers"))
+	_check(str(audience.get("text", "")).contains("crown remembers"))
 	var choices: Array = audience.get("choices", [])
 	_check(choices.size() == 7, "High standing exposes topics, manor, evidence and tunnel options")
-	_check(String(relationships.snapshot("seraphine_corrin").get("familiarity", -1)) == "6")
+	_check(str(relationships.snapshot("seraphine_corrin").get("familiarity", -1)) == "6")
 	var personal_count := 0
 	for choice in choices:
-		if String(choice.get("id", "")) == "seraphine_personal_burden":
+		if str(choice.get("id", "")) == "seraphine_personal_burden":
 			personal_count += 1
 	_check(personal_count == 0, "The personal question stays locked before the three topic conversations")
 
 	var greenskins := content.seraphine_topic_response("greenskins", context, relationships)
 	_check(bool(greenskins.get("ok", false)))
-	_check(String(greenskins.get("text", "")).contains("Peace with the goblin tribe"))
+	_check(str(greenskins.get("text", "")).contains("Peace with the goblin tribe"))
 	var repeated := content.seraphine_topic_response("greenskins", context, relationships)
 	_check(repeated.get("relationship", {}) == greenskins.get("relationship", {}), "A topic cannot farm familiarity")
 	content.seraphine_topic_response("ironbond", context, relationships)
 	var necromancy_context := context.duplicate(true)
 	necromancy_context["phylactery_returned"] = true
 	var necromancy := content.seraphine_topic_response("necromancy", necromancy_context, relationships)
-	_check(String(necromancy.get("text", "")).contains("closed the door on it"))
+	_check(str(necromancy.get("text", "")).contains("closed the door on it"))
 	var unlocked := content.seraphine_greeting(context, relationships)
 	var unlocked_choices: Array = unlocked.get("choices", [])
-	_check(String(unlocked_choices[-2].get("id", "")) == "seraphine_personal_burden" or unlocked_choices.any(func(choice: Dictionary) -> bool: return String(choice.get("id", "")) == "seraphine_personal_burden"), "Three distinct topic conversations unlock Seraphine's personal question")
+	_check(str(unlocked_choices[-2].get("id", "")) == "seraphine_personal_burden" or unlocked_choices.any(func(choice: Dictionary) -> bool: return str(choice.get("id", "")) == "seraphine_personal_burden"), "Three distinct topic conversations unlock Seraphine's personal question")
 	var personal := content.seraphine_personal_response(relationships)
 	_check(bool(personal.get("ok", false)))
 
 	var manor := content.seraphine_manor_request_response()
-	_check(String(manor.choices[0].get("effect", "")) == "grant_silverhart_manor")
+	_check(str(manor.choices[0].get("effect", "")) == "grant_silverhart_manor")
 	var evidence := content.seraphine_wizard_evidence_response()
-	_check(String(evidence.choices[0].get("effect", "")) == "resolve_wizard_vendetta_queen")
+	_check(str(evidence.choices[0].get("effect", "")) == "resolve_wizard_vendetta_queen")
 	var tunnel := content.seraphine_chancellor_tunnel_response()
 	_check(tunnel.effects.size() == 3, "Tunnel disclosure carries its flag and both faction-standing consequences")
 
 	var low_standing := content.seraphine_greeting({"silverhart_standing":-25}, PersistentCharacterRelationshipState.new())
-	_check(String(low_standing.get("text", "")).contains("not from anything I'd call flattering"))
+	_check(str(low_standing.get("text", "")).contains("not from anything I'd call flattering"))
 	var vouched := content.seraphine_greeting({"player_is_greenskin":true,"goblin_vouched_by_marta":true}, PersistentCharacterRelationshipState.new())
-	_check(String(vouched.get("text", "")).contains("Elder Marta vouches"))
+	_check(str(vouched.get("text", "")).contains("Elder Marta vouches"))
 
 
 func _test_wizard_vendetta_consequences() -> void:
