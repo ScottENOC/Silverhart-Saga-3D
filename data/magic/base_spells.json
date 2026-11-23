@@ -169,6 +169,7 @@
       "valid_tags": [],
       "exclude_tags": [],
       "summons": [
+        "horse",
         "wolf",
         "boar",
         "tiger",
