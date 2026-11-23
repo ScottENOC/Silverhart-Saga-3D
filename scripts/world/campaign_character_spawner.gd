@@ -49,5 +49,11 @@ static func spawn_character(
     if actor == null:
         return null
     parent.add_child(actor)
+    if not is_player:
+        actor.set_meta("campaign2_npc_id", character_id)
+        actor.set_meta("dialogue_id", String(resolved_npc_profile.get("dialogue_id", character_id)))
+        actor.set_meta("faction_id", String(resolved_npc_profile.get("faction_id", "")))
+        actor.set_meta("side", String(state.side))
+        actor.add_to_group("campaign2_npc")
     actor_by_id[character_id] = actor
     return actor
