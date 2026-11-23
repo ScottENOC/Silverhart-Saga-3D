@@ -1,13 +1,79 @@
 extends SceneTree
 
 func _initialize() -> void:
+	await _test_player_male_anatomy_creation_save_restore()
 	_test_appearance_save_reload_and_material_application()
 	_test_materials_are_not_shared_between_characters()
 	_test_accessory_socket_attach_and_remove()
 	_test_campaign_character_actor_factory()
 	_test_shared_ara_npc_models_and_wren_appearance()
-	print("Character appearance and accessory tests passed.")
+	print("Character appearance, player anatomy customisation and accessory tests passed.")
 	quit()
+
+
+func _test_player_male_anatomy_creation_save_restore() -> void:
+	const SAVE_PATH := "user://player_appearance.json"
+	var previous_save_exists := FileAccess.file_exists(SAVE_PATH)
+	var previous_save := FileAccess.get_file_as_string(SAVE_PATH) if previous_save_exists else ""
+	if previous_save_exists:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+
+	var creator_script := load("res://scripts/ui/player_character_creator.gd") as Script
+	assert(creator_script != null, "Player character creator script must load")
+	var creator := creator_script.new() as CanvasLayer
+	root.add_child(creator)
+	assert(creator.male_anatomy_length_slider != null)
+	assert(creator.male_anatomy_girth_slider != null)
+	creator.body_variant_select.select(1)
+	creator.male_anatomy_length_slider.value = 0.25
+	creator.male_anatomy_girth_slider.value = 0.75
+
+	var emitted_profiles: Array[Dictionary] = []
+	creator.completed.connect(func(profile: Dictionary) -> void:
+		emitted_profiles.append(profile)
+	)
+	creator._finish()
+	await process_frame
+	assert(emitted_profiles.size() == 1, "Character creation must emit the completed player profile")
+	assert(FileAccess.file_exists(SAVE_PATH), "Character creation must persist the player profile")
+
+	var saved_profile: Variant = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	assert(saved_profile is Dictionary, "Saved player appearance must be valid JSON")
+	var profile: Dictionary = saved_profile
+	assert(profile.get("body_variant") == "male")
+	assert(is_equal_approx(float(profile.get("male_anatomy_length_percentile", -1.0)), 0.25))
+	assert(is_equal_approx(float(profile.get("male_anatomy_girth_percentile", -1.0)), 0.75))
+
+	var expected_length := (13.12 + lerpf(-1.644854, 1.644854, 0.25) * 1.66) / 13.12
+	var expected_girth := (11.66 + lerpf(-1.644854, 1.644854, 0.75) * 1.10) / 11.66
+	assert(is_equal_approx(float(profile.get("male_anatomy_length_scale", 0.0)), expected_length))
+	assert(is_equal_approx(float(profile.get("male_anatomy_girth_scale", 0.0)), expected_girth))
+
+	var restored := creator_script.new() as CanvasLayer
+	root.add_child(restored)
+	assert(restored.body_variant_select.get_item_text(restored.body_variant_select.selected) == "Male")
+	assert(restored.male_anatomy_section.visible, "Male anatomy controls must be visible after restoring a male profile")
+	assert(is_equal_approx(restored.male_anatomy_length_slider.value, 0.25))
+	assert(is_equal_approx(restored.male_anatomy_girth_slider.value, 0.75))
+
+	if ResourceLoader.exists("res://art/characters/ara_runtime/ara_player_male_body.glb"):
+		var actor := AraCharacterActor.new()
+		root.add_child(actor)
+		assert(actor.configure("res://art/characters/ara_runtime/ara_player_male_body.glb"))
+		actor.apply_player_profile(profile)
+		var applied: Dictionary = actor.get_meta("male_anatomy_size_scales", {})
+		assert(is_equal_approx(float(applied.get("length", 0.0)), expected_length), "Saved length choice must reach the male anatomy rig")
+		assert(is_equal_approx(float(applied.get("girth", 0.0)), expected_girth), "Saved circumference choice must reach the male anatomy rig")
+		actor.queue_free()
+
+	restored.queue_free()
+	await process_frame
+	if previous_save_exists:
+		var restore_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+		assert(restore_file != null)
+		restore_file.store_string(previous_save)
+	else:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
 
 func _test_appearance_save_reload_and_material_application() -> void:
 	var appearance := CharacterAppearance.new()
