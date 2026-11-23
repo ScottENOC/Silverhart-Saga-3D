@@ -16,7 +16,7 @@ func _initialize() -> void:
 	streamed_actor.add_to_group("campaign2_npc")
 	root.add_child(streamed_actor)
 
-	var local_state := CharacterState.new("old_mac", "Old Mac", Vector2i(0, 1))
+	var local_state := CharacterState.new("old_mac", "Old Mac", Vector2i(0, 2))
 	simulation.register_character(local_state)
 	var local_actor := Node3D.new()
 	root.add_child(local_actor)
