@@ -10,7 +10,8 @@ func _initialize() -> void:
 		return
 	var petra := registry.get_character("petra_hollis")
 	var quartermaster := registry.get_character("border_war_quartermaster")
-	if petra.is_empty() or quartermaster.is_empty():
+	var mirabel := registry.get_character("mirabel_quill")
+	if petra.is_empty() or quartermaster.is_empty() or mirabel.is_empty():
 		push_error("Millbrook character-owned profiles must resolve independently of settlement placements.")
 		quit(1)
 		return
@@ -22,8 +23,13 @@ func _initialize() -> void:
 		push_error("Quartermaster identity was not preserved.")
 		quit(1)
 		return
-	if petra.get("appearance", {}).is_empty() or quartermaster.get("appearance", {}).is_empty():
+	if petra.get("appearance", {}).is_empty() or quartermaster.get("appearance", {}).is_empty() or mirabel.get("appearance", {}).is_empty():
 		push_error("Character appearance must remain in character-owned definitions.")
+		quit(1)
+		return
+	var mirabel_appearance: Dictionary = mirabel.get("appearance", {})
+	if String(mirabel.get("dialogue_id", "")) != "mirabel_quill" or String(mirabel_appearance.get("hair_style", "")) != "long01":
+		push_error("Mirabel identity, dialogue and long hairstyle must be preserved at the Reddale ruin.")
 		quit(1)
 		return
 	print("Campaign 2 character definition registry tests passed.")
