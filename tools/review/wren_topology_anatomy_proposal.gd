@@ -75,6 +75,13 @@ const REGIONS := {
     "glute_left": [Vector3(-0.095, 0.865, -0.075), Vector3(0.090, 0.085, 0.045), Color("#80ed99")],
     "glute_right": [Vector3(0.095, 0.865, -0.075), Vector3(0.090, 0.085, 0.045), Color("#b8f2e6")],
     "pubic_region": [Vector3(0.0, 0.815, 0.090), Vector3(0.075, 0.050, 0.035), Color("#ffd6a5")],
+    "pelvic_mons_pubis": [Vector3(0.0, 0.850, 0.120), Vector3(0.045, 0.025, 0.025), Color("#f4a261")],
+    "pelvic_labia_majora_left": [Vector3(-0.030, 0.795, 0.105), Vector3(0.020, 0.030, 0.018), Color("#e76f51")],
+    "pelvic_labia_majora_right": [Vector3(0.030, 0.795, 0.105), Vector3(0.020, 0.030, 0.018), Color("#2a9d8f")],
+    "pelvic_clitoral_contact_proxy": [Vector3(0.0, 0.824, 0.108), Vector3(0.012, 0.012, 0.012), Color("#e63946")],
+    "pelvic_perineal_surface": [Vector3(0.0, 0.755, 0.095), Vector3(0.018, 0.015, 0.012), Color("#9b5de5")],
+    "pelvic_inguinal_fold_left": [Vector3(-0.105, 0.805, 0.115), Vector3(0.025, 0.045, 0.025), Color("#457b9d")],
+    "pelvic_inguinal_fold_right": [Vector3(0.105, 0.805, 0.115), Vector3(0.025, 0.045, 0.025), Color("#06d6a0")],
     "inner_thigh_left": [Vector3(-0.075, 0.690, 0.025), Vector3(0.050, 0.145, 0.060), Color("#fdffb6")],
     "inner_thigh_right": [Vector3(0.075, 0.690, 0.025), Vector3(0.050, 0.145, 0.060), Color("#caffbf")],
     "thigh_left": [Vector3(-0.115, 0.690, 0.000), Vector3(0.075, 0.165, 0.080), Color("#9bf6ff")],
@@ -143,10 +150,10 @@ func _run() -> void:
     var seeds: Dictionary = {}
     for region_id in REGIONS:
         var definition: Array = REGIONS[region_id]
-        var seed_vertices := _find_seed_vertices(vertices, definition[0], definition[1])
+        var seed_vertices := _find_seed_vertices(vertices, normals, definition[0], definition[1], region_id)
         seed_vertices = _filter_region_side(vertices, seed_vertices, region_id)
         seeds[region_id] = seed_vertices.size()
-        var weights := _propagate_over_surface(adjacency, vertices, seed_vertices, region_id)
+        var weights := _propagate_over_surface(adjacency, vertices, normals, seed_vertices, region_id)
         candidate_weights[region_id] = weights
         var count := 0
         for weight in weights:
@@ -251,13 +258,18 @@ func _run() -> void:
         "paired_region_midline_exclusion_m": PAIRED_REGION_MIDLINE_GAP,
         "candidate_weight_threshold": 0.15,
         "region_seed_vertex_counts": seeds,
+        "anatomical_detail_assessment": {
+            "surface_proxy_channels": ["pelvic_mons_pubis", "pelvic_labia_majora_left", "pelvic_labia_majora_right", "pelvic_clitoral_contact_proxy", "pelvic_perineal_surface", "pelvic_inguinal_fold_left", "pelvic_inguinal_fold_right"],
+            "not_identifiable_from_current_surface_topology": ["clitoral_glans", "labia_minora_left", "labia_minora_right", "vaginal_opening"],
+            "note": "The current Skin_Anatomy surface supports coarse front-surface coverage and a provisional clitoral contact proxy, but does not expose distinct mesh topology for the listed fine structures. These are deliberately not fabricated as production masks."
+        },
         "candidate_vertex_counts_at_weight_0_15": counts,
         "candidate_to_seed_vertex_ratios": _build_candidate_seed_ratios(seeds, counts),
-        "method": "Review-only ellipsoidal seed hypotheses expanded through adjacent source-mesh vertices with decaying weights; nipple channels use zero hops, finger channels use up to 18 hops within a local extent, and other channels use five.",
+        "method": "Review-only ellipsoidal seed hypotheses expanded through adjacent source-mesh vertices with decaying weights; pelvic detail channels are constrained by front-facing vertex normals, nipple channels use zero hops, finger channels use up to 18 hops within a local extent, and other channels use five.",
         "limitations": [
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
-            "Nipple channels are seed-only (zero graph hops); all other hop limits are review heuristics and local mesh density affects physical reach.",
+            "Nipple channels are seed-only (zero graph hops); all other hop limits are review heuristics and local mesh density affects physical reach.",\n            "Pelvic detail proposals are front-surface-only using vertex normals and depth-tested overlays; named fine structures without distinct source-surface topology remain unresolved rather than being assigned invented masks.",
             "Finger candidates use longer local-X seed corridors and up to 18 topology hops, constrained to a narrow per-digit depth corridor; the close-up renders must confirm continuous lengthwise coverage and separation.",
             "Nipple candidates now use seed-only surface vertices (zero topology expansion) to avoid propagating onto the adjacent areolar/side-surface arc; the isolated renders must confirm the smaller island remains centred.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
@@ -421,7 +433,7 @@ func _build_overlay(
     var material := StandardMaterial3D.new()
     material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
     material.vertex_color_use_as_albedo = true
-    material.no_depth_test = true
+    material.no_depth_test = false
     marker.material = material
 
     var transforms: Array[Transform3D] = []
