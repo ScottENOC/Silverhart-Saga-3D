@@ -43,7 +43,16 @@ func _initialize() -> void:
 		push_error("Reyna identity, dialogue and braid hairstyle must be preserved at Old Mac’s Farmstead.")
 		quit(1)
 		return
+	if nessa.get("appearance", {}).is_empty() or fenn.get("appearance", {}).is_empty():
+		push_error("Elder Nessa and Fenn must retain their character-owned Ara appearance profiles.")
+		quit(1)
+		return
 	var goblin_appearance: Dictionary = goblin_chief.get("appearance", {})
+	var nix_appearance: Dictionary = goblin_lieutenant.get("appearance", {})
+	if String(goblin_lieutenant.get("dialogue_id", "")) != "nix_sharpear" or float(nix_appearance.get("height_scale", 1.0)) >= 1.0:
+		push_error("Nix must retain his identity and short goblin stand-in scale.")
+		quit(1)
+		return
 	if String(goblin_chief.get("dialogue_id", "")) != "chief_skarnub" or float(goblin_appearance.get("height_scale", 1.0)) >= 1.0 or float(goblin_appearance.get("body_scale", 1.0)) >= 1.0:
 		push_error("Chief Skarnub must retain his identity and visibly smaller temporary Ara appearance.")
 		quit(1)
