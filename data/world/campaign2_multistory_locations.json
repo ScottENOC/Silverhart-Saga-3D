@@ -2410,6 +2410,127 @@
         }
       ],
       "transitions": []
+    },
+    {
+      "id": "vessel_seekers_crypt",
+      "name": "Vessel-Seeker's Crypt",
+      "anchor": {
+        "q": 32,
+        "r": -154
+      },
+      "source": "Hex-crpg/campaign2World.js:buildNecromancerCrypt; source corridors q36 and q44..45; 3D map opens wall-ring cells q35 and q43 to connect the source-intended rooms",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Entrance, Ossuary and Ritual Chamber",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "crypt_entrance_chamber",
+              "center": {
+                "q": 32,
+                "r": -154
+              },
+              "half_width": 3,
+              "half_height": 2
+            },
+            {
+              "id": "crypt_ossuary",
+              "center": {
+                "q": 40,
+                "r": -154
+              },
+              "half_width": 3,
+              "half_height": 3
+            },
+            {
+              "id": "crypt_ritual_chamber",
+              "center": {
+                "q": 49,
+                "r": -154
+              },
+              "half_width": 4,
+              "half_height": 3
+            }
+          ],
+          "corridors": [
+            {
+              "id": "entrance_to_ossuary",
+              "from": {
+                "q": 35,
+                "r": -154
+              },
+              "to": {
+                "q": 37,
+                "r": -154
+              },
+              "algorithm": "source_straight_q_with_wall_aperture"
+            },
+            {
+              "id": "ossuary_to_ritual",
+              "from": {
+                "q": 43,
+                "r": -154
+              },
+              "to": {
+                "q": 46,
+                "r": -154
+              },
+              "algorithm": "source_straight_q_with_wall_aperture"
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "crypt_entrance_door",
+              "type": "door_open",
+              "position": {
+                "q": 29,
+                "r": -154
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "crypt_entrance_east_opening",
+              "type": "door_open",
+              "position": {
+                "q": 35,
+                "r": -154
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "crypt_ossuary_door",
+              "type": "door_open",
+              "position": {
+                "q": 37,
+                "r": -154
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "crypt_ossuary_east_opening",
+              "type": "door_open",
+              "position": {
+                "q": 43,
+                "r": -154
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "crypt_ritual_door",
+              "type": "door_open",
+              "position": {
+                "q": 46,
+                "r": -154
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": []
     }
   ]
 }
