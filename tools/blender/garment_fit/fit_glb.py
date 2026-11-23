@@ -148,6 +148,28 @@ def query_factory(tree):
     return query
 
 
+def build_fit_config(args):
+    """Select workflow-specific constraints while reusing the same solver."""
+    if args.fit_mode == "existing":
+        preset = {
+            "clearance_mm": 1.0, "max_displacement_mm": 10.0,
+            "max_step_mm": 1.0, "smoothing": 0.08, "iterations": 15,
+        }
+    else:
+        preset = {
+            "clearance_mm": 4.0, "max_displacement_mm": 50.0,
+            "max_step_mm": 3.0, "smoothing": 0.2, "iterations": 25,
+        }
+    return FitConfig(
+        target_clearance=(args.clearance_mm if args.clearance_mm is not None else preset["clearance_mm"]) / 1000.0,
+        max_vertex_displacement=(args.max_displacement_mm if args.max_displacement_mm is not None else preset["max_displacement_mm"]) / 1000.0,
+        max_step=(args.max_step_mm if args.max_step_mm is not None else preset["max_step_mm"]) / 1000.0,
+        smoothing=args.smoothing if args.smoothing is not None else preset["smoothing"],
+        max_iterations=args.iterations if args.iterations is not None else preset["iterations"],
+        floating_tolerance=args.floating_tolerance_mm / 1000.0,
+    )
+
+
 def main():
     args = parse_args()
     bpy.ops.object.select_all(action="SELECT")
@@ -176,21 +198,7 @@ def main():
     skin, found_skin_materials = skin_matches[0]
     tree, surface_diagnostics = build_world_surface_tree(skin, skin_tokens)
     query = query_factory(tree)
-    presets = {
-        "existing": {"clearance_mm": 1.0, "max_displacement_mm": 10.0,
-                     "max_step_mm": 1.0, "smoothing": 0.08, "iterations": 15},
-        "new": {"clearance_mm": 4.0, "max_displacement_mm": 50.0,
-                "max_step_mm": 3.0, "smoothing": 0.2, "iterations": 25},
-    }
-    preset = presets[args.fit_mode]
-    config = FitConfig(
-        target_clearance=(args.clearance_mm if args.clearance_mm is not None else preset["clearance_mm"]) / 1000.0,
-        max_vertex_displacement=(args.max_displacement_mm if args.max_displacement_mm is not None else preset["max_displacement_mm"]) / 1000.0,
-        max_step=(args.max_step_mm if args.max_step_mm is not None else preset["max_step_mm"]) / 1000.0,
-        smoothing=args.smoothing if args.smoothing is not None else preset["smoothing"],
-        max_iterations=args.iterations if args.iterations is not None else preset["iterations"],
-        floating_tolerance=args.floating_tolerance_mm / 1000.0,
-    )
+    config = build_fit_config(args)
 
     object_reports = []
     total_selected = 0
