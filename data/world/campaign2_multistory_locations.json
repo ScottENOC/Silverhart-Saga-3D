@@ -2205,7 +2205,17 @@
             }
           ],
           "corridors": [],
-          "tile_objects": [],
+          "tile_objects": [
+            {
+              "id": "sunken_cave_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -277,
+                "r": 40
+              },
+              "light_radius": 0
+            }
+          ],
           "actors": [],
           "creatures": []
         },
