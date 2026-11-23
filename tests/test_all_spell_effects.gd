@@ -260,7 +260,7 @@ func _test_summon_animal_and_companion() -> void:
 		doomed_companion.creature_kind = "wolf"
 		companion_sim.register_character(doomed_companion)
 		_check(companion_sim.is_party_member(doomed_companion.id), "A living permanent animal companion should join the active party")
-		doomed_companion.apply_damage(doomed_companion.health)
+		doomed_companion.apply_damage(doomed_companion.health + doomed_companion.max_health)
 		var dead_companion := CharacterState.from_dict(doomed_companion.to_dict())
 		_check(dead_companion != null and not dead_companion.alive and dead_companion.is_animal_companion, "Animal companion death should persist through character save/load")
 		_check(not companion_sim.is_party_member(doomed_companion.id), "A dead permanent animal companion should be removed from the active party")
