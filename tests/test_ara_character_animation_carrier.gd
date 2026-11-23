@@ -194,6 +194,12 @@ func _assert_character_asset_animated(asset_path: String, label: String) -> void
 	_check(player != null, label + " has an animation player")
 	_check(skeleton != null, label + " has a skeleton")
 	if player != null and skeleton != null:
+		if label == "aldric":
+			_check(skeleton.get_bone_count() == 72,
+				"Aldric retains the 69 shared rig bones plus his three anatomy bones")
+			for anatomy_bone in ["AnatomyRoot", "AnatomyMid", "AnatomyTip"]:
+				_check(skeleton.find_bone(anatomy_bone) >= 0,
+					"Aldric animation carrier preserves " + anatomy_bone)
 		var locomotion_selected := actor.set_moving(true)
 		_check(locomotion_selected, label + " selects a locomotion clip")
 		var bound_mesh_found := false
