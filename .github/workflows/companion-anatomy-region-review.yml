@@ -62,6 +62,20 @@ jobs:
           aldric_sha=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$aldric_run" --jq '.head_sha')
           echo "WREN_BUILD_SHA=$wren_sha" >> "$GITHUB_ENV"
           echo "ALDRIC_BUILD_SHA=$aldric_sha" >> "$GITHUB_ENV"
+      - name: Paint Ara-derived vulva and mons pubis region mask for Wren
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy libegl1 libgl1-mesa-dri
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \\
+            --python tools/blender/paint_vulva_mons_region_mask.py -- \\
+            --input build/wren-native/Wren.glb \\
+            --output build/wren-native/Wren_masked.glb \\
+            --report build/vulva-mons-mask-report.json
+          test -s build/wren-native/Wren_masked.glb
+          test -s build/vulva-mons-mask-report.json
+          mv build/wren-native/Wren_masked.glb build/wren-native/Wren.glb
       - name: Assemble isolated review project
         run: |
           set -euo pipefail
@@ -69,6 +83,8 @@ jobs:
           mkdir -p "$p/build/wren-native" "$p/build/aldric-native" "$p/tools/review" "$p/scripts/characters" "$p/data/characters"
           cp -R data/characters/anatomy_masks "$p/data/characters/"
           cp build/wren-native/Wren.glb "$p/build/wren-native/"
+          cp build/vulva-mons-mask-report.json "$p/vulva-mons-mask-report.json"
+          test -s "$p/vulva-mons-mask-report.json"
           cp build/aldric-native/Aldric.glb "$p/build/aldric-native/"
           cp tools/review/companion_surface_region_review.gd "$p/tools/review/"
           cp tools/review/wren_bra_anatomy_proposal.gd "$p/tools/review/"
