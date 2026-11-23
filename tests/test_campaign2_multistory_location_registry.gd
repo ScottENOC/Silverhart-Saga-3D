@@ -6,7 +6,26 @@ var failures: int = 0
 func _initialize() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Source-authored multi-story locations must validate")
-	_check(registry.location_ids() == ["kragmoor", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild"], "Kragmoor and all source-authored Silverhart interiors must be registered")
+	var invalid_row_shift_registry = REGISTRY.new()
+	var invalid_row_shift_result: Dictionary = invalid_row_shift_registry.configure({
+		"schema_version": 1,
+		"coordinate_system": "campaign2_local_axial_qr",
+		"locations": [{
+			"id": "invalid_row_shift_test",
+			"anchor": {"q": 0, "r": 0},
+			"floors": [{
+				"floor": 0,
+				"rooms": [{"center": {"q": 0, "r": 0}, "half_width": 2, "half_height": 2, "row_shift_mode": "unknown"}],
+				"corridors": [],
+				"tile_objects": [],
+				"actors": [],
+				"creatures": []
+			}],
+			"transitions": []
+		}]
+	})
+	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
+	_check(registry.location_ids() == ["emberlode_mine", "kragmoor", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild"], "Kragmoor and all source-authored Silverhart interiors must be registered")
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
 	_check(palace.get("floors", []).size() == 2, "Silverhart Grand Hall must preserve its two source floors")
@@ -126,6 +145,69 @@ func _initialize() -> void:
 		if int(transition.get("from_floor", 999)) == -4 and int(transition.get("to_floor", 999)) == -5:
 			gated_transition = not bool(transition.get("initially_available", true)) and String(transition.get("unlocked_by_quest", "")) == "deepholds_infestation"
 	_check(gated_transition, "The -4 to -5 stair must be locked behind What Nests Below")
+	var emberlode_mine: Dictionary = registry.get_definition("emberlode_mine")
+	_check(int(emberlode_mine.get("anchor", {}).get("q", 0)) == -252 and int(emberlode_mine.get("anchor", {}).get("r", 0)) == 16, "Emberlode Mine anchor must match buildEmberlode mineCenter")
+	_check(emberlode_mine.get("floors", []).size() == 3, "Emberlode Mine must retain its surface entrance and two underground levels")
+	var mine_surface := registry.get_floor_definition("emberlode_mine", 0)
+	_check(String(mine_surface.get("rooms", [])[0].get("row_shift_mode", "")) == "source_building", "Emberlode surface mine must retain the original carveBuilding row shift")
+	_check(_has_record(mine_surface.get("tile_objects", []), "emberlode_ledger"), "Emberlode surface must retain its source ledger")
+	_check(_has_record(mine_surface.get("tile_objects", []), "mine_stair_down"), "Emberlode surface must retain its source stair to the Working Vein")
+	var working_vein := registry.get_floor_definition("emberlode_mine", -1)
+	_check(_has_record(working_vein.get("tile_objects", []), "working_vein_gold"), "Working Vein must retain the source gold ore node")
+	_check(_has_record(working_vein.get("tile_objects", []), "old_seam_stair_down"), "Working Vein must retain its stair to the Old Seam")
+	var old_seam := registry.get_floor_definition("emberlode_mine", -2)
+	_check(_has_record(old_seam.get("tile_objects", []), "old_seam_blue_gem"), "Old Seam must retain the source blue-gem ore node")
+	_check(old_seam.get("creatures", []).size() == 2, "Old Seam must preserve both source spider placements as campaign-owned spawn data")
+	_check(emberlode_mine.get("transitions", []).size() == 4, "Emberlode Mine must retain reciprocal transitions between all three levels")
+
+	var elven_capital: Dictionary = registry.get_definition("silthandriel")
+	_check(int(elven_capital.get("anchor", {}).get("q", 0)) == -252 and int(elven_capital.get("anchor", {}).get("r", 0)) == 934, "Sil'thandriel anchor must match buildElvenCapital")
+	_check(elven_capital.get("floors", []).size() == 3, "Sil'thandriel must retain its surface, lower canopy and upper court")
+	var tree_base := registry.get_floor_definition("silthandriel", 0)
+	_check(tree_base.get("rooms", []).is_empty(), "Sil'thandriel surface clearing must not be turned into an enclosed building")
+	_check(_has_record(tree_base.get("tile_objects", []), "tree_stair_up"), "The great tree's source stair must lead into the lower canopy")
+	var lower_canopy := registry.get_floor_definition("silthandriel", 1)
+	_check(lower_canopy.get("rooms", []).size() == 2, "Lower Canopy must retain the Archive and Healer Lodge platforms")
+	_check(lower_canopy.get("corridors", []).size() == 2, "Lower Canopy must retain the tree access and Archive-to-Lodge rope bridge")
+	_check(_has_record(lower_canopy.get("tile_objects", []), "lodge_herb_patch_west") and _has_record(lower_canopy.get("tile_objects", []), "lodge_herb_patch_east"), "Healer Lodge must retain both source herb patches")
+	var upper_court := registry.get_floor_definition("silthandriel", 2)
+	_check(String(upper_court.get("rooms", [])[0].get("wall_mode", "")) == "open", "Court of the Silver Leaf must remain an open-air pavilion")
+	_check(_has_record(upper_court.get("tile_objects", []), "court_throne"), "Upper Court must retain its source throne")
+	_check(elven_capital.get("transitions", []).size() == 4, "Sil'thandriel must retain reciprocal stairs between all three levels")
+
+	var definition: Dictionary = registry.get_definition("kragmoor")
+	_check(int(definition.get("anchor", {}).get("q", 0)) == 908 and int(definition.get("anchor", {}).get("r", 0)) == -626, "Kragmoor anchor must match buildDwarvenKingdom")
+	_check(int(definition.get("massif_radius", 0)) == 25, "Kragmoor must retain the source solid-massif radius")
+	var expected_floors := [0, -1, -2, -3, -4, -5]
+	var actual_floors: Array[int] = []
+	for floor_variant in definition.get("floors", []):
+		actual_floors.append(int(floor_variant.get("floor", 999999)))
+	_check(actual_floors == expected_floors, "Kragmoor must preserve surface, four open underground levels and the sealed fifth level")
+	var great_hall := registry.get_floor_definition("kragmoor", -1)
+	_check(great_hall.get("actors", []).size() == 3, "Great Hall must contain King Balrik and both source guards")
+	_check(_has_record(great_hall.get("tile_objects", []), "throne"), "Great Hall must retain its throne")
+	var vault := registry.get_floor_definition("kragmoor", -2)
+	_check(vault.get("actors", []).size() == 2, "Vault/Runeforge must contain the trader and master runesmith")
+	_check(_has_record(vault.get("tile_objects", []), "rune_forge"), "Runeforge must retain its forge object")
+	var mine := registry.get_floor_definition("kragmoor", -3)
+	_check(_has_record(mine.get("tile_objects", []), "mine_ledger"), "Deep Mine must retain the foreman's ledger")
+	_check(mine.get("actors", []).size() == 1, "Deep Mine must contain Foreman Dornik")
+	var tunnels := registry.get_floor_definition("kragmoor", -4)
+	_check(tunnels.get("creatures", []).size() == 3, "Lower Tunnels must preserve two spiders and the Broodmother")
+	var deep := registry.get_floor_definition("kragmoor", -5)
+	_check(deep.get("creatures", []).size() == 1, "Sunken Deep must contain the Ember-Wreathed Horror")
+	_check(int(deep.get("creatures", [])[0].get("health", 0)) == 160, "The Horror must retain its source health")
+	_check(deep.get("creatures", [])[0].get("inventory", []).count("starmetal_ore") == 2, "The Horror must retain both source Starmetal drops")
+	var gate: Dictionary = definition.get("quest_gates", [])[0] if not definition.get("quest_gates", []).is_empty() else {}
+	_check(String(gate.get("quest_id", "")) == "deepholds_infestation", "Sunken Deep must be gated by the source infestation quest ID")
+	_check(String(gate.get("quest_title", "")) == "What Nests Below", "Sunken Deep must retain the source quest title")
+	_check(not bool(gate.get("initially_available", true)) and bool(gate.get("reveal_is_idempotent", false)), "Sunken Deep passage must begin sealed and reveal idempotently")
+	var gated_transition := false
+	for transition in definition.get("transitions", []):
+		if int(transition.get("from_floor", 999)) == -4 and int(transition.get("to_floor", 999)) == -5:
+			gated_transition = not bool(transition.get("initially_available", true)) and String(transition.get("unlocked_by_quest", "")) == "deepholds_infestation"
+	_check(gated_transition, "The -4 to -5 stair must be locked behind What Nests Below")
+
 	if failures > 0:
 		push_error("%d multi-story location test(s) failed." % failures)
 		quit(1)
