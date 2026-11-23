@@ -292,6 +292,10 @@ func _run() -> void:
 
     var unassigned_surface_report := _build_unassigned_surface_report(adjacency, vertices, candidate_weights)
     var nipple_seed_diagnostics := _build_nipple_seed_diagnostics(vertices)
+    var facial_seed_diagnostics := _build_region_seed_diagnostics(
+        vertices,
+        ["eye_left", "eye_right", "nose", "mouth", "cheek_left", "cheek_right", "chin", "forehead", "jaw_left", "jaw_right"]
+    )
 
     var overlay := _build_overlay(mesh_instance, vertices, candidate_weights)
     stage.add_child(overlay)
@@ -422,6 +426,7 @@ func _run() -> void:
         "region_groups": REGION_GROUPS,
         "unassigned_surface_diagnostics": unassigned_surface_report,
         "nipple_seed_diagnostics": nipple_seed_diagnostics,
+        "facial_seed_diagnostics": facial_seed_diagnostics,
         "ara_mask_import_validation": mask_import_validation,
         "candidate_to_seed_vertex_ratios": _build_candidate_seed_ratios(seeds, counts),
         "method": "Review-only Ara-authored vulva_external weights are read directly from TEXCOORD_1.y and include the mons pubis; remaining geometric hypotheses expand through adjacent source-mesh vertices with decaying weights.",
@@ -517,11 +522,17 @@ func _build_unassigned_surface_report(
         func(a: Dictionary, b: Dictionary) -> bool:
             return int(a["vertex_count"]) > int(b["vertex_count"])
     )
+    var suggested_neighbour_vertex_totals: Dictionary = {}
+    for component in components:
+        var neighbour_id: String = component["suggested_neighbour"]
+        suggested_neighbour_vertex_totals[neighbour_id] = int(suggested_neighbour_vertex_totals.get(neighbour_id, 0)) + int(component["vertex_count"])
     return {
         "assigned_vertex_count": assigned_count,
         "unassigned_vertex_count": total_unassigned,
         "unassigned_component_count": components.size(),
+        "suggested_neighbour_vertex_totals": suggested_neighbour_vertex_totals,
         "largest_unassigned_components": components.slice(0, mini(40, components.size())),
+        "all_unassigned_components": components,
         "assignment_threshold": 0.15,
         "neighbour_method": "rank adjacent assigned regions by shared mesh-boundary edge count; suggestions are review-only"
     }
@@ -548,14 +559,57 @@ func _build_nipple_seed_diagnostics(vertices: PackedVector3Array) -> Dictionary:
                 if normalized.length() <= 1.0:
                     counts_by_scale[scale_key] = int(counts_by_scale[scale_key]) + 1
         var nearest_point := vertices[nearest_index] if nearest_index >= 0 else Vector3.ZERO
+        var nearest_centred_counts := {"1.0": 0, "1.5": 0, "2.0": 0, "3.0": 0}
+        for point in vertices:
+            for scale_key in nearest_centred_counts:
+                var scale := float(scale_key)
+                var normalized := (point - nearest_point) / (radii * scale)
+                if normalized.length() <= 1.0:
+                    nearest_centred_counts[scale_key] = int(nearest_centred_counts[scale_key]) + 1
+        result[region_id] = {
+            "seed_vertices_current": int(counts_by_scale["1.0"]),
+            "candidate_seed_vertices_by_radius_scale": counts_by_scale,
+            "candidate_seed_vertices_by_nearest_skin_vertex_radius_scale": nearest_centred_counts,
+            "nearest_skin_vertex_index": nearest_index,
+            "nearest_skin_vertex_distance_m": nearest_distance,
+            "nearest_skin_vertex_position_local": [nearest_point.x, nearest_point.y, nearest_point.z],
+            "current_seed_radius_m": [radii.x, radii.y, radii.z],
+            "status": "NO_SEED_VERTICES" if int(counts_by_scale["1.0"]) == 0 else "SEEDS_FOUND"
+        }
+    return result
+
+
+func _build_region_seed_diagnostics(
+    vertices: PackedVector3Array,
+    region_ids: Array
+) -> Dictionary:
+    var result: Dictionary = {}
+    for region_id in region_ids:
+        var definition: Array = REGIONS[region_id]
+        var centre: Vector3 = definition[0]
+        var radii: Vector3 = definition[1]
+        var nearest_index := -1
+        var nearest_distance := INF
+        var counts_by_scale := {"1.0": 0, "1.5": 0, "2.0": 0, "3.0": 0}
+        for vertex_index in vertices.size():
+            var point := vertices[vertex_index]
+            var distance := point.distance_to(centre)
+            if distance < nearest_distance:
+                nearest_distance = distance
+                nearest_index = vertex_index
+            for scale_key in counts_by_scale:
+                var scale := float(scale_key)
+                var normalized := (point - centre) / (radii * scale)
+                if normalized.length() <= 1.0:
+                    counts_by_scale[scale_key] = int(counts_by_scale[scale_key]) + 1
+        var nearest_point := vertices[nearest_index] if nearest_index >= 0 else Vector3.ZERO
         result[region_id] = {
             "seed_vertices_current": int(counts_by_scale["1.0"]),
             "candidate_seed_vertices_by_radius_scale": counts_by_scale,
             "nearest_skin_vertex_index": nearest_index,
             "nearest_skin_vertex_distance_m": nearest_distance,
             "nearest_skin_vertex_position_local": [nearest_point.x, nearest_point.y, nearest_point.z],
-            "current_seed_radius_m": [radii.x, radii.y, radii.z],
-            "status": "NO_SEED_VERTICES" if int(counts_by_scale["1.0"]) == 0 else "SEEDS_FOUND"
+            "current_seed_radius_m": [radii.x, radii.y, radii.z]
         }
     return result
 
