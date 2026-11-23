@@ -62,14 +62,14 @@ func _test_silverhart_city_composes_all_source_props() -> void:
 				var node_name := String(child.name)
 				if node_name.begins_with("silverhart_curtain_wall_"):
 					curtain_wall_segments += 1
-			elif node_name.begins_with("silverhart_city_wall_watchtower_"):
-				city_towers += 1
-			elif node_name.begins_with("silverhart_city_wall_"):
-				city_wall_segments += 1
-			elif node_name.begins_with("silverhart_watchtower_"):
-				palace_towers += 1
-			elif node_name == "silverhart_city_gate_arch":
-				gate_arches += 1
+				elif node_name.begins_with("silverhart_city_wall_watchtower_"):
+					city_towers += 1
+				elif node_name.begins_with("silverhart_city_wall_"):
+					city_wall_segments += 1
+				elif node_name.begins_with("silverhart_watchtower_"):
+					palace_towers += 1
+				elif node_name == "silverhart_city_gate_arch":
+					gate_arches += 1
 		parent.free()
 	assert(buildings == 40, "All 40 source Silverhart buildings must be presented once across streamed chunks")
 	assert(props == 513, "All 513 source Silverhart props must be presented once across streamed chunks")
