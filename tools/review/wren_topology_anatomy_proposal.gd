@@ -38,14 +38,24 @@ const REGIONS := {
     "tricep_right": [Vector3(0.285, 1.245, -0.045), Vector3(0.043, 0.095, 0.043), Color("#43aa8b")],
     "elbow_left": [Vector3(-0.325, 1.075, 0.000), Vector3(0.050, 0.055, 0.055), Color("#577590")],
     "elbow_right": [Vector3(0.325, 1.075, 0.000), Vector3(0.050, 0.055, 0.055), Color("#277da1")],
-    "forearm_left": [Vector3(-0.355, 0.925, 0.000), Vector3(0.050, 0.120, 0.050), Color("#f94144")],
-    "forearm_right": [Vector3(0.355, 0.925, 0.000), Vector3(0.050, 0.120, 0.050), Color("#f3722c")],
-    "wrist_left": [Vector3(-0.375, 0.790, 0.000), Vector3(0.035, 0.045, 0.035), Color("#f8961e")],
-    "wrist_right": [Vector3(0.375, 0.790, 0.000), Vector3(0.035, 0.045, 0.035), Color("#f9c74f")],
-    "palm_left": [Vector3(-0.385, 0.715, 0.010), Vector3(0.045, 0.050, 0.030), Color("#90be6d")],
-    "palm_right": [Vector3(0.385, 0.715, 0.010), Vector3(0.045, 0.050, 0.030), Color("#43aa8b")],
-    "hand_back_left": [Vector3(-0.385, 0.715, -0.018), Vector3(0.045, 0.050, 0.025), Color("#4d908e")],
-    "hand_back_right": [Vector3(0.385, 0.715, -0.018), Vector3(0.045, 0.050, 0.025), Color("#577590")]
+    "forearm_left": [Vector3(-0.425, 0.925, 0.000), Vector3(0.050, 0.120, 0.050), Color("#f94144")],
+    "forearm_right": [Vector3(0.425, 0.925, 0.000), Vector3(0.050, 0.120, 0.050), Color("#f3722c")],
+    "wrist_left": [Vector3(-0.485, 0.755, 0.000), Vector3(0.028, 0.040, 0.030), Color("#f8961e")],
+    "wrist_right": [Vector3(0.485, 0.755, 0.000), Vector3(0.028, 0.040, 0.030), Color("#f9c74f")],
+    "palm_left": [Vector3(-0.505, 0.690, 0.010), Vector3(0.040, 0.045, 0.030), Color("#90be6d")],
+    "palm_right": [Vector3(0.505, 0.690, 0.010), Vector3(0.040, 0.045, 0.030), Color("#43aa8b")],
+    "hand_back_left": [Vector3(-0.505, 0.690, -0.018), Vector3(0.040, 0.045, 0.025), Color("#4d908e")],
+    "hand_back_right": [Vector3(0.505, 0.690, -0.018), Vector3(0.040, 0.045, 0.025), Color("#577590")],
+    "thumb_left": [Vector3(-0.548, 0.705, 0.010), Vector3(0.018, 0.043, 0.018), Color("#f94144")],
+    "thumb_right": [Vector3(0.548, 0.705, 0.010), Vector3(0.018, 0.043, 0.018), Color("#f3722c")],
+    "index_finger_left": [Vector3(-0.535, 0.645, 0.010), Vector3(0.014, 0.048, 0.016), Color("#f8961e")],
+    "index_finger_right": [Vector3(0.535, 0.645, 0.010), Vector3(0.014, 0.048, 0.016), Color("#f9c74f")],
+    "middle_finger_left": [Vector3(-0.515, 0.625, 0.010), Vector3(0.014, 0.052, 0.016), Color("#90be6d")],
+    "middle_finger_right": [Vector3(0.515, 0.625, 0.010), Vector3(0.014, 0.052, 0.016), Color("#43aa8b")],
+    "ring_finger_left": [Vector3(-0.495, 0.635, 0.010), Vector3(0.014, 0.050, 0.016), Color("#4d908e")],
+    "ring_finger_right": [Vector3(0.495, 0.635, 0.010), Vector3(0.014, 0.050, 0.016), Color("#577590")],
+    "little_finger_left": [Vector3(-0.477, 0.655, 0.010), Vector3(0.013, 0.043, 0.015), Color("#277da1")],
+    "little_finger_right": [Vector3(0.477, 0.655, 0.010), Vector3(0.013, 0.043, 0.015), Color("#7209b7")]
 }
 
 var stage: Node3D
@@ -152,10 +162,15 @@ func _run() -> void:
         var region_overlay := _build_overlay(mesh_instance, vertices, candidate_weights, region_id)
         stage.add_child(region_overlay)
         var region_views: Dictionary = views.duplicate()
+        if region_id.begins_with("thumb_") or region_id.ends_with("_finger_left") or region_id.ends_with("_finger_right") or region_id.begins_with("palm_") or region_id.begins_with("hand_back_"):
+            var hand_x := -0.505 if region_id.ends_with("_left") else 0.505
+            region_views["hand_detail_front"] = [Vector3(0.0, 0.675, 2.0), Vector3(hand_x, 0.675, 0.0), 0.30]
+            region_views["hand_detail_side"] = [Vector3(hand_x + (1.8 if hand_x > 0.0 else -1.8), 0.675, 0.0), Vector3(hand_x, 0.675, 0.0), 0.30]
         if region_id.begins_with("nipple_"):
             var nipple_x := -0.115 if region_id == "nipple_left" else 0.115
             region_views["nipple_detail_front"] = [Vector3(nipple_x, 1.190, 1.8), Vector3(nipple_x, 1.190, 0.0), 0.24]
-            region_views["nipple_detail_side"] = [Vector3(nipple_x + 1.8, 1.190, 0.0), Vector3(nipple_x, 1.190, 0.0), 0.24]
+            var side_sign := -1.0 if region_id == "nipple_left" else 1.0
+            region_views["nipple_detail_side"] = [Vector3(nipple_x + side_sign * 1.8, 1.190, 0.0), Vector3(nipple_x, 1.190, 0.0), 0.24]
         for view_name in region_views:
             var view: Array = region_views[view_name]
             camera.position = view[0]
@@ -195,8 +210,10 @@ func _run() -> void:
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
             "The two-hop nipple radius and five-hop radius for other regions are review heuristics; local mesh density affects physical reach and each boundary needs visual review.",
+            "Hand and finger seed positions are approximate and must be checked in the dedicated close-up views; a zero seed count means the hypothesis missed the mesh and must be repositioned.",
+            "The small disconnected-looking arc in the nipple preview may be a second seed patch or a disconnected topology island; it is not treated as part of an accepted nipple boundary until inspected."
             "Candidate weights are preview-only; no Resource or production manifest is written.",
-            "This review includes the previously reviewed torso channels, refined breast channels, nipple channels and a first shoulder-to-hand arm tranche; all other semantic regions remain unauthored."
+            "This review includes the previously reviewed torso channels, refined breast channels, nipple channels and a first shoulder-to-individual-finger arm tranche; finger channels are separate per digit and side, but remain provisional seed hypotheses."
         ]
     }
     var report_file := FileAccess.open(output_directory.path_join("proposal.json"), FileAccess.WRITE)
