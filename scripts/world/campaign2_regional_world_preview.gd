@@ -9,6 +9,10 @@ const HEARTLAND_BIOMES = preload("res://data/world/regions/silverhart_heartland/
 const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
 const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
 const WALL_FEATURE_FACTORY = preload("res://scripts/world/world_wall_feature_factory.gd")
+const BORDER_FORT_PRESENTATION = preload("res://scripts/world/world_border_fort_presentation.gd")
+const DRAGON_LAIR_PRESENTATION = preload("res://scripts/world/world_dragon_lair_presentation.gd")
+const SPIDER_RUIN_PRESENTATION = preload("res://scripts/world/world_spider_ruin_presentation.gd")
+const DRUID_GROVE_PRESENTATION = preload("res://scripts/world/world_druid_grove_presentation.gd")
 const LOCATION_LOADER_SCRIPT = preload("res://scripts/world/campaign2_location_loader.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
@@ -339,6 +343,9 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 	_record_chunk_stage("walls", walls_started)
 	if not bool(wall_result.get("ok", false)):
 		push_warning("Regional wall presentation failed: %s" % wall_result)
+	var fort_presentation: Dictionary = BORDER_FORT_PRESENTATION.present_chunk(root, terrain_data, chunk_min, CHUNK_SIZE, HEX_RADIUS)
+	if not bool(fort_presentation.get("ok", false)):
+		push_warning("Regional border fort presentation failed: %s" % fort_presentation)
 	_add_chunk_locations(root, chunk)
 	var settlement_started := Time.get_ticks_usec()
 	settlement_builder.add_settlements_in_chunk(root, chunk_min, CHUNK_SIZE, "chunked")
