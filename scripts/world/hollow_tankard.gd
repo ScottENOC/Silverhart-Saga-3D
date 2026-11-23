@@ -144,7 +144,8 @@ func _ready() -> void:
 	_create_hud()
 	ambient_chatter = AMBIENT_CHATTER_SCRIPT.new() as AmbientChatter
 	ambient_rng.randomize()
-	if not pending_save_data.is_empty():
+	var restored_from_save := not pending_save_data.is_empty()
+	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		pending_save_data.clear()
 	var initial_player_state := simulation.get_character("player")
@@ -153,8 +154,8 @@ func _ready() -> void:
 	campaign_faction_simulation.reset_world_time(simulation.clock.world_seconds)
 	if not simulation.clock.time_advanced.is_connected(_on_campaign_world_time_advanced):
 		simulation.clock.time_advanced.connect(_on_campaign_world_time_advanced)
-	if not shakedown_started:
-		if pending_save_data.is_empty():
+	if restored_from_save:
+		if not shakedown_started:
 			_run_opening_sequence()
 	else:
 		var save_manager := _save_manager_service()
