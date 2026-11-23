@@ -18,14 +18,16 @@ var failures := 0
 func _test_catalogue_loads_both_source_formats() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Unified settlement catalogue should validate: %s" % str(registry.validation_errors))
-	_check(registry.settlement_ids() == ["hollowmere", "silverhart", "millbrook", "emberlode", "reddale", "old_mac_farmstead"], "Catalogue should load all six canonical settlements in deterministic priority order")
+	_check(registry.settlement_ids() == ["hollowmere", "silverhart", "millbrook", "emberlode", "reddale", "old_mac_farmstead", "emberwood_grove"], "Catalogue should load six settlements and Emberwood Grove in deterministic priority order")
 	var hollowmere: Dictionary = registry.get_definition("hollowmere")
 	var millbrook: Dictionary = registry.get_definition("millbrook")
 	var silverhart: Dictionary = registry.get_definition("silverhart")
-	_check(not hollowmere.is_empty() and not millbrook.is_empty() and not silverhart.is_empty(), "All canonical definitions should be retrievable")
+	var emberwood: Dictionary = registry.get_definition("emberwood_grove")
+	_check(not hollowmere.is_empty() and not millbrook.is_empty() and not silverhart.is_empty() and not emberwood.is_empty(), "All canonical definitions should be retrievable")
 	_check(hollowmere.get("layout", {}).get("buildings", []).size() == 7, "Hollowmere canonical definition should include all buildings")
 	_check(millbrook.get("layout", {}).get("buildings", []).size() == 1, "Millbrook canonical definition should include its authored house")
 	_check(millbrook.get("placements", {}).get("characters", []).size() == 2, "Millbrook canonical definition should expose placements only")
+	_check(emberwood.get("placements", {}).get("characters", []).size() == 2, "Emberwood Grove site should expose Elder Nessa and Fenn without inventing buildings")
 	_check(silverhart.get("layout", {}).get("buildings", []).size() == 40, "Silverhart canonical definition should expose the current palace, districts, middle ring and Warrens building set")
 
 func _test_resolution_uses_explicit_origin_and_bounds() -> void:
@@ -36,6 +38,8 @@ func _test_resolution_uses_explicit_origin_and_bounds() -> void:
 	var millbrook: Dictionary = registry.resolve(Vector2i(1, -366))
 	_check(millbrook.get("id", "") == "millbrook", "Millbrook authored footprint should resolve")
 	_check(millbrook.get("local_hex", Vector2i.ZERO) == Vector2i(1, -366), "Millbrook origin transform must preserve existing coordinates")
+	var grove: Dictionary = registry.resolve(Vector2i(-266, 11))
+	_check(grove.get("id", "") == "emberwood_grove", "Emberwood Grove actor positions should resolve inside its site bounds")
 	_check(registry.resolve(Vector2i(500, 500)).is_empty(), "Hexes outside all settlement bounds must not resolve")
 
 func _test_invalid_catalogue_is_atomic() -> void:

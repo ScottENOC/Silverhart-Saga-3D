@@ -53,6 +53,15 @@ func _initialize() -> void:
 			quit(1)
 			return
 
+	var emberwood_grove_chunk := Node3D.new()
+	root.add_child(emberwood_grove_chunk)
+	builder.add_settlements_in_chunk(emberwood_grove_chunk, Vector2i(-288, 0), 24)
+	for node_name in ["NPC_elder_nessa_wren", "NPC_fenn_oakheart"]:
+		if emberwood_grove_chunk.get_node_or_null(node_name) == null:
+			push_error("Emberwood Grove source character was not presented in its owning chunk: " + node_name)
+			quit(1)
+			return
+
 	var reddale_southwest_chunk := Node3D.new()
 	root.add_child(reddale_southwest_chunk)
 	builder.add_settlements_in_chunk(reddale_southwest_chunk, Vector2i(120, 0), 24)
