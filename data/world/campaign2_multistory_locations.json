@@ -2178,6 +2178,165 @@
       ],
       "transitions": [],
       "quest_gates": []
+    },
+    {
+      "id": "thieves_cove",
+      "name": "Thieves' Cove — Sunken Cave",
+      "anchor": {
+        "q": -274,
+        "r": 40
+      },
+      "source": "Hex-crpg/campaign2World.js:buildThievesCoveCaves; westRoadEnd + (-22, +18)",
+      "floor_generation": "Source-authored cave entrance, smuggler den, hidden vault and one-cell wilderness tunnel junction",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Sunken Cave Entrance",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "sunken_cave_entrance",
+              "center": {
+                "q": -274,
+                "r": 40
+              },
+              "half_width": 3,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "sunken_cave_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -277,
+                "r": 40
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        },
+        {
+          "floor": -1,
+          "name": "Smugglers' Den",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "sunken_cave_den",
+              "center": {
+                "q": -274,
+                "r": 40
+              },
+              "half_width": 3,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [],
+          "actors": [],
+          "creatures": []
+        },
+        {
+          "floor": -2,
+          "name": "Hidden Vault",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "sunken_cave_vault",
+              "center": {
+                "q": -274,
+                "r": 40
+              },
+              "half_width": 3,
+              "half_height": 3
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [],
+          "actors": [],
+          "creatures": []
+        },
+        {
+          "floor": -9,
+          "name": "Wilderness Tunnel Junction",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "wilderness_tunnel_stub",
+              "center": {
+                "q": -274,
+                "r": 40
+              },
+              "half_width": 1,
+              "half_height": 1
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [
+        {
+          "from_floor": 0,
+          "to_floor": -1,
+          "position": {
+            "q": -274,
+            "r": 41
+          }
+        },
+        {
+          "from_floor": -1,
+          "to_floor": 0,
+          "position": {
+            "q": -274,
+            "r": 41
+          }
+        },
+        {
+          "from_floor": -1,
+          "to_floor": -2,
+          "position": {
+            "q": -274,
+            "r": 38
+          }
+        },
+        {
+          "from_floor": -2,
+          "to_floor": -1,
+          "position": {
+            "q": -274,
+            "r": 38
+          }
+        },
+        {
+          "from_floor": -1,
+          "to_floor": -9,
+          "position": {
+            "q": -274,
+            "r": 40
+          }
+        },
+        {
+          "from_floor": -9,
+          "to_floor": -1,
+          "position": {
+            "q": -274,
+            "r": 40
+          }
+        }
+      ],
+      "quest_gates": [],
+      "source_notes": [
+        "The cave entrance is westRoadEnd + (-22, +18), at (-274, 40), with a source 3-by-3 carveFlatRoom and west entrance at (-277, 40).",
+        "The source den and vault are separate 3-by-3 cave floors centred on the same anchor. Their stair shafts are at (-274, 41) and (-274, 38), respectively.",
+        "The wilderness tunnel network endpoint is a separate one-cell floor -9 stub at (-274, 40), connected from the den. It is a travel junction, not a long physically painted tunnel.",
+        "NPCs, guards, journal contents, evidence, loot and travel-menu behaviour remain campaign-owned and are intentionally excluded from this map-only definition."
+      ]
     }
   ]
 }

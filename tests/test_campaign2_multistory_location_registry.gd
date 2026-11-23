@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["emberlode_mine", "kragmoor", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild"], "Kragmoor and all source-authored Silverhart interiors must be registered")
+	_check(registry.location_ids() == ["emberlode_mine", "kragmoor", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove"], "Kragmoor and all source-authored Silverhart interiors must be registered")
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
 	_check(palace.get("floors", []).size() == 2, "Silverhart Grand Hall must preserve its two source floors")
@@ -145,6 +145,16 @@ func _initialize() -> void:
 		if int(transition.get("from_floor", 999)) == -4 and int(transition.get("to_floor", 999)) == -5:
 			gated_transition = not bool(transition.get("initially_available", true)) and String(transition.get("unlocked_by_quest", "")) == "deepholds_infestation"
 	_check(gated_transition, "The -4 to -5 stair must be locked behind What Nests Below")
+	var thieves_cove: Dictionary = registry.get_definition("thieves_cove")
+	_check(int(thieves_cove.get("anchor", {}).get("q", 0)) == -274 and int(thieves_cove.get("anchor", {}).get("r", 0)) == 40, "Thieves' Cove must retain the source west-road offset")
+	_check(thieves_cove.get("floors", []).size() == 4, "Thieves' Cove must retain its entrance, den, vault and wilderness tunnel stub")
+	_check(registry.get_floor_definition("thieves_cove", 0).get("rooms", []).size() == 1, "Thieves' Cove surface must retain its source cave room")
+	_check(registry.get_floor_definition("thieves_cove", -1).get("rooms", [])[0].get("half_width", 0) == 3, "The Smugglers' Den must retain its source room width")
+	_check(registry.get_floor_definition("thieves_cove", -2).get("rooms", [])[0].get("half_height", 0) == 3, "The Hidden Vault must retain its source room height")
+	var tunnel_stub: Dictionary = registry.get_floor_definition("thieves_cove", -9)
+	_check(tunnel_stub.get("rooms", [])[0].get("half_width", 0) == 1 and tunnel_stub.get("rooms", [])[0].get("half_height", 0) == 1, "The wilderness tunnel endpoint must remain a one-cell stub, not an invented large room")
+	_check(thieves_cove.get("transitions", []).size() == 6, "Thieves' Cove must retain reciprocal stairs between all four source levels")
+
 	var emberlode_mine: Dictionary = registry.get_definition("emberlode_mine")
 	_check(int(emberlode_mine.get("anchor", {}).get("q", 0)) == -252 and int(emberlode_mine.get("anchor", {}).get("r", 0)) == 16, "Emberlode Mine anchor must match buildEmberlode mineCenter")
 	_check(emberlode_mine.get("floors", []).size() == 3, "Emberlode Mine must retain its surface entrance and two underground levels")

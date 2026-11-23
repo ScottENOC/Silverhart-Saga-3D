@@ -93,6 +93,29 @@ func _initialize() -> void:
 	var old_seam_result: Dictionary = FLOOR_BUILDER.build_floor_map(emberlode_definition, -2, emberlode_state)
 	_check(old_seam_result.get("creatures", []).size() == 2, "Old Seam must expose both spider spawn placements to the campaign actor layer")
 
+	var cove_definition: Dictionary = registry.get_definition("thieves_cove")
+	var cove_state = LOCATION_STATE.new()
+	_check(bool(cove_state.configure(cove_definition).get("ok", false)), "Thieves' Cove traversal state must configure")
+	for floor_number in [0, -1, -2, -9]:
+		var cove_result: Dictionary = FLOOR_BUILDER.build_floor_map(cove_definition, floor_number, cove_state)
+		_check(bool(cove_result.get("ok", false)), "Every Thieves' Cove floor must build: %d" % floor_number)
+		if not bool(cove_result.get("ok", false)):
+			continue
+		var cove_map: HexMapData = cove_result.get("map_data") as HexMapData
+		_check(cove_map != null and not cove_map.cells.is_empty(), "Every Thieves' Cove level must contain a logical map")
+		_check(cove_map.is_walkable(Vector2i(-274, 40)), "Every Thieves' Cove level must preserve its source stair/junction anchor")
+	var cove_surface: Dictionary = FLOOR_BUILDER.build_floor_map(cove_definition, 0, cove_state)
+	_check(_has_object(cove_surface.get("tile_objects", []), "sunken_cave_front_door"), "Cove entrance must retain its source west-facing door")
+	_check(_has_object(cove_surface.get("tile_objects", []), "transition_0_-1"), "Cove entrance must connect down to the den")
+	var cove_den: Dictionary = FLOOR_BUILDER.build_floor_map(cove_definition, -1, cove_state)
+	_check(_has_object(cove_den.get("tile_objects", []), "transition_-1_0"), "Den must connect back to the entrance")
+	_check(_has_object(cove_den.get("tile_objects", []), "transition_-1_-2"), "Den must connect down to the hidden vault")
+	_check(_has_object(cove_den.get("tile_objects", []), "transition_-1_-9"), "Den must retain its separate wilderness tunnel junction")
+	var cove_vault: Dictionary = FLOOR_BUILDER.build_floor_map(cove_definition, -2, cove_state)
+	_check(_has_object(cove_vault.get("tile_objects", []), "transition_-2_-1"), "Hidden vault must connect back to the den")
+	var cove_tunnel: Dictionary = FLOOR_BUILDER.build_floor_map(cove_definition, -9, cove_state)
+	_check(cove_tunnel.get("walkable_hexes", []).size() == 1, "Wilderness tunnel junction must remain a one-cell stub")
+
 	var elven_definition: Dictionary = registry.get_definition("silthandriel")
 	var elven_state = LOCATION_STATE.new()
 	_check(bool(elven_state.configure(elven_definition).get("ok", false)), "Sil'thandriel traversal state must configure")
