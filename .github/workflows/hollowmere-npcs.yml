@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -70,7 +70,7 @@ jobs:
           python tools/ara/integrate_hollowmere_anatomy.py --directory art/characters/hollowmere
 
       - name: Upload generated Ara GLBs and parameter files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hollowmere-npc-models
           path: |
