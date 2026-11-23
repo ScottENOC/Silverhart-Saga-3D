@@ -34,5 +34,6 @@ The current Ara body exports have not yet been given these pressure-specific ble
 Run with the project's Godot 4.7.2 executable:
 
     godot --headless --path . --script res://tests/test_body_pressure_solver.gd
+    godot --headless --path . --script res://tests/test_body_pressure_controller.gd
 
-The test checks force response, relative stiffness, multiple contacts, recovery, and the maximum-compression guard.
+The solver test checks force response, relative stiffness, multiple contacts, recovery, and the maximum-compression guard. The controller test verifies independent left/right shape targets, pressure response, and recovery on a synthetic mesh.
