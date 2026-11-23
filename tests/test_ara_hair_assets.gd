@@ -34,7 +34,24 @@ func _initialize() -> void:
 					"Hair mesh was not rebound to the base skeleton: %s/%s" % [sex, style])
 		actor.clear_hairstyle()
 		actor.queue_free()
-	print("ARA_HAIR_ASSET_TEST: PASS (skinning and runtime skeleton attachment)")
+
+		# Exercise the actual body assets used by the player, not only the
+		# standalone hair-pipeline reference bodies.
+		var player_body_path := "res://art/characters/ara_runtime/ara_player_%s_body.glb" % sex
+		if ResourceLoader.exists(player_body_path):
+			var player_actor := ACTOR_SCRIPT.new() as AraCharacterActor
+			root.add_child(player_actor)
+			assert(player_actor.configure(player_body_path),
+				"Player actor could not load %s body" % sex)
+			var default_style: Dictionary = styles.get("short02", {})
+			var default_hair_path := ROOT + "/" + str(default_style.get("file", ""))
+			assert(not default_style.is_empty(), "Missing default short02 hairstyle for %s" % sex)
+			assert(player_actor.set_hairstyle(default_hair_path),
+				"Default hairstyle could not attach to actual %s player body" % sex)
+			assert(not player_actor.hair_instances.is_empty(),
+				"Default hairstyle produced no meshes on actual %s player body" % sex)
+			player_actor.queue_free()
+	print("ARA_HAIR_ASSET_TEST: PASS (reference and player-body hair attachment)")
 	quit(0)
 
 func _check_scene(path: String, require_skinned_hair: bool) -> void:
