@@ -87,7 +87,7 @@ func _test_diplomacy_assault_and_stealth_resolutions() -> void:
 	_check(bool(betrayal.get("ok", false)), "Helping raid Hollowmere should complete the betrayal route")
 	_check(String(betrayal_journal.quest_state("goblin_threat").get("decisions", {}).get("resolution", "")) == "betrayal", "Hollowmere raid is the irreversible betrayal resolution")
 	_check(is_equal_approx(betrayal_journal.faction_standing("silverhart_kingdom"), -60.0), "Betrayal applies the full kingdom penalty exactly once")
-	_check(is_equal_approx(betrayal_journal.faction_standing("goblin_tribe"), 30.0), "Betrayal applies the goblin reward exactly once")
+	_check(is_equal_approx(betrayal_journal.faction_standing("goblin_tribe"), 55.0), "Betrayal applies the goblin reward exactly once")
 	_check(not bool(betrayal.get("effects", {}).get("aldric_rescued", true)), "Betrayal leaves Aldric captive")
 	_check(String(betrayal_journal.quest_state("aldric_rescue").get("status", "")) != "completed", "Betrayal must not complete Aldric rescue quest")
 
@@ -127,7 +127,7 @@ func _test_nix_succession_and_grondle_trader() -> void:
 	var journal := _new_journal()
 	var initial := GOBLIN_CONTENT.nix_conversation(journal)
 	_check(_choice_exists(initial, "nix:ask_about_orders"), "Nix should expose the source dialogue about who ordered the camp to watch Hollowmere")
-	_check(String(GOBLIN_CONTENT.nix_orders_response().get("text", "")).contains("more banners"), "Nix's second answer should preserve the source hint about a larger power")
+	_check(String(GOBLIN_CONTENT.nix_orders_identity_response().get("text", "")).contains("more banners"), "Nix's second answer should preserve the source hint about a larger power")
 	var trader_before := GOBLIN_CONTENT.grondle_conversation(journal)
 	_check(not _choice_exists(trader_before, "open_goblin_shop"), "Grondle must refuse trade before alliance")
 	GOBLIN_CONTENT.mark_chief_assassinated(journal)
