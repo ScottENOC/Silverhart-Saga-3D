@@ -211,7 +211,6 @@ func _build_screen() -> void:
 	rules_preview.add_theme_font_size_override("font_size", 13)
 	rules_preview.add_theme_color_override("font_color", Color(0.82, 0.82, 0.78))
 	panel.add_child(rules_preview)
-	_refresh_character_preview(0)
 	body_variant_select = _option_row(panel, "Body model", ["Female", "Male"])
 	body_variant_select.item_selected.connect(_refresh_appearance_preview)
 	presentation_select = _option_row(panel, "Gender presentation", PRESENTATIONS)
@@ -347,6 +346,7 @@ func _build_screen() -> void:
 	start_button.pressed.connect(_finish)
 	panel.add_child(start_button)
 	_update_mode_controls(game_mode_select.selected)
+	_refresh_character_preview(0)
 
 func _section(parent: VBoxContainer, text_value: String) -> void:
 	var label := Label.new()
@@ -588,6 +588,10 @@ func _load_preview_asset(path: String, description: String, loaded_count: int, t
 func _rotate_preview(degrees: float) -> void:
 	if preview_actor != null and is_instance_valid(preview_actor):
 		preview_actor.rotate_y(deg_to_rad(degrees))
+
+func _refresh_appearance_preview(_index: int) -> void:
+	_refresh_character_preview(_index)
+
 
 func _refresh_appearance_preview_value(_value: float) -> void:
 	_refresh_appearance_preview(0)
