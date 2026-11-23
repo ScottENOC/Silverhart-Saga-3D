@@ -6,6 +6,25 @@ var failures: int = 0
 func _initialize() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Source-authored multi-story locations must validate")
+	var invalid_row_shift_registry = REGISTRY.new()
+	var invalid_row_shift_result: Dictionary = invalid_row_shift_registry.configure({
+		"schema_version": 1,
+		"coordinate_system": "campaign2_local_axial_qr",
+		"locations": [{
+			"id": "invalid_row_shift_test",
+			"anchor": {"q": 0, "r": 0},
+			"floors": [{
+				"floor": 0,
+				"rooms": [{"center": {"q": 0, "r": 0}, "half_width": 2, "half_height": 2, "row_shift_mode": "unknown"}],
+				"corridors": [],
+				"tile_objects": [],
+				"actors": [],
+				"creatures": []
+			}],
+			"transitions": []
+		}]
+	})
+	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
 	_check(registry.location_ids() == ["emberlode_mine", "kragmoor", "silthandriel", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_thieves_guild"], "Emberlode Mine, Kragmoor and all source-authored Silverhart interiors must be registered")
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
