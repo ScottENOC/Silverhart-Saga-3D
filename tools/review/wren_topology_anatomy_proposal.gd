@@ -59,10 +59,22 @@ const REGIONS := {
     "little_finger_right": [Vector3(0.525, 0.930, 0.290), Vector3(0.075, 0.016, 0.008), Color("#7209b7")],
     "head": [Vector3(0.0, 1.585, 0.085), Vector3(0.095, 0.105, 0.090), Color("#f94144")],
     "face_front": [Vector3(0.0, 1.565, 0.145), Vector3(0.070, 0.070, 0.040), Color("#f3722c")],
+    "forehead": [Vector3(0.0, 1.625, 0.150), Vector3(0.050, 0.025, 0.025), Color("#e76f51")],
+    "eye_left": [Vector3(-0.031, 1.582, 0.195), Vector3(0.022, 0.010, 0.012), Color("#00b4d8")],
+    "eye_right": [Vector3(0.031, 1.582, 0.195), Vector3(0.022, 0.010, 0.012), Color("#0077b6")],
+    "nose": [Vector3(0.0, 1.545, 0.205), Vector3(0.018, 0.025, 0.014), Color("#f77f00")],
+    "mouth": [Vector3(0.0, 1.505, 0.190), Vector3(0.030, 0.012, 0.012), Color("#d00000")],
+    "cheek_left": [Vector3(-0.047, 1.535, 0.165), Vector3(0.025, 0.025, 0.020), Color("#ff70a6")],
+    "cheek_right": [Vector3(0.047, 1.535, 0.165), Vector3(0.025, 0.025, 0.020), Color("#ff4d6d")],
+    "chin": [Vector3(0.0, 1.480, 0.150), Vector3(0.035, 0.018, 0.018), Color("#9d4edd")],
+    "jaw_left": [Vector3(-0.045, 1.500, 0.115), Vector3(0.020, 0.030, 0.020), Color("#5a189a")],
+    "jaw_right": [Vector3(0.045, 1.500, 0.115), Vector3(0.020, 0.030, 0.020), Color("#3c096c")],
     "ear_left": [Vector3(-0.090, 1.575, 0.075), Vector3(0.020, 0.035, 0.035), Color("#f8961e")],
     "ear_right": [Vector3(0.090, 1.575, 0.075), Vector3(0.020, 0.035, 0.035), Color("#f9c74f")],
     "neck_front": [Vector3(0.0, 1.445, 0.065), Vector3(0.045, 0.060, 0.035), Color("#90be6d")],
     "neck_back": [Vector3(0.0, 1.445, -0.045), Vector3(0.050, 0.065, 0.035), Color("#43aa8b")],
+    "neck_side_left": [Vector3(-0.043, 1.445, 0.005), Vector3(0.018, 0.055, 0.050), Color("#43aa8b")],
+    "neck_side_right": [Vector3(0.043, 1.445, 0.005), Vector3(0.018, 0.055, 0.050), Color("#277da1")],
     "abdomen_front": [Vector3(0.0, 0.985, 0.105), Vector3(0.105, 0.090, 0.040), Color("#4d908e")],
     "flank_left": [Vector3(-0.125, 1.005, 0.005), Vector3(0.055, 0.125, 0.085), Color("#577590")],
     "flank_right": [Vector3(0.125, 1.005, 0.005), Vector3(0.055, 0.125, 0.085), Color("#277da1")],
@@ -97,6 +109,12 @@ const REGIONS := {
     "foot_right": [Vector3(0.115, 0.045, 0.105), Vector3(0.060, 0.040, 0.105), Color("#caffbf")],
     "toes_left": [Vector3(-0.115, 0.035, 0.185), Vector3(0.055, 0.025, 0.045), Color("#ffd6a5")],
     "toes_right": [Vector3(0.115, 0.035, 0.185), Vector3(0.055, 0.025, 0.045), Color("#ffadad")]
+}
+
+const REGION_GROUPS := {
+    "face": ["face_front", "forehead", "eye_left", "eye_right", "nose", "mouth", "cheek_left", "cheek_right", "chin", "jaw_left", "jaw_right", "ear_left", "ear_right"],
+    "head": ["head", "face", "ear_left", "ear_right"],
+    "neck": ["neck_front", "neck_back", "neck_side_left", "neck_side_right"]
 }
 
 var stage: Node3D
@@ -272,6 +290,9 @@ func _run() -> void:
                 count += 1
         counts[region_id] = count
 
+    var unassigned_surface_report := _build_unassigned_surface_report(adjacency, vertices, candidate_weights)
+    var nipple_seed_diagnostics := _build_nipple_seed_diagnostics(vertices)
+
     var overlay := _build_overlay(mesh_instance, vertices, candidate_weights)
     stage.add_child(overlay)
     var vulva_mask_overlay := _build_vulva_mask_overlay(skin_surfaces)
@@ -321,7 +342,7 @@ func _run() -> void:
             var hand_x := -0.490 if region_id.ends_with("_left") else 0.490
             region_views["hand_detail_front"] = [Vector3(0.0, 0.955, 2.0), Vector3(hand_x, 0.955, 0.0), 0.30]
             region_views["hand_detail_side"] = [Vector3(hand_x + (1.8 if hand_x > 0.0 else -1.8), 0.955, 0.25), Vector3(hand_x, 0.955, 0.25), 0.30]
-        if region_id == "head" or region_id == "face_front" or region_id.begins_with("ear_") or region_id.begins_with("neck_"):
+        if region_id == "head" or region_id == "face_front" or region_id in REGION_GROUPS["face"] or region_id.begins_with("ear_") or region_id.begins_with("neck_"):
             region_views["head_detail_front"] = [Vector3(0.0, 1.585, 1.15), Vector3(0.0, 1.585, 0.0), 0.27]
             region_views["head_detail_side"] = [Vector3(1.15, 1.585, 0.0), Vector3(0.0, 1.585, 0.0), 0.27]
         if region_id in ["abdomen_front", "flank_left", "flank_right", "upper_back_left", "upper_back_right", "lower_back_left", "lower_back_right", "sternum", "underbust", "ribcage_left", "ribcage_right", "chest_front_left", "chest_front_right", "pectoral_left", "pectoral_right", "breast_left", "breast_right"]:
@@ -398,6 +419,9 @@ func _run() -> void:
             "note": "Ara already sculpts these external structures into the continuous skin surface. The first semantic mask intentionally groups the external vulva and mons pubis as one region; later subregions can be authored from the same surface-coordinate frame without changing the mask resource model."
         },
         "candidate_vertex_counts_at_weight_0_15": counts,
+        "region_groups": REGION_GROUPS,
+        "unassigned_surface_diagnostics": unassigned_surface_report,
+        "nipple_seed_diagnostics": nipple_seed_diagnostics,
         "ara_mask_import_validation": mask_import_validation,
         "candidate_to_seed_vertex_ratios": _build_candidate_seed_ratios(seeds, counts),
         "method": "Review-only Ara-authored vulva_external weights are read directly from TEXCOORD_1.y and include the mons pubis; remaining geometric hypotheses expand through adjacent source-mesh vertices with decaying weights.",
@@ -417,6 +441,123 @@ func _run() -> void:
     report_file.close()
     print("WREN_TOPOLOGY_PROPOSAL_OK vertices=%d regions=%d" % [vertices.size(), REGIONS.size()])
     quit(0)
+
+
+func _build_unassigned_surface_report(
+    adjacency: Array[PackedInt32Array],
+    vertices: PackedVector3Array,
+    candidate_weights: Dictionary
+) -> Dictionary:
+    var assigned := PackedByteArray()
+    assigned.resize(vertices.size())
+    var assigned_count := 0
+    for region_id in candidate_weights:
+        var weights: PackedFloat32Array = candidate_weights[region_id]
+        for vertex_index in mini(vertices.size(), weights.size()):
+            if weights[vertex_index] >= 0.15:
+                assigned[vertex_index] = 1
+    for value in assigned:
+        if value == 1:
+            assigned_count += 1
+
+    var visited := PackedByteArray()
+    visited.resize(vertices.size())
+    var components: Array[Dictionary] = []
+    var total_unassigned := 0
+    for start_index in vertices.size():
+        if assigned[start_index] == 1 or visited[start_index] == 1:
+            continue
+        var queue := PackedInt32Array([start_index])
+        visited[start_index] = 1
+        var queue_index := 0
+        var component_vertices := 0
+        var centroid := Vector3.ZERO
+        var minimum := Vector3(INF, INF, INF)
+        var maximum := Vector3(-INF, -INF, -INF)
+        var boundary_edges: Dictionary = {}
+        while queue_index < queue.size():
+            var current := queue[queue_index]
+            queue_index += 1
+            component_vertices += 1
+            total_unassigned += 1
+            var point := vertices[current]
+            centroid += point
+            minimum = minimum.min(point)
+            maximum = maximum.max(point)
+            for neighbour in adjacency[current]:
+                if assigned[neighbour] == 1:
+                    for region_id in candidate_weights:
+                        var weights: PackedFloat32Array = candidate_weights[region_id]
+                        if neighbour < weights.size() and weights[neighbour] >= 0.15:
+                            boundary_edges[region_id] = int(boundary_edges.get(region_id, 0)) + 1
+                elif visited[neighbour] == 0:
+                    visited[neighbour] = 1
+                    queue.append(neighbour)
+        var neighbour_candidates: Array[Dictionary] = []
+        for region_id in boundary_edges:
+            neighbour_candidates.append({
+                "region_id": region_id,
+                "shared_boundary_edges": int(boundary_edges[region_id])
+            })
+        neighbour_candidates.sort_custom(
+            func(a: Dictionary, b: Dictionary) -> bool:
+                return int(a["shared_boundary_edges"]) > int(b["shared_boundary_edges"])
+        )
+        var centre := centroid / maxf(float(component_vertices), 1.0)
+        components.append({
+            "component_id": components.size(),
+            "vertex_count": component_vertices,
+            "centroid_local": [centre.x, centre.y, centre.z],
+            "bounds_min_local": [minimum.x, minimum.y, minimum.z],
+            "bounds_max_local": [maximum.x, maximum.y, maximum.z],
+            "neighbour_candidates": neighbour_candidates.slice(0, mini(5, neighbour_candidates.size())),
+            "suggested_neighbour": neighbour_candidates[0]["region_id"] if not neighbour_candidates.is_empty() else "no_adjacent_region"
+        })
+    components.sort_custom(
+        func(a: Dictionary, b: Dictionary) -> bool:
+            return int(a["vertex_count"]) > int(b["vertex_count"])
+    )
+    return {
+        "assigned_vertex_count": assigned_count,
+        "unassigned_vertex_count": total_unassigned,
+        "unassigned_component_count": components.size(),
+        "largest_unassigned_components": components.slice(0, mini(40, components.size())),
+        "assignment_threshold": 0.15,
+        "neighbour_method": "rank adjacent assigned regions by shared mesh-boundary edge count; suggestions are review-only"
+    }
+
+
+func _build_nipple_seed_diagnostics(vertices: PackedVector3Array) -> Dictionary:
+    var result: Dictionary = {}
+    for region_id in ["nipple_left", "nipple_right"]:
+        var definition: Array = REGIONS[region_id]
+        var centre: Vector3 = definition[0]
+        var radii: Vector3 = definition[1]
+        var nearest_index := -1
+        var nearest_distance := INF
+        var counts_by_scale := {"1.0": 0, "1.5": 0, "2.0": 0, "3.0": 0}
+        for vertex_index in vertices.size():
+            var point := vertices[vertex_index]
+            var distance := point.distance_to(centre)
+            if distance < nearest_distance:
+                nearest_distance = distance
+                nearest_index = vertex_index
+            for scale_key in counts_by_scale:
+                var scale := float(scale_key)
+                var normalized := (point - centre) / (radii * scale)
+                if normalized.length() <= 1.0:
+                    counts_by_scale[scale_key] = int(counts_by_scale[scale_key]) + 1
+        var nearest_point := vertices[nearest_index] if nearest_index >= 0 else Vector3.ZERO
+        result[region_id] = {
+            "seed_vertices_current": int(counts_by_scale["1.0"]),
+            "candidate_seed_vertices_by_radius_scale": counts_by_scale,
+            "nearest_skin_vertex_index": nearest_index,
+            "nearest_skin_vertex_distance_m": nearest_distance,
+            "nearest_skin_vertex_position_local": [nearest_point.x, nearest_point.y, nearest_point.z],
+            "current_seed_radius_m": [radii.x, radii.y, radii.z],
+            "status": "NO_SEED_VERTICES" if int(counts_by_scale["1.0"]) == 0 else "SEEDS_FOUND"
+        }
+    return result
 
 
 func _build_contact_anchor_report(
@@ -584,7 +725,11 @@ func _add_edge(adjacency: Array[PackedInt32Array], from_vertex: int, to_vertex: 
 
 
 func _requires_front_surface_normal(region_id: String) -> bool:
-    return region_id == "pubic_region" or region_id.begins_with("pelvic_")
+    return (
+        region_id == "pubic_region"
+        or region_id.begins_with("pelvic_")
+        or region_id in ["face_front", "forehead", "eye_left", "eye_right", "nose", "mouth", "cheek_left", "cheek_right", "chin", "jaw_left", "jaw_right"]
+    )
 
 
 func _find_seed_vertices(
