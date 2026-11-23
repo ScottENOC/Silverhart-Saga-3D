@@ -307,7 +307,9 @@ static func _create_actor_presentation(
 						float(authored_size.get("girth_scale", 1.0))
 					)
 			elif model_path == PLAYER_MALE_ASSET:
-				var generated_size := _male_anatomy_scales_for_id(character_id)
+				var profile_params: Dictionary = appearance_profile.get("params", {})
+				var variation_seed := str(profile_params.get("seed", character_id))
+				var generated_size := _male_anatomy_scales_for_id(variation_seed)
 				ara_model.apply_male_anatomy_size(
 					float(generated_size.length_scale),
 					float(generated_size.girth_scale)
