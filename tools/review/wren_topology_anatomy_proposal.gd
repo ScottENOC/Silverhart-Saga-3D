@@ -127,18 +127,17 @@ func _run() -> void:
     stage.add_child(body)
     await process_frame
 
-    var mesh_instance := _find_skin_mesh(body)
-    if mesh_instance == null:
-        push_error("Skin_Anatomy mesh not found")
-        quit(1)
-        return
-    var surface_index := _find_skin_surface(mesh_instance.mesh)
-    if surface_index < 0:
+    var skin_surfaces: Array[Dictionary] = []
+    _collect_skin_surfaces(body, skin_surfaces)
+    if skin_surfaces.is_empty():
         push_error("Skin_Anatomy surface not found")
         quit(1)
         return
-
-    var arrays := mesh_instance.mesh.surface_get_arrays(surface_index)
+    # Keep the first surface as the geometric-proposal reference. The authored
+    # Ara mask is validated across every Skin_Anatomy surface below.
+    var mesh_instance: MeshInstance3D = skin_surfaces[0]["mesh_instance"]
+    var surface_index: int = skin_surfaces[0]["surface_index"]
+    var arrays: Array = skin_surfaces[0]["arrays"]
     var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
     var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
     var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
@@ -182,28 +181,45 @@ func _run() -> void:
             var max_id := -1
             var min_weight := INF
             var max_weight := -INF
+            var imported_vertex_count := 0
+            var imported_surface_count := 0
+            for skin_surface in skin_surfaces:
+                var surface_uv2: PackedVector2Array = skin_surface["arrays"][Mesh.ARRAY_TEX_UV2]
+                var surface_vertices: PackedVector3Array = skin_surface["arrays"][Mesh.ARRAY_VERTEX]
+                if surface_uv2.size() != surface_vertices.size():
+                    push_error(
+                        "Ara mask TEXCOORD_1 missing/mismatched on Skin_Anatomy surface "
+                        + str(skin_surface["surface_index"])
+                    )
+                    quit(1)
+                    return
+                imported_surface_count += 1
+                imported_vertex_count += surface_vertices.size()
+                for uv in surface_uv2:
+                    # TEXCOORD_1.x encodes (source vertex ID + 0.5) / source count.
+                    var decoded_id := int(round(uv.x * expected_ids - 0.5))
+                    if decoded_id < 0 or decoded_id >= expected_ids:
+                        push_error("Godot UV2.x is not the Ara CorrespondenceID channel")
+                        quit(1)
+                        return
+                    var weight := clampf(uv.y, 0.0, 1.0)
+                    if id_weights.has(decoded_id) and absf(float(id_weights[decoded_id]) - weight) > 0.00001:
+                        push_error("Godot import has inconsistent mask values for a split correspondence vertex")
+                        quit(1)
+                        return
+                    id_weights[decoded_id] = weight
+                    min_id = mini(min_id, decoded_id)
+                    max_id = maxi(max_id, decoded_id)
+                    min_weight = minf(min_weight, weight)
+                    max_weight = maxf(max_weight, weight)
+                    if weight > 0.0:
+                        nonzero_count += 1
+                    if weight >= 0.15:
+                        weighted_count += 1
+            # Keep first-surface weights for the existing geometric overlay path;
+            # the dedicated mask overlay below draws all imported skin surfaces.
             for uv in uv2:
-                # TEXCOORD_1.x encodes (source vertex ID + 0.5) / source count.
-                var decoded_id := int(round(uv.x * expected_ids - 0.5))
-                if decoded_id < 0 or decoded_id >= expected_ids:
-                    push_error("Godot UV2.x is not the Ara CorrespondenceID channel")
-                    quit(1)
-                    return
-                var weight := clampf(uv.y, 0.0, 1.0)
-                if id_weights.has(decoded_id) and absf(float(id_weights[decoded_id]) - weight) > 0.00001:
-                    push_error("Godot import has inconsistent mask values for a split correspondence vertex")
-                    quit(1)
-                    return
-                id_weights[decoded_id] = weight
-                ara_weights.append(weight)
-                min_id = mini(min_id, decoded_id)
-                max_id = maxi(max_id, decoded_id)
-                min_weight = minf(min_weight, weight)
-                max_weight = maxf(max_weight, weight)
-                if weight > 0.0:
-                    nonzero_count += 1
-                if weight >= 0.15:
-                    weighted_count += 1
+                ara_weights.append(clampf(uv.y, 0.0, 1.0))
             var unique_weighted := 0
             for weight in id_weights.values():
                 if float(weight) >= 0.15:
@@ -217,10 +233,12 @@ func _run() -> void:
                 quit(1)
                 return
             seeds[region_id] = nonzero_count
-            counts[region_id] = weighted_count
+            counts[region_id] = unique_weighted
             candidate_weights[region_id] = ara_weights
             mask_import_validation = {
                 "status": "PASS",
+                "imported_skin_surface_count": imported_surface_count,
+                "imported_skin_vertex_count_including_splits": imported_vertex_count,
                 "unique_correspondence_ids": id_weights.size(),
                 "weighted_unique_ids_at_0_15": unique_weighted,
                 "expected_weighted_unique_ids_at_0_15": expected_weighted,
@@ -244,6 +262,8 @@ func _run() -> void:
 
     var overlay := _build_overlay(mesh_instance, vertices, candidate_weights)
     stage.add_child(overlay)
+    var vulva_mask_overlay := _build_vulva_mask_overlay(skin_surfaces)
+    stage.add_child(vulva_mask_overlay)
     await process_frame
 
     var output_directory := ProjectSettings.globalize_path(OUTPUT_PATH)
@@ -271,6 +291,8 @@ func _run() -> void:
 
     stage.remove_child(overlay)
     overlay.queue_free()
+    stage.remove_child(vulva_mask_overlay)
+    vulva_mask_overlay.queue_free()
     await process_frame
 
     # Export each overlapping channel separately as well as the combined context
@@ -280,7 +302,7 @@ func _run() -> void:
     for region_id in REGIONS:
         var region_directory := isolated_root.path_join(region_id)
         DirAccess.make_dir_recursive_absolute(region_directory)
-        var region_overlay := _build_overlay(mesh_instance, vertices, candidate_weights, region_id)
+        var region_overlay := _build_vulva_mask_overlay(skin_surfaces) if region_id == "vulva_external" else _build_overlay(mesh_instance, vertices, candidate_weights, region_id)
         stage.add_child(region_overlay)
         var region_views: Dictionary = views.duplicate()
         if region_id.begins_with("thumb_") or region_id.ends_with("_finger_left") or region_id.ends_with("_finger_right") or region_id.begins_with("palm_") or region_id.begins_with("hand_back_"):
@@ -334,9 +356,11 @@ func _run() -> void:
         "model": MODEL_PATH,
         "surface_name": mesh_instance.mesh.surface_get_name(surface_index),
         "surface_index": surface_index,
+        "skin_surface_count": skin_surfaces.size(),
         "vertex_count": vertices.size(),
         "triangle_count": indices.size() / 3,
         "surface_signature": MASK_SCRIPT.build_surface_signature(mesh_instance.mesh, surface_index),
+        "ara_mask_import_validation": mask_import_validation,
         "max_graph_hops": MAX_GRAPH_HOPS,
         "region_specific_graph_hops": {"nipple_left": 0, "nipple_right": 0, "individual_fingers": 18},
         "hop_falloff": HOP_FALLOFF,
@@ -423,6 +447,61 @@ func _build_candidate_seed_ratios(seed_counts: Dictionary, candidate_counts: Dic
         var candidate_count: int = candidate_counts.get(region_id, 0)
         ratios[region_id] = snappedf(float(candidate_count) / maxf(float(seed_count), 1.0), 0.01)
     return ratios
+
+
+func _collect_skin_surfaces(node: Node, result: Array[Dictionary]) -> void:
+    if node is MeshInstance3D and node.mesh != null:
+        var mesh_instance := node as MeshInstance3D
+        for index in mesh_instance.mesh.get_surface_count():
+            if mesh_instance.mesh.surface_get_name(index) != "Skin_Anatomy":
+                continue
+            var surface_arrays := mesh_instance.mesh.surface_get_arrays(index)
+            result.append({
+                "mesh_instance": mesh_instance,
+                "surface_index": index,
+                "arrays": surface_arrays
+            })
+    for child in node.get_children():
+        _collect_skin_surfaces(child, result)
+
+
+func _build_vulva_mask_overlay(skin_surfaces: Array[Dictionary]) -> MultiMeshInstance3D:
+    var marker := SphereMesh.new()
+    marker.radius = 0.0032
+    marker.height = 0.0064
+    marker.radial_segments = 5
+    marker.rings = 3
+    var material := StandardMaterial3D.new()
+    material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+    material.vertex_color_use_as_albedo = true
+    marker.material = material
+    var transforms: Array[Transform3D] = []
+    var colours: Array[Color] = []
+    var mask_colour: Color = REGIONS["vulva_external"][2]
+    for skin_surface in skin_surfaces:
+        var mesh_instance: MeshInstance3D = skin_surface["mesh_instance"]
+        var surface_vertices: PackedVector3Array = skin_surface["arrays"][Mesh.ARRAY_VERTEX]
+        var surface_uv2: PackedVector2Array = skin_surface["arrays"][Mesh.ARRAY_TEX_UV2]
+        for vertex_index in mini(surface_vertices.size(), surface_uv2.size()):
+            var weight := clampf(surface_uv2[vertex_index].y, 0.0, 1.0)
+            if weight < 0.15:
+                continue
+            transforms.append(mesh_instance.global_transform * Transform3D(Basis.IDENTITY, surface_vertices[vertex_index]))
+            var colour := mask_colour
+            colour.a = clampf(weight, 0.35, 1.0)
+            colours.append(colour)
+    var multi := MultiMesh.new()
+    multi.transform_format = MultiMesh.TRANSFORM_3D
+    multi.use_colors = true
+    multi.mesh = marker
+    multi.instance_count = transforms.size()
+    for index in transforms.size():
+        multi.set_instance_transform(index, transforms[index])
+        multi.set_instance_color(index, colours[index])
+    var result := MultiMeshInstance3D.new()
+    result.name = "AraVulvaMonsMaskAllSkinSurfaces"
+    result.multimesh = multi
+    return result
 
 
 func _find_skin_mesh(node: Node) -> MeshInstance3D:
@@ -595,7 +674,11 @@ func _build_overlay(
         for region_id in REGIONS:
             if not only_region.is_empty() and region_id != only_region:
                 continue
+            if region_id == "vulva_external":
+                continue
             var weights: PackedFloat32Array = candidate_weights[region_id]
+            if vertex_index >= weights.size():
+                continue
             var weight := weights[vertex_index]
             if weight < 0.15:
                 continue
