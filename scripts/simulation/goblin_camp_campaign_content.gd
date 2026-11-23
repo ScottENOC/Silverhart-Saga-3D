@@ -115,7 +115,7 @@ static func nix_conversation(journal: CampaignJournal, party_ids: Array[String] 
 	var state := journal.quest_state(QUEST_ID)
 	var decisions: Dictionary = state.get("decisions", {})
 	var resolution := String(decisions.get("resolution", ""))
-	if bool(decisions.get("chief_assassinated", false)) and resolution.is_empty():
+	if String(decisions.get("chief_assassinated", "")) == "silent_kill" and resolution.is_empty():
 		return _conversation("Nix Sharpear", "You... you killed him. Skarnub was going to get us all killed clinging to this ground anyway. Truth told, I've wanted to move on for moons now. Let's not make enemies over this — we'll go, quietly, if you let us.", [_choice("resolve:stealth_succession", "Take your people and go."), _choice("continue", "...")])
 	if resolution == "goblin_alliance":
 		if party_ids.has("nix_sharpear") or party_ids.has("companion_nix_sharpear"):
