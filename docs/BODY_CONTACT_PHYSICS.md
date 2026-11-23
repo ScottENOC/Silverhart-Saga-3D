@@ -16,13 +16,18 @@ Each region has its own mechanical profile: stiffness (N/m), damping (N*s/m), ef
 
 Multiple contact sources can contribute in the same tick. The solver does not perform collision detection, infer contact forces, move bones, or deform a mesh. Those responsibilities stay separate so the same physics works for clothing, self-contact and character-to-character contact.
 
-## Planned integration stages
+## Runtime deformation adapter
 
-- Contact sampling from hand/body/clothing collision proxies.
-- Region mapping from existing anatomy-region metadata or vertex groups.
-- Mesh deformation using localised vertex weights or authored shape keys.
-- A debug test scene with adjustable contact force, region profile and recovery.
-- Character-specific profile presets and performance profiling.
+`BodyPressureController` connects named regions to explicitly authored blend shapes on the character mesh. Register a `BodyRegionProfile`, bind the character model, then submit contact forces as usual. The adapter looks for a shape named `Pressure_<RegionName>` (for example `Pressure_LeftChest`) and drives it from 0 to 1 according to the region's compression fraction. The blend shape must be authored in the compressed direction. AraCharacterActor owns the controller and exposes `register_body_pressure_region`, `apply_body_pressure` and `get_body_pressure_m`.
+
+The current Ara body exports have not yet been given these pressure-specific blend shapes. Until those shapes are authored and verified on the actual meshes, the adapter's regression test uses a small synthetic mesh; it proves the physics-to-blend-shape connection, not visible deformation on Wren.
+
+## Remaining integration stages
+
+- Author and visually inspect localised pressure blend shapes for the target Ara body regions.
+- Map hand, clothing and character collision proxies to region IDs and calculate contact forces.
+- Add a debug test scene with adjustable contact force, region profile and recovery.
+- Add character-specific profile presets and profile performance.
 
 ## Validation
 
