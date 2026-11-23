@@ -214,7 +214,7 @@ func _build_screen() -> void:
 	body_variant_select.item_selected.connect(_update_anatomy_controls)
 	_section(panel, "ADULT MALE ANATOMY")
 	var anatomy_note := Label.new()
-	anatomy_note.text = "Optional adult body-profile settings. Values are measured at the reference height and limited to the pooled adult population range (approximately ±2 standard deviations). These settings are saved with your character profile; the current Ara preview asset does not yet contain independent size morph targets."
+	anatomy_note.text = "Optional adult body-profile settings. Values are measured at the reference height and limited to the pooled adult population range (approximately ±2 standard deviations). The selected length and circumference are saved with your character and applied through the dedicated male anatomy rig bones."
 	anatomy_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	anatomy_note.add_theme_color_override("font_color", Color(0.78, 0.82, 0.76))
 	panel.add_child(anatomy_note)
