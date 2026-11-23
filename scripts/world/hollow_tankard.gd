@@ -2101,19 +2101,40 @@ func _on_character_moved(character_id: String, from_hex: Vector2i, to_hex: Vecto
 	if actor != null:
 		var destination := _hex_world_position(to_hex)
 		if _is_upper_floor_hex(from_hex) != _is_upper_floor_hex(to_hex):
-			actor.position = destination
+			# Stair transitions change elevation/floor ownership, so they remain
+			# an authored snap rather than interpolating through the tavern shell.
+			actor.global_position = destination
+			if actor is HexActorPresentation:
+				(actor as HexActorPresentation).stop_moving()
 		elif actor is CreatureActor:
 			var creature := actor as CreatureActor
 			creature.play_move()
 			var tween := create_tween()
-			tween.tween_property(creature, "global_position", destination, 0.24)
+			tween.tween_property(creature, "global_position", destination, 0.36)
 			tween.tween_callback(creature.play_idle)
 		elif actor is HexActorPresentation:
-			(actor as HexActorPresentation).present_move_to(destination)
+			var direction_index := _movement_direction_index(from_hex, to_hex)
+			var facing_rotation := NAN
+			if direction_index >= 0:
+				facing_rotation = deg_to_rad(float(direction_index - 2) * 60.0)
+			(actor as HexActorPresentation).present_move_to(destination, facing_rotation)
+		else:
+			var tween := create_tween()
+			tween.set_trans(Tween.TRANS_SINE)
+			tween.set_ease(Tween.EASE_IN_OUT)
+			tween.tween_property(actor, "global_position", destination, 0.36)
 	if character_id == active_character_id:
 		_refresh_tavern_floor_presentation()
 	if character_id == "player":
 		_maybe_spawn_wilderness_creature(to_hex)
+
+
+func _movement_direction_index(from_hex: Vector2i, to_hex: Vector2i) -> int:
+	var step := to_hex - from_hex
+	for index in range(HexGrid.DIRECTIONS.size()):
+		if HexGrid.DIRECTIONS[index] == step:
+			return index
+	return -1
 
 func _is_upper_floor_hex(hex: Vector2i) -> bool:
 	return hex.x >= UPPER_FLOOR_ORIGIN.x - 4 and hex.x <= UPPER_FLOOR_ORIGIN.x + 4 and hex.y >= UPPER_FLOOR_ORIGIN.y - 4 and hex.y <= UPPER_FLOOR_ORIGIN.y + 4 and simulation.map_data.has_cell(hex)
