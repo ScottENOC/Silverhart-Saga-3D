@@ -121,6 +121,8 @@ jobs:
         run: godot --headless --path . --script res://tests/test_world_movement.gd
       - name: Run shared player movement controller tests
         run: godot --headless --path . --script res://tests/test_world_player_movement_controller.gd
+      - name: Run continuous character movement and animation tests
+        run: godot --headless --path . --script res://tests/test_hex_actor_presentation.gd
       - name: Run split combat and reaction tests
         run: godot --headless --path . --script res://tests/test_combat_and_reactions.gd
       - name: Run split animal and riding tests
