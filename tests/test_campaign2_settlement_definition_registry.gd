@@ -18,7 +18,7 @@ var failures := 0
 func _test_catalogue_loads_both_source_formats() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Unified settlement catalogue should validate: %s" % str(registry.validation_errors))
-	_check(registry.settlement_ids() == ["hollowmere", "silverhart", "millbrook", "emberlode", "reddale", "old_mac_farmstead", "skarn_tooth_camp", "skarnaks_hold"], "Catalogue should load all seven canonical settlements in deterministic priority order")
+	_check(registry.settlement_ids() == ["hollowmere", "silverhart", "millbrook", "emberlode", "reddale", "old_mac_farmstead", "skarnaks_hold", "skarn_tooth_camp"], "Catalogue should load all eight canonical settlements in deterministic priority order")
 	var hollowmere: Dictionary = registry.get_definition("hollowmere")
 	var millbrook: Dictionary = registry.get_definition("millbrook")
 	var silverhart: Dictionary = registry.get_definition("silverhart")
