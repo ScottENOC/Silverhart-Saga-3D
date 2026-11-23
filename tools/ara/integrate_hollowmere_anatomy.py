@@ -104,11 +104,13 @@ def main() -> None:
                     "--adult",
                     "--profile-name", character_id,
                 ]
-                if character_id == "ser_aldric_thorne":
-                    # Aldric is intentionally authored 10% above the measured mean.
+                authored_size = profile.get("anatomy_size", {})
+                if isinstance(authored_size, dict) and authored_size:
+                    # Explicit sizes are sampled by the profile generator or
+                    # authored for named characters (e.g. Aldric); bake them once.
                     male_arguments.extend([
-                        "--length-scale", "1.10",
-                        "--girth-scale", "1.10",
+                        "--length-scale", str(authored_size.get("length_scale", 1.0)),
+                        "--girth-scale", str(authored_size.get("girth_scale", 1.0)),
                         "--variation-strength", "0",
                     ])
                 else:
