@@ -67,7 +67,7 @@ func _initialize() -> void:
 		for object_variant in interior_result.get("tile_objects", []):
 			var object_position: Dictionary = object_variant.get("position", {})
 			var object_hex := Vector2i(int(object_position.get("q", 0)), int(object_position.get("r", 0)))
-			_check(interior_map.is_walkable(object_hex), "Merchant fixture must sit on walkable interior floor: " + String(object_variant.get("id", ""))
+			_check(interior_map.is_walkable(object_hex), "Merchant fixture must sit on walkable interior floor: " + String(object_variant.get("id", "")))
 	var emberlode_definition: Dictionary = registry.get_definition("emberlode_mine")
 	var emberlode_state = LOCATION_STATE.new()
 	_check(bool(emberlode_state.configure(emberlode_definition).get("ok", false)), "Emberlode Mine traversal state must configure")
