@@ -61,6 +61,7 @@ func _initialize() -> void:
 	_test_water_surface_and_shoreline(terrain)
 	_test_heartland_stream_connectivity()
 	_test_strategic_road_stream_crossings(terrain)
+	_test_chunk_boundary_consistency(terrain)
 	_check(terrain.terrain_for_hex(Vector2i(-43, -343)) == "keep_wall", "Chapterhouse keep wall must resolve to its own terrain type")
 	_check(not terrain.is_walkable_for_hex(Vector2i(-43, -343)), "Keep-wall cells must block traversal")
 	if failures > 0:
@@ -136,11 +137,12 @@ func _test_heartland_stream_connectivity() -> void:
 		visited.size() == stream_cells.size(),
 		"Every Silverhart heartland stream cell must belong to one connected waterway (reachable %d of %d)" % [visited.size(), stream_cells.size()]
 	)
+	var ridgehold_stream_hex := Vector2i(426, roundi(REGIONAL_HYDROLOGY.stream_centre_r(426)))
 	_check(
 		REGIONAL_HYDROLOGY.is_stream_hex(Vector2i(268, -43))
 		and REGIONAL_HYDROLOGY.is_stream_hex(Vector2i(290, 1))
-		and REGIONAL_HYDROLOGY.is_stream_hex(Vector2i(426, 37)),
-		"The Northwatch moat and Ridgehold connector must remain part of the continuous stream"
+		and REGIONAL_HYDROLOGY.is_stream_hex(ridgehold_stream_hex),
+		"The Northwatch moat and Ridgehold downstream channel must remain part of the continuous stream"
 	)
 
 
@@ -169,6 +171,93 @@ func _test_strategic_road_stream_crossings(terrain) -> void:
 	_check(
 		crossing_count > 0,
 		"The authored strategic road network must retain at least one explicit local-stream crossing"
+	)
+
+
+func _test_chunk_boundary_consistency(terrain) -> void:
+	# A q-axis seam and an r-axis seam both use negative and positive chunk
+	# ownership rules. Each side must produce the same two shared edge heights.
+	_assert_shared_chunk_edge(
+		terrain,
+		Vector2i(23, -11),
+		Vector2i(24, -11),
+		"Ordinary terrain across the q=24 chunk boundary"
+	)
+	var crossing_a := Vector2i(382, 23)
+	var crossing_b := Vector2i(382, 24)
+	_check(
+		terrain.terrain_for_hex(crossing_a) == "path"
+		and terrain.terrain_for_hex(crossing_b) == "path"
+		and terrain.is_walkable_for_hex(crossing_a)
+		and terrain.is_walkable_for_hex(crossing_b),
+		"The road/stream crossing must remain a traversable road across the r=24 chunk boundary"
+	)
+	_assert_shared_chunk_edge(
+		terrain,
+		crossing_a,
+		crossing_b,
+		"Road-over-stream crossing across the r=24 chunk boundary"
+	)
+
+	# Find a real water-to-bank edge that is also a streamed chunk boundary.
+	# This checks the shoreline vertex rule in the same independently-owned
+	# chunk situation used by the renderer, not just within one chunk.
+	var found_water_seam := false
+	for q in range(REGIONAL_HYDROLOGY.STREAM_Q_MIN, REGIONAL_HYDROLOGY.STREAM_Q_MAX + 1):
+		for r in range(-100, 101):
+			var water_hex := Vector2i(q, r)
+			if terrain.terrain_for_hex(water_hex) != "water":
+				continue
+			for direction in HexGrid.DIRECTIONS:
+				var bank_hex := water_hex + direction
+				if terrain.chunk_for_hex(water_hex) == terrain.chunk_for_hex(bank_hex):
+					continue
+				if terrain.terrain_for_hex(bank_hex) in ["water", "void"]:
+					continue
+				_assert_shared_chunk_edge(
+					terrain,
+					water_hex,
+					bank_hex,
+					"Water shoreline across a streamed chunk boundary"
+				)
+				found_water_seam = true
+				break
+			if found_water_seam:
+				break
+		if found_water_seam:
+			break
+	_check(
+		found_water_seam,
+		"The generated heartland stream must include a water-to-bank edge across a chunk boundary"
+	)
+
+
+func _assert_shared_chunk_edge(terrain, first_hex: Vector2i, second_hex: Vector2i, label: String) -> void:
+	_check(
+		terrain.chunk_for_hex(first_hex) != terrain.chunk_for_hex(second_hex),
+		"%s must actually cross independently loaded chunks" % label
+	)
+	var corners := HexGrid.corner_offsets(HexGrid.DEFAULT_RADIUS_M)
+	var first_centre := HexGrid.axial_to_world(first_hex, HexGrid.DEFAULT_RADIUS_M)
+	var second_centre := HexGrid.axial_to_world(second_hex, HexGrid.DEFAULT_RADIUS_M)
+	var shared_vertices := 0
+	for first_corner in range(HexGrid.SIDE_COUNT):
+		var first_position := first_centre + Vector3(corners[first_corner].x, 0.0, corners[first_corner].y)
+		for second_corner in range(HexGrid.SIDE_COUNT):
+			var second_position := second_centre + Vector3(corners[second_corner].x, 0.0, corners[second_corner].y)
+			if first_position.distance_to(second_position) > 0.001:
+				continue
+			shared_vertices += 1
+			_check(
+				is_equal_approx(
+					terrain.shared_vertex_elevation(first_hex, first_corner),
+					terrain.shared_vertex_elevation(second_hex, second_corner)
+				),
+				"%s must generate identical shared vertex heights" % label
+			)
+	_check(
+		shared_vertices == 2,
+		"%s must resolve exactly two common edge vertices (found %d)" % [label, shared_vertices]
 	)
 
 
