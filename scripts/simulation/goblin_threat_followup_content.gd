@@ -72,8 +72,9 @@ func nix_recruitment(context: Dictionary) -> Dictionary:
 			"body_variant":"male",
 			"height_scale":0.90,
 			"build_scale":0.84,
-			"progression":{"race":"human","class_levels":["rogue"],"skill_picks":["health","dagger_hit","dagger_hit","stealth_rogue","stealth_rogue","stealth_agility"]},
+			"progression":{"race":"human","class_levels":["rogue"],"skill_picks":["dagger_hit","dagger_dmg","stealth_rogue","stealth_agility"]},
 			"extra_inventory":["dagger","light_armor"],
+			"equip_items":["dagger","light_armor"],
 			"faction_id":"goblin_tribe",
 			"dialogue_id":"companion_nix_sharpear",
 			"starts_in_party":true
@@ -115,6 +116,7 @@ func aldric_recruitment_profile() -> Dictionary:
 		"body_variant":"male",
 		"progression":{"race":"human","class_levels":["fighter","cleric"],"skill_picks":["health","sword_hit","sword_dmg","sword_parry","learn_heal"]},
 		"extra_inventory":["wooden_shield"],
+		"equip_items":["wooden_shield"],
 		"dialogue_id":"companion_ser_aldric_thorne",
 		"starts_in_party":true,
 		"effects":{"initial_attitude":60,"message":"Ser Aldric Thorne joins your party, freed at last."}
