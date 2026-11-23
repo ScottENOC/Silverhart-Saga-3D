@@ -1595,6 +1595,52 @@ func apply_entangle_zone(center: Vector2i, radius: int, source_id: String, durat
 	return affected_hexes
 
 
+func spell_terrain_effects_to_dict() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if map_data == null:
+		return result
+	for hex_value in map_data.cells.keys():
+		var cell: Dictionary = map_data.cells[hex_value]
+		var remaining := int(cell.get("spell_entangle_ticks", 0))
+		if remaining <= 0:
+			continue
+		var hex: Vector2i = hex_value
+		result.append({
+			"q": hex.x,
+			"r": hex.y,
+			"source_id": String(cell.get("spell_entangle_source", "")),
+			"zone_id": String(cell.get("spell_entangle_zone_id", "")),
+			"ticks_remaining": remaining
+		})
+	return result
+
+
+func restore_spell_terrain_effects(entries: Array) -> void:
+	if map_data == null:
+		return
+	for hex_value in map_data.cells.keys():
+		var cell: Dictionary = map_data.cells[hex_value]
+		cell.erase("spell_entangle_source")
+		cell.erase("spell_entangle_zone_id")
+		cell.erase("spell_entangle_ticks")
+		map_data.cells[hex_value] = cell
+	for entry_value in entries:
+		if not entry_value is Dictionary:
+			continue
+		var entry: Dictionary = entry_value
+		var hex := Vector2i(int(entry.get("q", 0)), int(entry.get("r", 0)))
+		if not map_data.has_cell(hex) or not map_data.is_walkable(hex):
+			continue
+		var remaining := int(entry.get("ticks_remaining", 0))
+		if remaining <= 0:
+			continue
+		var cell: Dictionary = map_data.cells.get(hex, {})
+		cell["spell_entangle_source"] = String(entry.get("source_id", ""))
+		cell["spell_entangle_zone_id"] = String(entry.get("zone_id", ""))
+		cell["spell_entangle_ticks"] = remaining
+		map_data.cells[hex] = cell
+
+
 func dispel_entangle_zone(zone_id: String) -> bool:
 	if zone_id.is_empty() or map_data == null:
 		return false
@@ -1815,6 +1861,7 @@ func to_dict() -> Dictionary:
 		"characters": character_data,
 		"wilderness_resources": wilderness_resources.to_dict(),
 		"buildings": building_registry.to_dict(),
+		"spell_terrain_effects": spell_terrain_effects_to_dict(),
 	}
 
 func load_dict(data: Dictionary) -> void:
@@ -1830,6 +1877,7 @@ func load_dict(data: Dictionary) -> void:
 	clock.load_dict(data.get("world_clock", {}))
 	wilderness_resources.load_dict(data.get("wilderness_resources", {}))
 	building_registry.load_dict(data.get("buildings", {}))
+	restore_spell_terrain_effects(data.get("spell_terrain_effects", []))
 	for door_id_value in building_registry.doors.keys():
 		sync_door_map_state(String(door_id_value))
 	is_in_combat = bool(data.get("is_in_combat", false))
