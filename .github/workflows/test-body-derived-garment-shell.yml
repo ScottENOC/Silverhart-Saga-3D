@@ -22,5 +22,5 @@ jobs:
       - name: Compile and run geometry tests
         run: |
           set -euo pipefail
-          python -m py_compile tools/blender/garment_shell/shell_core.py
+          python -m py_compile tools/blender/garment_shell/shell_core.py tools/blender/garment_shell/build_shell_from_body.py
           python -m unittest discover -s tools/blender/garment_shell -p 'test_*.py' -v
