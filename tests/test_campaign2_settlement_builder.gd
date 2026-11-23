@@ -241,5 +241,66 @@ func _initialize() -> void:
 		quit(1)
 		return
 
+	# Campaign NPC identities are registered in the shared simulation once,
+	# independently of whether their presentation chunks are currently loaded.
+	var persistent_simulation := WorldSimulation.new()
+	var persistent_builder = SETTLEMENT_BUILDER.new(terrain.settlement_layouts, null, persistent_simulation)
+	var persistent_camp_chunk := Node3D.new()
+	root.add_child(persistent_camp_chunk)
+	persistent_builder.add_settlements_in_chunk(persistent_camp_chunk, Vector2i(192, 12), 24)
+	var chief_state := persistent_simulation.get_character("chief_skarnub")
+	var nix_state := persistent_simulation.get_character("nix_sharpear")
+	var aldric_state := persistent_simulation.get_character("ser_aldric_thorne")
+	if chief_state == null or nix_state == null or aldric_state == null:
+		push_error("Skarn-tooth NPCs must be registered as persistent campaign characters, not presentation-only actors.")
+		quit(1)
+		return
+	if chief_state.race != "goblin" or chief_state.side != "neutral" or not chief_state.combat_dormant:
+		push_error("Chief Skarnub's campaign identity and neutral dormant state must be retained.")
+		quit(1)
+		return
+	if nix_state.race != "goblin" or not nix_state.tags.has("campaign2_npc"):
+		push_error("Nix must retain his goblin campaign identity in simulation state.")
+		quit(1)
+		return
+	if not aldric_state.tags.has("tied_up") or aldric_state.side != "neutral":
+		push_error("Ser Aldric must remain a neutral captive in persistent simulation state.")
+		quit(1)
+		return
+	if persistent_simulation.characters.size() < 60:
+		push_error("The shared simulation should register the named settlement roster, not only the currently visible chunk.")
+		quit(1)
+		return
+	if not persistent_camp_chunk.get_node("NPC_chief_skarnub").is_in_group("campaign2_npc_actors"):
+		push_error("Streamed campaign NPC actors must be discoverable by the shared interaction layer.")
+		quit(1)
+		return
+
+	# Move Skarnub in simulation, unload the original chunk, and verify that
+	# the builder restores him at his saved position rather than duplicating
+	# him at the source-authored placement.
+	if not persistent_simulation.unregister_character("chief_skarnub"):
+		push_error("The campaign simulation should allow a neutral NPC to be unregistered for the move test.")
+		quit(1)
+		return
+	chief_state.axial = Vector2i(216, 36)
+	persistent_simulation.register_character(chief_state)
+	persistent_camp_chunk.free()
+	var moved_npc_chunk := Node3D.new()
+	root.add_child(moved_npc_chunk)
+	persistent_builder.add_settlements_in_chunk(moved_npc_chunk, Vector2i(216, 24), 24)
+	var moved_chief_actor := moved_npc_chunk.get_node_or_null("NPC_chief_skarnub") as Node3D
+	if moved_chief_actor == null or moved_chief_actor.position.distance_to(HexGrid.axial_to_world(Vector2i(216, 36), HexGrid.DEFAULT_RADIUS_M)) > 0.01:
+		push_error("A moved settlement NPC must reappear in the destination chunk at its persistent simulation position.")
+		quit(1)
+		return
+	var original_camp_chunk := Node3D.new()
+	root.add_child(original_camp_chunk)
+	persistent_builder.add_settlements_in_chunk(original_camp_chunk, Vector2i(192, 12), 24)
+	if original_camp_chunk.get_node_or_null("NPC_chief_skarnub") != null:
+		push_error("A moved settlement NPC must not respawn at its original authored hex.")
+		quit(1)
+		return
+
 	print("Campaign 2 canonical settlement builder tests passed.")
 	quit(0)
