@@ -99,6 +99,7 @@ func _test_campaign_building_services() -> void:
 	rider.skills["riding"] = 1
 	rider.gold = 1000
 	simulation.register_character(rider)
+	simulation.map_data.add_cell(rider.axial, 0.0, true, "grass")
 	for neighbour in HexGrid.neighbors(rider.axial):
 		simulation.map_data.add_cell(neighbour, 0.0, true, "grass")
 	var horse_purchase := restored_services.purchase_horse(simulation, rider.id, "chestnut", "war_trained")
@@ -108,6 +109,12 @@ func _test_campaign_building_services() -> void:
 	_check(horse != null and horse.mountable and horse.side == "neutral", "Purchased horse should register as a neutral owned mount")
 	if horse != null:
 		_check(not simulation.is_party_member(horse.id), "Purchased horse must not be added to the player character party roster")
+		_check(bool(simulation.can_ride(rider.id, horse.id).get("ok", false)), "Purchased horse should be immediately rideable by a qualified buyer")
+		_check(bool(simulation.mount_animal(rider.id, horse.id).get("ok", false)), "Purchased horse should use the existing shared mount action")
+		_check(horse.side == "player" and horse.is_rider, "Mounted horse should temporarily inherit the rider's side")
+		_check(bool(simulation.dismount_animal(rider.id).get("ok", false)), "Purchased horse should support the existing dismount action")
+		_check(horse.side == "neutral" and not horse.is_rider, "Dismounted horse should return to its neutral owned-mount state")
+		_check(not simulation.is_party_member(horse.id), "Mounting must not add the horse to the player character party roster")
 	if horse != null:
 		_check(horse.animal_attributes.get("coat_preset", "") == "chestnut", "Horse coat choice should persist in animal state")
 		_check(horse.animal_attributes.get("training_tier", "") == "war_trained", "Horse training tier should persist in animal state")
