@@ -255,8 +255,13 @@ func apply(
 			payload["calmed_id"] = calm_target.id
 			payload["mode"] = String(prepared.modifiers.get("calm_mode", "stay"))
 		"disguise_self":
-			_add_effect(caster, "disguise_self", caster.id, {"profile_id": prepared.presentation.get("profile_id", "")})
+			var copy_character_id := String(prepared.presentation.get("copy_character_id", ""))
+			_add_effect(caster, "disguise_self", caster.id, {
+				"profile_id": prepared.presentation.get("profile_id", ""),
+				"copy_character_id": copy_character_id
+			})
 			payload["disguise_profile_id"] = String(prepared.presentation.get("profile_id", ""))
+			payload["copy_character_id"] = copy_character_id
 		"temporal_rift":
 			var previous_tp := target.time_points
 			target.time_points = 0.0
