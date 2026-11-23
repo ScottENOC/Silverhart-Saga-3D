@@ -17,6 +17,7 @@ const HOLLOWMERE_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settle
 const HOLLOWMERE_TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
 const WORLD_CELL_LOADER_SCRIPT = preload("res://scripts/world/campaign2_world_cell_loader.gd")
 const WORLD_PLAYER_MOVEMENT_CONTROLLER = preload("res://scripts/world/world_player_movement_controller.gd")
+const NPC_INTERACTION_SERVICE = preload("res://scripts/world/campaign_npc_interaction_service.gd")
 const INTERIOR_LAYOUT_REGISTRAR = preload("res://scripts/world/world_interior_layout_registrar.gd")
 const INTERIOR_LAYOUT_PRESENTER = preload("res://scripts/world/world_interior_layout_presenter.gd")
 const HOLLOW_TANKARD_LAYOUT = preload("res://data/settlements/hollowmere/interiors/hollow_tankard_layout.gd")
@@ -1231,46 +1232,18 @@ func _refresh_nearby_interactions() -> void:
 	if dialogue_open or encounter_active or simulation.is_in_combat:
 		nearby_interaction_panel.visible = false
 		return
-	var active_state := simulation.get_character(active_character_id)
-	if active_state == null:
-		nearby_interaction_panel.visible = false
-		return
-	var nearby: Array[Dictionary] = []
-	for actor_id_value in actor_by_id.keys():
-		var actor_id := String(actor_id_value)
-		if actor_id == active_character_id or simulation.is_party_member(actor_id):
-			continue
-		var state := simulation.get_character(actor_id)
-		if state == null or not state.can_act():
-			continue
-		var hostile := state.side == "enemy"
-		if hostile and actor_id != FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
-			continue
-		var distance := HexGrid.distance(active_state.axial, state.axial)
-		if distance <= 2:
-			nearby.append({"id":actor_id,"name":state.display_name,"distance":distance,"hostile":hostile})
-
-	# Streamed settlement NPCs live under chunk presentation nodes rather than
-	# HollowTankard's local actor dictionary. Their CharacterState is shared by
-	# WorldSimulation, so they use the exact same proximity/range rules.
-	for actor in get_tree().get_nodes_in_group("campaign2_npc"):
-		var actor_id := String(actor.get_meta("campaign2_npc_id", ""))
-		if actor_id.is_empty() or actor_by_id.has(actor_id) or actor_id == active_character_id or simulation.is_party_member(actor_id):
-			continue
-		var state := simulation.get_character(actor_id)
-		if state == null or not state.can_act():
-			continue
-		var hostile := state.side == "enemy"
-		if hostile:
-			continue
-		var distance := HexGrid.distance(active_state.axial, state.axial)
-		if distance <= 2:
-			nearby.append({"id":actor_id,"name":state.display_name,"distance":distance,"hostile":false})
-	nearby.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		if int(a.distance) == int(b.distance):
-			return String(a.name) < String(b.name)
-		return int(a.distance) < int(b.distance)
+	var nearby: Array[Dictionary] = NPC_INTERACTION_SERVICE.nearby_entries(
+		simulation,
+		active_character_id,
+		actor_by_id,
+		get_tree(),
+		2
 	)
+	# Hostile campaign actors are handled by their encounter-specific systems;
+	# the existing dire wolf is the one local exception with a direct engage UI.
+	for index in range(nearby.size() - 1, -1, -1):
+		if bool(nearby[index].get("hostile", false)) and String(nearby[index].get("id", "")) != FARMSTEAD_DIRE_WOLF_SCRIPT.DIRE_WOLF_ID:
+			nearby.remove_at(index)
 	for child in nearby_interaction_box.get_children():
 		child.free()
 	if nearby.is_empty():
@@ -1290,15 +1263,13 @@ func _refresh_nearby_interactions() -> void:
 		nearby_interaction_box.add_child(talk_button)
 	nearby_interaction_panel.visible = true
 
+
 func _on_nearby_interaction_pressed(character_id: String) -> void:
 	_interact_with_character(character_id)
 
 
 func _find_streamed_npc_actor(character_id: String) -> Node3D:
-	for actor in get_tree().get_nodes_in_group("campaign2_npc"):
-		if String(actor.get_meta("campaign2_npc_id", "")) == character_id:
-			return actor as Node3D
-	return null
+	return NPC_INTERACTION_SERVICE.actor_for(get_tree(), actor_by_id, character_id)
 
 
 func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) -> void:
