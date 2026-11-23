@@ -115,7 +115,19 @@ func _run() -> void:
 	_check(male_animation_player != null, "Male gameplay actor receives the benchmark AnimationPlayer")
 	_check(male_skeleton != null, "Male gameplay actor has the animated carrier Skeleton3D")
 	if male_animation_player != null and male_skeleton != null:
-		_check(male_actor.set_moving(true), "Male gameplay actor selects a real locomotion clip")
+		var male_locomotion_selected := male_actor.set_moving(true)
+		_check(male_locomotion_selected, "Male gameplay actor selects a real locomotion clip")
+		if male_locomotion_selected:
+			var male_starting_poses: Array[Transform3D] = []
+			for bone_index in range(male_skeleton.get_bone_count()):
+				male_starting_poses.append(male_skeleton.get_bone_global_pose(bone_index))
+			await create_timer(0.3).timeout
+			var male_changed_bones := 0
+			for bone_index in range(male_skeleton.get_bone_count()):
+				if not male_skeleton.get_bone_global_pose(bone_index).is_equal_approx(male_starting_poses[bone_index]):
+					male_changed_bones += 1
+			_check(male_changed_bones >= 5,
+				"Male gameplay walk animation drives its skeleton (%d changed bones)" % male_changed_bones)
 	male_actor.free()
 
 	for asset_path in CHARACTER_ASSET_PATHS:
