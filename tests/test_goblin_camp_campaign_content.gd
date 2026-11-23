@@ -8,6 +8,7 @@ func _initialize() -> void:
 	_test_goblin_quest_definitions_and_gift_alliance()
 	_test_diplomacy_assault_and_stealth_resolutions()
 	_test_favors_and_follow_on_quests()
+	_test_nix_succession_and_grondle_trader()
 	if _failures > 0:
 		push_error("%d goblin camp campaign assertion(s) failed." % _failures)
 		quit(1)
@@ -112,3 +113,22 @@ func _test_favors_and_follow_on_quests() -> void:
 	_check(_choice_exists(follow_up, "start:greenskin_spy"), "The read scout note and completed mine favor unlock the Northwatch follow-up")
 	GOBLIN_CONTENT.start_northwatch_spy(spy_journal)
 	_check(bool(GOBLIN_CONTENT.mark_northwatch_taken(spy_journal).get("ok", false)), "Northwatch outcome can be persisted in the journal")
+
+func _test_nix_succession_and_grondle_trader() -> void:
+	var journal := _new_journal()
+	var initial := GOBLIN_CONTENT.nix_conversation(journal)
+	_check(_choice_exists(initial, "nix:ask_about_orders"), "Nix should expose the source dialogue about who ordered the camp to watch Hollowmere")
+	_check(String(GOBLIN_CONTENT.nix_orders_response().get("text", "")).contains("more banners"), "Nix's second answer should preserve the source hint about a larger power")
+	var trader_before := GOBLIN_CONTENT.grondle_conversation(journal)
+	_check(not _choice_exists(trader_before, "open_goblin_shop"), "Grondle must refuse trade before alliance")
+	GOBLIN_CONTENT.mark_chief_assassinated(journal)
+	var succession := GOBLIN_CONTENT.nix_conversation(journal)
+	_check(_choice_exists(succession, "resolve:stealth_succession"), "A silent chief assassination should let Nix offer a peaceful departure")
+	GOBLIN_CONTENT.resolve_threat(journal, "stealth_succession")
+	_check(not _choice_exists(GOBLIN_CONTENT.nix_conversation(journal), "resolve:stealth_succession"), "The succession choice should not repeat after resolution")
+
+	var alliance_journal := _new_journal()
+	GOBLIN_CONTENT.resolve_threat(alliance_journal, "goblin_alliance")
+	_check(_choice_exists(GOBLIN_CONTENT.nix_conversation(alliance_journal), "recruit:nix_sharpear"), "Nix should offer to join after the permanent alliance")
+	_check(not _choice_exists(GOBLIN_CONTENT.nix_conversation(alliance_journal, ["nix_sharpear"]), "recruit:nix_sharpear"), "Nix should not offer recruitment twice")
+	_check(_choice_exists(GOBLIN_CONTENT.grondle_conversation(alliance_journal), "open_goblin_shop"), "Grondle should open his shop only after the alliance")
