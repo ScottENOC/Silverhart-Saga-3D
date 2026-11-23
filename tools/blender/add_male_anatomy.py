@@ -1005,7 +1005,8 @@ def _scrotum_grid(state, origin, k):
     S = SCROTUM
     P = S[state]
     rings, segs = int(S["rings"]), int(S["segments"])
-    length, hw, hd = P["length"] * k, P["half_width"] * k, P["half_depth"] * k    xo_max, drop = P["lobe_offset"] * k, P["lobe_drop"]
+    length, hw, hd = P["length"] * k, P["half_width"] * k, P["half_depth"] * k
+    xo_max, drop = P["lobe_offset"] * k, P["lobe_drop"]
     blend, closure = P.get("groove_blend", S["groove_blend"]) * k, S["closure_start"]
     amp, wl = P["rugae_amp"] * k, P["rugae_wavelength"] * k
     ox, oy, oz = origin
