@@ -6,7 +6,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Source-authored multi-story locations must validate")
-	_check(registry.location_ids() == ["kragmoor", "silthandriel", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_thieves_guild"], "Kragmoor and all source-authored Silverhart interiors must be registered")
+	_check(registry.location_ids() == ["kragmoor", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild"], "Kragmoor and all source-authored Silverhart interiors must be registered")
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
 	_check(palace.get("floors", []).size() == 2, "Silverhart Grand Hall must preserve its two source floors")
@@ -53,6 +53,31 @@ func _initialize() -> void:
 	_check(String(guild_floor.get("rooms", [])[1].get("hidden_by_secret", "")) == "guild_hidden_vault_door", "Vault room must remain hidden behind its own secret door")
 	var guild_chest := _record_by_id(guild_floor.get("tile_objects", []), "guild_vault_chest")
 	_check(guild_chest.get("items", []) == ["gem_blue", "gem_red", "silvertongue_ring"], "Hidden vault must retain its three source treasure items")
+
+
+	# The merchant quarter's first four source interiors must be separate,
+	# traversable floor maps rather than exterior-only building records.
+	var merchant_entrances := {
+		"silverhart_stables": "stables_front_door",
+		"silverhart_general_goods": "general_goods_front_door",
+		"silverhart_clothier": "clothier_front_door",
+		"silverhart_magic_shop": "magic_shop_front_door"
+	}
+	for interior_id in merchant_entrances:
+		var interior: Dictionary = registry.get_definition(interior_id)
+		_check(not interior.is_empty(), "Silverhart merchant interior must be registered: " + interior_id)
+		_check(interior.get("floors", []).size() == 1, "Merchant interior must have its source ground floor: " + interior_id)
+		var interior_floor := registry.get_floor_definition(interior_id, 0)
+		_check(interior_floor.get("rooms", []).size() == 1, "Merchant interior must retain its source room: " + interior_id)
+		_check(_has_record(interior_floor.get("tile_objects", []), merchant_entrances[interior_id]), "Merchant interior must retain its source entrance: " + interior_id)
+	var stables_floor := registry.get_floor_definition("silverhart_stables", 0)
+	_check(_has_record(stables_floor.get("tile_objects", []), "stables_pen"), "Royal stables must retain the source pen feature")
+	var general_goods_floor := registry.get_floor_definition("silverhart_general_goods", 0)
+	_check(_has_record(general_goods_floor.get("tile_objects", []), "guild_initiation_prize"), "General goods must retain the Thieves' Guild initiation evidence")
+	var clothier_floor := registry.get_floor_definition("silverhart_clothier", 0)
+	_check(_has_record(clothier_floor.get("tile_objects", []), "clothier_bed"), "Clothier must retain the sourcekeeper's bed")
+	var magic_shop_floor := registry.get_floor_definition("silverhart_magic_shop", 0)
+	_check(_has_record(magic_shop_floor.get("tile_objects", []), "magic_shop_bed"), "Magic shop must retain the dealer's bed")
 
 	var elven_capital: Dictionary = registry.get_definition("silthandriel")
 	_check(int(elven_capital.get("anchor", {}).get("q", 0)) == -252 and int(elven_capital.get("anchor", {}).get("r", 0)) == 934, "Sil'thandriel anchor must match buildElvenCapital")

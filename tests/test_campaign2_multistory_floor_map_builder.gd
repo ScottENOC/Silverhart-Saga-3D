@@ -45,6 +45,30 @@ func _initialize() -> void:
 	_check(_has_object(revealed_guild.get("tile_objects", []), "guild_vault_chest"), "Discovered vault contents must be presented")
 	_check(revealed_map.is_walkable(Vector2i(19, -426)) and revealed_map.is_walkable(Vector2i(20, -426)), "Discovered vault must become walkable through its hidden door")
 
+
+	# Silverhart's merchant-quarter interiors are built from the source room
+	# footprints, with their exterior doors opening onto walkable floor cells.
+	var merchant_door_hexes := {
+		"silverhart_stables": Vector2i(-19, -502),
+		"silverhart_general_goods": Vector2i(-19, -490),
+		"silverhart_clothier": Vector2i(-32, -502),
+		"silverhart_magic_shop": Vector2i(-32, -490)
+	}
+	for interior_id in merchant_door_hexes:
+		var interior_definition: Dictionary = registry.get_definition(interior_id)
+		var interior_state = LOCATION_STATE.new()
+		_check(bool(interior_state.configure(interior_definition).get("ok", false)), "Merchant interior state must configure: " + interior_id)
+		var interior_result: Dictionary = FLOOR_BUILDER.build_floor_map(interior_definition, 0, interior_state)
+		_check(bool(interior_result.get("ok", false)), "Merchant interior floor must build: " + interior_id)
+		if not bool(interior_result.get("ok", false)):
+			continue
+		var interior_map: HexMapData = interior_result.get("map_data") as HexMapData
+		_check(interior_map.is_walkable(merchant_door_hexes[interior_id]), "Merchant entrance must be walkable: " + interior_id)
+		for object_variant in interior_result.get("tile_objects", []):
+			var object_position: Dictionary = object_variant.get("position", {})
+			var object_hex := Vector2i(int(object_position.get("q", 0)), int(object_position.get("r", 0)))
+			_check(interior_map.is_walkable(object_hex), "Merchant fixture must sit on walkable interior floor: " + String(object_variant.get("id", "")))
+
 	var elven_definition: Dictionary = registry.get_definition("silthandriel")
 	var elven_state = LOCATION_STATE.new()
 	_check(bool(elven_state.configure(elven_definition).get("ok", false)), "Sil'thandriel traversal state must configure")
