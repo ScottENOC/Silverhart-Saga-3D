@@ -36,7 +36,7 @@ func _test_authored_roster_and_initial_state() -> void:
 	_check(int(seraphine.get("familiarity", -1)) == 5)
 	_check(int(seraphine.get("trust", -1)) == 10)
 	var skarnub := relationships.snapshot("chief_skarnub")
-	_check(String(skarnub.get("name", "")) == "Chief Skarnub")
+	_check(str(skarnub.get("name", "")) == "Chief Skarnub")
 	_check(int(skarnub.get("trust", -1)) == 0)
 	var nessa := relationships.snapshot("nessa_wren")
 	_check(int(nessa.get("familiarity", -1)) == 4)
