@@ -153,13 +153,18 @@ def build_shell(
     if not outer:
         raise ValueError("coverage field selected no body surface")
 
-    edge_use: dict[tuple[int, int], int] = {}
+    edge_use: dict[tuple[int, int], tuple[int, tuple[int, int]]] = {}
     for face in outer:
         for i, a in enumerate(face):
             b = face[(i + 1) % len(face)]
             key = (a, b) if a < b else (b, a)
-            edge_use[key] = edge_use.get(key, 0) + 1
-    boundary = tuple(sorted(edge for edge, uses in edge_use.items() if uses == 1))
+            if key in edge_use:
+                uses, directed = edge_use[key]
+                edge_use[key] = (uses + 1, directed)
+            else:
+                edge_use[key] = (1, (a, b))
+    # Retain the face winding: it determines the correct outward-facing rim.
+    boundary = tuple(directed for uses, directed in edge_use.values() if uses == 1)
 
     inner_cache: dict[int, int] = {}
     rim: list[Face] = []
@@ -177,7 +182,7 @@ def build_shell(
             inner_cache[outer_index] = idx
             return idx
         ia, ib = inner_vertex(a), inner_vertex(b)
-        rim.append((a, b, ib, ia))
+        rim.append((b, a, ia, ib))
 
     return ShellMesh(
         tuple(positions), tuple(out_normals), tuple(outer + rim),
