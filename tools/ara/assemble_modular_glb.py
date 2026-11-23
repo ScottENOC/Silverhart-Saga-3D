@@ -23,12 +23,16 @@ def write(path,doc,binary):
     Path(path).write_bytes(struct.pack('<4sII',b'glTF',2,total)+struct.pack('<I4s',len(j),b'JSON')+j+struct.pack('<I4s',len(binary),b'BIN\0')+binary)
 
 def body_node(d):
+    # Native Wren exports label the body material Skin_Anatomy; Ara source
+    # exports historically use Skin. Both identify the same skinned body slot.
+    body_material_names={'Skin','Skin_Anatomy'}
     hits=[]
     for n in d['nodes']:
         if 'mesh' not in n or 'skin' not in n: continue
         names=[d['materials'][p.get('material',0)].get('name') for p in d['meshes'][n['mesh']]['primitives']]
-        if 'Skin' in names: hits.append(n)
-    if len(hits)!=1: raise ValueError(f'Expected one skinned body mesh, got {len(hits)}')
+        if body_material_names.intersection(names): hits.append(n)
+    if len(hits)!=1:
+        raise ValueError(f'Expected one skinned body mesh using {sorted(body_material_names)}, got {len(hits)}')
     return hits[0]
 
 def append_bytes(target,buf,data,target_type=None):
