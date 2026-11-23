@@ -391,8 +391,17 @@ func _validate_commission_appearance(kind: String, appearance: Dictionary) -> Di
 			return _failure("appearance_value_out_of_range")
 		if kind == "armour" and String(layer_value) == "metal":
 			var is_custom_metal := bool(layer.get("unlocked", false))
-			if not is_custom_metal and (absf(hue - 210.0) > 0.1 or saturation > 12.0 or value < 20.0 or value > 100.0):
-				return _failure("metal_finish_not_in_steel_palette")
+			if not is_custom_metal:
+				var is_approved_steel := absf(hue - 210.0) <= 0.1 and saturation <= 12.0
+				for tone_value in METAL_TONES:
+					var tone: Dictionary = tone_value
+					if is_equal_approx(value, float(tone.value)):
+						is_approved_steel = is_approved_steel and true
+						break
+				else:
+					is_approved_steel = false
+				if not is_approved_steel:
+					return _failure("metal_finish_not_in_steel_palette")
 	return {"ok": true}
 
 
