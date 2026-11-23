@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+"""Paint the combined Ara vulva + mons pubis region into TEXCOORD_1.y.
+
+This is a review-pipeline adapter for an already anatomy-integrated Wren GLB.
+It reuses the exact surface-coordinate helpers and anatomical parameters from
+add_female_anatomy_surface.py. TEXCOORD_1.x (CorrespondenceID) is preserved.
+"""
+import argparse
+import json
+import os
+import sys
+
+import bpy
+from mathutils import Vector
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from add_female_anatomy_surface import (
+    build_vulva_mons_region_weights,
+    material_name,
+    mesh_world_bounds,
+    pelvis_landmark_from_leg_roots,
+)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument("--report", required=True)
+    return parser.parse_args(sys.argv[sys.argv.index("--") + 1:])
+
+
+def clear_scene():
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.object.delete(use_global=False)
+
+
+def find_skin_and_rig():
+    meshes = [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
+    armature = next((obj for obj in bpy.context.scene.objects if obj.type == "ARMATURE"), None)
+    skin = max(
+        (obj for obj in meshes if "skin" in material_name(obj)),
+        key=lambda obj: len(obj.data.polygons),
+        default=None,
+    )
+    if skin is None or armature is None:
+        raise RuntimeError("Wren GLB is missing its skin mesh or armature")
+    return meshes, skin, armature
+
+
+def export_scene(path):
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in bpy.context.scene.objects:
+        if obj.type in {"MESH", "ARMATURE", "EMPTY"}:
+            obj.select_set(True)
+    armature = next((obj for obj in bpy.context.scene.objects if obj.type == "ARMATURE"), None)
+    if armature:
+        bpy.context.view_layer.objects.active = armature
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    bpy.ops.export_scene.gltf(
+        filepath=os.path.abspath(path),
+        export_format="GLB",
+        use_selection=True,
+        export_skins=True,
+        export_morph=True,
+        export_animations=True,
+        export_apply=False,
+    )
+
+
+def read_mask_from_uv2(mesh):
+    if len(mesh.uv_layers) < 2:
+        raise RuntimeError(
+            f"Expected TEXCOORD_1/CorrespondenceID; found {len(mesh.uv_layers)} UV channels"
+        )
+    layer = mesh.uv_layers[1]
+    values = [None] * len(mesh.vertices)
+    for loop in mesh.loops:
+        vertex_index = loop.vertex_index
+        uv = layer.data[loop.index].uv
+        pair = (round(float(uv.x), 7), round(float(uv.y), 6))
+        if values[vertex_index] is not None and values[vertex_index] != pair:
+            raise RuntimeError(
+                f"Vertex {vertex_index} has inconsistent TEXCOORD_1 identity/mask values"
+            )
+        values[vertex_index] = pair
+    if any(value is None for value in values):
+        raise RuntimeError("TEXCOORD_1 does not identify every skin vertex")
+    return values
+
+
+def main():
+    args = parse_args()
+    clear_scene()
+    bpy.ops.import_scene.gltf(filepath=os.path.abspath(args.input))
+    meshes, skin, armature = find_skin_and_rig()
+    if len(skin.data.uv_layers) < 2:
+        raise RuntimeError("Ara anatomy GLB has no TEXCOORD_1 CorrespondenceID channel")
+
+    bounds = [mesh_world_bounds(obj) for obj in meshes]
+    minimum = Vector(tuple(min(bound[0][axis] for bound in bounds) for axis in range(3)))
+    maximum = Vector(tuple(max(bound[1][axis] for bound in bounds) for axis in range(3)))
+    height = maximum.z - minimum.z
+    if height <= 0:
+        raise RuntimeError(f"Invalid Wren character height: {height}")
+    hipline_z = pelvis_landmark_from_leg_roots(armature, height)
+    weights = build_vulva_mons_region_weights(skin, hipline_z, height)
+    if len(weights) != len(skin.data.vertices):
+        raise RuntimeError("Ara surface-coordinate mask does not match the Wren skin vertex count")
+
+    layer = skin.data.uv_layers[1]
+    for loop in skin.data.loops:
+        uv = layer.data[loop.index].uv.copy()
+        uv.y = float(weights[loop.vertex_index])
+        layer.data[loop.index].uv = uv
+    skin.data.update()
+    skin["anatomy_region_mask"] = "vulva_external_including_mons_pubis"
+    skin["anatomy_region_mask_channel"] = "TEXCOORD_1.y"
+
+    source_ids = read_mask_from_uv2(skin.data)
+    weighted_vertices = sum(value[1] >= 0.15 for value in source_ids)
+    nonzero_vertices = sum(value[1] > 0.0 for value in source_ids)
+    if weighted_vertices == 0:
+        raise RuntimeError("Combined vulva/mons pubis mask contains no weighted vertices")
+
+    export_scene(args.output)
+
+    # Re-import the GLB to verify that TEXCOORD_1.y survived export and that
+    # the existing correspondence IDs in TEXCOORD_1.x were not changed.
+    clear_scene()
+    bpy.ops.import_scene.gltf(filepath=os.path.abspath(args.output))
+    _meshes, exported_skin, _armature = find_skin_and_rig()
+    exported_values = read_mask_from_uv2(exported_skin.data)
+    exported_weighted = sum(value[1] >= 0.15 for value in exported_values)
+    if exported_weighted != weighted_vertices:
+        raise RuntimeError(
+            "Export/re-import changed the mask coverage count: "
+            f"{weighted_vertices} before, {exported_weighted} after"
+        )
+    if len(exported_values) != len(source_ids):
+        raise RuntimeError("Export/re-import changed the skin vertex count")
+    for index, (before, after) in enumerate(zip(source_ids, exported_values)):
+        if before[0] != after[0]:
+            raise RuntimeError(f"Export/re-import changed CorrespondenceID at vertex {index}")
+        if abs(before[1] - after[1]) > 1e-5:
+            raise RuntimeError(f"Export/re-import changed mask weight at vertex {index}")
+
+    report = {
+        "status": "REVIEW_MASK_PAINTED_NOT_PRODUCTION_APPROVED",
+        "region_id": "vulva_external",
+        "region_label": "External vulva including mons pubis",
+        "source_method": "Ara add_female_anatomy_surface.py surface-following midline coordinates",
+        "mask_channel": "TEXCOORD_1.y (Godot Mesh ARRAY_TEX_UV2.y)",
+        "correspondence_channel": "TEXCOORD_1.x preserved unchanged",
+        "skin_mesh": exported_skin.name,
+        "vertex_count": len(exported_values),
+        "weighted_vertices_at_0_15": exported_weighted,
+        "nonzero_vertices": sum(value[1] > 0.0 for value in exported_values),
+        "maximum_weight": max(value[1] for value in exported_values),
+        "height_metres": height,
+        "hipline_z": hipline_z,
+        "output": os.path.abspath(args.output),
+        "output_bytes": os.path.getsize(args.output),
+    }
+    os.makedirs(os.path.dirname(os.path.abspath(args.report)), exist_ok=True)
+    with open(args.report, "w", encoding="utf-8") as handle:
+        json.dump(report, handle, indent=2)
+        handle.write("\n")
+    print(json.dumps(report, indent=2))
+
+
+if __name__ == "__main__":
+    main()
