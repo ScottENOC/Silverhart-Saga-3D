@@ -37,11 +37,11 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 	for entry in settlements:
 		if not entry is Dictionary:
 			continue
-		var settlement_id := String(entry.get("id", ""))
+		var settlement_id := str(entry.get("id", ""))
 		var origin: Vector2i = entry.get("origin", Vector2i.ZERO)
 		var definition: Dictionary = entry.get("definition", {})
 		var presentation: Dictionary = definition.get("presentation", {})
-		var presentation_mode := String(presentation.get("mode", "chunked"))
+		var presentation_mode := str(presentation.get("mode", "chunked"))
 		if presentation_mode != "chunked" and presentation_mode_override != "chunked":
 			continue
 		# The explicit override is the regional streamer's ownership decision.
@@ -77,7 +77,7 @@ func add_settlements_in_chunk(parent: Node3D, chunk_min: Vector2i, chunk_size: i
 		for placement in placements.get("characters", []):
 			if not placement is Dictionary:
 				continue
-			var character_id := String(placement.get("character_id", placement.get("id", "")))
+			var character_id := str(placement.get("character_id", placement.get("id", "")))
 			if character_id.is_empty() or character_id == "player":
 				continue
 			var world_hex := _read_hex(placement.get("position", Vector2i.ZERO)) + origin
@@ -97,8 +97,8 @@ func _add_creatures_in_chunk(
 	for placement in placements.get("creatures", []):
 		if not placement is Dictionary:
 			continue
-		var creature_id := String(placement.get("id", "")).strip_edges()
-		var creature_kind := String(placement.get("kind", "")).strip_edges()
+		var creature_id := str(placement.get("id", "")).strip_edges()
+		var creature_kind := str(placement.get("kind", "")).strip_edges()
 		if creature_id.is_empty() or creature_kind.is_empty():
 			continue
 		var authored_hex := _read_hex(placement.get("position", placement.get("hex", Vector2i.ZERO))) + origin
@@ -115,18 +115,18 @@ func _add_creatures_in_chunk(
 		var actor := CREATURE_ACTOR_SCRIPT.new() as CreatureActor
 		actor.name = creature_id
 		actor.creature_kind = creature_kind
-		actor.behaviour = String(placement.get("behaviour", "passive_wildlife"))
+		actor.behaviour = str(placement.get("behaviour", "passive_wildlife"))
 		actor.axial_hex = actor_hex
 		actor.model_scale = float(placement.get("scale", 1.0))
-		var authored_asset_path := String(placement.get("asset_path", "")).strip_edges()
+		var authored_asset_path := str(placement.get("asset_path", "")).strip_edges()
 		if not authored_asset_path.is_empty():
 			actor.model_path = authored_asset_path
 		else:
-			var filename := String(placement.get("asset", ""))
+			var filename := str(placement.get("asset", ""))
 			if filename.is_empty():
 				filename = "%s.gltf" % creature_kind.capitalize()
 			actor.model_path = "res://art/creatures/quaternius/%s" % filename
-		actor.dialogue_id = String(placement.get("dialogue_id", ""))
+		actor.dialogue_id = str(placement.get("dialogue_id", ""))
 		actor.position = HexGrid.axial_to_world(actor_hex, HEX_RADIUS)
 		if state != null:
 			actor.simulation_state = state
@@ -181,7 +181,7 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -
 	var actor_hex := state.axial if state != null else world_hex
 	if scene_tree != null:
 		for existing_actor in scene_tree.get_nodes_in_group("campaign2_npc"):
-			if String(existing_actor.get_meta("campaign2_npc_id", "")) != character_id:
+			if str(existing_actor.get_meta("campaign2_npc_id", "")) != character_id:
 				continue
 			# A moving NPC can cross a chunk boundary while both chunks are
 			# resident. Transfer the one live actor to the newly owning chunk.
@@ -202,10 +202,10 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -
 		return
 	actor.set_meta("campaign2_npc_id", character_id)
 	actor.set_meta("campaign2_streamed_npc", true)
-	actor.set_meta("dialogue_id", String(character.get("dialogue_id", "")))
-	actor.set_meta("faction_id", String(character.get("faction_id", "")))
-	actor.set_meta("side", String(character.get("side", "neutral")))
-	actor.set_meta("title", String(character.get("title", "")))
+	actor.set_meta("dialogue_id", str(character.get("dialogue_id", "")))
+	actor.set_meta("faction_id", str(character.get("faction_id", "")))
+	actor.set_meta("side", str(character.get("side", "neutral")))
+	actor.set_meta("title", str(character.get("title", "")))
 	actor.set_meta("class_levels", character.get("class_levels", []))
 	actor.set_meta("skill_picks", character.get("skill_picks", []))
 	actor.set_meta("quest_hooks", character.get("quest_hooks", []))
@@ -215,7 +215,7 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -
 
 func _create_streamed_npc_state(character: Dictionary, character_id: String, world_hex: Vector2i) -> CharacterState:
 	var progression := {
-		"race": String(character.get("race", "human")),
+		"race": str(character.get("race", "human")),
 		"class_levels": character.get("class_levels", []),
 		"skill_picks": character.get("skill_picks", [])
 	}
@@ -231,28 +231,28 @@ func _create_streamed_npc_state(character: Dictionary, character_id: String, wor
 		return null
 	var state := CampaignCharacterFactory.create_npc_state(
 		character_id,
-		String(character.get("name", character_id)),
+		str(character.get("name", character_id)),
 		spawn_hex,
 		profile,
 		{}
 	)
 	if state == null:
 		return null
-	state.side = String(character.get("side", "neutral"))
-	state.race = String(character.get("race", "human"))
+	state.side = str(character.get("side", "neutral"))
+	state.race = str(character.get("race", "human"))
 	state.combat_dormant = true
 	state.progression_mode = "npc"
-	state.gender_presentation = String(character.get("appearance", {}).get("gender_presentation", "Masculine" if String(character.get("gender", "male")) == "male" else "Feminine"))
-	state.pronouns = String(character.get("appearance", {}).get("pronouns", "they/them"))
+	state.gender_presentation = str(character.get("appearance", {}).get("gender_presentation", "Masculine" if str(character.get("gender", "male")) == "male" else "Feminine"))
+	state.pronouns = str(character.get("appearance", {}).get("pronouns", "they/them"))
 	state.tags.append("campaign2_streamed_npc")
-	state.tags.append("faction:" + String(character.get("faction_id", "")))
+	state.tags.append("faction:" + str(character.get("faction_id", "")))
 	return state
 
 
 func _resolve_npc_spawn_hex(origin: Vector2i, character_id: String) -> Vector2i:
 	if simulation == null:
 		return origin
-	if not simulation.occupied_hexes.has(origin) or String(simulation.occupied_hexes.get(origin, "")) == character_id:
+	if not simulation.occupied_hexes.has(origin) or str(simulation.occupied_hexes.get(origin, "")) == character_id:
 		return origin
 	for radius in range(1, 4):
 		var candidates: Array[Vector2i] = [origin]
