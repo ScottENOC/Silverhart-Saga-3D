@@ -444,11 +444,11 @@ func _refresh_character_preview(_index: int) -> void:
 		rules_preview.text = RULES.preview_text(_selected_id(race_select, "human"), _selected_id(class_select, "fighter"), _selected_id(difficulty_select, "normal"))
 
 func _refresh_appearance_preview(_index: int) -> void:
-	if preview_actor == null or not is_instance_valid(preview_actor):
-		return
 	var variant := "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female"
 	for control in [male_anatomy_length_slider, male_anatomy_girth_slider, male_anatomy_summary]:
 		control.visible = variant == "male"
+	if preview_actor == null or not is_instance_valid(preview_actor):
+		return
 	var asset_path := MALE_PREVIEW_ASSET if variant == "male" else FEMALE_PREVIEW_ASSET
 	if not ResourceLoader.exists(asset_path):
 		preview_status.text = "Preview asset not found: %s. Your appearance choices can still be saved." % asset_path
