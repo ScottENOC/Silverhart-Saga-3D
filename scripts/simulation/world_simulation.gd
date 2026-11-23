@@ -716,6 +716,9 @@ func _on_character_lifecycle_changed(character_id: String, transition: String) -
 	var state := get_character(character_id)
 	if state == null:
 		return
+	if state.is_animal_companion and transition in ["died", "died_from_poison"]:
+		party_member_ids.erase(character_id)
+		action_committed.emit(SimulationEvent.new("animal_companion_died", character_id, state.summoned_by_id, {"character_id": character_id, "owner_id": state.summoned_by_id}))
 	if not state.can_act():
 		if not state.mounted_animal_id.is_empty():
 			_force_dismount_pair(state, get_character(state.mounted_animal_id), transition)
