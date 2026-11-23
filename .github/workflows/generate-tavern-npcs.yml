@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/ara/generate_tavern_npc_profiles.py"
       - "tools/ara/build_hollowmere_npcs.py"
+      - "tools/ara/integrate_hollowmere_anatomy.py"
       - "tools/ara/patch_layering.py"
       - "tools/review/render_tavern_npc_contact_sheet.py"
       - "tools/review/compose_tavern_npc_contact_sheet.py"
@@ -45,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install and pin Ara 3D Gen
         shell: bash
@@ -118,7 +119,7 @@ jobs:
             --output art/characters/tavern_npcs/generated/review/contact-sheet.png
 
       - name: Upload generated NPCs and deterministic manifest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tavern-npc-sample-seed-${{ inputs.seed || '20261120' }}
           path: |
