@@ -5,6 +5,7 @@ const STARTING_LOCATION = preload("res://data/world/locations/hollowmere.gd")
 const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_creator.gd")
 const HOLLOWMERE_CAMPAIGN_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
 const COMPANION_CAMPAIGN_CONTENT = preload("res://scripts/simulation/companion_campaign_content.gd")
+const GOBLIN_CAMP_CAMPAIGN_CONTENT = preload("res://scripts/simulation/goblin_camp_campaign_content.gd")
 const FARM_WOLVES_QUEST = preload("res://scripts/simulation/farm_wolves_quest.gd")
 
 var simulation: WorldSimulation
@@ -56,7 +57,7 @@ func _initialize_campaign_simulation(profile: Dictionary) -> void:
 	simulation.clock.set_world_seconds(11.0 * 3600.0)
 	simulation.campaign_journal.register_quest_definition(HOLLOWMERE_CAMPAIGN_CONTENT.shakedown_quest_definition())
 	simulation.campaign_journal.register_quest_definition(FARM_WOLVES_QUEST.definition())
-	COMPANION_CAMPAIGN_CONTENT.register_quest_definitions(simulation.campaign_journal)
+	GOBLIN_CAMP_CAMPAIGN_CONTENT.register_quest_definitions(simulation.campaign_journal)
 	HOLLOWMERE_CAMPAIGN_CONTENT.initialize_social_standings(
 		simulation.campaign_journal,
 		String(profile.get("race", "human"))
