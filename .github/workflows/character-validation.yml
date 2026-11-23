@@ -7,6 +7,7 @@ on:
       - "tools/blender/**"
       - "tools/ara/**"
       - "tests/test_assemble_modular_glb.py"
+      - "tests/test_male_anatomy_distribution.py"
       - "data/characters/legacy_named_npcs.json"
       - "data/characters/legacy_enemy_roster.json"
       - "data/arena/arena_opponents.json"
@@ -19,6 +20,7 @@ on:
       - "tools/blender/**"
       - "tools/ara/**"
       - "tests/test_assemble_modular_glb.py"
+      - "tests/test_male_anatomy_distribution.py"
       - ".github/workflows/**"
   workflow_dispatch:
 
@@ -43,6 +45,8 @@ jobs:
           fail_level: none
       - name: Compile Ara and Blender Python tools
         run: python -m compileall -q tools/blender tools/ara
+      - name: Test deterministic male anatomy population distribution
+        run: python -m unittest discover -s tests -p 'test_male_anatomy_distribution.py' -v
       - name: Test modular GLB assembly
         run: python -m unittest discover -s tests -p 'test_assemble_modular_glb.py' -v
       - name: Validate complete legacy NPC, enemy and Arena rosters
