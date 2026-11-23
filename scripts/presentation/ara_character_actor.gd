@@ -30,8 +30,6 @@ func _physics_process(delta: float) -> void:
 ## Pressure_<RegionName>, such as Pressure_LeftChest.
 func register_body_pressure_region(region_id: StringName, profile: BodyRegionProfile) -> void:
 	body_pressure_controller.register_region(region_id, profile)
-	if model_root != null:
-		body_pressure_controller.bind_model(model_root)
 
 func apply_body_pressure(region_id: StringName, force_n: float) -> void:
 	body_pressure_controller.apply_pressure(region_id, force_n)
