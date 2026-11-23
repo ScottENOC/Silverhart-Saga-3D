@@ -8,7 +8,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var terrain = TERRAIN_DATA.new()
 	var entries: Array = terrain.settlement_layouts
-	_check(entries.size() == 6, "Canonical registry should expose Hollowmere, Millbrook, Emberlode, Reddale, Silverhart and Old Mac's Farmstead")
+	_check(entries.size() == 8, "Canonical registry should expose six settlements, Emberwood Grove and Skarn-tooth Camp")
 	var millbrook_entry := _entry_by_id(entries, "millbrook")
 	_check(not millbrook_entry.is_empty(), "Canonical Millbrook definition must be available")
 	if millbrook_entry.is_empty():
@@ -59,6 +59,8 @@ func _initialize() -> void:
 	_check(terrain.settlement_path_cells.has("5,-366"), "Canonical path occupancy must be indexed")
 
 	_test_emberlode(terrain, entries)
+	_test_emberwood_grove(terrain, entries)
+	_test_skarn_tooth_camp(terrain, entries)
 	_test_reddale(terrain, entries)
 	_test_silverhart(terrain, entries)
 	_test_old_mac_farmstead(terrain, entries)
@@ -380,6 +382,77 @@ func _test_old_mac_farmstead(terrain: Campaign2WorldTerrainData, entries: Array)
 	var materials: Dictionary = definition.get("presentation", {}).get("materials", {})
 	_check(materials.get("agriculture", {}).has("pasture") and materials.get("agriculture", {}).has("fence"), "Farmstead agriculture must have shared material bindings")
 	_check(layout.get("fields", []).size() > 0 and layout.fields[0].get("corners", []).size() == 4, "Pasture boundary must remain a four-corner authored polygon")
+
+
+func _test_emberwood_grove(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "emberwood_grove")
+	_check(not entry.is_empty(), "Canonical Emberwood Grove site must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var placements: Array = definition.get("placements", {}).get("characters", [])
+	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Emberwood Grove actors must use the shared chunk presenter")
+	_check(definition.get("layout", {}).get("buildings", []).is_empty(), "The grove must not gain fabricated settlement buildings")
+	_check(placements.size() == 2, "Emberwood Grove must contain Elder Nessa and Fenn only")
+	var ids: Dictionary = {}
+	for placement in placements:
+		ids[String(placement.get("character_id", ""))] = placement
+	_check(ids.has("elder_nessa_wren") and ids.has("fenn_oakheart"), "Both source-authored grove residents must be placed")
+	if ids.has("elder_nessa_wren"):
+		_assert_axial(ids["elder_nessa_wren"].get("position", {}), Vector2i(-266, 11), "Elder Nessa source position")
+	if ids.has("fenn_oakheart"):
+		_assert_axial(ids["fenn_oakheart"].get("position", {}), Vector2i(-265, 12), "Fenn source position")
+	var registry = CHARACTER_REGISTRY.new()
+	_check(not registry.get_character("elder_nessa_wren").is_empty(), "Elder Nessa's Ara appearance profile must resolve")
+	_check(not registry.get_character("fenn_oakheart").is_empty(), "Fenn's Ara appearance profile must resolve")
+
+
+func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) -> void:
+	var entry := _entry_by_id(entries, "skarn_tooth_camp")
+	_check(not entry.is_empty(), "Canonical Skarn-tooth Camp must be available")
+	if entry.is_empty():
+		return
+	var definition: Dictionary = entry.get("definition", {})
+	var layout: Dictionary = definition.get("layout", {})
+	_check(String(definition.get("presentation", {}).get("mode", "")) == "chunked", "Skarn-tooth Camp must use the shared chunk presenter")
+	var buildings: Array = layout.get("buildings", [])
+	_check(buildings.size() == 6, "Skarn-tooth Camp must retain the chief's hut and five smaller source huts")
+	_check(BUILDING_FACTORY.supports_definition(_find_record(buildings, "skarn_tooth_chiefs_hut")), "Chief's hut must use the shared large-hut archetype")
+	_check(BUILDING_FACTORY.supports_definition(_find_record(buildings, "skarn_tooth_hut_west_north")), "Smaller goblin huts must use the shared hut archetype")
+	var props: Array = layout.get("props", [])
+	_check(not _find_record(props, "skarn_tooth_campfire").is_empty(), "The source central campfire must be presented")
+	_check(not _find_record(props, "goblin_scout_note_prop").is_empty(), "The foreign-made scout note must be presented beside the chief's hut")
+	var placements: Array = definition.get("placements", {}).get("characters", [])
+	_check(placements.size() == 8, "Camp must retain seven goblins and captive Ser Aldric")
+	var ids: Dictionary = {}
+	for placement in placements:
+		ids[String(placement.get("character_id", ""))] = placement
+	for required_id in ["chief_skarnub", "nix_sharpear", "gralk_bonecaster", "grondle", "skarn_tooth_guard_01", "skarn_tooth_guard_02", "skarn_tooth_skulker", "ser_aldric_thorne"]:
+		_check(ids.has(required_id), "Skarn-tooth Camp must retain source character " + required_id)
+	var expected_positions := {
+		"chief_skarnub": Vector2i(203, 22),
+		"nix_sharpear": Vector2i(201, 23),
+		"gralk_bonecaster": Vector2i(205, 23),
+		"grondle": Vector2i(202, 25),
+		"skarn_tooth_guard_01": Vector2i(200, 24),
+		"skarn_tooth_guard_02": Vector2i(206, 24),
+		"skarn_tooth_skulker": Vector2i(203, 24),
+		"ser_aldric_thorne": Vector2i(204, 22)
+	}
+	for character_id in expected_positions:
+		if ids.has(character_id):
+			_assert_axial(ids[character_id].get("position", {}), expected_positions[character_id], character_id + " source position")
+	var registry = CHARACTER_REGISTRY.new()
+	var chief := registry.get_character("chief_skarnub")
+	var goblin_appearance: Dictionary = chief.get("appearance", {})
+	_check(String(chief.get("dialogue_id", "")) == "chief_skarnub", "Chief Skarnub must retain his original dialogue ID")
+	_check(String(chief.get("faction_id", "")) == "goblin_tribe" and String(chief.get("side", "")) == "neutral", "Goblin camp residents must initially remain neutral members of their tribe")
+	_check(is_equal_approx(float(goblin_appearance.get("height_scale", 1.0)), 0.78), "Goblin stand-ins must be visibly shorter than standard humans")
+	_check(is_equal_approx(float(goblin_appearance.get("body_scale", 1.0)), 0.80), "Goblin stand-ins must use a slimmer body scale")
+	var aldric := registry.get_character("ser_aldric_thorne")
+	_check(bool(aldric.get("tied_up", false)), "Ser Aldric must retain his source captive state")
+	_check(terrain.terrain_for_hex(Vector2i(203, 23)) == "dirt", "Skarn-tooth clearing must retain its source dirt terrain")
+
 
 func _entry_by_id(entries: Array, settlement_id: String) -> Dictionary:
 	for entry in entries:
