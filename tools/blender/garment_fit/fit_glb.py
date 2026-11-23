@@ -59,11 +59,31 @@ def matching_material_faces(obj, tokens):
     return selected, sorted(names)
 
 
-def build_world_surface_tree(skin):
+def matching_material_polygons(obj, tokens):
+    return [
+        list(poly.vertices)
+        for poly in obj.data.polygons
+        if (material := material_for_polygon(obj, poly)) is not None
+        and material.name in tokens
+    ]
+
+
+def matching_material_vertices(obj, tokens):
+    selected = set()
+    for polygon in obj.data.polygons:
+        material = material_for_polygon(obj, polygon)
+        if material and material.name in tokens:
+            selected.update(polygon.vertices)
+    return selected
+
+
+def build_world_surface_tree(skin, skin_tokens):
     world_vertices = [skin.matrix_world @ vertex.co for vertex in skin.data.vertices]
-    polygons = [list(poly.vertices) for poly in skin.data.polygons]
+    polygons = matching_material_polygons(skin, skin_tokens)
     if not world_vertices or not polygons:
-        raise RuntimeError("Skin mesh has no usable vertices or faces")
+        raise RuntimeError(
+            f"Skin mesh {skin.name} has no faces matching {sorted(skin_tokens)}"
+        )
     tree = BVHTree.FromPolygons(world_vertices, polygons, all_triangles=False)
     if tree is None:
         raise RuntimeError("Could not build BVH from skin-only surface")
@@ -106,7 +126,7 @@ def main():
         )
 
     skin, found_skin_materials = skin_matches[0]
-    tree = build_world_surface_tree(skin)
+    tree = build_world_surface_tree(skin, skin_tokens)
     query = query_factory(tree)
     config = FitConfig(
         target_clearance=args.clearance_mm / 1000.0,
@@ -120,12 +140,18 @@ def main():
     object_reports = []
     total_selected = 0
     total_moved = 0
+    body_vertex_indices = matching_material_vertices(skin, skin_tokens)
     for obj in meshes:
-        if obj == skin:
-            continue
         selected, found_materials = matching_material_faces(obj, garment_tokens)
         if not selected:
             continue
+        if obj == skin:
+            overlap = selected.intersection(body_vertex_indices)
+            if overlap:
+                raise RuntimeError(
+                    "Garment and skin material faces share vertex indices; refusing "
+                    f"to modify the body mesh ({len(overlap)} shared vertices)"
+                )
         indices = sorted(selected)
         remap = {old: new for new, old in enumerate(indices)}
         source_world = [tuple(obj.matrix_world @ obj.data.vertices[i].co) for i in indices]
@@ -161,8 +187,6 @@ def main():
     if not object_reports:
         diagnostics = []
         for obj in meshes:
-            if obj == skin:
-                continue
             slots = [
                 slot.material.name if slot.material else None
                 for slot in obj.material_slots
@@ -170,6 +194,7 @@ def main():
             used_indices = sorted({poly.material_index for poly in obj.data.polygons})
             diagnostics.append({
                 "object": obj.name,
+                "is_skin_object": obj == skin,
                 "data_materials": [
                     material.name if material else None
                     for material in obj.data.materials
