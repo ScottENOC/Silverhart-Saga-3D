@@ -199,7 +199,7 @@ jobs:
           # the two validated player bodies and their Godot import sidecars.
           git add -f art/characters/ara_runtime/ara_player_female_body.glb art/characters/ara_runtime/ara_player_female_body.glb.import
           git add -f art/characters/ara_runtime/ara_player_male_body.glb art/characters/ara_runtime/ara_player_male_body.glb.import
-          git add art/characters/ara_runtime/manifest.json
+          git add -f art/characters/ara_runtime/manifest.json
           if git diff --cached --quiet; then
             echo "Player body assets are already current."
             exit 0
