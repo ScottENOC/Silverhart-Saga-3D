@@ -2,7 +2,7 @@ name: Wren topology anatomy review
 
 on:
   push:
-    branches: [feature/topology-aware-anatomy-proposals]
+    branches: [feature/topology-aware-anatomy-proposals, feature/anatomy-coverage-face-nipple-diagnostics]
     paths:
       - ".github/workflows/wren-topology-anatomy-review.yml"
       - "tools/review/wren_topology_anatomy_proposal.gd"
