@@ -31,6 +31,16 @@ const ELVEN_CAPITAL_CENTRE := Vector2i(-252, 934)
 const ELVEN_CANOPY_RADIUS := 18
 const ELVEN_CLEARING_RADIUS := 9
 
+## Silverhart source-built fortifications: palace curtain wall radius 23,
+## outer city wall radius 60. Both are rendered from the settlement layout's
+## individual palisade props; this terrain layer supplies their logical walls.
+const SILVERHART_CENTRE := Vector2i(8, -496)
+const SILVERHART_PALACE_WALL_RADIUS := 23
+const SILVERHART_CITY_WALL_RADIUS := 60
+const SILVERHART_CITY_GATE_HEXES: Array[Vector2i] = [
+	Vector2i(8, -436), Vector2i(7, -436), Vector2i(6, -436)
+]
+
 ## Kragmoor's source anchor is Hollowmere's crossroads plus (+900, -650).
 ## The mountain is a solid 25-hex massif; only the surface Gate Hall and its
 ## south approach are carved into it in this terrain-only pass.
@@ -87,6 +97,9 @@ static func terrain_override_at(hex: Vector2i) -> Dictionary:
 	var dungeon_override := _dungeon_surface_override(hex)
 	if not dungeon_override.is_empty():
 		return dungeon_override
+	var silverhart_wall_override := _silverhart_wall_override(hex)
+	if not silverhart_wall_override.is_empty():
+		return silverhart_wall_override
 	var spider_ruin_distance := _axial_distance(hex, MIRABEL_SPIDER_RUIN_CENTRE)
 	if spider_ruin_distance <= MIRABEL_SPIDER_RUIN_RADIUS:
 		return {"terrain": "rocky_outcrop", "feature_id": "reddale_mirabel_spider_ruin", "distance": spider_ruin_distance}
@@ -150,6 +163,17 @@ static func terrain_override_at(hex: Vector2i) -> Dictionary:
 			"feature_id": "silthandriel_canopy",
 			"distance": canopy_distance
 		}
+	return {}
+
+static func _silverhart_wall_override(hex: Vector2i) -> Dictionary:
+	if hex in SILVERHART_CITY_GATE_HEXES:
+		return {"terrain": "path", "feature_id": "silverhart_city_gate"}
+	var city_distance := _axial_distance(hex, SILVERHART_CENTRE)
+	if city_distance == SILVERHART_CITY_WALL_RADIUS:
+		return {"terrain": "climbable_wall", "feature_id": "silverhart_city_wall", "distance": city_distance}
+	var palace_distance := _axial_distance(hex, SILVERHART_CENTRE)
+	if palace_distance == SILVERHART_PALACE_WALL_RADIUS:
+		return {"terrain": "climbable_wall", "feature_id": "silverhart_palace_curtain_wall", "distance": palace_distance}
 	return {}
 
 static func is_herb_patch(hex: Vector2i) -> bool:
