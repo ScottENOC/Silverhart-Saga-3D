@@ -218,6 +218,13 @@ func _terrain_for_hex_uncached(hex: Vector2i) -> String:
 	# Campaign 2 world painter did.
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
+		# Natural site clearings establish the ground palette, but authored
+		# settlement buildings still occupy their own footprints within them.
+		# Fort walls, dungeon rooms and other structural regional overrides
+		# remain authoritative.
+		var feature_id := String(regional_override.get("feature_id", ""))
+		if feature_id.ends_with("_clearing") and settlement_building_cells.has(_hex_key(hex)):
+			return "authored"
 		return String(regional_override.get("terrain", "grass"))
 	# Explicit settlement buildings and roads are presentation overlays on
 	# the regional terrain. Resolve them before the broad authored biome
@@ -259,6 +266,9 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	# terrain queries, including sites carved into settlement footprints.
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
+		var feature_id := String(regional_override.get("feature_id", ""))
+		if feature_id.ends_with("_clearing") and settlement_building_cells.has(_hex_key(hex)):
+			return "building"
 		return String(regional_override.get("terrain", "grass"))
 	# A settlement's own terrain rules (notably Hollowmere's stream and bridge)
 	# remain authoritative inside its bounds. Other settlements' explicit
