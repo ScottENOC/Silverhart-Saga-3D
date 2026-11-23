@@ -226,8 +226,13 @@ func _initialize() -> void:
 			quit(1)
 			return
 	var chief_actor := goblin_camp_chunk.get_node("NPC_chief_skarnub")
-	if not bool(chief_actor.get_meta("tied_up", false)) and chief_actor.get_meta("height_scale", 1.0) >= 1.0:
+	if chief_actor.get_meta("height_scale", 1.0) >= 1.0 or chief_actor.get_meta("body_scale", 1.0) >= 1.0 or String(chief_actor.get_meta("race", "")) != "goblin":
 		push_error("Chief Skarnub should retain his temporary goblin scale metadata.")
+		quit(1)
+		return
+	var campfire := goblin_camp_chunk.get_node("skarn_tooth_campfire")
+	if not campfire.get_node("CampfireGlow") is OmniLight3D:
+		push_error("The source campfire must preserve its six-hex-radius light.")
 		quit(1)
 		return
 	var aldric_actor := goblin_camp_chunk.get_node("NPC_ser_aldric_thorne")
