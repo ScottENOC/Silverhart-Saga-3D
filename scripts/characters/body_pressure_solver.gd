@@ -49,9 +49,12 @@ func step(delta: float) -> void:
 				velocity = 0.0
 			state["compression_m"] = displacement
 			state["velocity_m_per_s"] = velocity
-			state["force_n"] = 0.0
 			_regions[region_id] = state
 		remaining -= dt
+	for region_id in _regions:
+		var state: Dictionary = _regions[region_id]
+		state["force_n"] = 0.0
+		_regions[region_id] = state
 
 func get_compression_m(region_id: StringName) -> float:
 	return float(_regions[region_id]["compression_m"]) if _regions.has(region_id) else 0.0
