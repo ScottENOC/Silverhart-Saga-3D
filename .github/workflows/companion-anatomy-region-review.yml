@@ -5,6 +5,8 @@ on:
     branches: [feature/ara-garment-fit-guides, feature/full-body-overlapping-anatomy-vocabulary, feature/anatomy-region-authoring-progress, feature/topology-aware-anatomy-proposals]
     paths:
       - ".github/workflows/companion-anatomy-region-review.yml"
+      - "tools/blender/add_female_anatomy_surface.py"
+      - "tools/blender/paint_vulva_mons_region_mask.py"
       - "tools/review/companion_surface_region_review.gd"
       - "tools/review/wren_bra_anatomy_proposal.gd"
       - "tools/review/wren_topology_anatomy_proposal.gd"
