@@ -105,7 +105,9 @@ func _test_campaign_building_services() -> void:
 	_check(bool(horse_purchase.get("ok", false)), "A qualified rider should be able to buy a war-trained horse at the stable")
 	_check(rider.gold == 625, "War-trained horse should cost the source-derived 375 gold")
 	var horse := simulation.get_character(String(horse_purchase.get("horse_id", "")))
-	_check(horse != null and horse.mountable and horse.side == "player", "Purchased horse should register in the shared simulation as an owned mount")
+	_check(horse != null and horse.mountable and horse.side == "neutral", "Purchased horse should register as a neutral owned mount")
+	if horse != null:
+		_check(not simulation.is_party_member(horse.id), "Purchased horse must not be added to the player character party roster")
 	if horse != null:
 		_check(horse.animal_attributes.get("coat_preset", "") == "chestnut", "Horse coat choice should persist in animal state")
 		_check(horse.animal_attributes.get("training_tier", "") == "war_trained", "Horse training tier should persist in animal state")
