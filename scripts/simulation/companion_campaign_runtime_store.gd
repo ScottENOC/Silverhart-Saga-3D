@@ -4,7 +4,7 @@ extends RefCounted
 ## CampaignJournal remains authoritative for quest status and decisions.
 
 const RELATIONSHIP_META_KEY := "companion_relationship_state"
-const QUEST_CHAIN_META_KEY := "companion_quest_chain_state"
+const QUEST_CHAIN_META_KEY := "companion_quest_chain_state"\nconst WREN_ARC_META_KEY := "wren_character_arc_state"
 
 
 static func relationship_state_for(simulation: WorldSimulation) -> CompanionRelationshipState:
