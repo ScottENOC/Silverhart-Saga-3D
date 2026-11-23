@@ -16233,6 +16233,18 @@
           },
           "quest_hooks": [
             "goblin_threat"
+          ],
+          "source_monster_type": "elite_goblin",
+          "source_custom_skills": {
+            "health": 3,
+            "axe_hit": 2,
+            "axe_dmg": 2,
+            "stealth_rogue": 2
+          },
+          "source_custom_equipment": [
+            "axe",
+            "medium_armor",
+            "wooden_shield"
           ]
         },
         {
@@ -16290,6 +16302,17 @@
           "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js",
           "quest_hooks": [
             "goblin_threat"
+          ],
+          "source_monster_type": "elite_goblin",
+          "source_custom_skills": {
+            "health": 1,
+            "dagger_hit": 2,
+            "stealth_rogue": 2,
+            "stealth_agility": 1
+          },
+          "source_custom_equipment": [
+            "dagger",
+            "light_armor"
           ]
         },
         {
@@ -16339,7 +16362,16 @@
               "id": "club"
             }
           },
-          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js",
+          "source_monster_type": "elite_goblin",
+          "source_custom_skills": {
+            "health": 2,
+            "learn_heal": 1,
+            "club_hit": 1
+          },
+          "source_custom_equipment": [
+            "club"
+          ]
         },
         {
           "id": "grondle",
@@ -16383,7 +16415,10 @@
           "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js",
           "quest_hooks": [
             "goblin_trader"
-          ]
+          ],
+          "source_monster_type": "goblin",
+          "source_custom_skills": {},
+          "source_custom_equipment": []
         },
         {
           "id": "skarn_tooth_guard_01",
@@ -16432,7 +16467,35 @@
               "id": "sword"
             }
           },
-          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js",
+          "source_monster_type": "goblin",
+          "source_custom_skills": {
+            "health": 1,
+            "sword_hit": 1,
+            "sword_dmg": 1
+          },
+          "source_custom_equipment": [
+            "sword"
+          ],
+          "behavior_type": "campRoutine",
+          "home_position": {
+            "q": 200,
+            "r": 24
+          },
+          "camp_spots": [
+            {
+              "q": 203,
+              "r": 23
+            },
+            {
+              "q": 200,
+              "r": 22
+            },
+            {
+              "q": 206,
+              "r": 22
+            }
+          ]
         },
         {
           "id": "skarn_tooth_guard_02",
@@ -16481,7 +16544,35 @@
               "id": "spear"
             }
           },
-          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js",
+          "source_monster_type": "goblin",
+          "source_custom_skills": {
+            "health": 1,
+            "spear_hit": 1,
+            "spear_dmg": 1
+          },
+          "source_custom_equipment": [
+            "spear"
+          ],
+          "behavior_type": "campRoutine",
+          "home_position": {
+            "q": 206,
+            "r": 24
+          },
+          "camp_spots": [
+            {
+              "q": 203,
+              "r": 23
+            },
+            {
+              "q": 200,
+              "r": 22
+            },
+            {
+              "q": 206,
+              "r": 22
+            }
+          ]
         },
         {
           "id": "skarn_tooth_skulker",
@@ -16530,7 +16621,35 @@
               "id": "bow"
             }
           },
-          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js"
+          "source": "campaign2World.js:buildGoblinCamp; campaign2Content.js",
+          "source_monster_type": "goblin",
+          "source_custom_skills": {
+            "health": 1,
+            "bow_hit": 1,
+            "stealth_rogue": 2
+          },
+          "source_custom_equipment": [
+            "bow"
+          ],
+          "behavior_type": "campRoutine",
+          "home_position": {
+            "q": 203,
+            "r": 24
+          },
+          "camp_spots": [
+            {
+              "q": 203,
+              "r": 23
+            },
+            {
+              "q": 200,
+              "r": 22
+            },
+            {
+              "q": 206,
+              "r": 22
+            }
+          ]
         },
         {
           "id": "ser_aldric_thorne",
@@ -16683,6 +16802,19 @@
                 "y": 0.62,
                 "z": 0
               }
+            },
+            {
+              "name": "CampfireGlow",
+              "type": "omni_light",
+              "position": {
+                "x": 0,
+                "y": 0.8,
+                "z": 0
+              },
+              "color": "#ff8738",
+              "energy": 2,
+              "range": 21,
+              "shadow_enabled": false
             }
           ],
           "source": "buildGoblinCamp central fireplace; source light radius 6"
