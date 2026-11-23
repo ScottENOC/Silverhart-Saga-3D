@@ -57,13 +57,19 @@ func _initialize() -> void:
 
 	# The merchant quarter's first four source interiors must be separate,
 	# traversable floor maps rather than exterior-only building records.
-	for interior_id in ["silverhart_stables", "silverhart_general_goods", "silverhart_clothier", "silverhart_magic_shop"]:
+	var merchant_entrances := {
+		"silverhart_stables": "stables_front_door",
+		"silverhart_general_goods": "general_goods_front_door",
+		"silverhart_clothier": "clothier_front_door",
+		"silverhart_magic_shop": "magic_shop_front_door"
+	}
+	for interior_id in merchant_entrances:
 		var interior: Dictionary = registry.get_definition(interior_id)
 		_check(not interior.is_empty(), "Silverhart merchant interior must be registered: " + interior_id)
 		_check(interior.get("floors", []).size() == 1, "Merchant interior must have its source ground floor: " + interior_id)
 		var interior_floor := registry.get_floor_definition(interior_id, 0)
 		_check(interior_floor.get("rooms", []).size() == 1, "Merchant interior must retain its source room: " + interior_id)
-		_check(_has_record(interior_floor.get("tile_objects", []), interior_id + "_front_door"), "Merchant interior must retain its source entrance: " + interior_id)
+		_check(_has_record(interior_floor.get("tile_objects", []), merchant_entrances[interior_id]), "Merchant interior must retain its source entrance: " + interior_id)
 	var stables_floor := registry.get_floor_definition("silverhart_stables", 0)
 	_check(_has_record(stables_floor.get("tile_objects", []), "stables_pen"), "Royal stables must retain the source pen feature")
 	var general_goods_floor := registry.get_floor_definition("silverhart_general_goods", 0)
