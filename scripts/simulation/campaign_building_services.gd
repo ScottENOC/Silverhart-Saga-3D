@@ -263,7 +263,9 @@ func purchase_horse(
 	var horse := AnimalCatalog.create_state("horse", horse_id, "Horse", spawn_hex, next_horse_id)
 	if horse == null:
 		return _failure("horse_profile_unavailable")
-	horse.side = buyer.side
+	# Keep the owned mount out of party_member_ids. mount_animal() will
+	# temporarily inherit the rider's side while the horse is being ridden.
+	horse.side = "neutral"
 	horse.combat_dormant = true
 	horse.tags.append("owned_mount")
 	horse.animal_attributes["owner_character_id"] = buyer_id
