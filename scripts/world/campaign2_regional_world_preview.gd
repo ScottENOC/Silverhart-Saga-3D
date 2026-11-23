@@ -229,11 +229,22 @@ func _record_perf_frame(frame_usec: int, delta: float) -> void:
 	var average_ms := float(_perf_sample_frame_usec) / float(maxi(1, _perf_sample_frames)) / 1000.0
 	var maximum_ms := float(_perf_sample_max_frame_usec) / 1000.0
 	var slowest_ms := float(_perf_sample_slowest_usec) / 1000.0
-	print("[WorldPerf] fps=%.1f process_avg=%.2fms process_max=%.2fms nodes=%d chunks=%d slowest_chunk_stage=%s(%.2fms)" % [
+	var engine_process_ms := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	var physics_process_ms := Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	var render_objects := int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))
+	var render_primitives := int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
+	var physics_bodies := int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS))
+	print("[WorldPerf] fps=%.1f script_avg=%.2fms script_max=%.2fms engine_process=%.2fms physics=%.2fms nodes=%d objects=%d render_objects=%d primitives=%d physics_bodies=%d chunks=%d slowest_chunk_stage=%s(%.2fms)" % [
 		float(_perf_sample_frames) / _perf_sample_elapsed,
 		average_ms,
 		maximum_ms,
+		engine_process_ms,
+		physics_process_ms,
 		get_tree().get_node_count(),
+		int(Performance.get_monitor(Performance.OBJECT_COUNT)),
+		render_objects,
+		render_primitives,
+		physics_bodies,
 		chunk_nodes.size(),
 		_perf_sample_slowest_stage,
 		slowest_ms
