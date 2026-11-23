@@ -136,7 +136,7 @@ static func gift_chief(journal: CampaignJournal, available_gold: int) -> Diction
 		return {"ok": false, "reason": "insufficient_gold", "required_gold": 60}
 	if not journal.quest_state(QUEST_ID).is_empty() and journal.quest_state(QUEST_ID).get("decisions", {}).has("chief_gifted_in"):
 		return {"ok": false, "reason": "already_gifted"}
-	var started := _ensure_started(journal, QUEST_ID)
+	var started := _start_or_existing(journal, QUEST_ID)
 	if not bool(started.get("ok", false)):
 		return started
 	var decision := journal.record_decision(QUEST_ID, "chief_gifted_in", "gifted")
@@ -199,7 +199,7 @@ static func mark_scout_note_read(journal: CampaignJournal) -> Dictionary:
 		return {"ok": false, "reason": "missing_journal"}
 	if _completed(journal, SCOUT_NOTE_ID):
 		return {"ok": true, "already_read": true}
-	var started := _ensure_started(journal, SCOUT_NOTE_ID)
+	var started := _start_or_existing(journal, SCOUT_NOTE_ID)
 	if not bool(started.get("ok", false)):
 		return started
 	return CompanionCampaignContent.complete_objective(journal, SCOUT_NOTE_ID, "note_read")
@@ -207,7 +207,7 @@ static func mark_scout_note_read(journal: CampaignJournal) -> Dictionary:
 static func mark_mine_raid_complete(journal: CampaignJournal) -> Dictionary:
 	if journal == null:
 		return {"ok": false, "reason": "missing_journal"}
-	var started := _ensure_started(journal, MINE_QUEST_ID)
+	var started := _start_or_existing(journal, MINE_QUEST_ID)
 	if not bool(started.get("ok", false)) and String(started.get("reason", "")) != "quest_already_started":
 		return started
 	return CompanionCampaignContent.complete_objective(journal, MINE_QUEST_ID, "raid_emberlode")
@@ -215,7 +215,7 @@ static func mark_mine_raid_complete(journal: CampaignJournal) -> Dictionary:
 static func mark_northwatch_taken(journal: CampaignJournal) -> Dictionary:
 	if journal == null:
 		return {"ok": false, "reason": "missing_journal"}
-	var started := _ensure_started(journal, SPY_QUEST_ID)
+	var started := _start_or_existing(journal, SPY_QUEST_ID)
 	if not bool(started.get("ok", false)) and String(started.get("reason", "")) != "quest_already_started":
 		return started
 	return CompanionCampaignContent.complete_objective(journal, SPY_QUEST_ID, "northwatch_taken")
@@ -226,10 +226,6 @@ static func _resolve_threat(journal: CampaignJournal, resolution: String) -> Dic
 		return started
 	return CompanionCampaignContent.complete_with_decision(journal, QUEST_ID, "resolved", "resolution", resolution)
 
-static func _ensure_started(journal: CampaignJournal, quest_id: String) -> Dictionary:
-	if not journal.quest_state(quest_id).is_empty():
-		return {"ok": false, "reason": "quest_already_started"}
-	return journal.start_quest(quest_id)
 
 static func _apply_reputation(journal: CampaignJournal, goblin_delta: float, goblin_knowledge: float, kingdom_delta: float, kingdom_knowledge: float, reason: String) -> void:
 	journal.adjust_faction_reputation("goblin_tribe", goblin_delta, goblin_knowledge, reason)
