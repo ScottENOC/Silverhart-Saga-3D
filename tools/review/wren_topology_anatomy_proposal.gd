@@ -850,12 +850,13 @@ func _build_overlay(
 
     var transforms: Array[Transform3D] = []
     var colours: Array[Color] = []
+    var selected_region_ids: Array = REGIONS.keys()
+    if not only_region.is_empty():
+        selected_region_ids = [only_region]
     for vertex_index in vertices.size():
         var accumulated := Color(0.0, 0.0, 0.0, 0.0)
         var strongest := 0.0
-        for region_id in REGIONS:
-            if not only_region.is_empty() and region_id != only_region:
-                continue
+        for region_id in selected_region_ids:
             if region_id == "vulva_external":
                 continue
             var weights: PackedFloat32Array = candidate_weights[region_id]
