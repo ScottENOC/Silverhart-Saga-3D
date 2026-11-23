@@ -88,7 +88,7 @@ static func compute_variant(
             return {"ok": false, "reason": "invalid_spell_modifier"}
 
     var summon_id: Variant = modifiers.get("summon_id", "wolf")
-    if not summon_id is String or not ["wolf", "boar", "tiger", "eagle", "unicorn"].has(String(summon_id)):
+    if not summon_id is String or not ["horse", "wolf", "boar", "tiger", "eagle", "unicorn"].has(String(summon_id)):
         return {"ok": false, "reason": "invalid_summon_choice"}
     var calm_mode: Variant = modifiers.get("calm_mode", "stay")
     if not calm_mode is String or not ["stay", "come", "chase"].has(String(calm_mode)):
