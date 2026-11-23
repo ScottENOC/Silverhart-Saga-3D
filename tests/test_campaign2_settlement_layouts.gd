@@ -424,6 +424,19 @@ func _test_skarn_tooth_camp(terrain: Campaign2WorldTerrainData, entries: Array) 
 		ids[String(placement.get("character_id", ""))] = placement
 	for required_id in ["chief_skarnub", "nix_sharpear", "gralk_bonecaster", "grondle", "skarn_tooth_guard_01", "skarn_tooth_guard_02", "skarn_tooth_skulker", "ser_aldric_thorne"]:
 		_check(ids.has(required_id), "Skarn-tooth Camp must retain source character " + required_id)
+	var expected_positions := {
+		"chief_skarnub": Vector2i(203, 22),
+		"nix_sharpear": Vector2i(201, 23),
+		"gralk_bonecaster": Vector2i(205, 23),
+		"grondle": Vector2i(202, 25),
+		"skarn_tooth_guard_01": Vector2i(200, 24),
+		"skarn_tooth_guard_02": Vector2i(206, 24),
+		"skarn_tooth_skulker": Vector2i(203, 24),
+		"ser_aldric_thorne": Vector2i(204, 22)
+	}
+	for character_id in expected_positions:
+		if ids.has(character_id):
+			_assert_axial(ids[character_id].get("position", {}), expected_positions[character_id], character_id + " source position")
 	var character_registry = CHARACTER_REGISTRY.new()
 	var chief := character_registry.get_character("chief_skarnub")
 	var goblin_appearance: Dictionary = chief.get("appearance", {})
