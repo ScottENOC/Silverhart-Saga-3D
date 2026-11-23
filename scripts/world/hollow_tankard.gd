@@ -1388,6 +1388,10 @@ func _show_companion_dialogue(character_id: String) -> void:
 		return
 	var canonical_id := character_id.trim_prefix("companion_")
 	var relationships := COMPANION_RUNTIME_STORE.relationship_state_for(simulation)
+	if canonical_id == "wren_talbot" and relationships != null:
+		var character_arc := COMPANION_RUNTIME_STORE.wren_arc_state_for(simulation)
+		if character_arc != null:
+			character_arc.sync_story_events(relationships)
 	var relationship_line := ""
 	if relationships != null and relationships.has_profile(canonical_id):
 		var conversation_key := "world_talk:" + str(int(simulation.clock.world_seconds))
