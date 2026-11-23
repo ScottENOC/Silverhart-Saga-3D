@@ -177,6 +177,7 @@ func _test_curse() -> void:
     enemy.health = 50
     enemy.current_mana = 10
     enemy.max_mana = 10
+    enemy.time_points = 100.0
     caster.skills["cleric_trigger_damage"] = 1
     caster.skills["cleric_trigger_dmg_red"] = 2
     caster.skills["cleric_trigger_heal_red"] = 1
