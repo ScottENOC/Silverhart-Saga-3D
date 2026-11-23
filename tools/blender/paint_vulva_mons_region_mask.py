@@ -96,6 +96,10 @@ def read_mask_from_uv2(mesh):
 def inspect_glb_texcoord1(path, source_by_id):
     """Read TEXCOORD_1 directly from GLB and compare its V channel to source weights."""
     source_vertex_count = len(source_by_id)
+    expected_weights_by_id = {
+        int(round(float(encoded_id) * source_vertex_count - 0.5)): float(weight)
+        for encoded_id, weight in source_by_id.items()
+    }
     with open(path, "rb") as handle:
         blob = handle.read()
     if len(blob) < 20:
@@ -140,7 +144,6 @@ def inspect_glb_texcoord1(path, source_by_id):
             invalid = 0
             direct_weight_matches = 0
             inverted_weight_matches = 0
-            direct_weighted_ids = set()
             inverted_weighted_ids = set()
             min_y = float("inf")
             max_y = float("-inf")
@@ -155,7 +158,7 @@ def inspect_glb_texcoord1(path, source_by_id):
                 ids.add(correspondence_id)
                 min_y = min(min_y, y)
                 max_y = max(max_y, y)
-                expected_weight = float(source_by_id[correspondence_id])
+                expected_weight = expected_weights_by_id[correspondence_id]
                 if abs(y - expected_weight) <= 1e-5:
                     direct_weight_matches += 1
                 if abs(y - (1.0 - expected_weight)) <= 1e-5:
