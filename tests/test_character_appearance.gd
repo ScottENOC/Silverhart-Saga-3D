@@ -21,6 +21,7 @@ func _test_player_male_anatomy_creation_save_restore() -> void:
 	var creator_script := load("res://scripts/ui/player_character_creator.gd") as Script
 	assert(creator_script != null, "Player character creator script must load")
 	var creator := creator_script.new() as CanvasLayer
+	creator.preview_enabled = false
 	root.add_child(creator)
 	assert(creator.male_anatomy_length_slider != null)
 	assert(creator.male_anatomy_girth_slider != null)
