@@ -6,7 +6,7 @@ var failures: int = 0
 func _initialize() -> void:
 	var registry = REGISTRY.new()
 	_check(registry.validation_errors.is_empty(), "Source-authored multi-story locations must validate")
-	_check(registry.location_ids() == ["kragmoor", "silthandriel", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_thieves_guild"], "Kragmoor and all source-authored Silverhart interiors must be registered")
+	_check(registry.location_ids() == ["emberlode_mine", "kragmoor", "silthandriel", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_thieves_guild"], "Emberlode Mine, Kragmoor and all source-authored Silverhart interiors must be registered")
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
 	_check(palace.get("floors", []).size() == 2, "Silverhart Grand Hall must preserve its two source floors")
