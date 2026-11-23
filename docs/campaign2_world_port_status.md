@@ -79,3 +79,9 @@ A location is not marked ported merely because its marker appears on the macro m
 ## Temporary creature and race presentation policy
 
 Campaign content parity takes priority over bespoke creature modelling. Where a dedicated model would delay a playable port, use the closest existing rig as a clearly documented temporary stand-in. Goblins use the shared Ara male rig with green skin and per-character short/slim scaling; their campaign IDs, faction, side, dialogue, equipment and quest metadata remain independent of that visual choice. Replace the model later without changing those systems. Do not let missing spider, goblin or orc models block the source content port.
+
+## Skarn-tooth campaign logic port
+
+The source-backed `GoblinCampCampaignContent` now defines the chief's initial dialogue choices, the 60-gold gift gate, favor choices, and persistent quest outcomes for diplomacy, permanent alliance, assault, stealth succession and betrayal. It also registers the Emberlode mine-raid, foreign scout-note and Northwatch spy follow-ups. Faction reputation and quest decisions are written to the existing `CampaignJournal`; region-stat, XP, gold, Aldric-rescue and companion-departure effects are returned to the campaign composition layer rather than applied by the dialogue panel.
+
+The next integration pass must connect these returned effects to the existing player/party state and world interaction flow, including: chief gift payment, reading the scout note, Aldric's physical release and companion conversion, the chief-death/assassination events, and the Emberlode/Northwatch world outcomes. The new content tests cover the source resolution gates and journal state, not yet the live 3D interaction loop.
