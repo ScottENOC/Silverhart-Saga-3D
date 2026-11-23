@@ -26,6 +26,7 @@ const SPELL_VFX_SCRIPT = preload("res://scripts/presentation/spell_vfx_controlle
 const SAVE_LOAD_MENU_SCRIPT = preload("res://scripts/ui/save_load_menu.gd")
 const SAVE_MANAGER_SCRIPT = preload("res://scripts/save/save_manager.gd")
 const PERSISTENT_RELATIONSHIP_STORE = preload("res://scripts/simulation/persistent_character_relationship_store.gd")
+const PERSISTENT_DIALOGUE_CONTENT = preload("res://scripts/simulation/persistent_character_dialogue_content.gd")
 const TAVERN_BUILDING_ID: String = HOLLOW_TANKARD_LAYOUT.BUILDING_ID
 const TAVERN_FRONT_DOOR_ID: String = HOLLOW_TANKARD_LAYOUT.FRONT_DOOR_ID
 const TAVERN_DOOR_HEX: Vector2i = HOLLOW_TANKARD_LAYOUT.DOOR_HEX
@@ -1145,6 +1146,10 @@ func _interact_with_character(character_id: String) -> void:
 	if COMPANION_CAMPAIGN_SCRIPT.is_companion_id(character_id):
 		_show_companion_dialogue(character_id)
 		return
+	var streamed_actor := _find_streamed_npc_actor(character_id)
+	if streamed_actor != null and not actor_by_id.has(character_id):
+		_show_streamed_npc_dialogue(streamed_actor, target_state)
+		return
 	if character_id == "old_mac":
 		var farm_conversation := FARM_WOLVES_QUEST_SCRIPT.greeting(simulation.campaign_journal, _farm_wolves_remaining())
 		_show_dialogue(String(farm_conversation.get("speaker", "Old Mac")), String(farm_conversation.get("text", "")), farm_conversation.get("choices", []))
@@ -1184,6 +1189,23 @@ func _refresh_nearby_interactions() -> void:
 		var distance := HexGrid.distance(active_state.axial, state.axial)
 		if distance <= 2:
 			nearby.append({"id":actor_id,"name":state.display_name,"distance":distance,"hostile":hostile})
+
+	# Streamed settlement NPCs live under chunk presentation nodes rather than
+	# HollowTankard's local actor dictionary. Their CharacterState is shared by
+	# WorldSimulation, so they use the exact same proximity/range rules.
+	for actor in get_tree().get_nodes_in_group("campaign2_npc"):
+		var actor_id := String(actor.get_meta("campaign2_npc_id", ""))
+		if actor_id.is_empty() or actor_by_id.has(actor_id) or actor_id == active_character_id or simulation.is_party_member(actor_id):
+			continue
+		var state := simulation.get_character(actor_id)
+		if state == null or not state.can_act():
+			continue
+		var hostile := state.side == "enemy"
+		if hostile:
+			continue
+		var distance := HexGrid.distance(active_state.axial, state.axial)
+		if distance <= 2:
+			nearby.append({"id":actor_id,"name":state.display_name,"distance":distance,"hostile":false})
 	nearby.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		if int(a.distance) == int(b.distance):
 			return String(a.name) < String(b.name)
@@ -1210,6 +1232,54 @@ func _refresh_nearby_interactions() -> void:
 
 func _on_nearby_interaction_pressed(character_id: String) -> void:
 	_interact_with_character(character_id)
+
+
+func _find_streamed_npc_actor(character_id: String) -> Node3D:
+	for actor in get_tree().get_nodes_in_group("campaign2_npc"):
+		if String(actor.get_meta("campaign2_npc_id", "")) == character_id:
+			return actor as Node3D
+	return null
+
+
+func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) -> void:
+	if actor == null or target_state == null:
+		return
+	var dialogue_id := String(actor.get_meta("dialogue_id", ""))
+	if dialogue_id == "silverhart_queen":
+		var relationships := PERSISTENT_RELATIONSHIP_STORE.state_for(simulation)
+		var content := PERSISTENT_DIALOGUE_CONTENT.new()
+		var journal := simulation.campaign_journal
+		var context := {
+			"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
+			"goblin_standing": journal.faction_standing("goblin_tribe"),
+			"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
+			"necromancer_standing": journal.faction_standing("necromancer_cult"),
+			"wizard_vendetta_active": String(journal.quest_state("wizard_vendetta").get("status", "")) == "active",
+			"has_wizard_corruption_evidence": _player_has_item("wizard_corruption_evidence"),
+			"chancellor_tunnel_discovered": bool(simulation.get_meta("chancellor_tunnel_discovered", false)),
+			"chancellor_tunnel_reported": bool(simulation.get_meta("chancellor_tunnel_reported_to_queen", false))
+		}
+		var conversation: Dictionary = content.seraphine_greeting(context, relationships)
+		if bool(conversation.get("ok", false)):
+			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "")), conversation.get("choices", []))
+		else:
+			_show_dialogue(String(conversation.get("speaker", target_state.display_name)), String(conversation.get("text", "The Queen has no audience for you.")), conversation.get("choices", [{"id":"continue","label":"Leave","kind":"leave"}]))
+		return
+	var title := String(actor.get_meta("title", ""))
+	var body := "They regard you with measured curiosity, but have little to say just now."
+	if not title.is_empty():
+		body = "%s acknowledges you. Their duties leave little time for conversation." % title
+	_show_dialogue(target_state.display_name, body, [{"id":"continue","label":"Continue","kind":"leave"}])
+
+
+func _player_has_item(item_id: String) -> bool:
+	var player := simulation.get_character(simulation.player_character_id)
+	if player == null:
+		return false
+	for item in player.inventory:
+		if String(item.get("id", "")) == item_id:
+			return true
+	return false
 
 
 func _show_companion_dialogue(character_id: String) -> void:
