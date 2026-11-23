@@ -4,7 +4,6 @@ const LOCATION_LOADER = preload("res://scripts/world/campaign2_location_loader.g
 const STARTING_LOCATION = preload("res://data/world/locations/hollowmere.gd")
 const CHARACTER_CREATOR_SCRIPT = preload("res://scripts/ui/player_character_creator.gd")
 const HOLLOWMERE_CAMPAIGN_CONTENT = preload("res://scripts/simulation/hollowmere_campaign_content.gd")
-const COMPANION_CAMPAIGN_CONTENT = preload("res://scripts/simulation/companion_campaign_content.gd")
 const GOBLIN_CAMP_CAMPAIGN_CONTENT = preload("res://scripts/simulation/goblin_camp_campaign_content.gd")
 const FARM_WOLVES_QUEST = preload("res://scripts/simulation/farm_wolves_quest.gd")
 
