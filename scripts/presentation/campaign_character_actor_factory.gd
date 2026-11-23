@@ -113,6 +113,14 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 		actor.set_meta("race", _safe_metadata_string(npc.get("race", "human"), "human"))
 		actor.set_meta("title", _safe_metadata_string(npc.get("title", "")))
 		actor.set_meta("tied_up", bool(npc.get("tied_up", false)))
+		actor.set_meta("source_monster_type", _safe_metadata_string(npc.get("source_monster_type", "")))
+		actor.set_meta("source_custom_skills", npc.get("source_custom_skills", {}).duplicate(true))
+		actor.set_meta("source_custom_equipment", npc.get("source_custom_equipment", []).duplicate(true))
+		actor.set_meta("behavior_type", _safe_metadata_string(npc.get("behavior_type", "")))
+		if npc.has("home_position"):
+			actor.set_meta("home_position", npc.get("home_position", {}).duplicate(true))
+		if npc.has("camp_spots"):
+			actor.set_meta("camp_spots", npc.get("camp_spots", []).duplicate(true))
 		if npc.has("wants"):
 			actor.set_meta("wants", npc.get("wants", {}).duplicate(true))
 		actor.set_meta("ambient_enabled", false)
