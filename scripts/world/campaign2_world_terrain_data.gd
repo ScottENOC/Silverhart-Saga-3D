@@ -266,6 +266,20 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	return "building" if terrain == "authored" else terrain
 
 func is_walkable_for_hex(hex: Vector2i) -> bool:
+	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
+	if not regional_override.is_empty():
+		var override_terrain := String(regional_override.get("terrain", "grass"))
+		return override_terrain not in ["water", "building", "keep_wall", "climbable_wall", "palisade_wall"]
+	if settlement_wall_cells.has(_hex_key(hex)):
+		return false
+	if settlement_path_cells.has(_hex_key(hex)):
+		return true
+	if settlement_building_cells.has(_hex_key(hex)):
+		return false
+	# Strategic roads are source-painted overlays, so their crossings remain
+	# walkable even when the underlying authored settlement provider is water.
+	if road_cells.has(_hex_key(hex)):
+		return true
 	var authored_settlement := settlement_definition_registry.resolve(hex)
 	var terrain_definition := _authored_terrain_definition(authored_settlement)
 	if not terrain_definition.is_empty():
