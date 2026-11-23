@@ -393,14 +393,13 @@ func _validate_commission_appearance(kind: String, appearance: Dictionary) -> Di
 			var is_custom_metal := bool(layer.get("unlocked", false))
 			if not is_custom_metal:
 				var is_approved_steel := absf(hue - 210.0) <= 0.1 and saturation <= 12.0
+				var has_approved_steel_value := false
 				for tone_value in METAL_TONES:
 					var tone: Dictionary = tone_value
 					if is_equal_approx(value, float(tone.value)):
-						is_approved_steel = is_approved_steel and true
+						has_approved_steel_value = true
 						break
-				else:
-					is_approved_steel = false
-				if not is_approved_steel:
+				if not is_approved_steel or not has_approved_steel_value:
 					return _failure("metal_finish_not_in_steel_palette")
 	return {"ok": true}
 
