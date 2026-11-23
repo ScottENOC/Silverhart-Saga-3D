@@ -8,7 +8,11 @@ class_name Campaign2CampaignTerrainStream
 var campaign_simulation: WorldSimulation
 
 
-func configure_campaign(source_simulation: WorldSimulation) -> void:
+func configure_campaign(
+	source_simulation: WorldSimulation,
+	_profile: Dictionary = {},
+	_save_data: Dictionary = {}
+) -> void:
 	campaign_simulation = source_simulation
 
 
