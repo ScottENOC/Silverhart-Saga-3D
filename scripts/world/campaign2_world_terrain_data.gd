@@ -215,6 +215,9 @@ func _terrain_for_hex_uncached(hex: Vector2i) -> String:
 	# Regional authored sites take precedence over underlying settlement terrain.
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
+		var feature_id := String(regional_override.get("feature_id", ""))
+		if feature_id.ends_with("_clearing") and settlement_building_cells.has(_hex_key(hex)):
+			return "authored"
 		return String(regional_override.get("terrain", "grass"))
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
@@ -252,6 +255,9 @@ func _terrain_for_hex_uncached(hex: Vector2i) -> String:
 func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
+		var feature_id := String(regional_override.get("feature_id", ""))
+		if feature_id.ends_with("_clearing") and settlement_building_cells.has(_hex_key(hex)):
+			return "building"
 		return String(regional_override.get("terrain", "grass"))
 	if settlement_wall_cells.has(_hex_key(hex)):
 		return "palisade_wall"
@@ -276,6 +282,9 @@ func gameplay_terrain_for_hex(hex: Vector2i) -> String:
 func is_walkable_for_hex(hex: Vector2i) -> bool:
 	var regional_override := REGIONAL_FEATURES.terrain_override_at(hex)
 	if not regional_override.is_empty():
+		var feature_id := String(regional_override.get("feature_id", ""))
+		if feature_id.ends_with("_clearing") and settlement_building_cells.has(_hex_key(hex)):
+			return false
 		var override_terrain := String(regional_override.get("terrain", "grass"))
 		return override_terrain not in ["water", "building", "keep_wall", "climbable_wall"]
 	# Strategic roads are explicit source-painted crossings, including roads
