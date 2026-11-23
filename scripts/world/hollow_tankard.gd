@@ -240,7 +240,7 @@ func _on_simulation_action_committed(event: SimulationEvent) -> void:
 		if not summoned_id.is_empty():
 			_ensure_summoned_animal_actor(simulation.get_character(summoned_id))
 	if event.event_type == "spell_cast" and event.actor_id == "player" and String(event.payload.get("spell_id", "")) == "disguise_self":
-		_open_disguise_creator()
+		_open_disguise_creator(String(event.payload.get("copy_character_id", "")))
 	elif event.event_type == "spell_countered" and not active_disguise_profile.is_empty():
 		var player_state := simulation.get_character("player")
 		if player_state == null or not player_state.has_spell_effect("disguise_self"):
@@ -354,12 +354,39 @@ func _ensure_summoned_animal_actor(state: CharacterState) -> void:
 	actor_by_id[state.id] = placeholder
 
 
-func _open_disguise_creator() -> void:
+func get_disguise_copy_profiles() -> Array[Dictionary]:
+	var profiles: Array[Dictionary] = []
+	for actor_id_value in actor_by_id.keys():
+		var actor_id := String(actor_id_value)
+		if actor_id == "player":
+			continue
+		var actor := actor_by_id.get(actor_id) as Node3D
+		if actor == null:
+			continue
+		var profile: Variant = actor.get_meta("base_appearance_profile", {})
+		if not profile is Dictionary or profile.is_empty():
+			continue
+		var state := simulation.get_character(actor_id) if simulation != null else null
+		profiles.append({"id": actor_id, "name": state.display_name if state != null else actor_id})
+	profiles.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return String(a.get("name", "")) < String(b.get("name", ""))
+	)
+	return profiles
+
+
+func _open_disguise_creator(copy_character_id: String = "") -> void:
 	if disguise_creator != null and is_instance_valid(disguise_creator):
 		return
+	var initial_profile := active_disguise_profile if not active_disguise_profile.is_empty() else player_profile
+	if not copy_character_id.is_empty():
+		var source_actor := actor_by_id.get(copy_character_id) as Node3D
+		if source_actor != null:
+			var source_profile: Variant = source_actor.get_meta("base_appearance_profile", {})
+			if source_profile is Dictionary and not source_profile.is_empty():
+				initial_profile = source_profile.duplicate(true)
 	disguise_creator = CHARACTER_CREATOR_SCRIPT.new() as CanvasLayer
 	disguise_creator.name = "DisguiseSelfCreator"
-	disguise_creator.call("configure_disguise", active_disguise_profile if not active_disguise_profile.is_empty() else player_profile)
+	disguise_creator.call("configure_disguise", initial_profile)
 	disguise_creator.connect("completed", Callable(self, "_on_disguise_profile_completed"))
 	add_child(disguise_creator)
 
