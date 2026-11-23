@@ -2,38 +2,42 @@
 
 ## Catalogue and preparation
 
-The source-derived catalogue contains all 15 base spells. `PreparedSpell` preserves the base ID, validated modifier choices and stable presentation identifiers. `SpellRules` is the sole source of variant cost, range, radius and magnitude calculations.
+The player-facing catalogue contains the official 12 base spells: Firebolt, Counterspell, Feather Fall, Disguise Self, Heal, Divine Protection, Divine Strength, Curse, Summon Animal, Entangle, Calm Animal and Wild Fury. `PreparedSpell` preserves the base ID, validated modifier choices and stable presentation identifiers. `SpellRules` is the sole source of variant cost, range, radius and magnitude calculations.
 
 ## Shared action path
 
-Player controls and combat AI submit `SimulationActionRequest.cast_spell()` or `cast_spell_at_hex()`. `WorldSimulation` validates the learned spell, exact prepared variant, target, range, Time Points, mana and armour/Blood Magic costs before payment. `SpellEffectRules` applies effects only after the validation and payment boundary.
+Player controls and combat AI submit `SimulationActionRequest.cast_spell()` or `cast_spell_at_hex()`. `WorldSimulation` validates the learned spell, exact prepared variant, target, range, Time Points, mana and armour/Blood Magic costs before payment. `SpellEffectRules` applies effects only after the validation and payment boundary. The simulation remains authoritative; the UI cannot bypass legality or resource payment.
 
 ## Executable spell effects
 
 | Spell | Simulation effect |
 |---|---|
-| Firebolt | Ranged damage, hit check, armour reduction and burst variant |
-| Heal | Restore health and revive unconscious allies; burst healing |
-| Smite Evil | Damage restricted to undead/demon tags |
-| Divine Silence | Persistent damage over elapsed Time Points; broken when target casts |
-| Sanctuary | Protects an ally and penalises hostile attacks/spells against them |
-| Divine Protection | Penalises hostile attackers' Time Points |
-| Summon Animal | Registers a wolf, boar, tiger, eagle or quest-gated unicorn summon |
-| Counterspell | Dispel an active target effect or summoned creature |
-| Dragon Breath | Hex-radius damage to opponents |
-| Entangle | Applies timed movement-cost effects to opponents in a hex radius |
-| Wild Fury | Timed bonus to unarmed damage |
-| Calm Animal | Calms eligible animal targets; excludes fey and dragons |
-| Disguise Self | Stores the selected disguise profile on the caster |
-| Temporal Rift | Drains the target's Time Points to zero |
+| Firebolt | Ranged damage, hit check, armour reduction and supported burst variant |
+| Counterspell | Dispel an active target effect or summoned creature; can interrupt a pending opposing cast through the reaction system |
 | Feather Fall | Timed self-protection, consumed by the shared fall-damage hook |
+| Disguise Self | Stores a selected appearance profile on the caster |
+| Heal | Restore health and revive eligible unconscious allies; supports burst healing |
+| Divine Protection | Applies a protective effect that penalises hostile attackers |
+| Divine Strength | Grants an ally a timed damage bonus |
+| Curse | Applies timed hostile-action penalties and its supported cleric skill hooks |
+| Summon Animal | Registers a wolf, boar, tiger, eagle or quest-gated unicorn summon |
+| Entangle | Applies timed movement-cost effects to opponents in a hex radius |
+| Calm Animal | Calms eligible animal targets; excludes fey and dragons |
+| Wild Fury | Grants a timed bonus to unarmed damage |
 
-Active effects are stored on `CharacterState` and included in save data. Timed effects advance with the world clock. NPC AI uses the same cast action for Heal and Firebolt and will not take turns while calmed.
+Active character effects are stored on `CharacterState` and included in character save data. Timed effects advance with the simulation clock. Spell terrain effects are serialized by `WorldSimulation` and contributed to campaign snapshots through the SaveManager snapshot-extension interface.
+
+## Campaign and presentation ownership
+
+- `SpellbookPanel` owns spell preparation, targeting UI and player-facing cast requests.
+- `CampaignSpellcastingController` is created by `WorldRoot`, the campaign composition root. It coordinates the spellbook, target-click input, Disguise Self appearance editing, summoned-animal actors and spell-terrain save/restore.
+- `SpellVfxController` is presentation-only; successful simulation events drive its effects.
+- The Hollow Tankard location controller is not the owner of spellbook UI, targeting, disguise editing, summon actor lifecycle or spell-terrain persistence. Those campaign-level responsibilities live outside `hollow_tankard.gd`.
 
 ## Deliberate presentation deferral
 
-Verbal/somatic grammar, spoken audio, hand gestures, casting animation and disguise rendering remain presentation work. The prepared-spell schema retains symbolic hooks for that later layer. No spell is considered complete merely because a visual or audio cue exists; the simulation effect and its tests are the acceptance criteria.
+Verbal/somatic grammar, spoken audio, hand gestures and casting animation remain presentation work. The prepared-spell schema retains symbolic hooks for that later layer. No spell is considered complete merely because a visual or audio cue exists; the simulation effect and its tests are the acceptance criteria.
 
-## Remaining verification
+## Verification
 
-The full spell suite covers each catalogue entry, but the complete Godot 4.7.2 headless workflow must pass before this branch is merged. Counterspell can also interrupt an opposing cast through the existing reaction request system. The defender spends 5 TP and the Counterspell mana cost; a countered caster spends the spell mana cost but does not pay the cast TP cost. NPC counterspell decisions use the source game’s 50% response chance.
+The Godot 4.7.2 workflow runs the spell construction/cost, casting/AI, effect and visual-effect suites alongside the wider campaign regression suite. Counterspell's reaction path charges the defender 5 TP and the Counterspell mana cost; a countered caster pays the spell mana cost but not the cast TP cost. NPC counterspell decisions use the source game's 50% response chance.
