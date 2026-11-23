@@ -109,6 +109,11 @@ static func create_settlement_actor(npc: Dictionary, world_position: Vector3) ->
 		actor.set_meta("class_levels", npc.get("class_levels", []))
 		actor.set_meta("skill_picks", npc.get("skill_picks", []))
 		actor.set_meta("quest_hooks", npc.get("quest_hooks", []))
+		actor.set_meta("race", _safe_metadata_string(npc.get("race", "human"), "human"))
+		actor.set_meta("title", _safe_metadata_string(npc.get("title", "")))
+		actor.set_meta("tied_up", bool(npc.get("tied_up", false)))
+		if npc.has("wants"):
+			actor.set_meta("wants", npc.get("wants", {}).duplicate(true))
 		actor.set_meta("ambient_enabled", false)
 		actor.add_to_group("campaign2_npc")
 	return actor
