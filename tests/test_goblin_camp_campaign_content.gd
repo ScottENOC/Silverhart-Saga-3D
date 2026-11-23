@@ -89,6 +89,7 @@ func _test_diplomacy_assault_and_stealth_resolutions() -> void:
 	_check(is_equal_approx(betrayal_journal.faction_standing("silverhart_kingdom"), -60.0), "Betrayal applies the full kingdom penalty exactly once")
 	_check(is_equal_approx(betrayal_journal.faction_standing("goblin_tribe"), 30.0), "Betrayal applies the goblin reward exactly once")
 	_check(not bool(betrayal.get("effects", {}).get("aldric_rescued", true)), "Betrayal leaves Aldric captive")
+	_check(String(betrayal_journal.quest_state("aldric_rescue").get("status", "")) != "completed", "Betrayal must not complete Aldric rescue quest")
 
 func _test_favors_and_follow_on_quests() -> void:
 	var journal := _new_journal()
@@ -110,6 +111,7 @@ func _test_favors_and_follow_on_quests() -> void:
 	_check(bool(mine.get("ok", false)), "The allied mine raid can be completed")
 	_check(String(mine_journal.quest_state("goblin_mine_raid").get("status", "")) == "completed", "Mine raid completion is persisted")
 	_check(int(mine.get("effects", {}).get("gold", 0)) == 60, "Mine raid preserves the 60 gold plunder")
+	_check(not bool(GOBLIN_CONTENT.complete_mine_raid(mine_journal).get("ok", false)), "Completed mine raid must not award plunder twice")
 
 	var spy_journal := _new_journal()
 	GOBLIN_CONTENT.gift_chief(spy_journal, 60)
