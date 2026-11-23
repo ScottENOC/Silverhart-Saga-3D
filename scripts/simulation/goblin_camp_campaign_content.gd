@@ -172,10 +172,11 @@ static func resolve_favor(journal: CampaignJournal, kind: String) -> Dictionary:
 			_apply_reputation(journal, 15.0, 15.0, -15.0, 15.0, "helped goblins raid Emberlode")
 			effects = {"region": {"emberlode": {"security": -20, "prosperity": -25}}, "experience": 50, "gold": 60, "aldric_attitude": -15, "emberlode_raided": true}
 		"raid":
-			var completed := _resolve_threat(journal, "betrayal")
+			var completed := resolve_threat(journal, "betrayal")
 			if not bool(completed.get("ok", false)):
 				return completed
-			effects = {"region": {"hollowmere": {"security": -30, "prosperity": -30}}, "experience": 0, "aldric_rescued": false, "companion_departure": "ser_aldric_thorne"}
+			effects = completed.get("effects", {}).duplicate(true)
+			effects["companion_departure"] = "ser_aldric_thorne"
 		_:
 			return {"ok": false, "reason": "unknown_favor"}
 	return {"ok": true, "effects": effects}
