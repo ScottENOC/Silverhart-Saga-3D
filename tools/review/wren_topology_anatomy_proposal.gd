@@ -56,7 +56,39 @@ const REGIONS := {
     "ring_finger_left": [Vector3(-0.535, 0.930, 0.265), Vector3(0.085, 0.016, 0.008), Color("#4d908e")],
     "ring_finger_right": [Vector3(0.535, 0.930, 0.265), Vector3(0.085, 0.016, 0.008), Color("#577590")],
     "little_finger_left": [Vector3(-0.525, 0.930, 0.290), Vector3(0.075, 0.016, 0.008), Color("#277da1")],
-    "little_finger_right": [Vector3(0.525, 0.930, 0.290), Vector3(0.075, 0.016, 0.008), Color("#7209b7")]
+    "little_finger_right": [Vector3(0.525, 0.930, 0.290), Vector3(0.075, 0.016, 0.008), Color("#7209b7")],
+    "head": [Vector3(0.0, 1.585, 0.085), Vector3(0.095, 0.105, 0.090), Color("#f94144")],
+    "face_front": [Vector3(0.0, 1.565, 0.145), Vector3(0.070, 0.070, 0.040), Color("#f3722c")],
+    "ear_left": [Vector3(-0.090, 1.575, 0.075), Vector3(0.020, 0.035, 0.035), Color("#f8961e")],
+    "ear_right": [Vector3(0.090, 1.575, 0.075), Vector3(0.020, 0.035, 0.035), Color("#f9c74f")],
+    "neck_front": [Vector3(0.0, 1.445, 0.065), Vector3(0.045, 0.060, 0.035), Color("#90be6d")],
+    "neck_back": [Vector3(0.0, 1.445, -0.045), Vector3(0.050, 0.065, 0.035), Color("#43aa8b")],
+    "abdomen_front": [Vector3(0.0, 0.985, 0.105), Vector3(0.105, 0.090, 0.040), Color("#4d908e")],
+    "flank_left": [Vector3(-0.125, 1.005, 0.005), Vector3(0.055, 0.125, 0.085), Color("#577590")],
+    "flank_right": [Vector3(0.125, 1.005, 0.005), Vector3(0.055, 0.125, 0.085), Color("#277da1")],
+    "upper_back_left": [Vector3(-0.090, 1.285, -0.065), Vector3(0.085, 0.115, 0.040), Color("#7209b7")],
+    "upper_back_right": [Vector3(0.090, 1.285, -0.065), Vector3(0.085, 0.115, 0.040), Color("#b5179e")],
+    "lower_back_left": [Vector3(-0.075, 1.035, -0.070), Vector3(0.080, 0.105, 0.040), Color("#f72585")],
+    "lower_back_right": [Vector3(0.075, 1.035, -0.070), Vector3(0.080, 0.105, 0.040), Color("#4361ee")],
+    "hip_left": [Vector3(-0.155, 0.865, 0.005), Vector3(0.070, 0.105, 0.095), Color("#4895ef")],
+    "hip_right": [Vector3(0.155, 0.865, 0.005), Vector3(0.070, 0.105, 0.095), Color("#4cc9f0")],
+    "glute_left": [Vector3(-0.095, 0.865, -0.075), Vector3(0.090, 0.085, 0.045), Color("#80ed99")],
+    "glute_right": [Vector3(0.095, 0.865, -0.075), Vector3(0.090, 0.085, 0.045), Color("#b8f2e6")],
+    "pubic_region": [Vector3(0.0, 0.815, 0.090), Vector3(0.075, 0.050, 0.035), Color("#ffd6a5")],
+    "inner_thigh_left": [Vector3(-0.075, 0.690, 0.025), Vector3(0.050, 0.145, 0.060), Color("#fdffb6")],
+    "inner_thigh_right": [Vector3(0.075, 0.690, 0.025), Vector3(0.050, 0.145, 0.060), Color("#caffbf")],
+    "thigh_left": [Vector3(-0.115, 0.690, 0.000), Vector3(0.075, 0.165, 0.080), Color("#9bf6ff")],
+    "thigh_right": [Vector3(0.115, 0.690, 0.000), Vector3(0.075, 0.165, 0.080), Color("#a0c4ff")],
+    "knee_left": [Vector3(-0.115, 0.445, 0.015), Vector3(0.055, 0.065, 0.065), Color("#bdb2ff")],
+    "knee_right": [Vector3(0.115, 0.445, 0.015), Vector3(0.055, 0.065, 0.065), Color("#ffc6ff")],
+    "calf_left": [Vector3(-0.115, 0.270, -0.005), Vector3(0.055, 0.125, 0.065), Color("#fffffc")],
+    "calf_right": [Vector3(0.115, 0.270, -0.005), Vector3(0.055, 0.125, 0.065), Color("#e7c6ff")],
+    "ankle_left": [Vector3(-0.115, 0.095, 0.005), Vector3(0.040, 0.055, 0.050), Color("#c8b6ff")],
+    "ankle_right": [Vector3(0.115, 0.095, 0.005), Vector3(0.040, 0.055, 0.050), Color("#b8c0ff")],
+    "foot_left": [Vector3(-0.115, 0.045, 0.105), Vector3(0.060, 0.040, 0.105), Color("#bbd0ff")],
+    "foot_right": [Vector3(0.115, 0.045, 0.105), Vector3(0.060, 0.040, 0.105), Color("#caffbf")],
+    "toes_left": [Vector3(-0.115, 0.035, 0.185), Vector3(0.055, 0.025, 0.045), Color("#ffd6a5")],
+    "toes_right": [Vector3(0.115, 0.035, 0.185), Vector3(0.055, 0.025, 0.045), Color("#ffadad")]
 }
 
 var stage: Node3D
@@ -206,15 +238,15 @@ func _run() -> void:
         "region_seed_vertex_counts": seeds,
         "candidate_vertex_counts_at_weight_0_15": counts,
         "candidate_to_seed_vertex_ratios": _build_candidate_seed_ratios(seeds, counts),
-        "method": "Ellipsoidal seed hypotheses expanded only through adjacent source-mesh vertices with decaying weights; nipple channels use two graph hops and other channels use five.",
+        "method": "Review-only ellipsoidal seed hypotheses expanded through adjacent source-mesh vertices with decaying weights; nipple channels use zero hops, finger channels use up to 18 hops within a local extent, and other channels use five.",
         "limitations": [
             "Seed centres and radii remain geometric hypotheses, not anatomically authored boundaries.",
             "Graph propagation is constrained to a modest expanded seed volume to reduce spread into adjacent anatomical areas; the seed remains a hypothesis, not an authored boundary.",
-            "The two-hop nipple radius and five-hop radius for other regions are review heuristics; local mesh density affects physical reach and each boundary needs visual review.",
+            "Nipple channels are seed-only (zero graph hops); all other hop limits are review heuristics and local mesh density affects physical reach.",
             "Finger candidates use longer local-X seed corridors and up to 18 topology hops, constrained to a narrow per-digit depth corridor; the close-up renders must confirm continuous lengthwise coverage and separation.",
             "Nipple candidates now use seed-only surface vertices (zero topology expansion) to avoid propagating onto the adjacent areolar/side-surface arc; the isolated renders must confirm the smaller island remains centred.",
             "Candidate weights are preview-only; no Resource or production manifest is written.",
-            "This review includes the previously reviewed torso channels, refined breast channels, nipple channels and a first shoulder-to-individual-finger arm tranche; finger channels are separate per digit and side, but remain provisional seed hypotheses."
+            "This review includes provisional whole-body coverage: head/face/ears/neck, chest/abdomen/flanks/back, pelvis/glutes/pubic region, both legs and feet, and shoulder-to-individual-finger arm channels. Every region remains a geometric seed hypothesis pending visual review."
         ]
     }
     var report_file := FileAccess.open(output_directory.path_join("proposal.json"), FileAccess.WRITE)
