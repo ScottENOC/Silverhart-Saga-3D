@@ -77,7 +77,7 @@ func configure(manifest: Dictionary) -> Dictionary:
 						else:
 							secret_ids[secret_id] = true
 					if collection_name == "rooms":
-						if not _is_axial(record.get("center", {})) or int(record.get("half_width", 0)) < 2 or int(record.get("half_height", 0)) < 2:
+						if not _is_axial(record.get("center", {})) or int(record.get("half_width", 0)) < 1 or int(record.get("half_height", 0)) < 1:
 							validation_errors.append("%s floor %d: room geometry is invalid." % [location_id, floor_number])
 						var row_shift_mode := String(record.get("row_shift_mode", "flat"))
 						if row_shift_mode not in ["flat", "source_building"]:
