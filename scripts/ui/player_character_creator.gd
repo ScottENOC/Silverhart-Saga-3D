@@ -48,6 +48,9 @@ var hair_style_select: OptionButton
 var body_select: OptionButton
 var body_variant_select: OptionButton
 var height_slider: HSlider
+var male_anatomy_length_slider: HSlider
+var male_anatomy_girth_slider: HSlider
+var male_anatomy_summary: Label
 var preview_status: Label
 var preview_actor: AraCharacterActor
 var preview_variant_loaded: String = ""
@@ -230,6 +233,45 @@ func _build_screen() -> void:
 	height_row.add_child(height_label)
 	height_row.add_child(height_slider)
 	panel.add_child(height_row)
+
+	_section(panel, "MALE ANATOMY")
+	var male_anatomy_note := Label.new()
+	male_anatomy_note.text = "Optional adult anatomy customisation. Sliders cover the measured 5th–95th percentile range; the midpoint is the population average."
+	male_anatomy_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	male_anatomy_note.add_theme_color_override("font_color", Color(0.78, 0.82, 0.76))
+	panel.add_child(male_anatomy_note)
+	male_anatomy_length_slider = HSlider.new()
+	male_anatomy_length_slider.min_value = 0.0
+	male_anatomy_length_slider.max_value = 1.0
+	male_anatomy_length_slider.step = 0.01
+	male_anatomy_length_slider.value = 0.5
+	male_anatomy_length_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var male_length_row := HBoxContainer.new()
+	var male_length_label := Label.new()
+	male_length_label.text = "Length"
+	male_length_label.custom_minimum_size.x = 135
+	male_length_row.add_child(male_length_label)
+	male_length_row.add_child(male_anatomy_length_slider)
+	panel.add_child(male_length_row)
+	male_anatomy_girth_slider = HSlider.new()
+	male_anatomy_girth_slider.min_value = 0.0
+	male_anatomy_girth_slider.max_value = 1.0
+	male_anatomy_girth_slider.step = 0.01
+	male_anatomy_girth_slider.value = 0.5
+	male_anatomy_girth_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var male_girth_row := HBoxContainer.new()
+	var male_girth_label := Label.new()
+	male_girth_label.text = "Circumference"
+	male_girth_label.custom_minimum_size.x = 135
+	male_girth_row.add_child(male_girth_label)
+	male_girth_row.add_child(male_anatomy_girth_slider)
+	panel.add_child(male_girth_row)
+	male_anatomy_summary = Label.new()
+	male_anatomy_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	panel.add_child(male_anatomy_summary)
+	male_anatomy_length_slider.value_changed.connect(_refresh_appearance_preview_value)
+	male_anatomy_girth_slider.value_changed.connect(_refresh_appearance_preview_value)
+
 	for selector in [skin_select, eye_select, hair_colour_select, hair_style_select, body_select, presentation_select]:
 		selector.item_selected.connect(_refresh_appearance_preview)
 	height_slider.value_changed.connect(_refresh_appearance_preview_value)
@@ -361,6 +403,8 @@ func _load_saved_profile() -> void:
 	_select_text(hair_style_select, str(data.get("hair_style", "Short 2")))
 	_select_text(body_select, str(data.get("body_build", "Average")))
 	height_slider.value = clampf(float(data.get("height_scale", 1.0)), 0.90, 1.10)
+	male_anatomy_length_slider.value = clampf(float(data.get("male_anatomy_length_percentile", 0.5)), 0.0, 1.0)
+	male_anatomy_girth_slider.value = clampf(float(data.get("male_anatomy_girth_percentile", 0.5)), 0.0, 1.0)
 	var saved_details: Dictionary = data.get("character_details", {})
 	var saved_piercings: Array = saved_details.get("piercings", [])
 	ear_piercing_check.button_pressed = saved_piercings.has("earrings")
@@ -403,6 +447,8 @@ func _refresh_appearance_preview(_index: int) -> void:
 	if preview_actor == null or not is_instance_valid(preview_actor):
 		return
 	var variant := "male" if body_variant_select.get_item_text(body_variant_select.selected) == "Male" else "female"
+	for control in [male_anatomy_length_slider, male_anatomy_girth_slider, male_anatomy_summary]:
+		control.visible = variant == "male"
 	var asset_path := MALE_PREVIEW_ASSET if variant == "male" else FEMALE_PREVIEW_ASSET
 	if not ResourceLoader.exists(asset_path):
 		preview_status.text = "Preview asset not found: %s. Your appearance choices can still be saved." % asset_path
@@ -427,6 +473,7 @@ func _refresh_appearance_preview(_index: int) -> void:
 	}
 	profile["height"] = inverse_lerp(0.90, 1.10, height_slider.value)
 	profile["muscle"] = inverse_lerp(0.96, 1.055, float(build_factors.get(body_select.get_item_text(body_select.selected), 1.0)))
+	profile.merge(_male_anatomy_profile(), true)
 	profile.merge(_appearance_detail_profile(), true)
 	profile["body_hair"] = _body_hair_profile()
 	preview_actor.apply_player_profile(profile)
@@ -450,6 +497,23 @@ func _refresh_appearance_preview(_index: int) -> void:
 	else:
 		preview_status.text = "Loaded 1 of 1 assets · Legacy preview model ready. Install the Ara hair bundle to enable separate hairstyles."
 
+
+func _male_anatomy_profile() -> Dictionary:
+	# Linear slider positions span the measured 5th–95th percentile interval.
+	# The published mean and SD are absolute centimetre measurements, not
+	# proportions of the character's height.
+	var z_length := lerpf(-1.644854, 1.644854, male_anatomy_length_slider.value)
+	var z_girth := lerpf(-1.644854, 1.644854, male_anatomy_girth_slider.value)
+	var length_cm := 13.12 + z_length * 1.66
+	var circumference_cm := 11.66 + z_girth * 1.10
+	if male_anatomy_summary != null:
+		male_anatomy_summary.text = "Preview size: %.1f cm length · %.1f cm circumference" % [length_cm, circumference_cm]
+	return {
+		"male_anatomy_length_percentile": male_anatomy_length_slider.value,
+		"male_anatomy_girth_percentile": male_anatomy_girth_slider.value,
+		"male_anatomy_length_scale": length_cm / 13.12,
+		"male_anatomy_girth_scale": circumference_cm / 11.66
+	}
 
 func _appearance_detail_profile() -> Dictionary:
 	var piercings: Array[String] = []
@@ -551,6 +615,7 @@ func _finish() -> void:
 		custom_pronouns.grab_focus()
 		custom_pronouns.placeholder_text = "Please enter your pronouns"
 		return
+	var male_anatomy := _male_anatomy_profile()
 	var profile := {
 		"schema_version": 3,
 		"name": name_edit.text.strip_edges() if not name_edit.text.strip_edges().is_empty() else "Adventurer",
@@ -578,7 +643,11 @@ func _finish() -> void:
 		"hair_colour": hair_colour_select.get_item_text(hair_colour_select.selected),
 		"hair_style": hair_style_select.get_item_text(hair_style_select.selected),
 		"hair_style_id": String(HAIR_STYLE_IDS.get(hair_style_select.get_item_text(hair_style_select.selected), "short02")),
-		"body_build": body_select.get_item_text(body_select.selected)
+		"body_build": body_select.get_item_text(body_select.selected),
+		"male_anatomy_length_percentile": male_anatomy_length_slider.value,
+		"male_anatomy_girth_percentile": male_anatomy_girth_slider.value,
+		"male_anatomy_length_scale": male_anatomy.get("male_anatomy_length_scale", 1.0),
+		"male_anatomy_girth_scale": male_anatomy.get("male_anatomy_girth_scale", 1.0)
 	}
 	profile.merge(_appearance_detail_profile(), true)
 	profile["body_hair"] = _body_hair_profile()
