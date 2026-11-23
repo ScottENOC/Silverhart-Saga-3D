@@ -178,12 +178,18 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i) -
 	# may already represent this same persistent NPC. Never create a second body
 	# merely because the regional stream also owns the NPC's authored placement.
 	var scene_tree := parent.get_tree()
+	var actor_hex := state.axial if state != null else world_hex
 	if scene_tree != null:
 		for existing_actor in scene_tree.get_nodes_in_group("campaign2_npc"):
-			if String(existing_actor.get_meta("campaign2_npc_id", "")) == character_id:
-				return
+			if String(existing_actor.get_meta("campaign2_npc_id", "")) != character_id:
+				continue
+			# A moving NPC can cross a chunk boundary while both chunks are
+			# resident. Transfer the one live actor to the newly owning chunk.
+			if existing_actor.get_parent() != parent:
+				existing_actor.reparent(parent)
+			existing_actor.position = HexGrid.axial_to_world(actor_hex, HEX_RADIUS)
+			return
 
-	var actor_hex := state.axial if state != null else world_hex
 	var actor := CHARACTER_ACTOR_FACTORY.create_settlement_actor(
 		character,
 		HexGrid.axial_to_world(actor_hex, HEX_RADIUS)
