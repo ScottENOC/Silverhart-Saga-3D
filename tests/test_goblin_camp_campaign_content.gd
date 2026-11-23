@@ -65,6 +65,7 @@ func _test_diplomacy_assault_and_stealth_resolutions() -> void:
 	_check(int(diplomacy.get("effects", {}).get("region", {}).get("hollowmere", {}).get("security", 0)) == 8, "Diplomacy improves Hollowmere security")
 
 	var assault_journal := _new_journal()
+	GOBLIN_CONTENT.mark_chief_killed_in_assault(assault_journal)
 	var assault := GOBLIN_CONTENT.resolve_threat(assault_journal, "assault")
 	_check(bool(assault.get("ok", false)), "Assault resolution should complete")
 	_check(is_equal_approx(assault_journal.faction_standing("silverhart_kingdom"), 20.0), "Assault improves kingdom standing")
@@ -72,12 +73,14 @@ func _test_diplomacy_assault_and_stealth_resolutions() -> void:
 	_check(int(assault.get("effects", {}).get("experience", 0)) == 300, "Assault preserves the source XP reward")
 
 	var stealth_journal := _new_journal()
+	GOBLIN_CONTENT.mark_chief_assassinated(stealth_journal)
 	var stealth := GOBLIN_CONTENT.resolve_threat(stealth_journal, "stealth_succession")
 	_check(bool(stealth.get("ok", false)), "Nix succession should resolve the threat")
 	_check(is_equal_approx(stealth_journal.faction_standing("silverhart_kingdom"), 15.0), "Stealth succession improves kingdom standing")
 	_check(is_equal_approx(stealth_journal.faction_standing("goblin_tribe"), 5.0), "Stealth succession gives modest goblin goodwill")
 
 	var betrayal_journal := _new_journal()
+	betrayal_journal.adjust_faction_standing("goblin_tribe", 25, "test unlocked betrayal favor")
 	var betrayal := GOBLIN_CONTENT.resolve_favor(betrayal_journal, "raid")
 	_check(bool(betrayal.get("ok", false)), "Helping raid Hollowmere should complete the betrayal route")
 	_check(String(betrayal_journal.quest_state("goblin_threat").get("decisions", {}).get("resolution", "")) == "betrayal", "Hollowmere raid is the irreversible betrayal resolution")
@@ -106,6 +109,7 @@ func _test_favors_and_follow_on_quests() -> void:
 	_check(int(mine.get("effects", {}).get("gold", 0)) == 60, "Mine raid preserves the 60 gold plunder")
 
 	var spy_journal := _new_journal()
+	GOBLIN_CONTENT.gift_chief(spy_journal, 60)
 	GOBLIN_CONTENT.resolve_threat(spy_journal, "goblin_alliance")
 	GOBLIN_CONTENT.mark_scout_note_read(spy_journal)
 	GOBLIN_CONTENT.mark_mine_raid_complete(spy_journal)
@@ -128,6 +132,7 @@ func _test_nix_succession_and_grondle_trader() -> void:
 	_check(not _choice_exists(GOBLIN_CONTENT.nix_conversation(journal), "resolve:stealth_succession"), "The succession choice should not repeat after resolution")
 
 	var alliance_journal := _new_journal()
+	GOBLIN_CONTENT.gift_chief(alliance_journal, 60)
 	GOBLIN_CONTENT.resolve_threat(alliance_journal, "goblin_alliance")
 	_check(_choice_exists(GOBLIN_CONTENT.nix_conversation(alliance_journal), "recruit:nix_sharpear"), "Nix should offer to join after the permanent alliance")
 	_check(not _choice_exists(GOBLIN_CONTENT.nix_conversation(alliance_journal, ["nix_sharpear"]), "recruit:nix_sharpear"), "Nix should not offer recruitment twice")
