@@ -64,7 +64,7 @@ func _initialize() -> void:
 	var mine_surface_map: HexMapData = FLOOR_BUILDER.build_floor_map(emberlode_definition, 0, emberlode_state).get("map_data") as HexMapData
 	_check(mine_surface_map.is_walkable(Vector2i(-254, 14)), "Emberlode surface must preserve the source carveBuilding row shift on its western edge")
 	_check(not mine_surface_map.is_walkable(Vector2i(-254, 17)), "Emberlode surface must not mirror the source carveBuilding row shift")
-	_check(mine_surface_map.is_walkable(Vector2i(-252, 17)), "Emberlode surface entry apron must connect the source door to the interior stair")
+	_check(mine_surface_map.is_walkable(Vector2i(-252, 18)) and mine_surface_map.is_walkable(Vector2i(-252, 17)) and mine_surface_map.is_walkable(Vector2i(-252, 16)) and mine_surface_map.is_walkable(Vector2i(-252, 15)), "Emberlode source door, room floor and stair must remain directly connected")
 	var working_vein_map: HexMapData = FLOOR_BUILDER.build_floor_map(emberlode_definition, -1, emberlode_state).get("map_data") as HexMapData
 	_check(working_vein_map.is_walkable(Vector2i(-252, 15)) and working_vein_map.is_walkable(Vector2i(-252, 17)), "Working Vein must connect both source stair positions")
 	var old_seam_result: Dictionary = FLOOR_BUILDER.build_floor_map(emberlode_definition, -2, emberlode_state)
