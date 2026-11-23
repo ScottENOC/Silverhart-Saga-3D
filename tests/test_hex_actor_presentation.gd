@@ -13,6 +13,7 @@ func _initialize() -> void:
 func _run() -> void:
 	var presentation := HEX_ACTOR_SCRIPT.new() as Node3D
 	var character_model := ARA_ACTOR_SCRIPT.new()
+	character_model.name = "CharacterModel"
 	var animation_player := AnimationPlayer.new()
 	var library := AnimationLibrary.new()
 	library.add_animation("Idle", Animation.new())
