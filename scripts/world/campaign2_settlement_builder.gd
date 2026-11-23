@@ -99,9 +99,9 @@ func _register_campaign_characters() -> void:
 					push_warning("Could not build authored campaign NPC %s: %s" % [character_id, build_result])
 			else:
 				NPC_SKILL_SPENDING.build_civilian(state, race)
-			var registration := simulation.register_character(state)
+			simulation.register_character(state)
 			if simulation.get_character(character_id) == null:
-				push_warning("Could not register persistent campaign NPC %s at %s: %s" % [character_id, start_hex, registration])
+				push_warning("Could not register persistent campaign NPC %s at %s." % [character_id, start_hex])
 
 ## Authored features, vegetation and actor placements are attached only to the
 ## chunk owning their canonical anchor/candidate. Chunk unloads retire presentation,
