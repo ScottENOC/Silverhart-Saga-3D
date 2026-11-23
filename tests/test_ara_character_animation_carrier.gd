@@ -55,6 +55,9 @@ func _run() -> void:
 	root.add_child(actor)
 	var female_configured: bool = actor.configure(BODY_PATHS[0])
 	_check(female_configured, "Ara female gameplay actor configures from its body asset")
+	if female_configured:
+		_check(absf(wrapf(actor.model_root.rotation.y - PI, -PI, PI)) < 0.001,
+			"Ara female model forward axis is aligned with the world actor heading")
 	if not female_configured:
 		actor.free()
 		_finish()
@@ -105,6 +108,9 @@ func _run() -> void:
 	root.add_child(male_actor)
 	var male_configured: bool = male_actor.configure(BODY_PATHS[1])
 	_check(male_configured, "Ara male gameplay actor configures from its body asset")
+	if male_configured:
+		_check(absf(wrapf(male_actor.model_root.rotation.y - PI, -PI, PI)) < 0.001,
+			"Ara male model forward axis is aligned with the world actor heading")
 	if not male_configured:
 		male_actor.free()
 		_finish()
@@ -176,6 +182,9 @@ func _assert_character_asset_animated(asset_path: String, label: String) -> void
 	root.add_child(actor)
 	var configured: bool = actor.configure(asset_path)
 	_check(configured, label + " configures")
+	if configured:
+		_check(absf(wrapf(actor.model_root.rotation.y - PI, -PI, PI)) < 0.001,
+			label + " model forward axis is aligned with the world actor heading")
 	if not configured:
 		actor.free()
 		return
