@@ -68,6 +68,30 @@ func _initialize() -> void:
 			var object_position: Dictionary = object_variant.get("position", {})
 			var object_hex := Vector2i(int(object_position.get("q", 0)), int(object_position.get("r", 0)))
 			_check(interior_map.is_walkable(object_hex), "Merchant fixture must sit on walkable interior floor: " + String(object_variant.get("id", "")))
+	var emberlode_definition: Dictionary = registry.get_definition("emberlode_mine")
+	var emberlode_state = LOCATION_STATE.new()
+	_check(bool(emberlode_state.configure(emberlode_definition).get("ok", false)), "Emberlode Mine traversal state must configure")
+	for floor_number in [0, -1, -2]:
+		var mine_result: Dictionary = FLOOR_BUILDER.build_floor_map(emberlode_definition, floor_number, emberlode_state)
+		_check(bool(mine_result.get("ok", false)), "Every Emberlode mine floor must build: %d" % floor_number)
+		if not bool(mine_result.get("ok", false)):
+			continue
+		var mine_map: HexMapData = mine_result.get("map_data") as HexMapData
+		_check(mine_map != null and not mine_map.cells.is_empty(), "Every Emberlode floor must contain a logical map")
+		for mine_object in mine_result.get("tile_objects", []):
+			var object_position: Dictionary = mine_object.get("position", {})
+			_check(mine_map.is_walkable(Vector2i(int(object_position.get("q", 0)), int(object_position.get("r", 0)))), "Every Emberlode mine object must be on a walkable hex")
+		for creature in mine_result.get("creatures", []):
+			var creature_position: Dictionary = creature.get("position", {})
+			_check(mine_map.is_walkable(Vector2i(int(creature_position.get("q", 0)), int(creature_position.get("r", 0)))), "Every source spider placement must be on a walkable Old Seam hex")
+	var mine_surface_map: HexMapData = FLOOR_BUILDER.build_floor_map(emberlode_definition, 0, emberlode_state).get("map_data") as HexMapData
+	_check(mine_surface_map.is_walkable(Vector2i(-254, 14)), "Emberlode surface must preserve the source carveBuilding row shift on its western edge")
+	_check(not mine_surface_map.is_walkable(Vector2i(-254, 17)), "Emberlode surface must not mirror the source carveBuilding row shift")
+	_check(mine_surface_map.is_walkable(Vector2i(-252, 18)) and mine_surface_map.is_walkable(Vector2i(-252, 17)) and mine_surface_map.is_walkable(Vector2i(-252, 16)) and mine_surface_map.is_walkable(Vector2i(-252, 15)), "Emberlode source door, room floor and stair must remain directly connected")
+	var working_vein_map: HexMapData = FLOOR_BUILDER.build_floor_map(emberlode_definition, -1, emberlode_state).get("map_data") as HexMapData
+	_check(working_vein_map.is_walkable(Vector2i(-252, 15)) and working_vein_map.is_walkable(Vector2i(-252, 17)), "Working Vein must connect both source stair positions")
+	var old_seam_result: Dictionary = FLOOR_BUILDER.build_floor_map(emberlode_definition, -2, emberlode_state)
+	_check(old_seam_result.get("creatures", []).size() == 2, "Old Seam must expose both spider spawn placements to the campaign actor layer")
 
 	var elven_definition: Dictionary = registry.get_definition("silthandriel")
 	var elven_state = LOCATION_STATE.new()

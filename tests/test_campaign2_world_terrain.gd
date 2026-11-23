@@ -4,6 +4,7 @@ extends SceneTree
 const TERRAIN_DATA = preload("res://scripts/world/campaign2_world_terrain_data.gd")
 const REGIONAL_PREVIEW = preload("res://scripts/world/campaign2_regional_world_preview.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
+const REGIONAL_HYDROLOGY = preload("res://data/world/regions/silverhart_heartland/hydrology.gd")
 var failures: int = 0
 
 func _initialize() -> void:
@@ -58,6 +59,9 @@ func _initialize() -> void:
 	_check(terrain.shared_vertex_elevation(seam_hex, -1) == terrain.elevation_for_hex(seam_hex), "Invalid corner indices must safely fall back to the cell height")
 	_test_strategic_road_elevation(terrain)
 	_test_water_surface_and_shoreline(terrain)
+	_test_heartland_stream_connectivity()
+	_test_strategic_road_stream_crossings(terrain)
+	_test_chunk_boundary_consistency(terrain)
 	_check(terrain.terrain_for_hex(Vector2i(-43, -343)) == "keep_wall", "Chapterhouse keep wall must resolve to its own terrain type")
 	_check(not terrain.is_walkable_for_hex(Vector2i(-43, -343)), "Keep-wall cells must block traversal")
 	if failures > 0:
@@ -98,6 +102,162 @@ func _test_strategic_road_elevation(terrain) -> void:
 	_check(
 		maximum_adjacent_grade <= 2.0,
 		"Adjacent strategic road cells should not form abrupt vertical steps (max observed %.2fm)" % maximum_adjacent_grade
+	)
+
+
+func _test_heartland_stream_connectivity() -> void:
+	# Enumerate the deterministic authored stream footprint, then flood-fill
+	# with the six axial neighbours. This catches disconnected meanders,
+	# isolated width-expansion cells and breaks at the Northwatch/Ridgehold link.
+	var stream_cells: Dictionary = {}
+	for q in range(-90, 463):
+		for r in range(-100, 101):
+			var hex := Vector2i(q, r)
+			if REGIONAL_HYDROLOGY.is_stream_hex(hex):
+				stream_cells["%d,%d" % [q, r]] = hex
+	_check(not stream_cells.is_empty(), "The heartland hydrology must generate stream cells")
+
+	if stream_cells.is_empty():
+		return
+
+	var first_key: String = stream_cells.keys()[0]
+	var queue: Array[Vector2i] = [stream_cells[first_key]]
+	var visited: Dictionary = {first_key: true}
+	var queue_index := 0
+	while queue_index < queue.size():
+		var current: Vector2i = queue[queue_index]
+		queue_index += 1
+		for direction in HexGrid.DIRECTIONS:
+			var neighbour: Vector2i = current + direction
+			var neighbour_key := "%d,%d" % [neighbour.x, neighbour.y]
+			if stream_cells.has(neighbour_key) and not visited.has(neighbour_key):
+				visited[neighbour_key] = true
+				queue.append(neighbour)
+	_check(
+		visited.size() == stream_cells.size(),
+		"Every Silverhart heartland stream cell must belong to one connected waterway (reachable %d of %d)" % [visited.size(), stream_cells.size()]
+	)
+	var ridgehold_stream_hex := Vector2i(426, roundi(REGIONAL_HYDROLOGY.stream_centre_r(426)))
+	_check(
+		REGIONAL_HYDROLOGY.is_stream_hex(Vector2i(268, -43))
+		and REGIONAL_HYDROLOGY.is_stream_hex(Vector2i(290, 1))
+		and REGIONAL_HYDROLOGY.is_stream_hex(ridgehold_stream_hex),
+		"The Northwatch moat and Ridgehold downstream channel must remain part of the continuous stream"
+	)
+
+
+func _test_strategic_road_stream_crossings(terrain) -> void:
+	var crossing_count := 0
+	for key in terrain.road_cells:
+		var coordinates := String(key).split(",")
+		if coordinates.size() != 2:
+			continue
+		var hex := Vector2i(int(coordinates[0]), int(coordinates[1]))
+		if not REGIONAL_HYDROLOGY.is_stream_hex(hex):
+			continue
+		crossing_count += 1
+		_check(
+			terrain.terrain_for_hex(hex) == "path",
+			"An authored strategic road must remain visible where it crosses the local stream at %s" % key
+		)
+		_check(
+			terrain.is_walkable_for_hex(hex),
+			"Strategic road/stream crossings must remain traversable at %s" % key
+		)
+		_check(
+			is_finite(terrain.elevation_for_hex(hex)),
+			"Strategic road/stream crossing elevation must remain finite at %s" % key
+		)
+	_check(
+		crossing_count > 0,
+		"The authored strategic road network must retain at least one explicit local-stream crossing"
+	)
+
+
+func _test_chunk_boundary_consistency(terrain) -> void:
+	# A q-axis seam and an r-axis seam both use negative and positive chunk
+	# ownership rules. Each side must produce the same two shared edge heights.
+	_assert_shared_chunk_edge(
+		terrain,
+		Vector2i(23, -11),
+		Vector2i(24, -11),
+		"Ordinary terrain across the q=24 chunk boundary"
+	)
+	var crossing_a := Vector2i(382, 23)
+	var crossing_b := Vector2i(382, 24)
+	_check(
+		terrain.terrain_for_hex(crossing_a) == "path"
+		and terrain.terrain_for_hex(crossing_b) == "path"
+		and terrain.is_walkable_for_hex(crossing_a)
+		and terrain.is_walkable_for_hex(crossing_b),
+		"The road/stream crossing must remain a traversable road across the r=24 chunk boundary"
+	)
+	_assert_shared_chunk_edge(
+		terrain,
+		crossing_a,
+		crossing_b,
+		"Road-over-stream crossing across the r=24 chunk boundary"
+	)
+
+	# Find a real water-to-bank edge that is also a streamed chunk boundary.
+	# This checks the shoreline vertex rule in the same independently-owned
+	# chunk situation used by the renderer, not just within one chunk.
+	var found_water_seam := false
+	for q in range(REGIONAL_HYDROLOGY.STREAM_Q_MIN, REGIONAL_HYDROLOGY.STREAM_Q_MAX + 1):
+		for r in range(-100, 101):
+			var water_hex := Vector2i(q, r)
+			if terrain.terrain_for_hex(water_hex) != "water":
+				continue
+			for direction in HexGrid.DIRECTIONS:
+				var bank_hex := water_hex + direction
+				if terrain.chunk_for_hex(water_hex) == terrain.chunk_for_hex(bank_hex):
+					continue
+				if terrain.terrain_for_hex(bank_hex) in ["water", "void"]:
+					continue
+				_assert_shared_chunk_edge(
+					terrain,
+					water_hex,
+					bank_hex,
+					"Water shoreline across a streamed chunk boundary"
+				)
+				found_water_seam = true
+				break
+			if found_water_seam:
+				break
+		if found_water_seam:
+			break
+	_check(
+		found_water_seam,
+		"The generated heartland stream must include a water-to-bank edge across a chunk boundary"
+	)
+
+
+func _assert_shared_chunk_edge(terrain, first_hex: Vector2i, second_hex: Vector2i, label: String) -> void:
+	_check(
+		terrain.chunk_for_hex(first_hex) != terrain.chunk_for_hex(second_hex),
+		"%s must actually cross independently loaded chunks" % label
+	)
+	var corners := HexGrid.corner_offsets(HexGrid.DEFAULT_RADIUS_M)
+	var first_centre := HexGrid.axial_to_world(first_hex, HexGrid.DEFAULT_RADIUS_M)
+	var second_centre := HexGrid.axial_to_world(second_hex, HexGrid.DEFAULT_RADIUS_M)
+	var shared_vertices := 0
+	for first_corner in range(HexGrid.SIDE_COUNT):
+		var first_position := first_centre + Vector3(corners[first_corner].x, 0.0, corners[first_corner].y)
+		for second_corner in range(HexGrid.SIDE_COUNT):
+			var second_position := second_centre + Vector3(corners[second_corner].x, 0.0, corners[second_corner].y)
+			if first_position.distance_to(second_position) > 0.001:
+				continue
+			shared_vertices += 1
+			_check(
+				is_equal_approx(
+					terrain.shared_vertex_elevation(first_hex, first_corner),
+					terrain.shared_vertex_elevation(second_hex, second_corner)
+				),
+				"%s must generate identical shared vertex heights" % label
+			)
+	_check(
+		shared_vertices == 2,
+		"%s must resolve exactly two common edge vertices (found %d)" % [label, shared_vertices]
 	)
 
 

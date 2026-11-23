@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "coordinate_system": "campaign2_local_axial_qr",
-  "source": "Hex-crpg/campaign2World.js:buildDwarvenKingdom, carveFloorRoom, paintFloorCorridor, revealSunkenDeepPassage; campaign2Content.js:campaign2DwarfKing/campaign2DwarfGuards/campaign2DwarfTrader/campaign2DwarfRunesmith/campaign2DwarfForeman/campaign2DeepholdsVermin",
+  "source": "Hex-crpg/campaign2World.js:buildDwarvenKingdom, carveFloorRoom, paintFloorCorridor, revealSunkenDeepPassage; campaign2Content.js:campaign2DwarfKing/campaign2DwarfGuards/campaign2DwarfTrader/campaign2DwarfRunesmith/campaign2DwarfForeman/campaign2DeepholdsVermin; Hex-crpg/campaign2World.js:buildEmberlode, carveBuilding, carveFloorRoom",
   "locations": [
     {
       "id": "kragmoor",
@@ -595,6 +595,214 @@
         "The Gate Hall is the surface floor at anchor plus (0,18); the solid massif radius is 25.",
         "The Sunken Deep is carved and populated at world-build time but its descending stair is absent until the Deepholds infestation quest is completed.",
         "Source stair transitions are one shaft per level; the Vault and Runeforge share floor -2 and the mine and Lower Tunnels are reached by walking through connected corridors."
+      ]
+    },
+    {
+      "id": "emberlode_mine",
+      "name": "Emberlode Mine",
+      "anchor": {
+        "q": -252,
+        "r": 16
+      },
+      "floor_generation": "source-authored mine entrance, working vein and old seam",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Mine Entrance",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "mine_entrance",
+              "center": {
+                "q": -252,
+                "r": 16
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "mine_front_door",
+              "type": "door_open",
+              "position": {
+                "q": -252,
+                "r": 18
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "emberlode_ledger",
+              "type": "journal",
+              "position": {
+                "q": -252,
+                "r": 16
+              },
+              "read_id": "emberlode_ledger"
+            },
+            {
+              "id": "mine_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": -252,
+                "r": 15
+              },
+              "to_floor": -1
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        },
+        {
+          "floor": -1,
+          "name": "Working Vein",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "working_vein",
+              "center": {
+                "q": -252,
+                "r": 16
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "working_vein_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": -252,
+                "r": 15
+              },
+              "to_floor": 0
+            },
+            {
+              "id": "working_vein_gold",
+              "type": "ore_node",
+              "ore_type": "ore_gold",
+              "position": {
+                "q": -252,
+                "r": 16
+              },
+              "depleted": false
+            },
+            {
+              "id": "old_seam_stair_down",
+              "type": "stair_down",
+              "position": {
+                "q": -252,
+                "r": 17
+              },
+              "to_floor": -2
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        },
+        {
+          "floor": -2,
+          "name": "Old Seam",
+          "terrain": "cave_floor",
+          "rooms": [
+            {
+              "id": "old_seam",
+              "center": {
+                "q": -252,
+                "r": 16
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "old_seam_stair_up",
+              "type": "stair_up",
+              "position": {
+                "q": -252,
+                "r": 17
+              },
+              "to_floor": -1
+            },
+            {
+              "id": "old_seam_blue_gem",
+              "type": "ore_node",
+              "ore_type": "gem_blue",
+              "position": {
+                "q": -252,
+                "r": 16
+              },
+              "depleted": false
+            }
+          ],
+          "actors": [],
+          "creatures": [
+            {
+              "id": "emberlode_spider_01",
+              "name": "Cave Spider",
+              "kind": "spider",
+              "position": {
+                "q": -253,
+                "r": 16
+              }
+            },
+            {
+              "id": "emberlode_spider_02",
+              "name": "Cave Spider",
+              "kind": "spider",
+              "position": {
+                "q": -251,
+                "r": 16
+              }
+            }
+          ]
+        }
+      ],
+      "transitions": [
+        {
+          "from_floor": 0,
+          "to_floor": -1,
+          "position": {
+            "q": -252,
+            "r": 15
+          }
+        },
+        {
+          "from_floor": -1,
+          "to_floor": 0,
+          "position": {
+            "q": -252,
+            "r": 15
+          }
+        },
+        {
+          "from_floor": -1,
+          "to_floor": -2,
+          "position": {
+            "q": -252,
+            "r": 17
+          }
+        },
+        {
+          "from_floor": -2,
+          "to_floor": -1,
+          "position": {
+            "q": -252,
+            "r": 17
+          }
+        }
+      ],
+      "source_notes": [
+        "The surface mine entrance is the source carveBuilding footprint at mineCenter (-252,16), with its south door at (-252,18), ledger at the centre and stair down at (-252,15).",
+        "The Working Vein at floor -1 contains the source gold ore node at mineCenter and connects back to the surface and down to the Old Seam.",
+        "The Old Seam at floor -2 contains the source blue-gem ore node and two source spider placements at q offsets -1 and +1; creature spawning and combat remain campaign-owned.",
+        "The source door at r+2 adjoins the source-building room floor at r+1; the surface stair at r-1 remains inside the same room footprint."
       ]
     },
     {

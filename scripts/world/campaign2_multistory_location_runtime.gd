@@ -330,6 +330,23 @@ func _present_floor_objects(group: Node3D, tile_objects: Array, anchor: Vector2i
 				object_mesh.size = Vector3(HEX_RADIUS * 0.7, 0.9, HEX_RADIUS * 0.7)
 				marker.mesh = object_mesh
 				material.albedo_color = Color(0.35, 0.26, 0.17) if object_type == "throne" else Color(0.36, 0.27, 0.16)
+			"ore_node":
+				var ore_mesh := CylinderMesh.new()
+				ore_mesh.top_radius = HEX_RADIUS * 0.12
+				ore_mesh.bottom_radius = HEX_RADIUS * 0.34
+				ore_mesh.height = 0.9
+				ore_mesh.radial_segments = 6
+				marker.mesh = ore_mesh
+				var ore_type := String(object_data.get("ore_type", ""))
+				if ore_type == "ore_gold":
+					material.albedo_color = Color(0.78, 0.55, 0.16)
+					material.metallic = 0.55
+					material.roughness = 0.34
+				else:
+					material.albedo_color = Color(0.16, 0.48, 0.86)
+					material.emission_enabled = true
+					material.emission = Color(0.06, 0.19, 0.42)
+					material.roughness = 0.28
 			_:
 				var generic_mesh := BoxMesh.new()
 				generic_mesh.size = Vector3(HEX_RADIUS * 0.5, 0.4, HEX_RADIUS * 0.5)
