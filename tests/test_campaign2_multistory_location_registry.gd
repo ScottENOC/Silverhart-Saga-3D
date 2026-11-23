@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["corvin_ashgrave_barrow", "emberlode_mine", "kragmoor", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove"], "Kragmoor and all source-authored Silverhart interiors must be registered")
+	_check(registry.location_ids() == ["corvin_ashgrave_barrow", "emberlode_mine", "kragmoor", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
 	_check(palace.get("floors", []).size() == 2, "Silverhart Grand Hall must preserve its two source floors")
@@ -155,6 +155,14 @@ func _initialize() -> void:
 	_check(tunnel_stub.get("rooms", [])[0].get("half_width", 0) == 1 and tunnel_stub.get("rooms", [])[0].get("half_height", 0) == 1, "The wilderness tunnel endpoint must remain a one-cell stub, not an invented large room")
 	_check(thieves_cove.get("transitions", []).size() == 6, "Thieves' Cove must retain reciprocal stairs between all four source levels")
 
+	var crypt: Dictionary = registry.get_definition("vessel_seekers_crypt")
+	_check(int(crypt.get("anchor", {}).get("q", 0)) == 32 and int(crypt.get("anchor", {}).get("r", 0)) == -154, "Vessel-Seeker crypt anchor must derive from the abandoned house centre")
+	_check(crypt.get("floors", []).size() == 1, "Vessel-Seeker crypt must preserve its single source floor")
+	var crypt_floor := registry.get_floor_definition("vessel_seekers_crypt", 0)
+	_check(crypt_floor.get("rooms", []).size() == 3, "Crypt must retain its source entrance, ossuary and ritual chambers")
+	_check(crypt_floor.get("corridors", []).size() == 2, "Crypt must retain both source corridors")
+	_check(crypt_floor.get("tile_objects", []).size() == 5, "Crypt must retain its three source doors and two explicit wall-ring connection repairs")
+	_check(crypt_floor.get("actors", []).is_empty() and crypt_floor.get("creatures", []).is_empty(), "Crypt map port must leave actors and encounters to campaign systems")
 	var barrow: Dictionary = registry.get_definition("corvin_ashgrave_barrow")
 	_check(int(barrow.get("anchor", {}).get("q", 0)) == 63 and int(barrow.get("anchor", {}).get("r", 0)) == -160, "Corvin Ashgrave barrow anchor must derive from the source necromancer ritual centre")
 	_check(barrow.get("floors", []).size() == 1, "Corvin Ashgrave barrow must remain a single source floor, not invented vertical levels")
