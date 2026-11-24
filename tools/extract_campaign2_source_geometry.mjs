@@ -127,8 +127,6 @@ const captureCode = [
   "terrainBaseline: window._campaign2TerrainBaseline,",
   "tileObjectBaseline: window._campaign2TileObjectsBaseline,",
   "patrolPath: window.campaign2UnicornPatrolPath || [],",
-  "terrainWritesByBuilder: Object.fromEntries(Object.entries(terrainWritesByBuilder).map(([name, cells]) => [name, Array.from(cells)])),
-  "terrainWriteCountsByBuilder: terrainWriteCountsByBuilder,",
   "landmarks: {",
   "farmstead: window.campaign2FarmHouseCenter || null,",
   "millbrook: window.campaign2MillbrookCenter || null,",
