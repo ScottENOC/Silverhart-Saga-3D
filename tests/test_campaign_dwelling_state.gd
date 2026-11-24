@@ -105,4 +105,4 @@ func _test_dwelling_camp_lodging() -> void:
 	var indoor := result.summary.characters.player
 	var outdoor := result.summary.characters.companion
 	_check(float(indoor.warmth) > float(outdoor.warmth), "Dwelling shelter should improve warmth for its occupant.")
-	_check(float(indoor.security) > float(outdoor.security), "Dwelling shelter should improve security for its occupant.")
+	_check(float(indoor.comfort) > float(outdoor.comfort), "Dwelling shelter should improve overall overnight comfort for its occupant.")
