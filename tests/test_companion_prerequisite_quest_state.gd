@@ -326,8 +326,8 @@ func _test_prerequisite_dialogue_adapter_routes_npc_evidence() -> void:
 	var measure_chains: Variant = measure_setup.chains
 	var measure_journal: CampaignJournal = measure_setup.journal
 	var measure_relationships: CompanionRelationshipState = measure_setup.relationships
-	var party_ids: Array[String] = ["ser_aldric_thorne"]
-	var measure_start: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_quest(measure_chains, measure_journal, measure_relationships, "aldric_measure_of_oath", party_ids, 6000.0)
+	var measure_party_ids: Array[String] = ["ser_aldric_thorne"]
+	var measure_start: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_quest(measure_chains, measure_journal, measure_relationships, "aldric_measure_of_oath", measure_party_ids, 6000.0)
 	_check(bool(measure_start.get("ok", false)))
 	_check(String(measure_journal.quest_state("aldric_measure_of_oath").get("description", "")).contains("Speak with Preceptor Garran Vey"), "The new chapter begins with its first supporting NPC objective")
 	var garran_prompt: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(measure_chains, measure_journal, "preceptor_garran_vey")
