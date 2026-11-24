@@ -13,6 +13,7 @@ on:
     paths:
       - "tools/review/aldric_wren_kiss_contact_scene.gd"
       - "tools/review/aldric_wren_kiss_contact_blender.py"
+      - "tools/review/ara_surface_contact_distance_diagnostic.gd"
       - ".github/workflows/aldric-wren-contact-pose-review.yml"
   workflow_dispatch:
 
@@ -83,8 +84,11 @@ jobs:
           assert report["validation"]["posed_preview_rendered"]
           assert report["validation"]["glb_exported"]
           assert report["character_height"]["aldric"] > report["character_height"]["wren"]
-          print("Height-aware pose export checks passed.")
+          distance_report = json.loads(Path("build/aldric-wren-kiss-contact/surface-contact-distances.json").read_text())
+          assert len(distance_report["contacts"]) == 5, distance_report
+          print("Height-aware pose export and five-pair surface diagnostic checks passed.")
           print(json.dumps(report, indent=2))
+          print(json.dumps(distance_report, indent=2))
           PY
 
       - name: Upload paired pose and visual QA for iPhone review
