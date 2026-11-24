@@ -455,7 +455,7 @@ func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = nul
 			bag_users.append(member_id)
 			bags_remaining -= 1
 		sleeping_arrangements.append({
-			"tent_index": sleeping_arrangements.size(), "shelter_type": "tent",
+			"tent_index": next_tent_index, "shelter_type": "tent",
 			"sleeping_surface": "ground",
 			"character_ids": group,
 			"sleeping_bag_character_ids": bag_users,
