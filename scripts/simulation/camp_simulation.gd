@@ -78,9 +78,6 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 
 func _plan_initial_activities() -> void:
 	var available := party_ids.duplicate()
-	# Reserve watch before assigning optional chores so every party size has
-	# meaningful security coverage where at least one character can stand watch.
-	_assign_watchers(available)
 	if resources.wood <= 0 and bool(environment.get("trees_nearby", false)):
 		_assign_from_pool(available, "gather_wood", 1)
 	if resources.tents > 0:
@@ -282,9 +279,17 @@ func begin_night() -> Dictionary:
 	for character_id in party_ids:
 		evening_activity_history[character_id] = String(assignments.get(character_id, {}).get("activity", ""))
 	phase = "night"
+	var available_watchers := party_ids.duplicate()
 	for character_id in party_ids:
 		var current: Dictionary = assignments.get(character_id, {})
-		if String(current.get("activity", "")) != "watch":
+		if String(current.get("activity", "")) == "watch":
+			available_watchers.erase(character_id)
+	var required_watchers := watch_slots_for_party(party_ids.size())
+	while _count_watchers() < required_watchers and not available_watchers.is_empty():
+		var watcher_id := String(available_watchers.pop_back())
+		_set_assignment(watcher_id, "watch")
+	for character_id in party_ids:
+		if String(assignments.get(character_id, {}).get("activity", "")) != "watch":
 			_set_assignment(character_id, "sleep")
 	return {"ok": true, "watchers": _count_watchers()}
 
