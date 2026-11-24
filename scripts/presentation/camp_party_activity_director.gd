@@ -18,6 +18,7 @@ var _camp_hex: Vector2i = Vector2i.ZERO
 var _active_character_ids: Array[String] = []
 var _destination_by_character: Dictionary = {}
 var _activity_by_character: Dictionary = {}
+var _social_pause_remaining: Dictionary = {}
 var _step_accumulator: float = 0.0
 var _social_accumulator: float = 0.0
 var _exchange_index: int = 0
@@ -49,6 +50,7 @@ func stop() -> void:
 	_active_character_ids.clear()
 	_destination_by_character.clear()
 	_activity_by_character.clear()
+	_social_pause_remaining.clear()
 	_step_accumulator = 0.0
 	_social_accumulator = 0.0
 	_exchange_index = 0
@@ -63,6 +65,7 @@ func process_activity_movement(delta: float) -> void:
 		return
 	if simulation.is_in_combat or simulation.has_pending_reaction() or simulation.clock.paused:
 		return
+	_advance_social_pauses(delta)
 	_step_accumulator += delta
 	if _step_accumulator < STEP_INTERVAL:
 		return
@@ -78,6 +81,8 @@ func process_activity_movement(delta: float) -> void:
 
 
 func _process_companion_step(character_id: String) -> void:
+	if float(_social_pause_remaining.get(character_id, 0.0)) > 0.0:
+		return
 	var state := simulation.get_character(character_id)
 	if state == null or not state.alive or not state.can_act():
 		_active_character_ids.erase(character_id)
@@ -250,6 +255,8 @@ func _process_social_exchanges(delta: float) -> void:
 		exchange,
 		event_key
 	)
+	_social_pause_remaining[first_id] = 4.5
+	_social_pause_remaining[second_id] = 4.5
 	_play_social_animation(first_id)
 	_play_social_animation(second_id)
 	_exchange_index += 1
@@ -263,3 +270,19 @@ func _play_social_animation(character_id: String) -> void:
 	if actor == null or not is_instance_valid(actor) or not actor.has_method("play_camp_activity"):
 		return
 	actor.call("play_camp_activity", "socialise")
+
+
+## Keep the talk gesture alive for the full two-turn exchange. The ordinary
+## station animation is restored when both speech bubbles have had time to show.
+func _advance_social_pauses(delta: float) -> void:
+	for character_id_value in _social_pause_remaining.keys():
+		var character_id := String(character_id_value)
+		var remaining := maxf(0.0, float(_social_pause_remaining[character_id]) - delta)
+		if remaining > 0.0:
+			_social_pause_remaining[character_id] = remaining
+			continue
+		_social_pause_remaining.erase(character_id)
+		if _destination_by_character.has(character_id):
+			var state := simulation.get_character(character_id)
+			if state != null and state.axial == _destination_by_character[character_id]:
+				_play_assigned_activity(character_id)
