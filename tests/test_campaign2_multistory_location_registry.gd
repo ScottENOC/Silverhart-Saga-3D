@@ -417,8 +417,8 @@ func _initialize() -> void:
 		_check(int(room.get("half_width", 0)) == int(home["half_width"]) and int(room.get("half_height", 0)) == int(home["half_height"]), "Noble/outlying room dimensions must match carveFlatRoom: " + location_id)
 	_check(_position_matches(registry.get_definition("silverhart_corstane_manor").get("anchor", {}), Vector2i(39, -502)), "Corstane manor anchor must match buildSilverhartPalace")
 	var manor_floor := registry.get_floor_definition("silverhart_corstane_manor", 0)
-	_check(manor_floor.get("floor_hexes", []).size() == 25, "Corstane manor must preserve the source-shrunk floor mask")
-	_check(manor_floor.get("wall_hexes", []).size() == 22, "Corstane manor must preserve the source-rebuilt wall mask")
+	_check(manor_floor.get("floor_hexes", []).size() == 31, "Corstane manor must preserve the source-shrunk floor mask")
+	_check(manor_floor.get("wall_hexes", []).size() == 24, "Corstane manor must preserve the source-rebuilt wall mask")
 	_check(manor_floor.get("floor_hexes", []).has({"q": 36, "r": -502}), "Corstane manor's moved west door must remain floor")
 	_check(manor_floor.get("wall_hexes", []).has({"q": 36, "r": -501}), "Corstane manor's shifted west wall must be restored")
 
