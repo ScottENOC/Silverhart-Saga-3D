@@ -209,6 +209,30 @@ func _initialize() -> void:
 	_check(millbrook_map.is_walkable(Vector2i(4, -366)), "Millbrook house east entrance must be walkable")
 	_check(_has_object(millbrook_result.get("tile_objects", []), "millbrook_house_fireplace"), "Millbrook house fireplace must be presented")
 
+	var reddale_registry := REGISTRY.new()
+	var reddale_entrances := {
+		"reddale_guardhouse": Vector2i(137, 24),
+		"reddale_guildhouse": Vector2i(143, 34),
+		"reddale_inn": Vector2i(138, 28),
+		"reddale_manor": Vector2i(143, 14),
+		"reddale_reeve_house": Vector2i(138, 20),
+		"reddale_smithy": Vector2i(137, 32)
+	}
+	for location_id in reddale_entrances:
+		var reddale_definition: Dictionary = reddale_registry.get_definition(location_id)
+		var reddale_state = LOCATION_STATE.new()
+		_check(bool(reddale_state.configure(reddale_definition).get("ok", false)), "Reddale location state must configure: " + location_id)
+		var reddale_result: Dictionary = FLOOR_BUILDER.build_floor_map(reddale_definition, 0, reddale_state)
+		_check(bool(reddale_result.get("ok", false)), "Reddale interior floor must build: " + location_id)
+		if not bool(reddale_result.get("ok", false)):
+			continue
+		var reddale_map: HexMapData = reddale_result.get("map_data") as HexMapData
+		_check(reddale_map.is_walkable(reddale_entrances[location_id]), "Reddale entrance must be walkable: " + location_id)
+		for reddale_object in reddale_result.get("tile_objects", []):
+			var reddale_position: Dictionary = reddale_object.get("position", {})
+			var reddale_hex := Vector2i(int(reddale_position.get("q", 0)), int(reddale_position.get("r", 0)))
+			_check(reddale_map.is_walkable(reddale_hex), "Reddale fixture must sit on walkable floor: " + String(reddale_object.get("id", "")))
+
 	if failures > 0:
 		push_error("%d multi-story floor map test(s) failed." % failures)
 		quit(1)
