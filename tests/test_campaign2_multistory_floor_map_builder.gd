@@ -177,11 +177,15 @@ func _initialize() -> void:
 
 	var abandoned_house_registry := REGISTRY.new()
 	var abandoned_house_definition: Dictionary = abandoned_house_registry.get_definition("abandoned_house")
-	var abandoned_house_state := {}
-	var abandoned_house_map: Dictionary = FLOOR_BUILDER.build_floor_map(abandoned_house_definition, 0, abandoned_house_state)
-	_check(abandoned_house_map.get("walkable_hexes", []).size() > 0, "Abandoned House must produce a walkable source floor")
-	_check(abandoned_house_map.get("tile_objects", {}).has(Vector2i(14, -176)), "Abandoned House journal must be present in the built floor map")
-	_check(abandoned_house_map.get("tile_objects", {}).has(Vector2i(15, -176)), "Phylactery altar must be present in the built floor map")
+	var abandoned_house_state = LOCATION_STATE.new()
+	_check(bool(abandoned_house_state.configure(abandoned_house_definition).get("ok", false)), "Abandoned House traversal state must configure")
+	var abandoned_house_result: Dictionary = FLOOR_BUILDER.build_floor_map(abandoned_house_definition, 0, abandoned_house_state)
+	_check(bool(abandoned_house_result.get("ok", false)), "Abandoned House floor must build")
+	var abandoned_house_map: HexMapData = abandoned_house_result.get("map_data") as HexMapData
+	_check(abandoned_house_map != null and not abandoned_house_map.cells.is_empty(), "Abandoned House must produce a walkable source floor")
+	_check(abandoned_house_map.is_walkable(Vector2i(11, -176)), "Abandoned House west entrance must be walkable")
+	_check(_has_object(abandoned_house_result.get("tile_objects", []), "abandoned_house_journal"), "Abandoned House journal must be present in the built floor map")
+	_check(_has_object(abandoned_house_result.get("tile_objects", []), "phylactery_altar"), "Phylactery altar must be present in the built floor map")
 
 	if failures > 0:
 		push_error("%d multi-story floor map test(s) failed." % failures)
