@@ -75,7 +75,7 @@ func _initialize() -> void:
 		"silverhart_elven_embassy": Vector2i(3, -466),
 		"silverhart_dwarven_embassy": Vector2i(13, -470),
 		"silverhart_aldenreach_embassy": Vector2i(3, -460),
-		"silverhart_corvane_embassy": Vector2i(13, -462),
+		"silverhart_corvane_embassy": Vector2i(13, -463),
 		"silverhart_ironbond_office": Vector2i(4, -454),
 		"silverhart_grand_cathedral": Vector2i(10, -451),
 		"silverhart_commons_inn": Vector2i(8, -526)
