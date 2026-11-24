@@ -12,8 +12,10 @@ const GUARDIAN_IDS: Array[String] = [
 	"abandoned_house_guardian_02",
 	"abandoned_house_guardian_03"
 ]
+## The first guardian is shifted one row north by the flat-room shear correction
+## (-floor(dq / 2)), matching the legacy hexRowShiftFlat(dq) placement.
 const GUARDIAN_HEXES: Array[Vector2i] = [
-	Vector2i(13, -177),
+	Vector2i(13, -176),
 	Vector2i(15, -177),
 	Vector2i(14, -175)
 ]
