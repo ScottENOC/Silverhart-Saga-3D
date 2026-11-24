@@ -48,7 +48,7 @@ const windowState = {
   _campaign2TileObjectsBaseline: {},
   worldMapData: Array.from({ length: 16 }, () =>
     Array.from({ length: 16 }, () => ({ n: "" }))),
-  setTerrainAt(q, r, name) { overrideTerrain[q + "," + r] = { name }; },
+  setTerrainAt(q, r, name) { this.overrideTerrain[q + "," + r] = { name }; },
   setTerrainAtFloor() {},
   getTerrainAt(q, r) { return overrideTerrain[q + "," + r] || { name: "Grass" }; },
   getNeighbors(q, r) {
