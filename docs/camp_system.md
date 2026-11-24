@@ -32,6 +32,12 @@ Current animation mapping:
 
 The runtime uses Ara's canonical clip IDs (rather than display labels), tries preferences in order and falls back gracefully when an imported character asset does not contain a clip. Looping clips remain active; one-shot clips are replayed or chained into a carry/interaction pose while the character remains assigned.
 
+## Ara export requirements
+
+Ara documents 259 animation clips and exports each selected clip into the rigged GLB. The gameplay animation carrier must therefore be exported with the camp clips included; a rigged-only export is not sufficient. Mark looping clips in their names so Godot imports them with the `-loop` suffix. Keep root motion disabled for these stationary camp actions because world locomotion is already controlled by the hex movement system. Retain the shared 65-bone game rig and matching bind pose used by the existing animation carrier.
+
+Ara GLBs use metres, +Y up, and face +Z. The current gameplay actor wrapper already applies its 180-degree model-forward correction, so new body exports should not add a second manual rotation.
+
 ## Deliberate limitations
 
 - Ara's published clip list does not include dedicated chopping, cooking, map-reading, tent-pitching or equipment-repair performances. Current mappings are visual approximations, not claims that those tasks have bespoke animation.
