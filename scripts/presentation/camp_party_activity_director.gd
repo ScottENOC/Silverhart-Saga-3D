@@ -42,7 +42,9 @@ func begin_camp(site: Dictionary) -> void:
 		return
 	_camp_hex = hex_value
 	_build_companion_destinations()
-	_running = not _active_character_ids.is_empty()
+	# Social exchanges remain active even if a tight or obstructed camp site has
+	# no free station for one of the companions.
+	_running = simulation.camp_simulation.phase == "evening"
 
 
 func stop() -> void:
@@ -67,16 +69,12 @@ func process_activity_movement(delta: float) -> void:
 		return
 	_advance_social_pauses(delta)
 	_step_accumulator += delta
-	if _step_accumulator < STEP_INTERVAL:
-		return
-	_step_accumulator = 0.0
-	if _active_character_ids.is_empty():
-		stop()
-		return
-	# All companions advance on the same cadence. Round-robin stepping would
-	# make a six-person party wait several seconds between each actor's steps.
-	for character_id in _active_character_ids.duplicate():
-		_process_companion_step(character_id)
+	if _step_accumulator >= STEP_INTERVAL:
+		_step_accumulator = 0.0
+		# All companions advance on the same cadence. Round-robin stepping would
+		# make a six-person party wait several seconds between each actor's steps.
+		for character_id in _active_character_ids.duplicate():
+			_process_companion_step(character_id)
 	_process_social_exchanges(delta)
 
 
