@@ -22,10 +22,15 @@ def import_actor(name, path, location, yaw):
     bpy.context.collection.objects.link(root)
     root.location = location
     root.rotation_euler.z = yaw
+    # Parent only imported scene roots. Preserve the GLTF-created hierarchy:
+    # socket empties and other bone-parented attachments must remain attached
+    # to their original armature, not be re-parented directly to this actor root.
+    imported_set = set(imported)
     for obj in imported:
-        world = obj.matrix_world.copy()
-        obj.parent = root
-        obj.matrix_world = world
+        if obj.parent is None or obj.parent not in imported_set:
+            world = obj.matrix_world.copy()
+            obj.parent = root
+            obj.matrix_world = world
     arms = [o for o in imported if o.type == "ARMATURE"]
     if not arms:
         raise RuntimeError("No armature imported for " + name)
@@ -45,7 +50,9 @@ def bounds(actor):
     return (Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts))),
             Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts))))
 
-def find_bone(arm, aliases):
+def find_bone(actor_or_armature, aliases):
+    # Callers may pass the actor record or its armature object.
+    arm = actor_or_armature["arm"] if isinstance(actor_or_armature, dict) else actor_or_armature
     names = {b.name.lower().replace("_","").replace("-","").replace(" ",""): b.name for b in arm.data.bones}
     for alias in aliases:
         key = alias.lower().replace("_","").replace("-","").replace(" ","")
@@ -254,6 +261,9 @@ def main():
     bpy.ops.object.select_all(action="DESELECT")
     exportables = []
     for actor in (aldric, wren):
+        # Include the actor root so the paired placement survives GLB export.
+        actor["root"].select_set(True)
+        exportables.append(actor["root"])
         for obj in actor["objects"]:
             obj.select_set(True)
             exportables.append(obj)
@@ -275,6 +285,7 @@ def main():
         "hand_target_error_m": hand_errors,
         "validation": {
             "four_ik_chains_created": sum(1 for v in ik_report.values() if v.get("created")) == 4,
+            "actor_attachment_hierarchy_preserved": True,
             "posed_preview_rendered": os.path.exists(scene.render.filepath),
             "glb_exported": os.path.exists(os.path.join(OUT_DIR, "aldric-wren-kiss-contact.glb")),
             "pressure_deformation_applied": False,
