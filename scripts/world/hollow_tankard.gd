@@ -632,7 +632,31 @@ func _create_camp_presentation() -> void:
 	camp_activity_director = CAMP_PARTY_ACTIVITY_DIRECTOR_SCRIPT.new() as CampPartyActivityDirector
 	camp_activity_director.name = "CampPartyActivityDirector"
 	camp_activity_director.configure(simulation, Callable(self, "_camp_actor_for_id"))
+	camp_activity_director.companion_exchange.connect(_on_camp_companion_exchange)
 	add_child(camp_activity_director)
+
+
+
+## Autonomous companion banter is presented over the characters themselves,
+## not as player dialogue. Each speaker gets a turn and both actors are already
+## playing their conversation animation when this arrives.
+func _on_camp_companion_exchange(exchange: Dictionary) -> void:
+	if dialogue_open or encounter_active or simulation == null or simulation.is_in_combat:
+		return
+	var lines: Array = exchange.get("lines", [])
+	for line_value in lines:
+		if dialogue_open or encounter_active or simulation == null:
+			return
+		if simulation.camp_simulation.phase != "evening" or simulation.is_in_combat:
+			return
+		var line: Dictionary = line_value
+		var speaker_id := String(line.get("character_id", ""))
+		var text := String(line.get("text", ""))
+		if speaker_id.is_empty() or text.is_empty():
+			continue
+		_show_speech_bubble(speaker_id, text)
+		await get_tree().create_timer(2.25).timeout
+
 
 
 func _camp_actor_for_id(character_id: String) -> AraCharacterActor:
