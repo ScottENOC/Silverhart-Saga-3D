@@ -214,7 +214,7 @@ func _build_interface() -> void:
 	help.offset_right = -245.0
 	help.offset_top = -52.0
 	help.offset_bottom = -16.0
-	help.text = "Click: travel   •   QWE / ASD: move   •   F: use nearby stair / enter or exit   •   Middle-drag: orbit   •   Right-drag: pan   •   Wheel: zoom   •   Esc: macro map"
+	help.text = "Click: travel   •   QWE / ASD: move   •   F: use stair or speak to nearby NPC   •   Middle-drag: orbit   •   Right-drag: pan   •   Wheel: zoom   •   Esc: macro map"
 	help.add_theme_font_size_override("font_size", 12)
 	help.add_theme_color_override("font_color", Color("#d2d8d9"))
 	root.add_child(help)
@@ -537,8 +537,14 @@ func _configure_companion_campaign_state() -> void:
 		return
 	var saved_chain: Variant = ecology_simulation.get_meta("companion_quest_chains", null)
 	var saved_relationships: Variant = ecology_simulation.get_meta("companion_relationship_state", null)
-	companion_quest_chains = saved_chain as CompanionQuestChainState if saved_chain is CompanionQuestChainState else CompanionQuestChainState.new()
-	companion_relationship_state = saved_relationships as CompanionRelationshipState if saved_relationships is CompanionRelationshipState else CompanionRelationshipState.new()
+	if saved_chain is CompanionQuestChainState:
+		companion_quest_chains = saved_chain
+	else:
+		companion_quest_chains = CompanionQuestChainState.new()
+	if saved_relationships is CompanionRelationshipState:
+		companion_relationship_state = saved_relationships
+	else:
+		companion_relationship_state = CompanionRelationshipState.new()
 	ecology_simulation.set_meta("companion_quest_chains", companion_quest_chains)
 	ecology_simulation.set_meta("companion_relationship_state", companion_relationship_state)
 	companion_quest_chains.register_quest_definitions(ecology_simulation.campaign_journal)
