@@ -1572,12 +1572,12 @@ func _advance_character_spell_effects(state: CharacterState, gained_tp: float) -
         state.spell_effects[index] = effect
 
 
-func claim_dwelling(action_id: String, payment: String = "materials") -> Dictionary:
-    return campaign_dwellings.complete_action(action_id, campaign_journal, get_character(player_character_id), payment)
+func claim_dwelling(action_id: String, payment: String = "materials", site_id: String = "") -> Dictionary:
+    return campaign_dwellings.complete_action(action_id, campaign_journal, get_character(player_character_id), payment, site_id)
 
 
-func dwelling_action_availability(action_id: String) -> Dictionary:
-    return campaign_dwellings.evaluate_action(action_id, campaign_journal, get_character(player_character_id))
+func dwelling_action_availability(action_id: String, payment: String = "materials", site_id: String = "") -> Dictionary:
+    return campaign_dwellings.evaluate_action(action_id, campaign_journal, get_character(player_character_id), payment, site_id)
 
 
 func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resource_data: Dictionary = {}) -> Dictionary:
