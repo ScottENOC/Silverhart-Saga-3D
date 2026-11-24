@@ -1645,6 +1645,7 @@ func _show_streamed_npc_dialogue(actor: Node3D, target_state: CharacterState) ->
 		var journal := simulation.campaign_journal
 		var context := {
 			"silverhart_standing": journal.faction_standing("silverhart_kingdom"),
+			"manor_granted": bool(simulation.campaign_dwellings.owned.get("silverhart_manor", false)),
 			"goblin_standing": journal.faction_standing("goblin_tribe"),
 			"ironbond_influence": journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"),
 			"necromancer_standing": journal.faction_standing("necromancer_cult")
