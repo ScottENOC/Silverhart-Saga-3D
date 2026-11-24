@@ -216,12 +216,41 @@ func _best_sleeping_candidate(candidates: Array, group: Array[String], bonds: Co
 func begin_night() -> Dictionary:
 	if phase != "evening":
 		return {"ok": false, "reason": "not_in_evening_phase"}
+	_complete_evening_preparations()
 	phase = "night"
 	for character_id in party_ids:
 		var current: Dictionary = assignments.get(character_id, {})
 		if String(current.get("activity", "")) != "watch":
 			_set_assignment(character_id, "sleep")
-	return {"ok": true, "watchers": watch_slots_for_party(party_ids.size())}
+	return {"ok": true, "watchers": _count_watchers()}
+
+
+func _has_activity(activity: String) -> bool:
+	for assignment in assignments.values():
+		if String(assignment.get("activity", "")) == activity:
+			return true
+	return false
+
+
+func _count_watchers() -> int:
+	var count := 0
+	for assignment in assignments.values():
+		if String(assignment.get("activity", "")) == "watch":
+			count += 1
+	return count
+
+
+func _complete_evening_preparations() -> void:
+	if int(resources.wood) <= 0 and bool(environment.get("trees_nearby", false)) and _has_activity("gather_wood"):
+		resources["wood"] = 1
+	if bool(environment.get("water_nearby", false)) and _has_activity("fetch_water"):
+		resources["water"] = maxi(int(resources.water), party_ids.size())
+	if int(resources.wood) > 0 and not bool(environment.get("fire_lit", false)):
+		resources["wood"] = maxi(0, int(resources.wood) - 1)
+		environment["fire_lit"] = true
+	if bool(environment.get("fire_lit", false)) and int(resources.rations) >= party_ids.size() and _has_activity("cook"):
+		resources["rations"] = int(resources.rations) - party_ids.size()
+		environment["meal_prepared"] = true
 
 
 func skip_to_morning(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
@@ -235,22 +264,18 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		return {"ok": false, "reason": "night_not_started"}
 	var night_hours := clampf(hours, 1.0, 16.0)
 	var party_size := party_ids.size()
-	var has_fire := int(resources.wood) > 0 or bool(environment.get("fire_lit", false))
-	var has_meal := int(resources.rations) > 0 and has_fire
-	var has_water := int(resources.water) >= party_size or bool(environment.get("water_nearby", false))
-	var watchers := 0
-	for character_id in assignments:
-		if String(assignments[character_id].get("activity", "")) == "watch":
-			watchers += 1
+	var has_fire := bool(environment.get("fire_lit", false))
+	var has_meal := bool(environment.get("meal_prepared", false))
+	var has_water := int(resources.water) >= party_size
+	var watchers := _count_watchers()
 	var danger := clampf(float(environment.get("danger", 0.25)), 0.0, 1.0)
 	var ambush_chance := clampf(danger * 0.45 - float(watchers) * 0.07, 0.0, 0.45)
-	var temperature := float(environment.get("night_temperature_c", 10.0))
+	var starting_temperature := float(environment.get("night_temperature_c", 10.0))
+	var temperature_change := float(environment.get("temperature_change_per_hour", -0.4))
+	var temperature := starting_temperature + temperature_change * night_hours
 	var cold_penalty := maxf(0.0, 10.0 - temperature) * 2.0
-	var tented_count := 0
 	var bagged_characters: Dictionary = {}
 	for arrangement in sleeping_arrangements:
-		if int(arrangement.get("tent_index", -1)) >= 0:
-			tented_count += (arrangement.get("character_ids", []) as Array).size()
 		for bagged_id in arrangement.get("sleeping_bag_character_ids", []):
 			bagged_characters[String(bagged_id)] = true
 	var results: Dictionary = {}
@@ -268,18 +293,22 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		var nutrition := 90.0 if has_meal else (55.0 if int(resources.rations) > 0 else 35.0)
 		var hydration := 90.0 if has_water else 35.0
 		var security := clampf(55.0 + float(watchers) * 15.0 - danger * 30.0, 0.0, 100.0)
+		var social := 65.0 if String(assignments.get(character_id, {}).get("activity", "")) == "socialise" else 50.0
 		var sleep_quality := clampf((warmth + nutrition + hydration + security) * 0.25 - tent_penalty, 0.0, 100.0)
-		var comfort := clampf((warmth * 0.25 + nutrition * 0.20 + hydration * 0.15 + security * 0.15 + sleep_quality * 0.25), 0.0, 100.0)
-		var fatigue_recovered := minf(float(condition.fatigue), 20.0 + comfort * 0.35)
+		var comfort := clampf((warmth * 0.23 + nutrition * 0.18 + hydration * 0.14 + security * 0.15 + sleep_quality * 0.20 + social * 0.10), 0.0, 100.0)
+		var watch_penalty := 10.0 if String(assignments.get(character_id, {}).get("activity", "")) == "watch" else 0.0
+		var fatigue_recovered := minf(float(condition.fatigue), maxf(0.0, 20.0 + comfort * 0.35 - watch_penalty))
 		condition["fatigue"] = maxf(0.0, float(condition.fatigue) - fatigue_recovered)
 		condition["hunger"] = clampf(float(condition.hunger) + night_hours * 2.0 - (25.0 if has_meal else 0.0), 0.0, 100.0)
 		condition["thirst"] = clampf(float(condition.thirst) + night_hours * 2.5 - (30.0 if has_water else 0.0), 0.0, 100.0)
+		if has_water:
+			resources["water"] = maxi(0, int(resources.water) - party_size)
 		condition["warmth"] = warmth
 		condition["comfort"] = comfort
 		conditions[character_id] = condition
 		results[character_id] = {
 			"comfort": comfort, "warmth": warmth, "nutrition": nutrition,
-			"hydration": hydration, "security": security,
+			"hydration": hydration, "security": security, "social": social,
 			"fatigue_recovered": fatigue_recovered
 		}
 	phase = "resolved"
