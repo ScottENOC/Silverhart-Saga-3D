@@ -26,10 +26,19 @@ func _run() -> void:
 	_check(float(matched_result.visual_confidence) > float(contrasting_result.visual_confidence), "matching palette should be harder to detect")
 
 	var night := {"ambient_light": 0.0}
-	var campfire := {"hex": Vector2i(80, 0), "light_emission": 0.95}
+	var campfire := {"hex": Vector2i(20, 0), "light_emission": 0.95}
 	var fire_result := StealthPerceptionSystem.assess(observer, campfire, {}, night)
 	_check(int(fire_result.visual_level) >= StealthPerceptionSystem.VISUAL_VAGUE, "distant campfire should remain faintly visible at night")
 	_check(int(fire_result.visual_level) < StealthPerceptionSystem.VISUAL_IDENTIFIED, "distant campfire should not reveal fine detail")
+
+	_check(not bool(fire_result.hex_known), "distant fire should not reveal an exact target hex")
+	var distant_unlit_target := {"hex": Vector2i(20, 0), "appearance": {"colours": [Color.WHITE]}}
+	var distant_unlit_result := StealthPerceptionSystem.assess(observer, distant_unlit_target, {}, night)
+	_check(int(distant_unlit_result.visual_level) == StealthPerceptionSystem.VISUAL_NONE, "unlit target beyond vision radius should remain unseen")
+	var badly_camouflaged_outside := {"hex": Vector2i(9, 0), "appearance": {"colours": [Color.WHITE]}}
+	var outside_result := StealthPerceptionSystem.assess(observer, badly_camouflaged_outside, forest)
+	_check(int(outside_result.visual_level) == StealthPerceptionSystem.VISUAL_NONE, "poor camouflage must not extend the hard vision radius")
+	_check(not bool(outside_result.within_vision_radius), "target beyond default vision radius should be outside local sight")
 
 	var armoured_character := CharacterState.new("armoured_test", "Armoured test")
 	armoured_character.equipped_item_data["armour"] = {"id": "steel_plate", "weight_class": "heavy"}
