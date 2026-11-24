@@ -329,7 +329,8 @@ def main():
     for obj in exportables: obj.select_set(True)
     bpy.context.view_layer.objects.active=exportables[0]
     bpy.ops.export_scene.gltf(filepath=os.path.join(OUT_DIR,"wren-body-pressure-pose.glb"),
-        export_format="GLB",use_selection=True,export_animations=False,export_skins=False,\n        export_draco_mesh_compression_enable=False)
+        export_format="GLB",use_selection=True,export_animations=False,export_skins=False,
+        export_draco_mesh_compression_enable=False)
     report["validation"]={"wren_only":True,"both_arm_ik_created":all(v.get("created",False) for v in report["ik"].values()),
         "preview_rendered":os.path.exists(os.path.join(OUT_DIR,"wren-body-pressure-preview.png")),
         "posed_glb_exported":os.path.exists(os.path.join(OUT_DIR,"wren-body-pressure-pose.glb")),
