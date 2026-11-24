@@ -959,6 +959,54 @@
       ]
     },
     {
+      "id": "old_mac_farmhouse",
+      "name": "Old Mac's Farmhouse",
+      "anchor": {
+        "q": 0,
+        "r": 194
+      },
+      "source": "Hex-crpg/campaign2World.js:buildFarmstead; farmstead road-end waypoint (6,194) plus farmhouse offset (-6,0)",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Farmhouse",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "old_mac_farmhouse_room",
+              "center": {
+                "q": 0,
+                "r": 194
+              },
+              "half_width": 3,
+              "half_height": 2,
+              "row_shift_mode": "source_building"
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "old_mac_farmhouse_east_door",
+              "type": "door_open",
+              "position": {
+                "q": 3,
+                "r": 194
+              },
+              "light_radius": 0
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": [],
+      "source_notes": [
+        "The source farmstead road-end waypoint is (6,194); buildFarmstead applies (-6,0), giving the farmhouse centre (0,194).",
+        "The source uses carveBuilding with half-width 3 and half-height 2, with an east entrance at (3,194). Old Mac's placement at (1,194) is a campaign actor and is intentionally excluded."
+      ]
+    },
+    {
       "id": "reddale_guardhouse",
       "name": "Reddale — Guardhouse",
       "anchor": {
