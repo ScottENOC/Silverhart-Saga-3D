@@ -48,6 +48,8 @@ func _test_double_cross_and_turn_in() -> void:
 	var player := PLAYER.new("player", "Player")
 	player.inventory.append({"id":"baron_tariff_evidence", "name":"Baron's tariff tally"})
 	_check(bool(DIALOGUE.select_choice(journal, player, "petra_voss", "start_espionage").get("ok", false)), "Guildmaster mission should start at 40 influence")
+	var counter_offer := DIALOGUE.dialogue_for_npc(journal, "baron_corwin_aldervale")
+	_check(counter_offer.choices.any(func(choice: Dictionary) -> bool: return String(choice.get("id", "")) == "double_cross_accept"), "The target faction should offer the active mission's double-cross choice")
 	var flipped := DIALOGUE.select_choice(journal, player, "baron_corwin_aldervale", "double_cross_accept")
 	_check(bool(flipped.get("ok", false)), "Baron should be able to flip the Guildmaster's spy")
 	var completed := DIALOGUE.select_choice(journal, player, "petra_voss", "return_evidence")
