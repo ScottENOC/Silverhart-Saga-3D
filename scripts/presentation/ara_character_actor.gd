@@ -770,7 +770,9 @@ func play_camp_activity(activity: String) -> bool:
 		return false
 	var current := String(animation_player.current_animation).to_lower()
 	var current_playing := animation_player.is_playing()
-	var preferred := camp_activity_animation_hints(activity).to_array()
+	var preferred: Array[String] = []
+	for hint in camp_activity_animation_hints(activity):
+		preferred.append(String(hint))
 	var clip := ""
 	if activity == "gather_wood" or activity == "set_up_tents" or activity == "fetch_water":
 		var pickup := _find_animation_clip(["pick_up"])
