@@ -32,9 +32,7 @@ jobs:
           # character_details is game-side metadata, not part of Ara's export schema.
           node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("character-preview/wren-ara.json","utf8")); delete p.character_details; fs.writeFileSync("build/wren-native/wren-export.json", JSON.stringify(p,null,2));'
           npx --yes ara3d@latest export --params build/wren-native/wren-export.json --detail high --no-animations --formats glb,zip --out build/wren-native
-          glb="$(find build/wren-native -maxdepth 1 -type f -name '*.glb' ! -name 'Wren.glb' | head -n 1)"
-          test -n "$glb"
-          cp "$glb" build/wren-native/Wren.glb
+          # Ara already writes the requested character as Wren.glb.
           test -s build/wren-native/Wren.glb
       - name: Install Blender
         run: |
