@@ -1,5 +1,7 @@
 # Source-to-3D world gap audit — pass 1
 
+> **Historical audit — pass 1; not the current implementation register.** This document predates the global axial terrain stream, the source-runtime geometry extractor, later regional feature presenters and the settlement/interior migrations. Statements about the 96-hex village prototype, compact world approximation and early farmstead placement describe an earlier project state. Use `docs/campaign2_world_port_status.md` for current port status and remaining gaps.
+
 **Compared:** original `Hex-crpg/main` Campaign 2 source against current `Silverhart-Saga-3D/dev` world data.  
 **Purpose:** identify what must change before the 3D project can claim a faithful multi-chunk world.  
 **Rule:** source-authored content wins. Existing 3D content is retained only where it matches the source or is explicitly recorded as a deliberate 3D adaptation.
