@@ -96,6 +96,10 @@ func _test_night_resolution_and_save_load() -> void:
 	_check(float(result.summary.characters.player.comfort) > 0.0)
 	_check(String(restored.phase) == "resolved")
 	_check(int(restored.resources.water) == 0, "Drinking water should be consumed once for the whole party, not once per character")
+	_check(String(restored.next_day_effects("player").get("fatigue_band", "")) == "rested")
+	var after_night := restored.condition_for("player")
+	restored.begin_camp({"walkable": true}, ["player", "wren"])
+	_check(restored.condition_for("player") == after_night, "Fatigue, hunger and thirst must persist between camp sessions")
 	_check(not bool(restored.resolve_night().ok), "A resolved camp cannot resolve twice")
 
 
