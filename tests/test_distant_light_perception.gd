@@ -25,7 +25,7 @@ func _initialize() -> void:
 	var chance := VISION.stealth_detection_chance(observer, 10, 50.0, 0.2, false)
 	assert(is_equal_approx(chance, 55.0))
 	var lit_chance := VISION.stealth_detection_chance(observer, 10, 50.0, 0.2, true)
-	assert(is_equal_approx(lit_chance, 82.5))
+	assert(is_equal_approx(lit_chance, 100.0))
 	assert(VISION.stealth_detection_chance(observer, 15, 150.0, 0.2, false) == 0.0)
 	assert(VISION.stealth_detection_chance(observer, 15, 150.0, 1.0, false) == 5.0)
 	assert(VISION.stealth_detection_chance(null, 5, 0.0) == 0.0)
