@@ -96,3 +96,12 @@ Campaign dwelling state owns the action gates, payments, ownership and improveme
 When a camp is explicitly established at an owned, livable dwelling, indoor beds are assigned before tents or open-air sleeping. Indoor sleepers receive that property's warmth, security and comfort bonuses; companions beyond its indoor capacity still use ordinary tent and sleeping-bag rules. The camp site must supply its dwelling ID, so owning a house does not shelter a party camping elsewhere.
 
 This pass defines layout IDs and connects dwelling shelter to camp simulation. It does not yet build all four property interiors as explorable 3D locations, add a builder interaction UI, or port the abandoned-house clearing encounter. The required quest-state ID for that encounter is abandoned_house_cleared; until the quest port completes it, the restoration action correctly remains unavailable.
+
+
+### Changing evening routines
+
+Camp time now moves through three routine stages using the ordinary exploration clock: initial setup, the main evening, and late-evening wind-down. The first transition resolves gathered firewood, water and meal preparation once, before companions move on to personal activities. Player-directed assignments remain protected until their normal override expires.
+
+Routine selection considers persistent fatigue, injury inferred from current health/hobbling, class role, explicitly authored personality tags, available supplies, nearby water/wood, weather severity and whether the camp has a livable dwelling. Fatigued or injured companions avoid strenuous work; scholarly and methodical companions favour map study; practical/craft-oriented companions can take repair work when kits exist. The late routine becomes quieter rather than repeatedly cycling through chores.
+
+The dwelling distinction is functional rather than merely cosmetic: a livable house allows indoor-oriented late activities and shelter from severe weather, while a wilderness camp remains exposed and continues to prioritise essential water/fire needs. No personality is invented where the character has no matching authored tag; those companions use neutral defaults. Routine stage, profiles and preparation completion are saved with camp state.
