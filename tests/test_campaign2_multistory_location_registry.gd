@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["abandoned_house","corvin_ashgrave_barrow","emberlode_bunkhouse","emberlode_foremans_hall","emberlode_mine","hollowmere_chapel","hollowmere_general_store","hollowmere_guild_den","hollowmere_house","hollowmere_store","hollowmere_tavern","kragmoor","lich_chapterhouse","millbrook_house","mira_house","northwatch_keep","old_mac_farmhouse","oskar_house","reddale_guardhouse","reddale_guildhouse","reddale_inn","reddale_manor","reddale_reeve_house","reddale_smithy","ridgehold_keep","silthandriel","silverhart_city_tunnel","silverhart_clothier","silverhart_east_quarter_house_1","silverhart_east_quarter_house_2","silverhart_east_quarter_house_3","silverhart_east_quarter_house_4","silverhart_general_goods","silverhart_magic_shop","silverhart_neighbor_house","silverhart_noble_cottage_north_1","silverhart_noble_cottage_north_2","silverhart_noble_cottage_north_3","silverhart_outlying_house_northeast_1","silverhart_outlying_house_northeast_2","silverhart_outlying_house_west","silverhart_palace","silverhart_palace_barracks","silverhart_palace_bedroom","silverhart_palace_council_chamber","silverhart_palace_tunnel","silverhart_palace_wizard_tower","silverhart_stables","silverhart_thieves_guild","thieves_cove","vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	_check(registry.location_ids() == ["abandoned_house","corvin_ashgrave_barrow","emberlode_bunkhouse","emberlode_foremans_hall","emberlode_mine","hollowmere_chapel","hollowmere_general_store","hollowmere_guild_den","hollowmere_house","hollowmere_store","hollowmere_tavern","kragmoor","lich_chapterhouse","millbrook_house","mira_house","northwatch_keep","old_mac_farmhouse","oskar_house","reddale_guardhouse","reddale_guildhouse","reddale_inn","reddale_manor","reddale_reeve_house","reddale_smithy","ridgehold_keep","silthandriel","silverhart_city_tunnel","silverhart_clothier","silverhart_east_house_1","silverhart_east_house_2","silverhart_east_house_3","silverhart_east_house_4","silverhart_general_goods","silverhart_magic_shop","silverhart_neighbor_house","silverhart_north_cottage_1","silverhart_north_cottage_2","silverhart_north_cottage_3","silverhart_outlying_house_1","silverhart_outlying_house_2","silverhart_outlying_house_3","silverhart_palace","silverhart_palace_barracks","silverhart_palace_council_chamber","silverhart_palace_tunnel","silverhart_palace_wizard_tower","silverhart_queens_bedroom","silverhart_stables","silverhart_thieves_guild","thieves_cove","vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
 	var emberlode_centres := {
 		"emberlode_bunkhouse": Vector2i(-252, 28),
 		"emberlode_foremans_hall": Vector2i(-256, 22)
@@ -340,16 +340,16 @@ func _initialize() -> void:
 	# source room centres, dimensions, door coordinates and fixture placements.
 	var silverhart_residential_specs := {
 		"silverhart_neighbor_house": {"centre": Vector2i(45, -502), "door": Vector2i(48, -502), "door_id": "silverhart_neighbor_house_east_door", "width": 3, "height": 2},
-		"silverhart_noble_cottage_north_1": {"centre": Vector2i(35, -507), "door": Vector2i(37, -507), "door_id": "silverhart_noble_cottage_north_1_east_door", "width": 2, "height": 2},
-		"silverhart_noble_cottage_north_2": {"centre": Vector2i(35, -513), "door": Vector2i(37, -513), "door_id": "silverhart_noble_cottage_north_2_east_door", "width": 2, "height": 2},
-		"silverhart_noble_cottage_north_3": {"centre": Vector2i(35, -519), "door": Vector2i(37, -519), "door_id": "silverhart_noble_cottage_north_3_east_door", "width": 2, "height": 2},
-		"silverhart_east_quarter_house_1": {"centre": Vector2i(26, -479), "door": Vector2i(28, -479), "door_id": "silverhart_east_quarter_house_1_east_door", "width": 2, "height": 2},
-		"silverhart_east_quarter_house_2": {"centre": Vector2i(32, -480), "door": Vector2i(34, -480), "door_id": "silverhart_east_quarter_house_2_east_door", "width": 2, "height": 2},
-		"silverhart_east_quarter_house_3": {"centre": Vector2i(23, -470), "door": Vector2i(24, -470), "door_id": "silverhart_east_quarter_house_3_east_door", "width": 1, "height": 2},
-		"silverhart_east_quarter_house_4": {"centre": Vector2i(26, -471), "door": Vector2i(27, -471), "door_id": "silverhart_east_quarter_house_4_east_door", "width": 1, "height": 1},
-		"silverhart_outlying_house_northeast_1": {"centre": Vector2i(23, -546), "door": Vector2i(23, -544), "door_id": "silverhart_outlying_house_northeast_1_south_door", "width": 2, "height": 2},
-		"silverhart_outlying_house_northeast_2": {"centre": Vector2i(48, -546), "door": Vector2i(48, -544), "door_id": "silverhart_outlying_house_northeast_2_south_door", "width": 2, "height": 2},
-		"silverhart_outlying_house_west": {"centre": Vector2i(-32, -476), "door": Vector2i(-30, -476), "door_id": "silverhart_outlying_house_west_east_door", "width": 2, "height": 2}
+		"silverhart_north_cottage_1": {"centre": Vector2i(35, -507), "door": Vector2i(37, -507), "door_id": "silverhart_north_cottage_1_east_door", "width": 2, "height": 2},
+		"silverhart_north_cottage_2": {"centre": Vector2i(35, -513), "door": Vector2i(37, -513), "door_id": "silverhart_north_cottage_2_east_door", "width": 2, "height": 2},
+		"silverhart_north_cottage_3": {"centre": Vector2i(35, -519), "door": Vector2i(37, -519), "door_id": "silverhart_north_cottage_3_east_door", "width": 2, "height": 2},
+		"silverhart_east_house_1": {"centre": Vector2i(26, -479), "door": Vector2i(28, -479), "door_id": "silverhart_east_house_1_east_door", "width": 2, "height": 2},
+		"silverhart_east_house_2": {"centre": Vector2i(32, -480), "door": Vector2i(34, -480), "door_id": "silverhart_east_house_2_east_door", "width": 2, "height": 2},
+		"silverhart_east_house_3": {"centre": Vector2i(23, -470), "door": Vector2i(24, -470), "door_id": "silverhart_east_house_3_east_door", "width": 1, "height": 2},
+		"silverhart_east_house_4": {"centre": Vector2i(26, -471), "door": Vector2i(27, -471), "door_id": "silverhart_east_house_4_east_door", "width": 1, "height": 1},
+		"silverhart_outlying_house_1": {"centre": Vector2i(23, -546), "door": Vector2i(23, -544), "door_id": "silverhart_outlying_house_1_south_door", "width": 2, "height": 2},
+		"silverhart_outlying_house_2": {"centre": Vector2i(48, -546), "door": Vector2i(48, -544), "door_id": "silverhart_outlying_house_2_south_door", "width": 2, "height": 2},
+		"silverhart_outlying_house_3": {"centre": Vector2i(-32, -476), "door": Vector2i(-30, -476), "door_id": "silverhart_outlying_house_3_east_door", "width": 2, "height": 2}
 	}
 	for location_id in silverhart_residential_specs:
 		var expected: Dictionary = silverhart_residential_specs[location_id]
@@ -363,9 +363,9 @@ func _initialize() -> void:
 			_check(int(room.get("half_width", 0)) == int(expected["width"]) and int(room.get("half_height", 0)) == int(expected["height"]), "Silverhart residential room dimensions must match source: " + location_id)
 		_check(_has_record(floor.get("tile_objects", []), expected["door_id"]), "Silverhart residential entrance must match source: " + location_id)
 		_check(floor.get("actors", []).is_empty() and floor.get("creatures", []).is_empty(), "Silverhart residential interiors must not duplicate campaign residents: " + location_id)
-	var queen_bedroom := registry.get_floor_definition("silverhart_palace_bedroom", 0)
+	var queen_bedroom := registry.get_floor_definition("silverhart_queens_bedroom", 0)
 	_check(_position_matches(queen_bedroom.get("floor_hexes", [])[0], Vector2i(8, -502)), "Queen's bedroom must preserve its source wall opening to the Grand Hall")
-	_check(_has_record(queen_bedroom.get("tile_objects", []), "silverhart_palace_bedroom_bed_1") and _has_record(queen_bedroom.get("tile_objects", []), "silverhart_palace_bedroom_fireplace_3"), "Queen's bedroom must preserve source bed and fireplace fixtures")
+	_check(_has_record(queen_bedroom.get("tile_objects", []), "silverhart_queens_bedroom_bed_1") and _has_record(queen_bedroom.get("tile_objects", []), "silverhart_queens_bedroom_fireplace_3"), "Queen's bedroom must preserve source bed and fireplace fixtures")
 
 	if failures > 0:
 		push_error("%d multi-story location test(s) failed." % failures)
