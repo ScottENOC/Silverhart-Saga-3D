@@ -111,9 +111,9 @@ func _assign_watchers(available: Array) -> void:
 
 
 func watch_slots_for_party(party_size: int) -> int:
-	if party_size <= 0:
+	if party_size <= 1:
 		return 0
-	return mini(party_size, maxi(1, ceili(float(party_size) / 6.0)))
+	return mini(party_size - 1, maxi(1, ceili(float(party_size) / 6.0)))
 
 
 func _set_assignment(character_id: String, activity: String) -> void:
