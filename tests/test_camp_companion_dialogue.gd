@@ -4,7 +4,8 @@ var _failures := 0
 
 
 func _initialize() -> void:
-	var service := CampCompanionDialogueService
+	const SERVICE := preload("res://scripts/simulation/camp_companion_dialogue_service.gd")
+	var service = SERVICE
 	var bonds := CompanionBondState.new()
 	var camp := CampSimulation.new()
 	var exchange := service.build_exchange(
