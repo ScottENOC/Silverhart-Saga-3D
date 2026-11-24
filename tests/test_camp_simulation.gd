@@ -55,7 +55,7 @@ func _test_activity_planning_and_player_override() -> void:
 	_check(String(camp.assignments.player.activity) == "train")
 	camp.advance_real_time(1.0)
 	_check(String(camp.assignments.player.activity) != "train", "Player-directed activity should return to autonomous duties after ten idle seconds")
-	_check(is_equal_approx(camp.elapsed_world_seconds, 300.0))
+	_check(is_equal_approx(camp.elapsed_world_seconds, 50.0), "Camp evening should advance at normal exploration time, not an accelerated camp rate")
 
 
 func _test_tent_capacity_and_relationship_matching() -> void:
@@ -121,6 +121,8 @@ func _test_world_simulation_integration() -> void:
 	world.register_character(companion)
 	var started := world.begin_camp({"walkable": true}, {"night_temperature_c": 8.0}, {"wood": 1, "rations": 2, "water": 2, "tents": 1})
 	_check(bool(started.ok), "World simulation should start camp with the current party")
+	world.advance_real_time(2.0)
+	_check(is_equal_approx(world.clock.world_seconds, 10.0), "Camp evening should use the ordinary 5x exploration clock")
 	world.companion_bonds.set_relationship("wren", "player", {"friendship": 30})
 	var saved := world.to_dict()
 	var restored := WorldSimulation.new()
@@ -129,4 +131,4 @@ func _test_world_simulation_integration() -> void:
 	_check(float(restored.companion_bonds.snapshot("wren", "player").friendship) == 30.0, "Companion bonds should be part of the world save")
 	var morning := restored.skip_camp_to_morning(6.0)
 	_check(bool(morning.ok), "The world simulation should resolve the camp night")
-	_check(is_equal_approx(restored.clock.world_seconds, 6.0 * WorldClock.SECONDS_PER_HOUR), "Skipping camp should advance the authoritative world clock")
+	_check(is_equal_approx(restored.clock.world_seconds, 10.0 + 6.0 * WorldClock.SECONDS_PER_HOUR), "Sleeping should skip directly to morning and advance the authoritative clock by the sleep duration")
