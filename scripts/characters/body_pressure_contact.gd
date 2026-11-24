@@ -95,9 +95,13 @@ static func submit_surface_contact(
 	)
 	if contact_force <= 0.0:
 		return submitted
+	# Only registered solver regions participate in normalisation. This keeps
+	# force conservation when callers intentionally register a subset of anatomy.
 	var total_membership := 0.0
-	for membership_variant in memberships.values():
-		total_membership += clampf(float(membership_variant), 0.0, 1.0)
+	for region_variant in memberships:
+		var region_id := StringName(str(region_variant))
+		if controller.has_region(region_id):
+			total_membership += clampf(float(memberships[region_variant]), 0.0, 1.0)
 	var membership_scale := maxf(1.0, total_membership)
 	for region_variant in memberships:
 		var region_id := StringName(str(region_variant))
@@ -105,10 +109,14 @@ static func submit_surface_contact(
 			continue
 		var membership := clampf(float(memberships[region_variant]), 0.0, 1.0)
 		var weighted_force := contact_force * membership / membership_scale
-		if weighted_force <= 0.0:
-			continue
-		if garment_damping_ns_per_m > 0.0:
-			controller.apply_contact_damping(region_id, garment_damping_ns_per_m * membership / membership_scale)
-		controller.apply_pressure(region_id, weighted_force)
-		submitted[String(region_variant)] = weighted_force
+		var weighted_garment_damping := garment_damping_ns_per_m * membership / membership_scale
+		# Damping is a property of ongoing physical contact, not a side effect
+		# of compression. A lightly touching garment can damp motion without
+		# generating additional static compression force.
+		if weighted_garment_damping > 0.0:
+			controller.apply_contact_damping(region_id, weighted_garment_damping)
+		if weighted_force > 0.0:
+			controller.apply_pressure(region_id, weighted_force)
+		if weighted_force > 0.0 or weighted_garment_damping > 0.0:
+			submitted[String(region_variant)] = weighted_force
 	return submitted
