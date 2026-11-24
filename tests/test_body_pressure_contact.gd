@@ -39,18 +39,18 @@ func _test_contact_drives_region_solver() -> void:
 	profile.damping_ns_per_m = 24.0
 	profile.effective_mass_kg = 0.18
 	profile.max_compression_m = 0.04
-	controller.register_region(&"left_chest", profile)
+	controller.register_region(&"breast_left", profile)
 	var submitted := BodyPressureContact.submit_contact(
-		controller, &"left_chest", 0.012, 0.0, 1800.0, 35.0, 120.0
+		controller, &"breast_left", 0.012, 0.0, 1800.0, 35.0, 120.0
 	)
 	assert(submitted > 0.0, "A valid contact should submit compressive force.")
 	for _frame in range(30):
 		# Re-submit each tick while the detected contact remains present.
 		BodyPressureContact.submit_contact(
-			controller, &"left_chest", 0.012, 0.0, 1800.0, 35.0, 120.0
+			controller, &"breast_left", 0.012, 0.0, 1800.0, 35.0, 120.0
 		)
 		controller.step(1.0 / 60.0)
-	assert(controller.get_compression_m(&"left_chest") > 0.0, "Contact samples should compress the registered region.")
+	assert(controller.get_compression_m(&"breast_left") > 0.0, "Contact samples should compress the registered region.")
 
 func _test_multiple_contacts_accumulate() -> void:
 	var controller := BodyPressureController.new()
