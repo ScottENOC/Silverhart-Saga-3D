@@ -46,14 +46,14 @@ func _test_thresholds_and_mission_start() -> void:
 func _test_double_cross_and_turn_in() -> void:
 	var journal := _journal(0.0, 40.0)
 	var player := PLAYER.new("player", "Player")
-	player.inventory.append("baron_tariff_evidence")
+	player.inventory.append({"id":"baron_tariff_evidence", "name":"Baron's tariff tally"})
 	_check(bool(DIALOGUE.select_choice(journal, player, "petra_voss", "start_espionage").get("ok", false)), "Guildmaster mission should start at 40 influence")
 	var flipped := DIALOGUE.select_choice(journal, player, "baron_corwin_aldervale", "double_cross_accept")
 	_check(bool(flipped.get("ok", false)), "Baron should be able to flip the Guildmaster's spy")
 	var completed := DIALOGUE.select_choice(journal, player, "petra_voss", "return_evidence")
 	_check(bool(completed.get("ok", false)), "Double-agent evidence delivery should complete")
 	_check(player.gold == 60 and player.experience == 150, "Double agent should receive 60 gold and 150 experience")
-	_check(not player.inventory.has("baron_tariff_evidence"), "Delivered evidence should be removed from inventory")
+	_check(player.inventory.is_empty(), "Delivered evidence should be removed from inventory")
 	_check(String(journal.quest_state(CONTENT.BARON_QUEST).get("status", "")) == "completed", "Quest completion should persist")
 
 func _test_guard_detection_failure() -> void:
