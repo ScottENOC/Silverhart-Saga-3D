@@ -344,7 +344,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         "## By settlement",
         "",
         "| Settlement | Buildings | Building cells | Paths | Path cells | Props | Prop anchors | Field cells | Fence cells | Crop cells | Unique exterior cells |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ])
     for item in report["settlements"]:
         lines.append(
@@ -359,7 +359,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         "",
         report["method"]["caveat"],
         "",
-        "The exterior total is the union of strategic road cells, settlement building footprints, settlement path segments and map prop anchors. Overlaps are counted once. The strategic 16×16 map and interior floors are reported separately and are not added to the local exterior total.",
+        "The exterior total is the union of strategic road cells, settlement building footprints, settlement path segments, map prop anchors, authored field footprints, fence lines and crop rows. Overlaps are counted once. The strategic 16×16 map and interior floors are reported separately and are not added to the local exterior total.",
         "",
         "Procedural terrain, generated wilderness, terrain elevation samples, NPC positions and mesh subdivisions are excluded.",
         "",
