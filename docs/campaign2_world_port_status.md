@@ -22,7 +22,7 @@ The canonical settlement registry currently contains eight definitions (includin
 
 | Location | Migrated content | Still outstanding |
 |---|---|---|
-| Hollowmere | Seven authored buildings, routes, bridge, fields/crops/fences, props, actor placements and terrain/ecology inputs; all seven source-authored starting-village interiors (tavern, store, chapel, house, general store and Mira/Oskar homes) plus the separate Guild Den now have registered floor maps, source row shifts, doors and source furniture where defined | Full visual/gameplay review, interior entry/exit wiring, Elder Locket item placement, guild contact, recruitment/services, remaining source events and persistence parity |
+| Hollowmere | Seven authored buildings, routes, bridge, fields/crops/fences, props, actor placements and terrain/ecology inputs; all seven source-authored starting-village interiors plus the Guild Den have registered floor maps. The source player-cottage plot spur (eight path cells) and 3D plot marker at (13,27) are now presented | Full visual/gameplay review, interior entry/exit wiring, Elder Locket item placement, guild contact, recruitment/services, remaining source events and persistence parity; cottage construction interaction remains campaign-owned |
 | Millbrook | Source-positioned house, road spur and two named NPC profiles/placements; source-authored 3-by-3 house interior, east door and fireplace are registered and floor-tested | Visual review, exterior-to-interior entry/exit wiring and services/interactions |
 | Emberlode | Foreman's hall and bunkhouse now have source-authored interior floor maps, source row shifts and walkable doors; mine entrance and two road approaches; source-authored three-floor mine stack with surface ledger, reciprocal stairs, gold and blue-gem ore nodes, and two Old Seam spider placement coordinates | Exterior-to-interior entry/exit wiring and visual review; creature spawning and ore interactions remain outside map scope |
 | Reddale | Guardhouse, reeve's house, inn, Ironbond guildhouse, manor and smithy; all six source-authored interiors now have floor maps, correct building row shifts, walkable doors and their source fixtures/evidence; three road approaches and twelve town NPCs; Mirabel Quill placed at the source-authored rocky outcrop ruin to the east | Spider defenders still need a 3D spider asset and actor-kind support; visual review, exterior-to-interior entry/exit wiring, merchant services, evidence reading, bribes, dialogue and espionage quest consequences |
@@ -45,7 +45,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 | Ridgehold Fort | Fort walls, keep, downstream waterway and keep hearth are ported; visual review remains |
 | Skarnak's Hold | Source-authored exterior huts, warlord hut, campfire, perimeter terrain and road approach are ported; visual review remains |
 | Kragmoor | Six floor maps/presentations, stair traversal, quest-gated Sunken Deep and floor-state save/load are implemented; campaign travel routing, named NPC/creature spawning, dialogue and location interactions remain |
-| Sil'thandriel | Sylvan Court capital, vertical/forest architecture, population and faction interactions |
+| Sil'thandriel | Source-authored three-level tree-base/lower-canopy/upper-court maps, stair transitions, archive and healer platforms, rope bridge, trunk, branches and herb patches are registered in the shared runtime | Population/NPCs, services, faction interactions, visual review and final traversal review remain
 | Hollowmere Guild Den | Source-authored 2-by-2 room, south entrance and walkable floor are registered and map-tested | Guild contact, recruitment, services and quest interactions; runtime entry/exit wiring |
 | Abandoned House | Source-authored single-room wooden floor (half-width 3, half-height 2), west entrance, journal and phylactery altar positions are registered and map-tested | Exterior approach path dressing, dormant skeleton actors/activation, journal/altar interactions, disciple/phylactery quest chain and runtime entry/exit wiring |
 | Vessel-Seeker's Crypt | Source-authored three-room floor, connecting corridors and explicit one-cell wall-ring apertures are registered and map-tested |
@@ -76,7 +76,7 @@ This is an inventory of **explicit geometry currently represented in the 3D proj
 | Fence lines | 22 unique local hexes |
 | Crop rows | 0 currently registered |
 | **Local exterior authored geometry** | **4,732 unique local hexes after overlap removal** |
-| Interior room footprints | 2,915 cells across the registered floor maps |
+| Interior room footprints | 1,543 walkable cells across the registered floor maps (recalculated using the actual Godot floor-builder bounds and row-shift rules) |
 | Building records | 67 |
 | Settlement path records | 40 |
 
@@ -94,10 +94,58 @@ Per-settlement exterior inventory:
 
 These category counts overlap; only the 4,732 union is a non-duplicated local exterior total. The 256 strategic cells and 2,915 interior cells are separate scales and are not added to it. Regional authored GDScript features (for example, fort and wilderness terrain/props) are not yet included in this JSON-backed inventory.
 
+## Original source runtime geometry baseline
+
+The pinned original `Hex-crpg/campaign2World.js` scene builder has now been executed headlessly in CI. Its runtime output is captured with the calling source builder attributed to each terrain write. This distinguishes the broad `setupVillageScene` base pass from named feature builders and prevents source-code line counts from being mistaken for hex counts.
+
+| Source runtime measure | Count |
+|---|---:|
+| Unique terrain cells in the resolved source scene | 16,566 |
+| Cells touched only by the broad `setupVillageScene` base pass | 5,242 |
+| Cells touched by named feature builders other than the base pass, deduplicated across builders | 11,324 |
+| Base-pass / feature-builder overlap | 326 |
+| Physical tile-object placements | 246 |
+| Interior regions | 72 |
+| Multi-storey building definitions | 9 |
+| Wild-unicorn patrol waypoints | 8 |
+
+The 11,294 feature-builder union is the best current source-side measure of explicitly built map geometry. It includes roads, stream, settlement footprints, fortifications, interiors, caves, dungeons and landmark terrain. It is **not** a target coverage percentage: builder sets overlap, and the target-side 4,732 exterior-cell inventory still excludes regional GDScript features and several map-owned site systems.
+
+Source terrain cells touched by each owner builder (these figures overlap and must not be summed):
+
+| Source builder | Unique cells touched |
+|---|---:|
+| Silverhart Palace | 2,584 |
+| Dwarven Kingdom / Kragmoor | 1,959 |
+| Road painter | 1,633 |
+| Northwatch Fort | 1,217 |
+| Ridgehold Fort | 937 |
+| Stream painter | 902 |
+| Elven Capital / Sil'thandriel | 702 |
+| Orc Stronghold / Skarnak's Hold | 238 |
+| Reddale | 222 |
+| Necromancer Crypt | 143 |
+| Goblin Camp / Skarn-tooth | 127 |
+| Dragon Lair | 127 |
+| Emberlode | 115 |
+| Lich Barrow | 109 |
+| Druid Grove / Emberwood | 91 |
+| Path painter | 65 |
+| Lich Chapterhouse | 61 |
+| Millbrook | 49 |
+| Thieves' Cove Caves | 47 |
+| Old Mac's Farmstead | 39 |
+| Side-quest site geometry (Mirabel's spider ruin) | 37 |
+| Abandoned House | 35 |
+| Hollowmere Guild Den | 25 |
+| Player Cottage Plot | 8 |
+
+The audit now applies the actual `Campaign2MultiStoryFloorMapBuilder` room bounds and `source_building` row-shift convention. The previous interior count of 2,915 was an overcount from treating half-width/half-height as inclusive extents; the corrected walkable-room footprint count is 1,543. The test suite now locks in the correct builder semantics.
+
 ## Next map port order
 
 1. **Visual verification in Godot.** Review terrain elevation, river continuity, vegetation density, fort props, building scale/materials and chunk load/unload behaviour in the streamed regional world.
-2. **Finish remaining physical settlement layouts.** Complete missing source-authored building footprints, roads, walls, gates, districts and landmark dressing, prioritising Silverhart and Sil'thandriel.
+2. **Finish remaining physical settlement layouts.** Complete missing source-authored building footprints, roads, walls, gates, districts and landmark dressing, prioritising Silverhart and any remaining unregistered site architecture.
 3. **Port remaining physical sites.** Add source-traceable terrain, structures and props for the unported dungeons, caves, crypts, graves and wilderness landmarks.
 4. **Complete map-owned interiors.** Add floor geometry, doors, stairs and physical room objects where the source defines them; keep entry/exit interfaces compatible with the shared location runtime.
 5. **Validate world-scale consistency.** Check strategic-to-regional anchors, road/water precedence, elevation continuity, chunk seams and deterministic streaming.

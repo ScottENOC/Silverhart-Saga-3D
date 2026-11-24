@@ -5,6 +5,7 @@ on:
     paths:
       - "data/world/campaign2_*.json"
       - "tools/campaign2_authored_hex_audit.py"
+      - "tools/extract_campaign2_source_geometry.mjs"
       - "tests/test_campaign2_authored_hex_audit.py"
       - ".github/workflows/campaign2-authored-hex-audit.yml"
   workflow_dispatch:
@@ -34,6 +35,17 @@ jobs:
           fetch-depth: 1
           sparse-checkout-cone-mode: false
           sparse-checkout: /campaign2World.js
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Capture original source scene geometry
+        env:
+          HEX_CRPG_SOURCE_COMMIT: 4de96f16889d43cae91e03832c8eb1c1b4b00e42
+        run: |
+          node tools/extract_campaign2_source_geometry.mjs \
+            --source Hex-crpg/campaign2World.js \
+            --out artifacts/campaign2_source_runtime_geometry.json
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -44,6 +56,7 @@ jobs:
         run: |
           python tools/campaign2_authored_hex_audit.py \
             --source-root Hex-crpg \
+            --source-runtime artifacts/campaign2_source_runtime_geometry.json \
             --json-out artifacts/campaign2_authored_hex_audit.json \
             --markdown-out artifacts/campaign2_authored_hex_audit.md
       - name: Upload inventory report
