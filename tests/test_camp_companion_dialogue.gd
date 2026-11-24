@@ -1,10 +1,11 @@
 extends SceneTree
 
+const SERVICE := preload("res://scripts/simulation/camp_companion_dialogue_service.gd")
+
 var _failures := 0
 
 
 func _initialize() -> void:
-	const SERVICE := preload("res://scripts/simulation/camp_companion_dialogue_service.gd")
 	var service = SERVICE
 	var bonds := CompanionBondState.new()
 	var camp := CampSimulation.new()
