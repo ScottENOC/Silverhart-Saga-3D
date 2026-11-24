@@ -94,7 +94,10 @@ def nearest_surface(actor, point):
             world=ev.matrix_world @ hit[0]
             gap=(world-point).length
             if best is None or gap<best["gap_m"]:
-                best={"gap_m":round(gap,5),"mesh":source.name,"surface_point_world":[round(v,5) for v in world]}
+                normal_world = source.matrix_world.to_3x3().inverted().transposed() @ hit[1]
+            best={"gap_m":round(gap,5),"mesh":source.name,
+                  "surface_point_world":[round(v,5) for v in world],
+                  "surface_normal_world":[round(v,5) for v in normal_world.normalized()]}
     return best
 
 def hand_position(actor, side):
@@ -122,6 +125,78 @@ def pressure_shape_inventory(actor):
             if key.name.lower().startswith("pressure_"):
                 found.append({"mesh":obj.name,"shape":key.name,"value":round(float(key.value),4)})
     return found
+
+def author_pressure_shapes(actor, surface_centres, report):
+    definitions = [
+        ("breast_left", surface_centres["breast_left"], Vector((0.105,0.095,0.090)), 0.032),
+        ("breast_right", surface_centres["breast_right"], Vector((0.105,0.095,0.090)), 0.032),
+        ("hip_left", surface_centres["hip_left"], Vector((0.115,0.090,0.115)), 0.022),
+        ("hip_right", surface_centres["hip_right"], Vector((0.115,0.090,0.115)), 0.022),
+    ]
+    authored = []
+    for source in actor["meshes"]:
+        if source.data.shape_keys is None:
+            source.shape_key_add(name="Basis", from_mix=False)
+        basis = source.data.shape_keys.key_blocks[0]
+        inverse_linear = source.matrix_world.to_3x3().inverted()
+        normal_matrix = inverse_linear.transposed()
+        for region_id, centre, radii, max_depth in definitions:
+            key_name = "Pressure_" + region_id
+            if source.data.shape_keys.key_blocks.get(key_name) is not None:
+                continue
+            key = source.shape_key_add(name=key_name, from_mix=False)
+            affected = 0
+            maximum_delta = 0.0
+            for index, vertex in enumerate(source.data.vertices):
+                world_position = source.matrix_world @ vertex.co
+                offset = world_position - centre
+                normalized_distance = ((offset.x / radii.x) ** 2
+                    + (offset.y / radii.y) ** 2
+                    + (offset.z / radii.z) ** 2)
+                if normalized_distance >= 1.0:
+                    continue
+                weight = (1.0 - normalized_distance) ** 2
+                normal_world = normal_matrix @ vertex.normal
+                if normal_world.length_squared() < 0.000001:
+                    continue
+                normal_world.normalize()
+                world_delta = -normal_world * (max_depth * weight)
+                local_delta = inverse_linear @ world_delta
+                key.data[index].co = basis.data[index].co + local_delta
+                affected += 1
+                maximum_delta = max(maximum_delta, world_delta.length)
+            key.value = 0.0
+            authored.append({"mesh": source.name, "shape": key_name,
+                "region_id": region_id, "affected_vertices": affected,
+                "max_displacement_m": round(maximum_delta, 5),
+                "profile_max_compression_m": max_depth})
+    report["authored_pressure_shapes"] = authored
+    return authored
+
+def render_pressure_preview(actor, output_name, active_regions, report):
+    for source in actor["meshes"]:
+        keys = source.data.shape_keys
+        if keys is None:
+            continue
+        for key in keys.key_blocks:
+            if key.name.lower().startswith("pressure_"):
+                key.value = 1.0 if key.name.lower() in active_regions else 0.0
+    bpy.context.view_layer.update()
+    scene = bpy.context.scene
+    scene.render.filepath = os.path.join(OUT_DIR, output_name)
+    bpy.ops.render.render(write_still=True)
+    rendered = os.path.exists(scene.render.filepath)
+    for source in actor["meshes"]:
+        keys = source.data.shape_keys
+        if keys is None:
+            continue
+        for key in keys.key_blocks:
+            if key.name.lower().startswith("pressure_"):
+                key.value = 0.0
+    bpy.context.view_layer.update()
+    report["pressure_preview"] = {"file": output_name,
+        "active_regions": sorted(active_regions), "rendered": rendered}
+    return rendered
 
 def world_bone(actor, aliases):
     name=bone_name(actor,aliases)
@@ -177,6 +252,17 @@ def main():
     left_target=add_target("Left_hand_contact_target_breast",left_breast)
     right_target=add_target("Right_hand_contact_target_hip",right_hip)
 
+    left_breast_surface = nearest_surface(actor, left_breast)
+    right_hip_surface = nearest_surface(actor, right_hip)
+    mirrored_breast_surface = nearest_surface(actor, Vector((-left_breast.x,left_breast.y,left_breast.z)))
+    mirrored_hip_surface = nearest_surface(actor, Vector((-right_hip.x,right_hip.y,right_hip.z)))
+    surface_centres = {
+        "breast_left": Vector(left_breast_surface["surface_point_world"]),
+        "breast_right": Vector(mirrored_breast_surface["surface_point_world"]),
+        "hip_left": Vector(mirrored_hip_surface["surface_point_world"]),
+        "hip_right": Vector(right_hip_surface["surface_point_world"])
+    }
+
     report={"scene":"Wren only: breast and hip hand-contact deformation test",
             "world_axes":{"up":"Z","front":"-Y","basis":"Imported mesh bounds and facing convention; verify in preview"},
             "body_bounds":{"min":[round(v,5) for v in lo],"max":[round(v,5) for v in hi]},
@@ -194,6 +280,7 @@ def main():
 
     bpy.context.view_layer.update()
     for _ in range(5): bpy.context.view_layer.update()
+    authored_shapes = author_pressure_shapes(actor, surface_centres, report)
     report["bones"]={
         "left_shoulder":world_bone(actor,["LeftShoulder","Shoulder_L"]),
         "left_upper_arm":world_bone(actor,["LeftArm","LeftUpperArm","UpperArm_L"]),
@@ -220,6 +307,10 @@ def main():
     bpy.context.view_layer.update()
     lo,hi=bounds(actor)
     render_scene(actor,lo,hi)
+    pressure_preview_rendered = render_pressure_preview(
+        actor, "wren-body-pressure-compressed-preview.png",
+        {"pressure_breast_left", "pressure_hip_right"}, report
+    )
     # Export evaluated posed meshes for a phone-friendly static review.
     exportables=[]
     collection=bpy.data.collections.new("WrenStaticPose")
@@ -242,7 +333,9 @@ def main():
     report["validation"]={"wren_only":True,"both_arm_ik_created":all(v.get("created",False) for v in report["ik"].values()),
         "preview_rendered":os.path.exists(os.path.join(OUT_DIR,"wren-body-pressure-preview.png")),
         "posed_glb_exported":os.path.exists(os.path.join(OUT_DIR,"wren-body-pressure-pose.glb")),
-        "surface_contact_measured":all(v is not None for v in report["hand_surface_gaps"].values())}
+        "surface_contact_measured":all(v is not None for v in report["hand_surface_gaps"].values()),
+        "pressure_shapes_authored":len(authored_shapes) >= 4 and all(x["affected_vertices"] > 0 for x in authored_shapes),
+        "pressure_compressed_preview_rendered":pressure_preview_rendered}
     with open(os.path.join(OUT_DIR,"wren-body-pressure-report.json"),"w",encoding="utf-8") as f: json.dump(report,f,indent=2)
     print("WREN_BODY_PRESSURE_REPORT="+json.dumps(report))
 
