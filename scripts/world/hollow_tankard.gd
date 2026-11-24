@@ -275,12 +275,14 @@ func _camp_weather_summary(conditions: Dictionary) -> String:
 	]
 
 
-func _on_world_weather_changed(conditions: Dictionary) -> void:
+func _on_world_weather_changed(_conditions: Dictionary) -> void:
 	if simulation == null or camp_status_label == null:
 		return
 	if simulation.camp_simulation.phase != "evening":
 		return
-	camp_status_label.text = "Camp · %s. Companion routines have adjusted to the changing weather." % _camp_weather_summary(conditions)
+	var terrain_id := String(simulation.camp_simulation.site.get("terrain_id", ""))
+	var local_conditions := simulation.weather_state.conditions_at(simulation.clock.world_seconds, terrain_id)
+	camp_status_label.text = "Camp · %s. Companion routines have adjusted to the changing weather." % _camp_weather_summary(local_conditions)
 
 
 func _on_campaign_world_time_advanced(world_seconds: float) -> void:
