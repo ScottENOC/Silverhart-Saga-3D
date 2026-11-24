@@ -191,7 +191,7 @@ func _add_character(parent: Node3D, character_id: String, world_hex: Vector2i, s
 				simulation.campaign_journal if simulation != null else null,
 				character_id,
 				settlement_id,
-				String(character.get("faction_id", ""))
+				_character_string(character.get("faction_id", ""))
 			)
 			if not bool(existing_actor.get_meta("campaign2_streamed_npc", false)):
 				# Location-owned actors keep their location controller as parent;
@@ -285,6 +285,11 @@ func _resolve_npc_spawn_hex(origin: Vector2i, character_id: String) -> Vector2i:
 			if not simulation.occupied_hexes.has(candidate):
 				return candidate
 	return Vector2i(2147483647, 2147483647)
+
+func _character_string(value: Variant) -> String:
+	if value is String or value is StringName:
+		return str(value)
+	return ""
 
 func _contains_chunk(hex: Vector2i, chunk_min: Vector2i, chunk_size: int) -> bool:
 	return hex.x >= chunk_min.x and hex.x < chunk_min.x + chunk_size and hex.y >= chunk_min.y and hex.y < chunk_min.y + chunk_size
