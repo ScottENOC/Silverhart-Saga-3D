@@ -245,6 +245,9 @@
             "insight",
             "ironbond_standing_20",
             "stealth"
+          ],
+          "also_add_clues": [
+            "company_roster"
           ]
         }
       },
