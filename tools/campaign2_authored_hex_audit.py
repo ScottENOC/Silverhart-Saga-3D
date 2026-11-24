@@ -157,7 +157,58 @@ def floor_room_cells(multistory: dict[str, Any]) -> tuple[int, int]:
     return total, unique
 
 
-def build_report(project_root: Path, source_root: Path | None = None) -> dict[str, Any]:
+def source_runtime_summary(runtime: dict[str, Any]) -> dict[str, Any]:
+    """Summarise the original scene builder's resolved writes without counting overlaps twice."""
+    builder_cells = {
+        name: set(cells)
+        for name, cells in runtime.get("terrainCellsByBuilder", {}).items()
+        if isinstance(cells, list)
+    }
+    base_cells = builder_cells.get("setupVillageScene", set())
+    feature_cells: set[str] = set().union(*(
+        cells for name, cells in builder_cells.items() if name != "setupVillageScene"
+    )) if any(name != "setupVillageScene" for name in builder_cells) else set()
+    all_builder_cells = set().union(*builder_cells.values()) if builder_cells else set()
+    object_types: dict[str, int] = defaultdict(int)
+    for record in runtime.get("tileObjects", {}).values():
+        if isinstance(record, dict):
+            object_types[str(record.get("type", "unknown"))] += 1
+    floors = 0
+    for building in runtime.get("multiStoryBuildings", []):
+        if not isinstance(building, dict):
+            continue
+        for floor in building.get("floors", []):
+            if isinstance(floor, dict) and isinstance(floor.get("terrain"), dict):
+                floors += 1
+    return {
+        "terrain_cells": int(runtime.get("counts", {}).get("terrainCells", 0)),
+        "terrain_by_name": runtime.get("counts", {}).get("terrainByName", {}),
+        "base_setup_builder_cells": len(base_cells),
+        "feature_builder_cells_unique": len(feature_cells),
+        "base_only_cells": len(base_cells - feature_cells),
+        "base_feature_overlap_cells": len(base_cells & feature_cells),
+        "builder_union_cells": len(all_builder_cells),
+        "builder_cells_by_owner": {
+            name: len(cells) for name, cells in sorted(
+                builder_cells.items(), key=lambda item: (-len(item[1]), item[0])
+            )
+        },
+        "tile_object_placements": int(runtime.get("counts", {}).get("tileObjectPlacements", 0)),
+        "tile_objects_by_type": dict(sorted(object_types.items())),
+        "interior_regions": int(runtime.get("counts", {}).get("interiorRegions", 0)),
+        "multi_story_buildings": int(runtime.get("counts", {}).get("multiStoryBuildings", 0)),
+        "multi_story_floor_maps": floors,
+        "unicorn_patrol_waypoints": int(runtime.get("counts", {}).get("unicornPatrolWaypoints", 0)),
+        "source_commit": runtime.get("source", {}).get("commit"),
+        "warning": "Feature-builder cells overlap one another and the base setup; counts by builder must not be summed. The unique feature-builder union excludes setupVillageScene and is not a target parity percentage.",
+    }
+
+
+def build_report(
+    project_root: Path,
+    source_root: Path | None = None,
+    source_runtime_path: Path | None = None,
+) -> dict[str, Any]:
     data_root = project_root / "data" / "world"
     layouts = read_json(data_root / "campaign2_settlement_layouts.json")
     roads = read_json(data_root / "campaign2_road_paths.json")
@@ -251,6 +302,7 @@ def build_report(project_root: Path, source_root: Path | None = None) -> dict[st
         "prop_anchor_on_other_geometry": len(prop_union & (road_cells | building_union | path_union)),
     }
     floor_total, floor_unique = floor_room_cells(multistory)
+    source_runtime_report = source_runtime_summary(read_json(source_runtime_path)) if source_runtime_path else None
 
     source_info = roads.get("source", {})
     source_validation: dict[str, Any] = {
@@ -290,6 +342,7 @@ def build_report(project_root: Path, source_root: Path | None = None) -> dict[st
             "caveat": "This is a target-side authored-geometry inventory, not yet a source-to-target parity percentage. Source builders contain loops and helper-generated footprints; a source runtime extractor is required before claiming a complete source denominator.",
         },
         "source": source_validation,
+        "source_runtime": source_runtime_report,
         "totals": {
             "strategic_grid_cells": strategic_cells,
             "road_cell_records_in_data": road_record_cells,
@@ -359,6 +412,27 @@ def render_markdown(report: dict[str, Any]) -> str:
         )
     lines.extend([
         "",
+        "## Original source runtime capture",
+        "",
+        "No source runtime capture was supplied." if report.get("source_runtime") is None else (
+            f'The pinned source scene resolved {report["source_runtime"]["terrain_cells"]:,} terrain cells. '
+            f'{report["source_runtime"]["feature_builder_cells_unique"]:,} unique cells were touched by explicit feature builders other than the broad setupVillageScene base pass; '
+            f'{report["source_runtime"]["base_only_cells"]:,} cells were touched only by that base pass, with '
+            f'{report["source_runtime"]["base_feature_overlap_cells"]:,} overlaps. '
+            f'The scene also produced {report["source_runtime"]["tile_object_placements"]:,} physical object placements, '
+            f'{report["source_runtime"]["interior_regions"]:,} interior regions and '
+            f'{report["source_runtime"]["multi_story_buildings"]:,} multi-storey definitions. '
+            "These are source-side runtime totals, not target coverage."
+        ),
+        "",
+        "| Source terrain builder | Unique cells touched |",
+        "|---|---:|",
+    ])
+    if report.get("source_runtime") is not None:
+        for name, count in report["source_runtime"]["builder_cells_by_owner"].items():
+            lines.append(f"| {name} | {count:,} |")
+    lines.extend([
+        "",
         "## Counting rules and limitations",
         "",
         report["method"]["caveat"],
@@ -375,11 +449,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--source-root", type=Path, default=None, help="Optional checkout of ScottENOC/Hex-crpg")
+    parser.add_argument("--source-runtime", type=Path, default=None, help="Optional JSON output from the original scene runtime extractor")
     parser.add_argument("--json-out", type=Path, default=None)
     parser.add_argument("--markdown-out", type=Path, default=None)
     args = parser.parse_args()
 
-    report = build_report(args.project_root.resolve(), args.source_root.resolve() if args.source_root else None)
+    report = build_report(
+        args.project_root.resolve(),
+        args.source_root.resolve() if args.source_root else None,
+        args.source_runtime.resolve() if args.source_runtime else None,
+    )
     rendered_json = json.dumps(report, indent=2, ensure_ascii=False) + "\n"
     rendered_markdown = render_markdown(report)
     if args.json_out:
