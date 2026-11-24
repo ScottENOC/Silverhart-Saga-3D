@@ -1601,7 +1601,26 @@ func begin_camp(site_data: Dictionary, environment_data: Dictionary = {}, resour
         resolved_site["occupied"] = occupied_hexes.has(camp_hex)
         resolved_site["terrain_id"] = map_data.terrain_id_at(camp_hex)
     resolved_site["in_combat"] = is_in_combat
-    var result := camp_simulation.begin_camp(resolved_site, party_member_ids, environment_data, resource_data)
+    var resolved_environment := environment_data.duplicate(true)
+    var companion_profiles: Dictionary = {}
+    for character_id in party_member_ids:
+        var character := get_character(String(character_id))
+        if character == null:
+            continue
+        var personality := ""
+        for tag_value in character.tags:
+            var tag := String(tag_value).to_lower()
+            if tag in ["scholarly", "curious", "methodical", "craftsman", "meticulous", "practical", "dutiful", "guardian", "gregarious", "warm", "outgoing", "nurturing", "outdoors"]:
+                personality = tag
+                break
+        companion_profiles[String(character_id)] = {
+            "role": character.character_class.to_lower(),
+            "personality": personality,
+            "injured": character.health < character.max_health * 0.65 or character.hobbled_stacks > 0,
+            "fatigue": float(camp_simulation.condition_for(String(character_id)).get("fatigue", 40.0))
+        }
+    resolved_environment["companion_profiles"] = companion_profiles
+    var result := camp_simulation.begin_camp(resolved_site, party_member_ids, resolved_environment, resource_data)
     if bool(result.get("ok", false)):
         camp_simulation.plan_sleeping_arrangements(int(camp_simulation.resources.get("tents", 0)), companion_bonds)
     return result
