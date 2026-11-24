@@ -737,7 +737,7 @@ func _select_camp_site(hex: Vector2i) -> void:
 		"occupied": false,
 		"terrain_id": simulation.map_data.terrain_id_at(hex)
 	}
-	for dwelling_site in DWELLING_WORLD_SERVICE.nearby_sites(hex, 2):
+	for dwelling_site in DWELLING_WORLD_SERVICE.nearby_sites(hex, 3):
 		var dwelling_id := String(dwelling_site.get("dwelling_id", ""))
 		var dwelling_profile := simulation.campaign_dwellings.camp_profile_for(dwelling_id)
 		if not dwelling_profile.is_empty() and bool(dwelling_profile.get("is_sheltered", false)):
@@ -1665,7 +1665,7 @@ func _refresh_nearby_interactions() -> void:
 				break
 		if not already_listed:
 			nearby.push_front({"id":party_id,"name":party_state.display_name,"hostile":false})
-	var nearby_sites := DWELLING_WORLD_SERVICE.nearby_sites(active_state.axial, 2)
+	var nearby_sites := DWELLING_WORLD_SERVICE.nearby_sites(active_state.axial, 3)
 	if nearby.is_empty() and nearby_sites.is_empty():
 		nearby_interaction_panel.visible = false
 		return
