@@ -5530,6 +5530,398 @@
       ],
       "transitions": [],
       "quest_gates": []
+    },
+    {
+      "id": "silverhart_corstane_manor",
+      "name": "Corstane Family Manor",
+      "anchor": {
+        "q": 39,
+        "r": -502
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Corstane Family Manor",
+          "terrain": "wood_floor",
+          "rooms": [],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_corstane_manor_west_door",
+              "type": "door_open",
+              "position": {
+                "q": 36,
+                "r": -502
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": [],
+          "floor_hexes": [
+            {
+              "q": 36,
+              "r": -502
+            },
+            {
+              "q": 37,
+              "r": -503
+            },
+            {
+              "q": 37,
+              "r": -502
+            },
+            {
+              "q": 37,
+              "r": -501
+            },
+            {
+              "q": 37,
+              "r": -500
+            },
+            {
+              "q": 38,
+              "r": -503
+            },
+            {
+              "q": 38,
+              "r": -502
+            },
+            {
+              "q": 38,
+              "r": -501
+            },
+            {
+              "q": 38,
+              "r": -500
+            },
+            {
+              "q": 39,
+              "r": -504
+            },
+            {
+              "q": 39,
+              "r": -503
+            },
+            {
+              "q": 39,
+              "r": -502
+            },
+            {
+              "q": 39,
+              "r": -501
+            },
+            {
+              "q": 40,
+              "r": -504
+            },
+            {
+              "q": 40,
+              "r": -503
+            },
+            {
+              "q": 40,
+              "r": -502
+            },
+            {
+              "q": 40,
+              "r": -501
+            },
+            {
+              "q": 41,
+              "r": -505
+            },
+            {
+              "q": 41,
+              "r": -504
+            },
+            {
+              "q": 41,
+              "r": -503
+            },
+            {
+              "q": 41,
+              "r": -502
+            },
+            {
+              "q": 42,
+              "r": -505
+            },
+            {
+              "q": 42,
+              "r": -504
+            },
+            {
+              "q": 42,
+              "r": -503
+            },
+            {
+              "q": 42,
+              "r": -502
+            }
+          ],
+          "wall_hexes": [
+            {
+              "q": 36,
+              "r": -503
+            },
+            {
+              "q": 36,
+              "r": -501
+            },
+            {
+              "q": 36,
+              "r": -500
+            },
+            {
+              "q": 36,
+              "r": -499
+            },
+            {
+              "q": 36,
+              "r": -498
+            },
+            {
+              "q": 37,
+              "r": -504
+            },
+            {
+              "q": 37,
+              "r": -499
+            },
+            {
+              "q": 38,
+              "r": -504
+            },
+            {
+              "q": 38,
+              "r": -499
+            },
+            {
+              "q": 39,
+              "r": -505
+            },
+            {
+              "q": 39,
+              "r": -500
+            },
+            {
+              "q": 40,
+              "r": -505
+            },
+            {
+              "q": 40,
+              "r": -500
+            },
+            {
+              "q": 41,
+              "r": -506
+            },
+            {
+              "q": 41,
+              "r": -501
+            },
+            {
+              "q": 42,
+              "r": -506
+            },
+            {
+              "q": 42,
+              "r": -501
+            },
+            {
+              "q": 43,
+              "r": -506
+            },
+            {
+              "q": 43,
+              "r": -505
+            },
+            {
+              "q": 43,
+              "r": -504
+            },
+            {
+              "q": 43,
+              "r": -503
+            },
+            {
+              "q": 43,
+              "r": -502
+            }
+          ]
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_noble_neighbor_house",
+      "name": "Noble Quarter Neighbour House",
+      "anchor": {
+        "q": 45,
+        "r": -502
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Noble Quarter Neighbour House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "silverhart_noble_neighbor_house_room",
+              "center": {
+                "q": 45,
+                "r": -502
+              },
+              "half_width": 3,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_noble_neighbor_house_east_door",
+              "type": "door_open",
+              "position": {
+                "q": 48,
+                "r": -502
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_outlying_house_east",
+      "name": "Silverhart — Outlying Eastern House",
+      "anchor": {
+        "q": 23,
+        "r": -546
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Silverhart — Outlying Eastern House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "silverhart_outlying_house_east_room",
+              "center": {
+                "q": 23,
+                "r": -546
+              },
+              "half_width": 2,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_outlying_house_east_south_door",
+              "type": "door_open",
+              "position": {
+                "q": 23,
+                "r": -544
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_outlying_house_far_east",
+      "name": "Silverhart — Outlying Far-Eastern House",
+      "anchor": {
+        "q": 48,
+        "r": -546
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Silverhart — Outlying Far-Eastern House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "silverhart_outlying_house_far_east_room",
+              "center": {
+                "q": 48,
+                "r": -546
+              },
+              "half_width": 2,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_outlying_house_far_east_south_door",
+              "type": "door_open",
+              "position": {
+                "q": 48,
+                "r": -544
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
+    },
+    {
+      "id": "silverhart_outlying_house_west",
+      "name": "Silverhart — Outlying Western House",
+      "anchor": {
+        "q": -32,
+        "r": -476
+      },
+      "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace; source-authored Noble Quarter residence interior",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Silverhart — Outlying Western House",
+          "terrain": "wood_floor",
+          "rooms": [
+            {
+              "id": "silverhart_outlying_house_west_room",
+              "center": {
+                "q": -32,
+                "r": -476
+              },
+              "half_width": 2,
+              "half_height": 2
+            }
+          ],
+          "corridors": [],
+          "tile_objects": [
+            {
+              "id": "silverhart_outlying_house_west_east_door",
+              "type": "door_open",
+              "position": {
+                "q": -30,
+                "r": -476
+              }
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "quest_gates": []
     }
   ]
 }
