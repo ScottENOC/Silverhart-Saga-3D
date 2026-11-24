@@ -10,6 +10,7 @@ func _initialize() -> void:
 	_test_night_resolution_and_save_load()
 	_test_world_simulation_integration()
 	_test_companions_walk_to_camp_stations()
+	_test_ara_camp_animation_mapping()
 	if _failures > 0:
 		push_error("%d camp simulation assertion(s) failed." % _failures)
 		quit(1)
@@ -167,3 +168,14 @@ func _test_companions_walk_to_camp_stations() -> void:
 	director.stop()
 	_check(not director.is_running(), "Packing or sleeping should be able to stop autonomous camp movement")
 	director.free()
+
+
+func _test_ara_camp_animation_mapping() -> void:
+	var social_hints := AraCharacterActor.camp_activity_animation_hints("socialise")
+	var watch_hints := AraCharacterActor.camp_activity_animation_hints("watch")
+	var sleep_hints := AraCharacterActor.camp_activity_animation_hints("sleep")
+	var study_hints := AraCharacterActor.camp_activity_animation_hints("study_map")
+	_check(social_hints.has("talk with gestures-loop"), "Social camp duty should use Ara's looping conversational animation")
+	_check(watch_hints.has("look around-loop"), "Night watch should use Ara's looping look-around animation")
+	_check(sleep_hints.has("sleep"), "Sleep should use Ara's sleep animation")
+	_check(study_hints.has("sit idle"), "Map study should use Ara's seated idle animation")
