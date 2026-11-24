@@ -89,7 +89,8 @@ func _plan_initial_activities() -> void:
 	var available := party_ids.duplicate()
 	if resources.wood <= 0 and bool(environment.get("trees_nearby", false)):
 		_assign_from_pool(available, "gather_wood", 1)
-	if resources.tents > 0:
+	var outdoor_sleepers := maxi(0, party_ids.size() - int(lodging_profile.get("sleeping_capacity", 0)))
+	if resources.tents > 0 and outdoor_sleepers > 0:
 		_assign_from_pool(available, "set_up_tents", mini(resources.tents, 1))
 	if bool(environment.get("water_nearby", false)) and resources.water < party_ids.size():
 		_assign_from_pool(available, "fetch_water", 1)
