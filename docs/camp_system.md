@@ -54,3 +54,14 @@ The authored banter service currently covers Wren, Aldric, Nix, Grukk, Reyna, Mi
 Each completed exchange records directional familiarity/trust/friendship changes and improves both companions' camp social satisfaction. Event keys make those effects idempotent. Conversations are not gated on a character having the socialise assignment: companions can talk while taking a break from another camp duty. The player remains directly controlled and is not inserted as a participant in these autonomous exchanges.
 
 This is an initial ambient-dialogue layer, not yet a full branching conversation UI between NPCs. It does not infer romance or consent from friendship, and it does not yet create a relationship agreement. The authored exchange content is data-driven so further pair-specific history, quest references and conflict reactions can be added without changing the camp movement system.
+
+
+## Campaign-aware party conversations
+
+Ambient camp dialogue now checks the authoritative companion quest-chain state before choosing a generic topic. When either participant has completed a personal chapter, the pair can discuss the most recently completed chapter that belongs to one of them. The conversation uses the recorded resolution (including the effective resolution when the companion chose for themselves) and the authored reason from that chapter's data. An unresolved or merely offered chapter is never described as completed.
+
+The responding companion has an authored outlook across a small set of decision themes represented by the existing quest content: shared responsibility, self-reliance, restraint, bold inquiry, institutional trust, independence, tradition, stewardship, personal dignity and pragmatism. A compatible outlook produces support; a conflicting outlook produces an explicit but civil disagreement; an unaligned outlook asks the companion to reflect. Existing directional companion bonds temper how openly the response is delivered.
+
+These memory conversations are recorded against the pair and chapter outcome, so the same completed decision is not repeated every time that pair talks at camp. Agreement and disagreement also have different relationship effects: support can deepen friendship, while disagreement can build familiarity and trust without automatically awarding friendship. The ordinary ambient topics continue after a campaign memory has been discussed.
+
+This pass uses the existing CompanionQuestChainState and CampaignJournal as the source of truth. It does not invent quest outcomes, infer a companion's decision from the player's choice, or make every companion agree with the player. Current authored decision stances cover the completed companion chapters for Aldric, Mirabel, Fenn, Reyna and Brother Alden; other companions continue to use their ordinary camp banter until their own authored quest outcomes are available.
