@@ -747,13 +747,13 @@ static func camp_activity_animation_hints(activity: String) -> PackedStringArray
 		"set_up_tents":
 			return PackedStringArray(["pick_up", "use_press"])
 		"fetch_water":
-			return PackedStringArray(["head_load_idle", "carry_idle", "pick_up"])
+			return PackedStringArray(["pick_up", "carry_idle"])
 		"cook":
 			return PackedStringArray(["use_press"])
 		"repair_gear":
 			return PackedStringArray(["use_press"])
 		"study_map":
-			return PackedStringArray(["sit_idle"])
+			return PackedStringArray(["use_press"])
 		"train":
 			return PackedStringArray(["squat", "push_up"])
 		"socialise":
@@ -772,9 +772,9 @@ func play_camp_activity(activity: String) -> bool:
 	var current_playing := animation_player.is_playing()
 	var preferred := camp_activity_animation_hints(activity).to_array()
 	var clip := ""
-	if activity == "gather_wood" or activity == "set_up_tents":
+	if activity == "gather_wood" or activity == "set_up_tents" or activity == "fetch_water":
 		var pickup := _find_animation_clip(["pick_up"])
-		var follow_up := _find_animation_clip(["carry_idle"] if activity == "gather_wood" else ["use_press"])
+		var follow_up := _find_animation_clip(["carry_idle"] if activity != "set_up_tents" else ["use_press"])
 		if pickup.is_empty():
 			clip = follow_up
 		elif current == pickup.to_lower() and current_playing:
@@ -785,6 +785,14 @@ func play_camp_activity(activity: String) -> bool:
 			clip = follow_up
 		else:
 			clip = pickup
+	elif activity == "sleep":
+		var lie_down := _find_animation_clip(["lie_down"])
+		var sleep := _find_animation_clip(["sleep"])
+		if current == lie_down.to_lower() and current_playing:
+			return true
+		if current == sleep.to_lower() and current_playing:
+			return true
+		clip = sleep if current == lie_down.to_lower() and not current_playing else lie_down
 	else:
 		clip = _find_animation_clip(preferred)
 	if clip.is_empty():
