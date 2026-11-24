@@ -2,6 +2,7 @@ extends SceneTree
 
 const JOURNAL_SCRIPT = preload("res://scripts/simulation/campaign_journal.gd")
 const REDDALE_CONTENT = preload("res://scripts/simulation/reddale_campaign_content.gd")
+const CHARACTER_STATE = preload("res://scripts/simulation/character_state.gd")
 
 var _failures: int = 0
 
@@ -73,12 +74,14 @@ func _test_resist_ironbond_outcome() -> void:
 func _test_broker_ironbond_outcome() -> void:
 	var journal := _new_journal(45.0)
 	_check(bool(REDDALE_CONTENT.start_cut(journal).get("ok", false)), "Broker path should start")
-	var result := REDDALE_CONTENT.resolve_cut(journal, "broker_ironbond_deal")
+	var player := CHARACTER_STATE.new("player", "Player")
+	var result := REDDALE_CONTENT.resolve_cut(journal, "broker_ironbond_deal", player)
 	_check(bool(result.get("ok", false)), "Broker path should resolve")
 	_check(is_equal_approx(journal.faction_standing("ironbond_company"), 30.0), "Brokered deal should improve Ironbond standing by 20")
 	_check(is_equal_approx(journal.merchant_influence_for("ironbond_company", "silverhart_kingdom"), 60.0), "Brokered deal should increase Ironbond influence by 15")
 	_check(is_equal_approx(journal.faction_standing("silverhart_kingdom"), -10.0), "Brokered deal should reduce Silverhart Kingdom standing by 10")
-	_check(int(result.get("gold_delta", 0)) == 50, "Brokered deal should return the 50 gold reward")
+	_check(int(result.get("gold_delta", 0)) == 50, "Brokered deal should report the 50 gold reward")
+	_check(player.gold == 50, "Brokered deal should apply the 50 gold reward to the player")
 	var settlement := journal.settlement_campaign_state("reddale")
 	_check(is_equal_approx(float(settlement.get("prosperity", 0.0)), 8.0), "Brokered deal should improve Reddale prosperity")
 	_check(is_equal_approx(float(settlement.get("ironbond_presence", 0.0)), 20.0), "Brokered deal should increase Ironbond presence in Reddale")
