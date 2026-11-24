@@ -165,8 +165,32 @@ static func visual_level_name(level: int) -> String:
 		_: return "unseen"
 
 
+static func character_equipment_noise(character: Variant) -> float:
+	return float(character_visual_profile(character).get("equipment_noise", 0.0))
+
+
+static func make_character_sound_event(character: Variant, kind: String, loudness: float, movement_noise: float = 0.0) -> Dictionary:
+	if not character is CharacterState:
+		return {}
+	var state := character as CharacterState
+	var profile := character_visual_profile(state)
+	return {
+		"source_id": state.id,
+		"hex": state.axial,
+		"kind": kind,
+		"loudness": clampf(loudness + movement_noise + float(profile.get("equipment_noise", 0.0)), 0.0, 1.0),
+		"equipment_noise": float(profile.get("equipment_noise", 0.0))
+	}
+
+
 static func _visual_profile(target: Dictionary) -> Dictionary:
-	var appearance: Dictionary = target.get("appearance", {})
+	var appearance: Dictionary = target.get("appearance", {}).duplicate(true)
+	if target.has("light_emission"):
+		appearance["light_emission"] = maxf(float(appearance.get("light_emission", 0.0)), float(target.light_emission))
+	if target.has("colours") or target.has("colors"):
+		appearance["colours"] = target.get("colours", target.get("colors", [])).duplicate(true)
+	if target.has("reflectivity"):
+		appearance["reflectivity"] = maxf(float(appearance.get("reflectivity", 0.0)), float(target.reflectivity))
 	var result := appearance.duplicate(true)
 	var colours: Array = result.get("colours", result.get("colors", [])).duplicate()
 	var reflectivity := float(result.get("reflectivity", 0.0))
