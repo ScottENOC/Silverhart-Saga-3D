@@ -14,6 +14,10 @@ const COMPANION_RUNTIME_STORE = preload("res://scripts/simulation/companion_camp
 const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_campaign_dialogue_service.gd")
 const FARM_WOLVES_QUEST_SCRIPT = preload("res://scripts/simulation/farm_wolves_quest.gd")
 const FARMSTEAD_DIRE_WOLF_SCRIPT = preload("res://scripts/simulation/farmstead_dire_wolf_encounter.gd")
+const DWELLING_WORLD_SERVICE = preload("res://scripts/world/campaign_dwelling_world_service.gd")
+const ABANDONED_HOUSE_QUEST_SCRIPT = preload("res://scripts/simulation/abandoned_house_clearing_quest.gd")
+const DWELLING_WORLD_PRESENTATION = preload("res://scripts/presentation/campaign_dwelling_world_presentation.gd")
+const SKELETAL_GUARDIAN_ACTOR_SCRIPT = preload("res://scripts/presentation/skeletal_guardian_actor.gd")
 const HOLLOWMERE_PLACEMENTS = preload("res://data/settlements/hollowmere/placements.gd")
 const HOLLOWMERE_TERRAIN_PROVIDER = preload("res://scripts/world/authored_settlement_terrain_provider.gd")
 const HOLLOWMERE_TERRAIN_DEFINITION = preload("res://data/settlements/hollowmere/terrain.gd")
@@ -160,6 +164,8 @@ func _ready() -> void:
 	if restored_from_save:
 		_apply_save_data(pending_save_data)
 		pending_save_data.clear()
+	_refresh_dwelling_world_presentation()
+	_restore_abandoned_house_guardian_actors()
 	_initialise_companion_relationship_context()
 	var initial_player_state := simulation.get_character("player")
 	var player_race := initial_player_state.race if initial_player_state != null else "human"
@@ -1283,6 +1289,23 @@ func _portrait_actor_for_speaker(speaker: String) -> AraCharacterActor:
 
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
+	if choice_id.begins_with("dwelling_action:"):
+		var parts := choice_id.split(":")
+		if parts.size() == 4:
+			var result := simulation.claim_dwelling(String(parts[1]), String(parts[2]), String(parts[3]))
+			if bool(result.get("ok", false)):
+				_refresh_dwelling_world_presentation()
+				var dwelling_name := String(result.get("dwelling_id", "Property")).replace("_", " ")
+				var layout_id := String(result.get("layout_id", ""))
+				_show_dialogue("Property", "The work is complete. %s is now yours.\nLayout identity: %s." % [dwelling_name.capitalize(), layout_id], [{"id": "continue", "label": "Continue", "text": ""}])
+			else:
+				_show_dialogue("Property", "That work cannot be completed: %s." % String(result.get("reason", "requirements_not_met")).replace("_", " "), [{"id": "continue", "label": "Understood.", "text": ""}])
+		else:
+			_show_dialogue("Property", "That property action is invalid.", [{"id": "continue", "label": "Understood.", "text": ""}])
+		return
+	if choice_id == "abandoned_house_enter":
+		_begin_abandoned_house_encounter()
+		return
 	if _handle_seraphine_choice(choice):
 		return
 	if choice_id == "wren_arc_topic:why_stay":
@@ -1561,21 +1584,35 @@ func _refresh_nearby_interactions() -> void:
 				break
 		if not already_listed:
 			nearby.push_front({"id":party_id,"name":party_state.display_name,"hostile":false})
-	if nearby.is_empty():
+	var nearby_sites := DWELLING_WORLD_SERVICE.nearby_sites(active_state.axial, 2)
+	if nearby.is_empty() and nearby_sites.is_empty():
 		nearby_interaction_panel.visible = false
 		return
-	var heading := Label.new()
-	heading.text = "NEARBY PEOPLE"
-	heading.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
-	nearby_interaction_box.add_child(heading)
-	for index in range(mini(nearby.size(), 6)):
-		var entry: Dictionary = nearby[index]
-		var target_id := String(entry.id)
-		var talk_button := Button.new()
-		talk_button.text = ("Engage · " if bool(entry.hostile) else "Talk · ") + String(entry.name)
-		talk_button.custom_minimum_size = Vector2(225.0, 34.0)
-		talk_button.pressed.connect(_on_nearby_interaction_pressed.bind(target_id))
-		nearby_interaction_box.add_child(talk_button)
+	if not nearby.is_empty():
+		var heading := Label.new()
+		heading.text = "NEARBY PEOPLE"
+		heading.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
+		nearby_interaction_box.add_child(heading)
+		for index in range(mini(nearby.size(), 6)):
+			var entry: Dictionary = nearby[index]
+			var target_id := String(entry.id)
+			var talk_button := Button.new()
+			talk_button.text = ("Engage · " if bool(entry.hostile) else "Talk · ") + String(entry.name)
+			talk_button.custom_minimum_size = Vector2(225.0, 34.0)
+			talk_button.pressed.connect(_on_nearby_interaction_pressed.bind(target_id))
+			nearby_interaction_box.add_child(talk_button)
+	if not nearby_sites.is_empty():
+		var property_heading := Label.new()
+		property_heading.text = "NEARBY PROPERTIES"
+		property_heading.add_theme_color_override("font_color", Color(0.94, 0.84, 0.62))
+		nearby_interaction_box.add_child(property_heading)
+		for site in nearby_sites:
+			var site_id := String(site.get("id", ""))
+			var inspect_button := Button.new()
+			inspect_button.text = "Inspect · " + String(site.get("name", "Property"))
+			inspect_button.custom_minimum_size = Vector2(225.0, 34.0)
+			inspect_button.pressed.connect(_on_nearby_dwelling_site_pressed.bind(site_id))
+			nearby_interaction_box.add_child(inspect_button)
 	nearby_interaction_panel.visible = true
 
 
@@ -2094,6 +2131,112 @@ func _update_combat_ui() -> void:
 	combat_hud.present(true, player_turn, can_attack, status_text)
 
 
+func _on_nearby_dwelling_site_pressed(site_id: String) -> void:
+	var player := simulation.get_character(simulation.player_character_id)
+	var remaining := ABANDONED_HOUSE_QUEST_SCRIPT.guardian_count_remaining(simulation) if site_id == "abandoned_house" else 0
+	var inspection := DWELLING_WORLD_SERVICE.inspection_for_site(
+		simulation.campaign_dwellings,
+		simulation.campaign_journal,
+		player,
+		site_id,
+		remaining
+	)
+	if not bool(inspection.get("ok", false)):
+		_show_dialogue("Property", "This location cannot be inspected right now.", [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	_show_dialogue(String(inspection.get("speaker", "Property")), String(inspection.get("text", "")), inspection.get("choices", []))
+
+
+func _refresh_dwelling_world_presentation() -> void:
+	if simulation == null:
+		return
+	var materials := {
+		"wood": timber_material,
+		"weathered_wood": dark_wood_material,
+		"stone": stone_material,
+		"roof": roof_material,
+		"repaired_roof": timber_material,
+		"glass": glass_material
+	}
+	DWELLING_WORLD_PRESENTATION.present_all(self, simulation.campaign_dwellings, HEX_RADIUS)
+
+
+func _restore_abandoned_house_guardian_actors() -> void:
+	if simulation == null:
+		return
+	for guardian_id in ABANDONED_HOUSE_QUEST_SCRIPT.GUARDIAN_IDS:
+		var guardian := simulation.get_character(guardian_id)
+		if guardian == null or not guardian.can_act() or actor_by_id.has(guardian_id):
+			continue
+		_spawn_abandoned_house_guardian_actor(guardian_id, guardian.axial)
+
+
+func _spawn_abandoned_house_guardian_actor(guardian_id: String, hex: Vector2i) -> void:
+	if actor_by_id.has(guardian_id) and is_instance_valid(actor_by_id[guardian_id]):
+		return
+	var actor := SKELETAL_GUARDIAN_ACTOR_SCRIPT.new() as Node3D
+	actor.name = guardian_id
+	actor.position = _hex_world_position(hex)
+	actor.set_meta("character_id", guardian_id)
+	actor.set_meta("ambient_enabled", false)
+	add_child(actor)
+	actor_by_id[guardian_id] = actor
+
+
+func _check_abandoned_house_proximity() -> void:
+	if simulation == null or simulation.is_in_combat or encounter_active or dialogue_open:
+		return
+	var active_state := simulation.get_character(active_character_id)
+	if active_state == null or HexGrid.distance(active_state.axial, ABANDONED_HOUSE_QUEST_SCRIPT.HOUSE_CENTRE) > 8:
+		return
+	var start_result := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
+	if not bool(start_result.get("ok", false)) or bool(start_result.get("already_completed", false)):
+		return
+	var spawn_result := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_guardians(simulation)
+	if not bool(spawn_result.get("ok", false)):
+		return
+	for guardian_id in ABANDONED_HOUSE_QUEST_SCRIPT.GUARDIAN_IDS:
+		var guardian := simulation.get_character(guardian_id)
+		if guardian != null and guardian.can_act():
+			_spawn_abandoned_house_guardian_actor(guardian_id, guardian.axial)
+
+
+func _begin_abandoned_house_encounter() -> void:
+	_close_dialogue()
+	var active_state := simulation.get_character(active_character_id)
+	if active_state == null or HexGrid.distance(active_state.axial, ABANDONED_HOUSE_QUEST_SCRIPT.HOUSE_CENTRE) > 2:
+		_show_dialogue("Abandoned House", "You need to be at the house before you can enter it.", [{"id": "continue", "label": "Understood.", "text": ""}])
+		return
+	var started := ABANDONED_HOUSE_QUEST_SCRIPT.ensure_started(simulation.campaign_journal)
+	if not bool(started.get("ok", false)):
+		_show_dialogue("Abandoned House", "The encounter cannot begin: %s." % String(started.get("reason", "unknown error")), [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	var party_ids: Array[String] = []
+	for party_id_value in simulation.get_party_member_ids():
+		party_ids.append(String(party_id_value))
+	var result := ABANDONED_HOUSE_QUEST_SCRIPT.start_encounter(simulation, party_ids)
+	if not bool(result.get("ok", false)):
+		_show_dialogue("Abandoned House", "You cannot face the guardians just now: %s." % String(result.get("reason", "unknown error")).replace("_", " "), [{"id": "continue", "label": "Continue", "text": ""}])
+		return
+	active_encounter_character_states = result.get("previous_states", {})
+	active_combat_kind = "abandoned_house"
+	active_enemy_ids.clear()
+	active_party_ids.clear()
+	active_combat_controlled_ids.clear()
+	for enemy_id_value in result.get("enemy_ids", []):
+		active_enemy_ids.append(String(enemy_id_value))
+	for party_id_value in result.get("party_ids", []):
+		active_party_ids.append(String(party_id_value))
+		active_combat_controlled_ids.append(String(party_id_value))
+	encounter_active = true
+	enemy_turn_processed = false
+	enemy_turn_waiting_for_reaction = false
+	if not active_party_ids.has(active_character_id):
+		active_character_id = simulation.player_character_id
+	_update_combat_ui()
+	_show_dialogue("Abandoned House", "The three skeletal guardians turn as one. Rusted weapons rise from the dark, and the house erupts into violence.", [{"id": "continue", "label": "Stand your ground.", "text": ""}])
+
+
 func _farm_wolves_remaining() -> int:
 	if not farm_wolves_spawned:
 		return -1
@@ -2248,6 +2391,27 @@ func _restore_active_party_after_combat() -> void:
 
 func _check_encounter_resolution() -> void:
 	if not encounter_active:
+		return
+	if active_combat_kind == "abandoned_house":
+		if ABANDONED_HOUSE_QUEST_SCRIPT.party_defeated(simulation, active_party_ids):
+			simulation.end_combat()
+			ABANDONED_HOUSE_QUEST_SCRIPT.finish_encounter(simulation, active_encounter_character_states)
+			active_encounter_character_states.clear()
+			_restore_active_party_after_combat()
+			encounter_active = false
+			_show_dialogue("Abandoned House", "The guardians drive you back. They remain in the house, but you can return when the party is ready.", [{"id": "continue", "label": "Retreat.", "text": ""}])
+		elif ABANDONED_HOUSE_QUEST_SCRIPT.enemies_defeated(simulation):
+			simulation.end_combat()
+			ABANDONED_HOUSE_QUEST_SCRIPT.finish_encounter(simulation, active_encounter_character_states)
+			active_encounter_character_states.clear()
+			_restore_active_party_after_combat()
+			encounter_active = false
+			var clearing := ABANDONED_HOUSE_QUEST_SCRIPT.resolve_clearing(simulation.campaign_journal, simulation)
+			if bool(clearing.get("ok", false)) and bool(clearing.get("completed", false)):
+				resource_status_label.text = "Quest complete: The Abandoned House · all three guardians defeated."
+				_show_dialogue("Abandoned House", "The last guardian collapses. The house is quiet at last. Its rooms can now be restored, though the work will still require timber and stone.", [{"id": "continue", "label": "The house is clear.", "text": ""}])
+			else:
+				_show_dialogue("Abandoned House", "The guardians are defeated, but the clearing could not be recorded: %s." % String(clearing.get("reason", "unknown error")), [{"id": "continue", "label": "Continue", "text": ""}])
 		return
 	if active_combat_kind == "dire_wolf_hunt":
 		if FARMSTEAD_DIRE_WOLF_SCRIPT.party_defeated(simulation, active_party_ids):
@@ -2408,6 +2572,7 @@ func _process(delta: float) -> void:
 	_update_ambient_chatter(delta)
 	_check_reyna_story_proximity()
 	_check_farm_wolf_proximity()
+	_check_abandoned_house_proximity()
 	_update_combat(delta)
 	_update_combat_ui()
 	nearby_interaction_refresh += delta
