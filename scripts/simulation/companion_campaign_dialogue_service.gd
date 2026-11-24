@@ -85,7 +85,7 @@ static func consult_for_actor(simulation: WorldSimulation, actor_id: String, act
 		var quest_state := journal.quest_state(chapter_id)
 		if String(quest_state.get("status", "")) != "active" or bool(quest_state.get("consulted", false)):
 			continue
-		return chain.consult(chapter_id, journal, actor_id, simulation.clock.world_seconds)
+		return chain.consult(chapter_id, journal, expected_id, simulation.clock.world_seconds)
 	return {}
 
 
