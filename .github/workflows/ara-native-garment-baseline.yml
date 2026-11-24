@@ -6,6 +6,9 @@ on:
     paths:
       - ".github/workflows/ara-native-garment-baseline.yml"
       - "tools/blender/garment_shell/render_wren_briefs_shell.py"
+      - "tools/ara/assemble_modular_glb.py"
+      - "tools/ara/extract_garment_glb.py"
+      - "tools/blender/add_adult_anatomy.py"
   workflow_dispatch:
 
 permissions:
