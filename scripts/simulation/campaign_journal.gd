@@ -13,6 +13,8 @@ var npc_standings: Dictionary = {}
 var npc_knowledge: Dictionary = {}
 var merchant_influence: Dictionary = {}
 var world_consequences: Dictionary = {}
+var settlement_campaign_states: Dictionary = {}
+var npc_campaign_states: Dictionary = {}
 
 
 func register_quest_definition(definition: Dictionary) -> Dictionary:
@@ -310,6 +312,57 @@ func world_consequence(consequence_id: String) -> Dictionary:
     return record.duplicate(true)
 
 
+## Campaign-visible state is kept separately from authored settlement/NPC
+## definitions. These values are deltas/flags that presentation and interaction
+## systems can consult without rewriting source data.
+func apply_settlement_campaign_state(settlement_id: String, numeric_deltas: Dictionary, flags: Dictionary = {}) -> Dictionary:
+    var stable_id := settlement_id.strip_edges()
+    if stable_id.is_empty():
+        return {"ok": false, "reason": "missing_settlement_id"}
+    var state: Dictionary = settlement_campaign_states.get(stable_id, {})
+    for key_value in numeric_deltas.keys():
+        var key := String(key_value)
+        var delta := float(numeric_deltas[key_value])
+        if not is_finite(delta):
+            return {"ok": false, "reason": "invalid_settlement_delta"}
+        state[key] = clampf(float(state.get(key, 0.0)) + delta, -100.0, 100.0)
+    var current_flags: Dictionary = state.get("flags", {})
+    for flag_key in flags:
+        current_flags[String(flag_key)] = flags[flag_key]
+    state["flags"] = current_flags
+    settlement_campaign_states[stable_id] = state
+    _emit_event("settlement_campaign_state_changed", {"settlement_id": stable_id, "state": state.duplicate(true)})
+    return {"ok": true, "settlement_id": stable_id, "state": state.duplicate(true)}
+
+
+func apply_npc_campaign_state(npc_id: String, numeric_deltas: Dictionary, flags: Dictionary = {}) -> Dictionary:
+    var stable_id := npc_id.strip_edges()
+    if stable_id.is_empty():
+        return {"ok": false, "reason": "missing_npc_id"}
+    var state: Dictionary = npc_campaign_states.get(stable_id, {})
+    for key_value in numeric_deltas.keys():
+        var key := String(key_value)
+        var delta := float(numeric_deltas[key_value])
+        if not is_finite(delta):
+            return {"ok": false, "reason": "invalid_npc_delta"}
+        state[key] = clampf(float(state.get(key, 0.0)) + delta, -100.0, 100.0)
+    var current_flags: Dictionary = state.get("flags", {})
+    for flag_key in flags:
+        current_flags[String(flag_key)] = flags[flag_key]
+    state["flags"] = current_flags
+    npc_campaign_states[stable_id] = state
+    _emit_event("npc_campaign_state_changed", {"npc_id": stable_id, "state": state.duplicate(true)})
+    return {"ok": true, "npc_id": stable_id, "state": state.duplicate(true)}
+
+
+func settlement_campaign_state(settlement_id: String) -> Dictionary:
+    return (settlement_campaign_states.get(settlement_id, {}) as Dictionary).duplicate(true)
+
+
+func npc_campaign_state(npc_id: String) -> Dictionary:
+    return (npc_campaign_states.get(npc_id, {}) as Dictionary).duplicate(true)
+
+
 func quest_state(quest_id: String) -> Dictionary:
     if not quests.has(quest_id):
         return {}
@@ -325,7 +378,9 @@ func to_dict() -> Dictionary:
         "faction_knowledge": faction_knowledge.duplicate(true),
         "npc_knowledge": npc_knowledge.duplicate(true),
         "merchant_influence": merchant_influence.duplicate(true),
-        "world_consequences": world_consequences.duplicate(true)
+        "world_consequences": world_consequences.duplicate(true),
+        "settlement_campaign_states": settlement_campaign_states.duplicate(true),
+        "npc_campaign_states": npc_campaign_states.duplicate(true)
     }
 
 
@@ -337,6 +392,8 @@ func load_dict(data: Dictionary) -> void:
     npc_knowledge.clear()
     merchant_influence.clear()
     world_consequences.clear()
+    settlement_campaign_states.clear()
+    npc_campaign_states.clear()
     var saved_quests: Variant = data.get("quests", {})
     if saved_quests is Dictionary:
         for quest_id_value in saved_quests.keys():
@@ -366,6 +423,16 @@ func load_dict(data: Dictionary) -> void:
             var saved_record: Variant = saved_world_consequences[consequence_id_value]
             if saved_record is Dictionary and saved_record.get("value", {}) is Dictionary:
                 world_consequences[String(consequence_id_value)] = saved_record.duplicate(true)
+    var saved_settlement_states: Variant = data.get("settlement_campaign_states", {})
+    if saved_settlement_states is Dictionary:
+        for state_id in saved_settlement_states:
+            if saved_settlement_states[state_id] is Dictionary:
+                settlement_campaign_states[String(state_id)] = saved_settlement_states[state_id].duplicate(true)
+    var saved_npc_states: Variant = data.get("npc_campaign_states", {})
+    if saved_npc_states is Dictionary:
+        for state_id in saved_npc_states:
+            if saved_npc_states[state_id] is Dictionary:
+                npc_campaign_states[String(state_id)] = saved_npc_states[state_id].duplicate(true)
     var saved_influence: Variant = data.get("merchant_influence", {})
     if saved_influence is Dictionary:
         for faction_id_value in saved_influence.keys():
