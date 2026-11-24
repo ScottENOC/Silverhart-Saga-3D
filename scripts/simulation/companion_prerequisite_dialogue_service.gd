@@ -104,12 +104,17 @@ static func actor_prompt(
 			dialogue_parts.append(dialogue)
 	if accessible_clues.is_empty():
 		return {}
+	var combined_dialogue := ""
+	for dialogue_part in dialogue_parts:
+		if not combined_dialogue.is_empty():
+			combined_dialogue += "\n\n"
+		combined_dialogue += dialogue_part
 	return {
 		"quest_id":String(active.get("quest_id", "")),
 		"title":String(active.get("title", "")),
 		"companion_id":String(active.get("companion_id", "")),
 		"actor_id":actor_id,
-		"body":"\n\n".join(dialogue_parts),
+		"body":combined_dialogue,
 		"clues":accessible_clues,
 		"choices":[{
 			"id":"companion_prerequisite_record_clues",
