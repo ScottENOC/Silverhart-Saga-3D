@@ -45,7 +45,7 @@ The 24-anchor geography manifest has six canonical settlement definitions above;
 | Ridgehold Fort | Fort walls, keep, downstream waterway and keep hearth are ported; visual review remains |
 | Skarnak's Hold | Source-authored exterior huts, warlord hut, campfire, perimeter terrain and road approach are ported; visual review remains |
 | Kragmoor | Six floor maps/presentations, stair traversal, quest-gated Sunken Deep and floor-state save/load are implemented; campaign travel routing, named NPC/creature spawning, dialogue and location interactions remain |
-| Sil'thandriel | Sylvan Court capital, vertical/forest architecture, population and faction interactions |
+| Sil'thandriel | Source-authored three-level tree-base/lower-canopy/upper-court maps, stair transitions, archive and healer platforms, rope bridge, trunk, branches and herb patches are registered in the shared runtime | Population/NPCs, services, faction interactions, visual review and final traversal review remain
 | Hollowmere Guild Den | Source-authored 2-by-2 room, south entrance and walkable floor are registered and map-tested | Guild contact, recruitment, services and quest interactions; runtime entry/exit wiring |
 | Abandoned House | Source-authored single-room wooden floor (half-width 3, half-height 2), west entrance, journal and phylactery altar positions are registered and map-tested | Exterior approach path dressing, dormant skeleton actors/activation, journal/altar interactions, disciple/phylactery quest chain and runtime entry/exit wiring |
 | Vessel-Seeker's Crypt | Source-authored three-room floor, connecting corridors and explicit one-cell wall-ring apertures are registered and map-tested |
@@ -145,7 +145,7 @@ The audit now applies the actual `Campaign2MultiStoryFloorMapBuilder` room bound
 ## Next map port order
 
 1. **Visual verification in Godot.** Review terrain elevation, river continuity, vegetation density, fort props, building scale/materials and chunk load/unload behaviour in the streamed regional world.
-2. **Finish remaining physical settlement layouts.** Complete missing source-authored building footprints, roads, walls, gates, districts and landmark dressing, prioritising Silverhart and Sil'thandriel.
+2. **Finish remaining physical settlement layouts.** Complete missing source-authored building footprints, roads, walls, gates, districts and landmark dressing, prioritising Silverhart and any remaining unregistered site architecture.
 3. **Port remaining physical sites.** Add source-traceable terrain, structures and props for the unported dungeons, caves, crypts, graves and wilderness landmarks.
 4. **Complete map-owned interiors.** Add floor geometry, doors, stairs and physical room objects where the source defines them; keep entry/exit interfaces compatible with the shared location runtime.
 5. **Validate world-scale consistency.** Check strategic-to-regional anchors, road/water precedence, elevation continuity, chunk seams and deterministic streaming.
