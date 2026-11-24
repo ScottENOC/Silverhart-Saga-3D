@@ -5,11 +5,13 @@ on:
     branches: [feature/aldric-wren-kiss-contact-pose]
     paths:
       - "tools/review/aldric_wren_kiss_contact_scene.gd"
+      - "tools/review/aldric_wren_kiss_contact_blender.py"
       - ".github/workflows/aldric-wren-contact-pose-review.yml"
   pull_request:
     branches: [feature/anatomy-integrated-body-pressure]
     paths:
       - "tools/review/aldric_wren_kiss_contact_scene.gd"
+      - "tools/review/aldric_wren_kiss_contact_blender.py"
       - ".github/workflows/aldric-wren-contact-pose-review.yml"
   workflow_dispatch:
 
@@ -23,23 +25,23 @@ concurrency:
 
 jobs:
   export-contact-pose:
-    name: Export paired native contact pose
+    name: Bake and render paired native contact pose
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
 
       - name: Fetch current native Wren and Aldric builds
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: \${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p build/wren-native build/aldric-native
-          wren_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-wren-native-ara.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id')
-          aldric_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-aldric-native-ara.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id')
+          wren_run=$(gh api "repos/\${GITHUB_REPOSITORY}/actions/workflows/build-wren-native-ara.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id')
+          aldric_run=$(gh api "repos/\${GITHUB_REPOSITORY}/actions/workflows/build-aldric-native-ara.yml/runs?branch=dev&status=success&per_page=1" --jq '.workflow_runs[0].id')
           test "$wren_run" != "null" && test "$aldric_run" != "null"
-          wren_number=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$wren_run" --jq '.run_number')
-          aldric_number=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$aldric_run" --jq '.run_number')
+          wren_number=$(gh api "repos/\${GITHUB_REPOSITORY}/actions/runs/$wren_run" --jq '.run_number')
+          aldric_number=$(gh api "repos/\${GITHUB_REPOSITORY}/actions/runs/$aldric_run" --jq '.run_number')
           gh run download "$wren_run" --name "wren-native-ara-$wren_number" --dir build/wren-download
           gh run download "$aldric_run" --name "aldric-native-ara-$aldric_number" --dir build/aldric-download
           cp build/wren-download/Wren.glb build/wren-native/Wren.glb
@@ -47,30 +49,33 @@ jobs:
           test -s build/wren-native/Wren.glb
           test -s build/aldric-native/Aldric.glb
 
-      - name: Fetch verified Kenney Nature Kit models
-        run: python tools/ci/fetch_kenney_nature_assets.py
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender xvfb libgl1-mesa-dri
 
-      - name: Install Godot 4.7.2
-        uses: chickensoft-games/setup-godot@v2
-        with:
-          version: 4.7.2
-          use-dotnet: false
-
-      - name: Import project
-        run: godot --headless --editor --path . --quit
-
-      - name: Pose and export paired GLB
+      - name: Bake, render and export the paired pose
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri
-          xvfb-run -a -s "-screen 0 1400x1300x24" godot --path . --rendering-method gl_compatibility --rendering-driver opengl3 --script res://tools/review/aldric_wren_kiss_contact_scene.gd
+          blender --background --python tools/review/aldric_wren_kiss_contact_blender.py 2>&1 | tee build-pose.log
           test -s build/aldric-wren-kiss-contact/aldric-wren-kiss-contact.glb
+          test -s build/aldric-wren-kiss-contact/pose-preview.png
           test -s build/aldric-wren-kiss-contact/pose-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("build/aldric-wren-kiss-contact/pose-report.json").read_text())
+          assert report["validation"]["four_ik_chains_created"], report["ik_chains"]
+          assert report["validation"]["posed_preview_rendered"]
+          assert report["validation"]["glb_exported"]
+          assert report["character_height"]["aldric"] > report["character_height"]["wren"]
+          print("Height-aware pose export checks passed.")
+          print(json.dumps(report, indent=2))
+          PY
 
-      - name: Upload paired pose for iPhone review
+      - name: Upload paired pose and visual QA for iPhone review
         uses: actions/upload-artifact@v7
         with:
           name: aldric-wren-kiss-contact-pose
