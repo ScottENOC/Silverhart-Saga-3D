@@ -336,6 +336,47 @@ func _initialize() -> void:
 			var reddale_hex := Vector2i(int(reddale_position.get("q", 0)), int(reddale_position.get("r", 0)))
 			_check(reddale_map.is_walkable(reddale_hex), "Reddale fixture must sit on walkable floor: " + String(reddale_object.get("id", "")))
 
+
+	# The remaining Silverhart homes are separate logical interiors, with
+	# source doors and furnishings placed on walkable cells.
+	var silverhart_residential_doors := {
+		"silverhart_neighbor_house": Vector2i(48, -502),
+		"silverhart_noble_cottage_north_1": Vector2i(37, -507),
+		"silverhart_noble_cottage_north_2": Vector2i(37, -513),
+		"silverhart_noble_cottage_north_3": Vector2i(37, -519),
+		"silverhart_east_quarter_house_1": Vector2i(28, -479),
+		"silverhart_east_quarter_house_2": Vector2i(34, -480),
+		"silverhart_east_quarter_house_3": Vector2i(24, -470),
+		"silverhart_east_quarter_house_4": Vector2i(27, -471),
+		"silverhart_outlying_house_northeast_1": Vector2i(23, -544),
+		"silverhart_outlying_house_northeast_2": Vector2i(48, -544),
+		"silverhart_outlying_house_west": Vector2i(-30, -476)
+	}
+	for location_id in silverhart_residential_doors:
+		var residential_definition: Dictionary = registry.get_definition(location_id)
+		var residential_state = LOCATION_STATE.new()
+		_check(bool(residential_state.configure(residential_definition).get("ok", false)), "Silverhart residential state must configure: " + location_id)
+		var residential_result: Dictionary = FLOOR_BUILDER.build_floor_map(residential_definition, 0, residential_state)
+		_check(bool(residential_result.get("ok", false)), "Silverhart residential floor must build: " + location_id)
+		if not bool(residential_result.get("ok", false)):
+			continue
+		var residential_map: HexMapData = residential_result.get("map_data") as HexMapData
+		_check(residential_map.is_walkable(silverhart_residential_doors[location_id]), "Silverhart residential entrance must be walkable: " + location_id)
+		for fixture in residential_result.get("tile_objects", []):
+			var fixture_position: Dictionary = fixture.get("position", {})
+			_check(residential_map.is_walkable(Vector2i(int(fixture_position.get("q", 0)), int(fixture_position.get("r", 0)))), "Silverhart residential fixture must be on walkable floor: " + String(fixture.get("id", "")))
+		_check(residential_result.get("actors", []).is_empty() and residential_result.get("creatures", []).is_empty(), "Silverhart residential map must not duplicate campaign actors: " + location_id)
+	var queen_bedroom_definition: Dictionary = registry.get_definition("silverhart_palace_bedroom")
+	var queen_bedroom_state = LOCATION_STATE.new()
+	_check(bool(queen_bedroom_state.configure(queen_bedroom_definition).get("ok", false)), "Queen's bedroom location state must configure")
+	var queen_bedroom_result: Dictionary = FLOOR_BUILDER.build_floor_map(queen_bedroom_definition, 0, queen_bedroom_state)
+	_check(bool(queen_bedroom_result.get("ok", false)), "Queen's private chambers must build")
+	if bool(queen_bedroom_result.get("ok", false)):
+		var queen_bedroom_map: HexMapData = queen_bedroom_result.get("map_data") as HexMapData
+		_check(queen_bedroom_map.is_walkable(Vector2i(8, -502)), "Queen's bedroom wall opening must remain walkable to the Grand Hall")
+		_check(_has_object(queen_bedroom_result.get("tile_objects", []), "silverhart_palace_bedroom_bed_1"), "Queen's bed must be presented")
+		_check(_has_object(queen_bedroom_result.get("tile_objects", []), "silverhart_palace_bedroom_fireplace_3"), "Queen's fireplace must be presented")
+
 	if failures > 0:
 		push_error("%d multi-story floor map test(s) failed." % failures)
 		quit(1)
