@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_bunkhouse", "emberlode_foremans_hall", "emberlode_mine", "hollowmere_chapel", "hollowmere_general_store", "hollowmere_guild_den", "hollowmere_house", "hollowmere_store", "hollowmere_tavern", "kragmoor", "lich_chapterhouse", "millbrook_house", "mira_house", "old_mac_farmhouse", "oskar_house", "reddale_guardhouse", "reddale_guildhouse", "reddale_inn", "reddale_manor", "reddale_reeve_house", "reddale_smithy", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_tunnel", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_bunkhouse", "emberlode_foremans_hall", "emberlode_mine", "hollowmere_chapel", "hollowmere_general_store", "hollowmere_guild_den", "hollowmere_house", "hollowmere_store", "hollowmere_tavern", "kragmoor", "lich_chapterhouse", "millbrook_house", "mira_house", "old_mac_farmhouse", "oskar_house", "reddale_guardhouse", "reddale_guildhouse", "reddale_inn", "reddale_manor", "reddale_reeve_house", "reddale_smithy", "silthandriel", "silverhart_city_tunnel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_tunnel", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
 	var emberlode_centres := {
 		"emberlode_bunkhouse": Vector2i(-252, 28),
 		"emberlode_foremans_hall": Vector2i(-256, 22)
@@ -196,6 +196,12 @@ func _initialize() -> void:
 	_check(_has_record(stables_floor.get("tile_objects", []), "stables_pen"), "Royal stables must retain the source pen feature")
 	var general_goods_floor := registry.get_floor_definition("silverhart_general_goods", 0)
 	_check(_has_record(general_goods_floor.get("tile_objects", []), "guild_initiation_prize"), "General goods must retain the Thieves' Guild initiation evidence")
+	_check(_has_record(general_goods_floor.get("tile_objects", []), "city_secret_passage"), "General goods must retain the source hidden passage to the city tunnel network")
+	var city_tunnel: Dictionary = registry.get_definition("silverhart_city_tunnel")
+	_check(int(city_tunnel.get("anchor", {}).get("q", 0)) == -20 and int(city_tunnel.get("anchor", {}).get("r", 0)) == -489, "City tunnel junction must match buildSilverhartPalace tunnelCityHex")
+	var city_tunnel_floor := registry.get_floor_definition("silverhart_city_tunnel", -9)
+	_check(city_tunnel_floor.get("rooms", []).size() == 1 and city_tunnel_floor.get("tile_objects", []).size() == 1, "City tunnel endpoint must remain the source one-cell floor -9 stub")
+	_check(_has_record(city_tunnel_floor.get("tile_objects", []), "city_tunnel_junction"), "City tunnel stub must retain its source junction object")
 	var clothier_floor := registry.get_floor_definition("silverhart_clothier", 0)
 	_check(_has_record(clothier_floor.get("tile_objects", []), "clothier_bed"), "Clothier must retain the sourcekeeper's bed")
 	var magic_shop_floor := registry.get_floor_definition("silverhart_magic_shop", 0)
