@@ -738,6 +738,46 @@ func refresh_portrait() -> void:
 		portrait_renderer.refresh_source(model_root)
 
 
+## Play the closest shipped Ara clip for a camp job. Looping clips stay active;
+## one-shot interactions are replayed after they finish by the camp director.
+static func camp_activity_animation_hints(activity: String) -> PackedStringArray:
+	match activity:
+		"gather_wood":
+			return PackedStringArray(["pick up (ground)", "pick up"])
+		"set_up_tents":
+			return PackedStringArray(["pick up (ground)", "pick up"])
+		"fetch_water":
+			return PackedStringArray(["head-load idle", "carry idle", "pick up (ground)"])
+		"cook":
+			return PackedStringArray(["use / press", "use"])
+		"repair_gear":
+			return PackedStringArray(["use / press", "use"])
+		"study_map":
+			return PackedStringArray(["sit idle", "sit"])
+		"train":
+			return PackedStringArray(["squat-loop", "squat", "push-ups-loop", "push-ups"])
+		"socialise":
+			return PackedStringArray(["talk with gestures-loop", "talk with gestures", "talk"])
+		"watch":
+			return PackedStringArray(["look around-loop", "look around", "idle"])
+		"sleep":
+			return PackedStringArray(["sleep", "lie down"])
+		_:
+			return PackedStringArray(["idle"])
+
+
+func play_camp_activity(activity: String) -> bool:
+	if animation_player == null or not is_instance_valid(animation_player):
+		return false
+	var clip := _find_animation_clip(camp_activity_animation_hints(activity).to_array())
+	if clip.is_empty():
+		return false
+	if animation_player.current_animation == StringName(clip) and animation_player.is_playing():
+		return true
+	animation_player.play(clip, 0.18)
+	return true
+
+
 func set_moving(is_moving: bool) -> bool:
 	if animation_player == null or not is_instance_valid(animation_player):
 		return false
