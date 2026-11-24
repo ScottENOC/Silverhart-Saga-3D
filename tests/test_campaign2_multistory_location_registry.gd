@@ -25,7 +25,7 @@ func _initialize() -> void:
 		}]
 	})
 	_check(not bool(invalid_row_shift_result.get("ok", true)), "Registry must reject unknown source room row-shift modes")
-	_check(registry.location_ids() == ["corvin_ashgrave_barrow", "emberlode_mine", "kragmoor", "lich_chapterhouse", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
+	_check(registry.location_ids() == ["abandoned_house", "corvin_ashgrave_barrow", "emberlode_mine", "kragmoor", "lich_chapterhouse", "silthandriel", "silverhart_clothier", "silverhart_general_goods", "silverhart_magic_shop", "silverhart_palace", "silverhart_palace_barracks", "silverhart_palace_council_chamber", "silverhart_palace_wizard_tower", "silverhart_stables", "silverhart_thieves_guild", "thieves_cove", "vessel_seekers_crypt"], "Kragmoor and all source-authored interiors must be registered")
 	var palace: Dictionary = registry.get_definition("silverhart_palace")
 	_check(int(palace.get("anchor", {}).get("q", 0)) == 8 and int(palace.get("anchor", {}).get("r", 0)) == -496, "Silverhart Grand Hall anchor must match buildSilverhartPalace")
 	_check(palace.get("floors", []).size() == 2, "Silverhart Grand Hall must preserve its two source floors")
@@ -196,6 +196,16 @@ func _initialize() -> void:
 	_check(_has_record(chapterhouse_floor.get("tile_objects", []), "chapterhouse_east_door"), "Chapterhouse must retain its east entrance")
 	_check(_has_record(chapterhouse_floor.get("tile_objects", []), "chapterhouse_fireplace"), "Chapterhouse must retain its central fireplace")
 	_check(chapterhouse_floor.get("actors", []).is_empty() and chapterhouse_floor.get("creatures", []).is_empty(), "Chapterhouse map port must not import campaign actors or encounters")
+
+	var abandoned_house: Dictionary = registry.get_definition("abandoned_house")
+	_check(int(abandoned_house.get("anchor", {}).get("q", 0)) == 14 and int(abandoned_house.get("anchor", {}).get("r", 0)) == -176, "Abandoned House anchor must match the source 200-step north-road waypoint and +6 offset")
+	var abandoned_floor := registry.get_floor_definition("abandoned_house", 0)
+	_check(abandoned_floor.get("rooms", []).size() == 1, "Abandoned House must retain its single source room")
+	var abandoned_room: Dictionary = abandoned_floor.get("rooms", [])[0]
+	_check(int(abandoned_room.get("half_width", 0)) == 3 and int(abandoned_room.get("half_height", 0)) == 2, "Abandoned House room dimensions must match carveFlatRoom")
+	_check(_has_record(abandoned_floor.get("tile_objects", []), "abandoned_house_journal"), "Abandoned House must retain its journal")
+	_check(_has_record(abandoned_floor.get("tile_objects", []), "phylactery_altar"), "Abandoned House must retain the phylactery altar position")
+	_check(abandoned_floor.get("actors", []).is_empty() and abandoned_floor.get("creatures", []).is_empty(), "Abandoned House map port must not import dormant skeletons")
 
 	if failures > 0:
 		push_error("%d multi-story location test(s) failed." % failures)
