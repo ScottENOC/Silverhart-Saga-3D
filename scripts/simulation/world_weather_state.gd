@@ -44,21 +44,22 @@ func conditions_at(world_seconds: float, terrain_id: String = "") -> Dictionary:
 	var roll := _stable_roll(day_index, period_index, 1)
 	var weather_type := _select_weather(season, roll)
 	var daily_temperature := (_stable_roll(day_index, 0, 2) - 0.5) * 5.0
-	var temperature := _season_temperature(season) + daily_temperature
-	temperature += _diurnal_temperature(hour)
+	var weather_temperature_offset := 0.0
 	match weather_type:
 		"overcast":
-			temperature -= 1.0
+			weather_temperature_offset = -1.0
 		"rain":
-			temperature -= 2.5
+			weather_temperature_offset = -2.5
 		"heavy_rain":
-			temperature -= 3.5
+			weather_temperature_offset = -3.5
 		"storm":
-			temperature -= 4.0
+			weather_temperature_offset = -4.0
 		"fog":
-			temperature -= 2.0
+			weather_temperature_offset = -2.0
 		"snow":
-			temperature -= 5.0
+			weather_temperature_offset = -5.0
+	var seasonal_temperature := _season_temperature(season) + daily_temperature
+	var temperature := seasonal_temperature + weather_temperature_offset + _diurnal_temperature(hour)
 	var wind_roll := _stable_roll(day_index, period_index, 3)
 	var wind_speed := 5.0 + wind_roll * 12.0
 	var rain_intensity := 0.0
@@ -88,7 +89,7 @@ func conditions_at(world_seconds: float, terrain_id: String = "") -> Dictionary:
 		wind_speed *= 0.72
 	elif terrain_id in ["mountain", "rocky_outcrop"]:
 		wind_speed *= 1.15
-	var night_temperature := temperature - 5.0
+	var night_temperature := seasonal_temperature + weather_temperature_offset - 5.0
 	var visibility_multiplier := 1.0
 	if is_storm:
 		visibility_multiplier = 0.45
