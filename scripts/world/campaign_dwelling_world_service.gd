@@ -87,9 +87,16 @@ static func inspection_for_site(
 		lines.append("Ownership: not yet acquired.")
 
 	var choices: Array[Dictionary] = []
-	if site_id == "abandoned_house" and remaining_guardians > 0:
+	if site_id == "abandoned_house":
 		var quest := journal.quest_state("abandoned_house_cleared")
-		if String(quest.get("status", "")) == "active":
+		var quest_status := String(quest.get("status", ""))
+		if quest_status.is_empty():
+			choices.append({
+				"id": "abandoned_house_investigate",
+				"label": "Investigate the house",
+				"text": ""
+			})
+		elif quest_status == "active" and remaining_guardians > 0:
 			choices.append({
 				"id": "abandoned_house_enter",
 				"label": "Enter the house · %d guardians remain" % remaining_guardians,
