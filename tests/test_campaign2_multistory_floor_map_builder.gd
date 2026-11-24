@@ -175,6 +175,30 @@ func _initialize() -> void:
 	_check(_has_object(revealed.get("tile_objects", []), "transition_-4_-5"), "The quest must add the stair-down object to the Lower Tunnels")
 	_check((revealed.get("map_data") as HexMapData).is_walkable(Vector2i(890, -605)), "The revealed stair hex must be walkable")
 
+	var emberlode_building_registry := REGISTRY.new()
+	var emberlode_building_entrances := {
+		"emberlode_bunkhouse": Vector2i(-252, 26),
+		"emberlode_foremans_hall": Vector2i(-253, 22)
+	}
+	for location_id in emberlode_building_entrances:
+		var emberlode_building_definition: Dictionary = emberlode_building_registry.get_definition(location_id)
+		var emberlode_building_state = LOCATION_STATE.new()
+		_check(bool(emberlode_building_state.configure(emberlode_building_definition).get("ok", false)), "Emberlode building state must configure: " + location_id)
+		var emberlode_building_result: Dictionary = FLOOR_BUILDER.build_floor_map(emberlode_building_definition, 0, emberlode_building_state)
+		_check(bool(emberlode_building_result.get("ok", false)), "Emberlode building floor must build: " + location_id)
+		if not bool(emberlode_building_result.get("ok", false)):
+			continue
+		var emberlode_building_map: HexMapData = emberlode_building_result.get("map_data") as HexMapData
+		_check(emberlode_building_map.is_walkable(emberlode_building_entrances[location_id]), "Emberlode building entrance must be walkable: " + location_id)
+		for emberlode_building_object in emberlode_building_result.get("tile_objects", []):
+			var emberlode_building_position: Dictionary = emberlode_building_object.get("position", {})
+			var emberlode_building_hex := Vector2i(int(emberlode_building_position.get("q", 0)), int(emberlode_building_position.get("r", 0)))
+			_check(emberlode_building_map.is_walkable(emberlode_building_hex), "Emberlode building fixture must be walkable: " + String(emberlode_building_object.get("id", "")))
+	if _has_object(FLOOR_BUILDER.build_floor_map(emberlode_building_registry.get_definition("emberlode_foremans_hall"), 0, LOCATION_STATE.new()).get("tile_objects", []), "emberlode_foremans_hall_fireplace"):
+		pass
+	else:
+		_check(false, "Foreman's Hall must retain its source fireplace")
+
 	var abandoned_house_registry := REGISTRY.new()
 	var abandoned_house_definition: Dictionary = abandoned_house_registry.get_definition("abandoned_house")
 	var abandoned_house_state = LOCATION_STATE.new()
