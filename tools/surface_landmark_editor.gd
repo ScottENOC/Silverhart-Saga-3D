@@ -8,6 +8,9 @@ const BODY_OPTIONS := {
     "Aldric (current native build)": "res://build/aldric-native/Aldric.glb"
 }
 const LANDMARK_LABELS := {
+    "upper_lip": "Upper lip contact",
+    "lower_lip": "Lower lip contact",
+    "mouth_centre": "Mouth centre",
     "sternum": "Sternum",
     "clavicle_left": "Clavicle — left",
     "clavicle_right": "Clavicle — right",
