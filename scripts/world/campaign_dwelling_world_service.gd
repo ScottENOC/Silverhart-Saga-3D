@@ -6,6 +6,13 @@ extends RefCounted
 
 const SITES: Array[Dictionary] = [
 	{
+		"id": CampaignFurnitureCatalog.SHOP_ID,
+		"name": CampaignFurnitureCatalog.SHOP_NAME,
+		"hex": Vector2i(8, -496),
+		"kind": "furniture_shop",
+		"description": "A capital-city furniture merchant sells ready-made beds, storage, tables and workshop equipment."
+	},
+	{
 		"id": "crossroads_plot",
 		"name": "Surveyed cottage plot",
 		"hex": Vector2i(13, 27),
@@ -68,6 +75,8 @@ static func inspection_for_site(
 	var site := site_definition(site_id)
 	if site.is_empty() or dwelling_state == null or journal == null:
 		return {"ok": false, "reason": "unknown_site_or_missing_campaign_state"}
+	if site_id == CampaignFurnitureCatalog.SHOP_ID:
+		return furniture_shop_inspection(player)
 	var dwelling_id := String(site.get("dwelling_id", ""))
 	var profile := dwelling_state.camp_profile_for(dwelling_id)
 	var lines: PackedStringArray = [String(site.get("description", ""))]
@@ -145,6 +154,28 @@ static func inspection_for_site(
 		"text": "\n".join(lines),
 		"choices": choices,
 		"site_id": site_id
+	}
+
+
+
+static func furniture_shop_inspection(player: CharacterState) -> Dictionary:
+	var choices: Array[Dictionary] = []
+	for item in CampaignFurnitureCatalog.shop_catalogue():
+		var item_id := String(item.get("id", ""))
+		var item_name := String(item.get("name", item_id))
+		var price := int(item.get("price", 0))
+		choices.append({
+			"id": "furniture_buy:" + item_id,
+			"label": "Buy %s · %d gold" % [item_name, price],
+			"text": ""
+		})
+	choices.append({"id": "continue", "label": "Leave the shop.", "text": ""})
+	return {
+		"ok": true,
+		"speaker": CampaignFurnitureCatalog.SHOP_NAME,
+		"text": "Beds, storage, dining furniture and workshop equipment. Ready-made pieces can be bought here; the same designs can also be crafted from materials at an owned dwelling. Your available gold: %d." % (player.gold if player != null else 0),
+		"choices": choices,
+		"site_id": CampaignFurnitureCatalog.SHOP_ID
 	}
 
 
