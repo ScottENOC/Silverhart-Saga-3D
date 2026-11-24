@@ -241,6 +241,36 @@ func _initialize() -> void:
 	_check(farmhouse_map != null and not farmhouse_map.cells.is_empty(), "Farmhouse must produce a walkable source floor")
 	_check(farmhouse_map.is_walkable(Vector2i(3, 194)), "Farmhouse east entrance must be walkable")
 
+	var hollowmere_building_registry := REGISTRY.new()
+	var hollowmere_building_entrances := {
+		"hollowmere_chapel": Vector2i(-11, 0),
+		"hollowmere_general_store": Vector2i(0, 15),
+		"hollowmere_house": Vector2i(0, -10),
+		"hollowmere_store": Vector2i(10, 0),
+		"hollowmere_tavern": Vector2i(0, 4),
+		"mira_house": Vector2i(10, 9),
+		"oskar_house": Vector2i(-4, 9)
+	}
+	for location_id in hollowmere_building_entrances:
+		var hollowmere_building_definition: Dictionary = hollowmere_building_registry.get_definition(location_id)
+		var hollowmere_building_state = LOCATION_STATE.new()
+		_check(bool(hollowmere_building_state.configure(hollowmere_building_definition).get("ok", false)), "Hollowmere building state must configure: " + location_id)
+		var hollowmere_building_result: Dictionary = FLOOR_BUILDER.build_floor_map(hollowmere_building_definition, 0, hollowmere_building_state)
+		_check(bool(hollowmere_building_result.get("ok", false)), "Hollowmere building floor must build: " + location_id)
+		if not bool(hollowmere_building_result.get("ok", false)):
+			continue
+		var hollowmere_building_map: HexMapData = hollowmere_building_result.get("map_data") as HexMapData
+		_check(hollowmere_building_map.is_walkable(hollowmere_building_entrances[location_id]), "Hollowmere entrance must be walkable: " + location_id)
+		for hollowmere_object in hollowmere_building_result.get("tile_objects", []):
+			var hollowmere_position: Dictionary = hollowmere_object.get("position", {})
+			var hollowmere_hex := Vector2i(int(hollowmere_position.get("q", 0)), int(hollowmere_position.get("r", 0)))
+			_check(hollowmere_building_map.is_walkable(hollowmere_hex), "Hollowmere fixture must sit on walkable floor: " + String(hollowmere_object.get("id", "")))
+		if location_id == "hollowmere_tavern":
+			for tavern_fixture_id in ["hollowmere_tavern_fireplace", "hollowmere_tavern_table_east", "hollowmere_tavern_bench_east", "hollowmere_tavern_table_west", "hollowmere_tavern_bench_west"]:
+				_check(_has_object(hollowmere_building_result.get("tile_objects", []), tavern_fixture_id), "Tavern must retain its source fixture: " + tavern_fixture_id)
+		if location_id == "hollowmere_general_store":
+			_check(_has_object(hollowmere_building_result.get("tile_objects", []), "hollowmere_general_store_counter"), "General store must retain its source counter")
+
 	var reddale_registry := REGISTRY.new()
 	var reddale_entrances := {
 		"reddale_guardhouse": Vector2i(137, 24),
