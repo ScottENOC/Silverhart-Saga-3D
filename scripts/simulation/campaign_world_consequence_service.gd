@@ -8,8 +8,8 @@ static func apply_decision_consequences(
     journal: CampaignJournal,
     quest_id: String,
     decision_id: String,
-    settlement_updates: Array[Dictionary],
-    npc_updates: Array[Dictionary]
+    settlement_updates: Array,
+    npc_updates: Array
 ) -> Dictionary:
     if journal == null:
         return {"ok": false, "reason": "missing_journal"}
