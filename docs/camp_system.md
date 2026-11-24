@@ -113,4 +113,15 @@ The routine-stage thresholds are measured in world seconds: 120 seconds (24 seco
 Physical evening duties now add fatigue over elapsed world time: training, gathering wood, pitching tents and fetching water are more tiring than cooking, repair, map study or conversation. This feeds back into the next routine decision, while the existing overnight recovery remains authoritative. A player override also updates the hidden autonomous fallback at each stage, so it resumes the current routine when the override expires rather than reverting to an obsolete setup chore.
 
 
-Weather inputs are accepted as camp environment data (`storm`, `heavy_rain`, `wind_speed`, `rain_intensity` and `night_temperature_c`). The current camp-placement caller still supplies a fixed 8°C night temperature and does not yet connect a world-weather service, so live rain/storm-driven routine changes remain an integration dependency rather than an active source of weather data.
+### World weather and camp response
+
+The campaign already had an authoritative calendar and seasonal presentation (the 12-month WorldClock and SeasonalTreeVisual), but no live precipitation, wind or temperature simulation. WorldWeatherState now extends that existing calendar rather than introducing a second clock: a campaign seed deterministically selects weather in three-hour world-time periods, with season-weighted clear, overcast, rain, heavy-rain, storm, fog and snow conditions. Temperature follows the existing seasonal month mapping and time of day. Local terrain modifies exposure: forest cover reduces wind, while mountain and rocky ground increase it.
+
+WorldSimulation owns and saves the weather seed, updates weather from WorldClock ticks, and supplies the current local conditions when camp is established. An active camp receives later weather changes as the clock crosses a weather period. Exposed wilderness routines move away from outdoor study/training during severe storms, snow, high wind or dangerous cold; a livable dwelling can retain appropriate indoor routines. The camp HUD reports the current weather, temperature and wind. Weather is deterministic for a campaign seed and world time, so loading a save does not reroll the sky.
+
+This is a simulation foundation, not yet a full atmospheric renderer: rain/snow particles, wet-ground accumulation, wind-swaying foliage, thunder/lightning and weather audio remain presentation work.
+
+
+### Visible dwelling stations
+
+A livable owned dwelling now presents visible station props at the same layout anchors used by companion routing. The hearth has a stone surround and optional firelight; the table, workshop bench/tool rack, study desk/books, common-room bench, threshold/lantern, yard log stack/barrel and bedroom bed are built only when those stations exist in the selected layout. The nameplate identifies the actual property. Wilderness camps retain the exposed fire ring, tents and bedrolls and do not receive permanent furniture. These are still outdoor staging props on the current continuous map, not a complete enclosed or walkable interior; the room geometry and interior navigation remain a separate step.
