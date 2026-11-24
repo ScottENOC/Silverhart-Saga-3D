@@ -111,3 +111,6 @@ The routine-stage thresholds are measured in world seconds: 120 seconds (24 seco
 
 
 Physical evening duties now add fatigue over elapsed world time: training, gathering wood, pitching tents and fetching water are more tiring than cooking, repair, map study or conversation. This feeds back into the next routine decision, while the existing overnight recovery remains authoritative. A player override also updates the hidden autonomous fallback at each stage, so it resumes the current routine when the override expires rather than reverting to an obsolete setup chore.
+
+
+Weather inputs are accepted as camp environment data (`storm`, `heavy_rain`, `wind_speed`, `rain_intensity` and `night_temperature_c`). The current camp-placement caller still supplies a fixed 8°C night temperature and does not yet connect a world-weather service, so live rain/storm-driven routine changes remain an integration dependency rather than an active source of weather data.
