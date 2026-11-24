@@ -8,7 +8,6 @@ signal weather_changed(conditions: Dictionary)
 
 const WEATHER_PERIOD_SECONDS := 10800.0
 const SECONDS_PER_DAY := 86400.0
-const SEASON_NAMES := ["spring", "summer", "autumn", "winter"]
 
 var seed: int = 1
 var current_period_index: int = -1
@@ -85,10 +84,10 @@ func conditions_at(world_seconds: float, terrain_id: String = "") -> Dictionary:
 		"snow":
 			wind_speed = 10.0 + wind_roll * 18.0
 			is_snow = true
-		if terrain_id == "forest":
-			wind_speed *= 0.72
-		elif terrain_id in ["mountain", "rocky_outcrop"]:
-			wind_speed *= 1.15
+	if terrain_id == "forest":
+		wind_speed *= 0.72
+	elif terrain_id in ["mountain", "rocky_outcrop"]:
+		wind_speed *= 1.15
 	var night_temperature := temperature - 5.0
 	var visibility_multiplier := 1.0
 	if is_storm:
