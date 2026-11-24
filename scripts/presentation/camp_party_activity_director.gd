@@ -280,8 +280,9 @@ func _process_social_exchanges(delta: float) -> void:
 		exchange,
 		event_key
 	)
-	_social_pause_remaining[first_id] = 4.5
-	_social_pause_remaining[second_id] = 4.5
+	var conversation_duration := _exchange_display_duration(exchange)
+	_social_pause_remaining[first_id] = conversation_duration
+	_social_pause_remaining[second_id] = conversation_duration
 	_play_social_animation(first_id)
 	_play_social_animation(second_id)
 	_exchange_index += 1
@@ -311,3 +312,17 @@ func _advance_social_pauses(delta: float) -> void:
 			var state := simulation.get_character(character_id)
 			if state != null and state.axial == _destination_by_character[character_id]:
 				_play_assigned_activity(character_id)
+
+
+func _exchange_display_duration(exchange: Dictionary) -> float:
+	var total_duration := 0.0
+	for line_value in exchange.get("lines", []):
+		var line: Dictionary = line_value
+		var spoken_text := String(line.get("text", ""))
+		var estimated_lines := maxi(1, ceili(float(spoken_text.length()) / 34.0))
+		total_duration += clampf(
+			1.8 + float(estimated_lines) * 0.85 + float(spoken_text.length()) * 0.008,
+			2.5,
+			6.5
+		)
+	return maxf(4.5, total_duration + 0.4)
