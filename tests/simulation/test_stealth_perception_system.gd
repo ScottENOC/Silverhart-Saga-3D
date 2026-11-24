@@ -31,6 +31,17 @@ func _run() -> void:
 	_check(int(fire_result.visual_level) >= StealthPerceptionSystem.VISUAL_VAGUE, "distant campfire should remain faintly visible at night")
 	_check(int(fire_result.visual_level) < StealthPerceptionSystem.VISUAL_IDENTIFIED, "distant campfire should not reveal fine detail")
 
+	var armoured_character := CharacterState.new("armoured_test", "Armoured test")
+	armoured_character.equipped_item_data["armour"] = {"id": "steel_plate", "weight_class": "heavy"}
+	var armour_profile := StealthPerceptionSystem.character_visual_profile(armoured_character)
+	_check(float(armour_profile.reflectivity) >= 0.7, "steel armour should be reflective")
+	_check(float(armour_profile.equipment_noise) >= 0.3, "steel plate should create equipment noise")
+
+	var torch_character := CharacterState.new("torch_test", "Torch bearer")
+	torch_character.equipped_item_data["offhand"] = {"id": "lit_torch", "type": "torch"}
+	var torch_profile := StealthPerceptionSystem.character_visual_profile(torch_character)
+	_check(float(torch_profile.light_emission) >= 0.8, "carried torch should emit light")
+
 	var quiet_sound := {"hex": Vector2i(4, 0), "kind": "footsteps", "loudness": 0.18}
 	var noisy_sound := {"hex": Vector2i(4, 0), "kind": "armoured_steps", "loudness": 0.18, "equipment_noise": 0.7}
 	var quiet_result := StealthPerceptionSystem.assess_sound(Vector2i.ZERO, quiet_sound, {})
