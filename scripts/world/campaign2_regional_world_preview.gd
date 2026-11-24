@@ -630,7 +630,7 @@ func _on_regional_dialogue_choice(choice: Dictionary) -> void:
 			var player := ecology_simulation.get_character(ecology_simulation.player_character_id)
 			if reward > 0 and player != null:
 				player.experience += reward
-				line += "\\n\\n+%d XP" % reward
+				line += "\n\n+%d XP" % reward
 			_show_regional_dialogue(String(choice.get("companion_id", "Companion")), line)
 		else:
 			_show_regional_dialogue("Campaign journal", "That resolution is not available: %s." % String(resolution.get("reason", "unknown reason")))
