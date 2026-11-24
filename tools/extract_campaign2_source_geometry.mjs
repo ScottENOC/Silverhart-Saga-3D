@@ -25,8 +25,10 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv);
 const sourceText = fs.readFileSync(args.source, "utf8");
 const overrideTerrain = {};
-const terrainWritesByBuilder = {};
-const terrainWriteCountsByBuilder = {};
+const terrainCellsByBuilder = {};
+const terrainWriteCallsByBuilder = {};
+const terrainCellsByWriter = {};
+const terrainWriteCallsByWriter = {};
 const windowState = {
   overrideTerrain,
   tileObjects: {},
@@ -52,15 +54,24 @@ const windowState = {
     Array.from({ length: 16 }, () => ({ n: "" }))),
   setTerrainAt(q, r, name) {
     const stack = new Error().stack || "";
-    const callerLine = stack.split("\n").slice(1).find(line =>
-      /at (?:Object\.)?(?:build|paint|setupVillageScene|carve|place)/.test(line));
-    const match = callerLine && callerLine.match(/at (?:Object\.)?([A-Za-z_$][\w$]*)/);
-    const builder = match ? match[1] : "unclassified";
+    const frames = stack.split("\n").slice(1).map(line => {
+      const match = line.match(/at (?:Object\.)?([A-Za-z_$][\w$]*)/);
+      return match ? match[1] : "";
+    }).filter(Boolean);
+    const writer = frames.find(name => name !== "setTerrainAt") || "unclassified";
+    const helperNames = new Set([
+      "setTerrainAt", "carveFlatRoom", "carveBuilding", "carveStarFort",
+      "carveHexKeep", "carvePolygonRoom"
+    ]);
+    const builder = frames.find(name => !helperNames.has(name)) || writer;
     const key = q + "," + r;
     this.overrideTerrain[key] = { name };
-    if (!terrainWritesByBuilder[builder]) terrainWritesByBuilder[builder] = new Set();
-    terrainWritesByBuilder[builder].add(key);
-    terrainWriteCountsByBuilder[builder] = (terrainWriteCountsByBuilder[builder] || 0) + 1;
+    if (!terrainCellsByBuilder[builder]) terrainCellsByBuilder[builder] = new Set();
+    if (!terrainCellsByWriter[writer]) terrainCellsByWriter[writer] = new Set();
+    terrainCellsByBuilder[builder].add(key);
+    terrainCellsByWriter[writer].add(key);
+    terrainWriteCallsByBuilder[builder] = (terrainWriteCallsByBuilder[builder] || 0) + 1;
+    terrainWriteCallsByWriter[writer] = (terrainWriteCallsByWriter[writer] || 0) + 1;
   },
   setTerrainAtFloor() {},
   getTerrainAt(q, r) { return this.overrideTerrain[q + "," + r] || { name: "Grass" }; },
@@ -152,10 +163,14 @@ try {
   process.exit(1);
 }
 const captured = JSON.parse(encoded);
-captured.terrainWritesByBuilder = Object.fromEntries(
-  Object.entries(terrainWritesByBuilder).map(([name, cells]) => [name, Array.from(cells)])
+captured.terrainCellsByBuilder = Object.fromEntries(
+  Object.entries(terrainCellsByBuilder).map(([name, cells]) => [name, Array.from(cells)])
 );
-captured.terrainWriteCountsByBuilder = terrainWriteCountsByBuilder;
+captured.terrainWriteCallsByBuilder = terrainWriteCallsByBuilder;
+captured.terrainCellsByWriter = Object.fromEntries(
+  Object.entries(terrainCellsByWriter).map(([name, cells]) => [name, Array.from(cells)])
+);
+captured.terrainWriteCallsByWriter = terrainWriteCallsByWriter;
 const terrainCounts = {};
 for (const value of Object.values(captured.terrain)) {
   const name = value && value.name ? value.name : "UNNAMED";
@@ -180,9 +195,12 @@ const output = {
     terrainCells: Object.keys(captured.terrain).length,
     terrainByName: terrainCounts,
     terrainCellsByBuilder: Object.fromEntries(
-      Object.entries(captured.terrainWritesByBuilder).map(([name, cells]) => [name, cells.length])
+      Object.entries(captured.terrainCellsByBuilder).map(([name, cells]) => [name, cells.length])
     ),
-    terrainWriteCallsByBuilder: captured.terrainWriteCountsByBuilder,
+    terrainWriteCallsByBuilder: captured.terrainWriteCallsByBuilder,
+    terrainCellsByWriter: Object.fromEntries(
+      Object.entries(captured.terrainCellsByWriter).map(([name, cells]) => [name, cells.length])
+    ),
     tileObjectPlacements: Object.keys(captured.tileObjects).length,
     interiorRegions: captured.interiors.length,
     multiStoryBuildings: captured.multiStoryBuildings.length,
