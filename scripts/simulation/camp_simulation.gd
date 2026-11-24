@@ -25,6 +25,7 @@ var resources: Dictionary = {}
 var assignments: Dictionary = {}
 var sleeping_arrangements: Array[Dictionary] = []
 var conditions: Dictionary = {}
+var evening_activity_history: Dictionary = {}
 var elapsed_world_seconds: float = 0.0
 var _default_assignments: Dictionary = {}
 
@@ -61,6 +62,7 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	_default_assignments.clear()
 	sleeping_arrangements.clear()
 	conditions.clear()
+	evening_activity_history.clear()
 	elapsed_world_seconds = 0.0
 	phase = "evening"
 	for character_id in party_ids:
@@ -217,6 +219,9 @@ func begin_night() -> Dictionary:
 	if phase != "evening":
 		return {"ok": false, "reason": "not_in_evening_phase"}
 	_complete_evening_preparations()
+	evening_activity_history.clear()
+	for character_id in party_ids:
+		evening_activity_history[character_id] = String(assignments.get(character_id, {}).get("activity", ""))
 	phase = "night"
 	for character_id in party_ids:
 		var current: Dictionary = assignments.get(character_id, {})
@@ -278,6 +283,8 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	for arrangement in sleeping_arrangements:
 		for bagged_id in arrangement.get("sleeping_bag_character_ids", []):
 			bagged_characters[String(bagged_id)] = true
+	if has_water:
+		resources["water"] = maxi(0, int(resources.water) - party_size)
 	var results: Dictionary = {}
 	for character_id in party_ids:
 		var condition: Dictionary = conditions[character_id]
@@ -293,7 +300,7 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		var nutrition := 90.0 if has_meal else (55.0 if int(resources.rations) > 0 else 35.0)
 		var hydration := 90.0 if has_water else 35.0
 		var security := clampf(55.0 + float(watchers) * 15.0 - danger * 30.0, 0.0, 100.0)
-		var social := 65.0 if String(assignments.get(character_id, {}).get("activity", "")) == "socialise" else 50.0
+		var social := 65.0 if String(evening_activity_history.get(character_id, "")) == "socialise" else 50.0
 		var sleep_quality := clampf((warmth + nutrition + hydration + security) * 0.25 - tent_penalty, 0.0, 100.0)
 		var comfort := clampf((warmth * 0.23 + nutrition * 0.18 + hydration * 0.14 + security * 0.15 + sleep_quality * 0.20 + social * 0.10), 0.0, 100.0)
 		var watch_penalty := 10.0 if String(assignments.get(character_id, {}).get("activity", "")) == "watch" else 0.0
@@ -301,8 +308,6 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 		condition["fatigue"] = maxf(0.0, float(condition.fatigue) - fatigue_recovered)
 		condition["hunger"] = clampf(float(condition.hunger) + night_hours * 2.0 - (25.0 if has_meal else 0.0), 0.0, 100.0)
 		condition["thirst"] = clampf(float(condition.thirst) + night_hours * 2.5 - (30.0 if has_water else 0.0), 0.0, 100.0)
-		if has_water:
-			resources["water"] = maxi(0, int(resources.water) - party_size)
 		condition["warmth"] = warmth
 		condition["comfort"] = comfort
 		conditions[character_id] = condition
@@ -327,7 +332,8 @@ func to_dict() -> Dictionary:
 		"environment": environment.duplicate(true), "resources": resources.duplicate(true),
 		"assignments": assignments.duplicate(true), "default_assignments": _default_assignments.duplicate(true),
 		"sleeping_arrangements": sleeping_arrangements.duplicate(true),
-		"conditions": conditions.duplicate(true), "elapsed_world_seconds": elapsed_world_seconds
+		"conditions": conditions.duplicate(true), "evening_activity_history": evening_activity_history.duplicate(true),
+		"elapsed_world_seconds": elapsed_world_seconds
 	}
 
 
@@ -362,5 +368,6 @@ func from_dict(data: Dictionary) -> bool:
 	_default_assignments = data.get("default_assignments", {}).duplicate(true)
 	sleeping_arrangements = data.get("sleeping_arrangements", []).duplicate(true)
 	conditions = saved_conditions.duplicate(true)
+	evening_activity_history = data.get("evening_activity_history", {}).duplicate(true)
 	elapsed_world_seconds = maxf(0.0, float(data.get("elapsed_world_seconds", 0.0)))
 	return true
