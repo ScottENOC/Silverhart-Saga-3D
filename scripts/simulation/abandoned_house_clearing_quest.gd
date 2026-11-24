@@ -42,10 +42,27 @@ static func definition() -> Dictionary:
 	}
 
 
+static func register_definition(journal: CampaignJournal) -> Dictionary:
+	if journal == null:
+		return {"ok": false, "reason": "missing_journal"}
+	return journal.register_quest_definition(definition())
+
+
+static func dynamic_character_records(simulation: WorldSimulation) -> Dictionary:
+	var records: Dictionary = {}
+	if simulation == null:
+		return records
+	for guardian_id in GUARDIAN_IDS:
+		var guardian := simulation.get_character(guardian_id)
+		if guardian != null:
+			records[guardian_id] = guardian.to_dict()
+	return records
+
+
 static func ensure_started(journal: CampaignJournal) -> Dictionary:
 	if journal == null:
 		return {"ok": false, "reason": "missing_journal"}
-	journal.register_quest_definition(definition())
+	register_definition(journal)
 	var current := journal.quest_state(QUEST_ID)
 	if String(current.get("status", "")) == "completed":
 		return {"ok": true, "already_completed": true}
