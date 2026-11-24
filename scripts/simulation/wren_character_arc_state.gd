@@ -186,7 +186,8 @@ func dialogue_topics(relationships: CompanionRelationshipState, journal: Campaig
 	var options: Array[Dictionary] = []
 	var rel: Dictionary = relationships.snapshot("wren_talbot") if relationships != null else {}
 	if float(rel.get("familiarity", 0.0)) >= 35.0:
-		options.append({"id":"wren_arc_topic:why_stay","label":"Why do you always stay?"})
+		var why_label := "Why are you still here?" if float(rel.get("trust", 0.0)) <= 10.0 else "Why do you always stay?"
+		options.append({"id":"wren_arc_topic:why_stay","label":why_label})
 	var parents_completed := journal != null and String(journal.quest_state("wren_parents").get("status", "")) == "completed"
 	if parents_completed:
 		options.append({"id":"wren_arc_topic:parents_reflection","label":"What did finding your parents change for you?"})
