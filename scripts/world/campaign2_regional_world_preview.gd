@@ -7,6 +7,8 @@ const LOCAL_TERRAIN_RULES = preload("res://data/world/terrain/campaign2_local_te
 const SETTLEMENT_BUILDER_SCRIPT = preload("res://scripts/world/campaign2_settlement_builder.gd")
 const WALL_FEATURE_FACTORY = preload("res://scripts/world/world_wall_feature_factory.gd")
 const LOCATION_LOADER_SCRIPT = preload("res://scripts/world/campaign2_location_loader.gd")
+const COMPANION_DIALOGUE_SERVICE = preload("res://scripts/simulation/companion_prerequisite_dialogue_service.gd")
+const CAMPAIGN_DIALOGUE_PANEL = preload("res://scripts/ui/campaign_dialogue_panel.gd")
 const MACRO_SCENE := "res://scenes/prototypes/campaign2_macro_world_preview.tscn"
 const MENU_SCENE := "res://scenes/main_menu.tscn"
 const HEX_RADIUS := HexGrid.DEFAULT_RADIUS_M
@@ -16,6 +18,10 @@ const LOAD_RADIUS_CHUNKS := 1
 var terrain_data: Campaign2WorldTerrainData
 var settlement_builder: Campaign2SettlementBuilder
 var ecology_simulation: WorldSimulation
+var companion_quest_chains: CompanionQuestChainState
+var companion_relationship_state: CompanionRelationshipState
+var dialogue_panel: CampaignDialoguePanel
+var dialogue_open := false
 var chunk_nodes: Dictionary = {}
 var camera: Camera3D
 var target := Vector3.ZERO
@@ -35,11 +41,20 @@ var player_actor: Node3D
 var active_location_runtime: Campaign2MultiStoryLocationRuntime
 var mouse_travel_pressed := false
 
+func configure_campaign(campaign_simulation: WorldSimulation) -> void:
+	## Allows the streamed regional presentation to reuse the live campaign state.
+	## Call before adding this scene to the tree; the simulation remains owned by
+	## its existing campaign root and is not reparented here.
+	if campaign_simulation != null and not is_inside_tree():
+		ecology_simulation = campaign_simulation
+
 func _ready() -> void:
 	terrain_data = TERRAIN_DATA_SCRIPT.new() as Campaign2WorldTerrainData
-	ecology_simulation = WorldSimulation.new()
-	ecology_simulation.name = "RegionalEcologySimulation"
-	add_child(ecology_simulation)
+	if ecology_simulation == null:
+		ecology_simulation = WorldSimulation.new()
+		ecology_simulation.name = "RegionalEcologySimulation"
+		add_child(ecology_simulation)
+	_configure_companion_campaign_state()
 	settlement_builder = SETTLEMENT_BUILDER_SCRIPT.new(terrain_data.settlement_layouts, null, ecology_simulation) as Campaign2SettlementBuilder
 	_create_environment()
 	_create_materials()
@@ -182,6 +197,14 @@ func _build_interface() -> void:
 	menu_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(MENU_SCENE))
 	root.add_child(menu_button)
 
+	var dialogue_layer := CanvasLayer.new()
+	dialogue_layer.layer = 30
+	add_child(dialogue_layer)
+	dialogue_panel = CAMPAIGN_DIALOGUE_PANEL.new() as CampaignDialoguePanel
+	dialogue_panel.name = "RegionalCampaignDialoguePanel"
+	dialogue_panel.choice_selected.connect(_on_regional_dialogue_choice)
+	dialogue_layer.add_child(dialogue_panel)
+
 	var help := Label.new()
 	help.anchor_left = 0.0
 	help.anchor_right = 1.0
@@ -297,12 +320,17 @@ func _build_chunk(chunk: Vector2i) -> Node3D:
 
 func _create_player() -> void:
 	var start_hex := Vector2i(8, 24)
-	var player := CharacterState.new("player", "Player", start_hex)
-	player.side = "player"
-	player.time_points = 100.0
+	var player := ecology_simulation.get_character("player")
+	if player == null:
+		player = CharacterState.new("player", "Player", start_hex)
+		player.side = "player"
+		player.time_points = 100.0
+		ecology_simulation.register_character(player)
+	else:
+		start_hex = player.axial
 	ecology_simulation.player_character_id = player.id
-	ecology_simulation.register_character(player)
-	ecology_simulation.character_moved.connect(_on_world_character_moved)
+	if not ecology_simulation.character_moved.is_connected(_on_world_character_moved):
+		ecology_simulation.character_moved.connect(_on_world_character_moved)
 
 	var actor_root := Node3D.new()
 	actor_root.name = "RegionalPlayerActor"
@@ -503,6 +531,135 @@ func _location_colour(kind: String) -> Color:
 		"dungeon", "haunted_house", "chapterhouse", "dragon_lair": return Color("#bd91d2")
 		_: return Color("#a9c0cb")
 
+
+func _configure_companion_campaign_state() -> void:
+	if ecology_simulation == null:
+		return
+	var saved_chain: Variant = ecology_simulation.get_meta("companion_quest_chains", null)
+	var saved_relationships: Variant = ecology_simulation.get_meta("companion_relationship_state", null)
+	companion_quest_chains = saved_chain as CompanionQuestChainState if saved_chain is CompanionQuestChainState else CompanionQuestChainState.new()
+	companion_relationship_state = saved_relationships as CompanionRelationshipState if saved_relationships is CompanionRelationshipState else CompanionRelationshipState.new()
+	ecology_simulation.set_meta("companion_quest_chains", companion_quest_chains)
+	ecology_simulation.set_meta("companion_relationship_state", companion_relationship_state)
+	companion_quest_chains.register_quest_definitions(ecology_simulation.campaign_journal)
+
+
+func _interact_with_nearest_regional_npc() -> bool:
+	if dialogue_open or dialogue_panel == null or ecology_simulation == null:
+		return false
+	var player_state := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	if player_state == null:
+		return false
+	var nearest_actor: Node3D
+	var nearest_distance := 3
+	for actor_value in get_tree().get_nodes_in_group("campaign2_npc"):
+		var actor := actor_value as Node3D
+		if actor == null or not is_instance_valid(actor):
+			continue
+		var actor_hex := HexGrid.world_to_axial(actor.global_position, HEX_RADIUS)
+		var distance := HexGrid.distance(player_state.axial, actor_hex)
+		if distance <= 2 and distance < nearest_distance:
+			nearest_distance = distance
+			nearest_actor = actor
+	if nearest_actor == null:
+		return false
+	var npc_id := String(nearest_actor.get_meta("campaign2_npc_id", ""))
+	if npc_id.is_empty():
+		return false
+	var prompt: Dictionary = COMPANION_DIALOGUE_SERVICE.actor_prompt(
+		companion_quest_chains,
+		ecology_simulation.campaign_journal,
+		npc_id
+	)
+	if prompt.is_empty():
+		return false
+	var choices: Array[Dictionary] = []
+	for choice_value in prompt.get("choices", []):
+		var choice: Dictionary = choice_value.duplicate(true)
+		choice["companion_id"] = String(prompt.get("companion_id", ""))
+		choices.append(choice)
+	dialogue_open = true
+	dialogue_panel.present(
+		String(prompt.get("title", nearest_actor.get_meta("dialogue_id", "Conversation"))),
+		String(prompt.get("body", "")),
+		choices
+	)
+	return true
+
+
+func _on_regional_dialogue_choice(choice: Dictionary) -> void:
+	var choice_id := String(choice.get("id", ""))
+	if choice_id == "continue":
+		_close_regional_dialogue()
+		return
+	if choice_id == "companion_chain_consult":
+		var chapter_id := String(choice.get("chapter_id", ""))
+		var actor_id := String(choice.get("actor_id", ""))
+		if actor_id == "elder_nessa_wren_elf_female":
+			actor_id = "nessa_wren"
+		var result: Dictionary = COMPANION_DIALOGUE_SERVICE.consult_chapter(
+			companion_quest_chains,
+			ecology_simulation.campaign_journal,
+			chapter_id,
+			actor_id,
+			ecology_simulation.clock.world_seconds
+		)
+		if bool(result.get("ok", false)):
+			_present_regional_companion_reckoning(String(choice.get("companion_id", "")))
+		else:
+			_show_regional_dialogue("Campaign journal", "That conversation could not be recorded: %s." % String(result.get("reason", "unknown reason")))
+		return
+	if choice_id == "companion_chain_resolve":
+		var resolution: Dictionary = COMPANION_DIALOGUE_SERVICE.resolve_chapter(
+			companion_quest_chains,
+			ecology_simulation.campaign_journal,
+			companion_relationship_state,
+			String(choice.get("chapter_id", "")),
+			String(choice.get("resolution_id", "")),
+			ecology_simulation.clock.world_seconds
+		)
+		if bool(resolution.get("ok", false)):
+			var line := String(resolution.get("line", "The decision is made."))
+			var reward := maxi(0, int(resolution.get("xp_reward", 0)))
+			var player := ecology_simulation.get_character(ecology_simulation.player_character_id)
+			if reward > 0 and player != null:
+				player.experience += reward
+				line += "\\n\\n+%d XP" % reward
+			_show_regional_dialogue(String(choice.get("companion_id", "Companion")), line)
+		else:
+			_show_regional_dialogue("Campaign journal", "That resolution is not available: %s." % String(resolution.get("reason", "unknown reason")))
+		return
+
+
+func _present_regional_companion_reckoning(companion_id: String) -> void:
+	var player := ecology_simulation.get_character(ecology_simulation.player_character_id)
+	var prompt: Dictionary = COMPANION_DIALOGUE_SERVICE.dialogue_for_companion(
+		companion_quest_chains,
+		ecology_simulation.campaign_journal,
+		companion_id,
+		ecology_simulation.get_party_member_ids(),
+		player,
+		ecology_simulation.clock.world_seconds
+	)
+	var choices: Array[Dictionary] = []
+	for choice_value in prompt.get("choices", []):
+		var choice: Dictionary = choice_value.duplicate(true)
+		choice["companion_id"] = companion_id
+		choices.append(choice)
+	dialogue_open = true
+	dialogue_panel.present(companion_id, String(prompt.get("body", "The companion has nothing more to add.")), choices)
+
+
+func _show_regional_dialogue(speaker: String, body: String) -> void:
+	dialogue_open = true
+	dialogue_panel.present(speaker, body, [{"id":"continue","label":"Continue"}])
+
+
+func _close_regional_dialogue() -> void:
+	dialogue_open = false
+	if dialogue_panel != null:
+		dialogue_panel.dismiss()
+
 func _update_camera() -> void:
 	if camera == null:
 		return
@@ -517,8 +674,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			if key.keycode == KEY_ESCAPE:
 				get_tree().change_scene_to_file(MACRO_SCENE)
 				get_viewport().set_input_as_handled()
-			elif key.keycode == KEY_F and _interact_with_regional_location():
-				get_viewport().set_input_as_handled()
+			elif key.keycode == KEY_F:
+				if _interact_with_regional_location() or _interact_with_nearest_regional_npc():
+					get_viewport().set_input_as_handled()
 			else:
 				var movement_key := key.keycode
 				match key.keycode:
