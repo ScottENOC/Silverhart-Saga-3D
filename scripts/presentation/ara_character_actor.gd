@@ -34,6 +34,26 @@ func register_body_pressure_region(region_id: StringName, profile: BodyRegionPro
 func apply_body_pressure(region_id: StringName, force_n: float) -> void:
 	body_pressure_controller.apply_pressure(region_id, force_n)
 
+## Submit one detected contact sample per physics tick. Positive closing speed
+## means the contact is moving into the body; separating contacts add no force.
+func apply_body_contact(
+	region_id: StringName,
+	penetration_m: float,
+	closing_speed_m_per_s: float,
+	contact_stiffness_n_per_m: float = 1800.0,
+	contact_damping_ns_per_m: float = 35.0,
+	max_force_n: float = 120.0
+) -> float:
+	return BodyPressureContact.submit_contact(
+		body_pressure_controller,
+		region_id,
+		penetration_m,
+		closing_speed_m_per_s,
+		contact_stiffness_n_per_m,
+		contact_damping_ns_per_m,
+		max_force_n
+	)
+
 func get_body_pressure_m(region_id: StringName) -> float:
 	return body_pressure_controller.get_compression_m(region_id)
 
