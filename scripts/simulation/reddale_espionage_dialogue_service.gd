@@ -9,7 +9,7 @@ const GUILDMASTER_ID := "petra_voss"
 static func dialogue_for_npc(journal: CampaignJournal, npc_id: String) -> Dictionary:
 	if journal == null:
 		return {"ok":false, "reason":"missing_journal"}
-	var quest_id := CONTENT.quest_for_employer(npc_id)
+	var quest_id := _quest_for_dialogue(journal, npc_id)
 	if quest_id.is_empty():
 		return {"ok":false, "reason":"unsupported_dialogue_actor"}
 	var quest: Dictionary = journal.quests.get(quest_id, {})
@@ -26,10 +26,13 @@ static func dialogue_for_npc(journal: CampaignJournal, npc_id: String) -> Dictio
 	if status == "completed":
 		return {"ok":true, "speaker":employer, "body":"The records have been dealt with. Reddale will feel the consequences soon enough.", "choices":[{"id":"leave","label":"I'll leave you to it."}]}
 	var choices: Array[Dictionary] = []
-	if not bool(quest.get("double_cross_offered", false)):
-		choices.append({"id":"double_cross_accept", "label":"Agree to work as a double agent."})
-		choices.append({"id":"double_cross_decline", "label":"Refuse the offer."})
-	choices.append({"id":"return_evidence", "label":"I've recovered the records."})
+	var is_target_contact := npc_id == _target_contact_for_quest(quest_id)
+	if is_target_contact:
+		if not bool(quest.get("double_cross_offered", false)):
+			choices.append({"id":"double_cross_accept", "label":"Agree to work as a double agent."})
+			choices.append({"id":"double_cross_decline", "label":"Refuse the offer."})
+	else:
+		choices.append({"id":"return_evidence", "label":"I've recovered the records."})
 	choices.append({"id":"leave", "label":"Not yet."})
 	return {"ok":true, "speaker":employer, "body":"The operation is still active. Have you recovered the records, or has the other side approached you?", "choices":choices}
 
@@ -37,6 +40,8 @@ static func select_choice(journal: CampaignJournal, player: CharacterState, npc_
 	if journal == null or player == null:
 		return {"ok":false, "reason":"missing_journal_or_player"}
 	var quest_id := CONTENT.quest_for_employer(npc_id)
+	if choice_id == "double_cross_accept" or choice_id == "double_cross_decline":
+		quest_id = _active_quest_for_counterparty(journal, npc_id)
 	if quest_id.is_empty():
 		return {"ok":false, "reason":"unsupported_dialogue_actor"}
 	if choice_id == "leave":
@@ -48,6 +53,8 @@ static func select_choice(journal: CampaignJournal, player: CharacterState, npc_
 		var mission := {"quest_id":quest_id, "guard_id":"guild_watchman_corley" if quest_id == CONTENT.GUILD_QUEST else "steward_halvard_greer", "evidence_id":"guild_ledgers" if quest_id == CONTENT.GUILD_QUEST else "baron_tariffs", "target_faction_id":"ironbond_company" if quest_id == CONTENT.GUILD_QUEST else "silverhart_kingdom", "fail_standing_delta":-20.0}
 		return {"ok":true, "mission":mission, "body":"Keep out of sight. The records are inside; return to me once you have them."}
 	if choice_id == "double_cross_accept" or choice_id == "double_cross_decline":
+		if npc_id != _target_contact_for_quest(quest_id):
+			return {"ok":false, "reason":"double_cross_not_offered_by_this_contact"}
 		var side := "silverhart_kingdom" if quest_id == CONTENT.BARON_QUEST else "ironbond_company"
 		var flipped := CONTENT.record_double_agent(journal, quest_id, side, choice_id == "double_cross_accept")
 		if not bool(flipped.get("ok", false)):
@@ -68,3 +75,28 @@ static func select_choice(journal: CampaignJournal, player: CharacterState, npc_
 		player.inventory.remove_at(evidence_index)
 		return completed
 	return {"ok":false, "reason":"unknown_choice"}
+
+
+static func _quest_for_dialogue(journal: CampaignJournal, npc_id: String) -> String:
+	var employer_quest := CONTENT.quest_for_employer(npc_id)
+	if employer_quest.is_empty():
+		return ""
+	if journal.quests.has(employer_quest):
+		return employer_quest
+	return _active_quest_for_counterparty(journal, npc_id)
+
+
+static func _active_quest_for_counterparty(journal: CampaignJournal, npc_id: String) -> String:
+	for quest_id in [CONTENT.GUILD_QUEST, CONTENT.BARON_QUEST]:
+		if not journal.quests.has(quest_id):
+			continue
+		var quest: Dictionary = journal.quests[quest_id]
+		if String(quest.get("status", "")) != "active":
+			continue
+		if npc_id == _target_contact_for_quest(quest_id):
+			return quest_id
+	return ""
+
+
+static func _target_contact_for_quest(quest_id: String) -> String:
+	return GUILDMASTER_ID if quest_id == CONTENT.GUILD_QUEST else BARON_ID
