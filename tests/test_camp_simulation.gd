@@ -169,7 +169,7 @@ func _test_companions_walk_to_camp_stations() -> void:
 	companion.side = "player"
 	world.register_character(player)
 	world.register_character(companion)
-	var started := world.begin_camp({"hex": Vector2i.ZERO}, {})
+	var started := world.begin_camp({"hex": Vector2i.ZERO, "walkable": true}, {})
 	_check(bool(started.get("ok", false)), "Camp should start before companions are routed")
 	var probe := CampActivityProbe.new()
 	_camp_actor_probes["wren"] = probe
