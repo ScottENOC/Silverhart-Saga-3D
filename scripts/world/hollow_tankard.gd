@@ -1153,7 +1153,7 @@ func _apply_save_data(data: Dictionary) -> void:
 	if dynamic_records is Dictionary:
 		for character_id_value in dynamic_records.keys():
 			var character_id := String(character_id_value)
-			if simulation.get_character(character_id) != null or not dynamic_records[character_id_value] is Dictionary:
+			if simulation.get_character(character_id) != null or not (dynamic_records[character_id_value] is Dictionary):
 				continue
 			var dynamic_state := CharacterState.from_dict(dynamic_records[character_id_value])
 			if dynamic_state != null:
