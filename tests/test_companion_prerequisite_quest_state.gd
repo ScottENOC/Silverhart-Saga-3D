@@ -17,6 +17,7 @@ func _initialize() -> void:
 	_test_prerequisite_dialogue_adapter_routes_npc_evidence()
 	_test_campaign_simulation_persists_companion_state()
 	_test_aldric_follow_on_chapter_runs_through_live_dialogue_adapter()
+	_test_fenn_follow_on_chapter_routes_elder_nessa_alias()
 	if _failures > 0:
 		push_error("%d companion prerequisite quest assertion(s) failed." % _failures)
 		quit(1)
@@ -406,3 +407,31 @@ func _test_aldric_follow_on_chapter_runs_through_live_dialogue_adapter() -> void
 	_check(int(resolution.get("xp_reward", 0)) == 350)
 	_check(String(journal.quest_state("aldric_weight_of_command").get("status", "")) == "completed")
 	_check(float(resolution.get("arc_state", {}).get("sharedBurden", -999.0)) > shared_burden_before, "The chapter applies its authored shared-burden development")
+
+
+
+func _test_fenn_follow_on_chapter_routes_elder_nessa_alias() -> void:
+	var chains: Variant = _new_chain_state()
+	if chains == null:
+		return
+	var journal := _new_fenn_journal(chains)
+	var relationships := CompanionRelationshipState.new()
+	_start_fenn(chains, journal, relationships)
+	_add_fenn_required_clues(chains, journal)
+	var player := CharacterState.new("player", "Player")
+	var first_result: Dictionary = chains.resolve_prerequisite("fenn_living_boundary", "preserve_marsh", journal, relationships, 1400.0, player)
+	_check(bool(first_result.get("ok", false)))
+	var party_ids: Array[String] = ["fenn_oakheart"]
+	var offered: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "fenn_oakheart", party_ids, player, 50000.0)
+	_check(String(offered.get("quest_id", "")) == "fenn_fire_in_understory", "Fenn's second chapter follows the completed Living Boundary story")
+	var started: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.start_chapter(chains, journal, relationships, "fenn_fire_in_understory", party_ids, 50000.0)
+	_check(bool(started.get("ok", false)))
+	var nessa_prompt: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(chains, journal, "elder_nessa_wren_elf_female")
+	_check(String(nessa_prompt.get("chapter_id", "")) == "fenn_fire_in_understory", "Elder Nessa's world actor ID resolves to the chapter's authored NPC ID")
+	var consulted: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.consult_chapter(chains, journal, "fenn_fire_in_understory", "nessa_wren", 51000.0)
+	_check(bool(consulted.get("ok", false)))
+	var reckoning: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "fenn_oakheart", party_ids, player, 51000.0)
+	_check(String(reckoning.get("body", "")).contains("mosaic burn"), "Fenn's reckoning presents the authored fire-management choices")
+	var resolution: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve_chapter(chains, journal, relationships, "fenn_fire_in_understory", "mosaic_burn", 52000.0)
+	_check(bool(resolution.get("ok", false)))
+	_check(int(resolution.get("xp_reward", 0)) == 300)
