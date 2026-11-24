@@ -343,7 +343,7 @@ func _initialize() -> void:
 		"silverhart_elven_embassy": {"centre": Vector2i(0, -466), "half_width": 3, "half_height": 2, "door": Vector2i(3, -466)},
 		"silverhart_dwarven_embassy": {"centre": Vector2i(16, -470), "half_width": 3, "half_height": 2, "door": Vector2i(13, -470)},
 		"silverhart_aldenreach_embassy": {"centre": Vector2i(0, -460), "half_width": 3, "half_height": 2, "door": Vector2i(3, -460)},
-		"silverhart_corvane_embassy": {"centre": Vector2i(16, -462), "half_width": 3, "half_height": 2, "door": Vector2i(13, -462)},
+		"silverhart_corvane_embassy": {"centre": Vector2i(16, -463), "half_width": 3, "half_height": 2, "door": Vector2i(13, -463)},
 		"silverhart_ironbond_office": {"centre": Vector2i(1, -454), "half_width": 3, "half_height": 2, "door": Vector2i(4, -454)},
 		"silverhart_grand_cathedral": {"centre": Vector2i(14, -451), "half_width": 4, "half_height": 4, "door": Vector2i(10, -451)},
 		"silverhart_commons_inn": {"centre": Vector2i(8, -529), "half_width": 4, "half_height": 3, "door": Vector2i(8, -526)}
