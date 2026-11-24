@@ -1292,7 +1292,7 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 	if choice_id.begins_with("dwelling_action:"):
 		var parts := choice_id.split(":")
 		if parts.size() == 4:
-			var result := simulation.claim_dwelling(String(parts[1]), String(parts[2]), String(parts[3]))
+			var result := simulation.claim_dwelling(String(parts[1]), String(parts[2]), String(parts[3]), active_character_id)
 			if bool(result.get("ok", false)):
 				_refresh_dwelling_world_presentation()
 				var dwelling_name := String(result.get("dwelling_id", "Property")).replace("_", " ")
@@ -1435,7 +1435,7 @@ func _handle_seraphine_choice(choice: Dictionary) -> bool:
 		"seraphine_request_favour":
 			response = content.seraphine_manor_request_response()
 		"seraphine_manor_accept":
-			var grant := simulation.claim_dwelling("claim_silverhart_manor", "materials", "silverhart_palace")
+			var grant := simulation.claim_dwelling("claim_silverhart_manor", "materials", "silverhart_palace", active_character_id)
 			if not bool(grant.get("ok", false)):
 				_show_dialogue("Queen Seraphine Corrin", "I cannot grant the townhouse just now: %s." % String(grant.get("reason", "requirements_not_met")).replace("_", " "), [{"id":"continue","label":"Understood","kind":"leave"}])
 				return true
