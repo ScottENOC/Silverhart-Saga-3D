@@ -91,6 +91,12 @@ func _initialize() -> void:
 		var district_map: HexMapData = district_result.get("map_data") as HexMapData
 		_check(district_map.is_walkable(silverhart_district_doors[district_id]), "Silverhart district entrance must be walkable: " + district_id)
 		_check(district_result.get("actors", []).is_empty() and district_result.get("creatures", []).is_empty(), "Silverhart district floor must not duplicate campaign-owned residents: " + district_id)
+
+		if district_id == "silverhart_ironbond_office":
+			_check(district_map.is_walkable(Vector2i(4, -457)), "Ironbond office's source-opened corner must be walkable")
+			_check(not district_map.is_walkable(Vector2i(5, -458)), "Ironbond office's source-restored corner must remain a wall")
+			_check(_has_object(district_result.get("tile_objects", []), "silverhart_ironbond_office_table"), "Ironbond office table must be presented")
+			_check(_has_object(district_result.get("tile_objects", []), "silverhart_ironbond_office_bench"), "Ironbond office bench must be presented")
 	var emberlode_definition: Dictionary = registry.get_definition("emberlode_mine")
 	var emberlode_state = LOCATION_STATE.new()
 	_check(bool(emberlode_state.configure(emberlode_definition).get("ok", false)), "Emberlode Mine traversal state must configure")
