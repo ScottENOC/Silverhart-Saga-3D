@@ -482,7 +482,8 @@ def main():
         "ik_chains": ik_report,
         "hand_target_error_m": hand_errors,
         "validation": {
-            "four_ik_chains_created": sum(1 for v in ik_report.values() if v.get("created")) == 4,
+            "four_ik_chains_created": sum(1 for key, v in ik_report.items() if v.get("created") and not key.endswith("_leg")) == 4,
+            "two_aldric_leg_ik_chains_created": sum(1 for key, v in ik_report.items() if v.get("created") and key.endswith("_leg")) == 2,
             "actor_attachment_hierarchy_preserved": True,
             "posed_preview_rendered": os.path.exists(scene.render.filepath),
             "glb_exported": os.path.exists(os.path.join(OUT_DIR, "aldric-wren-kiss-contact.glb")),
