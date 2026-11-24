@@ -1,5 +1,9 @@
 class_name CampPartyActivityDirector
 extends Node
+
+signal companion_exchange(exchange: Dictionary)
+
+const CAMP_DIALOGUE_SERVICE := preload("res://scripts/simulation/camp_companion_dialogue_service.gd")
 ## Drives visible companion movement for the in-world camp.
 ## Character movement remains authoritative in WorldSimulation; HollowTankard's
 ## existing character_moved signal supplies the normal locomotion animation.
@@ -15,6 +19,8 @@ var _active_character_ids: Array[String] = []
 var _destination_by_character: Dictionary = {}
 var _activity_by_character: Dictionary = {}
 var _step_accumulator: float = 0.0
+var _social_accumulator: float = 0.0
+var _exchange_index: int = 0
 var _running: bool = false
 
 
@@ -44,6 +50,8 @@ func stop() -> void:
 	_destination_by_character.clear()
 	_activity_by_character.clear()
 	_step_accumulator = 0.0
+	_social_accumulator = 0.0
+	_exchange_index = 0
 
 
 func is_running() -> bool:
@@ -66,6 +74,7 @@ func process_activity_movement(delta: float) -> void:
 	# make a six-person party wait several seconds between each actor's steps.
 	for character_id in _active_character_ids.duplicate():
 		_process_companion_step(character_id)
+	_process_social_exchanges(delta)
 
 
 func _process_companion_step(character_id: String) -> void:
@@ -183,3 +192,74 @@ func _on_activity_assigned(character_id: String, activity: String) -> void:
 		return
 	_destination_by_character[character_id] = target
 	_activity_by_character[character_id] = activity
+
+
+## Companions keep talking to one another while camp duties continue. This is
+## independent of player interaction and does not require a dedicated social
+## assignment: a worker can pause, exchange a few words, then resume their task.
+func _process_social_exchanges(delta: float) -> void:
+	if simulation == null or simulation.camp_simulation.phase != "evening":
+		return
+	_social_accumulator += delta
+	if _social_accumulator < 22.0:
+		return
+	_social_accumulator = 0.0
+	var companions: Array[String] = []
+	for value in simulation.camp_simulation.party_ids:
+		var character_id := String(value)
+		if character_id == simulation.player_character_id:
+			continue
+		if not CAMP_DIALOGUE_SERVICE.supported_companion_ids().has(CAMP_DIALOGUE_SERVICE.canonical_id(character_id)):
+			continue
+		var state := simulation.get_character(character_id)
+		if state != null and state.alive and state.can_act():
+			companions.append(character_id)
+	if companions.size() < 2:
+		return
+	var pairs: Array[Array] = []
+	for first_index in range(companions.size()):
+		for second_index in range(first_index + 1, companions.size()):
+			pairs.append([companions[first_index], companions[second_index]])
+	if pairs.is_empty():
+		return
+	var pair: Array = pairs[posmod(_exchange_index, pairs.size())]
+	var first_id := String(pair[0])
+	var second_id := String(pair[1])
+	var first_state := simulation.get_character(first_id)
+	var second_state := simulation.get_character(second_id)
+	if first_state == null or second_state == null:
+		return
+	var exchange := CAMP_DIALOGUE_SERVICE.build_exchange(
+		first_id,
+		second_id,
+		_exchange_index,
+		simulation.companion_bonds,
+		first_state.display_name,
+		second_state.display_name
+	)
+	if exchange.is_empty():
+		return
+	var event_key := "camp_banter:%s:%d:%d" % [
+		String(simulation.camp_simulation.site.get("hex", Vector2i.ZERO)),
+		int(simulation.clock.world_seconds),
+		_exchange_index
+	]
+	CAMP_DIALOGUE_SERVICE.record_exchange(
+		simulation.companion_bonds,
+		simulation.camp_simulation,
+		exchange,
+		event_key
+	)
+	_play_social_animation(first_id)
+	_play_social_animation(second_id)
+	_exchange_index += 1
+	companion_exchange.emit(exchange)
+
+
+func _play_social_animation(character_id: String) -> void:
+	if not _actor_lookup.is_valid():
+		return
+	var actor: Variant = _actor_lookup.call(character_id)
+	if actor == null or not is_instance_valid(actor) or not actor.has_method("play_camp_activity"):
+		return
+	actor.call("play_camp_activity", "socialise")
