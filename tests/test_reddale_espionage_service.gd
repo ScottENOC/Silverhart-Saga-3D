@@ -80,5 +80,5 @@ func _test_double_cross_decline_and_guard_failure() -> void:
 	var detected := SERVICE.check_guard_detection(journal, "spy_on_guild", Vector2i(146, 34))
 	_check(bool(detected.get("detected", false)), "Entering the guard's adjacent hex triggers mission failure")
 	_check(String(journal.quest_state("spy_on_guild").get("status", "")) == "failed", "Caught mission is marked failed")
-	_check(is_equal_approx(journal.faction_standing("ironbond_company"), -20.0), "Detection applies the source -20 faction penalty")
-	_check(is_equal_approx(float(journal.faction_knowledge.get("ironbond_company", 0.0)), 15.0), "Detection increases faction knowledge")
+	_check(is_equal_approx(journal.faction_standing("ironbond_company"), -27.9), "Declining the double-agent offer then being caught applies the knowledge-dampened failure penalty")
+	_check(is_equal_approx(float(journal.faction_knowledge.get("ironbond_company", 0.0)), 30.0), "Declining and detection each increase faction knowledge")
