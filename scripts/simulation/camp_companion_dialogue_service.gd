@@ -6,6 +6,79 @@ extends RefCounted
 
 const TOPICS: Array[String] = ["road", "work", "home", "danger"]
 
+
+const CAMPAIGN_RESOLUTION_STANCES := {
+	"aldric_weight_of_command": {
+		"shared_command": "shared_responsibility",
+		"take_every_burden": "self_reliance",
+		"refuse_command": "shared_responsibility"
+	},
+	"mirabel_borrowed_voice": {
+		"limited_testimony": "restraint",
+		"full_reconstruction": "bold_inquiry",
+		"refuse_method": "restraint"
+	},
+	"mirabel_place_for_dangerous_books": {
+		"accept_curatorship": "institutional_trust",
+		"shared_archive": "shared_responsibility",
+		"keep_wandering": "independence"
+	},
+	"fenn_fire_in_understory": {
+		"mosaic_burn": "managed_stewardship",
+		"obey_rule": "tradition",
+		"hand_clear": "restraint"
+	},
+	"fenn_groves_answer": {
+		"return_traditional": "tradition",
+		"changed_charter": "adaptation",
+		"remain_outside": "independence"
+	},
+	"reyna_shared_watch": {
+		"joint_watch": "shared_responsibility",
+		"reyna_centre": "self_reliance",
+		"private_network": "independence"
+	},
+	"reyna_rangers_writ": {
+		"take_writ": "institutional_trust",
+		"distributed_charter": "shared_responsibility",
+		"reject_writ": "independence"
+	},
+	"alden_missing_sixth": {
+		"return_and_name": "personal_dignity",
+		"pursue_network": "pragmatism",
+		"close_record": "restraint"
+	},
+	"alden_rule_for_living": {
+		"take_office": "institutional_trust",
+		"rotating_ministry": "shared_responsibility",
+		"return_contemplation": "independence"
+	}
+}
+
+const CHARACTER_STANCES := {
+	"ser_aldric_thorne": {"shared_responsibility": 2, "tradition": 1, "institutional_trust": 1, "self_reliance": -1, "restraint": 1},
+	"nix_sharpear": {"independence": 2, "self_reliance": 1, "pragmatism": 2, "institutional_trust": -2, "shared_responsibility": -1},
+	"warlord_grukk_ironhide": {"self_reliance": 2, "tradition": 2, "shared_responsibility": -2, "institutional_trust": -2, "restraint": -1},
+	"reyna_fletcher": {"shared_responsibility": 2, "independence": 1, "institutional_trust": -1, "personal_dignity": 1, "restraint": 1},
+	"mirabel_quill": {"restraint": 2, "bold_inquiry": 1, "adaptation": 2, "tradition": -1, "institutional_trust": 0},
+	"fenn_oakheart": {"managed_stewardship": 2, "tradition": 1, "adaptation": 2, "self_reliance": -1, "restraint": 1},
+	"brother_alden": {"personal_dignity": 2, "restraint": 2, "shared_responsibility": 1, "pragmatism": 1, "institutional_trust": 1},
+	"snik_fangtooth": {"independence": 2, "pragmatism": 1, "self_reliance": 1, "institutional_trust": -2, "tradition": -1},
+	"wren_talbot": {"shared_responsibility": 1, "personal_dignity": 2, "restraint": 1, "institutional_trust": 0}
+}
+
+const CAMPAIGN_MEMORY_OPENERS := {
+	"ser_aldric_thorne": "I have been thinking about %s. %s.",
+	"nix_sharpear": "You know what I heard about %s? %s.",
+	"warlord_grukk_ironhide": "That business with %s was worth remembering. %s.",
+	"reyna_fletcher": "Something about %s has stayed with me. %s.",
+	"mirabel_quill": "I keep turning %s over in my mind. %s.",
+	"fenn_oakheart": "The lesson I took from %s was this: %s.",
+	"brother_alden": "There is something about %s I have not finished considering. %s.",
+	"snik_fangtooth": "So, about %s. %s.",
+	"wren_talbot": "I keep coming back to %s. %s."
+}
+
 const PROFILES := {
 	"ser_aldric_thorne": {
 		"openers": {
@@ -181,3 +254,117 @@ static func record_exchange(
 		"first_to_second": first_result,
 		"second_to_first": second_result
 	}
+
+
+## Build a conversation from an actual completed companion chapter. The quest
+## journal remains the source of truth: no dialogue is generated for an outcome
+## until its completion and selected resolution are recorded there.
+static func build_campaign_memory_exchange(
+	first_id: String,
+	second_id: String,
+	sequence: int,
+	bonds: CompanionBondState,
+	quest_chain: CompanionQuestChainState,
+	journal: CampaignJournal,
+	first_name: String = "",
+	second_name: String = ""
+) -> Dictionary:
+	if first_id.is_empty() or second_id.is_empty() or first_id == second_id:
+		return {}
+	if quest_chain == null or journal == null:
+		return {}
+	var first_key := canonical_id(first_id)
+	var second_key := canonical_id(second_id)
+	var latest: Dictionary = {}
+	for chapter_value in quest_chain.all_chapters():
+		var chapter: Dictionary = chapter_value
+		var owner_id := String(chapter.get("companion_id", ""))
+		if owner_id != first_key and owner_id != second_key:
+			continue
+		var chapter_id := String(chapter.get("id", ""))
+		var state := journal.quest_state(chapter_id)
+		if String(state.get("status", "")) != "completed":
+			continue
+		var completed_at := float(state.get("completed_at", state.get("completedAt", 0.0)))
+		if latest.is_empty() or completed_at > float(latest.get("completed_at", -1.0)):
+			latest = {
+				"chapter": chapter,
+				"state": state,
+				"completed_at": completed_at,
+				"owner_id": owner_id,
+				"chapter_id": chapter_id
+			}
+	if latest.is_empty():
+		return {}
+	var chapter: Dictionary = latest.chapter
+	var state: Dictionary = latest.state
+	var chapter_id := String(latest.chapter_id)
+	var resolution_id := String(state.get("effective_resolution", state.get("resolution", "")))
+	var resolutions: Dictionary = chapter.get("resolutions", {})
+	var outcome: Dictionary = resolutions.get(resolution_id, {})
+	if outcome.is_empty():
+		return {}
+	var owner_id := String(latest.owner_id)
+	var partner_id := second_id if owner_id == first_key else first_id
+	var owner_name := first_name if owner_id == first_id else second_name
+	var partner_name := second_name if partner_id == second_id else first_name
+	var partner_key := canonical_id(partner_id)
+	var title := String(chapter.get("title", chapter_id))
+	var reason := String(outcome.get("reason", state.get("completion_reason", title)))
+	var opener_template := String(CAMPAIGN_MEMORY_OPENERS.get(owner_id, "I have been thinking about %s. %s."))
+	var opener := opener_template % [title, reason]
+	var stance := String(CAMPAIGN_RESOLUTION_STANCES.get(chapter_id, {}).get(resolution_id, ""))
+	var stance_score := float(CHARACTER_STANCES.get(partner_key, {}).get(stance, 0.0)) if not stance.is_empty() else 0.0
+	var owner_to_partner := bonds.snapshot(owner_id, partner_id) if bonds != null else {}
+	var partner_to_owner := bonds.snapshot(partner_id, owner_id) if bonds != null else {}
+	var trust := float(partner_to_owner.get("trust", 0.0))
+	var friendship := float(partner_to_owner.get("friendship", 0.0))
+	var reaction := ""
+	var agreement := "neutral"
+	if stance_score >= 1.0:
+		agreement = "support"
+		reaction = "I think I would have made much the same choice. %s" % ("It says something good about the way you handled it." if trust >= 10.0 else "I can see the sense in it.")
+	elif stance_score <= -1.0:
+		agreement = "disagree"
+		if trust >= 10.0 or friendship >= 15.0:
+			reaction = "I trust you enough to say I would have chosen differently. %s" % ("I hope you will hear me out, as I would hear you." if trust >= 20.0 else "That does not mean I have stopped standing beside you.")
+		else:
+			reaction = "I understand why you chose it. I am not sure I agree, and I am not going to pretend otherwise."
+	else:
+		reaction = "That sounds like it asked more of you than the decision itself. What do you make of it now?"
+	var label := String(outcome.get("label", resolution_id))
+	var response := "%s, I heard you chose: %s %s" % [owner_name if not owner_name.is_empty() else "You", label, reaction]
+	return {
+		"kind": "campaign_memory",
+		"topic": "campaign_memory",
+		"first_id": owner_id,
+		"second_id": partner_id,
+		"campaign_memory": {
+			"chapter_id": chapter_id,
+			"completed_at": float(latest.completed_at),
+			"resolution_id": resolution_id,
+			"stance": stance,
+			"agreement": agreement,
+			"title": title,
+			"reason": reason
+		},
+		"relationship_before": {
+			"first_to_second": owner_to_partner,
+			"second_to_first": partner_to_owner
+		},
+		"lines": [
+			{"character_id": owner_id, "speaker": owner_name, "text": opener},
+			{"character_id": partner_id, "speaker": partner_name, "text": response}
+		]
+	}
+
+
+static func campaign_memory_event_key(exchange: Dictionary) -> String:
+	var memory: Dictionary = exchange.get("campaign_memory", {})
+	if memory.is_empty():
+		return ""
+	return "camp_memory:%s:%s:%s" % [
+		String(memory.get("chapter_id", "")),
+		String(memory.get("resolution_id", "")),
+		str(int(float(memory.get("completed_at", 0.0))))
+	]
