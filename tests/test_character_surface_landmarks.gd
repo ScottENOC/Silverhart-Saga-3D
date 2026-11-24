@@ -104,6 +104,17 @@ func _test_body(asset_path: String) -> void:
     assert(regions.configure(actor_root, body_root), "Surface-region setup failed: " + regions.get_configuration_error())
     var evaluated := landmark.evaluate(regions)
     assert(not evaluated.is_empty(), "Surface landmark failed to evaluate for " + asset_path)
+    # The kiss solver uses these three independent points rather than a head-bone
+    # midpoint. This synthetic contract verifies ID support and surface evaluation;
+    # real upper/lower lip points must still be authored on each native face.
+    for lip_id in ["upper_lip", "lower_lip", "mouth_centre"]:
+        var lip_landmark := landmark.duplicate() as CharacterSurfaceLandmark
+        lip_landmark.landmark_id = lip_id
+        assert(lip_landmark.validate_for_mesh(target_mesh, body_root, asset_path).is_empty(),
+            "Lip landmark ID rejected: " + lip_id)
+        var lip_sample := lip_landmark.evaluate(regions)
+        assert(not lip_sample.is_empty() and lip_sample["position"].is_finite(),
+            "Lip landmark surface evaluation failed: " + lip_id)
     for key in ["position", "normal", "tangent", "binormal"]:
         var vector: Vector3 = evaluated[key]
         assert(vector.is_finite(), "Non-finite landmark " + key)

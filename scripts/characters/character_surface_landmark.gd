@@ -4,6 +4,7 @@ extends Resource
 ## Unlike a rig landmark, this resolves to the animated skin surface.
 
 const VALID_LANDMARK_IDS := [
+    "upper_lip", "lower_lip", "mouth_centre",
     "sternum", "clavicle_left", "clavicle_right",
     "breast_apex_left", "breast_apex_right", "nipple_left", "nipple_right",
     "underbust_left", "underbust_right", "waist_front", "waist_left",
