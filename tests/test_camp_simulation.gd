@@ -89,7 +89,7 @@ func _test_night_resolution_and_save_load() -> void:
 	var restored := CampSimulation.new()
 	_check(restored.from_dict(saved), "Camp state should restore from a save snapshot")
 	_check(restored.to_dict() == saved, "Camp assignments and conditions should survive save/load")
-	var result := restored.resolve_night()
+	var result := restored.skip_to_morning()
 	_check(bool(result.ok))
 	_check(float(result.summary.ambush_chance) >= 0.0 and float(result.summary.ambush_chance) <= 0.45)
 	_check(float(result.summary.characters.player.comfort) > 0.0)
