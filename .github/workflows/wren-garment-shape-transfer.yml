@@ -2,6 +2,14 @@ name: Fit garment shape keys to Wren body shapes
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [feature/wren-standard-briefs-fit]
+    paths:
+      - ".github/workflows/wren-garment-shape-transfer.yml"
+      - "tools/blender/garment_fit/transfer_body_shapes.py"
+      - "tools/blender/garment_fit/fit_glb.py"
+      - "tools/blender/garment_fit/solver_core.py"
+      - "tools/ara/assemble_modular_glb.py"
   push:
     branches: [feature/makehuman-garment-shape-transfer-20261125]
     paths:
