@@ -1,6 +1,7 @@
 extends SceneTree
 
 const SERVICE := preload("res://scripts/simulation/camp_companion_dialogue_service.gd")
+const CAMPAIGN_RUNTIME_STORE := preload("res://scripts/simulation/companion_campaign_runtime_store.gd")
 
 var _failures := 0
 var _exchange_count := 0
@@ -105,6 +106,35 @@ func _test_autonomous_director_exchange() -> void:
 	world.register_character(player)
 	world.register_character(aldric)
 	world.register_character(nix)
+
+	# Complete a real authored companion chapter so the ambient conversation
+	# must draw its subject and decision from campaign state, not a test string.
+	var quest_chain := CAMPAIGN_RUNTIME_STORE.quest_chain_state_for(world)
+	quest_chain.register_quest_definitions(world.campaign_journal)
+	world.campaign_journal.quests["aldric_measure_of_oath"] = {
+		"status": "completed",
+		"completed_at": 100.0
+	}
+	var relationship_state := CAMPAIGN_RUNTIME_STORE.relationship_state_for(world)
+	var chapter_start := quest_chain.start(
+		"aldric_weight_of_command",
+		world.campaign_journal,
+		world.get_party_member_ids(),
+		relationship_state,
+		100.0
+	)
+	_check(bool(chapter_start.get("ok", false)), "Aldric's next campaign chapter should start when its prerequisite is complete")
+	var consultation := quest_chain.consult("aldric_weight_of_command", world.campaign_journal, "adelram", 110.0)
+	_check(bool(consultation.get("ok", false)), "The supporting character should be consulted before resolving the chapter")
+	var resolution := quest_chain.resolve(
+		"aldric_weight_of_command",
+		"shared_command",
+		world.campaign_journal,
+		relationship_state,
+		120.0
+	)
+	_check(bool(resolution.get("ok", false)), "The authored chapter resolution should be recorded in the campaign journal")
+
 	var started := world.begin_camp({"hex": Vector2i.ZERO, "walkable": true}, {})
 	_check(bool(started.get("ok", false)), "The integration test should establish an in-world camp")
 
@@ -121,6 +151,11 @@ func _test_autonomous_director_exchange() -> void:
 	director.process_activity_movement(22.1)
 
 	_check(_exchange_count == 1, "The camp director should autonomously start a companion-to-companion exchange")
+	_check(String(_last_exchange.get("kind", "")) == "campaign_memory", "A completed companion chapter should surface as ambient party dialogue")
+	var memory: Dictionary = _last_exchange.get("campaign_memory", {})
+	_check(String(memory.get("chapter_id", "")) == "aldric_weight_of_command", "The dialogue should identify the actual completed chapter")
+	_check(String(memory.get("resolution_id", "")) == "shared_command", "The dialogue should remember the recorded resolution")
+	_check(String(memory.get("agreement", "")) == "disagree", "Nix should be allowed to disagree with Aldric's shared-command decision")
 	var lines: Array = _last_exchange.get("lines", [])
 	_check(lines.size() == 2, "Both companions should speak during the exchange")
 	_check(not ["player"].has(String(lines[0].get("character_id", ""))))
