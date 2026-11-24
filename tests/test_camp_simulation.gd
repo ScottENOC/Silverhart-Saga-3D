@@ -127,6 +127,7 @@ func _test_world_simulation_integration() -> void:
 	_check(float(world.camp_simulation.condition_for("wren").get("social_satisfaction", 0.0)) > 0.0, "Social contact should contribute to later camp comfort without requiring a socialise assignment")
 	world.advance_real_time(2.0)
 	_check(is_equal_approx(world.clock.world_seconds, 10.0), "Camp evening should use the ordinary 5x exploration clock")
+	player.time_points = 0.0
 	world.companion_bonds.set_relationship("wren", "player", {"friendship": 30})
 	var saved := world.to_dict()
 	var restored := WorldSimulation.new()
@@ -136,3 +137,4 @@ func _test_world_simulation_integration() -> void:
 	var morning := restored.skip_camp_to_morning(6.0)
 	_check(bool(morning.ok), "The world simulation should resolve the camp night")
 	_check(is_equal_approx(restored.clock.world_seconds, 10.0 + 6.0 * WorldClock.SECONDS_PER_HOUR), "Sleeping should skip directly to morning and advance the authoritative clock by the sleep duration")
+	_check(restored.get_character("player").time_points >= 149.0, "Instant sleep should bulk-apply overnight time-point recovery without simulating every 0.4-second tick")
