@@ -2279,13 +2279,13 @@
           "kind": "house",
           "archetype": "cottage",
           "center": {
-            "q": 23,
+            "q": 63,
             "r": -546
           },
           "half_q": 2,
           "half_r": 2,
           "door": {
-            "q": 23,
+            "q": 63,
             "r": -544
           },
           "door_side": "south",
@@ -2300,13 +2300,13 @@
           "kind": "house",
           "archetype": "cottage",
           "center": {
-            "q": 48,
+            "q": 88,
             "r": -546
           },
           "half_q": 2,
           "half_r": 2,
           "door": {
-            "q": 48,
+            "q": 88,
             "r": -544
           },
           "door_side": "south",
@@ -2321,13 +2321,13 @@
           "kind": "house",
           "archetype": "cottage",
           "center": {
-            "q": -32,
+            "q": 20,
             "r": -476
           },
           "half_q": 2,
           "half_r": 2,
           "door": {
-            "q": -30,
+            "q": 22,
             "r": -476
           },
           "door_side": "east",
@@ -15901,6 +15901,91 @@
                 "x": 0,
                 "y": 3.9,
                 "z": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "silverhart_commons_market_table",
+          "feature_type": "landmark_props",
+          "anchor": {
+            "q": 8,
+            "r": -521
+          },
+          "parts": [
+            {
+              "name": "TableTop",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 1.35,
+                "y": 0.16,
+                "z": 0.95
+              },
+              "position": {
+                "x": 0,
+                "y": 0.88,
+                "z": 0
+              }
+            },
+            {
+              "name": "LegNorthWest",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": -0.52,
+                "y": 0.42,
+                "z": -0.34
+              }
+            },
+            {
+              "name": "LegNorthEast",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0.52,
+                "y": 0.42,
+                "z": -0.34
+              }
+            },
+            {
+              "name": "LegSouthWest",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": -0.52,
+                "y": 0.42,
+                "z": 0.34
+              }
+            },
+            {
+              "name": "LegSouthEast",
+              "type": "box",
+              "material": "timber",
+              "size": {
+                "x": 0.12,
+                "y": 0.82,
+                "z": 0.12
+              },
+              "position": {
+                "x": 0.52,
+                "y": 0.42,
+                "z": 0.34
               }
             }
           ]
