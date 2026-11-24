@@ -2628,6 +2628,15 @@
           "corridors": [],
           "tile_objects": [
             {
+              "id": "abandoned_house_west_door",
+              "type": "door_open",
+              "position": {
+                "q": 11,
+                "r": -176
+              },
+              "light_radius": 0
+            },
+            {
               "id": "abandoned_house_journal",
               "type": "journal",
               "position": {
