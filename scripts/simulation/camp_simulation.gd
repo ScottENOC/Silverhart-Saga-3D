@@ -164,26 +164,34 @@ func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = nul
 	sleeping_arrangements.clear()
 	var remaining := party_ids.duplicate()
 	var tent_limit := mini(maxi(0, tent_count), ceili(float(remaining.size()) / float(TENT_MAX_CAPACITY)))
+	var bags_remaining := int(resources.sleeping_bags)
 	while tent_limit > 0 and not remaining.is_empty():
 		var group: Array[String] = [String(remaining.pop_front())]
-		while group.size() < TENT_COMFORTABLE_CAPACITY and not remaining.is_empty():
+		var target_size := mini(TENT_MAX_CAPACITY, maxi(TENT_COMFORTABLE_CAPACITY, remaining.size() + 1 - (tent_limit - 1) * TENT_COMFORTABLE_CAPACITY))
+		while group.size() < target_size and not remaining.is_empty():
 			var best_index := _best_sleeping_candidate(remaining, group, bonds)
 			group.append(String(remaining.pop_at(best_index)))
-		# Use spare tent capacity for a fourth/fifth person only when necessary.
-		if tent_limit == 1:
-			while group.size() < TENT_MAX_CAPACITY and not remaining.is_empty():
-				var best_index := _best_sleeping_candidate(remaining, group, bonds)
-				group.append(String(remaining.pop_at(best_index)))
+		var bag_users: Array[String] = []
+		for member_id in group:
+			if bags_remaining <= 0:
+				break
+			bag_users.append(member_id)
+			bags_remaining -= 1
 		sleeping_arrangements.append({
 			"tent_index": sleeping_arrangements.size(),
 			"character_ids": group,
+			"sleeping_bag_character_ids": bag_users,
 			"comfort_penalty": maxi(0, group.size() - TENT_COMFORTABLE_CAPACITY) * 10
 		})
 		tent_limit -= 1
 	for character_id in remaining:
+		var has_bag := bags_remaining > 0
+		if has_bag:
+			bags_remaining -= 1
 		sleeping_arrangements.append({
 			"tent_index": -1, "character_ids": [character_id],
-			"comfort_penalty": 0, "sleeping_bag": resources.sleeping_bags > 0
+			"sleeping_bag_character_ids": [character_id] if has_bag else [],
+			"comfort_penalty": 0
 		})
 	return sleeping_arrangements.duplicate(true)
 
@@ -243,9 +251,8 @@ func resolve_night(hours: float = DEFAULT_NIGHT_HOURS) -> Dictionary:
 	for arrangement in sleeping_arrangements:
 		if int(arrangement.get("tent_index", -1)) >= 0:
 			tented_count += (arrangement.get("character_ids", []) as Array).size()
-		if bool(arrangement.get("sleeping_bag", false)):
-			for bagged_id in arrangement.get("character_ids", []):
-				bagged_characters[String(bagged_id)] = true
+		for bagged_id in arrangement.get("sleeping_bag_character_ids", []):
+			bagged_characters[String(bagged_id)] = true
 	var results: Dictionary = {}
 	for character_id in party_ids:
 		var condition: Dictionary = conditions[character_id]
