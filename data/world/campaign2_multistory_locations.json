@@ -31,14 +31,14 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "hollowmere_chapel_east_door",
-                "type": "door_open",
-                "position": {
-                  "q": -11,
-                  "r": 0
-                },
-                "light_radius": 0
-              }
+              "id": "hollowmere_chapel_east_door",
+              "type": "door_open",
+              "position": {
+                "q": -11,
+                "r": 0
+              },
+              "light_radius": 0
+            }
           ],
           "actors": [],
           "creatures": []
@@ -78,22 +78,22 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "hollowmere_general_store_north_door",
-                "type": "door_open",
-                "position": {
-                  "q": 0,
-                  "r": 15
-                },
-                "light_radius": 0
+              "id": "hollowmere_general_store_north_door",
+              "type": "door_open",
+              "position": {
+                "q": 0,
+                "r": 15
               },
+              "light_radius": 0
+            },
             {
-                "id": "hollowmere_general_store_counter",
-                "type": "table",
-                "position": {
-                  "q": 0,
-                  "r": 17
-                }
+              "id": "hollowmere_general_store_counter",
+              "type": "table",
+              "position": {
+                "q": 0,
+                "r": 17
               }
+            }
           ],
           "actors": [],
           "creatures": []
@@ -134,14 +134,14 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "hollowmere_house_south_door",
-                "type": "door_open",
-                "position": {
-                  "q": 0,
-                  "r": -10
-                },
-                "light_radius": 0
-              }
+              "id": "hollowmere_house_south_door",
+              "type": "door_open",
+              "position": {
+                "q": 0,
+                "r": -10
+              },
+              "light_radius": 0
+            }
           ],
           "actors": [],
           "creatures": []
@@ -182,14 +182,14 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "hollowmere_store_west_door",
-                "type": "door_open",
-                "position": {
-                  "q": 10,
-                  "r": 0
-                },
-                "light_radius": 0
-              }
+              "id": "hollowmere_store_west_door",
+              "type": "door_open",
+              "position": {
+                "q": 10,
+                "r": 0
+              },
+              "light_radius": 0
+            }
           ],
           "actors": [],
           "creatures": []
@@ -230,56 +230,56 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "hollowmere_tavern_south_door",
-                "type": "door_closed",
-                "position": {
-                  "q": 0,
-                  "r": 4
-                },
-                "light_radius": 0,
-                "locked": true
+              "id": "hollowmere_tavern_south_door",
+              "type": "door_closed",
+              "position": {
+                "q": 0,
+                "r": 4
               },
+              "light_radius": 0,
+              "locked": true
+            },
             {
-                "id": "hollowmere_tavern_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": -4,
-                  "r": -2
-                },
-                "light_radius": 6
+              "id": "hollowmere_tavern_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": -4,
+                "r": -2
               },
+              "light_radius": 6
+            },
             {
-                "id": "hollowmere_tavern_table_east",
-                "type": "table",
-                "position": {
-                  "q": 1,
-                  "r": 1
-                }
-              },
-            {
-                "id": "hollowmere_tavern_bench_east",
-                "type": "bench",
-                "position": {
-                  "q": 1,
-                  "r": 2
-                }
-              },
-            {
-                "id": "hollowmere_tavern_table_west",
-                "type": "table",
-                "position": {
-                  "q": -2,
-                  "r": 0
-                }
-              },
-            {
-                "id": "hollowmere_tavern_bench_west",
-                "type": "bench",
-                "position": {
-                  "q": -2,
-                  "r": 1
-                }
+              "id": "hollowmere_tavern_table_east",
+              "type": "table",
+              "position": {
+                "q": 1,
+                "r": 1
               }
+            },
+            {
+              "id": "hollowmere_tavern_bench_east",
+              "type": "bench",
+              "position": {
+                "q": 1,
+                "r": 2
+              }
+            },
+            {
+              "id": "hollowmere_tavern_table_west",
+              "type": "table",
+              "position": {
+                "q": -2,
+                "r": 0
+              }
+            },
+            {
+              "id": "hollowmere_tavern_bench_west",
+              "type": "bench",
+              "position": {
+                "q": -2,
+                "r": 1
+              }
+            }
           ],
           "actors": [],
           "creatures": []
@@ -320,14 +320,14 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "mira_house_west_door",
-                "type": "door_open",
-                "position": {
-                  "q": 10,
-                  "r": 9
-                },
-                "light_radius": 0
-              }
+              "id": "mira_house_west_door",
+              "type": "door_open",
+              "position": {
+                "q": 10,
+                "r": 9
+              },
+              "light_radius": 0
+            }
           ],
           "actors": [],
           "creatures": []
@@ -368,14 +368,14 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "oskar_house_east_door",
-                "type": "door_open",
-                "position": {
-                  "q": -4,
-                  "r": 9
-                },
-                "light_radius": 0
-              }
+              "id": "oskar_house_east_door",
+              "type": "door_open",
+              "position": {
+                "q": -4,
+                "r": 9
+              },
+              "light_radius": 0
+            }
           ],
           "actors": [],
           "creatures": []
@@ -1419,23 +1419,23 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_guardhouse_door",
-                "type": "door_open",
-                "position": {
-                  "q": 137,
-                  "r": 24
-                },
-                "light_radius": 0
+              "id": "reddale_guardhouse_door",
+              "type": "door_open",
+              "position": {
+                "q": 137,
+                "r": 24
               },
+              "light_radius": 0
+            },
             {
-                "id": "guardhouse_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": 134,
-                  "r": 24
-                },
-                "light_radius": 6
-              }
+              "id": "guardhouse_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 134,
+                "r": 24
+              },
+              "light_radius": 6
+            }
           ],
           "actors": [],
           "creatures": []
@@ -1476,39 +1476,39 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_guildhouse_door",
-                "type": "door_open",
-                "position": {
-                  "q": 143,
-                  "r": 34
-                },
-                "light_radius": 0
+              "id": "reddale_guildhouse_door",
+              "type": "door_open",
+              "position": {
+                "q": 143,
+                "r": 34
               },
+              "light_radius": 0
+            },
             {
-                "id": "guildhouse_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": 146,
-                  "r": 34
-                },
-                "light_radius": 6
+              "id": "guildhouse_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 146,
+                "r": 34
               },
+              "light_radius": 6
+            },
             {
-                "id": "guildhouse_table",
-                "type": "table",
-                "position": {
-                  "q": 146,
-                  "r": 33
-                }
-              },
-            {
-                "id": "guildhouse_ledgers",
-                "type": "evidence",
-                "position": {
-                  "q": 147,
-                  "r": 33
-                }
+              "id": "guildhouse_table",
+              "type": "table",
+              "position": {
+                "q": 146,
+                "r": 33
               }
+            },
+            {
+              "id": "guildhouse_ledgers",
+              "type": "evidence",
+              "position": {
+                "q": 147,
+                "r": 33
+              }
+            }
           ],
           "actors": [],
           "creatures": []
@@ -1549,23 +1549,23 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_inn_door",
-                "type": "door_open",
-                "position": {
-                  "q": 138,
-                  "r": 28
-                },
-                "light_radius": 0
+              "id": "reddale_inn_door",
+              "type": "door_open",
+              "position": {
+                "q": 138,
+                "r": 28
               },
+              "light_radius": 0
+            },
             {
-                "id": "inn_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": 138,
-                  "r": 30
-                },
-                "light_radius": 6
-              }
+              "id": "inn_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 138,
+                "r": 30
+              },
+              "light_radius": 6
+            }
           ],
           "actors": [],
           "creatures": []
@@ -1606,39 +1606,39 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_manor_door",
-                "type": "door_open",
-                "position": {
-                  "q": 143,
-                  "r": 14
-                },
-                "light_radius": 0
+              "id": "reddale_manor_door",
+              "type": "door_open",
+              "position": {
+                "q": 143,
+                "r": 14
               },
+              "light_radius": 0
+            },
             {
-                "id": "manor_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": 146,
-                  "r": 14
-                },
-                "light_radius": 6
+              "id": "manor_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 146,
+                "r": 14
               },
+              "light_radius": 6
+            },
             {
-                "id": "manor_table",
-                "type": "table",
-                "position": {
-                  "q": 146,
-                  "r": 13
-                }
-              },
-            {
-                "id": "baron_tariff_records",
-                "type": "evidence",
-                "position": {
-                  "q": 147,
-                  "r": 13
-                }
+              "id": "manor_table",
+              "type": "table",
+              "position": {
+                "q": 146,
+                "r": 13
               }
+            },
+            {
+              "id": "baron_tariff_records",
+              "type": "evidence",
+              "position": {
+                "q": 147,
+                "r": 13
+              }
+            }
           ],
           "actors": [],
           "creatures": []
@@ -1679,14 +1679,14 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_reeve_house_door",
-                "type": "door_open",
-                "position": {
-                  "q": 138,
-                  "r": 20
-                },
-                "light_radius": 0
-              }
+              "id": "reddale_reeve_house_door",
+              "type": "door_open",
+              "position": {
+                "q": 138,
+                "r": 20
+              },
+              "light_radius": 0
+            }
           ],
           "actors": [],
           "creatures": []
@@ -1727,31 +1727,31 @@
           "corridors": [],
           "tile_objects": [
             {
-                "id": "reddale_smithy_door",
-                "type": "door_open",
-                "position": {
-                  "q": 137,
-                  "r": 32
-                },
-                "light_radius": 0
+              "id": "reddale_smithy_door",
+              "type": "door_open",
+              "position": {
+                "q": 137,
+                "r": 32
               },
+              "light_radius": 0
+            },
             {
-                "id": "smithy_fireplace",
-                "type": "fireplace",
-                "position": {
-                  "q": 134,
-                  "r": 32
-                },
-                "light_radius": 6
+              "id": "smithy_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 134,
+                "r": 32
               },
+              "light_radius": 6
+            },
             {
-                "id": "smithy_bed",
-                "type": "bed",
-                "position": {
-                  "q": 133,
-                  "r": 32
-                }
+              "id": "smithy_bed",
+              "type": "bed",
+              "position": {
+                "q": 133,
+                "r": 32
               }
+            }
           ],
           "actors": [],
           "creatures": []
@@ -3228,7 +3228,10 @@
               "id": "sunken_cave_ledger",
               "type": "journal",
               "read_id": "sunken_cave_ledger",
-              "position": {"q": -274, "r": 39},
+              "position": {
+                "q": -274,
+                "r": 39
+              },
               "light_radius": 0
             }
           ],
@@ -3257,7 +3260,10 @@
               "type": "evidence",
               "evidence_key": "guild_cache_prize",
               "item_id": "guild_cache_prize",
-              "position": {"q": -273, "r": 40},
+              "position": {
+                "q": -273,
+                "r": 40
+              },
               "light_radius": 0
             }
           ],
@@ -3285,7 +3291,10 @@
               "id": "wilderness_tunnel_junction",
               "type": "tunnel_junction",
               "node_id": "wilderness",
-              "position": {"q": -274, "r": 40},
+              "position": {
+                "q": -274,
+                "r": 40
+              },
               "light_radius": 0
             }
           ],
@@ -3748,16 +3757,16 @@
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace tunnelPalaceHex and tunnelPalaceBuilding",
       "floor_generation": "Source-authored one-cell cave floor -9 stub for the palace endpoint of the Thieves' Guild tunnel network",
       "floors": [
-      {
-        "floor": 0,
-        "name": "Palace surface passage anchor (host location surface)",
-        "terrain": "stone_floor",
-        "rooms": [],
-        "corridors": [],
-        "tile_objects": [],
-        "actors": [],
-        "creatures": []
-      },
+        {
+          "floor": 0,
+          "name": "Palace surface passage anchor (host location surface)",
+          "terrain": "stone_floor",
+          "rooms": [],
+          "corridors": [],
+          "tile_objects": [],
+          "actors": [],
+          "creatures": []
+        },
         {
           "floor": -9,
           "name": "Palace Tunnel Junction",
@@ -3806,16 +3815,16 @@
       "source": "Hex-crpg/campaign2World.js:buildSilverhartPalace tunnelCityHex and tunnelCityBuilding",
       "floor_generation": "Source-authored one-cell cave floor -9 stub for the city endpoint of the Thieves' Guild tunnel network",
       "floors": [
-      {
-        "floor": 0,
-        "name": "City surface passage anchor (host location surface)",
-        "terrain": "wood_floor",
-        "rooms": [],
-        "corridors": [],
-        "tile_objects": [],
-        "actors": [],
-        "creatures": []
-      },
+        {
+          "floor": 0,
+          "name": "City surface passage anchor (host location surface)",
+          "terrain": "wood_floor",
+          "rooms": [],
+          "corridors": [],
+          "tile_objects": [],
+          "actors": [],
+          "creatures": []
+        },
         {
           "floor": -9,
           "name": "City Tunnel Junction",
@@ -3852,6 +3861,602 @@
       "source_notes": [
         "buildSilverhartPalace places a hidden secret_passage at (-20, -489) in the general goods store and carves a separate one-cell Cave Floor stub at floor -9.",
         "The source marks the underground endpoint as a tunnel_junction with nodeId 'city'; travel-menu routing and passage discovery remain campaign-owned."
+      ]
+    },
+    {
+      "id": "northwatch_keep",
+      "name": "Northwatch Fort Keep",
+      "anchor": {
+        "q": 268,
+        "r": -21
+      },
+      "source": "Hex-crpg/campaign2World.js:buildNorthwatchFort -> carveHexKeep(center 268,-21, radius 4); exact source interiorRegions[68] floor, wall and six corner-gap geometry",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Northwatch Keep",
+          "terrain": "wood_floor",
+          "rooms": [],
+          "corridors": [],
+          "floor_hexes": [
+            {
+              "q": 263,
+              "r": -21
+            },
+            {
+              "q": 263,
+              "r": -16
+            },
+            {
+              "q": 264,
+              "r": -21
+            },
+            {
+              "q": 264,
+              "r": -20
+            },
+            {
+              "q": 264,
+              "r": -19
+            },
+            {
+              "q": 264,
+              "r": -18
+            },
+            {
+              "q": 264,
+              "r": -17
+            },
+            {
+              "q": 265,
+              "r": -22
+            },
+            {
+              "q": 265,
+              "r": -21
+            },
+            {
+              "q": 265,
+              "r": -20
+            },
+            {
+              "q": 265,
+              "r": -19
+            },
+            {
+              "q": 265,
+              "r": -18
+            },
+            {
+              "q": 265,
+              "r": -17
+            },
+            {
+              "q": 266,
+              "r": -23
+            },
+            {
+              "q": 266,
+              "r": -22
+            },
+            {
+              "q": 266,
+              "r": -21
+            },
+            {
+              "q": 266,
+              "r": -20
+            },
+            {
+              "q": 266,
+              "r": -19
+            },
+            {
+              "q": 266,
+              "r": -18
+            },
+            {
+              "q": 266,
+              "r": -17
+            },
+            {
+              "q": 267,
+              "r": -24
+            },
+            {
+              "q": 267,
+              "r": -23
+            },
+            {
+              "q": 267,
+              "r": -22
+            },
+            {
+              "q": 267,
+              "r": -21
+            },
+            {
+              "q": 267,
+              "r": -20
+            },
+            {
+              "q": 267,
+              "r": -19
+            },
+            {
+              "q": 267,
+              "r": -18
+            },
+            {
+              "q": 267,
+              "r": -17
+            },
+            {
+              "q": 268,
+              "r": -26
+            },
+            {
+              "q": 268,
+              "r": -25
+            },
+            {
+              "q": 268,
+              "r": -24
+            },
+            {
+              "q": 268,
+              "r": -23
+            },
+            {
+              "q": 268,
+              "r": -22
+            },
+            {
+              "q": 268,
+              "r": -21
+            },
+            {
+              "q": 268,
+              "r": -20
+            },
+            {
+              "q": 268,
+              "r": -19
+            },
+            {
+              "q": 268,
+              "r": -18
+            },
+            {
+              "q": 268,
+              "r": -17
+            },
+            {
+              "q": 268,
+              "r": -16
+            },
+            {
+              "q": 269,
+              "r": -25
+            },
+            {
+              "q": 269,
+              "r": -24
+            },
+            {
+              "q": 269,
+              "r": -23
+            },
+            {
+              "q": 269,
+              "r": -22
+            },
+            {
+              "q": 269,
+              "r": -21
+            },
+            {
+              "q": 269,
+              "r": -20
+            },
+            {
+              "q": 269,
+              "r": -19
+            },
+            {
+              "q": 269,
+              "r": -18
+            },
+            {
+              "q": 270,
+              "r": -25
+            },
+            {
+              "q": 270,
+              "r": -24
+            },
+            {
+              "q": 270,
+              "r": -23
+            },
+            {
+              "q": 270,
+              "r": -22
+            },
+            {
+              "q": 270,
+              "r": -21
+            },
+            {
+              "q": 270,
+              "r": -20
+            },
+            {
+              "q": 270,
+              "r": -19
+            },
+            {
+              "q": 271,
+              "r": -25
+            },
+            {
+              "q": 271,
+              "r": -24
+            },
+            {
+              "q": 271,
+              "r": -23
+            },
+            {
+              "q": 271,
+              "r": -22
+            },
+            {
+              "q": 271,
+              "r": -21
+            },
+            {
+              "q": 271,
+              "r": -20
+            },
+            {
+              "q": 272,
+              "r": -25
+            },
+            {
+              "q": 272,
+              "r": -24
+            },
+            {
+              "q": 272,
+              "r": -23
+            },
+            {
+              "q": 272,
+              "r": -22
+            },
+            {
+              "q": 272,
+              "r": -21
+            },
+            {
+              "q": 273,
+              "r": -26
+            },
+            {
+              "q": 273,
+              "r": -21
+            }
+          ],
+          "wall_hexes": [
+            {
+              "q": 263,
+              "r": -20
+            },
+            {
+              "q": 263,
+              "r": -19
+            },
+            {
+              "q": 263,
+              "r": -18
+            },
+            {
+              "q": 263,
+              "r": -17
+            },
+            {
+              "q": 264,
+              "r": -22
+            },
+            {
+              "q": 264,
+              "r": -16
+            },
+            {
+              "q": 265,
+              "r": -23
+            },
+            {
+              "q": 265,
+              "r": -16
+            },
+            {
+              "q": 266,
+              "r": -24
+            },
+            {
+              "q": 266,
+              "r": -16
+            },
+            {
+              "q": 267,
+              "r": -25
+            },
+            {
+              "q": 267,
+              "r": -16
+            },
+            {
+              "q": 269,
+              "r": -26
+            },
+            {
+              "q": 269,
+              "r": -17
+            },
+            {
+              "q": 270,
+              "r": -26
+            },
+            {
+              "q": 270,
+              "r": -18
+            },
+            {
+              "q": 271,
+              "r": -26
+            },
+            {
+              "q": 271,
+              "r": -19
+            },
+            {
+              "q": 272,
+              "r": -26
+            },
+            {
+              "q": 272,
+              "r": -20
+            },
+            {
+              "q": 273,
+              "r": -25
+            },
+            {
+              "q": 273,
+              "r": -24
+            },
+            {
+              "q": 273,
+              "r": -23
+            },
+            {
+              "q": 273,
+              "r": -22
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "northwatch_keep_door",
+              "type": "door_open",
+              "position": {
+                "q": 273,
+                "r": -21
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "northwatch_keep_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 268,
+                "r": -21
+              },
+              "light_radius": 6
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "source_notes": [
+        "The 61-cell radius-four source hex disk is preserved, together with all six source corner gaps as walkable floor cells.",
+        "The 30-cell source wall ring is preserved minus the six open corner gaps, leaving 24 wall cells.",
+        "Garrison actors, ladders and exterior siege props remain owned by the fort/world presentation systems; this definition is the keep interior only."
+      ]
+    },
+    {
+      "id": "ridgehold_keep",
+      "name": "Ridgehold Fort Keep",
+      "anchor": {
+        "q": 426,
+        "r": 43
+      },
+      "source": "Hex-crpg/campaign2World.js:buildRidgeholdFort -> carveFlatRoom(center 426,43, halfW 3, halfH 2); exact source interiorRegions[70] floor and wall geometry",
+      "floors": [
+        {
+          "floor": 0,
+          "name": "Ridgehold Keep",
+          "terrain": "wood_floor",
+          "rooms": [],
+          "corridors": [],
+          "floor_hexes": [
+            {
+              "q": 424,
+              "r": 43
+            },
+            {
+              "q": 424,
+              "r": 44
+            },
+            {
+              "q": 424,
+              "r": 45
+            },
+            {
+              "q": 425,
+              "r": 43
+            },
+            {
+              "q": 425,
+              "r": 44
+            },
+            {
+              "q": 425,
+              "r": 45
+            },
+            {
+              "q": 426,
+              "r": 42
+            },
+            {
+              "q": 426,
+              "r": 43
+            },
+            {
+              "q": 426,
+              "r": 44
+            },
+            {
+              "q": 427,
+              "r": 42
+            },
+            {
+              "q": 427,
+              "r": 43
+            },
+            {
+              "q": 427,
+              "r": 44
+            },
+            {
+              "q": 428,
+              "r": 41
+            },
+            {
+              "q": 428,
+              "r": 42
+            },
+            {
+              "q": 428,
+              "r": 43
+            }
+          ],
+          "wall_hexes": [
+            {
+              "q": 423,
+              "r": 43
+            },
+            {
+              "q": 423,
+              "r": 44
+            },
+            {
+              "q": 423,
+              "r": 45
+            },
+            {
+              "q": 423,
+              "r": 46
+            },
+            {
+              "q": 424,
+              "r": 42
+            },
+            {
+              "q": 424,
+              "r": 46
+            },
+            {
+              "q": 425,
+              "r": 42
+            },
+            {
+              "q": 425,
+              "r": 46
+            },
+            {
+              "q": 426,
+              "r": 41
+            },
+            {
+              "q": 426,
+              "r": 45
+            },
+            {
+              "q": 427,
+              "r": 41
+            },
+            {
+              "q": 427,
+              "r": 45
+            },
+            {
+              "q": 428,
+              "r": 40
+            },
+            {
+              "q": 428,
+              "r": 44
+            },
+            {
+              "q": 429,
+              "r": 40
+            },
+            {
+              "q": 429,
+              "r": 41
+            },
+            {
+              "q": 429,
+              "r": 42
+            },
+            {
+              "q": 429,
+              "r": 43
+            }
+          ],
+          "tile_objects": [
+            {
+              "id": "ridgehold_keep_door",
+              "type": "door_open",
+              "position": {
+                "q": 426,
+                "r": 45
+              },
+              "light_radius": 0
+            },
+            {
+              "id": "ridgehold_keep_fireplace",
+              "type": "fireplace",
+              "position": {
+                "q": 426,
+                "r": 43
+              },
+              "light_radius": 6
+            }
+          ],
+          "actors": [],
+          "creatures": []
+        }
+      ],
+      "transitions": [],
+      "source_notes": [
+        "The source flat-room footprint uses half-width 3, half-height 2 and the source flat row-shift rule; all 15 walkable cells are stored explicitly.",
+        "The 18-cell source wall ring is retained, with the source door object opening its doorway cell.",
+        "Fort garrison and exterior props remain owned by the fort/world presentation systems; this definition is the keep interior only."
       ]
     }
   ]
