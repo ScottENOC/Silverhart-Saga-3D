@@ -1,5 +1,7 @@
 extends SceneTree
 
+const PREREQUISITE_DIALOGUE_SERVICE := preload("res://scripts/simulation/companion_prerequisite_dialogue_service.gd")
+
 var _failures: int = 0
 
 
@@ -12,6 +14,7 @@ func _initialize() -> void:
 	_test_aldric_money_resolution_and_faction_consequences()
 	_test_aldric_measure_of_oath_prerequisite_and_literal_self_decision()
 	_test_aldric_measure_of_oath_bounded_self_decision()
+	_test_prerequisite_dialogue_adapter_routes_npc_evidence()
 	if _failures > 0:
 		push_error("%d companion prerequisite quest assertion(s) failed." % _failures)
 		quit(1)
@@ -289,3 +292,30 @@ func _test_aldric_measure_of_oath_bounded_self_decision() -> void:
 	_check(String(result.get("effective_resolution", "")) == "bounded_service", "Aldric chooses shared service when either source arc reaches zero")
 	_check(bool(result.get("outcome_flags", {}).get("vow_amended", false)), "The bounded outcome records the amended service")
 	_check(float(result.get("arc_state", {}).get("discernment", -99.0)) == 8.0, "The self-decision applies its own authored arc delta")
+
+
+
+func _test_prerequisite_dialogue_adapter_routes_npc_evidence() -> void:
+	var setup := _new_aldric_quest()
+	if setup.is_empty():
+		return
+	var chains: Variant = setup.chains
+	var journal: CampaignJournal = setup.journal
+	var relationships: CompanionRelationshipState = setup.relationships
+	var party_ids: Array[String] = ["ser_aldric_thorne"]
+	var companion_dialogue: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "ser_aldric_thorne", party_ids)
+	_check(String(companion_dialogue.get("quest_id", "")) == "aldric_broken_vigil")
+	_check(companion_dialogue.get("choices", []).size() == 2, "The companion adapter exposes the authored opening responses")
+	var ordinary_petra: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(chains, journal, "guildmaster_petra_voss")
+	_check(ordinary_petra.get("clues", []).size() == 1, "The ordinary Petra interaction does not expose the sealed dispatch")
+	var persuasion: Array[String] = ["persuasion"]
+	var skilled_petra: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.actor_prompt(chains, journal, "guildmaster_petra_voss", persuasion)
+	_check(skilled_petra.get("clues", []).size() == 2, "Persuasion exposes both the roster and sealed dispatch")
+	var recorded: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.record_actor_clues(chains, journal, "guildmaster_petra_voss", 5100.0, persuasion)
+	_check(bool(recorded.get("ok", false)))
+	_check(bool(recorded.get("can_resolve", false)), "The sealed dispatch provides the alternative full-proof resolution route")
+	var ready_dialogue: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.dialogue_for_companion(chains, journal, "ser_aldric_thorne", party_ids)
+	_check(ready_dialogue.get("choices", []).size() == 4, "The companion adapter exposes all four authored resolutions when evidence is sufficient")
+	var player := CharacterState.new("player", "Player")
+	var resolution: Dictionary = PREREQUISITE_DIALOGUE_SERVICE.resolve(chains, journal, relationships, "aldric_broken_vigil", "private_closure", 5200.0, player)
+	_check(bool(resolution.get("ok", false)), "The dialogue adapter routes the companion's resolution back to campaign state")
