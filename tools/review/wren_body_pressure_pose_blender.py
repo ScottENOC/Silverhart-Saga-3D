@@ -157,7 +157,7 @@ def author_pressure_shapes(actor, surface_centres, report):
                     continue
                 weight = (1.0 - normalized_distance) ** 2
                 normal_world = normal_matrix @ vertex.normal
-                if normal_world.length_squared() < 0.000001:
+                if normal_world.length_squared < 0.000001:
                     continue
                 normal_world.normalize()
                 world_delta = -normal_world * (max_depth * weight)
