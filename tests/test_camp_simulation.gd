@@ -285,15 +285,18 @@ func _test_dwelling_station_presentation() -> void:
 			"dwelling_profile": {
 				"dwelling_id": "silverhart_manor",
 				"layout_id": "silverhart_manor_livable",
-				"sleeping_capacity": 8
+				"sleeping_capacity": 0,
+				"is_sheltered": true,
+				"placed_furniture": []
 			}
 		},
 		[],
 		{"fire_lit": true}
 	)
-	_check(manor_presenter.has_node("InWorldCampsite/DwellingStations/DwellingStation_hearth/HearthStoneBase"), "A manor should present a built hearth rather than a wilderness fire ring.")
-	_check(manor_presenter.has_node("InWorldCampsite/DwellingStations/DwellingStation_study/StudyDeskTop"), "A manor should visibly present its dedicated study station.")
-	_check(manor_presenter.has_node("InWorldCampsite/DwellingStations/DwellingStation_workshop/WorkshopBenchTop"), "A manor should visibly present its workshop station.")
+	_check(manor_presenter.has_node("InWorldCampsite/DwellingStations/DwellingStation_hearth"), "An unfurnished manor should retain invisible routine anchors for future indoor activity navigation.")
+	_check(not manor_presenter.has_node("InWorldCampsite/DwellingStations/DwellingStation_hearth/HearthStoneBase"), "A newly acquired manor should not receive a free hearth furnishing.")
+	_check(not manor_presenter.has_node("InWorldCampsite/DwellingStations/DwellingStation_study/StudyDeskTop"), "A newly acquired manor should not receive a free study desk.")
+	_check(not manor_presenter.has_node("InWorldCampsite/DwellingStations/DwellingStation_workshop/WorkshopBenchTop"), "A newly acquired manor should not receive a free workshop bench.")
 	_check(not manor_presenter.has_node("InWorldCampsite/FireRingStone_00"), "A livable dwelling should not be dressed as a wilderness fire circle.")
 	var manor_nameplate := manor_presenter.get_node_or_null("InWorldCampsite/CampNameplate") as Label3D
 	_check(manor_nameplate != null and manor_nameplate.text == "SILVERHART MANOR", "The dwelling should identify itself as the party's home.")
