@@ -4,6 +4,7 @@ extends RefCounted
 ## Text is migrated from Hex-crpg campaign2Dialogue.js and ambientChatterExpansion.js.
 
 const QUEST_ID := "hollowmere_ironbond_shakedown"
+const FACTION_DECISION_SERVICE := preload("res://scripts/simulation/campaign_faction_decision_service.gd")
 
 static func shakedown_quest_definition() -> Dictionary:
     return {
@@ -93,30 +94,52 @@ static func apply_shakedown_choice(journal: CampaignJournal, choice_id: String) 
             break
     if selected.is_empty():
         return {"ok": false, "reason": "choice_unavailable"}
-    var decision := journal.record_decision(QUEST_ID, "response", choice_id)
-    if not bool(decision.get("ok", false)):
-        return decision
-    journal.set_objective_progress(QUEST_ID, "response", 1.0)
     var reason := "Hollowmere shakedown: " + choice_id
+    var faction_delta := 0.0
+    var knowledge_delta := 0.0
+    var influence_delta := 0.0
+    match choice_id:
+        "stay_out":
+            faction_delta = 5.0
+            knowledge_delta = 5.0
+            influence_delta = 1.0
+        "encourage_pay":
+            faction_delta = 15.0
+            knowledge_delta = 15.0
+            influence_delta = 2.0
+        "fight":
+            faction_delta = -35.0
+            knowledge_delta = 25.0
+            influence_delta = -2.0
+    var faction_changes: Array[Dictionary] = [{
+        "faction_id": "ironbond_company",
+        "standing_delta": faction_delta,
+        "knowledge_delta": knowledge_delta
+    }]
+    var influence_changes: Array[Dictionary] = [{
+        "faction_id": "ironbond_company",
+        "kingdom_id": "silverhart_kingdom",
+        "amount": influence_delta
+    }]
+    var consequence := FACTION_DECISION_SERVICE.apply_outcome(
+        journal, QUEST_ID, "response", choice_id, faction_changes, influence_changes, reason
+    )
+    if not bool(consequence.get("ok", false)):
+        return consequence
+    journal.set_objective_progress(QUEST_ID, "response", 1.0)
     match choice_id:
         "stay_out":
             _cascade_reputation(journal, -10.0, 10.0, reason)
             journal.adjust_npc_reputation("mira_ashbrook", -5.0, 5.0, reason)
             journal.adjust_npc_reputation("oskar_vinn", -5.0, 5.0, reason)
-            journal.adjust_faction_reputation("ironbond_company", 5.0, 5.0, reason)
-            journal.adjust_merchant_influence("ironbond_company", "silverhart_kingdom", 1.0, reason)
         "encourage_pay":
             _cascade_reputation(journal, 5.0, 15.0, reason)
             journal.adjust_npc_reputation("mira_ashbrook", 0.0, 10.0, reason)
             journal.adjust_npc_reputation("oskar_vinn", 0.0, 10.0, reason)
-            journal.adjust_faction_reputation("ironbond_company", 15.0, 15.0, reason)
-            journal.adjust_merchant_influence("ironbond_company", "silverhart_kingdom", 2.0, reason)
         "fight":
             _cascade_reputation(journal, 25.0, 20.0, reason)
             journal.adjust_npc_reputation("mira_ashbrook", 20.0, 20.0, reason)
             journal.adjust_npc_reputation("oskar_vinn", 20.0, 20.0, reason)
-            journal.adjust_faction_reputation("ironbond_company", -35.0, 25.0, reason)
-            journal.adjust_merchant_influence("ironbond_company", "silverhart_kingdom", -2.0, reason)
     var arc_side := String(selected.get("arc_side", ""))
     if not arc_side.is_empty():
         journal.record_decision(QUEST_ID, "ironbond_arc_side", arc_side)
