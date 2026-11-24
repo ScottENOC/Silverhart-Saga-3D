@@ -78,7 +78,7 @@ static func choices() -> Array[Dictionary]:
 			"npc_updates": [{
 				"npc_id": "reeve_aldous_finch",
 				"deltas": {"trust": 15.0, "fear": -10.0},
-				"flags": {"will_openly_oppose_ironbond": true}
+				"flags": {"will_openly_oppose_ironbond": true, "public_status_visible": true, "public_status": "Openly opposes Ironbond"}
 			}]
 		},
 		{
@@ -93,7 +93,7 @@ static func choices() -> Array[Dictionary]:
 			"settlement_updates": [{
 				"settlement_id": "reddale",
 				"deltas": {"prosperity": 8.0, "ironbond_presence": 20.0},
-				"flags": {"ironbond_deal_brokered": true}
+				"flags": {"ironbond_deal_brokered": true, "public_status_visible": true, "public_status": "Brokered Ironbond deal"}
 			}],
 			"npc_updates": [{
 				"npc_id": "reeve_aldous_finch",
