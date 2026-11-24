@@ -23,6 +23,7 @@ const ANIMATIONS := [
 const OUTPUT_DIR := "res://artifacts/ara-animation"
 
 var failures: Array[String] = []
+var arm_pose_reference: Dictionary = {"schema_version": 1, "source": "Ara imported animation clips", "clips": {}}
 
 func _initialize() -> void:
 	call_deferred("_capture")
