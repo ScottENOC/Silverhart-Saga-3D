@@ -1132,8 +1132,10 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		if bool(resolution_result.get("ok", false)):
 			var reward_text := String(resolution_result.get("line", "The decision is made."))
 			var xp_reward := int(resolution_result.get("xp_reward", 0))
-			if xp_reward > 0:
-				reward_text += "\n\nQuest complete · %d XP earned." % xp_reward
+			var player_state := simulation.get_character("player")
+			if player_state != null and xp_reward > 0:
+				player_state.experience += xp_reward
+				reward_text += "\n\nChapter complete · %d XP gained." % xp_reward
 			_show_dialogue(String(choice.get("companion_name", "Companion")), reward_text, [{"id":"continue","label":"Continue","text":""}])
 		else:
 			_show_dialogue("Campaign journal", "That resolution could not be recorded: %s." % String(resolution_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
@@ -1340,6 +1342,10 @@ func _refresh_nearby_interactions() -> void:
 	if dialogue_open or encounter_active or simulation.is_in_combat:
 		nearby_interaction_panel.visible = false
 		return
+	var active_state := simulation.get_character(active_character_id)
+	if active_state == null:
+		nearby_interaction_panel.visible = false
+		return
 	var nearby: Array[Dictionary] = NPC_INTERACTION_SERVICE.nearby_entries(
 		simulation,
 		active_character_id,
@@ -1370,7 +1376,7 @@ func _refresh_nearby_interactions() -> void:
 		if not COMPANION_CAMPAIGN_SCRIPT.is_companion_id(party_id) and party_id != "companion_wren_talbot":
 			continue
 		var party_state := simulation.get_character(party_id)
-		if party_state == null or HexGrid.distance(simulation.get_character(active_character_id).axial, party_state.axial) > 2:
+		if party_state == null or HexGrid.distance(active_state.axial, party_state.axial) > 2:
 			continue
 		var already_listed := false
 		for entry_value in nearby:
