@@ -12,6 +12,7 @@ const DEFAULT_NIGHT_HOURS := 8.0
 const TENT_COMFORTABLE_CAPACITY := 3
 const TENT_MAX_CAPACITY := 5
 const PLAYER_OVERRIDE_SECONDS := 10.0
+const ROUTINE_STAGE_THRESHOLDS := [120.0, 360.0]
 const ACTIVITY_IDS: Array[String] = [
 	"gather_wood", "set_up_tents", "fetch_water", "cook", "repair_gear",
 	"study_map", "train", "socialise", "watch", "sleep"
@@ -27,6 +28,9 @@ var sleeping_arrangements: Array[Dictionary] = []
 var conditions: Dictionary = {}
 var evening_activity_history: Dictionary = {}
 var elapsed_world_seconds: float = 0.0
+var routine_stage: int = 0
+var _preparations_completed: bool = false
+var companion_profiles: Dictionary = {}
 var _default_assignments: Dictionary = {}
 var lodging_profile: Dictionary = {}
 
@@ -62,6 +66,9 @@ func begin_camp(site_data: Dictionary, member_ids: Array, environment_data: Dict
 	}
 	assignments.clear()
 	_default_assignments.clear()
+	companion_profiles = environment.get("companion_profiles", {}).duplicate(true)
+	routine_stage = 0
+	_preparations_completed = false
 	sleeping_arrangements.clear()
 	evening_activity_history.clear()
 	elapsed_world_seconds = 0.0
@@ -98,8 +105,50 @@ func _plan_initial_activities() -> void:
 
 func _assign_from_pool(available: Array, activity: String, count: int) -> void:
 	for _index in range(mini(count, available.size())):
-		var character_id := String(available.pop_front())
+		var best_index := 0
+		var best_score := -INF
+		for candidate_index in range(available.size()):
+			var candidate_id := String(available[candidate_index])
+			var score := _activity_suitability(candidate_id, activity)
+			if score > best_score:
+				best_score = score
+				best_index = candidate_index
+		var character_id := String(available.pop_at(best_index))
 		_set_assignment(character_id, activity)
+
+
+func _activity_suitability(character_id: String, activity: String) -> float:
+	var profile: Dictionary = companion_profiles.get(character_id, {})
+	var condition := condition_for(character_id)
+	var fatigue := maxf(float(profile.get("fatigue", 0.0)), float(condition.get("fatigue", 0.0)))
+	var injured := bool(profile.get("injured", false))
+	var role := String(profile.get("role", "")).to_lower()
+	var personality := String(profile.get("personality", "")).to_lower()
+	var score := 0.0
+	match activity:
+		"gather_wood", "set_up_tents":
+			if role in ["ranger", "fighter", "barbarian", "druid"] or personality in ["practical", "dutiful", "outdoors"]:
+				score += 3.0
+		"fetch_water":
+			if role in ["ranger", "druid", "cleric"] or personality == "practical":
+				score += 2.0
+		"cook":
+			if personality in ["nurturing", "gregarious", "practical"]:
+				score += 3.0
+		"repair_gear":
+			if role in ["fighter", "ranger", "rogue"] or personality in ["craftsman", "meticulous"]:
+				score += 3.0
+		"study_map":
+			if role in ["mage", "cleric", "wizard"] or personality in ["scholarly", "curious", "methodical"]:
+				score += 3.0
+		"socialise":
+			if personality in ["gregarious", "warm", "outgoing"]:
+				score += 3.0
+	if activity in ["gather_wood", "set_up_tents", "fetch_water", "train"] and fatigue >= 65.0:
+		score -= 4.0
+	if injured and activity in ["gather_wood", "set_up_tents", "train"]:
+		score -= 5.0
+	return score
 
 
 func _assign_watchers(available: Array) -> void:
@@ -217,7 +266,74 @@ func advance_real_time(real_delta: float) -> float:
 		else:
 			assignments[character_id] = assignment
 	elapsed_world_seconds += real_delta * EXPLORATION_SECONDS_PER_REAL_SECOND
+	var next_stage := 0
+	for threshold in ROUTINE_STAGE_THRESHOLDS:
+		if elapsed_world_seconds >= float(threshold):
+			next_stage += 1
+	while routine_stage < next_stage:
+		routine_stage += 1
+		_advance_evening_routines(routine_stage)
 	return 0.0
+
+
+func _advance_evening_routines(stage: int) -> void:
+	if stage == 1 and not _preparations_completed:
+		_complete_evening_preparations()
+		_preparations_completed = true
+	for character_id in party_ids:
+		var current: Dictionary = assignments.get(character_id, {})
+		if bool(current.get("player_override", false)):
+			continue
+		var next_activity := _routine_activity_for(character_id, stage)
+		if String(current.get("activity", "")) != next_activity:
+			_set_assignment(character_id, next_activity)
+
+
+func _routine_activity_for(character_id: String, stage: int) -> String:
+	var profile: Dictionary = companion_profiles.get(character_id, {})
+	var condition := condition_for(character_id)
+	var fatigue := maxf(float(profile.get("fatigue", 0.0)), float(condition.get("fatigue", 0.0)))
+	var injured := bool(profile.get("injured", false))
+	var personality := String(profile.get("personality", "")).to_lower()
+	var has_dwelling := int(lodging_profile.get("sleeping_capacity", 0)) > 0
+	var severe_weather := _weather_is_severe()
+	if int(resources.water) < party_ids.size() and bool(environment.get("water_nearby", false)):
+		return "fetch_water"
+	if int(resources.wood) <= 0 and bool(environment.get("trees_nearby", false)) and not bool(environment.get("fire_lit", false)):
+		return "gather_wood"
+	if stage == 1:
+		if int(resources.repair_kits) > 0 and injured:
+			return "repair_gear"
+		if fatigue >= 70.0 or injured:
+			return "socialise"
+		if personality in ["scholarly", "curious", "methodical"]:
+			return "study_map"
+		if personality in ["craftsman", "meticulous"] and int(resources.repair_kits) > 0:
+			return "repair_gear"
+		if personality in ["dutiful", "guardian"] and fatigue < 55.0 and not severe_weather:
+			return "train"
+		if severe_weather and not has_dwelling:
+			return "socialise"
+		return "cook" if int(resources.rations) > 0 and int(resources.wood) > 0 else "socialise"
+	if fatigue >= 55.0 or injured:
+		return "socialise"
+	if personality in ["scholarly", "curious", "methodical"]:
+		return "study_map"
+	if has_dwelling and personality in ["craftsman", "meticulous"] and int(resources.repair_kits) > 0:
+		return "repair_gear"
+	if severe_weather and not has_dwelling:
+		return "socialise"
+	return "socialise"
+
+
+func _weather_is_severe() -> bool:
+	return (
+		bool(environment.get("storm", false))
+		or bool(environment.get("heavy_rain", false))
+		or float(environment.get("wind_speed", 0.0)) >= 45.0
+		or float(environment.get("rain_intensity", 0.0)) >= 0.7
+		or float(environment.get("night_temperature_c", 10.0)) <= 2.0
+	)
 
 
 func plan_sleeping_arrangements(tent_count: int, bonds: CompanionBondState = null) -> Array[Dictionary]:
@@ -319,6 +435,8 @@ func _count_watchers() -> int:
 
 
 func _complete_evening_preparations() -> void:
+	if _preparations_completed:
+		return
 	if int(resources.wood) <= 0 and bool(environment.get("trees_nearby", false)) and _has_activity("gather_wood"):
 		resources["wood"] = 1
 	if bool(environment.get("water_nearby", false)) and _has_activity("fetch_water"):
@@ -418,7 +536,9 @@ func to_dict() -> Dictionary:
 		"assignments": assignments.duplicate(true), "default_assignments": _default_assignments.duplicate(true),
 		"sleeping_arrangements": sleeping_arrangements.duplicate(true),
 		"conditions": conditions.duplicate(true), "evening_activity_history": evening_activity_history.duplicate(true),
-		"elapsed_world_seconds": elapsed_world_seconds, "lodging_profile": lodging_profile.duplicate(true)
+		"elapsed_world_seconds": elapsed_world_seconds, "lodging_profile": lodging_profile.duplicate(true),
+		"routine_stage": routine_stage, "preparations_completed": _preparations_completed,
+		"companion_profiles": companion_profiles.duplicate(true)
 	}
 
 
@@ -457,4 +577,7 @@ func from_dict(data: Dictionary) -> bool:
 	conditions = saved_conditions.duplicate(true)
 	evening_activity_history = data.get("evening_activity_history", {}).duplicate(true)
 	elapsed_world_seconds = maxf(0.0, float(data.get("elapsed_world_seconds", 0.0)))
+	routine_stage = clampi(int(data.get("routine_stage", 0)), 0, ROUTINE_STAGE_THRESHOLDS.size())
+	_preparations_completed = bool(data.get("preparations_completed", false))
+	companion_profiles = data.get("companion_profiles", environment.get("companion_profiles", {})).duplicate(true)
 	return true
