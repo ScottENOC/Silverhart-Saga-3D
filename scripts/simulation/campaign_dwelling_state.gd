@@ -2,6 +2,19 @@ class_name CampaignDwellingState
 extends RefCounted
 ## Persistent ownership, restoration and improvement state for player dwellings.
 
+const SITE_HEXES := {
+	"crossroads_plot": Vector2i(13, 27),
+	"abandoned_house": Vector2i(14, -176),
+	"silverhart_palace": Vector2i(8, -496),
+	"silverhart_manor": Vector2i(39, -502)
+}
+const SITE_RADII := {
+	"crossroads_plot": 2,
+	"abandoned_house": 2,
+	"silverhart_palace": 3,
+	"silverhart_manor": 2
+}
+
 const ACTIONS := {
 	"build_crossroads_cottage": {
 		"dwelling_id": "crossroads_cottage", "kind": "claim", "label": "Build the crossroads cottage", "required_site": "crossroads_plot",
@@ -36,6 +49,14 @@ const ACTIONS := {
 
 var owned: Dictionary = {}
 var upgrades: Dictionary = {}
+
+
+func is_at_site(site_id: String, player_hex: Vector2i) -> bool:
+	if not SITE_HEXES.has(site_id):
+		return false
+	var target: Vector2i = SITE_HEXES[site_id]
+	var distance := (absi(player_hex.x - target.x) + absi(player_hex.y - target.y) + absi(player_hex.x + player_hex.y - target.x - target.y)) / 2
+	return distance <= int(SITE_RADII.get(site_id, 2))
 
 
 func action_definition(action_id: String) -> Dictionary:
