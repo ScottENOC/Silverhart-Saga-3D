@@ -49,6 +49,7 @@ func _test_activity_planning_and_player_override() -> void:
 	_check(activity_names.has("set_up_tents"))
 	_check(activity_names.has("watch"))
 	_check(camp.watch_slots_for_party(8) > camp.watch_slots_for_party(3), "Larger parties should support more simultaneous watch positions")
+	_check(camp.watch_slots_for_party(1) == 0, "A lone camper cannot maintain a separate watch while sleeping")
 	camp.assign_activity("player", "train")
 	camp.advance_real_time(9.0)
 	_check(String(camp.assignments.player.activity) == "train")
