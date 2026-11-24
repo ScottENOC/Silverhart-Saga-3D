@@ -22,6 +22,18 @@ def write(path,doc,binary):
     total=12+8+len(j)+8+len(binary)
     Path(path).write_bytes(struct.pack('<4sII',b'glTF',2,total)+struct.pack('<I4s',len(j),b'JSON')+j+struct.pack('<I4s',len(binary),b'BIN\0')+binary)
 
+def skinned_mesh_node(d, label='source'):
+    """Return the sole mesh node bound to a skin, regardless of its material.
+
+    Garment-only Ara exports contain a skinned garment mesh but deliberately do
+    not contain the body's Skin material. Requiring that material here confuses
+    a valid garment-only export with a missing rig.
+    """
+    hits=[n for n in d.get('nodes',[]) if 'mesh' in n and 'skin' in n]
+    if len(hits)!=1:
+        raise ValueError(f'Expected one skinned {label} mesh node, got {len(hits)}')
+    return hits[0]
+
 def body_node(d):
     hits=[]
     for n in d['nodes']:
@@ -90,7 +102,7 @@ def add(target,buf,source_path,selector):
     sj=[src['nodes'][i].get('name') for i in src['skins'][0]['joints']]
     if set(tj)!=set(sj): raise ValueError(f'Skeleton bones differ in {source_path}')
     joint_map=[tj.index(name) for name in sj]
-    tn=body_node(target); sn=body_node(src)
+    tn=body_node(target); sn=skinned_mesh_node(src, 'garment')
     target_mesh=target['meshes'][tn['mesh']]
     source_mesh=src['meshes'][sn['mesh']]
     for k in ('translation','rotation','scale','matrix'):
