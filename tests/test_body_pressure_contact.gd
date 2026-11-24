@@ -77,20 +77,21 @@ func _test_garment_adds_transient_body_damping() -> void:
 	cloth_profile.max_compression_m = base_profile.max_compression_m
 	baseline.register_region(&"breast_left", base_profile)
 	clothed.register_region(&"breast_left", cloth_profile)
-	for _frame in range(12):
-		baseline.apply_pressure(&"breast_left", 20.0)
-		clothed.apply_pressure(&"breast_left", 20.0)
-		baseline.step(1.0 / 60.0)
-		clothed.step(1.0 / 60.0)
-	assert(clothed.get_velocity_m_per_s(&"breast_left") > 0.0, "Test setup should have a moving compressed region.")
+	# One identical impulse gives both regions the same positive velocity.
+	baseline.apply_pressure(&"breast_left", 20.0)
+	clothed.apply_pressure(&"breast_left", 20.0)
+	baseline.step(1.0 / 60.0)
+	clothed.step(1.0 / 60.0)
+	assert(clothed.get_velocity_m_per_s(&"breast_left") > 0.0, "Test setup should have positive body velocity.")
+	# A lightly touching garment adds damping but no extra compressive force.
 	BodyPressureContact.submit_garment_contact(
-		clothed, &"breast_left", 0.006, 0.0, 1000.0, 0.0, 180.0
+		clothed, &"breast_left", 0.001, 0.0, 0.0, 0.0, 180.0
 	)
 	clothed.step(1.0 / 60.0)
 	baseline.step(1.0 / 60.0)
 	assert(clothed.get_velocity_m_per_s(&"breast_left") < baseline.get_velocity_m_per_s(&"breast_left"),
 		"Garment contact should damp underlying body motion more than the uncovered region.")
-	# No garment contact on subsequent ticks: the extra damping must not persist.
+	# With no garment contact on subsequent ticks, the extra damping is removed.
 	for _frame in range(60):
 		clothed.step(1.0 / 60.0)
 		baseline.step(1.0 / 60.0)
