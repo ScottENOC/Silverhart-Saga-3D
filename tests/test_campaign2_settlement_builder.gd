@@ -60,6 +60,10 @@ func _initialize() -> void:
 		push_error("Elder Nessa Wren must retain the canonical actor ID used by Fenn's chapter consultation route.")
 		quit(1)
 		return
+	if not nessa_actor.is_in_group("campaign2_npc"):
+		push_error("Elder Nessa Wren must be discoverable by the streamed regional NPC interaction controller.")
+		quit(1)
+		return
 
 	var emberlode_east_chunk := Node3D.new()
 	root.add_child(emberlode_east_chunk)
