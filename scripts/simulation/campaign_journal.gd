@@ -12,6 +12,7 @@ var faction_knowledge: Dictionary = {}
 var npc_standings: Dictionary = {}
 var npc_knowledge: Dictionary = {}
 var merchant_influence: Dictionary = {}
+var world_consequences: Dictionary = {}
 
 
 func register_quest_definition(definition: Dictionary) -> Dictionary:
@@ -267,6 +268,48 @@ func npc_standing(npc_id: String) -> float:
 
 
 
+## Persist a consequence tied to a previously recorded campaign decision.
+## Replays of the same consequence are idempotent; conflicting reuse is rejected.
+func record_world_consequence(consequence_id: String, quest_id: String, decision_id: String, consequence: Dictionary) -> Dictionary:
+    var stable_id := consequence_id.strip_edges()
+    var source_quest := quest_id.strip_edges()
+    var source_decision := decision_id.strip_edges()
+    if stable_id.is_empty() or source_quest.is_empty() or source_decision.is_empty():
+        return {"ok": false, "reason": "missing_consequence_identity"}
+    if consequence.is_empty():
+        return {"ok": false, "reason": "empty_consequence"}
+    if not quests.has(source_quest):
+        return {"ok": false, "reason": "quest_not_started"}
+    var quest: Dictionary = quests[source_quest]
+    var decisions: Dictionary = quest.get("decisions", {})
+    if not decisions.has(source_decision):
+        return {"ok": false, "reason": "source_decision_not_recorded"}
+    var existing: Variant = world_consequences.get(stable_id)
+    if existing is Dictionary:
+        if String(existing.get("quest_id", "")) == source_quest and String(existing.get("decision_id", "")) == source_decision and existing.get("value", {}) == consequence:
+            return {"ok": true, "already_recorded": true, "consequence_id": stable_id}
+        return {"ok": false, "reason": "consequence_id_conflict"}
+    world_consequences[stable_id] = {
+        "quest_id": source_quest,
+        "decision_id": source_decision,
+        "value": consequence.duplicate(true)
+    }
+    _emit_event("world_consequence_recorded", {
+        "consequence_id": stable_id,
+        "quest_id": source_quest,
+        "decision_id": source_decision,
+        "consequence": consequence.duplicate(true)
+    })
+    return {"ok": true, "already_recorded": false, "consequence_id": stable_id}
+
+
+func world_consequence(consequence_id: String) -> Dictionary:
+    var record: Variant = world_consequences.get(consequence_id, {})
+    if not record is Dictionary:
+        return {}
+    return record.duplicate(true)
+
+
 func quest_state(quest_id: String) -> Dictionary:
     if not quests.has(quest_id):
         return {}
@@ -281,7 +324,8 @@ func to_dict() -> Dictionary:
         "npc_standings": npc_standings.duplicate(true),
         "faction_knowledge": faction_knowledge.duplicate(true),
         "npc_knowledge": npc_knowledge.duplicate(true),
-        "merchant_influence": merchant_influence.duplicate(true)
+        "merchant_influence": merchant_influence.duplicate(true),
+        "world_consequences": world_consequences.duplicate(true)
     }
 
 
@@ -292,6 +336,7 @@ func load_dict(data: Dictionary) -> void:
     faction_knowledge.clear()
     npc_knowledge.clear()
     merchant_influence.clear()
+    world_consequences.clear()
     var saved_quests: Variant = data.get("quests", {})
     if saved_quests is Dictionary:
         for quest_id_value in saved_quests.keys():
@@ -315,6 +360,12 @@ func load_dict(data: Dictionary) -> void:
     if saved_npc_knowledge is Dictionary:
         for npc_id_value in saved_npc_knowledge.keys():
             npc_knowledge[String(npc_id_value)] = float(saved_npc_knowledge[npc_id_value])
+    var saved_world_consequences: Variant = data.get("world_consequences", {})
+    if saved_world_consequences is Dictionary:
+        for consequence_id_value in saved_world_consequences.keys():
+            var saved_record: Variant = saved_world_consequences[consequence_id_value]
+            if saved_record is Dictionary and saved_record.get("value", {}) is Dictionary:
+                world_consequences[String(consequence_id_value)] = saved_record.duplicate(true)
     var saved_influence: Variant = data.get("merchant_influence", {})
     if saved_influence is Dictionary:
         for faction_id_value in saved_influence.keys():
