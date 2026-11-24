@@ -98,6 +98,91 @@ jobs:
           done
           test -s build/wren-briefs-shell/review/review-report.json
 
+      - name: Generate the standard Ara bra garment source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/olatunde85/3d-gen.git /tmp/ara-3d-gen
+          git -C /tmp/ara-3d-gen checkout b60b5bece6d383d2cbb7067fd50e7c8e68b5a395
+          corepack enable
+          cd /tmp/ara-3d-gen
+          pnpm install --no-frozen-lockfile
+          sed -i 's#https://files.makehumancommunity.org/asset_packs/#https://files2.makehumancommunity.org/asset_packs/#' scripts/setup-assets.ts
+          npm run setup-assets
+          cd "$GITHUB_WORKSPACE"
+          python tools/ara/patch_layering.py /tmp/ara-3d-gen
+          python tools/ara/patch_halter_bra.py /tmp/ara-3d-gen/src/core/garments/swimwear.ts
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          params = {
+              "seed": 218, "gender": 0, "age": 0.5, "muscle": 0.5,
+              "weight": 0.5, "height": 0.5, "proportions": 0.5,
+              "african": 0.05, "asian": 0.05, "caucasian": 0.9,
+              "breastSize": 0.5, "breastFirmness": 0.55,
+              "hair": "short02", "hairTint": "#49372a",
+              "outfit": "none", "top": "none", "underTop": "bra",
+              "underBottom": "none", "jacket": "none", "bottom": "none",
+              "underwear": False, "shoes": "none", "hat": "none",
+              "weapon": "none", "carry": "none", "accessories": [],
+              "detail": "high", "rig": "game", "restPose": "A",
+              "animations": True, "faceBones": True, "faceShapes": True,
+              "speechShapes": False, "expression": "neutral",
+              "name": "Ara standard bra reference"
+          }
+          Path("/tmp/ara-bra-params.json").write_text(json.dumps(params, indent=2) + "\n")
+          PY
+          mkdir -p /tmp/ara-bra-export
+          npm run export -- --params /tmp/ara-bra-params.json --detail high --formats glb --out /tmp/ara-bra-export
+          source_zip="$(find /tmp/ara-bra-export -maxdepth 1 -type f -name '*.zip' -print -quit)"
+          test -n "$source_zip"
+          source_entry="$(unzip -Z1 "$source_zip" | grep -E '\.glb        uses: actions/upload-artifact@v7
+        with:
+          name: wren-ara-body-derived-briefs
+          path: build/wren-briefs-shell/
+          if-no-files-found: error
+          retention-days: 30
+ | head -n 1)"
+          test -n "$source_entry"
+          unzip -p "$source_zip" "$source_entry" > /tmp/ara-standard-bra-source.glb
+          test -s /tmp/ara-standard-bra-source.glb
+
+      - name: Fit Ara standard bra to Wren and apply shared opaque fabric
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ara/extract_garment_glb.py \
+            --body build/wren-native/Wren.glb \
+            --source /tmp/ara-standard-bra-source.glb \
+            --selector "Bra" \
+            --output build/wren-briefs-shell/Wren_Ara_Bra_assembled.glb
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          blender --background --python-exit-code 1 \
+            --python tools/blender/garment_shell/build_ara_bra_review.py -- \
+            --input build/wren-briefs-shell/Wren_Ara_Bra_assembled.glb \
+            --garment-output build/wren-briefs-shell/Wren_Ara_Bra.glb \
+            --review-output build/wren-briefs-shell/Wren_Ara_Bra_Review.glb \
+            --clearance-m 0.0045
+          test -s build/wren-briefs-shell/Wren_Ara_Bra.glb
+          test -s build/wren-briefs-shell/Wren_Ara_Bra_Review.glb
+          test -s build/wren-briefs-shell/Wren_Ara_Bra.report.json
+
+      - name: Render front, side and rear bra review views
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PYTHONPATH="/usr/lib/python3/dist-packages:${PYTHONPATH:-}"
+          export EGL_PLATFORM=surfaceless
+          export LIBGL_ALWAYS_SOFTWARE=1
+          blender --background --python-exit-code 1 \
+            --python tools/blender/garment_shell/render_wren_briefs_shell.py -- \
+            build/wren-native/Wren.glb \
+            build/wren-briefs-shell/Wren_Ara_Bra.glb \
+            build/wren-briefs-shell/review/bra
+          for view in front side rear; do
+            test -s "build/wren-briefs-shell/review/bra/$view.png"
+          done
+
       - name: Upload Wren briefs shell and diagnostics
         uses: actions/upload-artifact@v7
         with:
