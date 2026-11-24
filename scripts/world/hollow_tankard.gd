@@ -1062,6 +1062,17 @@ func _show_dialogue(speaker: String, body: String, choices: Array[Dictionary]) -
 	dialogue_panel.present(speaker, body, choices)
 
 
+func _award_companion_quest_experience(result: Dictionary) -> int:
+	var reward := maxi(0, int(result.get("xp_reward", 0)))
+	if reward <= 0 or simulation == null:
+		return 0
+	var player := simulation.get_character("player")
+	if player == null:
+		return 0
+	player.experience += reward
+	return reward
+
+
 func _select_dialogue_choice(choice: Dictionary) -> void:
 	var choice_id := String(choice.get("id", ""))
 	if choice_id == "companion_chain_start":
@@ -1101,7 +1112,11 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 			simulation.clock.world_seconds
 		)
 		if bool(chain_resolution.get("ok", false)):
-			_show_dialogue(String(choice.get("companion_id", "Companion")), String(chain_resolution.get("line", "The decision is made.")), [{"id":"continue","label":"Continue","text":""}])
+			var chain_line := String(chain_resolution.get("line", "The decision is made."))
+			var chain_xp := _award_companion_quest_experience(chain_resolution)
+			if chain_xp > 0:
+				chain_line += "\\n\\n+%d XP" % chain_xp
+			_show_dialogue(String(choice.get("companion_id", "Companion")), chain_line, [{"id":"continue","label":"Continue","text":""}])
 		else:
 			_show_dialogue("Campaign journal", "That resolution is not available: %s." % String(chain_resolution.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
 		return
@@ -1158,6 +1173,9 @@ func _select_dialogue_choice(choice: Dictionary) -> void:
 		)
 		if bool(resolution_result.get("ok", false)):
 			var outcome_line := String(resolution_result.get("line", resolution_result.get("text", "You and your companion have reached a decision.")))
+			var prerequisite_xp := _award_companion_quest_experience(resolution_result)
+			if prerequisite_xp > 0:
+				outcome_line += "\\n\\n+%d XP" % prerequisite_xp
 			_show_dialogue(String(choice.get("companion_id", "Companion")), outcome_line, [{"id":"continue","label":"Continue","text":""}])
 		else:
 			_show_dialogue("Campaign journal", "That resolution is not available: %s." % String(resolution_result.get("reason", "unknown reason")), [{"id":"continue","label":"Continue","text":""}])
